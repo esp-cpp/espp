@@ -21,6 +21,25 @@ using namespace std::chrono_literals;
 
 namespace espp {
 
+// espp::DisplayRotation and lv_display_rotation_t enumerate the same four
+// quarter-turns in the same order, and espp::Display itself converts between
+// them by value (static_cast, see display.hpp). The rotation logic below leans
+// on that correspondence — flush() keys off the LVGL enum while
+// on_display_rotation() receives the espp one — so pin the mapping down
+// explicitly and convert through these helpers only.
+static_assert(static_cast<int>(DisplayRotation::LANDSCAPE) == LV_DISPLAY_ROTATION_0 &&
+                  static_cast<int>(DisplayRotation::PORTRAIT) == LV_DISPLAY_ROTATION_90 &&
+                  static_cast<int>(DisplayRotation::LANDSCAPE_INVERTED) ==
+                      LV_DISPLAY_ROTATION_180 &&
+                  static_cast<int>(DisplayRotation::PORTRAIT_INVERTED) == LV_DISPLAY_ROTATION_270,
+              "espp::DisplayRotation and lv_display_rotation_t must stay value-compatible");
+static constexpr lv_display_rotation_t to_lv_rotation(DisplayRotation rotation) {
+  return static_cast<lv_display_rotation_t>(rotation);
+}
+static constexpr DisplayRotation to_display_rotation(lv_display_rotation_t rotation) {
+  return static_cast<DisplayRotation>(rotation);
+}
+
 M5StackTab5::DisplayController M5StackTab5::detect_display_controller() {
   auto &i2c = internal_i2c();
 
@@ -366,6 +385,22 @@ bool M5StackTab5::initialize_lcd() {
     return false;
   }
 
+  // Program the panel's initial scan direction so the rotation decision
+  // flush() makes via panel_handles_rotation() is valid from the very first
+  // frame. In the documented init order (initialize_lcd() before
+  // initialize_display()) this is already guaranteed: espp::Display's
+  // constructor calls lv_display_set_rotation() with the initial rotation,
+  // which synchronously fires the LV_EVENT_RESOLUTION_CHANGED handler (in
+  // LVGL, update_resolution() sends the event as a direct call) and thus
+  // on_display_rotation() before any flush can run. But if
+  // initialize_display() ran first, that initial callback was dropped because
+  // display_driver_ did not exist yet — so (re)apply the current rotation here
+  // now that the driver is up. Harmless when redundant: it rewrites the MADCTL
+  // value the driver init just programmed.
+  on_display_rotation(
+      display_ ? to_display_rotation(lv_display_get_rotation(display_->get_lvgl_display()))
+               : rotation);
+
   logger_.info("M5Stack Tab5 LCD initialization completed successfully");
   return true;
 }
@@ -507,11 +542,24 @@ void M5StackTab5::on_display_rotation(const DisplayRotation &rotation) {
     // Other variants keep the PPA/flush-time rotation path; nothing to do.
     return;
   }
-  // Runs on the LVGL thread (RESOLUTION_CHANGED event from
-  // lv_display_set_rotation), i.e. strictly ordered with subsequent flush()
-  // calls, so the MADCTL state below is always consistent with the rotation
-  // decision flush() makes via panel_handles_rotation().
-  if (rotation == DisplayRotation::LANDSCAPE || rotation == DisplayRotation::LANDSCAPE_INVERTED) {
+  // Ordering: this runs on the LVGL thread — LV_EVENT_RESOLUTION_CHANGED is
+  // sent synchronously from inside lv_display_set_rotation() — so it strictly
+  // precedes the invalidation-driven flush() calls for the new orientation,
+  // and the MADCTL state below is always consistent with the decision flush()
+  // makes via panel_handles_rotation() (the same predicate, keyed on the same
+  // rotation value via to_lv_rotation()).
+  //
+  // Synchronization with the display pipeline: the MADCTL write goes out on
+  // the DSI generic/DBI command channel (esp_lcd_panel_io_tx_param ->
+  // mipi_dsi_hal_host_gen_write_dcs_command), which the DSI host peripheral
+  // arbitrates against the DPI video stream in hardware. It never touches the
+  // DPI framebuffer or its DMA, so it cannot corrupt a previous flush()'s
+  // in-flight draw_bitmap copy. The panel may latch the new scan direction
+  // mid scan-out, which can show as (at most) a single transient frame; that
+  // is accepted here, since a rotation change is a full-screen visual
+  // discontinuity anyway and LVGL follows it immediately with a full
+  // invalidate/redraw of the new orientation.
+  if (panel_handles_rotation(to_lv_rotation(rotation))) {
     // 0 / 180: the panel applies the rotation itself (scan-direction flip via
     // MADCTL); flush() writes unrotated buffers at unrotated coordinates.
     display_driver_->set_rotation(rotation);
