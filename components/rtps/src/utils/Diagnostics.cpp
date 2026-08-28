@@ -36,6 +36,12 @@ namespace Network {
 std::atomic<uint32_t> lwip_allocation_failures{0};
 }
 
+namespace OS {
+// Declared in the header since the component consolidation (#712) but never
+// defined - any ODR-use was an undefined symbol at link time.
+std::atomic<uint32_t> current_free_heap_size{0};
+} // namespace OS
+
 namespace SEDP {
 std::atomic<uint32_t> max_ever_remote_participants{0};
 std::atomic<uint32_t> current_remote_participants{0};
