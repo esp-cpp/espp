@@ -331,6 +331,8 @@ public:
 #if CONFIG_IDF_TARGET_ARCH_RISCV
     return "riscv32-esp-elf-";
 #else
+    // cppcheck-suppress unknownMacro // CONFIG_IDF_TARGET is a Kconfig string
+    // macro ("esp32s3", ...) pasted into the literal; cppcheck cannot know it.
     return "xtensa-" CONFIG_IDF_TARGET "-elf-";
 #endif
   }

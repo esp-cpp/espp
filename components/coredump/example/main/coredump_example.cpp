@@ -44,6 +44,7 @@ enum class CrashKind : uint8_t { None, NullPointer, Assert, DivideByZero, Hang }
   case CrashKind::DivideByZero: {
     volatile int numerator = 42;
     volatile int divisor = 0;
+    // cppcheck-suppress zerodiv // deliberate: this command EXISTS to crash
     volatile int result = numerator / divisor; // IntegerDivideByZero panic
     (void)result;
     __builtin_unreachable();
@@ -57,6 +58,7 @@ enum class CrashKind : uint8_t { None, NullPointer, Assert, DivideByZero, Hang }
   case CrashKind::NullPointer:
   default: {
     volatile uint32_t *null_ptr = nullptr;
+    // cppcheck-suppress nullPointer // deliberate: this command EXISTS to crash
     *null_ptr = 0xdead; // StoreProhibited panic
     __builtin_unreachable();
   }
@@ -78,6 +80,8 @@ extern "C" void app_main(void) {
                 espp::CoreDump::reset_reason_name(espp::CoreDump::reset_reason()));
   } else {
     logger.error("Previous abnormal reset:\n{}", report);
+    // cppcheck-suppress knownConditionTrueFalse // constant only in the
+    // coredump-disabled configuration cppcheck analyzes
     if (core_dump.has_core_dump())
       logger.info("Core dump image in flash: {} bytes (download / erase it with the web console)",
                   core_dump.image_size());

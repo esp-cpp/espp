@@ -219,6 +219,8 @@ protected:
     }
     case Msg::Erase: {
       std::error_code ec;
+      // cppcheck-suppress knownConditionTrueFalse // erase() is a constant
+      // only in the coredump-disabled configuration cppcheck analyzes
       if (!core_dump_.erase(ec)) {
         send_error(ec, "ERASE failed");
         return true;
