@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <chrono>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -120,6 +121,11 @@ public:
 
 protected:
   static constexpr size_t MAX_CIRCLES = 100;
+  // Cap on the pending draw_circle() queue. The GUI task drains it every ~16 ms
+  // and the touch poll produces at most ~one point per 16 ms, so hitting this
+  // means the GUI task has stalled; drop the oldest points rather than growing
+  // without bound.
+  static constexpr size_t MAX_PENDING_POINTS = 16;
   static constexpr int TAB_BAR_HEIGHT = 50;
 
   struct Circle {
@@ -213,6 +219,9 @@ protected:
   // LVGL rendering.
   std::mutex pending_points_mutex_;
   std::vector<Circle> pending_points_;
+  // Drop accounting for the bounded pending_points_ queue (rate-limited log)
+  size_t dropped_points_{0};
+  std::chrono::steady_clock::time_point last_drop_log_{};
   // True between init_ui() and deinit_ui(). Guards set_camera_frame() (called
   // from the camera task) against touching the LVGL tree after teardown.
   bool ui_ready_{false};

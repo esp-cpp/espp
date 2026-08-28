@@ -14,6 +14,7 @@
 #include <driver/i2s_std.h>
 #include <driver/sdmmc_host.h>
 #include <esp_netif.h>
+#include <sd_pwr_ctrl.h>
 
 #include <esp_lcd_mipi_dsi.h>
 #include <esp_lcd_panel_io.h>
@@ -651,7 +652,10 @@ protected:
 
   std::atomic<bool> sd_card_initialized_{false};
   sdmmc_card_t *sdcard_{nullptr};
-  void *sd_pwr_ctrl_handle_{nullptr};
+  // SD power-control driver (on-chip LDO). Owned by this class: created in
+  // initialize_sdcard() and deleted there (sd_pwr_ctrl_del_on_chip_ldo) if the
+  // mount fails; a successful mount keeps it alive for the life of the card.
+  sd_pwr_ctrl_handle_t sd_pwr_ctrl_handle_{nullptr};
 
   /////////////////////////////////////////////////////////////////////////////
   // Interrupts (used by the optional interrupt-driven touch path)
@@ -703,6 +707,11 @@ protected:
   // Camera (MIPI-CSI via esp_video / V4L2). Sensor SCCB shares internal_i2c_.
   /////////////////////////////////////////////////////////////////////////////
   bool camera_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
+  // Tear down the capture pipeline (STREAMOFF, munmap, close, esp_video_deinit)
+  // and reset the camera state. Idempotent; does NOT touch camera_task_, so it
+  // is safe to call from the camera task itself on a fatal capture error
+  // (Task::stop() there would self-join).
+  void teardown_camera_pipeline();
   std::atomic<bool> camera_initialized_{false};
   camera_frame_callback_t camera_callback_{nullptr};
   std::unique_ptr<espp::Task> camera_task_{nullptr};

@@ -102,7 +102,7 @@ bool Esp32P4ModuleDevKit::update_touch() {
   std::error_code ec;
   bool new_data = touch_driver_->update(ec);
   if (ec) {
-    logger_.error("could not update touch driver: {}", ec.message());
+    logger_.error("Could not update touch driver: {}", ec.message());
     std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
     touchpad_data_ = {};
     return false;

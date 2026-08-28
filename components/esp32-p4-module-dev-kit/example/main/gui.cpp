@@ -402,6 +402,20 @@ void Gui::draw_circle(int x, int y, int radius) {
   // task) for the duration of lv_task_handler() rendering, collapsing the
   // touch sample rate.
   std::lock_guard<std::mutex> lock(pending_points_mutex_);
+  // Bound the queue so it cannot grow without limit if the GUI task stalls or
+  // the producers outpace the drain: drop the oldest point to keep the newest,
+  // and log drops at most once a second (from this producer context a per-drop
+  // log would itself become the bottleneck).
+  if (pending_points_.size() >= MAX_PENDING_POINTS) {
+    pending_points_.erase(pending_points_.begin());
+    ++dropped_points_;
+    auto now = std::chrono::steady_clock::now();
+    if (now - last_drop_log_ >= std::chrono::seconds(1)) {
+      last_drop_log_ = now;
+      logger_.warn("Pending touch-point queue full; dropped {} oldest point(s)", dropped_points_);
+      dropped_points_ = 0;
+    }
+  }
   pending_points_.push_back({.x = x, .y = y, .radius = radius, .visible = true});
 }
 
