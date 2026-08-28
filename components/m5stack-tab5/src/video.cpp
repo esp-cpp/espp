@@ -523,21 +523,41 @@ size_t M5StackTab5::rotated_display_height() const {
 }
 
 bool M5StackTab5::panel_handles_rotation(lv_display_rotation_t rotation) const {
+#if !CONFIG_M5STACK_TAB5_ST7121_HW_ROTATION
+  // Panel-side rotation is DISABLED by default: hardware testing showed the
+  // 180-degree MADCTL GS/SS scan flip renders corrupted on (at least some)
+  // ST7121 units - the TDDI gate/source mux tables programmed at init (the
+  // 0xAC block) are matched to the normal scan direction, and a MADCTL GS
+  // flip alone reorders gate scanning without swapping them. All orientations
+  // therefore use the PPA/flush-time rotation (the pre-existing, known-good
+  // path). Enable CONFIG_M5STACK_TAB5_ST7121_HW_ROTATION to experiment.
+  (void)rotation;
+  return false;
+#else
   // Only the ST7121 variant routes rotation to the panel (the ILI9881 and
   // ST7123 keep the historical PPA/flush-time rotation path). The Tab5 panels
   // are MIPI-DSI DPI (video mode) panels: the host streams a fixed 720x1280
   // raster, so the panel cannot swap axes for 90/270 (no MADCTL MV/GRAM
   // addressing in video mode) and those still need the frame rotated into the
   // framebuffer (PPA, or software fallback). The gate/source scan-direction
-  // flips (MADCTL GS/SS) do work, so 0 and 180 are applied by the panel
-  // itself through the espp display driver's set_rotation().
+  // flips (MADCTL GS/SS) are applied by the panel itself through the espp
+  // display driver's set_rotation() for 0 and 180 - EXPERIMENTAL, see the
+  // Kconfig help.
   if (display_controller_ != DisplayController::ST7121) {
     return false;
   }
   return rotation == LV_DISPLAY_ROTATION_0 || rotation == LV_DISPLAY_ROTATION_180;
+#endif
 }
 
 void M5StackTab5::on_display_rotation(const DisplayRotation &rotation) {
+#if !CONFIG_M5STACK_TAB5_ST7121_HW_ROTATION
+  // Panel-side rotation disabled (see panel_handles_rotation()): make this a
+  // complete no-op so NO runtime MADCTL write ever reaches the panel - the
+  // scan state stays exactly as the init sequence programmed it.
+  (void)rotation;
+  return;
+#endif
   if (!display_driver_ || display_controller_ != DisplayController::ST7121) {
     // Other variants keep the PPA/flush-time rotation path; nothing to do.
     return;
