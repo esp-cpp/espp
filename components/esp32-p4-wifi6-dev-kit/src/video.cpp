@@ -293,53 +293,58 @@ void Esp32P4Wifi6DevKit::apply_panel_params(DisplayController controller) {
   display_height_ = panel_params_.height;
 }
 
-static uint16_t *third_buffer = nullptr;
-static size_t third_buffer_px = 0; // allocated capacity of third_buffer, in pixels
-
 bool Esp32P4Wifi6DevKit::initialize_display(size_t pixel_buffer_size) {
   if (pixel_buffer_size == 0) {
     pixel_buffer_size = display_width_ * 50;
   }
-  logger_.info("Initializing LVGL display with pixel buffer size: {} pixels", pixel_buffer_size);
-  if (!display_) {
-    display_ = std::make_shared<Display<Pixel>>(
-        Display<Pixel>::LvglConfig{.width = display_width_,
-                                   .height = display_height_,
-                                   .flush_callback =
-                                       std::bind_front(&Esp32P4Wifi6DevKit::flush, this),
-                                   .rotation_callback = nullptr,
-                                   .rotation = rotation},
-        Display<Pixel>::OledConfig{
-            .set_brightness_callback =
-                [this](float brightness) { this->brightness(brightness * 100.0f); },
-            .get_brightness_callback = [this]() { return this->brightness() / 100.0f; }},
-        Display<Pixel>::DynamicMemoryConfig{
-            .pixel_buffer_size = pixel_buffer_size,
-            .double_buffered = true,
-            // Allocate the LVGL draw buffers in PSRAM to keep these large buffers
-            // out of internal SRAM. The CPU-copy flush reads them coherently.
-            .allocation_flags = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT,
-        },
-        Logger::Verbosity::WARN);
+  // Re-initialization contract: the LVGL display, its draw buffers, and the
+  // rotation scratch buffer are created exactly once. Once display_ exists a
+  // GUI/LVGL task may already be calling flush(), which reads
+  // rotation_buffer_ without locking, so nothing may be freed / reallocated /
+  // resized here after that point - refuse re-init instead. (LVGL's draw
+  // buffers are also fixed at first init, so a different pixel_buffer_size
+  // could not take effect anyway.)
+  if (display_) {
+    logger_.warn("Display already initialized; ignoring re-initialization request (the pixel "
+                 "buffer size cannot be changed after the first call)");
+    return true;
   }
+  logger_.info("Initializing LVGL display with pixel buffer size: {} pixels", pixel_buffer_size);
 
-  // Rotation scratch buffer (only used when the display is rotated). Allocate it
-  // once and reuse it across re-inits so re-initialization does not leak PSRAM;
-  // if it fails, flush() detects the null pointer and simply skips rotation.
-  if (third_buffer == nullptr || pixel_buffer_size > third_buffer_px) {
-    if (third_buffer != nullptr) {
-      heap_caps_free(third_buffer);
-      third_buffer = nullptr;
-      third_buffer_px = 0;
-    }
-    third_buffer = (uint16_t *)heap_caps_malloc(pixel_buffer_size * sizeof(uint16_t),
-                                                MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-    third_buffer_px = (third_buffer != nullptr) ? pixel_buffer_size : 0;
-    if (third_buffer == nullptr) {
+  // Rotation scratch buffer (only used when the display is rotated). Allocate
+  // it BEFORE creating display_: flush() can only run once display_ exists, so
+  // this ordering (plus the re-init guard above) guarantees flush() never
+  // observes the buffer changing. If the allocation fails, flush() detects the
+  // null pointer and simply skips rotation.
+  if (rotation_buffer_ == nullptr) {
+    rotation_buffer_ = (uint16_t *)heap_caps_malloc(pixel_buffer_size * sizeof(uint16_t),
+                                                    MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    rotation_buffer_px_ = (rotation_buffer_ != nullptr) ? pixel_buffer_size : 0;
+    if (rotation_buffer_ == nullptr) {
       logger_.warn("Could not allocate the {}-byte display rotation buffer; rotation disabled",
                    pixel_buffer_size * sizeof(uint16_t));
     }
   }
+
+  display_ = std::make_shared<Display<Pixel>>(
+      Display<Pixel>::LvglConfig{.width = display_width_,
+                                 .height = display_height_,
+                                 .flush_callback =
+                                     std::bind_front(&Esp32P4Wifi6DevKit::flush, this),
+                                 .rotation_callback = nullptr,
+                                 .rotation = rotation},
+      Display<Pixel>::OledConfig{
+          .set_brightness_callback =
+              [this](float brightness) { this->brightness(brightness * 100.0f); },
+          .get_brightness_callback = [this]() { return this->brightness() / 100.0f; }},
+      Display<Pixel>::DynamicMemoryConfig{
+          .pixel_buffer_size = pixel_buffer_size,
+          .double_buffered = true,
+          // Allocate the LVGL draw buffers in PSRAM to keep these large buffers
+          // out of internal SRAM. The CPU-copy flush reads them coherently.
+          .allocation_flags = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT,
+      },
+      Logger::Verbosity::WARN);
 
   logger_.info("LVGL display initialized");
   return true;
@@ -377,7 +382,10 @@ void Esp32P4Wifi6DevKit::write_lcd_lines(int xs, int ys, int xe, int ye, const u
     logger_.error("write_lcd_lines: Bad region: ({},{}) to ({},{})", xs, ys, xe, ye);
     return;
   }
-  esp_lcd_panel_draw_bitmap(lcd_handles_.panel, xs, ys, xe + 1, ye + 1, data);
+  esp_err_t err = esp_lcd_panel_draw_bitmap(lcd_handles_.panel, xs, ys, xe + 1, ye + 1, data);
+  if (err != ESP_OK) {
+    logger_.error("write_lcd_lines: esp_lcd_panel_draw_bitmap failed: {}", esp_err_to_name(err));
+  }
 }
 
 void Esp32P4Wifi6DevKit::brightness(float brightness) {
@@ -444,24 +452,24 @@ void Esp32P4Wifi6DevKit::flush(lv_display_t *disp, const lv_area_t *area, uint8_
   int32_t hh = lv_area_get_height(area);
   // Only rotate when the rotated area fits the scratch buffer; otherwise skip
   // rotation for this flush (fall back to unrotated) to avoid overflowing it.
-  if (rot > LV_DISPLAY_ROTATION_0 && third_buffer != nullptr &&
-      static_cast<size_t>(ww) * static_cast<size_t>(hh) <= third_buffer_px) {
+  if (rot > LV_DISPLAY_ROTATION_0 && rotation_buffer_ != nullptr &&
+      static_cast<size_t>(ww) * static_cast<size_t>(hh) <= rotation_buffer_px_) {
     lv_color_format_t cf = lv_display_get_color_format(disp);
     uint32_t w_stride = lv_draw_buf_width_to_stride(ww, cf);
     uint32_t h_stride = lv_draw_buf_width_to_stride(hh, cf);
     if (rot == LV_DISPLAY_ROTATION_180) {
       // 180° keeps the source dimensions (unlike 90/270), so pass ww/hh and the
       // width-based stride for both source and destination.
-      lv_draw_sw_rotate(px_map, third_buffer, ww, hh, w_stride, w_stride, LV_DISPLAY_ROTATION_180,
-                        cf);
+      lv_draw_sw_rotate(px_map, rotation_buffer_, ww, hh, w_stride, w_stride,
+                        LV_DISPLAY_ROTATION_180, cf);
     } else if (rot == LV_DISPLAY_ROTATION_90) {
-      lv_draw_sw_rotate(px_map, third_buffer, ww, hh, w_stride, h_stride, LV_DISPLAY_ROTATION_90,
-                        cf);
+      lv_draw_sw_rotate(px_map, rotation_buffer_, ww, hh, w_stride, h_stride,
+                        LV_DISPLAY_ROTATION_90, cf);
     } else if (rot == LV_DISPLAY_ROTATION_270) {
-      lv_draw_sw_rotate(px_map, third_buffer, ww, hh, w_stride, h_stride, LV_DISPLAY_ROTATION_270,
-                        cf);
+      lv_draw_sw_rotate(px_map, rotation_buffer_, ww, hh, w_stride, h_stride,
+                        LV_DISPLAY_ROTATION_270, cf);
     }
-    px_map = reinterpret_cast<uint8_t *>(third_buffer);
+    px_map = reinterpret_cast<uint8_t *>(rotation_buffer_);
     // Rotate a local copy of the area; LVGL provides a const area* and mutating
     // it via const_cast would be undefined behavior.
     lv_area_t rotated = *area;
@@ -472,8 +480,15 @@ void Esp32P4Wifi6DevKit::flush(lv_display_t *disp, const lv_area_t *area, uint8_
     offsety2 = rotated.y2;
   }
 
-  esp_lcd_panel_draw_bitmap(lcd_handles_.panel, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1,
-                            px_map);
+  esp_err_t err = esp_lcd_panel_draw_bitmap(lcd_handles_.panel, offsetx1, offsety1, offsetx2 + 1,
+                                            offsety2 + 1, px_map);
+  if (err != ESP_OK) {
+    logger_.error("flush: esp_lcd_panel_draw_bitmap failed: {}", esp_err_to_name(err));
+    // A failed draw never generates the on_color_trans_done callback, so mark
+    // the flush ready here; otherwise LVGL would wait on this flush forever
+    // and rendering would stall.
+    lv_display_flush_ready(disp);
+  }
 }
 
 // NOTE: this DPI on_color_trans_done callback runs in one of two contexts

@@ -112,7 +112,7 @@ bool Esp32P4Wifi6DevKit::initialize_audio(uint32_t sample_rate,
 
   // The audio task drains this stream buffer to I2S. Size it generously so a
   // whole UI sound clip fits and play_audio() can enqueue it without blocking.
-  auto tx_buf_size = calc_audio_buffer_size(sample_rate);
+  auto tx_buf_size = calc_audio_buffer_size(sample_rate, TX_NUM_CHANNELS);
   audio_tx_buffer.resize(tx_buf_size);
   audio_tx_stream = xStreamBufferCreate(std::max<size_t>(tx_buf_size * 4, 64 * 1024), 0);
   if (audio_tx_stream == nullptr) {
@@ -233,8 +233,8 @@ bool Esp32P4Wifi6DevKit::initialize_microphone(const microphone_callback_t &call
     logger_.error("Failed to init I2S RX std mode");
     return false;
   }
-  // one update period's worth of stereo frames (NUM_CHANNELS is 2)
-  audio_rx_buffer.resize(calc_audio_buffer_size(audio_sample_rate()));
+  // one update period's worth of stereo (L,R) frames
+  audio_rx_buffer.resize(calc_audio_buffer_size(audio_sample_rate(), RX_NUM_CHANNELS));
   if (i2s_channel_enable(audio_rx_handle) != ESP_OK) {
     logger_.error("Failed to enable I2S RX channel");
     return false;
@@ -263,6 +263,7 @@ bool Esp32P4Wifi6DevKit::initialize_microphone(const microphone_callback_t &call
 
 bool Esp32P4Wifi6DevKit::microphone_task_callback(std::mutex &m, std::condition_variable &cv,
                                                   bool &task_notified) {
+  (void)cv; // unused: this task paces itself on the finite-timeout I2S read below
   size_t bytes_read = 0;
   // Use a finite read timeout (not portMAX_DELAY) so this task returns
   // periodically and can observe a stop request; an infinite read would block
@@ -299,6 +300,7 @@ float Esp32P4Wifi6DevKit::microphone_volume() const { return mic_volume_; }
 
 bool Esp32P4Wifi6DevKit::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                              bool &task_notified) {
+  (void)cv; // unused: this task paces itself on the finite-timeout I2S write below
   size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
   size_t buffer_size = audio_tx_buffer.size();
   available = std::min(available, buffer_size);

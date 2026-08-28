@@ -12,20 +12,24 @@ bool Esp32P4Wifi6DevKit::initialize_touch(const touch_callback_t &callback,
   }
 
   logger_.info("Initializing GT911 multi-touch controller");
-  touch_callback_ = callback;
 
   // The board does not route the GT911 reset; the address is fixed at power-on.
-  // Probe the primary (0x5D) then the backup (0x14) address.
+  // Probe the primary (0x5D) then the backup (0x14) address. If the controller
+  // answers at neither, fail cleanly: creating the device/driver (and, in
+  // polling mode, a task) anyway would just error on every update_touch(),
+  // spamming the log and wasting CPU on a panel with no touch controller.
   uint8_t address = gt911_default_address;
   if (!internal_i2c_.probe_device(gt911_default_address)) {
     if (internal_i2c_.probe_device(gt911_backup_address)) {
       address = gt911_backup_address;
     } else {
-      logger_.warn("GT911 not found at 0x{:02X} or 0x{:02X}; continuing with 0x{:02X}",
-                   gt911_default_address, gt911_backup_address, address);
+      logger_.error("GT911 not found at 0x{:02X} or 0x{:02X}; touch is unavailable",
+                    gt911_default_address, gt911_backup_address);
+      return false;
     }
   }
   logger_.info("Using GT911 at address 0x{:02X}", address);
+  touch_callback_ = callback;
 
   std::error_code ec;
   touch_i2c_device_ = internal_i2c_.add_device<uint8_t>(

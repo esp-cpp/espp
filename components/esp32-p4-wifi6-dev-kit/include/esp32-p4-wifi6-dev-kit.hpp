@@ -246,6 +246,11 @@ public:
   /// \param pixel_buffer_size The size of the pixel buffer, in pixels. If 0, a
   ///        default based on the configured panel width is used.
   /// \return true if the display was successfully initialized, false otherwise
+  /// \note The LVGL display (and its draw / rotation buffers) is created
+  ///       exactly once. Once this has succeeded, a GUI task may be calling
+  ///       the flush callback concurrently, so subsequent calls do not resize
+  ///       or reallocate anything: they warn and return true. To change the
+  ///       pixel buffer size, do so before (i.e. on) the first call.
   bool initialize_display(size_t pixel_buffer_size = 0);
 
   /// Initialize the GT911 multi-touch controller
@@ -635,12 +640,17 @@ protected:
   static constexpr gpio_num_t audio_din_io = GPIO_NUM_11;       // codec ASDOUT -> P4
   static constexpr gpio_num_t audio_pa_enable_io = GPIO_NUM_53; // NS4150B enable
 
-  // Audio buffer sizing
-  static constexpr int NUM_CHANNELS = 2;
-  static constexpr int NUM_BYTES_PER_CHANNEL = 2;
+  // Audio buffer sizing: one UPDATE_FREQUENCY period's worth of 16-bit frames.
+  // The TX (speaker) path is configured mono (I2S_SLOT_MODE_MONO in
+  // initialize_audio()) while the RX (microphone) path captures both slots as
+  // stereo (see initialize_microphone()), so the channel count of the path
+  // being sized is passed explicitly rather than hard-coded.
+  static constexpr int TX_NUM_CHANNELS = 1;       // TX slot mode is mono
+  static constexpr int RX_NUM_CHANNELS = 2;       // RX captures both (L,R) slots
+  static constexpr int NUM_BYTES_PER_CHANNEL = 2; // 16-bit samples
   static constexpr int UPDATE_FREQUENCY = 60;
-  static constexpr int calc_audio_buffer_size(int sample_rate) {
-    return sample_rate * NUM_CHANNELS * NUM_BYTES_PER_CHANNEL / UPDATE_FREQUENCY;
+  static constexpr int calc_audio_buffer_size(int sample_rate, int num_channels) {
+    return sample_rate * num_channels * NUM_BYTES_PER_CHANNEL / UPDATE_FREQUENCY;
   }
 
   // Internal I2C bus (shared by the ES8311 codec)
@@ -722,6 +732,13 @@ protected:
   std::shared_ptr<I2c::Device<uint8_t>> backlight_i2c_device_;
   std::atomic<float> brightness_{100.0f};
   std::shared_ptr<Display<Pixel>> display_;
+  // Rotation scratch buffer used by flush(). Allocated exactly once, in
+  // initialize_display() BEFORE display_ is created (and therefore before any
+  // GUI/LVGL task can invoke flush()), and never freed or reallocated after
+  // that, so flush() may read it without locking (see initialize_display()'s
+  // re-initialization contract).
+  uint16_t *rotation_buffer_{nullptr};
+  size_t rotation_buffer_px_{0}; // allocated capacity of rotation_buffer_, in pixels
   std::shared_ptr<DisplayDriver> display_driver_{static_cast<DisplayDriver *>(nullptr)};
   struct LcdHandles {
     esp_lcd_dsi_bus_handle_t mipi_dsi_bus{nullptr};
