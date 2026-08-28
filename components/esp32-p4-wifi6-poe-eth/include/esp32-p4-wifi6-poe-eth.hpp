@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <atomic>
 #include <functional>
 #include <memory>
 
@@ -13,7 +12,6 @@
 #include "base_component.hpp"
 #include "ethernet.hpp"
 #include "i2c.hpp"
-#include "interrupt.hpp"
 
 namespace espp {
 /// @brief Board Support Package (BSP) for the Waveshare ESP32-P4-WIFI6-POE-ETH board.
@@ -29,7 +27,6 @@ namespace espp {
 ///   rectifiers and a 5-pin header for Waveshare's PoE module, which produces
 ///   the board's 5 V rail) — no GPIO is involved, so a PoE-powered board looks
 ///   identical to a USB-powered one in software.
-/// - The BOOT push-button (GPIO35, active low), via espp::Interrupt.
 /// - The internal I2C bus (SDA=GPIO7, SCL=GPIO8), shared by the on-board
 ///   ES8311 audio codec (0x18) and the DSI/CSI connectors + 40-pin header.
 ///
@@ -59,7 +56,7 @@ namespace espp {
 /// <tr><td>REF_CLK</td><td>50</td></tr>
 /// <tr><td>TX_EN</td><td>49</td></tr>
 /// <tr><td>TXD0</td><td>34</td></tr>
-/// <tr><td>TXD1</td><td>35</td></tr>
+/// <tr><td>TXD1</td><td>35 (also the BOOT key / boot-strap pin, see below)</td></tr>
 /// <tr><td>CRS_DV</td><td>28</td></tr>
 /// <tr><td>RXD0</td><td>29</td></tr>
 /// <tr><td>RXD1</td><td>30</td></tr>
@@ -81,10 +78,17 @@ namespace espp {
 /// - The red LED next to the RJ45 is a 5 V power indicator, and the RJ45
 ///   green/yellow LEDs are driven by the PHY — none are GPIO-controllable.
 ///
-/// \note Assumptions pending hardware verification: PHY address 1 (PHY_AD0 is
-///       strapped high through a 5.1 kΩ pull-up like the ESP32-P4-ETH) and the
-///       BOOT button on GPIO35 (the P4's boot-strap pin, per the schematic's
-///       BOOT key block).
+/// \note The BOOT key (Key1) is wired to GPIO35, which per the schematic is
+///       also the RMII TXD1 line to the IP101GRI. GPIO35 is the ESP32-P4's
+///       boot-strap pin, sampled only at reset — once the EMAC is running the
+///       pin is a TXD1 output, so the BOOT key cannot be used as a runtime
+///       input. Like the other ESP32-P4 RMII BSPs (ESP32-P4-ETH /
+///       ESP32-P4-NANO, identical pinout) this BSP therefore does not expose
+///       a button API; the key is only useful for entering the serial
+///       bootloader at reset.
+///
+/// \note Assumption pending hardware verification: PHY address 1 (PHY_AD0 is
+///       strapped high through a 5.1 kΩ pull-up like the ESP32-P4-ETH).
 ///
 /// The class is a singleton and can be accessed via get().
 ///
@@ -97,10 +101,6 @@ namespace espp {
 /// \snippet esp32_p4_wifi6_poe_eth_example.cpp esp32 p4 wifi6 poe eth dhcp client
 class Esp32P4Wifi6PoeEth : public BaseComponent {
 public:
-  /// Alias for the button callback, called when the boot button is
-  /// pressed or released
-  using button_callback_t = espp::Interrupt::event_callback_fn;
-
   /// Callback invoked (SERVER mode only) each time the DHCP server assigns an
   /// IP address to a connected client.
   using client_ip_callback_t = std::function<void(esp_ip4_addr_t ip, std::array<uint8_t, 6> mac)>;
@@ -157,24 +157,6 @@ public:
   ///       connectors and 40-pin header
   I2c &internal_i2c() { return internal_i2c_; }
 
-  /// Get a reference to the interrupts
-  /// \return A reference to the interrupts
-  espp::Interrupt &interrupts() { return interrupts_; }
-
-  /////////////////////////////////////////////////////////////////////////////
-  // Boot Button
-  /////////////////////////////////////////////////////////////////////////////
-
-  /// Initialize the BOOT button (GPIO35, active low)
-  /// \param callback The callback function to call when the button is pressed
-  ///        or released
-  /// \return true if the button was successfully initialized, false otherwise
-  bool initialize_boot_button(const button_callback_t &callback = nullptr);
-
-  /// Get the boot button state
-  /// \return The button state (true = pressed, false = released)
-  bool boot_button_state() const;
-
   /////////////////////////////////////////////////////////////////////////////
   // Ethernet (EMAC + IP101GRI RMII PHY)
   /////////////////////////////////////////////////////////////////////////////
@@ -184,7 +166,10 @@ public:
   ///                All fields have defaults so \c EthernetConfig{} gives a
   ///                plain DHCP-client interface with no callbacks.
   /// \return True if Ethernet was successfully initialized and started.
-  /// \note Requires the ESP-IDF default event loop. The BSP creates it if needed.
+  /// \note Requires the ESP-IDF TCP/IP stack and default event loop. The
+  ///       underlying espp::Ethernet component calls esp_netif_init() and
+  ///       esp_event_loop_create_default() during its initialize(), so they
+  ///       are created here if the application has not already done so.
   bool initialize_ethernet(const EthernetConfig &config);
 
   /// Initialize Ethernet with default configuration (DHCP client mode).
@@ -228,15 +213,12 @@ protected:
   static constexpr int eth_phy_addr = 1;
   static constexpr int eth_tx_en_io = 49;
   static constexpr int eth_txd0_io = 34;
+  // NOTE: GPIO35 is shared with the BOOT key (P4 boot-strap pin, sampled only
+  //       at reset) — it is exclusively the EMAC TXD1 output at runtime.
   static constexpr int eth_txd1_io = 35;
   static constexpr int eth_crs_dv_io = 28;
   static constexpr int eth_rxd0_io = 29;
   static constexpr int eth_rxd1_io = 30;
-
-  /////////////////////////////////////////////////////////////////////////////
-  // Button (BOOT key; GPIO35 is also the P4 boot-strap pin)
-  /////////////////////////////////////////////////////////////////////////////
-  static constexpr gpio_num_t boot_button_io = GPIO_NUM_35; // active low
 
   /////////////////////////////////////////////////////////////////////////////
   // Internal I2C bus (ES8311 codec 0x18; DSI / CSI connectors; 40-pin header)
@@ -261,29 +243,5 @@ protected:
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE,
                      .clk_speed = internal_i2c_clock_speed}};
-
-  // Boot button
-  espp::Interrupt::PinConfig boot_button_interrupt_pin_{
-      .gpio_num = boot_button_io,
-      .callback =
-          [this](const auto &event) {
-            if (boot_button_callback_) {
-              boot_button_callback_(event);
-            }
-          },
-      .active_level = espp::Interrupt::ActiveLevel::LOW,
-      .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-      .pullup_enabled = true};
-
-  // Interrupts (only started when a button is initialized)
-  espp::Interrupt interrupts_{
-      {.interrupts = {},
-       .task_config = {.name = "p4-wifi6-poe-eth interrupts",
-                       .stack_size_bytes = CONFIG_ESP32_P4_WIFI6_POE_ETH_INTERRUPT_STACK_SIZE,
-                       .priority = CONFIG_ESP32_P4_WIFI6_POE_ETH_INTERRUPT_PRIORITY,
-                       .core_id = CONFIG_ESP32_P4_WIFI6_POE_ETH_INTERRUPT_CORE_ID}}};
-
-  std::atomic<bool> boot_button_initialized_{false};
-  button_callback_t boot_button_callback_{nullptr};
 }; // class Esp32P4Wifi6PoeEth
 } // namespace espp

@@ -2,7 +2,7 @@
 
 This example shows how to use the `espp::Esp32P4Wifi6PoeEth` BSP to bring up
 the wired Ethernet interface (DHCP client or DHCP server, selectable via
-`menuconfig`), print the assigned IP address, and react to the BOOT button.
+`menuconfig`) and print the assigned IP address.
 
 If the board is powered through Waveshare's plug-in PoE module, nothing changes
 in software — PoE only supplies the 5 V rail.
@@ -63,11 +63,10 @@ procedure.
 
 ```
 [P4Wifi6PoeEth/I][0.058]: ESP32-P4-WIFI6-POE-ETH example starting
-[Esp32P4Wifi6PoeEth/I][0.064]: Initializing boot button
-[Esp32P4Wifi6PoeEth/I][0.070]: Initializing Ethernet (EMAC + IP101GRI RMII, DHCP client)
+[Esp32P4Wifi6PoeEth/I][0.064]: Initializing Ethernet (EMAC + IP101GRI RMII, DHCP client)
 [P4Wifi6PoeEth/I][0.955]: Waiting for Ethernet...
 [P4Wifi6PoeEth/I][2.482]: Ethernet link up
 [P4Wifi6PoeEth/I][3.960]: DHCP lease acquired: 192.168.1.114
 [P4Wifi6PoeEth/I][3.961]: Connected. IP: 192.168.1.114
-[P4Wifi6PoeEth/I][8.962]: Ethernet up, IP: 192.168.1.114 (boot button released)
+[P4Wifi6PoeEth/I][8.962]: Ethernet up, IP: 192.168.1.114
 ```

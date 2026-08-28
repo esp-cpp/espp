@@ -17,10 +17,13 @@ abstraction for bringing up the board's peripherals:
   component and supplying the board-specific RMII pins (DHCP client / server).
   PoE is purely a power-supply feature — no GPIO is involved, so a PoE-powered
   board looks identical to a USB-powered one in software.
-- **BOOT button:** GPIO35 (active low), interrupt-driven with press / release
-  callbacks.
 - **Internal I2C bus:** shared by the on-board ES8311 audio codec and the
   MIPI-DSI / MIPI-CSI connectors and 40-pin header.
+
+.. note::
+   The board's BOOT key shares GPIO35 with the RMII TXD1 line (GPIO35 is the
+   ESP32-P4's boot-strap pin, sampled only at reset), so it cannot be used as
+   a runtime input and the BSP does not expose a button API.
 
 Wi-Fi 6 / BLE are provided by the on-board ESP32-C6 over SDIO using
 Espressif's ESP-Hosted + ``esp_wifi_remote`` components; the BSP documents the

@@ -21,10 +21,15 @@ The `espp::Esp32P4Wifi6PoeEth` class is a singleton hardware abstraction for:
 - **10/100 Ethernet** — internal ESP32-P4 EMAC + IP101GRI RMII PHY, selectable
   DHCP client **or** DHCP server mode (delegates to the reusable
   `espp::Ethernet` component).
-- **BOOT button** — GPIO35 (active low), interrupt-driven with press/release
-  callbacks.
 - **Internal I2C bus** — SDA=GPIO7 / SCL=GPIO8, shared by the on-board ES8311
   audio codec (address 0x18) and the DSI / CSI connectors and 40-pin header.
+
+> [!NOTE]
+> The BOOT key shares GPIO35 with the RMII TXD1 line (GPIO35 is the P4's
+> boot-strap pin, sampled only at reset). Once the EMAC is running the pin is
+> the TXD1 output, so the BOOT key cannot be used as a runtime input and this
+> BSP does not expose a button API (same as the ESP32-P4-ETH / ESP32-P4-NANO
+> BSPs, which share this RMII pinout).
 
 PoE is purely a power-supply feature: the RJ45 center taps feed two MB10F
 bridge rectifiers and a 5-pin header for Waveshare's plug-in PoE module, which
@@ -67,7 +72,7 @@ the 50 MHz REF_CLK from its own 25 MHz crystal; the P4 receives it on GPIO50.
 | REF_CLK (in) |   50 | 50 MHz from the PHY                    |
 | TX_EN        |   49 |                                        |
 | TXD0         |   34 |                                        |
-| TXD1         |   35 |                                        |
+| TXD1         |   35 | Shared with BOOT key (strap, reset-only) |
 | CRS_DV       |   28 |                                        |
 | RXD0         |   29 |                                        |
 | RXD1         |   30 |                                        |
@@ -97,8 +102,7 @@ Pin data from the schematic, for future expansion / user code:
 ## Example
 
 The [example](./example) initializes Ethernet (DHCP client or server via
-`menuconfig`), prints the acquired IP address periodically, and hooks up the
-BOOT button.
+`menuconfig`) and prints the acquired IP address periodically.
 
 ## sdkconfig requirements
 

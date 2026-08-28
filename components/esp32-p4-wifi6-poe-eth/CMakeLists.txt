@@ -6,6 +6,5 @@ idf_component_register(
     "ethernet"
     "esp_netif"
     "i2c"
-    "interrupt"
   REQUIRED_IDF_TARGETS "esp32p4"
   )

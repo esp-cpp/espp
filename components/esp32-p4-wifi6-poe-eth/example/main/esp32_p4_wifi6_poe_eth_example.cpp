@@ -23,10 +23,9 @@ extern "C" void app_main(void) {
   auto &board = espp::Esp32P4Wifi6PoeEth::get();
   //! [esp32 p4 wifi6 poe eth get instance]
 
-  // Boot button: log presses / releases
-  board.initialize_boot_button([&](const espp::Interrupt::Event &event) {
-    logger.info("Boot button {}", event.active ? "pressed" : "released");
-  });
+  // NOTE: the board's BOOT key shares GPIO35 with the RMII TXD1 line, so it
+  // can only be used to enter the bootloader at reset -- the BSP does not
+  // expose it as a runtime button.
 
 #if CONFIG_EXAMPLE_ETH_DHCP_SERVER
   // Example 2: init as DHCP server -- the board assigns IPs to connected hosts.
@@ -34,10 +33,18 @@ extern "C" void app_main(void) {
   // values (EXAMPLE_ETH_SERVER_IP / _NETMASK / _GW) for a custom static IP.
   //! [esp32 p4 wifi6 poe eth dhcp server]
   espp::Esp32P4Wifi6PoeEth::ServerConfig srv_cfg;
-  ip4addr_aton(CONFIG_EXAMPLE_ETH_SERVER_IP, reinterpret_cast<ip4_addr_t *>(&srv_cfg.ip_info.ip));
-  ip4addr_aton(CONFIG_EXAMPLE_ETH_SERVER_NETMASK,
-               reinterpret_cast<ip4_addr_t *>(&srv_cfg.ip_info.netmask));
-  ip4addr_aton(CONFIG_EXAMPLE_ETH_SERVER_GW, reinterpret_cast<ip4_addr_t *>(&srv_cfg.ip_info.gw));
+  if (!ip4addr_aton(CONFIG_EXAMPLE_ETH_SERVER_IP,
+                    reinterpret_cast<ip4_addr_t *>(&srv_cfg.ip_info.ip)) ||
+      !ip4addr_aton(CONFIG_EXAMPLE_ETH_SERVER_NETMASK,
+                    reinterpret_cast<ip4_addr_t *>(&srv_cfg.ip_info.netmask)) ||
+      !ip4addr_aton(CONFIG_EXAMPLE_ETH_SERVER_GW,
+                    reinterpret_cast<ip4_addr_t *>(&srv_cfg.ip_info.gw))) {
+    logger.error("Invalid DHCP-server address in menuconfig (ip='{}' netmask='{}' gw='{}'); "
+                 "aborting Ethernet init",
+                 CONFIG_EXAMPLE_ETH_SERVER_IP, CONFIG_EXAMPLE_ETH_SERVER_NETMASK,
+                 CONFIG_EXAMPLE_ETH_SERVER_GW);
+    return;
+  }
   srv_cfg.on_client_assigned = [&](esp_ip4_addr_t ip, std::array<uint8_t, 6> mac) {
     logger.info("Client assigned {}.{}.{}.{} (mac {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x})",
                 esp_ip4_addr1_16(&ip), esp_ip4_addr2_16(&ip), esp_ip4_addr3_16(&ip),
@@ -97,9 +104,8 @@ extern "C" void app_main(void) {
     std::this_thread::sleep_for(5s);
     if (board.is_ethernet_connected()) {
       auto ip = board.ethernet_ip();
-      logger.info("Ethernet up, IP: {}.{}.{}.{} (boot button {})", esp_ip4_addr1_16(&ip),
-                  esp_ip4_addr2_16(&ip), esp_ip4_addr3_16(&ip), esp_ip4_addr4_16(&ip),
-                  board.boot_button_state() ? "pressed" : "released");
+      logger.info("Ethernet up, IP: {}.{}.{}.{}", esp_ip4_addr1_16(&ip), esp_ip4_addr2_16(&ip),
+                  esp_ip4_addr3_16(&ip), esp_ip4_addr4_16(&ip));
     } else {
       logger.warn("Ethernet not connected");
     }
