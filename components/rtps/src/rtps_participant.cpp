@@ -1985,6 +1985,18 @@ RtpsParticipant::add_native_service_server_internal(const ServiceConfig &config,
     logger_.error("Cannot add native service server '{}': not started", config.service);
     return nullptr;
   }
+  // Pin the ENTIRE composite transaction as one engine operation (same idiom
+  // as the composite action builders): the nested add_writer/add_reader
+  // release mutex_ between endpoints, so without the pin a concurrent stop()
+  // could tear the engine down between the adds - and the registry commit
+  // below could then append a stale server context after teardown cleared the
+  // containers. With the operation registered, stop() waits at its phase 1.5
+  // until this function returns; once stopping, the add is rejected here.
+  if (!begin_engine_op()) {
+    logger_.error("Cannot add native service server '{}': shutting down", config.service);
+    return nullptr;
+  }
+  EngineOpGuard op_guard(*this);
   auto ctx = std::make_shared<NativeServiceServerContext>();
   ctx->self = this;
   ctx->reply_topic = rtps::rpc::native_reply_topic(config.service);
@@ -2039,10 +2051,23 @@ RtpsParticipant::add_native_service_server_internal(const ServiceConfig &config,
 
 std::shared_ptr<RtpsParticipant::NativeServiceClient>
 RtpsParticipant::add_native_service_client(const ServiceConfig &config) {
-  if (!started_ || participant_ == nullptr) {
+  if (!started_) {
     logger_.error("Cannot add native service client '{}': not started", config.service);
     return nullptr;
   }
+  // Pin the ENTIRE composite transaction as one engine operation (same idiom
+  // as the composite action builders): the nested add_writer/add_reader
+  // release mutex_ between endpoints, so without the pin a concurrent stop()
+  // could tear the engine down between the adds and the registry commit below
+  // could append a stale client into a cleared container. The pin also makes
+  // the participant_ dereference below safe: begin_engine_op() validates the
+  // pointer under mutex_, and stop() cannot reset it while the operation is
+  // registered (it waits at phase 1.5).
+  if (!begin_engine_op()) {
+    logger_.error("Cannot add native service client '{}': shutting down", config.service);
+    return nullptr;
+  }
+  EngineOpGuard op_guard(*this);
   auto impl = std::make_unique<NativeServiceClient::Impl>();
   impl->self = this;
   impl->request_topic = rtps::rpc::native_request_topic(config.service);
