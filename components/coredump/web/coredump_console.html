@@ -541,9 +541,11 @@
 
     // --- WebUSB ---------------------------------------------------------
     async function connectUsb() {
+      // default: match exactly the example's VID:PID; the "show all USB
+      // devices" checkbox lifts the filter for other espp devices.
       const options = els.anyDevice.checked
         ? { acceptAllDevices: true }
-        : { filters: [{ vendorId: DEFAULT_VID }] };
+        : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
       let device;
       try {
         device = await navigator.usb.requestDevice(options);
@@ -856,12 +858,15 @@
     let backtraceAddrs = [];
 
     function extractAddresses(report) {
-      // the PC + the addresses on the "backtrace:" line
+      // the PC (the faulting address, first) + the addresses on the
+      // "backtrace:" line, deduplicated (the Xtensa backtrace normally
+      // starts with the PC)
       const addrs = [];
+      const push = (a) => { if (!addrs.includes(a)) addrs.push(a); };
       const pcMatch = report.match(/PC=(0x[0-9a-fA-F]{8})/);
+      if (pcMatch) push(pcMatch[1]);
       const btMatch = report.match(/backtrace:((?:\s+0x[0-9a-fA-F]{8})+)/);
-      if (btMatch) for (const a of btMatch[1].match(/0x[0-9a-fA-F]{8}/g)) addrs.push(a);
-      else if (pcMatch) addrs.push(pcMatch[1]);
+      if (btMatch) for (const a of btMatch[1].match(/0x[0-9a-fA-F]{8}/g)) push(a);
       return addrs;
     }
 

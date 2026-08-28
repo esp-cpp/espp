@@ -16,6 +16,7 @@
 #include "esp_system.h"
 
 #include "base_component.hpp"
+#include "format.hpp"
 
 namespace espp {
 
@@ -191,8 +192,9 @@ public:
    * @param out Destination span; up to `out.size()` bytes are read (the span
    *        is NOT resized — reads past the end of the image fail).
    * @param[out] ec Set on failure: no core dump present (no_such_device), the
-   *        requested range exceeds the image (result_out_of_range), or the
-   *        flash read failed (io_error).
+   *        requested range exceeds the image or the reported image lies
+   *        outside the coredump partition (result_out_of_range), or the flash
+   *        read failed (io_error).
    * @return true if `out.size()` bytes were read into @p out, false otherwise.
    */
   bool read_image(size_t offset, std::span<uint8_t> out, std::error_code &ec) const {
@@ -219,7 +221,18 @@ public:
       return false;
     }
     // esp_core_dump_image_get() returns the absolute flash address (== the
-    // partition base); read partition-relative.
+    // partition base); read partition-relative. Defensively validate that the
+    // reported image really lies within the partition before translating, so
+    // an inconsistent address can never underflow the subtraction or read
+    // from the wrong flash region.
+    if (addr < partition->address || size > partition->size ||
+        addr - partition->address > partition->size - size) {
+      logger_.error("read_image: image [0x{:x}, 0x{:x}) lies outside the coredump "
+                    "partition [0x{:x}, 0x{:x})",
+                    addr, addr + size, partition->address, partition->address + partition->size);
+      ec = std::make_error_code(std::errc::result_out_of_range);
+      return false;
+    }
     const size_t partition_offset = addr - partition->address;
     const esp_err_t err =
         esp_partition_read(partition, partition_offset + offset, out.data(), out.size());

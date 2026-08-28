@@ -24,7 +24,9 @@
 //                  core dump present).
 //   0xC2 DATA    — payload: u32 offset + the requested image bytes.
 //   0xC3 OK      — payload: u32 context-dependent value (ERASE reply).
-//   0xC4 ERROR   — payload: u32 code (std::errc value) + UTF-8 message.
+//   0xC4 ERROR   — payload: u32 code (always a std::errc value; error codes
+//                  from other categories are normalized before sending) +
+//                  UTF-8 message.
 //
 // Flow control: the host serializes transactions — one request in flight,
 // wait for its reply. READ length is capped so the DATA reply (4-byte offset
@@ -252,11 +254,22 @@ protected:
   }
 
   /// Send an ERROR reply (u32 std::errc code + UTF-8 context message).
+  /// Codes from categories other than the generic category are normalized to
+  /// the equivalent std::errc via default_error_condition() — falling back to
+  /// std::errc::io_error when there is no generic equivalent — so the on-wire
+  /// code is always a std::errc value and stable for the host to interpret
+  /// (the message text still carries the original category's description).
   void send_error(const std::error_code &ec, std::string_view context) {
     namespace stream = espp::detail::ota_stream;
     logger_.error("{}: {}", context, ec.message());
+    int code = ec.value();
+    if (ec.category() != std::generic_category()) {
+      const std::error_condition cond = ec.default_error_condition();
+      code = (cond.category() == std::generic_category()) ? cond.value()
+                                                          : static_cast<int>(std::errc::io_error);
+    }
     std::vector<uint8_t> payload;
-    stream::put_u32(payload, static_cast<uint32_t>(ec.value()));
+    stream::put_u32(payload, static_cast<uint32_t>(code));
     const std::string message = std::string(context) + ": " + ec.message();
     const size_t count = std::min(message.size(), stream::kMaxPayloadSize - payload.size());
     payload.insert(payload.end(), message.begin(), message.begin() + count);
