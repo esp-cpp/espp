@@ -11,7 +11,8 @@ CONFIG_ETH_USE_ESP32_EMAC=y
 
 CONFIG_FREERTOS_HZ=1000
 
-# The board's ESP32-P4 module has 32 MB NOR flash; 16 MB is the largest size
-# esptool needs to know about for this small example image.
-CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
-CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
+# The board pairs the ESP32-P4NRW32 with a 32 MB GD25Q256E NOR flash (per the
+# board schematic), so tell esptool the real size. The example keeps the
+# default partition table, which fits comfortably regardless.
+CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="32MB"

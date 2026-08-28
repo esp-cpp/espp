@@ -4,8 +4,6 @@
 #include <functional>
 #include <memory>
 
-#include <sdkconfig.h>
-
 #include <driver/gpio.h>
 #include <esp_netif.h>
 
