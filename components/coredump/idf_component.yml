@@ -1,0 +1,25 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Flash core-dump access (crash summary / report / raw ELF image / erase) plus a framed stream service for inspecting crashes over USB / WebUSB / Web Serial"
+url: "https://github.com/esp-cpp/espp/tree/main/components/coredump"
+repository: "https://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/coredump/coredump.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - CoreDump
+  - Crash
+  - Debugging
+  - Backtrace
+  - WebUSB
+  - WebSerial
+  - USB
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'
+  espp/ota: '>=1.0'
