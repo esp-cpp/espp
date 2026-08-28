@@ -1,0 +1,17 @@
+CONFIG_IDF_TARGET="esp32p4"
+
+# for ESP-IDF >= v6.0, allow images that also run on pre-v3 ESP32-P4 chip
+# revisions (matches the other Waveshare P4 boards; the fitted module revision
+# has not been verified on hardware).
+CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y
+
+# Ethernet (internal EMAC + RMII)
+CONFIG_ETH_ENABLED=y
+CONFIG_ETH_USE_ESP32_EMAC=y
+
+CONFIG_FREERTOS_HZ=1000
+
+# The board's ESP32-P4 module has 32 MB NOR flash; 16 MB is the largest size
+# esptool needs to know about for this small example image.
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
