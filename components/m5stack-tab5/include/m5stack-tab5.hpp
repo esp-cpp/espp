@@ -952,6 +952,14 @@ protected:
   esp_err_t (*original_panel_init_)(esp_lcd_panel_t *panel){nullptr};
 
   void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
+  // Called by espp::Display (LV_EVENT_RESOLUTION_CHANGED) whenever the LVGL
+  // display rotation changes; routes the rotation to the display driver
+  // (MADCTL) when the active panel can honor it in hardware.
+  void on_display_rotation(const DisplayRotation &rotation);
+  // Whether the active display controller applies the given LVGL rotation in
+  // panel hardware (via the display driver's set_rotation()/MADCTL), making
+  // buffer rotation (PPA / software) in flush() unnecessary.
+  bool panel_handles_rotation(lv_display_rotation_t rotation) const;
   static bool notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel,
                                       esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx);
 

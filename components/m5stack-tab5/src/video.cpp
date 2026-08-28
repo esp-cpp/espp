@@ -388,7 +388,11 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
         Display<Pixel>::LvglConfig{.width = display_width_,
                                    .height = display_height_,
                                    .flush_callback = std::bind_front(&M5StackTab5::flush, this),
-                                   .rotation_callback = nullptr, // DisplayDriver::rotate,
+                                   // Forward LVGL rotation changes to the display driver so
+                                   // panels that can rotate in hardware (ST7121) do so via
+                                   // MADCTL instead of the PPA / software rotation in flush().
+                                   .rotation_callback =
+                                       std::bind_front(&M5StackTab5::on_display_rotation, this),
                                    .rotation = rotation},
         Display<Pixel>::OledConfig{
             .set_brightness_callback =
@@ -483,6 +487,42 @@ size_t M5StackTab5::rotated_display_height() const {
   }
 }
 
+bool M5StackTab5::panel_handles_rotation(lv_display_rotation_t rotation) const {
+  // Only the ST7121 variant routes rotation to the panel (the ILI9881 and
+  // ST7123 keep the historical PPA/flush-time rotation path). The Tab5 panels
+  // are MIPI-DSI DPI (video mode) panels: the host streams a fixed 720x1280
+  // raster, so the panel cannot swap axes for 90/270 (no MADCTL MV/GRAM
+  // addressing in video mode) and those still need the frame rotated into the
+  // framebuffer (PPA, or software fallback). The gate/source scan-direction
+  // flips (MADCTL GS/SS) do work, so 0 and 180 are applied by the panel
+  // itself through the espp display driver's set_rotation().
+  if (display_controller_ != DisplayController::ST7121) {
+    return false;
+  }
+  return rotation == LV_DISPLAY_ROTATION_0 || rotation == LV_DISPLAY_ROTATION_180;
+}
+
+void M5StackTab5::on_display_rotation(const DisplayRotation &rotation) {
+  if (!display_driver_ || display_controller_ != DisplayController::ST7121) {
+    // Other variants keep the PPA/flush-time rotation path; nothing to do.
+    return;
+  }
+  // Runs on the LVGL thread (RESOLUTION_CHANGED event from
+  // lv_display_set_rotation), i.e. strictly ordered with subsequent flush()
+  // calls, so the MADCTL state below is always consistent with the rotation
+  // decision flush() makes via panel_handles_rotation().
+  if (rotation == DisplayRotation::LANDSCAPE || rotation == DisplayRotation::LANDSCAPE_INVERTED) {
+    // 0 / 180: the panel applies the rotation itself (scan-direction flip via
+    // MADCTL); flush() writes unrotated buffers at unrotated coordinates.
+    display_driver_->set_rotation(rotation);
+  } else {
+    // 90 / 270: a DPI video-mode panel cannot swap axes, so restore the
+    // natural scan direction and let the PPA rotation in flush() do the full
+    // transform.
+    display_driver_->set_rotation(DisplayRotation::LANDSCAPE);
+  }
+}
+
 void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data,
                                   uint32_t user_data) {
   (void)user_data;
@@ -539,7 +579,13 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
   // own thread. flush() runs on the LVGL (GUI) thread, so reading it here is
   // safe; the camera task reads the cached atomic instead.
   camera_display_rotation_.store(static_cast<uint8_t>(rotation), std::memory_order_relaxed);
-  if (rotation > LV_DISPLAY_ROTATION_0 && third_buffer != nullptr) {
+  // When the panel itself applies the rotation (ST7121, 180 degrees via the
+  // display driver's MADCTL scan flip - see on_display_rotation()), the
+  // logical frame is written to the framebuffer unrotated and at unrotated
+  // coordinates; the panel flips the whole frame at scan-out, which lands each
+  // partial area exactly where LVGL's rotated mapping expects it.
+  if (rotation > LV_DISPLAY_ROTATION_0 && !panel_handles_rotation(rotation) &&
+      third_buffer != nullptr) {
     int32_t ww = lv_area_get_width(area);
     int32_t hh = lv_area_get_height(area);
     lv_color_format_t cf = lv_display_get_color_format(disp);
