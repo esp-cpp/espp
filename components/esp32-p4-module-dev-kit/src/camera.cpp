@@ -30,8 +30,11 @@ bool Esp32P4ModuleDevKit::initialize_camera(const camera_frame_callback_t &callb
                                             const espp::Task::BaseConfig &task_config) {
   logger_.info("Initializing camera (MIPI-CSI, OV5647)");
   if (camera_initialized_) {
-    logger_.warn("Camera already initialized");
-    return false;
+    // Idempotent, matching the other initialize_* methods: keep the running
+    // pipeline (and its existing callback) and report success. Call
+    // stop_camera() first to re-initialize with a different callback/config.
+    logger_.warn("Camera already initialized, not initializing again!");
+    return true;
   }
   if (!callback) {
     logger_.error("A callback is required to receive camera frames");
@@ -203,6 +206,7 @@ bool Esp32P4ModuleDevKit::initialize_camera(const camera_frame_callback_t &callb
 
 bool Esp32P4ModuleDevKit::camera_task_callback(std::mutex &m, std::condition_variable &cv,
                                                bool &task_notified) {
+  (void)cv; // unused: this task polls the non-blocking fd instead of waiting
   // Dequeue a filled frame, hand it to the callback (valid only for the call),
   // then requeue the buffer for reuse. The fd is non-blocking, so if no frame
   // is ready yet the DQBUF fails and we wait briefly - this keeps the task

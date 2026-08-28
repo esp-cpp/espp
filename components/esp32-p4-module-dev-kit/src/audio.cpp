@@ -10,6 +10,41 @@
 
 namespace espp {
 
+// Map a sample rate onto the audio HAL enum the ES8311 init path uses for its
+// initial clock/divider configuration. Returns false for rates the ES8311
+// coefficient table does not support, so init can fail loudly instead of
+// configuring the codec clocking for a different rate than requested.
+static bool es8311_samples_from_rate(uint32_t sample_rate, audio_hal_iface_samples_t &out_samples) {
+  switch (sample_rate) {
+  case 8000:
+    out_samples = AUDIO_HAL_08K_SAMPLES;
+    return true;
+  case 11025:
+    out_samples = AUDIO_HAL_11K_SAMPLES;
+    return true;
+  case 16000:
+    out_samples = AUDIO_HAL_16K_SAMPLES;
+    return true;
+  case 22050:
+    out_samples = AUDIO_HAL_22K_SAMPLES;
+    return true;
+  case 24000:
+    out_samples = AUDIO_HAL_24K_SAMPLES;
+    return true;
+  case 32000:
+    out_samples = AUDIO_HAL_32K_SAMPLES;
+    return true;
+  case 44100:
+    out_samples = AUDIO_HAL_44K_SAMPLES;
+    return true;
+  case 48000:
+    out_samples = AUDIO_HAL_48K_SAMPLES;
+    return true;
+  default:
+    return false;
+  }
+}
+
 bool Esp32P4ModuleDevKit::initialize_audio(uint32_t sample_rate,
                                            const espp::Task::BaseConfig &task_config) {
   logger_.info("Initializing audio (ES8311) at {} Hz", sample_rate);
@@ -17,6 +52,16 @@ bool Esp32P4ModuleDevKit::initialize_audio(uint32_t sample_rate,
   if (audio_initialized_) {
     logger_.warn("Audio already initialized");
     return true;
+  }
+
+  // Validate the requested rate up front so the codec's initial clock config
+  // (below) matches the I2S clock instead of silently assuming 48 kHz.
+  audio_hal_iface_samples_t es8311_samples;
+  if (!es8311_samples_from_rate(sample_rate, es8311_samples)) {
+    logger_.error("Unsupported audio sample rate {} Hz; supported rates: 8000, 11025, 16000, "
+                  "22050, 24000, 32000, 44100, 48000",
+                  sample_rate);
+    return false;
   }
 
   // Configure the speaker-amplifier (NS4150B) enable GPIO
@@ -97,7 +142,7 @@ bool Esp32P4ModuleDevKit::initialize_audio(uint32_t sample_rate,
   es8311_cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
   es8311_cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
   es8311_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
-  es8311_cfg.i2s_iface.samples = AUDIO_HAL_48K_SAMPLES;
+  es8311_cfg.i2s_iface.samples = es8311_samples;
   if (es8311_codec_init(&es8311_cfg) != ESP_OK) {
     return fail_audio_init("ES8311 init failed");
   }
@@ -203,8 +248,10 @@ bool Esp32P4ModuleDevKit::initialize_microphone(const microphone_callback_t &cal
                                                 const espp::Task::BaseConfig &task_config) {
   logger_.info("Initializing microphone");
   if (microphone_initialized_) {
+    // Idempotent, matching the other initialize_* methods: keep the running
+    // capture (and its existing callback) and report success.
     logger_.warn("Microphone already initialized, not initializing again!");
-    return false;
+    return true;
   }
   if (!audio_initialized_) {
     logger_.error("The audio subsystem must be initialized first: the ES8311 is a full-duplex "
@@ -261,6 +308,7 @@ bool Esp32P4ModuleDevKit::initialize_microphone(const microphone_callback_t &cal
 
 bool Esp32P4ModuleDevKit::microphone_task_callback(std::mutex &m, std::condition_variable &cv,
                                                    bool &task_notified) {
+  (void)cv; // unused: this task paces itself on the finite-timeout I2S read
   size_t bytes_read = 0;
   // Use a finite read timeout (not portMAX_DELAY) so this task returns
   // periodically and can observe a stop request; an infinite read would block
@@ -297,6 +345,7 @@ float Esp32P4ModuleDevKit::microphone_volume() const { return mic_volume_; }
 
 bool Esp32P4ModuleDevKit::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                               bool &task_notified) {
+  (void)cv; // unused: this task paces itself on the I2S write cadence
   size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
   size_t buffer_size = audio_tx_buffer.size();
   available = std::min(available, buffer_size);

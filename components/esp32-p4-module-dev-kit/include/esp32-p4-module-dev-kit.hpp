@@ -302,9 +302,12 @@ public:
   /////////////////////////////////////////////////////////////////////////////
 
   /// Initialize the audio system (ES8311 codec)
-  /// \param sample_rate The audio sample rate in Hz (default 48kHz)
+  /// \param sample_rate The audio sample rate in Hz (default 48kHz). Must be
+  ///        one of the rates supported by the ES8311 clock coefficient table:
+  ///        8000, 11025, 16000, 22050, 24000, 32000, 44100, or 48000 Hz.
   /// \param task_config The task configuration for the audio task
-  /// \return true if the audio system was successfully initialized
+  /// \return true if the audio system was successfully initialized (or was
+  ///         already initialized), false on failure or unsupported sample rate
   bool initialize_audio(uint32_t sample_rate = 48000,
                         const espp::Task::BaseConfig &task_config = {.name = "p4mdk_audio",
                                                                      .stack_size_bytes = 8192,
@@ -383,7 +386,8 @@ public:
   /// \param callback The callback to call with recorded audio data (16-bit
   ///        signed mono samples at audio_sample_rate())
   /// \param task_config The configuration for the microphone task
-  /// \return true if the microphone was successfully initialized, false
+  /// \return true if the microphone was successfully initialized (or was
+  ///         already initialized; the existing callback is kept), false
   ///         otherwise
   /// \note The audio subsystem must be initialized first (the ES8311 is a
   ///       full-duplex codec on a single I2S bus, so the microphone records
@@ -427,7 +431,9 @@ public:
   /// \param callback Function called from the camera task with each RGB565
   ///        frame (see camera_frame_callback_t). Keep it quick and non-blocking.
   /// \param task_config The configuration for the camera task
-  /// \return true if the camera was successfully initialized and streaming
+  /// \return true if the camera was successfully initialized and streaming (or
+  ///         was already initialized; the existing callback and stream are
+  ///         kept — call stop_camera() first to re-initialize)
   /// \note The camera reset / power-down lines are not routed to the ESP32-P4 on
   ///       this board (RPi-style CSI connector); the sensor free-runs (esp_video
   ///       handles CSI/ISP/LDO). Unlike the M5Stack Tab5 there is no IO expander
@@ -680,6 +686,11 @@ protected:
   std::shared_ptr<I2c::Device<uint8_t>> backlight_i2c_device_;
   std::atomic<float> brightness_{100.0f};
   std::shared_ptr<Display<Pixel>> display_;
+  // Raw LVGL display handle cached for notify_lvgl_flush_ready(): on the
+  // JD9365/DMA2D path that callback runs from the DMA2D ISR, so it must not
+  // touch the display_ shared_ptr; it only needs this pointer to call
+  // lv_display_flush_ready(). Set once in initialize_display().
+  std::atomic<lv_display_t *> lvgl_display_{nullptr};
   std::shared_ptr<DisplayDriver> display_driver_{static_cast<DisplayDriver *>(nullptr)};
   struct LcdHandles {
     esp_lcd_dsi_bus_handle_t mipi_dsi_bus{nullptr};

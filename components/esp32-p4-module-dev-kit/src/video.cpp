@@ -78,18 +78,29 @@ bool Esp32P4ModuleDevKit::initialize_lcd() {
         return false;
       }
     }
-    auto write_panel_reg = [this](uint8_t reg, uint8_t value) {
+    auto write_panel_reg = [this](uint8_t reg, uint8_t value) -> bool {
       const uint8_t data[2] = {reg, value};
       std::error_code ec;
       if (!backlight_i2c_device_->write(data, sizeof(data), ec)) {
         logger_.error("Failed to write panel power controller reg 0x{:02X}: {}", reg, ec.message());
+        return false;
       }
+      return true;
     };
-    write_panel_reg(0x95, 0x11); // panel power/reset control
-    write_panel_reg(0x95, 0x17); // panel power/reset control
-    write_panel_reg(0x96, 0x00); // backlight off while powering up
+    // This sequence must complete before any DSI traffic: if a write fails the
+    // panel may be unpowered / in reset, and the later vendor init sequence
+    // would hang or leave the panel dark, so fail the init here instead.
+    if (!write_panel_reg(0x95, 0x11) || // panel power/reset control
+        !write_panel_reg(0x95, 0x17) || // panel power/reset control
+        !write_panel_reg(0x96, 0x00)) { // backlight off while powering up
+      logger_.error("JD9365 panel power-on sequence failed; aborting LCD init");
+      return false;
+    }
     std::this_thread::sleep_for(100ms);
-    write_panel_reg(0x96, 0xFF); // backlight full on
+    if (!write_panel_reg(0x96, 0xFF)) { // backlight full on
+      logger_.error("JD9365 panel power-on sequence failed; aborting LCD init");
+      return false;
+    }
     std::this_thread::sleep_for(1000ms);
   }
 
@@ -310,6 +321,9 @@ bool Esp32P4ModuleDevKit::initialize_display(size_t pixel_buffer_size) {
         },
         Logger::Verbosity::WARN);
   }
+  // Cache the raw LVGL display handle for the DPI trans-done callback, which
+  // may run in ISR context and therefore must not touch the shared_ptr.
+  lvgl_display_.store(display_->get_lvgl_display(), std::memory_order_release);
 
   // Rotation scratch buffer (only used when the display is rotated). Allocate it
   // once and reuse it across re-inits so re-initialization does not leak PSRAM;
@@ -466,9 +480,21 @@ bool IRAM_ATTR Esp32P4ModuleDevKit::notify_lvgl_flush_ready(esp_lcd_panel_handle
                                                             void *user_ctx) {
   (void)panel;
   (void)edata;
+  // Context: on the JD9365 path (DMA2D enabled) esp_lcd invokes this from the
+  // DMA2D transfer-done ISR (async_fbcpy_done_cb); on the CPU-copy path
+  // (ILI9881C / EK79007) it is invoked synchronously from the task calling
+  // esp_lcd_panel_draw_bitmap(). Keep it ISR-safe: read only the cached raw
+  // lv_display_t* (no shared_ptr member access, so no refcount/heap ops) and
+  // call lv_display_flush_ready(), which just clears the display's flushing
+  // flag — the same thing esp_lvgl_port does from this callback. It wakes no
+  // task, so no yield is requested.
   auto *board = static_cast<espp::Esp32P4ModuleDevKit *>(user_ctx);
-  if (board && board->display_) {
-    board->display_->notify_flush_ready();
+  if (board == nullptr) {
+    return false;
+  }
+  lv_display_t *disp = board->lvgl_display_.load(std::memory_order_acquire);
+  if (disp != nullptr) {
+    lv_display_flush_ready(disp);
   }
   return false;
 }
