@@ -1,8 +1,10 @@
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <deque>
+#include <iterator>
 #include <memory>
 #include <mutex>
 #include <sdkconfig.h>
@@ -562,6 +564,8 @@ extern "C" void app_main(void) {
       if (enable)
         haptic_motor.start();
       else
+        // BldcHaptics::stop() -> BldcMotor::disable() -> BldcDriver::disable(),
+        // so this de-energizes the motor driver outputs (see PROTOCOL.md)
         haptic_motor.stop();
       enabled = enable;
       logger.info("Haptics {}", enable ? "enabled" : "disabled");

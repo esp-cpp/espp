@@ -525,8 +525,11 @@
       setConnectedUI(true);
       const name = describeDevice(device);
       setStatus("connected", "Connected");
+      // epIn/epOut are WebUSB endpoint *numbers*; the IN endpoint *address*
+      // sets the direction bit (0x80)
       els.devInfo.textContent = name + " · iface " + ifaceNumber +
-        " · IN 0x" + epIn.toString(16) + " · OUT 0x" + epOut.toString(16);
+        " · EP IN 0x" + (0x80 | epIn).toString(16).padStart(2, "0") +
+        " · EP OUT 0x" + epOut.toString(16).padStart(2, "0");
       logLine("sys", "Connected to " + name + ".");
       rxPump(); // start the perpetual reader
       await initializeDevice();

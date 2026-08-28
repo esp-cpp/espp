@@ -80,8 +80,9 @@ Notes:
 - `SET_POSITION` moves the *logical* detent index (clamped to the active
   config's `[min_position, max_position]`); the motor then pulls the knob
   toward that detent.
-- `SET_ENABLED 0` stops the haptic control task and de-energizes the motor
-  driver; `1` re-enables it.
+- `SET_ENABLED 0` de-energizes the motor driver via `BldcHaptics::stop()`
+  (which calls `BldcMotor::disable()`, which calls `BldcDriver::disable()`),
+  in addition to stopping the haptic control task; `1` re-enables it.
 - `PLAY_HAPTIC` plays a short haptic "click" (a quick torque pulse in each
   direction). Rejected while disabled.
 
