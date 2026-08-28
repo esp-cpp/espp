@@ -383,6 +383,14 @@ bool Participant::addNewRemoteParticipant(const ParticipantProxyData &remotePart
 }
 
 bool Participant::removeRemoteParticipant(const GuidPrefix_t &prefix) {
+  // Documented global lock order: SEDPAgent::m_mutex BEFORE
+  // Participant::m_mutex. The removal below calls into the SEDP agent
+  // (removeUnmatchedEntitiesOfParticipant takes its mutex), so acquire the
+  // agent mutex first - taking m_mutex alone here and letting the nested call
+  // grab the agent mutex would be an ABBA inversion against the SEDP receive
+  // handlers, which hold the agent mutex and call findRemoteParticipant()
+  // (m_mutex). Callers must not already hold m_mutex without the agent mutex.
+  std::lock_guard<std::recursive_mutex> sedp_lock(m_sedpAgent.getMutex());
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   auto isElementToRemove = [&](const ParticipantProxyData &proxy) {
     return proxy.m_guid.prefix == prefix;
@@ -484,36 +492,45 @@ uint32_t Participant::getRemoteParticipantCount() {
 rtps::MessageReceiver *Participant::getMessageReceiver() { return &m_receiver; }
 
 bool Participant::checkAndResetHeartbeats() {
-  // Lock order: SPDP-agent mutex BEFORE the participant mutex, matching the
-  // SPDP receive path (handleSPDPPackage holds the agent mutex and then calls
-  // findRemoteParticipant, which takes m_mutex) and the documented global
-  // agent -> participant order. The previous participant-first order was an
-  // ABBA inversion that could deadlock this (protocol-scheduler) call against
-  // a concurrently arriving SPDP datagram.
-  std::lock_guard<std::recursive_mutex> lock1(m_spdpAgent.m_mutex);
-  std::lock_guard<std::recursive_mutex> lock2(m_mutex);
-  PARTICIPANT_LOG("Have {} remote participants",
-                  (unsigned int)m_remoteParticipants.getNumElements());
-  PARTICIPANT_LOG("Unmatched remote writers/readers, {} / {}",
-                  static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedWriters()),
-                  static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedReaders()));
-  for (auto &remote : m_remoteParticipants) {
-    PARTICIPANT_LOG("Remote GUID = {} {} {} {} | Age = {} [ms]", remote.m_guid.prefix.id[4],
-                    remote.m_guid.prefix.id[5], remote.m_guid.prefix.id[6],
-                    remote.m_guid.prefix.id[7],
-                    (unsigned int)remote.getAliveSignalAgeInMilliseconds());
-    if (remote.isAlive()) {
-      continue;
-    }
-    PARTICIPANT_LOG("removing remote participant");
-    bool success = removeRemoteParticipant(remote.m_guid.prefix);
-    if (!success) {
-      return false;
-    } else {
-      return true;
+  // Phase 1 - SCAN ONLY. Lock order: SPDP-agent mutex BEFORE the participant
+  // mutex, matching the SPDP receive path (handleSPDPPackage holds the agent
+  // mutex and then calls findRemoteParticipant, which takes m_mutex). The
+  // expired participant is only SELECTED here; the removal itself must run
+  // with these locks RELEASED, because removeRemoteParticipant() acquires the
+  // SEDP-agent mutex before m_mutex (the documented global order) - removing
+  // while m_mutex is held would be an ABBA inversion against the SEDP receive
+  // handlers, which hold the SEDP mutex and call findRemoteParticipant().
+  GuidPrefix_t expiredPrefix{};
+  bool haveExpired = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock1(m_spdpAgent.m_mutex);
+    std::lock_guard<std::recursive_mutex> lock2(m_mutex);
+    PARTICIPANT_LOG("Have {} remote participants",
+                    (unsigned int)m_remoteParticipants.getNumElements());
+    PARTICIPANT_LOG("Unmatched remote writers/readers, {} / {}",
+                    static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedWriters()),
+                    static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedReaders()));
+    for (auto &remote : m_remoteParticipants) {
+      PARTICIPANT_LOG("Remote GUID = {} {} {} {} | Age = {} [ms]", remote.m_guid.prefix.id[4],
+                      remote.m_guid.prefix.id[5], remote.m_guid.prefix.id[6],
+                      remote.m_guid.prefix.id[7],
+                      (unsigned int)remote.getAliveSignalAgeInMilliseconds());
+      if (remote.isAlive()) {
+        continue;
+      }
+      PARTICIPANT_LOG("removing remote participant");
+      expiredPrefix = remote.m_guid.prefix;
+      haveExpired = true;
+      break;
     }
   }
-  return true;
+  if (!haveExpired) {
+    return true;
+  }
+  // Phase 2 - remove with no locks held (a liveness refresh racing this
+  // window loses by design: the lease already expired, and SPDP rediscovery
+  // re-adds the participant).
+  return removeRemoteParticipant(expiredPrefix);
 }
 
 void Participant::printInfo() {

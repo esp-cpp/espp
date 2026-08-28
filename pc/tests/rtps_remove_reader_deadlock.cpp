@@ -161,6 +161,10 @@ int main() {
   const char *topic_c = "deadlock_self";
   std::atomic<bool> self_removed{false};
   std::atomic<bool> self_removed_ok{false};
+  // Completion flag, set AFTER the result is stored: the main thread must not
+  // judge self_removed_ok while remove_reader() is still running (waiting on
+  // the entry flag alone raced the result store and could fail a good run).
+  std::atomic<bool> self_remove_done{false};
   if (!pub.add_writer(
           {.topic = topic_c, .type_name = type, .reliability = Reliability::RELIABLE})) {
     std::printf("FAIL: scenario-2 add_writer\n");
@@ -172,13 +176,14 @@ int main() {
                         .on_sample = [&](std::span<const uint8_t>) {
                           if (!self_removed.exchange(true)) {
                             self_removed_ok = part.remove_reader(topic_c);
+                            self_remove_done = true;
                           }
                         }})) {
     std::printf("FAIL: scenario-2 add_reader\n");
     return 1;
   }
   const auto self_deadline = std::chrono::steady_clock::now() + 10s;
-  while (!self_removed.load() && std::chrono::steady_clock::now() < self_deadline) {
+  while (!self_remove_done.load() && std::chrono::steady_clock::now() < self_deadline) {
     auto bytes = cdr::serialize<cdr::xcdr1>(SeqMsg{2});
     if (bytes) {
       pub.publish(topic_c, u8_span(*bytes));
@@ -187,8 +192,8 @@ int main() {
   }
   // The watchdog is the harness timeout: a self-wait deadlock would hang the
   // callback (and this loop's publisher would keep running) until the kill.
-  if (!self_removed.load()) {
-    std::printf("FAIL: scenario-2 callback never ran\n");
+  if (!self_remove_done.load()) {
+    std::printf("FAIL: scenario-2 callback never ran (or removal never completed)\n");
     return 1;
   }
   if (!self_removed_ok.load()) {

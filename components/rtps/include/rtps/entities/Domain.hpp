@@ -138,9 +138,13 @@ private:
   // with n probed linearly (reuse-disabled bind, so a port taken by another
   // process on this host fails loudly and the next one is tried). The standard
   // RTPS offsets (builtin/user, multicast/unicast) stay below 100 for
-  // participant ids 0..44, so the two ranges cannot collide, and the whole
-  // range stays inside this domain's 250-port block (offsets 100..249 -> up to
-  // 150 candidate ports; allocation is additionally rationed by
+  // participant ids 0..44 only, so createParticipant() ENFORCES that cap on
+  // the id probe while dedicated ports are enabled - an id past it would bind
+  // its shared user-unicast port inside this range, where a dedicated-port
+  // probe would mistake the existing channel for a fresh allocation and
+  // misroute that participant's traffic. The whole range stays inside this
+  // domain's 250-port block (offsets 100..249 -> up to 150 candidate ports;
+  // allocation is additionally rationed by
   // DomainConfig::max_prioritized_endpoint_ports).
   static constexpr uint16_t DEDICATED_PORT_OFFSET = 100;
   static constexpr uint16_t DEDICATED_PORT_PROBE_LIMIT = 16;

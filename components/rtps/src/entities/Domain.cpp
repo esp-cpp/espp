@@ -290,7 +290,33 @@ rtps::Participant *Domain::createParticipant() {
   // same strategy FastDDS uses. Ids may therefore skip values; slots are
   // tracked separately (m_numParticipants).
   ParticipantId_t candidate = m_nextParticipantId;
-  const ParticipantId_t last_candidate = m_nextParticipantId + PARTICIPANT_PORT_PROBE_LIMIT;
+  ParticipantId_t last_candidate = m_nextParticipantId + PARTICIPANT_PORT_PROBE_LIMIT;
+  if (m_config.enable_dedicated_endpoint_ports) {
+    // ENFORCE the id/dedicated-range separation (see DEDICATED_PORT_OFFSET in
+    // the header): an id whose standard user-unicast offset (D3 + PG * id,
+    // the larger of the two unicast offsets) reaches DEDICATED_PORT_OFFSET
+    // would bind its SHARED user port inside the dedicated range - a later
+    // allocateDedicatedEndpointPort() probe would then hit that already-bound
+    // port, ensureReceivePort() would report the existing shared channel as a
+    // successful dedicated allocation, and the dedicated-port registry would
+    // route that participant's user traffic to the wrong participant. With
+    // the standard offsets this caps ids at 44 - far beyond the id budget of
+    // any supported participant count, so the cap only bites when port
+    // probing has skipped absurdly many occupied ids.
+    constexpr auto kMaxIdBelowDedicatedRange =
+        static_cast<ParticipantId_t>((DEDICATED_PORT_OFFSET - 1 - D3) / PG);
+    if (last_candidate > kMaxIdBelowDedicatedRange + 1) {
+      last_candidate = kMaxIdBelowDedicatedRange + 1;
+    }
+    if (candidate > kMaxIdBelowDedicatedRange) {
+      DOMAIN_LOG("Participant id probe reached {} but ids above {} are excluded while "
+                 "dedicated endpoint ports are enabled (their standard unicast ports would "
+                 "fall inside the dedicated range)",
+                 candidate, kMaxIdBelowDedicatedRange);
+      m_transportSetupOk = false;
+      return nullptr;
+    }
+  }
   bool ports_ok = false;
   for (; candidate < last_candidate; ++candidate) {
     if (!m_transport->ensureReceivePort(getUserUnicastPort(candidate), /*is_multicast=*/false,
