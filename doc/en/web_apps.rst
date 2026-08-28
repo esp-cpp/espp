@@ -19,6 +19,10 @@ Highlights:
   binary protocol.
 - **WebHID input visualizer** — decoded buttons / sticks / raw reports for any
   HID device, driven entirely by its report descriptor.
+- **Core Dump Console** — crash summary, ``core.elf`` download, client-side
+  nearest-symbol backtrace resolution and erase for the
+  :doc:`coredump <coredump/coredump>` component's stream service, over WebUSB
+  or Web Serial (where it doubles as a serial monitor).
 
 Adding a new app
 ----------------

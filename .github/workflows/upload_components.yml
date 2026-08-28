@@ -70,6 +70,7 @@ jobs:
             components/codec
             components/color
             components/controller
+            components/coredump
             components/cst816
             components/csv
             components/display

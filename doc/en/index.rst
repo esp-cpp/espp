@@ -22,6 +22,7 @@ collected under :doc:`web_apps`.
    :caption: Core & RTOS
 
    core/index
+   coredump/index
 
 .. toctree::
    :maxdepth: 1
