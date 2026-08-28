@@ -10,7 +10,8 @@ ESP32-S3's **native USB** port:
   core dump exists for the reset.
 - It brings up a composite USB device (`espp::UsbDevice`) with:
   - a **vendor / WebUSB** interface carrying the framed core-dump protocol, and
-  - a **CDC** port carrying the **system console** (`esp_tusb_init_console`)
+  - a **CDC** port carrying the **system console**
+    (`tinyusb_console_init(TINYUSB_CDC_ACM_0)`)
     *and* the same framed protocol on the same stream.
 - `espp::CoreDumpService` is mounted on BOTH streams, so the web console
   ([`../web/coredump_console.html`](../web/coredump_console.html), hosted at

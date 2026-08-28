@@ -45,7 +45,9 @@ namespace espp {
  * returned strings; all methods are safe to call whether or not a core dump
  * is present. When `CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH` is disabled, the
  * dump-related methods degrade gracefully (no dump present) and
- * `format_report()` still reports the reset reason.
+ * `format_report()` still reports every abnormal reset reason (panic,
+ * brownout, watchdogs, ...) — it returns an empty string only for clean
+ * reset reasons (power-on, software reset, deep-sleep wake, ...).
  *
  * For serving this information over a byte-stream transport (USB vendor /
  * WebUSB, CDC / Web Serial, sockets) see espp::CoreDumpService
@@ -108,11 +110,17 @@ public:
    *   of the captured stack dump on RISC-V, and the exact
    *   `addr2line` command line (correct toolchain prefix for
    *   CONFIG_IDF_TARGET) to decode the addresses against the app ELF.
-   * - Brownout / interrupt-watchdog / task-watchdog resets write no core
-   *   dump, so the reset reason itself is reported with a short hint
-   *   (brownout → check the power supply).
-   * - Otherwise (normal power-on / software reset with no dump): an empty
-   *   string, meaning "nothing abnormal to report".
+   * - Abnormal reset without a core dump: the reset reason itself is
+   *   reported with a short hint. Brownout and watchdog resets never write a
+   *   dump (brownout → check the power supply; watchdog → a task or ISR
+   *   hogged the CPU); any other abnormal reason (PANIC when the dump is
+   *   missing — core dump to flash disabled, no `coredump` partition, or the
+   *   dump failed / was already erased — plus UNKNOWN, power-glitch,
+   *   CPU-lockup, efuse-error resets) is reported as "no core dump image
+   *   available".
+   * - Only genuinely clean reset reasons return an empty string, meaning
+   *   "nothing abnormal to report": power-on, external-pin reset, software
+   *   reset, deep-sleep wake, SDIO, and USB / JTAG resets.
    *
    * @return The report text ("" = clean boot history).
    */
@@ -156,17 +164,23 @@ public:
       return report;
     }
 #endif // CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
-    // No core dump; for these reset reasons the reason itself is the story
-    // (none of them write a core dump).
+    // No core dump image; still report every abnormal reset reason so a
+    // panic without a dump (core dump to flash disabled, no partition, dump
+    // failed / already erased) is never mistaken for a clean boot history.
     if (reset_reason == ESP_RST_BROWNOUT) {
+      // brownout writes no core dump; the reason itself is the story
       report = fmt::format("last reset: {} (no core dump: brownout — check the power "
                            "supply / USB cable / peripheral load)",
                            reason_name);
     } else if (reset_reason == ESP_RST_INT_WDT || reset_reason == ESP_RST_TASK_WDT ||
                reset_reason == ESP_RST_WDT) {
+      // watchdog resets write no core dump either
       report = fmt::format("last reset: {} (no core dump: watchdog reset — a task or ISR "
                            "hogged the CPU past the watchdog timeout)",
                            reason_name);
+    } else if (!is_clean_reset_reason(reset_reason)) {
+      // PANIC with a missing dump, UNKNOWN, power glitch, CPU lockup, ...
+      report = fmt::format("last reset: {} (no core dump image available)", reason_name);
     }
     return report;
   }
@@ -322,6 +336,28 @@ public:
     default:
       return "?";
     }
+  }
+
+  /// @brief Whether a reset reason indicates a normal, deliberate reset (a
+  ///        clean boot history: power-on, external pin, software reset,
+  ///        deep-sleep wake, SDIO, USB / JTAG). Everything else (panic,
+  ///        watchdogs, brownout, power glitch, CPU lockup, unknown, ...) is
+  ///        abnormal and worth reporting even without a core dump.
+  static bool is_clean_reset_reason(esp_reset_reason_t reason) {
+    switch (reason) {
+    case ESP_RST_POWERON:
+    case ESP_RST_EXT:
+    case ESP_RST_SW:
+    case ESP_RST_DEEPSLEEP:
+    case ESP_RST_SDIO:
+      return true;
+    default:
+      break;
+    }
+    // USB (11) / JTAG (12) resets are deliberate (flashing / debugging);
+    // avoid depending on their enumerators (added in newer IDF versions).
+    const int r = static_cast<int>(reason);
+    return r == 11 || r == 12;
   }
 
   /// @brief The GNU toolchain binary prefix for the build target (e.g.

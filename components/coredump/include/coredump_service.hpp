@@ -77,6 +77,18 @@ namespace espp {
  * Each instance owns one parser, so create one instance per byte stream (they
  * can all share the same espp::CoreDump).
  *
+ * **Threading & the `send` callback contract**: `feed()` / `handle_frame()` /
+ * `reset_parser()` are serialized against each other by an internal mutex,
+ * which covers the parser state, the flash access, and building the reply
+ * frame — but the `send` callback is always invoked AFTER that mutex is
+ * released. `send` may therefore freely call back into the service (e.g. a
+ * loopback transport, or an error path that calls `reset_parser()`) without
+ * deadlocking. The flip side: the service does NOT serialize `send` itself —
+ * with the recommended one-instance-per-stream design each instance's `send`
+ * is only ever called from that stream's single receive context, but if you
+ * do feed one instance from multiple tasks, `send` can be invoked
+ * concurrently and must be thread-safe.
+ *
  * @note `handle_frame()` runs the flash access (and the reply `send`) in the
  *       caller's context. Reads are fast, but ERASE can take tens of
  *       milliseconds — when feeding from a latency-sensitive context (e.g.
@@ -142,11 +154,24 @@ public:
    * text) and dispatches every complete frame to handle_frame().
    *
    * @param data Any number of received bytes.
+   *
+   * @note The reply `send` callback is invoked after the internal mutex has
+   *       been released (see the class-level threading notes).
    */
   void feed(std::span<const uint8_t> data) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    for (const auto &frame : parser_.feed(data))
-      handle_frame_locked(static_cast<uint8_t>(frame.type), frame.payload);
+    std::vector<std::vector<uint8_t>> replies;
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      for (const auto &frame : parser_.feed(data)) {
+        std::vector<uint8_t> reply;
+        if (handle_frame_locked(static_cast<uint8_t>(frame.type), frame.payload, reply) &&
+            !reply.empty())
+          replies.push_back(std::move(reply));
+      }
+    }
+    // send outside the lock so a re-entrant transport cannot deadlock
+    for (const auto &reply : replies)
+      send(reply);
   }
 
   /**
@@ -156,10 +181,21 @@ public:
    * @return true if the frame type belongs to the core-dump protocol (a reply
    *         was sent), false if it was ignored (another protocol's frame —
    *         nothing is sent, so multiple services can share one stream).
+   *
+   * @note The reply `send` callback is invoked after the internal mutex has
+   *       been released (see the class-level threading notes).
    */
   bool handle_frame(uint8_t type, std::span<const uint8_t> payload) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    return handle_frame_locked(type, payload);
+    std::vector<uint8_t> reply;
+    bool handled;
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      handled = handle_frame_locked(type, payload, reply);
+    }
+    // send outside the lock so a re-entrant transport cannot deadlock
+    if (!reply.empty())
+      send(reply);
+    return handled;
   }
 
   /// @brief Discard any partially-buffered frame bytes (e.g. on transport
@@ -170,8 +206,13 @@ public:
   }
 
 protected:
-  /// Handle one frame with the mutex held; see handle_frame().
-  bool handle_frame_locked(uint8_t type, std::span<const uint8_t> payload) {
+  /// Handle one frame with the mutex held: perform the flash access and BUILD
+  /// the encoded reply frame into @p reply — but do NOT send it. The caller
+  /// (feed() / handle_frame()) transmits @p reply after releasing the mutex,
+  /// so the user `send` callback never runs under the internal lock. See
+  /// handle_frame().
+  bool handle_frame_locked(uint8_t type, std::span<const uint8_t> payload,
+                           std::vector<uint8_t> &reply) {
     namespace stream = espp::detail::ota_stream;
     switch (static_cast<Msg>(type)) {
     case Msg::GetSummary: {
@@ -179,8 +220,9 @@ protected:
       logger_.info("GET_SUMMARY -> {} bytes", report.size());
       // truncate to the frame payload cap (reports are far smaller in practice)
       const size_t count = std::min(report.size(), stream::kMaxPayloadSize);
-      send(build(Msg::Summary, std::span<const uint8_t>(
-                                   reinterpret_cast<const uint8_t *>(report.data()), count)));
+      reply =
+          build(Msg::Summary,
+                std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(report.data()), count));
       return true;
     }
     case Msg::GetSize: {
@@ -188,19 +230,20 @@ protected:
       logger_.info("GET_SIZE -> {} bytes", size);
       std::vector<uint8_t> reply_payload;
       stream::put_u32(reply_payload, size);
-      send(build(Msg::Size, reply_payload));
+      reply = build(Msg::Size, reply_payload);
       return true;
     }
     case Msg::Read: {
       if (payload.size() != 6) {
-        send_error(std::errc::invalid_argument, "READ needs u32 offset + u16 length");
+        reply = build_error(std::errc::invalid_argument, "READ needs u32 offset + u16 length");
         return true;
       }
       const uint32_t offset = stream::get_u32(payload);
       const uint16_t length =
           static_cast<uint16_t>(payload[4]) | (static_cast<uint16_t>(payload[5]) << 8);
       if (length > kMaxReadLength) {
-        send_error(std::errc::invalid_argument, "READ length exceeds the per-frame maximum");
+        reply =
+            build_error(std::errc::invalid_argument, "READ length exceeds the per-frame maximum");
         return true;
       }
       std::vector<uint8_t> reply_payload;
@@ -210,11 +253,11 @@ protected:
       std::error_code ec;
       if (!core_dump_.read_image(offset, std::span<uint8_t>(reply_payload.data() + 4, length),
                                  ec)) {
-        send_error(ec, "READ failed");
+        reply = build_error(ec, "READ failed");
         return true;
       }
       logger_.debug("READ offset {} length {}", offset, length);
-      send(build(Msg::Data, reply_payload));
+      reply = build(Msg::Data, reply_payload);
       return true;
     }
     case Msg::Erase: {
@@ -222,13 +265,13 @@ protected:
       // cppcheck-suppress knownConditionTrueFalse // erase() is a constant
       // only in the coredump-disabled configuration cppcheck analyzes
       if (!core_dump_.erase(ec)) {
-        send_error(ec, "ERASE failed");
+        reply = build_error(ec, "ERASE failed");
         return true;
       }
       logger_.info("ERASE ok");
       std::vector<uint8_t> reply_payload;
       stream::put_u32(reply_payload, 0);
-      send(build(Msg::Ok, reply_payload));
+      reply = build(Msg::Ok, reply_payload);
       return true;
     }
     default:
@@ -244,7 +287,9 @@ protected:
     return stream::build_frame(static_cast<stream::MessageType>(type), payload);
   }
 
-  /// Transmit an encoded reply frame via the configured send function.
+  /// Transmit an encoded reply frame via the configured send function. Must
+  /// be called WITHOUT the internal mutex held (user callbacks never run
+  /// under the lock).
   void send(const std::vector<uint8_t> &frame) {
     if (frame.empty())
       return;
@@ -255,13 +300,13 @@ protected:
     send_(frame);
   }
 
-  /// Send an ERROR reply (u32 std::errc code + UTF-8 context message).
+  /// Build an ERROR reply frame (u32 std::errc code + UTF-8 context message).
   /// Codes from categories other than the generic category are normalized to
   /// the equivalent std::errc via default_error_condition() — falling back to
   /// std::errc::io_error when there is no generic equivalent — so the on-wire
   /// code is always a std::errc value and stable for the host to interpret
   /// (the message text still carries the original category's description).
-  void send_error(const std::error_code &ec, std::string_view context) {
+  std::vector<uint8_t> build_error(const std::error_code &ec, std::string_view context) {
     namespace stream = espp::detail::ota_stream;
     logger_.error("{}: {}", context, ec.message());
     int code = ec.value();
@@ -275,12 +320,12 @@ protected:
     const std::string message = std::string(context) + ": " + ec.message();
     const size_t count = std::min(message.size(), stream::kMaxPayloadSize - payload.size());
     payload.insert(payload.end(), message.begin(), message.begin() + count);
-    send(build(Msg::Error, payload));
+    return build(Msg::Error, payload);
   }
 
   /// Overload taking a std::errc directly.
-  void send_error(std::errc errc, std::string_view context) {
-    send_error(std::make_error_code(errc), context);
+  std::vector<uint8_t> build_error(std::errc errc, std::string_view context) {
+    return build_error(std::make_error_code(errc), context);
   }
 
 private:

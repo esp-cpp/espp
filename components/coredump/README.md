@@ -36,9 +36,10 @@ the same stream), view the crash summary, download the core dump as
 - **Text report**: `format_report()` — reset reason, panic reason, crashed
   task + PC, raw backtrace addresses with a `(corrupted)` marker (Xtensa) or
   captured stack-dump size (RISC-V), and the `addr2line` decode hint using the
-  right toolchain prefix for `CONFIG_IDF_TARGET`; brownout / watchdog resets
-  (which write no core dump) are reported with a short hint; empty string =
-  clean boot history
+  right toolchain prefix for `CONFIG_IDF_TARGET`; abnormal resets without a
+  core dump (brownout / watchdog — which write no dump — with a short hint,
+  or a panic whose dump is missing) are still reported; empty string = clean
+  boot history (power-on / software reset / deep-sleep wake / ...)
 - **Raw image access**: `image_size()`, `read_image(offset, span, ec)`
   (partition-backed chunked reads), `erase(ec)`
 - **Stream service**: `espp::CoreDumpService` — transport-agnostic; construct
@@ -68,7 +69,8 @@ coredump, data, coredump, ,        64K,
 
 The [example](./example) runs on an ESP32-S3's native USB with a composite
 device: a **vendor / WebUSB** interface and a **CDC** port that carries the
-system console (`esp_tusb_init_console`). The `CoreDumpService` is mounted on
+system console (`tinyusb_console_init(TINYUSB_CDC_ACM_0)`). The
+`CoreDumpService` is mounted on
 BOTH streams, and test-crash commands (null-pointer write, `assert(false)`,
 divide-by-zero, watchdog hang) can be triggered from the CDC console or the
 BOOT button to exercise the full flow: crash → flash core dump → next-boot
