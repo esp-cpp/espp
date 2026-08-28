@@ -385,6 +385,50 @@ bool M5StackTab5::initialize_lcd() {
     return false;
   }
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+  // Use the 2D-DMA engine for esp_lcd_panel_draw_bitmap copies into the DPI
+  // framebuffer. On ESP-IDF < 6.0 this was requested with the
+  // esp_lcd_dpi_panel_config_t::flags.use_dma2d flag (set above); IDF 6.0
+  // removed the flag in favor of this explicit call. Without it every
+  // draw_bitmap is a CPU memcpy through the cache — for a full 720x1280 RGB565
+  // frame that is ~1.8 MB read + ~1.8 MB written + a ~1.8 MB cache writeback
+  // per flush, all PSRAM traffic that competes with the DPI panel's continuous
+  // ~140 MB/s framebuffer scan-out DMA. Starving that scan-out DMA underruns
+  // the DSI bridge FIFO, which shows up as streaks/tears along the panel's
+  // scan-line axis (the driver logs "underrun happens" when it detects this).
+  // The DMA2D copy runs without the CPU touching the data and completes via
+  // the same on_color_trans_done callback registered above.
+  ret = esp_lcd_dpi_panel_enable_dma2d(lcd_handles_.panel);
+  if (ret != ESP_OK) {
+    // Not fatal: draw_bitmap falls back to the (slower) CPU copy.
+    logger_.warn("Could not enable DMA2D for DPI draw_bitmap ({}); using CPU copies",
+                 esp_err_to_name(ret));
+  }
+#endif
+
+  // Cache the DPI framebuffer address so flush() can rotate directly into it
+  // with the PPA (see flush()). The panel scans this buffer out continuously;
+  // the espp draw/flush path itself never writes it with the CPU.
+  {
+    void *fb = nullptr;
+    if (esp_lcd_dpi_panel_get_frame_buffer(lcd_handles_.panel, 1, &fb) == ESP_OK && fb != nullptr) {
+      const size_t fb_bytes = static_cast<size_t>(display_width_) * display_height_ * sizeof(Pixel);
+      // The PPA requires its output buffer pointer and size to be aligned to
+      // the (128-byte) cache line; the esp_lcd driver allocates the DPI
+      // framebuffer DMA-aligned, and 720*1280*2 is a multiple of 128, but
+      // verify rather than assume — if it does not hold, flush() simply keeps
+      // the scratch-buffer path.
+      if ((reinterpret_cast<uintptr_t>(fb) % 128) == 0 && (fb_bytes % 128) == 0) {
+        dpi_framebuffer_ = fb;
+        dpi_framebuffer_bytes_ = fb_bytes;
+      } else {
+        logger_.warn("DPI framebuffer not cache-line aligned; PPA will rotate via scratch buffer");
+      }
+    } else {
+      logger_.warn("Could not query the DPI framebuffer; PPA will rotate via scratch buffer");
+    }
+  }
+
   // Program the panel's initial scan direction so the rotation decision
   // flush() makes via panel_handles_rotation() is valid from the very first
   // frame. In the documented init order (initialize_lcd() before
@@ -452,6 +496,15 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
   if (g_ppa_client == nullptr) {
     ppa_client_config_t ppa_cfg = {};
     ppa_cfg.oper_type = PPA_OPERATION_SRM;
+    // Throttle the PPA's AXI bursts (default PPA_DATA_BURST_LENGTH_128). The
+    // DPI panel continuously scans its PSRAM framebuffer at ~140 MB/s; on the
+    // ESP32-P4 a PPA client running full-length bursts against the same PSRAM
+    // is known to starve that scan-out DMA and underrun the DSI bridge FIFO,
+    // which appears as streaks along the panel's scan-line axis even with
+    // 200 MHz hex PSRAM (see lvgl/lvgl#9590 - shorter PPA bursts fix the
+    // artifacts at a small cost in PPA throughput; LVGL's own PPA integration
+    // exposes the same knob as LV_PPA_BURST_LENGTH).
+    ppa_cfg.data_burst_length = PPA_DATA_BURST_LENGTH_64;
     esp_err_t perr = ppa_register_client(&ppa_cfg, &g_ppa_client);
     if (perr != ESP_OK) {
       logger_.warn("Could not register PPA client ({}); rotation will fall back to software",
@@ -657,25 +710,34 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
     int32_t ww = lv_area_get_width(area);
     int32_t hh = lv_area_get_height(area);
     lv_color_format_t cf = lv_display_get_color_format(disp);
-    bool rotated = false;
-    if (g_ppa_client != nullptr) {
-      // Hardware rotation via the PPA. The LVGL rotation maps directly onto the
-      // PPA rotation angle (LVGL 90 -> PPA 90, 180 -> 180, 270 -> 270); this is
-      // the mapping verified on hardware. For 90/270 the output picture
-      // width/height are swapped. If a different panel comes out turned the
-      // wrong way, swap the 90 and 270 cases here.
+    // Map the logical (LVGL) area to physical panel coordinates up front: the
+    // direct-to-framebuffer PPA path needs the rotated destination offsets
+    // before the PPA runs, and the fallback paths need them for draw_bitmap.
+    lv_display_rotate_area(disp, const_cast<lv_area_t *>(area));
+    offsetx1 = area->x1;
+    offsetx2 = area->x2;
+    offsety1 = area->y1;
+    offsety2 = area->y2;
+    if (g_ppa_client != nullptr && dpi_framebuffer_ != nullptr) {
+      // Hardware rotation via the PPA, writing the rotated block DIRECTLY into
+      // the DPI panel's framebuffer at the rotated offset (the PPA output
+      // supports placing a block inside a larger picture). This halves the
+      // PSRAM traffic of the previous scratch-buffer approach (PPA write +
+      // draw_bitmap read + write), which matters because the DSI scan-out DMA
+      // is reading the same PSRAM continuously and underruns - visible as
+      // streaks - when the flush path hogs the bandwidth.
+      //
+      // The LVGL rotation maps directly onto the PPA rotation angle (LVGL 90
+      // -> PPA 90, 180 -> 180, 270 -> 270); this is the mapping verified on
+      // hardware. If a different panel comes out turned the wrong way, swap
+      // the 90 and 270 cases here.
       ppa_srm_rotation_angle_t angle = PPA_SRM_ROTATION_ANGLE_0;
-      uint32_t out_w = ww, out_h = hh;
       if (rotation == LV_DISPLAY_ROTATION_90) {
         angle = PPA_SRM_ROTATION_ANGLE_90;
-        out_w = hh;
-        out_h = ww;
       } else if (rotation == LV_DISPLAY_ROTATION_180) {
         angle = PPA_SRM_ROTATION_ANGLE_180;
       } else if (rotation == LV_DISPLAY_ROTATION_270) {
         angle = PPA_SRM_ROTATION_ANGLE_270;
-        out_w = hh;
-        out_h = ww;
       }
       ppa_srm_oper_config_t srm = {};
       srm.in.buffer = px_map;
@@ -684,22 +746,37 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       srm.in.block_w = ww;
       srm.in.block_h = hh;
       srm.in.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
-      srm.out.buffer = third_buffer;
-      srm.out.buffer_size = third_buffer_bytes;
-      srm.out.pic_w = out_w;
-      srm.out.pic_h = out_h;
+      srm.out.buffer = dpi_framebuffer_;
+      srm.out.buffer_size = dpi_framebuffer_bytes_;
+      srm.out.pic_w = display_width_;
+      srm.out.pic_h = display_height_;
+      srm.out.block_offset_x = offsetx1;
+      srm.out.block_offset_y = offsety1;
       srm.out.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
       srm.rotation_angle = angle;
       srm.scale_x = 1.0f;
       srm.scale_y = 1.0f;
       srm.mode = PPA_TRANS_MODE_BLOCKING;
-      // On failure third_buffer holds stale/partial data; leave rotated=false so
-      // we fall through to the software rotation below rather than flushing it.
-      rotated = (ppa_do_scale_rotate_mirror(g_ppa_client, &srm) == ESP_OK);
+      if (ppa_do_scale_rotate_mirror(g_ppa_client, &srm) == ESP_OK) {
+        // The rotated pixels are already in the scanned-out framebuffer and
+        // the PPA driver performed the cache maintenance (write-back of the
+        // source window, invalidate of the destination window). The espp
+        // flush path never dirties the framebuffer with the CPU (draw_bitmap
+        // copies run on the DMA2D engine, and its CPU fallback writes back
+        // the cache before returning), so there is nothing left to sync and
+        // no draw_bitmap call is needed: signal LVGL directly.
+        lv_display_flush_ready(disp);
+        return;
+      }
+      // On failure fall through to the scratch-buffer software rotation: the
+      // framebuffer may hold a partial block, but the fallback redraws the
+      // full area at the same destination.
     }
-    if (!rotated) {
-      // Software fallback: the PPA client failed to register or the PPA
-      // operation failed. Rotates into third_buffer, fully overwriting it.
+    {
+      // Fallback: the PPA client failed to register, the framebuffer could
+      // not be queried, or the PPA operation failed. Rotate on the CPU into
+      // the scratch buffer, fully overwriting it, and hand it to draw_bitmap
+      // below.
       uint32_t w_stride = lv_draw_buf_width_to_stride(ww, cf);
       uint32_t h_stride = lv_draw_buf_width_to_stride(hh, cf);
       if (rotation == LV_DISPLAY_ROTATION_180) {
@@ -714,11 +791,6 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       }
     }
     px_map = reinterpret_cast<uint8_t *>(third_buffer);
-    lv_display_rotate_area(disp, const_cast<lv_area_t *>(area));
-    offsetx1 = area->x1;
-    offsetx2 = area->x2;
-    offsety1 = area->y1;
-    offsety2 = area->y2;
   }
 
   // pass the draw buffer to the DPI panel driver

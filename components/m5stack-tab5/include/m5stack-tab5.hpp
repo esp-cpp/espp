@@ -944,6 +944,15 @@ protected:
     esp_lcd_panel_handle_t panel{nullptr};          // color handle
   } lcd_handles_{};
 
+  // The DPI panel's (PSRAM) framebuffer, queried from esp_lcd once the panel
+  // is created. flush() uses it to rotate LVGL draw buffers directly into the
+  // scanned-out framebuffer with the PPA, skipping the intermediate scratch
+  // buffer + draw_bitmap copy (which doubles the PSRAM traffic and can starve
+  // the DSI scan-out DMA into FIFO underruns / on-screen streaking). Null when
+  // unavailable, in which case flush() falls back to the scratch-buffer path.
+  void *dpi_framebuffer_{nullptr};
+  size_t dpi_framebuffer_bytes_{0};
+
   // Display controller detection
   DisplayController display_controller_{DisplayController::UNKNOWN};
 
