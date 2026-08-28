@@ -8,7 +8,13 @@
 #include <sdkconfig.h>
 #include <vector>
 
+#include "esp_core_dump.h"
+#include "esp_system.h"
 #include "esp_timer.h"
+#include "tusb_cdc_acm.h"
+#include "tusb_console.h"
+
+#include "format.hpp"
 
 #include "bldc_driver.hpp"
 #include "bldc_haptics.hpp"
@@ -88,6 +94,49 @@ extern "C" void app_main(void) {
   logger.info("Starting USB-controlled BLDC haptics example");
 
   namespace proto = haptics_proto;
+
+  // --------------------------------------------------------------------------
+  // Last-crash report. TinyUSB owns the S3's only USB PHY, so there is no live
+  // USB-Serial-JTAG console and a panic backtrace cannot be watched directly;
+  // instead panics core-dump to flash (see sdkconfig/partitions) and THIS boot
+  // summarizes the previous crash - over the CDC banner below, the console,
+  // and the GET_CRASH protocol command (shown in the web console's log).
+  // --------------------------------------------------------------------------
+  std::string crash_report;
+  {
+    const esp_reset_reason_t reset_reason = esp_reset_reason();
+    const char *reset_names[] = {"UNKNOWN", "POWERON",  "EXT", "SW",        "PANIC",
+                                 "INT_WDT", "TASK_WDT", "WDT", "DEEPSLEEP", "BROWNOUT",
+                                 "SDIO",    "USB",      "JTAG"};
+    const auto reason_index = static_cast<size_t>(reset_reason);
+    const char *reason_name =
+        reason_index < std::size(reset_names) ? reset_names[reason_index] : "?";
+    logger.info("Reset reason: {} ({})", reason_name, static_cast<int>(reset_reason));
+    if (esp_core_dump_image_check() == ESP_OK) {
+      esp_core_dump_summary_t summary = {};
+      if (esp_core_dump_get_summary(&summary) == ESP_OK) {
+        crash_report = fmt::format("last reset: {} | crashed task '{}' PC=0x{:08x}", reason_name,
+                                   summary.exc_task, summary.exc_pc);
+        crash_report += " | backtrace:";
+        const auto depth =
+            std::min<uint32_t>(summary.exc_bt_info.depth, std::size(summary.exc_bt_info.bt));
+        for (uint32_t i = 0; i < depth; i++)
+          crash_report += fmt::format(" 0x{:08x}", summary.exc_bt_info.bt[i]);
+        if (summary.exc_bt_info.corrupted)
+          crash_report += " (corrupted)";
+        crash_report +=
+            "\ndecode with: xtensa-esp32s3-elf-addr2line -pfiaC -e build/bldc_haptics.elf <addrs>";
+        logger.error("Previous crash detected: {}", crash_report);
+      }
+    } else if (reset_reason == ESP_RST_BROWNOUT || reset_reason == ESP_RST_INT_WDT ||
+               reset_reason == ESP_RST_TASK_WDT) {
+      // no core dump is written for these, but the reason itself is the story
+      crash_report = fmt::format(
+          "last reset: {} (no core dump: {})", reason_name,
+          reset_reason == ESP_RST_BROWNOUT ? "brownout - check motor/USB power" : "watchdog reset");
+      logger.error("Previous abnormal reset: {}", crash_report);
+    }
+  }
 
   // --------------------------------------------------------------------------
   // Motor / driver setup (board-dependent)
@@ -282,6 +331,14 @@ extern "C" void app_main(void) {
   usb_cfg.manufacturer = "espp";
   usb_cfg.product = "espp BLDC Haptics";
   usb_cfg.log_level = espp::Logger::Verbosity::INFO;
+  // CDC alongside the vendor interface: a plain serial port any terminal can
+  // attach to (e.g. `screen /dev/tty.usbmodem*`). It carries the boot banner +
+  // last-crash report on every connect - NOT a live console (espp logs go to
+  // the default console, and a panic kills TinyUSB before it could print);
+  // the flash core dump + next-boot report above is the backtrace path.
+  espp::UsbDevice::CdcFunction cdc;
+  cdc.interface_name = "espp BLDC Haptics (debug)";
+  usb_cfg.cdc = cdc;
   espp::UsbDevice::VendorFunction vendor;
   vendor.interface_name = "espp BLDC Haptics (WebUSB)";
   vendor.webusb = true; // advertise BOS / WebUSB / MS OS 2.0 descriptors
@@ -329,8 +386,19 @@ extern "C" void app_main(void) {
   });
 
   std::error_code usb_ec;
-  if (!usb.initialize(usb_ec))
+  if (!usb.initialize(usb_ec)) {
     logger.error("Failed to initialize USB device: {}", usb_ec.message());
+  } else {
+    // Route the SYSTEM console (stdout/stderr - all espp/fmt and esp_log
+    // output) to the CDC interface: TinyUSB owns the S3's only USB PHY, so
+    // this replaces the unusable USB-Serial-JTAG console. Attach any serial
+    // terminal (e.g. `screen /dev/tty.usbmodem*`) for live logs. Panic
+    // backtraces still cannot appear live (TinyUSB dies with the panic) -
+    // those are captured by the flash core dump and summarized on the next
+    // boot (see crash_report above / GET_CRASH).
+    if (esp_tusb_init_console(TINYUSB_CDC_ACM_0) != ESP_OK)
+      logger.warn("Could not route the console to USB CDC");
+  }
 
   // --------------------------------------------------------------------------
   // Protocol frame handling (runs in the worker task)
@@ -452,6 +520,11 @@ extern "C" void app_main(void) {
     case proto::Msg::GetModes:
       send_modes();
       break;
+    case proto::Msg::GetCrash: {
+      std::vector<uint8_t> payload(crash_report.begin(), crash_report.end());
+      usb_send(proto::build(proto::Msg::Crash, payload));
+      break;
+    }
     case proto::Msg::SetMode: {
       if (frame.payload.size() != 1 || frame.payload[0] >= kPresets.size()) {
         reply_errc(std::errc::invalid_argument, "SET_MODE needs a valid u8 mode index");
@@ -603,8 +676,15 @@ extern "C" void app_main(void) {
               vendor.landing_page_url);
 
   bool was_faulted = false;
+  bool cdc_was_connected = false;
   while (true) {
     std::this_thread::sleep_for(1s);
+    // A terminal attaching to the CDC console missed the boot output; re-log
+    // the previous-crash summary for it once per connection.
+    const bool cdc_connected = usb.is_cdc_connected();
+    if (cdc_connected && !cdc_was_connected && !crash_report.empty())
+      logger.error("Previous abnormal reset: {}", crash_report);
+    cdc_was_connected = cdc_connected;
     const bool faulted = driver->is_faulted();
     if (faulted != was_faulted) {
       was_faulted = faulted;

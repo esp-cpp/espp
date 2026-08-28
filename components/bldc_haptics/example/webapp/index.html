@@ -311,8 +311,9 @@
       OTA_BEGIN: 0x01, OTA_DATA: 0x02, OTA_FINISH: 0x03, OTA_ABORT: 0x04,
       GET_INFO: 0x10, GET_STATUS: 0x11, GET_MODES: 0x12, SET_MODE: 0x13,
       SET_POSITION: 0x14, SET_ENABLED: 0x15, PLAY_HAPTIC: 0x16, SET_STREAMING: 0x17,
+      GET_CRASH: 0x18,
       OK: 0x81, ERROR: 0x82, OTA_PROGRESS: 0x83,
-      INFO: 0x90, STATUS: 0x91, MODES: 0x92, TELEMETRY: 0x93,
+      INFO: 0x90, STATUS: 0x91, MODES: 0x92, TELEMETRY: 0x93, CRASH: 0x94,
     };
     const TYPE_NAME = {};
     for (const [name, value] of Object.entries(TYPE)) TYPE_NAME[value] = name;
@@ -726,6 +727,17 @@
 
         const status = await transact(TYPE.GET_STATUS, null, [TYPE.STATUS], CMD_TIMEOUT_MS);
         applyStatus(status.payload);
+
+        // Previous-crash report (persisted core-dump summary from the last
+        // abnormal reset; empty on a clean boot history). Best-effort: older
+        // firmware without GET_CRASH just times out.
+        try {
+          const crash = await transact(TYPE.GET_CRASH, null, [TYPE.CRASH], CMD_TIMEOUT_MS);
+          if (crash.payload.length > 0) {
+            const text = new TextDecoder().decode(crash.payload);
+            for (const line of text.split("\n")) logLine("err", "DEVICE CRASH REPORT: " + line);
+          }
+        } catch (_) { /* older firmware */ }
 
         if (els.streamToggle.checked) await applyStreaming();
       } catch (e) {

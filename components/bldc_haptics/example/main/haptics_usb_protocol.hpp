@@ -45,6 +45,7 @@ enum class Msg : uint8_t {
   SetEnabled = 0x15,   ///< host->dev: u8 0/1 -> Ok(0/1)
   PlayHaptic = 0x16,   ///< host->dev: f32 strength -> Ok(0)
   SetStreaming = 0x17, ///< host->dev: u8 0/1 + u16 period_ms -> Ok(period_ms)
+  GetCrash = 0x18,     ///< host->dev: no payload -> Crash reply
   // --- Generic / OTA replies -------------------------------------------------
   Ok = 0x81,          ///< dev->host: u32 context-dependent value
   Error = 0x82,       ///< dev->host: u32 code (std::errc) + utf8 message
@@ -54,6 +55,7 @@ enum class Msg : uint8_t {
   Status = 0x91,    ///< dev->host: full status snapshot
   Modes = 0x92,     ///< dev->host: enumeration of the detent presets
   Telemetry = 0x93, ///< dev->host: periodic position/detent frame (streaming)
+  Crash = 0x94,     ///< dev->host: utf8 crash report text (empty = clean boot history)
 };
 
 // ---------------------------------------------------------------------------

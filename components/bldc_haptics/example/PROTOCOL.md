@@ -65,6 +65,7 @@ The device suspends telemetry while an OTA session is active.
 | 0x15 | SET_ENABLED   | `u8` 0 = disable, 1 = enable              | OK(0/1) / ERROR |
 | 0x16 | PLAY_HAPTIC   | `f32 strength` (clamped to 0..10)         | OK(0) / ERROR |
 | 0x17 | SET_STREAMING | `u8 enable` + `u16 period_ms` (5..1000; 0 = default 20) | OK(period_ms) / ERROR |
+| 0x18 | GET_CRASH | none | CRASH |
 
 Notes:
 
@@ -180,3 +181,14 @@ The **continuous value** maps directly onto the knob geometry: the knob's
 physical angle relative to the detent grid is `value * position_width` radians,
 with `value` spanning `[min_position, max_position]` for bounded modes. This is
 what the web app's dial renders.
+
+### CRASH (0x94)
+
+Reply to `GET_CRASH`. The payload is a UTF-8 text report of the previous
+abnormal reset, or EMPTY when the boot history is clean. When the previous
+reset was a panic with a flash core dump, the report includes the crashed
+task, PC, and raw backtrace addresses (decode with
+`xtensa-esp32s3-elf-addr2line -pfiaC -e build/bldc_haptics.elf <addrs>`);
+brownout / watchdog resets are reported by reason (no core dump exists for
+those). The web console requests this automatically after connecting and
+prints the report in its log pane.

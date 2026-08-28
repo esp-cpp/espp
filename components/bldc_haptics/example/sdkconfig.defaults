@@ -47,6 +47,12 @@ CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
 CONFIG_PARTITION_TABLE_OFFSET=0x8000
 CONFIG_PARTITION_TABLE_MD5=y
 
+# Panic core dumps are saved to the dedicated flash partition and summarized
+# over USB (CDC banner + the GET_CRASH protocol command / web console) on the
+# NEXT boot: with TinyUSB owning the S3's only USB PHY there is no live
+# USB-Serial-JTAG console, so this is how a crash backtrace is captured.
+CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
+
 # Enable app rollback: a freshly-installed OTA image boots PENDING_VERIFY and
 # must mark itself valid (this example calls espp::Ota::mark_app_valid() after
 # its self-check) or the bootloader rolls back on the next reset.
