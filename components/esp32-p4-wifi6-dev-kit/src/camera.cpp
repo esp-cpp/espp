@@ -30,8 +30,10 @@ bool Esp32P4Wifi6DevKit::initialize_camera(const camera_frame_callback_t &callba
                                            const espp::Task::BaseConfig &task_config) {
   logger_.info("Initializing camera (MIPI-CSI, OV5647)");
   if (camera_initialized_) {
+    // Idempotent, matching the other initialize_* methods: calling again is
+    // harmless, so warn and report success.
     logger_.warn("Camera already initialized");
-    return false;
+    return true;
   }
   if (!callback) {
     logger_.error("A callback is required to receive camera frames");

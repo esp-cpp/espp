@@ -335,8 +335,12 @@ extern "C" void app_main(void) {
 // size and sample rate.
 //////////////////////////////////////////////////////////////////////////////
 static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
+  // Cache the parsed sample rate alongside audio_bytes so the cached path can
+  // report it too (both outputs are always set when returning true).
+  static size_t cached_sample_rate = 0;
   if (!audio_bytes.empty()) {
     out_size = audio_bytes.size();
+    out_sample_rate = cached_sample_rate;
     return true;
   }
   extern const uint8_t click_wav_start[] asm("_binary_click_wav_start");
@@ -370,6 +374,7 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
   audio_bytes.erase(audio_bytes.begin() + data_off + data_len, audio_bytes.end());
   audio_bytes.erase(audio_bytes.begin(), audio_bytes.begin() + data_off);
   out_size = audio_bytes.size();
+  cached_sample_rate = sample_rate;
   out_sample_rate = sample_rate;
   return true;
 }

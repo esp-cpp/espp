@@ -203,8 +203,10 @@ bool Esp32P4Wifi6DevKit::initialize_microphone(const microphone_callback_t &call
                                                const espp::Task::BaseConfig &task_config) {
   logger_.info("Initializing microphone");
   if (microphone_initialized_) {
+    // Idempotent, matching the other initialize_* methods: calling again is
+    // harmless, so warn and report success.
     logger_.warn("Microphone already initialized, not initializing again!");
-    return false;
+    return true;
   }
   if (!audio_initialized_) {
     logger_.error("The audio subsystem must be initialized first: the ES8311 is a full-duplex "

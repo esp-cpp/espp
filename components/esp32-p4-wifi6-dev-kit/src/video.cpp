@@ -78,18 +78,30 @@ bool Esp32P4Wifi6DevKit::initialize_lcd() {
         return false;
       }
     }
-    auto write_panel_reg = [this](uint8_t reg, uint8_t value) {
+    auto write_panel_reg = [this](uint8_t reg, uint8_t value) -> bool {
       const uint8_t data[2] = {reg, value};
       std::error_code ec;
       if (!backlight_i2c_device_->write(data, sizeof(data), ec)) {
         logger_.error("Failed to write panel power controller reg 0x{:02X}: {}", reg, ec.message());
+        return false;
       }
+      return true;
     };
-    write_panel_reg(0x95, 0x11); // panel power/reset control
-    write_panel_reg(0x95, 0x17); // panel power/reset control
-    write_panel_reg(0x96, 0x00); // backlight off while powering up
+    // Every write in this sequence is required: if the power/reset writes fail
+    // the panel may still be unpowered/in reset when the DSI vendor init
+    // sequence is sent, which fails or hangs non-deterministically later. Abort
+    // LCD init instead of proceeding blind.
+    if (!write_panel_reg(0x95, 0x11) || // panel power/reset control
+        !write_panel_reg(0x95, 0x17) || // panel power/reset control
+        !write_panel_reg(0x96, 0x00)) { // backlight off while powering up
+      logger_.error("Failed to power on the JD9365 panel via its I2C power controller");
+      return false;
+    }
     std::this_thread::sleep_for(100ms);
-    write_panel_reg(0x96, 0xFF); // backlight full on
+    if (!write_panel_reg(0x96, 0xFF)) { // backlight full on
+      logger_.error("Failed to enable the JD9365 panel backlight via its I2C power controller");
+      return false;
+    }
     std::this_thread::sleep_for(1000ms);
   }
 
@@ -412,8 +424,11 @@ void Esp32P4Wifi6DevKit::brightness(float brightness) {
 
 float Esp32P4Wifi6DevKit::brightness() const { return brightness_.load(); }
 
-void IRAM_ATTR Esp32P4Wifi6DevKit::flush(lv_display_t *disp, const lv_area_t *area,
-                                         uint8_t *px_map) {
+// NOTE: this is the LVGL flush_cb; LVGL only ever invokes it from the task that
+// runs lv_timer_handler() (the espp::Display update task), never from an ISR,
+// so it is deliberately NOT IRAM_ATTR and is free to call LVGL / esp_lcd
+// task-context APIs (lv_draw_sw_rotate, esp_lcd_panel_draw_bitmap, logging).
+void Esp32P4Wifi6DevKit::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
   if (lcd_handles_.panel == nullptr) {
     lv_display_flush_ready(disp);
     return;
@@ -461,6 +476,17 @@ void IRAM_ATTR Esp32P4Wifi6DevKit::flush(lv_display_t *disp, const lv_area_t *ar
                             px_map);
 }
 
+// NOTE: this DPI on_color_trans_done callback runs in one of two contexts
+// (see esp_lcd_panel_dpi.c): directly from esp_lcd_panel_draw_bitmap() in the
+// calling task (CPU-copy path, ILI9881C/EK79007), or from the DMA2D
+// transfer-done ISR (JD9365, where DMA2D is enabled). It must therefore be
+// ISR-safe: the only work done here is a couple of null checks and
+// Display::notify_flush_ready() -> lv_display_flush_ready(), which just clears
+// the display's `flushing` flag (no locking/allocation/logging; LVGL provides
+// LV_ATTRIBUTE_FLUSH_READY for exactly this use). It is kept IRAM_ATTR so it
+// still satisfies the esp_ptr_in_iram() check esp_lcd performs on registration
+// when CONFIG_LCD_DSI_ISR_CACHE_SAFE is enabled. No task is woken here, so the
+// correct "yield required" return value is always false.
 bool IRAM_ATTR Esp32P4Wifi6DevKit::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel,
                                                            esp_lcd_dpi_panel_event_data_t *edata,
                                                            void *user_ctx) {
@@ -470,7 +496,7 @@ bool IRAM_ATTR Esp32P4Wifi6DevKit::notify_lvgl_flush_ready(esp_lcd_panel_handle_
   if (board && board->display_) {
     board->display_->notify_flush_ready();
   }
-  return false;
+  return false; // no high-priority task was woken
 }
 
 void Esp32P4Wifi6DevKit::dsi_write_command(uint8_t cmd, std::span<const uint8_t> params,
