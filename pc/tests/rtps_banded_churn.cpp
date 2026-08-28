@@ -30,9 +30,7 @@
 #include "rtps/entities/Domain.hpp"
 #include "rtps_participant.hpp"
 
-#include <arpa/inet.h>
-#include <ifaddrs.h>
-#include <netinet/in.h>
+#include "rtps_common.hpp"
 
 struct StringMsg {
   std::string data;
@@ -40,37 +38,6 @@ struct StringMsg {
 
 inline std::span<const uint8_t> u8_span(const std::vector<std::byte> &bytes) {
   return {reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size()};
-}
-
-static bool detect_interface(std::string &addr, rtps::Ip4AddressBytes &bytes) {
-  struct ifaddrs *ifaddr = nullptr;
-  if (getifaddrs(&ifaddr) != 0) {
-    return false;
-  }
-  bool found = false;
-  for (struct ifaddrs *ifa = ifaddr; ifa != nullptr && !found; ifa = ifa->ifa_next) {
-    if (ifa->ifa_addr == nullptr || ifa->ifa_addr->sa_family != AF_INET) {
-      continue;
-    }
-    char buf[INET_ADDRSTRLEN] = {0};
-    const auto *sin = reinterpret_cast<const struct sockaddr_in *>(ifa->ifa_addr);
-    if (inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf)) == nullptr) {
-      continue;
-    }
-    const std::string ip = buf;
-    if (ip.rfind("127.", 0) == 0 || ip.rfind("169.254.", 0) == 0) {
-      continue;
-    }
-    addr = ip;
-    unsigned a = 0, b = 0, c = 0, d = 0;
-    if (std::sscanf(ip.c_str(), "%u.%u.%u.%u", &a, &b, &c, &d) == 4) {
-      bytes = {static_cast<uint8_t>(a), static_cast<uint8_t>(b), static_cast<uint8_t>(c),
-               static_cast<uint8_t>(d)};
-      found = true;
-    }
-  }
-  freeifaddrs(ifaddr);
-  return found;
 }
 
 using namespace std::chrono_literals;
@@ -82,10 +49,17 @@ int main() {
 
   std::string ip;
   rtps::Ip4AddressBytes ip_bytes{};
-  if (!detect_interface(ip, ip_bytes)) {
+  // Portable interface discovery (rtps_common.hpp builds on POSIX and MSVC);
+  // the loopback fallback means no usable interface was found.
+  ip = rtps_test::guess_local_ipv4();
+  unsigned ip_a = 0, ip_b = 0, ip_c = 0, ip_d = 0;
+  if (ip.rfind("127.", 0) == 0 ||
+      std::sscanf(ip.c_str(), "%u.%u.%u.%u", &ip_a, &ip_b, &ip_c, &ip_d) != 4) {
     std::printf("FAIL: no usable IPv4 interface\n");
     return 1;
   }
+  ip_bytes = {static_cast<uint8_t>(ip_a), static_cast<uint8_t>(ip_b), static_cast<uint8_t>(ip_c),
+              static_cast<uint8_t>(ip_d)};
 
   // ---- Phase 1: dedicated-port churn under flood --------------------------
   {

@@ -621,7 +621,7 @@ rtps::Reader *Domain::readerExists(Participant &part, const char *topicName, con
     for (unsigned int i = 0; i < m_statefulReaders.size(); i++) {
       if (m_statefulReaders[i].isInitialized()) {
         if (strncmp(m_statefulReaders[i].m_attributes.topicName, topicName,
-                    Config::MAX_TYPENAME_LENGTH) != 0) {
+                    Config::MAX_TOPICNAME_LENGTH) != 0) {
           continue;
         }
 
@@ -639,7 +639,7 @@ rtps::Reader *Domain::readerExists(Participant &part, const char *topicName, con
     for (unsigned int i = 0; i < m_statelessReaders.size(); i++) {
       if (m_statelessReaders[i].isInitialized()) {
         if (strncmp(m_statelessReaders[i].m_attributes.topicName, topicName,
-                    Config::MAX_TYPENAME_LENGTH) != 0) {
+                    Config::MAX_TOPICNAME_LENGTH) != 0) {
           continue;
         }
 
@@ -665,7 +665,7 @@ rtps::Writer *Domain::writerExists(Participant &part, const char *topicName, con
     for (unsigned int i = 0; i < m_statefulWriters.size(); i++) {
       if (m_statefulWriters[i].isInitialized()) {
         if (strncmp(m_statefulWriters[i].m_attributes.topicName, topicName,
-                    Config::MAX_TYPENAME_LENGTH) != 0) {
+                    Config::MAX_TOPICNAME_LENGTH) != 0) {
           continue;
         }
 
@@ -683,7 +683,7 @@ rtps::Writer *Domain::writerExists(Participant &part, const char *topicName, con
     for (unsigned int i = 0; i < m_statelessWriters.size(); i++) {
       if (m_statelessWriters[i].isInitialized()) {
         if (strncmp(m_statelessWriters[i].m_attributes.topicName, topicName,
-                    Config::MAX_TYPENAME_LENGTH) != 0) {
+                    Config::MAX_TOPICNAME_LENGTH) != 0) {
           continue;
         }
 

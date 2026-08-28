@@ -36,9 +36,7 @@
 #include "cdr.hpp"
 #include "rtps_participant.hpp"
 
-#include <arpa/inet.h>
-#include <ifaddrs.h>
-#include <netinet/in.h>
+#include "rtps_common.hpp"
 
 struct StringMsg {
   std::string data;
@@ -46,32 +44,6 @@ struct StringMsg {
 
 inline std::span<const uint8_t> u8_span(const std::vector<std::byte> &bytes) {
   return {reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size()};
-}
-
-static bool detect_interface(std::string &addr) {
-  struct ifaddrs *ifaddr = nullptr;
-  if (getifaddrs(&ifaddr) != 0) {
-    return false;
-  }
-  bool found = false;
-  for (struct ifaddrs *ifa = ifaddr; ifa != nullptr && !found; ifa = ifa->ifa_next) {
-    if (ifa->ifa_addr == nullptr || ifa->ifa_addr->sa_family != AF_INET) {
-      continue;
-    }
-    char buf[INET_ADDRSTRLEN] = {0};
-    const auto *sin = reinterpret_cast<const struct sockaddr_in *>(ifa->ifa_addr);
-    if (inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf)) == nullptr) {
-      continue;
-    }
-    const std::string ip = buf;
-    if (ip.rfind("127.", 0) == 0 || ip.rfind("169.254.", 0) == 0) {
-      continue;
-    }
-    addr = ip;
-    found = true;
-  }
-  freeifaddrs(ifaddr);
-  return found;
 }
 
 namespace {
@@ -92,7 +64,10 @@ int main() {
   const char *churn_topic = "writer_churn_topic";
 
   std::string ip;
-  if (!detect_interface(ip)) {
+  // Portable interface discovery (rtps_common.hpp builds on POSIX and MSVC);
+  // the loopback fallback means no usable interface was found.
+  ip = rtps_test::guess_local_ipv4();
+  if (ip.rfind("127.", 0) == 0) {
     std::printf("FAIL: no usable IPv4 interface\n");
     return 1;
   }
