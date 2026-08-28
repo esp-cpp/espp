@@ -30,6 +30,12 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 # driver so espp::UsbDevice's vendor function (bInterfaceClass 0xFF + WebUSB)
 # works.
 CONFIG_TINYUSB_VENDOR_COUNT=1
+# The vendor FIFOs default to 64 bytes on the S3 - smaller than one protocol
+# frame (MODES is ~660 bytes; OTA data frames are 4106). Size them to hold a
+# full frame so writes complete without waiting and RX can take a whole OTA
+# chunk at once.
+CONFIG_TINYUSB_VENDOR_RX_BUFSIZE=4200
+CONFIG_TINYUSB_VENDOR_TX_BUFSIZE=4200
 
 # The example itself only USES the vendor function, but the usb_device
 # component's sources reference the TinyUSB CDC + HID class driver APIs, which

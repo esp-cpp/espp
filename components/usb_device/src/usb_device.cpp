@@ -2,7 +2,9 @@
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstring>
+#include <thread>
 
 #include "tinyusb.h"
 #include "tinyusb_cdc_acm.h"
@@ -874,15 +876,26 @@ bool UsbDevice::write_vendor(std::span<const uint8_t> data, std::error_code &ec)
     return false;
   }
   size_t offset = 0;
+  // The vendor TX FIFO (CONFIG_TINYUSB_VENDOR_TX_BUFSIZE, 64 bytes by default)
+  // is commonly SMALLER than one protocol frame, so a full FIFO is the normal
+  // mid-write condition, not an error: wait for the USB task to drain it
+  // instead of truncating (a partial frame is useless to the host - its
+  // parser discards it on the length/CRC check). Bounded so an unplugged or
+  // non-reading host cannot wedge the caller.
+  static constexpr auto kVendorWriteTimeout = std::chrono::milliseconds(250);
+  const auto deadline = std::chrono::steady_clock::now() + kVendorWriteTimeout;
   while (offset < data.size()) {
     uint32_t queued = tud_vendor_write(data.data() + offset, data.size() - offset);
     tud_vendor_write_flush();
-    if (queued == 0) {
-      logger_.warn_rate_limited("Vendor TX buffer full, dropping {} bytes", data.size() - offset);
-      ec = std::make_error_code(std::errc::no_buffer_space);
-      break;
-    }
     offset += queued;
+    if (queued == 0) {
+      if (!tud_vendor_mounted() || std::chrono::steady_clock::now() >= deadline) {
+        logger_.warn_rate_limited("Vendor TX buffer full, dropping {} bytes", data.size() - offset);
+        ec = std::make_error_code(std::errc::no_buffer_space);
+        break;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
   }
   return offset == data.size();
 #else
