@@ -431,16 +431,30 @@ bool M5StackTab5::initialize_lcd() {
 
   // Program the panel's initial scan direction so the rotation decision
   // flush() makes via panel_handles_rotation() is valid from the very first
-  // frame. In the documented init order (initialize_lcd() before
-  // initialize_display()) this is already guaranteed: espp::Display's
-  // constructor calls lv_display_set_rotation() with the initial rotation,
-  // which synchronously fires the LV_EVENT_RESOLUTION_CHANGED handler (in
-  // LVGL, update_resolution() sends the event as a direct call) and thus
-  // on_display_rotation() before any flush can run. But if
-  // initialize_display() ran first, that initial callback was dropped because
-  // display_driver_ did not exist yet — so (re)apply the current rotation here
-  // now that the driver is up. Harmless when redundant: it rewrites the MADCTL
-  // value the driver init just programmed.
+  // frame. NOTE: unlike the normal invocation of on_display_rotation() — the
+  // LVGL rotation event, delivered synchronously on the LVGL thread — this is
+  // a direct call on the caller's (init) thread. It is safe in either init
+  // order:
+  //  - Documented order (initialize_lcd() before initialize_display()):
+  //    display_ is still null here, so no LVGL display or flush callback
+  //    exists yet and espp::Display does not run an LVGL handler task of its
+  //    own — nothing can race this call. It is also redundant-but-harmless in
+  //    this order: the espp::Display constructor will call
+  //    lv_display_set_rotation() with the initial rotation, which synchronously
+  //    fires the LV_EVENT_RESOLUTION_CHANGED handler (in LVGL,
+  //    update_resolution() sends the event as a direct call) and thus
+  //    on_display_rotation() again before any flush can run.
+  //  - Reversed order (initialize_display() first): the constructor-time
+  //    callback above was dropped because display_driver_ did not exist yet,
+  //    so (re)apply the current LVGL rotation now that the driver is up. Even
+  //    if the application is already pumping LVGL on another thread, this
+  //    cannot corrupt an in-flight flush: the MADCTL write travels on the DSI
+  //    command channel, which never touches the DPI framebuffer or its DMA and
+  //    is arbitrated against the video stream in hardware (see
+  //    on_display_rotation()). The worst case is one transient frame scanned
+  //    out with the new direction — the same as any runtime rotation change.
+  // (With CONFIG_M5STACK_TAB5_ST7121_HW_ROTATION disabled — the default —
+  // on_display_rotation() is a no-op and this call does nothing at all.)
   on_display_rotation(
       display_ ? to_display_rotation(lv_display_get_rotation(display_->get_lvgl_display()))
                : rotation);
@@ -615,12 +629,16 @@ void M5StackTab5::on_display_rotation(const DisplayRotation &rotation) {
     // Other variants keep the PPA/flush-time rotation path; nothing to do.
     return;
   }
-  // Ordering: this runs on the LVGL thread — LV_EVENT_RESOLUTION_CHANGED is
-  // sent synchronously from inside lv_display_set_rotation() — so it strictly
+  // Ordering: in its normal invocation — the espp::Display rotation callback —
+  // this runs on the LVGL thread: LV_EVENT_RESOLUTION_CHANGED is sent
+  // synchronously from inside lv_display_set_rotation(), so it strictly
   // precedes the invalidation-driven flush() calls for the new orientation,
   // and the MADCTL state below is always consistent with the decision flush()
   // makes via panel_handles_rotation() (the same predicate, keyed on the same
-  // rotation value via to_lv_rotation()).
+  // rotation value via to_lv_rotation()). It is additionally called once
+  // directly from initialize_lcd() (an init-thread call, not the LVGL thread)
+  // to program the initial scan direction; see the safety analysis at that
+  // call site.
   //
   // Synchronization with the display pipeline: the MADCTL write goes out on
   // the DSI generic/DBI command channel (esp_lcd_panel_io_tx_param ->
