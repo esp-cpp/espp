@@ -901,7 +901,12 @@
         const step = Math.max(1, Math.ceil(positions / 72)); // cap tick count
         for (let p = mode.min; p <= mode.max; p += step) {
           const theta = valueToTheta(p);
-          const isMagnetic = mode.detents.includes(p);
+          // An empty detent_positions list means EVERY position is a detent
+          // (see PROTOCOL.md / BldcHaptics); a non-empty list marks only the
+          // listed ("magnetic") positions. Either way a detent is only felt
+          // when the mode's detent strength is non-zero.
+          const isMagnetic = mode.detentStrength > 0 &&
+                             (mode.detents.length === 0 || mode.detents.includes(p));
           const isCurrent = p === telem.position;
           const isEnd = (p === mode.min || p === mode.max);
           const tickLen = radius * (isCurrent ? 0.16 : isMagnetic ? 0.14 : 0.09);

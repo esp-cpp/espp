@@ -386,8 +386,14 @@ extern "C" void app_main(void) {
   });
 
   std::error_code usb_ec;
-  if (!usb.initialize(usb_ec)) {
-    logger.error("Failed to initialize USB device: {}", usb_ec.message());
+  const bool usb_ok = usb.initialize(usb_ec);
+  if (!usb_ok) {
+    // Not fatal for the haptics themselves: the knob keeps running standalone,
+    // but everything USB-dependent (protocol worker, telemetry, OTA, CDC
+    // console) is skipped below so no task ever touches a dead USB stack.
+    logger.error("Failed to initialize USB device: {}; continuing WITHOUT USB "
+                 "(web console / OTA / telemetry unavailable; haptics still run)",
+                 usb_ec.message());
   } else {
     // Route the SYSTEM console (stdout/stderr - all espp/fmt and esp_log
     // output) to the CDC interface: TinyUSB owns the S3's only USB PHY, so
@@ -638,7 +644,8 @@ extern "C" void app_main(void) {
          return false; // don't stop the task
        },
        .task_config = {.name = "haptics_usb", .stack_size_bytes = 8192}});
-  usb_task.start();
+  if (usb_ok)
+    usb_task.start();
 
   // --------------------------------------------------------------------------
   // Telemetry streaming task
@@ -669,11 +676,16 @@ extern "C" void app_main(void) {
        // which alone can use a few KB of stack - 4 KB overflowed (= reboot)
        // when the host stopped draining the IN endpoint.
        .task_config = {.name = "haptics_telem", .stack_size_bytes = 8192}});
-  telemetry_task.start();
+  if (usb_ok)
+    telemetry_task.start();
 
-  logger.info("Ready: connect the native USB port and open the web console "
-              "(example/webapp/index.html or https://{})",
-              vendor.landing_page_url);
+  if (usb_ok)
+    logger.info("Ready: connect the native USB port and open the web console "
+                "(example/webapp/index.html or https://{})",
+                vendor.landing_page_url);
+  else
+    logger.warn("Ready (haptics only): USB failed to initialize, so the web "
+                "console / OTA / telemetry are unavailable this boot");
 
   bool was_faulted = false;
   bool cdc_was_connected = false;
