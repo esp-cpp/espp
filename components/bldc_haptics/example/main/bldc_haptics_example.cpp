@@ -592,7 +592,10 @@ extern "C" void app_main(void) {
          }
          return false; // don't stop the task
        },
-       .task_config = {.name = "haptics_telem", .stack_size_bytes = 4096}});
+       // 8 KB: write_vendor's rate-limited TX-full warning goes through fmt,
+       // which alone can use a few KB of stack - 4 KB overflowed (= reboot)
+       // when the host stopped draining the IN endpoint.
+       .task_config = {.name = "haptics_telem", .stack_size_bytes = 8192}});
   telemetry_task.start();
 
   logger.info("Ready: connect the native USB port and open the web console "
