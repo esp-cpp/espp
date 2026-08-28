@@ -23,3 +23,31 @@ CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240
 #
 CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# Enable the TinyUSB vendor-specific class (THE key enablement for the vendor /
+# WebUSB control interface). esp_tinyusb gates CFG_TUD_VENDOR behind
+# CONFIG_TINYUSB_VENDOR_COUNT; setting it > 0 compiles in the vendor class
+# driver so espp::UsbDevice's vendor function (bInterfaceClass 0xFF + WebUSB)
+# works.
+CONFIG_TINYUSB_VENDOR_COUNT=1
+
+# The example itself only USES the vendor function, but the usb_device
+# component's sources reference the TinyUSB CDC + HID class driver APIs, which
+# esp_tinyusb gates behind these options -- keep them enabled (minimal counts)
+# so the component compiles; no CDC / HID interface is instantiated here.
+CONFIG_TINYUSB_CDC_ENABLED=y
+CONFIG_TINYUSB_CDC_COUNT=1
+CONFIG_TINYUSB_HID_COUNT=1
+
+# OTA needs two app slots; use a custom factory-less partition table (otadata +
+# ota_0 + ota_1) on the 8MB flash so each slot can hold this app.
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_OFFSET=0x8000
+CONFIG_PARTITION_TABLE_MD5=y
+
+# Enable app rollback: a freshly-installed OTA image boots PENDING_VERIFY and
+# must mark itself valid (this example calls espp::Ota::mark_app_valid() after
+# its self-check) or the bootloader rolls back on the next reset.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
