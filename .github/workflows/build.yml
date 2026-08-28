@@ -131,6 +131,8 @@ jobs:
           target: esp32p4
         - path: 'components/esp32-p4-function-ev-board/example'
           target: esp32p4
+        - path: 'components/esp32-p4-module-dev-kit/example'
+          target: esp32p4
         - path: 'components/esp32-p4-nano/example'
           target: esp32p4
         - path: 'components/esp-box/example'

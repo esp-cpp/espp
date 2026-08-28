@@ -1,0 +1,40 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Waveshare ESP32-P4-Module-DEV-KIT Board Support Package (BSP) component in C++ (Ethernet, MIPI-DSI display + GT911 touch, MIPI-CSI camera, uSD, ES8311 audio in/out)"
+url: "https://github.com/esp-cpp/espp/tree/main/components/esp32-p4-module-dev-kit"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/dev_boards/waveshare/esp32_p4_module_dev_kit.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - BSP
+  - ESP32P4
+  - Ethernet
+  - Display
+  - Camera
+  - Audio
+  - Waveshare
+dependencies:
+  idf:
+    version: ">=5.3"
+  espp/base_component: ">=1.0"
+  espp/ethernet: ">=1.0"
+  espp/codec: ">=1.0"
+  espp/i2c: ">=1.0"
+  espp/task: ">=1.0"
+  espp/display: ">=1.0"
+  espp/display_drivers: ">=1.0"
+  espp/gt911: ">=1.0"
+  espp/input_drivers: ">=1.0"
+  espp/interrupt: ">=1.0"
+  # MIPI-CSI camera pipeline: esp_video provides the V4L2 capture framework
+  # (CSI + ISP) and esp_cam_sensor provides the OV5647 sensor driver.
+  espressif/esp_video: ">=2.0,<2.4" # 2.4.0 fails to compile against the CI IDF (ISP_LL_EVENT_ERROR_MASK undeclared)
+  espressif/esp_ipa: ">=2.0,<2.3" # prebuilt 2.3.0 illegal-instructions at runtime on P4
+  espressif/esp_cam_sensor: ">=2.0,<2.4"
+targets:
+  - esp32p4
