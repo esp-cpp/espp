@@ -165,6 +165,17 @@ menu "RTPS"
             help
                 Maximum DDS topic-name length. 0 keeps the selected profile's value.
 
+        config RTPS_LIMIT_MAX_NUM_UDP_CONNECTIONS
+            int "MAX_NUM_UDP_CONNECTIONS (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Transport channel pool: 2 shared multicast channels + 2 unicast
+                channels per participant are permanently bound, and dedicated
+                endpoint ports draw from the same pool at runtime. Must be at
+                least 2 + 2*MAX_NUM_PARTICIPANTS (cross-checked at build time).
+                0 keeps the selected profile's value.
+
     endmenu
 
     config RTPS_STORAGE_DYNAMIC

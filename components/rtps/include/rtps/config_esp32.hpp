@@ -150,7 +150,15 @@ const Duration_t SPDP_MAX_REMOTE_LEASE_DURATION = {
 
 const Duration_t SPDP_LEASE_DURATION = {5, 0};
 
-const int MAX_NUM_UDP_CONNECTIONS = 10;
+// Transport channel pool: 2 shared multicast channels (SPDP metatraffic +
+// user multicast) + 2 unicast channels per participant (builtin + user), plus
+// any dedicated endpoint ports (max_prioritized_endpoint_ports, default 4)
+// drawn at runtime. Sized so the profile's MAX_NUM_PARTICIPANTS budget fits
+// with dedicated-port headroom; cross-checked at build time.
+#ifndef RTPS_CFG_MAX_NUM_UDP_CONNECTIONS
+#define RTPS_CFG_MAX_NUM_UDP_CONNECTIONS 10
+#endif
+const int MAX_NUM_UDP_CONNECTIONS = RTPS_CFG_MAX_NUM_UDP_CONNECTIONS;
 
 const int THREAD_POOL_NUM_WRITERS = 2;
 const int THREAD_POOL_NUM_READERS = 2;

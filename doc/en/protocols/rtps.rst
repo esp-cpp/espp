@@ -223,10 +223,15 @@ reader) configured with a non-default ``band`` — or a ``dscp`` marking, which 
 per-socket — is therefore granted its own **dedicated unicast port**:
 
 - the port is allocated deterministically from the domain's RTPS port block at
-  offset 100 (``7400 + 250*domain + 100 + n``, probed linearly with a
-  reuse-disabled bind, so ports taken by other processes are skipped; the
-  standard offsets stay below 100 for participant ids 0–44, so the ranges never
-  collide);
+  offset 100 (``7400 + 250*domain + 100 + n``). Each allocation probes at most
+  16 consecutive candidates (a reuse-disabled bind, so ports taken by other
+  processes fail loudly) starting at an advancing cursor — if the whole window
+  is occupied, **that endpoint falls back to the shared user port** (with a
+  warning) and the cursor advances past the window, so the next allocation
+  probes fresh ports rather than one request scanning the entire 100..249
+  range. The standard RTPS offsets stay below 100 only for participant ids
+  0–44, so participant creation enforces that cap while dedicated ports are
+  enabled;
 - its socket is registered on the reactor **at the endpoint's band** and
   optionally DSCP-marked (:cpp:enum:`espp::Dscp`, e.g. ``Dscp::Ef``) — the
   endpoint also *sends* from this socket, so the marking applies to its

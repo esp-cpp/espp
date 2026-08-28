@@ -61,6 +61,7 @@ set(RTPS_LIMIT_KNOBS
     HISTORY_SIZE_STATEFUL
     MAX_TYPENAME_LENGTH
     MAX_TOPICNAME_LENGTH
+    MAX_NUM_UDP_CONNECTIONS
 )
 foreach(knob ${RTPS_LIMIT_KNOBS})
   if(DEFINED CONFIG_RTPS_LIMIT_${knob} AND NOT "${CONFIG_RTPS_LIMIT_${knob}}" STREQUAL "" AND NOT "${CONFIG_RTPS_LIMIT_${knob}}" STREQUAL "0")
@@ -80,6 +81,11 @@ foreach(knob ${RTPS_LIMIT_KNOBS})
         "CONFIG_RTPS_LIMIT_${knob}=${CONFIG_RTPS_LIMIT_${knob}} is below the minimum of 3 "
         "(the 3 builtin discovery endpoints count against the per-participant cap)")
     endif()
+    if(knob STREQUAL "MAX_NUM_UDP_CONNECTIONS" AND CONFIG_RTPS_LIMIT_${knob} LESS 4)
+      message(FATAL_ERROR
+        "CONFIG_RTPS_LIMIT_${knob}=${CONFIG_RTPS_LIMIT_${knob}} is below the minimum of 4 "
+        "(2 shared multicast + 2 unicast channels for a single participant)")
+    endif()
     target_compile_definitions(${COMPONENT_LIB} PUBLIC "RTPS_CFG_${knob}=${CONFIG_RTPS_LIMIT_${knob}}")
     set(RTPS_EFFECTIVE_${knob} ${CONFIG_RTPS_LIMIT_${knob}})
   endif()
@@ -90,23 +96,25 @@ endforeach()
 # GLOBAL pools for its builtin discovery endpoints. Effective value = the
 # Kconfig override if nonzero, else the selected profile's default.
 if(CONFIG_RTPS_LIMITS_PROFILE_HOST)
-  set(_rtps_defaults 8 16 16 32 32)
+  set(_rtps_defaults 8 16 16 32 32 24)
 elseif(CONFIG_RTPS_LIMITS_PROFILE_HOST_LARGE)
-  set(_rtps_defaults 32 64 64 128 128)
+  set(_rtps_defaults 32 64 64 128 128 72)
 else() # embedded (default)
-  set(_rtps_defaults 1 5 5 5 5)
+  set(_rtps_defaults 1 5 5 5 5 10)
 endif()
 list(GET _rtps_defaults 0 _rtps_d_participants)
 list(GET _rtps_defaults 1 _rtps_d_stateless_w)
 list(GET _rtps_defaults 2 _rtps_d_stateless_r)
 list(GET _rtps_defaults 3 _rtps_d_stateful_w)
 list(GET _rtps_defaults 4 _rtps_d_stateful_r)
+list(GET _rtps_defaults 5 _rtps_d_channels)
 foreach(pair
     "MAX_NUM_PARTICIPANTS;_rtps_d_participants"
     "NUM_STATELESS_WRITERS;_rtps_d_stateless_w"
     "NUM_STATELESS_READERS;_rtps_d_stateless_r"
     "NUM_STATEFUL_WRITERS;_rtps_d_stateful_w"
-    "NUM_STATEFUL_READERS;_rtps_d_stateful_r")
+    "NUM_STATEFUL_READERS;_rtps_d_stateful_r"
+    "MAX_NUM_UDP_CONNECTIONS;_rtps_d_channels")
   list(GET pair 0 _rtps_k)
   list(GET pair 1 _rtps_dvar)
   if(NOT DEFINED RTPS_EFFECTIVE_${_rtps_k})
@@ -127,6 +135,21 @@ if(RTPS_EFFECTIVE_NUM_STATELESS_WRITERS LESS RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS
     "${RTPS_EFFECTIVE_NUM_STATEFUL_READERS}) for the builtin discovery endpoints "
     "(1 stateless W/R + 2 stateful W/R per participant). Raise the pool overrides "
     "(menuconfig 'Custom capacity overrides') or lower MAX_NUM_PARTICIPANTS.")
+endif()
+# Channel-pool constraint (mirrors lib/espp.cmake): 2 shared multicast + 2
+# unicast channels per participant are permanently bound from the same
+# MAX_NUM_UDP_CONNECTIONS pool that runtime dedicated endpoint ports draw
+# from; without this check a combination can pass the endpoint-pool math yet
+# createParticipant() still fails on channels first.
+math(EXPR _rtps_need_channels "2 + 2 * ${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS}")
+if(RTPS_EFFECTIVE_MAX_NUM_UDP_CONNECTIONS LESS _rtps_need_channels)
+  message(FATAL_ERROR
+    "RTPS limits cannot host the participant budget: MAX_NUM_PARTICIPANTS="
+    "${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS} needs >= ${_rtps_need_channels} transport channels "
+    "(2 shared multicast + 2 unicast per participant) but MAX_NUM_UDP_CONNECTIONS is "
+    "${RTPS_EFFECTIVE_MAX_NUM_UDP_CONNECTIONS}. Raise MAX_NUM_UDP_CONNECTIONS via menuconfig "
+    "'Custom capacity overrides' (leave headroom for dedicated endpoint ports, which draw "
+    "from the same pool at runtime) or lower MAX_NUM_PARTICIPANTS.")
 endif()
 
 if(CONFIG_RTPS_STORAGE_DYNAMIC)

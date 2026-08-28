@@ -66,7 +66,7 @@ set(RTPS_LIMIT_KNOB_NAMES
     NUM_WRITER_PROXIES_PER_READER NUM_READER_PROXIES_PER_WRITER
     MAX_NUM_UNMATCHED_REMOTE_WRITERS MAX_NUM_UNMATCHED_REMOTE_READERS
     MAX_NUM_READER_CALLBACKS HISTORY_SIZE_STATELESS HISTORY_SIZE_STATEFUL
-    MAX_TYPENAME_LENGTH MAX_TOPICNAME_LENGTH)
+    MAX_TYPENAME_LENGTH MAX_TOPICNAME_LENGTH MAX_NUM_UDP_CONNECTIONS)
 set(RTPS_LIMIT_UINT16_KNOBS MAX_NUM_UNMATCHED_REMOTE_WRITERS MAX_NUM_UNMATCHED_REMOTE_READERS)
 # Collect the validated definitions; they are applied directory-wide below AND
 # exported via ESPP_RTPS_COMPILE_DEFINITIONS (they change public Config
@@ -100,6 +100,8 @@ foreach(override ${RTPS_LIMIT_OVERRIDES})
   elseif(_rtps_knob STREQUAL "NUM_WRITERS_PER_PARTICIPANT"
          OR _rtps_knob STREQUAL "NUM_READERS_PER_PARTICIPANT")
     set(_rtps_min 3) # SPDP + 2 SEDP builtins
+  elseif(_rtps_knob STREQUAL "MAX_NUM_UDP_CONNECTIONS")
+    set(_rtps_min 4) # 2 shared multicast + 2 unicast channels for 1 participant
   else()
     set(_rtps_min 1)
   endif()
@@ -129,25 +131,29 @@ if(RTPS_LIMITS_PROFILE STREQUAL "embedded")
   set(_rtps_d_stateless_r 5)
   set(_rtps_d_stateful_w 5)
   set(_rtps_d_stateful_r 5)
+  set(_rtps_d_channels 10)
 elseif(RTPS_LIMITS_PROFILE STREQUAL "host")
   set(_rtps_d_participants 8)
   set(_rtps_d_stateless_w 16)
   set(_rtps_d_stateless_r 16)
   set(_rtps_d_stateful_w 32)
   set(_rtps_d_stateful_r 32)
+  set(_rtps_d_channels 24)
 else() # host_large
   set(_rtps_d_participants 32)
   set(_rtps_d_stateless_w 64)
   set(_rtps_d_stateless_r 64)
   set(_rtps_d_stateful_w 128)
   set(_rtps_d_stateful_r 128)
+  set(_rtps_d_channels 72)
 endif()
 foreach(pair
     "MAX_NUM_PARTICIPANTS;_rtps_d_participants"
     "NUM_STATELESS_WRITERS;_rtps_d_stateless_w"
     "NUM_STATELESS_READERS;_rtps_d_stateless_r"
     "NUM_STATEFUL_WRITERS;_rtps_d_stateful_w"
-    "NUM_STATEFUL_READERS;_rtps_d_stateful_r")
+    "NUM_STATEFUL_READERS;_rtps_d_stateful_r"
+    "MAX_NUM_UDP_CONNECTIONS;_rtps_d_channels")
   list(GET pair 0 _rtps_k)
   list(GET pair 1 _rtps_dvar)
   if(NOT DEFINED RTPS_EFFECTIVE_${_rtps_k})
@@ -167,6 +173,23 @@ if(RTPS_EFFECTIVE_NUM_STATELESS_WRITERS LESS RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS
     "writers/readers (have ${RTPS_EFFECTIVE_NUM_STATEFUL_WRITERS}/"
     "${RTPS_EFFECTIVE_NUM_STATEFUL_READERS}) for the builtin discovery endpoints. Raise the "
     "pool overrides or lower MAX_NUM_PARTICIPANTS.")
+endif()
+# Channel-pool constraint: a Domain permanently binds 2 shared multicast
+# channels (SPDP metatraffic + user multicast) and 2 unicast channels per
+# participant (builtin + user), all drawn from the same
+# MAX_NUM_UDP_CONNECTIONS transport pool as runtime dedicated endpoint ports.
+# Without this check an override combination can pass the endpoint-pool math
+# above yet createParticipant() still fails on channels before reaching the
+# advertised participant capacity.
+math(EXPR _rtps_need_channels "2 + 2 * ${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS}")
+if(RTPS_EFFECTIVE_MAX_NUM_UDP_CONNECTIONS LESS _rtps_need_channels)
+  message(FATAL_ERROR
+    "RTPS limits cannot host the participant budget: MAX_NUM_PARTICIPANTS="
+    "${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS} needs >= ${_rtps_need_channels} transport channels "
+    "(2 shared multicast + 2 unicast per participant) but MAX_NUM_UDP_CONNECTIONS is "
+    "${RTPS_EFFECTIVE_MAX_NUM_UDP_CONNECTIONS}. Raise MAX_NUM_UDP_CONNECTIONS (leave headroom "
+    "for dedicated endpoint ports - max_prioritized_endpoint_ports, default 4 - which draw "
+    "from the same pool at runtime) or lower MAX_NUM_PARTICIPANTS.")
 endif()
 
 # ---------------------------------------------------------------------------

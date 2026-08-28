@@ -224,8 +224,11 @@ before:
 Since all of a participant's user traffic shares one user-unicast port,
 per-endpoint priority uses **dedicated ports**: give a writer/reader config a
 non-default `band` (or a `dscp`) and the endpoint gets its own unicast port —
-allocated deterministically at `7400 + 250*domain + 100 + n` (linear probe,
-reuse-disabled bind) — whose socket runs at the endpoint's band and is
+allocated deterministically at `7400 + 250*domain + 100 + n`, probing at most
+16 consecutive candidates per request (reuse-disabled bind) from an advancing
+cursor; if the whole window is occupied the endpoint falls back to the shared
+user port and the next request resumes past the window — whose socket runs at
+the endpoint's band and is
 optionally DSCP-marked (`espp::Dscp`, e.g. `Dscp::Ef`; the endpoint also sends
 from this socket, so the marking applies to its outgoing traffic). The
 endpoint's SEDP announcement carries the dedicated port as its standard
