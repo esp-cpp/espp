@@ -21,7 +21,10 @@ tags:
   - Waveshare
 dependencies:
   idf:
-    version: ">=5.3"
+    # The camera pipeline hands esp_video the espp::I2c native bus handle
+    # (I2c::native_bus_handle()), which requires the new ESP-IDF I2C master API
+    # (ESP-IDF >= 5.4 per components/i2c/Kconfig).
+    version: ">=5.4"
   espp/base_component: ">=1.0"
   espp/ethernet: ">=1.0"
   espp/codec: ">=1.0"

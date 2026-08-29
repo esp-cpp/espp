@@ -213,7 +213,10 @@ bool Esp32P4Wifi6DevKit::initialize_lcd() {
     dpi_cfg.out_color_format = LCD_COLOR_FMT_RGB565;
 #else
     dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
-    dpi_cfg.flags.use_dma2d = true;
+    // DMA2D only on the JD9365 - same conditioning as the IDF >= 6.0 path
+    // below (see the NOTE there: DMA2D corrupts the RGB565 channel order on
+    // the ILI9881C / EK79007 panels).
+    dpi_cfg.flags.use_dma2d = (display_controller_ == DisplayController::JD9365);
 #endif
     dpi_cfg.num_fbs = 1;
     dpi_cfg.video_timing.h_size = display_width_;

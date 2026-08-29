@@ -10,6 +10,39 @@
 
 namespace espp {
 
+// Map a requested sample rate onto the ES8311 HAL's supported-rates enum.
+// Returns false for rates the codec driver does not support.
+static bool es8311_samples_from_rate(uint32_t sample_rate, audio_hal_iface_samples_t &out_samples) {
+  switch (sample_rate) {
+  case 8000:
+    out_samples = AUDIO_HAL_08K_SAMPLES;
+    return true;
+  case 11025:
+    out_samples = AUDIO_HAL_11K_SAMPLES;
+    return true;
+  case 16000:
+    out_samples = AUDIO_HAL_16K_SAMPLES;
+    return true;
+  case 22050:
+    out_samples = AUDIO_HAL_22K_SAMPLES;
+    return true;
+  case 24000:
+    out_samples = AUDIO_HAL_24K_SAMPLES;
+    return true;
+  case 32000:
+    out_samples = AUDIO_HAL_32K_SAMPLES;
+    return true;
+  case 44100:
+    out_samples = AUDIO_HAL_44K_SAMPLES;
+    return true;
+  case 48000:
+    out_samples = AUDIO_HAL_48K_SAMPLES;
+    return true;
+  default:
+    return false;
+  }
+}
+
 bool Esp32P4Wifi6DevKit::initialize_audio(uint32_t sample_rate,
                                           const espp::Task::BaseConfig &task_config) {
   logger_.info("Initializing audio (ES8311) at {} Hz", sample_rate);
@@ -17,6 +50,16 @@ bool Esp32P4Wifi6DevKit::initialize_audio(uint32_t sample_rate,
   if (audio_initialized_) {
     logger_.warn("Audio already initialized");
     return true;
+  }
+
+  // Validate the requested rate up front so the codec's initial clock config
+  // (below) matches the I2S clock instead of silently assuming 48 kHz.
+  audio_hal_iface_samples_t es8311_samples;
+  if (!es8311_samples_from_rate(sample_rate, es8311_samples)) {
+    logger_.error("Unsupported audio sample rate {} Hz; supported rates: 8000, 11025, 16000, "
+                  "22050, 24000, 32000, 44100, 48000",
+                  sample_rate);
+    return false;
   }
 
   // Configure the speaker-amplifier (NS4150B) enable GPIO
@@ -97,11 +140,16 @@ bool Esp32P4Wifi6DevKit::initialize_audio(uint32_t sample_rate,
   es8311_cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
   es8311_cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
   es8311_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
-  es8311_cfg.i2s_iface.samples = AUDIO_HAL_48K_SAMPLES;
+  es8311_cfg.i2s_iface.samples = es8311_samples;
   if (es8311_codec_init(&es8311_cfg) != ESP_OK) {
     return fail_audio_init("ES8311 init failed");
   }
-  es8311_codec_set_sample_rate(sample_rate);
+  // The rate was validated above, but propagate a codec failure anyway: if the
+  // codec clock config is not applied, playback would be unusable even though
+  // initialization "succeeded".
+  if (es8311_codec_set_sample_rate(sample_rate) != ESP_OK) {
+    return fail_audio_init("ES8311 sample-rate configuration failed");
+  }
   es8311_codec_set_voice_volume(static_cast<int>(volume_));
   es8311_set_voice_mute(false);
   es8311_codec_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START);
@@ -229,8 +277,19 @@ bool Esp32P4Wifi6DevKit::initialize_microphone(const microphone_callback_t &call
   i2s_std_config_t rx_cfg = audio_std_cfg;
   rx_cfg.slot_cfg =
       I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO);
-  if (i2s_channel_init_std_mode(audio_rx_handle, &rx_cfg) != ESP_OK) {
-    logger_.error("Failed to init I2S RX std mode");
+  // i2s_channel_init_std_mode() may only be called once per channel (it fails
+  // on a READY channel), so track whether the RX channel has already been
+  // configured by an earlier attempt that failed later (enable / task start).
+  // On such a retry, skip the init and just refresh the clock config in case
+  // the sample rate changed via audio_sample_rate() in between.
+  if (!audio_rx_std_configured_) {
+    if (i2s_channel_init_std_mode(audio_rx_handle, &rx_cfg) != ESP_OK) {
+      logger_.error("Failed to init I2S RX std mode");
+      return false;
+    }
+    audio_rx_std_configured_ = true;
+  } else if (i2s_channel_reconfig_std_clock(audio_rx_handle, &rx_cfg.clk_cfg) != ESP_OK) {
+    logger_.error("Failed to reconfigure the I2S RX clock");
     return false;
   }
   // one update period's worth of stereo (L,R) frames
@@ -252,6 +311,10 @@ bool Esp32P4Wifi6DevKit::initialize_microphone(const microphone_callback_t &call
   });
 
   if (!microphone_task_->start()) {
+    // Leave the RX channel configured (audio_rx_std_configured_ stays true):
+    // disabling it returns it to READY so a later initialize_microphone()
+    // retry can enable it again.
+    logger_.error("Could not start the microphone task");
     i2s_channel_disable(audio_rx_handle);
     microphone_task_.reset();
     return false;

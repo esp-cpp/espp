@@ -269,7 +269,7 @@ void Gui::init_circle_layer() {
   lv_obj_move_foreground(circle_layer_);
 }
 
-bool Gui::update(std::mutex &m, std::condition_variable &cv) {
+bool Gui::update(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     // drain any touch points queued since the last cycle
@@ -290,9 +290,17 @@ bool Gui::update(std::mutex &m, std::condition_variable &cv) {
     update_audio_label();
   }
   std::unique_lock<std::mutex> lock(m);
-  // stop promptly if Task::stop() notified us (otherwise ~Gui can hang joining
-  // the update thread); a plain timeout means keep running
-  return cv.wait_for(lock, std::chrono::milliseconds(16)) == std::cv_status::no_timeout;
+  // Wait with the notified flag as the predicate so a spurious
+  // condition-variable wake does not stop the GUI task; per the Task contract
+  // the flag is checked and cleared under m. A true predicate means
+  // Task::stop() notified us, so stop promptly (otherwise ~Gui can hang
+  // joining the update thread); a plain timeout means keep running.
+  if (cv.wait_for(lock, std::chrono::milliseconds(16),
+                  [&task_notified] { return task_notified; })) {
+    task_notified = false;
+    return true; // stop the task
+  }
+  return false; // keep running
 }
 
 void Gui::event_callback(lv_event_t *e) {
@@ -402,6 +410,20 @@ void Gui::draw_circle(int x, int y, int radius) {
   // task) for the duration of lv_task_handler() rendering, collapsing the
   // touch sample rate.
   std::lock_guard<std::mutex> lock(pending_points_mutex_);
+  // Bound the queue so it cannot grow without limit if the GUI task stalls or
+  // the producers outpace the drain: drop the oldest point to keep the newest,
+  // and log drops at most once a second (from this producer context a per-drop
+  // log would itself become the bottleneck).
+  if (pending_points_.size() >= MAX_PENDING_POINTS) {
+    pending_points_.erase(pending_points_.begin());
+    ++dropped_points_;
+    auto now = std::chrono::steady_clock::now();
+    if (now - last_drop_log_ >= std::chrono::seconds(1)) {
+      last_drop_log_ = now;
+      logger_.warn("Pending touch-point queue full; dropped {} oldest point(s)", dropped_points_);
+      dropped_points_ = 0;
+    }
+  }
   pending_points_.push_back({.x = x, .y = y, .radius = radius, .visible = true});
 }
 

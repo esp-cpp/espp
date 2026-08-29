@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <chrono>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -98,15 +99,22 @@ public:
   /// @param text The text to display
   void set_audio_status(std::string_view text);
 
-  /// Set the callback invoked when the record button is pressed
+  /// Set the callback invoked when the record button is pressed. Thread-safe:
+  /// the GUI task may already be dispatching button events (which read this
+  /// callback under the GUI mutex), so the write is taken under the same lock.
   /// @param callback The callback to invoke
   void set_record_callback(audio_button_callback_t callback) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     record_callback_ = std::move(callback);
   }
 
-  /// Set the callback invoked when the play button is pressed
+  /// Set the callback invoked when the play button is pressed. Thread-safe (see
+  /// set_record_callback()).
   /// @param callback The callback to invoke
-  void set_play_callback(audio_button_callback_t callback) { play_callback_ = std::move(callback); }
+  void set_play_callback(audio_button_callback_t callback) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    play_callback_ = std::move(callback);
+  }
 
   /// Show whether a recording is in progress (turns the record button red
   /// and changes its symbol to stop). Thread-safe.
@@ -120,6 +128,11 @@ public:
 
 protected:
   static constexpr size_t MAX_CIRCLES = 100;
+  // Cap on the pending draw_circle() queue. The GUI task drains it every ~16 ms
+  // and the touch poll produces at most ~one point per 16 ms, so hitting this
+  // means the GUI task has stalled; drop the oldest points rather than growing
+  // without bound.
+  static constexpr size_t MAX_PENDING_POINTS = 16;
   static constexpr int TAB_BAR_HEIGHT = 50;
 
   struct Circle {
@@ -145,7 +158,7 @@ protected:
   void update_audio_label();
 
   // the LVGL update task: calls lv_task_handler() under the mutex
-  bool update(std::mutex &m, std::condition_variable &cv);
+  bool update(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   // single trampoline for all LVGL events; dispatches to the member
   // functions below based on the event target
@@ -202,7 +215,8 @@ protected:
   size_t next_circle_index_{0};
   size_t visible_circle_count_{0};
 
-  espp::Task update_task_{{.callback = [this](auto &m, auto &cv) { return update(m, cv); },
+  espp::Task update_task_{{.callback = [this](std::mutex &m, std::condition_variable &cv,
+                                              bool &notified) { return update(m, cv, notified); },
                            // NOTE: rendering the tabview (nested containers + flex layout) uses
                            // noticeably more stack than a flat UI; 6 KB overflows
                            .task_config = {.name = "gui", .stack_size_bytes = 12 * 1024}}};
@@ -213,6 +227,9 @@ protected:
   // LVGL rendering.
   std::mutex pending_points_mutex_;
   std::vector<Circle> pending_points_;
+  // Drop accounting for the bounded pending_points_ queue (rate-limited log)
+  size_t dropped_points_{0};
+  std::chrono::steady_clock::time_point last_drop_log_{};
   // True between init_ui() and deinit_ui(). Guards set_camera_frame() (called
   // from the camera task) against touching the LVGL tree after teardown.
   bool ui_ready_{false};

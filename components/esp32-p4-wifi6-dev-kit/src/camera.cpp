@@ -132,7 +132,7 @@ bool Esp32P4Wifi6DevKit::initialize_camera(const camera_frame_callback_t &callba
   }
   camera_width_ = static_cast<uint16_t>(format.fmt.pix.width);
   camera_height_ = static_cast<uint16_t>(format.fmt.pix.height);
-  logger_.info("Camera format: {}x{} RGB565", camera_width_, camera_height_);
+  logger_.info("Camera format: {}x{} RGB565", camera_width_.load(), camera_height_.load());
 
   // Request and memory-map the capture buffers. REQBUFS may hand back fewer
   // buffers than requested; use the count it actually allocated (and require at
@@ -194,17 +194,22 @@ bool Esp32P4Wifi6DevKit::initialize_camera(const camera_frame_callback_t &callba
       .callback = std::bind(&Esp32P4Wifi6DevKit::camera_task_callback, this, _1, _2, _3),
       .task_config = task_config,
   });
+  // Mark the camera initialized BEFORE starting the task: on a fatal capture
+  // error the task tears the pipeline down itself (clearing this flag), and if
+  // the flag were only set after start() a very early failure could be
+  // overwritten by this assignment, leaving stale "initialized" state.
+  camera_initialized_ = true;
   if (!camera_task_->start()) {
     logger_.error("Could not start the camera task");
     stop_camera();
     return false;
   }
-  camera_initialized_ = true;
   return true;
 }
 
 bool Esp32P4Wifi6DevKit::camera_task_callback(std::mutex &m, std::condition_variable &cv,
                                               bool &task_notified) {
+  (void)cv; // unused: this task polls the non-blocking fd instead of waiting
   // Dequeue a filled frame, hand it to the callback (valid only for the call),
   // then requeue the buffer for reuse. The fd is non-blocking, so if no frame
   // is ready yet the DQBUF fails and we wait briefly - this keeps the task
@@ -216,24 +221,35 @@ bool Esp32P4Wifi6DevKit::camera_task_callback(std::mutex &m, std::condition_vari
     if (camera_callback_ && buf.index < CAMERA_BUFFER_COUNT && camera_buffers_[buf.index]) {
       // Prefer the driver-reported payload size; fall back to the computed
       // RGB565 size only if the driver does not report bytesused.
-      const size_t len = buf.bytesused ? static_cast<size_t>(buf.bytesused)
-                                       : static_cast<size_t>(camera_width_) * camera_height_ * 2;
-      camera_callback_(static_cast<const uint8_t *>(camera_buffers_[buf.index]), camera_width_,
-                       camera_height_, len);
+      const uint16_t w = camera_width_.load();
+      const uint16_t h = camera_height_.load();
+      const size_t len =
+          buf.bytesused ? static_cast<size_t>(buf.bytesused) : static_cast<size_t>(w) * h * 2;
+      camera_callback_(static_cast<const uint8_t *>(camera_buffers_[buf.index]), w, h, len);
     }
     // Requeue the buffer. If this fails the capture queue drains and the stream
     // stalls, so treat it as fatal to the task rather than spinning silently.
     if (ioctl(camera_fd_, VIDIOC_QBUF, &buf) != 0) {
-      logger_.error("VIDIOC_QBUF failed (errno {}); stopping the camera task", errno);
-      return true; // stop the task; the owner can stop_camera() / re-init
+      logger_.error("VIDIOC_QBUF failed (errno {}); stopping the camera", errno);
+      // Tear down the pipeline here (from the camera task itself) so the driver
+      // is not left wedged (STREAMON + mmaps + esp_video init active) until
+      // someone calls stop_camera(); this also lets initialize_camera() be
+      // called again to recover. Only the pipeline is torn down - calling
+      // stop_camera()/Task::stop() here would self-join the task, so the task
+      // exits via `return true` instead. A later stop_camera() is still safe:
+      // the teardown is idempotent and stop() on an exited task just joins it.
+      teardown_camera_pipeline();
+      return true; // stop the task; the owner can re-init via initialize_camera()
     }
   } else if (errno == EAGAIN) {
     // No frame ready yet on the non-blocking fd; wait briefly and retry.
     vTaskDelay(pdMS_TO_TICKS(5));
   } else {
     // A real capture error (device/stream/driver): surface it and stop the task
-    // instead of spinning forever with no diagnostics.
-    logger_.error("VIDIOC_DQBUF failed (errno {}); stopping the camera task", errno);
+    // instead of spinning forever with no diagnostics, tearing down the
+    // pipeline (see above) so the device is released for a later re-init.
+    logger_.error("VIDIOC_DQBUF failed (errno {}); stopping the camera", errno);
+    teardown_camera_pipeline();
     return true;
   }
   // honor a stop request per the Task contract: check/clear notified under m
@@ -246,10 +262,18 @@ bool Esp32P4Wifi6DevKit::camera_task_callback(std::mutex &m, std::condition_vari
 }
 
 void Esp32P4Wifi6DevKit::stop_camera() {
+  // Stop the task first so nothing is using the fd/buffers during teardown. If
+  // the task already exited on a fatal capture error (and tore the pipeline
+  // down itself), stop() just joins the exited task and the teardown below is
+  // a no-op.
   if (camera_task_) {
     camera_task_->stop();
     camera_task_.reset();
   }
+  teardown_camera_pipeline();
+}
+
+void Esp32P4Wifi6DevKit::teardown_camera_pipeline() {
   if (camera_fd_ >= 0) {
     int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     ioctl(camera_fd_, VIDIOC_STREAMOFF, &type);

@@ -679,6 +679,10 @@ protected:
   microphone_callback_t microphone_callback_{nullptr};
   std::unique_ptr<espp::Task> microphone_task_{nullptr};
   i2s_chan_handle_t audio_rx_handle{nullptr};
+  // True once i2s_channel_init_std_mode() has run on the RX channel. It may
+  // only be called once per channel, so a failed initialize_microphone()
+  // attempt (enable / task start) must not re-run it on retry.
+  bool audio_rx_std_configured_{false};
   std::vector<uint8_t> audio_rx_buffer;
   // microphone volume (percent), mapped onto the ES8311 analog gain range
   std::atomic<float> mic_volume_{70.0f};
@@ -745,19 +749,32 @@ protected:
     esp_lcd_panel_io_handle_t io{nullptr};
     esp_lcd_panel_handle_t panel{nullptr};
   } lcd_handles_{};
-  DisplayController display_controller_{DisplayController::UNKNOWN};
+  // The configured controller is known from Kconfig at construction, so start
+  // from default_controller_ (not UNKNOWN): get_display_controller()/
+  // get_display_controller_name() honor their "configured panel" contract even
+  // before initialize_lcd() runs apply_panel_params().
+  DisplayController display_controller_{default_controller_};
 
   /////////////////////////////////////////////////////////////////////////////
   // Camera (MIPI-CSI via esp_video / V4L2). Sensor SCCB shares internal_i2c_.
   /////////////////////////////////////////////////////////////////////////////
   bool camera_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
+  // Tear down the capture pipeline (STREAMOFF, munmap, close, esp_video_deinit)
+  // and reset the camera state. Idempotent; does NOT touch camera_task_, so it
+  // is safe to call from the camera task itself on a fatal capture error
+  // (Task::stop() there would self-join).
+  void teardown_camera_pipeline();
   std::atomic<bool> camera_initialized_{false};
   camera_frame_callback_t camera_callback_{nullptr};
   std::unique_ptr<espp::Task> camera_task_{nullptr};
   int camera_fd_{-1};               // MIPI-CSI capture device (/dev/video0)
   bool camera_video_inited_{false}; // esp_video_init() succeeded (needs deinit)
-  uint16_t camera_width_{0};
-  uint16_t camera_height_{0};
+  // Frame dimensions are atomic: they are written by the owner thread in
+  // initialize_camera() and cleared by teardown_camera_pipeline() (which can
+  // run on the camera task after a fatal capture error) while other threads
+  // read them via camera_width()/camera_height().
+  std::atomic<uint16_t> camera_width_{0};
+  std::atomic<uint16_t> camera_height_{0};
   static constexpr int CAMERA_BUFFER_COUNT = 2;
   void *camera_buffers_[CAMERA_BUFFER_COUNT]{nullptr, nullptr};
   size_t camera_buffer_sizes_[CAMERA_BUFFER_COUNT]{0, 0};

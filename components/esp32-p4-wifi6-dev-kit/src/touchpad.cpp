@@ -79,20 +79,40 @@ bool Esp32P4Wifi6DevKit::initialize_touch(const touch_callback_t &callback,
     // GT911 in a task and invoke the user callback on new data.
     logger_.info("Touch in polling mode (GT911 INT not wired)");
     touch_task_ = std::make_unique<espp::Task>(espp::Task::Config{
-        .callback = [this](std::mutex &m, std::condition_variable &cv) -> bool {
+        .callback = [this](std::mutex &m, std::condition_variable &cv,
+                           bool &task_notified) -> bool {
           if (update_touch()) {
             if (touch_callback_) {
               touch_callback_(touchpad_data());
             }
           }
           std::unique_lock<std::mutex> lock(m);
-          // return true if notified (Task::stop() requested) so stop() joins
-          // promptly instead of waiting out the full poll interval
-          return cv.wait_for(lock, 16ms) == std::cv_status::no_timeout;
+          // Wait with the notified flag as the predicate so a spurious
+          // condition-variable wake does not stop the polling task; per the
+          // Task contract the flag is checked and cleared under m. A true
+          // predicate means Task::stop() was requested, so return true so
+          // stop() joins promptly instead of waiting out the poll interval.
+          if (cv.wait_for(lock, 16ms, [&task_notified] { return task_notified; })) {
+            task_notified = false;
+            return true; // stop the task
+          }
+          return false; // timed out: keep polling
         },
         .task_config = {.name = "p4-wifi6 touch",
                         .stack_size_bytes = CONFIG_ESP32_P4_WIFI6_DEV_KIT_TOUCH_TASK_STACK_SIZE}});
-    touch_task_->start();
+    if (!touch_task_->start()) {
+      // Roll back the partial initialization: without the polling task no touch
+      // data would ever be delivered, and leaving touch_driver_ set would make
+      // a later retry take the "already initialized" path above and falsely
+      // report success.
+      logger_.error("Could not start the touch polling task");
+      touch_task_.reset();
+      touchpad_input_.reset();
+      touch_driver_.reset();
+      touch_i2c_device_.reset();
+      touch_callback_ = nullptr;
+      return false;
+    }
   }
 
   logger_.info("Touch controller initialized");
@@ -106,7 +126,7 @@ bool Esp32P4Wifi6DevKit::update_touch() {
   std::error_code ec;
   bool new_data = touch_driver_->update(ec);
   if (ec) {
-    logger_.error("could not update touch driver: {}", ec.message());
+    logger_.error("Could not update touch driver: {}", ec.message());
     std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
     touchpad_data_ = {};
     return false;

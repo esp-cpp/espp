@@ -44,6 +44,14 @@ static size_t recording_capacity = 0;
 static std::atomic<bool> recording{false};
 static std::atomic<size_t> recording_len{0};
 static std::atomic<bool> playing{false};
+// Guards recording_buffer writes against the state flips: the microphone
+// callback holds this mutex while it checks `recording` and copies into the
+// buffer, and the GUI button callbacks flip `recording` under the same mutex.
+// The atomic flag alone is not enough - a callback that already observed
+// `recording == true` could still be mid-memcpy when the GUI starts playback /
+// resets recording_len. Taking the mutex to flip the state waits for (drains)
+// any in-flight callback, so after the flip the buffer is stable.
+static std::mutex recording_mutex;
 
 extern "C" void app_main(void) {
   espp::Logger logger(
@@ -197,6 +205,9 @@ extern "C" void app_main(void) {
     // auto-stop when the buffer is full (the main loop notices and updates the
     // GUI).
     auto mic_callback = [](const uint8_t *data, size_t num_bytes) {
+      // hold recording_mutex across the check + copy so a GUI state flip
+      // (which takes the same mutex) can never race an in-flight copy
+      std::lock_guard<std::mutex> lock(recording_mutex);
       if (!recording) {
         return;
       }
@@ -245,12 +256,20 @@ extern "C" void app_main(void) {
       return;
     }
     if (recording) {
+      // flip under recording_mutex so any in-flight microphone callback has
+      // finished writing before anyone treats the buffer as stable
+      std::lock_guard<std::mutex> lock(recording_mutex);
       recording = false; // the main loop notices and logs the summary
     } else {
       playing = false;
       gui.set_play_active(false);
-      recording_len = 0;
-      recording = true;
+      {
+        // reset under recording_mutex: a stale in-flight microphone callback
+        // must not append at the old offset after the reset
+        std::lock_guard<std::mutex> lock(recording_mutex);
+        recording_len = 0;
+        recording = true;
+      }
       gui.set_record_active(true);
       gui.set_audio_status("Recording...");
     }
@@ -261,7 +280,12 @@ extern "C" void app_main(void) {
       gui.set_play_active(false);
       gui.set_audio_status("Playback stopped");
     } else if (recording_len > 0) {
-      recording = false;
+      {
+        // stop recording under recording_mutex so an in-flight microphone
+        // callback finishes writing before playback starts reading the buffer
+        std::lock_guard<std::mutex> lock(recording_mutex);
+        recording = false;
+      }
       playing = true;
       gui.set_play_active(true);
       gui.set_audio_status("Playing...");
