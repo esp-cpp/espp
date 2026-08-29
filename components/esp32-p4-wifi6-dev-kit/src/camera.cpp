@@ -220,11 +220,23 @@ bool Esp32P4Wifi6DevKit::camera_task_callback(std::mutex &m, std::condition_vari
   if (ioctl(camera_fd_, VIDIOC_DQBUF, &buf) == 0) {
     if (camera_callback_ && buf.index < CAMERA_BUFFER_COUNT && camera_buffers_[buf.index]) {
       // Prefer the driver-reported payload size; fall back to the computed
-      // RGB565 size only if the driver does not report bytesused.
+      // RGB565 size only if the driver does not report bytesused. Either value
+      // is then clamped to the mmap'd buffer size so a bogus driver-reported
+      // length can never send the callback past the end of the mapping.
       const uint16_t w = camera_width_.load();
       const uint16_t h = camera_height_.load();
-      const size_t len =
+      size_t len =
           buf.bytesused ? static_cast<size_t>(buf.bytesused) : static_cast<size_t>(w) * h * 2;
+      const size_t buf_size = camera_buffer_sizes_[buf.index];
+      if (len > buf_size) {
+        static uint32_t clamp_warn_count = 0;
+        if ((clamp_warn_count++ % 100) == 0) {
+          logger_.warn("Camera frame length {} exceeds the mmap'd buffer size {}; clamping "
+                       "(occurrence {})",
+                       len, buf_size, clamp_warn_count);
+        }
+        len = buf_size;
+      }
       camera_callback_(static_cast<const uint8_t *>(camera_buffers_[buf.index]), w, h, len);
     }
     // Requeue the buffer. If this fails the capture queue drains and the stream

@@ -167,8 +167,10 @@ Esp32P4Wifi6DevKit::touchpad_convert(const TouchpadData &data) const {
     temp_data.y = display_height_ - (temp_data.y + 1);
   }
   // Map the (panel-native) touch point into the current LVGL display rotation so
-  // it lines up with what is drawn on screen.
-  auto rotation = lv_display_get_rotation(lv_display_get_default());
+  // it lines up with what is drawn on screen. Query the BSP-managed display,
+  // not lv_display_get_default(): if the app creates additional LVGL displays
+  // the default may not be this panel.
+  auto rotation = current_display_rotation();
   switch (rotation) {
   case LV_DISPLAY_ROTATION_90:
     temp_data.y = display_height_ - (temp_data.y + 1);

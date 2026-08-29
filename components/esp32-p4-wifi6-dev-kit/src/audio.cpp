@@ -372,19 +372,28 @@ bool Esp32P4Wifi6DevKit::audio_task_callback(std::mutex &m, std::condition_varia
   available &= ~static_cast<size_t>(1);
   uint8_t *tx_buf = audio_tx_buffer.data();
   memset(tx_buf, 0, buffer_size);
+  if (available > 0) {
+    xStreamBufferReceive(audio_tx_stream, tx_buf, available, 0);
+  }
+  // Always write a full, frame-aligned buffer (queued samples zero-padded to
+  // buffer_size) so the I2S DMA is fed at a constant cadence - matching the
+  // esp-box / t-deck / m5stack-tab5 playback path. Writing only `available`
+  // bytes makes the drain cadence variable and interleaves whole frames of
+  // silence into bursty streams, which sounds choppy/glitchy.
+  //
   // Use a finite write timeout (not portMAX_DELAY) so this task returns
   // periodically and can observe a stop request; an infinite write would block
   // Task::stop() from joining during teardown if the I2S sink ever stalls.
-  if (available == 0) {
-    i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, pdMS_TO_TICKS(100));
-  } else {
-    xStreamBufferReceive(audio_tx_stream, tx_buf, available, 0);
-    // Always write a full, frame-aligned buffer (queued samples zero-padded to
-    // buffer_size) so the I2S DMA is fed at a constant cadence - matching the
-    // esp-box / t-deck / m5stack-tab5 playback path. Writing only `available`
-    // bytes makes the drain cadence variable and interleaves whole frames of
-    // silence into bursty streams, which sounds choppy/glitchy.
-    i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, pdMS_TO_TICKS(100));
+  size_t bytes_written = 0;
+  esp_err_t err =
+      i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, &bytes_written, pdMS_TO_TICKS(100));
+  if (err != ESP_OK || bytes_written != buffer_size) {
+    // Rate-limit: a stalled I2S sink would otherwise emit this every ~100 ms.
+    static uint32_t write_warn_count = 0;
+    if ((write_warn_count++ % 100) == 0) {
+      logger_.warn("i2s_channel_write: {} ({} of {} bytes written, occurrence {})",
+                   esp_err_to_name(err), bytes_written, buffer_size, write_warn_count);
+    }
   }
   // honor a stop request per the Task contract: check/clear notified under m
   std::unique_lock<std::mutex> lock(m);

@@ -781,6 +781,10 @@ protected:
   int camera_buffer_count_{0}; // buffers VIDIOC_REQBUFS actually allocated
 
   void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
+  // Rotation of the BSP-managed LVGL display (NOT lv_display_get_default(),
+  // which may be a different display if the app created its own); falls back to
+  // the configured default rotation before initialize_display().
+  lv_display_rotation_t current_display_rotation() const;
   static bool notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel,
                                       esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx);
 

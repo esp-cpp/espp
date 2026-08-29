@@ -353,8 +353,19 @@ bool Esp32P4Wifi6DevKit::initialize_display(size_t pixel_buffer_size) {
   return true;
 }
 
+lv_display_rotation_t Esp32P4Wifi6DevKit::current_display_rotation() const {
+  // Query the BSP-managed display, not lv_display_get_default(): if the app
+  // creates additional LVGL displays the default may not be this panel.
+  if (display_) {
+    return lv_display_get_rotation(display_->get_lvgl_display());
+  }
+  // Before initialize_display() there is no LVGL display yet; report the
+  // rotation it will be created with.
+  return static_cast<lv_display_rotation_t>(rotation);
+}
+
 size_t Esp32P4Wifi6DevKit::rotated_display_width() const {
-  auto rot = lv_display_get_rotation(lv_display_get_default());
+  auto rot = current_display_rotation();
   switch (rot) {
   case LV_DISPLAY_ROTATION_90:
   case LV_DISPLAY_ROTATION_270:
@@ -365,7 +376,7 @@ size_t Esp32P4Wifi6DevKit::rotated_display_width() const {
 }
 
 size_t Esp32P4Wifi6DevKit::rotated_display_height() const {
-  auto rot = lv_display_get_rotation(lv_display_get_default());
+  auto rot = current_display_rotation();
   switch (rot) {
   case LV_DISPLAY_ROTATION_90:
   case LV_DISPLAY_ROTATION_270:
@@ -450,7 +461,10 @@ void Esp32P4Wifi6DevKit::flush(lv_display_t *disp, const lv_area_t *area, uint8_
   int offsety1 = area->y1;
   int offsety2 = area->y2;
 
-  auto rot = lv_display_get_rotation(lv_display_get_default());
+  // Use the display being flushed (the BSP-managed one), not
+  // lv_display_get_default(): another LVGL display created by the app could be
+  // the default, and its rotation must not leak into this panel's flush.
+  auto rot = lv_display_get_rotation(disp);
   int32_t ww = lv_area_get_width(area);
   int32_t hh = lv_area_get_height(area);
   // Only rotate when the rotated area fits the scratch buffer; otherwise skip
