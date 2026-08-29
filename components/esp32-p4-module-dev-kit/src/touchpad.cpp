@@ -75,20 +75,38 @@ bool Esp32P4ModuleDevKit::initialize_touch(const touch_callback_t &callback,
     // GT911 in a task and invoke the user callback on new data.
     logger_.info("Touch in polling mode (GT911 INT not wired)");
     touch_task_ = std::make_unique<espp::Task>(espp::Task::Config{
-        .callback = [this](std::mutex &m, std::condition_variable &cv) -> bool {
+        .callback = [this](std::mutex &m, std::condition_variable &cv,
+                           bool &task_notified) -> bool {
           if (update_touch()) {
             if (touch_callback_) {
               touch_callback_(touchpad_data());
             }
           }
+          // Wait out the poll interval with the notified flag as the predicate
+          // so spurious cv wakeups don't end the wait (or the task) early; per
+          // the Task contract, clear the flag under the mutex before returning.
+          // Return true only on a real Task::stop() notification so stop()
+          // joins promptly instead of waiting out the full poll interval.
           std::unique_lock<std::mutex> lock(m);
-          // return true if notified (Task::stop() requested) so stop() joins
-          // promptly instead of waiting out the full poll interval
-          return cv.wait_for(lock, 16ms) == std::cv_status::no_timeout;
+          bool stop_requested = cv.wait_for(lock, 16ms, [&task_notified] { return task_notified; });
+          task_notified = false;
+          return stop_requested;
         },
         .task_config = {.name = "p4mdk touch",
                         .stack_size_bytes = CONFIG_ESP32_P4_MODULE_DEV_KIT_TOUCH_TASK_STACK_SIZE}});
-    touch_task_->start();
+    if (!touch_task_->start()) {
+      logger_.error("Could not start the touch polling task");
+      // Clear the partially initialized polling state so this call reports
+      // failure and a later initialize_touch() retry can start from scratch
+      // (touch_driver_ left set would make retries return success with no
+      // polling task running).
+      touch_task_.reset();
+      touchpad_input_.reset();
+      touch_driver_.reset();
+      touch_i2c_device_.reset();
+      touch_callback_ = nullptr;
+      return false;
+    }
   }
 
   logger_.info("Touch controller initialized");

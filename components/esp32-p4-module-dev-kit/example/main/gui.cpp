@@ -269,7 +269,7 @@ void Gui::init_circle_layer() {
   lv_obj_move_foreground(circle_layer_);
 }
 
-bool Gui::update(std::mutex &m, std::condition_variable &cv) {
+bool Gui::update(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     // drain any touch points queued since the last cycle
@@ -290,9 +290,15 @@ bool Gui::update(std::mutex &m, std::condition_variable &cv) {
     update_audio_label();
   }
   std::unique_lock<std::mutex> lock(m);
-  // stop promptly if Task::stop() notified us (otherwise ~Gui can hang joining
-  // the update thread); a plain timeout means keep running
-  return cv.wait_for(lock, std::chrono::milliseconds(16)) == std::cv_status::no_timeout;
+  // Wait out the frame interval with the notified flag as the predicate so a
+  // spurious cv wakeup doesn't exit the only LVGL update task; per the Task
+  // contract, clear the flag under the mutex before returning. Return true
+  // only on a real Task::stop() notification so it stops promptly (otherwise
+  // ~Gui can hang joining the update thread).
+  bool stop_requested =
+      cv.wait_for(lock, std::chrono::milliseconds(16), [&task_notified] { return task_notified; });
+  task_notified = false;
+  return stop_requested;
 }
 
 void Gui::event_callback(lv_event_t *e) {

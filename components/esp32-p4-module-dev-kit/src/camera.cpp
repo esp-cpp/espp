@@ -133,7 +133,7 @@ bool Esp32P4ModuleDevKit::initialize_camera(const camera_frame_callback_t &callb
   }
   camera_width_ = static_cast<uint16_t>(format.fmt.pix.width);
   camera_height_ = static_cast<uint16_t>(format.fmt.pix.height);
-  logger_.info("Camera format: {}x{} RGB565", camera_width_, camera_height_);
+  logger_.info("Camera format: {}x{} RGB565", camera_width_.load(), camera_height_.load());
 
   // Request and memory-map the capture buffers. REQBUFS may hand back fewer
   // buffers than requested; use the count it actually allocated (and require at
@@ -195,12 +195,17 @@ bool Esp32P4ModuleDevKit::initialize_camera(const camera_frame_callback_t &callb
       .callback = std::bind(&Esp32P4ModuleDevKit::camera_task_callback, this, _1, _2, _3),
       .task_config = task_config,
   });
+  // Publish the initialized state BEFORE starting the task: Task::start()
+  // launches the worker immediately, and an immediate fatal capture error in
+  // camera_task_callback() runs teardown_camera_pipeline() (which clears this
+  // flag) — an assignment after start() could overwrite that clear and report
+  // a released pipeline as initialized.
+  camera_initialized_ = true;
   if (!camera_task_->start()) {
     logger_.error("Could not start the camera task");
-    stop_camera();
+    stop_camera(); // also clears camera_initialized_
     return false;
   }
-  camera_initialized_ = true;
   return true;
 }
 
@@ -218,10 +223,12 @@ bool Esp32P4ModuleDevKit::camera_task_callback(std::mutex &m, std::condition_var
     if (camera_callback_ && buf.index < CAMERA_BUFFER_COUNT && camera_buffers_[buf.index]) {
       // Prefer the driver-reported payload size; fall back to the computed
       // RGB565 size only if the driver does not report bytesused.
+      const uint16_t width = camera_width_;
+      const uint16_t height = camera_height_;
       const size_t len = buf.bytesused ? static_cast<size_t>(buf.bytesused)
-                                       : static_cast<size_t>(camera_width_) * camera_height_ * 2;
-      camera_callback_(static_cast<const uint8_t *>(camera_buffers_[buf.index]), camera_width_,
-                       camera_height_, len);
+                                       : static_cast<size_t>(width) * height * 2;
+      camera_callback_(static_cast<const uint8_t *>(camera_buffers_[buf.index]), width, height,
+                       len);
     }
     // Requeue the buffer. If this fails the capture queue drains and the stream
     // stalls, so treat it as fatal to the task rather than spinning silently.

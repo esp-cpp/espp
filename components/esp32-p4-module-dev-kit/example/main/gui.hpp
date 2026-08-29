@@ -151,7 +151,7 @@ protected:
   void update_audio_label();
 
   // the LVGL update task: calls lv_task_handler() under the mutex
-  bool update(std::mutex &m, std::condition_variable &cv);
+  bool update(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   // single trampoline for all LVGL events; dispatches to the member
   // functions below based on the event target
@@ -208,10 +208,12 @@ protected:
   size_t next_circle_index_{0};
   size_t visible_circle_count_{0};
 
-  espp::Task update_task_{{.callback = [this](auto &m, auto &cv) { return update(m, cv); },
-                           // NOTE: rendering the tabview (nested containers + flex layout) uses
-                           // noticeably more stack than a flat UI; 6 KB overflows
-                           .task_config = {.name = "gui", .stack_size_bytes = 12 * 1024}}};
+  espp::Task update_task_{
+      {.callback = [this](auto &m, auto &cv,
+                          auto &task_notified) { return update(m, cv, task_notified); },
+       // NOTE: rendering the tabview (nested containers + flex layout) uses
+       // noticeably more stack than a flat UI; 6 KB overflows
+       .task_config = {.name = "gui", .stack_size_bytes = 12 * 1024}}};
   espp::Logger logger_;
   std::recursive_mutex mutex_;
   // Pending draw_circle() points, queued by (fast) producers and drained under

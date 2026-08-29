@@ -331,8 +331,8 @@ extern "C" void app_main(void) {
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Load the embedded click.wav (stripping the 44-byte WAV header) and report its
-// size and sample rate.
+// Load the embedded click.wav (keeping exactly the 'data' chunk payload,
+// downmixed to mono for play_audio()) and report its size and sample rate.
 //////////////////////////////////////////////////////////////////////////////
 static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
   // Sample rate parsed from the WAV header on the first successful load,
@@ -353,6 +353,10 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
   }
   uint32_t sample_rate = 0;
   std::memcpy(&sample_rate, &audio_bytes[24], sizeof(sample_rate));
+  uint16_t num_channels = 0;
+  std::memcpy(&num_channels, &audio_bytes[22], sizeof(num_channels));
+  uint16_t bits_per_sample = 0;
+  std::memcpy(&bits_per_sample, &audio_bytes[34], sizeof(bits_per_sample));
   // Walk the RIFF chunks to find the 'data' chunk and keep exactly its payload.
   // A fixed 44-byte strip is wrong for files with trailing metadata chunks
   // (cue/LIST/bext): those bytes would be played as audio, producing a pop at
@@ -374,6 +378,24 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
   }
   audio_bytes.erase(audio_bytes.begin() + data_off + data_len, audio_bytes.end());
   audio_bytes.erase(audio_bytes.begin(), audio_bytes.begin() + data_off);
+  // play_audio() takes 16-bit signed MONO samples, but the embedded click.wav
+  // is 16-bit stereo. Downmix interleaved L/R pairs to mono in place (average)
+  // so the clip plays with its true duration and waveform, instead of the L/R
+  // words being played sequentially as mono samples (half speed, doubled
+  // length). Reject formats the playback contract can't represent.
+  if (bits_per_sample != 16 || (num_channels != 1 && num_channels != 2)) {
+    audio_bytes.clear();
+    return false;
+  }
+  if (num_channels == 2) {
+    auto *samples = reinterpret_cast<int16_t *>(audio_bytes.data());
+    const size_t num_frames = audio_bytes.size() / (2 * sizeof(int16_t));
+    for (size_t i = 0; i < num_frames; ++i) {
+      samples[i] =
+          static_cast<int16_t>((static_cast<int32_t>(samples[2 * i]) + samples[2 * i + 1]) / 2);
+    }
+    audio_bytes.resize(num_frames * sizeof(int16_t));
+  }
   cached_sample_rate = sample_rate;
   out_size = audio_bytes.size();
   out_sample_rate = sample_rate;

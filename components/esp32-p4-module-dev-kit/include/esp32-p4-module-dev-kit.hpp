@@ -717,8 +717,11 @@ protected:
   std::unique_ptr<espp::Task> camera_task_{nullptr};
   int camera_fd_{-1};               // MIPI-CSI capture device (/dev/video0)
   bool camera_video_inited_{false}; // esp_video_init() succeeded (needs deinit)
-  uint16_t camera_width_{0};
-  uint16_t camera_height_{0};
+  // atomic: read by camera_width()/camera_height() from other tasks (e.g. the
+  // example's status task) while the camera task can concurrently reset them
+  // in teardown_camera_pipeline() on a fatal capture error
+  std::atomic<uint16_t> camera_width_{0};
+  std::atomic<uint16_t> camera_height_{0};
   static constexpr int CAMERA_BUFFER_COUNT = 2;
   void *camera_buffers_[CAMERA_BUFFER_COUNT]{nullptr, nullptr};
   size_t camera_buffer_sizes_[CAMERA_BUFFER_COUNT]{0, 0};

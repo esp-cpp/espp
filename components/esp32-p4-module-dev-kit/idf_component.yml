@@ -20,7 +20,9 @@ tags:
   - Waveshare
 dependencies:
   idf:
-    version: ">=5.3"
+    # >=5.4: the BSP uses the new I2C master API (espp::I2c::native_bus_handle()
+    # for the camera SCCB), which requires ESP-IDF >= 5.4 (see components/i2c/Kconfig)
+    version: ">=5.4"
   espp/base_component: ">=1.0"
   espp/ethernet: ">=1.0"
   espp/codec: ">=1.0"

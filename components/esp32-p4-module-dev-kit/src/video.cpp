@@ -212,7 +212,9 @@ bool Esp32P4ModuleDevKit::initialize_lcd() {
     dpi_cfg.out_color_format = LCD_COLOR_FMT_RGB565;
 #else
     dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
-    dpi_cfg.flags.use_dma2d = true;
+    // Gate DMA2D on the controller exactly like the IDF 6 path below; see the
+    // NOTE there (DMA2D corrupts RGB565 on the ILI9881C / EK79007 panels).
+    dpi_cfg.flags.use_dma2d = (display_controller_ == DisplayController::JD9365);
 #endif
     dpi_cfg.num_fbs = 1;
     dpi_cfg.video_timing.h_size = display_width_;
@@ -236,7 +238,8 @@ bool Esp32P4ModuleDevKit::initialize_lcd() {
     // corrupts the RGB565 channel order on those panels, while the plain CPU
     // copy path renders correctly. The JD9365 panel renders correctly WITH
     // DMA2D (and Waveshare's vendor panel component enables it), so keep it
-    // enabled on that path.
+    // enabled on that path. On IDF < 6 the same gating is applied above via
+    // dpi_cfg.flags.use_dma2d; on IDF >= 6 it is enabled post-create here.
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
     if (display_controller_ == DisplayController::JD9365) {
       ret = esp_lcd_dpi_panel_enable_dma2d(lcd_handles_.panel);
