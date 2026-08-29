@@ -2,9 +2,7 @@
 
 #include <array>
 #include <atomic>
-#include <chrono>
 #include <cstring>
-#include <thread>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -915,8 +913,11 @@ bool UsbDevice::write_vendor(std::span<const uint8_t> data, std::error_code &ec)
   // needing replies larger than the FIFO should queue the work to their own
   // task (see the docs on write_vendor()).
   const bool in_tinyusb_task = on_tinyusb_task();
-  static constexpr auto kVendorWriteTimeout = std::chrono::milliseconds(250);
-  const auto deadline = std::chrono::steady_clock::now() + kVendorWriteTimeout;
+  static constexpr TickType_t kVendorWriteTimeoutTicks = pdMS_TO_TICKS(250);
+  // Poll at ~1 ms, but never less than one tick (pdMS_TO_TICKS(1) is 0 when
+  // the tick rate is below 1 kHz, and vTaskDelay(0) would not block at all).
+  static constexpr TickType_t kVendorDrainPollTicks = pdMS_TO_TICKS(1) > 0 ? pdMS_TO_TICKS(1) : 1;
+  const TickType_t start_tick = xTaskGetTickCount();
   while (offset < data.size()) {
     uint32_t queued = tud_vendor_write(data.data() + offset, data.size() - offset);
     tud_vendor_write_flush();
@@ -930,12 +931,13 @@ bool UsbDevice::write_vendor(std::span<const uint8_t> data, std::error_code &ec)
         ec = std::make_error_code(std::errc::no_buffer_space);
         break;
       }
-      if (!tud_vendor_mounted() || std::chrono::steady_clock::now() >= deadline) {
+      // Unsigned tick subtraction stays correct across tick-count wraparound.
+      if (!tud_vendor_mounted() || (xTaskGetTickCount() - start_tick) >= kVendorWriteTimeoutTicks) {
         logger_.warn_rate_limited("Vendor TX buffer full, dropping {} bytes", data.size() - offset);
         ec = std::make_error_code(std::errc::no_buffer_space);
         break;
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      vTaskDelay(kVendorDrainPollTicks);
     }
   }
   return offset == data.size();

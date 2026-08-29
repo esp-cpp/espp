@@ -91,7 +91,7 @@ inline std::optional<uint16_t> get_u16_at(std::span<const uint8_t> bytes, size_t
 inline std::optional<int32_t> get_i32_at(std::span<const uint8_t> bytes, size_t offset) {
   if (bytes.size() < offset + 4)
     return std::nullopt;
-  return static_cast<int32_t>(get_u32(bytes.subspan(offset)));
+  return std::bit_cast<int32_t>(get_u32(bytes.subspan(offset)));
 }
 
 inline std::optional<float> get_f32_at(std::span<const uint8_t> bytes, size_t offset) {
