@@ -9,8 +9,9 @@ bool Esp32P4Wifi6PoeEth::initialize_ethernet() { return initialize_ethernet(Ethe
 
 bool Esp32P4Wifi6PoeEth::initialize_ethernet(const EthernetConfig &config) {
   if (ethernet_ && ethernet_->is_initialized()) {
-    logger_.warn("Ethernet already initialized");
-    return true;
+    logger_.warn("Ethernet already initialized; ignoring the provided configuration. "
+                 "Reinitialization with a new configuration is not supported.");
+    return false;
   }
 
   logger_.info("Initializing Ethernet (EMAC + IP101GRI RMII, DHCP {})",

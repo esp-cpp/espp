@@ -163,7 +163,10 @@ public:
   /// \param config  Ethernet configuration (DHCP mode, callbacks).
   ///                All fields have defaults so \c EthernetConfig{} gives a
   ///                plain DHCP-client interface with no callbacks.
-  /// \return True if Ethernet was successfully initialized and started.
+  /// \return True if Ethernet was successfully initialized and started. False
+  ///         on failure, or if Ethernet was already initialized -- in that
+  ///         case the provided \p config is ignored (reinitialization with a
+  ///         new configuration is not supported).
   /// \note Requires the ESP-IDF TCP/IP stack and default event loop. The
   ///       underlying espp::Ethernet component calls esp_netif_init() and
   ///       esp_event_loop_create_default() during its initialize(), so they
@@ -171,7 +174,8 @@ public:
   bool initialize_ethernet(const EthernetConfig &config);
 
   /// Initialize Ethernet with default configuration (DHCP client mode).
-  /// \return True if Ethernet was successfully initialized and started.
+  /// \return True if Ethernet was successfully initialized and started. False
+  ///         on failure or if Ethernet was already initialized.
   bool initialize_ethernet();
 
   /// Check whether the interface has a usable IP address

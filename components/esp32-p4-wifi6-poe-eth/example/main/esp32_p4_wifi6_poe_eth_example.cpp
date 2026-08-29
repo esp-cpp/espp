@@ -7,7 +7,7 @@
 #include "logger.hpp"
 
 #if CONFIG_EXAMPLE_ETH_DHCP_SERVER
-#include <lwip/ip4_addr.h>
+#include <esp_netif.h>
 #endif
 
 using namespace std::chrono_literals;
@@ -33,12 +33,9 @@ extern "C" void app_main(void) {
   // values (EXAMPLE_ETH_SERVER_IP / _NETMASK / _GW) for a custom static IP.
   //! [esp32 p4 wifi6 poe eth dhcp server]
   espp::Esp32P4Wifi6PoeEth::ServerConfig srv_cfg;
-  if (!ip4addr_aton(CONFIG_EXAMPLE_ETH_SERVER_IP,
-                    reinterpret_cast<ip4_addr_t *>(&srv_cfg.ip_info.ip)) ||
-      !ip4addr_aton(CONFIG_EXAMPLE_ETH_SERVER_NETMASK,
-                    reinterpret_cast<ip4_addr_t *>(&srv_cfg.ip_info.netmask)) ||
-      !ip4addr_aton(CONFIG_EXAMPLE_ETH_SERVER_GW,
-                    reinterpret_cast<ip4_addr_t *>(&srv_cfg.ip_info.gw))) {
+  if (esp_netif_str_to_ip4(CONFIG_EXAMPLE_ETH_SERVER_IP, &srv_cfg.ip_info.ip) != ESP_OK ||
+      esp_netif_str_to_ip4(CONFIG_EXAMPLE_ETH_SERVER_NETMASK, &srv_cfg.ip_info.netmask) != ESP_OK ||
+      esp_netif_str_to_ip4(CONFIG_EXAMPLE_ETH_SERVER_GW, &srv_cfg.ip_info.gw) != ESP_OK) {
     logger.error("Invalid DHCP-server address in menuconfig (ip='{}' netmask='{}' gw='{}'); "
                  "aborting Ethernet init",
                  CONFIG_EXAMPLE_ETH_SERVER_IP, CONFIG_EXAMPLE_ETH_SERVER_NETMASK,
