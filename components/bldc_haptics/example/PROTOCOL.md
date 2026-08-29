@@ -77,9 +77,11 @@ Notes:
   With bootloader rollback enabled the new app must mark itself valid on first
   boot or the bootloader rolls back. `OTA_DATA`/`OTA_FINISH`/`OTA_ABORT`
   without an active session yield `ERROR(operation_not_permitted)`.
-- `SET_POSITION` moves the *logical* detent index (clamped to the active
-  config's `[min_position, max_position]`); the motor then pulls the knob
-  toward that detent.
+- `SET_POSITION` re-labels the detent the knob is currently resting in: it sets
+  the *logical* detent index (clamped to the active config's
+  `[min_position, max_position]`) that position/telemetry values count from.
+  The knob does **not** physically move — the motor keeps holding the current
+  physical detent.
 - `SET_ENABLED 0` de-energizes the motor driver via `BldcHaptics::stop()`
   (which calls `BldcMotor::disable()`, which calls `BldcDriver::disable()`),
   in addition to stopping the haptic control task; `1` re-enables it.

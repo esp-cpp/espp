@@ -2,6 +2,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <condition_variable>
 #include <deque>
 #include <iterator>
@@ -129,6 +130,12 @@ extern "C" void app_main(void) {
         crash_report +=
             "\ndecode with: xtensa-esp32s3-elf-addr2line -pfiaC -e build/bldc_haptics.elf <addrs>";
         logger.error("Previous crash detected: {}", crash_report);
+        // The flash dump persists until erased; without this every subsequent
+        // clean boot would keep re-reporting the same old crash (mislabeled
+        // with the CURRENT reset reason). The summary above is the advertised
+        // decode path, so consume the dump now that it is cached in RAM.
+        if (esp_core_dump_image_erase() != ESP_OK)
+          logger.warn("Failed to erase the consumed core dump image");
       }
     } else if (reset_reason == ESP_RST_BROWNOUT || reset_reason == ESP_RST_INT_WDT ||
                reset_reason == ESP_RST_TASK_WDT) {
@@ -334,10 +341,12 @@ extern "C" void app_main(void) {
   usb_cfg.product = "espp BLDC Haptics";
   usb_cfg.log_level = espp::Logger::Verbosity::INFO;
   // CDC alongside the vendor interface: a plain serial port any terminal can
-  // attach to (e.g. `screen /dev/tty.usbmodem*`). It carries the boot banner +
-  // last-crash report on every connect - NOT a live console (espp logs go to
-  // the default console, and a panic kills TinyUSB before it could print);
-  // the flash core dump + next-boot report above is the backtrace path.
+  // attach to (e.g. `screen /dev/tty.usbmodem*`). Once USB is up it becomes
+  // the live SYSTEM console (esp_tusb_init_console below routes stdout/stderr
+  // - all espp/fmt and esp_log output - to it) and re-logs the last-crash
+  // report on every connect. Panic backtraces still cannot appear live
+  // (TinyUSB dies with the panic); the flash core dump + next-boot report
+  // above is the backtrace path.
   espp::UsbDevice::CdcFunction cdc;
   cdc.interface_name = "espp BLDC Haptics (debug)";
   usb_cfg.cdc = cdc;
@@ -551,6 +560,10 @@ extern "C" void app_main(void) {
         reply_errc(std::errc::invalid_argument, "SET_POSITION needs an i32 position");
         break;
       }
+      // NOTE: BldcHaptics::set_position() re-labels the current detent (sets
+      // the logical index the knob is at, clamped to the active config); it
+      // does NOT drive the motor to a different physical detent. See
+      // PROTOCOL.md / the web console's "Set detent index" control.
       haptic_motor.set_position(*position);
       reply_ok(static_cast<uint32_t>(static_cast<int32_t>(haptic_motor.get_position())));
       break;
@@ -580,6 +593,12 @@ extern "C" void app_main(void) {
       }
       if (!enabled) {
         reply_errc(std::errc::operation_not_permitted, "haptics are disabled");
+        break;
+      }
+      // std::clamp does not sanitize NaN, so reject non-finite strengths
+      // before they can propagate into the motor torque math.
+      if (!std::isfinite(*strength)) {
+        reply_errc(std::errc::invalid_argument, "PLAY_HAPTIC strength must be finite");
         break;
       }
       const float clamped = std::clamp(*strength, 0.0f, 10.0f);
@@ -680,16 +699,15 @@ extern "C" void app_main(void) {
        // which alone can use a few KB of stack - 4 KB overflowed (= reboot)
        // when the host stopped draining the IN endpoint.
        .task_config = {.name = "haptics_telem", .stack_size_bytes = 8192}});
-  if (usb_ok)
+  if (usb_ok) {
     telemetry_task.start();
-
-  if (usb_ok)
     logger.info("Ready: connect the native USB port and open the web console "
                 "(example/webapp/index.html or https://{})",
                 vendor.landing_page_url);
-  else
+  } else {
     logger.warn("Ready (haptics only): USB failed to initialize, so the web "
                 "console / OTA / telemetry are unavailable this boot");
+  }
 
   bool was_faulted = false;
   bool cdc_was_connected = false;

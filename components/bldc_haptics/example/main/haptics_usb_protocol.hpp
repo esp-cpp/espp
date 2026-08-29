@@ -13,6 +13,7 @@
 //   0x81..0x8F  device -> host  generic + OTA replies (OK / ERROR / PROGRESS)
 //   0x90..0xAF  device -> host  haptics replies + telemetry
 
+#include <algorithm>
 #include <bit>
 #include <cstdint>
 #include <optional>

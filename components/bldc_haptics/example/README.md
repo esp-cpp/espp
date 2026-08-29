@@ -64,11 +64,13 @@ two 3 MB app slots on an 8 MB flash), so the very first flash must be a full
 otadata.
 
 > On boards whose only USB connector is the ESP32-S3's native USB (e.g. MotorGo
-> Mini), the connector is taken over by the TinyUSB vendor interface once the
-> app starts, so serial logs are only available on the UART pins. Flashing
-> still works over the same connector via the ROM bootloader (hold BOOT while
-> resetting, or just use `webapp/index.html` for OTA updates after the first
-> flash).
+> Mini), TinyUSB takes over the connector once the app starts, so the
+> USB-Serial-JTAG console (`idf.py monitor`) goes away. Runtime logs are still
+> available over the same cable: the example exposes a CDC-ACM serial port and
+> routes the system console to it, so attach any serial terminal (e.g.
+> `screen /dev/tty.usbmodem*`) for live logs. Flashing also still works over
+> the same connector via the ROM bootloader (hold BOOT while resetting, or
+> just use `webapp/index.html` for OTA updates after the first flash).
 
 ### Web console
 

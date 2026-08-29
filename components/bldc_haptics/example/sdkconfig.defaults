@@ -31,16 +31,18 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 # works.
 CONFIG_TINYUSB_VENDOR_COUNT=1
 # The vendor FIFOs default to 64 bytes on the S3 - smaller than one protocol
-# frame (MODES is ~660 bytes; OTA data frames are 4106). Size them to hold a
-# full frame so writes complete without waiting and RX can take a whole OTA
-# chunk at once.
+# frame (MODES is ~660 bytes; a max OTA data frame is 4107 bytes: 7 header +
+# 4096 payload + 4 CRC). Size them to hold a full frame so writes complete
+# without waiting and RX can take a whole OTA chunk at once.
 CONFIG_TINYUSB_VENDOR_RX_BUFSIZE=4200
 CONFIG_TINYUSB_VENDOR_TX_BUFSIZE=4200
 
-# The example itself only USES the vendor function, but the usb_device
-# component's sources reference the TinyUSB CDC + HID class driver APIs, which
-# esp_tinyusb gates behind these options -- keep them enabled (minimal counts)
-# so the component compiles; no CDC / HID interface is instantiated here.
+# CDC is instantiated and used: the example exposes a CDC-ACM debug serial
+# port and routes the system console to it (esp_tusb_init_console), so keep
+# the CDC class driver enabled. HID is compile-only: the usb_device
+# component's sources reference the TinyUSB HID class driver APIs, which
+# esp_tinyusb gates behind CONFIG_TINYUSB_HID_COUNT -- keep it > 0 so the
+# component compiles; no HID interface is instantiated here.
 CONFIG_TINYUSB_CDC_ENABLED=y
 CONFIG_TINYUSB_CDC_COUNT=1
 CONFIG_TINYUSB_HID_COUNT=1

@@ -234,9 +234,9 @@
             <button id="enableBtn" disabled>Disable</button>
           </div>
           <div class="row" style="margin-bottom: 8px;">
-            <label for="posInput">Move to detent</label>
+            <label for="posInput" title="Re-labels the detent the knob currently rests in (the knob does not move)">Set detent index</label>
             <input type="number" id="posInput" value="0" step="1" style="width: 90px;" disabled>
-            <button id="posBtn" disabled>Go</button>
+            <button id="posBtn" disabled>Set</button>
           </div>
           <div class="row" style="margin-bottom: 8px;">
             <label for="strengthRange">Click strength</label>
@@ -493,6 +493,12 @@
     // Single in-flight transaction: resolved by the RX pump when a frame of an
     // accepted reply type (or ERROR) arrives.
     let pending = null; // { accept: Set<int>, resolve, reject, timer }
+    // Replies owed to timed-out commands. The device processes commands
+    // serially and the bulk IN pipe preserves ordering, so after a response
+    // timeout the NEXT solicited-type frame (if it ever arrives) belongs to
+    // the timed-out command, not to a later transaction — count and discard
+    // it instead of letting it satisfy the wrong transact().
+    let staleReplies = 0;
 
     if (!navigator.usb) {
       els.unsupported.style.display = "block";
@@ -580,6 +586,7 @@
 
     async function safeClose() {
       if (pending) { const p = pending; pending = null; clearTimeout(p.timer); p.reject(new Error("disconnected")); }
+      staleReplies = 0;
       if (device) {
         if (ifaceNumber !== null) { try { await device.releaseInterface(ifaceNumber); } catch (_) {} }
         try { await device.close(); } catch (_) {}
@@ -651,6 +658,12 @@
       }
       default: break;
       }
+      if (staleReplies > 0) {
+        staleReplies--;
+        logLine("sys", "Discarding late " + (TYPE_NAME[frame.type] || ("0x" + frame.type.toString(16))) +
+                " reply to a previously timed-out command.");
+        return;
+      }
       if (pending && (pending.accept.has(frame.type) || frame.type === TYPE.ERROR)) {
         const p = pending; pending = null;
         clearTimeout(p.timer);
@@ -682,6 +695,9 @@
           pending.timer = setTimeout(() => {
             if (!pending) return;
             const p = pending; pending = null;
+            // the device still owes a reply to this command; if it arrives
+            // late it must not satisfy the next transaction (see staleReplies)
+            staleReplies++;
             p.reject(new Error(TYPE_NAME[type] + " response timeout"));
           }, timeoutMs);
         });
@@ -852,8 +868,10 @@
     function drawDial() {
       const canvas = els.dialCanvas;
       const dpr = window.devicePixelRatio || 1;
-      const cssSize = canvas.clientWidth || 360;
-      if (canvas.width !== cssSize * dpr) { canvas.width = cssSize * dpr; canvas.height = cssSize * dpr; }
+      // round once: canvas.width coerces to an integer, so comparing against a
+      // fractional cssSize * dpr would mismatch (and reallocate) every frame
+      const backingSize = Math.round((canvas.clientWidth || 360) * dpr);
+      if (canvas.width !== backingSize) { canvas.width = backingSize; canvas.height = backingSize; }
       const s = canvas.width;
       ctx.clearRect(0, 0, s, s);
       const cx = s / 2, cy = s / 2;
@@ -1043,7 +1061,9 @@
       try {
         const reply = await transact(TYPE.SET_POSITION, i32Payload(position), [TYPE.OK], CMD_TIMEOUT_MS);
         const clamped = okValue(reply) | 0;
-        logLine("sys", "Moved to detent " + clamped + (clamped !== position ? " (clamped)" : "") + ".");
+        // SET_POSITION re-labels the current detent (logical index); the knob
+        // does not physically move — see PROTOCOL.md
+        logLine("sys", "Detent index set to " + clamped + (clamped !== position ? " (clamped)" : "") + ".");
       } catch (e) {
         logLine("err", "SET_POSITION failed: " + e.message);
       }
@@ -1151,6 +1171,11 @@
           const elapsed = (Date.now() - startedAt) / 1000;
           if (elapsed > 0.5) els.statRate.textContent = ((sent / 1024) / elapsed).toFixed(1) + " KiB/s";
         }
+        // last chance to honor an abort clicked during the final chunk; past
+        // this point FINISH activates the image, so disable the Abort button
+        // (finish cannot be cancelled once the device starts validating)
+        if (abortRequested) throw Object.assign(new Error("aborted by user"), { userAbort: true });
+        els.abortBtn.disabled = true;
         logLine("sys", "OTA FINISH: device is validating (SHA-256) + activating the image...");
         setNote("Validating image on device...");
         await transact(TYPE.OTA_FINISH, null, [TYPE.OK], FINISH_TIMEOUT_MS);
