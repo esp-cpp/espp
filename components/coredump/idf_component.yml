@@ -20,6 +20,8 @@ tags:
   - USB
 dependencies:
   idf:
-    version: '>=5.0'
+    # esp_core_dump_get_panic_reason() (used for the ELF-format crash report)
+    # first appears in ESP-IDF v5.2
+    version: '>=5.2'
   espp/base_component: '>=1.0'
   espp/ota: '>=1.0'

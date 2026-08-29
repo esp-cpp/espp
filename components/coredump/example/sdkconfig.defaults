@@ -22,6 +22,16 @@ CONFIG_TINYUSB_CDC_ENABLED=y
 CONFIG_TINYUSB_CDC_COUNT=1
 CONFIG_TINYUSB_HID_COUNT=1
 
+# Size the TinyUSB FIFOs to hold a complete core-dump protocol frame. The
+# largest reply is a DATA frame: 7-byte header + (4-byte offset + 2048 image
+# bytes with the web console's read chunking) + 4-byte CRC = 2,063 bytes. The
+# esp_tinyusb defaults (vendor TX 64, CDC TX 512) are far smaller, and a write
+# larger than the free FIFO space would truncate the frame and break every
+# download, so give each TX FIFO (and the vendor RX FIFO) a comfortable 4 KiB.
+CONFIG_TINYUSB_VENDOR_RX_BUFSIZE=4096
+CONFIG_TINYUSB_VENDOR_TX_BUFSIZE=4096
+CONFIG_TINYUSB_CDC_TX_BUFSIZE=4096
+
 # Custom partition table with a dedicated `coredump` data partition (see
 # partitions.csv) on a 4MB flash.
 CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y

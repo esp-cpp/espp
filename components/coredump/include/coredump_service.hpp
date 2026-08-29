@@ -75,7 +75,9 @@ namespace espp {
  * sent), so the service coexists with other protocols on one stream.
  *
  * Each instance owns one parser, so create one instance per byte stream (they
- * can all share the same espp::CoreDump).
+ * can all share the same espp::CoreDump: it serializes its flash-touching
+ * methods with its own internal mutex, so e.g. a READ arriving on one
+ * transport cannot interleave with an ERASE arriving on another).
  *
  * **Threading & the `send` callback contract**: `feed()` / `handle_frame()` /
  * `reset_parser()` are serialized against each other by an internal mutex,
@@ -306,7 +308,7 @@ protected:
   /// std::errc::io_error when there is no generic equivalent — so the on-wire
   /// code is always a std::errc value and stable for the host to interpret
   /// (the message text still carries the original category's description).
-  std::vector<uint8_t> build_error(const std::error_code &ec, std::string_view context) {
+  std::vector<uint8_t> build_error(const std::error_code &ec, std::string_view context) const {
     namespace stream = espp::detail::ota_stream;
     logger_.error("{}: {}", context, ec.message());
     int code = ec.value();
@@ -324,7 +326,7 @@ protected:
   }
 
   /// Overload taking a std::errc directly.
-  std::vector<uint8_t> build_error(std::errc errc, std::string_view context) {
+  std::vector<uint8_t> build_error(std::errc errc, std::string_view context) const {
     return build_error(std::make_error_code(errc), context);
   }
 

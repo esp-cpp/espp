@@ -264,7 +264,7 @@
       <div class="row" style="margin-bottom: 10px;">
         <button id="downloadElfBtn" class="primary" disabled>Download core.elf</button>
         <button id="downloadRawBtn" disabled>Download raw image</button>
-        <span class="muted">core.elf strips the flash header/checksum; the raw image is the whole stored blob.</span>
+        <span class="muted">core.elf drops the flash header before the ELF magic (trailing checksum bytes remain; ELF tools ignore them); the raw image is the whole stored blob.</span>
       </div>
       <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
       <div class="stats" style="margin-top: 8px;">

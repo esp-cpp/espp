@@ -80,11 +80,11 @@ extern "C" void app_main(void) {
                 espp::CoreDump::reset_reason_name(espp::CoreDump::reset_reason()));
   } else {
     logger.error("Previous abnormal reset:\n{}", report);
-    // cppcheck-suppress knownConditionTrueFalse // constant only in the
-    // coredump-disabled configuration cppcheck analyzes
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH // avoid a constant-condition warning when disabled
     if (core_dump.has_core_dump())
       logger.info("Core dump image in flash: {} bytes (download / erase it with the web console)",
                   core_dump.image_size());
+#endif
   }
 
   // --------------------------------------------------------------------------

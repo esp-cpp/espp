@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iterator>
+#include <mutex>
 #include <optional>
 #include <span>
 #include <string>
@@ -43,7 +44,12 @@ namespace espp {
  *
  * The class holds no session state and performs no allocation beyond the
  * returned strings; all methods are safe to call whether or not a core dump
- * is present. When `CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH` is disabled, the
+ * is present. All flash-touching methods (`has_core_dump()`, `summary()`,
+ * `format_report()`, `image_size()`, `read_image()`, `erase()`) are
+ * serialized by an internal mutex, so one CoreDump instance can be shared by
+ * several threads / transports (e.g. multiple espp::CoreDumpService
+ * instances) without a READ on one racing an ERASE on another. When
+ * `CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH` is disabled, the
  * dump-related methods degrade gracefully (no dump present) and
  * `format_report()` still reports every abnormal reset reason (panic,
  * brownout, watchdogs, ...) — it returns an empty string only for clean
@@ -79,7 +85,8 @@ public:
   ///        partition (`esp_core_dump_image_check()`).
   bool has_core_dump() const {
 #if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
-    return esp_core_dump_image_check() == ESP_OK;
+    std::lock_guard<std::mutex> lock(mutex_);
+    return has_core_dump_locked();
 #else
     return false;
 #endif
@@ -92,7 +99,8 @@ public:
   /// @note Only available with the (default) ELF core dump format
   ///       (`CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF`).
   std::optional<esp_core_dump_summary_t> summary() const {
-    if (!has_core_dump())
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!has_core_dump_locked())
       return std::nullopt;
     esp_core_dump_summary_t s = {};
     if (esp_core_dump_get_summary(&s) != ESP_OK)
@@ -129,7 +137,8 @@ public:
     const char *reason_name = reset_reason_name(reset_reason);
     std::string report;
 #if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
-    if (has_core_dump()) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (has_core_dump_locked()) {
       report = fmt::format("last reset: {} ({})", reason_name, static_cast<int>(reset_reason));
 #if CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF
       // (the panic reason / summary readback APIs are only implemented for
@@ -189,7 +198,8 @@ public:
   ///        ELF data + checksum), or 0 if no valid core dump is present.
   size_t image_size() const {
 #if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
-    if (!has_core_dump())
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!has_core_dump_locked())
       return 0;
     size_t addr = 0, size = 0;
     if (esp_core_dump_image_get(&addr, &size) != ESP_OK)
@@ -216,8 +226,9 @@ public:
     if (out.empty())
       return true;
 #if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+    std::lock_guard<std::mutex> lock(mutex_);
     size_t addr = 0, size = 0;
-    if (!has_core_dump() || esp_core_dump_image_get(&addr, &size) != ESP_OK) {
+    if (!has_core_dump_locked() || esp_core_dump_image_get(&addr, &size) != ESP_OK) {
       logger_.error("read_image: no valid core dump image present");
       ec = std::make_error_code(std::errc::no_such_device);
       return false;
@@ -275,6 +286,7 @@ public:
   bool erase(std::error_code &ec) {
     ec.clear();
 #if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+    std::lock_guard<std::mutex> lock(mutex_);
     const esp_err_t err = esp_core_dump_image_erase();
     if (err != ESP_OK) {
       logger_.error("erase: esp_core_dump_image_erase failed: {}", esp_err_to_name(err));
@@ -374,12 +386,22 @@ public:
   }
 
 protected:
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+  /// has_core_dump() with mutex_ already held (see the class-level notes on
+  /// the internal serialization of the flash-touching methods).
+  bool has_core_dump_locked() const { return esp_core_dump_image_check() == ESP_OK; }
+#endif
+
   /// The dedicated core dump data partition (nullptr if the partition table
   /// has none).
   static const esp_partition_t *coredump_partition() {
     return esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_COREDUMP,
                                     nullptr);
   }
+
+  /// Serializes all flash-touching methods so one CoreDump can be shared by
+  /// several threads / transports (e.g. multiple CoreDumpService instances).
+  mutable std::mutex mutex_;
 };
 
 } // namespace espp
