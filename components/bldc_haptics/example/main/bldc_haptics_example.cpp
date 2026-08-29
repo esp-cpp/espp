@@ -128,7 +128,8 @@ extern "C" void app_main(void) {
         if (summary.exc_bt_info.corrupted)
           crash_report += " (corrupted)";
         crash_report +=
-            "\ndecode with: xtensa-esp32s3-elf-addr2line -pfiaC -e build/bldc_haptics.elf <addrs>";
+            "\ndecode with: xtensa-esp32s3-elf-addr2line -pfiaC -e build/bldc_haptics_example.elf "
+            "<addrs>";
         logger.error("Previous crash detected: {}", crash_report);
         // The flash dump persists until erased; without this every subsequent
         // clean boot would keep re-reporting the same old crash (mislabeled

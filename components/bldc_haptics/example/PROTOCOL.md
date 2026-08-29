@@ -191,7 +191,7 @@ Reply to `GET_CRASH`. The payload is a UTF-8 text report of the previous
 abnormal reset, or EMPTY when the boot history is clean. When the previous
 reset was a panic with a flash core dump, the report includes the crashed
 task, PC, and raw backtrace addresses (decode with
-`xtensa-esp32s3-elf-addr2line -pfiaC -e build/bldc_haptics.elf <addrs>`);
+`xtensa-esp32s3-elf-addr2line -pfiaC -e build/bldc_haptics_example.elf <addrs>`);
 brownout / watchdog resets are reported by reason (no core dump exists for
 those). The web console requests this automatically after connecting and
 prints the report in its log pane.

@@ -493,12 +493,14 @@
     // Single in-flight transaction: resolved by the RX pump when a frame of an
     // accepted reply type (or ERROR) arrives.
     let pending = null; // { accept: Set<int>, resolve, reject, timer }
-    // Replies owed to timed-out commands. The device processes commands
-    // serially and the bulk IN pipe preserves ordering, so after a response
-    // timeout the NEXT solicited-type frame (if it ever arrives) belongs to
-    // the timed-out command, not to a later transaction — count and discard
-    // it instead of letting it satisfy the wrong transact().
-    let staleReplies = 0;
+    // Replies owed to timed-out commands, oldest first. The device processes
+    // commands serially and the bulk IN pipe preserves ordering, so a
+    // solicited frame matching the oldest entry's expected reply types (or
+    // ERROR) belongs to that timed-out command and is discarded. A frame
+    // matching neither proves the timed-out command never replied at all
+    // (e.g. firmware that silently drops an unknown command), so its entry
+    // is dropped instead of eating the current transaction's reply.
+    let staleReplies = []; // [{ name, accept: Set<int> }]
 
     if (!navigator.usb) {
       els.unsupported.style.display = "block";
@@ -511,8 +513,12 @@
 
     async function connect() {
       try {
+        // default: match exactly this example's VID:PID; the checkbox lifts
+        // the filter for other devices. WebUSB has no acceptAllDevices option
+        // (that's Web Bluetooth) — `filters` is a required member, and an
+        // empty list shows every connected device.
         const options = els.anyDevice.checked
-          ? { acceptAllDevices: true }
+          ? { filters: [] }
           : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
         device = await navigator.usb.requestDevice(options);
       } catch (e) {
@@ -586,7 +592,7 @@
 
     async function safeClose() {
       if (pending) { const p = pending; pending = null; clearTimeout(p.timer); p.reject(new Error("disconnected")); }
-      staleReplies = 0;
+      staleReplies = [];
       if (device) {
         if (ifaceNumber !== null) { try { await device.releaseInterface(ifaceNumber); } catch (_) {} }
         try { await device.close(); } catch (_) {}
@@ -658,11 +664,18 @@
       }
       default: break;
       }
-      if (staleReplies > 0) {
-        staleReplies--;
-        logLine("sys", "Discarding late " + (TYPE_NAME[frame.type] || ("0x" + frame.type.toString(16))) +
-                " reply to a previously timed-out command.");
-        return;
+      while (staleReplies.length > 0) {
+        const stale = staleReplies[0];
+        if (stale.accept.has(frame.type) || frame.type === TYPE.ERROR) {
+          staleReplies.shift();
+          logLine("sys", "Discarding late " + (TYPE_NAME[frame.type] || ("0x" + frame.type.toString(16))) +
+                  " reply to the timed-out " + stale.name + " command.");
+          return;
+        }
+        // this frame cannot answer the oldest timed-out command, so that
+        // command evidently never replied — stop waiting for it
+        logLine("sys", "Timed-out " + stale.name + " command never replied; no longer expecting a late reply.");
+        staleReplies.shift();
       }
       if (pending && (pending.accept.has(frame.type) || frame.type === TYPE.ERROR)) {
         const p = pending; pending = null;
@@ -695,9 +708,9 @@
           pending.timer = setTimeout(() => {
             if (!pending) return;
             const p = pending; pending = null;
-            // the device still owes a reply to this command; if it arrives
+            // the device may still owe a reply to this command; if it arrives
             // late it must not satisfy the next transaction (see staleReplies)
-            staleReplies++;
+            staleReplies.push({ name: TYPE_NAME[type] || ("0x" + type.toString(16)), accept: p.accept });
             p.reject(new Error(TYPE_NAME[type] + " response timeout"));
           }, timeoutMs);
         });
