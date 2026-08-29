@@ -19,7 +19,9 @@ tags:
   - Waveshare
 dependencies:
   idf:
-    version: ">=5.3"
+    # 5.4 is the floor because espp/ethernet (RMII via esp_eth_phy_new_generic and
+    # split esp_driver_* components) requires ESP-IDF >=5.4.
+    version: ">=5.4"
   espp/base_component: ">=1.0"
   espp/ethernet: ">=1.0"
   espp/i2c: ">=1.0"
