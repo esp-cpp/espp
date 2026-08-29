@@ -38,19 +38,23 @@ application, use Espressif's managed components directly:
    ```
 
 2. In `menuconfig`, under `Component config → ESP-Hosted config`, select the
-   SDIO transport and set the host-side pins to this board's wiring (these
-   match the ESP-Hosted defaults for the ESP32-P4, since the board copies the
-   ESP32-P4-Function-EV-Board wiring):
+   SDIO transport (slot 1) and verify the host-side pins match this board's
+   wiring (these are the ESP-Hosted slot-1 defaults for the ESP32-P4, since
+   the board copies the ESP32-P4-Function-EV-Board wiring):
 
    ```
-   CONFIG_ESP_HOSTED_SDIO_PIN_CLK=18
-   CONFIG_ESP_HOSTED_SDIO_PIN_CMD=19
-   CONFIG_ESP_HOSTED_SDIO_PIN_D0=14
-   CONFIG_ESP_HOSTED_SDIO_PIN_D1=15
-   CONFIG_ESP_HOSTED_SDIO_PIN_D2=16
-   CONFIG_ESP_HOSTED_SDIO_PIN_D3=17
+   CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_CLK_SLOT_1=18
+   CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_CMD_SLOT_1=19
+   CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D0_SLOT_1=14
+   CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D1_4BIT_BUS_SLOT_1=15
+   CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D2_4BIT_BUS_SLOT_1=16
+   CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D3_4BIT_BUS_SLOT_1=17
    CONFIG_ESP_HOSTED_SDIO_GPIO_RESET_SLAVE=54
    ```
+
+   (The `CONFIG_ESP_HOSTED_SDIO_PIN_*` symbols are derived, prompt-less
+   Kconfig values; the `..._PRIV_..._SLOT_1` symbols above are the editable
+   ones exposed in `menuconfig`.)
 
 3. Use the normal `esp_wifi` APIs (`esp_wifi_init()`, `esp_wifi_start()`, ...)
    — `esp_wifi_remote` routes them to the C6.
