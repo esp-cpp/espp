@@ -142,16 +142,30 @@ M5StackTab5::DisplayController M5StackTab5::detect_display_controller() {
 bool M5StackTab5::initialize_lcd() {
   logger_.info("Initializing M5Stack Tab5 LCD (MIPI-DSI, {}x{})", display_width_, display_height_);
 
-  // Close the publication gate while the LCD state below (lcd_handles_,
-  // dpi_framebuffer_ + dpi_framebuffer_bytes_, display_driver_,
-  // display_controller_) is being (re)built. If the LVGL display already
-  // exists (initialize_display() called first) its thread may already be
-  // pumping flush(); flush()/write_lcd_lines()/on_display_rotation() all
-  // load-acquire this flag and no-op while it is false, so none of them can
-  // observe a partially initialized panel or a torn framebuffer-pointer/size
-  // pair. It is store-released true as the final step of this function, after
-  // every field has been written.
-  lcd_initialized_.store(false, std::memory_order_release);
+  // Re-initialization is NOT supported once the publication gate has opened:
+  // clearing lcd_initialized_ here would not wait for readers that already
+  // passed their acquire-load of true — a concurrent flush() or
+  // write_lcd_lines() could then race the rebuild of lcd_handles_ /
+  // display_driver_ / the framebuffer state it is still using. Rather than
+  // add reader/writer synchronization to the hot flush path for a re-init
+  // this BSP never needs (the panel hardware is fixed at boot), refuse.
+  if (lcd_initialized_.load(std::memory_order_acquire)) {
+    logger_.warn("LCD already initialized; re-initialization is not supported — skipping");
+    return true;
+  }
+
+  // The publication gate is provably closed here: this is either the first
+  // call or a retry after a failed attempt, and a failed attempt never
+  // reaches the final store-release. No reader can therefore have observed
+  // true, so the LCD state below (lcd_handles_, dpi_framebuffer_ +
+  // dpi_framebuffer_bytes_, display_driver_, display_controller_) can be
+  // built without racing them: even if the LVGL display already exists
+  // (initialize_display() called first) and its thread is already pumping
+  // flush(), flush()/write_lcd_lines()/on_display_rotation() all load-acquire
+  // this flag and no-op while it is false, so none of them can observe a
+  // partially initialized panel or a torn framebuffer-pointer/size pair. The
+  // gate is store-released true as the final step of this function, after
+  // every field has been written and the initial panel rotation applied.
 
   if (!ioexp_0x43_) {
     if (!initialize_io_expanders()) {
@@ -440,11 +454,31 @@ bool M5StackTab5::initialize_lcd() {
   // scan-line axis (the driver logs "underrun happens" when it detects this).
   // The DMA2D copy runs without the CPU touching the data and completes via
   // the same on_color_trans_done callback registered above.
-  ret = esp_lcd_dpi_panel_enable_dma2d(lcd_handles_.panel);
-  if (ret != ESP_OK) {
-    // Not fatal: draw_bitmap falls back to the (slower) CPU copy.
-    logger_.warn("Could not enable DMA2D for DPI draw_bitmap ({}); using CPU copies",
-                 esp_err_to_name(ret));
+  //
+  // Gate it per controller, though: DMA2D is a color-processing engine, not a
+  // plain copy, and this repository documents (from hardware testing) that
+  // routing draw_bitmap through it corrupts the RGB565 channel order on
+  // ILI9881C-family DSI panels — colors render brighter/greener and alpha
+  // blends come out wrong even though the framebuffer bytes are correct (see
+  // components/esp32-p4-function-ev-board/src/video.cpp, ILI9881C/EK79007,
+  // and components/esp32-p4-nano/src/video.cpp, which enables DMA2D only for
+  // its JD9365 panel for the same reason). The Tab5's original revision uses
+  // that same ILI9881 family, so it keeps the always-correct CPU copy path
+  // and accepts the extra PSRAM traffic. The ST7121/ST7123 TDDI variants keep
+  // DMA2D: no such corruption has been reported for them, they are the units
+  // on which the underrun streaking this call addresses was reproduced, and
+  // M5Stack's own Tab5 demo firmware ships with DMA2D enabled on production
+  // units that are predominantly ST71xx.
+  if (display_controller_ != DisplayController::ILI9881) {
+    ret = esp_lcd_dpi_panel_enable_dma2d(lcd_handles_.panel);
+    if (ret != ESP_OK) {
+      // Not fatal: draw_bitmap falls back to the (slower) CPU copy.
+      logger_.warn("Could not enable DMA2D for DPI draw_bitmap ({}); using CPU copies",
+                   esp_err_to_name(ret));
+    }
+  } else {
+    logger_.info("ILI9881 variant: keeping CPU draw_bitmap copies (DMA2D corrupts RGB565 "
+                 "channel order on ILI9881C-family panels)");
   }
 #endif
 
@@ -484,26 +518,20 @@ bool M5StackTab5::initialize_lcd() {
     }
   }
 
-  // Publish the fully initialized LCD state. Every field the cross-thread
-  // readers touch (lcd_handles_, dpi_framebuffer_ + dpi_framebuffer_bytes_,
-  // display_driver_, display_controller_) has been written above, so the
-  // release store here makes all of those writes visible to any
-  // flush()/write_lcd_lines()/on_display_rotation() call that load-acquires
-  // the flag as true. Until this store, those readers no-op (flush() just
-  // signals lv_display_flush_ready()), which is what closes the
-  // reversed-init-order race: with initialize_display() called first and the
-  // application already pumping LVGL on another thread, a concurrent flush()
-  // can no longer pass a plain lcd_handles_.panel null-check mid-build and
-  // read a not-yet-init'd panel or a torn framebuffer-pointer/size pair.
-  lcd_initialized_.store(true, std::memory_order_release);
-
-  // Program the panel's initial scan direction so the rotation decision
-  // flush() makes via panel_handles_rotation() is valid from the very first
-  // frame. NOTE: unlike the normal invocation of on_display_rotation() — the
-  // LVGL rotation event, delivered synchronously on the LVGL thread — this is
-  // a direct call on the caller's (init) thread. It runs after the release
-  // store above (same thread, so its own acquire load sees true) and is safe
-  // in either init order:
+  // Program the panel's initial scan direction BEFORE publishing the LCD
+  // state, so the rotation decision flush() makes via
+  // panel_handles_rotation() is valid from the very first frame that can
+  // reach the panel. Ordering matters in the reversed init order
+  // (initialize_display() first): an already-running LVGL thread may flush
+  // the instant the gate opens, and if the gate opened before this call such
+  // a flush could skip the PPA rotation (panel_handles_rotation() true) while
+  // the panel's MADCTL still held the old scan direction. Applying the
+  // rotation first closes that window. on_display_rotation() itself no-ops
+  // while the gate is closed, so the init path calls the gate-free
+  // apply_panel_rotation() helper directly — safe, because this is the same
+  // thread that wrote display_driver_/display_controller_ above (no
+  // synchronization needed against itself) and any concurrent flush() still
+  // no-ops on the closed gate. Per init order:
   //  - Documented order (initialize_lcd() before initialize_display()):
   //    display_ is still null here, so no LVGL display or flush callback
   //    exists yet and espp::Display does not run an LVGL handler task of its
@@ -520,13 +548,27 @@ bool M5StackTab5::initialize_lcd() {
   //    cannot corrupt an in-flight flush: the MADCTL write travels on the DSI
   //    command channel, which never touches the DPI framebuffer or its DMA and
   //    is arbitrated against the video stream in hardware (see
-  //    on_display_rotation()). The worst case is one transient frame scanned
-  //    out with the new direction — the same as any runtime rotation change.
+  //    apply_panel_rotation()).
   // (With CONFIG_M5STACK_TAB5_ST7121_HW_ROTATION disabled — the default —
-  // on_display_rotation() is a no-op and this call does nothing at all.)
-  on_display_rotation(
+  // apply_panel_rotation() is a no-op and this call does nothing at all.)
+  apply_panel_rotation(
       display_ ? to_display_rotation(lv_display_get_rotation(display_->get_lvgl_display()))
                : rotation);
+
+  // Publish the fully initialized LCD state — the gate opens LAST. Every
+  // field the cross-thread readers touch (lcd_handles_, dpi_framebuffer_ +
+  // dpi_framebuffer_bytes_, display_driver_, display_controller_) has been
+  // written above and the panel's initial MADCTL rotation has been applied,
+  // so the release store here makes all of that visible to any
+  // flush()/write_lcd_lines()/on_display_rotation() call that load-acquires
+  // the flag as true. Until this store, those readers no-op (flush() just
+  // signals lv_display_flush_ready()), which is what closes the
+  // reversed-init-order races: with initialize_display() called first and the
+  // application already pumping LVGL on another thread, a concurrent flush()
+  // can no longer pass a plain lcd_handles_.panel null-check mid-build and
+  // read a not-yet-init'd panel, a torn framebuffer-pointer/size pair, or a
+  // panel whose scan direction does not yet match panel_handles_rotation().
+  lcd_initialized_.store(true, std::memory_order_release);
 
   logger_.info("M5Stack Tab5 LCD initialization completed successfully");
   return true;
@@ -698,25 +740,40 @@ void M5StackTab5::on_display_rotation(const DisplayRotation &rotation) {
   // initialize_lcd()) before reading display_driver_ / display_controller_:
   // with initialize_display() called first, LVGL rotation events can arrive
   // while initialize_lcd() is still writing those fields. Bailing out here is
-  // harmless — initialize_lcd() re-applies the current LVGL rotation via its
-  // direct call once the gate is open.
+  // harmless — initialize_lcd() applies the current LVGL rotation via
+  // apply_panel_rotation() before it opens the gate, so the panel state is
+  // already consistent for the first flush() that observes the gate open.
   if (!lcd_initialized_.load(std::memory_order_acquire)) {
     return;
   }
+  apply_panel_rotation(rotation);
+#endif
+}
+
+void M5StackTab5::apply_panel_rotation(const DisplayRotation &rotation) {
+#if !CONFIG_M5STACK_TAB5_ST7121_HW_ROTATION
+  // Panel-side rotation disabled (see panel_handles_rotation()): complete
+  // no-op so NO MADCTL write ever reaches the panel.
+  (void)rotation;
+#else
   if (!display_driver_ || display_controller_ != DisplayController::ST7121) {
     // Other variants keep the PPA/flush-time rotation path; nothing to do.
     return;
   }
-  // Ordering: in its normal invocation — the espp::Display rotation callback —
-  // this runs on the LVGL thread: LV_EVENT_RESOLUTION_CHANGED is sent
-  // synchronously from inside lv_display_set_rotation(), so it strictly
-  // precedes the invalidation-driven flush() calls for the new orientation,
-  // and the MADCTL state below is always consistent with the decision flush()
-  // makes via panel_handles_rotation() (the same predicate, keyed on the same
-  // rotation value via to_lv_rotation()). It is additionally called once
-  // directly from initialize_lcd() (an init-thread call, not the LVGL thread)
-  // to program the initial scan direction; see the safety analysis at that
-  // call site.
+  // Ordering: in its normal invocation — the espp::Display rotation callback,
+  // via on_display_rotation() — this runs on the LVGL thread:
+  // LV_EVENT_RESOLUTION_CHANGED is sent synchronously from inside
+  // lv_display_set_rotation(), so it strictly precedes the
+  // invalidation-driven flush() calls for the new orientation, and the MADCTL
+  // state below is always consistent with the decision flush() makes via
+  // panel_handles_rotation() (the same predicate, keyed on the same rotation
+  // value via to_lv_rotation()). It is additionally called once directly from
+  // initialize_lcd() (an init-thread call, not the LVGL thread, deliberately
+  // BEFORE the lcd_initialized_ gate opens) to program the initial scan
+  // direction; see the safety analysis at that call site. This helper is
+  // gate-free: callers must guarantee display_driver_/display_controller_ are
+  // safe to read (on_display_rotation() does so via its acquire load; the
+  // init path wrote them on the same thread).
   //
   // Synchronization with the display pipeline: the MADCTL write goes out on
   // the DSI generic/DBI command channel (esp_lcd_panel_io_tx_param ->
@@ -788,11 +845,12 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
 
   // Acquire-load the publication gate before touching any LCD state. This
   // pairs with the release store at the end of initialize_lcd(): observing
-  // true guarantees lcd_handles_ (incl. a fully init'd, DMA2D-enabled panel),
-  // the dpi_framebuffer_/dpi_framebuffer_bytes_ pair, display_driver_ and
-  // display_controller_ are all completely written and will not be written
-  // again. Until then (LCD not yet initialized, or mid re-init) just tell
-  // LVGL the flush is done and drop the frame.
+  // true guarantees lcd_handles_ (incl. a fully init'd panel, DMA2D-enabled
+  // on the ST71xx variants), the dpi_framebuffer_/dpi_framebuffer_bytes_
+  // pair, display_driver_ and display_controller_ are all completely written
+  // and will not be written again (the gate never closes once open —
+  // initialize_lcd() refuses to re-run). Until then (LCD not yet initialized)
+  // just tell LVGL the flush is done and drop the frame.
   if (!lcd_initialized_.load(std::memory_order_acquire)) {
     lv_display_flush_ready(disp);
     return;
@@ -873,8 +931,10 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
         // the PPA driver performed the cache maintenance (write-back of the
         // source window, invalidate of the destination window). The espp
         // flush path never dirties the framebuffer with the CPU (draw_bitmap
-        // copies run on the DMA2D engine, and its CPU fallback writes back
-        // the cache before returning), so there is nothing left to sync and
+        // copies run on the DMA2D engine on the ST71xx variants, and the CPU
+        // copy path — used by the ILI9881 variant and as the DMA2D fallback —
+        // writes back the cache before returning), so there is nothing left
+        // to sync and
         // no draw_bitmap call is needed: signal LVGL directly.
         lv_display_flush_ready(disp);
         return;

@@ -951,10 +951,13 @@ protected:
   // by initialize_lcd() on the init thread; if the LVGL display already exists
   // (initialize_display() called first) the LVGL thread can be flushing
   // concurrently, so the readers must not touch them until they are all
-  // written. initialize_lcd() clears this flag on entry, writes every field,
-  // and store-releases it true as its final publication step; the readers
-  // load-acquire it and bail out while it is false. The release/acquire pair
-  // makes all of the writes happen-before any read that observes true.
+  // written. initialize_lcd() only runs while this flag is false (it refuses
+  // to re-initialize once the gate has opened — clearing the flag would not
+  // wait for readers that already observed true), writes every field, applies
+  // the initial panel rotation, and store-releases it true as its final
+  // publication step; the readers load-acquire it and bail out while it is
+  // false. The release/acquire pair makes all of the writes happen-before any
+  // read that observes true, and the flag never transitions true -> false.
   std::atomic<bool> lcd_initialized_{false};
 
   // The DPI panel's (PSRAM) framebuffer, queried from esp_lcd once the panel
@@ -978,6 +981,14 @@ protected:
   // display rotation changes; routes the rotation to the display driver
   // (MADCTL) when the active panel can honor it in hardware.
   void on_display_rotation(const DisplayRotation &rotation);
+  // Gate-free core of on_display_rotation(): routes the rotation to the
+  // display driver (MADCTL) when the active panel honors it in hardware.
+  // Callers must guarantee display_driver_ / display_controller_ are safe to
+  // read: on_display_rotation() does so via its lcd_initialized_ acquire
+  // load; initialize_lcd() calls this directly on the init thread (which
+  // wrote those fields) BEFORE opening the gate, so the initial scan
+  // direction is programmed before any flush() can skip the PPA rotation.
+  void apply_panel_rotation(const DisplayRotation &rotation);
   // Whether the active display controller applies the given LVGL rotation in
   // panel hardware (via the display driver's set_rotation()/MADCTL), making
   // buffer rotation (PPA / software) in flush() unnecessary.

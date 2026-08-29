@@ -148,9 +148,11 @@ bool Esp32P4FunctionEvBoard::initialize_lcd() {
     // (esp_lcd_panel_draw_bitmap) through it corrupts the RGB565 channel order on
     // this board — colors come out brighter/greener and alpha blends render
     // wrong, while the bytes in the frame buffer are correct. The plain CPU copy
-    // path renders correctly and matches the m5stack-tab5 BSP, which also does
-    // not enable DMA2D on IDF >= 6. (An earlier "blank screen without DMA2D" was
-    // actually the RST_LCD/PWM jumper wiring, not DMA2D.)
+    // path renders correctly and matches the m5stack-tab5 BSP's ILI9881 variant,
+    // which skips DMA2D on IDF >= 6 for the same reason (its ST71xx variants
+    // enable it without issue, as does the esp32-p4-nano's JD9365). (An earlier
+    // "blank screen without DMA2D" was actually the RST_LCD/PWM jumper wiring,
+    // not DMA2D.)
   }
 
   // Send the panel controller's vendor init sequence over DBI (command mode),
