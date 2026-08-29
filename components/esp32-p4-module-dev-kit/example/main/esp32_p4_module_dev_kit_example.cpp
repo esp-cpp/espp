@@ -34,6 +34,13 @@ using Board = espp::Esp32P4ModuleDevKit;
 static std::vector<uint8_t> audio_bytes;
 static bool load_audio(size_t &out_size, size_t &out_sample_rate);
 
+// Serializes the audio stream-buffer producers: the touch task's click
+// clear_audio()+play_audio() and the main loop's recorded-playback
+// play_audio(). FreeRTOS stream buffers assume a single writer (and
+// clear_audio() must not reset the buffer mid-send), so every producer takes
+// this lock around its clear/play calls.
+static std::mutex audio_mutex;
+
 // Audio recording state (written by the microphone callback, read/controlled
 // from the GUI button callbacks and main loop). The recorded data is 16-bit
 // mono at the audio sample rate.
@@ -128,6 +135,15 @@ extern "C" void app_main(void) {
       .task_config = {.name = "p4mdk status", .stack_size_bytes = 6144}});
   status_task.start();
 
+  // Load the embedded click sound BEFORE starting the touch task: the touch
+  // callback below reads audio_bytes, and load_audio() populates/trims that
+  // same vector, so loading first avoids an unsynchronized read/write of the
+  // vector. It also lets the codec be initialized directly at the clip's
+  // sample rate further down (changing the sample rate after the audio task is
+  // running is racy, so we avoid it here).
+  size_t wav_size = 0, wav_sample_rate = 0;
+  const bool have_audio = load_audio(wav_size, wav_sample_rate);
+
   // Touch: draw a circle wherever the screen is touched, and play a click on
   // each new touch-down. play_audio() is non-blocking, and the click is gated to
   // the touch-down edge so it doesn't retrigger every poll while held/dragging.
@@ -155,6 +171,7 @@ extern "C" void app_main(void) {
         const bool click_due =
             touch_down_edge || (now - last_click_time >= kClickRetriggerInterval);
         if (new_touch && click_due && !audio_bytes.empty()) {
+          std::lock_guard<std::mutex> lock(audio_mutex);
           board.clear_audio();           // drop any queued tail (restart)
           board.play_audio(audio_bytes); // non-blocking
           last_click_time = now;
@@ -179,11 +196,8 @@ extern "C" void app_main(void) {
   sd_card_mounted = sd_ok;
   sd_card_size_mb = sd_size_mb; // published to the status task
 
-  // Audio (ES8311) — load the embedded click sound first so we can initialize
-  // the codec directly at the clip's sample rate (changing the sample rate after
-  // the audio task is running is racy, so we avoid it here).
-  size_t wav_size = 0, wav_sample_rate = 0;
-  bool have_audio = load_audio(wav_size, wav_sample_rate);
+  // Audio (ES8311) — initialized directly at the embedded clip's sample rate
+  // (the clip was loaded above, before the touch task started).
   uint32_t audio_rate = have_audio ? static_cast<uint32_t>(wav_sample_rate) : 48000;
   if (board.initialize_audio(audio_rate)) {
     board.mute(false);
@@ -308,6 +322,7 @@ extern "C" void app_main(void) {
         gui.set_audio_status("Playback done");
         logger.info("Playback done");
       } else {
+        std::lock_guard<std::mutex> lock(audio_mutex);
         play_offset += board.play_audio(recording_buffer + play_offset,
                                         std::min<size_t>(len - play_offset, 16384));
       }

@@ -99,15 +99,23 @@ public:
   /// @param text The text to display
   void set_audio_status(std::string_view text);
 
-  /// Set the callback invoked when the record button is pressed
+  /// Set the callback invoked when the record button is pressed. Thread-safe:
+  /// the GUI task reads the callback from on_clicked() under mutex_, so the
+  /// assignment takes the same lock (the buttons exist before the callbacks
+  /// are wired up, and a press during bring-up would otherwise race).
   /// @param callback The callback to invoke
   void set_record_callback(audio_button_callback_t callback) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     record_callback_ = std::move(callback);
   }
 
-  /// Set the callback invoked when the play button is pressed
+  /// Set the callback invoked when the play button is pressed. Thread-safe
+  /// (see set_record_callback()).
   /// @param callback The callback to invoke
-  void set_play_callback(audio_button_callback_t callback) { play_callback_ = std::move(callback); }
+  void set_play_callback(audio_button_callback_t callback) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    play_callback_ = std::move(callback);
+  }
 
   /// Show whether a recording is in progress (turns the record button red
   /// and changes its symbol to stop). Thread-safe.

@@ -284,6 +284,27 @@ bool Esp32P4ModuleDevKit::initialize_microphone(const microphone_callback_t &cal
   }
   microphone_callback_ = callback;
 
+  // Consolidated teardown for the failure paths below: undo everything this
+  // call set up so a later initialize_microphone() retry starts from a clean
+  // slate. The RX channel itself is kept (full-duplex channels must be created
+  // together with TX, and std-mode init is one-shot per channel - see
+  // audio_rx_std_initialized_); everything else is reverted: the channel is
+  // disabled, the codec is put back into playback-only decode mode, and the
+  // task / callback / capture buffer are dropped.
+  auto fail_microphone_init = [&](const char *msg) -> bool {
+    logger_.error("{}", msg);
+    microphone_task_.reset();
+    // no-op (returns an error) if the channel was never enabled
+    i2s_channel_disable(audio_rx_handle);
+    // restore the codec's playback-only state (harmless if the ADC path was
+    // never started)
+    es8311_codec_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START);
+    audio_rx_buffer.clear();
+    audio_rx_buffer.shrink_to_fit();
+    microphone_callback_ = nullptr;
+    return false;
+  };
+
   // The RX channel shares the TX BCLK/WS in full-duplex mode. Receive in
   // stereo (both 16-bit slots of every frame) even though the codec's ADC is
   // mono: a mono RX slot configuration in this full-duplex setup does not
@@ -294,15 +315,23 @@ bool Esp32P4ModuleDevKit::initialize_microphone(const microphone_callback_t &cal
   i2s_std_config_t rx_cfg = audio_std_cfg;
   rx_cfg.slot_cfg =
       I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO);
-  if (i2s_channel_init_std_mode(audio_rx_handle, &rx_cfg) != ESP_OK) {
-    logger_.error("Failed to init I2S RX std mode");
-    return false;
+  if (!audio_rx_std_initialized_) {
+    if (i2s_channel_init_std_mode(audio_rx_handle, &rx_cfg) != ESP_OK) {
+      return fail_microphone_init("Failed to init I2S RX std mode");
+    }
+    audio_rx_std_initialized_ = true;
+  } else {
+    // The channel already carries a std-mode config from a previous (failed)
+    // attempt; refresh the clock in case the sample rate changed since then
+    // (the slot config above never changes).
+    if (i2s_channel_reconfig_std_clock(audio_rx_handle, &rx_cfg.clk_cfg) != ESP_OK) {
+      return fail_microphone_init("Failed to reconfigure the I2S RX clock");
+    }
   }
   // one update period's worth of stereo frames (NUM_CHANNELS is 2)
   audio_rx_buffer.resize(calc_audio_buffer_size(audio_sample_rate()));
   if (i2s_channel_enable(audio_rx_handle) != ESP_OK) {
-    logger_.error("Failed to enable I2S RX channel");
-    return false;
+    return fail_microphone_init("Failed to enable I2S RX channel");
   }
 
   // Enable the codec's ADC path alongside the running DAC and apply the
@@ -317,9 +346,7 @@ bool Esp32P4ModuleDevKit::initialize_microphone(const microphone_callback_t &cal
   });
 
   if (!microphone_task_->start()) {
-    i2s_channel_disable(audio_rx_handle);
-    microphone_task_.reset();
-    return false;
+    return fail_microphone_init("Failed to start the microphone task");
   }
 
   microphone_initialized_ = true;

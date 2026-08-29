@@ -40,6 +40,14 @@ bool Esp32P4ModuleDevKit::initialize_camera(const camera_frame_callback_t &callb
     logger_.error("A callback is required to receive camera frames");
     return false;
   }
+  // Reap a task left over from an in-callback stop_camera() (deferred stop:
+  // the task tore the pipeline down and exited on its own, but could not join
+  // itself). stop() on the exited task just joins it.
+  if (camera_task_) {
+    camera_task_->stop();
+    camera_task_.reset();
+  }
+  camera_stop_requested_ = false;
   camera_callback_ = callback;
 
   // Bring up the CSI receiver + ISP + sensor. The OV5647's SCCB shares the
@@ -230,6 +238,16 @@ bool Esp32P4ModuleDevKit::camera_task_callback(std::mutex &m, std::condition_var
       camera_callback_(static_cast<const uint8_t *>(camera_buffers_[buf.index]), width, height,
                        len);
     }
+    // Honor a stop_camera() issued from within the frame callback: it could
+    // not join this task from its own context, so it deferred by setting this
+    // flag. Tear the pipeline down and exit the task (skipping the requeue -
+    // the pipeline is going away). The Task object itself is joined/destroyed
+    // by the next stop_camera()/initialize_camera() from another context.
+    if (camera_stop_requested_) {
+      camera_stop_requested_ = false;
+      teardown_camera_pipeline();
+      return true; // stop the task
+    }
     // Requeue the buffer. If this fails the capture queue drains and the stream
     // stalls, so treat it as fatal to the task rather than spinning silently.
     if (ioctl(camera_fd_, VIDIOC_QBUF, &buf) != 0) {
@@ -265,10 +283,22 @@ bool Esp32P4ModuleDevKit::camera_task_callback(std::mutex &m, std::condition_var
 }
 
 void Esp32P4ModuleDevKit::stop_camera() {
+  // A stop from within the camera task itself (the frame callback runs in that
+  // context) must not stop()/reset() the task here: Task::stop() deliberately
+  // skips joining the current thread, so camera_task_.reset() would destroy a
+  // still-joinable std::thread and terminate the program. Defer instead:
+  // camera_task_callback() observes the flag right after the frame callback
+  // returns, tears the pipeline down and exits the task. The exited (but not
+  // yet joined) Task object is reaped by the next stop_camera() or
+  // initialize_camera() call from another context.
+  if (camera_task_ && espp::Task::get_current_id() == camera_task_->get_id()) {
+    camera_stop_requested_ = true;
+    return;
+  }
   // Stop the task first so nothing is using the fd/buffers during teardown. If
-  // the task already exited on a fatal capture error (and tore the pipeline
-  // down itself), stop() just joins the exited task and the teardown below is
-  // a no-op.
+  // the task already exited on its own (fatal capture error or a deferred
+  // in-callback stop, both of which tear the pipeline down themselves), stop()
+  // just joins the exited task and the teardown below is a no-op.
   if (camera_task_) {
     camera_task_->stop();
     camera_task_.reset();

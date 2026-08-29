@@ -447,6 +447,11 @@ public:
                                                                       .core_id = 0});
 
   /// Stop the camera stream and release the camera pipeline.
+  /// \note Safe to call from the camera frame callback itself: the capture
+  ///       task cannot join itself, so in that context the stop is deferred -
+  ///       the task tears the pipeline down and exits right after the callback
+  ///       returns, and the exited task object is cleaned up by the next
+  ///       stop_camera() or initialize_camera() call from another context.
   void stop_camera();
 
   /// Get the width of the captured camera frames, in pixels
@@ -608,7 +613,12 @@ protected:
   static constexpr int NUM_BYTES_PER_CHANNEL = 2;
   static constexpr int UPDATE_FREQUENCY = 60;
   static constexpr int calc_audio_buffer_size(int sample_rate) {
-    return sample_rate * NUM_CHANNELS * NUM_BYTES_PER_CHANNEL / UPDATE_FREQUENCY;
+    // NOTE: divide the rate by the update frequency FIRST so the result is
+    // always a whole number of frames. Multiplying first yields a partial
+    // frame for rates that are not a multiple of the update frequency (e.g.
+    // 8 kHz -> 533 bytes), and reading/writing partial samples shifts the
+    // I2S sample framing on every transfer - heard as loud static.
+    return (sample_rate / UPDATE_FREQUENCY) * NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
   }
 
   // Internal I2C bus (shared by the ES8311 codec)
@@ -637,6 +647,12 @@ protected:
   microphone_callback_t microphone_callback_{nullptr};
   std::unique_ptr<espp::Task> microphone_task_{nullptr};
   i2s_chan_handle_t audio_rx_handle{nullptr};
+  // Whether i2s_channel_init_std_mode() has been applied to audio_rx_handle.
+  // Std-mode init is one-shot per channel (there is no deinit short of
+  // deleting the channel, and full-duplex channels must be created together),
+  // so a failed initialize_microphone() keeps this set and a retry
+  // reconfigures the existing mode instead of re-initializing it.
+  bool audio_rx_std_initialized_{false};
   std::vector<uint8_t> audio_rx_buffer;
   // microphone volume (percent), mapped onto the ES8311 analog gain range
   std::atomic<float> mic_volume_{70.0f};
@@ -701,7 +717,10 @@ protected:
     esp_lcd_panel_io_handle_t io{nullptr};
     esp_lcd_panel_handle_t panel{nullptr};
   } lcd_handles_{};
-  DisplayController display_controller_{DisplayController::UNKNOWN};
+  // Initialized from the Kconfig selection so get_display_controller() /
+  // get_display_controller_name() report the configured panel even before
+  // initialize_lcd() runs apply_panel_params() (which re-affirms it).
+  DisplayController display_controller_{default_controller_};
 
   /////////////////////////////////////////////////////////////////////////////
   // Camera (MIPI-CSI via esp_video / V4L2). Sensor SCCB shares internal_i2c_.
@@ -715,6 +734,11 @@ protected:
   std::atomic<bool> camera_initialized_{false};
   camera_frame_callback_t camera_callback_{nullptr};
   std::unique_ptr<espp::Task> camera_task_{nullptr};
+  // Set by stop_camera() when called from the camera task itself (i.e. from
+  // the frame callback, which cannot join its own task); the task callback
+  // observes it after the frame callback returns, tears down the pipeline,
+  // and exits the task.
+  std::atomic<bool> camera_stop_requested_{false};
   int camera_fd_{-1};               // MIPI-CSI capture device (/dev/video0)
   bool camera_video_inited_{false}; // esp_video_init() succeeded (needs deinit)
   // atomic: read by camera_width()/camera_height() from other tasks (e.g. the

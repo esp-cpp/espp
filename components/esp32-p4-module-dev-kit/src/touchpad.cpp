@@ -161,8 +161,14 @@ Esp32P4ModuleDevKit::touchpad_convert(const TouchpadData &data) const {
     temp_data.y = display_height_ - (temp_data.y + 1);
   }
   // Map the (panel-native) touch point into the current LVGL display rotation so
-  // it lines up with what is drawn on screen.
-  auto rotation = lv_display_get_rotation(lv_display_get_default());
+  // it lines up with what is drawn on screen. Use the BSP's own display (whose
+  // dimensions the formulas below use), not whatever display happens to be the
+  // global LVGL default; before initialize_display() has run, fall back to
+  // rotation 0 rather than handing LVGL a null display.
+  auto rotation = LV_DISPLAY_ROTATION_0;
+  if (lv_display_t *disp = lvgl_display_.load(std::memory_order_acquire); disp != nullptr) {
+    rotation = lv_display_get_rotation(disp);
+  }
   switch (rotation) {
   case LV_DISPLAY_ROTATION_90:
     temp_data.y = display_height_ - (temp_data.y + 1);
