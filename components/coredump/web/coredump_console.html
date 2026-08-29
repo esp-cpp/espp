@@ -542,9 +542,11 @@
     // --- WebUSB ---------------------------------------------------------
     async function connectUsb() {
       // default: match exactly the example's VID:PID; the "show all USB
-      // devices" checkbox lifts the filter for other espp devices.
+      // devices" checkbox lifts the filter for other espp devices. WebUSB has
+      // no acceptAllDevices option (that's Web Bluetooth) — `filters` is a
+      // required member, and an empty list shows every connected device.
       const options = els.anyDevice.checked
-        ? { acceptAllDevices: true }
+        ? { filters: [] }
         : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
       let device;
       try {

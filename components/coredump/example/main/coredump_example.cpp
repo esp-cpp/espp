@@ -41,6 +41,8 @@ enum class CrashKind : uint8_t { None, NullPointer, Assert, DivideByZero, Hang }
   case CrashKind::Assert:
     assert(false && "deliberate test crash (assert)");
     perform_crash(CrashKind::NullPointer); // only reached if asserts are compiled out (NDEBUG)
+    // cppcheck-suppress unreachableCode // explicit no-fallthrough marker after [[noreturn]] call
+    __builtin_unreachable();
   case CrashKind::DivideByZero: {
     volatile int numerator = 42;
     volatile int divisor = 0;

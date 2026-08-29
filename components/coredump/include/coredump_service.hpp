@@ -180,9 +180,12 @@ public:
    * @brief Handle one already-parsed frame.
    * @param type The frame type byte.
    * @param payload The frame payload bytes.
-   * @return true if the frame type belongs to the core-dump protocol (a reply
-   *         was sent), false if it was ignored (another protocol's frame —
-   *         nothing is sent, so multiple services can share one stream).
+   * @return true if the frame type belongs to the core-dump protocol and the
+   *         frame was processed (a reply frame is produced; it is delivered
+   *         only when a `send` callback is configured, and dropped with a
+   *         warning otherwise), false if it was ignored (another protocol's
+   *         frame — nothing is produced, so multiple services can share one
+   *         stream).
    *
    * @note The reply `send` callback is invoked after the internal mutex has
    *       been released (see the class-level threading notes).
