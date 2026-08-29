@@ -111,6 +111,17 @@ M5StackTab5::DisplayController M5StackTab5::detect_display_controller() {
 bool M5StackTab5::initialize_lcd() {
   logger_.info("Initializing M5Stack Tab5 LCD (MIPI-DSI, {}x{})", display_width_, display_height_);
 
+  // Close the publication gate while the LCD state below (lcd_handles_,
+  // dpi_framebuffer_ + dpi_framebuffer_bytes_, display_driver_,
+  // display_controller_) is being (re)built. If the LVGL display already
+  // exists (initialize_display() called first) its thread may already be
+  // pumping flush(); flush()/write_lcd_lines()/on_display_rotation() all
+  // load-acquire this flag and no-op while it is false, so none of them can
+  // observe a partially initialized panel or a torn framebuffer-pointer/size
+  // pair. It is store-released true as the final step of this function, after
+  // every field has been written.
+  lcd_initialized_.store(false, std::memory_order_release);
+
   if (!ioexp_0x43_) {
     if (!initialize_io_expanders()) {
       logger_.error("Failed to init IO expanders for LCD reset");
@@ -429,12 +440,26 @@ bool M5StackTab5::initialize_lcd() {
     }
   }
 
+  // Publish the fully initialized LCD state. Every field the cross-thread
+  // readers touch (lcd_handles_, dpi_framebuffer_ + dpi_framebuffer_bytes_,
+  // display_driver_, display_controller_) has been written above, so the
+  // release store here makes all of those writes visible to any
+  // flush()/write_lcd_lines()/on_display_rotation() call that load-acquires
+  // the flag as true. Until this store, those readers no-op (flush() just
+  // signals lv_display_flush_ready()), which is what closes the
+  // reversed-init-order race: with initialize_display() called first and the
+  // application already pumping LVGL on another thread, a concurrent flush()
+  // can no longer pass a plain lcd_handles_.panel null-check mid-build and
+  // read a not-yet-init'd panel or a torn framebuffer-pointer/size pair.
+  lcd_initialized_.store(true, std::memory_order_release);
+
   // Program the panel's initial scan direction so the rotation decision
   // flush() makes via panel_handles_rotation() is valid from the very first
   // frame. NOTE: unlike the normal invocation of on_display_rotation() — the
   // LVGL rotation event, delivered synchronously on the LVGL thread — this is
-  // a direct call on the caller's (init) thread. It is safe in either init
-  // order:
+  // a direct call on the caller's (init) thread. It runs after the release
+  // store above (same thread, so its own acquire load sees true) and is safe
+  // in either init order:
   //  - Documented order (initialize_lcd() before initialize_display()):
   //    display_ is still null here, so no LVGL display or flush callback
   //    exists yet and espp::Display does not run an LVGL handler task of its
@@ -444,10 +469,10 @@ bool M5StackTab5::initialize_lcd() {
   //    fires the LV_EVENT_RESOLUTION_CHANGED handler (in LVGL,
   //    update_resolution() sends the event as a direct call) and thus
   //    on_display_rotation() again before any flush can run.
-  //  - Reversed order (initialize_display() first): the constructor-time
-  //    callback above was dropped because display_driver_ did not exist yet,
-  //    so (re)apply the current LVGL rotation now that the driver is up. Even
-  //    if the application is already pumping LVGL on another thread, this
+  //  - Reversed order (initialize_display() first): any earlier rotation
+  //    callback no-op'd on the closed gate (and display_driver_ did not exist
+  //    yet), so (re)apply the current LVGL rotation now that the driver is up.
+  //    Even if the application is already pumping LVGL on another thread, this
   //    cannot corrupt an in-flight flush: the MADCTL write travels on the DSI
   //    command channel, which never touches the DPI framebuffer or its DMA and
   //    is arbitrated against the video stream in hardware (see
@@ -623,8 +648,16 @@ void M5StackTab5::on_display_rotation(const DisplayRotation &rotation) {
   // complete no-op so NO runtime MADCTL write ever reaches the panel - the
   // scan state stays exactly as the init sequence programmed it.
   (void)rotation;
-  return;
-#endif
+#else
+  // Acquire-load the publication gate (paired with the release store in
+  // initialize_lcd()) before reading display_driver_ / display_controller_:
+  // with initialize_display() called first, LVGL rotation events can arrive
+  // while initialize_lcd() is still writing those fields. Bailing out here is
+  // harmless — initialize_lcd() re-applies the current LVGL rotation via its
+  // direct call once the gate is open.
+  if (!lcd_initialized_.load(std::memory_order_acquire)) {
+    return;
+  }
   if (!display_driver_ || display_controller_ != DisplayController::ST7121) {
     // Other variants keep the PPA/flush-time rotation path; nothing to do.
     return;
@@ -660,12 +693,17 @@ void M5StackTab5::on_display_rotation(const DisplayRotation &rotation) {
     // transform.
     display_driver_->set_rotation(DisplayRotation::LANDSCAPE);
   }
+#endif
 }
 
 void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data,
                                   uint32_t user_data) {
   (void)user_data;
-  if (lcd_handles_.panel == nullptr || data == nullptr) {
+  // Acquire-load the publication gate (paired with the release store in
+  // initialize_lcd()) instead of a plain lcd_handles_.panel null-check: this
+  // runs on the caller's thread (e.g. the camera task) and must not race the
+  // init thread's writes or draw into a panel that is not fully initialized.
+  if (!lcd_initialized_.load(std::memory_order_acquire) || data == nullptr) {
     return;
   }
   if (xs < 0 || ys < 0 || xe < xs || ye < ys) {
@@ -703,7 +741,14 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
   // interrupt is handled separately in notify_lvgl_flush_ready(). Blocking work
   // (the PPA rotation and esp_lcd_panel_draw_bitmap) is therefore safe here.
 
-  if (lcd_handles_.panel == nullptr) {
+  // Acquire-load the publication gate before touching any LCD state. This
+  // pairs with the release store at the end of initialize_lcd(): observing
+  // true guarantees lcd_handles_ (incl. a fully init'd, DMA2D-enabled panel),
+  // the dpi_framebuffer_/dpi_framebuffer_bytes_ pair, display_driver_ and
+  // display_controller_ are all completely written and will not be written
+  // again. Until then (LCD not yet initialized, or mid re-init) just tell
+  // LVGL the flush is done and drop the frame.
+  if (!lcd_initialized_.load(std::memory_order_acquire)) {
     lv_display_flush_ready(disp);
     return;
   }

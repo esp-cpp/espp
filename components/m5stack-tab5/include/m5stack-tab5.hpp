@@ -944,6 +944,19 @@ protected:
     esp_lcd_panel_handle_t panel{nullptr};          // color handle
   } lcd_handles_{};
 
+  // Publication gate for the LCD state that flush() / write_lcd_lines() /
+  // on_display_rotation() read from other threads (lcd_handles_,
+  // dpi_framebuffer_ + dpi_framebuffer_bytes_, display_driver_,
+  // display_controller_). Those fields are plain (non-atomic) and are written
+  // by initialize_lcd() on the init thread; if the LVGL display already exists
+  // (initialize_display() called first) the LVGL thread can be flushing
+  // concurrently, so the readers must not touch them until they are all
+  // written. initialize_lcd() clears this flag on entry, writes every field,
+  // and store-releases it true as its final publication step; the readers
+  // load-acquire it and bail out while it is false. The release/acquire pair
+  // makes all of the writes happen-before any read that observes true.
+  std::atomic<bool> lcd_initialized_{false};
+
   // The DPI panel's (PSRAM) framebuffer, queried from esp_lcd once the panel
   // is created. flush() uses it to rotate LVGL draw buffers directly into the
   // scanned-out framebuffer with the PPA, skipping the intermediate scratch
