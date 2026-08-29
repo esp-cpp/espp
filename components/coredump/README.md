@@ -36,7 +36,10 @@ the same stream), view the crash summary, download the core dump as
 - **Text report**: `format_report()` — reset reason, panic reason, crashed
   task + PC, raw backtrace addresses with a `(corrupted)` marker (Xtensa) or
   captured stack-dump size (RISC-V), and the `addr2line` decode hint using the
-  right toolchain prefix for `CONFIG_IDF_TARGET`; abnormal resets without a
+  right toolchain prefix for `CONFIG_IDF_TARGET`; the last reset and the
+  stored dump are reported as separate events (the image persists until
+  erased, so when the current reset is not a panic the dump is labeled as
+  coming from an earlier crash); abnormal resets without a
   core dump (brownout / watchdog — which write no dump — with a short hint,
   or a panic whose dump is missing) are still reported; empty string = clean
   boot history (power-on / software reset / deep-sleep wake / ...)

@@ -42,18 +42,18 @@ namespace espp {
  *   (`espcoredump.py`, gdb, or the espp core-dump web console) can do the
  *   full offline analysis.
  *
- * The class holds no session state and performs no allocation beyond the
- * returned strings; all methods are safe to call whether or not a core dump
- * is present. All flash-touching methods (`has_core_dump()`, `summary()`,
- * `format_report()`, `image_size()`, `read_image()`, `erase()`) are
- * serialized by an internal mutex, so one CoreDump instance can be shared by
- * several threads / transports (e.g. multiple espp::CoreDumpService
- * instances) without a READ on one racing an ERASE on another. When
- * `CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH` is disabled, the
- * dump-related methods degrade gracefully (no dump present) and
- * `format_report()` still reports every abnormal reset reason (panic,
- * brownout, watchdogs, ...) — it returns an empty string only for clean
- * reset reasons (power-on, software reset, deep-sleep wake, ...).
+ * The class performs no allocation beyond the returned strings and holds no
+ * state other than a small cache of the validated image location (the
+ * full-image checksum scan runs once, not once per read_image() chunk, so
+ * chunked downloads stay linear; erase() invalidates the cache); all methods
+ * are safe to call whether or not a core dump is present. All flash-touching methods
+ * (`has_core_dump()`, `summary()`, `format_report()`, `image_size()`, `read_image()`, `erase()`)
+ * are serialized by an internal mutex, so one CoreDump instance can be shared by several threads /
+ * transports (e.g. multiple espp::CoreDumpService instances) without a READ on one racing an ERASE
+ * on another. When `CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH` is disabled, the dump-related methods
+ * degrade gracefully (no dump present) and `format_report()` still reports every abnormal reset
+ * reason (panic, brownout, watchdogs, ...) — it returns an empty string only for clean reset
+ * reasons (power-on, software reset, deep-sleep wake, ...).
  *
  * For serving this information over a byte-stream transport (USB vendor /
  * WebUSB, CDC / Web Serial, sockets) see espp::CoreDumpService
@@ -110,14 +110,24 @@ public:
 #endif
 
   /**
-   * @brief Format a human-readable crash report for the PREVIOUS boot.
+   * @brief Format a human-readable report of the last reset and any stored
+   *        core dump.
+   *
+   * The report describes two related but SEPARATE events: the reset reason of
+   * THIS boot, and the stored core dump image — which is not necessarily from
+   * the latest reset, because IDF keeps the image until it is explicitly
+   * erased (a later brownout / software / watchdog reset leaves an older
+   * panic image in place, and no-overwrite mode can even preserve one across
+   * another panic).
    *
    * - With a core dump present: the reset reason, panic reason (if recorded),
    *   crashed task + PC, the raw backtrace addresses (with a "(corrupted)"
    *   marker when the on-device unwind failed) on Xtensa targets or the size
    *   of the captured stack dump on RISC-V, and the exact
    *   `addr2line` command line (correct toolchain prefix for
-   *   CONFIG_IDF_TARGET) to decode the addresses against the app ELF.
+   *   CONFIG_IDF_TARGET) to decode the addresses against the app ELF. When
+   *   the current reset reason is NOT PANIC, the dump is explicitly labeled
+   *   as coming from an earlier crash rather than from this reset.
    * - Abnormal reset without a core dump: the reset reason itself is
    *   reported with a short hint. Brownout and watchdog resets never write a
    *   dump (brownout → check the power supply; watchdog → a task or ISR
@@ -140,6 +150,14 @@ public:
     std::lock_guard<std::mutex> lock(mutex_);
     if (has_core_dump_locked()) {
       report = fmt::format("last reset: {} ({})", reason_name, static_cast<int>(reset_reason));
+      // The stored image is not necessarily from the LATEST reset: IDF keeps
+      // it until it is explicitly erased, so a later brownout / software /
+      // watchdog reset leaves an older panic image in place. When the current
+      // reset reason is not PANIC, label the dump as a separate, earlier
+      // event instead of implying it belongs to this reset.
+      if (reset_reason != ESP_RST_PANIC)
+        report += "\ncore dump: from an EARLIER crash, not this reset "
+                  "(the image persists until erased)";
 #if CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF
       // (the panic reason / summary readback APIs are only implemented for
       // the ELF core dump format)
@@ -199,10 +217,8 @@ public:
   size_t image_size() const {
 #if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
     std::lock_guard<std::mutex> lock(mutex_);
-    if (!has_core_dump_locked())
-      return 0;
     size_t addr = 0, size = 0;
-    if (esp_core_dump_image_get(&addr, &size) != ESP_OK)
+    if (!image_region_locked(addr, size))
       return 0;
     return size;
 #else
@@ -228,7 +244,7 @@ public:
 #if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
     std::lock_guard<std::mutex> lock(mutex_);
     size_t addr = 0, size = 0;
-    if (!has_core_dump_locked() || esp_core_dump_image_get(&addr, &size) != ESP_OK) {
+    if (!image_region_locked(addr, size)) {
       logger_.error("read_image: no valid core dump image present");
       ec = std::make_error_code(std::errc::no_such_device);
       return false;
@@ -288,6 +304,9 @@ public:
 #if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
     std::lock_guard<std::mutex> lock(mutex_);
     const esp_err_t err = esp_core_dump_image_erase();
+    // drop the cached validated image region: after an erase (even a failed
+    // one) the stored image must be re-validated before it is trusted again
+    image_region_.reset();
     if (err != ESP_OK) {
       logger_.error("erase: esp_core_dump_image_erase failed: {}", esp_err_to_name(err));
       ec = std::make_error_code(std::errc::io_error);
@@ -389,7 +408,31 @@ protected:
 #if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
   /// has_core_dump() with mutex_ already held (see the class-level notes on
   /// the internal serialization of the flash-touching methods).
-  bool has_core_dump_locked() const { return esp_core_dump_image_check() == ESP_OK; }
+  /// `esp_core_dump_image_check()` rereads and checksums the ENTIRE image, so
+  /// once the validated-region cache is populated it is consulted instead: a
+  /// dump is only ever written by the panic handler (i.e. before this boot)
+  /// and only invalidated by erase(), which clears the cache.
+  bool has_core_dump_locked() const {
+    return image_region_.has_value() || esp_core_dump_image_check() == ESP_OK;
+  }
+
+  /// Validate the stored image and return its absolute flash address + size
+  /// (mutex_ must be held). The full-image checksum scan and address lookup
+  /// run ONCE and the result is cached: validating on every read_image()
+  /// chunk would make chunked downloads quadratic in the image size (a 64 KiB
+  /// image read in 2 KiB chunks would rescan ~2 MiB). erase() invalidates the
+  /// cache, preserving the read/erase synchronization.
+  bool image_region_locked(size_t &addr, size_t &size) const {
+    if (!image_region_) {
+      size_t a = 0, s = 0;
+      if (esp_core_dump_image_check() != ESP_OK || esp_core_dump_image_get(&a, &s) != ESP_OK)
+        return false;
+      image_region_ = ImageRegion{a, s};
+    }
+    addr = image_region_->addr;
+    size = image_region_->size;
+    return true;
+  }
 #endif
 
   /// The dedicated core dump data partition (nullptr if the partition table
@@ -402,6 +445,18 @@ protected:
   /// Serializes all flash-touching methods so one CoreDump can be shared by
   /// several threads / transports (e.g. multiple CoreDumpService instances).
   mutable std::mutex mutex_;
+
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+  /// A validated core-dump image region (absolute flash address + size).
+  struct ImageRegion {
+    size_t addr; ///< Absolute flash address of the image start.
+    size_t size; ///< Total image size in bytes.
+  };
+  /// Cached validated image region so chunked downloads checksum the image
+  /// only once (see image_region_locked()); guarded by mutex_, invalidated by
+  /// erase().
+  mutable std::optional<ImageRegion> image_region_{};
+#endif
 };
 
 } // namespace espp

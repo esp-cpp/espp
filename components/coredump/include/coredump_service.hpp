@@ -153,27 +153,41 @@ public:
    *
    * Runs the internal incremental frame parser (arbitrary chunking, CRC
    * verification, resynchronization past non-frame bytes such as console
-   * text) and dispatches every complete frame to handle_frame().
+   * text) and processes every complete frame (see handle_frame()).
    *
    * @param data Any number of received bytes.
    *
    * @note The reply `send` callback is invoked after the internal mutex has
-   *       been released (see the class-level threading notes).
+   *       been released (see the class-level threading notes). Frames are
+   *       processed and their replies sent ONE AT A TIME, so reply memory is
+   *       bounded at a single frame regardless of how many requests one input
+   *       chunk carries (a max-length READ request is only 17 bytes on the
+   *       wire while its DATA reply can be ~4 KiB, so accumulating all the
+   *       replies first would let a single 4 KiB receive chunk materialize
+   *       close to 1 MiB).
    */
   void feed(std::span<const uint8_t> data) {
-    std::vector<std::vector<uint8_t>> replies;
+    // Parse ALL of the received bytes under the lock ONCE (the parsed frames
+    // are owned copies, so their memory is bounded by the input size and the
+    // parser state stays consistent), then drain the frame queue: re-take the
+    // lock per frame to build its single reply, release it, send, repeat —
+    // only one reply frame is ever alive.
+    std::vector<espp::detail::ota_stream::Frame> frames;
     {
       std::lock_guard<std::mutex> lock(mutex_);
-      for (const auto &frame : parser_.feed(data)) {
-        std::vector<uint8_t> reply;
-        if (handle_frame_locked(static_cast<uint8_t>(frame.type), frame.payload, reply) &&
-            !reply.empty())
-          replies.push_back(std::move(reply));
-      }
+      frames = parser_.feed(data);
     }
-    // send outside the lock so a re-entrant transport cannot deadlock
-    for (const auto &reply : replies)
-      send(reply);
+    for (const auto &frame : frames) {
+      std::vector<uint8_t> reply;
+      {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (!handle_frame_locked(static_cast<uint8_t>(frame.type), frame.payload, reply))
+          continue;
+      }
+      // send outside the lock so a re-entrant transport cannot deadlock
+      if (!reply.empty())
+        send(reply);
+    }
   }
 
   /**

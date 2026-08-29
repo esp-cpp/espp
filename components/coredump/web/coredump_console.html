@@ -594,10 +594,22 @@
           device,
           closing: false,
           async send(bytes) {
-            const result = await device.transferOut(epOut, bytes);
-            if (result.status === "stall") {
-              try { await device.clearHalt("out", epOut); } catch (_) {}
-              throw new Error("OUT endpoint stalled");
+            // transferOut() may report status "ok" with bytesWritten smaller
+            // than the supplied buffer; keep sending the unsent suffix so a
+            // request frame is never silently truncated (which would leave
+            // the device parser waiting and time the transaction out).
+            let remaining = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+            while (remaining.length > 0) {
+              const result = await device.transferOut(epOut, remaining);
+              if (result.status === "stall") {
+                try { await device.clearHalt("out", epOut); } catch (_) {}
+                throw new Error("OUT endpoint stalled");
+              }
+              if (result.status !== "ok")
+                throw new Error("USB write failed: " + result.status);
+              const written = result.bytesWritten || 0;
+              if (written <= 0) throw new Error("USB write made no progress");
+              remaining = remaining.subarray(written);
             }
           },
           async close() {
