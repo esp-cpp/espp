@@ -150,8 +150,10 @@ bool Esp32P4Wifi6DevKit::initialize_audio(uint32_t sample_rate,
   if (es8311_codec_set_sample_rate(sample_rate) != ESP_OK) {
     return fail_audio_init("ES8311 sample-rate configuration failed");
   }
+  // Apply the cached volume/mute state so values set via volume()/mute()
+  // before initialization (which only cache) take effect now.
   es8311_codec_set_voice_volume(static_cast<int>(volume_));
-  es8311_set_voice_mute(false);
+  es8311_set_voice_mute(mute_);
   es8311_codec_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START);
 
   if (i2s_channel_enable(audio_tx_handle) != ESP_OK) {
@@ -189,6 +191,13 @@ void Esp32P4Wifi6DevKit::set_speaker_enabled(bool enable) {
 void Esp32P4Wifi6DevKit::volume(float volume) {
   volume = std::clamp(volume, 0.0f, 100.0f);
   volume_ = volume;
+  // Before initialize_audio() the ES8311 driver has no I2C read/write
+  // callbacks installed, so touching the codec would invoke null
+  // std::functions and terminate. Just cache the value; initialize_audio()
+  // applies it to the codec.
+  if (!audio_initialized_) {
+    return;
+  }
   es8311_codec_set_voice_volume(static_cast<int>(volume_));
 }
 
@@ -196,6 +205,10 @@ float Esp32P4Wifi6DevKit::volume() const { return volume_; }
 
 void Esp32P4Wifi6DevKit::mute(bool mute) {
   mute_ = mute;
+  // Same pre-initialization guard as volume(): cache only, applied on init.
+  if (!audio_initialized_) {
+    return;
+  }
   es8311_set_voice_mute(mute_);
 }
 
@@ -432,11 +445,24 @@ void Esp32P4Wifi6DevKit::audio_sample_rate(uint32_t sample_rate) {
     logger_.error("Failed to disable I2S channel for reconfig: {}", esp_err_to_name(err));
     return;
   }
-  audio_std_cfg.clk_cfg.sample_rate_hz = sample_rate;
-  err = i2s_channel_reconfig_std_clock(audio_tx_handle, &audio_std_cfg.clk_cfg);
+  // Reconfigure from a local copy and commit it to audio_std_cfg only on
+  // success: audio_sample_rate() (the getter) reports the cached value, which
+  // must not claim a rate the hardware rejected.
+  i2s_std_clk_config_t clk_cfg = audio_std_cfg.clk_cfg;
+  clk_cfg.sample_rate_hz = sample_rate;
+  err = i2s_channel_reconfig_std_clock(audio_tx_handle, &clk_cfg);
   if (err != ESP_OK) {
     logger_.error("Failed to reconfigure I2S clock: {}", esp_err_to_name(err));
+    // Leave the cached config and the queued stream untouched and re-enable
+    // the channel so playback continues at the old (still-configured) rate.
+    err = i2s_channel_enable(audio_tx_handle);
+    if (err != ESP_OK) {
+      logger_.error("Failed to re-enable I2S channel after failed reconfig: {}",
+                    esp_err_to_name(err));
+    }
+    return;
   }
+  audio_std_cfg.clk_cfg = clk_cfg;
   xStreamBufferReset(audio_tx_stream);
   err = i2s_channel_enable(audio_tx_handle);
   if (err != ESP_OK) {

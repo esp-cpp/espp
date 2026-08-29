@@ -130,6 +130,18 @@ bool Esp32P4Wifi6DevKit::initialize_camera(const camera_frame_callback_t &callba
     stop_camera();
     return false;
   }
+  // VIDIOC_S_FMT may "succeed" after adjusting the request (that is why the
+  // width/height are read back below), and that includes the pixel format.
+  // Everything downstream (the frame-size math and the consumers of the
+  // RGB565 contract in camera_frame_callback_t) assumes RGB565, so a driver
+  // that negotiated a different format must fail initialization rather than
+  // deliver mislabeled frames.
+  if (format.fmt.pix.pixelformat != V4L2_PIX_FMT_RGB565) {
+    logger_.error("Camera driver selected pixel format 0x{:08X} instead of RGB565 (0x{:08X})",
+                  format.fmt.pix.pixelformat, static_cast<uint32_t>(V4L2_PIX_FMT_RGB565));
+    stop_camera();
+    return false;
+  }
   camera_width_ = static_cast<uint16_t>(format.fmt.pix.width);
   camera_height_ = static_cast<uint16_t>(format.fmt.pix.height);
   logger_.info("Camera format: {}x{} RGB565", camera_width_.load(), camera_height_.load());
@@ -198,6 +210,7 @@ bool Esp32P4Wifi6DevKit::initialize_camera(const camera_frame_callback_t &callba
   // error the task tears the pipeline down itself (clearing this flag), and if
   // the flag were only set after start() a very early failure could be
   // overwritten by this assignment, leaving stale "initialized" state.
+  camera_stop_requested_ = false;
   camera_initialized_ = true;
   if (!camera_task_->start()) {
     logger_.error("Could not start the camera task");
@@ -238,6 +251,13 @@ bool Esp32P4Wifi6DevKit::camera_task_callback(std::mutex &m, std::condition_vari
         len = buf_size;
       }
       camera_callback_(static_cast<const uint8_t *>(camera_buffers_[buf.index]), w, h, len);
+      // If the callback itself called stop_camera(), that call already tore
+      // the pipeline down (fd closed, buffers unmapped) and set this flag
+      // instead of joining this task (which would self-join). Exit without
+      // touching the torn-down fd.
+      if (camera_stop_requested_.exchange(false)) {
+        return true; // stop the task
+      }
     }
     // Requeue the buffer. If this fails the capture queue drains and the stream
     // stalls, so treat it as fatal to the task rather than spinning silently.
@@ -274,10 +294,22 @@ bool Esp32P4Wifi6DevKit::camera_task_callback(std::mutex &m, std::condition_vari
 }
 
 void Esp32P4Wifi6DevKit::stop_camera() {
-  // Stop the task first so nothing is using the fd/buffers during teardown. If
-  // the task already exited on a fatal capture error (and tore the pipeline
-  // down itself), stop() just joins the exited task and the teardown below is
-  // a no-op.
+  // Called from within the camera task itself (i.e. from the frame callback)?
+  // Task::stop() would then self-join and deadlock/abort, so mirror the
+  // fatal-capture-error path instead: tear down only the pipeline here and
+  // signal the task to exit on its own right after the callback returns (see
+  // camera_task_callback). The exited-but-not-joined task object is reaped by
+  // the next stop_camera() or initialize_camera() from another context; both
+  // are safe (stop()/destruction of an exited task just joins it).
+  if (camera_task_ && espp::Task::get_current_id() == camera_task_->get_id()) {
+    camera_stop_requested_ = true;
+    teardown_camera_pipeline();
+    return;
+  }
+  // Normal (cross-task) path: stop the task first so nothing is using the
+  // fd/buffers during teardown. If the task already exited on a fatal capture
+  // error (and tore the pipeline down itself), stop() just joins the exited
+  // task and the teardown below is a no-op.
   if (camera_task_) {
     camera_task_->stop();
     camera_task_.reset();

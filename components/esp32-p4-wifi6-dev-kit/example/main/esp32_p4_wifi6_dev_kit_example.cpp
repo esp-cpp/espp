@@ -162,7 +162,13 @@ extern "C" void app_main(void) {
         const auto now = std::chrono::steady_clock::now();
         const bool click_due =
             touch_down_edge || (now - last_click_time >= kClickRetriggerInterval);
-        if (new_touch && click_due && !audio_bytes.empty()) {
+        // No clicks while the recorded playback is streaming: the click path
+        // restarts the shared audio stream with clear_audio(), which would
+        // discard queued playback bytes the main loop has already accounted
+        // for in play_offset (skipping audio) and interleave two producers
+        // into one stream. (playing is a best-effort atomic check; this is
+        // feedback audio, not a hard mutual exclusion.)
+        if (new_touch && click_due && !playing && !audio_bytes.empty()) {
           board.clear_audio();           // drop any queued tail (restart)
           board.play_audio(audio_bytes); // non-blocking
           last_click_time = now;
@@ -263,6 +269,10 @@ extern "C" void app_main(void) {
     } else {
       playing = false;
       gui.set_play_active(false);
+      // Stop the sound, not just the producer: samples already queued in the
+      // BSP stream would keep playing into the new recording, and the ES8311
+      // is full duplex, so the microphone can pick them up.
+      board.clear_audio();
       {
         // reset under recording_mutex: a stale in-flight microphone callback
         // must not append at the old offset after the reset
@@ -278,6 +288,9 @@ extern "C" void app_main(void) {
     if (playing) {
       playing = false;
       gui.set_play_active(false);
+      // Also drop the already-queued tail so the sound stops now rather than
+      // when the stream drains (the UI says "stopped", so make it true).
+      board.clear_audio();
       gui.set_audio_status("Playback stopped");
     } else if (recording_len > 0) {
       {
@@ -312,8 +325,9 @@ extern "C" void app_main(void) {
   // thread-safe GUI. Non-fatal: the rest of the example still runs if the camera
   // is unavailable.
   logger.info("Initializing camera...");
-  if (!board.initialize_camera(
-          [&](const uint8_t *data, int w, int h, size_t) { gui.set_camera_frame(data, w, h); })) {
+  if (!board.initialize_camera([&](const uint8_t *data, int w, int h, size_t len) {
+        gui.set_camera_frame(data, w, h, len);
+      })) {
     logger.warn("Failed to initialize camera; the Camera tab will stay blank");
   }
   //! [esp32 p4 wifi6 dev kit example]
@@ -374,29 +388,53 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
     audio_bytes.clear();
     return false;
   }
+  // Walk the RIFF chunks to find the 'fmt ' and 'data' chunks rather than
+  // assuming the canonical 44-byte layout. For 'data', keep exactly its
+  // payload: a fixed 44-byte strip is wrong for files with trailing metadata
+  // chunks (cue/LIST/bext), whose bytes would be played as audio, producing a
+  // pop at the end of playback. For 'fmt ', parse the actual format:
+  // play_audio() consumes 16-bit mono PCM, so anything else must be converted
+  // (stereo is downmixed below) or rejected instead of played as-is.
   uint32_t sample_rate = 0;
-  std::memcpy(&sample_rate, &audio_bytes[24], sizeof(sample_rate));
-  // Walk the RIFF chunks to find the 'data' chunk and keep exactly its payload.
-  // A fixed 44-byte strip is wrong for files with trailing metadata chunks
-  // (cue/LIST/bext): those bytes would be played as audio, producing a pop at
-  // the end of playback.
+  uint16_t audio_format = 0, num_channels = 0, bits_per_sample = 0;
   size_t data_off = 0, data_len = 0;
   for (size_t off = 12; off + 8 <= audio_bytes.size();) {
     uint32_t chunk_size = 0;
     std::memcpy(&chunk_size, &audio_bytes[off + 4], sizeof(chunk_size));
-    if (std::memcmp(&audio_bytes[off], "data", 4) == 0) {
-      data_off = off + 8;
+    const size_t body = off + 8;
+    if (std::memcmp(&audio_bytes[off], "fmt ", 4) == 0 && chunk_size >= 16 &&
+        body + 16 <= audio_bytes.size()) {
+      std::memcpy(&audio_format, &audio_bytes[body + 0], sizeof(audio_format));
+      std::memcpy(&num_channels, &audio_bytes[body + 2], sizeof(num_channels));
+      std::memcpy(&sample_rate, &audio_bytes[body + 4], sizeof(sample_rate));
+      std::memcpy(&bits_per_sample, &audio_bytes[body + 14], sizeof(bits_per_sample));
+    } else if (std::memcmp(&audio_bytes[off], "data", 4) == 0) {
+      data_off = body;
       data_len = std::min<size_t>(chunk_size, audio_bytes.size() - data_off);
-      break;
+      break; // 'fmt ' precedes 'data' in a valid WAV; format fields stay 0 otherwise
     }
     off += 8 + chunk_size + (chunk_size & 1); // chunks are word-aligned
   }
-  if (data_len == 0) {
+  if (data_len == 0 || audio_format != 1 /* PCM */ || bits_per_sample != 16 ||
+      (num_channels != 1 && num_channels != 2)) {
     audio_bytes.clear();
     return false;
   }
   audio_bytes.erase(audio_bytes.begin() + data_off + data_len, audio_bytes.end());
   audio_bytes.erase(audio_bytes.begin(), audio_bytes.begin() + data_off);
+  if (num_channels == 2) {
+    // The embedded click.wav is stereo, but play_audio() takes mono samples:
+    // downmix in place by averaging each interleaved L/R pair. (Playing the
+    // interleaved stereo words as mono would emit each frame twice - half
+    // speed and distorted.)
+    auto *samples = reinterpret_cast<int16_t *>(audio_bytes.data());
+    const size_t num_frames = audio_bytes.size() / (2 * sizeof(int16_t));
+    for (size_t i = 0; i < num_frames; i++) {
+      samples[i] = static_cast<int16_t>(
+          (static_cast<int32_t>(samples[2 * i]) + static_cast<int32_t>(samples[2 * i + 1])) / 2);
+    }
+    audio_bytes.resize(num_frames * sizeof(int16_t));
+  }
   out_size = audio_bytes.size();
   cached_sample_rate = sample_rate;
   out_sample_rate = sample_rate;

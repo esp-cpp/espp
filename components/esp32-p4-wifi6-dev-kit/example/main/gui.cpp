@@ -203,8 +203,8 @@ void Gui::set_play_active(bool active) {
       0);
 }
 
-void Gui::set_camera_frame(const uint8_t *rgb565, int w, int h) {
-  if (!rgb565 || w <= 0 || h <= 0) {
+void Gui::set_camera_frame(const uint8_t *rgb565, int w, int h, size_t length) {
+  if (!rgb565 || w <= 0 || h <= 0 || length == 0) {
     return;
   }
   std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -247,7 +247,11 @@ void Gui::set_camera_frame(const uint8_t *rgb565, int w, int h) {
       lv_obj_add_flag(camera_label_, LV_OBJ_FLAG_HIDDEN);
     }
   }
-  std::memcpy(camera_buf_, rgb565, static_cast<size_t>(w) * static_cast<size_t>(h) * 2);
+  // Honor the driver-reported payload length rather than assuming a full
+  // w*h*2 frame: clamp the copy so a short payload is never over-read (a
+  // short frame just leaves the rest of the canvas unchanged).
+  std::memcpy(camera_buf_, rgb565,
+              std::min(length, static_cast<size_t>(w) * static_cast<size_t>(h) * 2));
   lv_obj_invalidate(camera_canvas_);
 }
 

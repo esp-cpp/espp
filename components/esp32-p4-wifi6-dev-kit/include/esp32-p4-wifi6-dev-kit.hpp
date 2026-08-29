@@ -361,6 +361,8 @@ public:
 
   /// Set the audio volume
   /// \param volume The volume as a percentage (0-100)
+  /// \note Safe to call before initialize_audio(): the value is cached and
+  ///       applied to the codec during initialization.
   void volume(float volume);
 
   /// Get the audio volume
@@ -369,6 +371,8 @@ public:
 
   /// Mute or unmute the audio
   /// \param mute True to mute, false to unmute
+  /// \note Safe to call before initialize_audio(): the value is cached and
+  ///       applied to the codec during initialization.
   void mute(bool mute);
 
   /// Check if audio is muted
@@ -484,6 +488,12 @@ public:
                                                                       .core_id = 0});
 
   /// Stop the camera stream and release the camera pipeline.
+  /// \note Safe to call from any context, including from within the camera
+  ///       frame callback itself. In that case the pipeline is torn down
+  ///       immediately - so the frame's \c data pointer must not be touched
+  ///       after this returns - and the camera task exits on its own right
+  ///       after the callback returns instead of being joined (a join from
+  ///       the task itself would deadlock).
   void stop_camera();
 
   /// Get the width of the captured camera frames, in pixels
@@ -767,6 +777,11 @@ protected:
   std::atomic<bool> camera_initialized_{false};
   camera_frame_callback_t camera_callback_{nullptr};
   std::unique_ptr<espp::Task> camera_task_{nullptr};
+  // Set by stop_camera() when it is invoked from the camera task itself (from
+  // the frame callback): the task must then exit on its own (checked and
+  // cleared in camera_task_callback right after the callback returns) instead
+  // of being joined, which would self-join.
+  std::atomic<bool> camera_stop_requested_{false};
   int camera_fd_{-1};               // MIPI-CSI capture device (/dev/video0)
   bool camera_video_inited_{false}; // esp_video_init() succeeded (needs deinit)
   // Frame dimensions are atomic: they are written by the owner thread in

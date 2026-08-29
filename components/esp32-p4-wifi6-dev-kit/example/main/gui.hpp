@@ -63,13 +63,15 @@ public:
   void set_status_text(std::string_view text);
 
   /// Show a camera frame on the Camera tab. Thread-safe.
-  /// @param rgb565 The frame pixel data (RGB565, w*h*2 bytes)
+  /// @param rgb565 The frame pixel data (RGB565)
   /// @param w The frame width in pixels
   /// @param h The frame height in pixels
+  /// @param length The number of valid bytes at rgb565 (as reported by the
+  ///        capture driver); the copy is clamped to min(length, w*h*2)
   /// @note The data is copied, so it need not outlive the call. The canvas that
   ///       displays the feed is (re)created on the first frame (or a size
   ///       change) once the true frame size is known.
-  void set_camera_frame(const uint8_t *rgb565, int w, int h);
+  void set_camera_frame(const uint8_t *rgb565, int w, int h, size_t length);
 
   /// Draw a circle at the given screen coordinates, replacing the oldest
   /// circle if the maximum number are already visible. Thread-safe.

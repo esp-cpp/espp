@@ -317,16 +317,22 @@ bool Esp32P4Wifi6DevKit::initialize_display(size_t pixel_buffer_size) {
   // Rotation scratch buffer (only used when the display is rotated). Allocate
   // it BEFORE creating display_: flush() can only run once display_ exists, so
   // this ordering (plus the re-init guard above) guarantees flush() never
-  // observes the buffer changing. If the allocation fails, flush() detects the
-  // null pointer and simply skips rotation.
+  // observes the buffer changing. An allocation failure fails display
+  // initialization outright: rotation can be enabled at any time later via
+  // lv_display_set_rotation() (there is no way to lock it off at the LVGL
+  // level), and without this buffer flush() would have to either send
+  // unrotated pixels at rotated coordinates (garbage on screen) or silently
+  // drop every flush - neither is an acceptable "working" display.
   if (rotation_buffer_ == nullptr) {
     rotation_buffer_ = (uint16_t *)heap_caps_malloc(pixel_buffer_size * sizeof(uint16_t),
                                                     MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-    rotation_buffer_px_ = (rotation_buffer_ != nullptr) ? pixel_buffer_size : 0;
     if (rotation_buffer_ == nullptr) {
-      logger_.warn("Could not allocate the {}-byte display rotation buffer; rotation disabled",
-                   pixel_buffer_size * sizeof(uint16_t));
+      logger_.error("Could not allocate the {}-byte display rotation buffer; failing display "
+                    "initialization",
+                    pixel_buffer_size * sizeof(uint16_t));
+      return false;
     }
+    rotation_buffer_px_ = pixel_buffer_size;
   }
 
   display_ = std::make_shared<Display<Pixel>>(
@@ -467,10 +473,25 @@ void Esp32P4Wifi6DevKit::flush(lv_display_t *disp, const lv_area_t *area, uint8_
   auto rot = lv_display_get_rotation(disp);
   int32_t ww = lv_area_get_width(area);
   int32_t hh = lv_area_get_height(area);
-  // Only rotate when the rotated area fits the scratch buffer; otherwise skip
-  // rotation for this flush (fall back to unrotated) to avoid overflowing it.
-  if (rot > LV_DISPLAY_ROTATION_0 && rotation_buffer_ != nullptr &&
-      static_cast<size_t>(ww) * static_cast<size_t>(hh) <= rotation_buffer_px_) {
+  if (rot > LV_DISPLAY_ROTATION_0) {
+    // The scratch buffer was sized to the LVGL draw-buffer pixel count (and
+    // initialize_display() fails if it cannot be allocated), so any flushed
+    // area fits; this check is defense-in-depth. If rotation is ever
+    // impossible, DROP the flush instead of falling back to unrotated data:
+    // the area is transformed to rotated (physical) coordinates below, and
+    // unrotated pixels at rotated coordinates would draw garbage.
+    if (rotation_buffer_ == nullptr ||
+        static_cast<size_t>(ww) * static_cast<size_t>(hh) > rotation_buffer_px_) {
+      static uint32_t rotation_drop_count = 0;
+      if ((rotation_drop_count++ % 100) == 0) {
+        logger_.error(
+            "flush: cannot rotate a {}x{} area (scratch buffer holds {} px); dropping the "
+            "flush (occurrence {})",
+            ww, hh, rotation_buffer_px_, rotation_drop_count);
+      }
+      lv_display_flush_ready(disp);
+      return;
+    }
     lv_color_format_t cf = lv_display_get_color_format(disp);
     uint32_t w_stride = lv_draw_buf_width_to_stride(ww, cf);
     uint32_t h_stride = lv_draw_buf_width_to_stride(hh, cf);
