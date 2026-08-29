@@ -16,6 +16,7 @@
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
 #include <esp_ldo_regulator.h>
+#include <esp_private/esp_cache_private.h>
 
 using namespace std::chrono_literals;
 
@@ -38,6 +39,36 @@ static constexpr lv_display_rotation_t to_lv_rotation(DisplayRotation rotation) 
 }
 static constexpr DisplayRotation to_display_rotation(lv_display_rotation_t rotation) {
   return static_cast<DisplayRotation>(rotation);
+}
+
+// Number of framebuffers the DPI panel is created with (esp_lcd_dpi_panel_config_t::num_fbs,
+// used for every controller variant below). The direct-to-framebuffer PPA
+// rotation in flush() caches THE single framebuffer pointer at init and writes
+// into it unconditionally; with more than one framebuffer the driver flips
+// which buffer is scanned out, and rotating into a fixed one would
+// intermittently update a non-visible buffer. flush() therefore only enables
+// that optimization when this is 1 (see initialize_lcd()); if you raise this,
+// the code falls back to the scratch-buffer path (or teach it to track the
+// active framebuffer).
+static constexpr uint8_t kNumDpiFramebuffers = 1;
+
+// Alignment the PPA requires for its output buffer in external (PSRAM) memory:
+// both the buffer pointer and the buffer size must be multiples of the data
+// cache line size. Query it from the cache driver rather than hard-coding the
+// ESP32-P4's 128-byte L2 line — this is the exact value the PPA driver itself
+// validates against (ppa_check_buffer_alignment() checks
+// s_platform.buf_alignment_size, which it obtains via
+// esp_cache_get_alignment(MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA, ...)).
+static size_t ppa_out_buffer_alignment() {
+  size_t alignment = 0;
+  if (esp_cache_get_alignment(MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA, &alignment) != ESP_OK ||
+      alignment == 0) {
+    // Should not happen (the call only fails on invalid arguments); fall back
+    // to the largest cache line on any current target so alignment is never
+    // under-estimated.
+    alignment = 128;
+  }
+  return alignment;
 }
 
 M5StackTab5::DisplayController M5StackTab5::detect_display_controller() {
@@ -242,7 +273,7 @@ bool M5StackTab5::initialize_lcd() {
 #else
     dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
 #endif
-    dpi_cfg.num_fbs = 1;
+    dpi_cfg.num_fbs = kNumDpiFramebuffers;
     dpi_cfg.video_timing.h_size = display_width_;
     dpi_cfg.video_timing.v_size = display_height_;
     dpi_cfg.video_timing.hsync_back_porch = 140;
@@ -270,7 +301,7 @@ bool M5StackTab5::initialize_lcd() {
 #else
     dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
 #endif
-    dpi_cfg.num_fbs = 1;
+    dpi_cfg.num_fbs = kNumDpiFramebuffers;
     dpi_cfg.video_timing.h_size = display_width_;
     dpi_cfg.video_timing.v_size = display_height_;
     dpi_cfg.video_timing.hsync_back_porch = 40;
@@ -295,7 +326,7 @@ bool M5StackTab5::initialize_lcd() {
 #else
     dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
 #endif
-    dpi_cfg.num_fbs = 1;
+    dpi_cfg.num_fbs = kNumDpiFramebuffers;
     dpi_cfg.video_timing.h_size = display_width_;
     dpi_cfg.video_timing.v_size = display_height_;
     dpi_cfg.video_timing.hsync_back_porch = 40;
@@ -420,16 +451,29 @@ bool M5StackTab5::initialize_lcd() {
   // Cache the DPI framebuffer address so flush() can rotate directly into it
   // with the PPA (see flush()). The panel scans this buffer out continuously;
   // the espp draw/flush path itself never writes it with the CPU.
+  //
+  // This optimization is only valid with a single DPI framebuffer: caching one
+  // fixed pointer assumes the panel scans that same buffer forever. With
+  // num_fbs > 1 the driver flips between buffers and the PPA could rotate into
+  // one that is not being scanned out, so the guard below keeps the (always
+  // correct) scratch-buffer path instead.
+  static_assert(kNumDpiFramebuffers == 1,
+                "The direct-to-framebuffer PPA rotation caches a single framebuffer pointer; "
+                "with multiple DPI framebuffers it must track the active one instead");
   {
     void *fb = nullptr;
-    if (esp_lcd_dpi_panel_get_frame_buffer(lcd_handles_.panel, 1, &fb) == ESP_OK && fb != nullptr) {
+    if (esp_lcd_dpi_panel_get_frame_buffer(lcd_handles_.panel, kNumDpiFramebuffers, &fb) ==
+            ESP_OK &&
+        fb != nullptr) {
       const size_t fb_bytes = static_cast<size_t>(display_width_) * display_height_ * sizeof(Pixel);
       // The PPA requires its output buffer pointer and size to be aligned to
-      // the (128-byte) cache line; the esp_lcd driver allocates the DPI
-      // framebuffer DMA-aligned, and 720*1280*2 is a multiple of 128, but
-      // verify rather than assume — if it does not hold, flush() simply keeps
-      // the scratch-buffer path.
-      if ((reinterpret_cast<uintptr_t>(fb) % 128) == 0 && (fb_bytes % 128) == 0) {
+      // the data cache line (128 bytes on the ESP32-P4; queried, not assumed —
+      // see ppa_out_buffer_alignment()). The esp_lcd driver allocates the DPI
+      // framebuffer DMA-aligned, and 720*1280*2 is a multiple of any such
+      // line size, but verify rather than assume — if it does not hold,
+      // flush() simply keeps the scratch-buffer path.
+      const size_t cache_align = ppa_out_buffer_alignment();
+      if ((reinterpret_cast<uintptr_t>(fb) % cache_align) == 0 && (fb_bytes % cache_align) == 0) {
         dpi_framebuffer_ = fb;
         dpi_framebuffer_bytes_ = fb_bytes;
       } else {
@@ -551,12 +595,13 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
       g_ppa_client = nullptr;
     }
   }
-  // Align to 128 bytes: the PPA output buffer in external (PSRAM) memory must
-  // be aligned to the L1 and L2 cache line size, and the ESP32-P4's L2 line is
-  // 128 bytes. Both the pointer and the size must be a multiple of it.
-  static constexpr size_t kCacheAlign = 128;
+  // The PPA output buffer in external (PSRAM) memory must be aligned to the
+  // data cache line size (128 bytes on the ESP32-P4): both the pointer and the
+  // size must be a multiple of it. Query the requirement instead of
+  // hard-coding it (see ppa_out_buffer_alignment()).
+  const size_t cache_align = ppa_out_buffer_alignment();
   size_t required_bytes = pixel_buffer_size * sizeof(uint16_t);
-  required_bytes = (required_bytes + kCacheAlign - 1) / kCacheAlign * kCacheAlign;
+  required_bytes = (required_bytes + cache_align - 1) / cache_align * cache_align;
 
   // Reuse the existing scratch buffer if it is already the right size; otherwise
   // free it first so a repeated initialize_display() call (e.g. re-init with a
@@ -567,7 +612,7 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
       third_buffer = nullptr;
     }
     third_buffer_bytes = required_bytes;
-    third_buffer = (uint16_t *)heap_caps_aligned_alloc(kCacheAlign, third_buffer_bytes,
+    third_buffer = (uint16_t *)heap_caps_aligned_alloc(cache_align, third_buffer_bytes,
                                                        MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     if (third_buffer == nullptr) {
       // The scratch buffer is required for display rotation - both the PPA path
@@ -776,11 +821,14 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
     // Map the logical (LVGL) area to physical panel coordinates up front: the
     // direct-to-framebuffer PPA path needs the rotated destination offsets
     // before the PPA runs, and the fallback paths need them for draw_bitmap.
-    lv_display_rotate_area(disp, const_cast<lv_area_t *>(area));
-    offsetx1 = area->x1;
-    offsetx2 = area->x2;
-    offsety1 = area->y1;
-    offsety2 = area->y2;
+    // Rotate a local copy — LVGL handed us a const pointer, so do not mutate
+    // its area in place.
+    lv_area_t rotated_area = *area;
+    lv_display_rotate_area(disp, &rotated_area);
+    offsetx1 = rotated_area.x1;
+    offsetx2 = rotated_area.x2;
+    offsety1 = rotated_area.y1;
+    offsety2 = rotated_area.y2;
     if (g_ppa_client != nullptr && dpi_framebuffer_ != nullptr) {
       // Hardware rotation via the PPA, writing the rotated block DIRECTLY into
       // the DPI panel's framebuffer at the rotated offset (the PPA output
