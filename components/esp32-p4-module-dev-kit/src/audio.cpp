@@ -89,21 +89,22 @@ bool Esp32P4ModuleDevKit::initialize_audio(uint32_t sample_rate,
   set_es8311_write(espp::make_i2c_addressed_write(es8311_i2c_device_));
   set_es8311_read(espp::make_i2c_addressed_read_register(es8311_i2c_device_));
 
-  // Create the I2S standard channels: TX for playback, RX for the ES8311's
-  // ADC (initialized on demand by initialize_microphone(); the codec is full
-  // duplex on this single bus, sharing the clock). MCLK = 256 * fs (default).
-  i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(audio_i2s_port, I2S_ROLE_MASTER);
-  chan_cfg.auto_clear = true;
-  if (i2s_new_channel(&chan_cfg, &audio_tx_handle, &audio_rx_handle) != ESP_OK) {
-    logger_.error("Failed to create I2S channel");
-    return false;
-  }
-
-  // Consolidated teardown for the failure paths below: i2s_new_channel() creates
-  // both channels together, so on any later failure delete both (and the stream
-  // buffer if created) and reset state rather than leaking channels/clocks.
+  // Consolidated teardown for the failure paths below: undo everything created
+  // so far and reset all audio state so a subsequent initialize_audio() starts
+  // from a clean slate. i2s_new_channel() creates both channels together, so on
+  // any later failure delete both (and the stream buffer if created); also stop
+  // the codec if it was started, and drop the ES8311 register-access functions
+  // and I2C device handle (the codec's write/read std::functions capture the
+  // device shared_ptr, so both must be cleared to actually remove the device
+  // from the bus).
+  bool codec_initialized = false;
   auto fail_audio_init = [&](const char *msg) -> bool {
     logger_.error("{}", msg);
+    if (codec_initialized) {
+      // best-effort: put the codec back into a stopped state
+      es8311_codec_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_STOP);
+      es8311_codec_deinit();
+    }
     if (audio_tx_handle) {
       i2s_channel_disable(audio_tx_handle);
       i2s_del_channel(audio_tx_handle);
@@ -118,8 +119,26 @@ bool Esp32P4ModuleDevKit::initialize_audio(uint32_t sample_rate,
       vStreamBufferDelete(audio_tx_stream);
       audio_tx_stream = nullptr;
     }
+    // Drop the codec register access and the I2C device handle (in that order:
+    // the std::functions hold the last references once the member is reset).
+    set_es8311_write(nullptr);
+    set_es8311_read(nullptr);
+    es8311_i2c_device_.reset();
+    // Reset the remaining audio state touched above
+    audio_std_cfg = {};
+    audio_tx_buffer.clear();
+    set_speaker_enabled(false);
     return false;
   };
+
+  // Create the I2S standard channels: TX for playback, RX for the ES8311's
+  // ADC (initialized on demand by initialize_microphone(); the codec is full
+  // duplex on this single bus, sharing the clock). MCLK = 256 * fs (default).
+  i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(audio_i2s_port, I2S_ROLE_MASTER);
+  chan_cfg.auto_clear = true;
+  if (i2s_new_channel(&chan_cfg, &audio_tx_handle, &audio_rx_handle) != ESP_OK) {
+    return fail_audio_init("Failed to create I2S channel");
+  }
 
   audio_std_cfg = {
       .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(sample_rate),
@@ -146,6 +165,7 @@ bool Esp32P4ModuleDevKit::initialize_audio(uint32_t sample_rate,
   if (es8311_codec_init(&es8311_cfg) != ESP_OK) {
     return fail_audio_init("ES8311 init failed");
   }
+  codec_initialized = true;
   es8311_codec_set_sample_rate(sample_rate);
   es8311_codec_set_voice_volume(static_cast<int>(volume_));
   es8311_set_voice_mute(false);

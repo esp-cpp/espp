@@ -351,7 +351,13 @@ bool Esp32P4ModuleDevKit::initialize_display(size_t pixel_buffer_size) {
 }
 
 size_t Esp32P4ModuleDevKit::rotated_display_width() const {
-  auto rot = lv_display_get_rotation(lv_display_get_default());
+  // Query the BSP-managed LVGL display (not the global default, which may be a
+  // different display in a multi-display app). Before initialize_display()
+  // there is no LVGL display yet, so report the unrotated width.
+  auto rot = LV_DISPLAY_ROTATION_0;
+  if (lv_display_t *disp = lvgl_display_.load(std::memory_order_acquire); disp != nullptr) {
+    rot = lv_display_get_rotation(disp);
+  }
   switch (rot) {
   case LV_DISPLAY_ROTATION_90:
   case LV_DISPLAY_ROTATION_270:
@@ -362,7 +368,12 @@ size_t Esp32P4ModuleDevKit::rotated_display_width() const {
 }
 
 size_t Esp32P4ModuleDevKit::rotated_display_height() const {
-  auto rot = lv_display_get_rotation(lv_display_get_default());
+  // See rotated_display_width(): use the BSP-managed LVGL display, not the
+  // global default.
+  auto rot = LV_DISPLAY_ROTATION_0;
+  if (lv_display_t *disp = lvgl_display_.load(std::memory_order_acquire); disp != nullptr) {
+    rot = lv_display_get_rotation(disp);
+  }
   switch (rot) {
   case LV_DISPLAY_ROTATION_90:
   case LV_DISPLAY_ROTATION_270:
@@ -441,7 +452,10 @@ void IRAM_ATTR Esp32P4ModuleDevKit::flush(lv_display_t *disp, const lv_area_t *a
   int offsety1 = area->y1;
   int offsety2 = area->y2;
 
-  auto rot = lv_display_get_rotation(lv_display_get_default());
+  // Use the display actually being flushed (the callback argument), not the
+  // global default display, so the correct rotation is applied even if another
+  // LVGL display is the default.
+  auto rot = lv_display_get_rotation(disp);
   int32_t ww = lv_area_get_width(area);
   int32_t hh = lv_area_get_height(area);
   // Only rotate when the rotated area fits the scratch buffer; otherwise skip

@@ -14,9 +14,9 @@ The ``espp::Esp32P4ModuleDevKit`` component provides a singleton hardware
 abstraction for bringing up the board's peripherals:
 
 - **Display:** a MIPI-DSI panel (JD9365 10.1" 800x1280 by default, or ILI9881C
-  10.1" / EK79007 7" 1024x600, selected via Kconfig), with an LVGL display
-  driver. The board is sold without a panel (the -C kit bundles the 10.1"
-  JD9365).
+  10.1" 800x1280 / EK79007 7" 1024x600, selected via Kconfig), with an LVGL
+  display driver. The board is sold without a panel (the -C kit bundles the
+  10.1" JD9365).
 - **Touch:** a GT911 capacitive multi-touch controller (polled — the INT / RST
   lines are not routed to the ESP32-P4 on this board).
 - **Camera:** a MIPI-CSI camera (OV5647 by default) captured through esp_video
