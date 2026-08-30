@@ -11,12 +11,14 @@
 #include <algorithm>
 #include <cstdlib>
 
+#include <sdkconfig.h>
+
 #include <driver/ppa.h>
+#include <esp_heap_caps.h>
 #include <esp_lcd_mipi_dsi.h>
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
 #include <esp_ldo_regulator.h>
-#include <esp_private/esp_cache_private.h>
 
 using namespace std::chrono_literals;
 
@@ -54,22 +56,25 @@ static constexpr uint8_t kNumDpiFramebuffers = 1;
 
 // Alignment the PPA requires for its output buffer in external (PSRAM) memory:
 // both the buffer pointer and the buffer size must be multiples of the data
-// cache line size. Query it from the cache driver rather than hard-coding the
-// ESP32-P4's 128-byte L2 line — this is the exact value the PPA driver itself
-// validates against (ppa_check_buffer_alignment() checks
-// s_platform.buf_alignment_size, which it obtains via
-// esp_cache_get_alignment(MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA, ...)).
-static size_t ppa_out_buffer_alignment() {
-  size_t alignment = 0;
-  if (esp_cache_get_alignment(MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA, &alignment) != ESP_OK ||
-      alignment == 0) {
-    // Should not happen (the call only fails on invalid arguments); fall back
-    // to the largest cache line on any current target so alignment is never
-    // under-estimated.
-    alignment = 128;
-  }
-  return alignment;
-}
+// cache line size. On the ESP32-P4 external memory sits behind the L2 cache,
+// whose line size is a Kconfig choice (CONFIG_CACHE_L2_CACHE_LINE_SIZE, 64 or
+// 128 bytes) that cpu_start.c programs into the cache HAL at boot — so this
+// public compile-time constant equals exactly the value the PPA driver itself
+// validates against at runtime (ppa_check_buffer_alignment() checks
+// s_platform.buf_alignment_size, which it obtains from that same cache HAL via
+// the private esp_cache_get_alignment(MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA,
+// ...)). Using the Kconfig constant keeps this file off the private
+// esp_private/esp_cache_private.h header, which can move or break across IDF
+// releases.
+#if defined(CONFIG_CACHE_L2_CACHE_LINE_SIZE) && (CONFIG_CACHE_L2_CACHE_LINE_SIZE > 0)
+static constexpr size_t kPpaOutBufferAlignment = CONFIG_CACHE_L2_CACHE_LINE_SIZE;
+#else
+// Fallback for IDF configurations that do not expose the symbol (it has
+// shipped with ESP32-P4 support from the start, so this is belt-and-braces):
+// use the largest L2 cache line the P4 supports so the alignment is never
+// under-estimated — over-aligning is always safe here.
+static constexpr size_t kPpaOutBufferAlignment = 128;
+#endif
 
 M5StackTab5::DisplayController M5StackTab5::detect_display_controller() {
   auto &i2c = internal_i2c();
@@ -501,12 +506,11 @@ bool M5StackTab5::initialize_lcd() {
         fb != nullptr) {
       const size_t fb_bytes = static_cast<size_t>(display_width_) * display_height_ * sizeof(Pixel);
       // The PPA requires its output buffer pointer and size to be aligned to
-      // the data cache line (128 bytes on the ESP32-P4; queried, not assumed —
-      // see ppa_out_buffer_alignment()). The esp_lcd driver allocates the DPI
-      // framebuffer DMA-aligned, and 720*1280*2 is a multiple of any such
-      // line size, but verify rather than assume — if it does not hold,
-      // flush() simply keeps the scratch-buffer path.
-      const size_t cache_align = ppa_out_buffer_alignment();
+      // the data cache line (see kPpaOutBufferAlignment). The esp_lcd driver
+      // allocates the DPI framebuffer DMA-aligned, and 720*1280*2 is a
+      // multiple of any such line size, but verify rather than assume — if it
+      // does not hold, flush() simply keeps the scratch-buffer path.
+      const size_t cache_align = kPpaOutBufferAlignment;
       if ((reinterpret_cast<uintptr_t>(fb) % cache_align) == 0 && (fb_bytes % cache_align) == 0) {
         dpi_framebuffer_ = fb;
         dpi_framebuffer_bytes_ = fb_bytes;
@@ -638,10 +642,9 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
     }
   }
   // The PPA output buffer in external (PSRAM) memory must be aligned to the
-  // data cache line size (128 bytes on the ESP32-P4): both the pointer and the
-  // size must be a multiple of it. Query the requirement instead of
-  // hard-coding it (see ppa_out_buffer_alignment()).
-  const size_t cache_align = ppa_out_buffer_alignment();
+  // data cache line size: both the pointer and the size must be a multiple of
+  // it (see kPpaOutBufferAlignment).
+  const size_t cache_align = kPpaOutBufferAlignment;
   size_t required_bytes = pixel_buffer_size * sizeof(uint16_t);
   required_bytes = (required_bytes + cache_align - 1) / cache_align * cache_align;
 
