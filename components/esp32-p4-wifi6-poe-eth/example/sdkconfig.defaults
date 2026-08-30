@@ -1,8 +1,12 @@
 CONFIG_IDF_TARGET="esp32p4"
 
-# for ESP-IDF >= v6.0, allow images that also run on pre-v3 ESP32-P4 chip
-# revisions (matches the other Waveshare P4 boards; the fitted module revision
-# has not been verified on hardware).
+# On ESP-IDF >= v6.0 this symbol defaults to n, which builds an image that
+# requires chip revision >= v3.0 and refuses to boot on the rev 0.x/1.x
+# ESP32-P4 modules currently shipping; set it so the image runs on pre-v3
+# revisions (matches the other espp P4 boards). On ESP-IDF < v6.0 (this
+# example's manifest allows >= 5.4) the symbol does not exist and is simply
+# ignored with a harmless "unknown kconfig symbol" warning -- v5.x only
+# supports the pre-v3 revisions anyway.
 CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y
 
 # Ethernet (internal EMAC + RMII)

@@ -26,11 +26,26 @@ switch between DHCP client (default) and DHCP server mode.
 The board's Wi-Fi 6 / Bluetooth LE radio is an ESP32-C6-MINI-1 connected to the
 P4 over SDIO, running Espressif's ESP-Hosted slave firmware (pre-flashed by
 Waveshare). This BSP does not wrap ESP-Hosted; to add Wi-Fi to your own
-application, use Espressif's managed components directly:
+application, use Espressif's managed components directly.
+
+Note: fetching managed components requires the IDF Component Manager, which
+this example — like all espp examples — explicitly disables (the
+`set(ENV{IDF_COMPONENT_MANAGER} "0")` line in its `CMakeLists.txt`, which
+avoids manifest scanning of the whole espp tree). The steps below therefore
+apply to your own project; if you instead adapt this example in place, first
+remove that line from `CMakeLists.txt` to re-enable the Component Manager.
 
 1. Add the dependencies to your project (this pulls in `esp_hosted` and
    `esp_wifi_remote`, which transparently forwards the standard `esp_wifi` API
-   to the C6):
+   to the C6) by listing them in your `main` component's `idf_component.yml`:
+
+   ```yaml
+   dependencies:
+     espressif/esp_wifi_remote: "*"
+     espressif/esp_hosted: "*"
+   ```
+
+   or equivalently by running:
 
    ```bash
    idf.py add-dependency "espressif/esp_wifi_remote"
