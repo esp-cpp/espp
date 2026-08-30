@@ -608,17 +608,22 @@ protected:
   static constexpr gpio_num_t audio_din_io = GPIO_NUM_11;       // codec ASDOUT -> P4
   static constexpr gpio_num_t audio_pa_enable_io = GPIO_NUM_53; // NS4150B enable
 
-  // Audio buffer sizing
-  static constexpr int NUM_CHANNELS = 2;
-  static constexpr int NUM_BYTES_PER_CHANNEL = 2;
+  // Audio buffer sizing: one UPDATE_FREQUENCY period's worth of 16-bit frames.
+  // The TX (speaker) path is configured mono (I2S_SLOT_MODE_MONO in
+  // initialize_audio()) while the RX (microphone) path captures both slots as
+  // stereo (see initialize_microphone()), so the channel count of the path
+  // being sized is passed explicitly rather than hard-coded.
+  static constexpr int TX_NUM_CHANNELS = 1;       // TX slot mode is mono
+  static constexpr int RX_NUM_CHANNELS = 2;       // RX captures both (L,R) slots
+  static constexpr int NUM_BYTES_PER_CHANNEL = 2; // 16-bit samples
   static constexpr int UPDATE_FREQUENCY = 60;
-  static constexpr int calc_audio_buffer_size(int sample_rate) {
+  static constexpr int calc_audio_buffer_size(int sample_rate, int num_channels) {
     // NOTE: divide the rate by the update frequency FIRST so the result is
     // always a whole number of frames. Multiplying first yields a partial
     // frame for rates that are not a multiple of the update frequency (e.g.
-    // 8 kHz -> 533 bytes), and reading/writing partial samples shifts the
-    // I2S sample framing on every transfer - heard as loud static.
-    return (sample_rate / UPDATE_FREQUENCY) * NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
+    // 8 kHz stereo -> 533 bytes), and reading/writing partial samples shifts
+    // the I2S sample framing on every transfer - heard as loud static.
+    return (sample_rate / UPDATE_FREQUENCY) * num_channels * NUM_BYTES_PER_CHANNEL;
   }
 
   // Internal I2C bus (shared by the ES8311 codec)

@@ -177,11 +177,17 @@ bool Esp32P4ModuleDevKit::initialize_audio(uint32_t sample_rate,
     return fail_audio_init("Failed to enable I2S channel");
   }
 
-  // The audio task drains this stream buffer to I2S. Size it generously so a
-  // whole UI sound clip fits and play_audio() can enqueue it without blocking.
-  auto tx_buf_size = calc_audio_buffer_size(sample_rate);
+  // The audio task drains this stream buffer to I2S one tx_buf_size chunk
+  // (one update period of mono frames) at a time, so four periods of producer
+  // headroom is plenty - the same sizing the esp-box / t-deck / m5stack-tab5
+  // BSPs use - with a small floor so very low sample rates keep a workable
+  // buffer. This memory comes from the FreeRTOS heap (internal RAM), so avoid
+  // a large fixed floor; play_audio() clamps to the free space and reports
+  // how much it queued, so callers stream clips longer than the buffer in
+  // chunks (see the example's playback loop).
+  auto tx_buf_size = calc_audio_buffer_size(sample_rate, TX_NUM_CHANNELS);
   audio_tx_buffer.resize(tx_buf_size);
-  audio_tx_stream = xStreamBufferCreate(std::max<size_t>(tx_buf_size * 4, 64 * 1024), 0);
+  audio_tx_stream = xStreamBufferCreate(std::max<size_t>(tx_buf_size * 4, 4 * 1024), 0);
   if (audio_tx_stream == nullptr) {
     return fail_audio_init("Failed to allocate the audio TX stream buffer");
   }
@@ -341,8 +347,8 @@ bool Esp32P4ModuleDevKit::initialize_microphone(const microphone_callback_t &cal
       return fail_microphone_init("Failed to reconfigure the I2S RX clock");
     }
   }
-  // one update period's worth of stereo frames (NUM_CHANNELS is 2)
-  audio_rx_buffer.resize(calc_audio_buffer_size(audio_sample_rate()));
+  // one update period's worth of stereo (L,R) frames
+  audio_rx_buffer.resize(calc_audio_buffer_size(audio_sample_rate(), RX_NUM_CHANNELS));
   if (i2s_channel_enable(audio_rx_handle) != ESP_OK) {
     return fail_microphone_init("Failed to enable I2S RX channel");
   }
