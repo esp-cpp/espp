@@ -30,7 +30,9 @@
       device -> host : 0xC0 SUMMARY(utf8 report; empty = clean boot),
                        0xC1 SIZE(u32; 0 = no dump),
                        0xC2 DATA(u32 offset + bytes),
-                       0xC3 OK(u32), 0xC4 ERROR(u32 code + utf8 message)
+                       0xC3 OK(u32), 0xC4 ERROR(u32 code + utf8 message;
+                       the message is authoritative - the code is
+                       informational only and is displayed, never interpreted)
     One request in flight; the host waits for the matching reply.
 
     Extra, fully client-side: hand the app your firmware's .elf file and it
@@ -1015,9 +1017,13 @@
     // The stored image is [flash header][ELF core file][checksum]; find the
     // ELF magic near the start and slice from there (the trailing checksum
     // bytes are harmless to ELF readers, which follow the internal offsets).
+    // The flash header is core_dump_header_t (esp_core_dump_types.h): three
+    // u32 fields (data_len, version, chip_rev) = 12 bytes today, so the ELF
+    // magic sits at offset 12 - but search the first 1 KiB to stay robust if
+    // a future IDF grows the header.
     function extractElf(image) {
       const MAGIC = [0x7F, 0x45, 0x4C, 0x46]; // \x7fELF
-      const limit = Math.min(image.length - 4, 64);
+      const limit = Math.min(image.length - 4, 1024);
       for (let i = 0; i <= limit; i++) {
         if (image[i] === MAGIC[0] && image[i + 1] === MAGIC[1] &&
             image[i + 2] === MAGIC[2] && image[i + 3] === MAGIC[3])
@@ -1101,13 +1107,21 @@
       if (!symtab) throw new Error("no .symtab section (symbols stripped?)");
       const strtab = sections[symtab.link];
       if (!strtab) throw new Error("symtab has no linked string table");
+      // Clamp the string table to the file so a malformed strtab header can't
+      // send name reads out of bounds.
+      const strtabEnd = Math.min(strtab.offset + strtab.size, bytes.length);
+      if (strtab.offset >= strtabEnd) throw new Error("string table lies outside the file");
       const entsize = symtab.entsize || 16;
       const count = Math.floor(symtab.size / entsize);
       const decoder = new TextDecoder();
       const readName = (nameOffset) => {
+        // Names must start inside the string table; the NUL scan is capped at
+        // the table's end (and 512 B) so it can't run into unrelated sections.
+        if (!(nameOffset >= 0 && nameOffset < strtab.size)) return "";
         const start = strtab.offset + nameOffset;
+        if (start >= strtabEnd) return "";
         let end = start;
-        while (end < bytes.length && bytes[end] !== 0 && end - start < 512) end++;
+        while (end < strtabEnd && bytes[end] !== 0 && end - start < 512) end++;
         return decoder.decode(bytes.subarray(start, end));
       };
       const out = [];

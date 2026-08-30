@@ -13,6 +13,7 @@
 #include "sdkconfig.h"
 
 #include "esp_core_dump.h"
+#include "esp_idf_version.h"
 #include "esp_partition.h"
 #include "esp_system.h"
 
@@ -350,12 +351,30 @@ public:
       return "BROWNOUT";
     case ESP_RST_SDIO:
       return "SDIO";
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
+    case ESP_RST_USB: // added in IDF v5.2
+      return "USB";
+    case ESP_RST_JTAG: // added in IDF v5.2
+      return "JTAG";
+#endif
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+    case ESP_RST_EFUSE: // added in IDF v5.3
+      return "EFUSE";
+    case ESP_RST_PWR_GLITCH: // added in IDF v5.3
+      return "PWR_GLITCH";
+    case ESP_RST_CPU_LOCKUP: // added in IDF v5.3
+      return "CPU_LOCKUP";
+#endif
     default:
       break;
     }
-    // Newer IDF versions add more reasons (USB / JTAG / EFUSE / PWR_GLITCH /
-    // CPU_LOCKUP); avoid depending on their enumerators so the component
-    // builds across IDF versions.
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 3, 0)
+    // On IDF versions that predate some of the newer enumerators (USB / JTAG
+    // added in v5.2; EFUSE / PWR_GLITCH / CPU_LOCKUP in v5.3), fall back to
+    // their numeric values (as defined by v5.3+) so mixed-version tooling can
+    // still label them. On v5.3+ the enum cases above are authoritative and
+    // this fallback is not compiled, so a hypothetical renumbering cannot
+    // mislabel a reason.
     switch (static_cast<int>(reason)) {
     case 11:
       return "USB";
@@ -368,8 +387,10 @@ public:
     case 15:
       return "CPU_LOCKUP";
     default:
-      return "?";
+      break;
     }
+#endif
+    return "?";
   }
 
   /// @brief Whether a reset reason indicates a normal, deliberate reset (a
@@ -388,10 +409,15 @@ public:
     default:
       break;
     }
-    // USB (11) / JTAG (12) resets are deliberate (flashing / debugging);
-    // avoid depending on their enumerators (added in newer IDF versions).
+    // USB / JTAG resets are deliberate (flashing / debugging). The
+    // enumerators were added in IDF v5.2; fall back to their numeric values
+    // (as defined by v5.2+) on older IDF versions.
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
+    return reason == ESP_RST_USB || reason == ESP_RST_JTAG;
+#else
     const int r = static_cast<int>(reason);
     return r == 11 || r == 12;
+#endif
   }
 
   /// @brief The GNU toolchain binary prefix for the build target (e.g.

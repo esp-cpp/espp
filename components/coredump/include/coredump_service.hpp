@@ -24,9 +24,14 @@
 //                  core dump present).
 //   0xC2 DATA    — payload: u32 offset + the requested image bytes.
 //   0xC3 OK      — payload: u32 context-dependent value (ERASE reply).
-//   0xC4 ERROR   — payload: u32 code (always a std::errc value; error codes
-//                  from other categories are normalized before sending) +
-//                  UTF-8 message.
+//   0xC4 ERROR   — payload: u32 code + UTF-8 message. The MESSAGE is the
+//                  authoritative, self-sufficient description of the error;
+//                  the code is informational / best-effort (a std::errc value
+//                  as numbered by the device's C++ stdlib — stable for the
+//                  espp/ESP-IDF newlib toolchain, but std::errc numbering is
+//                  not standardized across stdlibs, so hosts should display
+//                  code + message verbatim and MUST NOT branch on specific
+//                  code values).
 //
 // Flow control: the host serializes transactions — one request in flight,
 // wait for its reply. READ length is capped so the DATA reply (4-byte offset
@@ -118,7 +123,7 @@ public:
     Size = 0xC1,    ///< u32 image size (0 = no core dump)
     Data = 0xC2,    ///< u32 offset + image bytes
     Ok = 0xC3,      ///< u32 context-dependent success value
-    Error = 0xC4,   ///< u32 code (std::errc) + UTF-8 message
+    Error = 0xC4,   ///< u32 informational code + authoritative UTF-8 message
   };
 
   /// Maximum image bytes per READ request / DATA reply (the DATA payload is
@@ -319,12 +324,16 @@ protected:
     send_(frame);
   }
 
-  /// Build an ERROR reply frame (u32 std::errc code + UTF-8 context message).
-  /// Codes from categories other than the generic category are normalized to
-  /// the equivalent std::errc via default_error_condition() — falling back to
+  /// Build an ERROR reply frame (u32 code + UTF-8 context message). Codes
+  /// from categories other than the generic category are normalized to the
+  /// equivalent std::errc via default_error_condition() — falling back to
   /// std::errc::io_error when there is no generic equivalent — so the on-wire
-  /// code is always a std::errc value and stable for the host to interpret
-  /// (the message text still carries the original category's description).
+  /// code is always a std::errc value (the message text still carries the
+  /// original category's description). Note that the code is informational /
+  /// best-effort: std::errc numbering is not standardized across C++ stdlibs
+  /// (it is stable for espp's newlib/ESP-IDF toolchain), so the message is
+  /// the authoritative description and hosts should display code + message
+  /// without interpreting specific code values (see the wire spec above).
   std::vector<uint8_t> build_error(const std::error_code &ec, std::string_view context) const {
     namespace stream = espp::detail::ota_stream;
     logger_.error("{}: {}", context, ec.message());
