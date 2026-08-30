@@ -3,6 +3,7 @@ idf_component_register(
   SRC_DIRS "src"
   REQUIRES
     "base_component"
+    "driver"
     "ethernet"
     "esp_netif"
     "i2c"
