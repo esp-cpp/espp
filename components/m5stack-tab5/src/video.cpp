@@ -511,6 +511,10 @@ bool M5StackTab5::initialize_lcd() {
       // multiple of any such line size, but verify rather than assume — if it
       // does not hold, flush() simply keeps the scratch-buffer path.
       const size_t cache_align = kPpaOutBufferAlignment;
+      // cppcheck-suppress [knownConditionTrueFalse, moduloofone] // cache_align
+      // is a Kconfig compile-time constant (64 or 128); cppcheck's --force
+      // explores a configuration where the macro folds to 1, trivializing the
+      // checks. On real configurations both checks are meaningful.
       if ((reinterpret_cast<uintptr_t>(fb) % cache_align) == 0 && (fb_bytes % cache_align) == 0) {
         dpi_framebuffer_ = fb;
         dpi_framebuffer_bytes_ = fb_bytes;
@@ -874,6 +878,9 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
   // logical frame is written to the framebuffer unrotated and at unrotated
   // coordinates; the panel flips the whole frame at scan-out, which lands each
   // partial area exactly where LVGL's rotated mapping expects it.
+  // cppcheck-suppress knownConditionTrueFalse // panel_handles_rotation() is
+  // a compile-time constant false only in the (default) configuration with
+  // CONFIG_M5STACK_TAB5_ST7121_HW_ROTATION disabled, which cppcheck analyzes.
   if (rotation > LV_DISPLAY_ROTATION_0 && !panel_handles_rotation(rotation) &&
       third_buffer != nullptr) {
     int32_t ww = lv_area_get_width(area);
