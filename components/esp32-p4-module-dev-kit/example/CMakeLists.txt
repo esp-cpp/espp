@@ -6,6 +6,11 @@ cmake_minimum_required(VERSION 3.20)
 # and fetched transitively. Enable it explicitly so this example configures even
 # if the build environment defaults it off (it is on by default in ESP-IDF).
 set(ENV{IDF_COMPONENT_MANAGER} "1")
+
+# Build as C++23. Set before including project.cmake / project() so every
+# component picks it up; setting the standard after project() is fragile in IDF.
+set(CMAKE_CXX_STANDARD 23)
+
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 # Enumerate the specific espp component dirs (rather than globbing the whole
@@ -43,5 +48,3 @@ set(
   )
 
 project(esp32_p4_module_dev_kit_example)
-
-set(CMAKE_CXX_STANDARD 20)

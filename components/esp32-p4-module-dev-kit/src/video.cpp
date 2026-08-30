@@ -296,7 +296,18 @@ void Esp32P4ModuleDevKit::apply_panel_params(DisplayController controller) {
 }
 
 static uint16_t *third_buffer = nullptr;
-static size_t third_buffer_px = 0; // allocated capacity of third_buffer, in pixels
+static size_t third_buffer_bytes = 0; // allocated capacity of third_buffer, in bytes
+
+// Number of bytes lv_draw_sw_rotate() writes to the destination for a src_w x
+// src_h source area: the destination stride (which LVGL rounds up to
+// LV_DRAW_BUF_STRIDE_ALIGN, so it may exceed dst_width * bytes-per-pixel)
+// times the destination height. 90/270 swap the dimensions; 180 keeps them.
+static size_t rotated_dest_size_bytes(int32_t src_w, int32_t src_h, lv_display_rotation_t rotation,
+                                      lv_color_format_t cf) {
+  const int32_t dst_w = (rotation == LV_DISPLAY_ROTATION_180) ? src_w : src_h;
+  const int32_t dst_h = (rotation == LV_DISPLAY_ROTATION_180) ? src_h : src_w;
+  return static_cast<size_t>(lv_draw_buf_width_to_stride(dst_w, cf)) * static_cast<size_t>(dst_h);
+}
 
 bool Esp32P4ModuleDevKit::initialize_display(size_t pixel_buffer_size) {
   if (pixel_buffer_size == 0) {
@@ -331,18 +342,27 @@ bool Esp32P4ModuleDevKit::initialize_display(size_t pixel_buffer_size) {
   // Rotation scratch buffer (only used when the display is rotated). Allocate it
   // once and reuse it across re-inits so re-initialization does not leak PSRAM;
   // if it fails, flush() detects the null pointer and simply skips rotation.
-  if (third_buffer == nullptr || pixel_buffer_size > third_buffer_px) {
+  // Size it for the source pixels plus headroom for destination-stride
+  // alignment padding: lv_draw_sw_rotate() writes dst_stride * dst_height
+  // bytes, and the stride may be rounded up to LV_DRAW_BUF_STRIDE_ALIGN. The
+  // destination height is at most the larger display dimension, and each row
+  // carries at most (LV_DRAW_BUF_STRIDE_ALIGN - 1) bytes of padding.
+  constexpr size_t row_pad_bytes =
+      (LV_DRAW_BUF_STRIDE_ALIGN > 1) ? (LV_DRAW_BUF_STRIDE_ALIGN - 1) : 0;
+  const size_t required_bytes = pixel_buffer_size * sizeof(uint16_t) +
+                                std::max(display_width_, display_height_) * row_pad_bytes;
+  if (third_buffer == nullptr || required_bytes > third_buffer_bytes) {
     if (third_buffer != nullptr) {
       heap_caps_free(third_buffer);
       third_buffer = nullptr;
-      third_buffer_px = 0;
+      third_buffer_bytes = 0;
     }
-    third_buffer = (uint16_t *)heap_caps_malloc(pixel_buffer_size * sizeof(uint16_t),
-                                                MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-    third_buffer_px = (third_buffer != nullptr) ? pixel_buffer_size : 0;
+    third_buffer =
+        (uint16_t *)heap_caps_malloc(required_bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    third_buffer_bytes = (third_buffer != nullptr) ? required_bytes : 0;
     if (third_buffer == nullptr) {
       logger_.warn("Could not allocate the {}-byte display rotation buffer; rotation disabled",
-                   pixel_buffer_size * sizeof(uint16_t));
+                   required_bytes);
     }
   }
 
@@ -440,8 +460,7 @@ void Esp32P4ModuleDevKit::brightness(float brightness) {
 
 float Esp32P4ModuleDevKit::brightness() const { return brightness_.load(); }
 
-void IRAM_ATTR Esp32P4ModuleDevKit::flush(lv_display_t *disp, const lv_area_t *area,
-                                          uint8_t *px_map) {
+void Esp32P4ModuleDevKit::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
   if (lcd_handles_.panel == nullptr) {
     lv_display_flush_ready(disp);
     return;
@@ -458,11 +477,14 @@ void IRAM_ATTR Esp32P4ModuleDevKit::flush(lv_display_t *disp, const lv_area_t *a
   auto rot = lv_display_get_rotation(disp);
   int32_t ww = lv_area_get_width(area);
   int32_t hh = lv_area_get_height(area);
+  lv_color_format_t cf = lv_display_get_color_format(disp);
   // Only rotate when the rotated area fits the scratch buffer; otherwise skip
   // rotation for this flush (fall back to unrotated) to avoid overflowing it.
+  // The bound is what lv_draw_sw_rotate() actually writes — the (possibly
+  // alignment-padded) destination stride times the destination height — not
+  // just ww * hh pixels.
   if (rot > LV_DISPLAY_ROTATION_0 && third_buffer != nullptr &&
-      static_cast<size_t>(ww) * static_cast<size_t>(hh) <= third_buffer_px) {
-    lv_color_format_t cf = lv_display_get_color_format(disp);
+      rotated_dest_size_bytes(ww, hh, rot, cf) <= third_buffer_bytes) {
     uint32_t w_stride = lv_draw_buf_width_to_stride(ww, cf);
     uint32_t h_stride = lv_draw_buf_width_to_stride(hh, cf);
     if (rot == LV_DISPLAY_ROTATION_180) {

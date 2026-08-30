@@ -167,8 +167,10 @@ bool Esp32P4ModuleDevKit::initialize_audio(uint32_t sample_rate,
   }
   codec_initialized = true;
   es8311_codec_set_sample_rate(sample_rate);
+  // Apply the cached volume/mute state so values set via volume()/mute()
+  // before initialization (which only cache) take effect now.
   es8311_codec_set_voice_volume(static_cast<int>(volume_));
-  es8311_set_voice_mute(false);
+  es8311_set_voice_mute(mute_);
   es8311_codec_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START);
 
   if (i2s_channel_enable(audio_tx_handle) != ESP_OK) {
@@ -206,6 +208,13 @@ void Esp32P4ModuleDevKit::set_speaker_enabled(bool enable) {
 void Esp32P4ModuleDevKit::volume(float volume) {
   volume = std::clamp(volume, 0.0f, 100.0f);
   volume_ = volume;
+  // Before initialize_audio() the ES8311 driver has no I2C read/write
+  // callbacks installed, so touching the codec would invoke null
+  // std::functions and terminate. Just cache the value; initialize_audio()
+  // applies it to the codec.
+  if (!audio_initialized_) {
+    return;
+  }
   es8311_codec_set_voice_volume(static_cast<int>(volume_));
 }
 
@@ -213,6 +222,10 @@ float Esp32P4ModuleDevKit::volume() const { return volume_; }
 
 void Esp32P4ModuleDevKit::mute(bool mute) {
   mute_ = mute;
+  // Same pre-initialization guard as volume(): cache only, applied on init.
+  if (!audio_initialized_) {
+    return;
+  }
   es8311_set_voice_mute(mute_);
 }
 
