@@ -408,12 +408,15 @@ protected:
 #if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
   /// has_core_dump() with mutex_ already held (see the class-level notes on
   /// the internal serialization of the flash-touching methods).
-  /// `esp_core_dump_image_check()` rereads and checksums the ENTIRE image, so
-  /// once the validated-region cache is populated it is consulted instead: a
-  /// dump is only ever written by the panic handler (i.e. before this boot)
-  /// and only invalidated by erase(), which clears the cache.
+  /// Delegates to image_region_locked() so the full-image checksum scan runs
+  /// at most once per stored dump: the first presence check (has_core_dump(),
+  /// format_report(), ...) primes the validated-region cache that a
+  /// subsequent download (image_size() / read_image()) then reuses. A dump is
+  /// only ever written by the panic handler (i.e. before this boot) and only
+  /// invalidated by erase(), which clears the cache.
   bool has_core_dump_locked() const {
-    return image_region_.has_value() || esp_core_dump_image_check() == ESP_OK;
+    size_t addr = 0, size = 0;
+    return image_region_locked(addr, size);
   }
 
   /// Validate the stored image and return its absolute flash address + size

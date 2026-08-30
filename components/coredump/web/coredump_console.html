@@ -450,32 +450,50 @@
         const merged = new Uint8Array(this.buf.length + chunk.length);
         merged.set(this.buf, 0); merged.set(chunk, this.buf.length);
         const frames = [];
-        const text = [];
+        // skipped (non-frame) regions of `merged`, as [start, end) index
+        // pairs; accumulated as ranges and concatenated ONCE per feed() so a
+        // noisy console stream doesn't pay a per-byte push()/from() cost
+        const textRanges = [];
+        let textLen = 0;
+        const skip = (start, end) => {
+          if (end <= start) return;
+          const last = textRanges[textRanges.length - 1];
+          if (last && last[1] === start) last[1] = end; // coalesce adjacent
+          else textRanges.push([start, end]);
+          textLen += end - start;
+        };
         let pos = 0;
         for (;;) {
           // resync: advance to the next (possibly split) magic, collecting
           // the skipped bytes as console text
+          const runStart = pos;
           while (pos < merged.length &&
                  !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) {
-            text.push(merged[pos]);
             pos++;
           }
+          skip(runStart, pos);
           if (merged.length - pos < HEADER_SIZE) break;
           const view = new DataView(merged.buffer, merged.byteOffset + pos);
           const len = view.getUint32(3, true);
-          if (len > MAX_PAYLOAD) { text.push(merged[pos]); pos++; continue; }
+          if (len > MAX_PAYLOAD) { skip(pos, pos + 1); pos++; continue; }
           const total = HEADER_SIZE + len + CRC_SIZE;
           if (merged.length - pos < total) break;
           const expected = view.getUint32(HEADER_SIZE + len, true);
           const actual = crc32(merged.subarray(pos, pos + HEADER_SIZE + len));
-          if (actual !== expected) { text.push(merged[pos]); pos++; continue; }
+          if (actual !== expected) { skip(pos, pos + 1); pos++; continue; }
           frames.push({ type: merged[pos + 2],
                         payload: merged.slice(pos + HEADER_SIZE, pos + HEADER_SIZE + len) });
           pos += total;
         }
         this.buf = merged.slice(pos);
         this.lastActivity = Date.now();
-        return { frames, text: Uint8Array.from(text) };
+        const text = new Uint8Array(textLen);
+        let off = 0;
+        for (const [start, end] of textRanges) {
+          text.set(merged.subarray(start, end), off);
+          off += end - start;
+        }
+        return { frames, text };
       }
       // Console text that HAPPENS to contain the magic bytes ("TO...") gets
       // buffered awaiting a frame that never completes; flush it as text once
@@ -544,9 +562,12 @@
       // default: match exactly the example's VID:PID; the "show all USB
       // devices" checkbox lifts the filter for other espp devices. WebUSB has
       // no acceptAllDevices option (that's Web Bluetooth) — `filters` is a
-      // required member, and an empty list shows every connected device.
+      // required member. A single EMPTY filter object matches every device
+      // (all USBDeviceFilter members are optional), and unlike a bare
+      // `filters: []` it also satisfies implementations that reject an empty
+      // filter list.
       const options = els.anyDevice.checked
-        ? { filters: [] }
+        ? { filters: [{}] }
         : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
       let device;
       try {
@@ -703,7 +724,13 @@
 
     if (navigator.serial && navigator.serial.addEventListener) {
       navigator.serial.addEventListener("disconnect", (e) => {
-        if (transport && transport.kind === "serial" && e.target === transport.port) {
+        // Per the Web Serial spec the disconnect event fires AT the
+        // SerialPort and bubbles up to navigator.serial, so when listening
+        // here `e.target` IS the port. Early Chromium builds instead shipped
+        // a SerialConnectionEvent that carried the port as `e.port`. Accept
+        // either so every implementation matches the active port.
+        const eventPort = e.port ?? e.target;
+        if (transport && transport.kind === "serial" && eventPort === transport.port) {
           logLine("err", "Serial device disconnected.");
           onTransportGone(transport);
         }

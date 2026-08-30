@@ -259,7 +259,7 @@ extern "C" void app_main(void) {
     // task, and after a delay so the CDC console gets to flush the warning.
     if (pending_crash != CrashKind::None) {
       std::this_thread::sleep_for(1s);
-      perform_crash(pending_crash);
+      perform_crash(pending_crash.load());
     }
     // A terminal attaching to the CDC console missed the boot output; re-log
     // the previous-crash summary for it once per connection.
