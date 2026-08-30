@@ -316,12 +316,6 @@ bool M5StackTab5::initialize_lcd() {
     dpi_cfg.virtual_channel = 0;
     dpi_cfg.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
     dpi_cfg.dpi_clock_freq_mhz = 60;
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
-    dpi_cfg.in_color_format = LCD_COLOR_FMT_RGB565;
-    dpi_cfg.out_color_format = LCD_COLOR_FMT_RGB565;
-#else
-    dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
-#endif
     dpi_cfg.num_fbs = kNumDpiFramebuffers;
     dpi_cfg.video_timing.h_size = display_width_;
     dpi_cfg.video_timing.v_size = display_height_;
@@ -344,12 +338,6 @@ bool M5StackTab5::initialize_lcd() {
     // (M5Stack/esp-bsp value) shrinks the blanking window and desyncs the touch
     // scan, so the panel shows but touch never reports. Keep this at 70 MHz.
     dpi_cfg.dpi_clock_freq_mhz = 70;
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
-    dpi_cfg.in_color_format = LCD_COLOR_FMT_RGB565;
-    dpi_cfg.out_color_format = LCD_COLOR_FMT_RGB565;
-#else
-    dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
-#endif
     dpi_cfg.num_fbs = kNumDpiFramebuffers;
     dpi_cfg.video_timing.h_size = display_width_;
     dpi_cfg.video_timing.v_size = display_height_;
@@ -369,12 +357,6 @@ bool M5StackTab5::initialize_lcd() {
     // against the pixel clock; use the M5GFX reference 70 MHz and porch set
     // (they differ from the ST7123's: VBP 24 / VPW 20 / VFP 200).
     dpi_cfg.dpi_clock_freq_mhz = 70;
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
-    dpi_cfg.in_color_format = LCD_COLOR_FMT_RGB565;
-    dpi_cfg.out_color_format = LCD_COLOR_FMT_RGB565;
-#else
-    dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
-#endif
     dpi_cfg.num_fbs = kNumDpiFramebuffers;
     dpi_cfg.video_timing.h_size = display_width_;
     dpi_cfg.video_timing.v_size = display_height_;
@@ -390,6 +372,18 @@ bool M5StackTab5::initialize_lcd() {
   }
 
   if (lcd_handles_.panel == nullptr) {
+    // The DPI pixel format is set here - in exactly one place, shared by all
+    // controller variants - and is always RGB565: the whole video path is
+    // RGB565-only (see the static_assert at the top of this file), and no
+    // Kconfig or build flag selects any other panel format. The preprocessor
+    // branch below only picks the IDF-version-specific field names for that
+    // one format, never a different depth.
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+    dpi_cfg.in_color_format = LCD_COLOR_FMT_RGB565;
+    dpi_cfg.out_color_format = LCD_COLOR_FMT_RGB565;
+#else
+    dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
+#endif
     logger_.info("Creating DPI panel with resolution {}x{}", dpi_cfg.video_timing.h_size,
                  dpi_cfg.video_timing.v_size);
     ret = esp_lcd_new_panel_dpi(lcd_handles_.mipi_dsi_bus, &dpi_cfg, &lcd_handles_.panel);
@@ -618,7 +612,7 @@ bool M5StackTab5::initialize_lcd() {
 // Scratch buffer that holds the hardware-rotated frame produced by the PPA
 // before it is handed to the panel (see flush()). Kept in PSRAM and aligned to
 // the data-cache line size, which the PPA requires for its output buffer.
-static uint16_t *third_buffer = nullptr;
+static M5StackTab5::Pixel *third_buffer = nullptr;
 static size_t third_buffer_bytes = 0;
 // PPA (Pixel Processing Accelerator) client used to rotate the frame in
 // hardware instead of on the CPU (lv_draw_sw_rotate). CPU rotation of a
@@ -694,8 +688,15 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
       third_buffer = nullptr;
     }
     third_buffer_bytes = required_bytes;
-    third_buffer = (uint16_t *)heap_caps_aligned_alloc(cache_align, third_buffer_bytes,
-                                                       MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    // Request MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA: the buffer is a PPA (DMA)
+    // output target, and these are exactly the caps kPpaOutBufferAlignment is
+    // derived for. The heap layer supports this combination for external
+    // memory (esp_heap_adjust_alignment_to_hw() applies the cache-line
+    // alignment/size the caps require, then maps the request onto the PSRAM
+    // heap), so on the ESP32-P4 - whose PSRAM is DMA-capable - it yields a
+    // DMA-usable PSRAM allocation.
+    third_buffer = static_cast<Pixel *>(heap_caps_aligned_alloc(
+        cache_align, third_buffer_bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA));
     if (third_buffer == nullptr) {
       // The scratch buffer is required for display rotation - both the PPA path
       // and the software fallback rotate into it - so without it a non-zero
@@ -911,9 +912,6 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
   // logical frame is written to the framebuffer unrotated and at unrotated
   // coordinates; the panel flips the whole frame at scan-out, which lands each
   // partial area exactly where LVGL's rotated mapping expects it.
-  // cppcheck-suppress knownConditionTrueFalse // panel_handles_rotation() is
-  // a compile-time constant false only in the (default) configuration with
-  // CONFIG_M5STACK_TAB5_ST7121_HW_ROTATION disabled, which cppcheck analyzes.
   if (rotation > LV_DISPLAY_ROTATION_0 && !panel_handles_rotation(rotation) &&
       third_buffer != nullptr) {
     int32_t ww = lv_area_get_width(area);
