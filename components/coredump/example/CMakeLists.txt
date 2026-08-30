@@ -2,6 +2,10 @@
 # in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.20)
 
+# Build the example (and the espp components it pulls in) as C++23. Must be
+# set before the project.cmake include / project() call so IDF picks it up.
+set(CMAKE_CXX_STANDARD 23)
+
 # NOTE: the IDF component manager is intentionally left ENABLED here (unlike most
 # espp examples) so that it can fetch the managed `espressif/esp_tinyusb`
 # dependency declared by the usb_device component's idf_component.yml. To avoid
@@ -31,5 +35,3 @@ set(
   )
 
 project(coredump_example)
-
-set(CMAKE_CXX_STANDARD 20)

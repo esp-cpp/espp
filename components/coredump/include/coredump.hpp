@@ -293,9 +293,12 @@ public:
   }
 
   /**
-   * @brief Erase the stored core dump (`esp_core_dump_image_erase()`), so the
-   *        next boot reports a clean history. Idempotent: succeeds as a no-op
-   *        when no dump is present.
+   * @brief Erase the stored core dump (`esp_core_dump_image_erase()`).
+   *        Note: this only removes the stored dump. The reset reason of the
+   *        current boot is unaffected — after a panic reset, format_report()
+   *        still reports the abnormal reset reason (with no dump attached)
+   *        until a clean reset follows. Idempotent: succeeds as a no-op when
+   *        no dump is present.
    * @param[out] ec Set on failure (io_error).
    * @return true on success (or no-op), false otherwise (ec is set).
    */

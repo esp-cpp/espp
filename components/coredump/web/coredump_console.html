@@ -1080,6 +1080,11 @@
       const shentsize = view.getUint16(0x2E, true);
       const shnum = view.getUint16(0x30, true);
       if (!shoff || !shnum) throw new Error("ELF has no section headers (stripped?)");
+      // ELF32 section headers are 40 bytes; a smaller e_shentsize is malformed and
+      // would make the loop below reread/misread headers.
+      if (shentsize < 40)
+        throw new Error(`invalid ELF section header entry size (${shentsize} < 40)`);
+      if (shoff + shnum * shentsize > bytes.length) throw new Error("truncated section headers");
       const sections = [];
       for (let i = 0; i < shnum; i++) {
         const off = shoff + i * shentsize;
