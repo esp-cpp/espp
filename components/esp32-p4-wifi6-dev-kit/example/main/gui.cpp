@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <utility>
 
@@ -378,14 +379,30 @@ void Gui::on_clicked(lv_event_t *e) {
   }
 }
 
+// Set a label's text from a string_view without a per-call heap allocation:
+// NUL-terminate into a fixed stack buffer (LVGL needs a C string and copies
+// it), and skip the LVGL call entirely when the text is unchanged.
+// set_status_text() is called at ~10 Hz by the status task, and
+// lv_label_set_text reallocates and invalidates the label even for identical
+// text. The buffer comfortably fits the multi-line status text; anything
+// longer is truncated.
+static void set_label_text(lv_obj_t *label, std::string_view text) {
+  char buf[384];
+  snprintf(buf, sizeof(buf), "%.*s", static_cast<int>(text.size()), text.data());
+  if (strcmp(lv_label_get_text(label), buf) == 0) {
+    return;
+  }
+  lv_label_set_text(label, buf);
+}
+
 void Gui::set_status_text(std::string_view text) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
-  lv_label_set_text(status_label_, std::string(text).c_str());
+  set_label_text(status_label_, text);
 }
 
 void Gui::set_audio_status(std::string_view text) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
-  lv_label_set_text(audio_status_label_, std::string(text).c_str());
+  set_label_text(audio_status_label_, text);
 }
 
 bool Gui::draw_page_active() {

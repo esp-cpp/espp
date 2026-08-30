@@ -3,7 +3,9 @@
 [![Badge](https://components.espressif.com/components/espp/esp32-p4-wifi6-dev-kit/badge.svg)](https://components.espressif.com/components/espp/esp32-p4-wifi6-dev-kit)
 
 Board Support Package for the [Waveshare ESP32-P4-WIFI6-DEV-KIT](https://www.waveshare.com/wiki/ESP32-P4-WIFI6-DEV-KIT)
-board — an ESP32-P4NRW32 (32 MB stacked PSRAM, 16 MB NOR flash) with an onboard
+board — an ESP32-P4NRW32 (32 MB stacked PSRAM; 16 MB NOR flash per the product
+page, though the wiki self-contradicts on 16 vs 32 MB — unverified on
+hardware) with an onboard
 ESP32-C6 co-processor for Wi-Fi 6 / Bluetooth 5 (LE) over SDIO (ESP-Hosted).
 The `espp::Esp32P4Wifi6DevKit` class is a singleton hardware abstraction that
 brings up the board's peripherals with a small, uniform API.

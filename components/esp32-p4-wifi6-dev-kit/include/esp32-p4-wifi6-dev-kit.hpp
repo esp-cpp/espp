@@ -40,8 +40,10 @@
 namespace espp {
 /// @brief Board Support Package (BSP) for the Waveshare ESP32-P4-WIFI6-DEV-KIT board.
 ///
-/// The ESP32-P4-WIFI6-DEV-KIT is an ESP32-P4NRW32 (32 MB stacked PSRAM, 16 MB
-/// NOR flash) multimedia development board with an onboard ESP32-C6
+/// The ESP32-P4-WIFI6-DEV-KIT is an ESP32-P4NRW32 (32 MB stacked PSRAM; 16 MB
+/// NOR flash per the product page, though the wiki self-contradicts on 16 vs
+/// 32 MB - unverified on hardware) multimedia development board with an
+/// onboard ESP32-C6
 /// co-processor that provides Wi-Fi 6 / Bluetooth 5 (LE) over SDIO
 /// (ESP-Hosted). This class provides a singleton interface to the board's
 /// peripherals:
@@ -660,7 +662,13 @@ protected:
   static constexpr int NUM_BYTES_PER_CHANNEL = 2; // 16-bit samples
   static constexpr int UPDATE_FREQUENCY = 60;
   static constexpr int calc_audio_buffer_size(int sample_rate, int num_channels) {
-    return sample_rate * num_channels * NUM_BYTES_PER_CHANNEL / UPDATE_FREQUENCY;
+    // NOTE: divide the rate by the update frequency FIRST so the result is
+    // always a whole number of frames. Multiplying first yields a partial
+    // frame for rates that are not a multiple of the update frequency (e.g.
+    // 22.05 kHz mono -> 735 bytes, half a sample), and reading/writing partial
+    // samples shifts the I2S sample framing on every transfer - heard as loud
+    // static.
+    return (sample_rate / UPDATE_FREQUENCY) * num_channels * NUM_BYTES_PER_CHANNEL;
   }
 
   // Internal I2C bus (shared by the ES8311 codec)
