@@ -10,6 +10,11 @@ cmake_minimum_required(VERSION 3.20)
 # EXTRA_COMPONENT_DIRS is narrowed to just the components this example uses
 # (plus their transitive dependencies); the in-repo espp components there
 # satisfy the `espp/*` dependencies locally.
+
+# Build this example as C++23; must be set before including project.cmake so
+# the IDF build system picks it up for all components.
+set(CMAKE_CXX_STANDARD 23)
+
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 # add only the component directories that we want to use
@@ -51,5 +56,3 @@ set(
   )
 
 project(bldc_haptics_example)
-
-set(CMAKE_CXX_STANDARD 20)

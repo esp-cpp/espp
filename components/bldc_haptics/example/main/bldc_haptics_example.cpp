@@ -63,19 +63,22 @@ class HapticKnob : public BldcHaptics {
 public:
   using BldcHaptics::BldcHaptics;
 
-  /// Shaft angle (radians) of the center of the current detent. The field
-  /// itself is std::atomic<float>, so read it under detent_mutex_ (mirroring
-  /// config_copy()) purely to order it with update_detent_config()'s paired
-  /// center + config update.
-  float detent_center() {
-    std::unique_lock<std::mutex> lk(detent_mutex_);
-    return current_detent_center_;
-  }
+  /// Paired snapshot of the detent state that update_detent_config() writes
+  /// together: the active config and the shaft angle (radians) of the center
+  /// of the current detent.
+  struct DetentSnapshot {
+    espp::detail::DetentConfig config;
+    float center;
+  };
 
-  /// Thread-safe copy of the active detent config.
-  espp::detail::DetentConfig config_copy() {
+  /// Thread-safe single-lock snapshot of the active detent config and detent
+  /// center. Taking both under ONE detent_mutex_ acquisition guarantees they
+  /// belong to the same update_detent_config() generation - separate
+  /// accessors could interleave with a concurrent config update and return a
+  /// torn (mismatched) pair.
+  DetentSnapshot detent_snapshot() {
     std::unique_lock<std::mutex> lk(detent_mutex_);
-    return detent_config_;
+    return {detent_config_, current_detent_center_};
   }
 };
 
@@ -99,7 +102,10 @@ static const std::array<Preset, 9> kPresets = {{
 }};
 
 extern "C" void app_main(void) {
-  espp::Logger logger({.tag = "BLDC Haptics Example", .level = espp::Logger::Verbosity::INFO});
+  // rate_limit only affects the *_rate_limited() calls (e.g. the USB TX drop
+  // breadcrumb in usb_send below).
+  espp::Logger logger(
+      {.tag = "BLDC Haptics Example", .rate_limit = 1s, .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting USB-controlled BLDC haptics example");
 
   namespace proto = haptics_proto;
@@ -296,11 +302,14 @@ extern "C" void app_main(void) {
   // neighboring detents. Position DEcreases as the shaft angle increases (see
   // the snap logic in BldcHaptics::motor_task), hence the minus sign.
   auto continuous_value = [&]() -> float {
-    const float width = haptic_motor.config_copy().position_width;
+    // Single-lock snapshot: width and center must come from the same detent
+    // config generation (see HapticKnob::detent_snapshot()).
+    const auto detent = haptic_motor.detent_snapshot();
+    const float width = detent.config.position_width;
     const float position = haptic_motor.get_position();
     if (width <= 0.0f)
       return position;
-    const float angle_to_center = motor->get_shaft_angle() - haptic_motor.detent_center();
+    const float angle_to_center = motor->get_shaft_angle() - detent.center;
     return position - angle_to_center / width;
   };
 
@@ -371,7 +380,15 @@ extern "C" void app_main(void) {
     if (frame.empty())
       return;
     std::lock_guard<std::mutex> lk(usb_tx_mutex);
-    usb.write_vendor(frame);
+    std::error_code tx_ec;
+    if (!usb.write_vendor(frame, tx_ec)) {
+      // The frame was dropped (FIFO full / host gone). The host notices via
+      // its own timeout, but keep a device-side breadcrumb - it is the signal
+      // needed when diagnosing OTA / protocol issues. Rate-limited so a
+      // disconnected host streaming telemetry cannot flood the console.
+      logger.warn_rate_limited("USB vendor TX failed, dropped {}-byte frame: {}", frame.size(),
+                               tx_ec.message());
+    }
   };
 
   // RX bytes arrive in the TinyUSB task context: queue them and dispatch from

@@ -909,10 +909,21 @@ bool UsbDevice::write_vendor(std::span<const uint8_t> data, std::error_code &ec)
   // receive callback, which is dispatched on the TinyUSB task), tud_task() is
   // below us on this very stack, so the TX-complete events that refill the
   // endpoint from the FIFO cannot be processed while we sleep - waiting would
-  // just burn the full timeout and truncate anyway. Fail fast instead; callers
-  // needing replies larger than the FIFO should queue the work to their own
-  // task (see the docs on write_vendor()).
+  // just burn the full timeout and truncate anyway. Writes from this context
+  // are therefore ALL-OR-NOTHING: check up front that the whole frame fits in
+  // the FIFO and fail fast WITHOUT enqueueing anything if it does not - a
+  // partially-enqueued frame would be transmitted and poison the byte stream
+  // for the host-side parser. Callers needing replies larger than the FIFO
+  // should queue the work to their own task (see the docs on write_vendor()).
   const bool in_tinyusb_task = on_tinyusb_task();
+  if (in_tinyusb_task && tud_vendor_write_available() < data.size()) {
+    logger_.warn_rate_limited("Vendor TX FIFO cannot hold the whole {}-byte frame in "
+                              "TinyUSB-callback context (cannot wait for a drain here), dropping "
+                              "it - send large frames from a separate task instead",
+                              data.size());
+    ec = std::make_error_code(std::errc::no_buffer_space);
+    return false;
+  }
   static constexpr TickType_t kVendorWriteTimeoutTicks = pdMS_TO_TICKS(250);
   // Poll at ~1 ms, but never less than one tick (pdMS_TO_TICKS(1) is 0 when
   // the tick rate is below 1 kHz, and vTaskDelay(0) would not block at all).
