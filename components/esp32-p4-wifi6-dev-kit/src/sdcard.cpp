@@ -8,8 +8,10 @@ namespace espp {
 
 bool Esp32P4Wifi6DevKit::initialize_sdcard(const SdCardConfig &config) {
   if (sdcard_) {
-    logger_.error("SD card already initialized!");
-    return false;
+    // Idempotent, matching the other initialize_* methods: calling again is
+    // harmless, so warn and report success.
+    logger_.warn("SD card already initialized");
+    return true;
   }
 
   logger_.info("Initializing SD card (4-bit SDMMC)");

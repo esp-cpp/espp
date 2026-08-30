@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 
+# Set the C++ standard before project()/project.cmake so the IDF build system
+# picks it up when it configures the toolchain.
+set(CMAKE_CXX_STANDARD 23)
+
 # The component manager is needed to pull the managed camera components
 # (espressif/esp_video + espressif/esp_cam_sensor). They are declared as
 # dependencies of the esp32-p4-wifi6-dev-kit BSP (components/esp32-p4-wifi6-dev-kit/idf_component.yml)
@@ -43,5 +47,3 @@ set(
   )
 
 project(esp32_p4_wifi6_dev_kit_example)
-
-set(CMAKE_CXX_STANDARD 20)

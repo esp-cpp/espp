@@ -20,7 +20,7 @@
 
 #include "esp32-p4-wifi6-dev-kit.hpp"
 
-using namespace espp;
+namespace espp {
 
 ////////////////////////
 //  Camera Functions  //
@@ -362,3 +362,5 @@ void Esp32P4Wifi6DevKit::teardown_camera_pipeline() {
 uint16_t Esp32P4Wifi6DevKit::camera_width() const { return camera_width_; }
 
 uint16_t Esp32P4Wifi6DevKit::camera_height() const { return camera_height_; }
+
+} // namespace espp
