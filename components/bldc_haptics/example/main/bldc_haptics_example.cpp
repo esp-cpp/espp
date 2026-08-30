@@ -63,8 +63,14 @@ class HapticKnob : public BldcHaptics {
 public:
   using BldcHaptics::BldcHaptics;
 
-  /// Shaft angle (radians) of the center of the current detent.
-  float detent_center() const { return current_detent_center_; }
+  /// Shaft angle (radians) of the center of the current detent. The field
+  /// itself is std::atomic<float>, so read it under detent_mutex_ (mirroring
+  /// config_copy()) purely to order it with update_detent_config()'s paired
+  /// center + config update.
+  float detent_center() {
+    std::unique_lock<std::mutex> lk(detent_mutex_);
+    return current_detent_center_;
+  }
 
   /// Thread-safe copy of the active detent config.
   espp::detail::DetentConfig config_copy() {
@@ -715,8 +721,10 @@ extern "C" void app_main(void) {
   while (true) {
     std::this_thread::sleep_for(1s);
     // A terminal attaching to the CDC console missed the boot output; re-log
-    // the previous-crash summary for it once per connection.
-    const bool cdc_connected = usb.is_cdc_connected();
+    // the previous-crash summary for it once per connection. (is_cdc_connected
+    // is a safe no-op returning false while uninitialized, but gate on usb_ok
+    // anyway so the intent is explicit.)
+    const bool cdc_connected = usb_ok && usb.is_cdc_connected();
     if (cdc_connected && !cdc_was_connected && !crash_report.empty())
       logger.error("Previous abnormal reset: {}", crash_report);
     cdc_was_connected = cdc_connected;

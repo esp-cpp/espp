@@ -515,10 +515,12 @@
       try {
         // default: match exactly this example's VID:PID; the checkbox lifts
         // the filter for other devices. WebUSB has no acceptAllDevices option
-        // (that's Web Bluetooth) — `filters` is a required member, and an
-        // empty list shows every connected device.
+        // (that's Web Bluetooth) — `filters` is a required member, and a
+        // single empty filter object matches every connected device (all
+        // USBDeviceFilter members are optional), regardless of how strictly
+        // an implementation treats an empty `filters` list.
         const options = els.anyDevice.checked
-          ? { filters: [] }
+          ? { filters: [{}] }
           : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
         device = await navigator.usb.requestDevice(options);
       } catch (e) {
@@ -778,26 +780,41 @@
       }
     }
 
+    // Reports a truncated/corrupt payload (the rd* helpers throw RangeError
+    // past the end of the DataView) without leaving the UI half-updated: the
+    // parse functions below read into locals and only commit on full success.
+    function protocolError(what, payload, e) {
+      logLine("err", "Malformed " + what + " payload (" + payload.length + " bytes): " +
+              (e && e.message ? e.message : e));
+      setStatus("error", "Protocol error");
+    }
+
     function parseModes(payload) {
-      const r = reader(payload);
-      const count = rdU8(r);
-      modes = [];
-      for (let i = 0; i < count; i++) {
-        const m = {};
-        m.index = rdU8(r);
-        m.min = rdI32(r);
-        m.max = rdI32(r);
-        m.width = rdF32(r);
-        m.detentStrength = rdF32(r);
-        m.endStrength = rdF32(r);
-        m.snapPoint = rdF32(r);
-        const n = rdU8(r);
-        m.detents = [];
-        for (let k = 0; k < n; k++) m.detents.push(rdI32(r));
-        m.name = rdStr(r);
-        m.bounded = m.max >= m.min;
-        modes.push(m);
+      const parsed = [];
+      try {
+        const r = reader(payload);
+        const count = rdU8(r);
+        for (let i = 0; i < count; i++) {
+          const m = {};
+          m.index = rdU8(r);
+          m.min = rdI32(r);
+          m.max = rdI32(r);
+          m.width = rdF32(r);
+          m.detentStrength = rdF32(r);
+          m.endStrength = rdF32(r);
+          m.snapPoint = rdF32(r);
+          const n = rdU8(r);
+          m.detents = [];
+          for (let k = 0; k < n; k++) m.detents.push(rdI32(r));
+          m.name = rdStr(r);
+          m.bounded = m.max >= m.min;
+          parsed.push(m);
+        }
+      } catch (e) {
+        protocolError("MODES", payload, e); // keep the previous mode list
+        return;
       }
+      modes = parsed;
       logLine("sys", "Loaded " + modes.length + " detent presets.");
     }
 
@@ -815,14 +832,22 @@
     function currentMode() { return modes.find((m) => m.index === modeIndex) || null; }
 
     function applyStatus(payload) {
-      const r = reader(payload);
-      modeIndex = rdU8(r);
-      deviceFlags = rdU8(r);
-      const position = rdI32(r);
-      const value = rdF32(r);
-      const angle = rdF32(r);
-      const velocity = rdF32(r);
-      const periodMs = rdU16(r);
+      let mode, flags, position, value, angle, velocity, periodMs;
+      try {
+        const r = reader(payload);
+        mode = rdU8(r);
+        flags = rdU8(r);
+        position = rdI32(r);
+        value = rdF32(r);
+        angle = rdF32(r);
+        velocity = rdF32(r);
+        periodMs = rdU16(r);
+      } catch (e) {
+        protocolError("STATUS", payload, e); // keep the previous status
+        return;
+      }
+      modeIndex = mode;
+      deviceFlags = flags;
       telem = { position, value, angle, velocity };
       renderValue = value;
       const rateOptions = [...els.rateSelect.options].map((o) => parseInt(o.value, 10));
