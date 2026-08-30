@@ -231,7 +231,20 @@ bool Esp32P4Wifi6DevKit::camera_task_callback(std::mutex &m, std::condition_vari
   buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   buf.memory = V4L2_MEMORY_MMAP;
   if (ioctl(camera_fd_, VIDIOC_DQBUF, &buf) == 0) {
-    if (camera_callback_ && buf.index < CAMERA_BUFFER_COUNT && camera_buffers_[buf.index]) {
+    // Validate the dequeued index against the RUNTIME buffer count before it
+    // indexes the mmap arrays: VIDIOC_REQBUFS may have granted fewer buffers
+    // than CAMERA_BUFFER_COUNT, so entries past camera_buffer_count_ were
+    // never mapped. An out-of-range index means the driver and our
+    // bookkeeping disagree - treat it as a fatal capture error (there is no
+    // valid mapping to hand to the callback or to requeue).
+    if (buf.index >= static_cast<uint32_t>(camera_buffer_count_)) {
+      logger_.error("VIDIOC_DQBUF returned out-of-range buffer index {} (only {} buffers "
+                    "allocated); stopping the camera",
+                    buf.index, camera_buffer_count_);
+      teardown_camera_pipeline();
+      return true; // stop the task; the owner can re-init via initialize_camera()
+    }
+    if (camera_callback_ && camera_buffers_[buf.index]) {
       // Prefer the driver-reported payload size; fall back to the computed
       // RGB565 size only if the driver does not report bytesused. Either value
       // is then clamped to the mmap'd buffer size so a bogus driver-reported

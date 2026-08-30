@@ -105,7 +105,8 @@ extern "C" void app_main(void) {
   // on-screen status ~10x/s. Ethernet state is read live from the board; SD
   // state is published into the atomics above as that subsystem comes up.
   espp::Task status_task(espp::Task::Config{
-      .callback = [&board](std::mutex &m, std::condition_variable &cv) -> bool {
+      .callback = [&board](std::mutex &m, std::condition_variable &cv,
+                           bool &task_notified) -> bool {
         const size_t free_internal = heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024;
         const size_t free_psram = heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024;
         const int uptime_s = static_cast<int>((esp_timer_get_time() - status_start_us) / 1'000'000);
@@ -130,8 +131,16 @@ extern "C" void app_main(void) {
             std::to_string(free_psram) + " KB psram free, up " + std::to_string(uptime_s) + " s";
         gui.set_status_text(status);
         std::unique_lock<std::mutex> lock(m);
-        cv.wait_for(lock, 100ms);
-        return false;
+        // Wait with the notified flag as the predicate so a spurious
+        // condition-variable wake does not stop the status task; per the Task
+        // contract the flag is checked and cleared under m. A true predicate
+        // means Task::stop() was requested, so return true so stop() joins
+        // promptly instead of waiting out the refresh interval.
+        if (cv.wait_for(lock, 100ms, [&task_notified] { return task_notified; })) {
+          task_notified = false;
+          return true; // stop the task
+        }
+        return false; // timed out: refresh again
       },
       .task_config = {.name = "p4-wifi6 status", .stack_size_bytes = 6144}});
   status_task.start();
