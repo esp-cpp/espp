@@ -43,15 +43,31 @@ static constexpr DisplayRotation to_display_rotation(lv_display_rotation_t rotat
   return static_cast<DisplayRotation>(rotation);
 }
 
+// The entire video path is RGB565-only: the DPI panel is configured for
+// RGB565 in initialize_lcd(), flush()'s PPA rotation uses
+// PPA_SRM_COLOR_MODE_RGB565 for both its input and output, and every buffer
+// is sized in sizeof(Pixel) = 2-byte pixels. LVGL must therefore render
+// RGB565 as well (LV_COLOR_DEPTH 16) — with any other color depth the flush
+// callback would receive pixels these fixed color modes and sizes
+// misinterpret (wrong colors at best, buffer overruns at worst). Refuse to
+// build such a configuration instead of failing at runtime; supporting
+// another depth means plumbing the active format through the DPI config, the
+// PPA color modes, and the buffer sizing together.
+static_assert(LV_COLOR_DEPTH == 16 && sizeof(M5StackTab5::Pixel) == sizeof(uint16_t),
+              "The Tab5 video path (DPI panel config, PPA rotation color modes, buffer "
+              "sizing) is RGB565-only; configure LVGL with LV_COLOR_DEPTH 16");
+
 // Number of framebuffers the DPI panel is created with (esp_lcd_dpi_panel_config_t::num_fbs,
 // used for every controller variant below). The direct-to-framebuffer PPA
 // rotation in flush() caches THE single framebuffer pointer at init and writes
 // into it unconditionally; with more than one framebuffer the driver flips
 // which buffer is scanned out, and rotating into a fixed one would
-// intermittently update a non-visible buffer. flush() therefore only enables
-// that optimization when this is 1 (see initialize_lcd()); if you raise this,
-// the code falls back to the scratch-buffer path (or teach it to track the
-// active framebuffer).
+// intermittently update a non-visible buffer. That optimization is therefore
+// only implemented for exactly one framebuffer: raising this value requires
+// first teaching the direct-to-framebuffer path to track the active
+// framebuffer (or removing it in favor of the always-correct scratch-buffer
+// path), and a static_assert in initialize_lcd() enforces that at compile
+// time rather than letting the stale-pointer bug ship.
 static constexpr uint8_t kNumDpiFramebuffers = 1;
 
 // Alignment the PPA requires for its output buffer in external (PSRAM) memory:
@@ -171,6 +187,20 @@ bool M5StackTab5::initialize_lcd() {
   // partially initialized panel or a torn framebuffer-pointer/size pair. The
   // gate is store-released true as the final step of this function, after
   // every field has been written and the initial panel rotation applied.
+
+  // Start every attempt from a clean slate for the state that is otherwise
+  // only assigned on success paths below. A failed attempt never opened the
+  // gate, so no reader has seen these, but it may still have left them set —
+  // and a retry does not necessarily rewrite them (the framebuffer caching
+  // below deliberately leaves them untouched when the query or alignment
+  // check fails). Without this reset such a retry could open the gate with a
+  // stale framebuffer pointer from the previous attempt still cached, and
+  // flush()'s direct-to-framebuffer PPA path would then write through it.
+  // (display_driver_ / display_controller_ need no reset here: display_driver_
+  // is .reset() unconditionally below and both are rewritten together before
+  // the gate can open.)
+  dpi_framebuffer_ = nullptr;
+  dpi_framebuffer_bytes_ = 0;
 
   if (!ioexp_0x43_) {
     if (!initialize_io_expanders()) {
@@ -494,8 +524,11 @@ bool M5StackTab5::initialize_lcd() {
   // This optimization is only valid with a single DPI framebuffer: caching one
   // fixed pointer assumes the panel scans that same buffer forever. With
   // num_fbs > 1 the driver flips between buffers and the PPA could rotate into
-  // one that is not being scanned out, so the guard below keeps the (always
-  // correct) scratch-buffer path instead.
+  // one that is not being scanned out. Multi-framebuffer operation is
+  // intentionally unsupported until this path learns to track the active
+  // framebuffer, and the static_assert below turns raising
+  // kNumDpiFramebuffers without doing that work into a compile-time error
+  // instead of an intermittent visual glitch.
   static_assert(kNumDpiFramebuffers == 1,
                 "The direct-to-framebuffer PPA rotation caches a single framebuffer pointer; "
                 "with multiple DPI framebuffers it must track the active one instead");
@@ -649,7 +682,7 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
   // data cache line size: both the pointer and the size must be a multiple of
   // it (see kPpaOutBufferAlignment).
   const size_t cache_align = kPpaOutBufferAlignment;
-  size_t required_bytes = pixel_buffer_size * sizeof(uint16_t);
+  size_t required_bytes = pixel_buffer_size * sizeof(Pixel);
   required_bytes = (required_bytes + cache_align - 1) / cache_align * cache_align;
 
   // Reuse the existing scratch buffer if it is already the right size; otherwise
