@@ -548,10 +548,10 @@ protected:
   // Display geometry / per-panel parameters
   /////////////////////////////////////////////////////////////////////////////
   // Per-panel parameters (geometry, DPI clock, and the DPI video timing porches).
-  // The active panel is selected via Kconfig. On the ESP32-P4-WIFI6-DEV-KIT both panels
-  // are reset over DSI (no reset GPIO) and neither has a backlight GPIO (the
-  // backlight is driven by an on-board I2C controller), so backlight_io and
-  // reset_io are GPIO_NUM_NC for both.
+  // The active panel is selected via Kconfig. On the ESP32-P4-WIFI6-DEV-KIT all
+  // supported panels are reset over DSI (no reset GPIO) and none has a backlight
+  // GPIO (the backlight is driven by an on-board I2C controller), so
+  // backlight_io and reset_io are GPIO_NUM_NC for all of them.
   struct PanelParams {
     size_t width;
     size_t height;
@@ -686,6 +686,9 @@ protected:
   std::shared_ptr<I2c::Device<uint8_t>> es8311_i2c_device_;
   std::unique_ptr<espp::Task> audio_task_{nullptr};
   i2s_chan_handle_t audio_tx_handle{nullptr};
+  // Serializes TX-channel access: audio_task_callback() writes continuously
+  // while audio_sample_rate(rate) may disable/reconfigure the channel.
+  std::mutex audio_tx_mutex_;
   i2s_std_config_t audio_std_cfg{};
   i2s_event_callbacks_t audio_tx_callbacks_{};
   std::vector<uint8_t> audio_tx_buffer;

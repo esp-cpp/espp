@@ -30,7 +30,7 @@ jobs:
           #       BSPs (esp32-p4-eth / esp32-p4-function-ev-board /
           #       esp32-p4-nano / esp32-p4-wifi6-dev-kit /
           #       esp32-p4-wifi6-poe-eth), which depend on espp/ethernet, so
-          #       they are uploaded to the registry first.
+          #       ethernet is uploaded to the registry ahead of them.
           #
           # Note: magnetic_encoder is intentionally listed ahead of as5600 and
           #       mt6701, which depend on espp/magnetic_encoder, so it is

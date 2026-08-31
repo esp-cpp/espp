@@ -11,6 +11,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdio>
 #include <cstring>
 #include <mutex>
 #include <string>
@@ -118,18 +119,30 @@ extern "C" void app_main(void) {
                      std::to_string(esp_ip4_addr3_16(&ip)) + "." +
                      std::to_string(esp_ip4_addr4_16(&ip));
         }
-        std::string status =
-            "Panel:    " + std::string(board.get_display_controller_name()) + " (" +
-            std::to_string(board.display_width()) + "x" + std::to_string(board.display_height()) +
-            ")\n" + "Touch:    " + std::to_string(touch_n.load()) + " pts (" +
-            std::to_string(touch_x.load()) + ", " + std::to_string(touch_y.load()) + ")\n" +
-            "SD card:  " +
-            (sd_card_mounted ? std::to_string(sd_card_size_mb.load()) + " MB" : "none") + "\n" +
-            "Ethernet: " + eth_text + "\n" + "Camera:   " + std::to_string(board.camera_width()) +
-            "x" + std::to_string(board.camera_height()) + "\n" +
-            "System:   " + std::to_string(free_internal) + " KB int, " +
-            std::to_string(free_psram) + " KB psram free, up " + std::to_string(uptime_s) + " s";
-        gui.set_status_text(status);
+        // Format into a fixed stack buffer (no per-cycle heap churn from many
+        // std::string temporaries at 10 Hz) and skip the LVGL update when the
+        // text has not changed since the last cycle.
+        char status[320];
+        std::snprintf(
+            status, sizeof(status),
+            "Panel:    %s (%ux%u)\n"
+            "Touch:    %d pts (%d, %d)\n"
+            "SD card:  %s\n"
+            "Ethernet: %s\n"
+            "Camera:   %ux%u\n"
+            "System:   %u KB int, %u KB psram free, up %u s",
+            board.get_display_controller_name(), static_cast<unsigned>(board.display_width()),
+            static_cast<unsigned>(board.display_height()), touch_n.load(), touch_x.load(),
+            touch_y.load(),
+            sd_card_mounted ? (std::to_string(sd_card_size_mb.load()) + " MB").c_str() : "none",
+            eth_text.c_str(), static_cast<unsigned>(board.camera_width()),
+            static_cast<unsigned>(board.camera_height()), static_cast<unsigned>(free_internal),
+            static_cast<unsigned>(free_psram), static_cast<unsigned>(uptime_s));
+        static std::string last_status;
+        if (last_status != status) {
+          last_status = status;
+          gui.set_status_text(status);
+        }
         std::unique_lock<std::mutex> lock(m);
         // Wait with the notified flag as the predicate so a spurious
         // condition-variable wake does not stop the status task; per the Task
