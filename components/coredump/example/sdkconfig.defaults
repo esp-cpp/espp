@@ -1,0 +1,48 @@
+# This example uses the native USB-OTG peripheral (vendor / WebUSB + CDC), which
+# is only available on the ESP32-S3 (also S2 / P4) -- NOT the classic ESP32. Pin
+# the target here so a bare `idf.py build` does not fall back to esp32.
+CONFIG_IDF_TARGET="esp32s3"
+
+# Common ESP-related
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# Enable the TinyUSB vendor-specific class (THE key enablement for the vendor /
+# WebUSB interface). esp_tinyusb gates CFG_TUD_VENDOR behind
+# CONFIG_TINYUSB_VENDOR_COUNT; setting it > 0 compiles in the vendor class
+# driver so espp::UsbDevice's vendor function (bInterfaceClass 0xFF + WebUSB)
+# works.
+CONFIG_TINYUSB_VENDOR_COUNT=1
+
+# The CDC function carries the system console (esp_tusb_init_console) AND the
+# core-dump protocol frames (the web console's Web Serial transport); the HID
+# count just keeps the usb_device component's HID references compiling (no HID
+# interface is instantiated here).
+CONFIG_TINYUSB_CDC_ENABLED=y
+CONFIG_TINYUSB_CDC_COUNT=1
+CONFIG_TINYUSB_HID_COUNT=1
+
+# Size the TinyUSB FIFOs to hold a complete core-dump protocol frame. The
+# largest reply is a DATA frame: 7-byte header + (4-byte offset + 2048 image
+# bytes with the web console's read chunking) + 4-byte CRC = 2,063 bytes. The
+# esp_tinyusb defaults (vendor TX 64, CDC TX 512) are far smaller, and a write
+# larger than the free FIFO space would truncate the frame and break every
+# download, so give each TX FIFO (and the vendor RX FIFO) a comfortable 4 KiB.
+CONFIG_TINYUSB_VENDOR_RX_BUFSIZE=4096
+CONFIG_TINYUSB_VENDOR_TX_BUFSIZE=4096
+CONFIG_TINYUSB_CDC_TX_BUFSIZE=4096
+
+# Custom partition table with a dedicated `coredump` data partition (see
+# partitions.csv) on a 4MB flash.
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_OFFSET=0x8000
+CONFIG_PARTITION_TABLE_MD5=y
+
+# Panic core dumps are saved to the dedicated flash partition (ELF format) and
+# read back by the espp coredump component on the NEXT boot: with TinyUSB
+# owning the S3's only USB PHY there is no live USB-Serial-JTAG console during
+# a panic, so the flash core dump is how a crash backtrace is captured.
+CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y

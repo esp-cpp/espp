@@ -1,0 +1,541 @@
+#pragma once
+
+#include <algorithm>
+#include <cstdint>
+#include <cstring>
+#include <iterator>
+#include <mutex>
+#include <optional>
+#include <span>
+#include <string>
+#include <system_error>
+
+#include "sdkconfig.h"
+
+#include "esp_core_dump.h"
+
+// ESP-IDF 6.0 dropped the binary core-dump format and REMOVED the
+// CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF Kconfig symbol (ELF is now the only,
+// implicit format). Older IDF (>=5.2) still defines it and can also select
+// BIN. The ELF-only summary / panic-reason readback APIs
+// (esp_core_dump_get_summary / esp_core_dump_get_panic_reason) are available
+// whenever the STORED format is ELF - which is: on 6.0 always (BIN gone), and
+// on 5.x when BIN was not selected. Detect that without depending on the
+// removed symbol, so the summary path is not silently compiled out on 6.0.
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH && !defined(CONFIG_ESP_COREDUMP_DATA_FORMAT_BIN)
+#define ESPP_COREDUMP_HAS_ELF_SUMMARY 1
+#else
+#define ESPP_COREDUMP_HAS_ELF_SUMMARY 0
+#endif
+#include "esp_idf_version.h"
+// Fallback definitions so static analysis (cppcheck, which is run without the
+// ESP-IDF include paths) can evaluate the ESP_IDF_VERSION checks below instead
+// of failing on an undefined function-like macro. Mirrors the guard used
+// across espp (e.g. bldc_driver, led). The real IDF header provides these.
+#ifndef ESP_IDF_VERSION_VAL
+#define ESP_IDF_VERSION_VAL(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef ESP_IDF_VERSION
+#define ESP_IDF_VERSION ESP_IDF_VERSION_VAL(0, 0, 0)
+#endif
+#include "esp_partition.h"
+#include "esp_system.h"
+
+#include "base_component.hpp"
+#include "format.hpp"
+
+namespace espp {
+
+/**
+ * @brief Idiomatic espp access to the ESP-IDF flash core dump.
+ *
+ * Wraps the `espcoredump` component's flash APIs
+ * (`CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH` + a `coredump` data partition) in a
+ * no-exceptions, `std::error_code`-reporting espp API:
+ *
+ * - **Crash detection & summary**: `has_core_dump()`, `summary()` (the raw
+ *   `esp_core_dump_summary_t`) and `format_report()` — a ready-to-print /
+ *   ready-to-transmit text report with the reset reason, crashed task, PC,
+ *   raw backtrace addresses (Xtensa) or a captured stack dump (RISC-V), and
+ *   the exact `addr2line` command line (with the right toolchain prefix for
+ *   the build target) to decode them. Abnormal resets that do NOT produce a
+ *   core dump (brownout, interrupt / task watchdog) are still reported with a
+ *   short hint (e.g. brownout → check power).
+ * - **Raw image access**: `image_size()`, `read_image(offset, out, ec)` and
+ *   `erase(ec)` for downloading the complete core-dump image (the flash
+ *   header + ELF core file + checksum) over any transport, so host tools
+ *   (`espcoredump.py`, gdb, or the espp core-dump web console) can do the
+ *   full offline analysis.
+ *
+ * The class performs no allocation beyond the returned strings and holds no
+ * state other than a small cache of the validated image location (the
+ * full-image checksum scan runs once, not once per read_image() chunk, so
+ * chunked downloads stay linear; erase() invalidates the cache); all methods
+ * are safe to call whether or not a core dump is present. All flash-touching methods
+ * (`has_core_dump()`, `summary()`, `format_report()`, `image_size()`, `read_image()`, `erase()`)
+ * are serialized by an internal mutex, so one CoreDump instance can be shared by several threads /
+ * transports (e.g. multiple espp::CoreDumpService instances) without a READ on one racing an ERASE
+ * on another. When `CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH` is disabled, the dump-related methods
+ * degrade gracefully (no dump present) and `format_report()` still reports every abnormal reset
+ * reason (panic, brownout, watchdogs, ...) — it returns an empty string only for clean reset
+ * reasons (power-on, software reset, deep-sleep wake, ...).
+ *
+ * For serving this information over a byte-stream transport (USB vendor /
+ * WebUSB, CDC / Web Serial, sockets) see espp::CoreDumpService
+ * (`coredump_service.hpp`) and the browser web app
+ * `web/coredump_console.html`.
+ *
+ * \section coredump_ex1 CoreDump Example
+ * \snippet coredump_example.cpp coredump_example
+ */
+class CoreDump : public BaseComponent {
+public:
+  /// Configuration for the CoreDump component.
+  struct Config {
+    espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Logger verbosity.
+  };
+
+  /// @brief Construct the CoreDump accessor with the default configuration.
+  CoreDump()
+      : BaseComponent("CoreDump", espp::Logger::Verbosity::WARN) {}
+
+  /**
+   * @brief Construct the CoreDump accessor. Does not touch the flash.
+   * @param config Configuration parameters.
+   */
+  explicit CoreDump(const Config &config)
+      : BaseComponent("CoreDump", config.log_level) {}
+
+  /// @brief Whether a valid core dump image is present in the coredump flash
+  ///        partition (`esp_core_dump_image_check()`).
+  bool has_core_dump() const {
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+    std::lock_guard<std::mutex> lock(mutex_);
+    return has_core_dump_locked();
+#else
+    return false;
+#endif
+  }
+
+#if ESPP_COREDUMP_HAS_ELF_SUMMARY
+  /// @brief The core dump summary (crashed task, PC, backtrace / stack dump,
+  ///        app ELF SHA-256), or std::nullopt if no valid core dump is
+  ///        present.
+  /// @note Only available with the ELF core dump format (the only format on
+  ///       ESP-IDF >= 6.0; the non-BIN selection on older IDF).
+  std::optional<esp_core_dump_summary_t> summary() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!has_core_dump_locked())
+      return std::nullopt;
+    esp_core_dump_summary_t s = {};
+    if (esp_core_dump_get_summary(&s) != ESP_OK)
+      return std::nullopt;
+    return s;
+  }
+#endif
+
+  /**
+   * @brief Format a human-readable report of the last reset and any stored
+   *        core dump.
+   *
+   * The report describes two related but SEPARATE events: the reset reason of
+   * THIS boot, and the stored core dump image — which is not necessarily from
+   * the latest reset, because IDF keeps the image until it is explicitly
+   * erased (a later brownout / software / watchdog reset leaves an older
+   * panic image in place, and no-overwrite mode can even preserve one across
+   * another panic).
+   *
+   * - With a core dump present: the reset reason, panic reason (if recorded),
+   *   crashed task + PC, the raw backtrace addresses (with a "(corrupted)"
+   *   marker when the on-device unwind failed) on Xtensa targets or the size
+   *   of the captured stack dump on RISC-V, and the exact
+   *   `addr2line` command line (correct toolchain prefix for
+   *   CONFIG_IDF_TARGET) to decode the addresses against the app ELF. When
+   *   the current reset reason is NOT PANIC, the dump is explicitly labeled
+   *   as coming from an earlier crash rather than from this reset.
+   * - Abnormal reset without a core dump: the reset reason itself is
+   *   reported with a short hint. Brownout and watchdog resets never write a
+   *   dump (brownout → check the power supply; watchdog → a task or ISR
+   *   hogged the CPU); any other abnormal reason (PANIC when the dump is
+   *   missing — core dump to flash disabled, no `coredump` partition, or the
+   *   dump failed / was already erased — plus UNKNOWN, power-glitch,
+   *   CPU-lockup, efuse-error resets) is reported as "no core dump image
+   *   available".
+   * - Only genuinely clean reset reasons return an empty string, meaning
+   *   "nothing abnormal to report": power-on, external-pin reset, software
+   *   reset, deep-sleep wake, SDIO, and USB / JTAG resets.
+   *
+   * @return The report text ("" = clean boot history).
+   */
+  std::string format_report() const {
+    const esp_reset_reason_t reset_reason = esp_reset_reason();
+    const char *reason_name = reset_reason_name(reset_reason);
+    std::string report;
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (has_core_dump_locked()) {
+      report = fmt::format("last reset: {} ({})", reason_name, static_cast<int>(reset_reason));
+      // The stored image is not necessarily from the LATEST reset: IDF keeps
+      // it until it is explicitly erased, so a later brownout / software /
+      // watchdog reset leaves an older panic image in place. When the current
+      // reset reason is not PANIC, label the dump as a separate, earlier
+      // event instead of implying it belongs to this reset.
+      if (reset_reason != ESP_RST_PANIC)
+        report += "\ncore dump: from an EARLIER crash, not this reset "
+                  "(the image persists until erased)";
+#if ESPP_COREDUMP_HAS_ELF_SUMMARY
+      // (the panic reason / summary readback APIs are only implemented for
+      // the ELF core dump format; see ESPP_COREDUMP_HAS_ELF_SUMMARY)
+      char panic_reason[128] = {};
+      const esp_err_t pr_err = esp_core_dump_get_panic_reason(panic_reason, sizeof(panic_reason));
+      if (pr_err == ESP_OK)
+        report += fmt::format("\npanic reason: {}", panic_reason);
+      esp_core_dump_summary_t s = {};
+      const esp_err_t sum_err = esp_core_dump_get_summary(&s);
+      if (sum_err == ESP_OK) {
+        report +=
+            fmt::format("\ncrashed task: '{}' PC=0x{:08x}",
+                        std::string(s.exc_task, strnlen(s.exc_task, sizeof(s.exc_task))), s.exc_pc);
+#if CONFIG_IDF_TARGET_ARCH_XTENSA
+        report += "\nbacktrace:";
+        const auto depth = std::min<uint32_t>(s.exc_bt_info.depth, std::size(s.exc_bt_info.bt));
+        for (uint32_t i = 0; i < depth; i++)
+          report += fmt::format(" 0x{:08x}", s.exc_bt_info.bt[i]);
+        if (s.exc_bt_info.corrupted)
+          report += " (corrupted)";
+#else
+        // RISC-V cannot unwind on-device; the summary carries a raw stack
+        // dump instead, and the full backtrace comes from the downloaded ELF
+        // core dump (espcoredump.py / gdb).
+        report += fmt::format("\nstack dump captured: {} bytes (backtrace requires the ELF "
+                              "core dump; download it and run espcoredump.py)",
+                              s.exc_bt_info.dump_size);
+#endif
+        report += fmt::format("\ndecode with: {}addr2line -pfiaC -e build/<app>.elf <addrs>",
+                              toolchain_prefix());
+      }
+      // If the on-device summary APIs failed even though a valid dump is
+      // present (they mmap the core-dump partition, which can fail at runtime -
+      // e.g. no free MMU pages / a flash-encryption mismatch - while the raw
+      // partition is still perfectly readable), surface the exact errno and
+      // point at the paths that read the partition directly instead of leaving
+      // an unexplained reason-only report.
+      if (sum_err != ESP_OK) {
+        logger_.warn("esp_core_dump_get_summary failed: {}; get_panic_reason: {}",
+                     esp_err_to_name(sum_err), esp_err_to_name(pr_err));
+        report += fmt::format(
+            "\non-device summary unavailable ({}): the dump is stored and valid, but the "
+            "summary API could not map it. Download the core dump (browser 'Analyze' button, "
+            "or espcoredump.py on core.elf) for the backtrace.",
+            esp_err_to_name(sum_err));
+      }
+#endif // ESPP_COREDUMP_HAS_ELF_SUMMARY
+      return report;
+    }
+#endif // CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+    // No core dump image; still report every abnormal reset reason so a
+    // panic without a dump (core dump to flash disabled, no partition, dump
+    // failed / already erased) is never mistaken for a clean boot history.
+    if (reset_reason == ESP_RST_BROWNOUT) {
+      // brownout writes no core dump; the reason itself is the story
+      report = fmt::format("last reset: {} (no core dump: brownout — check the power "
+                           "supply / USB cable / peripheral load)",
+                           reason_name);
+    } else if (reset_reason == ESP_RST_INT_WDT || reset_reason == ESP_RST_TASK_WDT ||
+               reset_reason == ESP_RST_WDT) {
+      // watchdog resets write no core dump either
+      report = fmt::format("last reset: {} (no core dump: watchdog reset — a task or ISR "
+                           "hogged the CPU past the watchdog timeout)",
+                           reason_name);
+    } else if (!is_clean_reset_reason(reset_reason)) {
+      // PANIC with a missing dump, UNKNOWN, power glitch, CPU lockup, ...
+      report = fmt::format("last reset: {} (no core dump image available)", reason_name);
+    }
+    return report;
+  }
+
+  /// @brief Total size in bytes of the stored core dump image (flash header +
+  ///        ELF data + checksum), or 0 if no valid core dump is present.
+  size_t image_size() const {
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+    std::lock_guard<std::mutex> lock(mutex_);
+    size_t addr = 0, size = 0;
+    if (!image_region_locked(addr, size))
+      return 0;
+    return size;
+#else
+    return 0;
+#endif
+  }
+
+  /**
+   * @brief Read a chunk of the raw core dump image from flash.
+   * @param offset Byte offset into the image (0 .. image_size()-1).
+   * @param out Destination span; up to `out.size()` bytes are read (the span
+   *        is NOT resized — reads past the end of the image fail).
+   * @param[out] ec Set on failure: no core dump present (no_such_device), the
+   *        requested range exceeds the image or the reported image lies
+   *        outside the coredump partition (result_out_of_range), or the flash
+   *        read failed (io_error).
+   * @return true if `out.size()` bytes were read into @p out, false otherwise.
+   */
+  bool read_image(size_t offset, std::span<uint8_t> out, std::error_code &ec) const {
+    ec.clear();
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+    std::lock_guard<std::mutex> lock(mutex_);
+    size_t addr = 0, size = 0;
+    if (!image_region_locked(addr, size)) {
+      logger_.error("read_image: no valid core dump image present");
+      ec = std::make_error_code(std::errc::no_such_device);
+      return false;
+    }
+    if (offset > size || out.size() > size - offset) {
+      logger_.error("read_image: range [{}, {}) exceeds image size {}", offset, offset + out.size(),
+                    size);
+      ec = std::make_error_code(std::errc::result_out_of_range);
+      return false;
+    }
+    // A zero-length read is a valid no-op ONLY at an in-bounds offset (checked
+    // above); returning early here keeps esp_partition_read off a possibly-null
+    // empty-span data pointer.
+    if (out.empty())
+      return true;
+    const esp_partition_t *partition = coredump_partition();
+    if (partition == nullptr) {
+      logger_.error("read_image: no coredump partition found");
+      ec = std::make_error_code(std::errc::no_such_device);
+      return false;
+    }
+    // esp_core_dump_image_get() returns the absolute flash address (== the
+    // partition base); read partition-relative. Defensively validate that the
+    // reported image really lies within the partition before translating, so
+    // an inconsistent address can never underflow the subtraction or read
+    // from the wrong flash region.
+    if (addr < partition->address || size > partition->size ||
+        addr - partition->address > partition->size - size) {
+      logger_.error("read_image: image [0x{:x}, 0x{:x}) lies outside the coredump "
+                    "partition [0x{:x}, 0x{:x})",
+                    addr, addr + size, partition->address, partition->address + partition->size);
+      ec = std::make_error_code(std::errc::result_out_of_range);
+      return false;
+    }
+    const size_t partition_offset = addr - partition->address;
+    const esp_err_t err =
+        esp_partition_read(partition, partition_offset + offset, out.data(), out.size());
+    if (err != ESP_OK) {
+      logger_.error("read_image: esp_partition_read at offset {} failed: {}", offset,
+                    esp_err_to_name(err));
+      ec = std::make_error_code(std::errc::io_error);
+      return false;
+    }
+    return true;
+#else
+    (void)offset;
+    if (out.empty())
+      return true;
+    logger_.error("read_image: core dump to flash is not enabled "
+                  "(CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH)");
+    ec = std::make_error_code(std::errc::function_not_supported);
+    return false;
+#endif
+  }
+
+  /**
+   * @brief Erase the stored core dump (`esp_core_dump_image_erase()`).
+   *        Note: this only removes the stored dump. The reset reason of the
+   *        current boot is unaffected — after a panic reset, format_report()
+   *        still reports the abnormal reset reason (with no dump attached)
+   *        until a clean reset follows. Idempotent: succeeds as a no-op when
+   *        no dump is present.
+   * @param[out] ec Set on failure (io_error).
+   * @return true on success (or no-op), false otherwise (ec is set).
+   */
+  bool erase(std::error_code &ec) {
+    ec.clear();
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+    std::lock_guard<std::mutex> lock(mutex_);
+    const esp_err_t err = esp_core_dump_image_erase();
+    // drop the cached validated image region: after an erase (even a failed
+    // one) the stored image must be re-validated before it is trusted again
+    image_region_.reset();
+    if (err != ESP_OK) {
+      logger_.error("erase: esp_core_dump_image_erase failed: {}", esp_err_to_name(err));
+      ec = std::make_error_code(std::errc::io_error);
+      return false;
+    }
+    logger_.info("core dump erased");
+    return true;
+#else
+    return true; // nothing to erase
+#endif
+  }
+
+  /// @brief The reset reason of THIS boot (`esp_reset_reason()`).
+  static esp_reset_reason_t reset_reason() { return esp_reset_reason(); }
+
+  /// @brief Human-readable name for a reset reason (e.g. "PANIC", "BROWNOUT").
+  static const char *reset_reason_name(esp_reset_reason_t reason) {
+    switch (reason) {
+    case ESP_RST_UNKNOWN:
+      return "UNKNOWN";
+    case ESP_RST_POWERON:
+      return "POWERON";
+    case ESP_RST_EXT:
+      return "EXT";
+    case ESP_RST_SW:
+      return "SW";
+    case ESP_RST_PANIC:
+      return "PANIC";
+    case ESP_RST_INT_WDT:
+      return "INT_WDT";
+    case ESP_RST_TASK_WDT:
+      return "TASK_WDT";
+    case ESP_RST_WDT:
+      return "WDT";
+    case ESP_RST_DEEPSLEEP:
+      return "DEEPSLEEP";
+    case ESP_RST_BROWNOUT:
+      return "BROWNOUT";
+    case ESP_RST_SDIO:
+      return "SDIO";
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
+    case ESP_RST_USB: // added in IDF v5.2
+      return "USB";
+    case ESP_RST_JTAG: // added in IDF v5.2
+      return "JTAG";
+#endif
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+    case ESP_RST_EFUSE: // added in IDF v5.3
+      return "EFUSE";
+    case ESP_RST_PWR_GLITCH: // added in IDF v5.3
+      return "PWR_GLITCH";
+    case ESP_RST_CPU_LOCKUP: // added in IDF v5.3
+      return "CPU_LOCKUP";
+#endif
+    default:
+      break;
+    }
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 3, 0)
+    // On IDF versions that predate some of the newer enumerators (USB / JTAG
+    // added in v5.2; EFUSE / PWR_GLITCH / CPU_LOCKUP in v5.3), fall back to
+    // their numeric values (as defined by v5.3+) so mixed-version tooling can
+    // still label them. On v5.3+ the enum cases above are authoritative and
+    // this fallback is not compiled, so a hypothetical renumbering cannot
+    // mislabel a reason.
+    switch (static_cast<int>(reason)) {
+    case 11:
+      return "USB";
+    case 12:
+      return "JTAG";
+    case 13:
+      return "EFUSE";
+    case 14:
+      return "PWR_GLITCH";
+    case 15:
+      return "CPU_LOCKUP";
+    default:
+      break;
+    }
+#endif
+    return "?";
+  }
+
+  /// @brief Whether a reset reason indicates a normal, deliberate reset (a
+  ///        clean boot history: power-on, external pin, software reset,
+  ///        deep-sleep wake, SDIO, USB / JTAG). Everything else (panic,
+  ///        watchdogs, brownout, power glitch, CPU lockup, unknown, ...) is
+  ///        abnormal and worth reporting even without a core dump.
+  static bool is_clean_reset_reason(esp_reset_reason_t reason) {
+    switch (reason) {
+    case ESP_RST_POWERON:
+    case ESP_RST_EXT:
+    case ESP_RST_SW:
+    case ESP_RST_DEEPSLEEP:
+    case ESP_RST_SDIO:
+      return true;
+    default:
+      break;
+    }
+    // USB / JTAG resets are deliberate (flashing / debugging). The
+    // enumerators were added in IDF v5.2; fall back to their numeric values
+    // (as defined by v5.2+) on older IDF versions.
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
+    return reason == ESP_RST_USB || reason == ESP_RST_JTAG;
+#else
+    const int r = static_cast<int>(reason);
+    return r == 11 || r == 12;
+#endif
+  }
+
+  /// @brief The GNU toolchain binary prefix for the build target (e.g.
+  ///        "xtensa-esp32s3-elf-" or "riscv32-esp-elf-"), for composing
+  ///        addr2line / gdb command lines in reports and host tools.
+  static constexpr const char *toolchain_prefix() {
+#if CONFIG_IDF_TARGET_ARCH_RISCV
+    return "riscv32-esp-elf-";
+#else
+    // cppcheck-suppress unknownMacro // CONFIG_IDF_TARGET is a Kconfig string
+    // macro ("esp32s3", ...) pasted into the literal; cppcheck cannot know it.
+    return "xtensa-" CONFIG_IDF_TARGET "-elf-";
+#endif
+  }
+
+protected:
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+  /// has_core_dump() with mutex_ already held (see the class-level notes on
+  /// the internal serialization of the flash-touching methods).
+  /// Delegates to image_region_locked() so the full-image checksum scan runs
+  /// at most once per stored dump: the first presence check (has_core_dump(),
+  /// format_report(), ...) primes the validated-region cache that a
+  /// subsequent download (image_size() / read_image()) then reuses. A dump is
+  /// only ever written by the panic handler (i.e. before this boot) and only
+  /// invalidated by erase(), which clears the cache.
+  bool has_core_dump_locked() const {
+    size_t addr = 0, size = 0;
+    return image_region_locked(addr, size);
+  }
+
+  /// Validate the stored image and return its absolute flash address + size
+  /// (mutex_ must be held). The full-image checksum scan and address lookup
+  /// run ONCE and the result is cached: validating on every read_image()
+  /// chunk would make chunked downloads quadratic in the image size (a 64 KiB
+  /// image read in 2 KiB chunks would rescan ~2 MiB). erase() invalidates the
+  /// cache, preserving the read/erase synchronization.
+  bool image_region_locked(size_t &addr, size_t &size) const {
+    if (!image_region_) {
+      size_t a = 0, s = 0;
+      if (esp_core_dump_image_check() != ESP_OK || esp_core_dump_image_get(&a, &s) != ESP_OK)
+        return false;
+      image_region_ = ImageRegion{a, s};
+    }
+    addr = image_region_->addr;
+    size = image_region_->size;
+    return true;
+  }
+#endif
+
+  /// The dedicated core dump data partition (nullptr if the partition table
+  /// has none).
+  static const esp_partition_t *coredump_partition() {
+    return esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_COREDUMP,
+                                    nullptr);
+  }
+
+  /// Serializes all flash-touching methods so one CoreDump can be shared by
+  /// several threads / transports (e.g. multiple CoreDumpService instances).
+  mutable std::mutex mutex_;
+
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+  /// A validated core-dump image region (absolute flash address + size).
+  struct ImageRegion {
+    size_t addr; ///< Absolute flash address of the image start.
+    size_t size; ///< Total image size in bytes.
+  };
+  /// Cached validated image region so chunked downloads checksum the image
+  /// only once (see image_region_locked()); guarded by mutex_, invalidated by
+  /// erase().
+  mutable std::optional<ImageRegion> image_region_{};
+#endif
+};
+
+} // namespace espp

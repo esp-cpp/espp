@@ -1,0 +1,8 @@
+# ESP-IDF Partition Table -- single factory app + a dedicated 64K core dump
+# partition (subtype `coredump`) where panics save the ELF core dump that the
+# espp coredump component reads back / serves over USB.
+# Name,   Type, SubType,  Offset,   Size, Flags
+nvs,      data, nvs,      0x9000,   0x6000,
+phy_init, data, phy,      0xf000,   0x1000,
+factory,  app,  factory,  0x10000,  3M,
+coredump, data, coredump, ,         64K,
