@@ -173,10 +173,12 @@ public:
       // (the panic reason / summary readback APIs are only implemented for
       // the ELF core dump format)
       char panic_reason[128] = {};
-      if (esp_core_dump_get_panic_reason(panic_reason, sizeof(panic_reason)) == ESP_OK)
+      const esp_err_t pr_err = esp_core_dump_get_panic_reason(panic_reason, sizeof(panic_reason));
+      if (pr_err == ESP_OK)
         report += fmt::format("\npanic reason: {}", panic_reason);
       esp_core_dump_summary_t s = {};
-      if (esp_core_dump_get_summary(&s) == ESP_OK) {
+      const esp_err_t sum_err = esp_core_dump_get_summary(&s);
+      if (sum_err == ESP_OK) {
         report +=
             fmt::format("\ncrashed task: '{}' PC=0x{:08x}",
                         std::string(s.exc_task, strnlen(s.exc_task, sizeof(s.exc_task))), s.exc_pc);
@@ -197,6 +199,21 @@ public:
 #endif
         report += fmt::format("\ndecode with: {}addr2line -pfiaC -e build/<app>.elf <addrs>",
                               toolchain_prefix());
+      }
+      // If the on-device summary APIs failed even though a valid dump is
+      // present (they mmap the core-dump partition, which can fail at runtime -
+      // e.g. no free MMU pages / a flash-encryption mismatch - while the raw
+      // partition is still perfectly readable), surface the exact errno and
+      // point at the paths that read the partition directly instead of leaving
+      // an unexplained reason-only report.
+      if (sum_err != ESP_OK) {
+        logger_.warn("esp_core_dump_get_summary failed: {}; get_panic_reason: {}",
+                     esp_err_to_name(sum_err), esp_err_to_name(pr_err));
+        report += fmt::format(
+            "\non-device summary unavailable ({}): the dump is stored and valid, but the "
+            "summary API could not map it. Download the core dump (browser 'Analyze' button, "
+            "or espcoredump.py on core.elf) for the backtrace.",
+            esp_err_to_name(sum_err));
       }
 #endif // CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF
       return report;
