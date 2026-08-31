@@ -297,7 +297,8 @@
         <strong>nearest-symbol approximations</strong>, not exact source lines.
       </p>
       <div class="row">
-        <input type="file" id="elfInput" accept=".elf">
+        <label for="elfInput" class="muted">Firmware ELF:</label>
+        <input type="file" id="elfInput" accept=".elf" aria-label="Firmware .elf file for symbol resolution">
         <span id="elfInfo" class="muted">No ELF loaded.</span>
       </div>
       <div class="syms-wrap"><table id="symTable" class="syms" hidden>

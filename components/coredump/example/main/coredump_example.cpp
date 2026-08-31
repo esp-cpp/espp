@@ -136,14 +136,22 @@ extern "C" void app_main(void) {
   std::condition_variable rx_cv;
   std::deque<std::pair<Source, std::vector<uint8_t>>> rx_queue;
   size_t rx_queued_bytes = 0;
+  // Set when a chunk was dropped for a source; the worker then resets that
+  // stream's parser(s) so a frame straddling the gap resynchronizes at once
+  // instead of staying half-parsed until the next magic happens to appear.
+  bool rx_drop_vendor = false, rx_drop_cdc = false;
   // The protocol is one-request-in-flight, so a well-behaved host queues at
   // most ~one frame; cap the queue so a misbehaving host cannot exhaust RAM.
   static constexpr size_t kMaxQueuedRxBytes = 8 * espp::detail::ota_stream::kMaxFrameSize;
   auto enqueue_rx = [&](Source source, std::span<const uint8_t> data) {
     {
       std::lock_guard<std::mutex> lock(rx_mutex);
-      if (rx_queued_bytes + data.size() > kMaxQueuedRxBytes)
-        return; // drop: partial frames resynchronize via the parser
+      if (rx_queued_bytes + data.size() > kMaxQueuedRxBytes) {
+        // drop this chunk and flag the source so the worker resets its
+        // parser(s) before feeding the next chunk (see rx_drop_* above)
+        (source == Source::Vendor ? rx_drop_vendor : rx_drop_cdc) = true;
+        return;
+      }
       rx_queue.emplace_back(source, std::vector<uint8_t>(data.begin(), data.end()));
       rx_queued_bytes += data.size();
     }
@@ -243,12 +251,22 @@ extern "C" void app_main(void) {
 
   espp::Task rx_task({.callback = [&](std::mutex &, std::condition_variable &) -> bool {
                         std::deque<std::pair<Source, std::vector<uint8_t>>> chunks;
+                        bool drop_vendor = false, drop_cdc = false;
                         {
                           std::unique_lock<std::mutex> lock(rx_mutex);
                           rx_cv.wait_for(lock, 100ms, [&] { return !rx_queue.empty(); });
                           std::swap(chunks, rx_queue);
                           rx_queued_bytes = 0;
+                          drop_vendor = rx_drop_vendor;
+                          drop_cdc = rx_drop_cdc;
+                          rx_drop_vendor = rx_drop_cdc = false;
                         }
+                        if (drop_vendor) {
+                          vendor_service.reset_parser();
+                          vendor_cmd_parser.reset();
+                        }
+                        if (drop_cdc)
+                          cdc_service.reset_parser();
                         for (const auto &[source, bytes] : chunks) {
                           if (source == Source::Vendor) {
                             vendor_service.feed(bytes);

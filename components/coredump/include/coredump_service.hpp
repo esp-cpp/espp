@@ -359,7 +359,15 @@ protected:
     std::vector<uint8_t> payload;
     stream::put_u32(payload, static_cast<uint32_t>(code));
     const std::string message = std::string(context) + ": " + ec.message();
-    const size_t count = std::min(message.size(), stream::kMaxPayloadSize - payload.size());
+    // Truncate to the remaining payload cap, backing off to a UTF-8 codepoint
+    // boundary (as GET_SUMMARY does) so a split multi-byte sequence cannot
+    // produce invalid UTF-8 on the wire (continuation bytes are 0b10xxxxxx =
+    // 0x80..0xBF).
+    size_t count = std::min(message.size(), stream::kMaxPayloadSize - payload.size());
+    while (count > 0 && count < message.size() &&
+           (static_cast<uint8_t>(message[count]) & 0xC0) == 0x80) {
+      --count;
+    }
     payload.insert(payload.end(), message.begin(), message.begin() + count);
     return build(Msg::Error, payload);
   }
