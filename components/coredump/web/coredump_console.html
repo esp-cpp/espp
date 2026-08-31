@@ -265,6 +265,7 @@
       <h2>Core dump download</h2>
       <div class="row" style="margin-bottom: 10px;">
         <button id="downloadElfBtn" class="primary" disabled>Download core.elf</button>
+        <button id="analyzeBtn" disabled>Analyze in browser (backtrace)</button>
         <button id="downloadRawBtn" disabled>Download raw image</button>
         <span class="muted">core.elf drops the flash header before the ELF magic (trailing checksum bytes remain; ELF tools ignore them); the raw image is the whole stored blob.</span>
       </div>
@@ -356,7 +357,7 @@
     const els = {};
     for (const id of ["status", "usbBtn", "serialBtn", "anyDevice", "devInfo",
                       "summaryBtn", "eraseBtn", "dumpInfo", "report",
-                      "downloadElfBtn", "downloadRawBtn", "progressFill",
+                      "downloadElfBtn", "downloadRawBtn", "analyzeBtn", "progressFill",
                       "statBytes", "statPercent", "statRate",
                       "cmdCoredump", "cmdAddr2line",
                       "elfInput", "elfInfo", "symTable",
@@ -816,6 +817,7 @@
       els.summaryBtn.disabled = !connected || busy;
       els.eraseBtn.disabled = !connected || busy;
       els.downloadElfBtn.disabled = !connected || busy || !dumpSize;
+      els.analyzeBtn.disabled = !connected || busy || !dumpSize;
       els.downloadRawBtn.disabled = !connected || busy || !dumpSize;
       const serial = connected && transport.kind === "serial";
       els.consoleInput.disabled = !serial;
@@ -1073,6 +1075,135 @@
     }
     els.downloadElfBtn.addEventListener("click", () => doDownload(false));
     els.downloadRawBtn.addEventListener("click", () => doDownload(true));
+
+    // ===================================================================
+    // In-browser backtrace: parse the core-dump ELF (register sets + task
+    // stacks) and unwind, so a backtrace is available even when the on-device
+    // esp_core_dump_get_summary() came up empty. Xtensa uses the windowed-ABI
+    // stack walk (same as ESP-IDF's esp_backtrace_get_next_frame, no DWARF);
+    // RISC-V needs DWARF CFI (use espcoredump.py for now).
+    // ===================================================================
+    const EM_XTENSA = 94, EM_RISCV = 243;
+
+    // Parse the core-dump ELF32-LE: PT_LOAD segments (memory) + PT_NOTE
+    // NT_PRSTATUS notes (per-task register arrays). Returns { machine, regsets,
+    // readU32 }. Grounded in esp_coredump's PrStatus layout: a 72-byte prstatus
+    // header precedes the register array; Xtensa gregset is pc,ps,...(8),ar[64]
+    // starting at index 64, with windowbase at index 7.
+    function parseCoreDump(elf) {
+      if (elf.length < 52) throw new Error("core dump too small");
+      const view = new DataView(elf.buffer, elf.byteOffset, elf.byteLength);
+      if (view.getUint32(0, false) !== 0x7F454C46) throw new Error("core dump: bad ELF magic");
+      if (elf[4] !== 1 || elf[5] !== 1) throw new Error("core dump: expected 32-bit little-endian ELF");
+      const machine = view.getUint16(0x12, true);
+      const phoff = view.getUint32(0x1C, true);
+      const phentsize = view.getUint16(0x2A, true);
+      const phnum = view.getUint16(0x2C, true);
+      if (!phoff || !phnum) throw new Error("core dump has no program headers");
+      const loads = [];
+      const regsets = [];
+      for (let i = 0; i < phnum; i++) {
+        const ph = phoff + i * phentsize;
+        if (ph + 32 > elf.length) break;
+        const type = view.getUint32(ph, true);
+        const off = view.getUint32(ph + 4, true);
+        const vaddr = view.getUint32(ph + 8, true);
+        const filesz = view.getUint32(ph + 16, true);
+        if (type === 1 /* PT_LOAD */ && filesz > 0) {
+          loads.push({ vaddr: vaddr >>> 0, off, size: filesz });
+        } else if (type === 4 /* PT_NOTE */) {
+          // Walk the notes: namesz, descsz, ntype, name(pad4), desc(pad4).
+          let o = off;
+          const end = Math.min(off + filesz, elf.length);
+          while (o + 12 <= end) {
+            const namesz = view.getUint32(o, true);
+            const descsz = view.getUint32(o + 4, true);
+            const ntype = view.getUint32(o + 8, true);
+            const descOff = o + 12 + (((namesz + 3) >> 2) << 2);
+            if (ntype === 1 /* NT_PRSTATUS */ && descsz > 72) {
+              const regBytes = descsz - 72;
+              const nregs = regBytes >> 2;
+              const regs = new Uint32Array(nregs);
+              for (let r = 0; r < nregs; r++) regs[r] = view.getUint32(descOff + 72 + r * 4, true);
+              regsets.push(regs);
+            }
+            o = descOff + (((descsz + 3) >> 2) << 2);
+          }
+        }
+      }
+      const readU32 = (addr) => {
+        addr = addr >>> 0;
+        for (const s of loads) {
+          if (addr >= s.vaddr && addr + 4 <= s.vaddr + s.size) {
+            const p = s.off + (addr - s.vaddr);
+            if (p + 4 <= elf.length) return view.getUint32(p, true);
+          }
+        }
+        return null;
+      };
+      return { machine, regsets, readU32 };
+    }
+
+    // Xtensa return-address fix-up: replace the window-rotation bits with the
+    // code region (esp_cpu_process_stack_pc).
+    function xtensaFixPc(pc) { return (pc & 0x80000000) ? ((pc & 0x3fffffff) | 0x40000000) >>> 0 : pc >>> 0; }
+    function pcLooksLikeCode(pc) { return (pc >>> 0) >= 0x40000000 && (pc >>> 0) < 0x60000000; }
+
+    // Walk the crashed task's frames (regsets[0]) using the ESP-IDF base-save
+    // convention: pc = next_pc; next_pc = *(sp-16); sp = *(sp-12); stop when
+    // next_pc is 0 / sp does not grow / pc is not executable.
+    function unwindXtensa(core) {
+      const regs = core.regsets[0];
+      if (!regs || regs.length < 68) throw new Error("no Xtensa register set in the core dump");
+      const wb = regs[7] >>> 0;              // windowbase
+      const ar = 64;                          // ar[] base index in the gregset
+      const a0 = regs[ar + ((wb * 4) % 64)] >>> 0;
+      const a1 = regs[ar + ((wb * 4 + 1) % 64)] >>> 0;
+      let pc = regs[0] >>> 0, nextPc = xtensaFixPc(a0), sp = a1 >>> 0;
+      const pcs = [];
+      for (let depth = 0; depth < 64; depth++) {
+        if (pcLooksLikeCode(pc)) pcs.push("0x" + (pc >>> 0).toString(16).padStart(8, "0"));
+        if (nextPc === 0) break;
+        const savedA0 = core.readU32(sp - 16);
+        const savedSp = core.readU32(sp - 12);
+        if (savedSp === null || (savedSp >>> 0) <= (sp >>> 0)) break; // stack must grow up
+        pc = nextPc; nextPc = savedA0 === null ? 0 : xtensaFixPc(savedA0); sp = savedSp >>> 0;
+        if (!pcLooksLikeCode(pc)) break;
+      }
+      return pcs;
+    }
+
+    async function analyzeCoreDump() {
+      if (!transport || !dumpSize || busy) return;
+      busy = true; updateUI(); setStatus("busy", "Analyzing...");
+      try {
+        const image = await downloadImage();
+        const elf = extractElf(image);
+        if (!elf) throw new Error("no ELF core dump in the image (BIN-format?); use espcoredump.py");
+        const core = parseCoreDump(elf);
+        if (core.machine === EM_XTENSA) {
+          const pcs = unwindXtensa(core);
+          if (pcs.length === 0) throw new Error("unwind produced no frames");
+          backtraceAddrs = pcs;
+          updateCommands();
+          renderSymbols();
+          logLine("sys", "Unwound " + pcs.length + " frame(s) from the core dump" +
+                  (symbols ? "; resolved against the loaded ELF (table above the console)." :
+                             ". Load your app ELF to resolve them to symbols."));
+        } else if (core.machine === EM_RISCV) {
+          logLine("err", "RISC-V backtrace needs DWARF CFI unwinding, not yet implemented in the " +
+                  "browser. Download core.elf and run the espcoredump.py command above.");
+        } else {
+          logLine("err", "Unsupported core-dump machine type 0x" + core.machine.toString(16) + ".");
+        }
+      } catch (e) {
+        logLine("err", "Core-dump analysis failed: " + e.message);
+      } finally {
+        busy = false; updateUI();
+        if (transport) setStatus("connected", "Connected");
+      }
+    }
+    els.analyzeBtn.addEventListener("click", analyzeCoreDump);
 
     // ===================================================================
     // Client-side nearest-symbol resolution (ELF32 LE symtab/strtab; no DWARF)
