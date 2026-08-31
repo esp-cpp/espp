@@ -968,6 +968,11 @@ protected:
   // data-race-free; on the aligned 32-bit targets espp runs on this is a
   // plain load/store plus a barrier, so the control loop pays no torn-value
   // risk. Getters keep returning float, so consumers are unaffected.
+  // On the aligned 32-bit targets espp supports these are always lock-free
+  // (plain load/store), so the motor task takes no library-lock jitter;
+  // assert it so a toolchain/target where it is not is caught at compile time.
+  static_assert(std::atomic<float>::is_always_lock_free,
+                "shaft state must be lock-free atomic on this target");
   std::atomic<float> shaft_angle_{0.0f};    // current motor angle
   float electrical_angle_{0};               // current electrical angle
   std::atomic<float> shaft_velocity_{0.0f}; // current motor velocity

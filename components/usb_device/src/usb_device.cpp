@@ -942,8 +942,16 @@ bool UsbDevice::write_vendor(std::span<const uint8_t> data, std::error_code &ec)
         ec = std::make_error_code(std::errc::no_buffer_space);
         break;
       }
+      // Unplug/disconnect is a different condition from backpressure: report
+      // not_connected so callers do not treat an unmount like a full FIFO.
+      if (!tud_vendor_mounted()) {
+        logger_.warn_rate_limited("Vendor device unmounted mid-write, dropping {} bytes",
+                                  data.size() - offset);
+        ec = std::make_error_code(std::errc::not_connected);
+        break;
+      }
       // Unsigned tick subtraction stays correct across tick-count wraparound.
-      if (!tud_vendor_mounted() || (xTaskGetTickCount() - start_tick) >= kVendorWriteTimeoutTicks) {
+      if ((xTaskGetTickCount() - start_tick) >= kVendorWriteTimeoutTicks) {
         logger_.warn_rate_limited("Vendor TX buffer full, dropping {} bytes", data.size() - offset);
         ec = std::make_error_code(std::errc::no_buffer_space);
         break;
