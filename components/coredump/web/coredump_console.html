@@ -811,7 +811,7 @@
       if (navigator.serial) els.serialBtn.disabled = connected && transport.kind !== "serial";
       els.anyDevice.disabled = connected;
       els.summaryBtn.disabled = !connected || busy;
-      els.eraseBtn.disabled = !connected || busy || !dumpSize;
+      els.eraseBtn.disabled = !connected || busy;
       els.downloadElfBtn.disabled = !connected || busy || !dumpSize;
       els.downloadRawBtn.disabled = !connected || busy || !dumpSize;
       const serial = connected && transport.kind === "serial";
