@@ -171,7 +171,9 @@ bool Esp32P4ModuleDevKit::initialize_audio(uint32_t sample_rate,
   // before initialization (which only cache) take effect now.
   es8311_codec_set_voice_volume(static_cast<int>(volume_));
   es8311_set_voice_mute(mute_);
-  es8311_codec_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START);
+  if (es8311_codec_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START) != ESP_OK) {
+    return fail_audio_init("Failed to start the ES8311 DAC path");
+  }
 
   if (i2s_channel_enable(audio_tx_handle) != ESP_OK) {
     return fail_audio_init("Failed to enable I2S channel");
@@ -438,8 +440,14 @@ bool Esp32P4ModuleDevKit::audio_task_callback(std::mutex &m, std::condition_vari
   // periodically and can observe a stop request; an infinite write would block
   // Task::stop() from joining during teardown if the I2S sink ever stalls.
   size_t bytes_written = 0;
-  esp_err_t err =
-      i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, &bytes_written, pdMS_TO_TICKS(100));
+  esp_err_t err;
+  {
+    // Serialize with set_audio_sample_rate(), which may disable/reconfigure the
+    // channel; writing to a disabled channel would race the reconfig.
+    std::lock_guard<std::mutex> lk(audio_tx_mutex_);
+    err =
+        i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, &bytes_written, pdMS_TO_TICKS(100));
+  }
   if (err != ESP_OK || bytes_written != buffer_size) {
     // Rate-limit: a stalled I2S sink would otherwise emit this every ~100 ms.
     static uint32_t write_warn_count = 0;
@@ -470,16 +478,16 @@ void Esp32P4ModuleDevKit::audio_sample_rate(uint32_t sample_rate) {
   }
   if (microphone_initialized_) {
     logger_.warn("Refusing to change the sample rate while the microphone is running: TX and RX "
-                 "share the full-duplex I2S clock. Stop the microphone first, or pass the desired "
-                 "rate to initialize_audio().");
+                 "share the full-duplex I2S clock, and there is no runtime microphone-stop path. "
+                 "Pass the desired rate to initialize_audio() before starting the microphone.");
     return;
   }
-  // NOTE: this reconfigures the running I2S channel. It is best called when the
-  // audio task is not actively streaming (e.g. right after initialize_audio, or
-  // while no audio is playing). To avoid a runtime change entirely, pass the
-  // desired sample rate to initialize_audio(). The ES8311 is an I2S slave and
-  // follows the I2S clock, so it does not need a separate codec reconfigure.
+  // Reconfigures the running I2S TX channel. Serialized with audio_task_callback()
+  // via audio_tx_mutex_ so the disable/reconfig/enable cannot race a concurrent
+  // i2s_channel_write(). The ES8311 is an I2S slave and follows the I2S clock, so
+  // it does not need a separate codec reconfigure.
   logger_.info("Setting audio sample rate to {} Hz", sample_rate);
+  std::lock_guard<std::mutex> lk(audio_tx_mutex_);
   esp_err_t err = i2s_channel_disable(audio_tx_handle);
   if (err != ESP_OK) {
     logger_.error("Failed to disable I2S channel for reconfig: {}", esp_err_to_name(err));

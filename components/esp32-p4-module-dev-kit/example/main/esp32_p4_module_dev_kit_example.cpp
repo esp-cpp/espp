@@ -263,6 +263,9 @@ extern "C" void app_main(void) {
     } else {
       playing = false;
       gui.set_play_active(false);
+      // Drop any audio already queued in the TX stream buffer so a previous
+      // clip does not keep playing through the speaker after recording starts.
+      board.clear_audio();
       recording_len = 0;
       recording = true;
       gui.set_record_active(true);

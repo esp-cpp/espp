@@ -641,6 +641,9 @@ protected:
   std::shared_ptr<I2c::Device<uint8_t>> es8311_i2c_device_;
   std::unique_ptr<espp::Task> audio_task_{nullptr};
   i2s_chan_handle_t audio_tx_handle{nullptr};
+  // Serializes access to the TX channel: audio_task_callback() writes to it
+  // continuously while set_audio_sample_rate() may disable/reconfigure it.
+  std::mutex audio_tx_mutex_;
   i2s_std_config_t audio_std_cfg{};
   i2s_event_callbacks_t audio_tx_callbacks_{};
   std::vector<uint8_t> audio_tx_buffer;
@@ -728,6 +731,7 @@ protected:
     esp_lcd_panel_io_handle_t io{nullptr};
     esp_lcd_panel_handle_t panel{nullptr};
   } lcd_handles_{};
+  bool lcd_initialized_{false}; // guards initialize_lcd() against re-entry
   // Initialized from the Kconfig selection so get_display_controller() /
   // get_display_controller_name() report the configured panel even before
   // initialize_lcd() runs apply_panel_params() (which re-affirms it).
