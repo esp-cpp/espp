@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>espp BLDC Haptics Console (WebUSB)</title>
+  <meta name="description" content="Control and visualize an espp BLDC haptic knob over WebUSB: live dial, detent presets, control commands and firmware (OTA) updates.">
+  <!--
+    espp BLDC Haptics Console (WebUSB)
+    ==================================
+    Single-file, fully offline, dependency-free browser console for the espp
+    bldc_haptics USB example. Speaks the framed vendor-interface protocol
+    documented in ../PROTOCOL.md:
+
+      [magic u16 = 0x4F54 "OT"][type u8][len u32][payload...][crc32 u32]
+
+    - CRC-32 is the standard zlib CRC (poly 0xEDB88320 reflected, init/final
+      0xFFFFFFFF) over magic..payload; check value crc32("123456789")
+      == 0xCBF43926. Payloads are capped at 4096 bytes per frame.
+    - Commands are serialized (one in flight, wait for the reply); TELEMETRY
+      (0x93) and OTA_PROGRESS (0x83) frames arrive unsolicited and are
+      dispatched out-of-band by the RX pump.
+
+    Works from a file:// URL, http://localhost or any https origin in a
+    Chromium browser (Chrome / Edge / Opera).
+  -->
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --panel-bg: #ffffff;
+      --panel-border: #d9dee6;
+      --text: #1c2330;
+      --text-muted: #5c6675;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff;
+      --danger: #dc2626;
+      --ok: #16a34a;
+      --warn: #b45309;
+      --log-bg: #0f1420;
+      --log-text: #d6dbe6;
+      --tx-color: #7dd3fc;
+      --rx-color: #86efac;
+      --err-color: #fca5a5;
+      --sys-color: #fcd34d;
+      --time-color: #64748b;
+      --input-bg: #ffffff;
+      --input-border: #c3cbd6;
+      --chip-bg: #eef2f8;
+      --dial-track: #e3e8f0;
+      --dial-tick: #9aa5b4;
+      --dial-needle: #2563eb;
+      --dial-detent: #b45309;
+      --dial-endstop: #dc2626;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0e14;
+        --panel-bg: #151a23;
+        --panel-border: #262d3a;
+        --text: #e6eaf2;
+        --text-muted: #98a2b3;
+        --accent: #3b82f6;
+        --accent-hover: #60a5fa;
+        --accent-contrast: #0b0e14;
+        --danger: #ef4444;
+        --ok: #22c55e;
+        --warn: #f59e0b;
+        --log-bg: #05070c;
+        --log-text: #cdd4e0;
+        --tx-color: #38bdf8;
+        --rx-color: #4ade80;
+        --err-color: #f87171;
+        --sys-color: #fbbf24;
+        --time-color: #64748b;
+        --input-bg: #0e1219;
+        --input-border: #2b3341;
+        --chip-bg: #1b2230;
+        --dial-track: #222a38;
+        --dial-tick: #55607080;
+        --dial-needle: #60a5fa;
+        --dial-detent: #f59e0b;
+        --dial-endstop: #ef4444;
+        --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 16px; }
+    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    header h1 { font-size: 18px; margin: 0; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      background: var(--chip-bg); color: var(--text-muted);
+      border: 1px solid var(--panel-border);
+    }
+    .status-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+    .status-pill.connected { color: var(--ok); }
+    .status-pill.connected::before { background: var(--ok); }
+    .status-pill.error { color: var(--danger); }
+    .status-pill.error::before { background: var(--danger); }
+    .status-pill.busy { color: var(--warn); }
+    .status-pill.busy::before { background: var(--warn); }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 10px; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .muted { color: var(--text-muted); font-size: 12.5px; }
+    .grid { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 14px; align-items: start; }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+
+    button {
+      font: inherit; padding: 7px 14px; border-radius: 7px; cursor: pointer;
+      border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text);
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    select, input[type="number"] {
+      font: inherit; padding: 6px 8px; border-radius: 7px;
+      border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text);
+    }
+    input[type="file"] { font: inherit; color: var(--text); max-width: 100%; }
+    input[type="range"] { accent-color: var(--accent); }
+    label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+    .stat {
+      background: var(--chip-bg); border: 1px solid var(--panel-border);
+      border-radius: 8px; padding: 8px 10px;
+    }
+    .stat .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+    .stat .v { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .stat .v.ok { color: var(--ok); }
+    .stat .v.bad { color: var(--danger); }
+
+    #dialCanvas { width: 100%; height: auto; display: block; }
+    .dial-caption { text-align: center; }
+
+    .progress-track {
+      width: 100%; height: 14px; border-radius: 999px; overflow: hidden;
+      background: var(--chip-bg); border: 1px solid var(--panel-border);
+    }
+    .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.15s linear; }
+    .progress-fill.done { background: var(--ok); }
+    .progress-fill.failed { background: var(--danger); }
+    .stats { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+    .log {
+      background: var(--log-bg); color: var(--log-text);
+      border-radius: 8px; padding: 10px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px; line-height: 1.5;
+      height: 180px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+    }
+    .log .t { color: var(--time-color); }
+    .log .tx { color: var(--tx-color); }
+    .log .rx { color: var(--rx-color); }
+    .log .err { color: var(--err-color); }
+    .log .sys { color: var(--sys-color); }
+    footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
+    #unsupported {
+      display: none; background: var(--panel-bg); border: 1px solid var(--danger);
+      color: var(--danger); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>espp BLDC Haptics Console <span class="muted">(WebUSB)</span></h1>
+      <span id="status" class="status-pill">Disconnected</span>
+    </header>
+
+    <div id="unsupported">
+      This browser does not support WebUSB. Use a Chromium-based browser
+      (Chrome / Edge / Opera) on a secure origin (https, localhost or file://).
+    </div>
+
+    <div class="panel">
+      <h2>Device</h2>
+      <div class="row">
+        <button id="connectBtn" class="primary">Connect</button>
+        <label><input type="checkbox" id="anyDevice"> show all USB devices (no VID/PID filter)</label>
+      </div>
+      <p id="devInfo" class="muted" style="margin: 8px 0 0;">Not connected. Default filter: VID 0x1209 / PID 0x0d34 ("espp BLDC Haptics"); the vendor (0xFF) interface is discovered from the descriptors at runtime.</p>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <h2>Knob</h2>
+        <canvas id="dialCanvas" width="360" height="360"></canvas>
+        <p id="dialCaption" class="muted dial-caption" style="margin: 4px 0 0;">Connect to see the live knob.</p>
+      </div>
+
+      <div>
+        <div class="panel">
+          <h2>Status</h2>
+          <div class="stat-grid">
+            <div class="stat"><div class="k">Mode</div><div class="v" id="stMode">-</div></div>
+            <div class="stat"><div class="k">Detent</div><div class="v" id="stPosition">-</div></div>
+            <div class="stat"><div class="k">Value</div><div class="v" id="stValue">-</div></div>
+            <div class="stat"><div class="k">Velocity</div><div class="v" id="stVelocity">-</div></div>
+            <div class="stat"><div class="k">Haptics</div><div class="v" id="stEnabled">-</div></div>
+            <div class="stat"><div class="k">Driver</div><div class="v" id="stFault">-</div></div>
+            <div class="stat"><div class="k">Telemetry</div><div class="v" id="stStream">-</div></div>
+            <div class="stat"><div class="k">Firmware</div><div class="v" id="stFirmware">-</div></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Controls</h2>
+          <div class="row" style="margin-bottom: 8px;">
+            <label for="modeSelect">Mode</label>
+            <select id="modeSelect" disabled style="min-width: 220px;"></select>
+            <button id="enableBtn" disabled>Disable</button>
+          </div>
+          <div class="row" style="margin-bottom: 8px;">
+            <label for="posInput" title="Re-labels the detent the knob currently rests in (the knob does not move)">Set detent index</label>
+            <input type="number" id="posInput" value="0" step="1" style="width: 90px;" disabled>
+            <button id="posBtn" disabled>Set</button>
+          </div>
+          <div class="row" style="margin-bottom: 8px;">
+            <label for="strengthRange">Click strength</label>
+            <input type="range" id="strengthRange" min="0.5" max="10" step="0.5" value="5" disabled>
+            <span id="strengthLabel" class="muted">5.0</span>
+            <button id="hapticBtn" disabled>Play click</button>
+          </div>
+          <div class="row">
+            <label><input type="checkbox" id="streamToggle" checked disabled> stream telemetry</label>
+            <label for="rateSelect">rate</label>
+            <select id="rateSelect" disabled>
+              <option value="10">100 Hz</option>
+              <option value="20" selected>50 Hz</option>
+              <option value="50">20 Hz</option>
+              <option value="100">10 Hz</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Firmware update (OTA)</h2>
+          <div class="row">
+            <input type="file" id="fileInput" accept=".bin,application/octet-stream" disabled>
+          </div>
+          <p id="fileInfo" class="muted" style="margin: 8px 0;">Pick the app image (e.g. <code>build/bldc_haptics_example.bin</code>) — NOT the merged / bootloader image.</p>
+          <div class="row" style="margin-bottom: 10px;">
+            <button id="uploadBtn" class="primary" disabled>Upload</button>
+            <button id="abortBtn" class="danger" disabled>Abort</button>
+          </div>
+          <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+          <div class="stats" style="margin-top: 8px;">
+            <span id="statBytes">0 / 0 bytes</span>
+            <span id="statPercent">0%</span>
+            <span id="statRate">-</span>
+            <span id="statNote"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Log</h2>
+      <div class="row" style="margin-bottom: 8px;">
+        <label><input type="checkbox" id="logFrames"> log raw frames</label>
+        <button id="clearLogBtn">Clear</button>
+      </div>
+      <div id="log" class="log" aria-live="polite"></div>
+    </div>
+
+    <footer>
+      Speaks the espp bldc_haptics example's vendor-interface protocol (frame:
+      magic "OT" + type + len + payload + CRC-32; see PROTOCOL.md). After an
+      OTA FINISH the device validates the image (SHA-256), sets the boot
+      partition and restarts; with bootloader rollback enabled the new app must
+      mark itself valid or the device rolls back.
+    </footer>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ===================================================================
+    // Constants (must match main/haptics_usb_protocol.hpp / PROTOCOL.md)
+    // ===================================================================
+    const DEFAULT_VID = 0x1209, DEFAULT_PID = 0x0d34;
+    const VENDOR_CLASS = 0xFF;
+    const MAGIC0 = 0x54, MAGIC1 = 0x4F;      // u16 0x4F54 "OT", little-endian on the wire
+    const HEADER_SIZE = 7, CRC_SIZE = 4;
+    const MAX_PAYLOAD = 4096;
+    const MAX_FRAME = HEADER_SIZE + MAX_PAYLOAD + CRC_SIZE;
+    const TYPE = {
+      OTA_BEGIN: 0x01, OTA_DATA: 0x02, OTA_FINISH: 0x03, OTA_ABORT: 0x04,
+      GET_INFO: 0x10, GET_STATUS: 0x11, GET_MODES: 0x12, SET_MODE: 0x13,
+      SET_POSITION: 0x14, SET_ENABLED: 0x15, PLAY_HAPTIC: 0x16, SET_STREAMING: 0x17,
+      GET_CRASH: 0x18,
+      OK: 0x81, ERROR: 0x82, OTA_PROGRESS: 0x83,
+      INFO: 0x90, STATUS: 0x91, MODES: 0x92, TELEMETRY: 0x93, CRASH: 0x94,
+    };
+    const TYPE_NAME = {};
+    for (const [name, value] of Object.entries(TYPE)) TYPE_NAME[value] = name;
+    const FLAG_ENABLED = 1, FLAG_FAULTED = 2, FLAG_STREAMING = 4;
+    // esp_ota_begin erases flash (seconds) and esp_ota_end re-reads + hashes
+    // the whole image, so give OTA BEGIN / FINISH long deadlines.
+    const CMD_TIMEOUT_MS = 3000, DATA_TIMEOUT_MS = 5000, BEGIN_TIMEOUT_MS = 60000, FINISH_TIMEOUT_MS = 60000;
+    const ESP_IMAGE_MAGIC = 0xE9;
+    const MAX_IMAGE_SIZE = 64 * 1024 * 1024;
+
+    // ===================================================================
+    // Elements & logging
+    // ===================================================================
+    const els = {};
+    for (const id of ["status", "connectBtn", "anyDevice", "devInfo", "dialCanvas", "dialCaption",
+                      "stMode", "stPosition", "stValue", "stVelocity", "stEnabled", "stFault",
+                      "stStream", "stFirmware", "modeSelect", "enableBtn", "posInput", "posBtn",
+                      "strengthRange", "strengthLabel", "hapticBtn", "streamToggle", "rateSelect",
+                      "fileInput", "fileInfo", "uploadBtn", "abortBtn", "progressFill",
+                      "statBytes", "statPercent", "statRate", "statNote", "logFrames",
+                      "clearLogBtn", "log", "unsupported"]) {
+      els[id] = document.getElementById(id);
+    }
+
+    function logLine(cls, text) {
+      const line = document.createElement("div");
+      const time = document.createElement("span");
+      time.className = "t";
+      time.textContent = new Date().toLocaleTimeString() + " ";
+      const body = document.createElement("span");
+      body.className = cls;
+      body.textContent = text;
+      line.appendChild(time); line.appendChild(body);
+      els.log.appendChild(line);
+      while (els.log.childNodes.length > 400) els.log.removeChild(els.log.firstChild);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+    els.clearLogBtn.addEventListener("click", () => { els.log.textContent = ""; });
+
+    function hex(bytes, max) {
+      const n = Math.min(bytes.length, max || 24);
+      let s = "";
+      for (let i = 0; i < n; i++) s += bytes[i].toString(16).padStart(2, "0") + " ";
+      if (bytes.length > n) s += "... (" + bytes.length + " B)";
+      return s.trim();
+    }
+
+    function setStatus(state, text) {
+      els.status.className = "status-pill" + (state ? " " + state : "");
+      els.status.textContent = text;
+    }
+
+    // ===================================================================
+    // CRC-32 (zlib): golden check value crc32("123456789") === 0xCBF43926.
+    // ===================================================================
+    const CRC_TABLE = (() => {
+      const table = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let k = 0; k < 8; k++) c = (c & 1) ? ((c >>> 1) ^ 0xEDB88320) : (c >>> 1);
+        table[i] = c >>> 0;
+      }
+      return table;
+    })();
+    function crc32(bytes) {
+      let c = 0xFFFFFFFF;
+      for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+      return (~c) >>> 0;
+    }
+    if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) {
+      throw new Error("CRC-32 self-test failed");
+    }
+
+    // ===================================================================
+    // Frame building & incremental parsing (mirrors ota_stream_protocol.hpp)
+    // ===================================================================
+    function buildFrame(type, payload) {
+      payload = payload || new Uint8Array(0);
+      if (payload.length > MAX_PAYLOAD) throw new Error("payload exceeds " + MAX_PAYLOAD + " bytes");
+      const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
+      const view = new DataView(frame.buffer);
+      view.setUint16(0, 0x4F54, true);
+      frame[2] = type;
+      view.setUint32(3, payload.length, true);
+      frame.set(payload, HEADER_SIZE);
+      view.setUint32(HEADER_SIZE + payload.length,
+                     crc32(frame.subarray(0, HEADER_SIZE + payload.length)), true);
+      return frame;
+    }
+
+    class StreamParser {
+      constructor() { this.buf = new Uint8Array(0); }
+      reset() { this.buf = new Uint8Array(0); }
+      feed(chunk) {
+        const merged = new Uint8Array(this.buf.length + chunk.length);
+        merged.set(this.buf, 0); merged.set(chunk, this.buf.length);
+        const frames = [];
+        let pos = 0;
+        for (;;) {
+          while (pos < merged.length &&
+                 !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) {
+            pos++;
+          }
+          if (merged.length - pos < HEADER_SIZE) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(3, true);
+          if (len > MAX_PAYLOAD) { pos++; continue; }
+          const total = HEADER_SIZE + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(HEADER_SIZE + len, true);
+          const actual = crc32(merged.subarray(pos, pos + HEADER_SIZE + len));
+          if (actual !== expected) { pos++; continue; }
+          frames.push({ type: merged[pos + 2],
+                        payload: merged.slice(pos + HEADER_SIZE, pos + HEADER_SIZE + len) });
+          pos += total;
+        }
+        this.buf = merged.slice(pos);
+        return frames;
+      }
+    }
+
+    // ---- payload readers (little-endian) ----
+    function reader(payload) {
+      return { view: new DataView(payload.buffer, payload.byteOffset, payload.byteLength),
+               bytes: payload, pos: 0 };
+    }
+    function rdU8(r)  { const v = r.view.getUint8(r.pos);           r.pos += 1; return v; }
+    function rdU16(r) { const v = r.view.getUint16(r.pos, true);    r.pos += 2; return v; }
+    function rdU32(r) { const v = r.view.getUint32(r.pos, true);    r.pos += 4; return v; }
+    function rdI32(r) { const v = r.view.getInt32(r.pos, true);     r.pos += 4; return v; }
+    function rdF32(r) { const v = r.view.getFloat32(r.pos, true);   r.pos += 4; return v; }
+    function rdStr(r) {
+      const n = rdU8(r);
+      const s = new TextDecoder().decode(r.bytes.subarray(r.pos, r.pos + n));
+      r.pos += n;
+      return s;
+    }
+    function u8Payload(v) { return new Uint8Array([v & 0xFF]); }
+    function u32Payload(v) {
+      const p = new Uint8Array(4);
+      new DataView(p.buffer).setUint32(0, v >>> 0, true);
+      return p;
+    }
+    function i32Payload(v) {
+      const p = new Uint8Array(4);
+      new DataView(p.buffer).setInt32(0, v | 0, true);
+      return p;
+    }
+    function f32Payload(v) {
+      const p = new Uint8Array(4);
+      new DataView(p.buffer).setFloat32(0, v, true);
+      return p;
+    }
+    function streamingPayload(enable, periodMs) {
+      const p = new Uint8Array(3);
+      p[0] = enable ? 1 : 0;
+      new DataView(p.buffer).setUint16(1, periodMs, true);
+      return p;
+    }
+    function parseErrorPayload(payload) {
+      if (payload.length < 4) return null;
+      const code = new DataView(payload.buffer, payload.byteOffset, 4).getUint32(0, true);
+      let message = "";
+      try { message = new TextDecoder().decode(payload.subarray(4)); } catch (_) {}
+      return { code, message };
+    }
+
+    // ===================================================================
+    // WebUSB connect / RX pump / transactions
+    // ===================================================================
+    let device = null, ifaceNumber = null, epIn = null, epOut = null;
+    let manualDisconnect = false;
+    let uploading = false;
+    let expectRestart = false;
+    const parser = new StreamParser();
+
+    // Single in-flight transaction: resolved by the RX pump when a frame of an
+    // accepted reply type (or ERROR) arrives.
+    let pending = null; // { accept: Set<int>, resolve, reject, timer }
+    // Replies owed to timed-out commands, oldest first. The device processes
+    // commands serially and the bulk IN pipe preserves ordering, so a
+    // solicited frame matching the oldest entry's expected reply types (or
+    // ERROR) belongs to that timed-out command and is discarded. A frame
+    // matching neither proves the timed-out command never replied at all
+    // (e.g. firmware that silently drops an unknown command), so its entry
+    // is dropped instead of eating the current transaction's reply.
+    let staleReplies = []; // [{ name, accept: Set<int> }]
+
+    if (!navigator.usb) {
+      els.unsupported.style.display = "block";
+      els.connectBtn.disabled = true;
+    }
+
+    els.connectBtn.addEventListener("click", async () => {
+      if (device) await disconnect(); else await connect();
+    });
+
+    async function connect() {
+      try {
+        // default: match exactly this example's VID:PID; the checkbox lifts
+        // the filter for other devices. WebUSB has no acceptAllDevices option
+        // (that's Web Bluetooth) — `filters` is a required member, and a
+        // single empty filter object matches every connected device (all
+        // USBDeviceFilter members are optional), regardless of how strictly
+        // an implementation treats an empty `filters` list.
+        const options = els.anyDevice.checked
+          ? { filters: [{}] }
+          : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
+        device = await navigator.usb.requestDevice(options);
+      } catch (e) {
+        if (e && e.name === "NotFoundError") logLine("sys", "Device selection cancelled.");
+        else logLine("err", "Device selection failed: " + (e && e.message ? e.message : e));
+        device = null; return;
+      }
+      try {
+        await openAndClaim();
+      } catch (e) {
+        logLine("err", "Failed to open device: " + e.message);
+        setStatus("error", "Open failed"); await safeClose(); return;
+      }
+      manualDisconnect = false; expectRestart = false;
+      parser.reset();
+      setConnectedUI(true);
+      const name = describeDevice(device);
+      setStatus("connected", "Connected");
+      // epIn/epOut are WebUSB endpoint *numbers*; the IN endpoint *address*
+      // sets the direction bit (0x80)
+      els.devInfo.textContent = name + " · iface " + ifaceNumber +
+        " · EP IN 0x" + (0x80 | epIn).toString(16).padStart(2, "0") +
+        " · EP OUT 0x" + epOut.toString(16).padStart(2, "0");
+      logLine("sys", "Connected to " + name + ".");
+      rxPump(); // start the perpetual reader
+      await initializeDevice();
+    }
+
+    async function openAndClaim() {
+      await device.open();
+      if (device.configuration === null) await device.selectConfiguration(1);
+      const config = device.configuration;
+      if (!config) throw new Error("device has no active USB configuration");
+      let found = null;
+      for (const itf of config.interfaces) {
+        for (const alt of itf.alternates) {
+          if (alt.interfaceClass !== VENDOR_CLASS) continue;
+          let inEp = null, outEp = null;
+          for (const ep of alt.endpoints) {
+            if (ep.type !== "bulk") continue;
+            if (ep.direction === "in" && inEp === null) inEp = ep;
+            else if (ep.direction === "out" && outEp === null) outEp = ep;
+          }
+          if (inEp && outEp) { found = { interfaceNumber: itf.interfaceNumber, alternateSetting: alt.alternateSetting, inEp, outEp }; break; }
+        }
+        if (found) break;
+      }
+      if (!found) throw new Error("no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found");
+      await device.claimInterface(found.interfaceNumber);
+      if (found.alternateSetting !== 0) {
+        await device.selectAlternateInterface(found.interfaceNumber, found.alternateSetting);
+      }
+      ifaceNumber = found.interfaceNumber;
+      epIn = found.inEp.endpointNumber; epOut = found.outEp.endpointNumber;
+    }
+
+    function describeDevice(dev) {
+      const vid = dev.vendorId.toString(16).padStart(4, "0");
+      const pid = dev.productId.toString(16).padStart(4, "0");
+      return (dev.productName || "USB device") + " (" + vid + ":" + pid + ")";
+    }
+
+    async function disconnect() {
+      manualDisconnect = true;
+      // best effort: stop the telemetry stream so a later (non-WebUSB) host
+      // does not receive stale frames
+      try { await transact(TYPE.SET_STREAMING, streamingPayload(false, 20), [TYPE.OK], CMD_TIMEOUT_MS); } catch (_) {}
+      logLine("sys", "Disconnecting...");
+      await safeClose();
+    }
+
+    async function safeClose() {
+      if (pending) { const p = pending; pending = null; clearTimeout(p.timer); p.reject(new Error("disconnected")); }
+      staleReplies = [];
+      if (device) {
+        if (ifaceNumber !== null) { try { await device.releaseInterface(ifaceNumber); } catch (_) {} }
+        try { await device.close(); } catch (_) {}
+      }
+      device = null; ifaceNumber = null; epIn = epOut = null;
+      uploading = false;
+      parser.reset();
+      setConnectedUI(false);
+      setStatus("", "Disconnected");
+      els.dialCaption.textContent = "Connect to see the live knob.";
+      drawDial();
+    }
+
+    if (navigator.usb && navigator.usb.addEventListener) {
+      navigator.usb.addEventListener("disconnect", (e) => {
+        if (device && e.device === device) {
+          if (expectRestart) {
+            logLine("sys", "Device disconnected — restarting into the new firmware.");
+            setNote("Device restarting with the new firmware...");
+          } else {
+            logLine("err", "Device disconnected.");
+          }
+          manualDisconnect = false;
+          safeClose();
+        }
+      });
+    }
+
+    // Perpetual RX pump: one transferIn always outstanding. Telemetry and
+    // progress frames dispatch out-of-band; anything else resolves the pending
+    // transaction.
+    async function rxPump() {
+      const dev = device;
+      while (device === dev) {
+        let result;
+        try {
+          result = await dev.transferIn(epIn, MAX_FRAME);
+        } catch (e) {
+          if (device === dev && !manualDisconnect) {
+            if (expectRestart) logLine("sys", "USB link closed — device restarting into the new firmware.");
+            else logLine("err", "USB read failed: " + (e && e.message ? e.message : e));
+            await safeClose();
+          }
+          return;
+        }
+        if (device !== dev) return;
+        if (result.status === "stall") {
+          try { await dev.clearHalt("in", epIn); } catch (_) {}
+          continue;
+        }
+        if (!result.data || result.data.byteLength === 0) continue;
+        const bytes = new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength);
+        for (const frame of parser.feed(bytes)) dispatchFrame(frame);
+      }
+    }
+
+    function dispatchFrame(frame) {
+      if (els.logFrames.checked && frame.type !== TYPE.TELEMETRY) {
+        logLine("rx", (TYPE_NAME[frame.type] || ("0x" + frame.type.toString(16))) + " " + hex(frame.payload));
+      }
+      switch (frame.type) {
+      case TYPE.TELEMETRY: handleTelemetry(frame.payload); return;
+      case TYPE.OTA_PROGRESS: {
+        if (frame.payload.length === 8) {
+          const r = reader(frame.payload);
+          updateProgress(rdU32(r), rdU32(r) || null);
+        }
+        return;
+      }
+      default: break;
+      }
+      while (staleReplies.length > 0) {
+        const stale = staleReplies[0];
+        if (stale.accept.has(frame.type) || frame.type === TYPE.ERROR) {
+          staleReplies.shift();
+          logLine("sys", "Discarding late " + (TYPE_NAME[frame.type] || ("0x" + frame.type.toString(16))) +
+                  " reply to the timed-out " + stale.name + " command.");
+          return;
+        }
+        // this frame cannot answer the oldest timed-out command, so that
+        // command evidently never replied — stop waiting for it
+        logLine("sys", "Timed-out " + stale.name + " command never replied; no longer expecting a late reply.");
+        staleReplies.shift();
+      }
+      if (pending && (pending.accept.has(frame.type) || frame.type === TYPE.ERROR)) {
+        const p = pending; pending = null;
+        clearTimeout(p.timer);
+        if (frame.type === TYPE.ERROR) {
+          const info = parseErrorPayload(frame.payload);
+          p.reject(new Error("device error" + (info ? " (code " + info.code + "): " + info.message : "")));
+        } else {
+          p.resolve(frame);
+        }
+        return;
+      }
+      logLine("err", "Ignoring unexpected frame type 0x" + frame.type.toString(16));
+    }
+
+    // Serialized command transactions.
+    let txnChain = Promise.resolve();
+    function enqueue(fn) {
+      const run = txnChain.then(fn, fn);
+      txnChain = run.then(() => {}, () => {});
+      return run;
+    }
+    function transact(type, payload, acceptTypes, timeoutMs) {
+      return enqueue(async () => {
+        if (!device || epOut === null) throw new Error("not connected");
+        const frame = buildFrame(type, payload);
+        if (els.logFrames.checked) logLine("tx", TYPE_NAME[type] + " " + hex(frame));
+        const replyPromise = new Promise((resolve, reject) => {
+          pending = { accept: new Set(acceptTypes), resolve, reject, timer: null };
+          pending.timer = setTimeout(() => {
+            if (!pending) return;
+            const p = pending; pending = null;
+            // the device may still owe a reply to this command; if it arrives
+            // late it must not satisfy the next transaction (see staleReplies)
+            staleReplies.push({ name: TYPE_NAME[type] || ("0x" + type.toString(16)), accept: p.accept });
+            p.reject(new Error(TYPE_NAME[type] + " response timeout"));
+          }, timeoutMs);
+        });
+        let out;
+        try {
+          out = await device.transferOut(epOut, frame);
+        } catch (e) {
+          if (pending) { const p = pending; pending = null; clearTimeout(p.timer); }
+          throw e;
+        }
+        if (out.status === "stall") {
+          try { await device.clearHalt("out", epOut); } catch (_) {}
+          if (pending) { const p = pending; pending = null; clearTimeout(p.timer); }
+          throw new Error("OUT endpoint stalled");
+        }
+        return replyPromise;
+      });
+    }
+    function okValue(frame) {
+      if (frame.payload.length !== 4) return null;
+      return new DataView(frame.payload.buffer, frame.payload.byteOffset, 4).getUint32(0, true);
+    }
+
+    // ===================================================================
+    // Device state
+    // ===================================================================
+    let modes = [];          // [{index,min,max,width,detentStrength,endStrength,snapPoint,detents,name}]
+    let modeIndex = 0;
+    let deviceFlags = 0;
+    let telem = null;        // latest telemetry {position,value,angle,velocity}
+    let renderValue = 0;     // smoothed dial value
+
+    async function initializeDevice() {
+      try {
+        const info = await transact(TYPE.GET_INFO, null, [TYPE.INFO], CMD_TIMEOUT_MS);
+        const r = reader(info.payload);
+        const protoVer = rdU8(r);
+        const project = rdStr(r), version = rdStr(r), build = rdStr(r), idf = rdStr(r);
+        els.stFirmware.textContent = project + " " + version;
+        els.stFirmware.title = "built " + build + " (IDF " + idf + ")";
+        logLine("sys", "Firmware: " + project + " " + version + " (protocol v" + protoVer + ", built " + build + ")");
+
+        const modesReply = await transact(TYPE.GET_MODES, null, [TYPE.MODES], CMD_TIMEOUT_MS);
+        parseModes(modesReply.payload);
+        populateModeSelect();
+
+        const status = await transact(TYPE.GET_STATUS, null, [TYPE.STATUS], CMD_TIMEOUT_MS);
+        applyStatus(status.payload);
+
+        // Previous-crash report (persisted core-dump summary from the last
+        // abnormal reset; empty on a clean boot history). Best-effort: older
+        // firmware without GET_CRASH just times out.
+        try {
+          const crash = await transact(TYPE.GET_CRASH, null, [TYPE.CRASH], CMD_TIMEOUT_MS);
+          if (crash.payload.length > 0) {
+            const text = new TextDecoder().decode(crash.payload);
+            for (const line of text.split("\n")) logLine("err", "DEVICE CRASH REPORT: " + line);
+          }
+        } catch (_) { /* older firmware */ }
+
+        if (els.streamToggle.checked) await applyStreaming();
+      } catch (e) {
+        logLine("err", "Device initialization failed: " + e.message);
+        setStatus("error", "Init failed");
+      }
+    }
+
+    // Reports a truncated/corrupt payload (the rd* helpers throw RangeError
+    // past the end of the DataView) without leaving the UI half-updated: the
+    // parse functions below read into locals and only commit on full success.
+    function protocolError(what, payload, e) {
+      logLine("err", "Malformed " + what + " payload (" + payload.length + " bytes): " +
+              (e && e.message ? e.message : e));
+      setStatus("error", "Protocol error");
+    }
+
+    function parseModes(payload) {
+      const parsed = [];
+      try {
+        const r = reader(payload);
+        const count = rdU8(r);
+        for (let i = 0; i < count; i++) {
+          const m = {};
+          m.index = rdU8(r);
+          m.min = rdI32(r);
+          m.max = rdI32(r);
+          m.width = rdF32(r);
+          m.detentStrength = rdF32(r);
+          m.endStrength = rdF32(r);
+          m.snapPoint = rdF32(r);
+          const n = rdU8(r);
+          m.detents = [];
+          for (let k = 0; k < n; k++) m.detents.push(rdI32(r));
+          m.name = rdStr(r);
+          m.bounded = m.max >= m.min;
+          parsed.push(m);
+        }
+      } catch (e) {
+        protocolError("MODES", payload, e); // keep the previous mode list
+        return;
+      }
+      modes = parsed;
+      logLine("sys", "Loaded " + modes.length + " detent presets.");
+    }
+
+    function populateModeSelect() {
+      els.modeSelect.textContent = "";
+      for (const m of modes) {
+        const opt = document.createElement("option");
+        opt.value = m.index;
+        opt.textContent = m.index + " — " + m.name;
+        els.modeSelect.appendChild(opt);
+      }
+      els.modeSelect.value = modeIndex;
+    }
+
+    function currentMode() { return modes.find((m) => m.index === modeIndex) || null; }
+
+    function applyStatus(payload) {
+      let mode, flags, position, value, angle, velocity, periodMs;
+      try {
+        const r = reader(payload);
+        mode = rdU8(r);
+        flags = rdU8(r);
+        position = rdI32(r);
+        value = rdF32(r);
+        angle = rdF32(r);
+        velocity = rdF32(r);
+        periodMs = rdU16(r);
+      } catch (e) {
+        protocolError("STATUS", payload, e); // keep the previous status
+        return;
+      }
+      modeIndex = mode;
+      deviceFlags = flags;
+      telem = { position, value, angle, velocity };
+      renderValue = value;
+      const rateOptions = [...els.rateSelect.options].map((o) => parseInt(o.value, 10));
+      if (rateOptions.includes(periodMs)) els.rateSelect.value = periodMs;
+      updateStatusUI();
+    }
+
+    function handleTelemetry(payload) {
+      if (payload.length < 22) return;
+      const r = reader(payload);
+      rdU32(r); // timestamp_ms (unused for now)
+      modeIndex = rdU8(r);
+      deviceFlags = rdU8(r);
+      const position = rdI32(r);
+      const value = rdF32(r);
+      const angle = rdF32(r);
+      const velocity = rdF32(r);
+      telem = { position, value, angle, velocity };
+      updateStatusUI();
+    }
+
+    function updateStatusUI() {
+      const mode = currentMode();
+      els.stMode.textContent = mode ? mode.name : "#" + modeIndex;
+      if (els.modeSelect.value !== String(modeIndex) && !modeSelectBusy) els.modeSelect.value = modeIndex;
+      if (telem) {
+        els.stPosition.textContent = telem.position;
+        els.stValue.textContent = telem.value.toFixed(2);
+        els.stVelocity.textContent = telem.velocity.toFixed(1) + " rad/s";
+      }
+      const enabled = !!(deviceFlags & FLAG_ENABLED);
+      els.stEnabled.textContent = enabled ? "enabled" : "disabled";
+      els.stEnabled.className = "v " + (enabled ? "ok" : "bad");
+      els.enableBtn.textContent = enabled ? "Disable" : "Enable";
+      const faulted = !!(deviceFlags & FLAG_FAULTED);
+      els.stFault.textContent = faulted ? "FAULT" : "ok";
+      els.stFault.className = "v " + (faulted ? "bad" : "ok");
+      els.stStream.textContent = (deviceFlags & FLAG_STREAMING) ? "streaming" : "off";
+      if (mode) {
+        els.dialCaption.textContent = mode.bounded
+          ? ("Range " + mode.min + " … " + mode.max + " · " + degFmt(mode.width) + "° per detent")
+          : ("Unbounded · " + degFmt(mode.width) + "° per detent");
+      }
+    }
+    function degFmt(radians) { return (radians * 180 / Math.PI).toFixed(1); }
+
+    // ===================================================================
+    // Dial rendering
+    // ===================================================================
+    const ctx = els.dialCanvas.getContext("2d");
+
+    function cssVar(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    function drawDial() {
+      const canvas = els.dialCanvas;
+      const dpr = window.devicePixelRatio || 1;
+      // round once: canvas.width coerces to an integer, so comparing against a
+      // fractional cssSize * dpr would mismatch (and reallocate) every frame
+      const backingSize = Math.round((canvas.clientWidth || 360) * dpr);
+      if (canvas.width !== backingSize) { canvas.width = backingSize; canvas.height = backingSize; }
+      const s = canvas.width;
+      ctx.clearRect(0, 0, s, s);
+      const cx = s / 2, cy = s / 2;
+      const radius = s * 0.40;
+      const mode = currentMode();
+
+      // outer track
+      ctx.lineWidth = s * 0.012;
+      ctx.strokeStyle = cssVar("--dial-track");
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      if (!mode || !telem) {
+        ctx.fillStyle = cssVar("--text-muted");
+        ctx.font = (s * 0.05) + "px system-ui, sans-serif";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(device ? "waiting for telemetry..." : "not connected", cx, cy);
+        return;
+      }
+
+      // Geometry: knob angle for value v is v * width (radians). Bounded modes
+      // whose whole range fits on the dial are drawn centered at 12 o'clock;
+      // multi-rev / unbounded modes use the raw angle (mod 2*pi) and show a
+      // turns counter instead of per-detent ticks when there are too many.
+      const width = mode.width;
+      const spanDetents = mode.bounded ? (mode.max - mode.min) : 0;
+      const spanAngle = spanDetents * width;
+      const fitsOnDial = mode.bounded && spanAngle <= Math.PI * 1.75;
+      const TOP = -Math.PI / 2;
+      // screen angle for a given continuous value
+      const valueToTheta = (v) => fitsOnDial
+        ? TOP - spanAngle / 2 + (v - mode.min) * width
+        : TOP + v * width;
+
+      // range arc for bounded-on-dial modes
+      if (fitsOnDial && spanAngle > 0) {
+        ctx.lineWidth = s * 0.012;
+        ctx.strokeStyle = cssVar("--dial-tick");
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, valueToTheta(mode.min), valueToTheta(mode.max));
+        ctx.stroke();
+      }
+
+      // detent ticks
+      if (mode.bounded) {
+        const positions = spanDetents + 1;
+        const step = Math.max(1, Math.ceil(positions / 72)); // cap tick count
+        for (let p = mode.min; p <= mode.max; p += step) {
+          const theta = valueToTheta(p);
+          // An empty detent_positions list means EVERY position is a detent
+          // (see PROTOCOL.md / BldcHaptics); a non-empty list marks only the
+          // listed ("magnetic") positions. Either way a detent is only felt
+          // when the mode's detent strength is non-zero.
+          const isMagnetic = mode.detentStrength > 0 &&
+                             (mode.detents.length === 0 || mode.detents.includes(p));
+          const isCurrent = p === telem.position;
+          const isEnd = (p === mode.min || p === mode.max);
+          const tickLen = radius * (isCurrent ? 0.16 : isMagnetic ? 0.14 : 0.09);
+          ctx.lineWidth = s * (isCurrent ? 0.010 : isMagnetic ? 0.008 : 0.004);
+          ctx.strokeStyle = isCurrent ? cssVar("--dial-needle")
+                          : isMagnetic ? cssVar("--dial-detent")
+                          : isEnd ? cssVar("--dial-endstop")
+                          : cssVar("--dial-tick");
+          ctx.beginPath();
+          ctx.moveTo(cx + Math.cos(theta) * (radius - tickLen), cy + Math.sin(theta) * (radius - tickLen));
+          ctx.lineTo(cx + Math.cos(theta) * radius, cy + Math.sin(theta) * radius);
+          ctx.stroke();
+        }
+        // end-stop caps
+        for (const p of [mode.min, mode.max]) {
+          const theta = valueToTheta(p);
+          ctx.fillStyle = cssVar("--dial-endstop");
+          ctx.beginPath();
+          ctx.arc(cx + Math.cos(theta) * radius, cy + Math.sin(theta) * radius, s * 0.008, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // current detent marker (dot just inside the track)
+      {
+        const theta = valueToTheta(telem.position);
+        ctx.fillStyle = cssVar("--dial-detent");
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(theta) * radius * 0.78, cy + Math.sin(theta) * radius * 0.78, s * 0.012, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // needle at the smoothed continuous value
+      {
+        const theta = valueToTheta(renderValue);
+        ctx.lineWidth = s * 0.014;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = cssVar("--dial-needle");
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(theta) * radius * 0.15, cy + Math.sin(theta) * radius * 0.15);
+        ctx.lineTo(cx + Math.cos(theta) * radius * 0.68, cy + Math.sin(theta) * radius * 0.68);
+        ctx.stroke();
+        ctx.fillStyle = cssVar("--dial-needle");
+        ctx.beginPath();
+        ctx.arc(cx, cy, s * 0.020, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // center text: detent index (+ turns counter off-dial)
+      ctx.fillStyle = cssVar("--text");
+      ctx.font = "600 " + (s * 0.11) + "px system-ui, sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+      ctx.fillText(String(telem.position), cx, cy + radius * 0.55);
+      ctx.fillStyle = cssVar("--text-muted");
+      ctx.font = (s * 0.042) + "px system-ui, sans-serif";
+      let sub = "value " + telem.value.toFixed(2);
+      if (!fitsOnDial) {
+        const turns = (renderValue * width) / (Math.PI * 2);
+        sub += " · " + turns.toFixed(2) + " turns";
+      }
+      ctx.fillText(sub, cx, cy + radius * 0.72);
+    }
+
+    // Animation: ease the needle toward the latest telemetry value.
+    function animate() {
+      if (telem) {
+        const target = telem.value;
+        const delta = target - renderValue;
+        renderValue += Math.abs(delta) < 0.001 ? delta : delta * 0.35;
+      }
+      drawDial();
+      requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+
+    // ===================================================================
+    // Controls
+    // ===================================================================
+    let modeSelectBusy = false;
+
+    function setConnectedUI(connected) {
+      els.connectBtn.textContent = connected ? "Disconnect" : "Connect";
+      els.connectBtn.classList.toggle("danger", connected);
+      els.connectBtn.classList.toggle("primary", !connected);
+      els.anyDevice.disabled = connected;
+      for (const el of [els.modeSelect, els.enableBtn, els.posInput, els.posBtn,
+                        els.strengthRange, els.hapticBtn, els.streamToggle, els.rateSelect,
+                        els.fileInput]) {
+        el.disabled = !connected;
+      }
+      if (!connected) {
+        telem = null;
+        deviceFlags = 0;
+        els.stMode.textContent = els.stPosition.textContent = els.stValue.textContent = "-";
+        els.stVelocity.textContent = els.stEnabled.textContent = els.stFault.textContent = "-";
+        els.stStream.textContent = els.stFirmware.textContent = "-";
+        els.stEnabled.className = els.stFault.className = "v";
+        els.devInfo.textContent = "Not connected. Default filter: VID 0x1209 / PID 0x0d34 (\"espp BLDC Haptics\"); the vendor (0xFF) interface is discovered from the descriptors at runtime.";
+      }
+      updateUploadUI();
+    }
+
+    els.modeSelect.addEventListener("change", async () => {
+      const index = parseInt(els.modeSelect.value, 10);
+      modeSelectBusy = true;
+      try {
+        await transact(TYPE.SET_MODE, u8Payload(index), [TYPE.OK], CMD_TIMEOUT_MS);
+        modeIndex = index;
+        logLine("sys", "Mode set to " + index + " (" + (currentMode() || {}).name + ").");
+      } catch (e) {
+        logLine("err", "SET_MODE failed: " + e.message);
+        els.modeSelect.value = modeIndex;
+      } finally {
+        modeSelectBusy = false;
+      }
+    });
+
+    els.enableBtn.addEventListener("click", async () => {
+      const enable = !(deviceFlags & FLAG_ENABLED);
+      try {
+        await transact(TYPE.SET_ENABLED, u8Payload(enable ? 1 : 0), [TYPE.OK], CMD_TIMEOUT_MS);
+        logLine("sys", "Haptics " + (enable ? "enabled." : "disabled."));
+      } catch (e) {
+        logLine("err", "SET_ENABLED failed: " + e.message);
+      }
+    });
+
+    els.posBtn.addEventListener("click", async () => {
+      const position = parseInt(els.posInput.value, 10);
+      if (!Number.isFinite(position)) return;
+      try {
+        const reply = await transact(TYPE.SET_POSITION, i32Payload(position), [TYPE.OK], CMD_TIMEOUT_MS);
+        const clamped = okValue(reply) | 0;
+        // SET_POSITION re-labels the current detent (logical index); the knob
+        // does not physically move — see PROTOCOL.md
+        logLine("sys", "Detent index set to " + clamped + (clamped !== position ? " (clamped)" : "") + ".");
+      } catch (e) {
+        logLine("err", "SET_POSITION failed: " + e.message);
+      }
+    });
+
+    els.strengthRange.addEventListener("input", () => {
+      els.strengthLabel.textContent = parseFloat(els.strengthRange.value).toFixed(1);
+    });
+    els.hapticBtn.addEventListener("click", async () => {
+      const strength = parseFloat(els.strengthRange.value);
+      try {
+        await transact(TYPE.PLAY_HAPTIC, f32Payload(strength), [TYPE.OK], CMD_TIMEOUT_MS);
+        logLine("sys", "Played haptic click (strength " + strength.toFixed(1) + ").");
+      } catch (e) {
+        logLine("err", "PLAY_HAPTIC failed: " + e.message);
+      }
+    });
+
+    async function applyStreaming() {
+      const enable = els.streamToggle.checked;
+      const periodMs = parseInt(els.rateSelect.value, 10);
+      try {
+        await transact(TYPE.SET_STREAMING, streamingPayload(enable, periodMs), [TYPE.OK], CMD_TIMEOUT_MS);
+        logLine("sys", "Telemetry " + (enable ? ("on (" + Math.round(1000 / periodMs) + " Hz).") : "off."));
+      } catch (e) {
+        logLine("err", "SET_STREAMING failed: " + e.message);
+      }
+    }
+    els.streamToggle.addEventListener("change", applyStreaming);
+    els.rateSelect.addEventListener("change", () => { if (els.streamToggle.checked) applyStreaming(); });
+
+    // ===================================================================
+    // OTA upload flow: BEGIN -> DATA... -> FINISH (ABORT on request/failure)
+    // ===================================================================
+    let abortRequested = false;
+
+    function setNote(text) { els.statNote.textContent = text || ""; }
+    function updateProgress(written, total) {
+      const t = total || 0;
+      els.statBytes.textContent = written.toLocaleString() + " / " + (t ? t.toLocaleString() : "?") + " bytes";
+      if (t > 0) {
+        const percent = Math.min(100, (written / t) * 100);
+        els.progressFill.style.width = percent.toFixed(1) + "%";
+        els.statPercent.textContent = percent.toFixed(1) + "%";
+      }
+    }
+    function updateUploadUI() {
+      const file = els.fileInput.files && els.fileInput.files[0];
+      els.uploadBtn.disabled = !(device && file && !uploading);
+      els.abortBtn.disabled = !uploading;
+    }
+
+    els.fileInput.addEventListener("change", () => {
+      const file = els.fileInput.files && els.fileInput.files[0];
+      if (!file) { els.fileInfo.textContent = "No file selected."; updateUploadUI(); return; }
+      els.fileInfo.textContent = file.name + " — " + file.size.toLocaleString() + " bytes";
+      updateUploadUI();
+    });
+
+    els.uploadBtn.addEventListener("click", async () => {
+      const file = els.fileInput.files && els.fileInput.files[0];
+      if (!device || !file || uploading) return;
+      if (file.size === 0) { logLine("err", "Refusing to upload an empty file."); return; }
+      if (file.size > MAX_IMAGE_SIZE) { logLine("err", "Refusing to upload: file is larger than any ESP flash."); return; }
+
+      let image;
+      try {
+        image = new Uint8Array(await file.arrayBuffer());
+      } catch (e) {
+        logLine("err", "Could not read file: " + e.message); return;
+      }
+      if (image[0] !== ESP_IMAGE_MAGIC) {
+        logLine("err", "Warning: first byte is 0x" + image[0].toString(16).padStart(2, "0") +
+                ", not the ESP image magic 0xE9 — this does not look like an app image. " +
+                "The device will reject it on the first chunk.");
+      }
+
+      uploading = true; abortRequested = false; expectRestart = false;
+      updateUploadUI();
+      els.progressFill.className = "progress-fill";
+      els.progressFill.style.width = "0%";
+      els.statPercent.textContent = "0%";
+      els.statRate.textContent = "-";
+      setNote("");
+      setStatus("busy", "Updating...");
+      const startedAt = Date.now();
+      let sent = 0;
+
+      try {
+        // pause telemetry so the bulk IN pipe carries only OTA replies
+        const streamWasOn = els.streamToggle.checked;
+        if (streamWasOn) {
+          try { await transact(TYPE.SET_STREAMING, streamingPayload(false, parseInt(els.rateSelect.value, 10)), [TYPE.OK], CMD_TIMEOUT_MS); } catch (_) {}
+        }
+        logLine("sys", "OTA BEGIN: image size " + image.length.toLocaleString() + " bytes (device erases the update partition — this can take a while)...");
+        await transact(TYPE.OTA_BEGIN, u32Payload(image.length), [TYPE.OK], BEGIN_TIMEOUT_MS);
+        logLine("sys", "Device ready; streaming data (" + MAX_PAYLOAD + " B per frame)...");
+        while (sent < image.length) {
+          if (abortRequested) throw Object.assign(new Error("aborted by user"), { userAbort: true });
+          const chunk = image.subarray(sent, Math.min(sent + MAX_PAYLOAD, image.length));
+          const reply = await transact(TYPE.OTA_DATA, chunk, [TYPE.OK], DATA_TIMEOUT_MS);
+          sent += chunk.length;
+          const received = okValue(reply);
+          updateProgress(received !== null ? received : sent, image.length);
+          const elapsed = (Date.now() - startedAt) / 1000;
+          if (elapsed > 0.5) els.statRate.textContent = ((sent / 1024) / elapsed).toFixed(1) + " KiB/s";
+        }
+        // last chance to honor an abort clicked during the final chunk; past
+        // this point FINISH activates the image, so disable the Abort button
+        // (finish cannot be cancelled once the device starts validating)
+        if (abortRequested) throw Object.assign(new Error("aborted by user"), { userAbort: true });
+        els.abortBtn.disabled = true;
+        logLine("sys", "OTA FINISH: device is validating (SHA-256) + activating the image...");
+        setNote("Validating image on device...");
+        await transact(TYPE.OTA_FINISH, null, [TYPE.OK], FINISH_TIMEOUT_MS);
+        expectRestart = true;
+        els.progressFill.className = "progress-fill done";
+        els.progressFill.style.width = "100%";
+        setStatus("connected", "Update complete");
+        setNote("Update complete — device is restarting into the new firmware.");
+        logLine("sys", "Update complete (" + sent.toLocaleString() + " bytes). Device restarting — expect a USB disconnect.");
+      } catch (e) {
+        els.progressFill.className = "progress-fill failed";
+        if (e && e.userAbort) {
+          logLine("sys", "Sending OTA ABORT...");
+          try {
+            await transact(TYPE.OTA_ABORT, null, [TYPE.OK], DATA_TIMEOUT_MS);
+            logLine("sys", "Update aborted; device discarded the partial image.");
+          } catch (abortErr) {
+            logLine("err", "Abort delivery failed: " + abortErr.message);
+          }
+          setStatus(device ? "connected" : "", device ? "Connected" : "Disconnected");
+          setNote("Update aborted.");
+        } else {
+          logLine("err", "Update failed: " + e.message);
+          setStatus(device ? "error" : "", device ? "Update failed" : "Disconnected");
+          setNote("Update failed: " + e.message);
+          // Best effort: drop the partial session so a retry can begin cleanly.
+          if (device) { try { await transact(TYPE.OTA_ABORT, null, [TYPE.OK], DATA_TIMEOUT_MS); } catch (_) {} }
+        }
+        // resume telemetry after a failed / aborted update
+        if (device && els.streamToggle.checked) { try { await applyStreaming(); } catch (_) {} }
+      } finally {
+        uploading = false;
+        updateUploadUI();
+      }
+    });
+
+    els.abortBtn.addEventListener("click", () => {
+      if (!uploading) return;
+      abortRequested = true;
+      logLine("sys", "Abort requested; stopping after the in-flight chunk...");
+    });
+
+    window.addEventListener("resize", drawDial);
+    logLine("sys", "espp BLDC Haptics Console ready. Connect a device running the bldc_haptics USB example.");
+  </script>
+</body>
+</html>

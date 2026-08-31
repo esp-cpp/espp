@@ -63,7 +63,12 @@ jobs:
           shopt -s nullglob
           apps=(../components/*/web/*.html ../components/*/web/*.js)
           if [ ${#apps[@]} -gt 0 ]; then
-            cp "${apps[@]}" ../docs/apps/
+            # -L: dereference symlinks (already cp's default for command-line
+            # operands, made explicit here). A component may publish its app
+            # as a web/ symlink to the authoritative copy living next to its
+            # example; the hosted artifact must be the real file content, and
+            # a dangling symlink then fails the job loudly.
+            cp -L "${apps[@]}" ../docs/apps/
           else
             echo "No hosted web apps found to copy." >&2
           fi

@@ -199,8 +199,21 @@ public:
   /**
    * @brief Queue bytes for transmission over the vendor function and flush.
    * @param data Bytes to send.
-   * @param[out] ec Set on failure (e.g. vendor not enabled / not initialized).
+   * @param[out] ec Set on failure (e.g. vendor not enabled / not initialized,
+   *        or the TX FIFO could not accept all bytes - see note below).
    * @return true if all bytes were queued, false otherwise.
+   * @note If the TX FIFO (CONFIG_TINYUSB_VENDOR_TX_BUFSIZE) fills mid-write,
+   *       this call sleep-waits (bounded, 250 ms) for the TinyUSB task to
+   *       drain it - EXCEPT when called from TinyUSB-callback context (e.g.
+   *       from inside a receive callback, which runs on the TinyUSB task):
+   *       there the drain can never happen while this call blocks, so writes
+   *       are ALL-OR-NOTHING - if the whole frame does not fit in the FIFO up
+   *       front, the call fails fast with `no_buffer_space` WITHOUT enqueueing
+   *       any bytes (a partially-enqueued frame would poison the byte stream
+   *       for the host). To reliably send frames larger than the TX FIFO in
+   *       response to received data, queue the work to your own task rather
+   *       than writing directly from the receive callback (or size the FIFO
+   *       to hold a full frame).
    */
   bool write_vendor(std::span<const uint8_t> data, std::error_code &ec);
 
