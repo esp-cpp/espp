@@ -36,6 +36,12 @@ using namespace std::chrono_literals;
 //               report explains the reset reason instead)
 enum class CrashKind : uint8_t { None, NullPointer, Assert, DivideByZero, Hang };
 
+// Vendor-protocol message type for a WebUSB-triggered test crash: an
+// ota_stream frame { type = 0x50, payload = [CrashKind] }. In its own range
+// so CoreDumpService (0x40+/0xC0+) ignores it and vice-versa; the CDC text
+// console keeps working for Web Serial / terminal users.
+static constexpr uint8_t kMsgTriggerCrash = 0x50;
+
 [[noreturn]] static void perform_crash(CrashKind kind) {
   switch (kind) {
   case CrashKind::Assert:
@@ -208,6 +214,33 @@ extern "C" void app_main(void) {
       logger.warn("Could not route the console to USB CDC");
   }
 
+  // Example-specific vendor command parser: runs alongside vendor_service on the
+  // same byte stream (independent ota_stream parser; each ignores the other's
+  // frame types). Lets the WebUSB console trigger the same test crashes the CDC
+  // text console offers.
+  espp::detail::ota_stream::StreamParser vendor_cmd_parser;
+  auto handle_cmd_frame = [&](const espp::detail::ota_stream::Frame &f) {
+    if (static_cast<uint8_t>(f.type) != kMsgTriggerCrash || f.payload.size() != 1)
+      return;
+    switch (static_cast<CrashKind>(f.payload[0])) {
+    case CrashKind::NullPointer:
+      request_crash(CrashKind::NullPointer, "null-pointer write (WebUSB)");
+      break;
+    case CrashKind::Assert:
+      request_crash(CrashKind::Assert, "failed assert (WebUSB)");
+      break;
+    case CrashKind::DivideByZero:
+      request_crash(CrashKind::DivideByZero, "integer divide by zero (WebUSB)");
+      break;
+    case CrashKind::Hang:
+      request_crash(CrashKind::Hang, "interrupts-off hang (WebUSB)");
+      break;
+    default:
+      logger.warn("TRIGGER_CRASH: unknown kind {}", static_cast<int>(f.payload[0]));
+      break;
+    }
+  };
+
   espp::Task rx_task({.callback = [&](std::mutex &, std::condition_variable &) -> bool {
                         std::deque<std::pair<Source, std::vector<uint8_t>>> chunks;
                         {
@@ -217,10 +250,13 @@ extern "C" void app_main(void) {
                           rx_queued_bytes = 0;
                         }
                         for (const auto &[source, bytes] : chunks) {
-                          if (source == Source::Vendor)
+                          if (source == Source::Vendor) {
                             vendor_service.feed(bytes);
-                          else
+                            for (const auto &f : vendor_cmd_parser.feed(bytes))
+                              handle_cmd_frame(f);
+                          } else {
                             cdc_service.feed(bytes);
+                          }
                         }
                         return false; // don't stop the task
                       },

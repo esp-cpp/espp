@@ -312,6 +312,13 @@
         <label><input type="checkbox" id="logFrames"> log raw frames</label>
         <button id="clearLogBtn">Clear</button>
       </div>
+      <div class="row" style="margin-bottom: 8px;">
+        <span class="muted">Trigger a test crash:</span>
+        <button id="crashNullBtn" disabled>Null-ptr</button>
+        <button id="crashAssertBtn" disabled>Assert</button>
+        <button id="crashDivBtn" disabled>Divide-by-zero</button>
+        <button id="crashHangBtn" disabled>Hang (INT_WDT)</button>
+      </div>
       <div id="log" class="log" aria-live="polite"></div>
       <div class="row" style="margin-top: 8px;">
         <input type="text" id="consoleInput" placeholder="console command (Web Serial only, e.g. 'help', 'crash')" disabled>
@@ -362,7 +369,8 @@
                       "cmdCoredump", "cmdAddr2line",
                       "elfInput", "elfInfo", "symTable",
                       "logFrames", "clearLogBtn", "log",
-                      "consoleInput", "consoleSendBtn", "unsupported"]) {
+                      "consoleInput", "consoleSendBtn", "crashNullBtn", "crashAssertBtn",
+                      "crashDivBtn", "crashHangBtn", "unsupported"]) {
       els[id] = document.getElementById(id);
     }
 
@@ -822,6 +830,8 @@
       const serial = connected && transport.kind === "serial";
       els.consoleInput.disabled = !serial;
       els.consoleSendBtn.disabled = !serial;
+      for (const b of [els.crashNullBtn, els.crashAssertBtn, els.crashDivBtn, els.crashHangBtn])
+        b.disabled = !connected || busy;
       if (!connected) els.devInfo.textContent = "Not connected.";
     }
 
@@ -1375,6 +1385,30 @@
     }
     els.consoleSendBtn.addEventListener("click", sendConsoleLine);
     els.consoleInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendConsoleLine(); });
+
+    // Test-crash buttons. Over WebUSB (vendor) send a TRIGGER_CRASH (0x50) frame
+    // carrying the CrashKind byte; over Web Serial (CDC text console) send the
+    // equivalent text command. CrashKind: 1=null-ptr, 2=assert, 3=divzero, 4=hang.
+    const TRIGGER_CRASH = 0x50;
+    async function triggerCrash(kind, textCmd, label) {
+      if (!transport) return;
+      logLine("tx", "> trigger crash: " + label);
+      try {
+        if (transport.kind === "usb") {
+          await transport.send(buildFrame(TRIGGER_CRASH, new Uint8Array([kind])));
+        } else {
+          await transport.send(new TextEncoder().encode(textCmd + "\n"));
+        }
+        logLine("sys", "Crash requested (" + label + "); the device will crash/reset shortly. " +
+                "Reconnect after it reboots, then Refresh the summary.");
+      } catch (e) {
+        logLine("err", "Trigger failed: " + e.message);
+      }
+    }
+    els.crashNullBtn.addEventListener("click", () => triggerCrash(1, "crash", "null-pointer write"));
+    els.crashAssertBtn.addEventListener("click", () => triggerCrash(2, "assert", "failed assert"));
+    els.crashDivBtn.addEventListener("click", () => triggerCrash(3, "divzero", "divide by zero"));
+    els.crashHangBtn.addEventListener("click", () => triggerCrash(4, "hang", "INT_WDT hang (no core dump)"));
 
     updateUI();
     logLine("sys", "espp Core Dump Console ready. Connect a device running the espp coredump example " +
