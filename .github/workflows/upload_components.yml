@@ -28,8 +28,9 @@ jobs:
           #
           # Note: ethernet is intentionally listed ahead of the esp32-p4-* board
           #       BSPs (esp32-p4-eth / esp32-p4-function-ev-board /
-          #       esp32-p4-nano / esp32-p4-wifi6-dev-kit /
-          #       esp32-p4-wifi6-poe-eth), which depend on espp/ethernet, so
+          #       esp32-p4-module-dev-kit / esp32-p4-nano /
+          #       esp32-p4-wifi6-dev-kit / esp32-p4-wifi6-poe-eth), 
+          #       which depend on espp/ethernet, so
           #       ethernet is uploaded to the registry ahead of them.
           #
           # Note: magnetic_encoder is intentionally listed ahead of as5600 and
@@ -82,6 +83,7 @@ jobs:
             components/ethernet
             components/esp32-p4-eth
             components/esp32-p4-function-ev-board
+            components/esp32-p4-module-dev-kit
             components/esp32-p4-nano
             components/esp32-p4-wifi6-dev-kit
             components/esp32-p4-wifi6-poe-eth
