@@ -14,6 +14,16 @@
 
 #include "esp_core_dump.h"
 #include "esp_idf_version.h"
+// Fallback definitions so static analysis (cppcheck, which is run without the
+// ESP-IDF include paths) can evaluate the ESP_IDF_VERSION checks below instead
+// of failing on an undefined function-like macro. Mirrors the guard used
+// across espp (e.g. bldc_driver, led). The real IDF header provides these.
+#ifndef ESP_IDF_VERSION_VAL
+#define ESP_IDF_VERSION_VAL(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef ESP_IDF_VERSION
+#define ESP_IDF_VERSION ESP_IDF_VERSION_VAL(0, 0, 0)
+#endif
 #include "esp_partition.h"
 #include "esp_system.h"
 
