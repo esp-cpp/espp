@@ -78,6 +78,15 @@ public:
   /// @param x The x coordinate (screen space)
   /// @param y The y coordinate (screen space)
   /// @param radius The radius of the circle
+  /// Run a callable while holding the LVGL lock. LVGL is built with
+  /// LV_USE_OS == LV_OS_NONE, so any LVGL mutation made outside the GUI task
+  /// (e.g. lv_indev_create() in a TouchpadInput constructed after this Gui has
+  /// started its update task) must be serialized against lv_task_handler().
+  template <typename F> auto with_lvgl_locked(F &&f) -> decltype(f()) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return std::forward<F>(f)();
+  }
+
   /// Queue a circle to draw at (x, y). Thread-safe and non-blocking: the point
   /// is queued under a small lock and rendered by the GUI update task on its
   /// next cycle, so callers (e.g. the touch poll task) never wait on LVGL

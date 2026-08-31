@@ -767,6 +767,10 @@ protected:
     esp_lcd_panel_io_handle_t io{nullptr};
     esp_lcd_panel_handle_t panel{nullptr};
   } lcd_handles_{};
+  // Guards against a second initialize_lcd(): once the DPI panel is
+  // streaming, the vendor-command channel can no longer drain (see the
+  // note in video.cpp), so re-running init would hang. Idempotent.
+  bool lcd_initialized_{false};
   // The configured controller is known from Kconfig at construction, so start
   // from default_controller_ (not UNKNOWN): get_display_controller()/
   // get_display_controller_name() honor their "configured panel" contract even

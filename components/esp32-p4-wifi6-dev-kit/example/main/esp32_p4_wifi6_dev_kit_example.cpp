@@ -149,46 +149,52 @@ extern "C" void app_main(void) {
   // each new touch-down. play_audio() is non-blocking, and the click is gated to
   // the touch-down edge so it doesn't retrigger every poll while held/dragging.
   static constexpr int kCircleRadius = 10;
-  board.initialize_touch([&](const auto &data) {
-    auto td = board.touchpad_convert(data);
-    static Board::TouchpadData prev_td = {};
-    touch_n = td.num_touch_points;
-    touch_x = td.x;
-    touch_y = td.y;
-    if (td.num_touch_points > 0) {
-      const bool new_touch = (prev_td != td);
-      const bool touch_down_edge = (prev_td.num_touch_points == 0);
-      // Touch feedback (click + circle) only applies on the draw/status page;
-      // touches on the other tabs (buttons, sliders) stay silent.
-      if (gui.draw_page_active()) {
-        // Click feedback: instant on the touch-DOWN edge, and retriggered while
-        // dragging - each retrigger restarts (clips) the click so drawing gives
-        // a stream of overlapping-feel clicks. The retrigger interval keeps a
-        // fast drag from restarting the click every poll (16 ms), which would
-        // reduce it to a buzz of its first few milliseconds.
-        static constexpr auto kClickRetriggerInterval = std::chrono::milliseconds(100);
-        static auto last_click_time = std::chrono::steady_clock::time_point{};
-        const auto now = std::chrono::steady_clock::now();
-        const bool click_due =
-            touch_down_edge || (now - last_click_time >= kClickRetriggerInterval);
-        // No clicks while the recorded playback is streaming: the click path
-        // restarts the shared audio stream with clear_audio(), which would
-        // discard queued playback bytes the main loop has already accounted
-        // for in play_offset (skipping audio) and interleave two producers
-        // into one stream. (playing is a best-effort atomic check; this is
-        // feedback audio, not a hard mutual exclusion.)
-        if (new_touch && click_due && !playing && !audio_bytes.empty()) {
-          board.clear_audio();           // drop any queued tail (restart)
-          board.play_audio(audio_bytes); // non-blocking
-          last_click_time = now;
-        }
-        if (new_touch) {
-          gui.draw_circle(td.x, td.y, kCircleRadius);
+  // Construct the touch input (TouchpadInput's ctor calls lv_indev_create/
+  // lv_indev_set_*) under the GUI's LVGL lock: the Gui has already started its
+  // update task, and with LV_USE_OS == LV_OS_NONE these mutations would
+  // otherwise race lv_task_handler() in that task.
+  gui.with_lvgl_locked([&] {
+    board.initialize_touch([&](const auto &data) {
+      auto td = board.touchpad_convert(data);
+      static Board::TouchpadData prev_td = {};
+      touch_n = td.num_touch_points;
+      touch_x = td.x;
+      touch_y = td.y;
+      if (td.num_touch_points > 0) {
+        const bool new_touch = (prev_td != td);
+        const bool touch_down_edge = (prev_td.num_touch_points == 0);
+        // Touch feedback (click + circle) only applies on the draw/status page;
+        // touches on the other tabs (buttons, sliders) stay silent.
+        if (gui.draw_page_active()) {
+          // Click feedback: instant on the touch-DOWN edge, and retriggered while
+          // dragging - each retrigger restarts (clips) the click so drawing gives
+          // a stream of overlapping-feel clicks. The retrigger interval keeps a
+          // fast drag from restarting the click every poll (16 ms), which would
+          // reduce it to a buzz of its first few milliseconds.
+          static constexpr auto kClickRetriggerInterval = std::chrono::milliseconds(100);
+          static auto last_click_time = std::chrono::steady_clock::time_point{};
+          const auto now = std::chrono::steady_clock::now();
+          const bool click_due =
+              touch_down_edge || (now - last_click_time >= kClickRetriggerInterval);
+          // No clicks while the recorded playback is streaming: the click path
+          // restarts the shared audio stream with clear_audio(), which would
+          // discard queued playback bytes the main loop has already accounted
+          // for in play_offset (skipping audio) and interleave two producers
+          // into one stream. (playing is a best-effort atomic check; this is
+          // feedback audio, not a hard mutual exclusion.)
+          if (new_touch && click_due && !playing && !audio_bytes.empty()) {
+            board.clear_audio();           // drop any queued tail (restart)
+            board.play_audio(audio_bytes); // non-blocking
+            last_click_time = now;
+          }
+          if (new_touch) {
+            gui.draw_circle(td.x, td.y, kCircleRadius);
+          }
         }
       }
-    }
-    prev_td = td;
-  });
+      prev_td = td;
+    });
+  }); // with_lvgl_locked
 
   // microSD (optional — only present if a card is inserted)
   bool sd_ok = board.initialize_sdcard({.format_if_mount_failed = false});
@@ -345,22 +351,38 @@ extern "C" void app_main(void) {
   // when a recording stops (either button press or the buffer filling up).
   size_t play_offset = 0;
   bool was_recording = false;
+  bool play_prev = false;
+  std::chrono::steady_clock::time_point play_start{};
   while (true) {
     if (playing) {
       size_t len = recording_len;
-      if (play_offset >= len) {
-        playing = false;
-        play_offset = 0;
-        gui.set_play_active(false);
-        gui.set_audio_status("Playback done");
-        logger.info("Playback done");
-      } else {
+      if (!play_prev) {
+        play_start = std::chrono::steady_clock::now(); // playback just started
+      }
+      if (play_offset < len) {
         play_offset += board.play_audio(recording_buffer + play_offset,
                                         std::min<size_t>(len - play_offset, 16384));
+      } else {
+        // All bytes are QUEUED, but play_audio() is asynchronous - the stream
+        // buffer still holds several periods. Only declare completion once the
+        // full clip's worth of wall-clock time has elapsed, so the buffered
+        // tail is actually played out instead of being cut off / re-triggered.
+        const float clip_seconds =
+            static_cast<float>(len) / (board.audio_sample_rate() * sizeof(int16_t));
+        const float elapsed =
+            std::chrono::duration<float>(std::chrono::steady_clock::now() - play_start).count();
+        if (elapsed >= clip_seconds) {
+          playing = false;
+          play_offset = 0;
+          gui.set_play_active(false);
+          gui.set_audio_status("Playback done");
+          logger.info("Playback done");
+        }
       }
     } else {
       play_offset = 0;
     }
+    play_prev = playing;
     // notice when the recording stopped (button press or buffer full)
     bool now_recording = recording;
     if (was_recording && !now_recording) {

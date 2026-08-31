@@ -27,6 +27,12 @@ using namespace std::chrono_literals;
 namespace espp {
 
 bool Esp32P4Wifi6DevKit::initialize_lcd() {
+  // Idempotent: once the DPI panel is streaming, the vendor-command channel can
+  // no longer drain, so re-entering the init/vendor-command path would hang.
+  if (lcd_initialized_) {
+    logger_.warn("LCD already initialized; ignoring repeat initialize_lcd()");
+    return true;
+  }
   logger_.info("Initializing LCD (MIPI-DSI)");
 
   // Select the panel params first: the DSI lane bit rate is per-panel.
@@ -275,6 +281,7 @@ bool Esp32P4Wifi6DevKit::initialize_lcd() {
   }
 
   logger_.info("LCD initialization completed ({})", get_display_controller_name());
+  lcd_initialized_ = true;
   return true;
 }
 
