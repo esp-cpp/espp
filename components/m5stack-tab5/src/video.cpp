@@ -718,7 +718,8 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
 }
 
 size_t M5StackTab5::rotated_display_width() const {
-  auto rotation = lv_display_get_rotation(lv_display_get_default());
+  auto rotation =
+      lv_display_get_rotation(display_ ? display_->get_lvgl_display() : lv_display_get_default());
   switch (rotation) {
   // swap
   case LV_DISPLAY_ROTATION_90:
@@ -733,7 +734,8 @@ size_t M5StackTab5::rotated_display_width() const {
 }
 
 size_t M5StackTab5::rotated_display_height() const {
-  auto rotation = lv_display_get_rotation(lv_display_get_default());
+  auto rotation =
+      lv_display_get_rotation(display_ ? display_->get_lvgl_display() : lv_display_get_default());
   switch (rotation) {
   // swap
   case LV_DISPLAY_ROTATION_90:
@@ -907,7 +909,8 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
   int offsety1 = area->y1;
   int offsety2 = area->y2;
 
-  auto rotation = lv_display_get_rotation(lv_display_get_default());
+  // Use the display actually being flushed, not the global default display.
+  auto rotation = lv_display_get_rotation(disp);
   // Cache the rotation for the camera task, which must not call LVGL from its
   // own thread. flush() runs on the LVGL (GUI) thread, so reading it here is
   // safe; the camera task reads the cached atomic instead.
