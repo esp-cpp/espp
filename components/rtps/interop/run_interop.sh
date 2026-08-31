@@ -34,6 +34,10 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_native_service_loopback rtps_native_action_loopback rtps_typed_rpc_loopback \
        rtps_service_interop_server rtps_service_interop_client \
        rtps_action_interop_server rtps_action_interop_client \
+       rtps_sedp_dedicated_locator rtps_banded_pubsub rtps_banded_deferred rtps_banded_ration \
+       rtps_banded_churn rtps_service_rollback rtps_deferred_recovery rtps_guaranteed_submit \
+       rtps_remove_reader_deadlock rtps_guaranteed_fairness rtps_writer_churn \
+       rtps_stateless_saturation rtps_callback_reentrancy \
        rtps_interop_pub rtps_interop_sub > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
@@ -65,6 +69,62 @@ note "facade <-> facade in-process (two participants, port probing)"
 
 note "typed pub/sub in-process"
 "$BIN"/rtps_typed_pubsub; result "typed_loopback" $?
+
+note "per-endpoint priority: dedicated ports (SEDP locator + ration) + banded loopbacks"
+"$BIN"/rtps_sedp_dedicated_locator; result "sedp_dedicated_locator" $?
+"$BIN"/rtps_banded_pubsub; result "banded_pubsub" $?
+"$BIN"/rtps_banded_deferred; result "banded_deferred" $?
+"$BIN"/rtps_banded_ration; result "banded_ration" $?
+# Teardown-under-load regression (the CI shutdown-hang class): dedicated-port
+# churn + stop() with deferred deliveries in flight must complete promptly.
+timeout 120 "$BIN"/rtps_banded_churn; result "banded_churn" $?
+# Transactional composite creation: partial failures must leak nothing.
+timeout 60 "$BIN"/rtps_service_rollback; result "service_rollback" $?
+# Deferred-arm recovery: a rejected drain arm must never strand a delivery.
+timeout 60 "$BIN"/rtps_deferred_recovery; result "deferred_recovery" $?
+# Guaranteed writer-progress submission: a pool-rejected progress poke must be
+# re-armed by the retry mechanism, never dropped.
+timeout 60 "$BIN"/rtps_guaranteed_submit; result "guaranteed_submit" $?
+# remove_reader must not deadlock when the removed reader's callback calls back
+# into the participant (e.g. publish()).
+timeout 60 "$BIN"/rtps_remove_reader_deadlock; result "remove_reader_deadlock" $?
+# Guaranteed-retry admission fairness: under sustained higher-band overload a
+# lower-band producer must still be admitted (eventual-run), and no owed run
+# may be lost.
+timeout 90 "$BIN"/rtps_guaranteed_fairness; result "guaranteed_fairness" $?
+# Writer create/publish/delete churn under load: deletion racing parked/queued
+# progress() jobs must neither crash nor wedge the SEDP announcement stream.
+timeout 120 "$BIN"/rtps_writer_churn; result "writer_churn" $?
+# Best-effort saturation must not collapse: a burst far faster than the send
+# path is (near-)losslessly drained with growable history.
+timeout 90 "$BIN"/rtps_stateless_saturation; result "stateless_saturation" $?
+# Reentrant cross-callback removal: a callback removing a later-registered
+# callback (and freeing its arg) must prevent the stale snapshot entry from
+# being invoked.
+timeout 30 "$BIN"/rtps_callback_reentrancy; result "callback_reentrancy" $?
+
+# The same saturation test against a STATIC-storage build of the engine with a
+# 2-slot best-effort history: this exercises the KEEP_LAST overwrite path (the
+# test requires overflow drops to be counted) and the progress() cursor clamp
+# (the test requires overflow drops to be COUNTED, delivered+dropped to
+# conserve the burst, and delivery above the total-collapse level - the
+# pre-fix cursor bug delivered only the final ring contents).
+# Built as a separate lib/test pair because the storage model and the history
+# depth are baked into the library at compile time.
+note "static-storage saturation gate (KEEP_LAST drop-oldest, cursor clamp)"
+STATIC_FLAGS="-DRTPS_STORAGE_STATIC -DRTPS_CFG_HISTORY_SIZE_STATELESS=2"
+cmake -S lib -B lib/build-static -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON \
+      -DESPP_BUILD_PYTHON=OFF -DCMAKE_INSTALL_PREFIX=/tmp/espp/install-static \
+      -DCMAKE_CXX_FLAGS="$STATIC_FLAGS" > /tmp/cmake_static.log 2>&1 \
+  && cmake --build lib/build-static -j"$(nproc)" --target install > /tmp/build_static.log 2>&1 \
+  && cmake -S pc -B pc/build-static -DCMAKE_BUILD_TYPE=Release \
+       -DCMAKE_PREFIX_PATH=/tmp/espp/install-static \
+       -DCMAKE_CXX_FLAGS="$STATIC_FLAGS" > /tmp/cmake_static_pc.log 2>&1 \
+  && cmake --build pc/build-static -j"$(nproc)" --target rtps_stateless_saturation > /tmp/build_static_pc.log 2>&1
+static_build_rc=$?
+result "static_build" $static_build_rc
+if [ $static_build_rc -ne 0 ]; then tail -20 /tmp/cmake_static.log /tmp/build_static.log /tmp/build_static_pc.log; fi
+timeout 90 pc/build-static/rtps_stateless_saturation; result "stateless_saturation_static" $?
 
 # Regression guard: a reliable writer under backlog must retain + send every
 # sample on the dynamic (host) storage path (no cursor-advance-as-drop skip).
@@ -152,6 +212,23 @@ sub_rc=$?
 kill $ROS_PID 2>/dev/null; wait $ROS_PID 2>/dev/null
 cat /tmp/sub1.log
 result "ros2_pub->espp_sub" $sub_rc
+
+note "ROS 2 publisher -> espp BANDED subscriber (dedicated unicast port)"
+# The espp reader runs at QosBand::High (band=1), so it is granted a dedicated
+# unicast port (7400+250*domain+100+n) announced via its SEDP per-endpoint
+# unicast locator. FastDDS honors that locator and sends the topic's DATA to
+# the dedicated port - delivery here proves a dedicated-port endpoint
+# interoperates with FastDDS/ROS 2.
+"$BIN"/rtps_interop_sub rt/chatter std_msgs::msg::dds_::String_ 1 3 30 "" 0 1 > /tmp/subband.log 2>&1 &
+SUBBAND_PID=$!
+sleep 3
+timeout 35 ros2 topic pub -r 5 /chatter std_msgs/msg/String "data: 'ros2 to banded espp'" > /tmp/rospubband.log 2>&1 &
+ROSBAND_PID=$!
+wait $SUBBAND_PID
+subband_rc=$?
+kill $ROSBAND_PID 2>/dev/null; wait $ROSBAND_PID 2>/dev/null
+cat /tmp/subband.log
+result "ros2_pub->espp_banded_sub" $subband_rc
 
 note "espp best-effort publisher -> ROS 2 best-effort subscriber"
 "$BIN"/rtps_interop_pub rt/chatter std_msgs::msg::dds_::String_ 0 60 200 > /tmp/pub2.log 2>&1 &

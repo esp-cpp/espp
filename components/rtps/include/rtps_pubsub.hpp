@@ -46,6 +46,12 @@ public:
     std::string type_name; ///< DDS type name (must match the peer for interop).
     RtpsParticipant::Reliability reliability{
         RtpsParticipant::Reliability::BEST_EFFORT}; ///< Reliability QoS.
+    /// Priority band for the underlying writer endpoint (see
+    /// RtpsParticipant::WriterConfig::band).
+    espp::QosBand band{espp::QosBand::Normal};
+    /// Optional DSCP marking for the traffic this publisher sends (see
+    /// RtpsParticipant::WriterConfig::dscp).
+    std::optional<espp::Dscp> dscp{};
   };
 
   /// Construct and register a writer on the participant. The participant must
@@ -60,6 +66,8 @@ public:
         .topic = config.topic,
         .type_name = config.type_name,
         .reliability = config.reliability,
+        .band = config.band,
+        .dscp = config.dscp,
     });
   }
 
@@ -133,6 +141,13 @@ public:
     RtpsParticipant::Reliability reliability{
         RtpsParticipant::Reliability::BEST_EFFORT}; ///< Reliability QoS.
     message_callback_t on_message{nullptr};         ///< Typed sample callback.
+    /// Priority band for the underlying reader endpoint: dedicated receive
+    /// port when available, deferred banded dispatch otherwise (see
+    /// RtpsParticipant::ReaderConfig::band).
+    espp::QosBand band{espp::QosBand::Normal};
+    /// Optional DSCP marking for the traffic this subscriber sends (its
+    /// ACKNACKs; see RtpsParticipant::ReaderConfig::dscp).
+    std::optional<espp::Dscp> dscp{};
   };
 
   /// Construct and register a reader on the participant. The participant must
@@ -169,6 +184,8 @@ public:
                 (*callback)(*sample);
               }
             },
+        .band = config.band,
+        .dscp = config.dscp,
     });
   }
 

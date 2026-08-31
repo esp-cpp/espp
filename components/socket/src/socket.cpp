@@ -143,21 +143,29 @@ bool Socket::set_receive_timeout(const std::chrono::duration<float> &timeout) {
   if (seconds <= 0) {
     return true;
   }
+#if defined(_WIN32)
+  // Winsock's SO_RCVTIMEO takes a DWORD count of milliseconds, not a POSIX
+  // timeval - passing a timeval sets a garbage timeout. Round to the nearest ms
+  // and clamp a positive duration to at least 1 ms: a zero SO_RCVTIMEO means
+  // "no timeout" (unbounded) on Winsock, so a sub-millisecond request must not
+  // truncate to 0 (which would silently defeat the reactor's bounded read).
+  DWORD timeout_ms = static_cast<DWORD>(seconds * 1000.0f + 0.5f);
+  if (timeout_ms == 0) {
+    timeout_ms = 1;
+  }
+  int err = setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO,
+                       reinterpret_cast<const char *>(&timeout_ms), sizeof(timeout_ms));
+#else
   float intpart;
   float fractpart = modff(seconds, &intpart);
   const auto response_timeout_s = static_cast<time_t>(intpart);
   const auto response_timeout_us = static_cast<time_t>(fractpart * 1E6f);
-  //// Alternatively we could do this:
-  // int microseconds =
-  // (int)(std::chrono::duration_cast<std::chrono::microseconds>(timeout).count()) % (int)1E6;
-  // const time_t response_timeout_s = floor(seconds);
-  // const time_t response_timeout_us = microseconds;
-
   struct timeval tv;
   tv.tv_sec = response_timeout_s;
   tv.tv_usec = response_timeout_us;
   int err =
       setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&tv), sizeof(tv));
+#endif
   if (err < 0) {
     return false;
   }

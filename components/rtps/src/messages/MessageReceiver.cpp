@@ -220,18 +220,23 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
 
   RECV_LOG("Received data message size {}", static_cast<int>(size));
 
+  // Capture the reader's pooled-slot generation atomically with the lookup and
+  // dispatch through the guarded wrapper: the endpoint can be deleted (and its
+  // slot reused) between resolving the pointer and delivering, and a stale
+  // delivery must not reach the slot's NEXT endpoint (wrong topic/callback).
   Reader *reader;
+  uint32_t readerGen = 0;
   if (dataSubmsg.readerId == ENTITYID_UNKNOWN) {
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
     RECV_LOG("Received ENTITYID_UNKNOWN readerID, searching for writer ID = ");
     printGuid(Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId});
 #endif
-    reader =
-        mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId});
+    reader = mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId},
+                                          readerGen);
     if (reader != nullptr)
       RECV_LOG("Found reader!");
   } else {
-    reader = mp_part->getReader(dataSubmsg.readerId);
+    reader = mp_part->getReader(dataSubmsg.readerId, readerGen);
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
     auto reader_by_writer =
         mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId});
@@ -247,7 +252,7 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
     ReaderCacheChange change{ChangeKind_t::ALIVE,  writerGuid, dataSubmsg.writerSN,
                              serializedData,       size,       hasRelatedSampleIdentity,
                              relatedSampleIdentity};
-    reader->newChange(change);
+    reader->newChangeIfCurrent(readerGen, change);
   } else {
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
     RECV_LOG("Couldn't find a reader with id: ");
@@ -318,16 +323,18 @@ bool MessageReceiver::processDataFragSubmessage(MessageProcessingInfo &msgInfo,
   const DataSize_t fragDataLen = static_cast<DataSize_t>(submessageEnd - serializedData);
 
   Reader *reader;
+  uint32_t readerGen = 0;
   if (frag.readerId == ENTITYID_UNKNOWN) {
-    reader = mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, frag.writerId});
+    reader = mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, frag.writerId},
+                                          readerGen);
   } else {
-    reader = mp_part->getReader(frag.readerId);
+    reader = mp_part->getReader(frag.readerId, readerGen);
   }
   if (reader != nullptr) {
     Guid_t writerGuid{sourceState.sourceGuidPrefix, frag.writerId};
-    reader->newFragment(writerGuid, frag.writerSN, frag.fragmentStartingNum,
-                        frag.fragmentsInSubmessage, frag.fragmentSize, frag.sampleSize,
-                        serializedData, fragDataLen);
+    reader->newFragmentIfCurrent(readerGen, writerGuid, frag.writerSN, frag.fragmentStartingNum,
+                                 frag.fragmentsInSubmessage, frag.fragmentSize, frag.sampleSize,
+                                 serializedData, fragDataLen);
   }
   return true;
 }
@@ -340,9 +347,10 @@ bool MessageReceiver::processHeartbeatSubmessage(MessageProcessingInfo &msgInfo,
     return false;
   }
 
-  Reader *reader = mp_part->getReader(submsgHB.readerId);
+  uint32_t readerGen = 0;
+  Reader *reader = mp_part->getReader(submsgHB.readerId, readerGen);
   if (reader != nullptr) {
-    reader->onNewHeartbeat(submsgHB, sourceState.sourceGuidPrefix);
+    reader->onNewHeartbeatIfCurrent(readerGen, submsgHB, sourceState.sourceGuidPrefix);
     mp_part->refreshRemoteParticipantLiveliness(sourceState.sourceGuidPrefix);
     return true;
   } else {
@@ -357,9 +365,10 @@ bool MessageReceiver::processAckNackSubmessage(MessageProcessingInfo &msgInfo,
     return false;
   }
 
-  Writer *writer = mp_part->getWriter(submsgAckNack.writerId);
+  uint32_t writerGen = 0;
+  Writer *writer = mp_part->getWriter(submsgAckNack.writerId, writerGen);
   if (writer != nullptr) {
-    writer->onNewAckNack(submsgAckNack, sourceState.sourceGuidPrefix);
+    writer->onNewAckNackIfCurrent(writerGen, submsgAckNack, sourceState.sourceGuidPrefix);
     return true;
   } else {
     return false;
@@ -373,9 +382,10 @@ bool MessageReceiver::processGapSubmessage(MessageProcessingInfo &msgInfo,
     return false;
   }
 
-  Reader *reader = mp_part->getReader(submsgGap.readerId);
+  uint32_t readerGen = 0;
+  Reader *reader = mp_part->getReader(submsgGap.readerId, readerGen);
   if (reader != nullptr) {
-    reader->onNewGapMessage(submsgGap, sourceState.sourceGuidPrefix);
+    reader->onNewGapIfCurrent(readerGen, submsgGap, sourceState.sourceGuidPrefix);
     return true;
   } else {
     return false;

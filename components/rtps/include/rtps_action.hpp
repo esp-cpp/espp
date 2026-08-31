@@ -123,6 +123,12 @@ public:
     goal_callback_t on_goal;    ///< Accept/reject each incoming goal.
     execute_callback_t execute; ///< Run each accepted goal (own thread).
     RtpsProtocol protocol{RtpsProtocol::ROS2}; ///< Wire protocol.
+    /// Priority band inherited by all of the action's underlying endpoints
+    /// (see RtpsParticipant::ActionConfig::band, incl. the ration note).
+    espp::QosBand band{espp::QosBand::Normal};
+    /// Optional DSCP marking for the traffic the server sends (see
+    /// RtpsParticipant::ActionConfig::dscp).
+    std::optional<espp::Dscp> dscp{};
   };
 
   /// Construct and register the action server on a started participant, which
@@ -134,7 +140,7 @@ public:
     auto execute = config.execute;
     if (config.protocol == RtpsProtocol::NATIVE) {
       valid_ = participant.add_native_action_server(
-          {config.action, config.type_name},
+          {config.action, config.type_name, config.band, config.dscp},
           [on_goal](std::span<const uint8_t> goal_bytes) -> bool {
             auto g = detail::rtps_deserialize<Goal>(goal_bytes);
             return g && (!on_goal || on_goal(*g));
@@ -157,7 +163,7 @@ public:
           });
     } else {
       valid_ = participant.add_action_server(
-          {config.action, config.type_name},
+          {config.action, config.type_name, config.band, config.dscp},
           [on_goal](const RtpsParticipant::GoalId &, std::span<const uint8_t> goal_bytes) -> bool {
             auto g = detail::rtps_deserialize<Goal>(goal_bytes);
             return g && (!on_goal || on_goal(*g));
@@ -218,6 +224,12 @@ public:
     std::string action;    ///< Action name, e.g. "/fibonacci".
     std::string type_name; ///< Base DDS type (ROS 2), or any matching name (native).
     RtpsProtocol protocol{RtpsProtocol::ROS2}; ///< Wire protocol.
+    /// Priority band inherited by all of the action's underlying endpoints
+    /// (see RtpsParticipant::ActionConfig::band, incl. the ration note).
+    espp::QosBand band{espp::QosBand::Normal};
+    /// Optional DSCP marking for the traffic the client sends (see
+    /// RtpsParticipant::ActionConfig::dscp).
+    std::optional<espp::Dscp> dscp{};
   };
 
   /// Construct and register the action client on a started participant, which
@@ -226,9 +238,11 @@ public:
   /// \param config The client configuration.
   ActionClient(RtpsParticipant &participant, const Config &config) {
     if (config.protocol == RtpsProtocol::NATIVE) {
-      native_ = participant.add_native_action_client({config.action, config.type_name});
+      native_ = participant.add_native_action_client(
+          {config.action, config.type_name, config.band, config.dscp});
     } else {
-      ros_ = participant.add_action_client({config.action, config.type_name});
+      ros_ = participant.add_action_client(
+          {config.action, config.type_name, config.band, config.dscp});
     }
   }
 
