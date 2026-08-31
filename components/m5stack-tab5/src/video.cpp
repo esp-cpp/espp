@@ -464,6 +464,15 @@ bool M5StackTab5::initialize_lcd() {
       .on_color_trans_done = &M5StackTab5::notify_lvgl_flush_ready,
       .on_refresh_done = nullptr,
   };
+  // Completion semaphore for the serialized synchronous draws (see
+  // draw_and_wait()); created before the callback that gives it can fire.
+  if (draw_done_sem_ == nullptr) {
+    draw_done_sem_ = xSemaphoreCreateBinary();
+    if (draw_done_sem_ == nullptr) {
+      logger_.error("Failed to create the draw-completion semaphore");
+      return false;
+    }
+  }
   ret = esp_lcd_dpi_panel_register_event_callbacks(lcd_handles_.panel, &cbs, this);
   if (ret != ESP_OK) {
     logger_.error("Failed to register panel event callback: {}", esp_err_to_name(ret));
@@ -846,6 +855,27 @@ void M5StackTab5::apply_panel_rotation(const DisplayRotation &rotation) {
 #endif
 }
 
+bool M5StackTab5::draw_and_wait(int x1, int y1, int x2, int y2, const void *data) {
+  // Caller holds panel_op_mutex_. Drain any stale completion first (defensive:
+  // a prior transfer that timed out could leave the binary semaphore signalled),
+  // issue the draw, then block until on_color_trans_done gives the semaphore.
+  if (draw_done_sem_ != nullptr) {
+    xSemaphoreTake(draw_done_sem_, 0);
+  }
+  esp_err_t err = esp_lcd_panel_draw_bitmap(lcd_handles_.panel, x1, y1, x2, y2, data);
+  if (err != ESP_OK) {
+    // Rejected (e.g. ESP_ERR_INVALID_STATE: a prior draw still in flight) or
+    // failed - no completion callback will arrive, so do not wait for one.
+    logger_.warn_rate_limited("draw_bitmap failed: {}", esp_err_to_name(err));
+    return false;
+  }
+  if (draw_done_sem_ != nullptr) {
+    // Bounded wait so a missing completion cannot wedge the caller forever.
+    xSemaphoreTake(draw_done_sem_, pdMS_TO_TICKS(200));
+  }
+  return true;
+}
+
 void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data,
                                   uint32_t user_data) {
   (void)user_data;
@@ -860,7 +890,8 @@ void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t 
     logger_.error("write_lcd_lines: Bad region: ({},{}) to ({},{})", xs, ys, xe, ye);
     return;
   }
-  esp_lcd_panel_draw_bitmap(lcd_handles_.panel, xs, ys, xe + 1, ye + 1, data);
+  std::lock_guard<std::mutex> lock(panel_op_mutex_);
+  draw_and_wait(xs, ys, xe + 1, ye + 1, data);
 }
 
 void M5StackTab5::brightness(float brightness) {
@@ -975,7 +1006,14 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       srm.scale_x = 1.0f;
       srm.scale_y = 1.0f;
       srm.mode = PPA_TRANS_MODE_BLOCKING;
-      if (ppa_do_scale_rotate_mirror(g_ppa_client, &srm) == ESP_OK) {
+      // Serialize the framebuffer write with draw_bitmap (write_lcd_lines /
+      // the non-PPA flush tail) so two engines never write the panel FB at once.
+      esp_err_t ppa_err;
+      {
+        std::lock_guard<std::mutex> lock(panel_op_mutex_);
+        ppa_err = ppa_do_scale_rotate_mirror(g_ppa_client, &srm);
+      }
+      if (ppa_err == ESP_OK) {
         // The rotated pixels are already in the scanned-out framebuffer and
         // the PPA driver performed the cache maintenance (write-back of the
         // source window, invalidate of the destination window). The espp
@@ -1013,10 +1051,16 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
     px_map = reinterpret_cast<uint8_t *>(third_buffer);
   }
 
-  // pass the draw buffer to the DPI panel driver
-  esp_lcd_panel_draw_bitmap(lcd_handles_.panel, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1,
-                            px_map);
-  // For DPI panels, the notification will come through the callback
+  // Pass the draw buffer to the DPI panel driver. Serialized + synchronous (see
+  // draw_and_wait): only one panel transfer is ever in flight, so a concurrent
+  // write_lcd_lines() cannot make this draw fail. Always signal LVGL afterwards
+  // - even if the draw was rejected/failed - so LVGL never waits forever for a
+  // completion that will not come.
+  {
+    std::lock_guard<std::mutex> lock(panel_op_mutex_);
+    draw_and_wait(offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, px_map);
+  }
+  lv_display_flush_ready(disp);
 }
 
 bool IRAM_ATTR M5StackTab5::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel,
@@ -1027,12 +1071,16 @@ bool IRAM_ATTR M5StackTab5::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel
     return false;
   }
 
-  // This is called from ISR context, so we need to be careful about what we do
-  // Just notify LVGL that the flush is ready - avoid logging or other complex operations
-  if (tab5->display_) {
-    tab5->display_->notify_flush_ready();
+  // ISR context: just release the draw-completion semaphore. The draw that
+  // issued this transfer (flush() or write_lcd_lines(), holding
+  // panel_op_mutex_) is waiting on it and will signal LVGL itself. This keeps
+  // a direct write_lcd_lines() completion from being mistaken for an LVGL
+  // flush completion.
+  BaseType_t higher_priority_task_woken = pdFALSE;
+  if (tab5->draw_done_sem_ != nullptr) {
+    xSemaphoreGiveFromISR(tab5->draw_done_sem_, &higher_priority_task_woken);
   }
-  return false;
+  return higher_priority_task_woken == pdTRUE;
 }
 
 void M5StackTab5::dsi_write_command(uint8_t cmd, std::span<const uint8_t> params,
