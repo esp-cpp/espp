@@ -1111,8 +1111,12 @@
       // send name reads out of bounds.
       const strtabEnd = Math.min(strtab.offset + strtab.size, bytes.length);
       if (strtab.offset >= strtabEnd) throw new Error("string table lies outside the file");
+      if (symtab.entsize !== 0 && symtab.entsize < 16)
+        throw new Error(`invalid ELF symbol entry size (${symtab.entsize} < 16)`);
       const entsize = symtab.entsize || 16;
-      const count = Math.floor(symtab.size / entsize);
+      const symtabEnd = Math.min(symtab.offset + symtab.size, bytes.length);
+      if (symtab.offset >= symtabEnd) throw new Error("symbol table lies outside the file");
+      const count = Math.floor((symtabEnd - symtab.offset) / entsize);
       const decoder = new TextDecoder();
       const readName = (nameOffset) => {
         // Names must start inside the string table; the NUL scan is capped at
