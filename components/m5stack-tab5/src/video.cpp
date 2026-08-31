@@ -586,9 +586,14 @@ bool M5StackTab5::initialize_lcd() {
   //    apply_panel_rotation()).
   // (With CONFIG_M5STACK_TAB5_ST7121_HW_ROTATION disabled — the default —
   // apply_panel_rotation() is a no-op and this call does nothing at all.)
-  apply_panel_rotation(
-      display_ ? to_display_rotation(lv_display_get_rotation(display_->get_lvgl_display()))
-               : rotation);
+  // Use the configured initial `rotation` rather than querying LVGL here:
+  // in the reversed init order the LVGL update task may already be running,
+  // and lv_display_get_rotation() from this (init) thread would read LVGL
+  // state without the application's LVGL lock (LV_USE_OS == LV_OS_NONE). Any
+  // rotation the app sets later is applied by on_display_rotation() (the LVGL
+  // rotation callback, which runs on the GUI task), so the panel still tracks
+  // runtime changes; this call only establishes the initial MADCTL.
+  apply_panel_rotation(rotation);
 
   // Publish the fully initialized LCD state — the gate opens LAST. Every
   // field the cross-thread readers touch (lcd_handles_, dpi_framebuffer_ +
