@@ -218,6 +218,12 @@ extern "C" void app_main(void) {
                       .update_period = std::chrono::duration<float>(core_update_period),
                       .log_level = espp::Logger::Verbosity::WARN});
 
+  standalone_encoder->initialize(true, ec);
+  if (ec) {
+    logger.error("Failed to initialize MT6701 encoder: {}", ec.message());
+    return;
+  }
+
   // now make the bldc driver
   driver = std::make_shared<espp::BldcDriver>(
       espp::BldcDriver::Config{// this pinout is configured for the TinyS3 connected to the
@@ -240,7 +246,7 @@ extern "C" void app_main(void) {
       // spots you feel when rotating it.
       .num_pole_pairs = 7,
       .phase_resistance =
-          5.0f, // tested by running velocity_openloop and seeing if the veloicty is ~correct
+          4.0f, // tested by running velocity_openloop and seeing if the veloicty is ~correct
       .kv_rating =
           320, // tested by running velocity_openloop and seeing if the velocity is ~correct
       .current_limit = 1.0f,        // Amps
@@ -253,8 +259,8 @@ extern "C" void app_main(void) {
       .sensor = standalone_encoder,
       .velocity_pid_config =
           {
-              .kp = 0.010f,
-              .ki = 1.000f,
+              .kp = 0.020f,
+              .ki = 0.700f,
               .kd = 0.000f,
               .integrator_min = -1.0f, // same scale as output_min (so same scale as current)
               .integrator_max = 1.0f,  // same scale as output_max (so same scale as current)
@@ -263,15 +269,16 @@ extern "C" void app_main(void) {
           },
       .angle_pid_config =
           {
-              .kp = 7.000f,
-              .ki = 0.300f,
-              .kd = 0.010f,
+              .kp = 5.000f,
+              .ki = 1.000f,
+              .kd = 0.000f,
               .integrator_min = -10.0f, // same scale as output_min (so same scale as velocity)
               .integrator_max = 10.0f,  // same scale as output_max (so same scale as velocity)
               .output_min = -20.0,      // angle pid works on velocity (rad/s)
               .output_max = 20.0,       // angle pid works on velocity (rad/s)
           },
       .log_level = espp::Logger::Verbosity::WARN});
+  motor->initialize();
 #endif
 
   // --------------------------------------------------------------------------
