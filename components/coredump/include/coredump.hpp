@@ -13,6 +13,20 @@
 #include "sdkconfig.h"
 
 #include "esp_core_dump.h"
+
+// ESP-IDF 6.0 dropped the binary core-dump format and REMOVED the
+// CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF Kconfig symbol (ELF is now the only,
+// implicit format). Older IDF (>=5.2) still defines it and can also select
+// BIN. The ELF-only summary / panic-reason readback APIs
+// (esp_core_dump_get_summary / esp_core_dump_get_panic_reason) are available
+// whenever the STORED format is ELF - which is: on 6.0 always (BIN gone), and
+// on 5.x when BIN was not selected. Detect that without depending on the
+// removed symbol, so the summary path is not silently compiled out on 6.0.
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH && !defined(CONFIG_ESP_COREDUMP_DATA_FORMAT_BIN)
+#define ESPP_COREDUMP_HAS_ELF_SUMMARY 1
+#else
+#define ESPP_COREDUMP_HAS_ELF_SUMMARY 0
+#endif
 #include "esp_idf_version.h"
 // Fallback definitions so static analysis (cppcheck, which is run without the
 // ESP-IDF include paths) can evaluate the ESP_IDF_VERSION checks below instead
@@ -103,12 +117,12 @@ public:
 #endif
   }
 
-#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH && CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF
+#if ESPP_COREDUMP_HAS_ELF_SUMMARY
   /// @brief The core dump summary (crashed task, PC, backtrace / stack dump,
   ///        app ELF SHA-256), or std::nullopt if no valid core dump is
   ///        present.
-  /// @note Only available with the (default) ELF core dump format
-  ///       (`CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF`).
+  /// @note Only available with the ELF core dump format (the only format on
+  ///       ESP-IDF >= 6.0; the non-BIN selection on older IDF).
   std::optional<esp_core_dump_summary_t> summary() const {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!has_core_dump_locked())
@@ -169,9 +183,9 @@ public:
       if (reset_reason != ESP_RST_PANIC)
         report += "\ncore dump: from an EARLIER crash, not this reset "
                   "(the image persists until erased)";
-#if CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF
+#if ESPP_COREDUMP_HAS_ELF_SUMMARY
       // (the panic reason / summary readback APIs are only implemented for
-      // the ELF core dump format)
+      // the ELF core dump format; see ESPP_COREDUMP_HAS_ELF_SUMMARY)
       char panic_reason[128] = {};
       const esp_err_t pr_err = esp_core_dump_get_panic_reason(panic_reason, sizeof(panic_reason));
       if (pr_err == ESP_OK)
@@ -215,7 +229,7 @@ public:
             "or espcoredump.py on core.elf) for the backtrace.",
             esp_err_to_name(sum_err));
       }
-#endif // CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF
+#endif // ESPP_COREDUMP_HAS_ELF_SUMMARY
       return report;
     }
 #endif // CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
