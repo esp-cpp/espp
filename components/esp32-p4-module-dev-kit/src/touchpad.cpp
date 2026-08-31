@@ -165,10 +165,11 @@ Esp32P4ModuleDevKit::touchpad_convert(const TouchpadData &data) const {
   // dimensions the formulas below use), not whatever display happens to be the
   // global LVGL default; before initialize_display() has run, fall back to
   // rotation 0 rather than handing LVGL a null display.
-  auto rotation = LV_DISPLAY_ROTATION_0;
-  if (lv_display_t *disp = lvgl_display_.load(std::memory_order_acquire); disp != nullptr) {
-    rotation = lv_display_get_rotation(disp);
-  }
+  // Read the rotation cached by flush() on the GUI task rather than calling the
+  // LVGL API from the touch task: with LV_USE_OS == LV_OS_NONE a direct
+  // lv_display_get_rotation() here would race lv_display_set_rotation() in the
+  // GUI task. Defaults to rotation 0 until the first flush.
+  const auto rotation = display_rotation_.load(std::memory_order_relaxed);
   switch (rotation) {
   case LV_DISPLAY_ROTATION_90:
     temp_data.y = display_height_ - (temp_data.y + 1);

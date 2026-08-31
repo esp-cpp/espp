@@ -716,6 +716,12 @@ protected:
   // touch the display_ shared_ptr; it only needs this pointer to call
   // lv_display_flush_ready(). Set once in initialize_display().
   std::atomic<lv_display_t *> lvgl_display_{nullptr};
+  // Current LVGL display rotation, cached from flush() (which runs on the
+  // LVGL/GUI task). touchpad_convert() runs on the touch task and must NOT
+  // call lv_display_get_rotation() itself: with LV_USE_OS == LV_OS_NONE that
+  // would race lv_display_set_rotation() in the GUI task. Reading this atomic
+  // instead keeps the touch path off the LVGL API.
+  std::atomic<lv_display_rotation_t> display_rotation_{LV_DISPLAY_ROTATION_0};
   std::shared_ptr<DisplayDriver> display_driver_{static_cast<DisplayDriver *>(nullptr)};
   struct LcdHandles {
     esp_lcd_dsi_bus_handle_t mipi_dsi_bus{nullptr};

@@ -475,6 +475,10 @@ void Esp32P4ModuleDevKit::flush(lv_display_t *disp, const lv_area_t *area, uint8
   // global default display, so the correct rotation is applied even if another
   // LVGL display is the default.
   auto rot = lv_display_get_rotation(disp);
+  // Publish the rotation for the touch task (touchpad_convert()), which cannot
+  // safely call the LVGL API itself (LV_USE_OS == LV_OS_NONE). flush() runs on
+  // the LVGL/GUI task, so reading it here is race-free.
+  display_rotation_.store(rot, std::memory_order_relaxed);
   int32_t ww = lv_area_get_width(area);
   int32_t hh = lv_area_get_height(area);
   lv_color_format_t cf = lv_display_get_color_format(disp);

@@ -354,9 +354,14 @@ bool Esp32P4ModuleDevKit::initialize_microphone(const microphone_callback_t &cal
   }
 
   // Enable the codec's ADC path alongside the running DAC and apply the
-  // stored microphone gain
-  es8311_codec_ctrl_state(AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START);
-  es8311_set_mic_gain(microphone_gain_from_volume(mic_volume_));
+  // stored microphone gain. A codec/I2C error here would otherwise leave the
+  // ADC path disabled while the capture task ran forever, so fail init.
+  if (es8311_codec_ctrl_state(AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START) != ESP_OK) {
+    return fail_microphone_init("Failed to start the ES8311 ADC path");
+  }
+  if (es8311_set_mic_gain(microphone_gain_from_volume(mic_volume_)) != ESP_OK) {
+    return fail_microphone_init("Failed to set the ES8311 mic gain");
+  }
 
   using namespace std::placeholders;
   microphone_task_ = espp::Task::make_unique({
