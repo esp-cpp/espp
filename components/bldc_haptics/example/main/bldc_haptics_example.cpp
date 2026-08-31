@@ -619,6 +619,12 @@ extern "C" void app_main(void) {
         reply_errc(std::errc::operation_not_permitted, "haptics are disabled");
         break;
       }
+      // Do not drive a new torque pulse into a faulted driver (over-current /
+      // thermal / driver fault): mirror the disabled check.
+      if (driver->is_faulted()) {
+        reply_errc(std::errc::device_or_resource_busy, "driver is faulted");
+        break;
+      }
       // std::clamp does not sanitize NaN, so reject non-finite strengths
       // before they can propagate into the motor torque math.
       if (!std::isfinite(*strength)) {

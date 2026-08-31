@@ -962,11 +962,16 @@ protected:
   };
 
   // state variables:
-  float target_{0};           // current target value (compared to what depends on control setting)
-  float shaft_angle_{0};      // current motor angle
-  float electrical_angle_{0}; // current electrical angle
-  float shaft_velocity_{0};   // current motor velocity
-  float target_current_{0};   // q current
+  float target_{0}; // current target value (compared to what depends on control setting)
+  // Sampled/estimated on the motor task and read cross-thread via the
+  // get_shaft_*() getters (telemetry). std::atomic makes those reads
+  // data-race-free; on the aligned 32-bit targets espp runs on this is a
+  // plain load/store plus a barrier, so the control loop pays no torn-value
+  // risk. Getters keep returning float, so consumers are unaffected.
+  std::atomic<float> shaft_angle_{0.0f};    // current motor angle
+  float electrical_angle_{0};               // current electrical angle
+  std::atomic<float> shaft_velocity_{0.0f}; // current motor velocity
+  float target_current_{0};                 // q current
   float target_shaft_velocity_{0};
   float target_shaft_angle_{0};
   float bemf_voltage_{0}; // estimated back EMF voltage (if provided KV)

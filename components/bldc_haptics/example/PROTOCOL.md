@@ -180,10 +180,12 @@ enabled, the device is mounted, and no OTA session is active:
 | shaft_angle    | f32  | raw motor shaft angle, radians                   |
 | shaft_velocity | f32  | motor shaft velocity, radians/s                  |
 
-The **continuous value** maps directly onto the knob geometry: the knob's
-physical angle relative to the detent grid is `value * position_width` radians,
-with `value` spanning `[min_position, max_position]` for bounded modes. This is
-what the web app's dial renders.
+The **continuous value** maps onto the knob geometry as
+`value = position - (shaft_angle - detent_center) / position_width`: it is the
+detent index plus the fractional progress toward the neighboring detent, and it
+**decreases as the shaft angle increases** (the firmware's snap convention).
+`value` spans `[min_position, max_position]` for bounded modes. This is what the
+web app's dial renders.
 
 ### CRASH (0x94)
 
