@@ -111,6 +111,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/esp32-p4-function-ev-board/example/main/esp32_p4_function_ev_board_example.cpp \
   $(PROJECT_PATH)/components/esp32-p4-module-dev-kit/example/main/esp32_p4_module_dev_kit_example.cpp \
   $(PROJECT_PATH)/components/esp32-p4-nano/example/main/esp32_p4_nano_example.cpp \
+  $(PROJECT_PATH)/components/esp32-p4-wifi6-poe-eth/example/main/esp32_p4_wifi6_poe_eth_example.cpp \
   $(PROJECT_PATH)/components/esp32-timer-cam/example/main/esp_timer_cam_example.cpp \
   $(PROJECT_PATH)/components/esp-box/example/main/esp_box_example.cpp \
   $(PROJECT_PATH)/components/ethernet/example/main/ethernet_example.cpp \
@@ -285,6 +286,7 @@ INPUT = \
   $(PROJECT_PATH)/components/esp32-p4-function-ev-board/include/esp32-p4-function-ev-board.hpp \
   $(PROJECT_PATH)/components/esp32-p4-module-dev-kit/include/esp32-p4-module-dev-kit.hpp \
   $(PROJECT_PATH)/components/esp32-p4-nano/include/esp32-p4-nano.hpp \
+  $(PROJECT_PATH)/components/esp32-p4-wifi6-poe-eth/include/esp32-p4-wifi6-poe-eth.hpp \
   $(PROJECT_PATH)/components/esp32-timer-cam/include/esp32-timer-cam.hpp \
   $(PROJECT_PATH)/components/esp-box/include/esp-box.hpp \
   $(PROJECT_PATH)/components/ethernet/include/ethernet.hpp \

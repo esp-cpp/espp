@@ -82,12 +82,22 @@ public:
 
   //! (Probably) Thread safe if writers cannot be removed
   Writer *getWriter(EntityId_t id);
+  //! Lookup variant for the receive path: also captures the endpoint's pooled
+  //! slot generation while m_mutex is held (i.e. atomically with the slot
+  //! still being registered). Dispatch through the endpoint's *IfCurrent
+  //! wrapper with this generation then rejects the delivery if the endpoint
+  //! was deleted - and its slot possibly reused - after the lookup.
+  Writer *getWriter(EntityId_t id, uint32_t &generation_out);
   Writer *getMatchingWriter(const TopicData &topicData);
   Writer *getMatchingWriter(const TopicDataCompressed &topicData);
 
   //! (Probably) Thread safe if readers cannot be removed
   Reader *getReader(EntityId_t id);
+  //! See getWriter(id, generation_out).
+  Reader *getReader(EntityId_t id, uint32_t &generation_out);
   Reader *getReaderByWriterId(const Guid_t &guid);
+  //! See getWriter(id, generation_out).
+  Reader *getReaderByWriterId(const Guid_t &guid, uint32_t &generation_out);
   Reader *getMatchingReader(const TopicData &topicData);
   Reader *getMatchingReader(const TopicDataCompressed &topicData);
 

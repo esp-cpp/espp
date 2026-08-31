@@ -129,6 +129,10 @@ struct PyRtpsConfig {
   py::function on_publisher_matched{};
   py::function on_subscriber_matched{};
   espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
+  espp::QosBand metatraffic_band{espp::QosBand::High};
+  espp::QosBand user_traffic_band{espp::QosBand::Normal};
+  bool enable_dedicated_endpoint_ports{true};
+  uint8_t max_prioritized_endpoint_ports{4};
 };
 
 Rtps::Config to_config(const PyRtpsConfig &pc) {
@@ -137,6 +141,10 @@ Rtps::Config to_config(const PyRtpsConfig &pc) {
       .on_publisher_matched = wrap_matched_callback(pc.on_publisher_matched),
       .on_subscriber_matched = wrap_matched_callback(pc.on_subscriber_matched),
       .log_level = pc.log_level,
+      .metatraffic_band = pc.metatraffic_band,
+      .user_traffic_band = pc.user_traffic_band,
+      .enable_dedicated_endpoint_ports = pc.enable_dedicated_endpoint_ports,
+      .max_prioritized_endpoint_ports = pc.max_prioritized_endpoint_ports,
   };
 }
 
@@ -162,22 +170,39 @@ void py_init_rtps(py::module &m) {
 
   py::class_<PyRtpsConfig>(rtps, "Config")
       .def(py::init([](std::string interface_address, const py::object &on_publisher_matched,
-                       const py::object &on_subscriber_matched, espp::Logger::Verbosity log_level) {
+                       const py::object &on_subscriber_matched, espp::Logger::Verbosity log_level,
+                       espp::QosBand metatraffic_band, espp::QosBand user_traffic_band,
+                       bool enable_dedicated_endpoint_ports,
+                       uint8_t max_prioritized_endpoint_ports) {
              PyRtpsConfig c;
              c.interface_address = std::move(interface_address);
              c.on_publisher_matched = as_function(on_publisher_matched);
              c.on_subscriber_matched = as_function(on_subscriber_matched);
              c.log_level = log_level;
+             c.metatraffic_band = metatraffic_band;
+             c.user_traffic_band = user_traffic_band;
+             c.enable_dedicated_endpoint_ports = enable_dedicated_endpoint_ports;
+             c.max_prioritized_endpoint_ports = max_prioritized_endpoint_ports;
              return c;
            }),
            py::arg("interface_address") = std::string{},
            py::arg("on_publisher_matched") = py::none(),
            py::arg("on_subscriber_matched") = py::none(),
-           py::arg("log_level") = espp::Logger::Verbosity::WARN)
+           py::arg("log_level") = espp::Logger::Verbosity::WARN,
+           py::arg("metatraffic_band") = espp::QosBand::High,
+           py::arg("user_traffic_band") = espp::QosBand::Normal,
+           py::arg("enable_dedicated_endpoint_ports") = true,
+           py::arg("max_prioritized_endpoint_ports") = 4)
       .def_readwrite("interface_address", &PyRtpsConfig::interface_address)
       .def_readwrite("on_publisher_matched", &PyRtpsConfig::on_publisher_matched)
       .def_readwrite("on_subscriber_matched", &PyRtpsConfig::on_subscriber_matched)
-      .def_readwrite("log_level", &PyRtpsConfig::log_level);
+      .def_readwrite("log_level", &PyRtpsConfig::log_level)
+      .def_readwrite("metatraffic_band", &PyRtpsConfig::metatraffic_band)
+      .def_readwrite("user_traffic_band", &PyRtpsConfig::user_traffic_band)
+      .def_readwrite("enable_dedicated_endpoint_ports",
+                     &PyRtpsConfig::enable_dedicated_endpoint_ports)
+      .def_readwrite("max_prioritized_endpoint_ports",
+                     &PyRtpsConfig::max_prioritized_endpoint_ports);
 
   rtps.def(py::init([](const PyRtpsConfig &config) { return new Rtps(to_config(config)); }),
            py::arg("config") = PyRtpsConfig{})
@@ -188,18 +213,24 @@ void py_init_rtps(py::module &m) {
       .def("is_started", &Rtps::is_started)
       .def(
           "add_writer",
-          [](Rtps &self, const std::string &topic, const std::string &type_name, bool reliable) {
+          [](Rtps &self, const std::string &topic, const std::string &type_name, bool reliable,
+             espp::QosBand band, std::optional<espp::Dscp> dscp) {
             return self.add_writer({.topic = topic,
                                     .type_name = type_name,
                                     .reliability = reliable ? Rtps::Reliability::RELIABLE
-                                                            : Rtps::Reliability::BEST_EFFORT});
+                                                            : Rtps::Reliability::BEST_EFFORT,
+                                    .band = band,
+                                    .dscp = dscp});
           },
           py::arg("topic"), py::arg("type_name"), py::arg("reliable") = false,
-          py::call_guard<py::gil_scoped_release>(), "Add a publishing endpoint.")
+          py::arg("band") = espp::QosBand::Normal, py::arg("dscp") = py::none(),
+          py::call_guard<py::gil_scoped_release>(),
+          "Add a publishing endpoint. A non-Normal band (or a dscp) requests a dedicated,\n"
+          "band-scheduled (and DSCP-marked) unicast port for the writer (rationed).")
       .def(
           "add_reader",
           [](Rtps &self, const std::string &topic, const std::string &type_name, bool reliable,
-             const py::object &on_sample) {
+             const py::object &on_sample, espp::QosBand band, std::optional<espp::Dscp> dscp) {
             // wrap under the GIL (we hold it here), then release for the engine call
             auto cb = wrap_sample_callback(as_function(on_sample));
             py::gil_scoped_release release;
@@ -207,11 +238,16 @@ void py_init_rtps(py::module &m) {
                                     .type_name = type_name,
                                     .reliability = reliable ? Rtps::Reliability::RELIABLE
                                                             : Rtps::Reliability::BEST_EFFORT,
-                                    .on_sample = std::move(cb)});
+                                    .on_sample = std::move(cb),
+                                    .band = band,
+                                    .dscp = dscp});
           },
           py::arg("topic"), py::arg("type_name"), py::arg("reliable") = false,
-          py::arg("on_sample") = py::none(),
-          "Add a subscribing endpoint; on_sample receives each sample as bytes.")
+          py::arg("on_sample") = py::none(), py::arg("band") = espp::QosBand::Normal,
+          py::arg("dscp") = py::none(),
+          "Add a subscribing endpoint; on_sample receives each sample as bytes. A non-Normal\n"
+          "band (or a dscp) requests a dedicated receive port (banded readers fall back to\n"
+          "deferred banded dispatch when no dedicated port is available).")
       .def(
           "publish",
           [](Rtps &self, const std::string &topic, const py::bytes &data) {
@@ -279,20 +315,23 @@ void py_init_rtps(py::module &m) {
   rtps.def(
           "add_service_server",
           [](Rtps &self, const std::string &service, const std::string &type_name,
-             const py::function &handler) {
+             const py::function &handler, espp::QosBand band, std::optional<espp::Dscp> dscp) {
             auto h = wrap_service_handler(handler);
             py::gil_scoped_release rel;
-            return self.add_service_server({service, type_name}, std::move(h));
+            return self.add_service_server({service, type_name, band, dscp}, std::move(h));
           },
           py::arg("service"), py::arg("type_name"), py::arg("handler"),
+          py::arg("band") = espp::QosBand::Normal, py::arg("dscp") = py::none(),
           "Add a ROS 2 service server; handler(request_bytes) -> reply_bytes.")
       .def(
           "add_service_client",
-          [](Rtps &self, const std::string &service, const std::string &type_name) {
+          [](Rtps &self, const std::string &service, const std::string &type_name,
+             espp::QosBand band, std::optional<espp::Dscp> dscp) {
             py::gil_scoped_release rel;
-            return self.add_service_client({service, type_name});
+            return self.add_service_client({service, type_name, band, dscp});
           },
-          py::arg("service"), py::arg("type_name"), "Add a ROS 2 service client.");
+          py::arg("service"), py::arg("type_name"), py::arg("band") = espp::QosBand::Normal,
+          py::arg("dscp") = py::none(), "Add a ROS 2 service client.");
 
   // ---- Actions (AMI, ROS 2-interoperable) ---------------------------------
   py::class_<Rtps::ActionGoalHandle>(
@@ -387,12 +426,13 @@ void py_init_rtps(py::module &m) {
   rtps.def(
       "add_action_server",
       [](Rtps &self, const std::string &action, const std::string &type_name,
-         const py::function &on_goal, const py::function &execute) {
+         const py::function &on_goal, const py::function &execute, espp::QosBand band,
+         std::optional<espp::Dscp> dscp) {
         auto og = make_gil_safe_holder(on_goal);
         auto ex = make_gil_safe_holder(execute);
         py::gil_scoped_release rel;
         return self.add_action_server(
-            {action, type_name},
+            {action, type_name, band, dscp},
             [og](const Rtps::GoalId &, std::span<const uint8_t> goal) -> bool {
               py::gil_scoped_acquire gil;
               try {
@@ -412,14 +452,17 @@ void py_init_rtps(py::module &m) {
             });
       },
       py::arg("action"), py::arg("type_name"), py::arg("on_goal"), py::arg("execute"),
+      py::arg("band") = espp::QosBand::Normal, py::arg("dscp") = py::none(),
       "Add a ROS 2 action server. on_goal(goal_bytes)->bool; execute(ActionGoalHandle).");
   rtps.def(
       "add_action_client",
-      [](Rtps &self, const std::string &action, const std::string &type_name) {
+      [](Rtps &self, const std::string &action, const std::string &type_name, espp::QosBand band,
+         std::optional<espp::Dscp> dscp) {
         py::gil_scoped_release rel;
-        return self.add_action_client({action, type_name});
+        return self.add_action_client({action, type_name, band, dscp});
       },
-      py::arg("action"), py::arg("type_name"), "Add a ROS 2 action client.");
+      py::arg("action"), py::arg("type_name"), py::arg("band") = espp::QosBand::Normal,
+      py::arg("dscp") = py::none(), "Add a ROS 2 action client.");
 
   // ---- Native (espp<->espp) services + actions ----------------------------
   py::class_<Rtps::NativeServiceClient, std::shared_ptr<Rtps::NativeServiceClient>>(
@@ -535,24 +578,27 @@ void py_init_rtps(py::module &m) {
   rtps.def(
           "add_native_service_server",
           [](Rtps &self, const std::string &service, const std::string &type_name,
-             const py::function &handler) {
+             const py::function &handler, espp::QosBand band, std::optional<espp::Dscp> dscp) {
             auto h = wrap_service_handler(handler);
             py::gil_scoped_release rel;
-            return self.add_native_service_server({service, type_name}, std::move(h));
+            return self.add_native_service_server({service, type_name, band, dscp}, std::move(h));
           },
-          py::arg("service"), py::arg("type_name"), py::arg("handler"))
+          py::arg("service"), py::arg("type_name"), py::arg("handler"),
+          py::arg("band") = espp::QosBand::Normal, py::arg("dscp") = py::none())
       .def(
           "add_native_service_client",
-          [](Rtps &self, const std::string &service, const std::string &type_name) {
+          [](Rtps &self, const std::string &service, const std::string &type_name,
+             espp::QosBand band, std::optional<espp::Dscp> dscp) {
             py::gil_scoped_release rel;
-            return self.add_native_service_client({service, type_name});
+            return self.add_native_service_client({service, type_name, band, dscp});
           },
-          py::arg("service"), py::arg("type_name"))
+          py::arg("service"), py::arg("type_name"), py::arg("band") = espp::QosBand::Normal,
+          py::arg("dscp") = py::none())
       .def(
           "add_native_action_server",
           [](Rtps &self, const std::string &action, const std::string &type_name,
-             const py::function &on_goal, const py::function &execute,
-             const py::object &on_cancel) {
+             const py::function &on_goal, const py::function &execute, const py::object &on_cancel,
+             espp::QosBand band, std::optional<espp::Dscp> dscp) {
             auto og = make_gil_safe_holder(on_goal);
             auto ex = make_gil_safe_holder(execute);
             Rtps::native_cancel_callback_t oc = nullptr;
@@ -570,7 +616,7 @@ void py_init_rtps(py::module &m) {
             }
             py::gil_scoped_release rel;
             return self.add_native_action_server(
-                {action, type_name},
+                {action, type_name, band, dscp},
                 [og](std::span<const uint8_t> goal) -> bool {
                   py::gil_scoped_acquire gil;
                   try {
@@ -591,14 +637,17 @@ void py_init_rtps(py::module &m) {
                 std::move(oc));
           },
           py::arg("action"), py::arg("type_name"), py::arg("on_goal"), py::arg("execute"),
-          py::arg("on_cancel") = py::none())
+          py::arg("on_cancel") = py::none(), py::arg("band") = espp::QosBand::Normal,
+          py::arg("dscp") = py::none())
       .def(
           "add_native_action_client",
-          [](Rtps &self, const std::string &action, const std::string &type_name) {
+          [](Rtps &self, const std::string &action, const std::string &type_name,
+             espp::QosBand band, std::optional<espp::Dscp> dscp) {
             py::gil_scoped_release rel;
-            return self.add_native_action_client({action, type_name});
+            return self.add_native_action_client({action, type_name, band, dscp});
           },
-          py::arg("action"), py::arg("type_name"));
+          py::arg("action"), py::arg("type_name"), py::arg("band") = espp::QosBand::Normal,
+          py::arg("dscp") = py::none());
 
   py::class_<Rtps::NativeGoalHandle>(rtps, "NativeGoalHandle",
                                      "Server-side handle to a running native goal.")

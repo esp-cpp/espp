@@ -35,6 +35,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/utils/Log.hpp"
 #include "task.hpp"
 
+#include <atomic>
 #include <memory>
 #include <mutex>
 
@@ -72,7 +73,9 @@ public:
 private:
   Participant *mp_participant = nullptr;
   BuiltInEndpoints m_buildInEndpoints;
-  bool m_running = false;
+  // Atomic: start()/stop() flip it from the app thread while the Domain's
+  // protocol-scheduler thread polls isRunning() every announce cycle.
+  std::atomic<bool> m_running{false};
   std::array<uint8_t, 1000> m_outputBuffer{}; // TODO check required size
   std::array<uint8_t, 1000> m_inputBuffer{};
   ParticipantProxyData m_proxyDataBuffer{};
