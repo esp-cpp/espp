@@ -39,6 +39,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <mutex>
 #include <span>
 #include <string>
@@ -242,15 +243,27 @@ protected:
     case Msg::GetSummary: {
       const std::string report = core_dump_.format_report();
       logger_.info("GET_SUMMARY -> {} bytes", report.size());
-      // truncate to the frame payload cap (reports are far smaller in practice)
-      const size_t count = std::min(report.size(), stream::kMaxPayloadSize);
+      // truncate to the frame payload cap (reports are far smaller in practice),
+      // backing off to a UTF-8 codepoint boundary so a split multi-byte
+      // sequence cannot produce invalid UTF-8 in the SUMMARY payload
+      // (continuation bytes are 0b10xxxxxx = 0x80..0xBF).
+      size_t count = std::min(report.size(), stream::kMaxPayloadSize);
+      while (count > 0 && count < report.size() &&
+             (static_cast<uint8_t>(report[count]) & 0xC0) == 0x80) {
+        --count;
+      }
       reply =
           build(Msg::Summary,
                 std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(report.data()), count));
       return true;
     }
     case Msg::GetSize: {
-      const auto size = static_cast<uint32_t>(core_dump_.image_size());
+      // The wire SIZE field is u32. Core dumps are far smaller, but clamp
+      // defensively so an oversized/misreported image_size() cannot silently
+      // wrap when narrowed.
+      const size_t raw_size = core_dump_.image_size();
+      const auto size =
+          static_cast<uint32_t>(std::min<size_t>(raw_size, std::numeric_limits<uint32_t>::max()));
       logger_.info("GET_SIZE -> {} bytes", size);
       std::vector<uint8_t> reply_payload;
       stream::put_u32(reply_payload, size);

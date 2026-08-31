@@ -250,8 +250,6 @@ public:
    */
   bool read_image(size_t offset, std::span<uint8_t> out, std::error_code &ec) const {
     ec.clear();
-    if (out.empty())
-      return true;
 #if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
     std::lock_guard<std::mutex> lock(mutex_);
     size_t addr = 0, size = 0;
@@ -266,6 +264,11 @@ public:
       ec = std::make_error_code(std::errc::result_out_of_range);
       return false;
     }
+    // A zero-length read is a valid no-op ONLY at an in-bounds offset (checked
+    // above); returning early here keeps esp_partition_read off a possibly-null
+    // empty-span data pointer.
+    if (out.empty())
+      return true;
     const esp_partition_t *partition = coredump_partition();
     if (partition == nullptr) {
       logger_.error("read_image: no coredump partition found");
@@ -296,6 +299,9 @@ public:
     }
     return true;
 #else
+    (void)offset;
+    if (out.empty())
+      return true;
     logger_.error("read_image: core dump to flash is not enabled "
                   "(CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH)");
     ec = std::make_error_code(std::errc::function_not_supported);

@@ -760,7 +760,10 @@
       if (transport !== t) return;
       transport = null;
       failPending(new Error("transport lost"));
-      t.close();
+      // close() is async for both transports (reader cancel / port close / USB
+      // interface release); the transport is already gone, so ignore the result
+      // and swallow rejections rather than leave an unhandled promise.
+      Promise.resolve(t.close()).catch(() => {});
       parser.reset();
       consoleCarry = "";
       updateUI();
