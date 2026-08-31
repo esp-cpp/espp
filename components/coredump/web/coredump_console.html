@@ -1085,6 +1085,11 @@
       if (view.getUint32(0, false) !== 0x7F454C46) throw new Error("not an ELF file (bad magic)");
       if (bytes[4] !== 1) throw new Error("not a 32-bit ELF (ESP app ELFs are ELF32)");
       if (bytes[5] !== 1) throw new Error("not a little-endian ELF");
+      // e_type at 0x10 (u16 LE). ET_CORE (4) means the downloaded core dump was
+      // picked by mistake - it carries no function symbols. Point at the app ELF.
+      if (view.getUint16(0x10, true) === 4)
+        throw new Error("this is a core-dump ELF (core.elf), not your firmware - " +
+                        "pick your app build ELF (e.g. build/coredump_example.elf) instead");
       const shoff = view.getUint32(0x20, true);
       const shentsize = view.getUint16(0x2E, true);
       const shnum = view.getUint16(0x30, true);
@@ -1107,7 +1112,9 @@
         });
       }
       const symtab = sections.find((s) => s.type === 2); // SHT_SYMTAB
-      if (!symtab) throw new Error("no .symtab section (symbols stripped?)");
+      if (!symtab)
+        throw new Error("no .symtab section - is this a stripped or core-dump ELF? " +
+                        "pick your app build ELF (build/<app>.elf)");
       const strtab = sections[symtab.link];
       if (!strtab) throw new Error("symtab has no linked string table");
       // Clamp the string table to the file so a malformed strtab header can't
@@ -1201,7 +1208,15 @@
           " function symbols loaded (nearest-symbol resolution, no DWARF).";
         els.elfInfo.className = "muted";
         renderSymbols();
-        logLine("sys", "Loaded " + symbols.length + " function symbols from " + file.name + ".");
+        if (backtraceAddrs.length === 0) {
+          logLine("sys", "Loaded " + symbols.length + " symbols from " + file.name +
+                  ", but there are no backtrace addresses yet - fetch a crash summary " +
+                  "(Refresh) first; the resolved table appears above the console.");
+        } else {
+          logLine("sys", "Loaded " + symbols.length + " symbols from " + file.name +
+                  "; resolved " + backtraceAddrs.length +
+                  " backtrace address(es) - see the table above the console.");
+        }
       } catch (e) {
         symbols = null;
         els.elfInfo.textContent = file.name + ": " + e.message;
