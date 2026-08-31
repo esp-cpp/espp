@@ -7,6 +7,7 @@ Waveshare Boards
    esp32_p4_eth
    esp32_p4_module_dev_kit
    esp32_p4_nano
+   esp32_p4_wifi6_dev_kit
    esp32_p4_wifi6_poe_eth
    ws_s3_geek
    ws_s3_lcd_1_47
