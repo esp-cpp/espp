@@ -72,6 +72,11 @@ jobs:
             components/codec
             components/color
             components/controller
+            # stream_frame is intentionally listed here (out of alphabetical
+            # order) ahead of its first-time dependents coredump / dispatcher /
+            # ota, so it is uploaded before they try to resolve it from the
+            # registry (see the note above).
+            components/stream_frame
             components/coredump
             components/cst816
             components/csv
@@ -157,7 +162,6 @@ jobs:
             components/st25dv
             components/st7123touch
             components/state_machine
-            components/stream_frame
             components/sx126x
             components/t_keyboard
             components/t-deck

@@ -147,6 +147,20 @@ d4.register_module(6, self_unregister)
 d4.feed(sf.build_frame(module=6, type=0x11) + sf.build_frame(module=6, type=0x22))
 check("re-entrant self-unregister is safe", hits == [0x11] and not d4.has_module(6))
 
+# a raising Python handler must not wedge the dispatcher (its exception
+# propagates out of feed(), but the internal dispatch depth is restored).
+d5 = espp.Dispatcher()
+d5.register_module(1, lambda f: (_ for _ in ()).throw(RuntimeError("boom")))
+raised = False
+try:
+    d5.feed(sf.build_frame(module=1, type=0x00))
+except RuntimeError:
+    raised = True
+after = []
+d5.register_module(2, lambda f: after.append(f.type))
+d5.feed(sf.build_frame(module=2, type=0x07))
+check("raising handler does not wedge the dispatcher", raised and after == [0x07])
+
 # ---------------------------------------------------------------------------
 print()
 if failures == 0:

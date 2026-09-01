@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <span>
+#include <stdexcept>
 #include <vector>
 
 #include "dispatcher.hpp"
@@ -95,8 +96,9 @@ static void test_reset() {
 static void test_reentrant_unregister() {
   std::printf("test_reentrant_unregister\n");
   // A handler that unregisters its own module mid-dispatch must be safe: the
-  // dispatcher copies the handler out before invoking it, so erasing handlers_
-  // does not destroy the std::function being executed.
+  // dispatcher DEFERS register/unregister requested during a dispatch until the
+  // dispatch unwinds, so handlers_ is not reallocated and the running handler is
+  // not destroyed while it executes (no per-frame handler copy needed).
   espp::Dispatcher d;
   int hits = 0;
   d.register_module(6, [&](const sf::Frame &) {
@@ -108,11 +110,34 @@ static void test_reentrant_unregister() {
   CHECK(hits == 1 && !d.has_module(6));
 }
 
+static void test_handler_exception_recovers() {
+  std::printf("test_handler_exception_recovers\n");
+  // A throwing handler must not wedge the dispatcher: the internal dispatch
+  // depth is restored (so later registrations still apply), and pending ops
+  // queued before the throw are applied on a subsequent dispatch.
+  espp::Dispatcher d;
+  d.register_module(1, [](const sf::Frame &) { throw std::runtime_error("boom"); });
+  bool threw = false;
+  try {
+    d.feed(sf::build_frame(false, 1, 0x00));
+  } catch (const std::runtime_error &) {
+    threw = true;
+  }
+  CHECK(threw);
+  // The dispatcher is not wedged: a NEW registration made after the throw takes
+  // effect immediately (proving dispatch_depth_ was restored to 0).
+  int hits = 0;
+  d.register_module(2, [&](const sf::Frame &) { ++hits; });
+  d.feed(sf::build_frame(false, 2, 0x00));
+  CHECK(hits == 1 && d.has_module(2));
+}
+
 int main() {
   test_routing_and_coexistence();
   test_register_replace_unregister();
   test_reset();
   test_reentrant_unregister();
+  test_handler_exception_recovers();
   if (g_failures == 0) {
     std::printf("ALL TESTS PASSED\n");
     return 0;

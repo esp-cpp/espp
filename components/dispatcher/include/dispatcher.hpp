@@ -82,12 +82,27 @@ public:
     // neither reallocated nor is the running handler destroyed while it executes.
     // The depth counter defers until the OUTERMOST dispatch unwinds (a handler
     // may itself feed()/dispatch()).
+    //
+    // The depth MUST be restored even if the handler throws (e.g. a Python
+    // callback raising) — otherwise dispatch_depth_ would stay nonzero forever
+    // and every later registration would be deferred and never applied. An RAII
+    // guard decrements it on every path (its destructor only touches an int, so
+    // it cannot throw during unwinding).
+    struct DepthGuard {
+      int &depth;
+      ~DepthGuard() { --depth; }
+    };
     ++dispatch_depth_;
+    DepthGuard guard{dispatch_depth_};
     const auto it = std::find_if(handlers_.begin(), handlers_.end(),
                                  [&frame](const auto &e) { return e.first == frame.module; });
     if (it != handlers_.end())
-      it->second(frame);
-    if (--dispatch_depth_ == 0 && !pending_.empty()) {
+      it->second(frame); // may throw; guard still restores the depth
+    // Flush deferred registrations only on the normal path of the OUTERMOST
+    // dispatch (depth is still 1 here; the guard makes it 0 on scope exit). If a
+    // handler threw, pending ops stay queued and are applied on the next
+    // dispatch — never lost, and the dispatcher is never wedged.
+    if (dispatch_depth_ == 1 && !pending_.empty()) {
       // swap (not move) so pending_ is left in a defined empty state; applying an
       // op never re-enters dispatch, so no new pending ops accrue here.
       std::vector<std::pair<uint8_t, handler_fn>> ops;
