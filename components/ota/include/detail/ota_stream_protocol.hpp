@@ -153,7 +153,7 @@ inline std::optional<uint32_t> parse_u32_payload(const Frame &frame) {
 
 /// Decoded ERROR reply payload.
 struct ErrorInfo {
-  uint32_t code;       ///< Numeric error code (the device uses std::errc values).
+  uint32_t code{};     ///< Numeric error code (the device uses std::errc values).
   std::string message; ///< Human-readable UTF-8 message (may be empty).
 };
 
@@ -170,8 +170,8 @@ inline std::optional<ErrorInfo> parse_error(const Frame &frame) {
 
 /// Decoded PROGRESS reply payload.
 struct ProgressInfo {
-  uint32_t written; ///< Bytes written to the update partition so far.
-  uint32_t total;   ///< Total expected bytes (0 if unknown).
+  uint32_t written{}; ///< Bytes written to the update partition so far.
+  uint32_t total{};   ///< Total expected bytes (0 if unknown).
 };
 
 /// Parse a PROGRESS frame payload; returns std::nullopt if it is not exactly 8 bytes.

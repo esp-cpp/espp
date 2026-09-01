@@ -45,13 +45,13 @@ static void test_requests_are_module0_requests() {
     MessageType type;
   };
   const uint8_t img[] = {0xE9, 0x06, 0x02};
-  Case cases[] = {
+  const Case cases[] = {
       {ota::make_begin(1234567u), MessageType::Begin},
       {ota::make_data(img), MessageType::Data},
       {ota::make_finish(), MessageType::Finish},
       {ota::make_abort(), MessageType::Abort},
   };
-  for (auto &c : cases) {
+  for (const auto &c : cases) {
     ota::Frame f{};
     CHECK(parse_one(c.frame, f));
     CHECK(f.module == ota::kModule);

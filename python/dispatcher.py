@@ -9,7 +9,8 @@ Run:  python python/dispatcher.py
 """
 
 import espp
-from espp import stream_frame as sf
+
+sf = espp.stream_frame
 
 # --- Two toy protocols sharing one stream --------------------------------
 # Module 0: a "control" protocol. Module 4: a "telemetry" protocol.

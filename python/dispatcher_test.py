@@ -10,7 +10,8 @@ Exit code 0 on full pass, 1 on any failure.
 import sys
 
 import espp
-from espp import stream_frame as sf
+
+sf = espp.stream_frame
 
 failures = 0
 
