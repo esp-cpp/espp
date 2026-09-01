@@ -53,6 +53,17 @@ if len(frames) == 2:
           and frames[1].is_reply())
 check("parser drained", parser.buffered() == 0 and parser.dropped_bytes() == 0)
 
+# Optional correlation id (flag-gated header field).
+plain = sf.build_frame(module=4, type=0x10, payload=b"\x01")
+withc = sf.build_frame(module=4, type=0xC0, payload=b"\x01", reply=True, correlation=0xBEEF)
+check("no-correlation frame is unchanged size", len(plain) == sf.HEADER_SIZE + 1 + sf.CRC_SIZE)
+check("correlation grows the header", len(withc) == sf.HEADER_SIZE + sf.CORRELATION_SIZE + 1 + sf.CRC_SIZE)
+cframes = sf.StreamParser().feed(plain + withc)
+check("both parse", len(cframes) == 2)
+if len(cframes) == 2:
+    check("plain has no correlation", cframes[0].correlation is None and not cframes[0].has_correlation())
+    check("correlated id round-trips", cframes[1].correlation == 0xBEEF and cframes[1].has_correlation())
+
 # Split delivery (one byte at a time) still yields the frames.
 parser2 = sf.StreamParser()
 got = []

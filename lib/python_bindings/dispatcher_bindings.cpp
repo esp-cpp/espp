@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -42,8 +43,11 @@ void py_init_dispatcher(py::module &m) {
   sfm.attr("CRC_SIZE") = sf::kCrcSize;
   sfm.attr("MAX_PAYLOAD_SIZE") = sf::kMaxPayloadSize;
   sfm.attr("MAX_FRAME_SIZE") = sf::kMaxFrameSize;
+  sfm.attr("MAX_HEADER_SIZE") = sf::kMaxHeaderSize;
+  sfm.attr("CORRELATION_SIZE") = sf::kCorrelationSize;
   sfm.attr("VERSION") = sf::kVersion;
   sfm.attr("FLAG_REPLY") = sf::kFlagReply;
+  sfm.attr("FLAG_CORRELATION") = sf::kFlagCorrelation;
 
   py::enum_<sf::Transaction>(sfm, "Transaction",
                              "Recommended standard `type` values (a protocol may define its own)")
@@ -65,11 +69,14 @@ void py_init_dispatcher(py::module &m) {
       .def_readwrite("flags", &sf::Frame::flags)
       .def_readwrite("module", &sf::Frame::module)
       .def_readwrite("type", &sf::Frame::type)
+      .def_readwrite("correlation", &sf::Frame::correlation,
+                     "Optional[int]: correlation / sequence id (None if absent)")
       .def_property(
           "payload", [](const sf::Frame &f) { return to_bytes(f.payload); },
           [](sf::Frame &f, const std::string &b) { f.payload.assign(b.begin(), b.end()); })
       .def("is_reply", &sf::Frame::is_reply)
       .def("version", &sf::Frame::version)
+      .def("has_correlation", &sf::Frame::has_correlation)
       .def("transaction", &sf::Frame::transaction)
       .def("__repr__", [](const sf::Frame &f) {
         return "<stream_frame.Frame module=" + std::to_string(f.module) +
@@ -79,12 +86,14 @@ void py_init_dispatcher(py::module &m) {
 
   sfm.def(
       "build_frame",
-      [](uint8_t module, uint8_t type, const std::string &payload, bool reply) {
-        return to_bytes(sf::build_frame(reply, module, type, as_span(payload)));
+      [](uint8_t module, uint8_t type, const std::string &payload, bool reply,
+         std::optional<uint16_t> correlation) {
+        return to_bytes(sf::build_frame(reply, module, type, as_span(payload), correlation));
       },
       py::arg("module"), py::arg("type"), py::arg("payload") = std::string(),
-      py::arg("reply") = false,
-      "Encode a frame. Returns empty bytes if the payload exceeds MAX_PAYLOAD_SIZE.");
+      py::arg("reply") = false, py::arg("correlation") = std::nullopt,
+      "Encode a frame (optional u16 correlation id). Returns empty bytes if the "
+      "payload exceeds MAX_PAYLOAD_SIZE.");
 
   py::class_<sf::StreamParser>(sfm, "StreamParser",
                                "Incremental, resynchronizing frame parser (yields every "

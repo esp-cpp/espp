@@ -318,6 +318,7 @@
     const FLAGS_VERSION = 1;                  // protocol version lives in flags bits 4-7
     const FLAGS_REQUEST = (FLAGS_VERSION << 4) | 0; // host->device request: 0x10 (reply bit 0)
     const FLAGS_REPLY_BIT = 0x01;            // bit0 set on device->host replies/telemetry
+    const FLAG_CORRELATION = 0x02;           // bit1: optional u16 correlation id present after `type`
     const TYPE = {
       OTA_BEGIN: 0x01, OTA_DATA: 0x02, OTA_FINISH: 0x03, OTA_ABORT: 0x04,
       GET_INFO: 0x10, GET_STATUS: 0x11, GET_MODES: 0x12, SET_MODE: 0x13,
@@ -432,21 +433,27 @@
                  !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) {
             pos++;
           }
-          if (merged.length - pos < HEADER_SIZE) break;
-          const view = new DataView(merged.buffer, merged.byteOffset + pos);
-          const len = view.getUint32(5, true); // v2: len u32 follows magic+flags+module+type
-          if (len > MAX_PAYLOAD) { pos++; continue; }
-          const total = HEADER_SIZE + len + CRC_SIZE;
-          if (merged.length - pos < total) break;
-          const expected = view.getUint32(HEADER_SIZE + len, true);
-          const actual = crc32(merged.subarray(pos, pos + HEADER_SIZE + len));
-          if (actual !== expected) { pos++; continue; }
+          if (merged.length - pos < 3) break; // need magic+flags before header size is known
           const flags = merged[pos + 2];
+          // v2: flags bit1 => optional u16 correlation id sits after `type`
+          const ext = (flags & FLAG_CORRELATION) ? 2 : 0;
+          const headerSize = HEADER_SIZE + ext;
+          if (merged.length - pos < headerSize) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true); // v2: len u32 follows magic+flags+module+type(+correlation)
+          if (len > MAX_PAYLOAD) { pos++; continue; }
+          const total = headerSize + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(headerSize + len, true);
+          const actual = crc32(merged.subarray(pos, pos + headerSize + len));
+          if (actual !== expected) { pos++; continue; }
+          const correlation = ext ? (merged[pos + 5] | (merged[pos + 6] << 8)) : null;
           frames.push({ flags,
                         reply: (flags & FLAGS_REPLY_BIT) !== 0,
+                        correlation,
                         module: merged[pos + 3],
                         type: merged[pos + 4],
-                        payload: merged.slice(pos + HEADER_SIZE, pos + HEADER_SIZE + len) });
+                        payload: merged.slice(pos + headerSize, pos + headerSize + len) });
           pos += total;
         }
         this.buf = merged.slice(pos);

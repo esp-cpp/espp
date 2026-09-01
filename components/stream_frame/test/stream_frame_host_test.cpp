@@ -147,10 +147,44 @@ static void test_oversized_len_rejected() {
   // a maximum-size frame round-trips
   const std::vector<uint8_t> max_size(sf::kMaxPayloadSize, 0xCD);
   const auto max_frame = sf::build_frame(false, 0, 0x02, max_size);
-  CHECK(max_frame.size() == sf::kMaxFrameSize);
+  CHECK(max_frame.size() == sf::kHeaderSize + sf::kMaxPayloadSize + sf::kCrcSize);
+  CHECK(max_frame.size() <= sf::kMaxFrameSize);
   sf::StreamParser p2;
   const auto mf = p2.feed(max_frame);
   CHECK(mf.size() == 1 && (mf.empty() || mf[0].payload == max_size));
+}
+
+static void test_optional_correlation() {
+  std::printf("test_optional_correlation\n");
+  // Without correlation: byte-identical to a plain frame, no correlation field.
+  const uint8_t p[] = {1, 2, 3};
+  const auto plain = sf::build_frame(false, 4, 0x10, p);
+  const auto plain_expected = sf::build_frame(false, 4, 0x10, p, std::nullopt);
+  CHECK(plain == plain_expected);
+  CHECK(plain.size() == sf::kHeaderSize + sizeof(p) + sf::kCrcSize);
+
+  // With correlation: header grows by kCorrelationSize; the id round-trips.
+  const auto withc = sf::build_frame(true, 4, 0xC0, p, uint16_t{0xBEEF});
+  CHECK(withc.size() == sf::kHeaderSize + sf::kCorrelationSize + sizeof(p) + sf::kCrcSize);
+  CHECK(withc[2] == (sf::make_flags(true) | sf::kFlagCorrelation)); // correlation flag set
+  CHECK(withc[5] == 0xEF && withc[6] == 0xBE); // correlation u16 LE, after type
+
+  sf::StreamParser parser;
+  // Interleave a plain frame and a correlated one, split arbitrarily.
+  std::vector<uint8_t> stream = plain;
+  stream.insert(stream.end(), withc.begin(), withc.end());
+  std::vector<sf::Frame> frames;
+  for (const uint8_t b : stream) {
+    auto out = parser.feed(std::span<const uint8_t>(&b, 1));
+    frames.insert(frames.end(), out.begin(), out.end());
+  }
+  CHECK(frames.size() == 2 && parser.dropped_bytes() == 0);
+  if (frames.size() == 2) {
+    CHECK(!frames[0].has_correlation() && !frames[0].correlation.has_value());
+    CHECK(frames[1].has_correlation() && frames[1].correlation.value_or(0) == 0xBEEF);
+    CHECK(frames[1].module == 4 && frames[1].type == 0xC0 && frames[1].is_reply());
+    CHECK(frames[1].payload.size() == sizeof(p));
+  }
 }
 
 int main() {
@@ -158,6 +192,7 @@ int main() {
   test_flags();
   test_frame_layout();
   test_round_trip();
+  test_optional_correlation();
   test_split_across_chunks();
   test_resync_on_corruption();
   test_oversized_len_rejected();

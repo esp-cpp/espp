@@ -261,6 +261,7 @@
     const FLAGS_VERSION = 1;                  // protocol version lives in flags bits 4-7
     const FLAGS_REQUEST = (FLAGS_VERSION << 4) | 0; // host->device request: 0x10 (reply bit 0)
     const FLAGS_REPLY_BIT = 0x01;            // bit0 set on device->host replies
+    const FLAG_CORRELATION = 0x02;           // bit1: optional u16 correlation id present after `type`
     const TYPE = { BEGIN: 0x01, DATA: 0x02, FINISH: 0x03, ABORT: 0x04, OK: 0x05, ERROR: 0x06, PROGRESS: 0x07 };
     const TYPE_NAME = { 0x01: "BEGIN", 0x02: "DATA", 0x03: "FINISH", 0x04: "ABORT", 0x05: "OK", 0x06: "ERROR", 0x07: "PROGRESS" };
     // esp_ota_begin erases flash (seconds for a large / unknown-size image) and
@@ -373,21 +374,27 @@
                  !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) {
             pos++;
           }
-          if (merged.length - pos < HEADER_SIZE) break;
-          const view = new DataView(merged.buffer, merged.byteOffset + pos);
-          const len = view.getUint32(5, true); // v2: len u32 follows magic+flags+module+type
-          if (len > MAX_PAYLOAD) { pos++; continue; } // remote-supplied len cap
-          const total = HEADER_SIZE + len + CRC_SIZE;
-          if (merged.length - pos < total) break;
-          const expected = view.getUint32(HEADER_SIZE + len, true);
-          const actual = crc32(merged.subarray(pos, pos + HEADER_SIZE + len));
-          if (actual !== expected) { pos++; continue; } // corrupt: resync
+          if (merged.length - pos < 3) break; // need magic+flags before header size is known
           const flags = merged[pos + 2];
+          // v2: flags bit1 => optional u16 correlation id sits after `type`
+          const ext = (flags & FLAG_CORRELATION) ? 2 : 0;
+          const headerSize = HEADER_SIZE + ext;
+          if (merged.length - pos < headerSize) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true); // v2: len u32 follows magic+flags+module+type(+correlation)
+          if (len > MAX_PAYLOAD) { pos++; continue; } // remote-supplied len cap
+          const total = headerSize + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(headerSize + len, true);
+          const actual = crc32(merged.subarray(pos, pos + headerSize + len));
+          if (actual !== expected) { pos++; continue; } // corrupt: resync
+          const correlation = ext ? (merged[pos + 5] | (merged[pos + 6] << 8)) : null;
           frames.push({ flags,
                         reply: (flags & FLAGS_REPLY_BIT) !== 0,
+                        correlation,
                         module: merged[pos + 3],
                         type: merged[pos + 4],
-                        payload: merged.slice(pos + HEADER_SIZE, pos + HEADER_SIZE + len) });
+                        payload: merged.slice(pos + headerSize, pos + headerSize + len) });
           pos += total;
         }
         this.buf = merged.slice(pos);
