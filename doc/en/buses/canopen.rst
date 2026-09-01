@@ -35,8 +35,8 @@ performing SDO transfers; with `Twai` this is automatically the case since its
 
    canopen_example
 
-USB &lt;-&gt; CAN bridge
--------------------
+USB to CAN bridge
+-----------------
 
 The ``can_bridge_example`` (``components/canopen/can_bridge_example``) turns an
 ESP32-S3 into a WebUSB / Web Serial CAN interface: it bridges the `Twai`

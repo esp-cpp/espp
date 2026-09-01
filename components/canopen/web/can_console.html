@@ -393,6 +393,7 @@
     const MODE_NAME = { 0: "Normal", 1: "Listen-only" };
     const STATUS_POLL_MS = 1000;
     const MAX_MON_ROWS = 3000;               // cap monitor table to bound memory
+    const MAX_SUMMARY_IDS = 1024;            // cap distinct per-ID summary entries to bound memory
 
     // ===================================================================
     // Elements & helpers
@@ -705,8 +706,22 @@
       }
       async close() {
         this.reading = false;
-        if (this.reader) { try { await this.reader.cancel(); } catch (_) {} }
-        if (this.writer) { try { await this.writer.close(); } catch (_) {} this.writer = null; }
+        // Release the reader lock: cancel any pending read, then drop the lock
+        // on the readable stream so port.close() is not blocked by it.
+        if (this.reader) {
+          try { await this.reader.cancel(); } catch (_) {}
+          try { this.reader.releaseLock(); } catch (_) {}
+          this.reader = null;
+        }
+        // Release the writer lock BEFORE closing the port. port.close() rejects
+        // ("Cannot cancel a locked stream") while a writer still holds the lock,
+        // which would leave the port open. Guard each step so a teardown error
+        // does not wedge the UI.
+        if (this.writer) {
+          try { await this.writer.close(); } catch (_) {}
+          try { this.writer.releaseLock(); } catch (_) {}
+          this.writer = null;
+        }
         if (this.port) { try { await this.port.close(); } catch (_) {} this.port = null; }
       }
     }
@@ -864,8 +879,11 @@
       let dlc;
       const dlcStr = (els.txDlc.value || "").trim();
       if (dlcStr !== "") {
+        // Strict: only a whole number 0..8. parseInt would accept "2abc" (->2)
+        // and "1.5" (->1), so reject anything that is not all digits first.
+        if (!/^\d+$/.test(dlcStr)) throw new Error("DLC must be a whole number 0..8");
         dlc = parseInt(dlcStr, 10);
-        if (!Number.isInteger(dlc) || dlc < 0 || dlc > 8) throw new Error("DLC must be 0..8");
+        if (dlc < 0 || dlc > 8) throw new Error("DLC must be 0..8");
         if (!rtr && dlc < data.length) throw new Error("DLC " + dlc + " is smaller than the " + data.length + " data bytes");
         if (!rtr && dlc > data.length) {
           // pad data out to the requested DLC with zeros
@@ -969,6 +987,7 @@
     let monDropped = 0;    // rows evicted from the front (memory cap)
     let monBufferedWhilePaused = 0;
     const summary = new Map();  // key -> {count, last, dir, type, data}
+    let summaryDropped = 0;     // distinct IDs not added because summary hit MAX_SUMMARY_IDS
 
     function fmtTime() {
       const rel = performance.now() - connectTime;
@@ -1001,11 +1020,22 @@
       // Per-ID summary always tracks; the visible table honors pause.
       const key = dir + " " + idLabel(cf);
       const now = fmtTime();
-      summary.set(key, {
-        count: (summary.get(key) ? summary.get(key).count : 0) + 1,
-        last: now.wall, dir, type: frameTypeLabel(cf), id: idLabel(cf),
-        data: hexBytes(cf.data, 8),
-      });
+      const existing = summary.get(key);
+      if (existing) {
+        // Existing IDs always keep updating their running count.
+        existing.count += 1;
+        existing.last = now.wall;
+        existing.data = hexBytes(cf.data, 8);
+      } else if (summary.size < MAX_SUMMARY_IDS) {
+        summary.set(key, {
+          count: 1, last: now.wall, dir, type: frameTypeLabel(cf), id: idLabel(cf),
+          data: hexBytes(cf.data, 8),
+        });
+      } else {
+        // Cap reached: stop adding new distinct IDs so a flood of 29-bit
+        // extended IDs cannot retain an entry forever. Count what we skip.
+        summaryDropped++;
+      }
       if (els.showSummary.checked) renderSummary();
 
       if (monPaused) { monBufferedWhilePaused++; updateMonCount(); return; }
@@ -1052,6 +1082,18 @@
         }
         els.summaryBody.appendChild(tr);
       }
+      // Note when the per-ID cap has hidden additional distinct IDs.
+      if (summaryDropped > 0) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 5;
+        td.style.opacity = "0.7";
+        td.style.fontStyle = "italic";
+        td.textContent = "+" + summaryDropped.toLocaleString() + " more IDs not shown (cap " +
+                         MAX_SUMMARY_IDS.toLocaleString() + ")";
+        tr.appendChild(td);
+        els.summaryBody.appendChild(tr);
+      }
     }
 
     els.pauseBtn.addEventListener("click", () => {
@@ -1064,7 +1106,7 @@
     els.clearMonBtn.addEventListener("click", () => {
       els.monBody.textContent = "";
       monTotal = 0; monDropped = 0; monBufferedWhilePaused = 0;
-      summary.clear(); renderSummary();
+      summary.clear(); summaryDropped = 0; renderSummary();
       updateMonCount();
     });
     els.showSummary.addEventListener("change", () => {

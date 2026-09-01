@@ -3,11 +3,13 @@
 // Wire protocol for the USB <-> CAN (TWAI) bridge example.
 //
 // Framed with the espp stream_frame v2 codec and routed by espp::Dispatcher on
-// MODULE ID 5. Every frame sets module = 5; the `type` field carries the
-// message id below (host->device request opcodes 0x5X, device->host
-// reply/event opcodes 0xD_), and the frame's reply flag is set for the 0xD_
-// replies (build derives it from the type's high bit). The hosted CAN console
-// web app speaks this exact protocol over WebUSB / Web Serial.
+// MODULE ID 5. The v2 frame has a DEDICATED module byte, so EVERY frame here —
+// requests and replies alike — sets module = 5 and routes to dispatcher module
+// 5 (this is NOT the retired v1 scheme where the module was derived from the
+// type's high nibble). The 0x5X / 0xD_ values below are the `type` byte, not
+// the module; the reply/event types (0xD_) additionally set the frame reply
+// flag (build derives it from the type's high bit). The hosted CAN console web
+// app speaks this exact protocol over WebUSB / Web Serial.
 //
 // A CAN frame is encoded as a compact payload:
 //   [id u32 LE][flags u8][dlc u8][data: dlc bytes]

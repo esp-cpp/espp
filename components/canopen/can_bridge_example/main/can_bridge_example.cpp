@@ -74,10 +74,15 @@ extern "C" void app_main(void) {
   std::mutex tx_mutex;
   auto send = [&](std::span<const uint8_t> bytes) {
     std::lock_guard<std::mutex> lock(tx_mutex);
-    if (active_transport.load() == Transport::Cdc)
-      usb.write_cdc(bytes);
-    else
-      usb.write_vendor(bytes);
+    // write_vendor/write_cdc are all-or-nothing (no truncated frame) but return
+    // false and drop the whole frame if the host is not draining / disconnected.
+    // For a best-effort CAN monitor that is acceptable; surface it rate-limited
+    // rather than silently discarding a reply/CAN_RX frame.
+    const bool ok = (active_transport.load() == Transport::Cdc) ? usb.write_cdc(bytes)
+                                                                : usb.write_vendor(bytes);
+    if (!ok)
+      logger.warn_rate_limited("dropped a {}-byte frame (USB TX backpressure or disconnect)",
+                               bytes.size());
   };
   auto send_frame = [&](uint8_t type, std::span<const uint8_t> payload = {}) {
     // Reply/event types (kCanRx/kOk/kError/kStatus) carry the high bit; map it
@@ -115,10 +120,9 @@ extern "C" void app_main(void) {
 
   auto send_status = [&]() {
     std::vector<uint8_t> p;
-    bool running;
     {
       std::lock_guard<std::mutex> lock(bus_mutex);
-      running = static_cast<bool>(twai);
+      const bool running = static_cast<bool>(twai);
       sf::put_u32(p, baudrate);
       p.push_back(mode);
       p.push_back(running ? 1 : 0);
@@ -157,9 +161,8 @@ extern "C" void app_main(void) {
     }
   };
 
-  // --- Dispatcher: CAN bridge protocol on module id 5 ------------------------
-  espp::Dispatcher dispatcher;
-  dispatcher.register_module(can_bridge::kModuleId, [&](const espp::stream_frame::Frame &frame) {
+  // --- CAN bridge protocol handler (dispatcher module id 5) ------------------
+  auto handle_can_frame = [&](const espp::stream_frame::Frame &frame) {
     const uint8_t type = frame.type;
     std::span<const uint8_t> payload = frame.payload;
     std::error_code ec;
@@ -193,6 +196,11 @@ extern "C" void app_main(void) {
       if (payload.size() < 6) {
         reply_error(std::make_error_code(std::errc::invalid_argument),
                     "SET_CONFIG needs u32 baudrate + u8 mode + u8 reserved");
+        break;
+      }
+      if (payload[4] > can_bridge::kModeListenOnly) {
+        reply_error(std::make_error_code(std::errc::invalid_argument),
+                    "SET_CONFIG mode must be 0 (normal) or 1 (listen-only)");
         break;
       }
       {
@@ -229,14 +237,24 @@ extern "C" void app_main(void) {
       reply_error(std::make_error_code(std::errc::not_supported), "unknown CAN bridge message");
       break;
     }
-  });
+  };
+
+  // Vendor (WebUSB) and CDC (Web Serial) are independent byte streams, so each
+  // gets its OWN Dispatcher (one parser) — a frame split across reads on one
+  // transport must never be stitched onto bytes from the other.
+  espp::Dispatcher vendor_dispatcher, cdc_dispatcher;
+  vendor_dispatcher.register_module(can_bridge::kModuleId, handle_can_frame);
+  cdc_dispatcher.register_module(can_bridge::kModuleId, handle_can_frame);
 
   // --- USB RX plumbing: queue in the TinyUSB task, dispatch from a worker -----
   // transmit() can block up to its timeout, so it must not run in the TinyUSB
   // callback context.
   std::mutex rx_mutex;
   std::condition_variable rx_cv;
-  std::deque<std::vector<uint8_t>> rx_queue;
+  // Tag each chunk with its source transport so the worker feeds it to that
+  // transport's own dispatcher (never stitching one stream's split frame onto
+  // the other's bytes).
+  std::deque<std::pair<Transport, std::vector<uint8_t>>> rx_queue;
   size_t rx_queued_bytes = 0;
   bool rx_overflow = false;
   static constexpr size_t kMaxQueuedRxBytes = 8 * sf::kMaxFrameSize;
@@ -249,7 +267,7 @@ extern "C" void app_main(void) {
         rx_queued_bytes = 0;
         rx_overflow = true;
       } else {
-        rx_queue.emplace_back(data.begin(), data.end());
+        rx_queue.emplace_back(source, std::vector<uint8_t>(data.begin(), data.end()));
         rx_queued_bytes += data.size();
       }
     }
@@ -261,36 +279,41 @@ extern "C" void app_main(void) {
       [&](std::span<const uint8_t> data) { enqueue_rx(Transport::Cdc, data); });
 
   std::error_code usb_ec;
-  if (!usb.initialize(usb_ec))
-    logger.error("Failed to initialize USB device: {}", usb_ec.message());
+  const bool usb_ok = usb.initialize(usb_ec);
+  if (!usb_ok)
+    logger.error("Failed to initialize USB device: {} — no host transport available",
+                 usb_ec.message());
 
-  espp::Task rx_task({.callback = [&](std::mutex &, std::condition_variable &) -> bool {
-                        std::deque<std::vector<uint8_t>> chunks;
-                        bool overflowed = false;
-                        {
-                          std::unique_lock<std::mutex> lock(rx_mutex);
-                          rx_cv.wait_for(lock, 100ms,
-                                         [&] { return !rx_queue.empty() || rx_overflow; });
-                          std::swap(chunks, rx_queue);
-                          rx_queued_bytes = 0;
-                          overflowed = rx_overflow;
-                          rx_overflow = false;
-                        }
-                        if (overflowed) {
-                          // Bytes were dropped: a frame straddling the gap
-                          // would be stitched incorrectly, so resync.
-                          dispatcher.reset();
-                          return false;
-                        }
-                        for (const auto &chunk : chunks)
-                          dispatcher.feed(chunk);
-                        return false; // keep running
-                      },
-                      .task_config = {.name = "can_bridge_rx", .stack_size_bytes = 8192}});
+  espp::Task rx_task(
+      {.callback = [&](std::mutex &, std::condition_variable &) -> bool {
+         std::deque<std::pair<Transport, std::vector<uint8_t>>> chunks;
+         bool overflowed = false;
+         {
+           std::unique_lock<std::mutex> lock(rx_mutex);
+           rx_cv.wait_for(lock, 100ms, [&] { return !rx_queue.empty() || rx_overflow; });
+           std::swap(chunks, rx_queue);
+           rx_queued_bytes = 0;
+           overflowed = rx_overflow;
+           rx_overflow = false;
+         }
+         if (overflowed) {
+           // Bytes were dropped: a frame straddling the gap would
+           // be stitched incorrectly, so resync both parsers.
+           vendor_dispatcher.reset();
+           cdc_dispatcher.reset();
+           return false;
+         }
+         for (const auto &[source, chunk] : chunks)
+           (source == Transport::Vendor ? vendor_dispatcher : cdc_dispatcher).feed(chunk);
+         return false; // keep running
+       },
+       .task_config = {.name = "can_bridge_rx", .stack_size_bytes = 8192}});
   rx_task.start();
 
-  logger.info("CAN bridge ready. Connect the CAN console web app over WebUSB.");
-  logger.info("Bus starts stopped; the host sets baudrate/mode (SET_CONFIG) then START.");
+  if (usb_ok) {
+    logger.info("CAN bridge ready. Connect the CAN console web app over WebUSB / Web Serial.");
+    logger.info("Bus starts stopped; the host sets baudrate/mode (SET_CONFIG) then START.");
+  }
 
   // Idle; all work happens in the TWAI receive task and the RX worker.
   while (true) {
