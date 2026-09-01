@@ -368,13 +368,15 @@
     const VENDOR_CLASS = 0xFF;
     const MAGIC0 = 0x54, MAGIC1 = 0x4F;      // u16 0x4F54 "OT", little-endian on the wire
     // v2 framing: [magic u16][flags u8][module u8][type u8][len u32] => 9-byte header.
-    const HEADER_SIZE = 9, CRC_SIZE = 4;
+    const HEADER_SIZE = 9, CRC_SIZE = 4;      // base header (no optional fields)
+    const CORRELATION_SIZE = 2;               // optional u16 correlation id (flags bit1)
     const MAX_PAYLOAD = 4096;                // resync cap; interleaved protocols may use up to this
-    const MAX_FRAME = HEADER_SIZE + MAX_PAYLOAD + CRC_SIZE;
+    const MAX_FRAME = HEADER_SIZE + CORRELATION_SIZE + MAX_PAYLOAD + CRC_SIZE;
     const MODULE_CAN = 5;                     // the CAN bridge is module 5
     const FLAGS_VERSION = 1;                  // protocol version lives in flags bits 4-7
     const FLAGS_REQUEST = (FLAGS_VERSION << 4) | 0; // host->device request: 0x10 (reply bit 0)
     const FLAGS_REPLY_BIT = 0x01;            // bit0 set on device->host replies/events
+    const FLAG_CORRELATION = 0x02;           // bit1: optional u16 correlation id present in header
 
     // Host -> device
     const T_CAN_TX = 0x50, T_SET_CONFIG = 0x51, T_START = 0x52, T_STOP = 0x53, T_GET_STATUS = 0x54;
@@ -498,21 +500,27 @@
                  !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) {
             pos++;
           }
-          if (merged.length - pos < HEADER_SIZE) break;
-          const view = new DataView(merged.buffer, merged.byteOffset + pos);
-          const len = view.getUint32(5, true); // v2: len u32 follows magic+flags+module+type
-          if (len > MAX_PAYLOAD) { pos++; continue; }   // remote-supplied len cap
-          const total = HEADER_SIZE + len + CRC_SIZE;
-          if (merged.length - pos < total) break;
-          const expected = view.getUint32(HEADER_SIZE + len, true);
-          const actual = crc32(merged.subarray(pos, pos + HEADER_SIZE + len));
-          if (actual !== expected) { pos++; continue; }  // corrupt: resync
+          // need magic + flags to know whether the optional correlation field is
+          // present (and therefore the header size)
+          if (merged.length - pos < 3) break;
           const flags = merged[pos + 2];
+          const ext = (flags & FLAG_CORRELATION) ? CORRELATION_SIZE : 0;
+          const headerSize = HEADER_SIZE + ext;   // len sits after the optional field(s)
+          if (merged.length - pos < headerSize) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true); // v2: len u32 follows magic+flags+module+type(+corr)
+          if (len > MAX_PAYLOAD) { pos++; continue; }   // remote-supplied len cap
+          const total = headerSize + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(headerSize + len, true);
+          const actual = crc32(merged.subarray(pos, pos + headerSize + len));
+          if (actual !== expected) { pos++; continue; }  // corrupt: resync
           frames.push({ flags,
                         reply: (flags & FLAGS_REPLY_BIT) !== 0,
                         module: merged[pos + 3],
                         type: merged[pos + 4],
-                        payload: merged.slice(pos + HEADER_SIZE, pos + HEADER_SIZE + len) });
+                        correlation: ext ? view.getUint16(5, true) : null,
+                        payload: merged.slice(pos + headerSize, pos + headerSize + len) });
           pos += total;
         }
         this.buf = merged.slice(pos);
