@@ -43,6 +43,7 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/ota"
   "../../../components/pid"
   "../../../components/spi"
+  "../../../components/stream_frame"
   "../../../components/task"
   "../../../components/timer"
   "../../../components/usb_device"
@@ -50,7 +51,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py bldc_driver bldc_haptics bldc_motor i2c motorgo-axis motorgo-mini mt6701 ota task usb_device esp_tinyusb"
+  "main esptool_py bldc_driver bldc_haptics bldc_motor i2c motorgo-axis motorgo-mini mt6701 ota stream_frame task usb_device esp_tinyusb"
   CACHE STRING
   "List of components to include"
   )
