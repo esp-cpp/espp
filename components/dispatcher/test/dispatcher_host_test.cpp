@@ -137,6 +137,8 @@ int main() {
   test_register_replace_unregister();
   test_reset();
   test_reentrant_unregister();
+  // cppcheck-suppress throwInEntryPoint // the handler's throw is caught inside
+  // the test (cppcheck can't trace it through the std::function / feed() call)
   test_handler_exception_recovers();
   if (g_failures == 0) {
     std::printf("ALL TESTS PASSED\n");
