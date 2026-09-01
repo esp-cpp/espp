@@ -119,6 +119,8 @@ jobs:
           target: esp32s3
         - path: 'components/csv/example'
           target: esp32
+        - path: 'components/dispatcher/example'
+          target: esp32
         - path: 'components/display_drivers/example'
           target: esp32
         - path: 'components/dns_server/example'

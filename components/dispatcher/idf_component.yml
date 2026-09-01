@@ -6,6 +6,8 @@ repository: "https://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/dispatcher/dispatcher.html"
+examples:
+  - path: example
 tags:
   - cpp
   - Component

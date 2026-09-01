@@ -103,6 +103,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/coredump/example/main/coredump_example.cpp \
   $(PROJECT_PATH)/components/cst816/example/main/cst816_example.cpp \
   $(PROJECT_PATH)/components/csv/example/main/csv_example.cpp \
+  $(PROJECT_PATH)/components/dispatcher/example/main/dispatcher_example.cpp \
   $(PROJECT_PATH)/components/display_drivers/example/main/display_drivers_example.cpp \
   $(PROJECT_PATH)/components/dns_server/example/main/dns_server_example.cpp \
   $(PROJECT_PATH)/components/drv2605/example/main/drv2605_example.cpp \

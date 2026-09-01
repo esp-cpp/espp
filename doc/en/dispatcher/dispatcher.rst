@@ -32,17 +32,19 @@ carry the reply flag) — are silently ignored. Application code may assign any
 unused module id to its own protocol; nothing is hard-wired to a specific
 service.
 
-.. code-block:: cpp
+.. ------------------------------- Example -------------------------------------
 
-   espp::Dispatcher dispatcher;
-   dispatcher.register_module(0, [&](const espp::stream_frame::Frame &f) {
-     // handle OTA frames: f.type, f.is_reply(), f.payload
-   });
-   dispatcher.register_module(4, [&](const espp::stream_frame::Frame &f) {
-     // handle crash-dump frames
-   });
-   // feed raw received bytes; each complete frame is routed to its module
-   usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { dispatcher.feed(data); });
+The example multiplexes two toy protocols over one in-memory byte stream (the
+same ``feed()`` / ``register_module()`` pattern applies to a USB vendor / CDC /
+socket / UART receive path):
+
+.. literalinclude:: ../../../components/dispatcher/example/main/dispatcher_example.cpp
+   :language: cpp
+   :start-after: //! [dispatcher example]
+   :end-before: //! [dispatcher example]
+
+The codec and dispatcher are also exposed to Python (``espp.stream_frame`` and
+``espp.Dispatcher``); see ``python/dispatcher.py`` and ``python/dispatcher_test.py``.
 
 .. ---------------------------- API Reference ----------------------------------
 

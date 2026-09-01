@@ -247,6 +247,7 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/cobs/include
   ${ESPP_COMPONENTS}/color/include
   ${ESPP_COMPONENTS}/csv/include
+  ${ESPP_COMPONENTS}/dispatcher/include
   ${ESPP_COMPONENTS}/event_manager/include
   ${ESPP_COMPONENTS}/file_system/include
   ${ESPP_COMPONENTS}/filters/include
@@ -269,6 +270,7 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/trajectory_planner/include
   ${ESPP_COMPONENTS}/socket/include
   ${ESPP_COMPONENTS}/state_machine/include
+  ${ESPP_COMPONENTS}/stream_frame/include
   ${CMAKE_CURRENT_LIST_DIR}/include
 )
 
@@ -349,6 +351,7 @@ set(ESPP_PYTHON_BINDINGS_DIR ${CMAKE_CURRENT_LIST_DIR}/python_bindings)
 set(ESPP_PYTHON_SOURCES
   ${ESPP_PYTHON_BINDINGS_DIR}/module.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/pybind_espp.cpp
+  ${ESPP_PYTHON_BINDINGS_DIR}/dispatcher_bindings.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/odrive_native_bindings.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/rtps_bindings.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/socket_reactor_bindings.cpp
