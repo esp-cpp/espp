@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>espp CAN Bridge Console (WebUSB / Web Serial)</title>
+  <meta name="description" content="Drive a USB<->CAN bridge device over WebUSB or Web Serial: configure the bus, send CAN frames, and watch a live monitor of received traffic using the espp stream_frame protocol.">
+  <!--
+    espp CAN Bridge Console
+    =======================
+    A single-file, fully offline, dependency-free browser front-end for a
+    USB<->CAN bridge running the espp `stream_frame` binary framing. It talks to
+    the device over EITHER WebUSB (vendor 0xFF interface, bulk IN/OUT) OR Web
+    Serial (navigator.serial). Both transports carry the same frames.
+
+    Wire format (all multi-byte fields LITTLE-ENDIAN):
+      [magic u16 = 0x4F54 "OT"][type u8][len u32][payload...][crc32 u32]
+      - magic bytes on the wire: 0x54 ('T') then 0x4F ('O').
+      - crc32 is the standard zlib / IEEE-802.3 CRC-32 (poly 0xEDB88320
+        reflected, init/final xor 0xFFFFFFFF) over the 7 header bytes + payload.
+        Golden check value: crc32("123456789") === 0xCBF43926.
+      - the device may interleave frames of OTHER protocols (e.g. OTA) on the
+        same stream; the parser passes through / ignores any type it does not
+        recognize instead of erroring.
+
+    CAN bridge message types
+    ------------------------
+    Host -> device:
+      0x50 CAN_TX     transmit a CAN frame.        payload = encoded CAN frame
+      0x51 SET_CONFIG configure the bus.           payload = [baud u32][mode u8][rsv u8=0]
+      0x52 START      bring the bus up.            no payload
+      0x53 STOP       take the bus down.           no payload
+      0x54 GET_STATUS request a STATUS reply.      no payload
+    Device -> host:
+      0xD0 CAN_RX  a received CAN frame.  payload = encoded CAN frame
+      0xD1 OK      ack for a request.     no payload
+      0xD2 ERROR   [code u32][utf8 message...]
+      0xD3 STATUS  [baud u32][mode u8][running u8][rx u32][tx u32][err u32]
+
+    Encoded CAN frame payload (CAN_TX / CAN_RX):
+      [id u32][flags u8][dlc u8][data: dlc bytes]
+      flags: bit0 = extended (29-bit id), bit1 = RTR (remote, no data bytes).
+      dlc is 0..8. RTR frames carry no data (payload is just the 6-byte header).
+
+    No external dependencies, no CDN, no network fetches: everything is inline
+    and works from a file:// URL, http://localhost, or any secure (https)
+    origin in a Chromium browser.
+  -->
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --panel-bg: #ffffff;
+      --panel-border: #d9dee6;
+      --text: #1c2330;
+      --text-muted: #5c6675;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff;
+      --danger: #dc2626;
+      --ok: #16a34a;
+      --warn: #b45309;
+      --log-bg: #0f1420;
+      --log-text: #d6dbe6;
+      --tx-color: #7dd3fc;
+      --rx-color: #86efac;
+      --err-color: #fca5a5;
+      --sys-color: #fcd34d;
+      --time-color: #64748b;
+      --input-bg: #ffffff;
+      --input-border: #c3cbd6;
+      --chip-bg: #eef2f8;
+      --row-alt: #f7f9fc;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0e14;
+        --panel-bg: #151a23;
+        --panel-border: #262d3a;
+        --text: #e6eaf2;
+        --text-muted: #98a2b3;
+        --accent: #3b82f6;
+        --accent-hover: #60a5fa;
+        --accent-contrast: #0b0e14;
+        --danger: #ef4444;
+        --ok: #22c55e;
+        --warn: #f59e0b;
+        --log-bg: #05070c;
+        --log-text: #cdd4e0;
+        --tx-color: #38bdf8;
+        --rx-color: #4ade80;
+        --err-color: #f87171;
+        --sys-color: #fbbf24;
+        --time-color: #64748b;
+        --input-bg: #0e1219;
+        --input-border: #2b3341;
+        --chip-bg: #1b2230;
+        --row-alt: #10151d;
+        --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+    /* Explicit theme overrides (viewer toggle stamps data-theme on :root). */
+    :root[data-theme="dark"] {
+      --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+      --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+      --accent-contrast: #0b0e14; --danger: #ef4444; --ok: #22c55e; --warn: #f59e0b;
+      --log-bg: #05070c; --log-text: #cdd4e0; --tx-color: #38bdf8; --rx-color: #4ade80;
+      --err-color: #f87171; --sys-color: #fbbf24; --input-bg: #0e1219;
+      --input-border: #2b3341; --chip-bg: #1b2230; --row-alt: #10151d;
+    }
+    :root[data-theme="light"] {
+      --bg: #f4f6f9; --panel-bg: #ffffff; --panel-border: #d9dee6; --text: #1c2330;
+      --text-muted: #5c6675; --accent: #2563eb; --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff; --danger: #dc2626; --ok: #16a34a; --warn: #b45309;
+      --log-bg: #0f1420; --log-text: #d6dbe6; --tx-color: #7dd3fc; --rx-color: #86efac;
+      --err-color: #fca5a5; --sys-color: #fcd34d; --input-bg: #ffffff;
+      --input-border: #c3cbd6; --chip-bg: #eef2f8; --row-alt: #f7f9fc;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 16px; }
+    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    header h1 { font-size: 18px; margin: 0; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      background: var(--chip-bg); color: var(--text-muted);
+      border: 1px solid var(--panel-border);
+    }
+    .status-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+    .status-pill.connected { color: var(--ok); }
+    .status-pill.connected::before { background: var(--ok); }
+    .status-pill.error { color: var(--danger); }
+    .status-pill.error::before { background: var(--danger); }
+    .status-pill.busy { color: var(--warn); }
+    .status-pill.busy::before { background: var(--warn); }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 10px; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .row + .row { margin-top: 10px; }
+    .muted { color: var(--text-muted); font-size: 12.5px; }
+    .warn-text { color: var(--warn); font-size: 12.5px; }
+    .err-text { color: var(--danger); font-size: 12.5px; }
+    .spacer { flex: 1 1 auto; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field > span { font-size: 12px; color: var(--text-muted); }
+
+    button {
+      font: inherit; padding: 7px 14px; border-radius: 7px; cursor: pointer;
+      border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text);
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+    input[type="text"], select {
+      font: inherit; padding: 6px 8px; border-radius: 6px;
+      background: var(--input-bg); color: var(--text); border: 1px solid var(--input-border);
+    }
+    input[type="text"] { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    input.invalid { border-color: var(--danger); }
+
+    .statusline {
+      display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px;
+      color: var(--text-muted); font-variant-numeric: tabular-nums; margin-top: 4px;
+    }
+    .statusline b { color: var(--text); font-weight: 600; }
+    .badge { padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1px solid var(--panel-border); }
+    .badge.up { color: var(--ok); border-color: var(--ok); }
+    .badge.down { color: var(--text-muted); }
+
+    /* Monitor table */
+    .table-scroll { overflow-x: auto; overflow-y: auto; max-height: 380px; border: 1px solid var(--panel-border); border-radius: 8px; }
+    table.mon { border-collapse: collapse; width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+    table.mon th, table.mon td { padding: 3px 8px; text-align: left; white-space: nowrap; }
+    table.mon thead th { position: sticky; top: 0; background: var(--panel-bg); color: var(--text-muted); border-bottom: 1px solid var(--panel-border); z-index: 1; font-weight: 600; }
+    table.mon tbody tr:nth-child(even) { background: var(--row-alt); }
+    table.mon td.dir-rx { color: var(--rx-color); font-weight: 600; }
+    table.mon td.dir-tx { color: var(--tx-color); font-weight: 600; }
+    table.mon td.data { color: var(--text); }
+    table.mon td.ascii { color: var(--text-muted); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    .log {
+      background: var(--log-bg); color: var(--log-text);
+      border-radius: 8px; padding: 10px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px; line-height: 1.5;
+      height: 180px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+    }
+    .log .t { color: var(--time-color); }
+    .log .tx { color: var(--tx-color); }
+    .log .rx { color: var(--rx-color); }
+    .log .err { color: var(--err-color); }
+    .log .sys { color: var(--sys-color); }
+    footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
+    #unsupported {
+      display: none; background: var(--panel-bg); border: 1px solid var(--danger);
+      color: var(--danger); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>espp CAN Bridge Console <span class="muted">(WebUSB / Web Serial)</span></h1>
+      <span id="status" class="status-pill">Disconnected</span>
+    </header>
+
+    <div id="unsupported">
+      This browser supports neither WebUSB nor Web Serial. Use a Chromium-based
+      browser (Chrome / Edge / Opera) on a secure origin (https, localhost or file://).
+    </div>
+
+    <!-- ============================ Connection ============================ -->
+    <div class="panel">
+      <h2>Device</h2>
+      <div class="row">
+        <button id="connectUsbBtn" class="primary">Connect WebUSB</button>
+        <button id="connectSerialBtn" class="primary">Connect Web Serial</button>
+        <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
+        <label><input type="checkbox" id="anyDevice"> show all USB devices (no VID/PID filter)</label>
+      </div>
+      <p id="devInfo" class="muted" style="margin: 8px 0 0;">Not connected. WebUSB default filter: VID 0x1209 / PID 0x0d32 (espp default); the vendor (0xFF) interface is discovered from the descriptors at runtime.</p>
+    </div>
+
+    <!-- ========================= Bus configuration ======================= -->
+    <div class="panel">
+      <h2>Bus configuration</h2>
+      <div class="row">
+        <div class="field">
+          <span>Baud rate</span>
+          <select id="baud">
+            <option value="1000000">1000000</option>
+            <option value="800000">800000</option>
+            <option value="500000" selected>500000</option>
+            <option value="250000">250000</option>
+            <option value="125000">125000</option>
+            <option value="100000">100000</option>
+            <option value="50000">50000</option>
+            <option value="25000">25000</option>
+          </select>
+        </div>
+        <div class="field">
+          <span>Mode</span>
+          <select id="mode">
+            <option value="0" selected>Normal (master — send + ACK)</option>
+            <option value="1">Listen-only (passive sniff)</option>
+          </select>
+        </div>
+        <div class="spacer"></div>
+        <button id="applyBtn" disabled title="Only valid while the bus is stopped">Apply config</button>
+        <button id="startBtn" class="primary" disabled>Start bus</button>
+        <button id="stopBtn" class="danger" disabled>Stop bus</button>
+      </div>
+      <div class="statusline" id="statusLine">
+        <span>Bus: <span id="stRunning" class="badge down">unknown</span></span>
+        <span>Baud: <b id="stBaud">-</b></span>
+        <span>Mode: <b id="stMode">-</b></span>
+        <span>RX: <b id="stRx">0</b></span>
+        <span>TX: <b id="stTx">0</b></span>
+        <span>Err: <b id="stErr">0</b></span>
+      </div>
+    </div>
+
+    <!-- ============================ Send frame =========================== -->
+    <div class="panel">
+      <h2>Send frame</h2>
+      <div class="row">
+        <div class="field">
+          <span>ID (hex)</span>
+          <input type="text" id="txId" value="123" size="10" placeholder="123">
+        </div>
+        <label style="align-self: flex-end;"><input type="checkbox" id="txExt"> Extended (29-bit)</label>
+        <label style="align-self: flex-end;"><input type="checkbox" id="txRtr"> RTR (remote)</label>
+        <div class="field">
+          <span>DLC (blank = auto)</span>
+          <input type="text" id="txDlc" size="3" placeholder="auto">
+        </div>
+        <div class="field" style="flex: 1 1 220px;">
+          <span>Data (hex bytes, e.g. "DE AD BE EF")</span>
+          <input type="text" id="txData" value="DE AD BE EF" placeholder="DEADBEEF">
+        </div>
+        <button id="sendBtn" class="primary" disabled style="align-self: flex-end;">Send</button>
+      </div>
+      <p id="txError" class="err-text" style="margin: 8px 0 0; display: none;"></p>
+    </div>
+
+    <!-- ============================= Monitor ============================= -->
+    <div class="panel">
+      <h2>Monitor</h2>
+      <div class="row" style="margin-bottom: 8px;">
+        <button id="pauseBtn">Pause</button>
+        <button id="clearMonBtn">Clear</button>
+        <label><input type="checkbox" id="autoscroll" checked> Autoscroll</label>
+        <label><input type="checkbox" id="showSummary"> Per-ID summary</label>
+        <div class="spacer"></div>
+        <span class="muted" id="monCount">0 frames (0 dropped)</span>
+      </div>
+      <div class="table-scroll">
+        <table class="mon">
+          <thead>
+            <tr>
+              <th>Time</th><th>Dir</th><th>ID</th><th>Type</th><th>DLC</th><th>Data</th><th>ASCII</th>
+            </tr>
+          </thead>
+          <tbody id="monBody"></tbody>
+        </table>
+      </div>
+      <div id="summaryWrap" style="display: none; margin-top: 10px;">
+        <div class="table-scroll" style="max-height: 180px;">
+          <table class="mon">
+            <thead><tr><th>ID</th><th>Type</th><th>Count</th><th>Last seen</th><th>Last data</th></tr></thead>
+            <tbody id="summaryBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== Log =============================== -->
+    <div class="panel">
+      <h2>Log</h2>
+      <div class="row" style="margin-bottom: 8px;">
+        <label><input type="checkbox" id="logFrames"> log raw frames</label>
+        <button id="clearLogBtn">Clear</button>
+      </div>
+      <div id="log" class="log" aria-live="polite"></div>
+    </div>
+
+    <footer>
+      Speaks the espp <code>stream_frame</code> protocol (magic "OT" + type + len +
+      payload + CRC-32) carrying the USB&lt;-&gt;CAN bridge message set. Works over
+      WebUSB (vendor 0xFF interface) or Web Serial; unrecognized frame types on the
+      stream are ignored so the bridge can multiplex other protocols.
+    </footer>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ===================================================================
+    // Protocol constants
+    // ===================================================================
+    const DEFAULT_VID = 0x1209, DEFAULT_PID = 0x0d32;
+    const VENDOR_CLASS = 0xFF;
+    const MAGIC0 = 0x54, MAGIC1 = 0x4F;      // u16 0x4F54 "OT", little-endian on the wire
+    const HEADER_SIZE = 7, CRC_SIZE = 4;
+    const MAX_PAYLOAD = 4096;                // resync cap; interleaved protocols may use up to this
+    const MAX_FRAME = HEADER_SIZE + MAX_PAYLOAD + CRC_SIZE;
+
+    // Host -> device
+    const T_CAN_TX = 0x50, T_SET_CONFIG = 0x51, T_START = 0x52, T_STOP = 0x53, T_GET_STATUS = 0x54;
+    // Device -> host
+    const T_CAN_RX = 0xD0, T_OK = 0xD1, T_ERROR = 0xD2, T_STATUS = 0xD3;
+    const TYPE_NAME = {
+      0x50: "CAN_TX", 0x51: "SET_CONFIG", 0x52: "START", 0x53: "STOP", 0x54: "GET_STATUS",
+      0xD0: "CAN_RX", 0xD1: "OK", 0xD2: "ERROR", 0xD3: "STATUS",
+    };
+    // Frame types this app understands (device->host). Everything else is passed through / ignored.
+    const KNOWN_RX = new Set([T_CAN_RX, T_OK, T_ERROR, T_STATUS]);
+
+    // CAN frame flag bits
+    const FLAG_EXT = 0x01, FLAG_RTR = 0x02;
+
+    const MODE_NAME = { 0: "Normal", 1: "Listen-only" };
+    const STATUS_POLL_MS = 1000;
+    const MAX_MON_ROWS = 3000;               // cap monitor table to bound memory
+
+    // ===================================================================
+    // Elements & helpers
+    // ===================================================================
+    const els = {};
+    for (const id of ["status", "connectUsbBtn", "connectSerialBtn", "disconnectBtn", "anyDevice",
+                      "devInfo", "baud", "mode", "applyBtn", "startBtn", "stopBtn",
+                      "stRunning", "stBaud", "stMode", "stRx", "stTx", "stErr",
+                      "txId", "txExt", "txRtr", "txDlc", "txData", "sendBtn", "txError",
+                      "pauseBtn", "clearMonBtn", "autoscroll", "showSummary", "monCount",
+                      "monBody", "summaryWrap", "summaryBody",
+                      "logFrames", "clearLogBtn", "log", "unsupported"]) {
+      els[id] = document.getElementById(id);
+    }
+
+    function logLine(cls, text) {
+      const line = document.createElement("div");
+      const time = document.createElement("span");
+      time.className = "t";
+      time.textContent = new Date().toLocaleTimeString() + " ";
+      const body = document.createElement("span");
+      body.className = cls;
+      body.textContent = text;
+      line.appendChild(time); line.appendChild(body);
+      els.log.appendChild(line);
+      while (els.log.childNodes.length > 400) els.log.removeChild(els.log.firstChild);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+    els.clearLogBtn.addEventListener("click", () => { els.log.textContent = ""; });
+
+    function hexBytes(bytes, max) {
+      const n = Math.min(bytes.length, max || 64);
+      let s = "";
+      for (let i = 0; i < n; i++) s += bytes[i].toString(16).padStart(2, "0") + " ";
+      if (bytes.length > n) s += "... (" + bytes.length + " B)";
+      return s.trim();
+    }
+
+    function setStatus(state, text) {
+      els.status.className = "status-pill" + (state ? " " + state : "");
+      els.status.textContent = text;
+    }
+
+    // ===================================================================
+    // CRC-32 (zlib / IEEE 802.3): poly 0xEDB88320 reflected, init/final 0xFFFFFFFF.
+    // Golden check value: crc32("123456789") === 0xCBF43926.
+    // ===================================================================
+    const CRC_TABLE = (() => {
+      const table = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let k = 0; k < 8; k++) c = (c & 1) ? ((c >>> 1) ^ 0xEDB88320) : (c >>> 1);
+        table[i] = c >>> 0;
+      }
+      return table;
+    })();
+    function crc32(bytes, seed) {
+      let c = (~(seed || 0)) >>> 0;
+      for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+      return (~c) >>> 0;
+    }
+    // Self-test the golden vector at load; refuse to run with a broken CRC.
+    if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) {
+      throw new Error("CRC-32 self-test failed");
+    }
+
+    // ===================================================================
+    // Frame building & incremental parsing (stream_frame)
+    // ===================================================================
+    function buildFrame(type, payload) {
+      payload = payload || new Uint8Array(0);
+      if (payload.length > MAX_PAYLOAD) throw new Error("payload exceeds " + MAX_PAYLOAD + " bytes");
+      const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
+      const view = new DataView(frame.buffer);
+      view.setUint16(0, 0x4F54, true);         // magic: 0x54 'T' then 0x4F 'O' on the wire
+      frame[2] = type;
+      view.setUint32(3, payload.length, true);
+      frame.set(payload, HEADER_SIZE);
+      view.setUint32(HEADER_SIZE + payload.length,
+                     crc32(frame.subarray(0, HEADER_SIZE + payload.length)), true);
+      return frame;
+    }
+
+    // Incremental parser: feed arbitrary chunks, yields CRC-verified {type, payload}
+    // frames, resyncs on bad magic / oversized len / bad CRC (bounded buffering).
+    // Frames of unknown protocols are returned too; the dispatcher ignores them.
+    class StreamParser {
+      constructor() { this.buf = new Uint8Array(0); }
+      reset() { this.buf = new Uint8Array(0); }
+      feed(chunk) {
+        const merged = new Uint8Array(this.buf.length + chunk.length);
+        merged.set(this.buf, 0); merged.set(chunk, this.buf.length);
+        const frames = [];
+        let pos = 0;
+        for (;;) {
+          // resync: advance to the next (possibly split) magic
+          while (pos < merged.length &&
+                 !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) {
+            pos++;
+          }
+          if (merged.length - pos < HEADER_SIZE) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(3, true);
+          if (len > MAX_PAYLOAD) { pos++; continue; }   // remote-supplied len cap
+          const total = HEADER_SIZE + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(HEADER_SIZE + len, true);
+          const actual = crc32(merged.subarray(pos, pos + HEADER_SIZE + len));
+          if (actual !== expected) { pos++; continue; }  // corrupt: resync
+          frames.push({ type: merged[pos + 2],
+                        payload: merged.slice(pos + HEADER_SIZE, pos + HEADER_SIZE + len) });
+          pos += total;
+        }
+        this.buf = merged.slice(pos);
+        return frames;
+      }
+    }
+    const parser = new StreamParser();
+
+    // ===================================================================
+    // CAN frame encode / decode
+    //   payload = [id u32 LE][flags u8][dlc u8][data: dlc bytes]
+    //   flags: bit0 = extended, bit1 = RTR (no data bytes).
+    // ===================================================================
+    function encodeCanFrame(frame) {
+      const rtr = !!frame.rtr;
+      const data = rtr ? new Uint8Array(0) : (frame.data || new Uint8Array(0));
+      const dlc = (frame.dlc != null) ? frame.dlc : data.length;
+      const out = new Uint8Array(6 + data.length);
+      const view = new DataView(out.buffer);
+      view.setUint32(0, frame.id >>> 0, true);
+      let flags = 0;
+      if (frame.ext) flags |= FLAG_EXT;
+      if (rtr) flags |= FLAG_RTR;
+      out[4] = flags;
+      out[5] = dlc & 0xFF;
+      out.set(data, 6);
+      return out;
+    }
+    function decodeCanFrame(payload) {
+      if (payload.length < 6) return null;
+      const view = new DataView(payload.buffer, payload.byteOffset, payload.length);
+      const id = view.getUint32(0, true);
+      const flags = payload[4];
+      const dlc = payload[5];
+      const ext = !!(flags & FLAG_EXT);
+      const rtr = !!(flags & FLAG_RTR);
+      // RTR frames carry no data; otherwise take up to dlc bytes actually present.
+      let data = new Uint8Array(0);
+      if (!rtr) {
+        const n = Math.min(dlc, payload.length - 6);
+        data = payload.subarray(6, 6 + n);
+      }
+      return { id, ext, rtr, dlc, data };
+    }
+
+    // SET_CONFIG payload: [baud u32 LE][mode u8][reserved u8 = 0]
+    function encodeConfig(baud, mode) {
+      const out = new Uint8Array(6);
+      const view = new DataView(out.buffer);
+      view.setUint32(0, baud >>> 0, true);
+      out[4] = mode & 0xFF;
+      out[5] = 0;
+      return out;
+    }
+    // STATUS payload: [baud u32][mode u8][running u8][rx u32][tx u32][err u32]  (18 bytes)
+    function decodeStatus(payload) {
+      if (payload.length < 18) return null;
+      const view = new DataView(payload.buffer, payload.byteOffset, payload.length);
+      return {
+        baud: view.getUint32(0, true),
+        mode: payload[4],
+        running: payload[5],
+        rx: view.getUint32(6, true),
+        tx: view.getUint32(10, true),
+        err: view.getUint32(14, true),
+      };
+    }
+    // ERROR payload: [code u32 LE][utf8 message...]
+    function decodeError(payload) {
+      if (payload.length < 4) return { code: 0, message: "" };
+      const code = new DataView(payload.buffer, payload.byteOffset, 4).getUint32(0, true);
+      let message = "";
+      try { message = new TextDecoder().decode(payload.subarray(4)); } catch (_) {}
+      return { code, message };
+    }
+
+    // ===================================================================
+    // Transport abstraction: WebUSB and Web Serial share this interface.
+    //   .send(bytes)  -> write a frame
+    //   .close()      -> tear down
+    //   internally runs a read loop feeding onData(chunk)
+    // ===================================================================
+    let transport = null;            // active transport or null
+    let connectTime = 0;             // performance.now() at connect, for relative timestamps
+
+    // ---- WebUSB transport -------------------------------------------------
+    class UsbTransport {
+      constructor() { this.device = null; this.iface = null; this.epIn = null; this.epOut = null; this.inSize = 64; this.reading = false; }
+      async open(anyDevice) {
+        const options = anyDevice
+          ? { acceptAllDevices: true }
+          : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
+        this.device = await navigator.usb.requestDevice(options);
+        await this.device.open();
+        if (this.device.configuration === null) await this.device.selectConfiguration(1);
+        const config = this.device.configuration;
+        if (!config) throw new Error("device has no active USB configuration");
+        let found = null;
+        for (const itf of config.interfaces) {
+          for (const alt of itf.alternates) {
+            if (alt.interfaceClass !== VENDOR_CLASS) continue;
+            let inEp = null, outEp = null;
+            for (const ep of alt.endpoints) {
+              if (ep.type !== "bulk") continue;
+              if (ep.direction === "in" && inEp === null) inEp = ep;
+              else if (ep.direction === "out" && outEp === null) outEp = ep;
+            }
+            if (inEp && outEp) { found = { itf: itf.interfaceNumber, alt: alt.alternateSetting, inEp, outEp }; break; }
+          }
+          if (found) break;
+        }
+        if (!found) throw new Error("no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found");
+        await this.device.claimInterface(found.itf);
+        if (found.alt !== 0) await this.device.selectAlternateInterface(found.itf, found.alt);
+        this.iface = found.itf;
+        this.epIn = found.inEp.endpointNumber;
+        this.epOut = found.outEp.endpointNumber;
+        this.inSize = found.inEp.packetSize || 64;
+      }
+      describe() {
+        const d = this.device;
+        const vid = d.vendorId.toString(16).padStart(4, "0");
+        const pid = d.productId.toString(16).padStart(4, "0");
+        return (d.productName || "USB device") + " (" + vid + ":" + pid + ") · iface " + this.iface +
+               " · IN 0x" + this.epIn.toString(16) + " / OUT 0x" + this.epOut.toString(16) + " [WebUSB]";
+      }
+      async send(bytes) {
+        const out = await this.device.transferOut(this.epOut, bytes);
+        if (out.status === "stall") { try { await this.device.clearHalt("out", this.epOut); } catch (_) {} throw new Error("OUT endpoint stalled"); }
+      }
+      async readLoop(onData) {
+        this.reading = true;
+        while (this.reading && this.device) {
+          let result;
+          try {
+            result = await this.device.transferIn(this.epIn, MAX_FRAME);
+          } catch (e) {
+            if (this.reading) throw e;
+            return;
+          }
+          if (!this.reading) return;
+          if (result.status === "stall") { try { await this.device.clearHalt("in", this.epIn); } catch (_) {} continue; }
+          if (result.data && result.data.byteLength) {
+            onData(new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength));
+          }
+        }
+      }
+      async close() {
+        this.reading = false;
+        if (this.device) {
+          if (this.iface !== null) { try { await this.device.releaseInterface(this.iface); } catch (_) {} }
+          try { await this.device.close(); } catch (_) {}
+        }
+        this.device = null;
+      }
+    }
+
+    // ---- Web Serial transport --------------------------------------------
+    class SerialTransport {
+      constructor() { this.port = null; this.reader = null; this.writer = null; this.reading = false; }
+      async open() {
+        this.port = await navigator.serial.requestPort();
+        // Baud here is the USB-CDC line rate, not the CAN bus rate (which is set
+        // via SET_CONFIG). 115200 is a safe default that native-USB CDC ignores.
+        await this.port.open({ baudRate: 115200 });
+        this.writer = this.port.writable.getWriter();
+      }
+      describe() {
+        const info = this.port.getInfo ? this.port.getInfo() : {};
+        let id = "Serial port";
+        if (info && info.usbVendorId != null) {
+          id = "USB serial (" + info.usbVendorId.toString(16).padStart(4, "0") + ":" +
+               (info.usbProductId || 0).toString(16).padStart(4, "0") + ")";
+        }
+        return id + " [Web Serial]";
+      }
+      async send(bytes) { await this.writer.write(bytes); }
+      async readLoop(onData) {
+        this.reading = true;
+        this.reader = this.port.readable.getReader();
+        try {
+          while (this.reading) {
+            const { value, done } = await this.reader.read();
+            if (done) break;
+            if (value && value.length) onData(new Uint8Array(value.buffer, value.byteOffset, value.byteLength));
+          }
+        } finally {
+          try { this.reader.releaseLock(); } catch (_) {}
+          this.reader = null;
+        }
+      }
+      async close() {
+        this.reading = false;
+        if (this.reader) { try { await this.reader.cancel(); } catch (_) {} }
+        if (this.writer) { try { await this.writer.close(); } catch (_) {} this.writer = null; }
+        if (this.port) { try { await this.port.close(); } catch (_) {} this.port = null; }
+      }
+    }
+
+    // ===================================================================
+    // Connect / disconnect orchestration
+    // ===================================================================
+    let statusTimer = null;
+
+    if (!navigator.usb) els.connectUsbBtn.disabled = true;
+    if (!navigator.serial) els.connectSerialBtn.disabled = true;
+    if (!navigator.usb && !navigator.serial) els.unsupported.style.display = "block";
+
+    els.connectUsbBtn.addEventListener("click", () => connect("usb"));
+    els.connectSerialBtn.addEventListener("click", () => connect("serial"));
+    els.disconnectBtn.addEventListener("click", () => disconnect());
+
+    async function connect(kind) {
+      if (transport) return;
+      const t = kind === "usb" ? new UsbTransport() : new SerialTransport();
+      try {
+        if (kind === "usb") await t.open(els.anyDevice.checked);
+        else await t.open();
+      } catch (e) {
+        if (e && e.name === "NotFoundError") logLine("sys", "Device selection cancelled.");
+        else logLine("err", "Connect failed: " + (e && e.message ? e.message : e));
+        try { await t.close(); } catch (_) {}
+        return;
+      }
+      transport = t;
+      parser.reset();
+      connectTime = performance.now();
+      setConnectedUI(true);
+      const name = t.describe();
+      setStatus("connected", "Connected");
+      els.devInfo.textContent = name;
+      logLine("sys", "Connected: " + name);
+
+      // Start the read loop (runs until disconnect). A failure tears down.
+      t.readLoop(onIncoming).catch((e) => {
+        if (transport === t) { logLine("err", "Read loop error: " + (e && e.message ? e.message : e)); onLinkLost(); }
+      });
+
+      // Poll STATUS and request an immediate one.
+      requestStatus();
+      statusTimer = setInterval(requestStatus, STATUS_POLL_MS);
+    }
+
+    async function disconnect() {
+      if (!transport) return;
+      logLine("sys", "Disconnecting...");
+      const t = transport;
+      transport = null;
+      if (statusTimer) { clearInterval(statusTimer); statusTimer = null; }
+      try { await t.close(); } catch (_) {}
+      setConnectedUI(false);
+      setStatus("", "Disconnected");
+    }
+
+    // Link lost unexpectedly (read loop died / device unplugged).
+    function onLinkLost() {
+      if (!transport) return;
+      const t = transport;
+      transport = null;
+      if (statusTimer) { clearInterval(statusTimer); statusTimer = null; }
+      t.close().catch(() => {});
+      setConnectedUI(false);
+      setStatus("error", "Disconnected");
+    }
+
+    // WebUSB unplug event.
+    if (navigator.usb && navigator.usb.addEventListener) {
+      navigator.usb.addEventListener("disconnect", (e) => {
+        if (transport instanceof UsbTransport && e.device === transport.device) {
+          logLine("err", "Device disconnected.");
+          onLinkLost();
+        }
+      });
+    }
+
+    function setConnectedUI(connected) {
+      els.connectUsbBtn.disabled = connected || !navigator.usb;
+      els.connectSerialBtn.disabled = connected || !navigator.serial;
+      els.disconnectBtn.disabled = !connected;
+      els.anyDevice.disabled = connected;
+      els.applyBtn.disabled = !connected;
+      els.startBtn.disabled = !connected;
+      els.stopBtn.disabled = !connected;
+      els.sendBtn.disabled = !connected;
+      if (!connected) {
+        els.devInfo.textContent = "Not connected. WebUSB default filter: VID 0x1209 / PID 0x0d32 (espp default); the vendor (0xFF) interface is discovered from the descriptors at runtime.";
+        setStatusLine(null);
+      }
+    }
+
+    // ===================================================================
+    // Sending commands
+    // ===================================================================
+    async function sendFrame(type, payload) {
+      if (!transport) { logLine("err", "Not connected."); return false; }
+      try {
+        const frame = buildFrame(type, payload);
+        if (els.logFrames.checked) logLine("tx", (TYPE_NAME[type] || type) + " " + hexBytes(frame));
+        await transport.send(frame);
+        return true;
+      } catch (e) {
+        logLine("err", "Send failed (" + (TYPE_NAME[type] || type) + "): " + (e && e.message ? e.message : e));
+        return false;
+      }
+    }
+    function requestStatus() { sendFrame(T_GET_STATUS, null); }
+
+    els.applyBtn.addEventListener("click", () => {
+      const baud = parseInt(els.baud.value, 10);
+      const mode = parseInt(els.mode.value, 10);
+      logLine("sys", "Applying config: baud " + baud + ", mode " + (MODE_NAME[mode] || mode) + " (bus must be stopped).");
+      sendFrame(T_SET_CONFIG, encodeConfig(baud, mode));
+    });
+    els.startBtn.addEventListener("click", () => { logLine("sys", "Starting bus."); sendFrame(T_START, null); });
+    els.stopBtn.addEventListener("click", () => { logLine("sys", "Stopping bus."); sendFrame(T_STOP, null); });
+
+    // ===================================================================
+    // Send-frame validation + build
+    // ===================================================================
+    function parseHexBytes(str) {
+      const clean = (str || "").replace(/0x/gi, "").replace(/[\s,]+/g, "");
+      if (clean === "") return new Uint8Array(0);
+      if (!/^[0-9a-fA-F]*$/.test(clean)) throw new Error("data must be hex");
+      if (clean.length % 2 !== 0) throw new Error("data must have an even number of hex digits");
+      const out = new Uint8Array(clean.length / 2);
+      for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
+      return out;
+    }
+
+    function buildTxFrame() {
+      // Returns {frame} or throws Error with a human message.
+      const ext = els.txExt.checked;
+      const rtr = els.txRtr.checked;
+      const idStr = (els.txId.value || "").trim().replace(/^0x/i, "");
+      if (idStr === "" || !/^[0-9a-fA-F]+$/.test(idStr)) throw new Error("ID must be a hex value");
+      const id = parseInt(idStr, 16);
+      if (!Number.isFinite(id)) throw new Error("ID is not a valid number");
+      const maxId = ext ? 0x1FFFFFFF : 0x7FF;
+      if (id > maxId) throw new Error("ID 0x" + id.toString(16) + " exceeds " + (ext ? "29-bit (0x1FFFFFFF)" : "11-bit (0x7FF) — check Extended"));
+
+      let data = new Uint8Array(0);
+      if (!rtr) {
+        data = parseHexBytes(els.txData.value);
+        if (data.length > 8) throw new Error("data length " + data.length + " exceeds 8 bytes");
+      } else if ((els.txData.value || "").trim() !== "") {
+        // RTR frames carry no data; note it but do not fail.
+      }
+
+      // DLC: explicit if provided, else derived from data length.
+      let dlc;
+      const dlcStr = (els.txDlc.value || "").trim();
+      if (dlcStr !== "") {
+        dlc = parseInt(dlcStr, 10);
+        if (!Number.isInteger(dlc) || dlc < 0 || dlc > 8) throw new Error("DLC must be 0..8");
+        if (!rtr && dlc < data.length) throw new Error("DLC " + dlc + " is smaller than the " + data.length + " data bytes");
+        if (!rtr && dlc > data.length) {
+          // pad data out to the requested DLC with zeros
+          const padded = new Uint8Array(dlc);
+          padded.set(data, 0);
+          data = padded;
+        }
+      } else {
+        dlc = rtr ? 0 : data.length;
+      }
+
+      return { id, ext, rtr, dlc, data };
+    }
+
+    function showTxError(msg) {
+      if (msg) { els.txError.textContent = msg; els.txError.style.display = "block"; els.txId.classList.toggle("invalid", true); }
+      else { els.txError.style.display = "none"; els.txId.classList.remove("invalid"); }
+    }
+
+    els.sendBtn.addEventListener("click", async () => {
+      let f;
+      try { f = buildTxFrame(); showTxError(null); }
+      catch (e) { showTxError(e.message); return; }
+      const payload = encodeCanFrame(f);
+      const ok = await sendFrame(T_CAN_TX, payload);
+      if (ok) addMonitorRow("TX", f);   // log our own TX into the unified trace
+    });
+    // Live-clear the validation error as the user edits.
+    for (const el of [els.txId, els.txData, els.txDlc, els.txExt, els.txRtr]) {
+      el.addEventListener("input", () => showTxError(null));
+      el.addEventListener("change", () => showTxError(null));
+    }
+
+    // ===================================================================
+    // Incoming frame dispatch
+    // ===================================================================
+    function onIncoming(chunk) {
+      const frames = parser.feed(chunk);
+      for (const f of frames) {
+        if (!KNOWN_RX.has(f.type)) {
+          // Frame belonging to another protocol on the shared stream: ignore.
+          if (els.logFrames.checked) logLine("sys", "ignoring frame type 0x" + f.type.toString(16) + " (" + f.payload.length + " B)");
+          continue;
+        }
+        if (els.logFrames.checked) logLine("rx", (TYPE_NAME[f.type] || f.type) + " " + hexBytes(f.payload));
+        switch (f.type) {
+          case T_CAN_RX: {
+            const cf = decodeCanFrame(f.payload);
+            if (cf) addMonitorRow("RX", cf);
+            break;
+          }
+          case T_OK:
+            // Acks are informational; refresh status so counters stay fresh.
+            requestStatus();
+            break;
+          case T_ERROR: {
+            const e = decodeError(f.payload);
+            logLine("err", "Device error (code " + e.code + "): " + e.message);
+            break;
+          }
+          case T_STATUS: {
+            const s = decodeStatus(f.payload);
+            if (s) setStatusLine(s);
+            break;
+          }
+        }
+      }
+    }
+
+    // ===================================================================
+    // Status line
+    // ===================================================================
+    function setStatusLine(s) {
+      if (!s) {
+        els.stRunning.textContent = "unknown"; els.stRunning.className = "badge down";
+        els.stBaud.textContent = "-"; els.stMode.textContent = "-";
+        els.stRx.textContent = "0"; els.stTx.textContent = "0"; els.stErr.textContent = "0";
+        return;
+      }
+      const up = !!s.running;
+      els.stRunning.textContent = up ? "running" : "stopped";
+      els.stRunning.className = "badge " + (up ? "up" : "down");
+      els.stBaud.textContent = s.baud.toLocaleString();
+      els.stMode.textContent = (MODE_NAME[s.mode] || ("mode " + s.mode));
+      els.stRx.textContent = s.rx.toLocaleString();
+      els.stTx.textContent = s.tx.toLocaleString();
+      els.stErr.textContent = s.err.toLocaleString();
+      // Reflect running state on the config buttons: reconfig only while stopped.
+      els.applyBtn.disabled = !transport || up;
+      els.applyBtn.title = up ? "Stop the bus before reconfiguring" : "Apply the baud/mode to the (stopped) bus";
+      els.startBtn.disabled = !transport || up;
+      els.stopBtn.disabled = !transport || !up;
+    }
+
+    // ===================================================================
+    // Monitor table
+    // ===================================================================
+    let monPaused = false;
+    let monTotal = 0;      // frames actually rendered
+    let monDropped = 0;    // rows evicted from the front (memory cap)
+    let monBufferedWhilePaused = 0;
+    const summary = new Map();  // key -> {count, last, dir, type, data}
+
+    function fmtTime() {
+      const rel = performance.now() - connectTime;
+      // Relative ms since connect, plus wall-clock HH:MM:SS.mmm for reference.
+      const d = new Date();
+      const wall = d.toTimeString().slice(0, 8) + "." + String(d.getMilliseconds()).padStart(3, "0");
+      return { rel: rel.toFixed(1), wall };
+    }
+    function frameTypeLabel(cf) {
+      if (cf.rtr) return cf.ext ? "RTR/Ext" : "RTR";
+      return cf.ext ? "Data/Ext" : "Data";
+    }
+    function idLabel(cf) {
+      const w = cf.ext ? 8 : 3;
+      return "0x" + (cf.id >>> 0).toString(16).toUpperCase().padStart(w, "0") + (cf.ext ? " (ext)" : "");
+    }
+    function asciiOf(bytes) {
+      let s = "";
+      for (const b of bytes) s += (b >= 0x20 && b < 0x7f) ? String.fromCharCode(b) : ".";
+      return s;
+    }
+
+    function updateMonCount() {
+      let text = monTotal.toLocaleString() + " frames (" + monDropped.toLocaleString() + " dropped)";
+      if (monPaused && monBufferedWhilePaused > 0) text += " · " + monBufferedWhilePaused + " buffered while paused";
+      els.monCount.textContent = text;
+    }
+
+    function addMonitorRow(dir, cf) {
+      // Per-ID summary always tracks; the visible table honors pause.
+      const key = dir + " " + idLabel(cf);
+      const now = fmtTime();
+      summary.set(key, {
+        count: (summary.get(key) ? summary.get(key).count : 0) + 1,
+        last: now.wall, dir, type: frameTypeLabel(cf), id: idLabel(cf),
+        data: hexBytes(cf.data, 8),
+      });
+      if (els.showSummary.checked) renderSummary();
+
+      if (monPaused) { monBufferedWhilePaused++; updateMonCount(); return; }
+
+      const tr = document.createElement("tr");
+      const cells = [
+        [now.rel + " ms", ""],
+        [dir, "dir-" + dir.toLowerCase()],
+        [idLabel(cf), ""],
+        [frameTypeLabel(cf), ""],
+        [String(cf.dlc), ""],
+        [cf.rtr ? "(remote)" : hexBytes(cf.data, 8), "data"],
+        [cf.rtr ? "" : asciiOf(cf.data), "ascii"],
+      ];
+      for (const [text, cls] of cells) {
+        const td = document.createElement("td");
+        if (cls) td.className = cls;
+        td.textContent = text;
+        tr.appendChild(td);
+      }
+      els.monBody.appendChild(tr);
+      monTotal++;
+      // Bound memory: drop oldest rows past the cap.
+      while (els.monBody.childNodes.length > MAX_MON_ROWS) {
+        els.monBody.removeChild(els.monBody.firstChild);
+        monDropped++;
+      }
+      if (els.autoscroll.checked) {
+        const sc = els.monBody.parentElement.parentElement; // .table-scroll
+        sc.scrollTop = sc.scrollHeight;
+      }
+      updateMonCount();
+    }
+
+    function renderSummary() {
+      const rows = Array.from(summary.values()).sort((a, b) => b.count - a.count);
+      els.summaryBody.textContent = "";
+      for (const r of rows) {
+        const tr = document.createElement("tr");
+        for (const text of [r.id + " " + r.dir, r.type, String(r.count), r.last, r.data]) {
+          const td = document.createElement("td");
+          td.textContent = text;
+          tr.appendChild(td);
+        }
+        els.summaryBody.appendChild(tr);
+      }
+    }
+
+    els.pauseBtn.addEventListener("click", () => {
+      monPaused = !monPaused;
+      els.pauseBtn.textContent = monPaused ? "Resume" : "Pause";
+      els.pauseBtn.classList.toggle("primary", monPaused);
+      if (!monPaused) monBufferedWhilePaused = 0;
+      updateMonCount();
+    });
+    els.clearMonBtn.addEventListener("click", () => {
+      els.monBody.textContent = "";
+      monTotal = 0; monDropped = 0; monBufferedWhilePaused = 0;
+      summary.clear(); renderSummary();
+      updateMonCount();
+    });
+    els.showSummary.addEventListener("change", () => {
+      els.summaryWrap.style.display = els.showSummary.checked ? "block" : "none";
+      if (els.showSummary.checked) renderSummary();
+    });
+
+    // ===================================================================
+    // Boot
+    // ===================================================================
+    setStatusLine(null);
+    updateMonCount();
+    logLine("sys", "espp CAN Bridge Console ready. Connect via WebUSB or Web Serial to a USB<->CAN bridge device.");
+  </script>
+</body>
+</html>
