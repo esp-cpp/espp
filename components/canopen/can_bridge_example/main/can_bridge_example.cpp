@@ -163,6 +163,10 @@ extern "C" void app_main(void) {
 
   // --- CAN bridge protocol handler (dispatcher module id 5) ------------------
   auto handle_can_frame = [&](const espp::stream_frame::Frame &frame) {
+    // host->device requests only: ignore reply-flagged frames (0xD_ replies are
+    // what we SEND; an echoed reply must not re-enter the request handler)
+    if (frame.is_reply())
+      return;
     const uint8_t type = frame.type;
     std::span<const uint8_t> payload = frame.payload;
     std::error_code ec;
