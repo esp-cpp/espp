@@ -6,10 +6,12 @@
 //   - inspect the bus (stream every received frame; in listen-only mode the
 //     node is a passive sniffer that never ACKs/transmits).
 //
-// The vendor stream is framed with the espp stream_frame codec and routed by an
-// espp::Dispatcher; this example owns module id 5 (see can_bridge_protocol.hpp).
-// A CDC interface carries the system console/logs. Wire the TX/RX GPIOs to a CAN
-// transceiver (e.g. SN65HVD230) on a terminated bus.
+// Both the vendor (WebUSB) and CDC (Web Serial) interfaces carry the SAME
+// framed protocol (espp stream_frame codec, routed by an espp::Dispatcher; this
+// example owns module id 5 — see can_bridge_protocol.hpp), so the web app can
+// connect over either transport. The system console/logs go to the separate
+// built-in USB-Serial-JTAG. Wire the TX/RX GPIOs to a CAN transceiver (e.g.
+// SN65HVD230) on a terminated bus.
 
 #include <array>
 #include <atomic>
@@ -78,7 +80,10 @@ extern "C" void app_main(void) {
       usb.write_vendor(bytes);
   };
   auto send_frame = [&](uint8_t type, std::span<const uint8_t> payload = {}) {
-    send(sf::build_frame(type, payload));
+    // Reply/event types (kCanRx/kOk/kError/kStatus) carry the high bit; map it
+    // to the frame reply flag. All CAN-bridge frames are module kModuleId.
+    const bool reply = (type & 0x80) != 0;
+    send(sf::build_frame(reply, can_bridge::kModuleId, type, payload));
   };
   auto reply_error = [&](const std::error_code &ec, const std::string &context) {
     std::vector<uint8_t> p;
@@ -154,76 +159,77 @@ extern "C" void app_main(void) {
 
   // --- Dispatcher: CAN bridge protocol on module id 5 ------------------------
   espp::Dispatcher dispatcher;
-  dispatcher.register_module(
-      can_bridge::kModuleId, [&](uint8_t type, std::span<const uint8_t> payload) {
-        std::error_code ec;
-        switch (type) {
-        case can_bridge::kCanTx: {
-          can_bridge::CanFrame f;
-          if (!can_bridge::decode_frame(payload, f)) {
-            reply_error(std::make_error_code(std::errc::invalid_argument), "malformed CAN_TX");
-            break;
-          }
-          std::lock_guard<std::mutex> lock(bus_mutex);
-          if (!twai) {
-            reply_error(std::make_error_code(std::errc::not_connected), "bus not started");
-            break;
-          }
-          espp::Twai::Message m;
-          m.id = f.id;
-          m.extended = f.extended;
-          m.rtr = f.rtr;
-          m.dlc = f.dlc;
-          m.data = f.data;
-          if (twai->transmit(m, ec)) {
-            tx_count.fetch_add(1);
-            send_frame(can_bridge::kOk);
-          } else {
-            reply_error(ec, "transmit failed");
-          }
+  dispatcher.register_module(can_bridge::kModuleId, [&](const espp::stream_frame::Frame &frame) {
+    const uint8_t type = frame.type;
+    std::span<const uint8_t> payload = frame.payload;
+    std::error_code ec;
+    switch (type) {
+    case can_bridge::kCanTx: {
+      can_bridge::CanFrame f;
+      if (!can_bridge::decode_frame(payload, f)) {
+        reply_error(std::make_error_code(std::errc::invalid_argument), "malformed CAN_TX");
+        break;
+      }
+      std::lock_guard<std::mutex> lock(bus_mutex);
+      if (!twai) {
+        reply_error(std::make_error_code(std::errc::not_connected), "bus not started");
+        break;
+      }
+      espp::Twai::Message m;
+      m.id = f.id;
+      m.extended = f.extended;
+      m.rtr = f.rtr;
+      m.dlc = f.dlc;
+      m.data = f.data;
+      if (twai->transmit(m, ec)) {
+        tx_count.fetch_add(1);
+        send_frame(can_bridge::kOk);
+      } else {
+        reply_error(ec, "transmit failed");
+      }
+      break;
+    }
+    case can_bridge::kSetConfig: {
+      if (payload.size() < 6) {
+        reply_error(std::make_error_code(std::errc::invalid_argument),
+                    "SET_CONFIG needs u32 baudrate + u8 mode + u8 reserved");
+        break;
+      }
+      {
+        std::lock_guard<std::mutex> lock(bus_mutex);
+        if (twai) {
+          reply_error(std::make_error_code(std::errc::device_or_resource_busy),
+                      "stop the bus before reconfiguring");
           break;
         }
-        case can_bridge::kSetConfig: {
-          if (payload.size() < 6) {
-            reply_error(std::make_error_code(std::errc::invalid_argument),
-                        "SET_CONFIG needs u32 baudrate + u8 mode + u8 reserved");
-            break;
-          }
-          {
-            std::lock_guard<std::mutex> lock(bus_mutex);
-            if (twai) {
-              reply_error(std::make_error_code(std::errc::device_or_resource_busy),
-                          "stop the bus before reconfiguring");
-              break;
-            }
-            baudrate = sf::get_u32(payload);
-            mode = payload[4];
-          }
-          send_frame(can_bridge::kOk);
-          send_status();
-          break;
-        }
-        case can_bridge::kStart:
-          if (start_bus(ec)) {
-            send_frame(can_bridge::kOk);
-            send_status();
-          } else {
-            reply_error(ec, "start failed");
-          }
-          break;
-        case can_bridge::kStop:
-          stop_bus();
-          send_frame(can_bridge::kOk);
-          send_status();
-          break;
-        case can_bridge::kGetStatus:
-          send_status();
-          break;
-        default:
-          reply_error(std::make_error_code(std::errc::not_supported), "unknown CAN bridge message");
-          break;
-        }
-      });
+        baudrate = sf::get_u32(payload);
+        mode = payload[4];
+      }
+      send_frame(can_bridge::kOk);
+      send_status();
+      break;
+    }
+    case can_bridge::kStart:
+      if (start_bus(ec)) {
+        send_frame(can_bridge::kOk);
+        send_status();
+      } else {
+        reply_error(ec, "start failed");
+      }
+      break;
+    case can_bridge::kStop:
+      stop_bus();
+      send_frame(can_bridge::kOk);
+      send_status();
+      break;
+    case can_bridge::kGetStatus:
+      send_status();
+      break;
+    default:
+      reply_error(std::make_error_code(std::errc::not_supported), "unknown CAN bridge message");
+      break;
+    }
+  });
 
   // --- USB RX plumbing: queue in the TinyUSB task, dispatch from a worker -----
   // transmit() can block up to its timeout, so it must not run in the TinyUSB
