@@ -24,4 +24,8 @@ dependencies:
     # first appears in ESP-IDF v5.2
     version: '>=5.2'
   espp/base_component: '>=1.0'
-  espp/ota: '>=1.0'
+  # stream_frame is a new espp component not published to the registry yet;
+  # point at the local source until it is released.
+  espp/stream_frame:
+    version: '*'
+    override_path: '../stream_frame'

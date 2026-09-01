@@ -4,5 +4,5 @@
 idf_component_register(
   SRC_DIRS "."
   INCLUDE_DIRS "."
-  REQUIRES coredump task usb_device esp_tinyusb espcoredump esp_driver_gpio
+  REQUIRES coredump dispatcher task usb_device esp_tinyusb espcoredump esp_driver_gpio
 )

@@ -21,6 +21,7 @@
 // Header-only and dependency-free (only espp::stream_frame + the standard
 // library), so it builds and unit-tests on a host.
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <span>
@@ -46,28 +47,27 @@ public:
   /// @param handler Callback for frames with this module id. A null handler
   ///        unregisters the module.
   void register_module(uint8_t module_id, handler_fn handler) {
-    for (auto &entry : handlers_) {
-      if (entry.first == module_id) {
-        if (handler)
-          entry.second = std::move(handler);
-        else
-          erase(module_id);
-        return;
-      }
-    }
-    if (handler)
+    const auto it = std::find_if(handlers_.begin(), handlers_.end(),
+                                 [module_id](const auto &e) { return e.first == module_id; });
+    if (it != handlers_.end()) {
+      if (handler)
+        it->second = std::move(handler);
+      else
+        handlers_.erase(it);
+    } else if (handler) {
       handlers_.emplace_back(module_id, std::move(handler));
+    }
   }
 
   /// @brief Remove the handler for a module id (frames for it become ignored).
-  void unregister_module(uint8_t module_id) { erase(module_id); }
+  void unregister_module(uint8_t module_id) {
+    std::erase_if(handlers_, [module_id](const auto &e) { return e.first == module_id; });
+  }
 
   /// @brief Whether a handler is registered for a module id.
   bool has_module(uint8_t module_id) const {
-    for (const auto &entry : handlers_)
-      if (entry.first == module_id)
-        return true;
-    return false;
+    return std::any_of(handlers_.begin(), handlers_.end(),
+                       [module_id](const auto &e) { return e.first == module_id; });
   }
 
   /// @brief Feed raw received bytes: parse and route each complete frame to its
@@ -79,13 +79,11 @@ public:
   }
 
   /// @brief Route an already-parsed frame (for callers running their own parser).
-  void dispatch(const stream_frame::Frame &frame) {
-    for (const auto &entry : handlers_) {
-      if (entry.first == frame.module) {
-        entry.second(frame);
-        return;
-      }
-    }
+  void dispatch(const stream_frame::Frame &frame) const {
+    const auto it = std::find_if(handlers_.begin(), handlers_.end(),
+                                 [&frame](const auto &e) { return e.first == frame.module; });
+    if (it != handlers_.end())
+      it->second(frame);
   }
 
   /// @brief Discard any partially-buffered frame bytes (transport reconnect or
@@ -99,15 +97,6 @@ public:
   size_t dropped_bytes() const { return parser_.dropped_bytes(); }
 
 private:
-  void erase(uint8_t module_id) {
-    for (auto it = handlers_.begin(); it != handlers_.end(); ++it) {
-      if (it->first == module_id) {
-        handlers_.erase(it);
-        return;
-      }
-    }
-  }
-
   stream_frame::StreamParser parser_;
   // Small set of (module id -> handler); linear scan is fine for the handful of
   // protocols a stream carries, and it costs memory only per registered module
