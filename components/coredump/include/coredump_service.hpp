@@ -1,23 +1,22 @@
 #pragma once
 
 // espp core-dump stream service — message ids + a transport-agnostic request
-// handler layered on the espp `ota_stream` framing (magic "OT" + type u8 +
-// len u32 + payload + CRC-32, all little-endian; see
-// components/ota/include/detail/ota_stream_protocol.hpp for the authoritative
-// framing spec). Reusing the framing means the parser's resynchronization
-// works unchanged, and — because message TYPES live in a dedicated range —
-// the core-dump service can share one byte stream with other espp protocols
-// (the OTA protocol, an application protocol, or free-form console text)
-// without ambiguity: each protocol handler simply ignores frame types outside
-// its own range.
+// handler layered on the espp `stream_frame` codec (magic "OT" + flags u8 +
+// module u8 + type u8 + len u32 + payload + CRC-32, all little-endian; see
+// components/stream_frame/include/stream_frame.hpp for the authoritative
+// framing spec). The core-dump protocol owns dispatcher MODULE 4, so it can
+// share one byte stream with other espp protocols (OTA on module 0, an
+// application protocol, or free-form console text): frames for other modules
+// are simply ignored (route with espp::Dispatcher, or call handle_frame()
+// after routing by module).
 //
-// Message types & payloads (host -> device), range 0x40..0x4F:
+// Message types & payloads (host -> device), module 4:
 //   0x40 GET_SUMMARY — no payload. Reply: SUMMARY.
 //   0x41 GET_SIZE    — no payload. Reply: SIZE.
 //   0x42 READ        — payload: u32 offset + u16 length. Reply: DATA / ERROR.
 //   0x43 ERASE       — no payload. Reply: OK / ERROR.
 //
-// Message types & payloads (device -> host), range 0xC0..0xCF:
+// Message types & payloads (device -> host), module 4, reply flag set:
 //   0xC0 SUMMARY — payload: UTF-8 crash report text (espp::CoreDump::
 //                  format_report()); EMPTY payload = clean boot history.
 //   0xC1 SIZE    — payload: u32 total core-dump image size in bytes (0 = no
@@ -47,7 +46,7 @@
 #include <system_error>
 #include <vector>
 
-#include "detail/ota_stream_protocol.hpp"
+#include "stream_frame.hpp"
 
 #include "base_component.hpp"
 #include "coredump.hpp"
@@ -60,7 +59,7 @@ namespace espp {
  *
  * The service answers the core-dump protocol requests (GET_SUMMARY /
  * GET_SIZE / READ / ERASE — see `coredump_service.hpp`'s header comment for
- * the wire spec) with replies encoded by the espp `ota_stream` framing. It is
+ * the wire spec) with replies encoded by the espp `stream_frame` codec. It is
  * constructed with a `send` function that transmits an encoded reply frame,
  * so mounting it on a transport takes a few lines:
  *
@@ -76,9 +75,10 @@ namespace espp {
  * `feed()` runs an internal incremental frame parser and dispatches every
  * complete, CRC-verified frame to `handle_frame()`; a transport that already
  * parses frames itself (e.g. one shared parser for several protocols) can
- * call `handle_frame(type, payload)` directly. Frame types outside the
- * core-dump range are IGNORED (`handle_frame()` returns false, nothing is
- * sent), so the service coexists with other protocols on one stream.
+ * call `handle_frame(type, payload)` directly (after routing by module).
+ * feed() ignores frames for other modules, and handle_frame() returns false
+ * for types outside the core-dump protocol, so the service coexists with
+ * other protocols on one stream.
  *
  * Each instance owns one parser, so create one instance per byte stream (they
  * can all share the same espp::CoreDump: it serializes its flash-touching
@@ -108,11 +108,11 @@ namespace espp {
  */
 class CoreDumpService : public BaseComponent {
 public:
-  /// Frame-stream helpers shared with the espp `ota` component.
-  using Stream = espp::detail::ota_stream::StreamParser;
+  /// Frame-stream parser type (from the shared stream_frame codec).
+  using Stream = espp::stream_frame::StreamParser;
 
-  /// Core-dump protocol message types (carried in the ota_stream frame `type`
-  /// byte; see the header comment for the payload spec).
+  /// Core-dump protocol message types (the stream_frame `type` byte within
+  /// module 4; see the header comment for the payload spec).
   enum class Msg : uint8_t {
     // host -> device
     GetSummary = 0x40, ///< request the crash report text
@@ -127,9 +127,14 @@ public:
     Error = 0xC4,   ///< u32 informational code + authoritative UTF-8 message
   };
 
+  /// Dispatcher module id owned by the core-dump protocol (the frame `module`
+  /// byte). Reply Msg values keep the high bit set, which build() maps to the
+  /// frame reply flag.
+  static constexpr uint8_t kModule = 4;
+
   /// Maximum image bytes per READ request / DATA reply (the DATA payload is
   /// a 4-byte offset plus the data, capped by the framing's payload limit).
-  static constexpr size_t kMaxReadLength = espp::detail::ota_stream::kMaxPayloadSize - 4;
+  static constexpr size_t kMaxReadLength = espp::stream_frame::kMaxPayloadSize - 4;
 
   /**
    * @brief Function used to transmit one encoded reply frame to the host.
@@ -178,16 +183,21 @@ public:
     // parser state stays consistent), then drain the frame queue: re-take the
     // lock per frame to build its single reply, release it, send, repeat —
     // only one reply frame is ever alive.
-    std::vector<espp::detail::ota_stream::Frame> frames;
+    std::vector<espp::stream_frame::Frame> frames;
     {
       std::lock_guard<std::mutex> lock(mutex_);
       frames = parser_.feed(data);
     }
     for (const auto &frame : frames) {
+      // Only handle this protocol's REQUESTS: ignore frames for other modules
+      // and reply-flagged frames (the service answers requests; a reply-typed
+      // frame — e.g. an echo/loopback — is never a host request).
+      if (frame.module != kModule || frame.is_reply())
+        continue;
       std::vector<uint8_t> reply;
       {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (!handle_frame_locked(static_cast<uint8_t>(frame.type), frame.payload, reply))
+        if (!handle_frame_locked(frame.type, frame.payload, reply))
           continue;
       }
       // send outside the lock so a re-entrant transport cannot deadlock
@@ -238,7 +248,7 @@ protected:
   /// handle_frame().
   bool handle_frame_locked(uint8_t type, std::span<const uint8_t> payload,
                            std::vector<uint8_t> &reply) {
-    namespace stream = espp::detail::ota_stream;
+    namespace stream = espp::stream_frame;
     switch (static_cast<Msg>(type)) {
     case Msg::GetSummary: {
       const std::string report = core_dump_.format_report();
@@ -320,8 +330,12 @@ protected:
 
   /// Build an encoded frame for a core-dump protocol message type.
   static std::vector<uint8_t> build(Msg type, std::span<const uint8_t> payload = {}) {
-    namespace stream = espp::detail::ota_stream;
-    return stream::build_frame(static_cast<stream::MessageType>(type), payload);
+    namespace stream = espp::stream_frame;
+    // Reply message types (Summary/Size/Data/Ok/Error) carry the high bit; map
+    // it to the frame reply flag so requests and replies are distinguishable
+    // independent of the type value.
+    const bool reply = (static_cast<uint8_t>(type) & 0x80) != 0;
+    return stream::build_frame(reply, kModule, static_cast<uint8_t>(type), payload);
   }
 
   /// Transmit an encoded reply frame via the configured send function. Must
@@ -348,7 +362,7 @@ protected:
   /// the authoritative description and hosts should display code + message
   /// without interpreting specific code values (see the wire spec above).
   std::vector<uint8_t> build_error(const std::error_code &ec, std::string_view context) const {
-    namespace stream = espp::detail::ota_stream;
+    namespace stream = espp::stream_frame;
     logger_.error("{}: {}", context, ec.message());
     int code = ec.value();
     if (ec.category() != std::generic_category()) {

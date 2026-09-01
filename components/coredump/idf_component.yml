@@ -24,4 +24,4 @@ dependencies:
     # first appears in ESP-IDF v5.2
     version: '>=5.2'
   espp/base_component: '>=1.0'
-  espp/ota: '>=1.0'
+  espp/stream_frame: '>=1.0'

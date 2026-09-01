@@ -20,6 +20,10 @@ void py_init_socket_reactor(py::module &m);
 // accessors with std::error_code& and std::span wire APIs; see odrive_native_bindings.cpp). Runs
 // after py_init_module_espp so Logger::Verbosity is already registered.
 void py_init_odrive_native(py::module &m);
+// Hand-written bindings for the espp stream_frame codec (Frame / StreamParser /
+// build_frame / ...) and espp::Dispatcher. Both are header-only and
+// dependency-free; kept out of the generated bindings (see dispatcher_bindings.cpp).
+void py_init_dispatcher(py::module &m);
 
 // This builds the native python extension module `espp._espp`, which the
 // `espp` python package (python_bindings/espp/__init__.py) re-exports.
@@ -34,4 +38,5 @@ PYBIND11_MODULE(_espp, m) {
   py_init_rtps(m);
   py_init_socket_reactor(m);
   py_init_odrive_native(m);
+  py_init_dispatcher(m);
 }

@@ -100,9 +100,9 @@ otadata.
    image crashes before that, the bootloader automatically rolls back to the
    previous slot on the next reset.
 
-The same OTA transfer can also be driven from the generic espp OTA console
-(`components/ota/web/ota_console.html`), since the OTA subset of the protocol
-is byte-compatible with the espp `ota` example.
+The OTA subset is part of the haptics protocol on **dispatcher module 2**, so it
+is *not* interchangeable with the generic espp `ota` example (which is module 0)
+— use this example's own web console for OTA here.
 
 ## Example Behaviors
 
@@ -159,8 +159,8 @@ components:
 * `espp::UsbDevice` — native USB vendor interface with WebUSB + MS OS 2.0
   descriptors (driverless browser access)
 * `espp::Ota` — transport-agnostic OTA engine fed from the USB protocol
-* The `ota_stream` framing (`components/ota/include/detail/ota_stream_protocol.hpp`)
-  reused as the framing layer for the haptics protocol
+* The `stream_frame` codec (`components/stream_frame/include/stream_frame.hpp`)
+  as the framing layer for the haptics protocol (module 2)
   (see [PROTOCOL.md](./PROTOCOL.md))
 
 You combine the `Mt6701` and `BldcDriver` together when creating the `BldcMotor`

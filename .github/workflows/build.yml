@@ -119,6 +119,8 @@ jobs:
           target: esp32s3
         - path: 'components/csv/example'
           target: esp32
+        - path: 'components/dispatcher/example'
+          target: esp32
         - path: 'components/display_drivers/example'
           target: esp32
         - path: 'components/dns_server/example'
@@ -284,6 +286,8 @@ jobs:
         - path: 'components/st7123touch/example'
           target: esp32s3
         - path: 'components/state_machine/example'
+          target: esp32
+        - path: 'components/stream_frame/example'
           target: esp32
         - path: 'components/sx126x/example'
           target: esp32s3

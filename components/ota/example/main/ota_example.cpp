@@ -18,6 +18,7 @@
 #include "nvs_flash.h"
 
 #include "detail/ota_stream_protocol.hpp"
+#include "dispatcher.hpp"
 #include "logger.hpp"
 #include "ota.hpp"
 #include "task.hpp"
@@ -262,7 +263,12 @@ extern "C" void app_main(void) {
   if (!usb.initialize(usb_ec))
     logger.error("Failed to initialize USB device: {}", usb_ec.message());
 
-  proto::StreamParser parser;
+  // Route the vendor stream through a Dispatcher: OTA occupies module id 0 (its
+  // opcodes are 0x0X). Other protocols (e.g. a crash-dump service on module 4)
+  // could register alongside on the same stream and would be routed
+  // independently; frames for unregistered modules are ignored rather than
+  // mis-handled as malformed OTA frames.
+  espp::Dispatcher dispatcher;
   bool restart_pending = false;
   // The OTA engine serializes sessions across ALL transports, but that alone
   // is not enough here: without ownership tracking a USB DATA/FINISH/ABORT
@@ -273,12 +279,17 @@ extern "C" void app_main(void) {
   // host's ABORT is still honored (BEGIN would correctly fail busy first).
   bool usb_owns_session = false;
   auto handle_usb_frame = [&](const proto::Frame &frame) {
+    // The device only handles requests; OTA replies (OK/ERROR/PROGRESS) share
+    // module 0, so ignore any reply-flagged frame (e.g. a loopback echo) rather
+    // than treating it as an unknown request.
+    if (frame.is_reply())
+      return;
     std::error_code ec;
     auto reply_error = [&](const std::error_code &err, const std::string &context) {
       usb.write_vendor(
           proto::make_error(static_cast<uint32_t>(err.value()), context + ": " + err.message()));
     };
-    switch (frame.type) {
+    switch (static_cast<proto::MessageType>(frame.type)) {
     case proto::MessageType::Begin: {
       const auto image_size = proto::parse_u32_payload(frame);
       if (!image_size.has_value()) {
@@ -343,6 +354,10 @@ extern "C" void app_main(void) {
     }
   };
 
+  // OTA is module id 0. The Dispatcher routes each frame for that module here.
+  dispatcher.register_module(proto::kModule,
+                             [&](const proto::Frame &frame) { handle_usb_frame(frame); });
+
   espp::Task usb_task(
       {.callback = [&](std::mutex &, std::condition_variable &) -> bool {
          std::vector<std::vector<uint8_t>> chunks;
@@ -367,7 +382,7 @@ extern "C" void app_main(void) {
              ota.abort(abort_ec);
              usb_owns_session = false;
            }
-           parser.reset();
+           dispatcher.reset();
            usb.write_vendor(proto::make_error(
                static_cast<uint32_t>(std::make_error_code(std::errc::no_buffer_space).value()),
                "RX overflow: frames dropped; transfer aborted -- wait for OK "
@@ -375,8 +390,7 @@ extern "C" void app_main(void) {
            return false; // dropped chunks are gone; skip parse
          }
          for (const auto &chunk : chunks)
-           for (const auto &frame : parser.feed(chunk))
-             handle_usb_frame(frame);
+           dispatcher.feed(chunk);
          if (restart_pending) {
            // give the final OK reply time to reach the host
            std::this_thread::sleep_for(750ms);

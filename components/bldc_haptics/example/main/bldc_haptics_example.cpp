@@ -454,10 +454,19 @@ extern "C" void app_main(void) {
   proto::stream::StreamParser parser;
   bool restart_pending = false;
 
-  auto reply_ok = [&](uint32_t value) { usb_send(proto::stream::make_ok(value)); };
+  // Build replies via proto::build so they carry the haptics module (2) + reply
+  // flag — NOT the OTA make_ok/make_error (those are OTA module 0).
+  auto reply_ok = [&](uint32_t value) {
+    std::vector<uint8_t> payload;
+    proto::put_u32(payload, value);
+    usb_send(proto::build(proto::Msg::Ok, payload));
+  };
   auto reply_error = [&](const std::error_code &err, const std::string &context) {
-    usb_send(proto::stream::make_error(static_cast<uint32_t>(err.value()),
-                                       context + ": " + err.message()));
+    std::vector<uint8_t> payload;
+    proto::put_u32(payload, static_cast<uint32_t>(err.value()));
+    const std::string message = context + ": " + err.message();
+    payload.insert(payload.end(), message.begin(), message.end());
+    usb_send(proto::build(proto::Msg::Error, payload));
   };
   auto reply_errc = [&](std::errc errc, const std::string &context) {
     reply_error(std::make_error_code(errc), context);
@@ -688,14 +697,17 @@ extern "C" void app_main(void) {
            std::error_code abort_ec;
            ota.abort(abort_ec);
            parser.reset();
-           usb_send(proto::stream::make_error(
-               static_cast<uint32_t>(std::make_error_code(std::errc::no_buffer_space).value()),
-               "RX overflow: frames dropped -- wait for OK replies between frames"));
+           reply_errc(std::errc::no_buffer_space,
+                      "RX overflow: frames dropped -- wait for OK replies between frames");
            return false; // dropped chunks are gone; skip parse
          }
          for (const auto &chunk : chunks)
            for (const auto &frame : parser.feed(chunk))
-             handle_frame(frame);
+             // this protocol's REQUESTS only: ignore other modules and
+             // reply-flagged frames (the device answers requests; a reply-typed
+             // echo must not re-enter the request handler)
+             if (frame.module == proto::kModule && !frame.is_reply())
+               handle_frame(frame);
          if (restart_pending) {
            // give the final OK reply time to reach the host
            std::this_thread::sleep_for(750ms);

@@ -84,6 +84,8 @@ collected under :doc:`web_apps`.
    ftp/index
    nfc/index
    ota/index
+   stream_frame/index
+   dispatcher/index
    wireless/index
    protocols/index
 

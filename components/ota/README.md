@@ -80,8 +80,12 @@ Key class: `espp::Ota` (header-only, `ota.hpp`)
 little-endian:
 
 ```
-[magic u16 = 0x4F54 "OT"][type u8][len u32][payload...][crc32 u32]
+[magic u16 = 0x4F54 "OT"][flags u8][module u8][type u8][len u32][payload...][crc32 u32]
 ```
+
+This is the shared [`stream_frame`](../stream_frame) v2 codec: `flags` bit0 =
+reply (0 = request, 1 = device→host reply) and bits 4-7 = version (1); `module`
+is the routing id (OTA is **module 0**). OTA layers its message types on it.
 
 - `crc32` is the standard zlib CRC-32 (poly `0xEDB88320` reflected, init/final
   xor `0xFFFFFFFF`) over magic..payload; check value `crc32("123456789") ==
@@ -89,9 +93,10 @@ little-endian:
 - payload length is capped at **4096 bytes** — the incremental `StreamParser`
   rejects and resynchronizes past oversized or corrupt frames, so buffering
   stays bounded
-- host → device: `0x01 BEGIN(u32 image_size)`, `0x02 DATA(bytes)`,
-  `0x03 FINISH`, `0x04 ABORT`; device → host: `0x81 OK(u32 bytes_received)`,
-  `0x82 ERROR(u32 code + utf8 message)`, `0x83 PROGRESS(u32 written, u32 total)`
+- host → device (requests): `0x01 BEGIN(u32 image_size)`, `0x02 DATA(bytes)`,
+  `0x03 FINISH`, `0x04 ABORT`; device → host (replies, reply flag set):
+  `0x05 OK(u32 bytes_received)`, `0x06 ERROR(u32 code + utf8 message)`,
+  `0x07 PROGRESS(u32 written, u32 total)`
 - transactions are serialized: the host waits for `OK` / `ERROR` before the
   next frame
 

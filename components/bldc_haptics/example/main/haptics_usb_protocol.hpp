@@ -1,13 +1,16 @@
 #pragma once
 
 // espp BLDC haptics USB protocol — message ids + payload helpers layered on the
-// espp `ota_stream` framing (magic "OT" + type u8 + len u32 + payload + CRC-32,
-// all little-endian; see components/ota/include/detail/ota_stream_protocol.hpp
-// for the authoritative framing spec and ../PROTOCOL.md next to this example
-// for the full haptics wire protocol).
+// espp `stream_frame` codec (magic "OT" + flags u8 + module u8 + type u8 + len
+// u32 + payload + CRC-32, all little-endian; see
+// components/stream_frame/include/stream_frame.hpp for the authoritative framing
+// spec and ../PROTOCOL.md next to this example for the full haptics wire
+// protocol).
 //
-// The message-type space is partitioned so the OTA subset stays byte-compatible
-// with the espp `ota` example / ota_console.html web app:
+// The whole protocol occupies dispatcher MODULE 2. The `type` byte carries the
+// message id below; request types (host->device) clear the frame reply flag and
+// reply/telemetry types (0x8_/0x9_, host<-device) set it (build() derives it
+// from the type's high bit):
 //   0x01..0x04  host -> device  OTA (BEGIN / DATA / FINISH / ABORT)
 //   0x10..0x2F  host -> device  haptics commands
 //   0x81..0x8F  device -> host  generic + OTA replies (OK / ERROR / PROGRESS)
@@ -22,15 +25,23 @@
 #include <vector>
 
 #include "detail/ota_stream_protocol.hpp"
+#include "stream_frame.hpp"
 
 namespace haptics_proto {
 
+// The ota_stream facade re-exports the stream_frame codec (StreamParser / Frame
+// / put_* / get_* / parse_u32_payload); build() below uses the generic
+// stream_frame builder directly so it can set this protocol's module + reply
+// flag.
 namespace stream = espp::detail::ota_stream;
+
+/// Dispatcher module id owned by the haptics protocol (the frame `module` byte).
+static constexpr uint8_t kModule = 2;
 
 /// Protocol version reported in the INFO reply.
 static constexpr uint8_t kProtocolVersion = 1;
 
-/// Message types carried in the ota_stream frame `type` byte.
+/// Message types carried in the frame `type` byte (within module 2).
 enum class Msg : uint8_t {
   // --- OTA subset (identical semantics to the espp ota example) -------------
   OtaBegin = 0x01,  ///< host->dev: u32 image_size (0 = unknown / streaming)
@@ -100,9 +111,11 @@ inline std::optional<float> get_f32_at(std::span<const uint8_t> bytes, size_t of
   return std::bit_cast<float>(get_u32(bytes.subspan(offset)));
 }
 
-/// Build a frame for any haptics-protocol message type.
+/// Build a frame for any haptics-protocol message type (module 2; the reply flag
+/// is set for reply/telemetry types, whose ids have the high bit set).
 inline std::vector<uint8_t> build(Msg type, std::span<const uint8_t> payload = {}) {
-  return stream::build_frame(static_cast<stream::MessageType>(type), payload);
+  const bool reply = (static_cast<uint8_t>(type) & 0x80) != 0;
+  return espp::stream_frame::build_frame(reply, kModule, static_cast<uint8_t>(type), payload);
 }
 
 /// Status flag bits (Status + Telemetry `flags` byte).

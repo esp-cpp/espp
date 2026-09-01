@@ -12,20 +12,26 @@ for the reference host implementation.
 
 ## Framing
 
-Identical to the espp `ota` component's stream framing
-(`components/ota/include/detail/ota_stream_protocol.hpp` is the authoritative
-spec). All multi-byte fields are **little-endian**:
+Uses the espp `stream_frame` v2 codec
+(`components/stream_frame/include/stream_frame.hpp` is the authoritative spec).
+The whole haptics protocol is dispatcher **module 2**. All multi-byte fields are
+**little-endian**:
 
 ```
-[magic u16 = 0x4F54 "OT"] [type u8] [len u32] [payload: len bytes] [crc32 u32]
+[magic u16 = 0x4F54 "OT"] [flags u8] [module u8] [type u8] [len u32] [payload: len bytes] [crc32 u32]
 ```
 
 - `magic`: u16 `0x4F54`; on the wire the bytes are `0x54 'T'` then `0x4F 'O'`.
+- `flags`: `bit0` = reply (`0` = host→device request, `1` = device→host
+  reply/event); `bits 4-7` = protocol version = `1`. So a request byte is
+  `0x10` and a reply/telemetry byte is `0x11`. Request types (`0x0_`/`0x1_`)
+  clear the reply bit; reply/telemetry types (`0x8_`/`0x9_`) set it.
+- `module`: `u8` dispatcher module — **2** for the entire haptics protocol.
 - `type`: message type (tables below).
 - `len`: payload length, capped at **4096** bytes per frame; receivers reject
   and resynchronize past any frame whose length field exceeds the cap.
 - `crc32`: standard zlib CRC-32 (poly `0xEDB88320` reflected, init/final xor
-  `0xFFFFFFFF`) over `magic..payload` (i.e. the 7 header bytes + payload).
+  `0xFFFFFFFF`) over `magic..payload` (i.e. the 9 header bytes + payload).
   Golden check value: `crc32("123456789") == 0xCBF43926`.
 
 Receivers parse incrementally and resynchronize on bad magic / oversized
@@ -69,7 +75,9 @@ The device suspends telemetry while an OTA session is active.
 
 Notes:
 
-- **OTA** semantics are identical to the espp `ota` example: `OTA_BEGIN` erases
+- **OTA** semantics match the espp `ota` example, but the frames are **not**
+  byte-compatible: the haptics OTA subset rides dispatcher module 2, whereas the
+  `ota` example / `ota_console.html` use module 0. `OTA_BEGIN` erases
   the next OTA app partition (can take several seconds — use a generous
   timeout), `OTA_DATA` streams image bytes, `OTA_FINISH` validates the complete
   image (structure + appended SHA-256) and sets it as the boot partition, then

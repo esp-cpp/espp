@@ -20,6 +20,7 @@
 
 #include "coredump.hpp"
 #include "coredump_service.hpp"
+#include "dispatcher.hpp"
 #include "logger.hpp"
 #include "task.hpp"
 #include "usb_device.hpp"
@@ -36,11 +37,13 @@ using namespace std::chrono_literals;
 //               report explains the reset reason instead)
 enum class CrashKind : uint8_t { None, NullPointer, Assert, DivideByZero, Hang };
 
-// Vendor-protocol message type for a WebUSB-triggered test crash: an
-// ota_stream frame { type = 0x50, payload = [CrashKind] }. In its own range
-// so CoreDumpService (0x40+/0xC0+) ignores it and vice-versa; the CDC text
-// console keeps working for Web Serial / terminal users.
-static constexpr uint8_t kMsgTriggerCrash = 0x50;
+// Example-specific "trigger a test crash" command: a stream_frame with
+// module = kCrashModule, type = kMsgTriggerCrash, payload = [CrashKind]. Its
+// own dispatcher module keeps it cleanly separate from the core-dump protocol
+// (module 4); the CDC text console keeps working for Web Serial / terminal
+// users too.
+static constexpr uint8_t kCrashModule = 1;
+static constexpr uint8_t kMsgTriggerCrash = 0x00;
 
 [[noreturn]] static void perform_crash(CrashKind kind) {
   switch (kind) {
@@ -142,7 +145,7 @@ extern "C" void app_main(void) {
   bool rx_drop_vendor = false, rx_drop_cdc = false;
   // The protocol is one-request-in-flight, so a well-behaved host queues at
   // most ~one frame; cap the queue so a misbehaving host cannot exhaust RAM.
-  static constexpr size_t kMaxQueuedRxBytes = 8 * espp::detail::ota_stream::kMaxFrameSize;
+  static constexpr size_t kMaxQueuedRxBytes = 8 * espp::stream_frame::kMaxFrameSize;
   auto enqueue_rx = [&](Source source, std::span<const uint8_t> data) {
     {
       std::lock_guard<std::mutex> lock(rx_mutex);
@@ -222,13 +225,14 @@ extern "C" void app_main(void) {
       logger.warn("Could not route the console to USB CDC");
   }
 
-  // Example-specific vendor command parser: runs alongside vendor_service on the
-  // same byte stream (independent ota_stream parser; each ignores the other's
-  // frame types). Lets the WebUSB console trigger the same test crashes the CDC
-  // text console offers.
-  espp::detail::ota_stream::StreamParser vendor_cmd_parser;
-  auto handle_cmd_frame = [&](const espp::detail::ota_stream::Frame &f) {
-    if (static_cast<uint8_t>(f.type) != kMsgTriggerCrash || f.payload.size() != 1)
+  // Route each byte stream through a Dispatcher: the core-dump protocol on
+  // module 4 (CoreDumpService::kModule) and the example's WebUSB crash trigger
+  // on module 1 (kCrashModule). One parser per stream, module-routed — no more
+  // running two parsers over the same bytes.
+  espp::Dispatcher vendor_dispatcher, cdc_dispatcher;
+  auto handle_cmd_frame = [&](const espp::stream_frame::Frame &f) {
+    // host->device request only: ignore reply-flagged frames (echo/loopback)
+    if (f.is_reply() || f.type != kMsgTriggerCrash || f.payload.size() != 1)
       return;
     switch (static_cast<CrashKind>(f.payload[0])) {
     case CrashKind::NullPointer:
@@ -248,6 +252,20 @@ extern "C" void app_main(void) {
       break;
     }
   };
+  // Register the protocols on each stream's dispatcher. The service answers
+  // requests, so ignore reply-flagged frames (handle_frame() takes only
+  // type+payload, so the direction check lives here).
+  vendor_dispatcher.register_module(espp::CoreDumpService::kModule,
+                                    [&](const espp::stream_frame::Frame &f) {
+                                      if (!f.is_reply())
+                                        vendor_service.handle_frame(f.type, f.payload);
+                                    });
+  vendor_dispatcher.register_module(kCrashModule, handle_cmd_frame);
+  cdc_dispatcher.register_module(espp::CoreDumpService::kModule,
+                                 [&](const espp::stream_frame::Frame &f) {
+                                   if (!f.is_reply())
+                                     cdc_service.handle_frame(f.type, f.payload);
+                                 });
 
   espp::Task rx_task({.callback = [&](std::mutex &, std::condition_variable &) -> bool {
                         std::deque<std::pair<Source, std::vector<uint8_t>>> chunks;
@@ -261,20 +279,15 @@ extern "C" void app_main(void) {
                           drop_cdc = rx_drop_cdc;
                           rx_drop_vendor = rx_drop_cdc = false;
                         }
-                        if (drop_vendor) {
-                          vendor_service.reset_parser();
-                          vendor_cmd_parser.reset();
-                        }
+                        if (drop_vendor)
+                          vendor_dispatcher.reset();
                         if (drop_cdc)
-                          cdc_service.reset_parser();
+                          cdc_dispatcher.reset();
                         for (const auto &[source, bytes] : chunks) {
-                          if (source == Source::Vendor) {
-                            vendor_service.feed(bytes);
-                            for (const auto &f : vendor_cmd_parser.feed(bytes))
-                              handle_cmd_frame(f);
-                          } else {
-                            cdc_service.feed(bytes);
-                          }
+                          if (source == Source::Vendor)
+                            vendor_dispatcher.feed(bytes);
+                          else
+                            cdc_dispatcher.feed(bytes);
                         }
                         return false; // don't stop the task
                       },

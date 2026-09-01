@@ -90,8 +90,9 @@ build = ["cp310-*", "cp311-*", "cp312-*", "cp313-*", "cp314-*"]
 skip = ["*-musllinux_*", "*_i686", "*-win32"]
 # Smoke-test the wheel: import + assert the RTPS RMI/AMI binding surface is
 # exposed (a functional in-process round-trip needs multicast, so it lives in the
-# dockerised interop harness / python/rtps_rpc_demo.py, not here).
-test-command = "python \"{project}/python/rtps_bindings_smoke.py\""
+# dockerised interop harness / python/rtps_rpc_demo.py, not here), and run the
+# self-contained stream_frame / Dispatcher binding test.
+test-command = "python \"{project}/python/rtps_bindings_smoke.py\" && python \"{project}/python/dispatcher_test.py\""
 
 [tool.cibuildwheel.linux]
 # The repo is mounted at /project inside the manylinux container; git must
