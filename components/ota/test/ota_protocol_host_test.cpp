@@ -1,6 +1,6 @@
 // Host-buildable unit tests for the espp OTA stream protocol framing. Build &
 // run with:
-//   c++ -std=c++20 -Werror -I components/ota/include \
+//   c++ -std=c++20 -Werror -I components/ota/include -I components/stream_frame/include \
 //       components/ota/test/ota_protocol_host_test.cpp -o test && ./test
 //
 // These tests exercise espp::detail::ota_stream directly so they need no
@@ -90,23 +90,23 @@ static void test_round_trip_all_types() {
   if (frames.size() != 7)
     return;
 
-  CHECK(frames[0].type == MessageType::Begin);
+  CHECK(frames[0].type == static_cast<uint8_t>(MessageType::Begin));
   CHECK(ota::parse_u32_payload(frames[0]).value_or(0) == 1234567u);
 
-  CHECK(frames[1].type == MessageType::Data);
+  CHECK(frames[1].type == static_cast<uint8_t>(MessageType::Data));
   CHECK(frames[1].payload.size() == sizeof(image_bytes));
   CHECK(std::memcmp(frames[1].payload.data(), image_bytes, sizeof(image_bytes)) == 0);
 
-  CHECK(frames[2].type == MessageType::Finish);
+  CHECK(frames[2].type == static_cast<uint8_t>(MessageType::Finish));
   CHECK(frames[2].payload.empty());
 
-  CHECK(frames[3].type == MessageType::Abort);
+  CHECK(frames[3].type == static_cast<uint8_t>(MessageType::Abort));
   CHECK(frames[3].payload.empty());
 
-  CHECK(frames[4].type == MessageType::Ok);
+  CHECK(frames[4].type == static_cast<uint8_t>(MessageType::Ok));
   CHECK(ota::parse_u32_payload(frames[4]).value_or(0) == 6u);
 
-  CHECK(frames[5].type == MessageType::Error);
+  CHECK(frames[5].type == static_cast<uint8_t>(MessageType::Error));
   const auto err = ota::parse_error(frames[5]);
   CHECK(err.has_value());
   if (err.has_value()) {
@@ -114,7 +114,7 @@ static void test_round_trip_all_types() {
     CHECK(err->message == "flash write failed");
   }
 
-  CHECK(frames[6].type == MessageType::Progress);
+  CHECK(frames[6].type == static_cast<uint8_t>(MessageType::Progress));
   const auto prog = ota::parse_progress(frames[6]);
   CHECK(prog.has_value());
   if (prog.has_value()) {
@@ -140,9 +140,9 @@ static void test_split_across_chunks() {
   CHECK(frames.size() == 2);
   CHECK(parser.dropped_bytes() == 0);
   if (frames.size() == 2) {
-    CHECK(frames[0].type == MessageType::Data);
+    CHECK(frames[0].type == static_cast<uint8_t>(MessageType::Data));
     CHECK(frames[0].payload.size() == sizeof(data_bytes));
-    CHECK(frames[1].type == MessageType::Ok);
+    CHECK(frames[1].type == static_cast<uint8_t>(MessageType::Ok));
     CHECK(ota::parse_u32_payload(frames[1]).value_or(0) == 10u);
   }
 
@@ -170,7 +170,7 @@ static void test_resync_on_corruption() {
   const auto frames = parser.feed(stream);
   CHECK(frames.size() == 1);
   if (frames.size() == 1) {
-    CHECK(frames[0].type == MessageType::Ok);
+    CHECK(frames[0].type == static_cast<uint8_t>(MessageType::Ok));
     CHECK(ota::parse_u32_payload(frames[0]).value_or(0) == 4u);
   }
   CHECK(parser.dropped_bytes() > 0);
@@ -195,7 +195,7 @@ static void test_oversized_len_rejected() {
   const auto frames = parser.feed(stream);
   CHECK(frames.size() == 1);
   if (frames.size() == 1)
-    CHECK(frames[0].type == MessageType::Finish);
+    CHECK(frames[0].type == static_cast<uint8_t>(MessageType::Finish));
   CHECK(parser.dropped_bytes() > 0);
   // The oversized length must never be buffered/waited for.
   CHECK(parser.buffered() < ota::kMaxFrameSize);
@@ -217,14 +217,14 @@ static void test_oversized_len_rejected() {
 static void test_malformed_reply_payloads() {
   std::printf("test_malformed_reply_payloads\n");
   // Wrong-size payloads must be rejected by the typed parse helpers.
-  Frame f{MessageType::Ok, {0x01, 0x02}};
+  Frame f{static_cast<uint8_t>(MessageType::Ok), {0x01, 0x02}};
   CHECK(!ota::parse_u32_payload(f).has_value());
-  Frame e{MessageType::Error, {0x01, 0x02, 0x03}};
+  Frame e{static_cast<uint8_t>(MessageType::Error), {0x01, 0x02, 0x03}};
   CHECK(!ota::parse_error(e).has_value());
-  Frame p{MessageType::Progress, {0x01, 0x02, 0x03, 0x04}};
+  Frame p{static_cast<uint8_t>(MessageType::Progress), {0x01, 0x02, 0x03, 0x04}};
   CHECK(!ota::parse_progress(p).has_value());
   // An ERROR with just a code (no message) is valid.
-  Frame e2{MessageType::Error, {0x05, 0x00, 0x00, 0x00}};
+  Frame e2{static_cast<uint8_t>(MessageType::Error), {0x05, 0x00, 0x00, 0x00}};
   const auto info = ota::parse_error(e2);
   CHECK(info.has_value());
   if (info.has_value()) {

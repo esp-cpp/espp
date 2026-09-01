@@ -27,6 +27,13 @@ resynchronizing parser and a bounded 4096-byte maximum payload. The hosted
 `espp OTA Console <https://esp-cpp.github.io/espp/apps/ota_console.html>`_ web
 app speaks this protocol over WebUSB directly from a Chromium browser.
 
+The frame codec itself lives in the reusable :doc:`../stream_frame/index`
+component (``detail/ota_stream_protocol.hpp`` re-exports it and layers the OTA
+message types on top); to run OTA alongside other protocols (crash-dump, CAN,
+...) on one stream, register it as a module with the
+:doc:`../dispatcher/index` — the ``ota`` example does exactly this (OTA is
+module id 0).
+
 .. ------------------------------- Example -------------------------------------
 
 .. toctree::

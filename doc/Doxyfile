@@ -385,6 +385,8 @@ INPUT = \
   $(PROJECT_PATH)/components/odrive_native/include/detail/odrive_native_core.hpp \
   $(PROJECT_PATH)/components/ota/include/ota.hpp \
   $(PROJECT_PATH)/components/ota/include/detail/ota_stream_protocol.hpp \
+  $(PROJECT_PATH)/components/dispatcher/include/dispatcher.hpp \
+  $(PROJECT_PATH)/components/stream_frame/include/stream_frame.hpp \
   $(PROJECT_PATH)/components/pca9535/include/pca9535.hpp \
   $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp \
   $(PROJECT_PATH)/components/pid/include/pid.hpp \
