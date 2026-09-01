@@ -7,37 +7,38 @@ handlers, letting several independent protocols share a single USB vendor / CDC
 over the same bytes (each re-buffering the whole stream and needing its own
 reset-on-overflow bookkeeping), a Dispatcher parses the
 :doc:`../stream_frame/index` stream once and hands each complete frame to the
-handler registered for its module id.
+handler registered for its ``module`` id.
 
-Module id convention
---------------------
+Module id
+---------
 
-The module id is the high nibble of the message-type byte (``type >> 4``). espp
-built-in protocols place their request opcodes so each protocol occupies one
-high nibble, and use bit 7 to mark device→host replies:
+The frame's ``module`` byte (0..255) is the routing key — a full byte, so up to
+256 protocols can coexist on one stream. The message/transaction ``type`` and
+the request/reply direction (``flags``) travel with the frame and are handed to
+the module's handler untouched; the Dispatcher does not interpret them. espp
+built-in protocols use, for example:
 
-===========  =========  ==============  =============
-Module id    Protocol   Requests        Replies
-===========  =========  ==============  =============
-0            OTA        ``0x0X``        ``0x8X``
-4            crash dump ``0x4X``        ``0xCX``
-5            CAN bridge ``0x5X``        ``0xDX`` *(example)*
-===========  =========  ==============  =============
+=========  ============
+Module id  Protocol
+=========  ============
+0          OTA
+4          crash dump
+5          CAN bridge
+=========  ============
 
-A device-side dispatcher registers the request modules (0, 4, 5, ...). It never
-receives the reply-typed frames (high nibble 8..15); if one arrives it lands on
-an unregistered module and is ignored, so requests and replies of the same
-protocol can never be confused. Application code may assign any unused module id
-to its own protocol — nothing is hard-wired to a specific service. Frames for an
-unregistered module are silently ignored.
+A device-side dispatcher registers the modules it serves; frames for an
+unregistered module — including the device's own replies echoed back (which
+carry the reply flag) — are silently ignored. Application code may assign any
+unused module id to its own protocol; nothing is hard-wired to a specific
+service.
 
 .. code-block:: cpp
 
    espp::Dispatcher dispatcher;
-   dispatcher.register_module(0, [&](uint8_t type, std::span<const uint8_t> payload) {
-     // handle OTA frames
+   dispatcher.register_module(0, [&](const espp::stream_frame::Frame &f) {
+     // handle OTA frames: f.type, f.is_reply(), f.payload
    });
-   dispatcher.register_module(4, [&](uint8_t type, std::span<const uint8_t> payload) {
+   dispatcher.register_module(4, [&](const espp::stream_frame::Frame &f) {
      // handle crash-dump frames
    });
    // feed raw received bytes; each complete frame is routed to its module

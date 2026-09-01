@@ -75,6 +75,7 @@ jobs:
             components/coredump
             components/cst816
             components/csv
+            components/dispatcher
             components/display
             components/display_drivers
             components/dns_server
@@ -156,6 +157,7 @@ jobs:
             components/st25dv
             components/st7123touch
             components/state_machine
+            components/stream_frame
             components/sx126x
             components/t_keyboard
             components/t-deck

@@ -349,11 +349,9 @@ extern "C" void app_main(void) {
     }
   };
 
-  // OTA is module id 0. The Dispatcher hands us (type, payload); rebuild a Frame
-  // for the existing handler.
-  dispatcher.register_module(0, [&](uint8_t type, std::span<const uint8_t> payload) {
-    handle_usb_frame(proto::Frame{type, std::vector<uint8_t>(payload.begin(), payload.end())});
-  });
+  // OTA is module id 0. The Dispatcher routes each frame for that module here.
+  dispatcher.register_module(proto::kModule,
+                             [&](const proto::Frame &frame) { handle_usb_frame(frame); });
 
   espp::Task usb_task(
       {.callback = [&](std::mutex &, std::condition_variable &) -> bool {

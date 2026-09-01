@@ -1,42 +1,31 @@
 #pragma once
 
 // espp::Dispatcher — multiplex several independent framed protocols over a
-// single byte stream, routing each frame to a handler by its "module id".
+// single byte stream, routing each frame to a handler by its `module` id.
 //
-// A USB vendor / CDC / socket link often needs to carry more than one protocol
-// at once: firmware update (OTA), crash-dump inspection, a CAN bridge, an
-// application's own control channel, ... They all ride the same
-// espp::stream_frame framing (magic / type / len / crc). Rather than run a
-// separate StreamParser per protocol over the same bytes (each re-buffering the
-// whole stream and needing its own reset-on-overflow bookkeeping), a Dispatcher
-// parses the stream ONCE and routes each complete frame to the handler
-// registered for its module id.
+// A USB vendor / CDC / socket / UART link often needs to carry more than one
+// protocol at once: firmware update (OTA), crash-dump inspection, a CAN bridge,
+// an application's own control channel, ... They all ride the same
+// espp::stream_frame framing. Rather than run a separate StreamParser per
+// protocol over the same bytes (each re-buffering the whole stream and needing
+// its own reset-on-overflow bookkeeping), a Dispatcher parses the stream ONCE
+// and routes each complete frame to the handler registered for its module id.
 //
-// Module id convention
-// --------------------
-// The module id is the high nibble of the message-type byte: `type >> 4`.
-// espp built-in protocols place their request opcodes so each protocol occupies
-// one high nibble, and use bit 7 to mark device->host replies:
-//
-//   module 0  OTA       requests 0x0X   replies 0x8X
-//   module 4  crash dump requests 0x4X  replies 0xCX
-//   module 5  CAN bridge requests 0x5X  replies 0xDX   (example)
-//
-// A DEVICE-side dispatcher registers the request modules (0, 4, 5, ...); the
-// reply-typed frames (high nibble 8..15) it never receives, and if one does
-// arrive it lands on an unregistered module and is ignored — so requests and
-// replies of the same protocol can never be confused. A HOST-side dispatcher
-// (if used) would instead register the reply high nibbles. Application code is
-// free to assign any unused module id to its own protocol; nothing here is
-// hard-wired to a specific service.
+// The frame's `module` byte (0..255) is the routing key — a full byte, so up to
+// 256 protocols can coexist. The message/transaction type and the
+// request/reply direction travel in the frame's `type` and `flags` fields and
+// are handed to the module's handler untouched; the Dispatcher does not
+// interpret them. A device-side dispatcher typically registers the modules it
+// serves and ignores everything else (including its own replies echoed back).
 //
 // Header-only and dependency-free (only espp::stream_frame + the standard
 // library), so it builds and unit-tests on a host.
 
-#include <array>
 #include <cstdint>
 #include <functional>
 #include <span>
+#include <utility>
+#include <vector>
 
 #include "stream_frame.hpp"
 
@@ -45,40 +34,45 @@ namespace espp {
 /// @brief Routes framed messages from one byte stream to per-module handlers.
 class Dispatcher {
 public:
-  /// Number of routable modules (one per value of the type byte's high nibble).
-  static constexpr uint8_t kNumModules = 16;
+  /// @brief Handler invoked for every frame whose module was registered.
+  /// @param frame The decoded frame (module, type, flags/reply, payload).
+  using handler_fn = std::function<void(const stream_frame::Frame &frame)>;
 
-  /// @brief Handler invoked for every frame whose module id was registered.
-  /// @param type The full message-type byte (module id in the high nibble).
-  /// @param payload The frame payload bytes (valid only for the call).
-  using handler_fn = std::function<void(uint8_t type, std::span<const uint8_t> payload)>;
+  /// @brief The module id a frame will route to (its `module` byte).
+  static constexpr uint8_t module_of(const stream_frame::Frame &frame) { return frame.module; }
 
-  /// @brief The module id of a message-type byte (its high nibble).
-  static constexpr uint8_t module_of(uint8_t type) { return static_cast<uint8_t>(type >> 4); }
-
-  /// @brief Register (or replace) the handler for a module id (0..kNumModules-1).
-  /// @param module_id High-nibble module id to route to @p handler.
-  /// @param handler Callback for frames with this module id (null unregisters).
+  /// @brief Register (or replace) the handler for a module id.
+  /// @param module_id Module id (0..255) to route to @p handler.
+  /// @param handler Callback for frames with this module id. A null handler
+  ///        unregisters the module.
   void register_module(uint8_t module_id, handler_fn handler) {
-    if (module_id < kNumModules)
-      handlers_[module_id] = std::move(handler);
+    for (auto &entry : handlers_) {
+      if (entry.first == module_id) {
+        if (handler)
+          entry.second = std::move(handler);
+        else
+          erase(module_id);
+        return;
+      }
+    }
+    if (handler)
+      handlers_.emplace_back(module_id, std::move(handler));
   }
 
   /// @brief Remove the handler for a module id (frames for it become ignored).
-  void unregister_module(uint8_t module_id) {
-    if (module_id < kNumModules)
-      handlers_[module_id] = nullptr;
-  }
+  void unregister_module(uint8_t module_id) { erase(module_id); }
 
   /// @brief Whether a handler is registered for a module id.
   bool has_module(uint8_t module_id) const {
-    return module_id < kNumModules && static_cast<bool>(handlers_[module_id]);
+    for (const auto &entry : handlers_)
+      if (entry.first == module_id)
+        return true;
+    return false;
   }
 
   /// @brief Feed raw received bytes: parse and route each complete frame to its
   ///        module's handler. Frames whose module has no handler are ignored
   ///        (so unrelated protocols on the same stream are harmless).
-  /// @param data Any number of received bytes (frames may be split or batched).
   void feed(std::span<const uint8_t> data) {
     for (const auto &frame : parser_.feed(data))
       dispatch(frame);
@@ -86,9 +80,12 @@ public:
 
   /// @brief Route an already-parsed frame (for callers running their own parser).
   void dispatch(const stream_frame::Frame &frame) {
-    const uint8_t module_id = module_of(frame.type);
-    if (module_id < kNumModules && handlers_[module_id])
-      handlers_[module_id](frame.type, frame.payload);
+    for (const auto &entry : handlers_) {
+      if (entry.first == frame.module) {
+        entry.second(frame);
+        return;
+      }
+    }
   }
 
   /// @brief Discard any partially-buffered frame bytes (transport reconnect or
@@ -102,8 +99,20 @@ public:
   size_t dropped_bytes() const { return parser_.dropped_bytes(); }
 
 private:
+  void erase(uint8_t module_id) {
+    for (auto it = handlers_.begin(); it != handlers_.end(); ++it) {
+      if (it->first == module_id) {
+        handlers_.erase(it);
+        return;
+      }
+    }
+  }
+
   stream_frame::StreamParser parser_;
-  std::array<handler_fn, kNumModules> handlers_{};
+  // Small set of (module id -> handler); linear scan is fine for the handful of
+  // protocols a stream carries, and it costs memory only per registered module
+  // (vs a 256-entry table).
+  std::vector<std::pair<uint8_t, handler_fn>> handlers_;
 };
 
 } // namespace espp

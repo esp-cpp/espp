@@ -266,6 +266,7 @@ INPUT = \
   $(PROJECT_PATH)/components/coredump/include/coredump_service.hpp \
   $(PROJECT_PATH)/components/cst816/include/cst816.hpp \
   $(PROJECT_PATH)/components/csv/include/csv.hpp \
+  $(PROJECT_PATH)/components/dispatcher/include/dispatcher.hpp \
   $(PROJECT_PATH)/components/display/include/display.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/display_drivers.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/gc9a01.hpp \
@@ -385,8 +386,6 @@ INPUT = \
   $(PROJECT_PATH)/components/odrive_native/include/detail/odrive_native_core.hpp \
   $(PROJECT_PATH)/components/ota/include/ota.hpp \
   $(PROJECT_PATH)/components/ota/include/detail/ota_stream_protocol.hpp \
-  $(PROJECT_PATH)/components/dispatcher/include/dispatcher.hpp \
-  $(PROJECT_PATH)/components/stream_frame/include/stream_frame.hpp \
   $(PROJECT_PATH)/components/pca9535/include/pca9535.hpp \
   $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp \
   $(PROJECT_PATH)/components/pid/include/pid.hpp \
@@ -438,6 +437,7 @@ INPUT = \
   $(PROJECT_PATH)/components/state_machine/include/shallow_history_state.hpp \
   $(PROJECT_PATH)/components/state_machine/include/state_base.hpp \
   $(PROJECT_PATH)/components/state_machine/include/state_machine.hpp \
+  $(PROJECT_PATH)/components/stream_frame/include/stream_frame.hpp \
   $(PROJECT_PATH)/components/sx126x/include/sx126x.hpp \
   $(PROJECT_PATH)/components/t-deck/include/t-deck.hpp \
   $(PROJECT_PATH)/components/t-dongle-s3/include/t-dongle-s3.hpp \

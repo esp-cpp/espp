@@ -68,23 +68,35 @@ using espp::stream_frame::put_u32;
 using espp::stream_frame::Frame;
 using espp::stream_frame::StreamParser;
 
-/// OTA stream protocol message types.
+/// OTA occupies dispatcher module id 0.
+static constexpr uint8_t kModule = 0;
+
+/// OTA stream protocol message types (the frame `type` field within module 0).
+/// Requests are host->device (frame flag reply=0); replies are device->host
+/// (reply=1). `type` alone identifies the message; the reply flag is the generic
+/// direction hint.
 enum class MessageType : uint8_t {
   Begin = 0x01,    ///< host -> device: start a session (payload: u32 image_size, 0 = unknown)
   Data = 0x02,     ///< host -> device: image bytes (payload: raw image data)
   Finish = 0x03,   ///< host -> device: validate + activate the received image (no payload)
   Abort = 0x04,    ///< host -> device: discard the in-progress session (no payload)
-  Ok = 0x81,       ///< device -> host: success reply (payload: u32 bytes_received so far)
-  Error = 0x82,    ///< device -> host: failure reply (payload: u32 code + utf8 message)
-  Progress = 0x83, ///< device -> host: optional progress (payload: u32 written, u32 total)
+  Ok = 0x05,       ///< device -> host: success reply (payload: u32 bytes_received so far)
+  Error = 0x06,    ///< device -> host: failure reply (payload: u32 code + utf8 message)
+  Progress = 0x07, ///< device -> host: optional progress (payload: u32 written, u32 total)
 };
+
+/// Whether a message type is a device->host reply (sets the frame reply flag).
+inline bool is_reply(MessageType type) {
+  return type == MessageType::Ok || type == MessageType::Error || type == MessageType::Progress;
+}
 
 /// @brief Build an encoded OTA frame (typed overload of stream_frame::build_frame).
 /// @param type OTA message type.
 /// @param payload Payload bytes; must be <= kMaxPayloadSize.
 /// @return The encoded frame bytes, or an empty vector if the payload is too large.
 inline std::vector<uint8_t> build_frame(MessageType type, std::span<const uint8_t> payload = {}) {
-  return espp::stream_frame::build_frame(static_cast<uint8_t>(type), payload);
+  return espp::stream_frame::build_frame(is_reply(type), kModule, static_cast<uint8_t>(type),
+                                         payload);
 }
 
 /// Build a BEGIN frame (image_size in bytes, 0 = unknown / streaming).

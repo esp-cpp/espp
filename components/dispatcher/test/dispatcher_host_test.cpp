@@ -1,4 +1,4 @@
-// Host-buildable unit tests for espp::Dispatcher. Build & run with:
+// Host-buildable unit tests for espp::Dispatcher (v2). Build & run with:
 //   c++ -std=c++20 -Werror -I components/dispatcher/include \
 //       -I components/stream_frame/include \
 //       components/dispatcher/test/dispatcher_host_test.cpp -o test && ./test
@@ -24,83 +24,78 @@ static int g_failures = 0;
     }                                                                                              \
   } while (0)
 
-static void test_module_of() {
-  std::printf("test_module_of\n");
-  // High nibble is the module id; the 0x80 reply bit lives in the high nibble
-  // too, so requests and replies of one protocol map to *different* module ids
-  // (device sees the request nibble; host would see the reply nibble).
-  CHECK(espp::Dispatcher::module_of(0x01) == 0);  // OTA BEGIN
-  CHECK(espp::Dispatcher::module_of(0x04) == 0);  // OTA ABORT
-  CHECK(espp::Dispatcher::module_of(0x40) == 4);  // coredump GET_SUMMARY
-  CHECK(espp::Dispatcher::module_of(0x43) == 4);  // coredump ERASE
-  CHECK(espp::Dispatcher::module_of(0x50) == 5);  // CAN bridge (example)
-  CHECK(espp::Dispatcher::module_of(0x81) == 8);  // OTA OK reply
-  CHECK(espp::Dispatcher::module_of(0xC2) == 12); // coredump DATA reply
-}
-
 static void test_routing_and_coexistence() {
   std::printf("test_routing_and_coexistence\n");
   espp::Dispatcher d;
-  std::vector<uint8_t> mod0_types, mod4_types, mod5_types;
-  d.register_module(0, [&](uint8_t t, std::span<const uint8_t>) { mod0_types.push_back(t); });
-  d.register_module(4, [&](uint8_t t, std::span<const uint8_t> p) {
-    mod4_types.push_back(t);
-    // echo payload length check for one case below
-    if (t == 0x42)
-      CHECK(p.size() == 3);
+  std::vector<uint8_t> mod0, mod4, mod200;
+  bool mod4_saw_reply = false;
+  d.register_module(0, [&](const sf::Frame &f) { mod0.push_back(f.type); });
+  d.register_module(4, [&](const sf::Frame &f) {
+    mod4.push_back(f.type);
+    if (f.is_reply())
+      mod4_saw_reply = true;
+    if (f.type == 0x42)
+      CHECK(f.payload.size() == 3);
   });
-  d.register_module(5, [&](uint8_t t, std::span<const uint8_t>) { mod5_types.push_back(t); });
-  CHECK(d.has_module(0) && d.has_module(4) && d.has_module(5));
-  CHECK(!d.has_module(1) && !d.has_module(12));
+  // A full-byte module id well beyond the old nibble range (0..15).
+  d.register_module(200, [&](const sf::Frame &f) { mod200.push_back(f.type); });
+  CHECK(d.has_module(0) && d.has_module(4) && d.has_module(200));
+  CHECK(!d.has_module(1) && !d.has_module(13));
 
-  // Interleave three protocols' frames on one stream, plus one frame for an
-  // UNREGISTERED module (must be silently ignored).
   std::vector<uint8_t> stream;
   auto add = [&](const std::vector<uint8_t> &f) {
     stream.insert(stream.end(), f.begin(), f.end());
   };
   const uint8_t p3[] = {1, 2, 3};
-  add(sf::build_frame(0x01));     // module 0
-  add(sf::build_frame(0x50));     // module 5
-  add(sf::build_frame(0x42, p3)); // module 4, 3-byte payload
-  add(sf::build_frame(0x20));     // module 2 — unregistered, ignored
-  add(sf::build_frame(0x02));     // module 0
+  add(sf::build_frame(false, 0, 0x02));     // module 0 request
+  add(sf::build_frame(true, 4, 0xC0));      // module 4 reply
+  add(sf::build_frame(false, 4, 0x42, p3)); // module 4 request, 3-byte payload
+  add(sf::build_frame(false, 7, 0x01));     // module 7 — unregistered, ignored
+  add(sf::build_frame(false, 200, 0x99));   // module 200 request
+  add(sf::build_frame(false, 0, 0x03));     // module 0 request
 
   d.feed(stream);
-  CHECK(mod0_types.size() == 2);
-  CHECK(mod0_types.size() == 2 && mod0_types[0] == 0x01 && mod0_types[1] == 0x02);
-  CHECK(mod4_types.size() == 1 && mod4_types[0] == 0x42);
-  CHECK(mod5_types.size() == 1 && mod5_types[0] == 0x50);
+  CHECK(mod0.size() == 2 && mod0[0] == 0x02 && mod0[1] == 0x03);
+  CHECK(mod4.size() == 2 && mod4[0] == 0xC0 && mod4[1] == 0x42 && mod4_saw_reply);
+  CHECK(mod200.size() == 1 && mod200[0] == 0x99);
   CHECK(d.dropped_bytes() == 0);
 }
 
-static void test_unregister_and_reset() {
-  std::printf("test_unregister_and_reset\n");
+static void test_register_replace_unregister() {
+  std::printf("test_register_replace_unregister\n");
+  espp::Dispatcher d;
+  int a = 0, b = 0;
+  d.register_module(3, [&](const sf::Frame &) { ++a; });
+  d.feed(sf::build_frame(false, 3, 0x00));
+  CHECK(a == 1 && b == 0);
+  // Replacing the handler for a module routes to the new one.
+  d.register_module(3, [&](const sf::Frame &) { ++b; });
+  d.feed(sf::build_frame(false, 3, 0x00));
+  CHECK(a == 1 && b == 1);
+  // Unregister -> frames for the module are ignored.
+  d.unregister_module(3);
+  d.feed(sf::build_frame(false, 3, 0x00));
+  CHECK(a == 1 && b == 1 && !d.has_module(3));
+}
+
+static void test_reset() {
+  std::printf("test_reset\n");
   espp::Dispatcher d;
   int count = 0;
-  d.register_module(0, [&](uint8_t, std::span<const uint8_t>) { ++count; });
-  d.feed(sf::build_frame(0x01));
-  CHECK(count == 1);
-  d.unregister_module(0);
-  d.feed(sf::build_frame(0x02));
-  CHECK(count == 1); // no longer routed
-
-  // reset() drops a partially-buffered frame so a stale prefix cannot stitch
-  // onto later bytes.
-  d.register_module(0, [&](uint8_t, std::span<const uint8_t>) { ++count; });
-  auto frame = sf::build_frame(0x03);
+  d.register_module(0, [&](const sf::Frame &) { ++count; });
+  auto frame = sf::build_frame(false, 0, 0x03);
   d.feed(std::span<const uint8_t>(frame.data(), 3)); // partial (header only)
   CHECK(d.buffered() > 0);
   d.reset();
   CHECK(d.buffered() == 0);
   d.feed(std::span<const uint8_t>(frame.data() + 3, frame.size() - 3)); // remainder alone
-  CHECK(count == 1); // the split frame did NOT complete after reset
+  CHECK(count == 0); // the split frame did NOT complete after reset
 }
 
 int main() {
-  test_module_of();
   test_routing_and_coexistence();
-  test_unregister_and_reset();
+  test_register_replace_unregister();
+  test_reset();
   if (g_failures == 0) {
     std::printf("ALL TESTS PASSED\n");
     return 0;
