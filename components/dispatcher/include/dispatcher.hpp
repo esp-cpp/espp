@@ -47,24 +47,21 @@ public:
   /// @param handler Callback for frames with this module id. A null handler
   ///        unregisters the module.
   void register_module(uint8_t module_id, handler_fn handler) {
-    const auto it = std::find_if(handlers_.begin(), handlers_.end(),
-                                 [module_id](const auto &e) { return e.first == module_id; });
-    if (it != handlers_.end()) {
-      if (handler)
-        it->second = std::move(handler);
-      else
-        handlers_.erase(it);
-    } else if (handler) {
-      handlers_.emplace_back(module_id, std::move(handler));
-    }
+    // Mutating handlers_ while a handler runs could reallocate it or destroy the
+    // running handler (use-after-free). If called from inside a dispatch (a
+    // handler registering/unregistering), defer the change until dispatch
+    // unwinds; otherwise apply it immediately.
+    if (dispatch_depth_ > 0)
+      pending_.emplace_back(module_id, std::move(handler));
+    else
+      apply_register(module_id, std::move(handler));
   }
 
   /// @brief Remove the handler for a module id (frames for it become ignored).
-  void unregister_module(uint8_t module_id) {
-    std::erase_if(handlers_, [module_id](const auto &e) { return e.first == module_id; });
-  }
+  void unregister_module(uint8_t module_id) { register_module(module_id, nullptr); }
 
-  /// @brief Whether a handler is registered for a module id.
+  /// @brief Whether a handler is registered for a module id (reflects applied
+  ///        registrations; changes made during a dispatch apply after it ends).
   bool has_module(uint8_t module_id) const {
     return std::any_of(handlers_.begin(), handlers_.end(),
                        [module_id](const auto &e) { return e.first == module_id; });
@@ -79,19 +76,25 @@ public:
   }
 
   /// @brief Route an already-parsed frame (for callers running their own parser).
-  void dispatch(const stream_frame::Frame &frame) const {
-    // Copy the handler out before invoking it: a handler that (re-entrantly)
-    // calls register_module() / unregister_module() can reallocate or erase
-    // handlers_, which would destroy the std::function being executed.
-    handler_fn handler;
-    {
-      const auto it = std::find_if(handlers_.begin(), handlers_.end(),
-                                   [&frame](const auto &e) { return e.first == frame.module; });
-      if (it == handlers_.end())
-        return;
-      handler = it->second;
+  void dispatch(const stream_frame::Frame &frame) {
+    // No per-frame handler copy: register_module()/unregister_module() called
+    // from within a handler are deferred (see register_module), so handlers_ is
+    // neither reallocated nor is the running handler destroyed while it executes.
+    // The depth counter defers until the OUTERMOST dispatch unwinds (a handler
+    // may itself feed()/dispatch()).
+    ++dispatch_depth_;
+    const auto it = std::find_if(handlers_.begin(), handlers_.end(),
+                                 [&frame](const auto &e) { return e.first == frame.module; });
+    if (it != handlers_.end())
+      it->second(frame);
+    if (--dispatch_depth_ == 0 && !pending_.empty()) {
+      // swap (not move) so pending_ is left in a defined empty state; applying an
+      // op never re-enters dispatch, so no new pending ops accrue here.
+      std::vector<std::pair<uint8_t, handler_fn>> ops;
+      ops.swap(pending_);
+      for (auto &op : ops)
+        apply_register(op.first, std::move(op.second));
     }
-    handler(frame);
   }
 
   /// @brief Discard any partially-buffered frame bytes (transport reconnect or
@@ -105,11 +108,30 @@ public:
   size_t dropped_bytes() const { return parser_.dropped_bytes(); }
 
 private:
+  /// Add / replace / (null handler) remove a module's handler in handlers_.
+  /// Must not run while a handler is on the stack (see register_module()).
+  void apply_register(uint8_t module_id, handler_fn handler) {
+    const auto it = std::find_if(handlers_.begin(), handlers_.end(),
+                                 [module_id](const auto &e) { return e.first == module_id; });
+    if (it != handlers_.end()) {
+      if (handler)
+        it->second = std::move(handler);
+      else
+        handlers_.erase(it);
+    } else if (handler) {
+      handlers_.emplace_back(module_id, std::move(handler));
+    }
+  }
+
   stream_frame::StreamParser parser_;
   // Small set of (module id -> handler); linear scan is fine for the handful of
   // protocols a stream carries, and it costs memory only per registered module
   // (vs a 256-entry table).
   std::vector<std::pair<uint8_t, handler_fn>> handlers_;
+  // Registrations deferred while dispatching (applied when dispatch unwinds).
+  std::vector<std::pair<uint8_t, handler_fn>> pending_;
+  // >0 while a handler is executing (supports nested dispatch).
+  int dispatch_depth_{0};
 };
 
 } // namespace espp
