@@ -34,6 +34,13 @@ corruption. It does not filter by module or type — routing a multi-protocol
 stream (and ignoring unknown modules) is the job of :doc:`../dispatcher/index`.
 The buffering is bounded because the length field is capped.
 
+.. ------------------------------- Example -------------------------------------
+
+.. literalinclude:: ../../../components/stream_frame/example/main/stream_frame_example.cpp
+   :language: cpp
+   :start-after: //! [stream_frame example]
+   :end-before: //! [stream_frame example]
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

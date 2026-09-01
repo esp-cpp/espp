@@ -103,22 +103,27 @@ void py_init_dispatcher(py::module &m) {
       .def(py::init<>())
       .def(
           "register_module",
-          [](espp::Dispatcher &d, uint8_t module_id, py::function cb) {
-            if (!cb) {
+          [](espp::Dispatcher &d, uint8_t module_id, py::object cb) {
+            // Accept None to unregister (a py::function argument can never be None).
+            if (cb.is_none()) {
               d.unregister_module(module_id);
               return;
             }
+            py::function fn = cb.cast<py::function>();
             // feed() invokes the handler synchronously on the calling (Python)
             // thread, so the GIL is held throughout; own the callable via a
             // shared_ptr with a GIL-acquiring deleter for the unregister path.
             auto held =
-                std::shared_ptr<py::function>(new py::function(std::move(cb)), [](py::function *f) {
+                std::shared_ptr<py::function>(new py::function(std::move(fn)), [](py::function *f) {
                   py::gil_scoped_acquire gil;
                   delete f;
                 });
             d.register_module(module_id, [held](const sf::Frame &f) {
               py::gil_scoped_acquire gil;
-              (*held)(f);
+              // Pass a COPY: the Frame lives only for this call (in feed()'s
+              // temporary vector), so a Python handler that retains it keeps an
+              // independent Python-owned object, not a wrapper over freed memory.
+              (*held)(py::cast(f, py::return_value_policy::copy));
             });
           },
           py::arg("module_id"), py::arg("callback"),

@@ -15,22 +15,25 @@
 // over the USB vendor (WebUSB) interface; `ota_console.html` implements the
 // exact same framing in JavaScript.
 //
-// Wire format (all multi-byte fields LITTLE-ENDIAN):
+// Wire format (v2, all multi-byte fields LITTLE-ENDIAN):
 //
-//   [magic u16 = 0x4F54 ("OT")][type u8][len u32][payload: len bytes][crc32 u32]
+//   [magic u16 = 0x4F54 ("OT")][flags u8][module u8][type u8][len u32]
+//                                        [payload: len bytes][crc32 u32]
 //
-// Message types & payloads (host -> device):
+// OTA occupies module 0. Requests are host->device (flags reply bit = 0);
+// replies are device->host (flags reply bit = 1). `type` alone identifies the
+// message.
+//
+// Message types & payloads (host -> device, requests):
 //   0x01 BEGIN  — payload: u32 image_size (0 = unknown / streaming).
 //   0x02 DATA   — payload: raw image bytes (1..kMaxPayloadSize per frame).
 //   0x03 FINISH — no payload. Validates + activates the received image.
 //   0x04 ABORT  — no payload. Discards the in-progress session.
 //
-// Message types & payloads (device -> host):
-//   0x81 OK       — payload: u32 bytes_received so far.
-//   0x82 ERROR    — payload: u32 code followed by a UTF-8 message.
-//   0x83 PROGRESS — payload: u32 written, u32 total (0 if unknown). Optional.
-//
-// The OTA opcodes occupy module id 0 (high nibble 0); see espp::Dispatcher.
+// Message types & payloads (device -> host, replies; reply flag set):
+//   0x05 OK       — payload: u32 bytes_received so far.
+//   0x06 ERROR    — payload: u32 code followed by a UTF-8 message.
+//   0x07 PROGRESS — payload: u32 written, u32 total (0 if unknown). Optional.
 //
 // Flow control: the host serializes transactions — it sends one frame and waits
 // for the matching OK / ERROR reply before sending the next — so the device

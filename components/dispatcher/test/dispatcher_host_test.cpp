@@ -92,10 +92,27 @@ static void test_reset() {
   CHECK(count == 0); // the split frame did NOT complete after reset
 }
 
+static void test_reentrant_unregister() {
+  std::printf("test_reentrant_unregister\n");
+  // A handler that unregisters its own module mid-dispatch must be safe: the
+  // dispatcher copies the handler out before invoking it, so erasing handlers_
+  // does not destroy the std::function being executed.
+  espp::Dispatcher d;
+  int hits = 0;
+  d.register_module(6, [&](const sf::Frame &) {
+    ++hits;
+    d.unregister_module(6);
+  });
+  d.feed(sf::build_frame(false, 6, 0x11)); // unregisters itself while dispatching
+  d.feed(sf::build_frame(false, 6, 0x22)); // ignored now (unregistered)
+  CHECK(hits == 1 && !d.has_module(6));
+}
+
 int main() {
   test_routing_and_coexistence();
   test_register_replace_unregister();
   test_reset();
+  test_reentrant_unregister();
   if (g_failures == 0) {
     std::printf("ALL TESTS PASSED\n");
     return 0;

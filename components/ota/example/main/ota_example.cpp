@@ -279,6 +279,11 @@ extern "C" void app_main(void) {
   // host's ABORT is still honored (BEGIN would correctly fail busy first).
   bool usb_owns_session = false;
   auto handle_usb_frame = [&](const proto::Frame &frame) {
+    // The device only handles requests; OTA replies (OK/ERROR/PROGRESS) share
+    // module 0, so ignore any reply-flagged frame (e.g. a loopback echo) rather
+    // than treating it as an unknown request.
+    if (frame.is_reply())
+      return;
     std::error_code ec;
     auto reply_error = [&](const std::error_code &err, const std::string &context) {
       usb.write_vendor(

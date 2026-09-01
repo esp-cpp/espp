@@ -182,6 +182,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/st25dv/example/main/st25dv_example.cpp \
   $(PROJECT_PATH)/components/st7123touch/example/main/st7123touch_example.cpp \
   $(PROJECT_PATH)/components/state_machine/example/main/hfsm_example.cpp \
+  $(PROJECT_PATH)/components/stream_frame/example/main/stream_frame_example.cpp \
   $(PROJECT_PATH)/components/sx126x/example/main/sx126x_example.cpp \
   $(PROJECT_PATH)/components/tabulate/example/main/tabulate_example.cpp \
   $(PROJECT_PATH)/components/t-deck/example/main/t_deck_example.cpp \

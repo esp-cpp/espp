@@ -27,9 +27,13 @@ built-in protocols use, for example:
 | 5      | CAN bridge |
 
 A device-side dispatcher registers the modules it serves; frames for an
-unregistered module (including the device's own replies echoed back, which carry
-the reply flag) are silently ignored. Application code may assign any unused
-module id to its own protocol — nothing is hard-wired to a specific service.
+unregistered module are silently ignored. A protocol's replies use the **same**
+module as its requests (the reply/direction lives in the frame's `flags`, not
+the module), so both route to the one registered handler — use `frame.is_reply()`
+to distinguish them. In practice a device only *receives* requests (it *sends*
+the replies), so its handler normally sees requests only. Application code may
+assign any unused module id to its own protocol — nothing is hard-wired to a
+specific service.
 
 ## API
 

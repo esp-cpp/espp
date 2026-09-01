@@ -1,6 +1,6 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
-description: "Multiplex several framed protocols (OTA, crash-dump, CAN bridge, app control, ...) over one byte stream: parses the stream_frame codec once and routes each frame to a per-module handler by the type byte's high-nibble module id"
+description: "Multiplex several framed protocols (OTA, crash-dump, CAN bridge, app control, ...) over one byte stream: parses the stream_frame codec once and routes each frame to a per-module handler by the frame's module byte"
 url: "https://github.com/esp-cpp/espp/tree/main/components/dispatcher"
 repository: "https://github.com/esp-cpp/espp.git"
 maintainers:

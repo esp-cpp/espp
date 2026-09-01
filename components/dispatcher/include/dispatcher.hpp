@@ -80,10 +80,18 @@ public:
 
   /// @brief Route an already-parsed frame (for callers running their own parser).
   void dispatch(const stream_frame::Frame &frame) const {
-    const auto it = std::find_if(handlers_.begin(), handlers_.end(),
-                                 [&frame](const auto &e) { return e.first == frame.module; });
-    if (it != handlers_.end())
-      it->second(frame);
+    // Copy the handler out before invoking it: a handler that (re-entrantly)
+    // calls register_module() / unregister_module() can reallocate or erase
+    // handlers_, which would destroy the std::function being executed.
+    handler_fn handler;
+    {
+      const auto it = std::find_if(handlers_.begin(), handlers_.end(),
+                                   [&frame](const auto &e) { return e.first == frame.module; });
+      if (it == handlers_.end())
+        return;
+      handler = it->second;
+    }
+    handler(frame);
   }
 
   /// @brief Discard any partially-buffered frame bytes (transport reconnect or

@@ -107,6 +107,35 @@ check("reset() dropped the split frame", count == [] and d2.buffered() == 0)
 f = sf.StreamParser().feed(sf.build_frame(module=5, type=0x50))[0]
 check("module_of(frame)", espp.Dispatcher.module_of(f) == 5)
 
+# register_module(id, None) unregisters (a callback can't be None otherwise)
+d3 = espp.Dispatcher()
+d3.register_module(1, lambda f: None)
+d3.register_module(1, None)
+check("register_module(id, None) unregisters", not d3.has_module(1))
+
+# a handler may retain the frame: it must be an independent Python-owned copy,
+# not a wrapper over the C++ Frame that only lives for the dispatch call.
+kept = []
+d3.register_module(2, lambda f: kept.append(f))
+d3.feed(sf.build_frame(module=2, type=0x01, payload=b"hi"))
+d3.feed(sf.build_frame(module=2, type=0x02, payload=b"other"))  # churns feed()'s vector
+check("retained frame survives later feeds", kept and kept[0].payload == b"hi")
+
+# a handler may re-entrantly unregister its own module mid-dispatch (the handler
+# copy must not be destroyed under the running call).
+d4 = espp.Dispatcher()
+hits = []
+
+
+def self_unregister(frame):
+    hits.append(frame.type)
+    d4.register_module(6, None)
+
+
+d4.register_module(6, self_unregister)
+d4.feed(sf.build_frame(module=6, type=0x11) + sf.build_frame(module=6, type=0x22))
+check("re-entrant self-unregister is safe", hits == [0x11] and not d4.has_module(6))
+
 # ---------------------------------------------------------------------------
 print()
 if failures == 0:
