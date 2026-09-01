@@ -231,7 +231,8 @@ extern "C" void app_main(void) {
   // running two parsers over the same bytes.
   espp::Dispatcher vendor_dispatcher, cdc_dispatcher;
   auto handle_cmd_frame = [&](const espp::stream_frame::Frame &f) {
-    if (f.type != kMsgTriggerCrash || f.payload.size() != 1)
+    // host->device request only: ignore reply-flagged frames (echo/loopback)
+    if (f.is_reply() || f.type != kMsgTriggerCrash || f.payload.size() != 1)
       return;
     switch (static_cast<CrashKind>(f.payload[0])) {
     case CrashKind::NullPointer:
@@ -251,14 +252,20 @@ extern "C" void app_main(void) {
       break;
     }
   };
-  // Register the protocols on each stream's dispatcher.
-  vendor_dispatcher.register_module(
-      espp::CoreDumpService::kModule,
-      [&](const espp::stream_frame::Frame &f) { vendor_service.handle_frame(f.type, f.payload); });
+  // Register the protocols on each stream's dispatcher. The service answers
+  // requests, so ignore reply-flagged frames (handle_frame() takes only
+  // type+payload, so the direction check lives here).
+  vendor_dispatcher.register_module(espp::CoreDumpService::kModule,
+                                    [&](const espp::stream_frame::Frame &f) {
+                                      if (!f.is_reply())
+                                        vendor_service.handle_frame(f.type, f.payload);
+                                    });
   vendor_dispatcher.register_module(kCrashModule, handle_cmd_frame);
-  cdc_dispatcher.register_module(
-      espp::CoreDumpService::kModule,
-      [&](const espp::stream_frame::Frame &f) { cdc_service.handle_frame(f.type, f.payload); });
+  cdc_dispatcher.register_module(espp::CoreDumpService::kModule,
+                                 [&](const espp::stream_frame::Frame &f) {
+                                   if (!f.is_reply())
+                                     cdc_service.handle_frame(f.type, f.payload);
+                                 });
 
   espp::Task rx_task({.callback = [&](std::mutex &, std::condition_variable &) -> bool {
                         std::deque<std::pair<Source, std::vector<uint8_t>>> chunks;

@@ -189,8 +189,10 @@ public:
       frames = parser_.feed(data);
     }
     for (const auto &frame : frames) {
-      // Ignore other protocols' frames on a shared stream (route by module).
-      if (frame.module != kModule)
+      // Only handle this protocol's REQUESTS: ignore frames for other modules
+      // and reply-flagged frames (the service answers requests; a reply-typed
+      // frame — e.g. an echo/loopback — is never a host request).
+      if (frame.module != kModule || frame.is_reply())
         continue;
       std::vector<uint8_t> reply;
       {

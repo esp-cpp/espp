@@ -671,11 +671,12 @@
     }
 
     function dispatchFrame(frame) {
-      // Every haptics frame (replies + telemetry) is dispatcher module 2; ignore
-      // anything else that shares the vendor pipe.
-      if (frame.module !== MODULE_HAPTICS) {
+      // Every device->host haptics frame (replies + telemetry) is dispatcher
+      // module 2 with the reply flag set; ignore anything else that shares the
+      // vendor pipe (other modules, or a request-flagged frame echoed back).
+      if (frame.module !== MODULE_HAPTICS || !frame.reply) {
         if (els.logFrames.checked) {
-          logLine("err", "Ignoring non-haptics frame (module 0x" + frame.module.toString(16) +
+          logLine("err", "Ignoring non-haptics-reply frame (module 0x" + frame.module.toString(16) +
                   ", flags 0x" + frame.flags.toString(16) + ", type 0x" + frame.type.toString(16) + ")");
         }
         return;

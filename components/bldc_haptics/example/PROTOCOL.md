@@ -12,10 +12,10 @@ for the reference host implementation.
 
 ## Framing
 
-Uses the espp dispatcher stream framing v2
-(`components/ota/include/detail/ota_stream_protocol.hpp` is the authoritative
-spec). The whole haptics protocol is dispatcher **module 2**. All multi-byte
-fields are **little-endian**:
+Uses the espp `stream_frame` v2 codec
+(`components/stream_frame/include/stream_frame.hpp` is the authoritative spec).
+The whole haptics protocol is dispatcher **module 2**. All multi-byte fields are
+**little-endian**:
 
 ```
 [magic u16 = 0x4F54 "OT"] [flags u8] [module u8] [type u8] [len u32] [payload: len bytes] [crc32 u32]

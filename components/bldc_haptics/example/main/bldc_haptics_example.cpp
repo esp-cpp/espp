@@ -703,7 +703,10 @@ extern "C" void app_main(void) {
          }
          for (const auto &chunk : chunks)
            for (const auto &frame : parser.feed(chunk))
-             if (frame.module == proto::kModule) // ignore other protocols on the stream
+             // this protocol's REQUESTS only: ignore other modules and
+             // reply-flagged frames (the device answers requests; a reply-typed
+             // echo must not re-enter the request handler)
+             if (frame.module == proto::kModule && !frame.is_reply())
                handle_frame(frame);
          if (restart_pending) {
            // give the final OK reply time to reach the host
