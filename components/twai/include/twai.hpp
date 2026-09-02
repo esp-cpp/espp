@@ -15,6 +15,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/semphr.h"
 
 #include "base_component.hpp"
 #include "format.hpp"
@@ -72,8 +73,10 @@ public:
 
     /// \brief Convert this Message into a driver \c twai_frame_t for transmission.
     /// \note The returned frame's \c buffer points into this Message's \c data
-    ///       array, so the Message must outlive the returned frame (which it
-    ///       does for the duration of a synchronous transmit call).
+    ///       array, and the driver reads both the frame and the buffer from the
+    ///       TX ISR after \c twai_node_transmit() queues them -- so both must
+    ///       stay valid until the on_tx_done callback (transmit() guarantees
+    ///       this by using member storage and waiting for completion).
     /// \return A \c twai_frame_t describing this message.
     twai_frame_t to_twai_frame() const {
       // classic CAN carries at most MAX_DATA_LEN (8) data bytes; clamp defensively
@@ -237,6 +240,7 @@ public:
     // register the ISR event callbacks
     twai_event_callbacks_t cbs = {};
     cbs.on_rx_done = &Twai::on_rx_done_cb;
+    cbs.on_tx_done = &Twai::on_tx_done_cb;
     if (config_.on_state_change) {
       cbs.on_state_change = &Twai::on_state_change_cb;
     }
@@ -289,6 +293,23 @@ public:
         .log_level = config_.log_level,
     });
     task_->start();
+
+    // Transmit-completion semaphore (given from the on_tx_done ISR callback).
+    // Created here, after every fallible setup step above has succeeded and
+    // before the node is enabled: no earlier failure path (which delete node_
+    // inline) can leak it, and no TX -- hence no on_tx_done -- can fire before
+    // it exists, since transmitting requires an enabled node. On failure,
+    // teardown() (below / in the destructor) releases task, queue and node.
+    if (!tx_done_sem_) {
+      tx_done_sem_ = xSemaphoreCreateBinary();
+      if (!tx_done_sem_) {
+        logger_.error("Failed to create TX-done semaphore");
+        ec = std::make_error_code(std::errc::not_enough_memory);
+        lock.unlock();
+        teardown();
+        return false;
+      }
+    }
 
     // enable the node if requested
     if (config_.auto_start) {
@@ -356,18 +377,37 @@ public:
     return true;
   }
 
-  /// \brief Transmit a CAN message.
+  /// \brief Transmit a CAN message and wait for it to complete.
+  /// \details \c twai_node_transmit() only QUEUES the transmission: the driver
+  ///          keeps the passed \c twai_frame_t pointer (and its data buffer)
+  ///          and formats the frame later, in the TX ISR. The descriptor must
+  ///          therefore stay valid until the on_tx_done callback fires -- a
+  ///          stack-local frame is read after the caller's stack is gone,
+  ///          transmitting garbage (or tripping the driver's DLC assert). This
+  ///          method copies the message into member storage that outlives the
+  ///          call, serializes transmitters, and blocks until the driver
+  ///          reports transmission complete.
   /// \param message The message to transmit.
-  /// \param ec The error code, set if the transmission could not be queued.
-  /// \param timeout_ms Max time (ms) to wait if the TX queue is full (-1 = forever).
-  /// \return True if the message was queued for transmission, false otherwise.
+  /// \param ec The error code, set if the transmission could not be queued or
+  ///        did not complete within the timeout.
+  /// \param timeout_ms Max time (ms) to wait to queue the frame (-1 = forever
+  ///        for the queueing step). The subsequent wait for transmit
+  ///        completion is always bounded (by this value when >= 0, else by
+  ///        DEFAULT_TX_TIMEOUT_MS) so an unacknowledged frame cannot hang the
+  ///        caller.
+  /// \return True if the message was transmitted, false otherwise.
   bool transmit(const Message &message, std::error_code &ec,
                 int timeout_ms = DEFAULT_TX_TIMEOUT_MS) {
     ec.clear();
-    // Snapshot the handle under the lock, then call the (potentially blocking,
-    // up to timeout_ms) driver transmit with the lock RELEASED so a congested
-    // TX queue cannot stall is_enabled()/get_status()/stop()/the destructor.
-    // The driver's transmit path is internally thread-safe.
+    // Serialize the whole transmit -- node access, the driver call, and the
+    // completion wait -- under tx_mutex_. The driver keeps a pointer to
+    // tx_frame_ / tx_message_.data until on_tx_done, so only one frame may be
+    // in flight, and teardown() takes tx_mutex_ before deleting the node /
+    // semaphore, so neither can be freed while a transmit is using them. Note
+    // tx_mutex_ is distinct from mutex_ (which guards node_/enabled_ and is
+    // held only briefly below), so a congested TX queue does not stall
+    // is_enabled() / get_status() / stop().
+    std::lock_guard<std::mutex> tx_lock(tx_mutex_);
     twai_node_handle_t node = nullptr;
     {
       std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -389,8 +429,12 @@ public:
       }
       node = node_;
     }
-    twai_frame_t frame = message.to_twai_frame();
-    esp_err_t err = twai_node_transmit(node, &frame, timeout_ms);
+    // drain a stale completion (e.g. from a prior transmit whose frame we
+    // aborted below after a timeout) so the wait sees only our own
+    xSemaphoreTake(tx_done_sem_, 0);
+    tx_message_ = message;
+    tx_frame_ = tx_message_.to_twai_frame();
+    esp_err_t err = twai_node_transmit(node, &tx_frame_, timeout_ms);
     if (err != ESP_OK) {
       logger_.error("Failed to transmit frame: {}", esp_err_to_name(err));
       if (err == ESP_ERR_TIMEOUT) {
@@ -402,6 +446,39 @@ public:
       } else {
         ec = std::make_error_code(std::errc::io_error);
       }
+      return false;
+    }
+    // Wait for the on_tx_done callback; on a healthy bus a classic frame
+    // completes in well under a millisecond, but an unacknowledged frame is
+    // retransmitted indefinitely, so ALWAYS bound the completion wait -- even
+    // when timeout_ms < 0 (which means "wait forever to queue", above): an
+    // unbounded completion wait would hang the caller on a bus with no ACK.
+    const TickType_t wait_ticks =
+        timeout_ms < 0 ? pdMS_TO_TICKS(DEFAULT_TX_TIMEOUT_MS) : pdMS_TO_TICKS(timeout_ms);
+    if (xSemaphoreTake(tx_done_sem_, wait_ticks) != pdTRUE) {
+      // The frame was queued but did not complete (e.g. nothing ACKed it, so
+      // the controller keeps retransmitting). The driver still references
+      // tx_frame_ / tx_message_.data, and we are about to release tx_mutex_ and
+      // let a later transmit overwrite them -- so first stop the driver from
+      // referencing that storage by aborting the pending transmission: a
+      // disable/enable cycle flushes the TX queue. Best-effort, under mutex_.
+      {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        if (node_ && enabled_) {
+          twai_node_disable(node_);
+          // Keep enabled_ consistent with the hardware: if the re-enable fails
+          // the node is left disabled, so reflect that (later transmit()s will
+          // then reject early instead of calling into a disabled node).
+          if (twai_node_enable(node_) != ESP_OK) {
+            logger_.error("Failed to re-enable TWAI node after aborting a stuck transmit");
+            enabled_ = false;
+          }
+        }
+      }
+      // absorb a completion that may have raced in just before the abort
+      xSemaphoreTake(tx_done_sem_, 0);
+      logger_.error("Timed out waiting for transmit completion (no ACK on the bus?)");
+      ec = std::make_error_code(std::errc::timed_out);
       return false;
     }
     return true;
@@ -502,25 +579,42 @@ protected:
       task_->stop();
       task_.reset();
     }
-    // delete the node
-    if (node_) {
-      // twai_node_delete() requires the node to be disabled first. If a prior
-      // stop() failed (or was never called) and the node is still enabled,
-      // deleting it would fail and leak the driver resource -- so make a
-      // best-effort disable here before deleting.
-      if (enabled_) {
+    // Disable the node first (best-effort, under mutex_). twai_node_delete()
+    // requires a disabled node anyway, and disabling also aborts / unblocks any
+    // in-flight twai_node_transmit() so a concurrent transmit() blocked on a
+    // full queue (timeout_ms < 0) can return and release tx_mutex_ -- otherwise
+    // acquiring tx_mutex_ below could deadlock against it. Done in its own
+    // scope so mutex_ is released before we take tx_mutex_ then mutex_ (keeping
+    // the tx_mutex_ -> mutex_ order that transmit() uses).
+    {
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
+      if (node_ && enabled_) {
         esp_err_t err = twai_node_disable(node_);
         if (err != ESP_OK)
           logger_.warn("Could not disable TWAI node before delete: {}", esp_err_to_name(err));
         enabled_ = false;
       }
-      twai_node_delete(node_);
-      node_ = nullptr;
     }
-    // delete the queue
-    if (queue_) {
-      vQueueDelete(queue_);
-      queue_ = nullptr;
+    // Delete the node, queue and TX-done semaphore under tx_mutex_ so a
+    // transmit() that started before teardown -- which holds tx_mutex_ across
+    // the (now always bounded) driver call and completion wait, and references
+    // node_ and tx_done_sem_ -- has finished before we free them. transmit()
+    // takes tx_mutex_ then mutex_, so acquire them in the same order here.
+    {
+      std::lock_guard<std::mutex> tx_lock(tx_mutex_);
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
+      if (node_) {
+        twai_node_delete(node_);
+        node_ = nullptr;
+      }
+      if (queue_) {
+        vQueueDelete(queue_);
+        queue_ = nullptr;
+      }
+      if (tx_done_sem_) {
+        vSemaphoreDelete(tx_done_sem_);
+        tx_done_sem_ = nullptr;
+      }
     }
     enabled_ = false;
   }
@@ -542,6 +636,22 @@ protected:
       event.message = Message::from_twai_frame(rx_frame);
       xQueueSendFromISR(self->queue_, &event, &higher_priority_task_woken);
     }
+    return higher_priority_task_woken == pdTRUE;
+  }
+
+  static bool on_tx_done_cb(twai_node_handle_t handle, const twai_tx_done_event_data_t *edata,
+                            void *user_ctx) {
+    (void)handle;
+    (void)edata;
+    auto *self = static_cast<Twai *>(user_ctx);
+    // Guard against a lifecycle race: the semaphore may not exist yet (a TX
+    // completing during a partial init) or may already be freed (teardown), so
+    // never dereference a null handle from ISR context.
+    if (!self->tx_done_sem_) {
+      return false;
+    }
+    BaseType_t higher_priority_task_woken = pdFALSE;
+    xSemaphoreGiveFromISR(self->tx_done_sem_, &higher_priority_task_woken);
     return higher_priority_task_woken == pdTRUE;
   }
 
@@ -613,6 +723,16 @@ protected:
   QueueHandle_t queue_{nullptr};
   std::unique_ptr<espp::Task> task_;
   bool enabled_{false};
+
+  // Transmit path: the driver holds a pointer to tx_frame_ (whose buffer
+  // points into tx_message_.data) from twai_node_transmit() until the
+  // on_tx_done ISR callback, so both live here rather than on the stack;
+  // tx_mutex_ keeps a single frame in flight and tx_done_sem_ signals
+  // completion from the ISR.
+  std::mutex tx_mutex_;
+  SemaphoreHandle_t tx_done_sem_{nullptr};
+  Message tx_message_{};
+  twai_frame_t tx_frame_{};
 };
 } // namespace espp
 
