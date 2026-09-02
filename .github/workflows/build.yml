@@ -343,7 +343,9 @@ jobs:
     - name: Build Examples
       uses: espressif/esp-idf-ci-action@v1
       with:
-        esp_idf_version: v5.5.1
+        # Default to ESP-IDF v6.0.1. Individual matrix entries can still pin a
+        # different IDF via matrix.test.idf_version if an example ever needs one.
+        esp_idf_version: ${{ matrix.test.idf_version || 'v6.0.1' }}
         target: ${{ matrix.test.target }}
         path: ${{ matrix.test.path }}
         command: ${{ matrix.test.command || 'idf.py build' }}
