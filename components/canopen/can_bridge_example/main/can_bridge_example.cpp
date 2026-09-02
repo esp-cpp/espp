@@ -39,8 +39,8 @@ using namespace std::chrono_literals;
 namespace sf = espp::stream_frame;
 
 // TWAI GPIOs — change to match your board / transceiver wiring.
-static constexpr int kCanTxGpio = 5;
-static constexpr int kCanRxGpio = 4;
+static constexpr int kCanTxGpio = 17;
+static constexpr int kCanRxGpio = 16;
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "CAN Bridge", .level = espp::Logger::Verbosity::INFO});
@@ -74,9 +74,12 @@ extern "C" void app_main(void) {
   std::mutex tx_mutex;
   auto send = [&](std::span<const uint8_t> bytes) {
     std::lock_guard<std::mutex> lock(tx_mutex);
-    // write_vendor/write_cdc are all-or-nothing (no truncated frame) but return
-    // false and drop the whole frame if the host is not draining / disconnected.
-    // For a best-effort CAN monitor that is acceptable; surface it rate-limited
+    // write_vendor/write_cdc are all-or-nothing (no truncated frame): they
+    // bounded-wait (~250 ms) for the host to drain the TX FIFO, then return
+    // false and drop the WHOLE frame if it still does not fit / the host is
+    // disconnected. We send from ordinary tasks (RX worker + TWAI receive task),
+    // not the TinyUSB callback, so the drain-wait path applies. For a
+    // best-effort CAN monitor a drop is acceptable; surface it rate-limited
     // rather than silently discarding a reply/CAN_RX frame.
     const bool ok = (active_transport.load() == Transport::Cdc) ? usb.write_cdc(bytes)
                                                                 : usb.write_vendor(bytes);
@@ -101,7 +104,7 @@ extern "C" void app_main(void) {
   // --- CAN bus state (recreated on START so baudrate/mode can change) ---------
   std::mutex bus_mutex; // guards twai + config below
   std::unique_ptr<espp::Twai> twai;
-  uint32_t baudrate = 500000;
+  uint32_t baudrate = 1000000;
   uint8_t mode = can_bridge::kModeNormal;
   std::atomic<uint32_t> rx_count{0}, tx_count{0}, err_count{0};
 

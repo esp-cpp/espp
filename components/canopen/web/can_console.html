@@ -14,15 +14,22 @@
     Serial (navigator.serial). Both transports carry the same frames.
 
     Wire format v2 (all multi-byte fields LITTLE-ENDIAN):
-      [magic u16 = 0x4F54 "OT"][flags u8][module u8][type u8][len u32][payload...][crc32 u32]
-      - magic bytes on the wire: 0x54 ('T') then 0x4F ('O'). Header is 9 bytes.
+      [magic u16 = 0x4F54 "OT"][flags u8][module u8][type u8]{[correlation u16]}[len u32][payload...][crc32 u32]
+      - magic bytes on the wire: 0x54 ('T') then 0x4F ('O'). The base header is
+        9 bytes; when the correlation flag is set it is 11 bytes (see below).
       - flags u8: bit0 = reply (0 host->device request, 1 device->host
-        reply/event); bits 4-7 = protocol version = 1. So a request byte = 0x10,
-        a reply = 0x11.
+        reply/event); bit1 = correlation (an optional u16 correlation/sequence
+        id is present, inserted right after `type` and before `len`); bits 4-7 =
+        protocol version = 1. So a request byte = 0x10, a reply = 0x11, and a
+        request carrying a correlation id = 0x12.
+      - correlation u16: present ONLY when flags bit1 is set. It sits between
+        `type` (offset 5) and `len`, so `len` is at offset 5 for a base frame and
+        offset 7 for a correlated frame. The CAN bridge does not set this bit, so
+        its frames use the 9-byte base header; the parser handles both.
       - module u8: the CAN bridge is module 5. All CAN frames use module 5.
       - crc32 is the standard zlib / IEEE-802.3 CRC-32 (poly 0xEDB88320
-        reflected, init/final xor 0xFFFFFFFF) over the 9 header bytes + payload.
-        Golden check value: crc32("123456789") === 0xCBF43926.
+        reflected, init/final xor 0xFFFFFFFF) over the header (9 or 11 bytes) +
+        payload. Golden check value: crc32("123456789") === 0xCBF43926.
       - the device may interleave frames of OTHER protocols/modules (e.g. OTA) on
         the same stream; the parser passes through / ignores any frame whose
         module/type it does not recognize instead of erroring.
@@ -252,7 +259,7 @@
       <div class="row">
         <div class="field">
           <span>Baud rate</span>
-          <select id="baud">
+          <select id="baud" aria-label="Baud rate">
             <option value="1000000">1000000</option>
             <option value="800000">800000</option>
             <option value="500000" selected>500000</option>
@@ -265,7 +272,7 @@
         </div>
         <div class="field">
           <span>Mode</span>
-          <select id="mode">
+          <select id="mode" aria-label="Bus mode">
             <option value="0" selected>Normal (master — send + ACK)</option>
             <option value="1">Listen-only (passive sniff)</option>
           </select>
@@ -291,17 +298,17 @@
       <div class="row">
         <div class="field">
           <span>ID (hex)</span>
-          <input type="text" id="txId" value="123" size="10" placeholder="123">
+          <input type="text" id="txId" value="123" size="10" placeholder="123" aria-label="CAN ID (hex)">
         </div>
         <label style="align-self: flex-end;"><input type="checkbox" id="txExt"> Extended (29-bit)</label>
         <label style="align-self: flex-end;"><input type="checkbox" id="txRtr"> RTR (remote)</label>
         <div class="field">
           <span>DLC (blank = auto)</span>
-          <input type="text" id="txDlc" size="3" placeholder="auto">
+          <input type="text" id="txDlc" size="3" placeholder="auto" aria-label="DLC (blank = auto)">
         </div>
         <div class="field" style="flex: 1 1 220px;">
           <span>Data (hex bytes, e.g. "DE AD BE EF")</span>
-          <input type="text" id="txData" value="DE AD BE EF" placeholder="DEADBEEF">
+          <input type="text" id="txData" value="DE AD BE EF" placeholder="DEADBEEF" aria-label="Data (hex bytes)">
         </div>
         <button id="sendBtn" class="primary" disabled style="align-self: flex-end;">Send</button>
       </div>
@@ -995,7 +1002,7 @@
     let monDropped = 0;    // rows evicted from the front (memory cap)
     let monBufferedWhilePaused = 0;
     const summary = new Map();  // key -> {count, last, dir, type, data}
-    let summaryDropped = 0;     // distinct IDs not added because summary hit MAX_SUMMARY_IDS
+    const summaryDroppedIds = new Set(); // DISTINCT IDs not added because summary hit MAX_SUMMARY_IDS
 
     function fmtTime() {
       const rel = performance.now() - connectTime;
@@ -1041,8 +1048,10 @@
         });
       } else {
         // Cap reached: stop adding new distinct IDs so a flood of 29-bit
-        // extended IDs cannot retain an entry forever. Count what we skip.
-        summaryDropped++;
+        // extended IDs cannot retain an entry forever. Track the DISTINCT omitted
+        // IDs (a Set, not a per-frame counter) so the "+N more IDs" label below
+        // is an accurate count of unshown IDs, not of dropped frames.
+        summaryDroppedIds.add(key);
       }
       if (els.showSummary.checked) renderSummary();
 
@@ -1091,13 +1100,13 @@
         els.summaryBody.appendChild(tr);
       }
       // Note when the per-ID cap has hidden additional distinct IDs.
-      if (summaryDropped > 0) {
+      if (summaryDroppedIds.size > 0) {
         const tr = document.createElement("tr");
         const td = document.createElement("td");
         td.colSpan = 5;
         td.style.opacity = "0.7";
         td.style.fontStyle = "italic";
-        td.textContent = "+" + summaryDropped.toLocaleString() + " more IDs not shown (cap " +
+        td.textContent = "+" + summaryDroppedIds.size.toLocaleString() + " more IDs not shown (cap " +
                          MAX_SUMMARY_IDS.toLocaleString() + ")";
         tr.appendChild(td);
         els.summaryBody.appendChild(tr);
@@ -1114,7 +1123,7 @@
     els.clearMonBtn.addEventListener("click", () => {
       els.monBody.textContent = "";
       monTotal = 0; monDropped = 0; monBufferedWhilePaused = 0;
-      summary.clear(); summaryDropped = 0; renderSummary();
+      summary.clear(); summaryDroppedIds.clear(); renderSummary();
       updateMonCount();
     });
     els.showSummary.addEventListener("change", () => {
