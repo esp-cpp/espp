@@ -188,8 +188,23 @@ public:
   /**
    * @brief Queue bytes for transmission over the CDC function and flush.
    * @param data Bytes to send.
-   * @param[out] ec Set on failure (e.g. CDC not enabled / not initialized).
+   * @param[out] ec Set on failure (e.g. CDC not enabled / not initialized, or
+   *        the TX FIFO could not accept all bytes - see note below).
    * @return true if all bytes were queued, false otherwise.
+   * @note Same backpressure contract as write_vendor(). A frame that fits in the
+   *       TX FIFO (CONFIG_TINYUSB_CDC_TX_BUFSIZE) is written ALL-OR-NOTHING: the
+   *       call sleep-waits (bounded, 250 ms) for room for the WHOLE frame and
+   *       then enqueues it in a single write, so a drain-timeout or a mid-write
+   *       disconnect returns false WITHOUT leaving a truncated prefix on the wire
+   *       (a partial frame would poison the host-side framing parser). When
+   *       called from TinyUSB-callback context (e.g. inside a receive callback,
+   *       which runs on the TinyUSB task) the drain can never happen while this
+   *       call blocks, so it fails fast with `no_buffer_space` if the whole frame
+   *       does not ALREADY fit - again without enqueueing anything. A frame
+   *       LARGER than the FIFO cannot be atomic and is streamed across drains
+   *       (a mid-stream timeout may leave a prefix on the wire); keep framed
+   *       payloads within the FIFO, or send large replies from your own task
+   *       rather than a receive callback, for atomic writes.
    */
   bool write_cdc(std::span<const uint8_t> data, std::error_code &ec);
 
@@ -202,18 +217,20 @@ public:
    * @param[out] ec Set on failure (e.g. vendor not enabled / not initialized,
    *        or the TX FIFO could not accept all bytes - see note below).
    * @return true if all bytes were queued, false otherwise.
-   * @note If the TX FIFO (CONFIG_TINYUSB_VENDOR_TX_BUFSIZE) fills mid-write,
-   *       this call sleep-waits (bounded, 250 ms) for the TinyUSB task to
-   *       drain it - EXCEPT when called from TinyUSB-callback context (e.g.
-   *       from inside a receive callback, which runs on the TinyUSB task):
-   *       there the drain can never happen while this call blocks, so writes
-   *       are ALL-OR-NOTHING - if the whole frame does not fit in the FIFO up
-   *       front, the call fails fast with `no_buffer_space` WITHOUT enqueueing
-   *       any bytes (a partially-enqueued frame would poison the byte stream
-   *       for the host). To reliably send frames larger than the TX FIFO in
-   *       response to received data, queue the work to your own task rather
-   *       than writing directly from the receive callback (or size the FIFO
-   *       to hold a full frame).
+   * @note A frame that fits in the TX FIFO (CONFIG_TINYUSB_VENDOR_TX_BUFSIZE) is
+   *       written ALL-OR-NOTHING: the call sleep-waits (bounded, 250 ms) for room
+   *       for the WHOLE frame and then enqueues it in a single write, so a
+   *       drain-timeout or a mid-write unmount returns false WITHOUT leaving a
+   *       truncated prefix on the wire (a partial frame would poison the
+   *       host-side framing parser). When called from TinyUSB-callback context
+   *       (e.g. inside a receive callback, which runs on the TinyUSB task) the
+   *       drain can never happen while this call blocks, so it fails fast with
+   *       `no_buffer_space` if the whole frame does not ALREADY fit - again
+   *       without enqueueing anything. A frame LARGER than the FIFO cannot be
+   *       atomic and is streamed across drains (a mid-stream timeout may leave a
+   *       prefix on the wire); keep framed payloads within the FIFO, or send
+   *       large replies from your own task rather than a receive callback, for
+   *       atomic writes.
    */
   bool write_vendor(std::span<const uint8_t> data, std::error_code &ec);
 

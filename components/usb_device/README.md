@@ -94,8 +94,13 @@ Key methods:
 
 - `bool initialize(std::error_code &ec)` — build descriptors from the enabled
   functions, check the endpoint budget, install the TinyUSB driver.
-- `bool write_cdc(...)` / `bool write_vendor(...)` — queue + non-blocking flush on
-  the respective interface.
+- `bool write_cdc(...)` / `bool write_vendor(...)` — send bytes on the respective
+  interface with all-or-nothing backpressure. A frame that fits in the TX FIFO is
+  written atomically: the call bounded-waits (250 ms) for room for the whole
+  frame, then enqueues it in one write, so a timeout/disconnect never leaves a
+  truncated prefix on the wire (returns `false` and drops the frame instead). In
+  TinyUSB-callback context it fails fast if the frame does not already fit.
+  Frames larger than the FIFO are streamed and are not atomic.
 - `bool write_hid_report(uint8_t report_id, std::span<const uint8_t> report, ...)` —
   send a HID input report on the HID interrupt IN endpoint.
 - `void set_cdc_receive_callback(...)` / `void set_vendor_receive_callback(...)`.

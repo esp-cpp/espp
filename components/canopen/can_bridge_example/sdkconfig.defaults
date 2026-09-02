@@ -1,0 +1,31 @@
+# The USB vendor / WebUSB + CDC transports use the native USB-OTG peripheral,
+# available on the ESP32-S3 (also S2 / P4) -- NOT the classic ESP32. Pin the
+# target so a bare `idf.py build` does not fall back to esp32.
+CONFIG_IDF_TARGET="esp32s3"
+
+# Common ESP-related
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# Keep the system console/logs on the built-in USB-Serial-JTAG peripheral so it
+# stays separate from the native USB-OTG (vendor / CDC) interfaces created by
+# espp::UsbDevice for the framed CAN protocol. (On an S3 devkit these are two
+# distinct USB connectors.)
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+
+# Enable the TinyUSB vendor + CDC class drivers. The vendor interface carries
+# the framed protocol for WebUSB; the CDC interface carries the SAME framed
+# protocol for Web Serial. HID count is set only so the usb_device component's
+# HID code paths compile (no HID interface is instantiated here). esp_tinyusb
+# gates each class behind these counts.
+CONFIG_TINYUSB_VENDOR_COUNT=1
+CONFIG_TINYUSB_CDC_ENABLED=y
+CONFIG_TINYUSB_CDC_COUNT=1
+CONFIG_TINYUSB_HID_COUNT=1
+
+# Give the vendor RX/TX FIFOs headroom for CAN-RX frame bursts on a busy bus.
+CONFIG_TINYUSB_VENDOR_RX_BUFSIZE=2048
+CONFIG_TINYUSB_VENDOR_TX_BUFSIZE=2048
+
+# C++
+CONFIG_COMPILER_CXX_EXCEPTIONS=y
