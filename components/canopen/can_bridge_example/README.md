@@ -22,8 +22,8 @@ a properly terminated (120 Ω) bus. Defaults (change in `can_bridge_example.cpp`
 
 | Signal | GPIO |
 |--------|------|
-| TWAI TX | 5 |
-| TWAI RX | 4 |
+| TWAI TX | 17 |
+| TWAI RX | 16 |
 
 Listen-only mode monitors an existing bus without a transceiver ACKing, but a
 transceiver is still required to receive the differential signal.

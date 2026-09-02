@@ -655,8 +655,18 @@
                " · IN 0x" + this.epIn.toString(16) + " / OUT 0x" + this.epOut.toString(16) + " [WebUSB]";
       }
       async send(bytes) {
-        const out = await this.device.transferOut(this.epOut, bytes);
-        if (out.status === "stall") { try { await this.device.clearHalt("out", this.epOut); } catch (_) {} throw new Error("OUT endpoint stalled"); }
+        // transferOut may accept fewer than all bytes (status "ok",
+        // bytesWritten < length); keep writing the unsent suffix so we never
+        // ship a truncated frame that would desync the device parser.
+        let sent = 0;
+        while (sent < bytes.length) {
+          const out = await this.device.transferOut(this.epOut, sent === 0 ? bytes : bytes.subarray(sent));
+          if (out.status === "stall") { try { await this.device.clearHalt("out", this.epOut); } catch (_) {} throw new Error("OUT endpoint stalled"); }
+          if (out.status !== "ok") throw new Error("OUT transfer status: " + out.status);
+          const n = out.bytesWritten || 0;
+          if (n === 0) throw new Error("OUT transfer made no progress");
+          sent += n;
+        }
       }
       async readLoop(onData) {
         this.reading = true;
@@ -1003,6 +1013,7 @@
     let monBufferedWhilePaused = 0;
     const summary = new Map();  // key -> {count, last, dir, type, data}
     const summaryDroppedIds = new Set(); // DISTINCT IDs not added because summary hit MAX_SUMMARY_IDS
+    let summaryDroppedOverflow = false;  // true once the dropped-ID set is itself capped (see below)
 
     function fmtTime() {
       const rel = performance.now() - connectTime;
@@ -1050,8 +1061,11 @@
         // Cap reached: stop adding new distinct IDs so a flood of 29-bit
         // extended IDs cannot retain an entry forever. Track the DISTINCT omitted
         // IDs (a Set, not a per-frame counter) so the "+N more IDs" label below
-        // is an accurate count of unshown IDs, not of dropped frames.
-        summaryDroppedIds.add(key);
+        // counts unshown IDs, not dropped frames - but bound that set too (a
+        // flood of distinct IDs would otherwise grow it without limit), showing
+        // "N+" once it is itself capped.
+        if (summaryDroppedIds.size < MAX_SUMMARY_IDS) summaryDroppedIds.add(key);
+        else if (!summaryDroppedIds.has(key)) summaryDroppedOverflow = true;
       }
       if (els.showSummary.checked) renderSummary();
 
@@ -1106,7 +1120,8 @@
         td.colSpan = 5;
         td.style.opacity = "0.7";
         td.style.fontStyle = "italic";
-        td.textContent = "+" + summaryDroppedIds.size.toLocaleString() + " more IDs not shown (cap " +
+        td.textContent = "+" + summaryDroppedIds.size.toLocaleString() +
+                         (summaryDroppedOverflow ? "+" : "") + " more IDs not shown (cap " +
                          MAX_SUMMARY_IDS.toLocaleString() + ")";
         tr.appendChild(td);
         els.summaryBody.appendChild(tr);
@@ -1123,7 +1138,7 @@
     els.clearMonBtn.addEventListener("click", () => {
       els.monBody.textContent = "";
       monTotal = 0; monDropped = 0; monBufferedWhilePaused = 0;
-      summary.clear(); summaryDroppedIds.clear(); renderSummary();
+      summary.clear(); summaryDroppedIds.clear(); summaryDroppedOverflow = false; renderSummary();
       updateMonCount();
     });
     els.showSummary.addEventListener("change", () => {
