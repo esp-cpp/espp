@@ -49,6 +49,18 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/usb_device"
 )
 
+# With the component manager disabled (IDF_COMPONENT_MANAGER=0, e.g. in CI so the
+# build does not need the as-yet unpublished espp/* components in the registry),
+# esp_tinyusb/tinyusb are not fetched; add the vendored submodule copies under
+# external/ to the search path. esp_tinyusb's CMakeLists adds `tinyusb` to its
+# REQUIRES when the manager is off, so both directories must be discoverable.
+if(DEFINED ENV{IDF_COMPONENT_MANAGER} AND "$ENV{IDF_COMPONENT_MANAGER}" STREQUAL "0")
+  list(APPEND EXTRA_COMPONENT_DIRS
+    "../../../external/esp-usb/device/esp_tinyusb"
+    "../../../external/tinyusb"
+  )
+endif()
+
 set(
   COMPONENTS
   "main esptool_py bldc_driver bldc_haptics bldc_motor i2c motorgo-axis motorgo-mini mt6701 ota stream_frame task usb_device esp_tinyusb"

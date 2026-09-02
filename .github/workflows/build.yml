@@ -85,6 +85,7 @@ jobs:
           target: esp32s3
         - path: 'components/bldc_haptics/example'
           target: esp32s3
+          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/bldc_motor/example'
           target: esp32s3
         - path: 'components/ble_gatt_server/example'
@@ -101,6 +102,7 @@ jobs:
           target: esp32s3
         - path: 'components/canopen/can_bridge_example'
           target: esp32s3
+          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/canopen/example'
           target: esp32
         - path: 'components/chsc6x/example'
@@ -117,6 +119,7 @@ jobs:
           target: esp32s3
         - path: 'components/coredump/example'
           target: esp32s3
+          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/cst816/example'
           target: esp32s3
         - path: 'components/csv/example'
@@ -241,6 +244,7 @@ jobs:
           target: esp32
         - path: 'components/ota/example'
           target: esp32s3
+          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/pca9535/example'
           target: esp32s3
         - path: 'components/pcf85063/example'
