@@ -799,6 +799,20 @@
       return true;
     }
 
+    // Fail any outstanding SDO round-trip and release the transaction mutex.
+    // Called on disconnect / link-loss so a dropped link mid-SDO does not leave
+    // the channel wedged ("SDO channel busy" / "another SDO transaction in
+    // progress") after the user reconnects, nor leave a Promise pending until
+    // its timeout.
+    function abortSdo(reason) {
+      if (sdoWaiter) {
+        const w = sdoWaiter; sdoWaiter = null;
+        clearTimeout(w.timer);
+        w.reject(new Error(reason || "SDO aborted"));
+      }
+      sdoTxnActive = false;
+    }
+
     function sdoSendAndWait(reqBytes) {
       const node = currentNode();
       return new Promise((resolve, reject) => {
@@ -890,6 +904,9 @@
           const s = await sdoSendAndWait(seg);
           if (s[0] === 0x80) throw sdoAbortError(s);
           if ((s[0] & 0xE0) !== 0x20) throw new Error("unexpected SDO download segment response " + hex(s[0], 2));
+          // The server must echo the toggle bit we sent; a mismatch means the
+          // channel is out of sync (guard against silent write corruption).
+          if (((s[0] >> 4) & 1) !== toggle) throw new Error("SDO download segment toggle mismatch");
           offset += segSize;
           toggle ^= 1;
         }
@@ -964,7 +981,10 @@
       await transport.send(buildFrame(MODULE_CAN, T_CAN_TX, encodeCanFrame(cf)));
     }
     async function sendNmt(command) {
-      // NMT: COB-ID 0x000, data = [command u8][node u8] (node 0 = all nodes)
+      // NMT: COB-ID 0x000, data = [command u8][node u8]. This always targets the
+      // SELECTED node (currentNode() is clamped 1-127, matching the SDO node);
+      // CANopen node 0 would broadcast to all nodes, but this UI does not expose
+      // that (the node field is shared with the SDO client, which needs a real node).
       await sendCanRaw({ id: COB_NMT, ext: false, rtr: false, dlc: 2, data: Uint8Array.of(command, currentNode()) });
     }
 
@@ -1078,6 +1098,7 @@
       if (!transport) return;
       logLine("sys", "Disconnecting...");
       stopLivePoll();
+      abortSdo("disconnected");
       const t = transport; transport = null;
       if (statusTimer) { clearInterval(statusTimer); statusTimer = null; }
       try { await t.close(); } catch (_) {}
@@ -1087,6 +1108,7 @@
     function onLinkLost() {
       if (!transport) return;
       stopLivePoll();
+      abortSdo("link lost");
       const t = transport; transport = null;
       if (statusTimer) { clearInterval(statusTimer); statusTimer = null; }
       t.close().catch(() => {});
@@ -1170,19 +1192,27 @@
       catch (e) { logLine("err", label + ": " + (e && e.message ? e.message : e)); return undefined; }
     }
 
+    // Guard the WHOLE multi-read sequence: sdoTxnActive is released between the
+    // individual reads, so without this flag a poll tick or a manual refresh
+    // could start a second refreshDs402() mid-sequence and interleave reads.
+    let refreshInFlight = false;
     async function refreshDs402() {
-      const sw = await guarded("read statusword", () => readObject(OD.statusword[0], OD.statusword[1], "u16"));
-      if (sw != null) setDs402State(sw);
-      const md = await guarded("read mode display", () => readObject(OD.modeDisplay[0], OD.modeDisplay[1], "i8"));
-      if (md != null) els.modeDisplay.textContent = md + " (" + (MODE_OP_NAME[md] || "?") + ")";
-      const pos = await guarded("read position actual", () => readObject(OD.positionActual[0], OD.positionActual[1], "i32"));
-      if (pos != null) els.actPos.textContent = pos;
-      const vel = await guarded("read velocity actual", () => readObject(OD.velocityActual[0], OD.velocityActual[1], "i32"));
-      if (vel != null) els.actVel.textContent = vel;
-      const trq = await guarded("read torque actual", () => readObject(OD.torqueActual[0], OD.torqueActual[1], "i16"));
-      if (trq != null) els.actTrq.textContent = trq;
+      if (refreshInFlight) return;
+      refreshInFlight = true;
+      try {
+        const sw = await guarded("read statusword", () => readObject(OD.statusword[0], OD.statusword[1], "u16"));
+        if (sw != null) setDs402State(sw);
+        const md = await guarded("read mode display", () => readObject(OD.modeDisplay[0], OD.modeDisplay[1], "i8"));
+        if (md != null) els.modeDisplay.textContent = md + " (" + (MODE_OP_NAME[md] || "?") + ")";
+        const pos = await guarded("read position actual", () => readObject(OD.positionActual[0], OD.positionActual[1], "i32"));
+        if (pos != null) els.actPos.textContent = pos;
+        const vel = await guarded("read velocity actual", () => readObject(OD.velocityActual[0], OD.velocityActual[1], "i32"));
+        if (vel != null) els.actVel.textContent = vel;
+        const trq = await guarded("read torque actual", () => readObject(OD.torqueActual[0], OD.torqueActual[1], "i16"));
+        if (trq != null) els.actTrq.textContent = trq;
+      } finally { refreshInFlight = false; }
     }
-    els.refreshDs402Btn.addEventListener("click", () => { if (!sdoTxnActive) refreshDs402(); });
+    els.refreshDs402Btn.addEventListener("click", () => refreshDs402());
 
     // Controlword buttons
     async function sendControlword(value, label) {
