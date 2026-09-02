@@ -29,6 +29,7 @@
 //    as the error-recovery mechanism — by the time a reply times out, the
 //    controller's packet buffer has already been cleared automatically.
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <numeric>
@@ -55,6 +56,11 @@ static constexpr int kBasicmicroPacketTimeoutMs = 10;
 /// The manual (commands 28/29) lists the defaults as P=0x00010000, I=0x00008000
 /// and D=0x00004000, i.e. P=1.0, I=0.5, D=0.25.
 static constexpr float kBasicmicroPidScale = 65536.0f;
+
+/// Position PID gains are transferred scaled by 1024 (Basicmicro reference
+/// library convention for the position loop; commands 61-64). The velocity
+/// loop uses the separate kBasicmicroPidScale above.
+static constexpr float kBasicmicroPositionPidScale = 1024.0f;
 
 /// @brief Packet-serial command bytes.
 ///
@@ -109,14 +115,20 @@ enum class BasicmicroCommand : uint8_t {
   SetLogicBatteryVoltages = 58, ///< payload: min (2 bytes), max (2 bytes), tenths of a volt
   ReadMainBatteryVoltageSettings = 59,  ///< reply: min (2 bytes), max (2 bytes)
   ReadLogicBatteryVoltageSettings = 60, ///< reply: min (2 bytes), max (2 bytes)
-  SetM1DefaultDutyAccel = 68,           ///< payload: accel (4 bytes)
-  SetM2DefaultDutyAccel = 69,           ///< payload: accel (4 bytes)
-  ReadEncoderCounters = 78,             ///< reply: encM1 (4 bytes), encM2 (4 bytes)
-  ReadISpeedCounters = 79,              ///< reply: ispeedM1 (4 bytes), ispeedM2 (4 bytes)
-  RestoreDefaults = 80,                 ///< payload: none (write command, CRC appended)
-  ReadDefaultDutyAccels = 81,           ///< reply: accelM1 (4 bytes), accelM2 (4 bytes)
-  ReadTemperature = 82,                 ///< reply: tenths of a degree (2 bytes)
-  ReadTemperature2 = 83, ///< reply: tenths of a degree (2 bytes), supported units only
+  SetPositionPidM1 =
+      61, ///< payload: D, P, I (scaled 1024), MaxI, Deadzone, MinPos, MaxPos (4 each)
+  SetPositionPidM2 =
+      62, ///< payload: D, P, I (scaled 1024), MaxI, Deadzone, MinPos, MaxPos (4 each)
+  ReadPositionPidM1 = 63, ///< reply: P, I, D (scaled 1024), MaxI, Deadzone, MinPos, MaxPos (4 each)
+  ReadPositionPidM2 = 64, ///< reply: P, I, D (scaled 1024), MaxI, Deadzone, MinPos, MaxPos (4 each)
+  SetM1DefaultDutyAccel = 68, ///< payload: accel (4 bytes)
+  SetM2DefaultDutyAccel = 69, ///< payload: accel (4 bytes)
+  ReadEncoderCounters = 78,   ///< reply: encM1 (4 bytes), encM2 (4 bytes)
+  ReadISpeedCounters = 79,    ///< reply: ispeedM1 (4 bytes), ispeedM2 (4 bytes)
+  RestoreDefaults = 80,       ///< payload: none (write command, CRC appended)
+  ReadDefaultDutyAccels = 81, ///< reply: accelM1 (4 bytes), accelM2 (4 bytes)
+  ReadTemperature = 82,       ///< reply: tenths of a degree (2 bytes)
+  ReadTemperature2 = 83,      ///< reply: tenths of a degree (2 bytes), supported units only
   // -- Status / configuration (section 2.3.1) --
   ReadStatus = 90,            ///< reply: status bit mask (see BasicmicroStatus)
   ReadEncoderModes = 91,      ///< reply: encM1 mode (1 byte), encM2 mode (1 byte)
@@ -162,6 +174,35 @@ inline uint16_t basicmicro_crc16_byte(uint16_t crc, uint8_t val) {
 /// CRC (used to seed reply validation with the sent address + command bytes).
 inline uint16_t basicmicro_crc16(std::span<const uint8_t> data, uint16_t init = 0) {
   return std::accumulate(data.begin(), data.end(), init, basicmicro_crc16_byte);
+}
+
+/// Convert a floating-point PID gain to the controller's fixed-point wire
+/// representation (multiply by \p scale). Rounds to nearest rather than
+/// truncating (truncation biases every gain downward by up to ~1 LSB), and
+/// clamps to the non-negative uint32_t range: PID gains are non-negative on
+/// these controllers, and a raw static_cast of a negative product to uint32_t
+/// would silently wrap to a huge value. Non-finite or out-of-range inputs are
+/// saturated rather than fed to the rounding function (std::llround of a value
+/// outside long long, or of inf/NaN, is undefined).
+inline uint32_t scale_pid_gain(float gain, float scale) {
+  if (!(gain > 0.0f)) { // false for <= 0 and for NaN
+    return 0;
+  }
+  const double scaled = static_cast<double>(gain) * static_cast<double>(scale);
+  // Compare before rounding: a scaled value at/above UINT32_MAX (or +inf) must
+  // not reach std::llround, whose result is undefined outside long long's range
+  // and for non-finite inputs.
+  if (!(scaled < 4294967296.0)) { // 2^32; also false for +inf and NaN
+    return UINT32_MAX;
+  }
+  const long long rounded = std::llround(scaled);
+  if (rounded <= 0) {
+    return 0;
+  }
+  if (rounded > static_cast<long long>(UINT32_MAX)) {
+    return UINT32_MAX;
+  }
+  return static_cast<uint32_t>(rounded);
 }
 
 // --- big-endian codec helpers ("high byte first", manual section 2.2.9) ---
