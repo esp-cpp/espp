@@ -37,6 +37,10 @@ jobs:
           #       mt6701, which depend on espp/magnetic_encoder, so it is
           #       uploaded to the registry first.
           #
+          # Note: stream_frame is intentionally listed (out of alphabetical order)
+          #       ahead of its first-time dependents coredump / dispatcher / ota,
+          #       so it is uploaded to the registry before they try to resolve it.
+          #
           # Note: comments are not allowed in the "components" list, so please
           #       do not add any comments here.
           components: |
@@ -72,10 +76,6 @@ jobs:
             components/codec
             components/color
             components/controller
-            # stream_frame is intentionally listed here (out of alphabetical
-            # order) ahead of its first-time dependents coredump / dispatcher /
-            # ota, so it is uploaded before they try to resolve it from the
-            # registry (see the note above).
             components/stream_frame
             components/coredump
             components/cst816
