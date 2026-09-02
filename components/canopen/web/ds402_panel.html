@@ -469,6 +469,7 @@
     const STATUS_POLL_MS = 1000;
     const DS402_POLL_MS = 400;
     const SDO_TIMEOUT_MS = 800;
+    const SDO_MAX_TRANSFER = 64 * 1024;   // bound segmented uploads so a faulty node cannot grow memory unbounded
 
     // CANopen COB-IDs (11-bit, function code | node id)
     const COB_NMT = 0x000;
@@ -740,7 +741,10 @@
         try {
           while (this.reading) {
             const { value, done } = await this.reader.read();
-            if (done) break;
+            // A clean EOF while we still expect data (port closed under us, device
+            // unplugged) is a link failure - throw so the caller tears the UI down.
+            // During close() this.reading is already false, so that is not an error.
+            if (done) { if (this.reading) throw new Error("serial connection closed (EOF)"); break; }
             if (value && value.length) onData(new Uint8Array(value.buffer, value.byteOffset, value.byteLength));
           }
         } finally { try { this.reader.releaseLock(); } catch (_) {} this.reader = null; }
@@ -845,20 +849,41 @@
       });
     }
 
-    async function withSdo(fn) {
+    // Snapshot the node ONCE for the whole transaction. A multi-transaction UI
+    // action (enable sequence, identity read) passes an explicit `node` so all of
+    // its transactions target the same drive even if the node field is edited
+    // mid-action; single calls default to the current field value.
+    async function withSdo(fn, node) {
       if (!transport) throw new Error("not connected");
       if (sdoTxnActive) throw new Error("another SDO transaction is in progress");
       sdoTxnActive = true;
-      // Snapshot the node ONCE for the whole transaction: if the node field
-      // changes mid-transfer, a segmented upload/download must not send its
-      // initiate and later segments to different servers.
-      const node = currentNode();
-      try { return await fn(node); }
+      const n = (node != null) ? node : currentNode();
+      try { return await fn(n); }
       finally { sdoTxnActive = false; }
     }
 
-    // Upload (read). Returns a Uint8Array of the object's raw bytes.
-    async function sdoUpload(index, sub) {
+    // Reject an out-of-range object address before we pack only its low 16/8 bits
+    // (index 16040 must not silently become 0x6040, subindex 256 must not become 0).
+    function validateAddress(index, sub) {
+      if (!Number.isInteger(index) || index < 0 || index > 0xFFFF)
+        throw new Error("index out of range 0x0000..0xFFFF: " + index);
+      if (!Number.isInteger(sub) || sub < 0 || sub > 0xFF)
+        throw new Error("subindex out of range 0..255: " + sub);
+    }
+
+    // Send a client SDO abort for the given transfer (CANopen citizenship when we
+    // bail out of a transfer, e.g. an oversized upload).
+    async function sendSdoAbort(node, index, sub, code) {
+      const a = new Uint8Array(8);
+      a[0] = 0x80; a[1] = index & 0xFF; a[2] = (index >> 8) & 0xFF; a[3] = sub & 0xFF;
+      new DataView(a.buffer).setUint32(4, code >>> 0, true);
+      try { await sendCanRaw({ id: sdoTxId(node), ext: false, rtr: false, dlc: 8, data: a }); } catch (_) {}
+    }
+
+    // Upload (read). Returns a Uint8Array of the object's raw bytes. `nodeArg`
+    // pins the node for a multi-transaction action; omit it for the field value.
+    async function sdoUpload(index, sub, nodeArg) {
+      validateAddress(index, sub);
       return withSdo(async (node) => {
         const mux = { index, sub };
         const req = new Uint8Array(8);
@@ -875,6 +900,11 @@
         }
         // segmented upload
         const total = sizeIndicated ? ((resp[4] | (resp[5] << 8) | (resp[6] << 16) | (resp[7] << 24)) >>> 0) : null;
+        // Refuse a declared oversized total up front (abort the transfer).
+        if (total != null && total > SDO_MAX_TRANSFER) {
+          await sendSdoAbort(node, index, sub, 0x05040005);   // "out of memory"
+          throw new Error("SDO upload declined: declared size " + total + " exceeds " + SDO_MAX_TRANSFER + " bytes");
+        }
         const chunks = [];
         let toggle = 0;
         for (;;) {
@@ -886,6 +916,12 @@
           if (((s[0] >> 4) & 1) !== toggle) throw new Error("SDO upload segment toggle mismatch");
           const segSize = 7 - ((s[0] >> 1) & 0x07);
           for (let i = 0; i < segSize; i++) chunks.push(s[1 + i]);
+          // Bound an unsized transfer too: a node that never sets the last-segment
+          // bit must not keep this transaction alive and grow memory forever.
+          if (chunks.length > SDO_MAX_TRANSFER) {
+            await sendSdoAbort(node, index, sub, 0x05040005);   // "out of memory"
+            throw new Error("SDO upload aborted: exceeded " + SDO_MAX_TRANSFER + " bytes (node not terminating)");
+          }
           toggle ^= 1;
           if (s[0] & 0x01) break;   // c = last segment
         }
@@ -895,11 +931,13 @@
         if (total != null && out.length < total)
           throw new Error("SDO upload truncated: got " + out.length + " of " + total + " bytes");
         return total != null ? out.slice(0, total) : out;
-      });
+      }, nodeArg);
     }
 
-    // Download (write) the given bytes to index:sub.
-    async function sdoDownload(index, sub, bytes) {
+    // Download (write) the given bytes to index:sub. `nodeArg` pins the node for
+    // a multi-transaction action; omit it for the field value.
+    async function sdoDownload(index, sub, bytes, nodeArg) {
+      validateAddress(index, sub);
       // A zero-length value has no valid SDO expedited encoding (n would set the
       // reserved bit) and is not a meaningful object write; reject it up front.
       if (bytes.length === 0) throw new Error("cannot write a zero-length value");
@@ -940,7 +978,7 @@
           offset += segSize;
           toggle ^= 1;
         }
-      });
+      }, nodeArg);
     }
 
     // ---- typed object helpers -------------------------------------------
@@ -1001,18 +1039,18 @@
       return parseInt(s, 10);
     }
 
-    async function readObject(index, sub, type) {
-      const bytes = await sdoUpload(index, sub);
+    async function readObject(index, sub, type, node) {
+      const bytes = await sdoUpload(index, sub, node);
       if (type === "string") return new TextDecoder().decode(bytes);
       if (type === "hex") return bytes;
       return decodeScalar(type, bytes);
     }
-    async function writeObject(index, sub, type, valueStr) {
+    async function writeObject(index, sub, type, valueStr, node) {
       let bytes;
       if (type === "string") bytes = new TextEncoder().encode(valueStr);
       else if (type === "hex") bytes = parseHexBytes(valueStr);
       else bytes = encodeScalar(type, parseIntFlexible(valueStr));
-      await sdoDownload(index, sub, bytes);
+      await sdoDownload(index, sub, bytes, node);
     }
 
     // ===================================================================
@@ -1283,47 +1321,56 @@
     // disabled, Fault (with a fault-reset rising edge) and Quick-stop-active,
     // rather than blindly writing 0x000F which fails from Switch-on-disabled.
     let sequenceInFlight = false;
+    let sequenceCancel = false;   // set by Quick stop (and disconnect) to abort a running sequence
     async function enableSequence() {
       if (sequenceInFlight) return;
       if (!transport) { logLine("err", "enable sequence: not connected"); return; }
       sequenceInFlight = true;
+      sequenceCancel = false;
+      // Pin the node for the WHOLE sequence and lock the field so mid-sequence
+      // edits cannot read state from one drive and command another.
+      const node = currentNode();
       els.cwEnableOp.disabled = true;
+      els.nodeId.disabled = true;
+      const cw = (v) => sdoDownload(OD.controlword[0], OD.controlword[1], encodeScalar("u16", v), node);
+      const cancelled = () => { if (sequenceCancel) { logLine("sys", "enable sequence: cancelled"); return true; } return false; };
       try {
         for (let step = 0; step < 16; step++) {
+          if (cancelled()) return;
           let sw;
-          try { sw = await readObject(OD.statusword[0], OD.statusword[1], "u16"); }
+          try { sw = await readObject(OD.statusword[0], OD.statusword[1], "u16", node); }
           catch (e) { logLine("err", "enable sequence: read statusword: " + (e && e.message ? e.message : e)); return; }
+          if (cancelled()) return;
           setDs402State(sw);
           const state = ds402StateName(sw).name;
           if (state === "Operation enabled") { logLine("sys", "enable sequence: reached Operation enabled"); return; }
           try {
             if (state === "Fault") {
               // fault reset is a rising edge on controlword bit 7
-              await sdoDownload(OD.controlword[0], OD.controlword[1], encodeScalar("u16", 0x0000));
-              await sdoDownload(OD.controlword[0], OD.controlword[1], encodeScalar("u16", CW.faultReset));
+              await cw(0x0000);
+              if (cancelled()) return;
+              await cw(CW.faultReset);
               logLine("sys", "enable sequence: Fault -> fault reset");
             } else if (state === "Switch on disabled") {
-              await sdoDownload(OD.controlword[0], OD.controlword[1], encodeScalar("u16", CW.shutdown));
-              logLine("sys", "enable sequence: Switch on disabled -> shutdown");
+              await cw(CW.shutdown); logLine("sys", "enable sequence: Switch on disabled -> shutdown");
             } else if (state === "Ready to switch on") {
-              await sdoDownload(OD.controlword[0], OD.controlword[1], encodeScalar("u16", CW.switchOn));
-              logLine("sys", "enable sequence: Ready to switch on -> switch on");
+              await cw(CW.switchOn); logLine("sys", "enable sequence: Ready to switch on -> switch on");
             } else if (state === "Switched on") {
-              await sdoDownload(OD.controlword[0], OD.controlword[1], encodeScalar("u16", CW.enableOp));
-              logLine("sys", "enable sequence: Switched on -> enable operation");
+              await cw(CW.enableOp); logLine("sys", "enable sequence: Switched on -> enable operation");
             } else if (state === "Quick stop active") {
-              await sdoDownload(OD.controlword[0], OD.controlword[1], encodeScalar("u16", CW.disableVoltage));
-              logLine("sys", "enable sequence: Quick stop active -> disable voltage");
+              await cw(CW.disableVoltage); logLine("sys", "enable sequence: Quick stop active -> disable voltage");
             } else {
               await sleep(50); continue;   // transient (Not ready / Fault reaction active): re-poll
             }
           } catch (e) { logLine("err", "enable sequence: " + (e && e.message ? e.message : e)); return; }
+          if (cancelled()) return;
           await sleep(40);   // allow the drive to transition before re-reading
         }
         logLine("err", "enable sequence: did not reach Operation enabled (gave up after 16 steps)");
       } finally {
         sequenceInFlight = false;
         if (transport) els.cwEnableOp.disabled = false;
+        els.nodeId.disabled = false;
         refreshDs402();
       }
     }
@@ -1332,11 +1379,28 @@
     els.cwSwitchOn.addEventListener("click", () => sendControlword(CW.switchOn, "switch on"));
     els.cwEnableOp.addEventListener("click", () => enableSequence());
     els.cwDisableVoltage.addEventListener("click", () => sendControlword(CW.disableVoltage, "disable voltage"));
-    els.cwQuickStop.addEventListener("click", () => sendControlword(CW.quickStop, "quick stop"));
+    els.cwQuickStop.addEventListener("click", async () => {
+      // Quick stop must win over an in-flight enable sequence (which would
+      // otherwise drive the state machine back to Operation enabled): cancel it
+      // and wait for it to release the SDO channel before issuing quick stop.
+      if (sequenceInFlight) {
+        sequenceCancel = true;
+        logLine("sys", "quick stop: cancelling enable sequence");
+        while (sequenceInFlight) await sleep(10);
+      }
+      await sendControlword(CW.quickStop, "quick stop");
+    });
     els.cwFaultReset.addEventListener("click", async () => {
-      // Fault reset is a rising edge on bit 7: clear it, then set it.
-      await sendControlword(0x0000, "clear (pre fault-reset)");
-      await sendControlword(CW.faultReset, "fault reset");
+      // Fault reset is a rising edge on controlword bit 7: clear it, then set it.
+      // Both writes go DIRECTLY (not via sendControlword, whose trailing
+      // refreshDs402() would grab the SDO channel and fail the second write with
+      // "another SDO transaction in progress", so bit 7 never gets its edge).
+      try {
+        await sdoDownload(OD.controlword[0], OD.controlword[1], encodeScalar("u16", 0x0000));
+        await sdoDownload(OD.controlword[0], OD.controlword[1], encodeScalar("u16", CW.faultReset));
+        logLine("sys", "controlword <- fault reset (rising edge on bit 7)");
+      } catch (e) { logLine("err", "fault reset: " + (e && e.message ? e.message : e)); }
+      refreshDs402();
     });
     els.cwSendRaw.addEventListener("click", () => {
       let v; try { v = parseIntFlexible(els.cwRaw.value.startsWith("0x") ? els.cwRaw.value : "0x" + els.cwRaw.value); }
@@ -1347,9 +1411,14 @@
     // Mode of operation
     els.modeSetBtn.addEventListener("click", async () => {
       const m = parseInt(els.modeOp.value, 10);
-      await guarded("set mode", () => sdoDownload(OD.modeSet[0], OD.modeSet[1], encodeScalar("i8", m)));
-      logLine("sys", "mode of operation <- " + m + " (" + (MODE_OP_NAME[m] || "?") + ")");
-      if (!sdoTxnActive) refreshDs402();
+      // Log success ONLY inside the successful write path: guarded() swallows the
+      // error and a successful write also resolves to undefined, so logging after
+      // it would claim success even on an SDO abort / timeout / busy error.
+      try {
+        await sdoDownload(OD.modeSet[0], OD.modeSet[1], encodeScalar("i8", m));
+        logLine("sys", "mode of operation <- " + m + " (" + (MODE_OP_NAME[m] || "?") + ")");
+      } catch (e) { logLine("err", "set mode: " + (e && e.message ? e.message : e)); }
+      refreshDs402();
     });
 
     // Targets
@@ -1382,17 +1451,20 @@
     // Identity
     // ===================================================================
     els.readIdentityBtn.addEventListener("click", async () => {
-      const dt = await guarded("device type", () => readObject(0x1000, 0, "u32"));
+      // Pin the node for all six reads so the displayed identity cannot combine
+      // attributes from different drives if the node field is edited mid-read.
+      const node = currentNode();
+      const dt = await guarded("device type", () => readObject(0x1000, 0, "u32", node));
       els.idDeviceType.textContent = dt != null ? hex(dt, 8) : "n/a";
-      const name = await guarded("device name", () => readObject(0x1008, 0, "string"));
+      const name = await guarded("device name", () => readObject(0x1008, 0, "string", node));
       els.idDeviceName.textContent = name != null ? name : "n/a";
-      const vendor = await guarded("vendor id", () => readObject(0x1018, 1, "u32"));
+      const vendor = await guarded("vendor id", () => readObject(0x1018, 1, "u32", node));
       els.idVendor.textContent = vendor != null ? hex(vendor, 8) : "n/a";
-      const product = await guarded("product code", () => readObject(0x1018, 2, "u32"));
+      const product = await guarded("product code", () => readObject(0x1018, 2, "u32", node));
       els.idProduct.textContent = product != null ? hex(product, 8) : "n/a";
-      const rev = await guarded("revision", () => readObject(0x1018, 3, "u32"));
+      const rev = await guarded("revision", () => readObject(0x1018, 3, "u32", node));
       els.idRevision.textContent = rev != null ? hex(rev, 8) : "n/a";
-      const serial = await guarded("serial", () => readObject(0x1018, 4, "u32"));
+      const serial = await guarded("serial", () => readObject(0x1018, 4, "u32", node));
       els.idSerial.textContent = serial != null ? hex(serial, 8) : "n/a";
     });
 
