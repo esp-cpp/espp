@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <limits>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -160,9 +161,72 @@ static void test_round_trip() {
   CHECK(static_cast<uint8_t>(BasicmicroCommand::ReadFirmwareVersion) == 21);
   CHECK(static_cast<uint8_t>(BasicmicroCommand::SetVelocityPidM1) == 28);
   CHECK(static_cast<uint8_t>(BasicmicroCommand::ReadVelocityPidM1) == 55);
+  CHECK(static_cast<uint8_t>(BasicmicroCommand::SetPositionPidM1) == 61);
+  CHECK(static_cast<uint8_t>(BasicmicroCommand::SetPositionPidM2) == 62);
+  CHECK(static_cast<uint8_t>(BasicmicroCommand::ReadPositionPidM1) == 63);
+  CHECK(static_cast<uint8_t>(BasicmicroCommand::ReadPositionPidM2) == 64);
   CHECK(static_cast<uint8_t>(BasicmicroCommand::ReadStatus) == 90);
   CHECK(static_cast<uint8_t>(BasicmicroCommand::EStopReset) == 200);
   CHECK(static_cast<uint16_t>(BasicmicroStatus::Temperature2Warning) == 0x2000);
+
+  // position PID payload (command 61): D, P, I scaled by 1024, then MaxI,
+  // Deadzone, MinPos, MaxPos as raw 32-bit -> 7 * 4 = 28 data bytes. Build the
+  // gains through scale_pid_gain() exactly as the production path does.
+  std::vector<uint8_t> pos;
+  append_u32_be(pos, scale_pid_gain(4.0f, kBasicmicroPositionPidScale)); // D
+  append_u32_be(pos, scale_pid_gain(2.0f, kBasicmicroPositionPidScale)); // P
+  append_u32_be(pos, scale_pid_gain(0.0f, kBasicmicroPositionPidScale)); // I
+  append_u32_be(pos, 0);                                                 // MaxI
+  append_u32_be(pos, 10);                                                // Deadzone
+  append_i32_be(pos, -20000);                                            // MinPos
+  append_i32_be(pos, 20000);                                             // MaxPos
+  CHECK(pos.size() == 28);
+  CHECK(read_u32_be(pos, 0) == 4096); // 4.0 * 1024
+  CHECK(read_u32_be(pos, 4) == 2048); // 2.0 * 1024
+  CHECK(read_i32_be(pos, 20) == -20000);
+  CHECK(read_i32_be(pos, 24) == 20000);
+  const auto pos_pkt =
+      build_write_packet(0x80, static_cast<uint8_t>(BasicmicroCommand::SetPositionPidM1), pos);
+  CHECK(pos_pkt.size() == 2 + 28 + 2);
+  CHECK(basicmicro_crc16(std::span<const uint8_t>(pos_pkt.data(), pos_pkt.size() - 2)) ==
+        read_u16_be(pos_pkt, pos_pkt.size() - 2));
+
+  // scale_pid_gain(): round-to-nearest (not truncate) and clamp non-negative.
+  CHECK(scale_pid_gain(4.0f, kBasicmicroPositionPidScale) == 4096);
+  CHECK(scale_pid_gain(1.5f, kBasicmicroPositionPidScale) == 1536);
+  // 0.1 * 1024 = 102.4 -> rounds to 102 (truncation would also give 102);
+  // 0.10009765625 (= 102.5/1024) rounds to 103, where truncation gives 102.
+  CHECK(scale_pid_gain(102.5f / kBasicmicroPositionPidScale, kBasicmicroPositionPidScale) == 103);
+  CHECK(scale_pid_gain(-1.0f, kBasicmicroPositionPidScale) == 0); // negatives clamp to 0
+  CHECK(scale_pid_gain(0.0f, kBasicmicroPositionPidScale) == 0);
+  CHECK(scale_pid_gain(1.0f, 65536.0f) == 65536); // velocity 16.16 scale too
+  // non-finite and out-of-range inputs saturate rather than invoke UB
+  CHECK(scale_pid_gain(std::numeric_limits<float>::infinity(), kBasicmicroPositionPidScale) ==
+        0xFFFFFFFFu);
+  CHECK(scale_pid_gain(std::numeric_limits<float>::quiet_NaN(), kBasicmicroPositionPidScale) == 0);
+  CHECK(scale_pid_gain(1.0e12f, kBasicmicroPositionPidScale) == 0xFFFFFFFFu); // >> 2^32
+  CHECK(scale_pid_gain(4194304.0f, 1024.0f) == 0xFFFFFFFFu); // 4194304 * 1024 == 2^32, saturates
+  CHECK(scale_pid_gain(4194303.0f, 1024.0f) == 4294966272u); // just below 2^32, fits exactly
+
+  // position PID REPLY (command 63/64): the read order is P, I, D, then MaxI,
+  // Deadzone, MinPos, MaxPos -- distinct from the D, P, I write order above.
+  // Build a 28-byte reply and confirm each field decodes from its offset.
+  std::vector<uint8_t> reply;
+  append_u32_be(reply, static_cast<uint32_t>(2.0f * kBasicmicroPositionPidScale)); // P (offset 0)
+  append_u32_be(reply, static_cast<uint32_t>(0.5f * kBasicmicroPositionPidScale)); // I (offset 4)
+  append_u32_be(reply, static_cast<uint32_t>(4.0f * kBasicmicroPositionPidScale)); // D (offset 8)
+  append_u32_be(reply, 7);      // MaxI (offset 12)
+  append_u32_be(reply, 10);     // Deadzone (offset 16)
+  append_i32_be(reply, -20000); // MinPos (offset 20)
+  append_i32_be(reply, 20000);  // MaxPos (offset 24)
+  CHECK(reply.size() == 28);
+  CHECK(static_cast<float>(read_u32_be(reply, 0)) / kBasicmicroPositionPidScale == 2.0f); // P
+  CHECK(static_cast<float>(read_u32_be(reply, 4)) / kBasicmicroPositionPidScale == 0.5f); // I
+  CHECK(static_cast<float>(read_u32_be(reply, 8)) / kBasicmicroPositionPidScale == 4.0f); // D
+  CHECK(read_u32_be(reply, 12) == 7);
+  CHECK(read_u32_be(reply, 16) == 10);
+  CHECK(read_i32_be(reply, 20) == -20000);
+  CHECK(read_i32_be(reply, 24) == 20000);
 }
 
 int main() {

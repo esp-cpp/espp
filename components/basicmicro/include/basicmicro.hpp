@@ -588,6 +588,76 @@ public:
     return read_velocity_pid(Command::ReadVelocityPidM2, p, i, d, qpps, ec);
   }
 
+  /**
+   * @brief Set the motor 1 position PID constants (command 61).
+   *
+   * The position loop has seven constants: P, I, D gains (transferred scaled
+   * by 1024), MaxI (integral windup limit), Deadzone (in encoder counts), and
+   * MinPos / MaxPos (the position range the loop will command; a target
+   * outside it is clamped). The factory default for every constant is zero,
+   * so position commands (65-67) produce no motion until these are set. Note
+   * the wire order for this command is D, P, I (unlike the P, I, D read order
+   * of command 63).
+   * @param p Proportional gain.
+   * @param i Integral gain.
+   * @param d Derivative gain.
+   * @param max_i Maximum integral windup.
+   * @param deadzone Deadzone in encoder counts.
+   * @param min_pos Minimum commandable position.
+   * @param max_pos Maximum commandable position.
+   * @param ec Set on failure.
+   * @return True on success.
+   */
+  bool set_position_pid_m1(float p, float i, float d, uint32_t max_i, uint32_t deadzone,
+                           int32_t min_pos, int32_t max_pos, std::error_code &ec) {
+    std::scoped_lock lk(mutex_);
+    return set_position_pid(Command::SetPositionPidM1, p, i, d, max_i, deadzone, min_pos, max_pos,
+                            ec);
+  }
+
+  /**
+   * @brief Set the motor 2 position PID constants (command 62).
+   *        See set_position_pid_m1() for the constants and scaling.
+   */
+  bool set_position_pid_m2(float p, float i, float d, uint32_t max_i, uint32_t deadzone,
+                           int32_t min_pos, int32_t max_pos, std::error_code &ec) {
+    std::scoped_lock lk(mutex_);
+    return set_position_pid(Command::SetPositionPidM2, p, i, d, max_i, deadzone, min_pos, max_pos,
+                            ec);
+  }
+
+  /**
+   * @brief Read the motor 1 position PID constants (command 63).
+   *        Gains are converted back to floats (divide by 1024). The reply
+   *        order is P, I, D (unlike the D, P, I write order of command 61).
+   * @param p Proportional gain.
+   * @param i Integral gain.
+   * @param d Derivative gain.
+   * @param max_i Maximum integral windup.
+   * @param deadzone Deadzone in encoder counts.
+   * @param min_pos Minimum commandable position.
+   * @param max_pos Maximum commandable position.
+   * @param ec Set on failure.
+   * @return True on success.
+   */
+  bool read_position_pid_m1(float &p, float &i, float &d, uint32_t &max_i, uint32_t &deadzone,
+                            int32_t &min_pos, int32_t &max_pos, std::error_code &ec) {
+    std::scoped_lock lk(mutex_);
+    return read_position_pid(Command::ReadPositionPidM1, p, i, d, max_i, deadzone, min_pos, max_pos,
+                             ec);
+  }
+
+  /**
+   * @brief Read the motor 2 position PID constants (command 64).
+   *        See read_position_pid_m1() for the fields and scaling.
+   */
+  bool read_position_pid_m2(float &p, float &i, float &d, uint32_t &max_i, uint32_t &deadzone,
+                            int32_t &min_pos, int32_t &max_pos, std::error_code &ec) {
+    std::scoped_lock lk(mutex_);
+    return read_position_pid(Command::ReadPositionPidM2, p, i, d, max_i, deadzone, min_pos, max_pos,
+                             ec);
+  }
+
   // -------------------------------- telemetry ------------------------------
 
   /**
@@ -939,6 +1009,40 @@ protected:
     i = static_cast<float>(detail::read_u32_be(data, 4)) / detail::kBasicmicroPidScale;
     d = static_cast<float>(detail::read_u32_be(data, 8)) / detail::kBasicmicroPidScale;
     qpps = detail::read_u32_be(data, 12);
+    return true;
+  }
+
+  /// Shared implementation for commands 61/62. Wire order is
+  /// D, P, I, MaxI, Deadzone, MinPos, MaxPos (P/I/D scaled by 1024).
+  bool set_position_pid(Command cmd, float p, float i, float d, uint32_t max_i, uint32_t deadzone,
+                        int32_t min_pos, int32_t max_pos, std::error_code &ec) {
+    std::vector<uint8_t> payload;
+    payload.reserve(28); // fixed 7 x 4 bytes; avoid incremental reallocations
+    detail::append_u32_be(payload, detail::scale_pid_gain(d, detail::kBasicmicroPositionPidScale));
+    detail::append_u32_be(payload, detail::scale_pid_gain(p, detail::kBasicmicroPositionPidScale));
+    detail::append_u32_be(payload, detail::scale_pid_gain(i, detail::kBasicmicroPositionPidScale));
+    detail::append_u32_be(payload, max_i);
+    detail::append_u32_be(payload, deadzone);
+    detail::append_i32_be(payload, min_pos);
+    detail::append_i32_be(payload, max_pos);
+    return write_command(cmd, payload, ec);
+  }
+
+  /// Shared implementation for commands 63/64. Reply order is
+  /// P, I, D, MaxI, Deadzone, MinPos, MaxPos (P/I/D scaled by 1024).
+  bool read_position_pid(Command cmd, float &p, float &i, float &d, uint32_t &max_i,
+                         uint32_t &deadzone, int32_t &min_pos, int32_t &max_pos,
+                         std::error_code &ec) {
+    uint8_t data[28] = {};
+    if (!read_command(cmd, data, ec))
+      return false;
+    p = static_cast<float>(detail::read_u32_be(data, 0)) / detail::kBasicmicroPositionPidScale;
+    i = static_cast<float>(detail::read_u32_be(data, 4)) / detail::kBasicmicroPositionPidScale;
+    d = static_cast<float>(detail::read_u32_be(data, 8)) / detail::kBasicmicroPositionPidScale;
+    max_i = detail::read_u32_be(data, 12);
+    deadzone = detail::read_u32_be(data, 16);
+    min_pos = detail::read_i32_be(data, 20);
+    max_pos = detail::read_i32_be(data, 24);
     return true;
   }
 
