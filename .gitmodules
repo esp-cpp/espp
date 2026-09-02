@@ -43,3 +43,9 @@
 [submodule "components/cdr/detail/cdr"]
 	path = components/cdr/detail/cdr
 	url = https://github.com/finger563/cdr.git
+[submodule "external/tinyusb"]
+	path = external/tinyusb
+	url = https://github.com/espressif/tinyusb.git
+[submodule "external/esp-usb"]
+	path = external/esp-usb
+	url = https://github.com/espressif/esp-usb.git
