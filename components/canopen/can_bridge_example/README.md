@@ -1,7 +1,7 @@
 # USB &lt;-&gt; CAN Bridge Example
 
 Turns an ESP32-S3 into a **WebUSB / Web Serial CAN interface**: the hosted
-[CAN console web app](https://esp-cpp.github.io/espp/apps/can_console.html)
+[CAN bridge console web app](https://esp-cpp.github.io/espp/apps/can_bridge_console.html)
 connects over the native USB and can
 
 - **send** CAN frames as a normal, ACK-ing bus participant ("master"), and

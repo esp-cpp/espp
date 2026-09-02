@@ -54,7 +54,7 @@ extern "C" void app_main(void) {
   espp::UsbDevice::VendorFunction vendor;
   vendor.interface_name = "espp CAN Bridge (WebUSB)";
   vendor.webusb = true;
-  vendor.landing_page_url = "esp-cpp.github.io/espp/apps/can_console.html";
+  vendor.landing_page_url = "esp-cpp.github.io/espp/apps/can_bridge_console.html";
   usb_cfg.vendor = vendor;
   // The CDC interface carries the SAME framed protocol as the vendor interface,
   // so the web app can connect over Web Serial as well as WebUSB. (The system
