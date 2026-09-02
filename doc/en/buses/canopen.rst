@@ -39,7 +39,7 @@ USB to CAN bridge
 -----------------
 
 The ``can_bridge_example`` (``components/canopen/can_bridge_example``) turns an
-ESP32-S3 into a WebUSB / Web Serial CAN interface: it bridges the `Twai`
+ESP32-S3 into a WebUSB / Web Serial CAN interface: it bridges the ``Twai``
 (CAN 2.0) controller to the host over USB using the ``stream_frame`` framing and
 an :doc:`../dispatcher/index` (module id 5), so the hosted
 `CAN console <https://esp-cpp.github.io/espp/apps/can_console.html>`_ web app can

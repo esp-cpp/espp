@@ -27,6 +27,15 @@ std::atomic<espp::UsbDevice *> s_device{nullptr};
 // The CDC port this component uses. A single dedicated CDC-ACM interface.
 constexpr tinyusb_cdcacm_itf_t kCdcPort = TINYUSB_CDC_ACM_0;
 
+// Backpressure tuning shared by write_cdc() and write_vendor() so the two TX
+// paths stay consistent. kUsbWriteTimeoutTicks bounds how long a blocking write
+// sleep-waits for the host to drain a full TX FIFO before dropping the frame.
+// kUsbWriteDrainPollTicks is the poll interval while waiting - never less than
+// one tick (pdMS_TO_TICKS(1) is 0 when the tick rate is below 1 kHz, and
+// vTaskDelay(0) would not block at all).
+constexpr TickType_t kUsbWriteTimeoutTicks = pdMS_TO_TICKS(250);
+constexpr TickType_t kUsbWriteDrainPollTicks = pdMS_TO_TICKS(1) > 0 ? pdMS_TO_TICKS(1) : 1;
+
 // ESP32-S3 / -S2 USB-OTG (DWC2, full-speed) endpoint budget: besides the control
 // endpoint EP0, there are ~5 usable data IN endpoints and ~5 usable data OUT
 // endpoints. See the README endpoint-budget table for which class combinations
@@ -887,10 +896,6 @@ bool UsbDevice::write_cdc(std::span<const uint8_t> data, std::error_code &ec) {
   // may leave a prefix on the wire). Keep framed payloads within the FIFO for
   // atomic writes.
   const bool in_tinyusb_task = on_tinyusb_task();
-  static constexpr TickType_t kCdcWriteTimeoutTicks = pdMS_TO_TICKS(250);
-  // Poll at ~1 ms, but never less than one tick (pdMS_TO_TICKS(1) is 0 when
-  // the tick rate is below 1 kHz, and vTaskDelay(0) would not block at all).
-  static constexpr TickType_t kCdcDrainPollTicks = pdMS_TO_TICKS(1) > 0 ? pdMS_TO_TICKS(1) : 1;
   const TickType_t start_tick = xTaskGetTickCount();
 
   if (data.size() <= CFG_TUD_CDC_TX_BUFSIZE) {
@@ -914,12 +919,12 @@ bool UsbDevice::write_cdc(std::span<const uint8_t> data, std::error_code &ec) {
         return false;
       }
       // Unsigned tick subtraction stays correct across tick-count wraparound.
-      if ((xTaskGetTickCount() - start_tick) >= kCdcWriteTimeoutTicks) {
+      if ((xTaskGetTickCount() - start_tick) >= kUsbWriteTimeoutTicks) {
         logger_.warn_rate_limited("CDC TX FIFO full, dropping a {}-byte frame", data.size());
         ec = std::make_error_code(std::errc::no_buffer_space);
         return false;
       }
-      vTaskDelay(kCdcDrainPollTicks);
+      vTaskDelay(kUsbWriteDrainPollTicks);
     }
     // Room for the whole frame is guaranteed, so this single write takes all of
     // it - no prefix/truncation is possible.
@@ -948,12 +953,12 @@ bool UsbDevice::write_cdc(std::span<const uint8_t> data, std::error_code &ec) {
         ec = std::make_error_code(std::errc::not_connected);
         break;
       }
-      if ((xTaskGetTickCount() - start_tick) >= kCdcWriteTimeoutTicks) {
+      if ((xTaskGetTickCount() - start_tick) >= kUsbWriteTimeoutTicks) {
         logger_.warn_rate_limited("CDC TX buffer full, dropping {} bytes", data.size() - offset);
         ec = std::make_error_code(std::errc::no_buffer_space);
         break;
       }
-      vTaskDelay(kCdcDrainPollTicks);
+      vTaskDelay(kUsbWriteDrainPollTicks);
     }
   }
   return offset == data.size();
