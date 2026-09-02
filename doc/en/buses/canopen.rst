@@ -46,6 +46,18 @@ an :doc:`../dispatcher/index` (module id 5), so the hosted
 send frames (as a bus master) and inspect the bus (streaming every received
 frame, optionally in passive listen-only mode) directly from a Chromium browser.
 
+For CiA 402 (DS402) drives there is also a purpose-built
+`DS402 drive panel <https://esp-cpp.github.io/espp/apps/ds402_panel.html>`_ web
+app that talks to the *same* bridge. It layers a CANopen SDO client and the DS402
+profile entirely in the browser (the firmware stays a dumb raw-CAN pipe): read
+the node identity, walk the power-drive-system state machine (statusword /
+controlword with the enable sequence, quick-stop and fault-reset), select the
+mode of operation, set target and read actual velocity/position/torque, and
+read/write any object dictionary index:subindex (including vendor-specific
+objects) with a chosen data type. Because it drives the node over SDO rather than
+cyclic PDOs it is a commissioning / bring-up tool; the bus must be in Normal
+(not listen-only) mode so the bridge ACKs the node.
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference
