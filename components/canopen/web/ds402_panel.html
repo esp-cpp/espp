@@ -818,17 +818,16 @@
       return true;
     }
 
-    // Fail any outstanding SDO round-trip and release the transaction mutex.
-    // Called on disconnect / link-loss so a dropped link mid-SDO does not leave
-    // the channel wedged ("SDO channel busy" / "another SDO transaction in
-    // progress") after the user reconnects, nor leave a Promise pending until
-    // its timeout.
+    // Fail the in-flight round-trip AND every queued transaction, and release the
+    // channel. Called on disconnect / link-loss so a dropped link mid-SDO does
+    // not leave the channel wedged or a Promise pending until its timeout.
     function abortSdo(reason) {
       if (sdoWaiter) {
         const w = sdoWaiter; sdoWaiter = null;
         clearTimeout(w.timer);
         w.reject(new Error(reason || "SDO aborted"));
       }
+      while (sdoQueue.length) sdoQueue.shift().reject(new Error(reason || "SDO aborted"));
       sdoTxnActive = false;
     }
 
@@ -849,17 +848,31 @@
       });
     }
 
-    // Snapshot the node ONCE for the whole transaction. A multi-transaction UI
-    // action (enable sequence, identity read) passes an explicit `node` so all of
-    // its transactions target the same drive even if the node field is edited
-    // mid-action; single calls default to the current field value.
-    async function withSdo(fn, node) {
-      if (!transport) throw new Error("not connected");
-      if (sdoTxnActive) throw new Error("another SDO transaction is in progress");
+    // Serialize SDO transactions through a QUEUE rather than failing fast: a poll
+    // tick, the enable sequence and manual commands then run in order instead of
+    // erroring out with "another SDO transaction in progress" (which silently
+    // dropped whichever lost the race - including a Quick stop landing while the
+    // enable sequence's trailing refresh held the channel). `node` pins the drive
+    // for the whole transaction (multi-transaction actions pass it); single calls
+    // default to the current field value.
+    const sdoQueue = [];   // { fn, node, resolve, reject }
+    async function pumpSdoQueue() {
+      if (sdoTxnActive) return;         // a transaction is running; it will re-pump when done
+      const job = sdoQueue.shift();
+      if (!job) return;
       sdoTxnActive = true;
-      const n = (node != null) ? node : currentNode();
-      try { return await fn(n); }
-      finally { sdoTxnActive = false; }
+      try {
+        if (!transport) throw new Error("not connected");
+        const n = (job.node != null) ? job.node : currentNode();
+        job.resolve(await job.fn(n));
+      } catch (e) { job.reject(e); }
+      finally { sdoTxnActive = false; pumpSdoQueue(); }
+    }
+    function withSdo(fn, node) {
+      return new Promise((resolve, reject) => {
+        sdoQueue.push({ fn, node, resolve, reject });
+        pumpSdoQueue();
+      });
     }
 
     // Reject an out-of-range object address before we pack only its low 16/8 bits
@@ -1069,8 +1082,12 @@
     }
 
     function currentNode() {
+      // Reject (don't silently clamp) an out-of-range node id: clamping 200 -> 1
+      // would target a different drive than the field shows.
       const n = parseInt(els.nodeId.value, 10);
-      return (n >= 1 && n <= 127) ? n : 1;
+      if (!Number.isInteger(n) || n < 1 || n > 127)
+        throw new Error("node id must be 1..127 (got \"" + els.nodeId.value + "\")");
+      return n;
     }
 
     // ===================================================================
@@ -1183,11 +1200,13 @@
       t.readLoop(onIncoming).catch((e) => { if (transport === t) { logLine("err", "Read loop error: " + (e && e.message ? e.message : e)); onLinkLost(); } });
       requestStatus();
       statusTimer = setInterval(requestStatus, STATUS_POLL_MS);
+      if (els.livePoll.checked) startLivePoll();   // honor a pre-ticked Live poll
     }
     async function disconnect() {
       if (!transport) return;
       logLine("sys", "Disconnecting...");
       stopLivePoll();
+      sequenceCancel = true;   // stop any running enable sequence
       abortSdo("disconnected");
       const t = transport; transport = null;
       if (statusTimer) { clearInterval(statusTimer); statusTimer = null; }
@@ -1198,6 +1217,7 @@
     function onLinkLost() {
       if (!transport) return;
       stopLivePoll();
+      sequenceCancel = true;   // stop any running enable sequence
       abortSdo("link lost");
       const t = transport; transport = null;
       if (statusTimer) { clearInterval(statusTimer); statusTimer = null; }
@@ -1310,7 +1330,7 @@
         await sdoDownload(OD.controlword[0], OD.controlword[1], encodeScalar("u16", value));
         logLine("sys", "controlword <- " + hex(value, 4) + " (" + label + ")");
       } catch (e) { logLine("err", "controlword " + label + ": " + (e && e.message ? e.message : e)); }
-      if (!sdoTxnActive) refreshDs402();
+      refreshDs402();   // queued + refreshInFlight-guarded, so safe to call unconditionally
     }
 
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -1320,18 +1340,29 @@
     // the on-device Ds402Drive performs). Handles starting from Switch-on-
     // disabled, Fault (with a fault-reset rising edge) and Quick-stop-active,
     // rather than blindly writing 0x000F which fails from Switch-on-disabled.
+    // Command controls that must not fight a running enable sequence (Quick stop
+    // is deliberately excluded - it cancels the sequence; reads stay enabled).
+    const SEQUENCE_LOCKED = ["cwShutdown", "cwSwitchOn", "cwEnableOp", "cwDisableVoltage", "cwFaultReset",
+      "cwSendRaw", "modeSetBtn", "tgtVelBtn", "tgtPosBtn", "tgtTrqBtn", "odWriteBtn",
+      "nmtStartBtn", "nmtPreopBtn", "nmtStopBtn", "nmtResetNodeBtn", "nmtResetCommBtn"];
+    function lockSequenceControls(locked) {
+      for (const id of SEQUENCE_LOCKED) els[id].disabled = locked || !transport;
+      els.nodeId.disabled = locked;
+    }
+
     let sequenceInFlight = false;
-    let sequenceCancel = false;   // set by Quick stop (and disconnect) to abort a running sequence
+    let sequenceCancel = false;   // set by Quick stop / disconnect to abort a running sequence
     async function enableSequence() {
       if (sequenceInFlight) return;
       if (!transport) { logLine("err", "enable sequence: not connected"); return; }
+      // Pin the node for the WHOLE sequence (validate before we mark it running).
+      let node;
+      try { node = currentNode(); } catch (e) { logLine("err", "enable sequence: " + e.message); return; }
       sequenceInFlight = true;
       sequenceCancel = false;
-      // Pin the node for the WHOLE sequence and lock the field so mid-sequence
-      // edits cannot read state from one drive and command another.
-      const node = currentNode();
-      els.cwEnableOp.disabled = true;
-      els.nodeId.disabled = true;
+      // Lock the command controls + node field so mid-sequence edits/commands
+      // cannot read state from one drive and command another, or fight the walk.
+      lockSequenceControls(true);
       const cw = (v) => sdoDownload(OD.controlword[0], OD.controlword[1], encodeScalar("u16", v), node);
       const cancelled = () => { if (sequenceCancel) { logLine("sys", "enable sequence: cancelled"); return true; } return false; };
       try {
@@ -1369,9 +1400,11 @@
         logLine("err", "enable sequence: did not reach Operation enabled (gave up after 16 steps)");
       } finally {
         sequenceInFlight = false;
-        if (transport) els.cwEnableOp.disabled = false;
-        els.nodeId.disabled = false;
-        refreshDs402();
+        lockSequenceControls(false);
+        // Do NOT grab the channel with a refresh when the sequence was cancelled
+        // (e.g. by Quick stop): that refresh would run ahead of the quick-stop
+        // write. On disconnect there is nothing to refresh either.
+        if (transport && !sequenceCancel) refreshDs402();
       }
     }
 
@@ -1381,13 +1414,11 @@
     els.cwDisableVoltage.addEventListener("click", () => sendControlword(CW.disableVoltage, "disable voltage"));
     els.cwQuickStop.addEventListener("click", async () => {
       // Quick stop must win over an in-flight enable sequence (which would
-      // otherwise drive the state machine back to Operation enabled): cancel it
-      // and wait for it to release the SDO channel before issuing quick stop.
-      if (sequenceInFlight) {
-        sequenceCancel = true;
-        logLine("sys", "quick stop: cancelling enable sequence");
-        while (sequenceInFlight) await sleep(10);
-      }
+      // otherwise walk the state machine back to Operation enabled). Cancel the
+      // sequence (it stops enqueueing after its current op and, being cancelled,
+      // skips its trailing refresh) and enqueue the quick-stop write - the SDO
+      // queue then runs it right after the sequence's in-flight op, no drop.
+      if (sequenceInFlight) { sequenceCancel = true; logLine("sys", "quick stop: cancelling enable sequence"); }
       await sendControlword(CW.quickStop, "quick stop");
     });
     els.cwFaultReset.addEventListener("click", async () => {
@@ -1442,7 +1473,7 @@
     let pollTimer = null;
     function startLivePoll() {
       if (pollTimer) return;
-      pollTimer = setInterval(() => { if (transport && !sdoTxnActive && !sequenceInFlight) refreshDs402(); }, DS402_POLL_MS);
+      pollTimer = setInterval(() => { if (transport && !sequenceInFlight) refreshDs402(); }, DS402_POLL_MS);
     }
     function stopLivePoll() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
     els.livePoll.addEventListener("change", () => { if (els.livePoll.checked && transport) startLivePoll(); else stopLivePoll(); });
@@ -1453,7 +1484,8 @@
     els.readIdentityBtn.addEventListener("click", async () => {
       // Pin the node for all six reads so the displayed identity cannot combine
       // attributes from different drives if the node field is edited mid-read.
-      const node = currentNode();
+      let node;
+      try { node = currentNode(); } catch (e) { logLine("err", "read identity: " + e.message); return; }
       const dt = await guarded("device type", () => readObject(0x1000, 0, "u32", node));
       els.idDeviceType.textContent = dt != null ? hex(dt, 8) : "n/a";
       const name = await guarded("device name", () => readObject(0x1008, 0, "string", node));
@@ -1482,7 +1514,13 @@
         let shown;
         if (type === "hex") shown = hexBytes(v) + "  (" + v.length + " bytes)";
         else if (type === "string") shown = JSON.stringify(v);
-        else shown = v + "  (" + hex(v >>> 0, 0) + ")";
+        else {
+          // Show the hex at the object's own width (a negative i8/i16 must read
+          // 0xff / 0xffff, not a 32-bit 0xffffffff).
+          const bits = SCALAR_SIZE[type] * 8;
+          const masked = (bits >= 32) ? (v >>> 0) : (v & ((1 << bits) - 1));
+          shown = v + "  (" + hex(masked, bits / 4) + ")";
+        }
         els.odResult.textContent = hex(index, 4) + ":" + sub + " [" + type + "] = " + shown;
         logLine("sys", "read " + hex(index, 4) + ":" + sub + " = " + shown);
       } catch (e) { els.odResult.textContent = "error: " + (e && e.message ? e.message : e); }
