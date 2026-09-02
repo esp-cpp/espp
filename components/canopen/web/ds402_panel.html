@@ -20,7 +20,7 @@
     --------------
     - Transport: WebUSB (vendor 0xFF interface, bulk IN/OUT) OR Web Serial, both
       carrying the espp `stream_frame` v2 framing. The CAN bridge is module 5; a
-      CAN frame payload is [id u32][flags u8][dlc u8][data]. (See can_console.html
+      CAN frame payload is [id u32][flags u8][dlc u8][data]. (See can_bridge_console.html
       for the full wire-format notes; this app uses the same helpers.)
     - CANopen SDO (CiA 301): expedited + segmented upload (read) and download
       (write) on the default SDO channel - request COB-ID 0x600+nodeId, response
@@ -429,6 +429,7 @@
       <h2>Log
         <button id="clearLogBtn" class="small" style="float:right; margin-top:-4px;">Clear</button>
         <label style="float:right; margin:-2px 12px 0 0;"><input type="checkbox" id="logSdo" checked> log SDO frames</label>
+        <label style="float:right; margin:-2px 12px 0 0;"><input type="checkbox" id="logBus"> log bus frames</label>
       </h2>
       <div id="log" class="log"></div>
     </div>
@@ -490,7 +491,7 @@
                       "tgtVel", "tgtVelBtn", "tgtPos", "tgtPosBtn", "tgtTrq", "tgtTrqBtn",
                       "actPos", "actVel", "actTrq",
                       "odIndex", "odSub", "odType", "odValue", "odReadBtn", "odWriteBtn", "odResult",
-                      "clearLogBtn", "logSdo", "log", "unsupported"]) {
+                      "clearLogBtn", "logSdo", "logBus", "log", "unsupported"]) {
       els[id] = document.getElementById(id);
     }
 
@@ -542,7 +543,7 @@
     }
 
     // ===================================================================
-    // stream_frame build / parse (identical framing to can_console.html)
+    // stream_frame build / parse (identical framing to can_bridge_console.html)
     // ===================================================================
     function buildFrame(module, type, payload) {
       payload = payload || new Uint8Array(0);
@@ -648,7 +649,7 @@
     }
 
     // ===================================================================
-    // Transport: WebUSB + Web Serial (identical to can_console.html)
+    // Transport: WebUSB + Web Serial (identical to can_bridge_console.html)
     // ===================================================================
     let transport = null;
     class UsbTransport {
@@ -1032,6 +1033,14 @@
       els.stRunning.className = "badge " + (s.running ? "up" : "down");
       els.stBaud.textContent = s.baud; els.stMode.textContent = MODE_NAME[s.mode] || s.mode;
       els.stRx.textContent = s.rx; els.stTx.textContent = s.tx; els.stErr.textContent = s.err;
+      // Reflect the bus state in the controls (only while connected): SET_CONFIG
+      // is rejected by the firmware while the bus is running, so Apply + Start are
+      // valid only when stopped and Stop only when running.
+      if (transport) {
+        els.applyBtn.disabled = s.running;
+        els.startBtn.disabled = s.running;
+        els.stopBtn.disabled = !s.running;
+      }
     }
 
     // ===================================================================
@@ -1047,10 +1056,12 @@
           const cf = decodeCanFrame(f.payload);
           if (!cf) continue;
           // Route SDO responses to the waiter; anything else is unsolicited bus
-          // traffic (heartbeat / PDO / emergency) - log it lightly.
+          // traffic (heartbeat / PDO / emergency). Both are logged ONLY when their
+          // toggle is enabled - a live CANopen bus emits these continuously and
+          // logging every frame to the DOM would freeze the UI.
           const consumed = sdoDeliver(cf);
           if (consumed) { if (els.logSdo.checked) logLine("rx", "SDO<- id=" + hex(cf.id, 3) + " " + hexBytes(cf.data)); }
-          else logLine("rx", "CAN id=" + hex(cf.id, 3) + (cf.ext ? " (ext)" : "") + (cf.rtr ? " RTR" : "") + " [" + cf.dlc + "] " + hexBytes(cf.data));
+          else if (els.logBus.checked) logLine("rx", "CAN id=" + hex(cf.id, 3) + (cf.ext ? " (ext)" : "") + (cf.rtr ? " RTR" : "") + " [" + cf.dlc + "] " + hexBytes(cf.data));
         } else if (f.type === T_STATUS) {
           setStatusLine(decodeStatus(f.payload));
         } else if (f.type === T_ERROR) {
