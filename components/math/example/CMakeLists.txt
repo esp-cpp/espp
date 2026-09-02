@@ -5,7 +5,11 @@ cmake_minimum_required(VERSION 3.20)
 set(ENV{IDF_COMPONENT_MANAGER} "0")
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-add_compile_options(-Wdouble-promotion)
+# NOTE: -Wdouble-promotion (to keep this float-only example honest on targets
+# without hardware double support) is applied to the example's own code in
+# main/CMakeLists.txt, NOT globally: applying it project-wide also compiled it
+# into ESP-IDF's own components, whose code trips it under IDF v6's newer GCC
+# (e.g. esp_hw_support/port/esp32/rtc_clk.c) and fails their -Werror build.
 
 # add the component directories that we want to use
 set(EXTRA_COMPONENT_DIRS

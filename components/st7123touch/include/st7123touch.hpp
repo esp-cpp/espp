@@ -48,11 +48,12 @@ public:
   ///       happier with the separate form (e.g. when reads run from an interrupt handler and the
   ///       longer combined transaction is more prone to I/O errors).
   struct Config {
-    BasePeripheral::write_fn
-        write;                    ///< Write function (paired with <tt>read</tt> for separate reads)
-    BasePeripheral::read_fn read; ///< Read function (paired with <tt>write</tt> for separate reads)
-    BasePeripheral::write_then_read_fn
-        write_then_read; ///< Combined (repeated-START) write-then-read; takes precedence if set
+    BasePeripheral::write_fn write{
+        nullptr}; ///< Write function (paired with <tt>read</tt> for separate reads)
+    BasePeripheral::read_fn read{
+        nullptr}; ///< Read function (paired with <tt>write</tt> for separate reads)
+    BasePeripheral::write_then_read_fn write_then_read{
+        nullptr}; ///< Combined (repeated-START) write-then-read; takes precedence if set
     uint8_t address = DEFAULT_ADDRESS; ///< I2C address of the chip
     espp::Logger::Verbosity log_level{
         espp::Logger::Verbosity::WARN}; ///< Log verbosity for the driver
