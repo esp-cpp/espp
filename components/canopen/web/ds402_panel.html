@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>espp DS402 Drive Panel (WebUSB / Web Serial)</title>
+  <meta name="description" content="Commission a CANopen CiA 402 (DS402) drive over a USB<->CAN bridge from the browser: SDO object read/write, the DS402 state machine, mode selection, target/actual values, and a generic object-dictionary panel for vendor-specific addresses.">
+  <!--
+    espp DS402 Drive Panel
+    ======================
+    A single-file, fully offline, dependency-free browser front-end for
+    commissioning a CANopen CiA 301 / CiA 402 (DS402) drive through the espp
+    USB<->CAN bridge (components/canopen/can_bridge_example). It reuses the CAN
+    console's transport + `stream_frame` framing to move raw CAN frames, and
+    layers a CANopen SDO client and a DS402 control panel ON TOP, entirely in the
+    browser ("architecture option A"): the firmware stays a dumb raw-CAN pipe and
+    all CANopen/DS402 logic lives here.
+
+    What it speaks
+    --------------
+    - Transport: WebUSB (vendor 0xFF interface, bulk IN/OUT) OR Web Serial, both
+      carrying the espp `stream_frame` v2 framing. The CAN bridge is module 5; a
+      CAN frame payload is [id u32][flags u8][dlc u8][data]. (See can_console.html
+      for the full wire-format notes; this app uses the same helpers.)
+    - CANopen SDO (CiA 301): expedited + segmented upload (read) and download
+      (write) on the default SDO channel - request COB-ID 0x600+nodeId, response
+      0x580+nodeId. Aborts are decoded. One transaction at a time (the SDO channel
+      is a single resource).
+    - DS402 (CiA 402): statusword (0x6041) -> power-drive-system state decode,
+      controlword (0x6040) command buttons + the enable sequence, modes of
+      operation (0x6060/0x6061), target and actual velocity/position/torque, and
+      a live poll. Because these run over SDO (not PDOs) this is a commissioning /
+      bring-up tool, not a hard-real-time cyclic controller.
+    - A generic Object Dictionary panel for reading/writing ANY index:subindex
+      with a chosen data type - for vendor-specific objects.
+
+    Requirements
+    ------------
+    The CAN bus must be in NORMAL mode (not listen-only): SDO needs the bridge to
+    ACK the node (and vice-versa). Configure baud + Normal mode and Start the bus
+    before talking to a node.
+
+    No external dependencies, no CDN, no network fetches: everything is inline and
+    works from a file:// URL, http://localhost, or any secure (https) origin in a
+    Chromium browser.
+  -->
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --panel-bg: #ffffff;
+      --panel-border: #d9dee6;
+      --text: #1c2330;
+      --text-muted: #5c6675;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff;
+      --danger: #dc2626;
+      --ok: #16a34a;
+      --warn: #b45309;
+      --log-bg: #0f1420;
+      --log-text: #d6dbe6;
+      --tx-color: #7dd3fc;
+      --rx-color: #86efac;
+      --err-color: #fca5a5;
+      --sys-color: #fcd34d;
+      --time-color: #64748b;
+      --input-bg: #ffffff;
+      --input-border: #c3cbd6;
+      --chip-bg: #eef2f8;
+      --row-alt: #f7f9fc;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0e14;
+        --panel-bg: #151a23;
+        --panel-border: #262d3a;
+        --text: #e6eaf2;
+        --text-muted: #98a2b3;
+        --accent: #3b82f6;
+        --accent-hover: #60a5fa;
+        --accent-contrast: #0b0e14;
+        --danger: #ef4444;
+        --ok: #22c55e;
+        --warn: #f59e0b;
+        --log-bg: #05070c;
+        --log-text: #cdd4e0;
+        --tx-color: #38bdf8;
+        --rx-color: #4ade80;
+        --err-color: #f87171;
+        --sys-color: #fbbf24;
+        --time-color: #64748b;
+        --input-bg: #0e1219;
+        --input-border: #2b3341;
+        --chip-bg: #1b2230;
+        --row-alt: #10151d;
+        --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+      --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+      --accent-contrast: #0b0e14; --danger: #ef4444; --ok: #22c55e; --warn: #f59e0b;
+      --log-bg: #05070c; --log-text: #cdd4e0; --tx-color: #38bdf8; --rx-color: #4ade80;
+      --err-color: #f87171; --sys-color: #fbbf24; --input-bg: #0e1219;
+      --input-border: #2b3341; --chip-bg: #1b2230; --row-alt: #10151d;
+    }
+    :root[data-theme="light"] {
+      --bg: #f4f6f9; --panel-bg: #ffffff; --panel-border: #d9dee6; --text: #1c2330;
+      --text-muted: #5c6675; --accent: #2563eb; --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff; --danger: #dc2626; --ok: #16a34a; --warn: #b45309;
+      --log-bg: #0f1420; --log-text: #d6dbe6; --tx-color: #7dd3fc; --rx-color: #86efac;
+      --err-color: #fca5a5; --sys-color: #fcd34d; --input-bg: #ffffff;
+      --input-border: #c3cbd6; --chip-bg: #eef2f8; --row-alt: #f7f9fc;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 16px; }
+    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    header h1 { font-size: 18px; margin: 0; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      background: var(--chip-bg); color: var(--text-muted);
+      border: 1px solid var(--panel-border);
+    }
+    .status-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+    .status-pill.connected { color: var(--ok); }
+    .status-pill.connected::before { background: var(--ok); }
+    .status-pill.error { color: var(--danger); }
+    .status-pill.error::before { background: var(--danger); }
+    .status-pill.busy { color: var(--warn); }
+    .status-pill.busy::before { background: var(--warn); }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 10px; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .row + .row { margin-top: 10px; }
+    .muted { color: var(--text-muted); font-size: 12.5px; }
+    .warn-text { color: var(--warn); font-size: 12.5px; }
+    .err-text { color: var(--danger); font-size: 12.5px; }
+    .spacer { flex: 1 1 auto; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field > span { font-size: 12px; color: var(--text-muted); }
+
+    button {
+      font: inherit; padding: 7px 14px; border-radius: 7px; cursor: pointer;
+      border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text);
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    button.small { padding: 5px 10px; font-size: 13px; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+    input[type="text"], input[type="number"], select {
+      font: inherit; padding: 6px 8px; border-radius: 6px;
+      background: var(--input-bg); color: var(--text); border: 1px solid var(--input-border);
+    }
+    input[type="text"], input[type="number"] { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    input.invalid { border-color: var(--danger); }
+    input.short { width: 90px; }
+    input.tiny { width: 64px; }
+
+    .statusline {
+      display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px;
+      color: var(--text-muted); font-variant-numeric: tabular-nums; margin-top: 4px;
+    }
+    .statusline b { color: var(--text); font-weight: 600; }
+    .badge { padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1px solid var(--panel-border); }
+    .badge.up { color: var(--ok); border-color: var(--ok); }
+    .badge.down { color: var(--text-muted); }
+
+    /* DS402 state badge */
+    .state-badge {
+      display: inline-block; padding: 4px 12px; border-radius: 8px; font-weight: 700;
+      font-size: 13px; border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text-muted);
+    }
+    .state-badge.enabled { color: var(--ok); border-color: var(--ok); }
+    .state-badge.ready { color: var(--accent); border-color: var(--accent); }
+    .state-badge.fault { color: var(--danger); border-color: var(--danger); }
+    .state-badge.qstop { color: var(--warn); border-color: var(--warn); }
+
+    .bits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .bit { font-size: 11px; padding: 1px 7px; border-radius: 6px; border: 1px solid var(--panel-border); color: var(--text-muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .bit.on { color: var(--ok); border-color: var(--ok); }
+
+    .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 12.5px; }
+    .kv .k { color: var(--text-muted); }
+    .kv .v { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    hr.sep { border: none; border-top: 1px solid var(--panel-border); margin: 12px 0; }
+
+    .log {
+      background: var(--log-bg); color: var(--log-text);
+      border-radius: 8px; padding: 10px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px; line-height: 1.5;
+      height: 200px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+    }
+    .log .t { color: var(--time-color); }
+    .log .tx { color: var(--tx-color); }
+    .log .rx { color: var(--rx-color); }
+    .log .err { color: var(--err-color); }
+    .log .sys { color: var(--sys-color); }
+    footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
+    #unsupported {
+      display: none; background: var(--panel-bg); border: 1px solid var(--danger);
+      color: var(--danger); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>espp DS402 Drive Panel <span class="muted">(WebUSB / Web Serial)</span></h1>
+      <span id="status" class="status-pill">Disconnected</span>
+    </header>
+
+    <div id="unsupported">
+      This browser supports neither WebUSB nor Web Serial. Use a Chromium-based
+      browser (Chrome / Edge / Opera) on a secure origin (https, localhost or file://).
+    </div>
+
+    <!-- ============================ Connection ============================ -->
+    <div class="panel">
+      <h2>Device</h2>
+      <div class="row">
+        <button id="connectUsbBtn" class="primary">Connect (WebUSB)</button>
+        <button id="connectSerialBtn">Connect (Web Serial)</button>
+        <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
+        <label><input type="checkbox" id="anyDevice"> Any device (ignore VID/PID filter)</label>
+      </div>
+      <p id="devInfo" class="muted" style="margin: 10px 0 0;">Not connected. WebUSB default filter: VID 0x1209 / PID 0x0d32 (espp default); the vendor (0xFF) interface is discovered from the descriptors at runtime.</p>
+    </div>
+
+    <!-- ============================ CAN bus ============================== -->
+    <div class="panel">
+      <h2>CAN bus</h2>
+      <div class="row">
+        <div class="field">
+          <span>Baud rate</span>
+          <select id="baud" aria-label="Baud rate">
+            <option value="1000000" selected>1000000</option>
+            <option value="800000">800000</option>
+            <option value="500000">500000</option>
+            <option value="250000">250000</option>
+            <option value="125000">125000</option>
+            <option value="100000">100000</option>
+            <option value="50000">50000</option>
+          </select>
+        </div>
+        <div class="field">
+          <span>Mode</span>
+          <select id="mode" aria-label="Bus mode">
+            <option value="0" selected>Normal (required for SDO)</option>
+            <option value="1">Listen-only (SDO will not work)</option>
+          </select>
+        </div>
+        <div class="field">
+          <span>Node ID (1&ndash;127)</span>
+          <input type="number" id="nodeId" class="tiny" min="1" max="127" value="1" aria-label="CANopen node id">
+        </div>
+        <div class="spacer"></div>
+        <button id="applyBtn" disabled title="Only valid while the bus is stopped">Apply config</button>
+        <button id="startBtn" class="primary" disabled>Start bus</button>
+        <button id="stopBtn" class="danger" disabled>Stop bus</button>
+      </div>
+      <div class="statusline" id="statusLine">
+        <span>Bus: <span id="stRunning" class="badge down">unknown</span></span>
+        <span>Baud: <b id="stBaud">-</b></span>
+        <span>Mode: <b id="stMode">-</b></span>
+        <span>RX: <b id="stRx">0</b></span>
+        <span>TX: <b id="stTx">0</b></span>
+        <span>Err: <b id="stErr">0</b></span>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <span class="muted">NMT:</span>
+        <button id="nmtStartBtn" class="small" disabled>Start (Operational)</button>
+        <button id="nmtPreopBtn" class="small" disabled>Pre-Operational</button>
+        <button id="nmtStopBtn" class="small" disabled>Stop</button>
+        <button id="nmtResetNodeBtn" class="small" disabled>Reset node</button>
+        <button id="nmtResetCommBtn" class="small" disabled>Reset comms</button>
+      </div>
+    </div>
+
+    <!-- ============================ Identity ============================= -->
+    <div class="panel">
+      <h2>Node identity</h2>
+      <div class="row">
+        <button id="readIdentityBtn" class="small" disabled>Read identity</button>
+        <span class="muted">Objects 0x1000 / 0x1008 / 0x1018 via SDO.</span>
+      </div>
+      <div class="kv" id="identity" style="margin-top:10px;">
+        <span class="k">Device type (0x1000)</span><span class="v" id="idDeviceType">-</span>
+        <span class="k">Device name (0x1008)</span><span class="v" id="idDeviceName">-</span>
+        <span class="k">Vendor ID (0x1018:1)</span><span class="v" id="idVendor">-</span>
+        <span class="k">Product code (0x1018:2)</span><span class="v" id="idProduct">-</span>
+        <span class="k">Revision (0x1018:3)</span><span class="v" id="idRevision">-</span>
+        <span class="k">Serial number (0x1018:4)</span><span class="v" id="idSerial">-</span>
+      </div>
+    </div>
+
+    <!-- ============================ DS402 ============================== -->
+    <div class="panel">
+      <h2>DS402 drive control</h2>
+      <div class="row">
+        <span class="muted">State (0x6041):</span>
+        <span id="ds402State" class="state-badge">unknown</span>
+        <span class="muted">statusword <b class="mono" id="swHex">-</b></span>
+        <div class="spacer"></div>
+        <label><input type="checkbox" id="livePoll"> Live poll</label>
+        <button id="refreshDs402Btn" class="small" disabled>Refresh</button>
+      </div>
+      <div class="bits" id="swBits"></div>
+
+      <hr class="sep">
+      <div class="row">
+        <span class="muted">Controlword (0x6040):</span>
+        <button id="cwShutdown" class="small" disabled title="0x06">Shutdown</button>
+        <button id="cwSwitchOn" class="small" disabled title="0x07">Switch on</button>
+        <button id="cwEnableOp" class="small primary" disabled title="0x0F">Enable operation</button>
+        <button id="cwDisableVoltage" class="small" disabled title="0x00">Disable voltage</button>
+        <button id="cwQuickStop" class="small danger" disabled title="0x02">Quick stop</button>
+        <button id="cwFaultReset" class="small" disabled title="0x80">Fault reset</button>
+      </div>
+      <div class="row">
+        <div class="field">
+          <span>Raw controlword (hex)</span>
+          <input type="text" id="cwRaw" class="short" value="000F" aria-label="Raw controlword hex">
+        </div>
+        <button id="cwSendRaw" class="small" disabled style="align-self:flex-end;">Send</button>
+        <div class="spacer"></div>
+        <div class="field">
+          <span>Mode of operation (0x6060)</span>
+          <select id="modeOp" aria-label="Mode of operation">
+            <option value="1">1 &mdash; Profile position (PP)</option>
+            <option value="3" selected>3 &mdash; Profile velocity (PV)</option>
+            <option value="4">4 &mdash; Profile torque (PT)</option>
+            <option value="6">6 &mdash; Homing (HM)</option>
+            <option value="8">8 &mdash; Cyclic sync position (CSP)</option>
+            <option value="9">9 &mdash; Cyclic sync velocity (CSV)</option>
+            <option value="10">10 &mdash; Cyclic sync torque (CST)</option>
+          </select>
+        </div>
+        <button id="modeSetBtn" class="small" disabled style="align-self:flex-end;">Set mode</button>
+        <span class="muted">display (0x6061): <b class="mono" id="modeDisplay">-</b></span>
+      </div>
+
+      <hr class="sep">
+      <div class="row">
+        <div class="field">
+          <span>Target velocity (0x60FF, i32)</span>
+          <input type="text" id="tgtVel" class="short" value="0" aria-label="Target velocity">
+        </div>
+        <button id="tgtVelBtn" class="small" disabled style="align-self:flex-end;">Set</button>
+        <div class="field">
+          <span>Target position (0x607A, i32)</span>
+          <input type="text" id="tgtPos" class="short" value="0" aria-label="Target position">
+        </div>
+        <button id="tgtPosBtn" class="small" disabled style="align-self:flex-end;">Set</button>
+        <div class="field">
+          <span>Target torque (0x6071, i16)</span>
+          <input type="text" id="tgtTrq" class="short" value="0" aria-label="Target torque">
+        </div>
+        <button id="tgtTrqBtn" class="small" disabled style="align-self:flex-end;">Set</button>
+      </div>
+      <div class="statusline" style="margin-top:10px;">
+        <span>Pos actual (0x6064): <b id="actPos">-</b></span>
+        <span>Vel actual (0x606C): <b id="actVel">-</b></span>
+        <span>Torque actual (0x6077): <b id="actTrq">-</b></span>
+      </div>
+    </div>
+
+    <!-- ==================== Object dictionary (generic) ================= -->
+    <div class="panel">
+      <h2>Object dictionary access (vendor-specific)</h2>
+      <div class="row">
+        <div class="field">
+          <span>Index (hex)</span>
+          <input type="text" id="odIndex" class="short" value="6041" aria-label="Object index (hex)">
+        </div>
+        <div class="field">
+          <span>Subindex</span>
+          <input type="text" id="odSub" class="tiny" value="0" aria-label="Object subindex">
+        </div>
+        <div class="field">
+          <span>Type</span>
+          <select id="odType" aria-label="Object data type">
+            <option value="u8">u8</option>
+            <option value="i8">i8</option>
+            <option value="u16" selected>u16</option>
+            <option value="i16">i16</option>
+            <option value="u32">u32</option>
+            <option value="i32">i32</option>
+            <option value="string">string (visible)</option>
+            <option value="hex">raw hex bytes</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1 1 180px;">
+          <span>Value (for write)</span>
+          <input type="text" id="odValue" placeholder="decimal, or hex bytes for the hex type" aria-label="Value to write">
+        </div>
+        <button id="odReadBtn" class="small" disabled style="align-self:flex-end;">Read</button>
+        <button id="odWriteBtn" class="small primary" disabled style="align-self:flex-end;">Write</button>
+      </div>
+      <p id="odResult" class="mono" style="margin:10px 0 0;">&nbsp;</p>
+    </div>
+
+    <!-- ============================ Log ================================= -->
+    <div class="panel">
+      <h2>Log
+        <button id="clearLogBtn" class="small" style="float:right; margin-top:-4px;">Clear</button>
+        <label style="float:right; margin:-2px 12px 0 0;"><input type="checkbox" id="logSdo" checked> log SDO frames</label>
+      </h2>
+      <div id="log" class="log"></div>
+    </div>
+
+    <footer>
+      espp DS402 Drive Panel &middot; talks to the espp USB&lt;-&gt;CAN bridge
+      (<span class="mono">components/canopen/can_bridge_example</span>) &middot; all
+      CANopen/DS402 logic runs in the browser over raw CAN (option A). Single-file,
+      offline, no dependencies.
+    </footer>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ===================================================================
+    // stream_frame / CAN bridge protocol constants (shared with can_console)
+    // ===================================================================
+    const DEFAULT_VID = 0x1209, DEFAULT_PID = 0x0d32;
+    const VENDOR_CLASS = 0xFF;
+    const MAGIC0 = 0x54, MAGIC1 = 0x4F;      // u16 0x4F54 "OT" on the wire
+    const HEADER_SIZE = 9, CRC_SIZE = 4;
+    const CORRELATION_SIZE = 2;
+    const MAX_PAYLOAD = 4096;
+    const MAX_FRAME = HEADER_SIZE + CORRELATION_SIZE + MAX_PAYLOAD + CRC_SIZE;
+    const MODULE_CAN = 5;
+    const FLAGS_VERSION = 1;
+    const FLAGS_REQUEST = (FLAGS_VERSION << 4) | 0;
+    const FLAGS_REPLY_BIT = 0x01;
+    const FLAG_CORRELATION = 0x02;
+
+    const T_CAN_TX = 0x50, T_SET_CONFIG = 0x51, T_START = 0x52, T_STOP = 0x53, T_GET_STATUS = 0x54;
+    const T_CAN_RX = 0xD0, T_OK = 0xD1, T_ERROR = 0xD2, T_STATUS = 0xD3;
+
+    const FLAG_EXT = 0x01, FLAG_RTR = 0x02;
+    const MODE_NAME = { 0: "Normal", 1: "Listen-only" };
+    const STATUS_POLL_MS = 1000;
+    const DS402_POLL_MS = 400;
+    const SDO_TIMEOUT_MS = 800;
+
+    // CANopen COB-IDs (11-bit, function code | node id)
+    const COB_NMT = 0x000;
+    function sdoTxId(node) { return 0x600 + node; }   // client -> server (request)
+    function sdoRxId(node) { return 0x580 + node; }   // server -> client (response)
+
+    // ===================================================================
+    // Elements & helpers
+    // ===================================================================
+    const els = {};
+    for (const id of ["status", "connectUsbBtn", "connectSerialBtn", "disconnectBtn", "anyDevice",
+                      "devInfo", "baud", "mode", "nodeId", "applyBtn", "startBtn", "stopBtn",
+                      "stRunning", "stBaud", "stMode", "stRx", "stTx", "stErr",
+                      "nmtStartBtn", "nmtPreopBtn", "nmtStopBtn", "nmtResetNodeBtn", "nmtResetCommBtn",
+                      "readIdentityBtn", "idDeviceType", "idDeviceName", "idVendor", "idProduct",
+                      "idRevision", "idSerial",
+                      "ds402State", "swHex", "swBits", "livePoll", "refreshDs402Btn",
+                      "cwShutdown", "cwSwitchOn", "cwEnableOp", "cwDisableVoltage", "cwQuickStop",
+                      "cwFaultReset", "cwRaw", "cwSendRaw", "modeOp", "modeSetBtn", "modeDisplay",
+                      "tgtVel", "tgtVelBtn", "tgtPos", "tgtPosBtn", "tgtTrq", "tgtTrqBtn",
+                      "actPos", "actVel", "actTrq",
+                      "odIndex", "odSub", "odType", "odValue", "odReadBtn", "odWriteBtn", "odResult",
+                      "clearLogBtn", "logSdo", "log", "unsupported"]) {
+      els[id] = document.getElementById(id);
+    }
+
+    function logLine(cls, text) {
+      const line = document.createElement("div");
+      const time = document.createElement("span");
+      time.className = "t";
+      time.textContent = new Date().toLocaleTimeString() + " ";
+      const body = document.createElement("span");
+      body.className = cls;
+      body.textContent = text;
+      line.appendChild(time); line.appendChild(body);
+      els.log.appendChild(line);
+      while (els.log.childNodes.length > 400) els.log.removeChild(els.log.firstChild);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+    els.clearLogBtn.addEventListener("click", () => { els.log.textContent = ""; });
+
+    function hex(n, width) { return "0x" + (n >>> 0).toString(16).padStart(width || 0, "0"); }
+    function hexBytes(bytes) {
+      let s = "";
+      for (let i = 0; i < bytes.length; i++) s += bytes[i].toString(16).padStart(2, "0") + " ";
+      return s.trim();
+    }
+    function setStatus(state, text) {
+      els.status.className = "status-pill" + (state ? " " + state : "");
+      els.status.textContent = text;
+    }
+
+    // ===================================================================
+    // CRC-32 (zlib / IEEE 802.3), golden crc32("123456789") === 0xCBF43926.
+    // ===================================================================
+    const CRC_TABLE = (() => {
+      const table = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let k = 0; k < 8; k++) c = (c & 1) ? ((c >>> 1) ^ 0xEDB88320) : (c >>> 1);
+        table[i] = c >>> 0;
+      }
+      return table;
+    })();
+    function crc32(bytes) {
+      let c = 0xFFFFFFFF;
+      for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+      return (~c) >>> 0;
+    }
+    if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) {
+      throw new Error("CRC-32 self-test failed");
+    }
+
+    // ===================================================================
+    // stream_frame build / parse (identical framing to can_console.html)
+    // ===================================================================
+    function buildFrame(module, type, payload) {
+      payload = payload || new Uint8Array(0);
+      if (payload.length > MAX_PAYLOAD) throw new Error("payload exceeds " + MAX_PAYLOAD + " bytes");
+      const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
+      const view = new DataView(frame.buffer);
+      view.setUint16(0, 0x4F54, true);
+      frame[2] = FLAGS_REQUEST;                // version 1, request (reply bit clear)
+      frame[3] = module;
+      frame[4] = type;
+      view.setUint32(5, payload.length, true);
+      frame.set(payload, HEADER_SIZE);
+      view.setUint32(HEADER_SIZE + payload.length,
+                     crc32(frame.subarray(0, HEADER_SIZE + payload.length)), true);
+      return frame;
+    }
+
+    class StreamParser {
+      constructor() { this.buf = new Uint8Array(0); }
+      reset() { this.buf = new Uint8Array(0); }
+      feed(chunk) {
+        const merged = new Uint8Array(this.buf.length + chunk.length);
+        merged.set(this.buf, 0); merged.set(chunk, this.buf.length);
+        const frames = [];
+        let pos = 0;
+        for (;;) {
+          while (pos < merged.length &&
+                 !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) {
+            pos++;
+          }
+          if (merged.length - pos < 3) break;
+          const flags = merged[pos + 2];
+          const ext = (flags & FLAG_CORRELATION) ? CORRELATION_SIZE : 0;
+          const headerSize = HEADER_SIZE + ext;
+          if (merged.length - pos < headerSize) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true);
+          if (len > MAX_PAYLOAD) { pos++; continue; }
+          const total = headerSize + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(headerSize + len, true);
+          const actual = crc32(merged.subarray(pos, pos + headerSize + len));
+          if (actual !== expected) { pos++; continue; }
+          frames.push({ flags,
+                        reply: (flags & FLAGS_REPLY_BIT) !== 0,
+                        module: merged[pos + 3],
+                        type: merged[pos + 4],
+                        payload: merged.slice(pos + headerSize, pos + headerSize + len) });
+          pos += total;
+        }
+        this.buf = merged.slice(pos);
+        return frames;
+      }
+    }
+    const parser = new StreamParser();
+
+    // ---- CAN frame encode / decode (bridge payload) ----------------------
+    function encodeCanFrame(f) {
+      const rtr = !!f.rtr;
+      const data = rtr ? new Uint8Array(0) : (f.data || new Uint8Array(0));
+      const dlc = (f.dlc != null) ? f.dlc : data.length;
+      const out = new Uint8Array(6 + data.length);
+      const view = new DataView(out.buffer);
+      view.setUint32(0, f.id >>> 0, true);
+      let flags = 0;
+      if (f.ext) flags |= FLAG_EXT;
+      if (rtr) flags |= FLAG_RTR;
+      out[4] = flags;
+      out[5] = dlc & 0xFF;
+      out.set(data, 6);
+      return out;
+    }
+    function decodeCanFrame(payload) {
+      if (payload.length < 6) return null;
+      const view = new DataView(payload.buffer, payload.byteOffset, payload.length);
+      const id = view.getUint32(0, true);
+      const flags = payload[4];
+      const dlc = payload[5];
+      const ext = !!(flags & FLAG_EXT);
+      const rtr = !!(flags & FLAG_RTR);
+      let data = new Uint8Array(0);
+      if (!rtr) { const n = Math.min(dlc, payload.length - 6); data = payload.subarray(6, 6 + n); }
+      return { id, ext, rtr, dlc, data };
+    }
+    function encodeConfig(baud, mode) {
+      const out = new Uint8Array(6);
+      new DataView(out.buffer).setUint32(0, baud >>> 0, true);
+      out[4] = mode & 0xFF; out[5] = 0;
+      return out;
+    }
+    function decodeStatus(payload) {
+      if (payload.length < 18) return null;
+      const view = new DataView(payload.buffer, payload.byteOffset, payload.length);
+      return { baud: view.getUint32(0, true), mode: payload[4], running: payload[5],
+               rx: view.getUint32(6, true), tx: view.getUint32(10, true), err: view.getUint32(14, true) };
+    }
+    function decodeError(payload) {
+      if (payload.length < 4) return { code: 0, message: "" };
+      const code = new DataView(payload.buffer, payload.byteOffset, 4).getUint32(0, true);
+      let message = "";
+      try { message = new TextDecoder().decode(payload.subarray(4)); } catch (_) {}
+      return { code, message };
+    }
+
+    // ===================================================================
+    // Transport: WebUSB + Web Serial (identical to can_console.html)
+    // ===================================================================
+    let transport = null;
+    class UsbTransport {
+      constructor() { this.device = null; this.iface = null; this.epIn = null; this.epOut = null; this.inSize = 64; this.reading = false; }
+      async open(anyDevice) {
+        const options = anyDevice ? { acceptAllDevices: true } : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
+        this.device = await navigator.usb.requestDevice(options);
+        await this.device.open();
+        if (this.device.configuration === null) await this.device.selectConfiguration(1);
+        const config = this.device.configuration;
+        if (!config) throw new Error("device has no active USB configuration");
+        let found = null;
+        for (const itf of config.interfaces) {
+          for (const alt of itf.alternates) {
+            if (alt.interfaceClass !== VENDOR_CLASS) continue;
+            let inEp = null, outEp = null;
+            for (const ep of alt.endpoints) {
+              if (ep.type !== "bulk") continue;
+              if (ep.direction === "in" && inEp === null) inEp = ep;
+              else if (ep.direction === "out" && outEp === null) outEp = ep;
+            }
+            if (inEp && outEp) { found = { itf: itf.interfaceNumber, alt: alt.alternateSetting, inEp, outEp }; break; }
+          }
+          if (found) break;
+        }
+        if (!found) throw new Error("no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found");
+        await this.device.claimInterface(found.itf);
+        if (found.alt !== 0) await this.device.selectAlternateInterface(found.itf, found.alt);
+        this.iface = found.itf;
+        this.epIn = found.inEp.endpointNumber;
+        this.epOut = found.outEp.endpointNumber;
+        this.inSize = found.inEp.packetSize || 64;
+      }
+      describe() {
+        const d = this.device;
+        const vid = d.vendorId.toString(16).padStart(4, "0");
+        const pid = d.productId.toString(16).padStart(4, "0");
+        return (d.productName || "USB device") + " (" + vid + ":" + pid + ") · iface " + this.iface + " [WebUSB]";
+      }
+      async send(bytes) {
+        let sent = 0;
+        while (sent < bytes.length) {
+          const out = await this.device.transferOut(this.epOut, sent === 0 ? bytes : bytes.subarray(sent));
+          if (out.status === "stall") { try { await this.device.clearHalt("out", this.epOut); } catch (_) {} throw new Error("OUT endpoint stalled"); }
+          if (out.status !== "ok") throw new Error("OUT transfer status: " + out.status);
+          const n = out.bytesWritten || 0;
+          if (n === 0) throw new Error("OUT transfer made no progress");
+          sent += n;
+        }
+      }
+      async readLoop(onData) {
+        this.reading = true;
+        while (this.reading && this.device) {
+          let result;
+          try { result = await this.device.transferIn(this.epIn, MAX_FRAME); }
+          catch (e) { if (this.reading) throw e; return; }
+          if (!this.reading) return;
+          if (result.status === "stall") { try { await this.device.clearHalt("in", this.epIn); } catch (_) {} continue; }
+          if (result.data && result.data.byteLength) onData(new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength));
+        }
+      }
+      async close() {
+        this.reading = false;
+        if (this.device) {
+          if (this.iface !== null) { try { await this.device.releaseInterface(this.iface); } catch (_) {} }
+          try { await this.device.close(); } catch (_) {}
+        }
+        this.device = null;
+      }
+    }
+    class SerialTransport {
+      constructor() { this.port = null; this.reader = null; this.writer = null; this.reading = false; }
+      async open() {
+        this.port = await navigator.serial.requestPort();
+        await this.port.open({ baudRate: 115200 });
+        this.writer = this.port.writable.getWriter();
+      }
+      describe() {
+        const info = this.port.getInfo ? this.port.getInfo() : {};
+        let id = "Serial port";
+        if (info && info.usbVendorId != null) id = "USB serial (" + info.usbVendorId.toString(16).padStart(4, "0") + ":" + (info.usbProductId || 0).toString(16).padStart(4, "0") + ")";
+        return id + " [Web Serial]";
+      }
+      async send(bytes) { await this.writer.write(bytes); }
+      async readLoop(onData) {
+        this.reading = true;
+        this.reader = this.port.readable.getReader();
+        try {
+          while (this.reading) {
+            const { value, done } = await this.reader.read();
+            if (done) break;
+            if (value && value.length) onData(new Uint8Array(value.buffer, value.byteOffset, value.byteLength));
+          }
+        } finally { try { this.reader.releaseLock(); } catch (_) {} this.reader = null; }
+      }
+      async close() {
+        this.reading = false;
+        if (this.reader) { try { await this.reader.cancel(); } catch (_) {} try { this.reader.releaseLock(); } catch (_) {} this.reader = null; }
+        if (this.writer) { try { await this.writer.close(); } catch (_) {} try { this.writer.releaseLock(); } catch (_) {} this.writer = null; }
+        if (this.port) { try { await this.port.close(); } catch (_) {} this.port = null; }
+      }
+    }
+
+    // ===================================================================
+    // CANopen SDO client (in-browser, over the raw-CAN bridge)
+    // ===================================================================
+    // One outstanding CAN request/response at a time on the SDO channel. A
+    // waiter matches the next CAN_RX frame from 0x580+node; the whole
+    // upload/download transaction holds a mutex so segments cannot interleave.
+    const SDO_ABORT = {
+      0x05030000: "toggle bit not alternated",
+      0x05040000: "SDO protocol timed out",
+      0x05040001: "client/server command specifier invalid",
+      0x06010000: "unsupported access to an object",
+      0x06010001: "attempt to read a write-only object",
+      0x06010002: "attempt to write a read-only object",
+      0x06020000: "object does not exist in the dictionary",
+      0x06040041: "object cannot be mapped to the PDO",
+      0x06070010: "data type / length mismatch",
+      0x06070012: "data type mismatch, length too high",
+      0x06070013: "data type mismatch, length too low",
+      0x06090011: "subindex does not exist",
+      0x06090030: "value range exceeded",
+      0x06090031: "value written too high",
+      0x06090032: "value written too low",
+      0x08000000: "general error",
+      0x08000020: "data cannot be transferred/stored",
+      0x08000022: "data cannot be transferred/stored in this device state",
+    };
+    function sdoAbortError(resp) {
+      const code = (resp[4] | (resp[5] << 8) | (resp[6] << 16) | (resp[7] << 24)) >>> 0;
+      const name = SDO_ABORT[code] || "abort";
+      return new Error("SDO abort " + hex(code, 8) + " (" + name + ")");
+    }
+
+    let sdoWaiter = null;   // { rxId, resolve, reject, timer }
+    let sdoTxnActive = false;
+
+    // Called from onIncoming for every received CAN frame; returns true if it
+    // completed a pending SDO round-trip.
+    function sdoDeliver(cf) {
+      if (!sdoWaiter || cf.id !== sdoWaiter.rxId) return false;
+      const w = sdoWaiter; sdoWaiter = null;
+      clearTimeout(w.timer);
+      // right-pad to 8 bytes so command-specifier / data indexing is safe
+      const d = new Uint8Array(8); d.set(cf.data.subarray(0, 8));
+      w.resolve(d);
+      return true;
+    }
+
+    function sdoSendAndWait(reqBytes) {
+      const node = currentNode();
+      return new Promise((resolve, reject) => {
+        if (sdoWaiter) { reject(new Error("SDO channel busy")); return; }
+        const rxId = sdoRxId(node);
+        const timer = setTimeout(() => {
+          if (sdoWaiter && sdoWaiter.timer === timer) { sdoWaiter = null; reject(new Error("SDO timeout (no response from node " + node + ")")); }
+        }, SDO_TIMEOUT_MS);
+        sdoWaiter = { rxId, resolve, reject, timer };
+        if (els.logSdo.checked) logLine("tx", "SDO-> " + hexBytes(reqBytes));
+        sendCanRaw({ id: sdoTxId(node), ext: false, rtr: false, dlc: 8, data: reqBytes })
+          .catch((err) => { if (sdoWaiter && sdoWaiter.timer === timer) { clearTimeout(timer); sdoWaiter = null; reject(err); } });
+      });
+    }
+
+    async function withSdo(fn) {
+      if (!transport) throw new Error("not connected");
+      if (sdoTxnActive) throw new Error("another SDO transaction is in progress");
+      sdoTxnActive = true;
+      try { return await fn(); }
+      finally { sdoTxnActive = false; }
+    }
+
+    // Upload (read). Returns a Uint8Array of the object's raw bytes.
+    async function sdoUpload(index, sub) {
+      return withSdo(async () => {
+        const req = new Uint8Array(8);
+        req[0] = 0x40;
+        req[1] = index & 0xFF; req[2] = (index >> 8) & 0xFF; req[3] = sub & 0xFF;
+        const resp = await sdoSendAndWait(req);
+        if (resp[0] === 0x80) throw sdoAbortError(resp);
+        if ((resp[0] & 0xE0) !== 0x40) throw new Error("unexpected SDO upload response " + hex(resp[0], 2));
+        const expedited = (resp[0] & 0x02) !== 0;
+        const sizeIndicated = (resp[0] & 0x01) !== 0;
+        if (expedited) {
+          const n = sizeIndicated ? ((resp[0] >> 2) & 0x03) : 0;
+          return resp.slice(4, 4 + (4 - n));
+        }
+        // segmented upload
+        const total = sizeIndicated ? ((resp[4] | (resp[5] << 8) | (resp[6] << 16) | (resp[7] << 24)) >>> 0) : null;
+        const chunks = [];
+        let toggle = 0;
+        for (;;) {
+          const seg = new Uint8Array(8);
+          seg[0] = 0x60 | (toggle << 4);
+          const s = await sdoSendAndWait(seg);
+          if (s[0] === 0x80) throw sdoAbortError(s);
+          if ((s[0] & 0xE0) !== 0x00) throw new Error("unexpected SDO upload segment " + hex(s[0], 2));
+          if (((s[0] >> 4) & 1) !== toggle) throw new Error("SDO upload segment toggle mismatch");
+          const segSize = 7 - ((s[0] >> 1) & 0x07);
+          for (let i = 0; i < segSize; i++) chunks.push(s[1 + i]);
+          toggle ^= 1;
+          if (s[0] & 0x01) break;   // c = last segment
+        }
+        const out = Uint8Array.from(chunks);
+        return (total != null && total <= out.length) ? out.slice(0, total) : out;
+      });
+    }
+
+    // Download (write) the given bytes to index:sub.
+    async function sdoDownload(index, sub, bytes) {
+      return withSdo(async () => {
+        if (bytes.length <= 4) {
+          const req = new Uint8Array(8);
+          req[0] = 0x20 | ((4 - bytes.length) << 2) | 0x03;   // ccs=1, e=1, s=1
+          req[1] = index & 0xFF; req[2] = (index >> 8) & 0xFF; req[3] = sub & 0xFF;
+          req.set(bytes, 4);
+          const resp = await sdoSendAndWait(req);
+          if (resp[0] === 0x80) throw sdoAbortError(resp);
+          if ((resp[0] & 0xE0) !== 0x60) throw new Error("unexpected SDO download response " + hex(resp[0], 2));
+          return;
+        }
+        // segmented download: initiate with the total size, then 7-byte segments
+        const total = bytes.length;
+        const init = new Uint8Array(8);
+        init[0] = 0x21;   // ccs=1, e=0, s=1 (size in bytes 4-7)
+        init[1] = index & 0xFF; init[2] = (index >> 8) & 0xFF; init[3] = sub & 0xFF;
+        new DataView(init.buffer).setUint32(4, total, true);
+        let resp = await sdoSendAndWait(init);
+        if (resp[0] === 0x80) throw sdoAbortError(resp);
+        if ((resp[0] & 0xE0) !== 0x60) throw new Error("unexpected SDO download init response " + hex(resp[0], 2));
+        let offset = 0, toggle = 0;
+        while (offset < total) {
+          const segSize = Math.min(7, total - offset);
+          const last = (offset + segSize >= total) ? 1 : 0;
+          const seg = new Uint8Array(8);
+          seg[0] = (toggle << 4) | ((7 - segSize) << 1) | last;   // ccs=0
+          for (let i = 0; i < segSize; i++) seg[1 + i] = bytes[offset + i];
+          const s = await sdoSendAndWait(seg);
+          if (s[0] === 0x80) throw sdoAbortError(s);
+          if ((s[0] & 0xE0) !== 0x20) throw new Error("unexpected SDO download segment response " + hex(s[0], 2));
+          offset += segSize;
+          toggle ^= 1;
+        }
+      });
+    }
+
+    // ---- typed object helpers -------------------------------------------
+    const SCALAR_SIZE = { u8: 1, i8: 1, u16: 2, i16: 2, u32: 4, i32: 4 };
+    function encodeScalar(type, value) {
+      const size = SCALAR_SIZE[type];
+      const buf = new Uint8Array(size);
+      const dv = new DataView(buf.buffer);
+      switch (type) {
+        case "u8": dv.setUint8(0, value & 0xFF); break;
+        case "i8": dv.setInt8(0, value); break;
+        case "u16": dv.setUint16(0, value & 0xFFFF, true); break;
+        case "i16": dv.setInt16(0, value, true); break;
+        case "u32": dv.setUint32(0, value >>> 0, true); break;
+        case "i32": dv.setInt32(0, value | 0, true); break;
+      }
+      return buf;
+    }
+    function decodeScalar(type, bytes) {
+      const size = SCALAR_SIZE[type];
+      const buf = new Uint8Array(size);
+      buf.set(bytes.subarray(0, size));           // zero-extend short reads
+      const dv = new DataView(buf.buffer);
+      switch (type) {
+        case "u8": return dv.getUint8(0);
+        case "i8": return dv.getInt8(0);
+        case "u16": return dv.getUint16(0, true);
+        case "i16": return dv.getInt16(0, true);
+        case "u32": return dv.getUint32(0, true);
+        case "i32": return dv.getInt32(0, true);
+      }
+      return 0;
+    }
+    function parseHexBytes(str) {
+      const cleaned = (str || "").trim().replace(/0x/gi, "").replace(/[\s,]+/g, "");
+      if (cleaned.length % 2 !== 0) throw new Error("hex needs an even number of digits");
+      if (!/^[0-9a-fA-F]*$/.test(cleaned)) throw new Error("invalid hex");
+      const out = new Uint8Array(cleaned.length / 2);
+      for (let i = 0; i < out.length; i++) out[i] = parseInt(cleaned.substr(i * 2, 2), 16);
+      return out;
+    }
+    function parseIntFlexible(str) {
+      const s = (str || "").trim();
+      if (/^[-+]?0x[0-9a-fA-F]+$/.test(s)) return parseInt(s, 16);
+      if (!/^[-+]?\d+$/.test(s)) throw new Error("not an integer: " + s);
+      return parseInt(s, 10);
+    }
+
+    async function readObject(index, sub, type) {
+      const bytes = await sdoUpload(index, sub);
+      if (type === "string") return new TextDecoder().decode(bytes);
+      if (type === "hex") return bytes;
+      return decodeScalar(type, bytes);
+    }
+    async function writeObject(index, sub, type, valueStr) {
+      let bytes;
+      if (type === "string") bytes = new TextEncoder().encode(valueStr);
+      else if (type === "hex") bytes = parseHexBytes(valueStr);
+      else bytes = encodeScalar(type, parseIntFlexible(valueStr));
+      await sdoDownload(index, sub, bytes);
+    }
+
+    // ===================================================================
+    // Low-level CAN send over the bridge
+    // ===================================================================
+    async function sendCanRaw(cf) {
+      if (!transport) throw new Error("not connected");
+      await transport.send(buildFrame(MODULE_CAN, T_CAN_TX, encodeCanFrame(cf)));
+    }
+    async function sendNmt(command) {
+      // NMT: COB-ID 0x000, data = [command u8][node u8] (node 0 = all nodes)
+      await sendCanRaw({ id: COB_NMT, ext: false, rtr: false, dlc: 2, data: Uint8Array.of(command, currentNode()) });
+    }
+
+    function currentNode() {
+      const n = parseInt(els.nodeId.value, 10);
+      return (n >= 1 && n <= 127) ? n : 1;
+    }
+
+    // ===================================================================
+    // Bus config (baud / mode / start / stop / status) - like can_console
+    // ===================================================================
+    let statusTimer = null;
+    async function sendConfigFrame(type, payload) {
+      if (!transport) return;
+      try { await transport.send(buildFrame(MODULE_CAN, type, payload)); }
+      catch (e) { logLine("err", "send failed: " + (e && e.message ? e.message : e)); }
+    }
+    els.applyBtn.addEventListener("click", () => {
+      const baud = parseInt(els.baud.value, 10);
+      const mode = parseInt(els.mode.value, 10);
+      logLine("sys", "SET_CONFIG baud=" + baud + " mode=" + MODE_NAME[mode]);
+      sendConfigFrame(T_SET_CONFIG, encodeConfig(baud, mode));
+    });
+    els.startBtn.addEventListener("click", () => { logLine("sys", "START"); sendConfigFrame(T_START); });
+    els.stopBtn.addEventListener("click", () => { logLine("sys", "STOP"); sendConfigFrame(T_STOP); });
+    els.nmtStartBtn.addEventListener("click", () => nmt(0x01, "start (Operational)"));
+    els.nmtPreopBtn.addEventListener("click", () => nmt(0x80, "pre-operational"));
+    els.nmtStopBtn.addEventListener("click", () => nmt(0x02, "stop"));
+    els.nmtResetNodeBtn.addEventListener("click", () => nmt(0x81, "reset node"));
+    els.nmtResetCommBtn.addEventListener("click", () => nmt(0x82, "reset communication"));
+    function nmt(cmd, label) {
+      logLine("sys", "NMT " + label + " -> node " + currentNode());
+      sendNmt(cmd).catch((e) => logLine("err", "NMT failed: " + (e && e.message ? e.message : e)));
+    }
+
+    function requestStatus() { sendConfigFrame(T_GET_STATUS); }
+    function setStatusLine(s) {
+      if (!s) {
+        els.stRunning.textContent = "unknown"; els.stRunning.className = "badge down";
+        els.stBaud.textContent = "-"; els.stMode.textContent = "-";
+        els.stRx.textContent = els.stTx.textContent = els.stErr.textContent = "0";
+        return;
+      }
+      els.stRunning.textContent = s.running ? "running" : "stopped";
+      els.stRunning.className = "badge " + (s.running ? "up" : "down");
+      els.stBaud.textContent = s.baud; els.stMode.textContent = MODE_NAME[s.mode] || s.mode;
+      els.stRx.textContent = s.rx; els.stTx.textContent = s.tx; els.stErr.textContent = s.err;
+    }
+
+    // ===================================================================
+    // Incoming frame handling
+    // ===================================================================
+    function onIncoming(chunk) {
+      let frames;
+      try { frames = parser.feed(chunk); }
+      catch (e) { logLine("err", "parse error: " + (e && e.message ? e.message : e)); return; }
+      for (const f of frames) {
+        if (f.module !== MODULE_CAN) continue;   // ignore interleaved other-module frames
+        if (f.type === T_CAN_RX) {
+          const cf = decodeCanFrame(f.payload);
+          if (!cf) continue;
+          // Route SDO responses to the waiter; anything else is unsolicited bus
+          // traffic (heartbeat / PDO / emergency) - log it lightly.
+          const consumed = sdoDeliver(cf);
+          if (consumed) { if (els.logSdo.checked) logLine("rx", "SDO<- id=" + hex(cf.id, 3) + " " + hexBytes(cf.data)); }
+          else logLine("rx", "CAN id=" + hex(cf.id, 3) + (cf.ext ? " (ext)" : "") + (cf.rtr ? " RTR" : "") + " [" + cf.dlc + "] " + hexBytes(cf.data));
+        } else if (f.type === T_STATUS) {
+          setStatusLine(decodeStatus(f.payload));
+        } else if (f.type === T_ERROR) {
+          const e = decodeError(f.payload);
+          logLine("err", "device ERROR " + hex(e.code, 0) + ": " + e.message);
+        } else if (f.type === T_OK) {
+          // ack for a bus config request; nothing to show
+        }
+      }
+    }
+
+    // ===================================================================
+    // Connect / disconnect
+    // ===================================================================
+    if (!navigator.usb) els.connectUsbBtn.disabled = true;
+    if (!navigator.serial) els.connectSerialBtn.disabled = true;
+    if (!navigator.usb && !navigator.serial) els.unsupported.style.display = "block";
+
+    els.connectUsbBtn.addEventListener("click", () => connect("usb"));
+    els.connectSerialBtn.addEventListener("click", () => connect("serial"));
+    els.disconnectBtn.addEventListener("click", () => disconnect());
+
+    async function connect(kind) {
+      if (transport) return;
+      const t = kind === "usb" ? new UsbTransport() : new SerialTransport();
+      try { if (kind === "usb") await t.open(els.anyDevice.checked); else await t.open(); }
+      catch (e) {
+        if (e && e.name === "NotFoundError") logLine("sys", "Device selection cancelled.");
+        else logLine("err", "Connect failed: " + (e && e.message ? e.message : e));
+        try { await t.close(); } catch (_) {}
+        return;
+      }
+      transport = t;
+      parser.reset();
+      setConnectedUI(true);
+      const name = t.describe();
+      setStatus("connected", "Connected");
+      els.devInfo.textContent = name;
+      logLine("sys", "Connected: " + name);
+      t.readLoop(onIncoming).catch((e) => { if (transport === t) { logLine("err", "Read loop error: " + (e && e.message ? e.message : e)); onLinkLost(); } });
+      requestStatus();
+      statusTimer = setInterval(requestStatus, STATUS_POLL_MS);
+    }
+    async function disconnect() {
+      if (!transport) return;
+      logLine("sys", "Disconnecting...");
+      stopLivePoll();
+      const t = transport; transport = null;
+      if (statusTimer) { clearInterval(statusTimer); statusTimer = null; }
+      try { await t.close(); } catch (_) {}
+      setConnectedUI(false);
+      setStatus("", "Disconnected");
+    }
+    function onLinkLost() {
+      if (!transport) return;
+      stopLivePoll();
+      const t = transport; transport = null;
+      if (statusTimer) { clearInterval(statusTimer); statusTimer = null; }
+      t.close().catch(() => {});
+      setConnectedUI(false);
+      setStatus("error", "Disconnected");
+    }
+    if (navigator.usb && navigator.usb.addEventListener) {
+      navigator.usb.addEventListener("disconnect", (e) => {
+        if (transport instanceof UsbTransport && e.device === transport.device) { logLine("err", "Device disconnected."); onLinkLost(); }
+      });
+    }
+
+    const CONNECTED_CONTROLS = ["applyBtn", "startBtn", "stopBtn", "nmtStartBtn", "nmtPreopBtn",
+      "nmtStopBtn", "nmtResetNodeBtn", "nmtResetCommBtn", "readIdentityBtn", "refreshDs402Btn",
+      "cwShutdown", "cwSwitchOn", "cwEnableOp", "cwDisableVoltage", "cwQuickStop", "cwFaultReset",
+      "cwSendRaw", "modeSetBtn", "tgtVelBtn", "tgtPosBtn", "tgtTrqBtn", "odReadBtn", "odWriteBtn"];
+    function setConnectedUI(connected) {
+      els.connectUsbBtn.disabled = connected || !navigator.usb;
+      els.connectSerialBtn.disabled = connected || !navigator.serial;
+      els.disconnectBtn.disabled = !connected;
+      els.anyDevice.disabled = connected;
+      for (const id of CONNECTED_CONTROLS) els[id].disabled = !connected;
+      if (!connected) {
+        els.devInfo.textContent = "Not connected. WebUSB default filter: VID 0x1209 / PID 0x0d32 (espp default); the vendor (0xFF) interface is discovered from the descriptors at runtime.";
+        setStatusLine(null);
+        setDs402State(null);
+        els.livePoll.checked = false;
+      }
+    }
+
+    // ===================================================================
+    // DS402 helpers
+    // ===================================================================
+    const OD = {
+      controlword: [0x6040, 0], statusword: [0x6041, 0],
+      modeSet: [0x6060, 0], modeDisplay: [0x6061, 0],
+      targetTorque: [0x6071, 0], targetPosition: [0x607A, 0], targetVelocity: [0x60FF, 0],
+      positionActual: [0x6064, 0], velocityActual: [0x606C, 0], torqueActual: [0x6077, 0],
+    };
+    // Controlword command values (low byte) for the standard transitions.
+    const CW = { shutdown: 0x0006, switchOn: 0x0007, enableOp: 0x000F, disableVoltage: 0x0000, quickStop: 0x0002, faultReset: 0x0080 };
+    // statusword bit labels (bit index -> short name)
+    const SW_BITS = ["RTSO", "SO", "OE", "F", "VE", "QS", "SOD", "W", "b8", "REM", "TR", "ILA", "b12", "b13", "b14", "b15"];
+
+    function ds402StateName(sw) {
+      if ((sw & 0x4F) === 0x00) return { name: "Not ready to switch on", cls: "" };
+      if ((sw & 0x4F) === 0x40) return { name: "Switch on disabled", cls: "" };
+      if ((sw & 0x6F) === 0x21) return { name: "Ready to switch on", cls: "ready" };
+      if ((sw & 0x6F) === 0x23) return { name: "Switched on", cls: "ready" };
+      if ((sw & 0x6F) === 0x27) return { name: "Operation enabled", cls: "enabled" };
+      if ((sw & 0x6F) === 0x07) return { name: "Quick stop active", cls: "qstop" };
+      if ((sw & 0x4F) === 0x0F) return { name: "Fault reaction active", cls: "fault" };
+      if ((sw & 0x4F) === 0x08) return { name: "Fault", cls: "fault" };
+      return { name: "Unknown", cls: "" };
+    }
+    function setDs402State(sw) {
+      if (sw == null) {
+        els.ds402State.textContent = "unknown"; els.ds402State.className = "state-badge";
+        els.swHex.textContent = "-"; els.swBits.textContent = ""; els.modeDisplay.textContent = "-";
+        els.actPos.textContent = els.actVel.textContent = els.actTrq.textContent = "-";
+        return;
+      }
+      const st = ds402StateName(sw);
+      els.ds402State.textContent = st.name; els.ds402State.className = "state-badge " + st.cls;
+      els.swHex.textContent = hex(sw, 4);
+      els.swBits.textContent = "";
+      for (let b = 0; b < 16; b++) {
+        const on = (sw >> b) & 1;
+        const span = document.createElement("span");
+        span.className = "bit" + (on ? " on" : "");
+        span.textContent = b + ":" + SW_BITS[b];
+        span.title = "bit " + b + " = " + on;
+        els.swBits.appendChild(span);
+      }
+    }
+    const MODE_OP_NAME = { 0: "no mode", 1: "PP", 2: "VL", 3: "PV", 4: "PT", 6: "HM", 7: "IP", 8: "CSP", 9: "CSV", 10: "CST" };
+
+    async function guarded(label, fn) {
+      // Run an SDO-using action, surfacing errors to the log without throwing.
+      try { return await fn(); }
+      catch (e) { logLine("err", label + ": " + (e && e.message ? e.message : e)); return undefined; }
+    }
+
+    async function refreshDs402() {
+      const sw = await guarded("read statusword", () => readObject(OD.statusword[0], OD.statusword[1], "u16"));
+      if (sw != null) setDs402State(sw);
+      const md = await guarded("read mode display", () => readObject(OD.modeDisplay[0], OD.modeDisplay[1], "i8"));
+      if (md != null) els.modeDisplay.textContent = md + " (" + (MODE_OP_NAME[md] || "?") + ")";
+      const pos = await guarded("read position actual", () => readObject(OD.positionActual[0], OD.positionActual[1], "i32"));
+      if (pos != null) els.actPos.textContent = pos;
+      const vel = await guarded("read velocity actual", () => readObject(OD.velocityActual[0], OD.velocityActual[1], "i32"));
+      if (vel != null) els.actVel.textContent = vel;
+      const trq = await guarded("read torque actual", () => readObject(OD.torqueActual[0], OD.torqueActual[1], "i16"));
+      if (trq != null) els.actTrq.textContent = trq;
+    }
+    els.refreshDs402Btn.addEventListener("click", () => { if (!sdoTxnActive) refreshDs402(); });
+
+    // Controlword buttons
+    async function sendControlword(value, label) {
+      await guarded("controlword " + label, () => sdoDownload(OD.controlword[0], OD.controlword[1], encodeScalar("u16", value)));
+      logLine("sys", "controlword <- " + hex(value, 4) + " (" + label + ")");
+      if (!sdoTxnActive) refreshDs402();
+    }
+    els.cwShutdown.addEventListener("click", () => sendControlword(CW.shutdown, "shutdown"));
+    els.cwSwitchOn.addEventListener("click", () => sendControlword(CW.switchOn, "switch on"));
+    els.cwEnableOp.addEventListener("click", () => sendControlword(CW.enableOp, "enable operation"));
+    els.cwDisableVoltage.addEventListener("click", () => sendControlword(CW.disableVoltage, "disable voltage"));
+    els.cwQuickStop.addEventListener("click", () => sendControlword(CW.quickStop, "quick stop"));
+    els.cwFaultReset.addEventListener("click", async () => {
+      // Fault reset is a rising edge on bit 7: clear it, then set it.
+      await sendControlword(0x0000, "clear (pre fault-reset)");
+      await sendControlword(CW.faultReset, "fault reset");
+    });
+    els.cwSendRaw.addEventListener("click", () => {
+      let v; try { v = parseIntFlexible(els.cwRaw.value.startsWith("0x") ? els.cwRaw.value : "0x" + els.cwRaw.value); }
+      catch (_) { logLine("err", "bad controlword hex"); return; }
+      sendControlword(v & 0xFFFF, "raw");
+    });
+
+    // Mode of operation
+    els.modeSetBtn.addEventListener("click", async () => {
+      const m = parseInt(els.modeOp.value, 10);
+      await guarded("set mode", () => sdoDownload(OD.modeSet[0], OD.modeSet[1], encodeScalar("i8", m)));
+      logLine("sys", "mode of operation <- " + m + " (" + (MODE_OP_NAME[m] || "?") + ")");
+      if (!sdoTxnActive) refreshDs402();
+    });
+
+    // Targets
+    function bindTarget(btn, input, od, type, label) {
+      els[btn].addEventListener("click", async () => {
+        let v; try { v = parseIntFlexible(els[input].value); } catch (_) { logLine("err", "bad " + label); return; }
+        await guarded("set " + label, () => sdoDownload(od[0], od[1], encodeScalar(type, v)));
+        logLine("sys", label + " <- " + v);
+      });
+    }
+    bindTarget("tgtVelBtn", "tgtVel", OD.targetVelocity, "i32", "target velocity");
+    bindTarget("tgtPosBtn", "tgtPos", OD.targetPosition, "i32", "target position");
+    bindTarget("tgtTrqBtn", "tgtTrq", OD.targetTorque, "i16", "target torque");
+
+    // Live poll
+    let pollTimer = null;
+    function startLivePoll() {
+      if (pollTimer) return;
+      pollTimer = setInterval(() => { if (transport && !sdoTxnActive) refreshDs402(); }, DS402_POLL_MS);
+    }
+    function stopLivePoll() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+    els.livePoll.addEventListener("change", () => { if (els.livePoll.checked && transport) startLivePoll(); else stopLivePoll(); });
+
+    // ===================================================================
+    // Identity
+    // ===================================================================
+    els.readIdentityBtn.addEventListener("click", async () => {
+      const dt = await guarded("device type", () => readObject(0x1000, 0, "u32"));
+      els.idDeviceType.textContent = dt != null ? hex(dt, 8) : "n/a";
+      const name = await guarded("device name", () => readObject(0x1008, 0, "string"));
+      els.idDeviceName.textContent = name != null ? name : "n/a";
+      const vendor = await guarded("vendor id", () => readObject(0x1018, 1, "u32"));
+      els.idVendor.textContent = vendor != null ? hex(vendor, 8) : "n/a";
+      const product = await guarded("product code", () => readObject(0x1018, 2, "u32"));
+      els.idProduct.textContent = product != null ? hex(product, 8) : "n/a";
+      const rev = await guarded("revision", () => readObject(0x1018, 3, "u32"));
+      els.idRevision.textContent = rev != null ? hex(rev, 8) : "n/a";
+      const serial = await guarded("serial", () => readObject(0x1018, 4, "u32"));
+      els.idSerial.textContent = serial != null ? hex(serial, 8) : "n/a";
+    });
+
+    // ===================================================================
+    // Generic object dictionary read / write
+    // ===================================================================
+    els.odReadBtn.addEventListener("click", async () => {
+      let index, sub;
+      try { index = parseIntFlexible(els.odIndex.value.startsWith("0x") ? els.odIndex.value : "0x" + els.odIndex.value); sub = parseIntFlexible(els.odSub.value); }
+      catch (e) { els.odResult.textContent = "error: " + e.message; return; }
+      const type = els.odType.value;
+      els.odResult.textContent = "reading " + hex(index, 4) + ":" + sub + " ...";
+      try {
+        const v = await readObject(index, sub, type);
+        let shown;
+        if (type === "hex") shown = hexBytes(v) + "  (" + v.length + " bytes)";
+        else if (type === "string") shown = JSON.stringify(v);
+        else shown = v + "  (" + hex(v >>> 0, 0) + ")";
+        els.odResult.textContent = hex(index, 4) + ":" + sub + " [" + type + "] = " + shown;
+        logLine("sys", "read " + hex(index, 4) + ":" + sub + " = " + shown);
+      } catch (e) { els.odResult.textContent = "error: " + (e && e.message ? e.message : e); }
+    });
+    els.odWriteBtn.addEventListener("click", async () => {
+      let index, sub;
+      try { index = parseIntFlexible(els.odIndex.value.startsWith("0x") ? els.odIndex.value : "0x" + els.odIndex.value); sub = parseIntFlexible(els.odSub.value); }
+      catch (e) { els.odResult.textContent = "error: " + e.message; return; }
+      const type = els.odType.value;
+      try {
+        await writeObject(index, sub, type, els.odValue.value);
+        els.odResult.textContent = "wrote " + hex(index, 4) + ":" + sub + " [" + type + "] = " + els.odValue.value;
+        logLine("sys", "wrote " + hex(index, 4) + ":" + sub + " = " + els.odValue.value);
+      } catch (e) { els.odResult.textContent = "error: " + (e && e.message ? e.message : e); }
+    });
+
+    // Initial UI state
+    setConnectedUI(false);
+    setDs402State(null);
+  </script>
+</body>
+</html>
