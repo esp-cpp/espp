@@ -862,27 +862,82 @@ bool UsbDevice::initialize(std::error_code &ec) {
 
 bool UsbDevice::write_cdc(std::span<const uint8_t> data, std::error_code &ec) {
   ec.clear();
+#if (CFG_TUD_CDC > 0)
   if (!initialized_ || !config_.cdc) {
     ec = std::make_error_code(std::errc::not_connected);
     return false;
   }
   size_t offset = 0;
+  // Mirror write_vendor()'s backpressure contract (this used to truncate): the
+  // CDC TX FIFO (CONFIG_TINYUSB_CDC_TX_BUFSIZE) can be SMALLER than one protocol
+  // frame, so a full FIFO is the normal mid-write condition, not an error: wait
+  // for the USB task to drain it instead of truncating (a partial frame is
+  // useless to the host - its parser discards it on the length/CRC check).
+  // Bounded so an unplugged or non-reading host cannot wedge the caller. Uses
+  // the raw tud_cdc_n_* API (not the esp_tinyusb TX ringbuffer) so we can size
+  // the write up front, exactly as write_vendor() uses tud_vendor_*.
+  //
+  // EXCEPTION: when called from TinyUSB-callback context (e.g. from inside a
+  // receive callback, which is dispatched on the TinyUSB task), tud_task() is
+  // below us on this very stack, so the TX-complete events that refill the
+  // endpoint from the FIFO cannot be processed while we sleep - waiting would
+  // just burn the full timeout and truncate anyway. Writes from this context
+  // are therefore ALL-OR-NOTHING: check up front that the whole frame fits in
+  // the FIFO and fail fast WITHOUT enqueueing anything if it does not - a
+  // partially-enqueued frame would be transmitted and poison the byte stream
+  // for the host-side parser. Callers needing replies larger than the FIFO
+  // should queue the work to their own task (see the docs on write_cdc()).
+  const bool in_tinyusb_task = on_tinyusb_task();
+  if (in_tinyusb_task && tud_cdc_n_write_available(kCdcPort) < data.size()) {
+    logger_.warn_rate_limited("CDC TX FIFO cannot hold the whole {}-byte frame in "
+                              "TinyUSB-callback context (cannot wait for a drain here), dropping "
+                              "it - send large frames from a separate task instead",
+                              data.size());
+    ec = std::make_error_code(std::errc::no_buffer_space);
+    return false;
+  }
+  static constexpr TickType_t kCdcWriteTimeoutTicks = pdMS_TO_TICKS(250);
+  // Poll at ~1 ms, but never less than one tick (pdMS_TO_TICKS(1) is 0 when
+  // the tick rate is below 1 kHz, and vTaskDelay(0) would not block at all).
+  static constexpr TickType_t kCdcDrainPollTicks = pdMS_TO_TICKS(1) > 0 ? pdMS_TO_TICKS(1) : 1;
+  const TickType_t start_tick = xTaskGetTickCount();
   while (offset < data.size()) {
-    size_t queued =
-        tinyusb_cdcacm_write_queue(kCdcPort, data.data() + offset, data.size() - offset);
+    uint32_t queued = tud_cdc_n_write(kCdcPort, data.data() + offset, data.size() - offset);
+    tud_cdc_n_write_flush(kCdcPort);
+    offset += queued;
     if (queued == 0) {
-      tinyusb_cdcacm_write_flush(kCdcPort, 0);
-      queued = tinyusb_cdcacm_write_queue(kCdcPort, data.data() + offset, data.size() - offset);
-      if (queued == 0) {
+      if (in_tinyusb_task) {
+        logger_.warn_rate_limited("CDC TX buffer full in TinyUSB-callback context (cannot wait "
+                                  "for a drain here), dropping {} bytes - send large frames from a "
+                                  "separate task instead",
+                                  data.size() - offset);
+        ec = std::make_error_code(std::errc::no_buffer_space);
+        break;
+      }
+      // Host closing the port (DTR cleared) is a different condition from
+      // backpressure: report not_connected so callers do not treat it like a
+      // full FIFO.
+      if (!tud_cdc_n_connected(kCdcPort)) {
+        logger_.warn_rate_limited("CDC host disconnected mid-write, dropping {} bytes",
+                                  data.size() - offset);
+        ec = std::make_error_code(std::errc::not_connected);
+        break;
+      }
+      // Unsigned tick subtraction stays correct across tick-count wraparound.
+      if ((xTaskGetTickCount() - start_tick) >= kCdcWriteTimeoutTicks) {
         logger_.warn_rate_limited("CDC TX buffer full, dropping {} bytes", data.size() - offset);
         ec = std::make_error_code(std::errc::no_buffer_space);
         break;
       }
+      vTaskDelay(kCdcDrainPollTicks);
     }
-    offset += queued;
-    tinyusb_cdcacm_write_flush(kCdcPort, 0);
   }
   return offset == data.size();
+#else
+  (void)data;
+  ec = std::make_error_code(std::errc::function_not_supported);
+  return false;
+#endif
 }
 
 bool UsbDevice::write_cdc(std::span<const uint8_t> data) {
