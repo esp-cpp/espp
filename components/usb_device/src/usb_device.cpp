@@ -867,40 +867,69 @@ bool UsbDevice::write_cdc(std::span<const uint8_t> data, std::error_code &ec) {
     ec = std::make_error_code(std::errc::not_connected);
     return false;
   }
-  size_t offset = 0;
-  // Mirror write_vendor()'s backpressure contract (this used to truncate): the
-  // CDC TX FIFO (CONFIG_TINYUSB_CDC_TX_BUFSIZE) can be SMALLER than one protocol
-  // frame, so a full FIFO is the normal mid-write condition, not an error: wait
-  // for the USB task to drain it instead of truncating (a partial frame is
-  // useless to the host - its parser discards it on the length/CRC check).
-  // Bounded so an unplugged or non-reading host cannot wedge the caller. Uses
-  // the raw tud_cdc_n_* API (not the esp_tinyusb TX ringbuffer) so we can size
-  // the write up front, exactly as write_vendor() uses tud_vendor_*.
+  // A frame is written ALL-OR-NOTHING when it fits in the TX FIFO
+  // (CONFIG_TINYUSB_CDC_TX_BUFSIZE): we wait (bounded) for room for the WHOLE
+  // frame and only then enqueue it in a SINGLE write, so a drain-timeout or a
+  // mid-write disconnect can never leave a truncated prefix on the wire (a
+  // partial frame is useless to the host - its parser discards it on the
+  // length/CRC check). Uses the raw tud_cdc_n_* API (not the esp_tinyusb TX
+  // ringbuffer) so the whole frame can be sized up front, exactly as
+  // write_vendor() uses tud_vendor_*.
   //
-  // EXCEPTION: when called from TinyUSB-callback context (e.g. from inside a
-  // receive callback, which is dispatched on the TinyUSB task), tud_task() is
+  // In TinyUSB-callback context (e.g. from inside a receive callback, which is
+  // dispatched on the TinyUSB task) we cannot wait for a drain: tud_task() is
   // below us on this very stack, so the TX-complete events that refill the
-  // endpoint from the FIFO cannot be processed while we sleep - waiting would
-  // just burn the full timeout and truncate anyway. Writes from this context
-  // are therefore ALL-OR-NOTHING: check up front that the whole frame fits in
-  // the FIFO and fail fast WITHOUT enqueueing anything if it does not - a
-  // partially-enqueued frame would be transmitted and poison the byte stream
-  // for the host-side parser. Callers needing replies larger than the FIFO
-  // should queue the work to their own task (see the docs on write_cdc()).
+  // endpoint cannot be processed while we sleep. There we fail fast if the whole
+  // frame does not ALREADY fit, again without enqueueing anything.
+  //
+  // A frame LARGER than the whole TX FIFO cannot be enqueued atomically, so it
+  // is streamed across drains and is NOT all-or-nothing (a mid-stream timeout
+  // may leave a prefix on the wire). Keep framed payloads within the FIFO for
+  // atomic writes.
   const bool in_tinyusb_task = on_tinyusb_task();
-  if (in_tinyusb_task && tud_cdc_n_write_available(kCdcPort) < data.size()) {
-    logger_.warn_rate_limited("CDC TX FIFO cannot hold the whole {}-byte frame in "
-                              "TinyUSB-callback context (cannot wait for a drain here), dropping "
-                              "it - send large frames from a separate task instead",
-                              data.size());
-    ec = std::make_error_code(std::errc::no_buffer_space);
-    return false;
-  }
   static constexpr TickType_t kCdcWriteTimeoutTicks = pdMS_TO_TICKS(250);
   // Poll at ~1 ms, but never less than one tick (pdMS_TO_TICKS(1) is 0 when
   // the tick rate is below 1 kHz, and vTaskDelay(0) would not block at all).
   static constexpr TickType_t kCdcDrainPollTicks = pdMS_TO_TICKS(1) > 0 ? pdMS_TO_TICKS(1) : 1;
   const TickType_t start_tick = xTaskGetTickCount();
+
+  if (data.size() <= CFG_TUD_CDC_TX_BUFSIZE) {
+    // Atomic path: wait until the whole frame fits, then write it in one shot.
+    while (tud_cdc_n_write_available(kCdcPort) < data.size()) {
+      if (in_tinyusb_task) {
+        logger_.warn_rate_limited("CDC TX FIFO cannot hold the whole {}-byte frame in "
+                                  "TinyUSB-callback context (cannot wait for a drain here), "
+                                  "dropping it - send from a separate task instead",
+                                  data.size());
+        ec = std::make_error_code(std::errc::no_buffer_space);
+        return false;
+      }
+      // Host closing the port (DTR cleared) is a different condition from
+      // backpressure: report not_connected so callers do not treat it like a
+      // full FIFO.
+      if (!tud_cdc_n_connected(kCdcPort)) {
+        logger_.warn_rate_limited("CDC host disconnected before a {}-byte frame could be sent",
+                                  data.size());
+        ec = std::make_error_code(std::errc::not_connected);
+        return false;
+      }
+      // Unsigned tick subtraction stays correct across tick-count wraparound.
+      if ((xTaskGetTickCount() - start_tick) >= kCdcWriteTimeoutTicks) {
+        logger_.warn_rate_limited("CDC TX FIFO full, dropping a {}-byte frame", data.size());
+        ec = std::make_error_code(std::errc::no_buffer_space);
+        return false;
+      }
+      vTaskDelay(kCdcDrainPollTicks);
+    }
+    // Room for the whole frame is guaranteed, so this single write takes all of
+    // it - no prefix/truncation is possible.
+    tud_cdc_n_write(kCdcPort, data.data(), data.size());
+    tud_cdc_n_write_flush(kCdcPort);
+    return true;
+  }
+
+  // Streaming path: frame larger than the FIFO (NOT atomic - see note above).
+  size_t offset = 0;
   while (offset < data.size()) {
     uint32_t queued = tud_cdc_n_write(kCdcPort, data.data() + offset, data.size() - offset);
     tud_cdc_n_write_flush(kCdcPort);
@@ -908,22 +937,17 @@ bool UsbDevice::write_cdc(std::span<const uint8_t> data, std::error_code &ec) {
     if (queued == 0) {
       if (in_tinyusb_task) {
         logger_.warn_rate_limited("CDC TX buffer full in TinyUSB-callback context (cannot wait "
-                                  "for a drain here), dropping {} bytes - send large frames from a "
-                                  "separate task instead",
+                                  "for a drain here), dropping {} bytes",
                                   data.size() - offset);
         ec = std::make_error_code(std::errc::no_buffer_space);
         break;
       }
-      // Host closing the port (DTR cleared) is a different condition from
-      // backpressure: report not_connected so callers do not treat it like a
-      // full FIFO.
       if (!tud_cdc_n_connected(kCdcPort)) {
         logger_.warn_rate_limited("CDC host disconnected mid-write, dropping {} bytes",
                                   data.size() - offset);
         ec = std::make_error_code(std::errc::not_connected);
         break;
       }
-      // Unsigned tick subtraction stays correct across tick-count wraparound.
       if ((xTaskGetTickCount() - start_tick) >= kCdcWriteTimeoutTicks) {
         logger_.warn_rate_limited("CDC TX buffer full, dropping {} bytes", data.size() - offset);
         ec = std::make_error_code(std::errc::no_buffer_space);
@@ -952,38 +976,66 @@ bool UsbDevice::write_vendor(std::span<const uint8_t> data, std::error_code &ec)
     ec = std::make_error_code(std::errc::not_connected);
     return false;
   }
-  size_t offset = 0;
-  // The vendor TX FIFO (CONFIG_TINYUSB_VENDOR_TX_BUFSIZE, 64 bytes by default)
-  // is commonly SMALLER than one protocol frame, so a full FIFO is the normal
-  // mid-write condition, not an error: wait for the USB task to drain it
-  // instead of truncating (a partial frame is useless to the host - its
-  // parser discards it on the length/CRC check). Bounded so an unplugged or
-  // non-reading host cannot wedge the caller.
+  // Same all-or-nothing contract as write_cdc(): a frame that fits in the vendor
+  // TX FIFO (CONFIG_TINYUSB_VENDOR_TX_BUFSIZE) is written atomically - wait
+  // (bounded) for room for the WHOLE frame, then enqueue it in a SINGLE write,
+  // so a drain-timeout or a mid-write unmount can never leave a truncated prefix
+  // on the wire (a partial frame is useless to the host - its parser discards it
+  // on the length/CRC check).
   //
-  // EXCEPTION: when called from TinyUSB-callback context (e.g. from inside a
-  // receive callback, which is dispatched on the TinyUSB task), tud_task() is
-  // below us on this very stack, so the TX-complete events that refill the
-  // endpoint from the FIFO cannot be processed while we sleep - waiting would
-  // just burn the full timeout and truncate anyway. Writes from this context
-  // are therefore ALL-OR-NOTHING: check up front that the whole frame fits in
-  // the FIFO and fail fast WITHOUT enqueueing anything if it does not - a
-  // partially-enqueued frame would be transmitted and poison the byte stream
-  // for the host-side parser. Callers needing replies larger than the FIFO
-  // should queue the work to their own task (see the docs on write_vendor()).
+  // In TinyUSB-callback context (e.g. from inside a receive callback, dispatched
+  // on the TinyUSB task) we cannot wait for a drain: tud_task() is below us on
+  // this very stack, so the TX-complete events that refill the endpoint cannot
+  // run while we sleep. There we fail fast if the whole frame does not ALREADY
+  // fit, again without enqueueing anything.
+  //
+  // A frame LARGER than the whole TX FIFO cannot be enqueued atomically, so it
+  // is streamed across drains and is NOT all-or-nothing (a mid-stream timeout
+  // may leave a prefix on the wire). Keep framed payloads within the FIFO for
+  // atomic writes.
   const bool in_tinyusb_task = on_tinyusb_task();
-  if (in_tinyusb_task && tud_vendor_write_available() < data.size()) {
-    logger_.warn_rate_limited("Vendor TX FIFO cannot hold the whole {}-byte frame in "
-                              "TinyUSB-callback context (cannot wait for a drain here), dropping "
-                              "it - send large frames from a separate task instead",
-                              data.size());
-    ec = std::make_error_code(std::errc::no_buffer_space);
-    return false;
-  }
   static constexpr TickType_t kVendorWriteTimeoutTicks = pdMS_TO_TICKS(250);
   // Poll at ~1 ms, but never less than one tick (pdMS_TO_TICKS(1) is 0 when
   // the tick rate is below 1 kHz, and vTaskDelay(0) would not block at all).
   static constexpr TickType_t kVendorDrainPollTicks = pdMS_TO_TICKS(1) > 0 ? pdMS_TO_TICKS(1) : 1;
   const TickType_t start_tick = xTaskGetTickCount();
+
+  if (data.size() <= CFG_TUD_VENDOR_TX_BUFSIZE) {
+    // Atomic path: wait until the whole frame fits, then write it in one shot.
+    while (tud_vendor_write_available() < data.size()) {
+      if (in_tinyusb_task) {
+        logger_.warn_rate_limited("Vendor TX FIFO cannot hold the whole {}-byte frame in "
+                                  "TinyUSB-callback context (cannot wait for a drain here), "
+                                  "dropping it - send from a separate task instead",
+                                  data.size());
+        ec = std::make_error_code(std::errc::no_buffer_space);
+        return false;
+      }
+      // Unplug/disconnect is a different condition from backpressure: report
+      // not_connected so callers do not treat an unmount like a full FIFO.
+      if (!tud_vendor_mounted()) {
+        logger_.warn_rate_limited("Vendor device unmounted before a {}-byte frame could be sent",
+                                  data.size());
+        ec = std::make_error_code(std::errc::not_connected);
+        return false;
+      }
+      // Unsigned tick subtraction stays correct across tick-count wraparound.
+      if ((xTaskGetTickCount() - start_tick) >= kVendorWriteTimeoutTicks) {
+        logger_.warn_rate_limited("Vendor TX FIFO full, dropping a {}-byte frame", data.size());
+        ec = std::make_error_code(std::errc::no_buffer_space);
+        return false;
+      }
+      vTaskDelay(kVendorDrainPollTicks);
+    }
+    // Room for the whole frame is guaranteed, so this single write takes all of
+    // it - no prefix/truncation is possible.
+    tud_vendor_write(data.data(), data.size());
+    tud_vendor_write_flush();
+    return true;
+  }
+
+  // Streaming path: frame larger than the FIFO (NOT atomic - see note above).
+  size_t offset = 0;
   while (offset < data.size()) {
     uint32_t queued = tud_vendor_write(data.data() + offset, data.size() - offset);
     tud_vendor_write_flush();
@@ -991,21 +1043,17 @@ bool UsbDevice::write_vendor(std::span<const uint8_t> data, std::error_code &ec)
     if (queued == 0) {
       if (in_tinyusb_task) {
         logger_.warn_rate_limited("Vendor TX buffer full in TinyUSB-callback context (cannot wait "
-                                  "for a drain here), dropping {} bytes - send large frames from a "
-                                  "separate task instead",
+                                  "for a drain here), dropping {} bytes",
                                   data.size() - offset);
         ec = std::make_error_code(std::errc::no_buffer_space);
         break;
       }
-      // Unplug/disconnect is a different condition from backpressure: report
-      // not_connected so callers do not treat an unmount like a full FIFO.
       if (!tud_vendor_mounted()) {
         logger_.warn_rate_limited("Vendor device unmounted mid-write, dropping {} bytes",
                                   data.size() - offset);
         ec = std::make_error_code(std::errc::not_connected);
         break;
       }
-      // Unsigned tick subtraction stays correct across tick-count wraparound.
       if ((xTaskGetTickCount() - start_tick) >= kVendorWriteTimeoutTicks) {
         logger_.warn_rate_limited("Vendor TX buffer full, dropping {} bytes", data.size() - offset);
         ec = std::make_error_code(std::errc::no_buffer_space);
