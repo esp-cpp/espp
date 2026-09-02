@@ -471,6 +471,40 @@ inline constexpr uint16_t OBJ_PROFILE_DECELERATION = 0x6084;       ///< Profile 
 inline constexpr uint16_t OBJ_TARGET_VELOCITY = 0x60FF;            ///< Target velocity (i32).
 /// @}
 
+/// @name Object-index bounds used for per-axis offsetting
+/// @{
+/// Inclusive low bound of the CiA 402 device-profile object range. Objects in
+/// [OBJ_DEVICE_PROFILE_MIN, OBJ_DEVICE_PROFILE_MAX] are the per-axis objects on
+/// a multi-axis drive.
+inline constexpr uint16_t OBJ_DEVICE_PROFILE_MIN = 0x6000;
+/// Inclusive high bound of the CiA 402 device-profile object range.
+inline constexpr uint16_t OBJ_DEVICE_PROFILE_MAX = 0x6FFF;
+/// Largest representable 16-bit CANopen object index.
+inline constexpr uint16_t OBJ_INDEX_MAX = 0xFFFF;
+/// Largest axis object-offset that keeps every device-profile index within the
+/// 16-bit index space (OBJ_INDEX_MAX - OBJ_DEVICE_PROFILE_MAX).
+inline constexpr uint16_t MAX_AXIS_OBJECT_OFFSET = OBJ_INDEX_MAX - OBJ_DEVICE_PROFILE_MAX;
+
+/// \brief Apply a per-axis object offset to a CiA 402 device-profile index.
+/// \details Only indices in the device-profile range
+///          [OBJ_DEVICE_PROFILE_MIN, OBJ_DEVICE_PROFILE_MAX] are offset (those
+///          are the per-axis objects). Any index outside that range, or an
+///          offset that would push the result past OBJ_INDEX_MAX, is returned
+///          unchanged. Callers that must not silently fall back on overflow
+///          should reject an offset > MAX_AXIS_OBJECT_OFFSET up front (see
+///          Ds402Drive's constructor).
+/// \param index The object index.
+/// \param offset The per-axis offset (0 for the first/only axis).
+/// \return The offset index, or \p index unchanged when not applicable.
+inline constexpr uint16_t apply_axis_offset(uint16_t index, uint16_t offset) {
+  if (index < OBJ_DEVICE_PROFILE_MIN || index > OBJ_DEVICE_PROFILE_MAX) {
+    return index;
+  }
+  const uint32_t offset_index = static_cast<uint32_t>(index) + offset;
+  return offset_index <= OBJ_INDEX_MAX ? static_cast<uint16_t>(offset_index) : index;
+}
+/// @}
+
 /// @name Controlword command values (CiA 402 §8.2.1)
 /// @{
 inline constexpr uint16_t CW_SHUTDOWN = 0x0006;         ///< Shutdown -> Ready to switch on.

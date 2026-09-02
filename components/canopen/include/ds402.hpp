@@ -38,7 +38,13 @@ public:
   struct Config {
     std::chrono::milliseconds state_timeout{
         1000}; ///< Timeout for each state transition / mode change to take effect.
-    std::chrono::milliseconds poll_period{10};            ///< Statusword polling period.
+    std::chrono::milliseconds poll_period{10}; ///< Statusword polling period.
+    uint16_t object_offset{0}; ///< Added to device-profile object indices (0x6000-0x6FFF) to
+                               ///< select an axis on a multi-axis drive: 0 for the first/only
+                               ///< axis, 0x800 for a second axis (e.g. Basicmicro MCP266 M2,
+                               ///< whose objects mirror M1 at +0x800). Communication and
+                               ///< identity objects (< 0x6000) are shared by the device and
+                               ///< never offset.
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; ///< Logger verbosity.
   };
 
@@ -49,7 +55,20 @@ public:
       : BaseComponent("Ds402Drive", config.log_level)
       , client_(client)
       , state_timeout_(config.state_timeout)
-      , poll_period_(config.poll_period) {}
+      , poll_period_(config.poll_period)
+      , object_offset_(config.object_offset) {
+    // Validate the axis offset once, up front, rather than silently falling
+    // back to the un-offset (axis 1) index later: an offset large enough to
+    // push a device-profile object past the 16-bit index space is a
+    // misconfiguration, so reject it loudly and disable offsetting.
+    if (object_offset_ > detail::ds402::MAX_AXIS_OBJECT_OFFSET) {
+      logger_.error("object_offset 0x{:04X} exceeds the maximum 0x{:04X} (it would push a "
+                    "device-profile index past 0x{:04X}); ignoring it and using axis 1",
+                    object_offset_, detail::ds402::MAX_AXIS_OBJECT_OFFSET,
+                    detail::ds402::OBJ_INDEX_MAX);
+      object_offset_ = 0;
+    }
+  }
 
   /// \brief Create a DS402 drive helper with the default configuration.
   /// \param client The CANopen client for the drive's node. Must outlive this object.
@@ -97,36 +116,38 @@ public:
   /// \param ec Set on failure. \return True on success.
   bool set_controlword(uint16_t controlword, std::error_code &ec) {
     logger_.debug("controlword <- 0x{:04X}", controlword);
-    return client_.write_u16(detail::ds402::OBJ_CONTROLWORD, 0, controlword, ec);
+    return client_.write_u16(axis_object(detail::ds402::OBJ_CONTROLWORD), 0, controlword, ec);
   }
   /// \brief Read the statusword (object 0x6041). \param ec Set on failure. \return The value.
   uint16_t get_statusword(std::error_code &ec) {
-    return client_.read_u16(detail::ds402::OBJ_STATUSWORD, 0, ec);
+    return client_.read_u16(axis_object(detail::ds402::OBJ_STATUSWORD), 0, ec);
   }
   /// \brief Read the velocity actual value (object 0x606C). \param ec Set on failure.
   /// \return The value.
   int32_t get_velocity_actual(std::error_code &ec) {
-    return client_.read_i32(detail::ds402::OBJ_VELOCITY_ACTUAL, 0, ec);
+    return client_.read_i32(axis_object(detail::ds402::OBJ_VELOCITY_ACTUAL), 0, ec);
   }
   /// \brief Read the position actual value (object 0x6064). \param ec Set on failure.
   /// \return The value.
   int32_t get_position_actual(std::error_code &ec) {
-    return client_.read_i32(detail::ds402::OBJ_POSITION_ACTUAL, 0, ec);
+    return client_.read_i32(axis_object(detail::ds402::OBJ_POSITION_ACTUAL), 0, ec);
   }
   /// \brief Write the profile velocity (object 0x6081). \param velocity Value to write.
   /// \param ec Set on failure. \return True on success.
   bool set_profile_velocity(uint32_t velocity, std::error_code &ec) {
-    return client_.write_u32(detail::ds402::OBJ_PROFILE_VELOCITY, 0, velocity, ec);
+    return client_.write_u32(axis_object(detail::ds402::OBJ_PROFILE_VELOCITY), 0, velocity, ec);
   }
   /// \brief Write the profile acceleration (object 0x6083). \param acceleration Value to write.
   /// \param ec Set on failure. \return True on success.
   bool set_profile_acceleration(uint32_t acceleration, std::error_code &ec) {
-    return client_.write_u32(detail::ds402::OBJ_PROFILE_ACCELERATION, 0, acceleration, ec);
+    return client_.write_u32(axis_object(detail::ds402::OBJ_PROFILE_ACCELERATION), 0, acceleration,
+                             ec);
   }
   /// \brief Write the profile deceleration (object 0x6084). \param deceleration Value to write.
   /// \param ec Set on failure. \return True on success.
   bool set_profile_deceleration(uint32_t deceleration, std::error_code &ec) {
-    return client_.write_u32(detail::ds402::OBJ_PROFILE_DECELERATION, 0, deceleration, ec);
+    return client_.write_u32(axis_object(detail::ds402::OBJ_PROFILE_DECELERATION), 0, deceleration,
+                             ec);
   }
 
   /// @}
@@ -225,13 +246,14 @@ public:
   ///        mode within the state timeout.
   /// \return True once modes-of-operation-display matches.
   bool set_mode(OperatingMode mode, std::error_code &ec) {
-    if (!client_.write_i8(detail::ds402::OBJ_MODES_OF_OPERATION, 0, static_cast<int8_t>(mode),
-                          ec)) {
+    if (!client_.write_i8(axis_object(detail::ds402::OBJ_MODES_OF_OPERATION), 0,
+                          static_cast<int8_t>(mode), ec)) {
       return false;
     }
     const auto deadline = std::chrono::steady_clock::now() + state_timeout_;
     do {
-      const auto display = client_.read_i8(detail::ds402::OBJ_MODES_OF_OPERATION_DISPLAY, 0, ec);
+      const auto display =
+          client_.read_i8(axis_object(detail::ds402::OBJ_MODES_OF_OPERATION_DISPLAY), 0, ec);
       if (ec) {
         return false;
       }
@@ -249,7 +271,7 @@ public:
   /// \brief Read the mode of operation display (object 0x6061).
   /// \param ec Set on failure. \return The reported mode.
   int8_t get_mode_display(std::error_code &ec) {
-    return client_.read_i8(detail::ds402::OBJ_MODES_OF_OPERATION_DISPLAY, 0, ec);
+    return client_.read_i8(axis_object(detail::ds402::OBJ_MODES_OF_OPERATION_DISPLAY), 0, ec);
   }
 
   /// @}
@@ -261,7 +283,7 @@ public:
   /// \param velocity Target velocity in device units.
   /// \param ec Set on failure. \return True on success.
   bool set_target_velocity(int32_t velocity, std::error_code &ec) {
-    return client_.write_i32(detail::ds402::OBJ_TARGET_VELOCITY, 0, velocity, ec);
+    return client_.write_i32(axis_object(detail::ds402::OBJ_TARGET_VELOCITY), 0, velocity, ec);
   }
 
   /// \brief Command a profile-position move (object 0x607A + new-set-point handshake).
@@ -277,7 +299,7 @@ public:
   /// \return True once the set-point was acknowledged and bit 4 released.
   bool set_target_position(int32_t position, std::error_code &ec, bool immediate = true,
                            bool relative = false) {
-    if (!client_.write_i32(detail::ds402::OBJ_TARGET_POSITION, 0, position, ec)) {
+    if (!client_.write_i32(axis_object(detail::ds402::OBJ_TARGET_POSITION), 0, position, ec)) {
       return false;
     }
     uint16_t controlword = detail::ds402::CW_ENABLE_OPERATION;
@@ -376,9 +398,21 @@ protected:
     }
   }
 
+  /// Apply the configured axis offset to a CiA 402 device-profile object index.
+  /// Only objects the helper knows to be axis-relative -- the standard
+  /// device-profile range (OBJ_DEVICE_PROFILE_MIN..OBJ_DEVICE_PROFILE_MAX) --
+  /// are offset; every other index (communication / identity objects below the
+  /// range, and anything above it) is not offset and is returned unchanged.
+  /// object_offset_ is validated in the constructor, so the addition never
+  /// overflows the 16-bit index space here.
+  uint16_t axis_object(uint16_t index) const {
+    return detail::ds402::apply_axis_offset(index, object_offset_);
+  }
+
   CanopenClient &client_;
   std::chrono::milliseconds state_timeout_;
   std::chrono::milliseconds poll_period_;
+  uint16_t object_offset_;
 };
 
 } // namespace espp
