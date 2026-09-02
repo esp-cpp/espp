@@ -338,6 +338,44 @@ static void test_sdo_segmented_size_cap() {
   CHECK(!b.consume(seg)); // 14 > 10 -> refused
 }
 
+// Ds402Drive's per-axis object offsetting (apply_axis_offset): device-profile
+// objects (0x6000-0x6FFF) shift by the axis offset; everything else is
+// returned unchanged; an offset that would overflow the 16-bit index space is
+// not applied.
+static void test_axis_offset() {
+  std::printf("test_axis_offset\n");
+  // named bounds are the expected CiA 402 device-profile range
+  CHECK(ds::OBJ_DEVICE_PROFILE_MIN == 0x6000);
+  CHECK(ds::OBJ_DEVICE_PROFILE_MAX == 0x6FFF);
+  CHECK(ds::OBJ_INDEX_MAX == 0xFFFF);
+  CHECK(ds::MAX_AXIS_OBJECT_OFFSET == 0x9000);
+
+  // offset 0 is the identity for every index
+  CHECK(ds::apply_axis_offset(ds::OBJ_CONTROLWORD, 0) == 0x6040);
+  CHECK(ds::apply_axis_offset(ds::OBJ_TARGET_POSITION, 0) == 0x607A);
+
+  // (1) device-profile objects are offset (M2 mirrors M1 at +0x800)
+  CHECK(ds::apply_axis_offset(ds::OBJ_CONTROLWORD, 0x800) == 0x6840);
+  CHECK(ds::apply_axis_offset(ds::OBJ_STATUSWORD, 0x800) == 0x6841);
+  CHECK(ds::apply_axis_offset(ds::OBJ_TARGET_POSITION, 0x800) == 0x687A);
+  CHECK(ds::apply_axis_offset(ds::OBJ_TARGET_VELOCITY, 0x800) == 0x68FF);
+  // the inclusive range boundaries
+  CHECK(ds::apply_axis_offset(0x6000, 0x800) == 0x6800);
+  CHECK(ds::apply_axis_offset(0x6FFF, 0x800) == 0x77FF);
+
+  // (2) objects outside the device-profile range are never offset
+  CHECK(ds::apply_axis_offset(ds::OBJ_DEVICE_TYPE, 0x800) == 0x1000); // 0x1000
+  CHECK(ds::apply_axis_offset(ds::OBJ_IDENTITY, 0x800) == 0x1018);    // 0x1018
+  CHECK(ds::apply_axis_offset(0x5FFF, 0x800) == 0x5FFF);              // just below range
+  CHECK(ds::apply_axis_offset(0x7000, 0x800) == 0x7000);              // just above range
+
+  // (3) an offset that would push a device-profile index past 0xFFFF is not
+  // applied (returns the index unchanged rather than wrapping)
+  CHECK(ds::apply_axis_offset(0x6FFF, 0x9001) == 0x6FFF); // 0x6FFF + 0x9001 = 0x10000
+  CHECK(ds::apply_axis_offset(0x6FFF, 0x9000) == 0xFFFF); // exactly 0xFFFF still fits
+  CHECK(ds::apply_axis_offset(0x6000, 0xA000) == 0x6000); // overflow for this index
+}
+
 int main() {
   test_nmt();
   test_sync_and_pdo();
@@ -349,6 +387,7 @@ int main() {
   test_sdo_segmented_size_cap();
   test_sdo_segmented_upload();
   test_le_helpers();
+  test_axis_offset();
   test_ds402_decode();
 
   if (g_failures == 0) {
