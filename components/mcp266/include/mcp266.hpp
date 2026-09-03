@@ -12,6 +12,7 @@
 #include "canopen_client.hpp"
 #include "detail/mcp266_core.hpp"
 #include "ds402.hpp"
+#include "motor_controller.hpp"
 
 namespace espp {
 
@@ -52,8 +53,8 @@ namespace espp {
 /// \snippet mcp266_example.cpp mcp266 example
 class Mcp266 : public BaseComponent {
 public:
-  /// \brief Motor channel selector.
-  enum class Axis { M1, M2 };
+  /// \brief Motor channel selector (shared across the espp motor drivers).
+  using Axis = MotorAxis;
 
   /// \brief Configuration for the Mcp266 controller.
   struct Config {
@@ -146,11 +147,11 @@ public:
   /// \param axis The motor channel.
   /// \param min_pos Minimum commandable position.
   /// \param max_pos Maximum commandable position.
-  /// \param ec Set on failure.
   /// \param fallback_p Position P gain to seed when the stored gain is zero.
+  /// \param ec Set on failure.
   /// \return True on success.
-  bool configure_position_loop(Axis axis, int32_t min_pos, int32_t max_pos, std::error_code &ec,
-                               int32_t fallback_p = kDefaultPositionP) {
+  bool configure_position_loop(Axis axis, int32_t min_pos, int32_t max_pos, int32_t fallback_p,
+                               std::error_code &ec) {
     ec.clear();
     AxisState &a = axis_state(axis);
     std::array<int32_t, 7> readback{};
@@ -193,13 +194,23 @@ public:
     return true;
   }
 
-  /// \brief Set the CiA 402 software position limits (0x607D:1/:2) for an axis.
+  /// \brief Configure an axis's position loop using the default coarse fallback
+  ///        P gain (see the fallback_p overload). Convenience for the common case.
+  bool configure_position_loop(Axis axis, int32_t min_pos, int32_t max_pos, std::error_code &ec) {
+    return configure_position_loop(axis, min_pos, max_pos, kDefaultPositionP, ec);
+  }
+
+  /// \brief Set the CiA 402 software position limits (object 0x607D:1/:2) for an
+  ///        axis — a per-move envelope enforced by the drive's trajectory
+  ///        generator. Distinct from configure_position_loop()'s min/max, which
+  ///        writes the manufacturer position-PID MinPos/MaxPos clamp.
   /// \param axis The motor channel.
   /// \param min_pos Lower limit.
   /// \param max_pos Upper limit.
   /// \param ec Set on failure.
   /// \return True on success.
-  bool set_position_limits(Axis axis, int32_t min_pos, int32_t max_pos, std::error_code &ec) {
+  bool set_software_position_limits(Axis axis, int32_t min_pos, int32_t max_pos,
+                                    std::error_code &ec) {
     ec.clear();
     if (min_pos > max_pos) {
       ec = std::make_error_code(std::errc::invalid_argument);
@@ -421,5 +432,9 @@ private:
   AxisState m1_;
   AxisState m2_;
 };
+
+static_assert(
+    MotorController<Mcp266>,
+    "Mcp266 must satisfy the espp::MotorController concept (kept in sync with Basicmicro)");
 
 } // namespace espp

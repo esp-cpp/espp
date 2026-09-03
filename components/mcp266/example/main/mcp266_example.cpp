@@ -102,7 +102,7 @@ extern "C" void app_main(void) {
     logger.error("Failed to configure M1 position loop: {}", ec.message());
     return;
   }
-  mcp.set_position_limits(Axis::M1, -20'000, 20'000, ec);
+  mcp.set_software_position_limits(Axis::M1, -20'000, 20'000, ec);
 
   // Run a small profile-position sequence and report arrival.
   static constexpr int32_t targets[] = {10'000, -10'000, 0};
