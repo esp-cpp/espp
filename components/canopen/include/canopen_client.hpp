@@ -12,6 +12,7 @@
 #include <unordered_map>
 
 #include "base_component.hpp"
+#include "canopen_format_helpers.hpp"
 #include "detail/canopen_core.hpp"
 
 namespace espp {
@@ -458,6 +459,12 @@ public:
   uint32_t last_abort_code() const {
     std::lock_guard<std::mutex> lock(response_mutex_);
     return last_abort_code_;
+  }
+
+  /// \brief Human-readable description of a CiA 301 SDO abort code (e.g. for
+  ///        logging the reason behind an SDO failure / last_abort_code()).
+  static const char *abort_code_to_string(uint32_t abort_code) {
+    return detail::canopen::sdo_abort_to_string(abort_code);
   }
 
   /// @}

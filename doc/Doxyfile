@@ -257,6 +257,7 @@ INPUT = \
   $(PROJECT_PATH)/components/button/include/button.hpp \
   $(PROJECT_PATH)/components/byte90/include/byte90.hpp \
   $(PROJECT_PATH)/components/canopen/include/canopen_client.hpp \
+  $(PROJECT_PATH)/components/canopen/include/canopen_format_helpers.hpp \
   $(PROJECT_PATH)/components/canopen/include/detail/canopen_core.hpp \
   $(PROJECT_PATH)/components/canopen/include/ds402.hpp \
   $(PROJECT_PATH)/components/chsc6x/include/chsc6x.hpp \

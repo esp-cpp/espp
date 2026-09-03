@@ -194,15 +194,19 @@ public:
   }
 
   /// \brief Set the CiA 402 software position limits (0x607D:1/:2) for an axis.
-  /// \param axis The motor channel. \param min_pos Lower limit. \param max_pos
-  /// Upper limit. \param ec Set on failure. \return True on success.
+  /// \param axis The motor channel.
+  /// \param min_pos Lower limit.
+  /// \param max_pos Upper limit.
+  /// \param ec Set on failure.
+  /// \return True on success.
   bool set_position_limits(Axis axis, int32_t min_pos, int32_t max_pos, std::error_code &ec) {
     ec.clear();
     if (min_pos > max_pos) {
       ec = std::make_error_code(std::errc::invalid_argument);
       return false;
     }
-    const uint16_t obj = static_cast<uint16_t>(0x607D + axis_state(axis).objects.object_offset);
+    const uint16_t obj = detail::ds402::apply_axis_offset(
+        detail::ds402::OBJ_SOFTWARE_POSITION_LIMIT, axis_state(axis).objects.object_offset);
     return client_.write_i32(obj, 1, min_pos, ec) && client_.write_i32(obj, 2, max_pos, ec);
   }
 
@@ -263,25 +267,55 @@ public:
   /// @name Feedback
   /// @{
 
-  /// \brief Read the actual position (0x6064 / 0x6864). \param axis Channel.
-  /// \param count Out: encoder counts. \param ec Set on failure. \return True on success.
+  /// \brief Read the actual position (0x6064 / 0x6864).
+  /// \param axis Channel.
+  /// \param count Out: encoder counts.
+  /// \param ec Set on failure.
+  /// \return True on success.
   bool read_encoder(Axis axis, int32_t &count, std::error_code &ec) {
     ec.clear();
     count = axis_state(axis).drive.get_position_actual(ec);
     return !ec;
   }
-  /// \brief Read the actual velocity (0x606C / 0x686C). \param axis Channel.
-  /// \param qpps Out: counts/s. \param ec Set on failure. \return True on success.
+  /// \brief Read the actual velocity (0x606C / 0x686C).
+  /// \param axis Channel.
+  /// \param qpps Out: counts/s.
+  /// \param ec Set on failure.
+  /// \return True on success.
   bool read_speed(Axis axis, int32_t &qpps, std::error_code &ec) {
     ec.clear();
     qpps = axis_state(axis).drive.get_velocity_actual(ec);
     return !ec;
   }
-  /// \brief Read the CiA 402 statusword (0x6041 / 0x6841). \param axis Channel.
-  /// \param statusword Out. \param ec Set on failure. \return True on success.
+  /// \brief Read the CiA 402 statusword (0x6041 / 0x6841).
+  /// \param axis Channel.
+  /// \param statusword Out.
+  /// \param ec Set on failure.
+  /// \return True on success.
   bool read_statusword(Axis axis, uint16_t &statusword, std::error_code &ec) {
     ec.clear();
     statusword = axis_state(axis).drive.get_statusword(ec);
+    return !ec;
+  }
+  /// \brief Read the decoded CiA 402 drive state of an axis (from its statusword).
+  /// \param axis Channel.
+  /// \param state Out: the power-drive-system state.
+  /// \param ec Set on failure.
+  /// \return True on success.
+  bool get_state(Axis axis, Ds402Drive::State &state, std::error_code &ec) {
+    ec.clear();
+    state = axis_state(axis).drive.get_state(ec);
+    return !ec;
+  }
+  /// \brief Whether an axis reports "target reached" (statusword bit 10) — the
+  ///        authoritative arrival signal for profile moves.
+  /// \param axis Channel.
+  /// \param reached Out.
+  /// \param ec Set on failure.
+  /// \return True on success.
+  bool is_target_reached(Axis axis, bool &reached, std::error_code &ec) {
+    ec.clear();
+    reached = axis_state(axis).drive.is_target_reached(ec);
     return !ec;
   }
 
@@ -290,15 +324,19 @@ public:
   /// @name Device telemetry
   /// @{
 
-  /// \brief Read the main battery voltage (mirrored command 24). \param volts
-  /// Out: volts. \param ec Set on failure. \return True on success.
+  /// \brief Read the main battery voltage (mirrored command 24).
+  /// \param volts Out: volts.
+  /// \param ec Set on failure.
+  /// \return True on success.
   bool read_main_battery_voltage(float &volts, std::error_code &ec) {
     ec.clear();
     volts = static_cast<float>(client_.read_u16(detail::mcp266::kMainBatteryObject, 0, ec)) / 10.0f;
     return !ec;
   }
-  /// \brief Read the board temperature (mirrored command 82). \param temp_c
-  /// Out: degrees C. \param ec Set on failure. \return True on success.
+  /// \brief Read the board temperature (mirrored command 82).
+  /// \param temp_c Out: degrees C.
+  /// \param ec Set on failure.
+  /// \return True on success.
   bool read_temperature(float &temp_c, std::error_code &ec) {
     ec.clear();
     temp_c =
@@ -319,15 +357,22 @@ public:
   /// @}
 
   /// \brief Access an axis's underlying Ds402Drive for advanced CiA 402 use.
-  /// \param axis The motor channel. \return Reference to the axis drive helper.
+  /// \param axis The motor channel.
+  /// \return Reference to the axis drive helper.
   Ds402Drive &drive(Axis axis) { return axis_state(axis).drive; }
 
 private:
   /// Coarse fallback position P gain, used only when the drive's stored gain
   /// reads back as zero (see configure_position_loop()). It is a non-tuned
   /// starting point that produces motion out of the box, not a good gain for
-  /// any particular motor; callers should tune and pass their own.
-  static constexpr int32_t kDefaultPositionP = 0x3C83;
+  /// any particular motor; callers should tune and pass their own. 15491 is
+  /// ~15.1 in the MCP's position-PID fixed-point representation (x1024).
+  static constexpr int32_t kDefaultPositionP = 15491; // = 0x3C83
+
+  /// The MCP266 does not echo the requested mode in 0x6061, so after writing the
+  /// mode of operation enable() waits this fixed settle time before reading the
+  /// state rather than polling the (unchanging) mode display.
+  static constexpr auto kModeSettle = std::chrono::milliseconds(25);
 
   /// Per-axis state: the manufacturer object addresses and a Ds402Drive whose
   /// object offset selects M1 (0) or M2 (0x800).
@@ -353,12 +398,13 @@ private:
   /// display -- would time out), clear any fault, and walk to Operation
   /// Enabled.
   bool enable(AxisState &a, Ds402Drive::OperatingMode mode, std::error_code &ec) {
-    const uint16_t mode_obj = static_cast<uint16_t>(0x6060 + a.objects.object_offset);
+    const uint16_t mode_obj = detail::ds402::apply_axis_offset(
+        detail::ds402::OBJ_MODES_OF_OPERATION, a.objects.object_offset);
     if (!client_.write_i8(mode_obj, 0, static_cast<int8_t>(mode), ec)) {
       logger_.error("{}: failed to set mode: {}", a.name, ec.message());
       return false;
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    std::this_thread::sleep_for(kModeSettle);
     const auto state = a.drive.get_state(ec);
     if (ec) {
       return false;
