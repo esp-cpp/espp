@@ -77,6 +77,8 @@ jobs:
           target: esp32
         - path: 'components/basicmicro/example'
           target: esp32
+        - path: 'components/mcp266/example'
+          target: esp32
         - path: 'components/bdc_driver/example'
           target: esp32s3
         - path: 'components/binary-log/example'

@@ -56,6 +56,7 @@ jobs:
             components/base_component
             components/base_peripheral
             components/basicmicro
+            components/mcp266
             components/bdc_driver
             components/binary-log
             components/bldc_current_sense
