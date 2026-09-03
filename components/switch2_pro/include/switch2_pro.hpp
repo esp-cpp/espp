@@ -31,11 +31,14 @@ namespace espp {
 /// data, and answers the console's command channel — including the reverse-
 /// engineered pairing handshake so a real console will bond with it.
 ///
-/// Milestone status: GATT + pairing skeleton. Advertising, the custom service
-/// tree, and the 0x15 pairing handshake are wired; the full init/calibration
-/// sequence and input-report streaming are staged in follow-up work (see
-/// DESIGN.md). Emulating the console's 5 ms connection interval additionally
-/// requires the opt-in NimBLE patch (tools/patch_nimble_5ms.py).
+/// Status: works on ESP32-C6 (and the other open-NimBLE-controller chips) —
+/// advertising, the custom GATT tree, the 0x15 pairing handshake, the full
+/// init/calibration command sequence, LL encryption, bond persistence, continuous
+/// input-report streaming, reconnect, and wake-from-sleep are all implemented and
+/// verified against a real console. The ESP32-S3 builds and pairs but does not yet
+/// stream input reliably (see the component README). Reconnect and wake-from-sleep
+/// use the console's sub-spec 5 ms interval, which requires the opt-in NimBLE patch
+/// (tools/patch_nimble_5ms.py).
 ///
 /// \section switch2_pro_ex1 Example
 /// \snippet switch2_pro_example.cpp switch2_pro example
@@ -168,7 +171,8 @@ protected:
   /// the response characteristic matching the request source.
   void send_response(bool via_vibration_command, uint8_t cmd, uint8_t transport, uint8_t sub,
                      uint8_t byte4, uint8_t byte5, const uint8_t *payload, size_t payload_len);
-  /// Header-only ACK (byte4=0x00, byte5=0xf8, payload = {0x01,0,0,0}).
+  /// Header-only BLE ACK (byte4=0x10, byte5=0x78, no payload) — matches a real
+  /// Pro Controller 2's init-sequence ACKs.
   void send_ack(bool via_vibration_command, uint8_t cmd, uint8_t transport, uint8_t sub);
 
   /// Inject the current LTK (ltk_) into NimBLE's security store for `peer` so the

@@ -20,6 +20,12 @@ tags:
 dependencies:
   idf:
     version: '>=5.5'
+  # NOTE: this component needs NimBLEServer::registerServicesFirst() (to place the
+  # Nintendo services at the low attribute handles the console addresses by fixed
+  # handle). That API is not in a released esp-nimble-cpp yet — it is upstream at
+  # h2zero/esp-nimble-cpp#443. Until it ships in a tagged release, build against
+  # the pinned esp-cpp/esp-nimble-cpp submodule; bump the version floor below to
+  # the release that includes it once available.
   h2zero/esp-nimble-cpp:
     version: '>=2.3.0'
   espp/ble_gatt_server: '>=1.0'

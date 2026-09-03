@@ -158,7 +158,8 @@ bool Switch2Pro::init() {
   cfg.prio = 5;
   cfg.pin_to_core = 0;
   cfg.thread_name = "s2p_stream";
-  esp_pthread_set_cfg(&cfg);
+  if (esp_pthread_set_cfg(&cfg) != ESP_OK)
+    logger_.warn("esp_pthread_set_cfg failed; streaming thread will use default stack/prio/core");
   input_stream_thread_ = std::thread(&Switch2Pro::input_stream_loop, this);
   return true;
 }
@@ -227,7 +228,11 @@ void Switch2Pro::configure_callbacks() {
                    (now - stream_start_us_) / 1e6f, tx_completions_.load(), enomem_count_,
                    wedge_reported_, (now - last_tx_complete_us_.load()) / 1000.0f, pool_stats());
     }
-    paired_ = false;
+    // NOTE: paired_ is intentionally NOT cleared here. is_paired() reports whether
+    // the pairing handshake has completed / a bond exists — which survives a
+    // disconnect (the bond is persisted in NVS and a bonded reconnect does not
+    // re-run the 0x15 handshake). Use is_connected()/is_input_streaming() for
+    // live-session state.
     input_subscribed_ = false;
     active_conn_handle_ = 0xffff; // so the wake timer knows we're disconnected
     advertise();

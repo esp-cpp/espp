@@ -1,9 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
 
 /// @file switch2_pro_flash.hpp
 /// @brief Simulated controller flash the console reads during init (command
@@ -61,14 +63,10 @@ inline size_t simulated_flash_read(uint32_t addr, size_t len, uint8_t *out) {
   };
   for (size_t i = 0; i < len; ++i) {
     const uint32_t a = addr + static_cast<uint32_t>(i);
-    uint8_t value = 0xff; // erased flash default
-    for (const auto &blk : kBlocks) {
-      if (a >= blk.addr && a < blk.addr + blk.len) {
-        value = blk.data[a - blk.addr];
-        break;
-      }
-    }
-    out[i] = value;
+    const auto *blk = std::find_if(std::begin(kBlocks), std::end(kBlocks), [a](const Block &b) {
+      return a >= b.addr && a < b.addr + b.len;
+    });
+    out[i] = (blk != std::end(kBlocks)) ? blk->data[a - blk->addr] : 0xff; // 0xff = erased flash
   }
   return len;
 }
