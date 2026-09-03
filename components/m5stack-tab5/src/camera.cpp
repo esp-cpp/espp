@@ -245,6 +245,12 @@ bool M5StackTab5::initialize_camera(const camera_frame_callback_t &callback,
   // hardware pass. The callback receives this preview buffer.
   ppa_client_config_t ppa_cfg = {};
   ppa_cfg.oper_type = PPA_OPERATION_SRM;
+  // Throttle the PPA's AXI bursts (default 128 bytes): full-length PPA bursts
+  // against PSRAM are known to starve the DSI panel's continuous framebuffer
+  // scan-out DMA and underrun its FIFO, streaking the display (see the display
+  // PPA client in video.cpp and lvgl/lvgl#9590). The camera PPA runs every
+  // frame concurrently with display flushes, so keep its bursts short too.
+  ppa_cfg.data_burst_length = PPA_DATA_BURST_LENGTH_64;
   if (ppa_register_client(&ppa_cfg, &camera_ppa_client_) != ESP_OK) {
     logger_.error("Could not register the camera PPA client");
     stop_camera();
