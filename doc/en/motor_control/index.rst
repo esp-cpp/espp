@@ -10,6 +10,7 @@ Motor-control algorithms and controller interfaces. See also the
 
    pid
    adrc
+   motor_controller
    basicmicro
    mcp266
    odrive_ascii

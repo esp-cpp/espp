@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <system_error>
 
+#include "format.hpp"
+
 namespace espp {
 
 /// \brief Motor channel selector shared by the espp motor-controller drivers.
@@ -48,3 +50,10 @@ concept MotorController = requires(T t, MotorAxis axis, int16_t duty, int32_t qp
 };
 
 } // namespace espp
+
+// @brief fmt formatter for espp::MotorAxis (prints "M1" / "M2").
+template <> struct fmt::formatter<espp::MotorAxis> : fmt::formatter<std::string_view> {
+  template <typename FormatContext> auto format(espp::MotorAxis axis, FormatContext &ctx) const {
+    return fmt::formatter<std::string_view>::format(axis == espp::MotorAxis::M1 ? "M1" : "M2", ctx);
+  }
+};

@@ -227,6 +227,7 @@ INPUT = \
   $(PROJECT_PATH)/components/aw9523/include/aw9523.hpp \
   $(PROJECT_PATH)/components/base_component/include/base_component.hpp \
   $(PROJECT_PATH)/components/base_peripheral/include/base_peripheral.hpp \
+  $(PROJECT_PATH)/components/motor_controller/include/motor_controller.hpp \
   $(PROJECT_PATH)/components/basicmicro/include/basicmicro.hpp \
   $(PROJECT_PATH)/components/basicmicro/include/detail/basicmicro_core.hpp \
   $(PROJECT_PATH)/components/mcp266/include/mcp266.hpp \
