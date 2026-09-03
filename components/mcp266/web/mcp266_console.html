@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>espp MCP266 Console (WebUSB / Web Serial)</title>
+  <meta name="description" content="Configure, command, and monitor a Basicmicro MCP266 dual-channel motor controller over a USB-to-CANopen bridge, from the browser: per-axis position loop setup, profile-position moves, and live status.">
+  <!--
+    espp MCP266 Console
+    ===================
+    A single-file, offline, dependency-free browser front-end for the espp MCP266
+    webapp example (components/mcp266/webapp_example). The ESP32 runs the
+    espp::Mcp266 driver and exposes a small HIGH-LEVEL protocol over USB; this
+    page speaks it over EITHER WebUSB (vendor 0xFF interface) OR Web Serial. All
+    CANopen/DS402 work happens on the device - this page just sends configure /
+    command / status messages.
+
+    Framed with the espp stream_frame v2 codec, routed on module id 6. Requests
+    use type high-nibble 6; replies/events use high-nibble E (reply flag set).
+    Status payload (25 bytes, little-endian): per axis M1 then M2
+    [pos i32][vel i32][statusword u16], then [battery_dV u16][temp_dC u16][flags u8].
+  -->
+  <style>
+    :root {
+      --bg:#f4f6f9; --panel-bg:#fff; --panel-border:#d9dee6; --text:#1c2330; --text-muted:#5c6675;
+      --accent:#2563eb; --accent-hover:#1d4ed8; --accent-contrast:#fff; --danger:#dc2626; --ok:#16a34a;
+      --warn:#b45309; --log-bg:#0f1420; --log-text:#d6dbe6; --tx:#7dd3fc; --rx:#86efac; --err:#fca5a5;
+      --sys:#fcd34d; --time:#64748b; --input-bg:#fff; --input-border:#c3cbd6; --chip-bg:#eef2f8;
+      --row-alt:#f7f9fc; --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#0b0e14; --panel-bg:#151a23; --panel-border:#262d3a; --text:#e6eaf2; --text-muted:#98a2b3;
+        --accent:#3b82f6; --accent-hover:#60a5fa; --accent-contrast:#0b0e14; --danger:#ef4444; --ok:#22c55e;
+        --warn:#f59e0b; --log-bg:#05070c; --log-text:#cdd4e0; --tx:#38bdf8; --rx:#4ade80; --err:#f87171;
+        --sys:#fbbf24; --time:#64748b; --input-bg:#0e1219; --input-border:#2b3341; --chip-bg:#1b2230;
+        --row-alt:#10151d; --shadow:0 1px 3px rgba(0,0,0,.4);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg:#0b0e14; --panel-bg:#151a23; --panel-border:#262d3a; --text:#e6eaf2; --text-muted:#98a2b3;
+      --accent:#3b82f6; --accent-hover:#60a5fa; --accent-contrast:#0b0e14; --danger:#ef4444; --ok:#22c55e;
+      --warn:#f59e0b; --log-bg:#05070c; --log-text:#cdd4e0; --tx:#38bdf8; --rx:#4ade80; --err:#f87171;
+      --sys:#fbbf24; --time:#64748b; --input-bg:#0e1219; --input-border:#2b3341; --chip-bg:#1b2230; --row-alt:#10151d;
+    }
+    :root[data-theme="light"] {
+      --bg:#f4f6f9; --panel-bg:#fff; --panel-border:#d9dee6; --text:#1c2330; --text-muted:#5c6675;
+      --accent:#2563eb; --accent-hover:#1d4ed8; --accent-contrast:#fff; --danger:#dc2626; --ok:#16a34a;
+      --warn:#b45309; --log-bg:#0f1420; --log-text:#d6dbe6; --tx:#7dd3fc; --rx:#86efac; --err:#fca5a5;
+      --sys:#fcd34d; --time:#64748b; --input-bg:#fff; --input-border:#c3cbd6; --chip-bg:#eef2f8; --row-alt:#f7f9fc;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.45; min-height: 100vh; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 16px; }
+    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    header h1 { font-size: 18px; margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--chip-bg); color: var(--text-muted); border: 1px solid var(--panel-border); }
+    .status-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+    .status-pill.connected { color: var(--ok); } .status-pill.connected::before { background: var(--ok); }
+    .status-pill.error { color: var(--danger); } .status-pill.error::before { background: var(--danger); }
+    .panel { background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 10px; box-shadow: var(--shadow); padding: 14px; margin-bottom: 14px; }
+    .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 0 0 10px; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .row + .row { margin-top: 10px; }
+    .muted { color: var(--text-muted); font-size: 12.5px; }
+    .spacer { flex: 1 1 auto; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field > span { font-size: 12px; color: var(--text-muted); }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+    button { font: inherit; padding: 7px 14px; border-radius: 7px; cursor: pointer; border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text); }
+    button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    button.small { padding: 5px 10px; font-size: 13px; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+    input[type="text"], input[type="number"] { font: inherit; padding: 6px 8px; border-radius: 6px; background: var(--input-bg); color: var(--text); border: 1px solid var(--input-border); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; width: 110px; }
+    input.tiny { width: 78px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .axis-title { font-weight: 700; font-size: 14px; }
+    .state-badge { display: inline-block; padding: 3px 10px; border-radius: 8px; font-weight: 700; font-size: 12.5px; border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text-muted); }
+    .state-badge.enabled { color: var(--ok); border-color: var(--ok); }
+    .state-badge.ready { color: var(--accent); border-color: var(--accent); }
+    .state-badge.fault { color: var(--danger); border-color: var(--danger); }
+    .state-badge.qstop { color: var(--warn); border-color: var(--warn); }
+    .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px; margin-top: 10px; }
+    .kv .k { color: var(--text-muted); } .kv .v { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+    hr.sep { border: none; border-top: 1px solid var(--panel-border); margin: 12px 0; }
+    .statusline { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .statusline b { color: var(--text); font-weight: 600; }
+    .log { background: var(--log-bg); color: var(--log-text); border-radius: 8px; padding: 10px 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5; height: 170px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+    .log .t { color: var(--time); } .log .tx { color: var(--tx); } .log .rx { color: var(--rx); } .log .err { color: var(--err); } .log .sys { color: var(--sys); }
+    footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
+    #unsupported { display: none; background: var(--panel-bg); border: 1px solid var(--danger); color: var(--danger); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>espp MCP266 Console <span class="muted">(WebUSB / Web Serial)</span></h1>
+      <span id="status" class="status-pill">Disconnected</span>
+    </header>
+
+    <div id="unsupported">
+      This browser supports neither WebUSB nor Web Serial. Use a Chromium-based browser
+      (Chrome / Edge / Opera) on a secure origin (https, localhost or file://).
+    </div>
+
+    <!-- ============================ Device ============================ -->
+    <div class="panel">
+      <h2>Device</h2>
+      <div class="row">
+        <button id="connectUsbBtn" class="primary">Connect (WebUSB)</button>
+        <button id="connectSerialBtn">Connect (Web Serial)</button>
+        <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
+        <label><input type="checkbox" id="anyDevice"> Any device (ignore VID/PID filter)</label>
+        <div class="spacer"></div>
+        <button id="startBtn" class="small" disabled title="NMT-start the node + clear faults">Start node</button>
+        <button id="resetFaultsBtn" class="small" disabled>Reset faults</button>
+        <button id="resetEstopBtn" class="small" disabled>Reset e-stop</button>
+      </div>
+      <p id="devInfo" class="muted" style="margin: 10px 0 0;">Not connected. Default WebUSB filter: VID 0x1209 / PID 0x0d32 (espp default).</p>
+      <div class="statusline" style="margin-top:8px;">
+        <span>Device type: <b id="devType">-</b></span>
+        <span>Name: <b id="devName">-</b></span>
+        <span>Battery: <b id="devBatt">-</b></span>
+        <span>Temp: <b id="devTemp">-</b></span>
+        <div class="spacer"></div>
+        <label><input type="checkbox" id="livePoll"> Live status</label>
+        <button id="refreshBtn" class="small" disabled>Refresh</button>
+      </div>
+    </div>
+
+    <!-- ============================ Axes ============================ -->
+    <div class="grid2" id="axes"></div>
+
+    <!-- ============================ Log ============================ -->
+    <div class="panel">
+      <h2>Log <button id="clearLogBtn" class="small" style="float:right; margin-top:-4px;">Clear</button></h2>
+      <div id="log" class="log"></div>
+    </div>
+
+    <footer>
+      espp MCP266 Console &middot; talks to the espp MCP266 webapp example
+      (<span class="mono">components/mcp266/webapp_example</span>), which runs the
+      <span class="mono">espp::Mcp266</span> driver over CANopen. Single-file, offline, no dependencies.
+    </footer>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ===================== stream_frame protocol =====================
+    const DEFAULT_VID = 0x1209, DEFAULT_PID = 0x0d32, VENDOR_CLASS = 0xFF;
+    const MAGIC0 = 0x54, MAGIC1 = 0x4F, HEADER_SIZE = 9, CRC_SIZE = 4, CORRELATION_SIZE = 2;
+    const MAX_PAYLOAD = 4096, MAX_FRAME = HEADER_SIZE + CORRELATION_SIZE + MAX_PAYLOAD + CRC_SIZE;
+    const MODULE = 6, FLAGS_VERSION = 1, FLAGS_REQUEST = (FLAGS_VERSION << 4), FLAGS_REPLY_BIT = 0x01, FLAG_CORRELATION = 0x02;
+    // requests (0x6X)
+    const T_START = 0x60, T_RESET_FAULTS = 0x61, T_RESET_ESTOP = 0x62, T_CONFIG_POS = 0x63,
+          T_SET_LIMITS = 0x64, T_MOVE = 0x65, T_SPEED = 0x66, T_DUTY = 0x67, T_GET_STATUS = 0x68,
+          T_SET_STREAM = 0x69, T_GET_INFO = 0x6A;
+    // replies (0xEX)
+    const T_STATUS = 0xE0, T_OK = 0xE1, T_ERROR = 0xE2, T_DEVINFO = 0xE3;
+    const AXIS_M1 = 0, AXIS_M2 = 1;
+    const REQ_NAME = { 0x60:"start",0x61:"reset faults",0x62:"reset e-stop",0x63:"configure position loop",
+      0x64:"set position limits",0x65:"move",0x66:"drive speed",0x67:"drive duty",0x68:"get status",
+      0x69:"set stream",0x6A:"get info" };
+    const STATUS_POLL_MS = 250;
+
+    const els = {};
+    for (const id of ["status","connectUsbBtn","connectSerialBtn","disconnectBtn","anyDevice","devInfo",
+      "devType","devName","devBatt","devTemp","livePoll","refreshBtn","startBtn","resetFaultsBtn",
+      "resetEstopBtn","axes","clearLogBtn","log","unsupported"]) els[id] = document.getElementById(id);
+
+    function logLine(cls, text) {
+      const line = document.createElement("div");
+      const time = document.createElement("span"); time.className = "t"; time.textContent = new Date().toLocaleTimeString() + " ";
+      const body = document.createElement("span"); body.className = cls; body.textContent = text;
+      line.appendChild(time); line.appendChild(body); els.log.appendChild(line);
+      while (els.log.childNodes.length > 400) els.log.removeChild(els.log.firstChild);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+    els.clearLogBtn.addEventListener("click", () => { els.log.textContent = ""; });
+    function setStatus(state, text) { els.status.className = "status-pill" + (state ? " " + state : ""); els.status.textContent = text; }
+
+    // ---- CRC-32 (zlib), golden crc32("123456789") === 0xCBF43926 ----
+    const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c=(c&1)?((c>>>1)^0xEDB88320):(c>>>1); t[i]=c>>>0; } return t; })();
+    function crc32(bytes) { let c=0xFFFFFFFF; for (let i=0;i<bytes.length;i++) c=CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8); return (~c)>>>0; }
+    if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) throw new Error("CRC-32 self-test failed");
+
+    function buildFrame(type, payload) {
+      payload = payload || new Uint8Array(0);
+      const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
+      const view = new DataView(frame.buffer);
+      view.setUint16(0, 0x4F54, true);
+      frame[2] = FLAGS_REQUEST | ((type & 0x80) ? FLAGS_REPLY_BIT : 0);
+      frame[3] = MODULE; frame[4] = type;
+      view.setUint32(5, payload.length, true);
+      frame.set(payload, HEADER_SIZE);
+      view.setUint32(HEADER_SIZE + payload.length, crc32(frame.subarray(0, HEADER_SIZE + payload.length)), true);
+      return frame;
+    }
+
+    class StreamParser {
+      constructor() { this.buf = new Uint8Array(0); }
+      reset() { this.buf = new Uint8Array(0); }
+      feed(chunk) {
+        const merged = new Uint8Array(this.buf.length + chunk.length);
+        merged.set(this.buf, 0); merged.set(chunk, this.buf.length);
+        const frames = []; let pos = 0;
+        for (;;) {
+          while (pos < merged.length && !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) pos++;
+          if (merged.length - pos < 3) break;
+          const flags = merged[pos + 2];
+          const ext = (flags & FLAG_CORRELATION) ? CORRELATION_SIZE : 0;
+          const headerSize = HEADER_SIZE + ext;
+          if (merged.length - pos < headerSize) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true);
+          if (len > MAX_PAYLOAD) { pos++; continue; }
+          const total = headerSize + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(headerSize + len, true);
+          if (crc32(merged.subarray(pos, pos + headerSize + len)) !== expected) { pos++; continue; }
+          frames.push({ module: merged[pos + 3], type: merged[pos + 4], reply: (flags & FLAGS_REPLY_BIT) !== 0,
+                        payload: merged.slice(pos + headerSize, pos + headerSize + len) });
+          pos += total;
+        }
+        this.buf = merged.slice(pos);
+        return frames;
+      }
+    }
+    const parser = new StreamParser();
+
+    // ===================== Transports (WebUSB + Web Serial) =====================
+    let transport = null;
+    class UsbTransport {
+      constructor() { this.device=null; this.iface=null; this.epIn=null; this.epOut=null; this.reading=false; }
+      async open(anyDevice) {
+        const options = anyDevice ? { acceptAllDevices: true } : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
+        this.device = await navigator.usb.requestDevice(options);
+        await this.device.open();
+        if (this.device.configuration === null) await this.device.selectConfiguration(1);
+        const config = this.device.configuration; if (!config) throw new Error("no active USB configuration");
+        let found = null;
+        for (const itf of config.interfaces) { for (const alt of itf.alternates) {
+          if (alt.interfaceClass !== VENDOR_CLASS) continue;
+          let inEp=null, outEp=null;
+          for (const ep of alt.endpoints) { if (ep.type!=="bulk") continue; if (ep.direction==="in"&&!inEp) inEp=ep; else if (ep.direction==="out"&&!outEp) outEp=ep; }
+          if (inEp && outEp) { found = { itf: itf.interfaceNumber, alt: alt.alternateSetting, inEp, outEp }; break; }
+        } if (found) break; }
+        if (!found) throw new Error("no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found");
+        await this.device.claimInterface(found.itf);
+        if (found.alt !== 0) await this.device.selectAlternateInterface(found.itf, found.alt);
+        this.iface = found.itf; this.epIn = found.inEp.endpointNumber; this.epOut = found.outEp.endpointNumber;
+      }
+      describe() { const d=this.device; return (d.productName||"USB device")+" ("+d.vendorId.toString(16).padStart(4,"0")+":"+d.productId.toString(16).padStart(4,"0")+") [WebUSB]"; }
+      async send(bytes) {
+        let sent = 0;
+        while (sent < bytes.length) {
+          const out = await this.device.transferOut(this.epOut, sent === 0 ? bytes : bytes.subarray(sent));
+          if (out.status === "stall") { try { await this.device.clearHalt("out", this.epOut); } catch(_){} throw new Error("OUT endpoint stalled"); }
+          if (out.status !== "ok") throw new Error("OUT transfer status: " + out.status);
+          const n = out.bytesWritten || 0; if (n === 0) throw new Error("OUT transfer made no progress"); sent += n;
+        }
+      }
+      async readLoop(onData) {
+        this.reading = true;
+        while (this.reading && this.device) {
+          let result;
+          try { result = await this.device.transferIn(this.epIn, MAX_FRAME); } catch(e) { if (this.reading) throw e; return; }
+          if (!this.reading) return;
+          if (result.status === "stall") { try { await this.device.clearHalt("in", this.epIn); } catch(_){} continue; }
+          if (result.data && result.data.byteLength) onData(new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength));
+        }
+      }
+      async close() { this.reading = false; if (this.device) { if (this.iface !== null) { try { await this.device.releaseInterface(this.iface); } catch(_){} } try { await this.device.close(); } catch(_){} } this.device = null; }
+    }
+    class SerialTransport {
+      constructor() { this.port=null; this.reader=null; this.writer=null; this.reading=false; }
+      async open() { this.port = await navigator.serial.requestPort(); await this.port.open({ baudRate: 115200 }); this.writer = this.port.writable.getWriter(); }
+      describe() { const info = this.port.getInfo ? this.port.getInfo() : {}; let id = "Serial port"; if (info && info.usbVendorId != null) id = "USB serial ("+info.usbVendorId.toString(16).padStart(4,"0")+":"+(info.usbProductId||0).toString(16).padStart(4,"0")+")"; return id + " [Web Serial]"; }
+      async send(bytes) { await this.writer.write(bytes); }
+      async readLoop(onData) {
+        this.reading = true; this.reader = this.port.readable.getReader();
+        try { while (this.reading) { const { value, done } = await this.reader.read(); if (done) { if (this.reading) throw new Error("serial connection closed (EOF)"); break; } if (value && value.length) onData(new Uint8Array(value.buffer, value.byteOffset, value.byteLength)); } }
+        finally { try { this.reader.releaseLock(); } catch(_){} this.reader = null; }
+      }
+      async close() {
+        this.reading = false;
+        if (this.reader) { try { await this.reader.cancel(); } catch(_){} try { this.reader.releaseLock(); } catch(_){} this.reader = null; }
+        if (this.writer) { try { await this.writer.close(); } catch(_){} try { this.writer.releaseLock(); } catch(_){} this.writer = null; }
+        if (this.port) { try { await this.port.close(); } catch(_){} this.port = null; }
+      }
+    }
+
+    async function tx(bytes) { if (!transport) { logLine("err", "not connected"); return; } try { await transport.send(bytes); } catch(e) { logLine("err", "send failed: " + (e && e.message ? e.message : e)); } }
+    function send(type, payload) { tx(buildFrame(type, payload)); }
+
+    // ---- request encoders ----
+    function u8(x){ return x & 0xFF; }
+    function encAxisI32s(axis, ...vals) { const b = new Uint8Array(1 + 4*vals.length); const dv = new DataView(b.buffer); b[0]=axis; vals.forEach((v,i)=>dv.setInt32(1+4*i, v|0, true)); return b; }
+    function encMove(axis, target, vel, accel, decel) { const b = new Uint8Array(17); const dv = new DataView(b.buffer); b[0]=axis; dv.setInt32(1,target|0,true); dv.setUint32(5,vel>>>0,true); dv.setUint32(9,accel>>>0,true); dv.setUint32(13,decel>>>0,true); return b; }
+    function encSpeed(axis, qpps) { const b = new Uint8Array(5); new DataView(b.buffer).setInt32(1, qpps|0, true); b[0]=axis; return b; }
+    function encDuty(axis, duty) { const b = new Uint8Array(3); new DataView(b.buffer).setInt16(1, duty|0, true); b[0]=axis; return b; }
+
+    // ===================== DS402 statusword decode =====================
+    function ds402State(sw) {
+      if ((sw & 0x4F) === 0x00) return { name: "Not ready", cls: "" };
+      if ((sw & 0x4F) === 0x40) return { name: "Switch on disabled", cls: "" };
+      if ((sw & 0x6F) === 0x21) return { name: "Ready to switch on", cls: "ready" };
+      if ((sw & 0x6F) === 0x23) return { name: "Switched on", cls: "ready" };
+      if ((sw & 0x6F) === 0x27) return { name: "Operation enabled", cls: "enabled" };
+      if ((sw & 0x6F) === 0x07) return { name: "Quick stop active", cls: "qstop" };
+      if ((sw & 0x4F) === 0x0F) return { name: "Fault reaction", cls: "fault" };
+      if ((sw & 0x4F) === 0x08) return { name: "Fault", cls: "fault" };
+      return { name: "Unknown", cls: "" };
+    }
+    const TARGET_REACHED = 0x400; // statusword bit 10
+
+    // ===================== Per-axis UI =====================
+    const axisEls = [];   // [ {state, sw, pos, vel, reached, ...inputs} ] indexed by axis
+    function buildAxisPanel(axis, label) {
+      const p = document.createElement("div");
+      p.className = "panel";
+      p.innerHTML = `
+        <div class="row"><span class="axis-title">${label}</span><span class="spacer"></span>
+          <span class="state-badge" data-role="state">-</span></div>
+        <div class="kv">
+          <span class="k">Position (counts)</span><span class="v" data-role="pos">-</span>
+          <span class="k">Velocity (counts/s)</span><span class="v" data-role="vel">-</span>
+          <span class="k">Statusword</span><span class="v" data-role="sw">-</span>
+          <span class="k">Target reached</span><span class="v" data-role="reached">-</span>
+        </div>
+        <hr class="sep">
+        <div class="row"><span class="muted">Configure:</span>
+          <div class="field"><span>Clamp min</span><input type="text" data-role="cmin" value="-2000000000"></div>
+          <div class="field"><span>Clamp max</span><input type="text" data-role="cmax" value="2000000000"></div>
+          <div class="field"><span>Fallback P</span><input type="text" data-role="cfp" class="tiny" value="15491"></div>
+          <button class="small" data-role="cfgBtn" disabled style="align-self:flex-end;">Configure loop</button>
+        </div>
+        <div class="row">
+          <div class="field"><span>Soft limit min</span><input type="text" data-role="lmin" value="-20000"></div>
+          <div class="field"><span>Soft limit max</span><input type="text" data-role="lmax" value="20000"></div>
+          <button class="small" data-role="limBtn" disabled style="align-self:flex-end;">Set limits</button>
+        </div>
+        <hr class="sep">
+        <div class="row"><span class="muted">Move:</span>
+          <div class="field"><span>Target</span><input type="text" data-role="target" value="10000"></div>
+          <div class="field"><span>Velocity</span><input type="text" data-role="mvel" class="tiny" value="500"></div>
+          <div class="field"><span>Accel</span><input type="text" data-role="maccel" class="tiny" value="500"></div>
+          <div class="field"><span>Decel</span><input type="text" data-role="mdecel" class="tiny" value="500"></div>
+          <button class="small primary" data-role="moveBtn" disabled style="align-self:flex-end;">Move to</button>
+        </div>
+        <div class="row"><span class="muted">Manufacturer (inert on tested fw):</span>
+          <div class="field"><span>Speed (qpps)</span><input type="text" data-role="speed" class="tiny" value="0"></div>
+          <button class="small" data-role="speedBtn" disabled style="align-self:flex-end;">Drive speed</button>
+          <div class="field"><span>Duty (±32767)</span><input type="text" data-role="duty" class="tiny" value="0"></div>
+          <button class="small" data-role="dutyBtn" disabled style="align-self:flex-end;">Drive duty</button>
+        </div>`;
+      els.axes.appendChild(p);
+      const q = (r) => p.querySelector(`[data-role="${r}"]`);
+      const e = { state:q("state"), pos:q("pos"), vel:q("vel"), sw:q("sw"), reached:q("reached"),
+        cmin:q("cmin"), cmax:q("cmax"), cfp:q("cfp"), lmin:q("lmin"), lmax:q("lmax"),
+        target:q("target"), mvel:q("mvel"), maccel:q("maccel"), mdecel:q("mdecel"), speed:q("speed"), duty:q("duty"),
+        buttons: [q("cfgBtn"),q("limBtn"),q("moveBtn"),q("speedBtn"),q("dutyBtn")] };
+      const num = (el) => { const v = parseInt(el.value, 10); return Number.isFinite(v) ? v : 0; };
+      q("cfgBtn").addEventListener("click", () => send(T_CONFIG_POS, encAxisI32s(axis, num(e.cmin), num(e.cmax), num(e.cfp))));
+      q("limBtn").addEventListener("click", () => send(T_SET_LIMITS, encAxisI32s(axis, num(e.lmin), num(e.lmax))));
+      q("moveBtn").addEventListener("click", () => send(T_MOVE, encMove(axis, num(e.target), num(e.mvel), num(e.maccel), num(e.mdecel))));
+      q("speedBtn").addEventListener("click", () => send(T_SPEED, encSpeed(axis, num(e.speed))));
+      q("dutyBtn").addEventListener("click", () => send(T_DUTY, encDuty(axis, num(e.duty))));
+      axisEls[axis] = e;
+    }
+    buildAxisPanel(AXIS_M1, "M1");
+    buildAxisPanel(AXIS_M2, "M2");
+
+    function updateAxis(axis, pos, vel, sw) {
+      const e = axisEls[axis]; if (!e) return;
+      const st = ds402State(sw);
+      e.state.textContent = st.name; e.state.className = "state-badge " + st.cls;
+      e.pos.textContent = pos; e.vel.textContent = vel;
+      e.sw.textContent = "0x" + (sw >>> 0).toString(16).padStart(4, "0");
+      e.reached.textContent = (sw & TARGET_REACHED) ? "yes" : "no";
+    }
+
+    // ===================== Incoming frame handling =====================
+    function onIncoming(chunk) {
+      let frames; try { frames = parser.feed(chunk); } catch(e) { logLine("err", "parse error: " + (e && e.message ? e.message : e)); return; }
+      for (const f of frames) {
+        if (f.module !== MODULE) continue;
+        const dv = new DataView(f.payload.buffer, f.payload.byteOffset, f.payload.length);
+        if (f.type === T_STATUS) {
+          if (f.payload.length < 25) continue;
+          updateAxis(AXIS_M1, dv.getInt32(0, true), dv.getInt32(4, true), dv.getUint16(8, true));
+          updateAxis(AXIS_M2, dv.getInt32(10, true), dv.getInt32(14, true), dv.getUint16(18, true));
+          els.devBatt.textContent = (dv.getUint16(20, true) / 10).toFixed(1) + " V";
+          els.devTemp.textContent = (dv.getUint16(22, true) / 10).toFixed(1) + " °C";
+        } else if (f.type === T_OK) {
+          const rt = f.payload.length ? f.payload[0] : 0;
+          logLine("rx", "ok: " + (REQ_NAME[rt] || ("0x" + rt.toString(16))));
+        } else if (f.type === T_ERROR) {
+          const rt = f.payload.length ? f.payload[0] : 0;
+          const code = f.payload.length >= 5 ? dv.getUint32(1, true) : 0;
+          let msg = ""; try { msg = new TextDecoder().decode(f.payload.subarray(5)); } catch(_){}
+          logLine("err", (REQ_NAME[rt] || ("0x" + rt.toString(16))) + " failed [" + code + "]: " + msg);
+        } else if (f.type === T_DEVINFO) {
+          const dtype = f.payload.length >= 4 ? dv.getUint32(0, true) : 0;
+          let name = ""; try { name = new TextDecoder().decode(f.payload.subarray(4)); } catch(_){}
+          els.devType.textContent = "0x" + dtype.toString(16).padStart(8, "0");
+          els.devName.textContent = name || "-";
+          logLine("sys", "device: " + name + " (type 0x" + dtype.toString(16) + ")");
+        }
+      }
+    }
+
+    // ===================== Connect / disconnect =====================
+    if (!navigator.usb) els.connectUsbBtn.disabled = true;
+    if (!navigator.serial) els.connectSerialBtn.disabled = true;
+    if (!navigator.usb && !navigator.serial) els.unsupported.style.display = "block";
+    els.connectUsbBtn.addEventListener("click", () => connect("usb"));
+    els.connectSerialBtn.addEventListener("click", () => connect("serial"));
+    els.disconnectBtn.addEventListener("click", () => disconnect());
+
+    async function connect(kind) {
+      if (transport) return;
+      const t = kind === "usb" ? new UsbTransport() : new SerialTransport();
+      try { if (kind === "usb") await t.open(els.anyDevice.checked); else await t.open(); }
+      catch (e) { if (e && e.name === "NotFoundError") logLine("sys", "Device selection cancelled."); else logLine("err", "Connect failed: " + (e && e.message ? e.message : e)); try { await t.close(); } catch(_){} return; }
+      transport = t; parser.reset(); setConnectedUI(true);
+      const name = t.describe(); setStatus("connected", "Connected"); els.devInfo.textContent = name; logLine("sys", "Connected: " + name);
+      t.readLoop(onIncoming).catch((e) => { if (transport === t) { logLine("err", "Read loop error: " + (e && e.message ? e.message : e)); onLinkLost(); } });
+      send(T_GET_INFO); send(T_GET_STATUS);
+      if (els.livePoll.checked) startStream();
+    }
+    async function disconnect() {
+      if (!transport) return; logLine("sys", "Disconnecting..."); stopStream();
+      const t = transport; transport = null; try { await t.close(); } catch(_){}
+      setConnectedUI(false); setStatus("", "Disconnected");
+    }
+    function onLinkLost() {
+      if (!transport) return; stopStream(); const t = transport; transport = null; t.close().catch(()=>{});
+      setConnectedUI(false); setStatus("error", "Disconnected");
+    }
+    if (navigator.usb && navigator.usb.addEventListener) navigator.usb.addEventListener("disconnect", (e) => { if (transport instanceof UsbTransport && e.device === transport.device) { logLine("err", "Device disconnected."); onLinkLost(); } });
+
+    function setConnectedUI(connected) {
+      els.connectUsbBtn.disabled = connected || !navigator.usb;
+      els.connectSerialBtn.disabled = connected || !navigator.serial;
+      els.disconnectBtn.disabled = !connected; els.anyDevice.disabled = connected;
+      for (const id of ["startBtn","resetFaultsBtn","resetEstopBtn","refreshBtn"]) els[id].disabled = !connected;
+      for (const e of axisEls) if (e) for (const b of e.buttons) b.disabled = !connected;
+      if (!connected) {
+        els.devInfo.textContent = "Not connected. Default WebUSB filter: VID 0x1209 / PID 0x0d32 (espp default).";
+        els.devType.textContent = els.devName.textContent = els.devBatt.textContent = els.devTemp.textContent = "-";
+        els.livePoll.checked = false;
+        updateAxis(AXIS_M1, "-", "-", 0); updateAxis(AXIS_M2, "-", "-", 0);
+        axisEls.forEach(e => { if (e) { e.pos.textContent = e.vel.textContent = e.sw.textContent = e.reached.textContent = "-"; e.state.textContent = "-"; e.state.className = "state-badge"; } });
+      }
+    }
+
+    els.startBtn.addEventListener("click", () => send(T_START));
+    els.resetFaultsBtn.addEventListener("click", () => send(T_RESET_FAULTS));
+    els.resetEstopBtn.addEventListener("click", () => send(T_RESET_ESTOP));
+    els.refreshBtn.addEventListener("click", () => send(T_GET_STATUS));
+
+    // ---- device-side status streaming ----
+    function streamPayload(enable, period) { const b = new Uint8Array(3); b[0] = enable ? 1 : 0; new DataView(b.buffer).setUint16(1, period, true); return b; }
+    function startStream() { send(T_SET_STREAM, streamPayload(true, STATUS_POLL_MS)); }
+    function stopStream() { if (transport) send(T_SET_STREAM, streamPayload(false, STATUS_POLL_MS)); }
+    els.livePoll.addEventListener("change", () => { if (!transport) return; els.livePoll.checked ? startStream() : stopStream(); });
+
+    setConnectedUI(false);
+  </script>
+</body>
+</html>
