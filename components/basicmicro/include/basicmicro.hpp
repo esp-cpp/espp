@@ -818,8 +818,9 @@ public:
       std::error_code ec32;
       if (read_command(Command::ReadStatus, data, ec32)) {
         status = detail::read_u32_be(data, 0);
-        ec.clear(); // the 32-bit attempt used a local ec32; honor the "true => ec
-                    // cleared" contract so a caller reusing ec sees success
+        // The 32-bit attempt used a local ec32; honor the "true => ec cleared"
+        // contract so a caller reusing ec sees success.
+        ec.clear();
         return true;
       }
     }

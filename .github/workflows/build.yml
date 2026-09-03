@@ -79,6 +79,9 @@ jobs:
           target: esp32
         - path: 'components/mcp266/example'
           target: esp32
+        - path: 'components/mcp266/webapp_example'
+          target: esp32s3
+          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/bdc_driver/example'
           target: esp32s3
         - path: 'components/binary-log/example'
