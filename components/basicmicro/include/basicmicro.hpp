@@ -12,6 +12,7 @@
 
 #include "base_component.hpp"
 #include "detail/basicmicro_core.hpp"
+#include "motor_controller.hpp"
 
 namespace espp {
 
@@ -58,6 +59,10 @@ public:
   using Command = detail::BasicmicroCommand;
   /// Status bit masks returned by read_status() (manual command 90).
   using Status = detail::BasicmicroStatus;
+  /// Motor channel selector, shared with the other espp motor drivers (e.g.
+  /// espp::Mcp266) so generic code can command either transport by axis.
+  /// \see espp::MotorController
+  using Axis = MotorAxis;
 
   /// Function used to transmit a complete packet to the controller.
   /// Should return true when all bytes were written.
@@ -112,39 +117,28 @@ public:
   // ------------------------- duty-cycle drive ------------------------------
 
   /**
-   * @brief Drive motor 1 with a signed duty cycle (command 32).
+   * @brief Drive one motor with a signed duty cycle (commands 32 / 33).
+   * @param axis Motor channel to drive.
    * @param duty Signed duty, -32767 to +32767 (= -100% to +100%).
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool drive_m1_duty(int16_t duty, std::error_code &ec) {
+  bool drive_duty(Axis axis, int16_t duty, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_i16_be(payload, duty);
-    return write_command(Command::DriveM1SignedDuty, payload, ec);
+    return write_command(axis == Axis::M1 ? Command::DriveM1SignedDuty : Command::DriveM2SignedDuty,
+                         payload, ec);
   }
 
   /**
-   * @brief Drive motor 2 with a signed duty cycle (command 33).
-   * @param duty Signed duty, -32767 to +32767 (= -100% to +100%).
-   * @param ec Set on failure.
-   * @return True on success.
-   */
-  bool drive_m2_duty(int16_t duty, std::error_code &ec) {
-    std::scoped_lock lk(mutex_);
-    std::vector<uint8_t> payload;
-    detail::append_i16_be(payload, duty);
-    return write_command(Command::DriveM2SignedDuty, payload, ec);
-  }
-
-  /**
-   * @brief Drive both motors with signed duty cycles (command 34).
+   * @brief Drive both motors with signed duty cycles in one packet (command 34).
    * @param duty_m1 Signed duty for motor 1, -32767 to +32767.
    * @param duty_m2 Signed duty for motor 2, -32767 to +32767.
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool drive_duty(int16_t duty_m1, int16_t duty_m2, std::error_code &ec) {
+  bool drive_both_duty(int16_t duty_m1, int16_t duty_m2, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_i16_be(payload, duty_m1);
@@ -155,42 +149,29 @@ public:
   // ------------------------ closed-loop speed drive ------------------------
 
   /**
-   * @brief Drive motor 1 at a signed speed in quadrature pulses per second
-   *        (command 35). Requires an encoder and tuned velocity PID.
+   * @brief Drive one motor at a signed speed in quadrature pulses per second
+   *        (commands 35 / 36). Requires an encoder and tuned velocity PID.
+   * @param axis Motor channel to drive.
    * @param qpps Signed speed in quad pulses per second.
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool drive_m1_speed(int32_t qpps, std::error_code &ec) {
+  bool drive_speed(Axis axis, int32_t qpps, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_i32_be(payload, qpps);
-    return write_command(Command::DriveM1SignedSpeed, payload, ec);
+    return write_command(
+        axis == Axis::M1 ? Command::DriveM1SignedSpeed : Command::DriveM2SignedSpeed, payload, ec);
   }
 
   /**
-   * @brief Drive motor 2 at a signed speed in quadrature pulses per second
-   *        (command 36). Requires an encoder and tuned velocity PID.
-   * @param qpps Signed speed in quad pulses per second.
-   * @param ec Set on failure.
-   * @return True on success.
-   */
-  bool drive_m2_speed(int32_t qpps, std::error_code &ec) {
-    std::scoped_lock lk(mutex_);
-    std::vector<uint8_t> payload;
-    detail::append_i32_be(payload, qpps);
-    return write_command(Command::DriveM2SignedSpeed, payload, ec);
-  }
-
-  /**
-   * @brief Drive both motors at signed speeds in quadrature pulses per second
-   *        (command 37).
+   * @brief Drive both motors at signed speeds in one packet (command 37).
    * @param qpps_m1 Signed speed for motor 1 in quad pulses per second.
    * @param qpps_m2 Signed speed for motor 2 in quad pulses per second.
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool drive_speed(int32_t qpps_m1, int32_t qpps_m2, std::error_code &ec) {
+  bool drive_both_speed(int32_t qpps_m1, int32_t qpps_m2, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_i32_be(payload, qpps_m1);
@@ -199,35 +180,22 @@ public:
   }
 
   /**
-   * @brief Drive motor 1 at a signed speed with an acceleration ramp
-   *        (command 38).
+   * @brief Drive one motor at a signed speed with an acceleration ramp
+   *        (commands 38 / 39).
+   * @param axis Motor channel to drive.
    * @param accel Acceleration in qpps per second (unsigned).
    * @param qpps Signed target speed in quad pulses per second.
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool drive_m1_speed_accel(uint32_t accel, int32_t qpps, std::error_code &ec) {
+  bool drive_speed_accel(Axis axis, uint32_t accel, int32_t qpps, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_u32_be(payload, accel);
     detail::append_i32_be(payload, qpps);
-    return write_command(Command::DriveM1SignedSpeedAccel, payload, ec);
-  }
-
-  /**
-   * @brief Drive motor 2 at a signed speed with an acceleration ramp
-   *        (command 39).
-   * @param accel Acceleration in qpps per second (unsigned).
-   * @param qpps Signed target speed in quad pulses per second.
-   * @param ec Set on failure.
-   * @return True on success.
-   */
-  bool drive_m2_speed_accel(uint32_t accel, int32_t qpps, std::error_code &ec) {
-    std::scoped_lock lk(mutex_);
-    std::vector<uint8_t> payload;
-    detail::append_u32_be(payload, accel);
-    detail::append_i32_be(payload, qpps);
-    return write_command(Command::DriveM2SignedSpeedAccel, payload, ec);
+    return write_command(axis == Axis::M1 ? Command::DriveM1SignedSpeedAccel
+                                          : Command::DriveM2SignedSpeedAccel,
+                         payload, ec);
   }
 
   /**
@@ -239,7 +207,8 @@ public:
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool drive_speed_accel(uint32_t accel, int32_t qpps_m1, int32_t qpps_m2, std::error_code &ec) {
+  bool drive_both_speed_accel(uint32_t accel, int32_t qpps_m1, int32_t qpps_m2,
+                              std::error_code &ec) {
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_u32_be(payload, accel);
@@ -251,8 +220,9 @@ public:
   // -------------------------- buffered motion ------------------------------
 
   /**
-   * @brief Buffered drive of motor 1 with signed speed and distance
-   *        (command 41).
+   * @brief Buffered drive of one motor with signed speed and distance
+   *        (commands 41 / 42).
+   * @param axis Motor channel to drive.
    * @param qpps Signed speed in quad pulses per second.
    * @param distance Distance in quad pulses (unsigned).
    * @param immediate If true, stop the currently-executing command, flush the
@@ -261,34 +231,16 @@ public:
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool buffered_drive_m1_speed_distance(int32_t qpps, uint32_t distance, bool immediate,
-                                        std::error_code &ec) {
+  bool buffered_drive_speed_distance(Axis axis, int32_t qpps, uint32_t distance, bool immediate,
+                                     std::error_code &ec) {
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_i32_be(payload, qpps);
     detail::append_u32_be(payload, distance);
     detail::append_u8(payload, immediate ? 1 : 0);
-    return write_command(Command::BufferedM1SpeedDistance, payload, ec);
-  }
-
-  /**
-   * @brief Buffered drive of motor 2 with signed speed and distance
-   *        (command 42).
-   * @param qpps Signed speed in quad pulses per second.
-   * @param distance Distance in quad pulses (unsigned).
-   * @param immediate If true, stop the currently-executing command, flush the
-   *        buffer and run this command now; if false, queue it.
-   * @param ec Set on failure.
-   * @return True on success.
-   */
-  bool buffered_drive_m2_speed_distance(int32_t qpps, uint32_t distance, bool immediate,
-                                        std::error_code &ec) {
-    std::scoped_lock lk(mutex_);
-    std::vector<uint8_t> payload;
-    detail::append_i32_be(payload, qpps);
-    detail::append_u32_be(payload, distance);
-    detail::append_u8(payload, immediate ? 1 : 0);
-    return write_command(Command::BufferedM2SpeedDistance, payload, ec);
+    return write_command(axis == Axis::M1 ? Command::BufferedM1SpeedDistance
+                                          : Command::BufferedM2SpeedDistance,
+                         payload, ec);
   }
 
   /**
@@ -303,8 +255,9 @@ public:
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool buffered_drive_speed_distance(int32_t qpps_m1, uint32_t distance_m1, int32_t qpps_m2,
-                                     uint32_t distance_m2, bool immediate, std::error_code &ec) {
+  bool buffered_drive_both_speed_distance(int32_t qpps_m1, uint32_t distance_m1, int32_t qpps_m2,
+                                          uint32_t distance_m2, bool immediate,
+                                          std::error_code &ec) {
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_i32_be(payload, qpps_m1);
@@ -316,8 +269,9 @@ public:
   }
 
   /**
-   * @brief Buffered drive of motor 1 with acceleration, signed speed and
-   *        distance (command 44).
+   * @brief Buffered drive of one motor with acceleration, signed speed and
+   *        distance (commands 44 / 45).
+   * @param axis Motor channel to drive.
    * @param accel Acceleration in qpps per second (unsigned).
    * @param qpps Signed speed in quad pulses per second.
    * @param distance Distance in quad pulses (unsigned).
@@ -326,37 +280,17 @@ public:
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool buffered_drive_m1_speed_accel_distance(uint32_t accel, int32_t qpps, uint32_t distance,
-                                              bool immediate, std::error_code &ec) {
+  bool buffered_drive_speed_accel_distance(Axis axis, uint32_t accel, int32_t qpps,
+                                           uint32_t distance, bool immediate, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_u32_be(payload, accel);
     detail::append_i32_be(payload, qpps);
     detail::append_u32_be(payload, distance);
     detail::append_u8(payload, immediate ? 1 : 0);
-    return write_command(Command::BufferedM1SpeedAccelDistance, payload, ec);
-  }
-
-  /**
-   * @brief Buffered drive of motor 2 with acceleration, signed speed and
-   *        distance (command 45).
-   * @param accel Acceleration in qpps per second (unsigned).
-   * @param qpps Signed speed in quad pulses per second.
-   * @param distance Distance in quad pulses (unsigned).
-   * @param immediate If true, stop the currently-executing command, flush the
-   *        buffer and run this command now; if false, queue it.
-   * @param ec Set on failure.
-   * @return True on success.
-   */
-  bool buffered_drive_m2_speed_accel_distance(uint32_t accel, int32_t qpps, uint32_t distance,
-                                              bool immediate, std::error_code &ec) {
-    std::scoped_lock lk(mutex_);
-    std::vector<uint8_t> payload;
-    detail::append_u32_be(payload, accel);
-    detail::append_i32_be(payload, qpps);
-    detail::append_u32_be(payload, distance);
-    detail::append_u8(payload, immediate ? 1 : 0);
-    return write_command(Command::BufferedM2SpeedAccelDistance, payload, ec);
+    return write_command(axis == Axis::M1 ? Command::BufferedM1SpeedAccelDistance
+                                          : Command::BufferedM2SpeedAccelDistance,
+                         payload, ec);
   }
 
   /**
@@ -372,9 +306,10 @@ public:
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool buffered_drive_speed_accel_distance(uint32_t accel, int32_t qpps_m1, uint32_t distance_m1,
-                                           int32_t qpps_m2, uint32_t distance_m2, bool immediate,
-                                           std::error_code &ec) {
+  bool buffered_drive_both_speed_accel_distance(uint32_t accel, int32_t qpps_m1,
+                                                uint32_t distance_m1, int32_t qpps_m2,
+                                                uint32_t distance_m2, bool immediate,
+                                                std::error_code &ec) {
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_u32_be(payload, accel);
@@ -407,33 +342,41 @@ public:
   // ------------------------------ encoders ---------------------------------
 
   /**
-   * @brief Read the motor 1 encoder count / position (command 16).
-   * @param count Encoder count (quadrature: full 32-bit range; absolute:
-   *        0-4095).
-   * @param status Status bits: bit0 = underflow occurred (cleared on read),
-   *        bit1 = direction (0 forward, 1 backward), bit2 = overflow occurred
-   *        (cleared on read).
+   * @brief Read one motor's encoder count / position (commands 16 / 17).
+   * @param axis Motor channel to read.
+   * @param count Signed encoder count (quadrature counters wrap through the full
+   *        32-bit range; an absolute encoder reports 0-4095).
    * @param ec Set on failure.
    * @return True on success.
+   * @note The controller reports the counter as raw 32 bits; it is returned here
+   *       as a signed int32 so a quadrature encoder run in reverse reads as a
+   *       negative count. Use the overload taking a @c status out-parameter for
+   *       the underflow / direction / overflow flags.
    */
-  bool read_encoder_m1(uint32_t &count, uint8_t &status, std::error_code &ec) {
-    std::scoped_lock lk(mutex_);
-    return read_encoder(Command::ReadEncoderM1, count, status, ec);
+  bool read_encoder(Axis axis, int32_t &count, std::error_code &ec) {
+    uint8_t status = 0;
+    return read_encoder(axis, count, status, ec);
   }
 
   /**
-   * @brief Read the motor 2 encoder count / position (command 17).
-   * @param count Encoder count (quadrature: full 32-bit range; absolute:
-   *        0-4095).
+   * @brief Read one motor's encoder count / position and status byte
+   *        (commands 16 / 17).
+   * @param axis Motor channel to read.
+   * @param count Signed encoder count (see the two-argument overload).
    * @param status Status bits: bit0 = underflow occurred (cleared on read),
    *        bit1 = direction (0 forward, 1 backward), bit2 = overflow occurred
    *        (cleared on read).
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool read_encoder_m2(uint32_t &count, uint8_t &status, std::error_code &ec) {
+  bool read_encoder(Axis axis, int32_t &count, uint8_t &status, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
-    return read_encoder(Command::ReadEncoderM2, count, status, ec);
+    uint32_t raw = 0;
+    if (!read_count_raw(axis == Axis::M1 ? Command::ReadEncoderM1 : Command::ReadEncoderM2, raw,
+                        status, ec))
+      return false;
+    count = static_cast<int32_t>(raw);
+    return true;
   }
 
   /**
@@ -464,27 +407,33 @@ public:
   }
 
   /**
-   * @brief Read the motor 1 encoder speed in pulses per second (command 18).
+   * @brief Read one motor's encoder speed in pulses per second
+   *        (commands 18 / 19).
+   * @param axis Motor channel to read.
    * @param qpps Speed in pulses per second (as reported by the controller).
-   * @param direction 0 = forward, 1 = backward.
    * @param ec Set on failure.
    * @return True on success.
+   * @note Use the overload taking a @c direction out-parameter to also read the
+   *       0 = forward / 1 = backward flag.
    */
-  bool read_encoder_speed_m1(int32_t &qpps, uint8_t &direction, std::error_code &ec) {
-    std::scoped_lock lk(mutex_);
-    return read_speed(Command::ReadEncoderSpeedM1, qpps, direction, ec);
+  bool read_speed(Axis axis, int32_t &qpps, std::error_code &ec) {
+    uint8_t direction = 0;
+    return read_speed(axis, qpps, direction, ec);
   }
 
   /**
-   * @brief Read the motor 2 encoder speed in pulses per second (command 19).
+   * @brief Read one motor's encoder speed and direction (commands 18 / 19).
+   * @param axis Motor channel to read.
    * @param qpps Speed in pulses per second (as reported by the controller).
    * @param direction 0 = forward, 1 = backward.
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool read_encoder_speed_m2(int32_t &qpps, uint8_t &direction, std::error_code &ec) {
+  bool read_speed(Axis axis, int32_t &qpps, uint8_t &direction, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
-    return read_speed(Command::ReadEncoderSpeedM2, qpps, direction, ec);
+    return read_speed_raw(axis == Axis::M1 ? Command::ReadEncoderSpeedM1
+                                           : Command::ReadEncoderSpeedM2,
+                          qpps, direction, ec);
   }
 
   /**
@@ -526,11 +475,12 @@ public:
   // ----------------------------- velocity PID ------------------------------
 
   /**
-   * @brief Set the motor 1 velocity PID constants and QPPS (command 28).
+   * @brief Set one motor's velocity PID constants and QPPS (commands 28 / 29).
    *
    * Gains are converted to the controller's 16.16 fixed-point representation
    * (value * 65536); the controller defaults correspond to P=1.0, I=0.5,
    * D=0.25, QPPS=44000.
+   * @param axis Motor channel to configure.
    * @param p Proportional gain.
    * @param i Integral gain.
    * @param d Derivative gain.
@@ -538,29 +488,17 @@ public:
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool set_velocity_pid_m1(float p, float i, float d, uint32_t qpps, std::error_code &ec) {
+  bool set_velocity_pid(Axis axis, float p, float i, float d, uint32_t qpps, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
-    return set_velocity_pid(Command::SetVelocityPidM1, p, i, d, qpps, ec);
+    return set_velocity_pid_raw(axis == Axis::M1 ? Command::SetVelocityPidM1
+                                                 : Command::SetVelocityPidM2,
+                                p, i, d, qpps, ec);
   }
 
   /**
-   * @brief Set the motor 2 velocity PID constants and QPPS (command 29).
-   *        See set_velocity_pid_m1() for the fixed-point conversion.
-   * @param p Proportional gain.
-   * @param i Integral gain.
-   * @param d Derivative gain.
-   * @param qpps Encoder speed (quad pulses per second) at 100% motor power.
-   * @param ec Set on failure.
-   * @return True on success.
-   */
-  bool set_velocity_pid_m2(float p, float i, float d, uint32_t qpps, std::error_code &ec) {
-    std::scoped_lock lk(mutex_);
-    return set_velocity_pid(Command::SetVelocityPidM2, p, i, d, qpps, ec);
-  }
-
-  /**
-   * @brief Read the motor 1 velocity PID constants and QPPS (command 55).
+   * @brief Read one motor's velocity PID constants and QPPS (commands 55 / 56).
    *        Fixed-point values are converted back to floats (divide by 65536).
+   * @param axis Motor channel to read.
    * @param p Proportional gain.
    * @param i Integral gain.
    * @param d Derivative gain.
@@ -568,28 +506,16 @@ public:
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool read_velocity_pid_m1(float &p, float &i, float &d, uint32_t &qpps, std::error_code &ec) {
+  bool read_velocity_pid(Axis axis, float &p, float &i, float &d, uint32_t &qpps,
+                         std::error_code &ec) {
     std::scoped_lock lk(mutex_);
-    return read_velocity_pid(Command::ReadVelocityPidM1, p, i, d, qpps, ec);
+    return read_velocity_pid_raw(axis == Axis::M1 ? Command::ReadVelocityPidM1
+                                                  : Command::ReadVelocityPidM2,
+                                 p, i, d, qpps, ec);
   }
 
   /**
-   * @brief Read the motor 2 velocity PID constants and QPPS (command 56).
-   *        Fixed-point values are converted back to floats (divide by 65536).
-   * @param p Proportional gain.
-   * @param i Integral gain.
-   * @param d Derivative gain.
-   * @param qpps Encoder speed (quad pulses per second) at 100% motor power.
-   * @param ec Set on failure.
-   * @return True on success.
-   */
-  bool read_velocity_pid_m2(float &p, float &i, float &d, uint32_t &qpps, std::error_code &ec) {
-    std::scoped_lock lk(mutex_);
-    return read_velocity_pid(Command::ReadVelocityPidM2, p, i, d, qpps, ec);
-  }
-
-  /**
-   * @brief Set the motor 1 position PID constants (command 61).
+   * @brief Set one motor's position PID constants (commands 61 / 62).
    *
    * The position loop has seven constants: P, I, D gains (transferred scaled
    * by 1024), MaxI (integral windup limit), Deadzone (in encoder counts), and
@@ -598,6 +524,7 @@ public:
    * so position commands (65-67) produce no motion until these are set. Note
    * the wire order for this command is D, P, I (unlike the P, I, D read order
    * of command 63).
+   * @param axis Motor channel to configure.
    * @param p Proportional gain.
    * @param i Integral gain.
    * @param d Derivative gain.
@@ -608,28 +535,19 @@ public:
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool set_position_pid_m1(float p, float i, float d, uint32_t max_i, uint32_t deadzone,
-                           int32_t min_pos, int32_t max_pos, std::error_code &ec) {
+  bool set_position_pid(Axis axis, float p, float i, float d, uint32_t max_i, uint32_t deadzone,
+                        int32_t min_pos, int32_t max_pos, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
-    return set_position_pid(Command::SetPositionPidM1, p, i, d, max_i, deadzone, min_pos, max_pos,
-                            ec);
+    return set_position_pid_raw(axis == Axis::M1 ? Command::SetPositionPidM1
+                                                 : Command::SetPositionPidM2,
+                                p, i, d, max_i, deadzone, min_pos, max_pos, ec);
   }
 
   /**
-   * @brief Set the motor 2 position PID constants (command 62).
-   *        See set_position_pid_m1() for the constants and scaling.
-   */
-  bool set_position_pid_m2(float p, float i, float d, uint32_t max_i, uint32_t deadzone,
-                           int32_t min_pos, int32_t max_pos, std::error_code &ec) {
-    std::scoped_lock lk(mutex_);
-    return set_position_pid(Command::SetPositionPidM2, p, i, d, max_i, deadzone, min_pos, max_pos,
-                            ec);
-  }
-
-  /**
-   * @brief Read the motor 1 position PID constants (command 63).
+   * @brief Read one motor's position PID constants (commands 63 / 64).
    *        Gains are converted back to floats (divide by 1024). The reply
    *        order is P, I, D (unlike the D, P, I write order of command 61).
+   * @param axis Motor channel to read.
    * @param p Proportional gain.
    * @param i Integral gain.
    * @param d Derivative gain.
@@ -640,22 +558,13 @@ public:
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool read_position_pid_m1(float &p, float &i, float &d, uint32_t &max_i, uint32_t &deadzone,
-                            int32_t &min_pos, int32_t &max_pos, std::error_code &ec) {
+  bool read_position_pid(Axis axis, float &p, float &i, float &d, uint32_t &max_i,
+                         uint32_t &deadzone, int32_t &min_pos, int32_t &max_pos,
+                         std::error_code &ec) {
     std::scoped_lock lk(mutex_);
-    return read_position_pid(Command::ReadPositionPidM1, p, i, d, max_i, deadzone, min_pos, max_pos,
-                             ec);
-  }
-
-  /**
-   * @brief Read the motor 2 position PID constants (command 64).
-   *        See read_position_pid_m1() for the fields and scaling.
-   */
-  bool read_position_pid_m2(float &p, float &i, float &d, uint32_t &max_i, uint32_t &deadzone,
-                            int32_t &min_pos, int32_t &max_pos, std::error_code &ec) {
-    std::scoped_lock lk(mutex_);
-    return read_position_pid(Command::ReadPositionPidM2, p, i, d, max_i, deadzone, min_pos, max_pos,
-                             ec);
+    return read_position_pid_raw(axis == Axis::M1 ? Command::ReadPositionPidM1
+                                                  : Command::ReadPositionPidM2,
+                                 p, i, d, max_i, deadzone, min_pos, max_pos, ec);
   }
 
   // -------------------------------- telemetry ------------------------------
@@ -864,7 +773,7 @@ public:
    * @param ec Set on failure.
    * @return True on success.
    */
-  bool e_stop_reset(std::error_code &ec) {
+  bool reset_estop(std::error_code &ec) {
     std::scoped_lock lk(mutex_);
     return write_command(Command::EStopReset, {}, ec);
   }
@@ -963,7 +872,7 @@ protected:
   }
 
   /// Shared implementation for commands 16/17 (count + status byte).
-  bool read_encoder(Command cmd, uint32_t &count, uint8_t &status, std::error_code &ec) {
+  bool read_count_raw(Command cmd, uint32_t &count, uint8_t &status, std::error_code &ec) {
     uint8_t data[5] = {};
     if (!read_command(cmd, data, ec))
       return false;
@@ -973,7 +882,7 @@ protected:
   }
 
   /// Shared implementation for commands 18/19/30/31 (speed + direction byte).
-  bool read_speed(Command cmd, int32_t &qpps, uint8_t &direction, std::error_code &ec) {
+  bool read_speed_raw(Command cmd, int32_t &qpps, uint8_t &direction, std::error_code &ec) {
     uint8_t data[5] = {};
     if (!read_command(cmd, data, ec))
       return false;
@@ -992,8 +901,8 @@ protected:
   }
 
   /// Shared implementation for commands 28/29. Wire order is D, P, I, QPPS.
-  bool set_velocity_pid(Command cmd, float p, float i, float d, uint32_t qpps,
-                        std::error_code &ec) {
+  bool set_velocity_pid_raw(Command cmd, float p, float i, float d, uint32_t qpps,
+                            std::error_code &ec) {
     std::vector<uint8_t> payload;
     // Route through scale_pid_gain (rounds; guards negative -> uint32 wrap and
     // NaN/inf -> UB in std::llround) just like the position path — a raw
@@ -1006,8 +915,8 @@ protected:
   }
 
   /// Shared implementation for commands 55/56. Wire order is P, I, D, QPPS.
-  bool read_velocity_pid(Command cmd, float &p, float &i, float &d, uint32_t &qpps,
-                         std::error_code &ec) {
+  bool read_velocity_pid_raw(Command cmd, float &p, float &i, float &d, uint32_t &qpps,
+                             std::error_code &ec) {
     uint8_t data[16] = {};
     if (!read_command(cmd, data, ec))
       return false;
@@ -1020,8 +929,9 @@ protected:
 
   /// Shared implementation for commands 61/62. Wire order is
   /// D, P, I, MaxI, Deadzone, MinPos, MaxPos (P/I/D scaled by 1024).
-  bool set_position_pid(Command cmd, float p, float i, float d, uint32_t max_i, uint32_t deadzone,
-                        int32_t min_pos, int32_t max_pos, std::error_code &ec) {
+  bool set_position_pid_raw(Command cmd, float p, float i, float d, uint32_t max_i,
+                            uint32_t deadzone, int32_t min_pos, int32_t max_pos,
+                            std::error_code &ec) {
     std::vector<uint8_t> payload;
     payload.reserve(28); // fixed 7 x 4 bytes; avoid incremental reallocations
     detail::append_u32_be(payload, detail::scale_pid_gain(d, detail::kBasicmicroPositionPidScale));
@@ -1036,9 +946,9 @@ protected:
 
   /// Shared implementation for commands 63/64. Reply order is
   /// P, I, D, MaxI, Deadzone, MinPos, MaxPos (P/I/D scaled by 1024).
-  bool read_position_pid(Command cmd, float &p, float &i, float &d, uint32_t &max_i,
-                         uint32_t &deadzone, int32_t &min_pos, int32_t &max_pos,
-                         std::error_code &ec) {
+  bool read_position_pid_raw(Command cmd, float &p, float &i, float &d, uint32_t &max_i,
+                             uint32_t &deadzone, int32_t &min_pos, int32_t &max_pos,
+                             std::error_code &ec) {
     uint8_t data[28] = {};
     if (!read_command(cmd, data, ec))
       return false;
@@ -1058,5 +968,8 @@ protected:
   /// concurrent callers cannot interleave packets on the shared serial line.
   std::mutex mutex_;
 };
+
+static_assert(MotorController<Basicmicro>,
+              "Basicmicro must satisfy the shared espp::MotorController interface");
 
 } // namespace espp
