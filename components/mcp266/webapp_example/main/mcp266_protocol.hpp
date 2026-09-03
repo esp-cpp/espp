@@ -41,7 +41,10 @@ enum : uint8_t {
   kDriveSpeed = 0x66,            ///< [axis u8][qpps i32] (inert on tested firmware)
   kDriveDuty = 0x67,             ///< [axis u8][duty i16] (inert on tested firmware)
   kGetStatus = 0x68,             ///< request one STATUS snapshot (no payload)
-  kSetStatusStream = 0x69,       ///< [enable u8][period_ms u16] periodic STATUS streaming
+  kSetStatusStream = 0x69,       ///< [enable u8][period_ms u16] periodic STATUS streaming.
+                                 ///< period_ms is clamped to [50, 10000] on the device (0 =
+                                 ///< default 200 ms); each snapshot issues eight blocking SDO
+                                 ///< reads, so smaller periods are rejected to protect the bus.
   kGetDeviceInfo = 0x6A,         ///< request DEVICE_INFO (no payload)
 };
 

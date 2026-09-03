@@ -14,6 +14,7 @@
 // the MCP266's configured CANopen node id. The system console/logs go to the
 // separate built-in USB-Serial-JTAG.
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <chrono>
@@ -211,8 +212,16 @@ extern "C" void app_main(void) {
   };
 
   // --- status streaming task -------------------------------------------------
+  // A STATUS snapshot performs eight blocking SDO reads while holding the shared
+  // MCP mutex (see send_status), so a too-small period would starve command
+  // handling and flood the CAN bus. Clamp the host-requested period into a safe
+  // window: >= 50 ms (<= 20 Hz) leaves headroom for the eight SDO round-trips,
+  // and <= 10 s keeps the stream responsive. A period of 0 selects the default.
+  static constexpr uint16_t kDefaultStreamPeriodMs = 200;
+  static constexpr uint16_t kMinStreamPeriodMs = 50;
+  static constexpr uint16_t kMaxStreamPeriodMs = 10000;
   std::atomic<bool> stream_enabled{false};
-  std::atomic<uint32_t> stream_period_ms{200};
+  std::atomic<uint32_t> stream_period_ms{kDefaultStreamPeriodMs};
   espp::Task status_task({.callback = [&](std::mutex &m, std::condition_variable &cv) -> bool {
                             if (stream_enabled.load())
                               send_status();
@@ -302,8 +311,14 @@ extern "C" void app_main(void) {
     case proto::kSetStatusStream:
       if (!need(3))
         break;
-      stream_enabled.store(pl[0] != 0);
-      stream_period_ms.store(rd_u16(pl, 1) ? rd_u16(pl, 1) : 200);
+      {
+        const uint16_t requested = rd_u16(pl, 1);
+        const uint16_t period_ms =
+            std::clamp<uint16_t>(requested == 0 ? kDefaultStreamPeriodMs : requested,
+                                 kMinStreamPeriodMs, kMaxStreamPeriodMs);
+        stream_enabled.store(pl[0] != 0);
+        stream_period_ms.store(period_ms);
+      }
       send_ok(type);
       break;
     case proto::kGetDeviceInfo: {
