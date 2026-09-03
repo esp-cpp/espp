@@ -413,12 +413,20 @@ public:
    * @param qpps Speed in pulses per second (as reported by the controller).
    * @param ec Set on failure.
    * @return True on success.
-   * @note Use the overload taking a @c direction out-parameter to also read the
-   *       0 = forward / 1 = backward flag.
+   * @note Commands 18/19 report an unsigned speed magnitude plus a separate
+   *       direction byte; this overload folds that direction into the sign so
+   *       reverse motion reads as a negative speed (the signed-speed contract of
+   *       espp::MotorController). Use the overload taking a @c direction
+   *       out-parameter to read the raw magnitude and the 0 = forward /
+   *       1 = backward flag separately.
    */
   bool read_speed(Axis axis, int32_t &qpps, std::error_code &ec) {
     uint8_t direction = 0;
-    return read_speed(axis, qpps, direction, ec);
+    if (!read_speed(axis, qpps, direction, ec))
+      return false;
+    if (direction != 0)
+      qpps = -qpps;
+    return true;
   }
 
   /**
