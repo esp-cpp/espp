@@ -818,6 +818,9 @@ public:
       std::error_code ec32;
       if (read_command(Command::ReadStatus, data, ec32)) {
         status = detail::read_u32_be(data, 0);
+        // The 32-bit attempt used a local ec32; honor the "true => ec cleared"
+        // contract so a caller reusing ec sees success.
+        ec.clear();
         return true;
       }
     }
@@ -992,9 +995,12 @@ protected:
   bool set_velocity_pid(Command cmd, float p, float i, float d, uint32_t qpps,
                         std::error_code &ec) {
     std::vector<uint8_t> payload;
-    detail::append_u32_be(payload, static_cast<uint32_t>(d * detail::kBasicmicroPidScale));
-    detail::append_u32_be(payload, static_cast<uint32_t>(p * detail::kBasicmicroPidScale));
-    detail::append_u32_be(payload, static_cast<uint32_t>(i * detail::kBasicmicroPidScale));
+    // Route through scale_pid_gain (rounds; guards negative -> uint32 wrap and
+    // NaN/inf -> UB in std::llround) just like the position path — a raw
+    // static_cast of the float product bypassed those guards.
+    detail::append_u32_be(payload, detail::scale_pid_gain(d, detail::kBasicmicroPidScale));
+    detail::append_u32_be(payload, detail::scale_pid_gain(p, detail::kBasicmicroPidScale));
+    detail::append_u32_be(payload, detail::scale_pid_gain(i, detail::kBasicmicroPidScale));
     detail::append_u32_be(payload, qpps);
     return write_command(cmd, payload, ec);
   }
