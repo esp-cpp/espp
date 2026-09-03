@@ -129,7 +129,7 @@ extern "C" void app_main(void) {
   } else {
     // DS402: profile velocity mode, enable, gentle ramp, stop, disable.
     if (auto state = drive.get_state(ec); !ec) {
-      logger.info("Drive state: {}", espp::detail::ds402::state_to_string(state));
+      logger.info("Drive state: {}", espp::Ds402Drive::to_string(state));
       if (state == espp::Ds402Drive::State::Fault) {
         logger.info("Drive is in Fault; attempting fault reset");
         if (!drive.fault_reset(ec)) {

@@ -462,13 +462,15 @@ inline constexpr uint16_t OBJ_CONTROLWORD = 0x6040;        ///< Controlword (u16
 inline constexpr uint16_t OBJ_STATUSWORD = 0x6041;         ///< Statusword (u16).
 inline constexpr uint16_t OBJ_MODES_OF_OPERATION = 0x6060; ///< Modes of operation (i8).
 inline constexpr uint16_t OBJ_MODES_OF_OPERATION_DISPLAY = 0x6061; ///< Modes display (i8).
-inline constexpr uint16_t OBJ_POSITION_ACTUAL = 0x6064;            ///< Position actual value (i32).
-inline constexpr uint16_t OBJ_VELOCITY_ACTUAL = 0x606C;            ///< Velocity actual value (i32).
-inline constexpr uint16_t OBJ_TARGET_POSITION = 0x607A;            ///< Target position (i32).
-inline constexpr uint16_t OBJ_PROFILE_VELOCITY = 0x6081;           ///< Profile velocity (u32).
-inline constexpr uint16_t OBJ_PROFILE_ACCELERATION = 0x6083;       ///< Profile acceleration (u32).
-inline constexpr uint16_t OBJ_PROFILE_DECELERATION = 0x6084;       ///< Profile deceleration (u32).
-inline constexpr uint16_t OBJ_TARGET_VELOCITY = 0x60FF;            ///< Target velocity (i32).
+inline constexpr uint16_t OBJ_SOFTWARE_POSITION_LIMIT =
+    0x607D;                                              ///< Software position limit (i32:1/:2).
+inline constexpr uint16_t OBJ_POSITION_ACTUAL = 0x6064;  ///< Position actual value (i32).
+inline constexpr uint16_t OBJ_VELOCITY_ACTUAL = 0x606C;  ///< Velocity actual value (i32).
+inline constexpr uint16_t OBJ_TARGET_POSITION = 0x607A;  ///< Target position (i32).
+inline constexpr uint16_t OBJ_PROFILE_VELOCITY = 0x6081; ///< Profile velocity (u32).
+inline constexpr uint16_t OBJ_PROFILE_ACCELERATION = 0x6083; ///< Profile acceleration (u32).
+inline constexpr uint16_t OBJ_PROFILE_DECELERATION = 0x6084; ///< Profile deceleration (u32).
+inline constexpr uint16_t OBJ_TARGET_VELOCITY = 0x60FF;      ///< Target velocity (i32).
 /// @}
 
 /// @name Object-index bounds used for per-axis offsetting

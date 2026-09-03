@@ -444,6 +444,12 @@ public:
     return last_abort_code_;
   }
 
+  /// \brief Human-readable description of a CiA 301 SDO abort code (e.g. for
+  ///        logging the reason behind an SDO failure / last_abort_code()).
+  static const char *abort_code_to_string(uint32_t abort_code) {
+    return detail::canopen::sdo_abort_to_string(abort_code);
+  }
+
   /// @}
 
 protected:

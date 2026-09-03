@@ -34,6 +34,16 @@ public:
   using State = detail::ds402::State;                 ///< CiA 402 drive state.
   using OperatingMode = detail::ds402::OperatingMode; ///< CiA 402 mode of operation.
 
+  /// \brief Human-readable name for a CiA 402 drive state (e.g. for logging).
+  static const char *to_string(State state) { return detail::ds402::state_to_string(state); }
+
+  /// \brief Decode a raw CiA 402 statusword (object 0x6041) into a drive state.
+  /// \details Useful for decoding a statusword you already have (e.g. from a
+  ///          cached read or a TPDO) without another SDO round-trip.
+  static State state_from_statusword(uint16_t statusword) {
+    return detail::ds402::decode_state(statusword);
+  }
+
   /// \brief Configuration for the Ds402Drive.
   struct Config {
     std::chrono::milliseconds state_timeout{
