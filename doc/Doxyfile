@@ -373,6 +373,7 @@ INPUT = \
   $(PROJECT_PATH)/components/max1704x/include/max1704x.hpp \
   $(PROJECT_PATH)/components/monitor/include/heap_monitor.hpp \
   $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp \
+  $(PROJECT_PATH)/components/motor_controller/include/basicmicro_commands.hpp \
   $(PROJECT_PATH)/components/motor_controller/include/motor_controller.hpp \
   $(PROJECT_PATH)/components/motorgo-axis/include/motorgo-axis.hpp \
   $(PROJECT_PATH)/components/motorgo-mini/include/motorgo-mini.hpp \

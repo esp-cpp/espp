@@ -3,6 +3,11 @@
 #include <array>
 #include <cstdint>
 
+// The MCP266 manufacturer objects mirror the packet-serial command set, so the
+// object indices are derived from the shared BasicmicroCommand table (kept in
+// the motor_controller component) rather than hardcoded numbers.
+#include "basicmicro_commands.hpp"
+
 /// \file mcp266_core.hpp
 /// \brief Host-buildable, ESP-independent core for the Basicmicro MCP266
 ///        CANopen mapping: the manufacturer command-object mirror, per-axis
@@ -24,6 +29,16 @@ inline constexpr uint16_t command_object(uint8_t command) {
   return static_cast<uint16_t>(0x2000 + command);
 }
 
+/// \brief Manufacturer object index for a named packet-serial command.
+/// \details Overload that takes the shared BasicmicroCommand enum so call sites
+///          read as `command_object(BasicmicroCommand::ReadMainBatteryVoltage)`
+///          instead of a magic number that could drift from the serial driver.
+/// \param command The Basicmicro packet-serial command.
+/// \return The corresponding manufacturer object index (0x2000 + command).
+inline constexpr uint16_t command_object(BasicmicroCommand command) {
+  return command_object(static_cast<uint8_t>(command));
+}
+
 /// \brief Object offset added to a CiA 402 device-profile index (0x60xx) to
 ///        select a motor axis. M1 is at the standard indices; M2 mirrors them
 ///        at +0x800 (e.g. controlword 0x6040 -> 0x6840).
@@ -35,9 +50,12 @@ inline constexpr uint16_t kAxisOffsetM2 = 0x800;
 /// \brief Device-level (non-axis) telemetry / maintenance objects, mirrored
 ///        from their packet-serial commands.
 /// @{
-inline constexpr uint16_t kMainBatteryObject = command_object(24); ///< tenths of a volt (u16)
-inline constexpr uint16_t kTemperatureObject = command_object(82); ///< tenths of a degree C (u16)
-inline constexpr uint16_t kEStopResetObject = command_object(200); ///< write-only
+inline constexpr uint16_t kMainBatteryObject =
+    command_object(BasicmicroCommand::ReadMainBatteryVoltage); ///< tenths of a volt (u16)
+inline constexpr uint16_t kTemperatureObject =
+    command_object(BasicmicroCommand::ReadTemperature); ///< tenths of a degree C (u16)
+inline constexpr uint16_t kEStopResetObject =
+    command_object(BasicmicroCommand::EStopReset); ///< write-only
 /// @}
 
 /// \brief The manufacturer command objects and CiA 402 offset for one axis.
@@ -51,13 +69,17 @@ struct AxisObjects {
 
 /// \brief Objects for motor 1 (the standard axis).
 inline constexpr AxisObjects axis_m1() {
-  return {kAxisOffsetM1, command_object(61), command_object(63), command_object(32),
-          command_object(35)};
+  return {kAxisOffsetM1, command_object(BasicmicroCommand::SetPositionPidM1),
+          command_object(BasicmicroCommand::ReadPositionPidM1),
+          command_object(BasicmicroCommand::DriveM1SignedDuty),
+          command_object(BasicmicroCommand::DriveM1SignedSpeed)};
 }
 /// \brief Objects for motor 2 (mirrored at +0x800 / command n+1).
 inline constexpr AxisObjects axis_m2() {
-  return {kAxisOffsetM2, command_object(62), command_object(64), command_object(33),
-          command_object(36)};
+  return {kAxisOffsetM2, command_object(BasicmicroCommand::SetPositionPidM2),
+          command_object(BasicmicroCommand::ReadPositionPidM2),
+          command_object(BasicmicroCommand::DriveM2SignedDuty),
+          command_object(BasicmicroCommand::DriveM2SignedSpeed)};
 }
 
 /// \brief Remap a position-PID record from the readback order to the setter
