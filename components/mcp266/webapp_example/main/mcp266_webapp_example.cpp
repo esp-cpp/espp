@@ -239,6 +239,19 @@ extern "C" void app_main(void) {
       }
       return true;
     };
+    // Axis-addressed requests: require the length AND a valid axis selector, so an
+    // unexpected pl[0] cannot silently fall through to M1 and command the wrong
+    // motor (axis_of() only distinguishes 1 == M2 from everything-else == M1).
+    auto need_axis = [&](size_t n) -> bool {
+      if (!need(n))
+        return false;
+      if (pl[0] > proto::kAxisM2) {
+        reply_error(type, std::make_error_code(std::errc::invalid_argument),
+                    "invalid axis (must be 0=M1 or 1=M2)");
+        return false;
+      }
+      return true;
+    };
     std::lock_guard<std::mutex> lock(mcp_mutex);
     switch (type) {
     case proto::kStart:
@@ -251,21 +264,21 @@ extern "C" void app_main(void) {
       mcp.reset_estop(ec) ? send_ok(type) : reply_error(type, ec, "reset e-stop failed");
       break;
     case proto::kConfigurePositionLoop:
-      if (!need(13))
+      if (!need_axis(13))
         break;
       mcp.configure_position_loop(axis_of(pl[0]), rd_i32(pl, 1), rd_i32(pl, 5), ec, rd_i32(pl, 9))
           ? send_ok(type)
           : reply_error(type, ec, "configure position loop failed");
       break;
     case proto::kSetPositionLimits:
-      if (!need(9))
+      if (!need_axis(9))
         break;
       mcp.set_position_limits(axis_of(pl[0]), rd_i32(pl, 1), rd_i32(pl, 5), ec)
           ? send_ok(type)
           : reply_error(type, ec, "set position limits failed");
       break;
     case proto::kMoveToPosition:
-      if (!need(17))
+      if (!need_axis(17))
         break;
       mcp.move_to_position(axis_of(pl[0]), rd_i32(pl, 1), rd_u32(pl, 5), rd_u32(pl, 9),
                            rd_u32(pl, 13), ec)
@@ -273,14 +286,14 @@ extern "C" void app_main(void) {
           : reply_error(type, ec, "move failed");
       break;
     case proto::kDriveSpeed:
-      if (!need(5))
+      if (!need_axis(5))
         break;
       mcp.drive_speed(axis_of(pl[0]), rd_i32(pl, 1), ec)
           ? send_ok(type)
           : reply_error(type, ec, "drive speed failed");
       break;
     case proto::kDriveDuty:
-      if (!need(3))
+      if (!need_axis(3))
         break;
       mcp.drive_duty(axis_of(pl[0]), rd_i16(pl, 1), ec)
           ? send_ok(type)
@@ -334,7 +347,9 @@ extern "C" void app_main(void) {
   bool rx_overflow = false;
   static constexpr size_t kMaxQueuedRxBytes = 8 * sf::kMaxFrameSize;
   auto enqueue_rx = [&](Transport source, std::span<const uint8_t> data) {
-    active_transport.store(source);
+    // NOTE: active_transport is set by the RX worker just before it feeds each
+    // chunk (below), NOT here: a frame arriving on the other endpoint between
+    // enqueue and dispatch must not retarget a reply for the frame being handled.
     {
       std::lock_guard<std::mutex> lock(rx_mutex);
       if (rx_queued_bytes + data.size() > kMaxQueuedRxBytes) {
@@ -376,8 +391,13 @@ extern "C" void app_main(void) {
            cdc_dispatcher.reset();
            return false;
          }
-         for (const auto &[source, chunk] : chunks)
+         for (const auto &[source, chunk] : chunks) {
+           // Single-writer of active_transport: set it to match the chunk being
+           // dispatched so replies/status generated during this feed go back on
+           // the transport the request arrived on.
+           active_transport.store(source);
            (source == Transport::Vendor ? vendor_dispatcher : cdc_dispatcher).feed(chunk);
+         }
          return false;
        },
        .task_config = {.name = "mcp266_rx", .stack_size_bytes = 16384}});
