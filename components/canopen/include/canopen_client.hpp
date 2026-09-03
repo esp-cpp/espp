@@ -12,6 +12,7 @@
 #include <unordered_map>
 
 #include "base_component.hpp"
+#include "canopen_format_helpers.hpp"
 #include "detail/canopen_core.hpp"
 
 namespace espp {
