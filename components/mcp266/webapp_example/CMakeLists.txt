@@ -26,6 +26,7 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/format"
   "../../../components/logger"
   "../../../components/mcp266"
+  "../../../components/motor_controller"
   "../../../components/stream_frame"
   "../../../components/task"
   "../../../components/twai"
@@ -45,7 +46,7 @@ endif()
 
 set(
   COMPONENTS
-  "main esptool_py base_component canopen dispatcher format logger mcp266 stream_frame task twai usb_device esp_tinyusb"
+  "main esptool_py base_component canopen dispatcher format logger mcp266 motor_controller stream_frame task twai usb_device esp_tinyusb"
   CACHE STRING
   "List of components to include"
   )

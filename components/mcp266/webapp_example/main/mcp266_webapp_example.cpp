@@ -275,14 +275,14 @@ extern "C" void app_main(void) {
     case proto::kConfigurePositionLoop:
       if (!need_axis(13))
         break;
-      mcp.configure_position_loop(axis_of(pl[0]), rd_i32(pl, 1), rd_i32(pl, 5), ec, rd_i32(pl, 9))
+      mcp.configure_position_loop(axis_of(pl[0]), rd_i32(pl, 1), rd_i32(pl, 5), rd_i32(pl, 9), ec)
           ? send_ok(type)
           : reply_error(type, ec, "configure position loop failed");
       break;
     case proto::kSetPositionLimits:
       if (!need_axis(9))
         break;
-      mcp.set_position_limits(axis_of(pl[0]), rd_i32(pl, 1), rd_i32(pl, 5), ec)
+      mcp.set_software_position_limits(axis_of(pl[0]), rd_i32(pl, 1), rd_i32(pl, 5), ec)
           ? send_ok(type)
           : reply_error(type, ec, "set position limits failed");
       break;
