@@ -83,7 +83,7 @@ public:
     // make SDO addressing (0x580/0x600 + id) and heartbeat matching wrong.
     if (node_id_ < 1 || node_id_ > 127) {
       logger_.error("node_id {} is out of range (1-127); clamping to 1 — set a valid node id",
-                    node_id_);
+                    static_cast<unsigned>(node_id_));
       node_id_ = 1;
     }
   }
@@ -311,6 +311,15 @@ public:
       logger_.error(
           "SDO upload 0x{:04X}:{:02X}: object is {} bytes, larger than the {}-byte buffer", index,
           subindex, response.len, out.size());
+      ec = std::make_error_code(std::errc::protocol_error);
+      return 0;
+    }
+    // Defensive: never read past the fixed-size expedited data buffer even if a
+    // malformed frame or parser bug reported a length the parser should have
+    // capped at 4 (guards the copy_n source, not just the out destination).
+    if (n > response.data.size()) {
+      logger_.error("SDO upload 0x{:04X}:{:02X}: reported length {} exceeds the {}-byte payload",
+                    index, subindex, response.len, response.data.size());
       ec = std::make_error_code(std::errc::protocol_error);
       return 0;
     }
