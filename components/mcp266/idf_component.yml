@@ -8,6 +8,7 @@ maintainers:
 documentation: "https://esp-cpp.github.io/espp/motorcontrol/mcp266.html"
 examples:
   - path: example
+  - path: webapp_example
 tags:
   - cpp
   - Component
