@@ -248,10 +248,17 @@ protected:
 
   // Pairing state.
   bool paired_{false};
+  /// Highest completed 0x15 pairing step this connection: 0=none, 1=exchange
+  /// addresses, 2=exchange keys, 3=confirm LTK. FINALISE (step 4) is only accepted
+  /// when this is 3, so an out-of-order/malformed peer cannot persist a bad bond.
+  /// Reset to 0 on each new connection.
+  uint8_t pairing_stage_{0};
   bool reconnect_mode_{false}; ///< booted with a stored bond (reconnect, not fresh pair)
   bool wake_pending_{false}; ///< wake_console() latched: keep the WAKE adv variant until connected
-  bool input_subscribed_{false}; ///< console has enabled input-report notifications (0x000e)
-  uint8_t report_counter_{0};    ///< input-report sequence (byte 0); +1 per delivered report
+  /// Console has enabled input-report notifications (0x000e). Written from the
+  /// NimBLE callback thread, read by the streaming thread — atomic to avoid a race.
+  std::atomic<bool> input_subscribed_{false};
+  uint8_t report_counter_{0}; ///< input-report sequence (byte 0); +1 per delivered report
   std::atomic<int> notify_in_flight_{0}; ///< queued-but-not-yet-transmitted input notifications
   std::atomic<uint32_t> tx_completions_{
       0};                    ///< count of NOTIFY_TX completions (flow-control signal)
@@ -280,7 +287,9 @@ protected:
   uint16_t last_latency_{0xffff};
   uint8_t last_tx_phy_{0};
   uint8_t last_rx_phy_{0};
-  uint16_t active_conn_handle_{0xffff};    ///< current connection (BLE_HS_CONN_HANDLE_NONE)
+  /// Current connection handle (0xffff = BLE_HS_CONN_HANDLE_NONE). Written from the
+  /// NimBLE connect/disconnect callbacks, read by the streaming/timer threads — atomic.
+  std::atomic<uint16_t> active_conn_handle_{0xffff};
   std::array<uint8_t, 16> ltk_{};          ///< derived during key exchange (A1 ^ B1)
   std::array<uint8_t, 6> host_addr_{};     ///< console BD_ADDR (from exchange-addresses)
   uint8_t bond_peer_type_{0};              ///< persisted console address type
@@ -290,7 +299,9 @@ protected:
   /// input report must reflect these: rumble (bit 5) sets report byte 0x0B to
   /// 0x38, and IMU (bit 2) makes us stream the 40-byte motion block — the
   /// console enables both (mask 0x2f) and discards reports that omit them.
-  uint8_t enabled_features_{0};
+  /// Written from the FEATURE_SELECT command handler (callback thread), read by the
+  /// streaming thread when building each report — atomic.
+  std::atomic<uint8_t> enabled_features_{0};
 
   switch2::Pro2InputReport input_report_{};
 };

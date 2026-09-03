@@ -300,11 +300,11 @@ jobs:
           target: esp32
         - path: 'components/stream_frame/example'
           target: esp32
-        - path: 'components/sx126x/example'
-          target: esp32s3
         - path: 'components/switch2_pro/example'
           target: esp32c6
         - path: 'components/switch2_pro/example'
+          target: esp32s3
+        - path: 'components/sx126x/example'
           target: esp32s3
         - path: 'components/t-deck/example'
           target: esp32s3

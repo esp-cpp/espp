@@ -20,6 +20,16 @@
 #include "switch2_pro_flash.hpp"
 #include "switch2_pro_motion.hpp"
 
+// The Switch 2 console filters controllers on a 31-byte LEGACY advertisement
+// carrying Nintendo manufacturer data, and this component builds that via the
+// legacy BleGattServer::AdvertisingParameters path (which only exists when NimBLE
+// extended advertising is disabled). Fail fast with a clear message instead of a
+// confusing template error if a consumer enables extended advertising.
+#if defined(CONFIG_BT_NIMBLE_EXT_ADV) && CONFIG_BT_NIMBLE_EXT_ADV
+#error                                                                                             \
+    "switch2_pro requires legacy advertising; disable CONFIG_BT_NIMBLE_EXT_ADV (NimBLE extended advertising)."
+#endif
+
 namespace espp {
 
 using namespace switch2;
@@ -165,9 +175,20 @@ bool Switch2Pro::init() {
 }
 
 Switch2Pro::~Switch2Pro() {
+  // Tear down everything that can call back into `this` BEFORE the members those
+  // callbacks touch are destroyed. The streaming thread, the wake timer, and the
+  // NimBLE GAP/GATT callbacks all capture `this`; members declared after
+  // ble_gatt_server_/wake_timer_ are destroyed first, so a late callback would
+  // otherwise access already-destroyed state.
   stream_stop_.store(true);
   if (input_stream_thread_.joinable())
     input_stream_thread_.join();
+  if (wake_timer_) {
+    wake_timer_->cancel(); // stop + join the wake-advertisement timer task
+    wake_timer_.reset();
+  }
+  ble_gatt_server_.stop_advertising();
+  ble_gatt_server_.set_callbacks({}); // detach the this-capturing GAP/GATT callbacks
 }
 
 void Switch2Pro::configure_security() {
@@ -194,6 +215,7 @@ void Switch2Pro::configure_callbacks() {
     // over-the-air address the console connected to (see local_bt_address()).
     active_conn_handle_ = info.getConnHandle();
     wake_pending_ = false; // wake accomplished — subsequent advertising can be passive
+    pairing_stage_ = 0;    // a fresh connection restarts the 0x15 handshake sequence
     // The connection interval right after connect is the key diagnostic: the
     // Switch 2 drives 5 ms (interval == 4 units). If a controller can't hold
     // that, the console typically disconnects with a supervision timeout.
@@ -601,20 +623,12 @@ void Switch2Pro::on_subscribe(NimBLECharacteristic *characteristic, uint16_t sub
   // The console enables input-report notifications on the Pro Controller 2 input
   // characteristic (0x000e) near the end of init; only then do we stream.
   if (characteristic == pro2_input_) {
-    input_subscribed_ = (sub_value != 0);
-    if (input_subscribed_) {
-      report_counter_ = 0; // fresh sequence for the console to track
-      motion_idx_ = 0;
-      enomem_count_ = 0;
-      notify_in_flight_.store(0);
-      tx_completions_.store(0);
-      backpressure_skips_ = 0;
-      last_itvl_ = 0; // force a fresh LINK baseline log
-      last_latency_ = 0xffff;
-      last_tx_phy_ = 0;
-      last_rx_phy_ = 0;
-    }
-    logger_.info("input-report streaming {}", input_subscribed_ ? "ENABLED (0x000e)" : "disabled");
+    // Just flip the flag (atomic). The per-session counters/link-baseline are
+    // reset by the streaming thread itself at the start of each streaming run
+    // (see input_stream_loop) so they stay single-writer — no cross-thread race.
+    const bool subscribed = (sub_value != 0);
+    input_subscribed_.store(subscribed);
+    logger_.info("input-report streaming {}", subscribed ? "ENABLED (0x000e)" : "disabled");
   }
 }
 
@@ -713,6 +727,18 @@ void Switch2Pro::input_stream_loop() {
     // --- tx-wedge telemetry ---
     const int64_t now_us = esp_timer_get_time();
     if (stream_start_us_ == 0) { // first live tick of this streaming run
+      // Reset the per-session state here (in the streaming thread) rather than in
+      // the on_subscribe callback, so these stay single-writer.
+      report_counter_ = 0; // fresh byte-0 sequence for the console to track
+      motion_idx_ = 0;
+      enomem_count_ = 0;
+      backpressure_skips_ = 0;
+      notify_in_flight_.store(0);
+      tx_completions_.store(0);
+      last_itvl_ = 0; // force a fresh LINK baseline log from poll_conn_state
+      last_latency_ = 0xffff;
+      last_tx_phy_ = 0;
+      last_rx_phy_ = 0;
       stream_start_us_ = hb_last_us_ = now_us;
       last_tx_complete_us_.store(now_us);
       hb_last_completions_ = tx_completions_.load();
@@ -831,7 +857,7 @@ bool Switch2Pro::send_input_report() {
     logger_.debug("input stream: inflight={} txdone={} enomem={} ctr=0x{:02x} btn=[{:02x} {:02x} "
                   "{:02x}] 0x0b={:02x} feat={:02x}",
                   notify_in_flight_.load(), tx_completions_.load(), enomem_count_, buf[0], buf[2],
-                  buf[3], buf[4], buf[0x0b], enabled_features_);
+                  buf[3], buf[4], buf[0x0b], enabled_features_.load());
   return sent;
 }
 
@@ -918,9 +944,12 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
     // the 0x00/count prefix as the address — garbage the console never recognises.
     if (len >= 8) {
       std::copy(payload + 2, payload + 8, host_addr_.begin());
+      pairing_stage_ = 1;
       logger_.info(
           "pairing: stored console identity addr {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
           host_addr_[5], host_addr_[4], host_addr_[3], host_addr_[2], host_addr_[1], host_addr_[0]);
+    } else {
+      logger_.warn("pairing: exchange-addresses payload too short ({} bytes)", len);
     }
     // Reply: {0x01, 0x04, 0x01} + our BT address. The 0x04/0x01 prefix bytes
     // are as observed in captures; address byte order to be confirmed on HW.
@@ -936,10 +965,14 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
   }
   case PairingSub::EXCHANGE_KEYS: {
     // Request data is [0x00][A1 (16 bytes)] — skip the leading 0x00.
-    if (len >= 17) {
+    if (pairing_stage_ >= 1 && len >= 17) {
       std::array<uint8_t, 16> a1{};
       std::copy(payload + 1, payload + 17, a1.begin());
       ltk_ = PairingCrypto::derive_ltk(a1);
+      pairing_stage_ = 2;
+    } else {
+      logger_.warn("pairing: exchange-keys out of order or short (stage={}, len={})",
+                   pairing_stage_, len);
     }
     // Reply: {0x01} + fixed controller key B1.
     std::array<uint8_t, 17> reply{0x01};
@@ -952,10 +985,14 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
   case PairingSub::CONFIRM_LTK: {
     // Request data is [0x00][A2 challenge (16 bytes)] — skip the leading 0x00.
     std::array<uint8_t, 16> b2{};
-    if (len >= 17) {
+    if (pairing_stage_ >= 2 && len >= 17) {
       std::array<uint8_t, 16> a2{};
       std::copy(payload + 1, payload + 17, a2.begin());
       b2 = PairingCrypto::confirm(ltk_, a2);
+      pairing_stage_ = 3;
+    } else {
+      logger_.warn("pairing: confirm out of order or short (stage={}, len={})", pairing_stage_,
+                   len);
     }
     // Reply: {0x01} + B2 = AES-128-ECB(rev(LTK), rev(A2)).
     std::array<uint8_t, 17> reply{0x01};
@@ -966,6 +1003,14 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
     break;
   }
   case PairingSub::FINALISE: {
+    // Only finalise if address exchange, key derivation, and LTK confirmation all
+    // completed in order (stage 3). Otherwise an out-of-order/malformed peer could
+    // mark us paired and persist an all-zero/partial bond, sending future boots
+    // into reconnect mode with a useless bond. Reject without replying/persisting.
+    if (pairing_stage_ < 3) {
+      logger_.warn("pairing: FINALISE rejected — handshake incomplete (stage={})", pairing_stage_);
+      break;
+    }
     static constexpr std::array<uint8_t, 1> reply{0x01};
     send_response(via_vibration_command, 0x15, transport, 0x03, 0x10, 0x78, reply.data(),
                   reply.size());
