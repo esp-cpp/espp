@@ -43,6 +43,34 @@ inline constexpr const char *FIRMWARE_UPDATE_UUID = "4147423d-fdae-4df7-a4f7-d23
 inline constexpr const char *COMMAND_RESPONSE1_UUID = "c765a961-d9d8-4d36-a20a-5315b111836a";
 /// Command response #2 — replies to writes on the vibration+command channel. NOTIFY.
 inline constexpr const char *COMMAND_RESPONSE2_UUID = "506d9f7d-4278-4e95-a549-326ba77657e0";
+/// Additional service-2 attributes a real Pro Controller 2 exposes; replicated so
+/// the console's GATT discovery sees the same characteristic set (handles 0x0022,
+/// 0x0026, 0x002a). Purpose unknown but their absence appears to make the console
+/// reject the controller after discovery.
+inline constexpr const char *UNKNOWN_INPUT1_UUID =
+    "d3bd69d2-841c-4241-ab15-f86f406d2a80"; // 0x0022 NOTIFY
+inline constexpr const char *UNKNOWN_INPUT2_UUID =
+    "ab7de9be-89fe-49ad-828f-118f09df7fde"; // 0x0026 READ|NOTIFY
+inline constexpr const char *UNKNOWN_OUTPUT_UUID =
+    "ab7de9be-89fe-49ad-828f-118f09df7fdf"; // 0x002a WRITE_NR
+
+/// Vendor descriptors a real controller attaches to its characteristics. The
+/// "report rate" descriptor sits on the input-report characteristics; the other
+/// on the command-response characteristics. Replicated for discovery parity.
+inline constexpr const char *REPORT_RATE_DESC_UUID = "679d5510-5a24-4dee-9557-95df80486ecb";
+inline constexpr const char *CMD_RESPONSE_DESC_UUID = "b746df8c-f358-495b-9cd2-e3bbeda4f979";
+
+/// Headset-audio attributes exposed by a Pro Controller 2 that has been updated
+/// from factory firmware (handles 0x002c/0x002e/0x0032). Their presence (and a
+/// valid DSP version in the 0x10 firmware-info reply) is how the console tells a
+/// fully-updated controller from factory firmware; without them the console
+/// treats us as un-updated and diverges (probing firmware-info, rejecting).
+inline constexpr const char *AUDIO_OUTPUT_UUID =
+    "cc483f51-9258-427d-a939-630c31f72b06"; // 0x002c WRITE_NR
+inline constexpr const char *AUDIO_INPUT_UUID =
+    "7492866c-ec3e-4619-8258-32755ffcc0f9"; // 0x002e READ|NOTIFY
+inline constexpr const char *AUDIO_COMMAND_UUID =
+    "3dacbc7e-6955-40b5-8eaf-6f9809e8b380"; // 0x0032 WRITE_NR
 
 // ---------------------------------------------------------------------------
 // Advertising / identity
@@ -53,11 +81,17 @@ inline constexpr uint16_t VENDOR_ID = 0x057E;       ///< Nintendo
 inline constexpr uint16_t PRODUCT_ID_PRO2 = 0x2069; ///< Pro Controller 2
 
 /// Manufacturer-specific advertising payload (AD type 0xFF) the console filters
-/// on. Byte 0x0B is the wake indicator (0x00 discovery / 0x81 wake) and bytes
-/// 0x0C..0x11 carry the bonded host BD_ADDR (byte-reversed); zero for discovery.
-inline constexpr std::array<uint8_t, 20> MANUFACTURER_DATA_DISCOVERY = {
-    0x53, 0x05, 0x01, 0x00, 0x03, 0x7e, 0x05, 0x69, 0x20, 0x00,
-    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x00};
+/// on. This must byte-for-byte match a real Pro Controller 2 "standard"
+/// advertisement (26 bytes, verified against the procon2 pairing capture) —
+/// company id 0x0553, VID 0x057E, PID 0x2069, then fixed/flags/host-addr fields
+/// and 7 trailing reserved zeros. With the 3-byte Flags AD this is exactly the
+/// 31-byte legacy-advertisement limit, so the device name goes in the scan
+/// response. Byte 0x0B is the wake indicator (0x00 discovery / 0x81 wake) and
+/// bytes 0x0C..0x11 carry the bonded host BD_ADDR (byte-reversed); zero for
+/// discovery.
+inline constexpr std::array<uint8_t, 26> MANUFACTURER_DATA_DISCOVERY = {
+    0x53, 0x05, 0x01, 0x00, 0x03, 0x7e, 0x05, 0x69, 0x20, 0x00, 0x01, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 inline constexpr size_t MANUFACTURER_WAKE_FLAG_OFFSET = 0x0b;
 inline constexpr size_t MANUFACTURER_HOST_ADDR_OFFSET = 0x0c;
 inline constexpr uint8_t WAKE_FLAG = 0x81;
@@ -76,17 +110,35 @@ inline constexpr uint8_t TRANSPORT_USB = 0x00;
 inline constexpr uint8_t TRANSPORT_BT = 0x01;
 inline constexpr uint8_t ACK_MARKER = 0x78; ///< seen in header byte 5 of replies
 
+/// The vibration+command channel (0x0016) carries a fixed-size vibration payload
+/// BEFORE the command, so every command written to it is preceded by this many
+/// 0x00 bytes (verified: all init-sequence writes on 0x0016 have a 33-byte
+/// prefix). The command-only channel (0x0014) has no prefix.
+inline constexpr size_t VIBRATION_COMMAND_PREFIX_SIZE = 33;
+/// The command-response channel (0x001e) likewise prefixes every response with a
+/// fixed 14-byte (zero) report header before the 8-byte response header.
+inline constexpr size_t RESPONSE_PREFIX_SIZE = 14;
+/// Header byte[4]/byte[5] for a Bluetooth response. The USB transport uses
+/// 0x00/0xf8 for bare ACKs, but every Pro Controller 2 BLE response (ACK or with
+/// data) uses 0x10/0x78.
+inline constexpr uint8_t RSP_BYTE4_BT = 0x10;
+inline constexpr uint8_t RSP_BYTE5_BT = 0x78;
+
 enum class Command : uint8_t {
   NFC = 0x01,
   FLASH_READ = 0x02, ///< read calibration / device info
   INIT = 0x03,
+  UNKNOWN_07 = 0x07, ///< init handshake; response is 1 zero data byte
   PLAYER_LEDS = 0x09,
   VIBRATION = 0x0a,
   BATTERY = 0x0b,
-  FEATURE_SELECT = 0x0c, ///< enable motion / mouse / rumble / magnetometer
+  FEATURE_SELECT = 0x0c, ///< enable motion / mouse / rumble / magnetometer; response 4 zero bytes
   FIRMWARE_UPDATE = 0x0d,
   FIRMWARE_INFO = 0x10,
+  UNKNOWN_11 = 0x11, ///< init handshake (post-pairing); response is a device blob
+  UNKNOWN_16 = 0x16, ///< init handshake; response is 24 zero data bytes
   PAIRING = 0x15,
+  UNKNOWN_18 = 0x18, ///< late-init probe; 0x18/0x01 response is an 8-byte device blob
 };
 
 /// Subcommands of Command::PAIRING (0x15).

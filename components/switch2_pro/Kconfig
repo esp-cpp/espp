@@ -1,22 +1,26 @@
 menu "Switch 2 Pro Controller"
 
     config SWITCH2_PRO_PATCH_NIMBLE_5MS
-        bool "Patch NimBLE to allow the console's 5 ms connection interval"
+        bool "Patch the BLE controller to allow the console's 5 ms connection interval"
         default n
         help
-            The Switch 2 console drives the BLE link at a 5 ms connection
-            interval, below the 7.5 ms Bluetooth spec minimum. To stream input
-            reports stably the controller stack must accept it.
+            On RECONNECT and WAKE-FROM-SLEEP the console connects a recognised
+            (bonded) controller at a 5 ms connection interval, below the 7.5 ms
+            Bluetooth spec minimum, chosen in its CONNECT_IND. The controller
+            stack must accept that sub-spec interval or the connection never
+            forms.
 
-            When enabled on a RISC-V target with the open NimBLE controller
-            (ESP32-C6/C61/C2/H2), the component build patches the prebuilt
-            libble_app.a in your global $IDF_PATH install to lower the
-            minimum-interval floor. THIS MODIFIES YOUR ESP-IDF INSTALLATION.
-            Undo with tools/patch_nimble_5ms.py --restore.
+            When enabled, the component build patches the prebuilt closed
+            controller library in your global $IDF_PATH install to lower the
+            minimum-interval floor from 6 units (7.5 ms) to 4 (5 ms):
+              * ESP32-C6/C61/C2/H2 — NimBLE controller (libble_app.a)
+              * ESP32-S3/C3        — BTDM/RivieraWaves controller (libbtdm_app.a)
+            THIS MODIFIES YOUR ESP-IDF INSTALLATION. Undo with
+            tools/patch_nimble_5ms.py --target <chip> --restore, and verify with
+            tools/smoke_test_5ms.py --target <chip>.
 
-            Has no effect on ESP32-S3/C3 (different closed controller; see
-            DESIGN.md for the Kconfig/Espressif path). Not required for pairing
-            or the GATT skeleton — only for stable input streaming. Leave this
-            OFF unless you understand the consequences.
+            Required for reconnect and wake-from-sleep. NOT required for fresh
+            pairing or first-session input streaming (those use the spec-legal
+            15 ms interval). Leave OFF unless you understand the consequences.
 
 endmenu

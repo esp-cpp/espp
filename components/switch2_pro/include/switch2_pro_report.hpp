@@ -31,6 +31,7 @@ public:
 
   void reset() {
     data_.fill(0);
+    data_[0x0b] = 0x30; // "unknown" byte: 0x30 unless feature bit 5 is set (0x38)
     set_left_stick(0.f, 0.f);
     set_right_stick(0.f, 0.f);
   }

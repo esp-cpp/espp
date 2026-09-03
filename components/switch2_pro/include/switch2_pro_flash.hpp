@@ -1,44 +1,74 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 
 /// @file switch2_pro_flash.hpp
 /// @brief Simulated controller flash the console reads during init (command
-///        0x02 memory reads): device info and stick calibration.
+///        0x02 memory reads): device info, serial, colors and stick/IMU
+///        calibration.
 ///
-/// The console reads calibration/device-info blocks from the controller's
-/// internal flash during bring-up. We emulate that flash in RAM and answer the
-/// reads. The exact factory-calibration contents are controller-specific; the
-/// values here are structurally valid placeholders (neutral stick calibration
-/// centered at the 12-bit midpoint) sufficient for bring-up. Refine against a
-/// real controller capture for pixel-accurate stick calibration.
+/// The console reads several blocks from the controller's internal flash during
+/// bring-up and validates them (e.g. the serial and VID/PID at 0x13000) before
+/// it will pair. The blocks below are the exact contents captured from a real
+/// Pro Controller 2 (ndeadly's btle_procon2_pairing capture). Unmapped regions
+/// read back as 0xFF (erased flash), matching the reads that returned all-0xFF.
+///
+/// The command 0x02/0x04 response wire format is: [len(4 LE)][addr(4 LE)][data],
+/// where `data` is exactly these bytes — there is no separate status byte.
 
 namespace espp::switch2 {
 
-/// Reads `len` bytes from the simulated flash at `addr` into `out`. Unknown
-/// regions read back as zero. Returns the number of bytes written (== len).
+// Real captured flash blocks (Pro Controller 2). Address = flash offset.
+inline constexpr std::array<uint8_t, 64> kFlash_013000 = {
+    0x01, 0x00, 0x48, 0x45, 0x4a, 0x37, 0x31, 0x30, 0x30, 0x31, 0x31, 0x32, 0x31, 0x32, 0x34, 0x37,
+    0x00, 0x00, 0x7e, 0x05, 0x69, 0x20, 0x01, 0x06, 0x01, 0x23, 0x23, 0x23, 0xa0, 0xa0, 0xa0, 0xe6,
+    0xe6, 0xe6, 0x32, 0x32, 0x32, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+inline constexpr std::array<uint8_t, 16> kFlash_013040 = {
+    0x3b, 0xe0, 0xd3, 0x41, 0xc6, 0x60, 0x6a, 0xbc, 0x4d, 0xd7, 0xa2, 0xbb, 0x71, 0x1e, 0xdd, 0x37};
+inline constexpr std::array<uint8_t, 64> kFlash_013080 = {
+    0x01, 0xad, 0xd9, 0x9a, 0x55, 0x56, 0x65, 0xa0, 0x00, 0x0a, 0xa0, 0x00, 0x0a, 0xe2, 0x20, 0x0e,
+    0xe2, 0x20, 0x0e, 0x9a, 0xad, 0xd9, 0x9a, 0xad, 0xd9, 0x0a, 0xa5, 0x50, 0x0a, 0xa5, 0x50, 0x2f,
+    0xf6, 0x62, 0x2f, 0xf6, 0x62, 0x0a, 0xff, 0xff, 0xb3, 0x67, 0x83, 0x2e, 0x66, 0x5e, 0x3a, 0x06,
+    0x5f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+inline constexpr std::array<uint8_t, 64> kFlash_0130C0 = {
+    0x01, 0xad, 0xd9, 0x9a, 0x55, 0x56, 0x65, 0xa0, 0x00, 0x0a, 0xa0, 0x00, 0x0a, 0xe2, 0x20, 0x0e,
+    0xe2, 0x20, 0x0e, 0x9a, 0xad, 0xd9, 0x9a, 0xad, 0xd9, 0x0a, 0xa5, 0x50, 0x0a, 0xa5, 0x50, 0x2f,
+    0xf6, 0x62, 0x2f, 0xf6, 0x62, 0x0a, 0xff, 0xff, 0x2c, 0x08, 0x84, 0xd1, 0x65, 0x63, 0x2a, 0x26,
+    0x62, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+inline constexpr std::array<uint8_t, 24> kFlash_013100 = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0xa6, 0xf2, 0x62, 0xbd, 0xa8, 0x00, 0x08, 0x3d, 0x2f, 0xed, 0x20, 0x41};
+
+/// Reads `len` bytes from the simulated flash at `addr` into `out`. Bytes inside
+/// a known block return the captured value; everything else returns 0xFF
+/// (erased). Returns the number of bytes written (== len).
 inline size_t simulated_flash_read(uint32_t addr, size_t len, uint8_t *out) {
-  std::memset(out, 0, len);
-
-  // Neutral stick calibration: center at 0x800 (12-bit midpoint), symmetric
-  // +/- range. Packed as the console expects (3 bytes per two 12-bit values).
-  // NOTE: placeholder — replace with captured factory calibration for exact
-  // stick behavior on real hardware.
-  static constexpr std::array<uint8_t, 9> kNeutralStickCal = {0x00, 0x08, 0x80, 0x00, 0x08,
-                                                              0x80, 0x00, 0x08, 0x80};
-
-  // Device-info region (~0x13000): serial/colors/etc. Left mostly zero; the
-  // console tolerates zeros here for bring-up.
-  switch (addr) {
-  case 0x0130A8: // primary stick calibration
-  case 0x0130E8: // secondary stick calibration
-    std::memcpy(out, kNeutralStickCal.data(),
-                len < kNeutralStickCal.size() ? len : kNeutralStickCal.size());
-    break;
-  default:
-    break;
+  struct Block {
+    uint32_t addr;
+    const uint8_t *data;
+    size_t len;
+  };
+  static constexpr Block kBlocks[] = {
+      {0x013000, kFlash_013000.data(), kFlash_013000.size()},
+      {0x013040, kFlash_013040.data(), kFlash_013040.size()},
+      {0x013080, kFlash_013080.data(), kFlash_013080.size()},
+      {0x0130C0, kFlash_0130C0.data(), kFlash_0130C0.size()},
+      {0x013100, kFlash_013100.data(), kFlash_013100.size()},
+  };
+  for (size_t i = 0; i < len; ++i) {
+    const uint32_t a = addr + static_cast<uint32_t>(i);
+    uint8_t value = 0xff; // erased flash default
+    for (const auto &blk : kBlocks) {
+      if (a >= blk.addr && a < blk.addr + blk.len) {
+        value = blk.data[a - blk.addr];
+        break;
+      }
+    }
+    out[i] = value;
   }
   return len;
 }

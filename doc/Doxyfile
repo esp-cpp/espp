@@ -185,6 +185,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/state_machine/example/main/hfsm_example.cpp \
   $(PROJECT_PATH)/components/stream_frame/example/main/stream_frame_example.cpp \
   $(PROJECT_PATH)/components/sx126x/example/main/sx126x_example.cpp \
+  $(PROJECT_PATH)/components/switch2_pro/example/main/switch2_pro_example.cpp \
   $(PROJECT_PATH)/components/tabulate/example/main/tabulate_example.cpp \
   $(PROJECT_PATH)/components/t-deck/example/main/t_deck_example.cpp \
   $(PROJECT_PATH)/components/t-dongle-s3/example/main/t_dongle_s3_example.cpp \
@@ -446,6 +447,9 @@ INPUT = \
   $(PROJECT_PATH)/components/state_machine/include/state_machine.hpp \
   $(PROJECT_PATH)/components/stream_frame/include/stream_frame.hpp \
   $(PROJECT_PATH)/components/sx126x/include/sx126x.hpp \
+  $(PROJECT_PATH)/components/switch2_pro/include/switch2_pro.hpp \
+  $(PROJECT_PATH)/components/switch2_pro/include/switch2_pro_report.hpp \
+  $(PROJECT_PATH)/components/switch2_pro/include/switch2_pro_protocol.hpp \
   $(PROJECT_PATH)/components/t-deck/include/t-deck.hpp \
   $(PROJECT_PATH)/components/t-dongle-s3/include/t-dongle-s3.hpp \
   $(PROJECT_PATH)/components/t_keyboard/include/t_keyboard.hpp \

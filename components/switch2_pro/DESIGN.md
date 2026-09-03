@@ -42,20 +42,41 @@ init (logged pass/fail) — verifiable on-device with no console.
 The console drives the link at a **5 ms** connection interval — below the 7.5 ms BLE
 spec minimum. The controller stack must accept it or the console won't stream input.
 
-- **C6 / C61 / C2 / H2** (RISC-V, open NimBLE controller): requires a **binary patch
-  of the prebuilt `$IDF_PATH/.../libble_app.a`** (change the min-interval floor from
-  6→4 units). Provided as `tools/patch_nimble_5ms.py` (adapted from zhantss, MIT).
-- **S3 / C3**: a different closed controller lib; historically a Kconfig
-  (`CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE`, esp-idf#18467). Note: that symbol is
-  **absent on IDF 6.0.1** — the S3 path needs re-verification on current IDF.
+Both chip families keep the 7.5 ms floor as a hard compare inside a closed controller
+library, and both are patchable with a single-instruction edit that lowers the floor
+to 4 units (5 ms). `tools/patch_nimble_5ms.py` picks the right archive, object and byte
+pattern per `--target`; `tools/smoke_test_5ms.py` proves the edit at the disassembly
+level with no hardware.
+
+- **C6 / C61 / C2 / H2** (RISC-V, open NimBLE controller): patch
+  `$IDF_PATH/.../libble_app.a`, object `ble_ll_conn.c.o`. The floor is
+  `addi a5, a4, -6`; flip the immediate to `-4` (`93 07 a7 ff` → `93 07 c7 ff`).
+  Adapted from zhantss (MIT).
+- **S3 / C3** (BTDM / RivieraWaves controller, `lib_esp32c3_family/*/libbtdm_app.a`
+  and the `libbtdm_app_flash.a` variant): patch object `llc_con_upd.o`, function
+  `r_llc_con_upd_param_in_range` — the peripheral-side connection-parameter validator
+  the console's `LL_CONNECTION_PARAM_REQ` / `LL_CONNECTION_UPDATE_IND` path runs
+  through (confirmed: its only caller is the RivieraWaves `ip_funcs` jump table; its
+  siblings are `ll_connection_param_req_handler` / `ll_connection_update_ind_handler`).
+  The floor is a compare of the requested min-interval against 6:
+    - **S3** (Xtensa): `bltui a4, 6` → `bltui a4, 4` (`b6 64 01` → `b6 44 01`).
+    - **C3** (RISC-V): `li a6,5; bgeu a6,a2` → `li a6,3` (`15 48` → `0d 48`).
+
+  Both reverse-engineered here from the same reject-below-6 semantics as the C6 patch;
+  each is the single unique occurrence in its object (asserted by the patcher). The
+  latency bound sitting right beside the floor (`499` = `0x1f3`, the BLE max latency)
+  confirms the surrounding code is the connection-parameter range check. This replaces
+  the earlier note about `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE` /
+  esp-idf#18467, which does **not** exist on IDF 6.0.1.
 
 **Build integration (decision: opt-in, never silent).** The patch mutates the user's
-global IDF install and is version-fragile (the RISC-V byte pattern is not guaranteed
-across IDF versions). So it is gated behind a component Kconfig option
-`SWITCH2_PRO_PATCH_NIMBLE_5MS` (default **n**). When enabled for a RISC-V target, the
-component CMake invokes the patcher at configure time (idempotent, with `--verify-only`
-first) and prints a loud notice. It is **not required for the GATT + pairing skeleton
-milestone** — pairing runs over the command channel independent of the interval.
+global IDF install and is version-fragile (the byte pattern is not guaranteed across
+IDF versions — the patcher refuses to run if the pattern is missing or non-unique). So
+it is gated behind a component Kconfig option `SWITCH2_PRO_PATCH_NIMBLE_5MS`
+(default **n**). When enabled for a supported target, the component CMake invokes the
+patcher at configure time (idempotent) and prints a loud notice. It is **not required
+for the GATT + pairing skeleton milestone** — pairing runs over the command channel
+independent of the interval.
 
 ## GATT layout (reproduced from captures)
 
@@ -79,16 +100,23 @@ disconnect a peer that initiates SMP. We configure NimBLE not to initiate pairin
 the LTK from the 0x15 exchange is what encrypts the link. Bond (host addr + LTK)
 persists in NVS for reconnect + wake.
 
-## Milestones
+## Milestones (all implemented; verified end-to-end on ESP32-C6)
 
-1. **GATT + pairing skeleton (this milestone)**: custom GATT tree stands up,
-   advertises with Nintendo manufacturer data, completes the 0x15 pairing handshake.
-   Crypto host-verified; console-accepts-pairing is the on-hardware exit test.
-2. Command dispatch + init sequence (flash/calibration reads, feature-select, LEDs,
-   firmware-update-prompt suppression) so the console finishes bring-up.
-3. Input report streaming (report 0x09: buttons incl. C/GL/GR, 12-bit sticks, IMU)
-   at the console's cadence — needs the 5 ms patch for stability.
-4. Wake-from-sleep advertisement (bonded reconnect with the 0x81 wake flag).
+1. **GATT + pairing skeleton**: custom GATT tree stands up, advertises with
+   Nintendo manufacturer data, completes the 0x15 pairing handshake (crypto
+   known-answer verified) and the console accepts pairing.
+2. **Command dispatch + init sequence** (flash/calibration reads, feature-select,
+   LEDs, firmware-update-prompt suppression) so the console finishes bring-up.
+3. **Input report streaming** (report 0x09: buttons incl. C/GL/GR, 12-bit sticks,
+   IMU block) streamed continuously at the console's 15 ms / ~62 Hz cadence with
+   real backpressure. Runs on the spec-legal 15 ms interval — no patch needed.
+4. **Reconnect + wake-from-sleep** (bonded reconnect with the 0x81 wake flag).
+   The console connects a bonded controller at 5 ms, so these need the opt-in
+   `SWITCH2_PRO_PATCH_NIMBLE_5MS` controller patch.
+
+On the ESP32-S3 the BTDM controller does not yet sustain the encrypted input
+stream (see the README "Known issues"); C6-class chips (open NimBLE controller)
+are the supported target.
 
 ## Component layout
 
@@ -98,6 +126,7 @@ persists in NVS for reconnect + wake.
       include/switch2_pro_report.hpp     Pro Controller 2 input report (0x09) packed struct
       src/switch2_pro.cpp                GATT setup, advertising, GAP, command dispatch
       src/switch2_pro_pairing.cpp        pairing crypto (mbedTLS) + state machine + self-test
-      tools/patch_nimble_5ms.py          opt-in 5 ms connection-interval patcher (RISC-V)
+      tools/patch_nimble_5ms.py          opt-in 5 ms interval patcher (C6/C61/C2/H2 NimBLE + S3/C3 BTDM)
+      tools/smoke_test_5ms.py            hardware-free verifier (disassembles the controller floor)
       Kconfig                            SWITCH2_PRO_PATCH_NIMBLE_5MS opt-in
       example/                           C6-primary, S3-buildable
