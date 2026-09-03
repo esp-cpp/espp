@@ -194,8 +194,11 @@ public:
   }
 
   /// \brief Set the CiA 402 software position limits (0x607D:1/:2) for an axis.
-  /// \param axis The motor channel. \param min_pos Lower limit. \param max_pos
-  /// Upper limit. \param ec Set on failure. \return True on success.
+  /// \param axis The motor channel.
+  /// \param min_pos Lower limit.
+  /// \param max_pos Upper limit.
+  /// \param ec Set on failure.
+  /// \return True on success.
   bool set_position_limits(Axis axis, int32_t min_pos, int32_t max_pos, std::error_code &ec) {
     ec.clear();
     if (min_pos > max_pos) {
@@ -264,30 +267,41 @@ public:
   /// @name Feedback
   /// @{
 
-  /// \brief Read the actual position (0x6064 / 0x6864). \param axis Channel.
-  /// \param count Out: encoder counts. \param ec Set on failure. \return True on success.
+  /// \brief Read the actual position (0x6064 / 0x6864).
+  /// \param axis Channel.
+  /// \param count Out: encoder counts.
+  /// \param ec Set on failure.
+  /// \return True on success.
   bool read_encoder(Axis axis, int32_t &count, std::error_code &ec) {
     ec.clear();
     count = axis_state(axis).drive.get_position_actual(ec);
     return !ec;
   }
-  /// \brief Read the actual velocity (0x606C / 0x686C). \param axis Channel.
-  /// \param qpps Out: counts/s. \param ec Set on failure. \return True on success.
+  /// \brief Read the actual velocity (0x606C / 0x686C).
+  /// \param axis Channel.
+  /// \param qpps Out: counts/s.
+  /// \param ec Set on failure.
+  /// \return True on success.
   bool read_speed(Axis axis, int32_t &qpps, std::error_code &ec) {
     ec.clear();
     qpps = axis_state(axis).drive.get_velocity_actual(ec);
     return !ec;
   }
-  /// \brief Read the CiA 402 statusword (0x6041 / 0x6841). \param axis Channel.
-  /// \param statusword Out. \param ec Set on failure. \return True on success.
+  /// \brief Read the CiA 402 statusword (0x6041 / 0x6841).
+  /// \param axis Channel.
+  /// \param statusword Out.
+  /// \param ec Set on failure.
+  /// \return True on success.
   bool read_statusword(Axis axis, uint16_t &statusword, std::error_code &ec) {
     ec.clear();
     statusword = axis_state(axis).drive.get_statusword(ec);
     return !ec;
   }
   /// \brief Read the decoded CiA 402 drive state of an axis (from its statusword).
-  /// \param axis Channel. \param state Out: the power-drive-system state.
-  /// \param ec Set on failure. \return True on success.
+  /// \param axis Channel.
+  /// \param state Out: the power-drive-system state.
+  /// \param ec Set on failure.
+  /// \return True on success.
   bool get_state(Axis axis, Ds402Drive::State &state, std::error_code &ec) {
     ec.clear();
     state = axis_state(axis).drive.get_state(ec);
@@ -295,7 +309,10 @@ public:
   }
   /// \brief Whether an axis reports "target reached" (statusword bit 10) — the
   ///        authoritative arrival signal for profile moves.
-  /// \param axis Channel. \param reached Out. \param ec Set on failure. \return True on success.
+  /// \param axis Channel.
+  /// \param reached Out.
+  /// \param ec Set on failure.
+  /// \return True on success.
   bool is_target_reached(Axis axis, bool &reached, std::error_code &ec) {
     ec.clear();
     reached = axis_state(axis).drive.is_target_reached(ec);
@@ -307,15 +324,19 @@ public:
   /// @name Device telemetry
   /// @{
 
-  /// \brief Read the main battery voltage (mirrored command 24). \param volts
-  /// Out: volts. \param ec Set on failure. \return True on success.
+  /// \brief Read the main battery voltage (mirrored command 24).
+  /// \param volts Out: volts.
+  /// \param ec Set on failure.
+  /// \return True on success.
   bool read_main_battery_voltage(float &volts, std::error_code &ec) {
     ec.clear();
     volts = static_cast<float>(client_.read_u16(detail::mcp266::kMainBatteryObject, 0, ec)) / 10.0f;
     return !ec;
   }
-  /// \brief Read the board temperature (mirrored command 82). \param temp_c
-  /// Out: degrees C. \param ec Set on failure. \return True on success.
+  /// \brief Read the board temperature (mirrored command 82).
+  /// \param temp_c Out: degrees C.
+  /// \param ec Set on failure.
+  /// \return True on success.
   bool read_temperature(float &temp_c, std::error_code &ec) {
     ec.clear();
     temp_c =
@@ -336,7 +357,8 @@ public:
   /// @}
 
   /// \brief Access an axis's underlying Ds402Drive for advanced CiA 402 use.
-  /// \param axis The motor channel. \return Reference to the axis drive helper.
+  /// \param axis The motor channel.
+  /// \return Reference to the axis drive helper.
   Ds402Drive &drive(Axis axis) { return axis_state(axis).drive; }
 
 private:
