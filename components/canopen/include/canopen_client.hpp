@@ -284,9 +284,16 @@ public:
   /// \param index Object dictionary index.
   /// \param subindex Object dictionary subindex.
   /// \param out Destination for the object data (little-endian).
-  /// \param ec Set on transmit failure, timeout, SDO abort, or if the object is
-  ///        larger than \p out (use read_string() for segmented transfers).
+  /// \param ec Set on transmit failure, timeout, SDO abort, or a size mismatch
+  ///        (use read_string() for segmented transfers).
   /// \return Number of bytes read (> 0), or 0 on error.
+  /// \note Size handling depends on whether the server indicated the object size
+  ///       in its response. When it did, an object larger than \p out is rejected
+  ///       as a width mismatch (ec = protocol_error). When it did NOT (CiA 301
+  ///       allows this for expedited transfers, where all four data bytes are
+  ///       valid), the low \p out.size() bytes are returned and any remaining
+  ///       high bytes are truncated -- so a caller must size \p out to the width
+  ///       it expects for such objects.
   size_t sdo_upload(uint16_t index, uint8_t subindex, std::span<uint8_t> out, std::error_code &ec) {
     std::lock_guard<std::mutex> lock(sdo_mutex_);
     detail::canopen::SdoResponse response;
