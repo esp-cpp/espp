@@ -78,7 +78,15 @@ public:
       , node_id_(config.node_id)
       , send_(config.send)
       , sdo_timeout_(config.sdo_timeout)
-      , on_heartbeat_(config.on_heartbeat) {}
+      , on_heartbeat_(config.on_heartbeat) {
+    // A CANopen node id is 1-127; 0 is the broadcast/unconfigured value and would
+    // make SDO addressing (0x580/0x600 + id) and heartbeat matching wrong.
+    if (node_id_ < 1 || node_id_ > 127) {
+      logger_.error("node_id {} is out of range (1-127); clamping to 1 — set a valid node id",
+                    node_id_);
+      node_id_ = 1;
+    }
+  }
 
   /// \brief The configured server node id.
   uint8_t node_id() const { return node_id_; }
@@ -286,15 +294,28 @@ public:
                       index, subindex, ec)) {
       return 0;
     }
-    if (response.type != detail::canopen::SdoResponse::Type::ExpeditedUpload ||
-        response.len > out.size()) {
-      logger_.error("SDO upload 0x{:04X}:{:02X}: not an expedited response of <= {} bytes", index,
-                    subindex, out.size());
+    if (response.type != detail::canopen::SdoResponse::Type::ExpeditedUpload) {
+      logger_.error("SDO upload 0x{:04X}:{:02X}: not an expedited response", index, subindex);
       ec = std::make_error_code(std::errc::protocol_error);
       return 0;
     }
-    std::copy_n(response.data.begin(), response.len, out.begin());
-    return response.len;
+    // When the server INDICATED a size, the object must fit the caller's buffer
+    // (a larger object is a real width mismatch -> error below). When it did NOT
+    // indicate a size, CiA 301 says all four expedited data bytes are valid and
+    // the caller's requested width governs, so take the low out.size() bytes —
+    // otherwise a conformant u8/u16 read against a server that leaves the size
+    // bit clear (where the core reports len == 4) would spuriously fail.
+    const size_t n =
+        (response.size_indicated || response.len <= out.size()) ? response.len : out.size();
+    if (n > out.size()) {
+      logger_.error(
+          "SDO upload 0x{:04X}:{:02X}: object is {} bytes, larger than the {}-byte buffer", index,
+          subindex, response.len, out.size());
+      ec = std::make_error_code(std::errc::protocol_error);
+      return 0;
+    }
+    std::copy_n(response.data.begin(), n, out.begin());
+    return n;
   }
 
   /// \brief Read a string object via SDO segmented (or expedited) upload.
@@ -449,6 +470,9 @@ protected:
     {
       std::lock_guard<std::mutex> lock(response_mutex_);
       awaiting_response_ = true;
+      // Clear any abort code cached by a previous transaction so last_abort_code()
+      // never reports a stale code from an earlier, unrelated failure.
+      last_abort_code_ = 0;
       // Record what the in-flight request is for, so process_frame() can
       // reject stale/unrelated responses instead of completing the wrong
       // transaction (segment responses carry no index/subindex and are
