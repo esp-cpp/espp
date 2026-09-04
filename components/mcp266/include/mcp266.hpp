@@ -389,8 +389,14 @@ public:
 
   /// \brief Access an axis's underlying Ds402Drive for advanced CiA 402 use.
   /// \param axis The motor channel.
-  /// \return Reference to the axis drive helper.
-  Ds402Drive &drive(Axis axis) { return axis_state(axis).drive; }
+  /// \return Pointer to the axis drive helper, or nullptr if \p axis is not a
+  ///         valid channel (M1 / M2) -- so an axis decoded from an untrusted
+  ///         byte cannot silently return the M2 drive.
+  Ds402Drive *drive(Axis axis) {
+    if (axis != Axis::M1 && axis != Axis::M2)
+      return nullptr;
+    return &axis_state(axis).drive;
+  }
 
 private:
   /// Coarse fallback position P gain, used only when the drive's stored gain

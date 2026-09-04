@@ -2,6 +2,7 @@
 
 #include <concepts>
 #include <cstdint>
+#include <string_view>
 #include <system_error>
 
 #include "format.hpp"
@@ -51,9 +52,20 @@ concept MotorController = requires(T t, MotorAxis axis, int16_t duty, int32_t qp
 
 } // namespace espp
 
-// @brief fmt formatter for espp::MotorAxis (prints "M1" / "M2").
+// @brief fmt formatter for espp::MotorAxis (prints "M1" / "M2", or "UNKNOWN" for
+// an out-of-range value so diagnostics never mislabel malformed input as a valid
+// channel).
 template <> struct fmt::formatter<espp::MotorAxis> : fmt::formatter<std::string_view> {
   template <typename FormatContext> auto format(espp::MotorAxis axis, FormatContext &ctx) const {
-    return fmt::formatter<std::string_view>::format(axis == espp::MotorAxis::M1 ? "M1" : "M2", ctx);
+    std::string_view name = "UNKNOWN";
+    switch (axis) {
+    case espp::MotorAxis::M1:
+      name = "M1";
+      break;
+    case espp::MotorAxis::M2:
+      name = "M2";
+      break;
+    }
+    return fmt::formatter<std::string_view>::format(name, ctx);
   }
 };
