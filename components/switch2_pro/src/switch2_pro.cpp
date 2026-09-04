@@ -153,6 +153,7 @@ bool Switch2Pro::init() {
       logger_.info(
           "wake-on-boot: broadcasting the wake advertisement every {:.0f}s until connected",
           wake_interval_.count());
+      boot_wake_pending_ = true; // one-shot: cleared on the first successful connect
       start_wake_timer();
     }
   }
@@ -187,8 +188,11 @@ Switch2Pro::~Switch2Pro() {
     wake_timer_->cancel(); // stop + join the wake-advertisement timer task
     wake_timer_.reset();
   }
-  ble_gatt_server_.stop_advertising();
-  ble_gatt_server_.set_callbacks({}); // detach the this-capturing GAP/GATT callbacks
+  // Fully deinitialize NimBLE here, while this object is still alive. That destroys
+  // the GATT server, its characteristics, and the per-characteristic ChannelCallbacks
+  // (each holds owner_ == this) as well as the GAP/GATT server callbacks — so none of
+  // them can fire against members that are about to be torn down.
+  ble_gatt_server_.deinit();
 }
 
 void Switch2Pro::configure_security() {
@@ -216,6 +220,12 @@ void Switch2Pro::configure_callbacks() {
     active_conn_handle_ = info.getConnHandle();
     wake_pending_ = false; // wake accomplished — subsequent advertising can be passive
     pairing_stage_ = 0;    // a fresh connection restarts the 0x15 handshake sequence
+    // Wake-on-boot is one-shot: clear it on the first connection so we never wake a
+    // console the user intentionally sleeps later. The wake timer cancels ITSELF on
+    // its next tick (see start_wake_timer) — do NOT cancel/join it from here, since
+    // this callback may run under the NimBLE host lock the timer task also needs.
+    // User-requested wake stays available via wake_console().
+    boot_wake_pending_ = false;
     // The connection interval right after connect is the key diagnostic: the
     // Switch 2 drives 5 ms (interval == 4 units). If a controller can't hold
     // that, the console typically disconnects with a supervision timeout.
@@ -463,7 +473,7 @@ void Switch2Pro::advertise() {
   // variant from its idle screens, and a waking console may transiently
   // connect/drop (which re-enters here) — the latch keeps the wake variant on
   // the air until a connection actually completes.
-  if (reconnect_mode_ && (wake_console_on_boot_ || wake_pending_))
+  if (reconnect_mode_ && (boot_wake_pending_ || wake_pending_))
     start_advertising(AdvMode::Wake, host_addr_);
   else if (reconnect_mode_)
     start_advertising(AdvMode::Reconnect, host_addr_);
@@ -491,13 +501,19 @@ void Switch2Pro::start_wake_timer() {
       .name = "switch2 wake",
       .period = wake_interval_,
       .callback = [this]() -> bool {
-        // While disconnected, keep re-issuing the wake advertisement so a
-        // sleeping console is repeatedly nudged; do nothing once connected.
+        // Wake-on-boot is one-shot: once we've connected once (boot_wake_pending_
+        // cleared), cancel this timer from its OWN task (returning true) so we
+        // never keep nudging a console the user later sleeps. Cancelling here (not
+        // from the connect callback) avoids joining this task under the host lock.
+        if (!boot_wake_pending_)
+          return true; // stop the timer
+        // While disconnected, keep re-issuing the wake advertisement so a sleeping
+        // console is repeatedly nudged; do nothing once connected.
         if (active_conn_handle_ == 0xffff) {
           logger_.info("wake: re-broadcasting wake advertisement (waiting for console)");
           advertise();
         }
-        return false; // never cancel — resume nudging after any disconnect
+        return false; // keep nudging until the first connection
       },
       .auto_start = true,
       .stack_size_bytes = 8192, // advertise() → NimBLE is a deep call; 4096 can overflow
@@ -760,34 +776,38 @@ void Switch2Pro::input_stream_loop() {
       hb_last_enomem_ = e;
     }
 
+    // Take ONE snapshot of the app state under the lock and use it for the
+    // change-check, the send, and the on-change baseline — so an app update
+    // between those steps can't cause a real change to be skipped.
+    std::array<uint8_t, switch2::Pro2InputReport::SIZE> snap;
+    {
+      std::lock_guard<std::mutex> lk(input_mutex_);
+      snap = input_report_.data();
+    }
+
     bool should_send = true;
     if (continuous_streaming_) {
       // Rate-halving probe: send only every Nth interval (N=1 → every interval).
       should_send = (interval_tick_++ % continuous_stream_divisor_) == 0;
     } else {
-      bool changed;
-      {
-        std::lock_guard<std::mutex> lk(input_mutex_);
-        changed = !have_streamed_ || input_report_.data() != last_streamed_.data();
-      }
-      if (changed || ++idle_intervals_ >= kKeepaliveIntervals)
-        should_send = true, idle_intervals_ = 0;
-      else
-        should_send = false;
+      const bool changed = !have_streamed_ || snap != last_streamed_;
+      should_send = changed || (++idle_intervals_ >= kKeepaliveIntervals);
+      if (should_send)
+        idle_intervals_ = 0;
     }
 
-    if (should_send && send_input_report() && !continuous_streaming_) {
-      // Only advance the on-change baseline on an ACTUAL send, so a flow-control
-      // skip retries the change next interval instead of dropping the input.
-      std::lock_guard<std::mutex> lk(input_mutex_);
-      last_streamed_ = input_report_;
+    if (should_send && send_input_report(snap) && !continuous_streaming_) {
+      // Advance the baseline to EXACTLY what we sent, and only on an actual send
+      // (a backpressure skip retries the change next interval).
+      last_streamed_ = snap;
       have_streamed_ = true;
     }
     std::this_thread::sleep_for(std::chrono::microseconds(itvl_us));
   }
 }
 
-bool Switch2Pro::send_input_report() {
+bool Switch2Pro::send_input_report(
+    const std::array<uint8_t, switch2::Pro2InputReport::SIZE> &report_data) {
   ++send_attempts_; // telemetry: every call the loop wanted to send
   // Real backpressure. The old notify_in_flight_/NOTIFY_TX cap is INERT here:
   // NOTIFY_TX fires at host->controller handoff, not over-air completion, so the
@@ -801,16 +821,17 @@ bool Switch2Pro::send_input_report() {
     return false;
   }
 
-  // Latest stored app state + the protocol fields the app doesn't manage: byte 0
-  // counter, byte 0x0B rumble flag, and the 40-byte IMU motion block (replayed
-  // from a captured monotonic sequence when the console has enabled IMU).
-  std::array<uint8_t, switch2::Pro2InputReport::SIZE> buf;
-  {
-    std::lock_guard<std::mutex> lk(input_mutex_);
-    buf = input_report_.data();
-  }
+  // The caller-provided snapshot + the protocol fields the app doesn't manage:
+  // byte 0 counter, byte 0x0B rumble flag, and the 40-byte IMU motion block
+  // (replayed from a captured sequence when the console has enabled IMU).
+  std::array<uint8_t, switch2::Pro2InputReport::SIZE> buf = report_data;
   buf[0] = report_counter_;
-  buf[0x0b] = 0x38; // constant on a real controller (and the known-working emulator)
+  // Byte 0x0B reflects the console-negotiated rumble feature: 0x38 when rumble is
+  // enabled, 0x30 otherwise. The console enables rumble (mask 0x2f) before it
+  // subscribes/streams, so this is 0x38 during actual streaming — matching a real
+  // controller — but it now tracks FEATURE_SELECT (incl. a 0x05 disable) instead
+  // of being hardcoded, so the flags always match the negotiated mask.
+  buf[0x0b] = (enabled_features_ & switch2::FEATURE_RUMBLE) ? 0x38 : 0x30;
   if (enabled_features_ & switch2::FEATURE_IMU) {
     buf[0x0e] = 0x28; // motion data length (40) — always present once IMU is enabled
     if (stream_imu_motion_) {

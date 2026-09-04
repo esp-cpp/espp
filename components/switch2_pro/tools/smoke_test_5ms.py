@@ -37,6 +37,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from patch_nimble_5ms import TARGETS, archive_paths, resolve_tool, spec_for  # noqa: E402
@@ -52,7 +53,7 @@ def stack_of(spec: dict) -> str:
     return "btdm" if spec["object"] == "llc_con_upd.o" else "nimble"
 
 
-def disassemble(objdump: str, obj_path: str, func: str | None) -> str:
+def disassemble(objdump: str, obj_path: str, func: Optional[str]) -> str:
     out = subprocess.run([objdump, "-d", obj_path], capture_output=True, text=True).stdout
     if not func:
         return out

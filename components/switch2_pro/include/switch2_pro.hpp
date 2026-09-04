@@ -195,10 +195,12 @@ protected:
   /// report every connection interval like a real controller. Started in init(),
   /// stopped in the destructor.
   void input_stream_loop();
-  /// Send one input report now (latest stored state + counter + motion), honoring
-  /// the in-flight flow-control cap. Returns true iff a notification was actually
-  /// queued (rc==0); false on a flow-control skip or ENOMEM. Called by input_stream_loop().
-  bool send_input_report();
+  /// Send the given input-report snapshot now (the caller passes the exact bytes it
+  /// snapshotted under input_mutex_; this adds the counter/rumble/motion fields it
+  /// manages), honoring the mbuf backpressure cap. Returns true iff a notification
+  /// was actually queued (rc==0); false on a backpressure skip or ENOMEM. Called by
+  /// input_stream_loop().
+  bool send_input_report(const std::array<uint8_t, switch2::Pro2InputReport::SIZE> &report_data);
   /// On-change keepalive: send a report at least this often (in connection
   /// intervals) even when the app state is unchanged, so the console keeps seeing
   /// the controller as active. ~10 intervals ≈ 150 ms at 15 ms.
@@ -254,7 +256,16 @@ protected:
   /// Reset to 0 on each new connection.
   uint8_t pairing_stage_{0};
   bool reconnect_mode_{false}; ///< booted with a stored bond (reconnect, not fresh pair)
-  bool wake_pending_{false}; ///< wake_console() latched: keep the WAKE adv variant until connected
+  /// wake_console() latched: keep the WAKE adv variant on the air until connected.
+  /// Written from the app task (wake_console) and the connect callback, read by
+  /// advertise() — atomic.
+  std::atomic<bool> wake_pending_{false};
+  /// One-shot wake-on-boot state: true from boot (when wake_console_on_boot_ and
+  /// bonded) until the FIRST successful connection, then cleared so we do NOT keep
+  /// waking a console the user later puts to sleep. Read by the wake-timer task and
+  /// advertise(), written by the connect callback — atomic. (User-requested wake is
+  /// separate: wake_pending_.)
+  std::atomic<bool> boot_wake_pending_{false};
   /// Console has enabled input-report notifications (0x000e). Written from the
   /// NimBLE callback thread, read by the streaming thread — atomic to avoid a race.
   std::atomic<bool> input_subscribed_{false};
@@ -264,7 +275,8 @@ protected:
       0};                    ///< count of NOTIFY_TX completions (flow-control signal)
   uint32_t enomem_count_{0}; ///< diagnostic: notifies deferred because the tx pool was full
   uint32_t motion_idx_{0};   ///< index into kMotionSequence for the replayed IMU block
-  switch2::Pro2InputReport last_streamed_{}; ///< last app-state we notified (on-change dedup)
+  std::array<uint8_t, switch2::Pro2InputReport::SIZE>
+      last_streamed_{};        ///< exact snapshot we last notified (on-change dedup)
   bool have_streamed_{false};  ///< false until the first report goes out (forces initial send)
   uint32_t idle_intervals_{0}; ///< connection intervals since last send (on-change keepalive)
   uint32_t interval_tick_{0};  ///< continuous-mode interval counter (for the rate divisor)

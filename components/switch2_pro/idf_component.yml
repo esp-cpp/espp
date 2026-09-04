@@ -30,3 +30,4 @@ dependencies:
     version: '>=2.3.0'
   espp/ble_gatt_server: '>=1.0'
   espp/base_component: '>=1.0'
+  espp/timer: '>=1.0'

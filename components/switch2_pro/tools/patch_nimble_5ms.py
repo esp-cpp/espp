@@ -42,6 +42,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from typing import Optional
 
 # Per-target patch spec. `arch` selects the toolchain archiver/objdump (the
 # archives are GNU-format; macOS BSD `ar` cannot read them). `archives` is a
@@ -115,7 +116,7 @@ TARGETS = {
 }
 
 
-def resolve_tool(kind: str, arch: str, explicit: str | None) -> str:
+def resolve_tool(kind: str, arch: str, explicit: Optional[str]) -> str:
     """Resolve the GNU `ar`/`objdump` for the target arch. The controller
     archives are GNU-format (long-name symbol/string tables); macOS's BSD `ar`
     cannot extract them, so prefer the ESP toolchain's GNU tools (on PATH after
