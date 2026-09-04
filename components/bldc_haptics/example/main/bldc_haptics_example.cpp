@@ -357,7 +357,10 @@ extern "C" void app_main(void) {
   // The vendor TX path is written to from two tasks (protocol worker replies +
   // telemetry), so serialize the writes.
   std::mutex usb_tx_mutex;
-  auto usb_send = [&](const std::vector<uint8_t> &frame) {
+  // Takes a span so callers can pass either an owning std::vector (built by
+  // proto::build / ota_stream make_*, converted implicitly, no copy) or a
+  // borrowed buffer (the discovery / coredump reply spans) without allocating.
+  auto usb_send = [&](std::span<const uint8_t> frame) {
     if (frame.empty())
       return;
     std::lock_guard<std::mutex> lk(usb_tx_mutex);
@@ -675,11 +678,9 @@ extern "C" void app_main(void) {
 
   // --- Core dump (module 4): the CoreDumpService serves the flash dump over the
   //     standard protocol, so a plain coredump_console can download / erase it.
-  espp::CoreDumpService coredump_service(
-      core_dump,
-      {.send =
-           [&](std::span<const uint8_t> f) { usb_send(std::vector<uint8_t>(f.begin(), f.end())); },
-       .log_level = espp::Logger::Verbosity::INFO});
+  espp::CoreDumpService coredump_service(core_dump,
+                                         {.send = [&](std::span<const uint8_t> f) { usb_send(f); },
+                                          .log_level = espp::Logger::Verbosity::INFO});
 
   dispatcher.register_module(
       otap::kModule,
@@ -707,8 +708,7 @@ extern "C" void app_main(void) {
   dispatcher.set_device_info(usb_cfg.product);
   // serve_discovery answers the reserved 0xFF module; route its reply through the
   // same tx_mutex-guarded usb_send as every other frame.
-  dispatcher.serve_discovery(
-      [&](std::span<const uint8_t> f) { usb_send(std::vector<uint8_t>(f.begin(), f.end())); });
+  dispatcher.serve_discovery([&](std::span<const uint8_t> f) { usb_send(f); });
 
   espp::Task usb_task(
       {.callback = [&](std::mutex &, std::condition_variable &) -> bool {
