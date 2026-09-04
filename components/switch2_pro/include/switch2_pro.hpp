@@ -239,7 +239,9 @@ protected:
   /// Notification tx-complete for `characteristic` (frees a tx buffer). Decrements
   /// the in-flight count for the input characteristic so notify_input_report can
   /// flow-control the stream and never overrun the link's tx pool.
-  void on_notify_tx(NimBLECharacteristic *characteristic);
+  /// @param status NimBLE NOTIFY_TX outcome (0 = transmitted; nonzero = failed
+  ///        attempt, e.g. ENOMEM). Completion telemetry only advances on 0.
+  void on_notify_tx(NimBLECharacteristic *characteristic, int status);
 
   friend class ChannelCallbacks;
 

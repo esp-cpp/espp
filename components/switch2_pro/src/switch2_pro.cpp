@@ -71,8 +71,8 @@ public:
   // transmitted, freeing its tx buffer. Used to flow-control the input stream so
   // we never queue faster than the link drains (which otherwise saturates the
   // tx pool and makes every subsequent notify fail).
-  void onStatus(NimBLECharacteristic *c, NimBLEConnInfo & /*conn*/, int /*code*/) override {
-    owner_->on_notify_tx(c);
+  void onStatus(NimBLECharacteristic *c, NimBLEConnInfo & /*conn*/, int code) override {
+    owner_->on_notify_tx(c, code);
   }
 
 private:
@@ -170,8 +170,11 @@ bool Switch2Pro::init() {
       logger_.info(
           "wake-on-boot: broadcasting the wake advertisement every {:.0f}s until connected",
           wake_interval_.count());
+      // Latch the wake state so the FIRST advertisement below is the wake variant.
+      // The periodic re-advertiser (start_wake_timer) is started only AFTER that
+      // advertisement succeeds — see below — so a failed init never leaves a
+      // background advertiser running on an object the caller thinks failed.
       boot_wake_pending_ = true; // one-shot: cleared on the first successful connect
-      start_wake_timer();
     }
   }
   if (!advertise()) {
@@ -179,13 +182,17 @@ bool Switch2Pro::init() {
     return false;
   }
   logger_.info("Switch2Pro advertising as '{}'", device_name_);
+  // Now that the initial advertisement is on the air, start the periodic wake
+  // re-advertiser (guarded above by wake_console_on_boot_).
+  if (reconnect_mode_ && wake_console_on_boot_)
+    start_wake_timer();
 
-  // The input stream paces itself with sub-15 ms sleeps (down to ~5 ms once the
-  // console moves the link there). std::this_thread::sleep_for is tick-quantised,
-  // so a low FreeRTOS tick rate coarsens the cadence: at the 100 Hz default a 5 ms
-  // sleep rounds to ~10 ms and 15 ms to ~20 ms, desyncing from the connection
-  // interval. The example sets CONFIG_FREERTOS_HZ=1000; warn a consumer whose build
-  // did not.
+    // The input stream paces itself with sub-15 ms sleeps (down to ~5 ms once the
+    // console moves the link there). std::this_thread::sleep_for is tick-quantised,
+    // so a low FreeRTOS tick rate coarsens the cadence: at the 100 Hz default a 5 ms
+    // sleep rounds to ~10 ms and 15 ms to ~20 ms, desyncing from the connection
+    // interval. The example sets CONFIG_FREERTOS_HZ=1000; warn a consumer whose build
+    // did not.
 #if CONFIG_FREERTOS_HZ < 1000
   logger_.warn("CONFIG_FREERTOS_HZ is {} (< 1000): input-stream pacing is tick-quantised, so the "
                "per-connection-interval cadence (especially the console's 5 ms) will be coarse. "
@@ -708,13 +715,19 @@ void Switch2Pro::on_subscribe(NimBLECharacteristic *characteristic, uint16_t sub
 // notify_in_flight_ / tx_completions_ remain as telemetry only (NOTIFY_TX count).
 // Effective backpressure is msys1_headroom() — see send_input_report().
 
-void Switch2Pro::on_notify_tx(NimBLECharacteristic *characteristic) {
-  // A notification we queued has been transmitted; free its flow-control slot.
-  if (characteristic == pro2_input_) {
+void Switch2Pro::on_notify_tx(NimBLECharacteristic *characteristic, int status) {
+  if (characteristic != pro2_input_)
+    return;
+  // NimBLE fires this for every notification attempt, including immediate failures
+  // (e.g. ENOMEM), passing the outcome in `status`. Free the flow-control slot for
+  // the attempt either way (the host is done with it), but only count a real
+  // over-air completion when status == 0 — otherwise the wedge telemetry would log
+  // failed sends as successful completions and never show a stalled tx.
+  if (notify_in_flight_.load() > 0)
+    notify_in_flight_.fetch_sub(1);
+  if (status == 0) {
     tx_completions_.fetch_add(1);
     last_tx_complete_us_.store(esp_timer_get_time());
-    if (notify_in_flight_.load() > 0)
-      notify_in_flight_.fetch_sub(1);
   }
 }
 

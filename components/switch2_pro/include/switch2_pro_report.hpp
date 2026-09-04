@@ -16,10 +16,12 @@ namespace espp::switch2 {
 /// byte). Buttons are a 3-byte bitfield; sticks are two 12-bit axes packed into
 /// 3 bytes each; the tail carries motion/IMU when enabled via feature-select.
 ///
-/// Button bits (matching the reverse-engineered layout):
-///   byte0: 0x80 RStick 0x40 Plus 0x20 ZR 0x10 R 0x08 X 0x04 Y 0x02 A 0x01 B
-///   byte1: 0x80 LStick 0x40 Minus 0x20 ZL 0x10 L 0x08 Up 0x04 Left 0x02 Right 0x01 Down
-///   byte2: 0x10 C 0x08 GL 0x04 GR 0x02 Capture 0x01 Home
+/// Button bits (matching the reverse-engineered layout). The three button bytes
+/// are at report offsets 2, 3, 4 — data()[0] is the counter and data()[1] the
+/// power byte — which is what the setters below write (set_bit(2/3/4, ...)):
+///   report offset 2: 0x80 RStick 0x40 Plus 0x20 ZR 0x10 R 0x08 X 0x04 Y 0x02 A 0x01 B
+///   report offset 3: 0x80 LStick 0x40 Minus 0x20 ZL 0x10 L 0x08 Up 0x04 Left 0x02 Right 0x01 Down
+///   report offset 4: 0x10 C 0x08 GL 0x04 GR 0x02 Capture 0x01 Home
 class Pro2InputReport {
 public:
   static constexpr uint8_t REPORT_ID = 0x09;
