@@ -181,6 +181,8 @@ bool Switch2Pro::init() {
     logger_.error("init failed: could not start advertising");
     return false;
   }
+  if (boot_wake_pending_)
+    start_wake_timer();
   logger_.info("Switch2Pro advertising as '{}'", device_name_);
   // Now that the initial advertisement is on the air, start the periodic wake
   // re-advertiser (guarded above by wake_console_on_boot_).
