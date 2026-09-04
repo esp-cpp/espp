@@ -20,11 +20,13 @@ request/reply direction (`flags`) travel with the frame and are handed to the
 module's handler untouched; the Dispatcher does not interpret them. espp
 built-in protocols use, for example:
 
-| Module | Protocol   |
-|--------|------------|
-| 0      | OTA        |
-| 4      | crash dump |
-| 5      | CAN bridge |
+| Module    | Protocol             |
+|-----------|----------------------|
+| 0         | OTA                  |
+| 4         | crash dump           |
+| 5         | CAN bridge           |
+| 0xF0–0xFF | reserved (meta)      |
+| 0xFF      | capability discovery |
 
 A device-side dispatcher registers the modules it serves; frames for an
 unregistered module are silently ignored. A protocol's replies use the **same**
@@ -55,6 +57,40 @@ dispatcher.register_module(4, [&](const espp::stream_frame::Frame &f) {
 });
 usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { dispatcher.feed(data); });
 ```
+
+## Capability discovery
+
+A module can be registered with a `ModuleInfo` (name / web app / description) so a
+connected peer can ask the device **which** modules it runs — over the reserved
+discovery module id `0xFF` — and render or link each one. This powers the browser
+**Device Hub** app (`components/dispatcher/web/dispatcher_hub.html`, hosted at
+`apps/dispatcher_hub.html`): connect over WebUSB / Web Serial, and it lists the
+device's modules as tabs, each linking to that module's own web app.
+
+- `struct ModuleInfo { std::string name, app, description; };`
+- `void register_module(uint8_t id, handler_fn handler, ModuleInfo info)` — the
+  registration overload that carries metadata (a module with an empty `name` is
+  not advertised).
+- `void set_device_info(std::string name, std::string firmware = "")` — advertised
+  at the head of the reply.
+- `std::vector<uint8_t> describe() const` — the serialized capability payload, for
+  apps that own their transmit path.
+- `void serve_discovery(reply_fn reply)` — opt in to auto-answering the discovery
+  query. This is the **only** path by which a Dispatcher sends: it hands the encoded
+  reply frame to your transmit callback. The router stays otherwise send-free.
+
+```cpp
+dispatcher.set_device_info("espp MCP266 Console", "1.0.0");
+dispatcher.register_module(6, mcp_handler,
+    {.name = "MCP266", .app = "mcp266_console.html", .description = "Configure & command motors"});
+// answer discovery over 0xFF using the app's transport
+dispatcher.serve_discovery([&](std::span<const uint8_t> frame) { usb.write_vendor(frame); });
+```
+
+The discovery reply payload is a compact binary TLV (all lengths one byte;
+strings are `[len][bytes]`): `[version][reserved][device_name][device_fw]
+[module_count]` then per module `[id][name][app][description]`. The reserved
+discovery module (`0xFF`) never lists itself.
 
 ## Host tests
 

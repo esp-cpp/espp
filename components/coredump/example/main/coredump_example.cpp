@@ -254,18 +254,34 @@ extern "C" void app_main(void) {
   };
   // Register the protocols on each stream's dispatcher. The service answers
   // requests, so ignore reply-flagged frames (handle_frame() takes only
-  // type+payload, so the direction check lives here).
-  vendor_dispatcher.register_module(espp::CoreDumpService::kModule,
-                                    [&](const espp::stream_frame::Frame &f) {
-                                      if (!f.is_reply())
-                                        vendor_service.handle_frame(f.type, f.payload);
-                                    });
+  // type+payload, so the direction check lives here). The core-dump module is
+  // advertised (name / web app / description) so the browser Device Hub can
+  // discover and link it.
+  const espp::Dispatcher::ModuleInfo coredump_info{.name = "Core Dump",
+                                                   .app = "coredump_console.html",
+                                                   .description =
+                                                       "Inspect the last crash core dump"};
+  vendor_dispatcher.register_module(
+      espp::CoreDumpService::kModule,
+      [&](const espp::stream_frame::Frame &f) {
+        if (!f.is_reply())
+          vendor_service.handle_frame(f.type, f.payload);
+      },
+      coredump_info);
   vendor_dispatcher.register_module(kCrashModule, handle_cmd_frame);
-  cdc_dispatcher.register_module(espp::CoreDumpService::kModule,
-                                 [&](const espp::stream_frame::Frame &f) {
-                                   if (!f.is_reply())
-                                     cdc_service.handle_frame(f.type, f.payload);
-                                 });
+  cdc_dispatcher.register_module(
+      espp::CoreDumpService::kModule,
+      [&](const espp::stream_frame::Frame &f) {
+        if (!f.is_reply())
+          cdc_service.handle_frame(f.type, f.payload);
+      },
+      coredump_info);
+  // Advertise the device, and answer discovery on whichever transport asked
+  // (each stream has its own dispatcher, so each replies over its own writer).
+  vendor_dispatcher.set_device_info(usb_cfg.product);
+  cdc_dispatcher.set_device_info(usb_cfg.product);
+  vendor_dispatcher.serve_discovery([&](std::span<const uint8_t> f) { usb.write_vendor(f); });
+  cdc_dispatcher.serve_discovery([&](std::span<const uint8_t> f) { usb.write_cdc(f); });
 
   espp::Task rx_task({.callback = [&](std::mutex &, std::condition_variable &) -> bool {
                         std::deque<std::pair<Source, std::vector<uint8_t>>> chunks;

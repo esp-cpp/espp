@@ -72,7 +72,11 @@ extern "C" void app_main(void) {
   enum class Transport { Vendor, Cdc };
   std::atomic<Transport> active_transport{Transport::Vendor};
   std::mutex tx_mutex;
-  auto send = [&](std::span<const uint8_t> bytes) {
+  // All device->host writes (request replies, streamed CAN_RX frames, AND
+  // discovery replies) go through this one tx_mutex-guarded helper so the
+  // concurrent senders (the RX worker + the TWAI receive task) never write the
+  // TinyUSB FIFO at once.
+  auto send_to = [&](Transport dest, std::span<const uint8_t> bytes) {
     std::lock_guard<std::mutex> lock(tx_mutex);
     // write_vendor/write_cdc are all-or-nothing (no truncated frame): they
     // bounded-wait (~250 ms) for the host to drain the TX FIFO, then return
@@ -81,12 +85,12 @@ extern "C" void app_main(void) {
     // not the TinyUSB callback, so the drain-wait path applies. For a
     // best-effort CAN monitor a drop is acceptable; surface it rate-limited
     // rather than silently discarding a reply/CAN_RX frame.
-    const bool ok = (active_transport.load() == Transport::Cdc) ? usb.write_cdc(bytes)
-                                                                : usb.write_vendor(bytes);
+    const bool ok = (dest == Transport::Cdc) ? usb.write_cdc(bytes) : usb.write_vendor(bytes);
     if (!ok)
       logger.warn_rate_limited("dropped a {}-byte frame (USB TX backpressure or disconnect)",
                                bytes.size());
   };
+  auto send = [&](std::span<const uint8_t> bytes) { send_to(active_transport.load(), bytes); };
   auto send_frame = [&](uint8_t type, std::span<const uint8_t> payload = {}) {
     // Reply/event types (kCanRx/kOk/kError/kStatus) carry the high bit; map it
     // to the frame reply flag. All CAN-bridge frames are module kModuleId.
@@ -250,8 +254,19 @@ extern "C" void app_main(void) {
   // gets its OWN Dispatcher (one parser) — a frame split across reads on one
   // transport must never be stitched onto bytes from the other.
   espp::Dispatcher vendor_dispatcher, cdc_dispatcher;
-  vendor_dispatcher.register_module(can_bridge::kModuleId, handle_can_frame);
-  cdc_dispatcher.register_module(can_bridge::kModuleId, handle_can_frame);
+  // Advertise the CAN-bridge module for capability discovery so the browser
+  // Device Hub can list and link it.
+  const espp::Dispatcher::ModuleInfo can_info{.name = "CAN Bridge",
+                                              .app = "can_bridge_console.html",
+                                              .description =
+                                                  "Raw CAN 2.0 bridge (WebUSB / Web Serial)"};
+  vendor_dispatcher.register_module(can_bridge::kModuleId, handle_can_frame, can_info);
+  cdc_dispatcher.register_module(can_bridge::kModuleId, handle_can_frame, can_info);
+  vendor_dispatcher.set_device_info(usb_cfg.product);
+  cdc_dispatcher.set_device_info(usb_cfg.product);
+  vendor_dispatcher.serve_discovery(
+      [&](std::span<const uint8_t> f) { send_to(Transport::Vendor, f); });
+  cdc_dispatcher.serve_discovery([&](std::span<const uint8_t> f) { send_to(Transport::Cdc, f); });
 
   // --- USB RX plumbing: queue in the TinyUSB task, dispatch from a worker -----
   // transmit() can block up to its timeout, so it must not run in the TinyUSB
