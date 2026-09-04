@@ -249,13 +249,18 @@ protected:
   NimBLECharacteristic *command_response2_{nullptr};
 
   // Pairing state.
-  bool paired_{false};
+  /// Whether the pairing handshake has completed / a bond exists. Written by the
+  /// FINALISE callback (host task), read by the public is_paired() getter (app
+  /// task) — atomic.
+  std::atomic<bool> paired_{false};
   /// Highest completed 0x15 pairing step this connection: 0=none, 1=exchange
   /// addresses, 2=exchange keys, 3=confirm LTK. FINALISE (step 4) is only accepted
   /// when this is 3, so an out-of-order/malformed peer cannot persist a bad bond.
   /// Reset to 0 on each new connection.
   uint8_t pairing_stage_{0};
-  bool reconnect_mode_{false}; ///< booted with a stored bond (reconnect, not fresh pair)
+  /// Booted with a stored bond (reconnect, not fresh pair). Written by FINALISE
+  /// (host task) / init, read by advertise() and wake_console() (app task) — atomic.
+  std::atomic<bool> reconnect_mode_{false};
   /// wake_console() latched: keep the WAKE adv variant on the air until connected.
   /// Written from the app task (wake_console) and the connect callback, read by
   /// advertise() — atomic.

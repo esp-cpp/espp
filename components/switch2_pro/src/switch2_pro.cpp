@@ -248,7 +248,7 @@ void Switch2Pro::configure_callbacks() {
   };
   callbacks.disconnect_callback = [this](NimBLEConnInfo &info, BleGattServer::DisconnectReason r) {
     logger_.warn("disconnected: peer={} reason={} (paired={})", info.getAddress().toString(), r,
-                 paired_);
+                 paired_.load());
     // Tie the disconnect to the tx-wedge timeline: how long we streamed, whether
     // we had wedged, and how stale the last completion was. A disconnect ~1 SVN
     // timeout after the wedge with a large since_last_tx = over-air exchange
