@@ -155,14 +155,17 @@ extern "C" void app_main(void) {
   enum class Transport { Vendor, Cdc };
   std::atomic<Transport> active_transport{Transport::Vendor};
   std::mutex tx_mutex;
-  auto send = [&](std::span<const uint8_t> bytes) {
+  // All device->host writes (request replies, the status stream, AND discovery
+  // replies) go through this one tx_mutex-guarded helper so concurrent senders
+  // (the RX worker + the status task) never write the TinyUSB FIFO at once.
+  auto send_to = [&](Transport dest, std::span<const uint8_t> bytes) {
     std::lock_guard<std::mutex> lock(tx_mutex);
-    const bool ok = (active_transport.load() == Transport::Cdc) ? usb.write_cdc(bytes)
-                                                                : usb.write_vendor(bytes);
+    const bool ok = (dest == Transport::Cdc) ? usb.write_cdc(bytes) : usb.write_vendor(bytes);
     if (!ok)
       logger.warn_rate_limited("dropped a {}-byte frame (USB TX backpressure or disconnect)",
                                bytes.size());
   };
+  auto send = [&](std::span<const uint8_t> bytes) { send_to(active_transport.load(), bytes); };
   auto send_frame = [&](uint8_t type, std::span<const uint8_t> payload = {}) {
     const bool reply = (type & 0x80) != 0; // 0xE_ reply types set the frame reply flag
     send(sf::build_frame(reply, proto::kModuleId, type, payload));
@@ -360,8 +363,9 @@ extern "C" void app_main(void) {
   cdc_dispatcher.register_module(proto::kModuleId, dispatch_frame, mcp_info);
   vendor_dispatcher.set_device_info(usb_cfg.product);
   cdc_dispatcher.set_device_info(usb_cfg.product);
-  vendor_dispatcher.serve_discovery([&](std::span<const uint8_t> f) { usb.write_vendor(f); });
-  cdc_dispatcher.serve_discovery([&](std::span<const uint8_t> f) { usb.write_cdc(f); });
+  vendor_dispatcher.serve_discovery(
+      [&](std::span<const uint8_t> f) { send_to(Transport::Vendor, f); });
+  cdc_dispatcher.serve_discovery([&](std::span<const uint8_t> f) { send_to(Transport::Cdc, f); });
 
   // --- USB RX plumbing: queue in the TinyUSB callback, dispatch from a worker -
   std::mutex rx_mutex;

@@ -130,7 +130,10 @@ public:
   /// Layout (all lengths are one byte; strings are [len][bytes], truncated at
   /// 255): [version u8][reserved u8][device_name str][device_fw str]
   /// [module_count u8] then per module [id u8][name str][app str][desc str].
-  /// The reserved discovery module (0xFF) is never listed.
+  /// The reserved discovery module (0xFF) is never listed. At most 255 modules
+  /// are emitted, and trailing modules are dropped if the payload would exceed
+  /// stream_frame::kMaxPayloadSize -- module_count always reflects the number
+  /// actually emitted, so the payload is self-consistent and fits one frame.
   /// @return The payload bytes (to be sent as the ListModules reply).
   std::vector<uint8_t> describe() const {
     std::vector<uint8_t> out;
@@ -138,25 +141,30 @@ public:
     out.push_back(0); // reserved flags
     append_string(out, device_name_);
     append_string(out, device_firmware_);
-    // A module is advertised if it carries a name and is not the discovery module.
-    const auto advertised = [](const Entry &e) {
-      return e.id != kDiscoveryModule && !e.info.name.empty();
-    };
-    // module_count is a single wire byte, so cap the count (and the number of
-    // records emitted below) at 255 rather than overflowing it.
-    const auto total = std::count_if(handlers_.begin(), handlers_.end(), advertised);
-    const uint8_t count = static_cast<uint8_t>(std::min<std::ptrdiff_t>(total, 255));
-    out.push_back(count);
-    uint8_t emitted = 0;
+    // module_count precedes the records; reserve its byte now and backpatch the
+    // ACTUAL number emitted. Records are appended only while they still fit the
+    // frame payload limit (and the 1-byte count), so a very large set of modules
+    // / metadata truncates deterministically here rather than overflowing the
+    // count byte or producing an over-cap payload that build_frame would drop.
+    const size_t count_pos = out.size();
+    out.push_back(0);
+    uint8_t count = 0;
     for (const Entry &e : handlers_) {
-      if (emitted == count || !advertised(e))
+      if (count == 255)
+        break;
+      if (e.id == kDiscoveryModule || e.info.name.empty())
         continue;
-      ++emitted;
-      out.push_back(e.id);
-      append_string(out, e.info.name);
-      append_string(out, e.info.app);
-      append_string(out, e.info.description);
+      std::vector<uint8_t> record;
+      record.push_back(e.id);
+      append_string(record, e.info.name);
+      append_string(record, e.info.app);
+      append_string(record, e.info.description);
+      if (out.size() + record.size() > stream_frame::kMaxPayloadSize)
+        break; // adding this record would exceed the frame payload limit
+      out.insert(out.end(), record.begin(), record.end());
+      ++count;
     }
+    out[count_pos] = count;
     return out;
   }
 
@@ -242,7 +250,7 @@ public:
 private:
   /// A registered module: routing id, its handler, and its discovery metadata.
   struct Entry {
-    uint8_t id;
+    uint8_t id{};
     handler_fn handler;
     ModuleInfo info;
   };

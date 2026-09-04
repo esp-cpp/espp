@@ -197,12 +197,46 @@ static void test_discovery() {
   CHECK(sent.empty());
 }
 
+static void test_discovery_payload_bound() {
+  std::printf("test_discovery_payload_bound\n");
+  using D = espp::Dispatcher;
+  espp::Dispatcher d;
+  const std::string big(255, 'x'); // max-length metadata (each record ~769 bytes)
+  for (int i = 0; i < 40; ++i)
+    d.register_module(static_cast<uint8_t>(i), [](const sf::Frame &) {},
+                      {.name = big, .app = big, .description = big});
+  const auto payload = d.describe();
+  // 40 * ~769 bytes >> kMaxPayloadSize, so describe() must truncate to fit.
+  CHECK(payload.size() <= sf::kMaxPayloadSize);
+  // The count must match the records that actually fit, and the walk must consume
+  // exactly the payload (self-consistent: no short/trailing bytes).
+  TlvReader r{payload};
+  r.u8();
+  r.u8(); // version, reserved
+  r.str();
+  r.str(); // device name, fw
+  const uint8_t count = r.u8();
+  for (uint8_t m = 0; m < count; ++m) {
+    r.u8();
+    r.str();
+    r.str();
+    r.str();
+  }
+  CHECK(r.p == payload.size());
+  CHECK(count > 0 && count < 40); // some fit, some were dropped
+  // The resulting payload must be encodable as a frame (i.e. within the cap).
+  CHECK(!sf::build_frame(true, D::kDiscoveryModule, static_cast<uint8_t>(D::Discovery::ListModules),
+                         payload)
+             .empty());
+}
+
 int main() {
   test_routing_and_coexistence();
   test_register_replace_unregister();
   test_reset();
   test_reentrant_unregister();
   test_discovery();
+  test_discovery_payload_bound();
   // cppcheck-suppress throwInEntryPoint // the handler's throw is caught inside
   // the test (cppcheck can't trace it through the std::function / feed() call)
   test_handler_exception_recovers();
