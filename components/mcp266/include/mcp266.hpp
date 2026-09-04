@@ -12,6 +12,7 @@
 #include "canopen_client.hpp"
 #include "detail/mcp266_core.hpp"
 #include "ds402.hpp"
+#include "motor_controller.hpp"
 
 namespace espp {
 
@@ -52,8 +53,8 @@ namespace espp {
 /// \snippet mcp266_example.cpp mcp266 example
 class Mcp266 : public BaseComponent {
 public:
-  /// \brief Motor channel selector.
-  enum class Axis { M1, M2 };
+  /// \brief Motor channel selector (shared across the espp motor drivers).
+  using Axis = MotorAxis;
 
   /// \brief Configuration for the Mcp266 controller.
   struct Config {
@@ -146,12 +147,14 @@ public:
   /// \param axis The motor channel.
   /// \param min_pos Minimum commandable position.
   /// \param max_pos Maximum commandable position.
-  /// \param ec Set on failure.
   /// \param fallback_p Position P gain to seed when the stored gain is zero.
+  /// \param ec Set on failure.
   /// \return True on success.
-  bool configure_position_loop(Axis axis, int32_t min_pos, int32_t max_pos, std::error_code &ec,
-                               int32_t fallback_p = kDefaultPositionP) {
+  bool configure_position_loop(Axis axis, int32_t min_pos, int32_t max_pos, int32_t fallback_p,
+                               std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     AxisState &a = axis_state(axis);
     std::array<int32_t, 7> readback{};
     for (uint8_t sub = 1; sub <= 7; ++sub) {
@@ -193,14 +196,26 @@ public:
     return true;
   }
 
-  /// \brief Set the CiA 402 software position limits (0x607D:1/:2) for an axis.
+  /// \brief Configure an axis's position loop using the default coarse fallback
+  ///        P gain (see the fallback_p overload). Convenience for the common case.
+  bool configure_position_loop(Axis axis, int32_t min_pos, int32_t max_pos, std::error_code &ec) {
+    return configure_position_loop(axis, min_pos, max_pos, kDefaultPositionP, ec);
+  }
+
+  /// \brief Set the CiA 402 software position limits (object 0x607D:1/:2) for an
+  ///        axis — a per-move envelope enforced by the drive's trajectory
+  ///        generator. Distinct from configure_position_loop()'s min/max, which
+  ///        writes the manufacturer position-PID MinPos/MaxPos clamp.
   /// \param axis The motor channel.
   /// \param min_pos Lower limit.
   /// \param max_pos Upper limit.
   /// \param ec Set on failure.
   /// \return True on success.
-  bool set_position_limits(Axis axis, int32_t min_pos, int32_t max_pos, std::error_code &ec) {
+  bool set_software_position_limits(Axis axis, int32_t min_pos, int32_t max_pos,
+                                    std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     if (min_pos > max_pos) {
       ec = std::make_error_code(std::errc::invalid_argument);
       return false;
@@ -223,6 +238,8 @@ public:
                         uint32_t profile_acceleration, uint32_t profile_deceleration,
                         std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     AxisState &a = axis_state(axis);
     if (!enable(a, Ds402Drive::OperatingMode::ProfilePosition, ec)) {
       return false;
@@ -245,6 +262,8 @@ public:
   /// \brief Closed-loop speed via the mirrored packet-serial command (35/36).
   bool drive_speed(Axis axis, int32_t qpps, std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     AxisState &a = axis_state(axis);
     if (qpps != 0 && !enable(a, Ds402Drive::OperatingMode::ProfileVelocity, ec)) {
       return false;
@@ -255,6 +274,8 @@ public:
   /// \brief Open-loop duty via the mirrored packet-serial command (32/33).
   bool drive_duty(Axis axis, int16_t duty, std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     AxisState &a = axis_state(axis);
     if (duty != 0 && !enable(a, Ds402Drive::OperatingMode::ProfileVelocity, ec)) {
       return false;
@@ -274,6 +295,8 @@ public:
   /// \return True on success.
   bool read_encoder(Axis axis, int32_t &count, std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     count = axis_state(axis).drive.get_position_actual(ec);
     return !ec;
   }
@@ -284,6 +307,8 @@ public:
   /// \return True on success.
   bool read_speed(Axis axis, int32_t &qpps, std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     qpps = axis_state(axis).drive.get_velocity_actual(ec);
     return !ec;
   }
@@ -294,6 +319,8 @@ public:
   /// \return True on success.
   bool read_statusword(Axis axis, uint16_t &statusword, std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     statusword = axis_state(axis).drive.get_statusword(ec);
     return !ec;
   }
@@ -304,6 +331,8 @@ public:
   /// \return True on success.
   bool get_state(Axis axis, Ds402Drive::State &state, std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     state = axis_state(axis).drive.get_state(ec);
     return !ec;
   }
@@ -315,6 +344,8 @@ public:
   /// \return True on success.
   bool is_target_reached(Axis axis, bool &reached, std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     reached = axis_state(axis).drive.is_target_reached(ec);
     return !ec;
   }
@@ -358,8 +389,14 @@ public:
 
   /// \brief Access an axis's underlying Ds402Drive for advanced CiA 402 use.
   /// \param axis The motor channel.
-  /// \return Reference to the axis drive helper.
-  Ds402Drive &drive(Axis axis) { return axis_state(axis).drive; }
+  /// \return Pointer to the axis drive helper, or nullptr if \p axis is not a
+  ///         valid channel (M1 / M2) -- so an axis decoded from an untrusted
+  ///         byte cannot silently return the M2 drive.
+  Ds402Drive *drive(Axis axis) {
+    if (axis != Axis::M1 && axis != Axis::M2)
+      return nullptr;
+    return &axis_state(axis).drive;
+  }
 
 private:
   /// Coarse fallback position P gain, used only when the drive's stored gain
@@ -391,6 +428,17 @@ private:
         , name(n) {}
   };
 
+  /// Reject an out-of-range axis selector. MotorAxis is a two-value enum, but a
+  /// value decoded from an untrusted byte could be neither M1 nor M2, and
+  /// axis_state()'s dispatch would otherwise silently select M2. Public axis
+  /// methods call this before any SDO I/O. Sets ec = invalid_argument on failure.
+  static bool check_axis(Axis axis, std::error_code &ec) {
+    if (axis == Axis::M1 || axis == Axis::M2)
+      return true;
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
+
   AxisState &axis_state(Axis axis) { return axis == Axis::M1 ? m1_ : m2_; }
 
   /// Write the axis mode of operation directly (the MCP does not echo the
@@ -421,5 +469,9 @@ private:
   AxisState m1_;
   AxisState m2_;
 };
+
+static_assert(
+    MotorController<Mcp266>,
+    "Mcp266 must satisfy the espp::MotorController concept (kept in sync with Basicmicro)");
 
 } // namespace espp

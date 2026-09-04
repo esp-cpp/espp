@@ -55,6 +55,7 @@ jobs:
             components/aw9523
             components/base_component
             components/base_peripheral
+            components/motor_controller
             components/basicmicro
             components/mcp266
             components/bdc_driver

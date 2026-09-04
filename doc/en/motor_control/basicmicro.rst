@@ -61,12 +61,13 @@ Basic Usage
   });
 
   std::error_code ec;
+  using Axis = espp::Basicmicro::Axis;   // shared espp::MotorAxis (M1 / M2)
   std::string version;
   mcp.read_firmware_version(version, ec);
-  mcp.drive_m1_duty(4096, ec);   // ~12.5% duty
-  uint32_t count; uint8_t status;
-  mcp.read_encoder_m1(count, status, ec);
-  mcp.drive_m1_duty(0, ec);
+  mcp.drive_duty(Axis::M1, 4096, ec);    // ~12.5% duty
+  int32_t count;
+  mcp.read_encoder(Axis::M1, count, ec);
+  mcp.drive_duty(Axis::M1, 0, ec);
 
 .. ------------------------------- Example -------------------------------------
 

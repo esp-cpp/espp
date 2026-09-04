@@ -3,5 +3,5 @@
 # `#include "detail/mcp266_core.hpp"` resolve for consumers.
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES base_component canopen
+  REQUIRES base_component canopen motor_controller
 )
