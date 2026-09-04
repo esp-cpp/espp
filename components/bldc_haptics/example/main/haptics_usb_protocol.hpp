@@ -12,7 +12,7 @@
 // the standard espp OTA protocol on module 0 and the coredump service on module
 // 4 (routed by the same espp::Dispatcher), handled by the ota / coredump web
 // consoles. The `type` byte carries the message id below; request types
-// (host->device) clear the frame reply flag and reply/telemetry types (0x9_,
+// (host->device) clear the frame reply flag and reply/telemetry types (0x8_/0x9_,
 // host<-device) set it (build() derives it from the type's high bit):
 //   0x10..0x2F  host -> device  haptics commands
 //   0x81..0x8F  device -> host  generic replies (OK / ERROR)
