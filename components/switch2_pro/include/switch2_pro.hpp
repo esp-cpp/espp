@@ -59,17 +59,20 @@ public:
     /// the console enables the IMU feature (it does during standard init), every
     /// report carries a 40-byte motion block. **Off (default): the block is sent
     /// all-zero**, which the console accepts (verified on hardware, and what the
-    /// zhantss emulator ships). On: replay a captured 128-frame resting sequence —
-    /// but it loops (~2 s at 62 Hz) so its embedded timestamps jump backwards at
-    /// the wrap; prefer feeding real IMU data via the report instead.
+    /// zhantss emulator ships) — fine for games that do not use motion. On: replay
+    /// a captured 128-frame resting sequence — but it loops (~2 s at 62 Hz) so its
+    /// embedded timestamps jump backwards at the wrap. The driver owns the motion
+    /// block, so there is no per-report motion input today; a live-IMU path (a
+    /// motion setter on the report) is future work.
     bool stream_imu_motion{false};
     /// Streaming model. **On (default) = continuous:** send one report every
     /// connection interval with the counter incrementing each time, exactly like
-    /// a real controller — verified stable and lag-free on the C6-class chips
-    /// (open NimBLE controller) at the console's 15 ms / 62 Hz. **Off =
-    /// on-change:** notify only when the app's button/stick state changes, plus a
-    /// low-rate keepalive — a reduced-traffic fallback that partially masks the
-    /// ESP32-S3 BTDM controller's tx-servicing bug (see README "Known issues").
+    /// a real controller — verified stable and lag-free on the C6-class chips and
+    /// on the ESP32-S3 (ESP-IDF >= v6.1). This is the recommended mode on every
+    /// supported target. **Off = on-change:** notify only when the app's
+    /// button/stick state changes, plus a low-rate keepalive — an optional
+    /// reduced-traffic mode (it was also a workaround for the pre-v6.1 S3 BTDM
+    /// tx-servicing stall, now fixed; see README "Known issues").
     bool continuous_streaming{true};
     /// Continuous-mode send divisor: send one report every Nth connection interval
     /// (1 = every interval, 2 = every other, ...). The resulting rate depends on the
@@ -150,7 +153,8 @@ protected:
   /// Advertise in the mode appropriate to the current state: Wake (with the stored
   /// console address) if bonded and wake-on-boot is enabled, else Reconnect if
   /// bonded, else Discovery.
-  void advertise();
+  /// @return true if advertising actually started.
+  bool advertise();
   /// Start a periodic timer that re-issues the wake advertisement (via advertise())
   /// every wake_interval_ while disconnected, so a sleeping console keeps getting
   /// nudged until it wakes and reconnects. No-op if already running.

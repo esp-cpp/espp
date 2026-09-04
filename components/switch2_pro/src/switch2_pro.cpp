@@ -174,7 +174,10 @@ bool Switch2Pro::init() {
       start_wake_timer();
     }
   }
-  advertise();
+  if (!advertise()) {
+    logger_.error("init failed: could not start advertising");
+    return false;
+  }
   logger_.info("Switch2Pro advertising as '{}'", device_name_);
 
   // The input stream paces itself with sub-15 ms sleeps (down to ~5 ms once the
@@ -508,7 +511,7 @@ bool Switch2Pro::start_advertising(AdvMode mode, const std::array<uint8_t, 6> &h
   return true;
 }
 
-void Switch2Pro::advertise() {
+bool Switch2Pro::advertise() {
   // Embed the console's STABLE IDENTITY address (from the 0x15 exchange, persisted
   // in the bond) — that is what the real controller advertises on reconnect, and
   // what the console matches to recognise us and grant the fast 5 ms interval. Do
@@ -521,11 +524,10 @@ void Switch2Pro::advertise() {
   // connect/drop (which re-enters here) — the latch keeps the wake variant on
   // the air until a connection actually completes.
   if (reconnect_mode_ && (boot_wake_pending_ || wake_pending_))
-    start_advertising(AdvMode::Wake, host_addr_);
-  else if (reconnect_mode_)
-    start_advertising(AdvMode::Reconnect, host_addr_);
-  else
-    start_advertising(AdvMode::Discovery);
+    return start_advertising(AdvMode::Wake, host_addr_);
+  if (reconnect_mode_)
+    return start_advertising(AdvMode::Reconnect, host_addr_);
+  return start_advertising(AdvMode::Discovery);
 }
 
 bool Switch2Pro::wake_console() {

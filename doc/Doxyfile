@@ -447,6 +447,7 @@ INPUT = \
   $(PROJECT_PATH)/components/state_machine/include/state_machine.hpp \
   $(PROJECT_PATH)/components/stream_frame/include/stream_frame.hpp \
   $(PROJECT_PATH)/components/switch2_pro/include/switch2_pro.hpp \
+  $(PROJECT_PATH)/components/switch2_pro/include/switch2_pro_pairing.hpp \
   $(PROJECT_PATH)/components/switch2_pro/include/switch2_pro_protocol.hpp \
   $(PROJECT_PATH)/components/switch2_pro/include/switch2_pro_report.hpp \
   $(PROJECT_PATH)/components/sx126x/include/sx126x.hpp \

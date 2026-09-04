@@ -71,5 +71,6 @@ API Reference
 -------------
 
 .. include-build-file:: inc/switch2_pro.inc
+.. include-build-file:: inc/switch2_pro_pairing.inc
 .. include-build-file:: inc/switch2_pro_report.inc
 .. include-build-file:: inc/switch2_pro_protocol.inc
