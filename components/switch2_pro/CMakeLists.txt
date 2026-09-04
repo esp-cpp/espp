@@ -35,3 +35,23 @@ if(CONFIG_SWITCH2_PRO_PATCH_NIMBLE_5MS)
       "S3/C3 BTDM).")
   endif()
 endif()
+
+# ESP32-S3 / C3: reconnect and wake-from-sleep need the console's sub-spec (5 ms)
+# connection interval to be accepted by the closed BTDM controller. The official,
+# default-on way is CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE, which requires
+# ESP-IDF >= v6.1 (or the v6.0.2 / v5.5.x / v5.4.x / v5.3.x backports;
+# espressif/esp-idf#18467). Warn at configure time if neither that option nor the
+# legacy binary patch is enabled — reconnect/wake will otherwise silently fail
+# (fresh pairing and first-session input still work).
+if(IDF_TARGET STREQUAL "esp32s3" OR IDF_TARGET STREQUAL "esp32c3")
+  if(NOT CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE
+     AND NOT CONFIG_SWITCH2_PRO_PATCH_NIMBLE_5MS)
+    idf_build_get_property(_switch2_idf_ver IDF_VERSION)
+    message(WARNING
+      "[switch2_pro] ${IDF_TARGET}: neither CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE "
+      "(official ESP-IDF sub-spec-interval support) nor SWITCH2_PRO_PATCH_NIMBLE_5MS is "
+      "enabled, so the console's 5 ms reconnect/wake will not work (fresh pairing + input "
+      "still do). Update to ESP-IDF >= v6.1 (you have ${_switch2_idf_ver}) for the "
+      "default-on option, or enable the legacy patch. See espressif/esp-idf#18467.")
+  endif()
+endif()

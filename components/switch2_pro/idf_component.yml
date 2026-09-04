@@ -19,6 +19,11 @@ tags:
   - Switch2
 dependencies:
   idf:
+    # Floor for the component itself. NOTE: the ESP32-S3/C3 targets additionally
+    # need the official sub-spec-interval fix (CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE)
+    # for reconnect/wake — ESP-IDF >= v6.1 (or the v6.0.2 / v5.5.x / v5.4.x / v5.3.x
+    # backports; espressif/esp-idf#18467). CMakeLists warns at configure time if a
+    # S3/C3 build lacks it (the version floor here can't be target-conditional).
     version: '>=5.5'
   # NOTE: this component needs NimBLEServer::registerServicesFirst() (to place the
   # Nintendo services at the low attribute handles the console addresses by fixed

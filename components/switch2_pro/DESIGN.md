@@ -73,9 +73,11 @@ level with no hardware.
   Both reverse-engineered here from the same reject-below-6 semantics as the C6 patch;
   each is the single unique occurrence in its object (asserted by the patcher). The
   latency bound sitting right beside the floor (`499` = `0x1f3`, the BLE max latency)
-  confirms the surrounding code is the connection-parameter range check. This replaces
-  the earlier note about `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE` /
-  esp-idf#18467, which does **not** exist on IDF 6.0.1.
+  confirms the surrounding code is the connection-parameter range check. This S3/C3
+  binary patch is now only needed on **pre-v6.1 IDF** (the `libbtdm_app.a` shipped
+  with IDF 6.0.1 predates `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE`); on
+  ESP-IDF ≥ v6.1 the official option supersedes it (and v6.1's updated controller
+  lib also fixes the sustained-tx stall — S3 verified end-to-end on real hardware).
 
 **Build integration (decision: opt-in, never silent).** The patch mutates the user's
 global IDF install and is version-fragile (the byte pattern is not guaranteed across
@@ -108,7 +110,7 @@ disconnect a peer that initiates SMP. We configure NimBLE not to initiate pairin
 the LTK from the 0x15 exchange is what encrypts the link. Bond (host addr + LTK)
 persists in NVS for reconnect + wake.
 
-## Milestones (all implemented; verified end-to-end on ESP32-C6)
+## Milestones (all implemented; verified end-to-end on ESP32-C6 and ESP32-S3)
 
 1. **GATT + pairing skeleton**: custom GATT tree stands up, advertises with
    Nintendo manufacturer data, completes the 0x15 pairing handshake (crypto
@@ -116,15 +118,24 @@ persists in NVS for reconnect + wake.
 2. **Command dispatch + init sequence** (flash/calibration reads, feature-select,
    LEDs, firmware-update-prompt suppression) so the console finishes bring-up.
 3. **Input report streaming** (report 0x09: buttons incl. C/GL/GR, 12-bit sticks,
-   IMU block) streamed continuously at the console's 15 ms / ~62 Hz cadence with
-   real backpressure. Runs on the spec-legal 15 ms interval — no patch needed.
+   IMU block) streamed continuously with real backpressure. The `CONNECT_IND` and
+   pairing run at 15 ms, but ~1.5 s after subscription the console issues an
+   `LL_CONNECTION_UPDATE` dropping the link to **5 ms** for the rest of the session
+   (observed on real S3 hardware) — so sustained input needs sub-spec-interval
+   support (see milestone 4), not just reconnect/wake.
 4. **Reconnect + wake-from-sleep** (bonded reconnect with the 0x81 wake flag).
-   The console connects a bonded controller at 5 ms, so these need the opt-in
-   `SWITCH2_PRO_PATCH_NIMBLE_5MS` controller patch.
+   The console connects a bonded controller at 5 ms from the first packet, and
+   drops even the fresh session to 5 ms mid-stream, so the link runs at 5 ms in
+   every mode. On S3/C3 use ESP-IDF ≥ v6.1's official
+   `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE` (default on); on C6/C61/C2/H2 use
+   the opt-in `SWITCH2_PRO_PATCH_NIMBLE_5MS` controller patch.
 
-On the ESP32-S3 the BTDM controller does not yet sustain the encrypted input
-stream (see the README "Known issues"); C6-class chips (open NimBLE controller)
-are the supported target.
+On ESP-IDF ≥ v6.1 the ESP32-S3 is also fully verified (pairing, continuous input,
+reconnect, wake) — its updated BTDM controller lib both accepts the console's 5 ms
+CONNECT_IND (via `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE`) and sustains the
+encrypted input stream, fixing the ~3 s tx-stall seen on v6.0.1 (see the README
+"Known issues"). On pre-v6.1 IDF, C6-class chips (open NimBLE controller) are the
+supported target.
 
 ## Component layout
 
