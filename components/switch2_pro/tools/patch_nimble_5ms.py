@@ -200,16 +200,24 @@ def main() -> int:
             sys.exit("no .original backups found to restore")
         return 0
 
-    any_patched_now = False
+    # verify-only: just report each archive's state; never touch anything.
+    if args.verify_only:
+        for lib in libs:
+            data = read_object(ar, lib, obj)
+            n_old, n_new = data.count(old), data.count(new)
+            tag = os.path.basename(lib)
+            state = "PATCHED (5 ms)" if (n_new and not n_old) else \
+                    "unpatched (7.5 ms)" if (n_old and not n_new) else "UNKNOWN"
+            print(f"{tag}: {obj} unpatched-pattern={n_old} patched-pattern={n_new} -> {state}")
+        return 0
+
+    # PREFLIGHT every archive before writing any of them, so a bad/ambiguous second
+    # archive can't leave the first one patched (a partially-patched IDF install).
+    to_patch = []  # (lib, patched_bytes)
     for lib in libs:
         data = read_object(ar, lib, obj)
         n_old, n_new = data.count(old), data.count(new)
         tag = os.path.basename(lib)
-        if args.verify_only:
-            state = "PATCHED (5 ms)" if (n_new and not n_old) else \
-                    "unpatched (7.5 ms)" if (n_old and not n_new) else "UNKNOWN"
-            print(f"{tag}: {obj} unpatched-pattern={n_old} patched-pattern={n_new} -> {state}")
-            continue
         if n_new > 0 and n_old == 0:
             print(f"{tag}: already patched; nothing to do")
             continue
@@ -219,16 +227,31 @@ def main() -> int:
         if n_old > 1:
             sys.exit(f"{tag}: pattern appears {n_old}x in {obj} (expected 1) — refusing to "
                      f"patch ambiguously")
-        backup = lib + ".original"
-        if not os.path.isfile(backup):
-            shutil.copy2(lib, backup)
-            print(f"{tag}: backed up -> {os.path.basename(backup)}")
-        write_object(ar, lib, obj, data.replace(old, new))
-        print(f"{tag}: patched {n_old} occurrence(s) — now accepts a 5 ms connection interval")
-        any_patched_now = True
+        to_patch.append((lib, data.replace(old, new)))
 
-    if not args.verify_only and any_patched_now:
-        print(f"done ({args.target}). Run tools/smoke_test_5ms.py --target {args.target} to verify.")
+    if not to_patch:
+        return 0  # every archive was already patched
+
+    # WRITE pass. Refresh each archive's .original backup from the CURRENT archive
+    # first — the preflight just confirmed it is unpatched, so this avoids a stale
+    # backup from a previous IDF version (which --restore would otherwise put back).
+    # Roll back everything if any write fails, so IDF is never left partially patched.
+    backed_up = []  # (lib, backup) — refreshed, safe to restore from
+    try:
+        for lib, patched in to_patch:
+            tag = os.path.basename(lib)
+            backup = lib + ".original"
+            shutil.copy2(lib, backup)  # refresh backup from the confirmed-unpatched archive
+            backed_up.append((lib, backup))
+            write_object(ar, lib, obj, patched)
+            print(f"{tag}: backed up + patched — now accepts a 5 ms connection interval")
+    except Exception as exc:  # noqa: BLE001 — any failure must roll back
+        for lib, backup in reversed(backed_up):
+            shutil.copy2(backup, lib)
+            print(f"rolled back {os.path.basename(lib)}")
+        sys.exit(f"patch failed ({exc}); rolled back {len(backed_up)} archive(s) — IDF left unpatched")
+
+    print(f"done ({args.target}). Run tools/smoke_test_5ms.py --target {args.target} to verify.")
     return 0
 
 

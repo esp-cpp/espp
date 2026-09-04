@@ -484,9 +484,13 @@ void Switch2Pro::advertise() {
 bool Switch2Pro::wake_console() {
   if (active_conn_handle_ != 0xffff)
     return false; // already connected — nothing to wake
+  // Require a real persisted bond. reconnect_mode_ is set only after a completed
+  // pairing (FINALISE) or a bond loaded from NVS. host_addr_ alone is not enough:
+  // it becomes nonzero mid-pairing (EXCHANGE_ADDRESSES), before any bond exists, so
+  // a failed pairing would otherwise let this emit a wake advertisement.
   static constexpr std::array<uint8_t, 6> kZeroAddr{};
-  if (host_addr_ == kZeroAddr)
-    return false; // no bonded console identity to address the wake to
+  if (!reconnect_mode_ || host_addr_ == kZeroAddr)
+    return false; // no bonded console to wake
   logger_.info("wake: broadcasting wake advertisement (user-requested)");
   wake_pending_ = true; // keep the wake variant on the air (across any transient
                         // connect/drop while the console boots) until connected
