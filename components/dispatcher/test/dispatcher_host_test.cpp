@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <span>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "dispatcher.hpp"
@@ -132,11 +133,76 @@ static void test_handler_exception_recovers() {
   CHECK(hits == 1 && d.has_module(2));
 }
 
+// Minimal reader for the describe() TLV payload ([len u8][bytes] strings).
+struct TlvReader {
+  std::span<const uint8_t> b;
+  size_t p = 0;
+  uint8_t u8() { return b[p++]; }
+  std::string str() {
+    const uint8_t n = u8();
+    std::string s(reinterpret_cast<const char *>(&b[p]), n);
+    p += n;
+    return s;
+  }
+};
+
+static void test_discovery() {
+  std::printf("test_discovery\n");
+  using D = espp::Dispatcher;
+  espp::Dispatcher d;
+  d.set_device_info("espp Hub", "1.2.3");
+  d.register_module(0, [](const sf::Frame &) {},
+                    {.name = "OTA", .app = "ota_console.html", .description = "Firmware update"});
+  d.register_module(6, [](const sf::Frame &) {},
+                    {.name = "MCP266", .app = "mcp266_console.html", .description = "Motors"});
+  d.register_module(9, [](const sf::Frame &) {}); // no metadata -> not advertised
+
+  const auto payload = d.describe();
+  TlvReader r{payload};
+  CHECK(r.u8() == D::kDiscoveryVersion);
+  CHECK(r.u8() == 0); // reserved
+  CHECK(r.str() == "espp Hub");
+  CHECK(r.str() == "1.2.3");
+  const uint8_t count = r.u8();
+  CHECK(count == 2); // module 9 (no name) excluded; discovery module absent
+  const uint8_t id0 = r.u8();
+  const std::string n0 = r.str(), a0 = r.str(), de0 = r.str();
+  CHECK(id0 == 0 && n0 == "OTA" && a0 == "ota_console.html" && de0 == "Firmware update");
+  const uint8_t id1 = r.u8();
+  const std::string n1 = r.str(), a1 = r.str(), de1 = r.str();
+  CHECK(id1 == 6 && n1 == "MCP266" && a1 == "mcp266_console.html" && de1 == "Motors");
+  CHECK(r.p == payload.size());
+
+  // serve_discovery: a ListModules request produces one reply frame carrying the
+  // describe() payload and echoing the request correlation id.
+  std::vector<uint8_t> sent;
+  d.serve_discovery(
+      [&](std::span<const uint8_t> frame) { sent.assign(frame.begin(), frame.end()); });
+  CHECK(d.has_module(D::kDiscoveryModule));
+  CHECK(d.describe() == payload); // registering discovery must not list it
+  d.feed(sf::build_frame(false, D::kDiscoveryModule,
+                         static_cast<uint8_t>(D::Discovery::ListModules), {}, 0x1234));
+  CHECK(!sent.empty());
+  sf::StreamParser sp;
+  const auto frames = sp.feed(sent);
+  CHECK(frames.size() == 1);
+  CHECK(frames[0].module == D::kDiscoveryModule && frames[0].is_reply());
+  CHECK(frames[0].correlation.has_value() && *frames[0].correlation == 0x1234);
+  CHECK(frames[0].payload == payload);
+
+  // An echoed reply frame must NOT trigger another reply (avoid loops).
+  sent.clear();
+  d.feed(
+      sf::build_frame(true, D::kDiscoveryModule, static_cast<uint8_t>(D::Discovery::ListModules)));
+  CHECK(sent.empty());
+}
+
 int main() {
   test_routing_and_coexistence();
   test_register_replace_unregister();
   test_reset();
   test_reentrant_unregister();
+  test_discovery();
   // cppcheck-suppress throwInEntryPoint // the handler's throw is caught inside
   // the test (cppcheck can't trace it through the std::function / feed() call)
   test_handler_exception_recovers();

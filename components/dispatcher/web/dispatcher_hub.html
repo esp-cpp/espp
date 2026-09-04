@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>espp Device Hub (WebUSB / Web Serial)</title>
+  <meta name="description" content="Connect to an espp device over USB (WebUSB / Web Serial) and discover which modules it runs. The device answers a capability query on the reserved dispatcher discovery module (0xFF) with its name, firmware, and the list of modules — each shown as a tab that links to its hosted web app.">
+  <style>
+    :root {
+      --bg: #0f1418; --panel: #161d24; --panel2: #1d262f; --line: #2a3540;
+      --fg: #e6edf3; --muted: #8a97a6; --accent: #4aa8ff; --ok: #3fb950; --err: #f85149;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg);
+      font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+      padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    h1 { font-size: 17px; margin: 0; font-weight: 650; }
+    h1 .muted { font-weight: 400; }
+    .muted { color: var(--muted); }
+    .spacer { flex: 1; }
+    button { font: inherit; color: var(--fg); background: var(--panel2); border: 1px solid var(--line);
+      padding: 7px 13px; border-radius: 8px; cursor: pointer; }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { opacity: 0.45; cursor: default; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #06121f; font-weight: 600; }
+    .status-pill { padding: 4px 11px; border-radius: 999px; font-size: 12px; border: 1px solid var(--line);
+      color: var(--muted); }
+    .status-pill.ok { color: var(--ok); border-color: var(--ok); }
+    .status-pill.err { color: var(--err); border-color: var(--err); }
+    .status-pill.busy { color: var(--accent); border-color: var(--accent); }
+    main { max-width: 1000px; margin: 0 auto; padding: 20px; }
+    .banner { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 14px 18px; margin-bottom: 18px; }
+    .banner .dev { font-size: 16px; font-weight: 600; }
+    .layout { display: grid; grid-template-columns: 240px 1fr; gap: 18px; }
+    @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+    .tabs { display: flex; flex-direction: column; gap: 6px; }
+    .tab { text-align: left; padding: 11px 13px; border-radius: 8px; background: var(--panel);
+      border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+    .tab .id { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .tab.active { border-color: var(--accent); background: var(--panel2); }
+    .detail { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 22px; min-height: 220px; }
+    .detail h2 { margin: 0 0 4px; font-size: 20px; }
+    .detail .sub { color: var(--muted); margin-bottom: 18px; font-variant-numeric: tabular-nums; }
+    .detail p.desc { font-size: 15px; margin: 0 0 22px; }
+    .empty { color: var(--muted); display: flex; align-items: center; justify-content: center;
+      min-height: 220px; text-align: center; }
+    a.open { display: inline-block; text-decoration: none; background: var(--accent); color: #06121f;
+      font-weight: 600; padding: 9px 16px; border-radius: 8px; }
+    a.open:hover { filter: brightness(1.08); }
+    .noapp { color: var(--muted); font-style: italic; }
+    #unsupported { display: none; background: #3a1d1d; border: 1px solid var(--err);
+      border-radius: 8px; padding: 12px 16px; margin: 18px 0; }
+    #log { margin-top: 20px; background: #0b0f13; border: 1px solid var(--line); border-radius: 8px;
+      padding: 10px 12px; height: 130px; overflow-y: auto;
+      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    #log .t { color: var(--muted); }
+    #log .err { color: var(--err); }
+    #log .ok { color: var(--ok); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>espp Device Hub <span class="muted">(WebUSB / Web Serial)</span></h1>
+    <div class="spacer"></div>
+    <label class="muted" style="font-size:12px;"><input type="checkbox" id="anyDevice" /> any device</label>
+    <button id="connectUsbBtn" class="primary">Connect (WebUSB)</button>
+    <button id="connectSerialBtn">Connect (Web Serial)</button>
+    <button id="disconnectBtn" disabled>Disconnect</button>
+    <span id="status" class="status-pill">idle</span>
+  </header>
+
+  <main>
+    <div id="unsupported">This browser supports neither WebUSB nor Web Serial. Use a Chromium-based
+      browser (Chrome / Edge) over HTTPS.</div>
+
+    <div class="banner">
+      <div class="dev" id="devName">Not connected</div>
+      <div class="muted" id="devSub">Connect to an espp device to discover the modules it runs.</div>
+    </div>
+
+    <div class="layout">
+      <div class="tabs" id="tabs"></div>
+      <div class="detail" id="detail"><div class="empty">No modules yet — connect a device.</div></div>
+    </div>
+
+    <div id="log"></div>
+  </main>
+
+  <script>
+    "use strict";
+    // ---- stream_frame v2 constants (see components/stream_frame) ----
+    const DEFAULT_VID = 0x1209, DEFAULT_PID = 0x0d32, VENDOR_CLASS = 0xFF;
+    const MAGIC0 = 0x54, MAGIC1 = 0x4F, HEADER_SIZE = 9, CRC_SIZE = 4, CORRELATION_SIZE = 2;
+    const MAX_PAYLOAD = 4096, MAX_FRAME = HEADER_SIZE + CORRELATION_SIZE + MAX_PAYLOAD + CRC_SIZE;
+    const FLAGS_VERSION = 1, FLAGS_REQUEST = (FLAGS_VERSION << 4), FLAGS_REPLY_BIT = 0x01, FLAG_CORRELATION = 0x02;
+    // reserved dispatcher discovery module + its ListModules type
+    const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
+
+    const els = {};
+    for (const id of ["status","connectUsbBtn","connectSerialBtn","disconnectBtn","anyDevice",
+      "devName","devSub","tabs","detail","log","unsupported"]) els[id] = document.getElementById(id);
+
+    function logLine(cls, text) {
+      const line = document.createElement("div");
+      const t = document.createElement("span"); t.className = "t"; t.textContent = new Date().toLocaleTimeString() + " ";
+      const b = document.createElement("span"); b.className = cls; b.textContent = text;
+      line.appendChild(t); line.appendChild(b); els.log.appendChild(line);
+      while (els.log.childNodes.length > 300) els.log.removeChild(els.log.firstChild);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+    function setStatus(state, text) { els.status.className = "status-pill" + (state ? " " + state : ""); els.status.textContent = text; }
+
+    // ---- CRC-32 (zlib), golden crc32("123456789") === 0xCBF43926 ----
+    const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c=(c&1)?((c>>>1)^0xEDB88320):(c>>>1); t[i]=c>>>0; } return t; })();
+    function crc32(bytes) { let c=0xFFFFFFFF; for (let i=0;i<bytes.length;i++) c=CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8); return (~c)>>>0; }
+    if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) throw new Error("CRC-32 self-test failed");
+
+    function buildFrame(module, type, payload) {
+      payload = payload || new Uint8Array(0);
+      const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
+      const view = new DataView(frame.buffer);
+      view.setUint16(0, 0x4F54, true);
+      frame[2] = FLAGS_REQUEST | ((type & 0x80) ? FLAGS_REPLY_BIT : 0);
+      frame[3] = module; frame[4] = type;
+      view.setUint32(5, payload.length, true);
+      view.setUint32(HEADER_SIZE + payload.length, crc32(frame.subarray(0, HEADER_SIZE + payload.length)), true);
+      return frame;
+    }
+
+    class StreamParser {
+      constructor() { this.buf = new Uint8Array(0); }
+      reset() { this.buf = new Uint8Array(0); }
+      feed(chunk) {
+        const merged = new Uint8Array(this.buf.length + chunk.length);
+        merged.set(this.buf, 0); merged.set(chunk, this.buf.length);
+        const frames = []; let pos = 0;
+        for (;;) {
+          while (pos < merged.length && !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) pos++;
+          if (merged.length - pos < 3) break;
+          const flags = merged[pos + 2];
+          const ext = (flags & FLAG_CORRELATION) ? CORRELATION_SIZE : 0;
+          const headerSize = HEADER_SIZE + ext;
+          if (merged.length - pos < headerSize) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true);
+          if (len > MAX_PAYLOAD) { pos++; continue; }
+          const total = headerSize + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(headerSize + len, true);
+          if (crc32(merged.subarray(pos, pos + headerSize + len)) !== expected) { pos++; continue; }
+          frames.push({ module: merged[pos + 3], type: merged[pos + 4], reply: (flags & FLAGS_REPLY_BIT) !== 0,
+                        payload: merged.slice(pos + headerSize, pos + headerSize + len) });
+          pos += total;
+        }
+        this.buf = merged.slice(pos);
+        return frames;
+      }
+    }
+    const parser = new StreamParser();
+
+    // ---- decode the describe() TLV payload (see espp::Dispatcher::describe) ----
+    function parseDiscovery(payload) {
+      let i = 0;
+      const u8 = () => payload[i++];
+      const str = () => { const n = u8(); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
+      const version = u8(); u8(); // version, reserved
+      const device = str(), fw = str();
+      const count = u8();
+      const modules = [];
+      for (let m = 0; m < count; m++) modules.push({ id: u8(), name: str(), app: str(), desc: str() });
+      return { version, device, fw, modules };
+    }
+
+    // ===================== Transports (WebUSB + Web Serial) =====================
+    let transport = null;
+    class UsbTransport {
+      constructor() { this.device=null; this.iface=null; this.epIn=null; this.epOut=null; this.reading=false; }
+      async open(anyDevice) {
+        const options = anyDevice ? { acceptAllDevices: true } : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
+        this.device = await navigator.usb.requestDevice(options);
+        await this.device.open();
+        if (this.device.configuration === null) await this.device.selectConfiguration(1);
+        const config = this.device.configuration; if (!config) throw new Error("no active USB configuration");
+        let found = null;
+        for (const itf of config.interfaces) { for (const alt of itf.alternates) {
+          if (alt.interfaceClass !== VENDOR_CLASS) continue;
+          let inEp=null, outEp=null;
+          for (const ep of alt.endpoints) { if (ep.type!=="bulk") continue; if (ep.direction==="in"&&!inEp) inEp=ep; else if (ep.direction==="out"&&!outEp) outEp=ep; }
+          if (inEp && outEp) { found = { itf: itf.interfaceNumber, alt: alt.alternateSetting, inEp, outEp }; break; }
+        } if (found) break; }
+        if (!found) throw new Error("no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found");
+        await this.device.claimInterface(found.itf);
+        if (found.alt !== 0) await this.device.selectAlternateInterface(found.itf, found.alt);
+        this.iface = found.itf; this.epIn = found.inEp.endpointNumber; this.epOut = found.outEp.endpointNumber;
+      }
+      describe() { const d=this.device; return (d.productName||"USB device")+" ("+d.vendorId.toString(16).padStart(4,"0")+":"+d.productId.toString(16).padStart(4,"0")+") [WebUSB]"; }
+      async send(bytes) {
+        let sent = 0;
+        while (sent < bytes.length) {
+          const out = await this.device.transferOut(this.epOut, sent === 0 ? bytes : bytes.subarray(sent));
+          if (out.status === "stall") { try { await this.device.clearHalt("out", this.epOut); } catch(_){} throw new Error("OUT endpoint stalled"); }
+          if (out.status !== "ok") throw new Error("OUT transfer status: " + out.status);
+          const n = out.bytesWritten || 0; if (n === 0) throw new Error("OUT transfer made no progress"); sent += n;
+        }
+      }
+      async readLoop(onData) {
+        this.reading = true;
+        while (this.reading && this.device) {
+          let result;
+          try { result = await this.device.transferIn(this.epIn, MAX_FRAME); } catch(e) { if (this.reading) throw e; return; }
+          if (!this.reading) return;
+          if (result.status === "stall") { try { await this.device.clearHalt("in", this.epIn); } catch(_){} continue; }
+          if (result.data && result.data.byteLength) onData(new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength));
+        }
+      }
+      async close() { this.reading = false; if (this.device) { if (this.iface !== null) { try { await this.device.releaseInterface(this.iface); } catch(_){} } try { await this.device.close(); } catch(_){} } this.device = null; }
+    }
+    class SerialTransport {
+      constructor() { this.port=null; this.reader=null; this.writer=null; this.reading=false; }
+      async open() { this.port = await navigator.serial.requestPort(); await this.port.open({ baudRate: 115200 }); this.writer = this.port.writable.getWriter(); }
+      describe() { const info = this.port.getInfo ? this.port.getInfo() : {}; let id = "Serial port"; if (info && info.usbVendorId != null) id = "USB serial ("+info.usbVendorId.toString(16).padStart(4,"0")+":"+(info.usbProductId||0).toString(16).padStart(4,"0")+")"; return id + " [Web Serial]"; }
+      async send(bytes) { await this.writer.write(bytes); }
+      async readLoop(onData) {
+        this.reading = true; this.reader = this.port.readable.getReader();
+        try { while (this.reading) { const { value, done } = await this.reader.read(); if (done) { if (this.reading) throw new Error("serial connection closed (EOF)"); break; } if (value && value.length) onData(new Uint8Array(value.buffer, value.byteOffset, value.byteLength)); } }
+        finally { try { this.reader.releaseLock(); } catch(_){} this.reader = null; }
+      }
+      async close() {
+        this.reading = false;
+        if (this.reader) { try { await this.reader.cancel(); } catch(_){} try { this.reader.releaseLock(); } catch(_){} this.reader = null; }
+        if (this.writer) { try { await this.writer.close(); } catch(_){} try { this.writer.releaseLock(); } catch(_){} this.writer = null; }
+        if (this.port) { try { await this.port.close(); } catch(_){} this.port = null; }
+      }
+    }
+
+    // ===================== Discovery + UI =====================
+    let modules = [], selected = -1, queryTimer = null;
+
+    function onFrame(f) {
+      if (f.module !== MODULE_DISCOVERY || !f.reply || f.type !== T_LIST_MODULES) return;
+      if (queryTimer) { clearTimeout(queryTimer); queryTimer = null; }
+      let info;
+      try { info = parseDiscovery(f.payload); }
+      catch (e) { logLine("err", "malformed discovery reply"); return; }
+      els.devName.textContent = info.device || "espp device";
+      els.devSub.textContent = (info.fw ? "firmware " + info.fw + " · " : "") + info.modules.length + " module(s) · " + (transport ? transport.describe() : "");
+      modules = info.modules;
+      selected = modules.length ? 0 : -1;
+      renderTabs(); renderDetail();
+      logLine("ok", "discovered " + modules.length + " module(s): " + modules.map(m => m.name).join(", "));
+    }
+
+    function renderTabs() {
+      els.tabs.innerHTML = "";
+      modules.forEach((m, idx) => {
+        const b = document.createElement("button");
+        b.className = "tab" + (idx === selected ? " active" : "");
+        const name = document.createElement("div"); name.textContent = m.name || ("module " + m.id);
+        const id = document.createElement("div"); id.className = "id"; id.textContent = "module " + m.id + (m.app ? "" : " · no app");
+        b.appendChild(name); b.appendChild(id);
+        b.addEventListener("click", () => { selected = idx; renderTabs(); renderDetail(); });
+        els.tabs.appendChild(b);
+      });
+    }
+
+    function renderDetail() {
+      const d = els.detail;
+      if (selected < 0 || !modules[selected]) { d.innerHTML = '<div class="empty">No modules.</div>'; return; }
+      const m = modules[selected];
+      d.innerHTML = "";
+      const h = document.createElement("h2"); h.textContent = m.name || ("module " + m.id);
+      const sub = document.createElement("div"); sub.className = "sub"; sub.textContent = "module id " + m.id;
+      const p = document.createElement("p"); p.className = "desc"; p.textContent = m.desc || "";
+      d.appendChild(h); d.appendChild(sub); if (m.desc) d.appendChild(p);
+      if (m.app) {
+        const a = document.createElement("a"); a.className = "open"; a.href = m.app; a.target = "_blank"; a.rel = "noopener";
+        a.textContent = "Open " + m.app + " ↗";
+        d.appendChild(a);
+        const note = document.createElement("div"); note.className = "muted"; note.style.marginTop = "12px";
+        note.textContent = "Opens the module's own web app in a new tab (it connects to the device itself).";
+        d.appendChild(note);
+      } else {
+        const n = document.createElement("div"); n.className = "noapp"; n.textContent = "This module advertises no web app.";
+        d.appendChild(n);
+      }
+    }
+
+    function queryDiscovery() {
+      parser.reset();
+      transport.send(buildFrame(MODULE_DISCOVERY, T_LIST_MODULES)).catch(e => logLine("err", "query send failed: " + (e.message || e)));
+      logLine("t", "querying device modules…");
+      if (queryTimer) clearTimeout(queryTimer);
+      queryTimer = setTimeout(() => { logLine("err", "no discovery reply — is the device serving discovery (serve_discovery)?"); }, 2500);
+    }
+
+    async function connect(kind) {
+      try {
+        setStatus("busy", "connecting…");
+        transport = kind === "usb" ? new UsbTransport() : new SerialTransport();
+        await transport.open(els.anyDevice.checked);
+        setStatus("ok", "connected");
+        logLine("ok", "connected: " + transport.describe());
+        transport.readLoop((chunk) => { for (const f of parser.feed(chunk)) onFrame(f); })
+          .catch(e => { logLine("err", "read loop: " + (e.message || e)); onLinkLost(); });
+        setConnected(true);
+        queryDiscovery();
+      } catch (e) {
+        logLine("err", "connect failed: " + (e && e.message ? e.message : e));
+        setStatus("err", "error"); transport = null; setConnected(false);
+      }
+    }
+
+    async function disconnect() {
+      if (queryTimer) { clearTimeout(queryTimer); queryTimer = null; }
+      if (transport) { try { await transport.close(); } catch(_){} transport = null; }
+      onLinkLost();
+    }
+    function onLinkLost() {
+      setConnected(false); setStatus("", "idle");
+      els.devName.textContent = "Not connected";
+      els.devSub.textContent = "Connect to an espp device to discover the modules it runs.";
+      modules = []; selected = -1; els.tabs.innerHTML = "";
+      els.detail.innerHTML = '<div class="empty">No modules yet — connect a device.</div>';
+    }
+    function setConnected(on) {
+      els.connectUsbBtn.disabled = on || !navigator.usb;
+      els.connectSerialBtn.disabled = on || !navigator.serial;
+      els.disconnectBtn.disabled = !on;
+    }
+
+    els.connectUsbBtn.addEventListener("click", () => connect("usb"));
+    els.connectSerialBtn.addEventListener("click", () => connect("serial"));
+    els.disconnectBtn.addEventListener("click", disconnect);
+    if (!navigator.usb) els.connectUsbBtn.disabled = true;
+    if (!navigator.serial) els.connectSerialBtn.disabled = true;
+    if (!navigator.usb && !navigator.serial) els.unsupported.style.display = "block";
+    if (navigator.usb && navigator.usb.addEventListener)
+      navigator.usb.addEventListener("disconnect", (e) => { if (transport instanceof UsbTransport && e.device === transport.device) { logLine("err", "device disconnected"); onLinkLost(); } });
+  </script>
+</body>
+</html>
