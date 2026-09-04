@@ -1,5 +1,7 @@
 #include "switch2_pro_pairing.hpp"
 
+#include <mutex>
+
 #include <psa/crypto.h>
 
 #include "esp_log.h"
@@ -27,7 +29,12 @@ std::array<uint8_t, 16> PairingCrypto::confirm(const std::array<uint8_t, 16> &lt
 
   // AES-128-ECB single-block encrypt via the PSA Crypto API (the supported
   // interface in mbedTLS 4.x / IDF 6; the classic mbedtls_aes_* API is private).
-  if (psa_crypto_init() != PSA_SUCCESS) {
+  // psa_crypto_init() is idempotent but non-trivial, so run it exactly once
+  // (self_test() at init and every live pairing share the same process init).
+  static std::once_flag psa_once;
+  static psa_status_t psa_init_status = PSA_ERROR_BAD_STATE;
+  std::call_once(psa_once, [] { psa_init_status = psa_crypto_init(); });
+  if (psa_init_status != PSA_SUCCESS) {
     ESP_LOGE(kPairingTag, "psa_crypto_init failed");
     return out; // zeros — self_test() flags it, live pairing fails cleanly
   }

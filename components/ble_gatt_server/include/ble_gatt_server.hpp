@@ -74,7 +74,7 @@ public:
   ///        peer- or self-initiated, accepted or rejected; read the live
   ///        parameters from conn_info to see the outcome).
   /// @param conn_info The connection information for the device.
-  typedef std::function<void(NimBLEConnInfo &)> conn_params_update_callback_t;
+  typedef std::function<void(const NimBLEConnInfo &)> conn_params_update_callback_t;
 
   /// @brief Callback to retrieve the passkey for the device.
   /// @return The passkey for the device.
@@ -285,8 +285,17 @@ public:
   ///        Defaults to true. Set to false BEFORE init() for peripherals that
   ///        must expose only their own services (e.g. emulating a device whose
   ///        GATT layout must match a specific attribute table).
-  /// @note Must be called before init().
-  void set_builtin_info_services_enabled(bool enabled) { builtin_info_services_ = enabled; }
+  /// @note Must be called before init(). Calling it after init() has no effect
+  ///       (the built-in services are created/skipped during init) and is ignored
+  ///       with a warning, since honoring it would leave services created but never
+  ///       started or torn down.
+  void set_builtin_info_services_enabled(bool enabled) {
+    if (server_) {
+      logger_.warn("set_builtin_info_services_enabled() ignored: must be called before init()");
+      return;
+    }
+    builtin_info_services_ = enabled;
+  }
 
   /// Deinitialize the GATT server
   /// This method deletes the server and all associated objects.

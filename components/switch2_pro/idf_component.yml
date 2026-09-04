@@ -2,7 +2,7 @@
 license: "MIT"
 description: "Emulate a Nintendo Switch 2 Pro Controller over BLE (custom GATT + reverse-engineered pairing) so a real Switch 2 accepts it as a native controller and can be woken from sleep."
 url: "https://github.com/esp-cpp/espp/tree/main/components/switch2_pro"
-repository: "git://github.com/esp-cpp/espp.git"
+repository: "https://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/ble/switch2_pro.html"

@@ -308,7 +308,7 @@ void Switch2Pro::configure_callbacks() {
     active_conn_handle_ = 0xffff; // so the wake timer knows we're disconnected
     advertise();
   };
-  callbacks.conn_params_update_callback = [this](NimBLEConnInfo &info) {
+  callbacks.conn_params_update_callback = [this](const NimBLEConnInfo &info) {
     // Fires when ANY connection-parameter-update procedure completes — including
     // the console's answer to our at-connect offer, and any console-initiated
     // update. If the interval here is still 15 ms, the console REJECTED (or

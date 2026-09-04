@@ -12,20 +12,19 @@ menu "Switch 2 Pro Controller"
             console subscribes to input. The controller stack must accept that
             sub-spec interval or the connection/stream fails.
 
-            ON ESP32-S3 / C3, PREFER THE OFFICIAL ESP-IDF OPTION INSTEAD of this
-            patch: CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (default y) lets the
-            BTDM controller and the BLE host accept sub-spec intervals with no
-            binary patching. It is in ESP-IDF >= v6.0 (142aea3) / v5.5 (cf13345) /
-            v5.4 (aefcf1c) / v5.3 (9831261) — see espressif/esp-idf#18467. Only use
-            this patch on S3/C3 if your IDF predates that fix.
+            THIS OPTION IS ONLY FOR THE OPEN NimBLE CONTROLLER CHIPS
+            (ESP32-C6/C61/C2/H2), which have no config option for a sub-spec
+            interval. On ESP32-S3 / C3 use the OFFICIAL ESP-IDF option instead:
+            CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (default y) lets the BTDM
+            controller and the BLE host accept sub-spec intervals with no binary
+            patching, in ESP-IDF >= v6.1 (or the v6.0/v5.5/v5.4/v5.3 backports; see
+            espressif/esp-idf#18467). Enabling THIS option on S3/C3 is a build
+            error — there is no verified S3/C3 binary-patch fallback.
 
-            When enabled, the component build patches the prebuilt closed
-            controller library in your global $IDF_PATH install to lower the
-            minimum-interval floor from 6 units (7.5 ms) to 4 (5 ms):
-              * ESP32-C6/C61/C2/H2 — NimBLE controller (libble_app.a) — no
-                official config option yet, so the patch is the route here.
-              * ESP32-S3/C3        — BTDM/RivieraWaves controller (libbtdm_app.a) —
-                fallback for IDF older than the fix above.
+            When enabled on a supported chip, the component build patches the
+            prebuilt closed controller library in your global $IDF_PATH install to
+            lower the minimum-interval floor from 6 units (7.5 ms) to 4 (5 ms):
+            ESP32-C6/C61/C2/H2 NimBLE controller (libble_app.a).
             THIS MODIFIES YOUR ESP-IDF INSTALLATION. Undo with
             tools/patch_nimble_5ms.py --target <chip> --restore, and verify with
             tools/smoke_test_5ms.py --target <chip>.

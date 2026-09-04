@@ -57,7 +57,13 @@ def stack_of(spec: dict) -> str:
 
 
 def disassemble(objdump: str, obj_path: str, func: Optional[str]) -> str:
-    out = subprocess.run([objdump, "-d", obj_path], capture_output=True, text=True).stdout
+    r = subprocess.run([objdump, "-d", obj_path], capture_output=True, text=True)
+    if r.returncode != 0:
+        # Surface the real cause (wrong arch, corrupt object, missing tool) instead of
+        # treating empty stdout as an indeterminate verdict; the entry point maps this
+        # to exit code 2 (error), distinct from a valid unpatched (1) result.
+        raise RuntimeError(f"{objdump} -d {obj_path} failed (rc={r.returncode}): {r.stderr.strip()}")
+    out = r.stdout
     if not func:
         return out
     # keep only the named function body (up to the next symbol header)

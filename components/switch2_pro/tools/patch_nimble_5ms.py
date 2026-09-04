@@ -143,10 +143,14 @@ def read_object(ar: str, lib: str, obj: str) -> bytes:
 
 def write_object(ar: str, lib: str, obj: str, data: bytes) -> None:
     with tempfile.TemporaryDirectory() as tmp:
-        path = os.path.join(tmp, obj)
-        with open(path, "wb") as f:
+        with open(os.path.join(tmp, obj), "wb") as f:
             f.write(data)
-        subprocess.run([ar, "r", lib, path], cwd=os.path.dirname(path) or ".", check=True)
+        # Run from tmp and pass ONLY the basename (`obj`), so the member name stored
+        # in the archive stays exactly `obj`. Passing an absolute/relative path can,
+        # on some ar variants, store the full path as the member name, which then
+        # breaks `ar x <archive> <obj>` and any build expecting that object name.
+        # `lib` is absolute, so the changed cwd does not affect it.
+        subprocess.run([ar, "r", lib, obj], cwd=tmp, check=True)
 
 
 def main() -> int:
