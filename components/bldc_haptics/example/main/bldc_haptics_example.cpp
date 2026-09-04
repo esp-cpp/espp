@@ -493,7 +493,6 @@ extern "C" void app_main(void) {
   };
 
   auto handle_frame = [&](const proto::stream::Frame &frame) {
-    std::error_code ec;
     switch (static_cast<proto::Msg>(frame.type)) {
     // --- Haptics commands ----------------------------------------------------
     case proto::Msg::GetInfo:
