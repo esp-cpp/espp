@@ -124,6 +124,8 @@ public:
    * @return True on success.
    */
   bool drive_duty(Axis axis, int16_t duty, std::error_code &ec) {
+    if (!check_axis(axis, ec))
+      return false;
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_i16_be(payload, duty);
@@ -157,6 +159,8 @@ public:
    * @return True on success.
    */
   bool drive_speed(Axis axis, int32_t qpps, std::error_code &ec) {
+    if (!check_axis(axis, ec))
+      return false;
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_i32_be(payload, qpps);
@@ -189,6 +193,8 @@ public:
    * @return True on success.
    */
   bool drive_speed_accel(Axis axis, uint32_t accel, int32_t qpps, std::error_code &ec) {
+    if (!check_axis(axis, ec))
+      return false;
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_u32_be(payload, accel);
@@ -233,6 +239,8 @@ public:
    */
   bool buffered_drive_speed_distance(Axis axis, int32_t qpps, uint32_t distance, bool immediate,
                                      std::error_code &ec) {
+    if (!check_axis(axis, ec))
+      return false;
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_i32_be(payload, qpps);
@@ -282,6 +290,8 @@ public:
    */
   bool buffered_drive_speed_accel_distance(Axis axis, uint32_t accel, int32_t qpps,
                                            uint32_t distance, bool immediate, std::error_code &ec) {
+    if (!check_axis(axis, ec))
+      return false;
     std::scoped_lock lk(mutex_);
     std::vector<uint8_t> payload;
     detail::append_u32_be(payload, accel);
@@ -370,6 +380,8 @@ public:
    * @return True on success.
    */
   bool read_encoder(Axis axis, int32_t &count, uint8_t &status, std::error_code &ec) {
+    if (!check_axis(axis, ec))
+      return false;
     std::scoped_lock lk(mutex_);
     uint32_t raw = 0;
     if (!read_count_raw(axis == Axis::M1 ? Command::ReadEncoderM1 : Command::ReadEncoderM2, raw,
@@ -438,6 +450,8 @@ public:
    * @return True on success.
    */
   bool read_speed(Axis axis, int32_t &qpps, uint8_t &direction, std::error_code &ec) {
+    if (!check_axis(axis, ec))
+      return false;
     std::scoped_lock lk(mutex_);
     return read_speed_raw(axis == Axis::M1 ? Command::ReadEncoderSpeedM1
                                            : Command::ReadEncoderSpeedM2,
@@ -497,6 +511,8 @@ public:
    * @return True on success.
    */
   bool set_velocity_pid(Axis axis, float p, float i, float d, uint32_t qpps, std::error_code &ec) {
+    if (!check_axis(axis, ec))
+      return false;
     std::scoped_lock lk(mutex_);
     return set_velocity_pid_raw(axis == Axis::M1 ? Command::SetVelocityPidM1
                                                  : Command::SetVelocityPidM2,
@@ -516,6 +532,8 @@ public:
    */
   bool read_velocity_pid(Axis axis, float &p, float &i, float &d, uint32_t &qpps,
                          std::error_code &ec) {
+    if (!check_axis(axis, ec))
+      return false;
     std::scoped_lock lk(mutex_);
     return read_velocity_pid_raw(axis == Axis::M1 ? Command::ReadVelocityPidM1
                                                   : Command::ReadVelocityPidM2,
@@ -545,6 +563,8 @@ public:
    */
   bool set_position_pid(Axis axis, float p, float i, float d, uint32_t max_i, uint32_t deadzone,
                         int32_t min_pos, int32_t max_pos, std::error_code &ec) {
+    if (!check_axis(axis, ec))
+      return false;
     std::scoped_lock lk(mutex_);
     return set_position_pid_raw(axis == Axis::M1 ? Command::SetPositionPidM1
                                                  : Command::SetPositionPidM2,
@@ -569,6 +589,8 @@ public:
   bool read_position_pid(Axis axis, float &p, float &i, float &d, uint32_t &max_i,
                          uint32_t &deadzone, int32_t &min_pos, int32_t &max_pos,
                          std::error_code &ec) {
+    if (!check_axis(axis, ec))
+      return false;
     std::scoped_lock lk(mutex_);
     return read_position_pid_raw(axis == Axis::M1 ? Command::ReadPositionPidM1
                                                   : Command::ReadPositionPidM2,
@@ -787,6 +809,17 @@ public:
   }
 
 protected:
+  /// Reject an out-of-range axis selector before any I/O. MotorAxis is a
+  /// two-value enum, but a value decoded from an untrusted byte could be neither
+  /// M1 nor M2, and the `axis == Axis::M1 ? ... : ...` dispatch would otherwise
+  /// silently target M2. Sets ec = invalid_argument and returns false.
+  static bool check_axis(Axis axis, std::error_code &ec) {
+    if (axis == Axis::M1 || axis == Axis::M2)
+      return true;
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
+
   /// Validate that both transport functions were configured. Calling an empty
   /// std::function throws std::bad_function_call, which would violate this
   /// component's no-exceptions contract -- so every transaction entry point

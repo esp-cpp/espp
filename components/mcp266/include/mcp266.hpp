@@ -153,6 +153,8 @@ public:
   bool configure_position_loop(Axis axis, int32_t min_pos, int32_t max_pos, int32_t fallback_p,
                                std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     AxisState &a = axis_state(axis);
     std::array<int32_t, 7> readback{};
     for (uint8_t sub = 1; sub <= 7; ++sub) {
@@ -212,6 +214,8 @@ public:
   bool set_software_position_limits(Axis axis, int32_t min_pos, int32_t max_pos,
                                     std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     if (min_pos > max_pos) {
       ec = std::make_error_code(std::errc::invalid_argument);
       return false;
@@ -234,6 +238,8 @@ public:
                         uint32_t profile_acceleration, uint32_t profile_deceleration,
                         std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     AxisState &a = axis_state(axis);
     if (!enable(a, Ds402Drive::OperatingMode::ProfilePosition, ec)) {
       return false;
@@ -256,6 +262,8 @@ public:
   /// \brief Closed-loop speed via the mirrored packet-serial command (35/36).
   bool drive_speed(Axis axis, int32_t qpps, std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     AxisState &a = axis_state(axis);
     if (qpps != 0 && !enable(a, Ds402Drive::OperatingMode::ProfileVelocity, ec)) {
       return false;
@@ -266,6 +274,8 @@ public:
   /// \brief Open-loop duty via the mirrored packet-serial command (32/33).
   bool drive_duty(Axis axis, int16_t duty, std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     AxisState &a = axis_state(axis);
     if (duty != 0 && !enable(a, Ds402Drive::OperatingMode::ProfileVelocity, ec)) {
       return false;
@@ -285,6 +295,8 @@ public:
   /// \return True on success.
   bool read_encoder(Axis axis, int32_t &count, std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     count = axis_state(axis).drive.get_position_actual(ec);
     return !ec;
   }
@@ -295,6 +307,8 @@ public:
   /// \return True on success.
   bool read_speed(Axis axis, int32_t &qpps, std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     qpps = axis_state(axis).drive.get_velocity_actual(ec);
     return !ec;
   }
@@ -305,6 +319,8 @@ public:
   /// \return True on success.
   bool read_statusword(Axis axis, uint16_t &statusword, std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     statusword = axis_state(axis).drive.get_statusword(ec);
     return !ec;
   }
@@ -315,6 +331,8 @@ public:
   /// \return True on success.
   bool get_state(Axis axis, Ds402Drive::State &state, std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     state = axis_state(axis).drive.get_state(ec);
     return !ec;
   }
@@ -326,6 +344,8 @@ public:
   /// \return True on success.
   bool is_target_reached(Axis axis, bool &reached, std::error_code &ec) {
     ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
     reached = axis_state(axis).drive.is_target_reached(ec);
     return !ec;
   }
@@ -401,6 +421,17 @@ private:
                                            .log_level = cfg.log_level})
         , name(n) {}
   };
+
+  /// Reject an out-of-range axis selector. MotorAxis is a two-value enum, but a
+  /// value decoded from an untrusted byte could be neither M1 nor M2, and
+  /// axis_state()'s dispatch would otherwise silently select M2. Public axis
+  /// methods call this before any SDO I/O. Sets ec = invalid_argument on failure.
+  static bool check_axis(Axis axis, std::error_code &ec) {
+    if (axis == Axis::M1 || axis == Axis::M2)
+      return true;
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
 
   AxisState &axis_state(Axis axis) { return axis == Axis::M1 ? m1_ : m2_; }
 
