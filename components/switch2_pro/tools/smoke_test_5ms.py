@@ -6,8 +6,11 @@ the object that holds the min-interval floor, disassembles the relevant function
 with the target's GNU objdump, and reports the *actual instruction* that enforces
 the floor:
 
-    unpatched -> the 7.5 ms floor instruction (e.g. `bltui a4, 6`)  => 5 ms REJECTED
-    patched   -> the 5 ms floor instruction  (e.g. `bltui a4, 4`)   => 5 ms ACCEPTED
+    unpatched -> the 7.5 ms floor instruction (`addi a5, a4, -6`)  => 5 ms REJECTED
+    patched   -> the 5 ms floor instruction  (`addi a5, a4, -4`)   => 5 ms ACCEPTED
+
+Only the open RISC-V NimBLE controller (esp32c6/c61/c2/h2) is supported, matching
+patch_nimble_5ms.py (S3/C3 use ESP-IDF >= v6.1's official option, not a patch).
 
 This proves the patch does what it claims at the disassembly level, independent
 of the byte-pattern match the patcher uses. Exit code 0 = patched (5 ms capable),

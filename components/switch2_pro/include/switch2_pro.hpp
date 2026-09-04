@@ -72,10 +72,13 @@ public:
     /// ESP32-S3 BTDM controller's tx-servicing bug (see README "Known issues").
     bool continuous_streaming{true};
     /// Continuous-mode send divisor: send one report every Nth connection interval
-    /// (1 = every interval / 62 Hz, 2 = every other / 31 Hz, ...). Diagnostic knob
-    /// to separate a time-based stall (console deprioritisation — stalls at the
-    /// same wall-clock regardless of N) from a packet-count-based one (our-side
-    /// tx-credit accumulation — survives ~N× longer). Ignored in on-change mode.
+    /// (1 = every interval, 2 = every other, ...). The resulting rate depends on the
+    /// live interval the console chose: at the initial 15 ms, N=1 is ~62 Hz and N=2
+    /// ~31 Hz; once the console moves the link to 5 ms, N=1 is ~200 Hz and N=2
+    /// ~100 Hz. Diagnostic knob to separate a time-based stall (console
+    /// deprioritisation — stalls at the same wall-clock regardless of N) from a
+    /// packet-count-based one (our-side tx-credit accumulation — survives ~N×
+    /// longer). Ignored in on-change mode.
     uint32_t continuous_stream_divisor{1};
   };
 

@@ -40,13 +40,24 @@ streaming input reports. It is built on :cpp:class:`espp::BleGattServer`
 The 5 ms connection interval
 ----------------------------
 
-A real controller *reconnects* at a 5 ms connection interval, below the 7.5 ms
-Bluetooth spec minimum, chosen by the console in its ``CONNECT_IND``. Accepting
-it (required for reconnect and wake-from-sleep) needs the opt-in Kconfig option
-``SWITCH2_PRO_PATCH_NIMBLE_5MS``, which binary-patches the prebuilt BLE
-controller library in your global ``$IDF_PATH`` install. It is **off by
-default** (it mutates your ESP-IDF install); fresh pairing and first-session
-input work without it. See the component README and ``tools/patch_nimble_5ms.py``.
+The console drives the link at a 5 ms connection interval, below the 7.5 ms
+Bluetooth spec minimum. It reaches 5 ms in every mode: a bonded *reconnect* or
+*wake* connects at 5 ms from the ``CONNECT_IND``, and a *fresh* session is
+renegotiated down to 5 ms (``LL_CONNECTION_UPDATE``) about 1.5 s after the
+console subscribes to input. Only the initial pairing handshake (~15 ms, the
+first ~1.5 s) works without sub-spec support; **sustained input, reconnect, and
+wake all need it**. How to enable it depends on the chip:
+
+- **ESP32-S3 / C3:** use **ESP-IDF ≥ v6.1** (or the v6.0/v5.5/v5.4/v5.3
+  backports), where the official ``CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE``
+  (default on; espressif/esp-idf#18467) makes the BTDM controller accept the 5 ms
+  interval with **no binary patch**. This is the verified S3/C3 path.
+- **ESP32-C6 / C61 / C2 / H2:** the open NimBLE controller has no such option, so
+  enable the opt-in Kconfig option ``SWITCH2_PRO_PATCH_NIMBLE_5MS``, which
+  binary-patches the prebuilt controller library in your global ``$IDF_PATH``
+  install (off by default — it mutates your ESP-IDF install).
+
+See the component README and ``tools/patch_nimble_5ms.py``.
 
 .. ------------------------------- Example -------------------------------------
 

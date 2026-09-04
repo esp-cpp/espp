@@ -4,11 +4,13 @@ menu "Switch 2 Pro Controller"
         bool "Patch the BLE controller to allow the console's 5 ms connection interval"
         default n
         help
-            On RECONNECT and WAKE-FROM-SLEEP the console connects a recognised
-            (bonded) controller at a 5 ms connection interval, below the 7.5 ms
-            Bluetooth spec minimum, chosen in its CONNECT_IND. The controller
-            stack must accept that sub-spec interval or the connection never
-            forms.
+            The console drives the link at a 5 ms connection interval, below the
+            7.5 ms Bluetooth spec minimum. It reaches 5 ms in every mode: on
+            RECONNECT and WAKE-FROM-SLEEP it connects a recognised (bonded)
+            controller at 5 ms from its CONNECT_IND, and on a FRESH session it
+            renegotiates down to 5 ms (LL_CONNECTION_UPDATE) about 1.5 s after the
+            console subscribes to input. The controller stack must accept that
+            sub-spec interval or the connection/stream fails.
 
             ON ESP32-S3 / C3, PREFER THE OFFICIAL ESP-IDF OPTION INSTEAD of this
             patch: CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (default y) lets the
@@ -28,8 +30,10 @@ menu "Switch 2 Pro Controller"
             tools/patch_nimble_5ms.py --target <chip> --restore, and verify with
             tools/smoke_test_5ms.py --target <chip>.
 
-            Required for reconnect and wake-from-sleep. NOT required for fresh
-            pairing or first-session input streaming (those use the spec-legal
-            15 ms interval). Leave OFF unless you understand the consequences.
+            Required for SUSTAINED input (fresh or reconnected) as well as
+            reconnect and wake-from-sleep. Only the initial pairing handshake
+            (~15 ms, the first ~1.5 s) works without sub-spec support. Leave OFF
+            only if you accept that the console will drop the session once it
+            switches to 5 ms.
 
 endmenu

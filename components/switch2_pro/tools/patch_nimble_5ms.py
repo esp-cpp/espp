@@ -5,43 +5,31 @@ controllers.
 
 BLE's minimum connection interval is 7.5 ms (6 units of 1.25 ms). The console
 drives its controllers at 5 ms (4 units), so a stock controller rejects it. The
-7.5 ms floor is compiled into the closed controller library ESP-IDF ships, and
-differs by chip family:
+7.5 ms floor is compiled into the closed controller library ESP-IDF ships.
 
-  * RISC-V NimBLE controller (esp32c6/c61/c2/h2) — `libble_app.a`, object
-    `ble_ll_conn.c.o`. The floor is an `addi a5, a4, -6`; flip the immediate to
-    -4:  93 07 a7 ff  ->  93 07 c7 ff.
+This tool patches ONLY the open RISC-V NimBLE controller (esp32c6/c61/c2/h2):
+`libble_app.a`, object `ble_ll_conn.c.o`. The floor is an `addi a5, a4, -6`; flip
+the immediate to -4:  93 07 a7 ff  ->  93 07 c7 ff. That controller has no config
+option for a sub-spec interval, so the binary patch is the only route there.
 
-  * BTDM / RivieraWaves controller (esp32s3 Xtensa, esp32c3 RISC-V) —
-    `libbtdm_app.a` (and the `_flash` variant), object `llc_con_upd.o`, function
-    `r_llc_con_upd_param_in_range`. The floor is a compare of the requested
-    min-interval against 6:
-        S3 (Xtensa):  bltui a4, 6  (b6 64 01)  ->  bltui a4, 4  (b6 44 01)
-        C3 (RISC-V):  li a6,5;bgeu a6,a2 (15 48) -> li a6,3;bgeu a6,a2 (0d 48)
-    Both give a new floor of 4 units = 5 ms. This is the peripheral-side
-    validator the console's LL_CONNECTION_PARAM_REQ / _UPDATE_IND path runs
-    through (verified: its only caller is the RivieraWaves ip_funcs jump table,
-    and its siblings are ll_connection_param_req_handler /
-    ll_connection_update_ind_handler).
-
-NOTE (ESP32-S3 / C3): prefer the OFFICIAL ESP-IDF option instead of this patch.
-CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (default y) lets the S3/C3 BTDM
-controller and the BLE host accept sub-spec intervals with no binary patching;
-it is in ESP-IDF >= v6.0 (142aea3) / v5.5 (cf13345) / v5.4 (aefcf1c) / v5.3
-(9831261) — see espressif/esp-idf#18467. Only patch S3/C3 if your IDF predates
-that fix. The C6/C61/C2/H2 NimBLE controller has no such option yet, so the patch
-remains the route there.
+ESP32-S3 / C3 are NOT patched by this tool. Use ESP-IDF >= v6.1's official,
+default-on CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE instead (espressif/esp-idf
+#18467; also backported to v6.0/v5.5/v5.4/v5.3) — that is the verified S3/C3 path,
+needs no binary patching, and works on real hardware. A binary patch of the pre-fix
+BTDM library (libbtdm_app.a, r_llc_con_upd_param_in_range) was explored but never
+confirmed to enable 5 ms: patching that min-interval compare alone is reported
+insufficient on the pre-fix S3 controller (esp-idf#18467), matching our own
+testing where it had no effect, so it is not offered as a fallback. The
+reverse-engineering notes remain in git history.
 
 WARNING: this modifies files inside your global $IDF_PATH install, affecting
 every project that uses that IDF. A `.original` backup is written next to each
 patched archive; `--restore` puts them back.
 
 Approach adapted from the MIT-licensed zhantss/ESP32-BLE5-NSController-Emulator
-(RISC-V/NimBLE); the S3/C3 BTDM equivalent was reverse-engineered here from the
-same reject-below-6 semantics. The reverse-engineered requirement is documented
-in ndeadly/switch2_controller_research. This script ships no Espressif or
-Nintendo binaries — it only edits the archives already present in the user's
-local ESP-IDF.
+(RISC-V/NimBLE). The reverse-engineered requirement is documented in
+ndeadly/switch2_controller_research. This script ships no Espressif or Nintendo
+binaries — it only edits the archives already present in the user's local ESP-IDF.
 """
 
 import argparse
@@ -96,31 +84,15 @@ TARGETS = {
         "disasm_old": r"addi\s+a5,a4,-6",
         "disasm_new": r"addi\s+a5,a4,-4",
     },
-    # --- BTDM / RivieraWaves controller: libbtdm_app.a[+_flash], llc_con_upd.o ---
-    "esp32s3": {
-        "arch": "xtensa-esp32s3",
-        "archives": [
-            "components/bt/controller/lib_esp32c3_family/esp32s3/libbtdm_app.a",
-            "components/bt/controller/lib_esp32c3_family/esp32s3/libbtdm_app_flash.a",
-        ],
-        "object": "llc_con_upd.o",
-        "old": bytes([0xB6, 0x64, 0x01]),  # bltui a4,6  (reject min < 6 / 7.5 ms)
-        "new": bytes([0xB6, 0x44, 0x01]),  # bltui a4,4  (reject min < 4 / 5 ms)
-        "disasm_old": r"bltui\s+a4, ?6,",
-        "disasm_new": r"bltui\s+a4, ?4,",
-    },
-    "esp32c3": {
-        "arch": "riscv",
-        "archives": [
-            "components/bt/controller/lib_esp32c3_family/esp32c3/libbtdm_app.a",
-            "components/bt/controller/lib_esp32c3_family/esp32c3/libbtdm_app_flash.a",
-        ],
-        "object": "llc_con_upd.o",
-        "old": bytes([0x15, 0x48]),  # c.li a6,5; bgeu a6,a2 -> reject min <= 5 (floor 6)
-        "new": bytes([0x0D, 0x48]),  # c.li a6,3; bgeu a6,a2 -> reject min <= 3 (floor 4)
-        "disasm_old": r"li\s+a6,5",
-        "disasm_new": r"li\s+a6,3",
-    },
+    # NOTE: the ESP32-S3 / C3 (BTDM / RivieraWaves controller) are deliberately NOT
+    # patch targets. Use ESP-IDF >= v6.1's official, default-on
+    # CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE instead (espressif/esp-idf#18467) —
+    # that is the verified S3/C3 path. A binary patch of the pre-fix libbtdm_app.a was
+    # explored but never confirmed to enable 5 ms on hardware: patching the
+    # min-interval compare in r_llc_con_upd_param_in_range alone is reported
+    # insufficient on the pre-fix S3 controller (see esp-idf#18467), matching our own
+    # testing where it had no effect. The reverse-engineering notes live in git
+    # history if a validated S3/C3 patch is pursued later.
 }
 
 

@@ -7,9 +7,11 @@ sleep. Built on `espp::BleGattServer` (NimBLE).
 > **Status: fully working on the ESP32-C6 (recommended target).**
 > Verified against a real Switch 2 (ESP32-C6-DevKit): the console pairs with and
 > accepts the emulator as a Pro Controller (full battery, correct icon), input
-> streams **continuously and lag-free** (one report per 15 ms connection
-> interval, ~62 Hz — matching a real controller's cadence), buttons and sticks
-> register on the console's "Test Input Devices" screen, and **reconnect**
+> streams **continuously and lag-free** (one report per live connection interval,
+> matching a real controller — ~62 Hz during the initial 15 ms window, then ~200 Hz
+> once the console moves the link to 5 ms; see "The 5 ms connection interval"),
+> buttons and sticks register on the console's "Test Input Devices" screen, and
+> **reconnect**
 > (including the console reconnecting on its own after a reboot) and
 > **wake-from-sleep** both work without re-pairing. What's implemented:
 > advertising with Nintendo manufacturer data, the exact GATT handle layout,
@@ -87,12 +89,20 @@ the S3 accepts the console's 5 ms reconnect/wake out of the box.
 
 Requires an ESP-IDF with the fix (espressif/esp-idf#18467), backported to
 **v6.0 (≥ `142aea3`), v5.5 (≥ `cf13345`), v5.4 (≥ `aefcf1c`), v5.3
-(≥ `9831261`)**. On an older IDF the option does not exist — use the binary
-patch below.
+(≥ `9831261`)**, and confirmed on **v6.1**. On an older IDF the option does not
+exist — **update to a fixed IDF** (there is no verified binary-patch fallback for
+S3/C3; see the note below).
 
 > Verified on real hardware with **ESP-IDF v6.1**: with this option default-on,
-> the S3 accepts the console's 5 ms reconnect/wake and streams input lag-free with
-> no binary patch.
+> the S3 pairs, streams input lag-free, reconnects, and wakes the console with no
+> binary patch.
+>
+> **No S3/C3 binary-patch fallback.** A patch of the pre-fix BTDM controller
+> (`libbtdm_app.a`, `r_llc_con_upd_param_in_range`) was reverse-engineered but never
+> confirmed to enable 5 ms on hardware — patching that min-interval compare alone is
+> reported insufficient on the pre-fix S3 (esp-idf#18467), matching our own testing
+> where it had no effect. So `SWITCH2_PRO_PATCH_NIMBLE_5MS` covers only the
+> C6-family chips below; on S3/C3 use the official option above (update your IDF).
 
 ### ESP32-C6 / C61 / C2 / H2 — binary patch
 
@@ -100,16 +110,14 @@ The open NimBLE controller (`libble_app.a`) has no equivalent config option yet
 (Espressif support is planned), so these chips use the opt-in Kconfig option
 **`SWITCH2_PRO_PATCH_NIMBLE_5MS`** (off by default — it mutates the prebuilt
 controller lib in your global `$IDF_PATH`, which is too invasive to do silently).
-It also serves as a fallback for S3/C3 on an IDF that predates the official
-option. When enabled, the build runs `tools/patch_nimble_5ms.py`, which
-binary-patches the minimum-interval floor from 6 units (7.5 ms) to 4 (5 ms):
+When enabled, the build runs `tools/patch_nimble_5ms.py`, which binary-patches the
+minimum-interval floor from 6 units (7.5 ms) to 4 (5 ms):
 
 - **ESP32-C6 / C61 / C2 / H2** (RISC-V, open NimBLE controller): `libble_app.a`,
   `addi a5,a4,-6` → `-4`.
-- **ESP32-S3 / C3** (BTDM / RivieraWaves controller, *older IDF only* —
-  prefer the config option above): `libbtdm_app.a` (+ the `_flash` variant),
-  `r_llc_con_upd_param_in_range` — S3 `bltui a4,6` → `bltui a4,4`, C3
-  `li a6,5` → `li a6,3`.
+
+(The patcher only supports these targets; it refuses S3/C3 — use the official
+option above there.)
 
 This modifies your ESP-IDF installation; undo with `python
 tools/patch_nimble_5ms.py --target <chip> --restore`, and check the current state

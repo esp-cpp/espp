@@ -42,42 +42,29 @@ init (logged pass/fail) — verifiable on-device with no console.
 The console drives the link at a **5 ms** connection interval — below the 7.5 ms BLE
 spec minimum. The controller stack must accept it or reconnect/wake won't form.
 
-**ESP32-S3 / C3 now have an official fix.** ESP-IDF added
+Two routes by chip family:
+
+**ESP32-S3 / C3 — official ESP-IDF option (the verified path).** ESP-IDF added
 `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE` (default `y`), which lets the BTDM
 controller and the BLE host accept sub-spec intervals (down to 3.75 ms) with no
 binary patching — in ESP-IDF ≥ v6.0 (`142aea3`) / v5.5 (`cf13345`) / v5.4
-(`aefcf1c`) / v5.3 (`9831261`); see espressif/esp-idf#18467. **Prefer that option
-on S3/C3.** The binary patch below is the route for the **C6/C61/C2/H2** open
-NimBLE controller (no official option yet) and a fallback for S3/C3 on older IDF.
+(`aefcf1c`) / v5.3 (`9831261`), and confirmed on **v6.1**; see
+espressif/esp-idf#18467. The S3 is verified end-to-end on real hardware this way,
+and v6.1's updated controller lib also fixes the sustained-tx stall seen on v6.0.1.
+There is **no binary-patch fallback for S3/C3**: a patch of the pre-fix BTDM
+library (`libbtdm_app.a`, `r_llc_con_upd_param_in_range` — the peripheral-side
+connection-parameter validator) was reverse-engineered but never confirmed to
+enable 5 ms on hardware (patching that min-interval compare alone is reported
+insufficient on the pre-fix S3, esp-idf#18467, matching our own testing where it
+had no effect), so it is not shipped. Those RE notes live in git history.
 
-Both chip families keep the 7.5 ms floor as a hard compare inside a closed controller
-library, and both are patchable with a single-instruction edit that lowers the floor
-to 4 units (5 ms). `tools/patch_nimble_5ms.py` picks the right archive, object and byte
-pattern per `--target`; `tools/smoke_test_5ms.py` proves the edit at the disassembly
-level with no hardware.
-
-- **C6 / C61 / C2 / H2** (RISC-V, open NimBLE controller): patch
-  `$IDF_PATH/.../libble_app.a`, object `ble_ll_conn.c.o`. The floor is
-  `addi a5, a4, -6`; flip the immediate to `-4` (`93 07 a7 ff` → `93 07 c7 ff`).
-  Adapted from zhantss (MIT).
-- **S3 / C3** (BTDM / RivieraWaves controller, `lib_esp32c3_family/*/libbtdm_app.a`
-  and the `libbtdm_app_flash.a` variant): patch object `llc_con_upd.o`, function
-  `r_llc_con_upd_param_in_range` — the peripheral-side connection-parameter validator
-  the console's `LL_CONNECTION_PARAM_REQ` / `LL_CONNECTION_UPDATE_IND` path runs
-  through (confirmed: its only caller is the RivieraWaves `ip_funcs` jump table; its
-  siblings are `ll_connection_param_req_handler` / `ll_connection_update_ind_handler`).
-  The floor is a compare of the requested min-interval against 6:
-    - **S3** (Xtensa): `bltui a4, 6` → `bltui a4, 4` (`b6 64 01` → `b6 44 01`).
-    - **C3** (RISC-V): `li a6,5; bgeu a6,a2` → `li a6,3` (`15 48` → `0d 48`).
-
-  Both reverse-engineered here from the same reject-below-6 semantics as the C6 patch;
-  each is the single unique occurrence in its object (asserted by the patcher). The
-  latency bound sitting right beside the floor (`499` = `0x1f3`, the BLE max latency)
-  confirms the surrounding code is the connection-parameter range check. This S3/C3
-  binary patch is now only needed on **pre-v6.1 IDF** (the `libbtdm_app.a` shipped
-  with IDF 6.0.1 predates `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE`); on
-  ESP-IDF ≥ v6.1 the official option supersedes it (and v6.1's updated controller
-  lib also fixes the sustained-tx stall — S3 verified end-to-end on real hardware).
+**ESP32-C6 / C61 / C2 / H2 — binary patch.** The open RISC-V NimBLE controller has
+no equivalent config option, so `tools/patch_nimble_5ms.py` lowers its 7.5 ms floor
+with a single-instruction edit: patch `$IDF_PATH/.../libble_app.a`, object
+`ble_ll_conn.c.o` — the floor is `addi a5, a4, -6`; flip the immediate to `-4`
+(`93 07 a7 ff` → `93 07 c7 ff`). Adapted from zhantss (MIT). It is the single
+unique occurrence in its object (asserted by the patcher); `tools/smoke_test_5ms.py`
+proves the edit at the disassembly level with no hardware.
 
 **Build integration (decision: opt-in, never silent).** The patch mutates the user's
 global IDF install and is version-fragile (the byte pattern is not guaranteed across
@@ -145,7 +132,7 @@ supported target.
       include/switch2_pro_report.hpp     Pro Controller 2 input report (0x09) packed struct
       src/switch2_pro.cpp                GATT setup, advertising, GAP, command dispatch
       src/switch2_pro_pairing.cpp        pairing crypto (mbedTLS) + state machine + self-test
-      tools/patch_nimble_5ms.py          opt-in 5 ms interval patcher (C6/C61/C2/H2 NimBLE + S3/C3 BTDM)
+      tools/patch_nimble_5ms.py          opt-in 5 ms interval patcher (C6/C61/C2/H2 NimBLE; S3/C3 use the official IDF option)
       tools/smoke_test_5ms.py            hardware-free verifier (disassembles the controller floor)
       Kconfig                            SWITCH2_PRO_PATCH_NIMBLE_5MS opt-in
       example/                           C6-primary, S3-buildable

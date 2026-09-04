@@ -263,13 +263,17 @@ void Switch2Pro::configure_callbacks() {
     // we had wedged, and how stale the last completion was. A disconnect ~1 SVN
     // timeout after the wedge with a large since_last_tx = over-air exchange
     // stopped at the wedge; staying up long after = the link outlived our tx stall.
-    if (stream_start_us_ != 0) {
+    // Snapshot stream_start_us_ ONCE: the streaming thread can reset it to 0
+    // between a condition check and a later read (unsubscribe often precedes
+    // disconnect), which would otherwise yield an uptime-sized "streamed" value.
+    const int64_t started = stream_start_us_.load();
+    if (started != 0) {
       const int64_t now = esp_timer_get_time();
       logger_.warn("  @disconnect: streamed {:.1f}s, {} completions, {} enomem, wedged={}, "
                    "since_last_tx={:.0f}ms | {}",
-                   (now - stream_start_us_.load()) / 1e6f, tx_completions_.load(),
-                   enomem_count_.load(), wedge_reported_.load(),
-                   (now - last_tx_complete_us_.load()) / 1000.0f, pool_stats());
+                   (now - started) / 1e6f, tx_completions_.load(), enomem_count_.load(),
+                   wedge_reported_.load(), (now - last_tx_complete_us_.load()) / 1000.0f,
+                   pool_stats());
     }
     // NOTE: paired_ is intentionally NOT cleared here. is_paired() reports whether
     // the pairing handshake has completed / a bond exists — which survives a

@@ -24,10 +24,12 @@ Default target is **esp32c6**:
 idf.py build flash monitor
 ```
 
-Reconnect and wake-from-sleep require the console's sub-spec 5 ms connection
-interval, which needs the opt-in controller patch (off by default because it
-modifies your global `$IDF_PATH` install). Fresh pairing and input streaming
-work **without** it. To enable it:
+The console drives the link at a sub-spec 5 ms connection interval for
+**sustained input** (it drops even the fresh session to 5 ms ~1.5 s after
+subscribing) as well as reconnect and wake-from-sleep — only the initial pairing
+handshake (~15 ms, the first ~1.5 s) works without it. On the C6-family chips
+that needs the opt-in controller patch (off by default because it modifies your
+global `$IDF_PATH` install). To enable it:
 
 ```bash
 idf.py menuconfig   # Component config -> Switch 2 Pro -> enable the 5 ms NimBLE patch
