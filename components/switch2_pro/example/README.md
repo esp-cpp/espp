@@ -9,10 +9,13 @@ bonded but disconnected — a BOOT press broadcasts the wake advertisement to wa
 the console.
 
 > **Supported target: ESP32-C6** (default). Pairing, input, reconnect, and
-> wake-from-sleep all work against a real console. The **ESP32-S3 builds and
-> pairs but does not yet stream input reliably** (see the component README's
-> "Known issues"). RISC-V siblings (C61/C2/H2) use the same open NimBLE
-> controller as the C6.
+> wake-from-sleep all work against a real console. RISC-V siblings (C61/C2/H2)
+> use the same open NimBLE controller as the C6.
+>
+> **ESP32-S3** also builds and pairs. Its 5 ms reconnect/wake support is now
+> official in ESP-IDF via `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE`
+> (default on; needs a recent IDF — see the component README); full on-hardware
+> S3 verification is still pending on our side.
 
 ## Build, flash, monitor
 

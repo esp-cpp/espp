@@ -24,6 +24,14 @@ differs by chip family:
     and its siblings are ll_connection_param_req_handler /
     ll_connection_update_ind_handler).
 
+NOTE (ESP32-S3 / C3): prefer the OFFICIAL ESP-IDF option instead of this patch.
+CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (default y) lets the S3/C3 BTDM
+controller and the BLE host accept sub-spec intervals with no binary patching;
+it is in ESP-IDF >= v6.0 (142aea3) / v5.5 (cf13345) / v5.4 (aefcf1c) / v5.3
+(9831261) — see espressif/esp-idf#18467. Only patch S3/C3 if your IDF predates
+that fix. The C6/C61/C2/H2 NimBLE controller has no such option yet, so the patch
+remains the route there.
+
 WARNING: this modifies files inside your global $IDF_PATH install, affecting
 every project that uses that IDF. A `.original` backup is written next to each
 patched archive; `--restore` puts them back.

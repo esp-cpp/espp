@@ -40,7 +40,15 @@ init (logged pass/fail) — verifiable on-device with no console.
 ## The 5 ms connection-interval problem
 
 The console drives the link at a **5 ms** connection interval — below the 7.5 ms BLE
-spec minimum. The controller stack must accept it or the console won't stream input.
+spec minimum. The controller stack must accept it or reconnect/wake won't form.
+
+**ESP32-S3 / C3 now have an official fix.** ESP-IDF added
+`CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE` (default `y`), which lets the BTDM
+controller and the BLE host accept sub-spec intervals (down to 3.75 ms) with no
+binary patching — in ESP-IDF ≥ v6.0 (`142aea3`) / v5.5 (`cf13345`) / v5.4
+(`aefcf1c`) / v5.3 (`9831261`); see espressif/esp-idf#18467. **Prefer that option
+on S3/C3.** The binary patch below is the route for the **C6/C61/C2/H2** open
+NimBLE controller (no official option yet) and a fallback for S3/C3 on older IDF.
 
 Both chip families keep the 7.5 ms floor as a hard compare inside a closed controller
 library, and both are patchable with a single-instruction edit that lowers the floor

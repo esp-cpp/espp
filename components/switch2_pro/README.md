@@ -18,11 +18,15 @@ sleep. Built on `espp::BleGattServer` (NimBLE).
 > persistence (NVS), and continuous input-report streaming with real
 > backpressure.
 >
-> **ESP32-S3: pairs, but input only works in short bursts.** The S3's *closed*
-> BTDM BLE controller stops servicing notification tx ~3 s into any sustained
-> encrypted stream (rate-independent; host and buffers healthy) and the link
-> then supervision-times-out — see "Known issues" below. Use a chip from the
-> open-NimBLE-controller family (C6/C61/C2/H2) instead.
+> **ESP32-S3: 5 ms support is now official; full on-HW verification pending.**
+> The S3's sub-spec-interval rejection (which blocked reconnect/wake) is fixed by
+> ESP-IDF's `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE` (default on;
+> espressif/esp-idf#18467), backported to v6.0/v5.5/v5.4/v5.3 — so on a current
+> IDF the S3 needs no binary patch. Our earlier finding that the *closed BTDM
+> controller stalls sustained tx ~3 s into a stream* was on the pre-fix controller
+> lib; re-verifying streaming/reconnect on the S3 with the updated lib is the
+> remaining work (our on-HW testing to date was on the C6). See "The 5 ms
+> connection interval" and "Known issues".
 
 Unlike the original Switch (Bluetooth Classic HID), the Switch 2 uses a
 **proprietary BLE GATT interface — not HID-over-GATT — and a custom pairing
@@ -51,21 +55,51 @@ whether it recognises the controller**:
   cannot accept that connection, so reconnect/wake silently fail: the console
   wakes on our advertisement, attempts the 5 ms connection, and gives up.
 
-So the controller patch is **required for reconnect and wake-from-sleep** — but
-it is **off by default**, because enabling it mutates the prebuilt controller
-library in your global `$IDF_PATH`, which is too invasive to do silently. Fresh
-pairing and first-session input work without it; enable it (uncomment
-`CONFIG_SWITCH2_PRO_PATCH_NIMBLE_5MS` in the example's `sdkconfig.defaults`, or
-run the tool directly) to get reconnect/wake. The Kconfig option
-**`SWITCH2_PRO_PATCH_NIMBLE_5MS`** makes the component build run
-`tools/patch_nimble_5ms.py`, which **binary-patches the prebuilt controller
-library** to lower the minimum-interval floor from 6 units (7.5 ms) to 4 (5 ms):
+Reconnect and wake-from-sleep therefore require the controller (and the BLE
+host) to accept that sub-spec interval. Fresh pairing and first-session input
+work without any of this. There are two ways to enable it, by chip:
+
+### ESP32-S3 / C3 — official ESP-IDF option (recommended)
+
+ESP-IDF now ships an **official** controller option that lets the S3/C3 BTDM
+controller — and the BLE host — accept connection intervals below the 7.5 ms
+spec minimum (down to 3.75 ms, which covers the console's 5 ms), no binary
+patching required:
+
+```
+CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE=y   # default y
+```
+
+It `select`s `BT_BLE_HOST_ALLOW_SUB_SPEC_MIN_CONN_INT`, so the NimBLE host
+accepts the sub-spec interval too. It is **on by default**, so on a recent IDF
+the S3 accepts the console's 5 ms reconnect/wake out of the box.
+
+Requires an ESP-IDF with the fix (espressif/esp-idf#18467), backported to
+**v6.0 (≥ `142aea3`), v5.5 (≥ `cf13345`), v5.4 (≥ `aefcf1c`), v5.3
+(≥ `9831261`)**. On an older IDF the option does not exist — use the binary
+patch below.
+
+> On-hardware S3 verification with this option is still pending on our side (our
+> on-HW testing to date was on the C6). Because the option is default-on and
+> handles both the controller and the host, a current IDF should give the S3 5 ms
+> reconnect/wake without any patch.
+
+### ESP32-C6 / C61 / C2 / H2 — binary patch
+
+The open NimBLE controller (`libble_app.a`) has no equivalent config option yet
+(Espressif support is planned), so these chips use the opt-in Kconfig option
+**`SWITCH2_PRO_PATCH_NIMBLE_5MS`** (off by default — it mutates the prebuilt
+controller lib in your global `$IDF_PATH`, which is too invasive to do silently).
+It also serves as a fallback for S3/C3 on an IDF that predates the official
+option. When enabled, the build runs `tools/patch_nimble_5ms.py`, which
+binary-patches the minimum-interval floor from 6 units (7.5 ms) to 4 (5 ms):
 
 - **ESP32-C6 / C61 / C2 / H2** (RISC-V, open NimBLE controller): `libble_app.a`,
   `addi a5,a4,-6` → `-4`.
-- **ESP32-S3 / C3** (BTDM / RivieraWaves controller): `libbtdm_app.a` (+ the
-  `_flash` variant), `r_llc_con_upd_param_in_range` — S3 `bltui a4,6` → `bltui
-  a4,4`, C3 `li a6,5` → `li a6,3`.
+- **ESP32-S3 / C3** (BTDM / RivieraWaves controller, *older IDF only* —
+  prefer the config option above): `libbtdm_app.a` (+ the `_flash` variant),
+  `r_llc_con_upd_param_in_range` — S3 `bltui a4,6` → `bltui a4,4`, C3
+  `li a6,5` → `li a6,3`.
 
 This modifies your ESP-IDF installation; undo with `python
 tools/patch_nimble_5ms.py --target <chip> --restore`, and check the current state
@@ -74,8 +108,16 @@ disassembles the controller and reports whether 5 ms is accepted or rejected.
 
 ## Stability notes & known issues
 
-**ESP32-S3: the closed BTDM BLE controller stalls sustained notification tx.**
-The one unresolved issue, isolated by elimination on real hardware: ~3 s into
+**ESP32-S3: the closed BTDM BLE controller stalled sustained notification tx (pre-fix).**
+
+> **Update:** the analysis below was done on ESP-IDF **v6.0.1**, whose S3
+> controller lib predates the official sub-spec-interval fix
+> (`CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE`, espressif/esp-idf#18467). That
+> fix ships an updated controller lib, which may also affect the tx-servicing
+> behaviour described here. Re-verifying on a fixed IDF is pending; treat this
+> section as the pre-fix state.
+
+The issue isolated by elimination on real hardware: ~3 s into
 any sustained encrypted notification stream, the S3's controller stops
 servicing tx — completions become sporadic (hundreds of ms apart), input dies,
 and the link eventually supervision-times-out. Everything host-side is

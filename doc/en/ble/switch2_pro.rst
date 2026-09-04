@@ -12,10 +12,12 @@ streaming input reports. It is built on :cpp:class:`espp::BleGattServer`
 
    **Supported target: ESP32-C6** (and the other open-NimBLE-controller chips:
    C61/C2/H2), where pairing, input streaming, reconnect, and wake-from-sleep
-   all work against a real console. The **ESP32-S3 builds and pairs but does not
-   yet stream input reliably** — its closed BTDM BLE controller degrades the
-   link under sustained encrypted notifications. See the component README's
-   "Known issues" for details; S3/C3 support is a work in progress.
+   all work against a real console. The **ESP32-S3** also builds and pairs; its
+   5 ms reconnect/wake support is now official in ESP-IDF via
+   ``CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE`` (default on, recent IDF
+   required — see the README), but full on-hardware S3 verification is still
+   pending. See the component README's "The 5 ms connection interval" and
+   "Known issues".
 
 .. note::
 
