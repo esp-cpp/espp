@@ -138,14 +138,20 @@ public:
     out.push_back(0); // reserved flags
     append_string(out, device_name_);
     append_string(out, device_firmware_);
-    uint8_t count = 0;
-    for (const Entry &e : handlers_)
-      if (e.id != kDiscoveryModule && !e.info.name.empty())
-        ++count;
+    // A module is advertised if it carries a name and is not the discovery module.
+    const auto advertised = [](const Entry &e) {
+      return e.id != kDiscoveryModule && !e.info.name.empty();
+    };
+    // module_count is a single wire byte, so cap the count (and the number of
+    // records emitted below) at 255 rather than overflowing it.
+    const auto total = std::count_if(handlers_.begin(), handlers_.end(), advertised);
+    const uint8_t count = static_cast<uint8_t>(std::min<std::ptrdiff_t>(total, 255));
     out.push_back(count);
+    uint8_t emitted = 0;
     for (const Entry &e : handlers_) {
-      if (e.id == kDiscoveryModule || e.info.name.empty())
+      if (emitted == count || !advertised(e))
         continue;
+      ++emitted;
       out.push_back(e.id);
       append_string(out, e.info.name);
       append_string(out, e.info.app);

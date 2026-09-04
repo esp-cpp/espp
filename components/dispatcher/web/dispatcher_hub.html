@@ -119,12 +119,14 @@
     function crc32(bytes) { let c=0xFFFFFFFF; for (let i=0;i<bytes.length;i++) c=CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8); return (~c)>>>0; }
     if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) throw new Error("CRC-32 self-test failed");
 
+    // The hub only ever SENDS requests, so the reply bit stays clear. (A reply is
+    // marked by stream_frame flags bit0, which is unrelated to the type value.)
     function buildFrame(module, type, payload) {
       payload = payload || new Uint8Array(0);
       const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
       const view = new DataView(frame.buffer);
       view.setUint16(0, 0x4F54, true);
-      frame[2] = FLAGS_REQUEST | ((type & 0x80) ? FLAGS_REPLY_BIT : 0);
+      frame[2] = FLAGS_REQUEST;
       frame[3] = module; frame[4] = type;
       view.setUint32(5, payload.length, true);
       view.setUint32(HEADER_SIZE + payload.length, crc32(frame.subarray(0, HEADER_SIZE + payload.length)), true);
@@ -165,14 +167,23 @@
     // ---- decode the describe() TLV payload (see espp::Dispatcher::describe) ----
     function parseDiscovery(payload) {
       let i = 0;
-      const u8 = () => payload[i++];
-      const str = () => { const n = u8(); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
+      const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
+      const u8 = () => { need(1); return payload[i++]; };
+      const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
       const version = u8(); u8(); // version, reserved
       const device = str(), fw = str();
       const count = u8();
       const modules = [];
       for (let m = 0; m < count; m++) modules.push({ id: u8(), name: str(), app: str(), desc: str() });
+      if (i !== payload.length) throw new Error("trailing bytes in discovery payload");
       return { version, device, fw, modules };
+    }
+    // Treat a module's `app` as an internal, same-directory page only: a safe
+    // filename ending in .html, no scheme/colon, no slash, no "..". This stops a
+    // malicious/compromised device from making the hub open javascript:/data:/
+    // external URLs via the advertised app field.
+    function safeAppName(app) {
+      return typeof app === "string" && /^[A-Za-z0-9._-]+\.html$/.test(app) && !app.includes("..");
     }
 
     // ===================== Transports (WebUSB + Web Serial) =====================
@@ -260,7 +271,7 @@
         const b = document.createElement("button");
         b.className = "tab" + (idx === selected ? " active" : "");
         const name = document.createElement("div"); name.textContent = m.name || ("module " + m.id);
-        const id = document.createElement("div"); id.className = "id"; id.textContent = "module " + m.id + (m.app ? "" : " · no app");
+        const id = document.createElement("div"); id.className = "id"; id.textContent = "module " + m.id + (safeAppName(m.app) ? "" : " · no app");
         b.appendChild(name); b.appendChild(id);
         b.addEventListener("click", () => { selected = idx; renderTabs(); renderDetail(); });
         els.tabs.appendChild(b);
@@ -276,15 +287,17 @@
       const sub = document.createElement("div"); sub.className = "sub"; sub.textContent = "module id " + m.id;
       const p = document.createElement("p"); p.className = "desc"; p.textContent = m.desc || "";
       d.appendChild(h); d.appendChild(sub); if (m.desc) d.appendChild(p);
-      if (m.app) {
-        const a = document.createElement("a"); a.className = "open"; a.href = m.app; a.target = "_blank"; a.rel = "noopener";
+      if (safeAppName(m.app)) {
+        const a = document.createElement("a"); a.className = "open"; a.href = m.app; a.target = "_blank"; a.rel = "noopener noreferrer";
         a.textContent = "Open " + m.app + " ↗";
         d.appendChild(a);
         const note = document.createElement("div"); note.className = "muted"; note.style.marginTop = "12px";
         note.textContent = "Opens the module's own web app in a new tab (it connects to the device itself).";
         d.appendChild(note);
       } else {
-        const n = document.createElement("div"); n.className = "noapp"; n.textContent = "This module advertises no web app.";
+        const n = document.createElement("div"); n.className = "noapp";
+        n.textContent = m.app ? ("advertises an app (" + m.app + ") that is not a valid internal page — not linked")
+                              : "This module advertises no web app.";
         d.appendChild(n);
       }
     }
