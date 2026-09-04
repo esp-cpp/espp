@@ -187,6 +187,13 @@ NimBLE mbuf/ACL pools. Also keep HCI commands (e.g. `ble_gap_read_le_phy`) out
 of any per-interval loop — at 62 Hz they flood the HCI path and stall the
 host's data tx.
 
+**Set `CONFIG_FREERTOS_HZ=1000` (required for accurate stream cadence).** The
+streaming task paces itself with sub-15 ms sleeps (down to ~5 ms once the console
+moves the link there), and `std::this_thread::sleep_for` is quantised to the
+FreeRTOS tick. At the 100 Hz default a 5 ms sleep rounds to ~10 ms and 15 ms to
+~20 ms, desyncing from the connection interval. The example sets this; a consuming
+project must set it too (the component logs a warning at init if it is lower).
+
 **What the captures established** (ndeadly's `nrf52840` captures, decrypted,
 via `tshark`): a real controller's fresh pairing's `CONNECT_IND` is **15 ms**
 and its reconnect **and wake** connect at **5 ms**. Active-use motion captures

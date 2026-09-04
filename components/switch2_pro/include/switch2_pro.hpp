@@ -145,7 +145,8 @@ protected:
   void configure_callbacks();
   /// `host_addr_le` is the paired console's BD_ADDR in wire (little-endian) order,
   /// embedded verbatim for Reconnect/Wake; ignored for Discovery.
-  void start_advertising(AdvMode mode, const std::array<uint8_t, 6> &host_addr_le = {});
+  /// @return true if advertising actually started.
+  bool start_advertising(AdvMode mode, const std::array<uint8_t, 6> &host_addr_le = {});
   /// Advertise in the mode appropriate to the current state: Wake (with the stored
   /// console address) if bonded and wake-on-boot is enabled, else Reconnect if
   /// bonded, else Discovery.

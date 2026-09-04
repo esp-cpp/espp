@@ -132,8 +132,15 @@ bool Switch2Pro::init() {
     // two most-significant bits of the MSB set.
     std::array<uint8_t, 6> rnd = {mac[5], mac[4], mac[3], mac[2], mac[1], mac[0]};
     rnd[5] |= 0xC0;
-    NimBLEDevice::setOwnAddr(rnd.data());
-    NimBLEDevice::setOwnAddrType(BLE_OWN_ADDR_RANDOM);
+    // Fail loudly if the stable address can't be installed: proceeding with an
+    // unknown/unstable address would make the 0x15 exchange advertise an address
+    // that doesn't match the persisted identity, silently breaking reconnect/wake.
+    if (!NimBLEDevice::setOwnAddr(rnd.data()) ||
+        !NimBLEDevice::setOwnAddrType(BLE_OWN_ADDR_RANDOM)) {
+      logger_.error("BLE address: failed to install a stable static-random address; aborting "
+                    "init (an unstable/mismatched address breaks pairing and reconnect/wake)");
+      return false;
+    }
     logger_.warn("BLE address: PUBLIC unavailable; using STABLE static-random {:02x}:{:02x}:{:02x}:"
                  "{:02x}:{:02x}:{:02x}",
                  rnd[5], rnd[4], rnd[3], rnd[2], rnd[1], rnd[0]);
@@ -169,6 +176,19 @@ bool Switch2Pro::init() {
   }
   advertise();
   logger_.info("Switch2Pro advertising as '{}'", device_name_);
+
+  // The input stream paces itself with sub-15 ms sleeps (down to ~5 ms once the
+  // console moves the link there). std::this_thread::sleep_for is tick-quantised,
+  // so a low FreeRTOS tick rate coarsens the cadence: at the 100 Hz default a 5 ms
+  // sleep rounds to ~10 ms and 15 ms to ~20 ms, desyncing from the connection
+  // interval. The example sets CONFIG_FREERTOS_HZ=1000; warn a consumer whose build
+  // did not.
+#if CONFIG_FREERTOS_HZ < 1000
+  logger_.warn("CONFIG_FREERTOS_HZ is {} (< 1000): input-stream pacing is tick-quantised, so the "
+               "per-connection-interval cadence (especially the console's 5 ms) will be coarse. "
+               "Set CONFIG_FREERTOS_HZ=1000 for an accurate stream rate.",
+               static_cast<int>(CONFIG_FREERTOS_HZ));
+#endif
 
   // Start the driver-owned input-streaming task. It notifies the latest report
   // once per connection interval while the console is subscribed. Give it a
@@ -248,13 +268,17 @@ void Switch2Pro::configure_callbacks() {
                  info.getAddress().toString(), info.getConnInterval() * 1.25f,
                  info.getConnTimeout() * 10, info.getConnLatency());
     // NOTE: we deliberately do NOT initiate a connection-parameter update here.
-    // It cannot lower us below 7.5 ms anyway (NimBLE floors ble_gap_update_params
-    // at the spec minimum), the console keeps 15 ms regardless, and the real 5 ms
-    // arrives in the console's CONNECT_IND on reconnect (needs the controller
-    // patch), not via an update. On the ESP32-S3 BTDM controller, kicking off an
-    // update procedure right after connect correlated with a degraded/limping tx
-    // link, so it is removed. See request_fast_interval() history in git if you
-    // want to re-test it.
+    // NimBLE floors ble_gap_update_params at the 7.5 ms spec minimum, so we could
+    // not request the console's 5 ms even if we wanted to — and we don't need to:
+    // the console drives the interval itself. It connects at 15 ms, then on a FRESH
+    // session sends its own LL_CONNECTION_UPDATE down to 5 ms ~1.5 s after
+    // subscribing (verified on hardware), and on a bonded reconnect/wake it uses
+    // 5 ms straight from the CONNECT_IND. Accepting those sub-spec intervals is a
+    // controller-side capability (the official CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_
+    // ENABLE on S3/C3, or the NimBLE patch on C6-family), not something the host
+    // initiates. Kicking off our own update procedure right after connect also
+    // correlated with a degraded/limping tx link, so it is removed. See
+    // request_fast_interval() history in git if you want to re-test it.
   };
   callbacks.disconnect_callback = [this](NimBLEConnInfo &info, BleGattServer::DisconnectReason r) {
     logger_.warn("disconnected: peer={} reason={} (paired={})", info.getAddress().toString(), r,
@@ -295,8 +319,12 @@ void Switch2Pro::configure_callbacks() {
                  info.getConnInterval() * 1.25f, info.getConnLatency(), info.getConnTimeout() * 10);
   };
   callbacks.authentication_complete_callback = [this](const NimBLEConnInfo &info) {
-    // If this fires, the console ran BLE SMP (which the research says it should
-    // NOT do). Encrypted={}, bonded={} tells us what security state it reached.
+    // Fires when the link's security state settles. This is EXPECTED in the normal
+    // (non-SMP) flow: after the 0x15 handshake we inject the LTK and the console
+    // starts standard LL encryption, which surfaces here with encrypted=true and no
+    // SMP exchange (see the fresh-pair log). encrypted/bonded/authenticated report
+    // the state reached — an encrypted=false here would mean the LTK was not
+    // accepted.
     logger_.info("AUTH complete: encrypted={} bonded={} authenticated={}", info.isEncrypted(),
                  info.isBonded(), info.isAuthenticated());
   };
@@ -432,7 +460,7 @@ void Switch2Pro::log_handle_map() {
   logger_.info("  resp2         = 0x{:04x} (0x001e)", command_response2_->getHandle());
 }
 
-void Switch2Pro::start_advertising(AdvMode mode, const std::array<uint8_t, 6> &host_addr_le) {
+bool Switch2Pro::start_advertising(AdvMode mode, const std::array<uint8_t, 6> &host_addr_le) {
   auto mfr = MANUFACTURER_DATA_DISCOVERY;
   if (mode != AdvMode::Discovery) {
     if (mode == AdvMode::Wake)
@@ -468,12 +496,16 @@ void Switch2Pro::start_advertising(AdvMode mode, const std::array<uint8_t, 6> &h
   BleGattServer::AdvertisingParameters params{};
   params.connectable = true;
   params.scan_response = true;
-  ble_gatt_server_.start_advertising(params);
-  logger_.info("advertising ({}): flags+mfr({} B) in adv, name in scan response",
-               mode == AdvMode::Discovery   ? "discovery"
-               : mode == AdvMode::Reconnect ? "reconnect"
-                                            : "wake",
+  const char *mode_name = mode == AdvMode::Discovery   ? "discovery"
+                          : mode == AdvMode::Reconnect ? "reconnect"
+                                                       : "wake";
+  if (!ble_gatt_server_.start_advertising(params)) {
+    logger_.error("failed to start advertising ({})", mode_name);
+    return false;
+  }
+  logger_.info("advertising ({}): flags+mfr({} B) in adv, name in scan response", mode_name,
                mfr.size());
+  return true;
 }
 
 void Switch2Pro::advertise() {
@@ -509,7 +541,11 @@ bool Switch2Pro::wake_console() {
   logger_.info("wake: broadcasting wake advertisement (user-requested)");
   wake_pending_ = true; // keep the wake variant on the air (across any transient
                         // connect/drop while the console boots) until connected
-  start_advertising(AdvMode::Wake, host_addr_);
+  if (!start_advertising(AdvMode::Wake, host_addr_)) {
+    wake_pending_ = false; // nothing is on the air — don't leave the latch set
+    logger_.error("wake: failed to start the wake advertisement");
+    return false;
+  }
   return true;
 }
 
@@ -766,6 +802,7 @@ void Switch2Pro::input_stream_loop() {
       // the on_subscribe callback, so these stay single-writer.
       report_counter_ = 0; // fresh byte-0 sequence for the console to track
       motion_idx_ = 0;
+      interval_tick_ = 0; // so the first tick of a new run always sends (divisor phase)
       enomem_count_ = 0;
       backpressure_skips_ = 0;
       notify_in_flight_.store(0);
