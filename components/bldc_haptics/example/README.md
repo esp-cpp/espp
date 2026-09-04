@@ -18,9 +18,10 @@ install:
 * **Mode switching** — select any of the built-in `espp::detail` detent presets
   (unbounded, bounded, multi-rev, on/off, coarse/fine, magnetic detents,
   return-to-center) from a dropdown.
-* **Firmware update (OTA)** — upload a new `.bin` over the same USB interface
-  (via the espp `ota` component), with progress, image validation (SHA-256) and
-  bootloader rollback support.
+* **Firmware update + crash inspection** — the same USB link also serves the
+  standard espp OTA protocol (dispatcher module 0) and the coredump service
+  (module 4), so `ota_console.html` and `coredump_console.html` — or the device
+  hub, which discovers all three modules — work against this device directly.
 
 The wire protocol is documented in [PROTOCOL.md](./PROTOCOL.md); the browser
 console lives in [webapp/index.html](./webapp/index.html).
@@ -70,7 +71,7 @@ otadata.
 > routes the system console to it, so attach any serial terminal (e.g.
 > `screen /dev/tty.usbmodem*`) for live logs. Flashing also still works over
 > the same connector via the ROM bootloader (hold BOOT while resetting, or
-> just use `webapp/index.html` for OTA updates after the first flash).
+> just use `ota_console.html` for OTA updates after the first flash).
 
 ### Web console
 
@@ -86,23 +87,23 @@ otadata.
    switch detent presets, enable/disable the motor, move to a detent, or play a
    haptic click.
 
-### Firmware update (OTA) flow
+### Firmware update + crash inspection
 
-1. Make a change and `idf.py build` (do not flash).
-2. In the web console's **Firmware update** panel, pick
-   `build/bldc_haptics_example.bin` (the app image — NOT the merged /
-   bootloader image) and click **Upload**.
-3. The device streams the image into the inactive OTA slot (progress + rate are
-   shown), validates it (structure + SHA-256), switches the boot partition and
-   reboots. Expect a USB disconnect; reconnect after the device re-enumerates.
-4. Rollback: the freshly-booted image starts in `PENDING_VERIFY`; this example
-   marks itself valid after its self-check (motor + haptics up). If the new
-   image crashes before that, the bootloader automatically rolls back to the
-   previous slot on the next reset.
+OTA and crash-dump download are the **standard** espp protocols on their own
+dispatcher modules (not part of the haptics protocol), so the plain consoles
+work against this device:
 
-The OTA subset is part of the haptics protocol on **dispatcher module 2**, so it
-is *not* interchangeable with the generic espp `ota` example (which is module 0)
-— use this example's own web console for OTA here.
+- **OTA (module 0)**: build (do not flash), then open `ota_console.html`,
+  connect, and upload `build/bldc_haptics_example.bin` (the app image — NOT the
+  merged / bootloader image). The device streams it into the inactive OTA slot,
+  validates it (structure + SHA-256), switches the boot partition and reboots
+  (expect a USB disconnect). The freshly-booted image starts in `PENDING_VERIFY`
+  and marks itself valid after its self-check; a crash before that rolls back.
+- **Core dump (module 4)**: after an abnormal reset, open `coredump_console.html`
+  to download / erase the flash core dump (the boot log also prints a summary).
+
+The **device hub** (`dispatcher_hub.html`) discovers all three modules on this
+one device and links to each console.
 
 ## Example Behaviors
 
@@ -158,10 +159,11 @@ components:
 * `espp::BldcHaptics`
 * `espp::UsbDevice` — native USB vendor interface with WebUSB + MS OS 2.0
   descriptors (driverless browser access)
-* `espp::Ota` — transport-agnostic OTA engine fed from the USB protocol
-* The `stream_frame` codec (`components/stream_frame/include/stream_frame.hpp`)
-  as the framing layer for the haptics protocol (module 2)
-  (see [PROTOCOL.md](./PROTOCOL.md))
+* `espp::Ota` — transport-agnostic OTA engine (served on module 0)
+* `espp::CoreDump` / `espp::CoreDumpService` — crash core-dump access (module 4)
+* `espp::Dispatcher` + the `stream_frame` codec — route the vendor stream to the
+  OTA (0), haptics (2) and coredump (4) modules, each advertised for capability
+  discovery (see [PROTOCOL.md](./PROTOCOL.md))
 
 You combine the `Mt6701` and `BldcDriver` together when creating the `BldcMotor`
 and then simply pass the `BldcMotor` to the `BldcHaptics` component. At that
