@@ -101,7 +101,7 @@ is not strict — we reproduce the map but discover by UUID).
       cc483f51-…       WRITE_NR      vibration / HD rumble
       649d4ac9-…       WRITE_NR      command (basic)
       3dacbc7e-…       WRITE_NR      vibration+command combined (pairing runs here)
-      4147423d-…       WRITE         firmware update (large)
+      4147423d-…       WRITE_NR      firmware update (large)
       c765a961-…       NOTIFY        command response #1
       506d9f7d-…       NOTIFY        command response #2
 

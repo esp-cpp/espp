@@ -226,15 +226,24 @@ def main() -> int:
         data = read_object(ar, lib, obj)
         n_old, n_new = data.count(old), data.count(new)
         tag = os.path.basename(lib)
-        if n_new > 0 and n_old == 0:
+        # Already-patched: require EXACTLY one patched pattern and zero unpatched.
+        # A count > 1 (or a leftover old pattern) is ambiguous — refuse rather than
+        # assume it is safely patched. Matters most for the C3's short 2-byte
+        # signature, which is far likelier to occur incidentally.
+        if n_old == 0 and n_new > 0:
+            if n_new != 1:
+                sys.exit(f"{tag}: patched pattern appears {n_new}x in {obj} (expected 1) — "
+                         f"ambiguous, refusing to touch")
             print(f"{tag}: already patched; nothing to do")
             continue
         if n_old == 0:
             sys.exit(f"{tag}: expected byte pattern not found in {obj} — IDF version may "
                      f"differ; not patching")
-        if n_old > 1:
-            sys.exit(f"{tag}: pattern appears {n_old}x in {obj} (expected 1) — refusing to "
-                     f"patch ambiguously")
+        # To patch: require EXACTLY one unpatched pattern and zero patched ones, so a
+        # mixed (partially-patched or coincidental) object is never patched.
+        if n_old != 1 or n_new != 0:
+            sys.exit(f"{tag}: expected exactly one unpatched pattern and none patched in {obj} "
+                     f"(found unpatched={n_old}, patched={n_new}) — refusing to patch ambiguously")
         to_patch.append((lib, data.replace(old, new)))
 
     if not to_patch:

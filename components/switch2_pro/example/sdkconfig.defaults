@@ -1,9 +1,9 @@
-# Default target is esp32c6 — the RECOMMENDED chip (open-source NimBLE BLE
-# controller): pairing, reconnect, wake, and sustained lag-free 62 Hz input
-# streaming all verified against a real Switch 2. The ESP32-S3 builds and pairs,
-# but its closed BTDM BLE controller stops servicing tx ~3 s into any sustained
-# encrypted notification stream (host-side unfixable — see README "Known
-# issues"), so S3 input only works in short bursts.
+# Default target is esp32c6 (open-source NimBLE BLE controller): pairing,
+# reconnect, wake, and sustained lag-free input all verified against a real
+# Switch 2. The ESP32-S3 is also fully verified on ESP-IDF >= v6.1, where the
+# official CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (default on) lets its BTDM
+# controller accept the console's 5 ms interval with no binary patch (the old
+# ~3 s tx-stall was on the pre-v6.1 controller lib — see README "Known issues").
 CONFIG_IDF_TARGET="esp32c6"
 
 # On the ESP32-S3 (native USB), route the console to USB-Serial-JTAG so the
@@ -13,12 +13,12 @@ CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 # Common ESP-related
 CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
-# 1000 Hz tick so the ~15 ms input-stream cadence is representable (at the 100 Hz
-# default, sleep_for(15ms) rounds to a 20 ms tick, desyncing from the connection
-# interval), and 240 MHz for headroom in the BLE host + input path.
+# 1000 Hz tick so the ~15 ms / 5 ms input-stream cadence is representable (at the
+# 100 Hz default, sleep_for(15ms) rounds to a 20 ms tick, desyncing from the
+# connection interval). CPU frequency is set per-target (sdkconfig.defaults.esp32c6
+# = 160 MHz, the C6 maximum; sdkconfig.defaults.esp32s3 = 240 MHz) — a 240 MHz
+# choice here would be invalid for the default C6 target.
 CONFIG_FREERTOS_HZ=1000
-CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
-CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240
 CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
 
 # Partition Table
@@ -63,23 +63,24 @@ CONFIG_BT_NIMBLE_MSYS_1_BLOCK_COUNT=100
 CONFIG_BT_NIMBLE_MSYS_2_BLOCK_COUNT=48
 CONFIG_BT_NIMBLE_TRANSPORT_ACL_FROM_LL_COUNT=40
 # S3-only (ignored elsewhere): pre-allocate persistent controller ACL TX buffers
-# instead of the default per-TX dynamic allocation. Note this does NOT fix the
-# S3 BTDM tx-servicing stall (see README "Known issues") — it only removes one
-# allocation failure mode under sustained streaming.
+# instead of the default per-TX dynamic allocation — removes one allocation
+# failure mode under sustained streaming.
 CONFIG_BT_CTRL_BLE_STATIC_ACL_TX_BUF_NB=12
 
 # NOTE: MAX_CCCDS should be 4 * MAX_BONDS
 CONFIG_BT_NIMBLE_MAX_BONDS=3
 CONFIG_BT_NIMBLE_MAX_CCCDS=128
 
-# OFF by default: enabling it mutates the prebuilt BLE controller lib in your
-# global $IDF_PATH at configure time, which is too invasive to do silently in a
-# released example. But it is REQUIRED for reconnect and wake-from-sleep: the
-# capture shows the console connects to a RECOGNISED (bonded) controller with
-# `CONNECT_IND interval=4` (5 ms, below the 7.5 ms spec minimum) from the very
-# first packet, so a stock controller cannot complete a reconnect/wake connection.
-# Fresh pairing (15 ms) and first-session input streaming work WITHOUT the patch.
-# To enable reconnect/wake: uncomment below (or run
-# `tools/patch_nimble_5ms.py --target <chip>`), then verify with
-# `tools/smoke_test_5ms.py --target <chip>`; undo with `--restore`.
+# The console's sub-spec 5 ms interval is required for sustained input in EVERY
+# mode (it drops even the fresh session to 5 ms ~1.5 s after subscription via
+# LL_CONNECTION_UPDATE) plus reconnect/wake (bonded CONNECT_IND is 5 ms from the
+# first packet). Only the initial pairing handshake runs at 15 ms.
+#   * ESP32-S3 / C3: use ESP-IDF >= v6.1's official, default-on
+#     CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE — no patch needed.
+#   * ESP32-C6 / C61 / C2 / H2: the open NimBLE controller has no such option, so
+#     enable the patch below. It is OFF by default because it mutates the prebuilt
+#     BLE controller lib in your global $IDF_PATH at configure time (too invasive
+#     to do silently). Uncomment (or run `tools/patch_nimble_5ms.py --target
+#     <chip>`), verify with `tools/smoke_test_5ms.py --target <chip>`; undo with
+#     `--restore`.
 # CONFIG_SWITCH2_PRO_PATCH_NIMBLE_5MS=y

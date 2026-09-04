@@ -31,14 +31,15 @@ namespace espp {
 /// data, and answers the console's command channel — including the reverse-
 /// engineered pairing handshake so a real console will bond with it.
 ///
-/// Status: works on ESP32-C6 (and the other open-NimBLE-controller chips) —
-/// advertising, the custom GATT tree, the 0x15 pairing handshake, the full
-/// init/calibration command sequence, LL encryption, bond persistence, continuous
-/// input-report streaming, reconnect, and wake-from-sleep are all implemented and
-/// verified against a real console. The ESP32-S3 builds and pairs but does not yet
-/// stream input reliably (see the component README). Reconnect and wake-from-sleep
-/// use the console's sub-spec 5 ms interval, which requires the opt-in NimBLE patch
-/// (tools/patch_nimble_5ms.py).
+/// Status: works on ESP32-C6 (and the other open-NimBLE-controller chips) and on
+/// ESP32-S3 (ESP-IDF >= v6.1) — advertising, the custom GATT tree, the 0x15
+/// pairing handshake, the full init/calibration command sequence, LL encryption,
+/// bond persistence, continuous input-report streaming, reconnect, and
+/// wake-from-sleep are all implemented and verified against a real console. The
+/// console drives the link at a sub-spec 5 ms interval for sustained input,
+/// reconnect, and wake; the S3/C3 get that from ESP-IDF's default-on
+/// CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (>= v6.1), the open-NimBLE chips
+/// from the opt-in tools/patch_nimble_5ms.py (see the component README).
 ///
 /// \section switch2_pro_ex1 Example
 /// \snippet switch2_pro_example.cpp switch2_pro example
@@ -178,9 +179,13 @@ protected:
   /// Inject the current LTK (ltk_) into NimBLE's security store for `peer` so the
   /// controller can satisfy the console's link-layer encryption request (the
   /// Switch 2 uses standard LL encryption with the app-derived LTK, not SMP).
-  void inject_ltk(uint8_t peer_type, const uint8_t *peer_val_le);
+  /// @return true if the LTK was written to the store; false on failure (LL
+  ///         encryption will then fail and the console will drop the link).
+  bool inject_ltk(uint8_t peer_type, const uint8_t *peer_val_le);
   /// Inject ltk_ for the currently-connected peer (used right after finalise).
-  void inject_pairing_ltk();
+  /// @return true on success; false if there is no active connection or the
+  ///         store write failed.
+  bool inject_pairing_ltk();
   /// Persist the bond {console address, LTK} to NVS so it survives reboots and
   /// the controller can reconnect/wake without re-pairing.
   void save_bond();
@@ -190,10 +195,10 @@ protected:
   std::array<uint8_t, 6> local_bt_address() const;
 
   /// Driver-owned streaming task: while the console is subscribed, notify the
-  /// input report on 0x000e. In on-change mode (default) it sends only when the
-  /// app state changes plus a low-rate keepalive; in continuous mode it sends one
-  /// report every connection interval like a real controller. Started in init(),
-  /// stopped in the destructor.
+  /// input report on 0x000e. In continuous mode (default, Config::continuous_streaming
+  /// = true) it sends one report every connection interval like a real controller;
+  /// in on-change mode it sends only when the app state changes plus a low-rate
+  /// keepalive. Started in init(), stopped in the destructor.
   void input_stream_loop();
   /// Send the given input-report snapshot now (the caller passes the exact bytes it
   /// snapshotted under input_mutex_; this adds the counter/rumble/motion fields it
@@ -277,9 +282,10 @@ protected:
   uint8_t report_counter_{0}; ///< input-report sequence (byte 0); +1 per delivered report
   std::atomic<int> notify_in_flight_{0}; ///< queued-but-not-yet-transmitted input notifications
   std::atomic<uint32_t> tx_completions_{
-      0};                    ///< count of NOTIFY_TX completions (flow-control signal)
-  uint32_t enomem_count_{0}; ///< diagnostic: notifies deferred because the tx pool was full
-  uint32_t motion_idx_{0};   ///< index into kMotionSequence for the replayed IMU block
+      0};                                 ///< count of NOTIFY_TX completions (flow-control signal)
+  std::atomic<uint32_t> enomem_count_{0}; ///< diagnostic: notifies deferred because the tx pool was
+                                          ///< full (read cross-thread at disconnect)
+  uint32_t motion_idx_{0};                ///< index into kMotionSequence for the replayed IMU block
   std::array<uint8_t, switch2::Pro2InputReport::SIZE>
       last_streamed_{};        ///< exact snapshot we last notified (on-change dedup)
   bool have_streamed_{false};  ///< false until the first report goes out (forces initial send)
@@ -287,14 +293,16 @@ protected:
   uint32_t interval_tick_{0};  ///< continuous-mode interval counter (for the rate divisor)
   // --- tx-wedge diagnostics: localize the ENOMEM stall (our tx drain vs the console) ---
   std::atomic<int64_t> last_tx_complete_us_{0}; ///< esp_timer time of the last NOTIFY_TX completion
-  int64_t stream_start_us_{0}; ///< when the current streaming run began (0 = not started)
-  int64_t hb_last_us_{0};      ///< last heartbeat timestamp
+  std::atomic<int64_t> stream_start_us_{0};     ///< when the current streaming run began (0 = not
+                                                ///< started; read cross-thread at disconnect)
+  int64_t hb_last_us_{0};                       ///< last heartbeat timestamp
   uint32_t hb_last_completions_{
       0};                      ///< tx_completions_ snapshot at last heartbeat (drain-rate delta)
   uint32_t hb_last_enomem_{0}; ///< enomem_count_ snapshot at last heartbeat
   uint32_t send_attempts_{0};  ///< send_input_report() calls this streaming run
   uint32_t backpressure_skips_{0}; ///< sends deferred because msys_1 had no headroom
-  bool wedge_reported_{false};     ///< one-shot guard for the wedge-onset log
+  std::atomic<bool> wedge_reported_{
+      false}; ///< one-shot guard for the wedge-onset log (read cross-thread at disconnect)
   std::mutex input_mutex_; ///< guards input_report_ (set from app task, read by stream task)
   std::thread input_stream_thread_;      ///< streams input reports once per connection interval
   std::atomic<bool> stream_stop_{false}; ///< signals input_stream_thread_ to exit

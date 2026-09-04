@@ -37,7 +37,7 @@ inline constexpr const char *VIBRATION_UUID = "cc483f51-9258-427d-a939-630c31f72
 inline constexpr const char *COMMAND_UUID = "649d4ac9-8eb7-4e6c-af44-1ea54fe5f005";
 /// Vibration+command combined — the pairing handshake runs here. WRITE_NO_RSP.
 inline constexpr const char *VIBRATION_COMMAND_UUID = "3dacbc7e-6955-40b5-8eaf-6f9809e8b379";
-/// Firmware update (large writes). WRITE.
+/// Firmware update (large writes). WRITE_NO_RSP (matches a real controller).
 inline constexpr const char *FIRMWARE_UPDATE_UUID = "4147423d-fdae-4df7-a4f7-d23e5df59f8d";
 /// Command response #1. NOTIFY.
 inline constexpr const char *COMMAND_RESPONSE1_UUID = "c765a961-d9d8-4d36-a20a-5315b111836a";

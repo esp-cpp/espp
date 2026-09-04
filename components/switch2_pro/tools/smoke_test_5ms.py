@@ -123,4 +123,17 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # Honour the documented contract: 0 = patched, 1 = unpatched, 2 = error. A bare
+    # sys.exit("message") (here or in a reused helper) and any uncaught subprocess
+    # error would otherwise exit 1, making a missing archive/tool indistinguishable
+    # from a valid "unpatched" result. Map both to 2.
+    try:
+        sys.exit(main())
+    except SystemExit as e:
+        if isinstance(e.code, int) or e.code is None:
+            raise  # a real int return code (0/1/2) — preserve it
+        print(e.code, file=sys.stderr)  # sys.exit("message") -> error
+        sys.exit(2)
+    except Exception as exc:  # noqa: BLE001 — any unexpected failure is an error (2)
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(2)

@@ -26,9 +26,12 @@ extern "C" void app_main(void) {
   // reconnects after a reboot without re-pairing.
   esp_err_t nvs_err = nvs_flash_init();
   if (nvs_err == ESP_ERR_NVS_NO_FREE_PAGES || nvs_err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    nvs_flash_erase();
-    nvs_flash_init();
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    nvs_err = nvs_flash_init();
   }
+  // Fail fast: the reconnect/wake contract depends on NVS, so a controller that
+  // came up with NVS broken would pair but silently lose its bond on reboot.
+  ESP_ERROR_CHECK(nvs_err);
 
   //! [switch2_pro example]
   // Bring up the emulated Switch 2 Pro Controller. init() verifies the pairing

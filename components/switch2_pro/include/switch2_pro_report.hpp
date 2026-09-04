@@ -79,7 +79,9 @@ private:
       v = -1.f;
     if (v > 1.f)
       v = 1.f;
-    return static_cast<uint16_t>((v * 0.5f + 0.5f) * STICK_MAX);
+    // Round (not truncate) so a neutral axis (v==0) maps to STICK_CENTER (2048),
+    // not 2047, while ±1 still land exactly on 0 / STICK_MAX (4095).
+    return static_cast<uint16_t>((v * 0.5f + 0.5f) * STICK_MAX + 0.5f);
   }
   void pack_stick(size_t offset, float x, float y) {
     const uint16_t xv = axis_to_u12(x);

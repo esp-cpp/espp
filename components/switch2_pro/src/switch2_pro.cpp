@@ -82,6 +82,14 @@ private:
 };
 
 bool Switch2Pro::init() {
+  // init() is one-shot. A second call would reach the input_stream_thread_
+  // assignment below while the first streaming thread is still joinable, and
+  // assigning to a joinable std::thread calls std::terminate. Treat an already-
+  // initialized instance as a no-op success.
+  if (input_stream_thread_.joinable()) {
+    logger_.warn("init() called again while already initialized — ignoring");
+    return true;
+  }
   // Keep the NimBLE host log quiet — our own Switch2Pro trace carries the
   // protocol flow. Bump these to ESP_LOG_DEBUG when the raw stack-level view
   // (every ATT/ACL byte) is needed.
@@ -148,7 +156,9 @@ bool Switch2Pro::init() {
   // On reconnect the console skips the 0x15 pairing and jumps straight to LL
   // encryption, so the LTK must already be in NimBLE's store before it connects.
   if (reconnect_mode_) {
-    inject_ltk(bond_peer_type_, bond_peer_val_.data());
+    if (!inject_ltk(bond_peer_type_, bond_peer_val_.data()))
+      logger_.error("reconnect: pre-loading the stored LTK failed — a bonded reconnect/wake "
+                    "will not encrypt; delete the bond and re-pair to recover");
     if (wake_console_on_boot_) {
       logger_.info(
           "wake-on-boot: broadcasting the wake advertisement every {:.0f}s until connected",
@@ -257,8 +267,9 @@ void Switch2Pro::configure_callbacks() {
       const int64_t now = esp_timer_get_time();
       logger_.warn("  @disconnect: streamed {:.1f}s, {} completions, {} enomem, wedged={}, "
                    "since_last_tx={:.0f}ms | {}",
-                   (now - stream_start_us_) / 1e6f, tx_completions_.load(), enomem_count_,
-                   wedge_reported_, (now - last_tx_complete_us_.load()) / 1000.0f, pool_stats());
+                   (now - stream_start_us_.load()) / 1e6f, tx_completions_.load(),
+                   enomem_count_.load(), wedge_reported_.load(),
+                   (now - last_tx_complete_us_.load()) / 1000.0f, pool_stats());
     }
     // NOTE: paired_ is intentionally NOT cleared here. is_paired() reports whether
     // the pairing handshake has completed / a bond exists — which survives a
@@ -881,12 +892,12 @@ bool Switch2Pro::send_input_report(
   if ((dbg_tick++ % 66) == 0)
     logger_.debug("input stream: inflight={} txdone={} enomem={} ctr=0x{:02x} btn=[{:02x} {:02x} "
                   "{:02x}] 0x0b={:02x} feat={:02x}",
-                  notify_in_flight_.load(), tx_completions_.load(), enomem_count_, buf[0], buf[2],
-                  buf[3], buf[4], buf[0x0b], enabled_features_.load());
+                  notify_in_flight_.load(), tx_completions_.load(), enomem_count_.load(), buf[0],
+                  buf[2], buf[3], buf[4], buf[0x0b], enabled_features_.load());
   return sent;
 }
 
-void Switch2Pro::inject_ltk(uint8_t peer_type, const uint8_t *peer_val_le) {
+bool Switch2Pro::inject_ltk(uint8_t peer_type, const uint8_t *peer_val_le) {
   struct ble_store_value_sec sec = {};
   sec.peer_addr.type = peer_type;
   std::copy(peer_val_le, peer_val_le + 6, sec.peer_addr.val);
@@ -901,16 +912,25 @@ void Switch2Pro::inject_ltk(uint8_t peer_type, const uint8_t *peer_val_le) {
   sec.ltk_present = 1;
   sec.authenticated = 1;
   int rc = ble_store_write_our_sec(&sec);
-  logger_.info("injected LTK into NimBLE store (rc={}) — ready for LL encryption", rc);
+  if (rc != 0) {
+    // The LTK is not installed, so the console's imminent encryption request will
+    // fail and it will drop the link. Surface it loudly rather than logging "ready".
+    logger_.error("inject_ltk: ble_store_write_our_sec failed (rc={}) — LL encryption "
+                  "cannot be established; the console will drop the link",
+                  rc);
+    return false;
+  }
+  logger_.info("injected LTK into NimBLE store — ready for LL encryption");
+  return true;
 }
 
-void Switch2Pro::inject_pairing_ltk() {
+bool Switch2Pro::inject_pairing_ltk() {
   struct ble_gap_conn_desc desc;
   if (active_conn_handle_ == 0xffff || ble_gap_conn_find(active_conn_handle_, &desc) != 0) {
     logger_.warn("cannot inject LTK: no active connection");
-    return;
+    return false;
   }
-  inject_ltk(desc.peer_id_addr.type, desc.peer_id_addr.val);
+  return inject_ltk(desc.peer_id_addr.type, desc.peer_id_addr.val);
 }
 
 void Switch2Pro::save_bond() {
@@ -928,12 +948,19 @@ void Switch2Pro::save_bond() {
     logger_.error("save_bond: nvs_open failed");
     return;
   }
-  nvs_set_blob(h, kNvsBondKey, &b, sizeof(b));
-  nvs_commit(h);
+  esp_err_t set_err = nvs_set_blob(h, kNvsBondKey, &b, sizeof(b));
+  esp_err_t commit_err = (set_err == ESP_OK) ? nvs_commit(h) : set_err;
   nvs_close(h);
+  // Keep the bond in RAM regardless so this session can still reconnect/wake; only
+  // persistence across a reboot is lost if the write failed.
   bond_peer_type_ = b.peer_type;
   std::copy(std::begin(b.peer_val), std::end(b.peer_val), bond_peer_val_.begin());
-  logger_.info("saved bond to NVS (console addr + LTK)");
+  if (set_err != ESP_OK || commit_err != ESP_OK)
+    logger_.error("save_bond: NVS write failed (set={}, commit={}) — bond kept in RAM for "
+                  "this boot, but reconnect/wake after a reboot will not work",
+                  esp_err_to_name(set_err), esp_err_to_name(commit_err));
+  else
+    logger_.info("saved bond to NVS (console addr + LTK)");
 }
 
 bool Switch2Pro::load_bond() {
@@ -1045,7 +1072,9 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
     // using the LTK we just negotiated (there is no SMP key distribution). Inject
     // the LTK into NimBLE's security store so the controller can answer the
     // console's LTK request; without it encryption fails and the console drops us.
-    inject_pairing_ltk();
+    if (!inject_pairing_ltk())
+      logger_.error("pairing: LTK injection failed — the console's encryption request will "
+                    "fail and it will drop the link; re-pair to retry");
     // Persist {console address, LTK} so we can reconnect/wake after a reboot
     // without re-running the pairing exchange.
     save_bond();
