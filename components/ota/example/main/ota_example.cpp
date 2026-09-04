@@ -355,8 +355,13 @@ extern "C" void app_main(void) {
   };
 
   // OTA is module id 0. The Dispatcher routes each frame for that module here.
-  dispatcher.register_module(proto::kModule,
-                             [&](const proto::Frame &frame) { handle_usb_frame(frame); });
+  // Advertise it (name / web app / description) so the browser Device Hub can
+  // discover and link it, and answer discovery queries over the vendor stream.
+  dispatcher.register_module(
+      proto::kModule, [&](const proto::Frame &frame) { handle_usb_frame(frame); },
+      {.name = "OTA", .app = "ota_console.html", .description = "Firmware update over USB"});
+  dispatcher.set_device_info(usb_cfg.product);
+  dispatcher.serve_discovery([&](std::span<const uint8_t> frame) { usb.write_vendor(frame); });
 
   espp::Task usb_task(
       {.callback = [&](std::mutex &, std::condition_variable &) -> bool {

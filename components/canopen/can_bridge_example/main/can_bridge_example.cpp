@@ -250,8 +250,18 @@ extern "C" void app_main(void) {
   // gets its OWN Dispatcher (one parser) — a frame split across reads on one
   // transport must never be stitched onto bytes from the other.
   espp::Dispatcher vendor_dispatcher, cdc_dispatcher;
-  vendor_dispatcher.register_module(can_bridge::kModuleId, handle_can_frame);
-  cdc_dispatcher.register_module(can_bridge::kModuleId, handle_can_frame);
+  // Advertise the CAN-bridge module for capability discovery so the browser
+  // Device Hub can list and link it.
+  const espp::Dispatcher::ModuleInfo can_info{.name = "CAN Bridge",
+                                              .app = "can_bridge_console.html",
+                                              .description =
+                                                  "Raw CAN 2.0 bridge (WebUSB / Web Serial)"};
+  vendor_dispatcher.register_module(can_bridge::kModuleId, handle_can_frame, can_info);
+  cdc_dispatcher.register_module(can_bridge::kModuleId, handle_can_frame, can_info);
+  vendor_dispatcher.set_device_info(usb_cfg.product);
+  cdc_dispatcher.set_device_info(usb_cfg.product);
+  vendor_dispatcher.serve_discovery([&](std::span<const uint8_t> f) { usb.write_vendor(f); });
+  cdc_dispatcher.serve_discovery([&](std::span<const uint8_t> f) { usb.write_cdc(f); });
 
   // --- USB RX plumbing: queue in the TinyUSB task, dispatch from a worker -----
   // transmit() can block up to its timeout, so it must not run in the TinyUSB

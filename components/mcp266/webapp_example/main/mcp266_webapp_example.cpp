@@ -351,8 +351,17 @@ extern "C" void app_main(void) {
   };
 
   espp::Dispatcher vendor_dispatcher, cdc_dispatcher;
-  vendor_dispatcher.register_module(proto::kModuleId, dispatch_frame);
-  cdc_dispatcher.register_module(proto::kModuleId, dispatch_frame);
+  // Advertise the MCP266 module for capability discovery so the browser Device
+  // Hub can list and link it.
+  const espp::Dispatcher::ModuleInfo mcp_info{.name = "MCP266",
+                                              .app = "mcp266_console.html",
+                                              .description = "Configure & command MCP266 motors"};
+  vendor_dispatcher.register_module(proto::kModuleId, dispatch_frame, mcp_info);
+  cdc_dispatcher.register_module(proto::kModuleId, dispatch_frame, mcp_info);
+  vendor_dispatcher.set_device_info(usb_cfg.product);
+  cdc_dispatcher.set_device_info(usb_cfg.product);
+  vendor_dispatcher.serve_discovery([&](std::span<const uint8_t> f) { usb.write_vendor(f); });
+  cdc_dispatcher.serve_discovery([&](std::span<const uint8_t> f) { usb.write_cdc(f); });
 
   // --- USB RX plumbing: queue in the TinyUSB callback, dispatch from a worker -
   std::mutex rx_mutex;
