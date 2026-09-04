@@ -93,7 +93,9 @@
   <script>
     "use strict";
     // ---- stream_frame v2 constants (see components/stream_frame) ----
-    const DEFAULT_VID = 0x1209, DEFAULT_PID = 0x0d32, VENDOR_CLASS = 0xFF;
+    // espp devices share the pid.codes VID 0x1209 but vary by PID (ota 0x0d32,
+    // coredump 0x0d36, ...), so the hub filters by VID only to list them all.
+    const DEFAULT_VID = 0x1209, VENDOR_CLASS = 0xFF;
     const MAGIC0 = 0x54, MAGIC1 = 0x4F, HEADER_SIZE = 9, CRC_SIZE = 4, CORRELATION_SIZE = 2;
     const MAX_PAYLOAD = 4096, MAX_FRAME = HEADER_SIZE + CORRELATION_SIZE + MAX_PAYLOAD + CRC_SIZE;
     const FLAGS_VERSION = 1, FLAGS_REQUEST = (FLAGS_VERSION << 4), FLAGS_REPLY_BIT = 0x01, FLAG_CORRELATION = 0x02;
@@ -191,7 +193,10 @@
     class UsbTransport {
       constructor() { this.device=null; this.iface=null; this.epIn=null; this.epOut=null; this.reading=false; }
       async open(anyDevice) {
-        const options = anyDevice ? { acceptAllDevices: true } : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
+        // WebUSB's requestDevice REQUIRES `filters` (there is no acceptAllDevices
+        // like Web Bluetooth): an empty list shows every device; a VID-only filter
+        // shows all espp devices regardless of their per-example PID.
+        const options = anyDevice ? { filters: [] } : { filters: [{ vendorId: DEFAULT_VID }] };
         this.device = await navigator.usb.requestDevice(options);
         await this.device.open();
         if (this.device.configuration === null) await this.device.selectConfiguration(1);
