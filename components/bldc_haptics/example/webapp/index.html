@@ -198,7 +198,7 @@
         <button id="connectBtn" class="primary">Connect</button>
         <label><input type="checkbox" id="anyDevice"> show all USB devices (no VID/PID filter)</label>
       </div>
-      <p id="devInfo" class="muted" style="margin: 8px 0 0;">Not connected. Default filter: VID 0x1209 / PID 0x0d34 ("espp BLDC Haptics"); the vendor (0xFF) interface is discovered from the descriptors at runtime.</p>
+      <p id="devInfo" class="muted" style="margin: 8px 0 0;">Not connected. Default filter: any espp device (VID 0x1209); this example is PID 0x0d34 ("espp BLDC Haptics"). The vendor (0xFF) interface is discovered from the descriptors at runtime.</p>
     </div>
 
     <div class="grid">
@@ -288,6 +288,10 @@
     const MAX_PAYLOAD = 4096;
     const MAX_FRAME = HEADER_SIZE + MAX_PAYLOAD + CRC_SIZE;
     const MODULE_HAPTICS = 2;                 // the whole haptics protocol is dispatcher module 2
+    // Reserved dispatcher discovery module: a device that runs an espp::Dispatcher
+    // answers a ListModules query on 0xFF with the set of modules it serves, so we
+    // can confirm this device actually has the haptics module before driving it.
+    const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
     const FLAGS_VERSION = 1;                  // protocol version lives in flags bits 4-7
     const FLAGS_REQUEST = (FLAGS_VERSION << 4) | 0; // host->device request: 0x10 (reply bit 0)
     const FLAGS_REPLY_BIT = 0x01;            // bit0 set on device->host replies/telemetry
@@ -367,16 +371,17 @@
     // ===================================================================
     // Frame building & incremental parsing (mirrors stream_frame.hpp)
     // ===================================================================
-    // This app only ever sends haptics requests, so module is hardcoded to
-    // MODULE_HAPTICS and flags to FLAGS_REQUEST (reply bit clear).
-    function buildFrame(type, payload) {
+    // This app sends haptics requests (module defaults to MODULE_HAPTICS); the
+    // module arg lets us also emit a discovery query on MODULE_DISCOVERY. flags
+    // are always FLAGS_REQUEST (reply bit clear).
+    function buildFrame(type, payload, module = MODULE_HAPTICS) {
       payload = payload || new Uint8Array(0);
       if (payload.length > MAX_PAYLOAD) throw new Error("payload exceeds " + MAX_PAYLOAD + " bytes");
       const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
       const view = new DataView(frame.buffer);
       view.setUint16(0, 0x4F54, true);   // magic 'T''O' on the wire
       frame[2] = FLAGS_REQUEST;          // flags: version 1, request (reply bit 0)
-      frame[3] = MODULE_HAPTICS;         // module: haptics = 2
+      frame[3] = module;                 // module: haptics = 2 (discovery = 0xFF)
       frame[4] = type;                   // message type
       view.setUint32(5, payload.length, true);
       frame.set(payload, HEADER_SIZE);
@@ -505,7 +510,7 @@
         // an implementation treats an empty `filters` list.
         const options = els.anyDevice.checked
           ? { filters: [{}] }
-          : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
+          : { filters: [{ vendorId: DEFAULT_VID }] };  // any espp device (VID 0x1209), any PID
         device = await navigator.usb.requestDevice(options);
       } catch (e) {
         if (e && e.name === "NotFoundError") logLine("sys", "Device selection cancelled.");
@@ -629,6 +634,13 @@
     }
 
     function dispatchFrame(frame) {
+      // Discovery reply (reserved module 0xFF): hand the TLV payload to a pending
+      // module probe. Not this device's haptics module, so handle it before the
+      // module filter below drops it.
+      if (frame.module === MODULE_DISCOVERY && frame.reply && frame.type === T_LIST_MODULES) {
+        if (discoveryResolve) { discoveryResolve(frame.payload); discoveryResolve = null; }
+        return;
+      }
       // Every device->host haptics frame (replies + telemetry) is dispatcher
       // module 2 with the reply flag set; ignore anything else that shares the
       // vendor pipe (other modules, or a request-flagged frame echoed back).
@@ -725,8 +737,52 @@
     let telem = null;        // latest telemetry {position,value,angle,velocity}
     let renderValue = 0;     // smoothed dial value
 
+    // ---- discovery-based module presence check --------------------------------
+    // A pending checkModulePresent() parks its resolver here; dispatchFrame calls
+    // it when the 0xFF ListModules reply arrives.
+    let discoveryResolve = null;
+    // Decode the ListModules TLV (see espp::Dispatcher::describe).
+    function parseDiscovery(payload) {
+      let i = 0;
+      const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
+      const u8 = () => { need(1); return payload[i++]; };
+      const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
+      const version = u8(); u8();            // version, reserved
+      const device = str(), fw = str();
+      const count = u8();
+      const modules = [];
+      for (let m = 0; m < count; m++) modules.push({ id: u8(), name: str(), app: str(), desc: str() });
+      return { version, device, fw, modules };
+    }
+    // Ask the device which dispatcher modules it serves and confirm the haptics
+    // module is one of them. Returns true (present), false (device answered but
+    // WITHOUT the haptics module), or undefined (no discovery support -> unknown;
+    // the normal init below still surfaces a genuinely missing module via timeout).
+    async function checkModulePresent() {
+      const payload = await new Promise((resolve) => {
+        const timer = setTimeout(() => { discoveryResolve = null; resolve(null); }, 800);
+        discoveryResolve = (p) => { clearTimeout(timer); resolve(p); };
+        device.transferOut(epOut, buildFrame(T_LIST_MODULES, null, MODULE_DISCOVERY))
+          .catch(() => { clearTimeout(timer); discoveryResolve = null; resolve(null); });
+      });
+      if (!payload) return undefined;        // no discovery reply -> older firmware
+      let info;
+      try { info = parseDiscovery(payload); } catch (_) { return undefined; }
+      if (info.modules.some((m) => m.id === MODULE_HAPTICS)) {
+        logLine("sys", "Device advertises " + info.modules.length + " module(s); haptics module present.");
+        return true;
+      }
+      const names = info.modules.map((m) => m.name + " (#" + m.id + ")").join(", ") || "none";
+      logLine("err", "This device does not advertise the haptics module. Detected: " + names +
+              ". You may have selected the wrong device, or its firmware lacks the haptics module.");
+      return false;
+    }
+
     async function initializeDevice() {
       try {
+        // Confirm this device serves the haptics module (best-effort warning only;
+        // we still attempt init so the user can force it if discovery is stale).
+        await checkModulePresent();
         const info = await transact(TYPE.GET_INFO, null, [TYPE.INFO], CMD_TIMEOUT_MS);
         const r = reader(info.payload);
         const protoVer = rdU8(r);
@@ -1031,9 +1087,8 @@
         els.stVelocity.textContent = els.stEnabled.textContent = els.stFault.textContent = "-";
         els.stStream.textContent = els.stFirmware.textContent = "-";
         els.stEnabled.className = els.stFault.className = "v";
-        els.devInfo.textContent = "Not connected. Default filter: VID 0x1209 / PID 0x0d34 (\"espp BLDC Haptics\"); the vendor (0xFF) interface is discovered from the descriptors at runtime.";
+        els.devInfo.textContent = "Not connected. Default filter: any espp device (VID 0x1209); this example is PID 0x0d34 (\"espp BLDC Haptics\"). The vendor (0xFF) interface is discovered from the descriptors at runtime.";
       }
-      updateUploadUI();
     }
 
     els.modeSelect.addEventListener("change", async () => {
