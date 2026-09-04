@@ -671,11 +671,13 @@
 
     async function connect() {
       try {
-        // `{ filters: [] }` is not a valid "any device" request in Chromium's
-        // WebUSB; use the explicit `acceptAllDevices` flag for that path.
+        // WebUSB has no `acceptAllDevices` option (that is Web Bluetooth) --
+        // `filters` is a required member, and a single empty filter object `{}`
+        // matches every device. The default filter is VID-only so any espp
+        // device (VID 0x1209) is offered, not just the ODrive PID.
         const options = els.anyDevice.checked
-          ? { acceptAllDevices: true }
-          : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
+          ? { filters: [{}] }
+          : { filters: [{ vendorId: DEFAULT_VID }] };
         device = await navigator.usb.requestDevice(options);
       } catch (e) {
         // Only NotFoundError is a user cancel / no-match; anything else is real.
@@ -1455,7 +1457,7 @@
       setStatus("", "Disconnected");
       setConnectedUI(false);
       logLine("sys", "Ready. Click Connect and pick the ODrive native (vendor) USB device.");
-      logLine("sys", `Default filter: VID 0x${DEFAULT_VID.toString(16)} / PID 0x${DEFAULT_PID.toString(16)}. Tick "Any device" to see all.`);
+      logLine("sys", `Default filter: any espp device (VID 0x${DEFAULT_VID.toString(16)}). Tick "Any device" to see all.`);
       logLine("sys", "This panel speaks the native (Fibre-endpoint) BINARY protocol, not ASCII.");
       drawPlot(); updateLegend();
     }
