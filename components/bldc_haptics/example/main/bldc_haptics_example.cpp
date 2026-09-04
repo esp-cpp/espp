@@ -9,6 +9,7 @@
 #include <memory>
 #include <mutex>
 #include <sdkconfig.h>
+#include <span>
 #include <vector>
 
 #include "esp_core_dump.h"
@@ -22,6 +23,7 @@
 #include "bldc_driver.hpp"
 #include "bldc_haptics.hpp"
 #include "bldc_motor.hpp"
+#include "dispatcher.hpp"
 #include "i2c.hpp"
 #include "mt6701.hpp"
 #include "ota.hpp"
@@ -451,7 +453,10 @@ extern "C" void app_main(void) {
   // --------------------------------------------------------------------------
   // Protocol frame handling (runs in the worker task)
   // --------------------------------------------------------------------------
-  proto::stream::StreamParser parser;
+  // Route the vendor stream through a Dispatcher on the haptics module (2); the
+  // module is registered (and advertised for capability discovery) once
+  // handle_frame is defined, below.
+  espp::Dispatcher dispatcher;
   bool restart_pending = false;
 
   // Build replies via proto::build so they carry the haptics module (2) + reply
@@ -677,6 +682,24 @@ extern "C" void app_main(void) {
     }
   };
 
+  // Register the haptics protocol on the dispatcher (module 2) and advertise it
+  // for capability discovery, so the browser Device Hub can list and link it.
+  // The Dispatcher routes by module and hands us the whole frame; we still gate
+  // on !is_reply() so a reply-typed echo cannot re-enter the request handler.
+  dispatcher.register_module(proto::kModule,
+                             [&](const proto::stream::Frame &frame) {
+                               if (!frame.is_reply())
+                                 handle_frame(frame);
+                             },
+                             {.name = "BLDC Haptics",
+                              .app = "haptics_console.html",
+                              .description = "Haptic feedback modes + firmware update"});
+  dispatcher.set_device_info(usb_cfg.product);
+  // serve_discovery answers the reserved 0xFF module; route its reply through the
+  // same tx_mutex-guarded usb_send as every other frame.
+  dispatcher.serve_discovery(
+      [&](std::span<const uint8_t> f) { usb_send(std::vector<uint8_t>(f.begin(), f.end())); });
+
   espp::Task usb_task(
       {.callback = [&](std::mutex &, std::condition_variable &) -> bool {
          std::vector<std::vector<uint8_t>> chunks;
@@ -696,18 +719,13 @@ extern "C" void app_main(void) {
            // Bytes were dropped: any in-flight frame / OTA image is unusable.
            std::error_code abort_ec;
            ota.abort(abort_ec);
-           parser.reset();
+           dispatcher.reset();
            reply_errc(std::errc::no_buffer_space,
                       "RX overflow: frames dropped -- wait for OK replies between frames");
            return false; // dropped chunks are gone; skip parse
          }
          for (const auto &chunk : chunks)
-           for (const auto &frame : parser.feed(chunk))
-             // this protocol's REQUESTS only: ignore other modules and
-             // reply-flagged frames (the device answers requests; a reply-typed
-             // echo must not re-enter the request handler)
-             if (frame.module == proto::kModule && !frame.is_reply())
-               handle_frame(frame);
+           dispatcher.feed(chunk);
          if (restart_pending) {
            // give the final OK reply time to reach the host
            std::this_thread::sleep_for(750ms);
