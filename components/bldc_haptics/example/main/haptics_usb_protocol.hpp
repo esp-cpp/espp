@@ -7,13 +7,15 @@
 // spec and ../PROTOCOL.md next to this example for the full haptics wire
 // protocol).
 //
-// The whole protocol occupies dispatcher MODULE 2. The `type` byte carries the
-// message id below; request types (host->device) clear the frame reply flag and
-// reply/telemetry types (0x8_/0x9_, host<-device) set it (build() derives it
-// from the type's high bit):
-//   0x01..0x04  host -> device  OTA (BEGIN / DATA / FINISH / ABORT)
+// The haptics protocol occupies dispatcher MODULE 2 (haptics commands only).
+// Firmware update and crash-dump inspection are NOT part of it: the example runs
+// the standard espp OTA protocol on module 0 and the coredump service on module
+// 4 (routed by the same espp::Dispatcher), handled by the ota / coredump web
+// consoles. The `type` byte carries the message id below; request types
+// (host->device) clear the frame reply flag and reply/telemetry types (0x9_,
+// host<-device) set it (build() derives it from the type's high bit):
 //   0x10..0x2F  host -> device  haptics commands
-//   0x81..0x8F  device -> host  generic + OTA replies (OK / ERROR / PROGRESS)
+//   0x81..0x8F  device -> host  generic replies (OK / ERROR)
 //   0x90..0xAF  device -> host  haptics replies + telemetry
 
 #include <algorithm>
@@ -24,16 +26,14 @@
 #include <string_view>
 #include <vector>
 
-#include "detail/ota_stream_protocol.hpp"
 #include "stream_frame.hpp"
 
 namespace haptics_proto {
 
-// The ota_stream facade re-exports the stream_frame codec (StreamParser / Frame
-// / put_* / get_* / parse_u32_payload); build() below uses the generic
-// stream_frame builder directly so it can set this protocol's module + reply
-// flag.
-namespace stream = espp::detail::ota_stream;
+// The little-endian payload helpers (put_* / get_*) come straight from the
+// stream_frame codec; build() below uses its frame builder so it can set this
+// protocol's module + reply flag.
+namespace stream = espp::stream_frame;
 
 /// Dispatcher module id owned by the haptics protocol (the frame `module` byte).
 static constexpr uint8_t kModule = 2;
@@ -43,11 +43,6 @@ static constexpr uint8_t kProtocolVersion = 1;
 
 /// Message types carried in the frame `type` byte (within module 2).
 enum class Msg : uint8_t {
-  // --- OTA subset (identical semantics to the espp ota example) -------------
-  OtaBegin = 0x01,  ///< host->dev: u32 image_size (0 = unknown / streaming)
-  OtaData = 0x02,   ///< host->dev: raw image bytes (<= 4096 per frame)
-  OtaFinish = 0x03, ///< host->dev: validate + activate the received image
-  OtaAbort = 0x04,  ///< host->dev: discard the in-progress session
   // --- Haptics commands ------------------------------------------------------
   GetInfo = 0x10,      ///< host->dev: no payload -> Info reply
   GetStatus = 0x11,    ///< host->dev: no payload -> Status reply
@@ -57,17 +52,14 @@ enum class Msg : uint8_t {
   SetEnabled = 0x15,   ///< host->dev: u8 0/1 -> Ok(0/1)
   PlayHaptic = 0x16,   ///< host->dev: f32 strength -> Ok(0)
   SetStreaming = 0x17, ///< host->dev: u8 0/1 + u16 period_ms -> Ok(period_ms)
-  GetCrash = 0x18,     ///< host->dev: no payload -> Crash reply
-  // --- Generic / OTA replies -------------------------------------------------
-  Ok = 0x81,          ///< dev->host: u32 context-dependent value
-  Error = 0x82,       ///< dev->host: u32 code (std::errc) + utf8 message
-  OtaProgress = 0x83, ///< dev->host: u32 written + u32 total (informational)
+  // --- Generic replies -------------------------------------------------------
+  Ok = 0x81,    ///< dev->host: u32 context-dependent value
+  Error = 0x82, ///< dev->host: u32 code (std::errc) + utf8 message
   // --- Haptics replies / telemetry -------------------------------------------
   Info = 0x90,      ///< dev->host: protocol version + firmware description
   Status = 0x91,    ///< dev->host: full status snapshot
   Modes = 0x92,     ///< dev->host: enumeration of the detent presets
   Telemetry = 0x93, ///< dev->host: periodic position/detent frame (streaming)
-  Crash = 0x94,     ///< dev->host: utf8 crash report text (empty = clean boot history)
 };
 
 // ---------------------------------------------------------------------------
