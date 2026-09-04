@@ -119,8 +119,8 @@ extern "C" void app_main(void) {
   // below) plus the module-4 download service further down. TinyUSB owns the
   // S3's only USB PHY, so there is no live USB-Serial-JTAG console to watch a
   // panic backtrace on; panics core-dump to flash (see sdkconfig/partitions).
-  // The dump is intentionally NOT erased here -- the coredump web console
-  // downloads it (and erases on success) over the module-4 protocol.
+  // The dump is intentionally NOT erased here -- the coredump web console can
+  // download and explicitly erase it over the module-4 protocol.
   // --------------------------------------------------------------------------
   espp::CoreDump core_dump({.log_level = espp::Logger::Verbosity::INFO});
   const std::string crash_report = core_dump.format_report();
