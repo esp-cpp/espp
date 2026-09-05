@@ -104,6 +104,16 @@ Key methods:
 - `bool write_hid_report(uint8_t report_id, std::span<const uint8_t> report, ...)` —
   send a HID input report on the HID interrupt IN endpoint.
 - `void set_cdc_receive_callback(...)` / `void set_vendor_receive_callback(...)`.
+- `void set_mount_callback(...)` / `void set_unmount_callback(...)` — register
+  device mount / unmount handlers. `esp_tinyusb` owns the raw `tud_mount_cb` /
+  `tud_umount_cb`, so register here instead of defining those yourself (which
+  would be a duplicate symbol). On unmount the component first clears the vendor
+  + CDC TX FIFOs — so a departed host's queued backlog is not delivered to the
+  next host that mounts — then invokes your callback.
+- `size_t vendor_write_available() const` / `size_t cdc_write_available() const`
+  and `void vendor_write_clear()` / `void cdc_write_clear()` — TX-FIFO free space
+  and flush helpers (skip/defer or drop a streaming frame when the host stops
+  draining).
 - `bool is_cdc_connected() const` / `bool is_vendor_connected() const` /
   `bool is_hid_ready() const`.
 
@@ -192,3 +202,8 @@ the USB-Serial-JTAG peripheral.
 - Only one `espp::UsbDevice` / `espp::UsbCdc` instance may exist at a time.
 - The receive callbacks run in the TinyUSB device task; keep them short and
   non-blocking.
+- The TinyUSB device lifecycle callbacks (`tud_mount_cb` / `tud_umount_cb` /
+  `tud_suspend_cb` / `tud_resume_cb`) are owned by `esp_tinyusb`. Register mount
+  / unmount handlers via `set_mount_callback()` / `set_unmount_callback()`
+  rather than defining those callbacks yourself. The mount / unmount handlers
+  also run in the TinyUSB device task.

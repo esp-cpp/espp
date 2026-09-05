@@ -360,9 +360,12 @@ extern "C" void app_main(void) {
   // Takes a span so callers can pass either an owning std::vector (built by
   // proto::build / ota_stream make_*, converted implicitly, no copy) or a
   // borrowed buffer (the discovery / coredump reply spans) without allocating.
-  auto usb_send = [&](std::span<const uint8_t> frame) {
+  // Returns true if the frame was queued, false if it was dropped (FIFO full /
+  // host not draining). Callers that don't care (command replies) ignore it;
+  // the telemetry task uses it to auto-pause a stream the host has abandoned.
+  auto usb_send = [&](std::span<const uint8_t> frame) -> bool {
     if (frame.empty())
-      return;
+      return true;
     std::lock_guard<std::mutex> lk(usb_tx_mutex);
     std::error_code tx_ec;
     if (!usb.write_vendor(frame, tx_ec)) {
@@ -372,7 +375,9 @@ extern "C" void app_main(void) {
       // disconnected host streaming telemetry cannot flood the console.
       logger.warn_rate_limited("USB vendor TX failed, dropped {}-byte frame: {}", frame.size(),
                                tx_ec.message());
+      return false;
     }
+    return true;
   };
 
   // RX bytes arrive in the TinyUSB task context: queue them and dispatch from
@@ -760,6 +765,14 @@ extern "C" void app_main(void) {
   // --------------------------------------------------------------------------
   // Telemetry streaming task
   // --------------------------------------------------------------------------
+  // Auto-pause guard: if telemetry sends fail continuously for this long, the
+  // host has stopped draining the vendor IN endpoint (tab closed / backgrounded
+  // / frozen). Streaming into a full FIFO just spams drops and, worse, buries a
+  // reconnecting host's GET_INFO reply so it can never connect -- so pause the
+  // stream until a host re-enables it (SET_STREAMING on connect).
+  constexpr auto kTelemetryStallTimeout = 2s;
+  auto telemetry_stall_start = std::chrono::steady_clock::time_point{};
+
   espp::Task telemetry_task(
       {.callback = [&](std::mutex &m, std::condition_variable &cv) -> bool {
          const auto start = std::chrono::steady_clock::now();
@@ -774,7 +787,20 @@ extern "C" void app_main(void) {
            proto::put_f32(payload, continuous_value());
            proto::put_f32(payload, motor->get_shaft_angle());
            proto::put_f32(payload, motor->get_shaft_velocity());
-           usb_send(proto::build(proto::Msg::Telemetry, payload));
+           if (usb_send(proto::build(proto::Msg::Telemetry, payload))) {
+             telemetry_stall_start = {}; // queued OK -> the host is draining
+           } else if (telemetry_stall_start == std::chrono::steady_clock::time_point{}) {
+             telemetry_stall_start = start; // first drop -> start the stall clock
+           } else if (start - telemetry_stall_start > kTelemetryStallTimeout) {
+             streaming = false; // host abandoned the stream: stop flooding a full FIFO
+             telemetry_stall_start = {};
+             // Drop the queued backlog now (a tab close does not unmount, so it
+             // is not cleared for us) so a reconnecting host reads a clean stream
+             // instead of stale telemetry it might mis-parse as a command reply.
+             usb.vendor_write_clear();
+             logger.warn("Telemetry auto-paused: the host stopped draining the USB vendor "
+                         "endpoint (re-enable streaming from the web console)");
+           }
          }
          {
            std::unique_lock<std::mutex> lk(m);
