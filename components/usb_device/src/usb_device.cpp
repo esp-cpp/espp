@@ -217,6 +217,11 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
 // below, driven by this event callback.
 // cppcheck-suppress constParameterCallback // signature must match tinyusb_event_cb_t
 extern "C" void espp_usb_device_event_cb(tinyusb_event_t *event, void *arg) {
+  // Runs in the TinyUSB device-task context: record it so a mount/unmount
+  // callback that calls write_cdc()/write_vendor() takes the non-blocking
+  // fail-fast TX path instead of vTaskDelay()-ing inside the TinyUSB task
+  // (which would deadlock USB servicing).
+  note_tinyusb_task();
   auto *dev = static_cast<espp::UsbDevice *>(arg);
   if (!dev || !event)
     return;
