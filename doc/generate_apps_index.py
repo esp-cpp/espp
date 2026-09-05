@@ -28,20 +28,24 @@ def extract(path: Path):
 
 def main() -> int:
     apps_dir = Path(sys.argv[1])
-    apps = sorted(p for p in apps_dir.glob("*.html") if p.name != "index.html")
+    apps = [p for p in apps_dir.glob("*.html") if p.name != "index.html"]
     if not apps:
         print(f"no apps found in {apps_dir}", file=sys.stderr)
         return 1
 
+    # Sort by display title (case-insensitive) so the grid reads alphabetically
+    # regardless of file name.
+    entries = sorted(((extract(p), p.name) for p in apps),
+                     key=lambda e: e[0][0].casefold())
     cards = []
-    for app in apps:
-        title, desc = extract(app)
+    for (title, desc), name in entries:
         cards.append(
-            f'      <a class="card" href="{html.escape(app.name)}">\n'
+            f'      <a class="card" href="{html.escape(name)}">\n'
             f"        <h2>{html.escape(title)}</h2>\n"
             f"        <p>{html.escape(desc) if desc else '&nbsp;'}</p>\n"
             f"      </a>")
-        print(f"  indexed: {app.name} -> {title}")
+        print(f"  indexed: {name} -> {title}")
+    count = len(entries)
 
     page = f"""<!DOCTYPE html>
 <html lang="en">
@@ -81,9 +85,10 @@ def main() -> int:
 <body>
   <main>
     <h1>espp Web Apps</h1>
-    <p class="sub">Self-contained browser tools hosted with the espp documentation.
-    They use the Web&nbsp;Serial / WebUSB / WebHID APIs (Chromium-based browsers)
-    and talk directly to your hardware &mdash; nothing to install.</p>
+    <p class="sub">{count} self-contained browser tools hosted with the espp
+    documentation. They use the Web&nbsp;Serial / WebUSB / WebHID APIs
+    (Chromium-based browsers) and talk directly to your hardware &mdash; nothing
+    to install.</p>
     <div class="grid">
 {chr(10).join(cards)}
     </div>
