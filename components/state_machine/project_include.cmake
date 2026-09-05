@@ -64,6 +64,18 @@ function(espp_generate_hfsm)
     message(FATAL_ERROR "espp_generate_hfsm: no such model: ${HFSM_MODEL}")
   endif()
 
+  get_filename_component(_output_dir "${HFSM_OUTPUT_DIR}" ABSOLUTE
+                         BASE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+  get_filename_component(_binary_dir "${CMAKE_BINARY_DIR}" ABSOLUTE)
+  file(RELATIVE_PATH _output_relative "${_binary_dir}" "${_output_dir}")
+  if(_output_relative STREQUAL "" OR
+     _output_relative MATCHES "^\\.\\.(/|$)" OR
+     IS_ABSOLUTE "${_output_relative}")
+    message(FATAL_ERROR
+      "espp_generate_hfsm: OUTPUT_DIR must be inside CMAKE_BINARY_DIR: "
+      "${HFSM_OUTPUT_DIR}")
+  endif()
+
   # Re-run cmake when the model changes, so editing it regenerates on
   # the next build rather than the next clean. A function does not open
   # a directory scope, so this lands on the caller's directory.
@@ -86,7 +98,7 @@ function(espp_generate_hfsm)
     set(_cmd "${ESPP_NPX_EXECUTABLE}" --yes -p "${ESPP_HFSM_GEN_SPEC}" hfsm-gen)
   endif()
 
-  set(_args "${HFSM_MODEL}" -o "${HFSM_OUTPUT_DIR}")
+  set(_args "${HFSM_MODEL}" -o "${_output_dir}")
   if(NOT HFSM_WITH_SUPPORT)
     # Generate THIS machine and not the shared runtime: state_base.hpp,
     # the history states and magic_enum.hpp are the same for every
@@ -105,8 +117,8 @@ function(espp_generate_hfsm)
   # emits, so a machine renamed or removed in the model would leave an
   # obsolete .cpp behind in the (persistent) binary dir for CMake to go
   # on compiling.
-  file(REMOVE_RECURSE "${HFSM_OUTPUT_DIR}")
-  file(MAKE_DIRECTORY "${HFSM_OUTPUT_DIR}")
+  file(REMOVE_RECURSE "${_output_dir}")
+  file(MAKE_DIRECTORY "${_output_dir}")
 
   message(STATUS "hfsm: generating C++ from ${HFSM_MODEL}")
   execute_process(
@@ -121,7 +133,7 @@ function(espp_generate_hfsm)
   # Found rather than assumed: the file names come from the machine's
   # name in the model, so a caller would otherwise have to know what
   # its own model is called and keep that in step by hand.
-  file(GLOB _sources "${HFSM_OUTPUT_DIR}/*.cpp")
+  file(GLOB _sources "${_output_dir}/*.cpp")
   list(SORT _sources)
   if(NOT _sources)
     message(FATAL_ERROR
@@ -132,6 +144,6 @@ function(espp_generate_hfsm)
     set(${HFSM_SOURCES_VAR} "${_sources}" PARENT_SCOPE)
   endif()
   if(HFSM_INCLUDE_DIR_VAR)
-    set(${HFSM_INCLUDE_DIR_VAR} "${HFSM_OUTPUT_DIR}" PARENT_SCOPE)
+    set(${HFSM_INCLUDE_DIR_VAR} "${_output_dir}" PARENT_SCOPE)
   endif()
 endfunction()
