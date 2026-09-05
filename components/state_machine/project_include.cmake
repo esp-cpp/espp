@@ -122,6 +122,7 @@ function(espp_generate_hfsm)
   # name in the model, so a caller would otherwise have to know what
   # its own model is called and keep that in step by hand.
   file(GLOB _sources "${HFSM_OUTPUT_DIR}/*.cpp")
+  list(SORT _sources)
   if(NOT _sources)
     message(FATAL_ERROR
       "hfsm: ${HFSM_MODEL} generated no .cpp -- does it contain a State Machine?")
