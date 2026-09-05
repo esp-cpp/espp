@@ -209,6 +209,21 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
 
 #endif // CFG_TUD_VENDOR > 0
 
+// Device unmount: drop any bytes still queued in the TX FIFOs. A host that goes
+// away (cable pull / re-enumeration / suspend) leaves its unread backlog in the
+// software FIFO; clearing it here means the next host to mount starts from an
+// empty pipe and cannot mis-parse a stale frame as the reply to its first
+// command. (An abrupt tab close does NOT unmount, so it does not reach here --
+// that path relies on the streaming producer's own backpressure handling.)
+void tud_umount_cb(void) {
+#if (CFG_TUD_VENDOR > 0)
+  tud_vendor_write_clear();
+#endif
+#if (CFG_TUD_CDC > 0)
+  tud_cdc_n_write_clear(kCdcPort);
+#endif
+}
+
 #if (CFG_TUD_HID > 0)
 
 // HID: return the application-supplied report descriptor for the given instance.
@@ -1140,6 +1155,34 @@ bool UsbDevice::is_vendor_connected() const {
   if (!initialized_ || !config_.vendor)
     return false;
   return tud_mounted();
+}
+
+size_t UsbDevice::vendor_write_available() const {
+#if (CFG_TUD_VENDOR > 0)
+  if (!initialized_ || !config_.vendor || !tud_mounted())
+    return 0;
+  return tud_vendor_write_available();
+#else
+  return 0;
+#endif
+}
+
+size_t UsbDevice::cdc_write_available() const {
+  if (!initialized_ || !config_.cdc || !tud_mounted())
+    return 0;
+  return tud_cdc_n_write_available(kCdcPort);
+}
+
+void UsbDevice::vendor_write_clear() {
+#if (CFG_TUD_VENDOR > 0)
+  if (initialized_ && config_.vendor)
+    tud_vendor_write_clear();
+#endif
+}
+
+void UsbDevice::cdc_write_clear() {
+  if (initialized_ && config_.cdc)
+    tud_cdc_n_write_clear(kCdcPort);
 }
 
 bool UsbDevice::is_hid_ready() const {

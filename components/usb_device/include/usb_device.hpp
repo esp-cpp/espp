@@ -237,6 +237,32 @@ public:
   /// @brief Convenience overload of write_vendor() that ignores errors.
   bool write_vendor(std::span<const uint8_t> data);
 
+  /// @brief Bytes of free space currently in the vendor TX FIFO.
+  /// @return How many bytes write_vendor() can accept right now without
+  ///         blocking, or 0 if not initialized / no vendor interface / not
+  ///         mounted. A point-in-time hint: with a single serialized writer it
+  ///         is stable, otherwise treat it as advisory. Use it to skip or defer
+  ///         a streaming frame when the host has stopped draining the endpoint,
+  ///         instead of building the frame and having write_vendor() drop it.
+  size_t vendor_write_available() const;
+
+  /// @brief Bytes of free space currently in the CDC TX FIFO.
+  /// @return How many bytes write_cdc() can accept right now, or 0 if not
+  ///         initialized / no CDC interface / not mounted. See
+  ///         vendor_write_available() for usage notes.
+  size_t cdc_write_available() const;
+
+  /// @brief Discard any bytes queued in the vendor TX FIFO that have not been
+  ///        sent yet. Call this when the host goes away (e.g. on a detected
+  ///        disconnect / stream stall) so a stale backlog (queued telemetry) is
+  ///        not delivered to the next host that connects and mis-parsed as a
+  ///        reply to its first command.
+  void vendor_write_clear();
+
+  /// @brief Discard any bytes queued in the CDC TX FIFO that have not been sent
+  ///        yet. See vendor_write_clear() for usage notes.
+  void cdc_write_clear();
+
   /**
    * @brief Send a HID input report on the HID function's interrupt IN endpoint.
    * @param report_id HID report id (0 if the report descriptor has no report id;
