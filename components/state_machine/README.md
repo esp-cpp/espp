@@ -11,6 +11,24 @@ Note: This is a generic HFSM implementation - it should be used with generated
 code or a manually written state machine, as it provides no functionality on its
 own.
 
+## Generating a state machine
+
+`state_machine` is the runtime; the machines themselves are generated
+from a model by [webgme-hfsm][repo]. You can model and generate one
+entirely in the browser — no install, no server — with the
+[**HFSM Playground**][playground], or from the command line:
+
+```sh
+npx -p webgme-hfsm hfsm-gen my_machine.json -o generated
+```
+
+The example wires that into its CMake, so its C++ is generated at build
+time from [`Complex.json`](example/main/Complex.json) rather than
+checked in — see [the example README](example/README.md).
+
+[repo]: https://github.com/finger563/webgme-hfsm
+[playground]: https://finger563.github.io/webgme-hfsm/
+
 ## Example
 
 This example shows an example of running the below HFSM on an ESP32 in a

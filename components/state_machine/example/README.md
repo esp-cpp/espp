@@ -8,6 +8,42 @@ CLI to manually spawn events and trace the execution). For more information, see
 
 ![hfsm](https://user-images.githubusercontent.com/213467/230950083-d4d8a483-31a7-43ac-8822-b1e28d552984.png)
 
+## The state machine is generated, not checked in
+
+The HFSM's C++ is generated from [`main/Complex.json`](main/Complex.json)
+every time the example is configured. The model is the source; the C++ is
+a build product, like an object file.
+
+This needs **node (>= 18)** on your PATH — nothing else, and nothing to
+install by hand. `npx` fetches the generator on demand:
+
+```
+idf.py build      # generates main/Complex.json -> build/.../hfsm/, then builds
+```
+
+Editing the model regenerates on the next build; you do not need to clean.
+
+To edit the machine, open it in the **[HFSM Playground][playground]** — a
+browser-based editor and code generator, no install and no server. Load
+`main/Complex.json` with **Open file…**, or jump straight to this
+example's machine:
+
+[**Open this example's HFSM in the playground**][this-model]
+
+Save the edited model back over `main/Complex.json` and rebuild.
+
+If you are working on the generator itself, point the build at your
+checkout instead of npx:
+
+```
+idf.py -DHFSM_GEN_COMMAND="node;/path/to/webgme-hfsm/bin/hfsm-gen.js" build
+```
+
+The same flag is the way to build without network access.
+
+[playground]: https://finger563.github.io/webgme-hfsm/
+[this-model]: https://finger563.github.io/webgme-hfsm/?example=Complex&view=diagram
+
 ## How to use example
 
 ### Build and Flash

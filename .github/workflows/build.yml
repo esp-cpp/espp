@@ -298,6 +298,11 @@ jobs:
           target: esp32s3
         - path: 'components/state_machine/example'
           target: esp32
+          # this example GENERATES its state machine from Complex.json
+          # at configure time, and the esp-idf image has no node
+          command: >-
+            (command -v node >/dev/null || (apt-get update && apt-get install -y nodejs npm)) &&
+            IDF_COMPONENT_MANAGER=0 idf.py build
         - path: 'components/stream_frame/example'
           target: esp32
         - path: 'components/sx126x/example'
