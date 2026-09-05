@@ -9,8 +9,9 @@
 /// A contiguous run captured in order from a real controller, so the block's
 /// internal (packed, undocumented) per-sample timestamps advance monotonically
 /// when replayed in sequence. The console enables IMU during init and every real
-/// report carries this 40-byte block; we replay this sequence (looping) so our
-/// stream matches the device rather than sending an empty or non-monotonic block.
+/// report carries this 40-byte block. This sequence is replayed (looping) ONLY when
+/// Config::stream_imu_motion is enabled; by default (false) send_input_report()
+/// leaves the motion block all-zero, which the console also accepts.
 
 namespace espp::switch2 {
 inline constexpr std::array<std::array<uint8_t, 40>, 128> kMotionSequence = {{

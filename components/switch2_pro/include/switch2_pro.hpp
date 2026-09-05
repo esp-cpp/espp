@@ -255,6 +255,12 @@ protected:
   std::shared_ptr<espp::Timer> wake_timer_; ///< re-issues the wake advertisement until connected
   BleGattServer ble_gatt_server_;
 
+  // Per-characteristic callback objects. NimBLECharacteristic::setCallbacks() only
+  // stores the raw pointer and never deletes it, so we own them here (deleted via
+  // the virtual base after ble_gatt_server_.deinit() has torn down the
+  // characteristics in the destructor).
+  std::vector<std::unique_ptr<NimBLECharacteristicCallbacks>> channel_callbacks_;
+
   // Proprietary GATT characteristics (owned by NimBLE once created).
   NimBLECharacteristic *common_input_{nullptr};
   NimBLECharacteristic *pro2_input_{nullptr};

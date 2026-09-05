@@ -260,14 +260,14 @@ void Switch2Pro::configure_callbacks() {
     // Remember the connection so the pairing exchange can report the exact
     // over-the-air address the console connected to (see local_bt_address()).
     active_conn_handle_ = info.getConnHandle();
-    wake_pending_ = false; // wake accomplished — subsequent advertising can be passive
-    pairing_stage_ = 0;    // a fresh connection restarts the 0x15 handshake sequence
-    // Wake-on-boot is one-shot: clear it on the first connection so we never wake a
-    // console the user intentionally sleeps later. The wake timer cancels ITSELF on
-    // its next tick (see start_wake_timer) — do NOT cancel/join it from here, since
-    // this callback may run under the NimBLE host lock the timer task also needs.
-    // User-requested wake stays available via wake_console().
-    boot_wake_pending_ = false;
+    pairing_stage_ = 0; // a fresh connection restarts the 0x15 handshake sequence
+    // NOTE: the wake latches (wake_pending_ / boot_wake_pending_) are deliberately
+    // NOT cleared here. A console we just woke can connect and then drop again before
+    // encryption/init completes; clearing on the raw connect event would make the
+    // ensuing disconnect fall back to the passive reconnect advertisement, when we
+    // still need the wake variant to keep nudging. They are cleared only once a
+    // usable (encrypted) session is confirmed — in the authentication_complete
+    // callback below — after which the wake timer self-cancels on its next tick.
     // The connection interval right after connect is the key diagnostic: the
     // Switch 2 drives 5 ms (interval == 4 units). If a controller can't hold
     // that, the console typically disconnects with a supervision timeout.
@@ -339,6 +339,15 @@ void Switch2Pro::configure_callbacks() {
     // accepted.
     logger_.info("AUTH complete: encrypted={} bonded={} authenticated={}", info.isEncrypted(),
                  info.isBonded(), info.isAuthenticated());
+    // A usable (encrypted) session is now established, so any pending wake has
+    // succeeded: drop the wake latches. Doing it here (not on the raw connect event)
+    // means a transient connect/drop before encryption keeps the wake variant on the
+    // air. boot_wake_pending_=false lets the wake timer self-cancel on its next tick
+    // (from its own task — never cancel/join it from a host-callback context).
+    if (info.isEncrypted()) {
+      wake_pending_ = false;
+      boot_wake_pending_ = false;
+    }
   };
   ble_gatt_server_.set_callbacks(callbacks);
 }
@@ -375,7 +384,11 @@ bool Switch2Pro::build_gatt() {
   // exactly what the console does. Roles: 1 = command 0x0014, 2 = vibration+
   // command 0x0016, 0 = passive.
   auto attach = [this](NimBLECharacteristic *c, const char *name, int role) {
-    c->setCallbacks(new ChannelCallbacks(this, name, role));
+    // We own the callback object (NimBLE only stores the raw pointer, never frees
+    // it) so it is not leaked on teardown and outlives the characteristic.
+    auto cb = std::make_unique<ChannelCallbacks>(this, name, role);
+    c->setCallbacks(cb.get());
+    channel_callbacks_.push_back(std::move(cb));
   };
 
   // Service 1 (purpose not fully understood; created so the handle map matches
