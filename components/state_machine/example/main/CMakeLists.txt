@@ -13,7 +13,7 @@ set(HFSM_MODEL "${CMAKE_CURRENT_LIST_DIR}/Complex.json")
 # npm version because the packaging fix that makes `npx webgme-hfsm`
 # work at all is not in a release yet; switch to "webgme-hfsm@^1.8.0"
 # once it is published.
-set(HFSM_GEN_SPEC "github:finger563/webgme-hfsm#638226b3e1e1c0002298d68f7237bcf7ca908a27"
+set(HFSM_GEN_SPEC "github:finger563/webgme-hfsm#3f4652e5b3c89b80e1ba7befb856f22aa959c02e"
     CACHE STRING "npm/npx spec for the webgme-hfsm code generator")
 
 # Set this to skip npx entirely -- e.g. a local checkout while working
@@ -26,7 +26,6 @@ set(HFSM_GEN_COMMAND "" CACHE STRING
 # C++ on the next build rather than on the next clean.
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${HFSM_MODEL}")
 
-set(HFSM_RAW_DIR "${CMAKE_CURRENT_BINARY_DIR}/hfsm-raw")
 set(HFSM_DIR "${CMAKE_CURRENT_BINARY_DIR}/hfsm")
 
 if(HFSM_GEN_COMMAND)
@@ -44,26 +43,24 @@ else()
   set(_hfsm_cmd "${NPX_EXECUTABLE}" -y -p "${HFSM_GEN_SPEC}" hfsm-gen)
 endif()
 
+# --no-support: generate THIS machine and not the shared runtime.
+#
+# The generator otherwise also emits state_base.hpp,
+# deep_history_state.hpp, shallow_history_state.hpp and magic_enum.hpp,
+# which are the same for every machine. This component already provides
+# them -- espp's are the ones the rest of the codebase is built against,
+# and its magic_enum is newer than the generator's -- so a second copy
+# beside the generated machine would land on the include path and
+# shadow them.
 message(STATUS "hfsm: generating C++ from ${HFSM_MODEL}")
 execute_process(
-  COMMAND ${_hfsm_cmd} "${HFSM_MODEL}" -o "${HFSM_RAW_DIR}"
+  COMMAND ${_hfsm_cmd} "${HFSM_MODEL}" -o "${HFSM_DIR}" --no-support
   RESULT_VARIABLE _hfsm_result
   OUTPUT_VARIABLE _hfsm_out
   ERROR_VARIABLE _hfsm_err)
 if(NOT _hfsm_result EQUAL 0)
   message(FATAL_ERROR "hfsm generation failed:\n${_hfsm_out}${_hfsm_err}")
 endif()
-
-# Take ONLY the model-specific files. The generator also emits its own
-# state_base.hpp / deep_history_state.hpp / shallow_history_state.hpp /
-# magic_enum.hpp, and this component already provides those -- espp's
-# are the adapted ones the rest of the codebase expects. Putting the
-# generator's copies on the include path would shadow them.
-file(MAKE_DIRECTORY "${HFSM_DIR}")
-foreach(_f Complex_generated_states.hpp Complex_generated_states.cpp
-           Complex_event_data.hpp)
-  configure_file("${HFSM_RAW_DIR}/${_f}" "${HFSM_DIR}/${_f}" COPYONLY)
-endforeach()
 
 idf_component_register(
   SRCS "hfsm_example.cpp" "${HFSM_DIR}/Complex_generated_states.cpp"

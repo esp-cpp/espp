@@ -23,6 +23,11 @@ idf.py build      # generates main/Complex.json -> build/.../hfsm/, then builds
 
 Editing the model regenerates on the next build; you do not need to clean.
 
+Only the machine itself is generated. The shared runtime it builds on
+— `state_base.hpp`, the history states, `magic_enum.hpp` — comes from
+this component, via the generator's `--no-support` flag; espp's copies
+are the ones the rest of the codebase is built against.
+
 To edit the machine, open it in the **[HFSM Playground][playground]** — a
 browser-based editor and code generator, no install and no server. Load
 `main/Complex.json` with **Open file…**, or jump straight to this
