@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "base_component.hpp"
+#include "tinyusb.h" // for tinyusb_event_t (esp_tinyusb is already a REQUIRES dependency)
 
 namespace espp {
 
@@ -328,11 +329,6 @@ public:
   /// @param bufsize Number of bytes at @p buffer (0 when @p buffer is null).
   void handle_vendor_rx(const uint8_t *buffer = nullptr, size_t bufsize = 0);
 
-  /// @brief Internal: mount / unmount handling driven by esp_tinyusb's event_cb
-  ///        (clears the TX FIFOs on unmount, then invokes the app callback).
-  void handle_usb_mount();
-  void handle_usb_unmount();
-
   /// @brief Internal: pointer to the BOS descriptor bytes (nullptr if none).
   const uint8_t *bos_descriptor() const;
 
@@ -354,6 +350,15 @@ public:
   static UsbDevice *instance();
 
 private:
+  // Trampoline registered as tinyusb_config_t::event_cb; routes
+  // TINYUSB_EVENT_ATTACHED/DETACHED to the private handlers below.
+  friend void espp_usb_device_event_cb(tinyusb_event_t *event, void *arg);
+
+  /// @brief Internal: mount / unmount handling driven by esp_tinyusb's event_cb
+  ///        (clears the TX FIFOs on unmount, then invokes the app callback).
+  void handle_usb_mount();
+  void handle_usb_unmount();
+
   struct Impl; // holds TinyUSB descriptors, kept alive for driver lifetime
   std::unique_ptr<Impl> impl_;
 
