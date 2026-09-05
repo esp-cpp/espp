@@ -23,8 +23,10 @@ built-in protocols use, for example:
 | Module    | Protocol             |
 |-----------|----------------------|
 | 0         | OTA                  |
+| 2         | BLDC haptics         |
 | 4         | crash dump           |
 | 5         | CAN bridge           |
+| 6         | MCP266               |
 | 0xF0–0xFF | reserved (meta)      |
 | 0xFF      | capability discovery |
 

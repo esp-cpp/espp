@@ -27,6 +27,8 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/bldc_motor"
   "../../../components/bldc_types"
   "../../../components/cli"
+  "../../../components/coredump"
+  "../../../components/dispatcher"
   "../../../components/esp-dsp"
   "../../../components/filters"
   "../../../components/format"

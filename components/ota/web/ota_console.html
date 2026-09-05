@@ -178,6 +178,7 @@
     .log .tx { color: var(--tx-color); }
     .log .rx { color: var(--rx-color); }
     .log .err { color: var(--err-color); }
+    .log .warn { color: #d08770; }
     .log .sys { color: var(--sys-color); }
     footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
     #unsupported {
@@ -204,7 +205,7 @@
         <button id="connectBtn" class="primary">Connect</button>
         <label><input type="checkbox" id="anyDevice"> show all USB devices (no VID/PID filter)</label>
       </div>
-      <p id="devInfo" class="muted" style="margin: 8px 0 0;">Not connected. Default filter: VID 0x1209 / PID 0x0d32 (espp default); the vendor (0xFF) interface is discovered from the descriptors at runtime.</p>
+      <p id="devInfo" class="muted" style="margin: 8px 0 0;">Not connected. Default filter: any espp device (VID 0x1209); the vendor (0xFF) interface is discovered from the descriptors at runtime.</p>
     </div>
 
     <div class="panel">
@@ -258,6 +259,11 @@
     const MAX_PAYLOAD = 4096;
     const MAX_FRAME = HEADER_SIZE + MAX_PAYLOAD + CRC_SIZE;
     const MODULE_OTA = 0;                     // OTA is module 0
+    // Reserved dispatcher discovery module: a device running an espp::Dispatcher
+    // answers a ListModules query on 0xFF with the modules it serves, so we can
+    // confirm the OTA module is present before offering to flash it.
+    const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
+    const DISCOVERY_TIMEOUT_MS = 800;        // module-presence probe (0xFF ListModules) timeout
     const FLAGS_VERSION = 1;                  // protocol version lives in flags bits 4-7
     const FLAGS_REQUEST = (FLAGS_VERSION << 4) | 0; // host->device request: 0x10 (reply bit 0)
     const FLAGS_REPLY_BIT = 0x01;            // bit0 set on device->host replies
@@ -335,16 +341,17 @@
     // ===================================================================
     // Frame building & incremental parsing (mirrors detail/ota_stream_protocol.hpp)
     // ===================================================================
-    // This app only ever sends OTA requests, so module is hardcoded to
-    // MODULE_OTA and flags to FLAGS_REQUEST (reply bit clear).
-    function buildFrame(type, payload) {
+    // This app sends OTA requests (module defaults to MODULE_OTA); the module arg
+    // lets us also emit a discovery query on MODULE_DISCOVERY. flags are always
+    // FLAGS_REQUEST (reply bit clear).
+    function buildFrame(type, payload, module = MODULE_OTA) {
       payload = payload || new Uint8Array(0);
       if (payload.length > MAX_PAYLOAD) throw new Error("payload exceeds " + MAX_PAYLOAD + " bytes");
       const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
       const view = new DataView(frame.buffer);
       view.setUint16(0, 0x4F54, true);   // magic 'T''O' on the wire
       frame[2] = FLAGS_REQUEST;          // flags: version 1, request (reply bit 0)
-      frame[3] = MODULE_OTA;             // module: OTA = 0
+      frame[3] = module;                 // module: OTA = 0 (discovery = 0xFF)
       frame[4] = type;                   // message type
       view.setUint32(5, payload.length, true);
       frame.set(payload, HEADER_SIZE);
@@ -438,14 +445,25 @@
       if (device) await disconnect(); else await connect();
     });
 
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
+
     async function connect() {
       try {
-        // `{ filters: [] }` is not a valid "any device" request in Chromium's
-        // WebUSB; use the explicit `acceptAllDevices` flag for that path.
-        const options = els.anyDevice.checked
-          ? { acceptAllDevices: true }
-          : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
-        device = await navigator.usb.requestDevice(options);
+        device = await requestUsbDevice(els.anyDevice.checked);
       } catch (e) {
         // Only NotFoundError is a user cancel / no-match; anything else is real.
         if (e && e.name === "NotFoundError") logLine("sys", "Device selection cancelled.");
@@ -468,6 +486,7 @@
         " (" + inPacketSize + "B) · OUT 0x" + epOut.toString(16);
       logLine("sys", "Connected to " + name + ". Vendor iface " + ifaceNumber +
               ", bulk IN 0x" + epIn.toString(16) + " / OUT 0x" + epOut.toString(16) + ".");
+      checkModulePresent().catch(() => {}); // best-effort: warn if this device lacks the OTA module
     }
 
     async function openAndClaim() {
@@ -552,7 +571,7 @@
       const file = els.fileInput.files && els.fileInput.files[0];
       els.uploadBtn.disabled = !(device && file && !uploading);
       els.abortBtn.disabled = !uploading;
-      if (!device) els.devInfo.textContent = "Not connected. Default filter: VID 0x1209 / PID 0x0d32 (espp default); the vendor (0xFF) interface is discovered from the descriptors at runtime.";
+      if (!device) els.devInfo.textContent = "Not connected. Default filter: any espp device (VID 0x1209); the vendor (0xFF) interface is discovered from the descriptors at runtime.";
     }
 
     // ===================================================================
@@ -668,6 +687,60 @@
             if (!manualDisconnect) await recoverLink(TYPE_NAME[type] + " deadline");
             throw e;
           }
+        }
+      });
+    }
+
+    // ===================================================================
+    // Module presence check (dispatcher discovery)
+    // ===================================================================
+    // Decode the ListModules TLV (see espp::Dispatcher::describe).
+    function parseDiscovery(payload) {
+      let i = 0;
+      const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
+      const u8 = () => { need(1); return payload[i++]; };
+      const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
+      const version = u8(); u8();            // version, reserved
+      const dev = str(), fw = str();
+      const count = u8();
+      const modules = [];
+      for (let m = 0; m < count; m++) modules.push({ id: u8(), name: str(), app: str(), desc: str() });
+      return { version, device: dev, fw, modules };
+    }
+    // Ask the device which dispatcher modules it serves and warn (best-effort) if
+    // the OTA module is not among them. A device / firmware without the discovery
+    // module never replies: readBytes times out, we resync the link (a benign USB
+    // reset, not a reboot) and stay quiet -- a real BEGIN later still reports a
+    // genuinely missing module.
+    function checkModulePresent() {
+      return enqueue(async () => {
+        if (!device || epOut === null) return;
+        try {
+          await device.transferOut(epOut, buildFrame(T_LIST_MODULES, null, MODULE_DISCOVERY));
+        } catch (_) { return; }
+        const timeoutMs = DISCOVERY_TIMEOUT_MS, deadline = Date.now() + timeoutMs;
+        for (;;) {
+          let bytes;
+          try {
+            bytes = await readBytes(timeoutMs, deadline);
+          } catch (e) {
+            if (e && e.needsRecovery && !manualDisconnect) await recoverLink("module discovery");
+            return; // no discovery support -> stay quiet
+          }
+          for (const reply of parser.feed(bytes)) {
+            if (reply.module !== MODULE_DISCOVERY || !reply.reply || reply.type !== T_LIST_MODULES) continue;
+            let info;
+            try { info = parseDiscovery(reply.payload); } catch (_) { return; }
+            if (info.modules.some((m) => m.id === MODULE_OTA)) {
+              logLine("sys", "Device advertises " + info.modules.length + " module(s); OTA module present.");
+            } else {
+              const names = info.modules.map((m) => m.name + " (#" + m.id + ")").join(", ") || "none";
+              logLine("warn", "This device does not advertise the OTA module. Detected: " + names +
+                      ". You may have selected the wrong device, or its firmware lacks OTA.");
+            }
+            return;
+          }
+          if (Date.now() >= deadline) return;
         }
       });
     }

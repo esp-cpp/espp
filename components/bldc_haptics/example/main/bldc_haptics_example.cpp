@@ -9,9 +9,9 @@
 #include <memory>
 #include <mutex>
 #include <sdkconfig.h>
+#include <span>
 #include <vector>
 
-#include "esp_core_dump.h"
 #include "esp_system.h"
 #include "esp_timer.h"
 #include "tusb_cdc_acm.h"
@@ -22,6 +22,10 @@
 #include "bldc_driver.hpp"
 #include "bldc_haptics.hpp"
 #include "bldc_motor.hpp"
+#include "coredump.hpp"
+#include "coredump_service.hpp"
+#include "detail/ota_stream_protocol.hpp"
+#include "dispatcher.hpp"
 #include "i2c.hpp"
 #include "mt6701.hpp"
 #include "ota.hpp"
@@ -111,53 +115,23 @@ extern "C" void app_main(void) {
   namespace proto = haptics_proto;
 
   // --------------------------------------------------------------------------
-  // Last-crash report. TinyUSB owns the S3's only USB PHY, so there is no live
-  // USB-Serial-JTAG console and a panic backtrace cannot be watched directly;
-  // instead panics core-dump to flash (see sdkconfig/partitions) and THIS boot
-  // summarizes the previous crash - over the CDC banner below, the console,
-  // and the GET_CRASH protocol command (shown in the web console's log).
+  // Core dump: the last-crash summary (logged at boot + shown on the CDC banner
+  // below) plus the module-4 download service further down. TinyUSB owns the
+  // S3's only USB PHY, so there is no live USB-Serial-JTAG console to watch a
+  // panic backtrace on; panics core-dump to flash (see sdkconfig/partitions).
+  // The dump is intentionally NOT erased here -- the coredump web console can
+  // download and explicitly erase it over the module-4 protocol.
   // --------------------------------------------------------------------------
-  std::string crash_report;
-  {
-    const esp_reset_reason_t reset_reason = esp_reset_reason();
-    const char *reset_names[] = {"UNKNOWN", "POWERON",  "EXT", "SW",        "PANIC",
-                                 "INT_WDT", "TASK_WDT", "WDT", "DEEPSLEEP", "BROWNOUT",
-                                 "SDIO",    "USB",      "JTAG"};
-    const auto reason_index = static_cast<size_t>(reset_reason);
-    const char *reason_name =
-        reason_index < std::size(reset_names) ? reset_names[reason_index] : "?";
-    logger.info("Reset reason: {} ({})", reason_name, static_cast<int>(reset_reason));
-    if (esp_core_dump_image_check() == ESP_OK) {
-      esp_core_dump_summary_t summary = {};
-      if (esp_core_dump_get_summary(&summary) == ESP_OK) {
-        crash_report = fmt::format("last reset: {} | crashed task '{}' PC=0x{:08x}", reason_name,
-                                   summary.exc_task, summary.exc_pc);
-        crash_report += " | backtrace:";
-        const auto depth =
-            std::min<uint32_t>(summary.exc_bt_info.depth, std::size(summary.exc_bt_info.bt));
-        for (uint32_t i = 0; i < depth; i++)
-          crash_report += fmt::format(" 0x{:08x}", summary.exc_bt_info.bt[i]);
-        if (summary.exc_bt_info.corrupted)
-          crash_report += " (corrupted)";
-        crash_report +=
-            "\ndecode with: xtensa-esp32s3-elf-addr2line -pfiaC -e build/bldc_haptics_example.elf "
-            "<addrs>";
-        logger.error("Previous crash detected: {}", crash_report);
-        // The flash dump persists until erased; without this every subsequent
-        // clean boot would keep re-reporting the same old crash (mislabeled
-        // with the CURRENT reset reason). The summary above is the advertised
-        // decode path, so consume the dump now that it is cached in RAM.
-        if (esp_core_dump_image_erase() != ESP_OK)
-          logger.warn("Failed to erase the consumed core dump image");
-      }
-    } else if (reset_reason == ESP_RST_BROWNOUT || reset_reason == ESP_RST_INT_WDT ||
-               reset_reason == ESP_RST_TASK_WDT) {
-      // no core dump is written for these, but the reason itself is the story
-      crash_report = fmt::format(
-          "last reset: {} (no core dump: {})", reason_name,
-          reset_reason == ESP_RST_BROWNOUT ? "brownout - check motor/USB power" : "watchdog reset");
-      logger.error("Previous abnormal reset: {}", crash_report);
-    }
+  espp::CoreDump core_dump({.log_level = espp::Logger::Verbosity::INFO});
+  const std::string crash_report = core_dump.format_report();
+  if (crash_report.empty()) {
+    logger.info("Clean boot (reset reason: {})",
+                espp::CoreDump::reset_reason_name(espp::CoreDump::reset_reason()));
+  } else {
+    logger.error("Previous abnormal reset:\n{}", crash_report);
+    if (core_dump.has_core_dump())
+      logger.info("Core dump in flash ({} bytes) -- download it with the coredump web console",
+                  core_dump.image_size());
   }
 
   // --------------------------------------------------------------------------
@@ -383,7 +357,10 @@ extern "C" void app_main(void) {
   // The vendor TX path is written to from two tasks (protocol worker replies +
   // telemetry), so serialize the writes.
   std::mutex usb_tx_mutex;
-  auto usb_send = [&](const std::vector<uint8_t> &frame) {
+  // Takes a span so callers can pass either an owning std::vector (built by
+  // proto::build / ota_stream make_*, converted implicitly, no copy) or a
+  // borrowed buffer (the discovery / coredump reply spans) without allocating.
+  auto usb_send = [&](std::span<const uint8_t> frame) {
     if (frame.empty())
       return;
     std::lock_guard<std::mutex> lk(usb_tx_mutex);
@@ -451,7 +428,10 @@ extern "C" void app_main(void) {
   // --------------------------------------------------------------------------
   // Protocol frame handling (runs in the worker task)
   // --------------------------------------------------------------------------
-  proto::stream::StreamParser parser;
+  // Route the vendor stream through a Dispatcher on the haptics module (2); the
+  // module is registered (and advertised for capability discovery) once
+  // handle_frame is defined, below.
+  espp::Dispatcher dispatcher;
   bool restart_pending = false;
 
   // Build replies via proto::build so they carry the haptics module (2) + reply
@@ -516,57 +496,7 @@ extern "C" void app_main(void) {
   };
 
   auto handle_frame = [&](const proto::stream::Frame &frame) {
-    std::error_code ec;
     switch (static_cast<proto::Msg>(frame.type)) {
-    // --- OTA subset ----------------------------------------------------------
-    case proto::Msg::OtaBegin: {
-      const auto image_size = proto::stream::parse_u32_payload(frame);
-      if (!image_size.has_value()) {
-        reply_errc(std::errc::invalid_argument, "malformed OTA BEGIN");
-        break;
-      }
-      if (ota.begin(*image_size, ec))
-        reply_ok(0);
-      else
-        reply_error(ec, "OTA begin failed");
-      break;
-    }
-    case proto::Msg::OtaData:
-      if (!ota.session_active()) {
-        reply_errc(std::errc::operation_not_permitted, "no update session (send BEGIN first)");
-        break;
-      }
-      if (ota.write(frame.payload, ec))
-        reply_ok(static_cast<uint32_t>(ota.bytes_written()));
-      else
-        reply_error(ec, "OTA write failed"); // write() aborted the session on failure
-      break;
-    case proto::Msg::OtaFinish: {
-      if (!ota.session_active()) {
-        reply_errc(std::errc::operation_not_permitted, "no update session (send BEGIN first)");
-        break;
-      }
-      const auto written = static_cast<uint32_t>(ota.bytes_written());
-      if (ota.finish(ec)) {
-        reply_ok(written);
-        restart_pending = true; // reply first; the worker restarts shortly
-      } else {
-        reply_error(ec, "OTA finish (validate/activate) failed");
-      }
-      break;
-    }
-    case proto::Msg::OtaAbort: {
-      if (!ota.session_active()) {
-        reply_errc(std::errc::operation_not_permitted, "no update session to abort");
-        break;
-      }
-      const auto written = static_cast<uint32_t>(ota.bytes_written());
-      if (ota.abort(ec))
-        reply_ok(written);
-      else
-        reply_error(ec, "OTA abort failed");
-      break;
-    }
     // --- Haptics commands ----------------------------------------------------
     case proto::Msg::GetInfo:
       send_info();
@@ -577,11 +507,6 @@ extern "C" void app_main(void) {
     case proto::Msg::GetModes:
       send_modes();
       break;
-    case proto::Msg::GetCrash: {
-      std::vector<uint8_t> payload(crash_report.begin(), crash_report.end());
-      usb_send(proto::build(proto::Msg::Crash, payload));
-      break;
-    }
     case proto::Msg::SetMode: {
       if (frame.payload.size() != 1 || frame.payload[0] >= kPresets.size()) {
         reply_errc(std::errc::invalid_argument, "SET_MODE needs a valid u8 mode index");
@@ -677,6 +602,114 @@ extern "C" void app_main(void) {
     }
   };
 
+  // This example carries THREE protocols over the one vendor stream, each on its
+  // own dispatcher module and each advertised for capability discovery so the
+  // browser Device Hub lists and links them:
+  //   module 0 -> OTA         (standard espp ota_stream protocol -> ota_console)
+  //   module 2 -> BLDC haptics (this example's protocol           -> haptics_console)
+  //   module 4 -> core dump    (espp::CoreDumpService             -> coredump_console)
+  // Every handler gates on !is_reply() so a reply-typed echo cannot re-enter it.
+  namespace otap = espp::detail::ota_stream;
+
+  // --- OTA (module 0): same handling as the espp ota example, over this one
+  //     (USB-vendor) transport, so a plain ota_console can update this device.
+  auto ota_error = [&](const std::error_code &err, const std::string &ctx) {
+    usb_send(otap::make_error(static_cast<uint32_t>(err.value()), ctx + ": " + err.message()));
+  };
+  auto handle_ota_frame = [&](const espp::stream_frame::Frame &frame) {
+    std::error_code ec;
+    switch (static_cast<otap::MessageType>(frame.type)) {
+    case otap::MessageType::Begin: {
+      const auto image_size = otap::parse_u32_payload(frame);
+      if (!image_size.has_value()) {
+        ota_error(std::make_error_code(std::errc::invalid_argument), "malformed BEGIN");
+        break;
+      }
+      if (ota.begin(*image_size, ec))
+        usb_send(otap::make_ok(0));
+      else
+        ota_error(ec, "OTA begin failed");
+      break;
+    }
+    case otap::MessageType::Data:
+      if (!ota.session_active()) {
+        ota_error(std::make_error_code(std::errc::operation_not_permitted),
+                  "no update session (send BEGIN first)");
+        break;
+      }
+      if (ota.write(frame.payload, ec))
+        usb_send(otap::make_ok(static_cast<uint32_t>(ota.bytes_written())));
+      else
+        ota_error(ec, "OTA write failed"); // write() aborted the session on failure
+      break;
+    case otap::MessageType::Finish: {
+      if (!ota.session_active()) {
+        ota_error(std::make_error_code(std::errc::operation_not_permitted),
+                  "no update session (send BEGIN first)");
+        break;
+      }
+      const auto written = static_cast<uint32_t>(ota.bytes_written());
+      if (ota.finish(ec)) {
+        usb_send(otap::make_ok(written));
+        restart_pending = true; // reply first; the worker restarts shortly
+      } else {
+        ota_error(ec, "OTA finish (validate/activate) failed");
+      }
+      break;
+    }
+    case otap::MessageType::Abort: {
+      if (!ota.session_active()) {
+        ota_error(std::make_error_code(std::errc::operation_not_permitted),
+                  "no update session to abort");
+        break;
+      }
+      const auto written = static_cast<uint32_t>(ota.bytes_written());
+      if (ota.abort(ec))
+        usb_send(otap::make_ok(written));
+      else
+        ota_error(ec, "OTA abort failed");
+      break;
+    }
+    default:
+      ota_error(std::make_error_code(std::errc::not_supported), "unknown OTA message");
+      break;
+    }
+  };
+
+  // --- Core dump (module 4): the CoreDumpService serves the flash dump over the
+  //     standard protocol, so a plain coredump_console can download / erase it.
+  espp::CoreDumpService coredump_service(core_dump,
+                                         {.send = [&](std::span<const uint8_t> f) { usb_send(f); },
+                                          .log_level = espp::Logger::Verbosity::INFO});
+
+  dispatcher.register_module(
+      otap::kModule,
+      [&](const espp::stream_frame::Frame &frame) {
+        if (!frame.is_reply())
+          handle_ota_frame(frame);
+      },
+      {.name = "OTA", .app = "ota_console.html", .description = "Firmware update over USB"});
+  dispatcher.register_module(espp::CoreDumpService::kModule,
+                             [&](const espp::stream_frame::Frame &frame) {
+                               if (!frame.is_reply())
+                                 coredump_service.handle_frame(frame.type, frame.payload);
+                             },
+                             {.name = "Core Dump",
+                              .app = "coredump_console.html",
+                              .description = "Inspect the last crash core dump"});
+  dispatcher.register_module(proto::kModule,
+                             [&](const proto::stream::Frame &frame) {
+                               if (!frame.is_reply())
+                                 handle_frame(frame);
+                             },
+                             {.name = "BLDC Haptics",
+                              .app = "haptics_console.html",
+                              .description = "Haptic detent / feedback modes"});
+  dispatcher.set_device_info(usb_cfg.product);
+  // serve_discovery answers the reserved 0xFF module; route its reply through the
+  // same tx_mutex-guarded usb_send as every other frame.
+  dispatcher.serve_discovery([&](std::span<const uint8_t> f) { usb_send(f); });
+
   espp::Task usb_task(
       {.callback = [&](std::mutex &, std::condition_variable &) -> bool {
          std::vector<std::vector<uint8_t>> chunks;
@@ -694,20 +727,25 @@ extern "C" void app_main(void) {
          }
          if (overflowed) {
            // Bytes were dropped: any in-flight frame / OTA image is unusable.
+           // Report the drop on the module whose transfer was in flight so the
+           // driving host console sees it immediately: an active OTA session
+           // means ota_console (module 0) is uploading, otherwise it is a
+           // haptics command (module 2). Sending the wrong module's error would
+           // be ignored by the host, which would then wait for its own timeout.
+           const bool ota_was_active = ota.session_active();
            std::error_code abort_ec;
            ota.abort(abort_ec);
-           parser.reset();
-           reply_errc(std::errc::no_buffer_space,
-                      "RX overflow: frames dropped -- wait for OK replies between frames");
+           dispatcher.reset();
+           if (ota_was_active)
+             ota_error(std::make_error_code(std::errc::no_buffer_space),
+                       "RX overflow: frames dropped, update aborted");
+           else
+             reply_errc(std::errc::no_buffer_space,
+                        "RX overflow: frames dropped -- wait for OK replies between frames");
            return false; // dropped chunks are gone; skip parse
          }
          for (const auto &chunk : chunks)
-           for (const auto &frame : parser.feed(chunk))
-             // this protocol's REQUESTS only: ignore other modules and
-             // reply-flagged frames (the device answers requests; a reply-typed
-             // echo must not re-enter the request handler)
-             if (frame.module == proto::kModule && !frame.is_reply())
-               handle_frame(frame);
+           dispatcher.feed(chunk);
          if (restart_pending) {
            // give the final OK reply time to reach the host
            std::this_thread::sleep_for(750ms);

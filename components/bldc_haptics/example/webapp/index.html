@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>espp BLDC Haptics Console (WebUSB)</title>
-  <meta name="description" content="Control and visualize an espp BLDC haptic knob over WebUSB: live dial, detent presets, control commands and firmware (OTA) updates.">
+  <meta name="description" content="Control and visualize an espp BLDC haptic knob over WebUSB: live dial, detent presets, and control commands. Firmware update and crash inspection are separate modules (see the ota / coredump consoles via the device hub).">
   <!--
     espp BLDC Haptics Console (WebUSB)
     ==================================
@@ -23,8 +23,8 @@
       crc32("123456789") == 0xCBF43926. Payloads are capped at 4096 bytes
       per frame.
     - Commands are serialized (one in flight, wait for the reply); TELEMETRY
-      (0x93) and OTA_PROGRESS (0x83) frames arrive unsolicited and are
-      dispatched out-of-band by the RX pump.
+      (0x93) frames arrive unsolicited and are dispatched out-of-band by the RX
+      pump.
 
     Works from a file:// URL, http://localhost or any https origin in a
     Chromium browser (Chrome / Edge / Opera).
@@ -160,14 +160,6 @@
     #dialCanvas { width: 100%; height: auto; display: block; }
     .dial-caption { text-align: center; }
 
-    .progress-track {
-      width: 100%; height: 14px; border-radius: 999px; overflow: hidden;
-      background: var(--chip-bg); border: 1px solid var(--panel-border);
-    }
-    .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.15s linear; }
-    .progress-fill.done { background: var(--ok); }
-    .progress-fill.failed { background: var(--danger); }
-    .stats { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
     .log {
       background: var(--log-bg); color: var(--log-text);
@@ -180,6 +172,7 @@
     .log .tx { color: var(--tx-color); }
     .log .rx { color: var(--rx-color); }
     .log .err { color: var(--err-color); }
+    .log .warn { color: #d08770; }
     .log .sys { color: var(--sys-color); }
     footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
     #unsupported {
@@ -206,7 +199,7 @@
         <button id="connectBtn" class="primary">Connect</button>
         <label><input type="checkbox" id="anyDevice"> show all USB devices (no VID/PID filter)</label>
       </div>
-      <p id="devInfo" class="muted" style="margin: 8px 0 0;">Not connected. Default filter: VID 0x1209 / PID 0x0d34 ("espp BLDC Haptics"); the vendor (0xFF) interface is discovered from the descriptors at runtime.</p>
+      <p id="devInfo" class="muted" style="margin: 8px 0 0;">Not connected. Default filter: any espp device (VID 0x1209); this example is PID 0x0d34 ("espp BLDC Haptics"). The vendor (0xFF) interface is discovered from the descriptors at runtime.</p>
     </div>
 
     <div class="grid">
@@ -261,24 +254,6 @@
           </div>
         </div>
 
-        <div class="panel">
-          <h2>Firmware update (OTA)</h2>
-          <div class="row">
-            <input type="file" id="fileInput" accept=".bin,application/octet-stream" disabled>
-          </div>
-          <p id="fileInfo" class="muted" style="margin: 8px 0;">Pick the app image (e.g. <code>build/bldc_haptics_example.bin</code>) — NOT the merged / bootloader image.</p>
-          <div class="row" style="margin-bottom: 10px;">
-            <button id="uploadBtn" class="primary" disabled>Upload</button>
-            <button id="abortBtn" class="danger" disabled>Abort</button>
-          </div>
-          <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
-          <div class="stats" style="margin-top: 8px;">
-            <span id="statBytes">0 / 0 bytes</span>
-            <span id="statPercent">0%</span>
-            <span id="statRate">-</span>
-            <span id="statNote"></span>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -294,10 +269,9 @@
     <footer>
       Speaks the espp bldc_haptics example's vendor-interface protocol (frame:
       magic "OT" + flags + module + type + len + payload + CRC-32, dispatcher
-      module 2; see PROTOCOL.md). After an
-      OTA FINISH the device validates the image (SHA-256), sets the boot
-      partition and restarts; with bootloader rollback enabled the new app must
-      mark itself valid or the device rolls back.
+      module 2; see PROTOCOL.md). The same device also serves firmware update
+      (module 0) and crash-dump inspection (module 4) — use the ota / coredump
+      consoles (or the device hub, which discovers all three).
     </footer>
   </div>
 
@@ -315,26 +289,25 @@
     const MAX_PAYLOAD = 4096;
     const MAX_FRAME = HEADER_SIZE + MAX_PAYLOAD + CRC_SIZE;
     const MODULE_HAPTICS = 2;                 // the whole haptics protocol is dispatcher module 2
+    // Reserved dispatcher discovery module: a device that runs an espp::Dispatcher
+    // answers a ListModules query on 0xFF with the set of modules it serves, so we
+    // can confirm this device actually has the haptics module before driving it.
+    const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
+    const DISCOVERY_TIMEOUT_MS = 800;        // module-presence probe (0xFF ListModules) timeout
     const FLAGS_VERSION = 1;                  // protocol version lives in flags bits 4-7
     const FLAGS_REQUEST = (FLAGS_VERSION << 4) | 0; // host->device request: 0x10 (reply bit 0)
     const FLAGS_REPLY_BIT = 0x01;            // bit0 set on device->host replies/telemetry
     const FLAG_CORRELATION = 0x02;           // bit1: optional u16 correlation id present after `type`
     const TYPE = {
-      OTA_BEGIN: 0x01, OTA_DATA: 0x02, OTA_FINISH: 0x03, OTA_ABORT: 0x04,
       GET_INFO: 0x10, GET_STATUS: 0x11, GET_MODES: 0x12, SET_MODE: 0x13,
       SET_POSITION: 0x14, SET_ENABLED: 0x15, PLAY_HAPTIC: 0x16, SET_STREAMING: 0x17,
-      GET_CRASH: 0x18,
-      OK: 0x81, ERROR: 0x82, OTA_PROGRESS: 0x83,
-      INFO: 0x90, STATUS: 0x91, MODES: 0x92, TELEMETRY: 0x93, CRASH: 0x94,
+      OK: 0x81, ERROR: 0x82,
+      INFO: 0x90, STATUS: 0x91, MODES: 0x92, TELEMETRY: 0x93,
     };
     const TYPE_NAME = {};
     for (const [name, value] of Object.entries(TYPE)) TYPE_NAME[value] = name;
     const FLAG_ENABLED = 1, FLAG_FAULTED = 2, FLAG_STREAMING = 4;
-    // esp_ota_begin erases flash (seconds) and esp_ota_end re-reads + hashes
-    // the whole image, so give OTA BEGIN / FINISH long deadlines.
-    const CMD_TIMEOUT_MS = 3000, DATA_TIMEOUT_MS = 5000, BEGIN_TIMEOUT_MS = 60000, FINISH_TIMEOUT_MS = 60000;
-    const ESP_IMAGE_MAGIC = 0xE9;
-    const MAX_IMAGE_SIZE = 64 * 1024 * 1024;
+    const CMD_TIMEOUT_MS = 3000;
 
     // ===================================================================
     // Elements & logging
@@ -344,9 +317,7 @@
                       "stMode", "stPosition", "stValue", "stVelocity", "stEnabled", "stFault",
                       "stStream", "stFirmware", "modeSelect", "enableBtn", "posInput", "posBtn",
                       "strengthRange", "strengthLabel", "hapticBtn", "streamToggle", "rateSelect",
-                      "fileInput", "fileInfo", "uploadBtn", "abortBtn", "progressFill",
-                      "statBytes", "statPercent", "statRate", "statNote", "logFrames",
-                      "clearLogBtn", "log", "unsupported"]) {
+                      "logFrames", "clearLogBtn", "log", "unsupported"]) {
       els[id] = document.getElementById(id);
     }
 
@@ -400,18 +371,19 @@
     }
 
     // ===================================================================
-    // Frame building & incremental parsing (mirrors ota_stream_protocol.hpp)
+    // Frame building & incremental parsing (mirrors stream_frame.hpp)
     // ===================================================================
-    // This app only ever sends haptics requests, so module is hardcoded to
-    // MODULE_HAPTICS and flags to FLAGS_REQUEST (reply bit clear).
-    function buildFrame(type, payload) {
+    // This app sends haptics requests (module defaults to MODULE_HAPTICS); the
+    // module arg lets us also emit a discovery query on MODULE_DISCOVERY. flags
+    // are always FLAGS_REQUEST (reply bit clear).
+    function buildFrame(type, payload, module = MODULE_HAPTICS) {
       payload = payload || new Uint8Array(0);
       if (payload.length > MAX_PAYLOAD) throw new Error("payload exceeds " + MAX_PAYLOAD + " bytes");
       const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
       const view = new DataView(frame.buffer);
       view.setUint16(0, 0x4F54, true);   // magic 'T''O' on the wire
       frame[2] = FLAGS_REQUEST;          // flags: version 1, request (reply bit 0)
-      frame[3] = MODULE_HAPTICS;         // module: haptics = 2
+      frame[3] = module;                 // module: haptics = 2 (discovery = 0xFF)
       frame[4] = type;                   // message type
       view.setUint32(5, payload.length, true);
       frame.set(payload, HEADER_SIZE);
@@ -478,11 +450,6 @@
       return s;
     }
     function u8Payload(v) { return new Uint8Array([v & 0xFF]); }
-    function u32Payload(v) {
-      const p = new Uint8Array(4);
-      new DataView(p.buffer).setUint32(0, v >>> 0, true);
-      return p;
-    }
     function i32Payload(v) {
       const p = new Uint8Array(4);
       new DataView(p.buffer).setInt32(0, v | 0, true);
@@ -512,8 +479,6 @@
     // ===================================================================
     let device = null, ifaceNumber = null, epIn = null, epOut = null;
     let manualDisconnect = false;
-    let uploading = false;
-    let expectRestart = false;
     const parser = new StreamParser();
 
     // Single in-flight transaction: resolved by the RX pump when a frame of an
@@ -537,18 +502,25 @@
       if (device) await disconnect(); else await connect();
     });
 
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
+
     async function connect() {
       try {
-        // default: match exactly this example's VID:PID; the checkbox lifts
-        // the filter for other devices. WebUSB has no acceptAllDevices option
-        // (that's Web Bluetooth) — `filters` is a required member, and a
-        // single empty filter object matches every connected device (all
-        // USBDeviceFilter members are optional), regardless of how strictly
-        // an implementation treats an empty `filters` list.
-        const options = els.anyDevice.checked
-          ? { filters: [{}] }
-          : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
-        device = await navigator.usb.requestDevice(options);
+        device = await requestUsbDevice(els.anyDevice.checked);
       } catch (e) {
         if (e && e.name === "NotFoundError") logLine("sys", "Device selection cancelled.");
         else logLine("err", "Device selection failed: " + (e && e.message ? e.message : e));
@@ -560,7 +532,7 @@
         logLine("err", "Failed to open device: " + e.message);
         setStatus("error", "Open failed"); await safeClose(); return;
       }
-      manualDisconnect = false; expectRestart = false;
+      manualDisconnect = false;
       parser.reset();
       setConnectedUI(true);
       const name = describeDevice(device);
@@ -626,7 +598,6 @@
         try { await device.close(); } catch (_) {}
       }
       device = null; ifaceNumber = null; epIn = epOut = null;
-      uploading = false;
       parser.reset();
       setConnectedUI(false);
       setStatus("", "Disconnected");
@@ -637,12 +608,7 @@
     if (navigator.usb && navigator.usb.addEventListener) {
       navigator.usb.addEventListener("disconnect", (e) => {
         if (device && e.device === device) {
-          if (expectRestart) {
-            logLine("sys", "Device disconnected — restarting into the new firmware.");
-            setNote("Device restarting with the new firmware...");
-          } else {
-            logLine("err", "Device disconnected.");
-          }
+          logLine("err", "Device disconnected.");
           manualDisconnect = false;
           safeClose();
         }
@@ -660,8 +626,7 @@
           result = await dev.transferIn(epIn, MAX_FRAME);
         } catch (e) {
           if (device === dev && !manualDisconnect) {
-            if (expectRestart) logLine("sys", "USB link closed — device restarting into the new firmware.");
-            else logLine("err", "USB read failed: " + (e && e.message ? e.message : e));
+            logLine("err", "USB read failed: " + (e && e.message ? e.message : e));
             await safeClose();
           }
           return;
@@ -678,6 +643,13 @@
     }
 
     function dispatchFrame(frame) {
+      // Discovery reply (reserved module 0xFF): hand the TLV payload to a pending
+      // module probe. Not this device's haptics module, so handle it before the
+      // module filter below drops it.
+      if (frame.module === MODULE_DISCOVERY && frame.reply && frame.type === T_LIST_MODULES) {
+        if (discoveryResolve) { discoveryResolve(frame.payload); discoveryResolve = null; }
+        return;
+      }
       // Every device->host haptics frame (replies + telemetry) is dispatcher
       // module 2 with the reply flag set; ignore anything else that shares the
       // vendor pipe (other modules, or a request-flagged frame echoed back).
@@ -693,13 +665,6 @@
       }
       switch (frame.type) {
       case TYPE.TELEMETRY: handleTelemetry(frame.payload); return;
-      case TYPE.OTA_PROGRESS: {
-        if (frame.payload.length === 8) {
-          const r = reader(frame.payload);
-          updateProgress(rdU32(r), rdU32(r) || null);
-        }
-        return;
-      }
       default: break;
       }
       while (staleReplies.length > 0) {
@@ -781,8 +746,56 @@
     let telem = null;        // latest telemetry {position,value,angle,velocity}
     let renderValue = 0;     // smoothed dial value
 
+    // ---- discovery-based module presence check --------------------------------
+    // A pending checkModulePresent() parks its resolver here; dispatchFrame calls
+    // it when the 0xFF ListModules reply arrives.
+    let discoveryResolve = null;
+    // Decode the ListModules TLV (see espp::Dispatcher::describe).
+    function parseDiscovery(payload) {
+      let i = 0;
+      const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
+      const u8 = () => { need(1); return payload[i++]; };
+      const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
+      const version = u8(); u8();            // version, reserved
+      const device = str(), fw = str();
+      const count = u8();
+      const modules = [];
+      for (let m = 0; m < count; m++) modules.push({ id: u8(), name: str(), app: str(), desc: str() });
+      return { version, device, fw, modules };
+    }
+    // Ask the device which dispatcher modules it serves and confirm the haptics
+    // module is one of them. Returns true (present), false (device answered but
+    // WITHOUT the haptics module), or undefined (no discovery support -> unknown;
+    // the normal init below still surfaces a genuinely missing module via timeout).
+    async function checkModulePresent() {
+      const payload = await new Promise((resolve) => {
+        let timer = null;
+        // settle guards the shared resolver: only clear it if it is still ours,
+        // so a prior probe's timeout can't cancel a newer probe's resolver.
+        const settle = (p) => { clearTimeout(timer); if (discoveryResolve === settle) discoveryResolve = null; resolve(p); };
+        timer = setTimeout(() => settle(null), DISCOVERY_TIMEOUT_MS);
+        discoveryResolve = settle;
+        device.transferOut(epOut, buildFrame(T_LIST_MODULES, null, MODULE_DISCOVERY))
+          .catch(() => settle(null));
+      });
+      if (!payload) return undefined;        // no discovery reply -> older firmware
+      let info;
+      try { info = parseDiscovery(payload); } catch (_) { return undefined; }
+      if (info.modules.some((m) => m.id === MODULE_HAPTICS)) {
+        logLine("sys", "Device advertises " + info.modules.length + " module(s); haptics module present.");
+        return true;
+      }
+      const names = info.modules.map((m) => m.name + " (#" + m.id + ")").join(", ") || "none";
+      logLine("warn", "This device does not advertise the haptics module. Detected: " + names +
+              ". You may have selected the wrong device, or its firmware lacks the haptics module.");
+      return false;
+    }
+
     async function initializeDevice() {
       try {
+        // Confirm this device serves the haptics module (best-effort warning only;
+        // we still attempt init so the user can force it if discovery is stale).
+        await checkModulePresent();
         const info = await transact(TYPE.GET_INFO, null, [TYPE.INFO], CMD_TIMEOUT_MS);
         const r = reader(info.payload);
         const protoVer = rdU8(r);
@@ -797,17 +810,6 @@
 
         const status = await transact(TYPE.GET_STATUS, null, [TYPE.STATUS], CMD_TIMEOUT_MS);
         applyStatus(status.payload);
-
-        // Previous-crash report (persisted core-dump summary from the last
-        // abnormal reset; empty on a clean boot history). Best-effort: older
-        // firmware without GET_CRASH just times out.
-        try {
-          const crash = await transact(TYPE.GET_CRASH, null, [TYPE.CRASH], CMD_TIMEOUT_MS);
-          if (crash.payload.length > 0) {
-            const text = new TextDecoder().decode(crash.payload);
-            for (const line of text.split("\n")) logLine("err", "DEVICE CRASH REPORT: " + line);
-          }
-        } catch (_) { /* older firmware */ }
 
         if (els.streamToggle.checked) await applyStreaming();
       } catch (e) {
@@ -1088,8 +1090,7 @@
       els.connectBtn.classList.toggle("primary", !connected);
       els.anyDevice.disabled = connected;
       for (const el of [els.modeSelect, els.enableBtn, els.posInput, els.posBtn,
-                        els.strengthRange, els.hapticBtn, els.streamToggle, els.rateSelect,
-                        els.fileInput]) {
+                        els.strengthRange, els.hapticBtn, els.streamToggle, els.rateSelect]) {
         el.disabled = !connected;
       }
       if (!connected) {
@@ -1099,9 +1100,8 @@
         els.stVelocity.textContent = els.stEnabled.textContent = els.stFault.textContent = "-";
         els.stStream.textContent = els.stFirmware.textContent = "-";
         els.stEnabled.className = els.stFault.className = "v";
-        els.devInfo.textContent = "Not connected. Default filter: VID 0x1209 / PID 0x0d34 (\"espp BLDC Haptics\"); the vendor (0xFF) interface is discovered from the descriptors at runtime.";
+        els.devInfo.textContent = "Not connected. Default filter: any espp device (VID 0x1209); this example is PID 0x0d34 (\"espp BLDC Haptics\"). The vendor (0xFF) interface is discovered from the descriptors at runtime.";
       }
-      updateUploadUI();
     }
 
     els.modeSelect.addEventListener("change", async () => {
@@ -1168,129 +1168,6 @@
     }
     els.streamToggle.addEventListener("change", applyStreaming);
     els.rateSelect.addEventListener("change", () => { if (els.streamToggle.checked) applyStreaming(); });
-
-    // ===================================================================
-    // OTA upload flow: BEGIN -> DATA... -> FINISH (ABORT on request/failure)
-    // ===================================================================
-    let abortRequested = false;
-
-    function setNote(text) { els.statNote.textContent = text || ""; }
-    function updateProgress(written, total) {
-      const t = total || 0;
-      els.statBytes.textContent = written.toLocaleString() + " / " + (t ? t.toLocaleString() : "?") + " bytes";
-      if (t > 0) {
-        const percent = Math.min(100, (written / t) * 100);
-        els.progressFill.style.width = percent.toFixed(1) + "%";
-        els.statPercent.textContent = percent.toFixed(1) + "%";
-      }
-    }
-    function updateUploadUI() {
-      const file = els.fileInput.files && els.fileInput.files[0];
-      els.uploadBtn.disabled = !(device && file && !uploading);
-      els.abortBtn.disabled = !uploading;
-    }
-
-    els.fileInput.addEventListener("change", () => {
-      const file = els.fileInput.files && els.fileInput.files[0];
-      if (!file) { els.fileInfo.textContent = "No file selected."; updateUploadUI(); return; }
-      els.fileInfo.textContent = file.name + " — " + file.size.toLocaleString() + " bytes";
-      updateUploadUI();
-    });
-
-    els.uploadBtn.addEventListener("click", async () => {
-      const file = els.fileInput.files && els.fileInput.files[0];
-      if (!device || !file || uploading) return;
-      if (file.size === 0) { logLine("err", "Refusing to upload an empty file."); return; }
-      if (file.size > MAX_IMAGE_SIZE) { logLine("err", "Refusing to upload: file is larger than any ESP flash."); return; }
-
-      let image;
-      try {
-        image = new Uint8Array(await file.arrayBuffer());
-      } catch (e) {
-        logLine("err", "Could not read file: " + e.message); return;
-      }
-      if (image[0] !== ESP_IMAGE_MAGIC) {
-        logLine("err", "Warning: first byte is 0x" + image[0].toString(16).padStart(2, "0") +
-                ", not the ESP image magic 0xE9 — this does not look like an app image. " +
-                "The device will reject it on the first chunk.");
-      }
-
-      uploading = true; abortRequested = false; expectRestart = false;
-      updateUploadUI();
-      els.progressFill.className = "progress-fill";
-      els.progressFill.style.width = "0%";
-      els.statPercent.textContent = "0%";
-      els.statRate.textContent = "-";
-      setNote("");
-      setStatus("busy", "Updating...");
-      const startedAt = Date.now();
-      let sent = 0;
-
-      try {
-        // pause telemetry so the bulk IN pipe carries only OTA replies
-        const streamWasOn = els.streamToggle.checked;
-        if (streamWasOn) {
-          try { await transact(TYPE.SET_STREAMING, streamingPayload(false, parseInt(els.rateSelect.value, 10)), [TYPE.OK], CMD_TIMEOUT_MS); } catch (_) {}
-        }
-        logLine("sys", "OTA BEGIN: image size " + image.length.toLocaleString() + " bytes (device erases the update partition — this can take a while)...");
-        await transact(TYPE.OTA_BEGIN, u32Payload(image.length), [TYPE.OK], BEGIN_TIMEOUT_MS);
-        logLine("sys", "Device ready; streaming data (" + MAX_PAYLOAD + " B per frame)...");
-        while (sent < image.length) {
-          if (abortRequested) throw Object.assign(new Error("aborted by user"), { userAbort: true });
-          const chunk = image.subarray(sent, Math.min(sent + MAX_PAYLOAD, image.length));
-          const reply = await transact(TYPE.OTA_DATA, chunk, [TYPE.OK], DATA_TIMEOUT_MS);
-          sent += chunk.length;
-          const received = okValue(reply);
-          updateProgress(received !== null ? received : sent, image.length);
-          const elapsed = (Date.now() - startedAt) / 1000;
-          if (elapsed > 0.5) els.statRate.textContent = ((sent / 1024) / elapsed).toFixed(1) + " KiB/s";
-        }
-        // last chance to honor an abort clicked during the final chunk; past
-        // this point FINISH activates the image, so disable the Abort button
-        // (finish cannot be cancelled once the device starts validating)
-        if (abortRequested) throw Object.assign(new Error("aborted by user"), { userAbort: true });
-        els.abortBtn.disabled = true;
-        logLine("sys", "OTA FINISH: device is validating (SHA-256) + activating the image...");
-        setNote("Validating image on device...");
-        await transact(TYPE.OTA_FINISH, null, [TYPE.OK], FINISH_TIMEOUT_MS);
-        expectRestart = true;
-        els.progressFill.className = "progress-fill done";
-        els.progressFill.style.width = "100%";
-        setStatus("connected", "Update complete");
-        setNote("Update complete — device is restarting into the new firmware.");
-        logLine("sys", "Update complete (" + sent.toLocaleString() + " bytes). Device restarting — expect a USB disconnect.");
-      } catch (e) {
-        els.progressFill.className = "progress-fill failed";
-        if (e && e.userAbort) {
-          logLine("sys", "Sending OTA ABORT...");
-          try {
-            await transact(TYPE.OTA_ABORT, null, [TYPE.OK], DATA_TIMEOUT_MS);
-            logLine("sys", "Update aborted; device discarded the partial image.");
-          } catch (abortErr) {
-            logLine("err", "Abort delivery failed: " + abortErr.message);
-          }
-          setStatus(device ? "connected" : "", device ? "Connected" : "Disconnected");
-          setNote("Update aborted.");
-        } else {
-          logLine("err", "Update failed: " + e.message);
-          setStatus(device ? "error" : "", device ? "Update failed" : "Disconnected");
-          setNote("Update failed: " + e.message);
-          // Best effort: drop the partial session so a retry can begin cleanly.
-          if (device) { try { await transact(TYPE.OTA_ABORT, null, [TYPE.OK], DATA_TIMEOUT_MS); } catch (_) {} }
-        }
-        // resume telemetry after a failed / aborted update
-        if (device && els.streamToggle.checked) { try { await applyStreaming(); } catch (_) {} }
-      } finally {
-        uploading = false;
-        updateUploadUI();
-      }
-    });
-
-    els.abortBtn.addEventListener("click", () => {
-      if (!uploading) return;
-      abortRequested = true;
-      logLine("sys", "Abort requested; stopping after the in-flight chunk...");
-    });
 
     window.addEventListener("resize", drawDial);
     logLine("sys", "espp BLDC Haptics Console ready. Connect a device running the bldc_haptics USB example.");
