@@ -327,7 +327,7 @@
   <header>
     <h1>ODrive ASCII &mdash; WebUSB Console</h1>
     <div class="spacer"></div>
-    <label class="checkbox-inline" title="Show every USB device in the chooser instead of only the default ODrive VID/PID (0x1209/0x0d32).">
+    <label class="checkbox-inline" title="Show every USB device in the chooser instead of only espp devices (the default filter is VID 0x1209, any PID).">
       <input type="checkbox" id="anyDevice"> Any device
     </label>
     <button id="connectBtn" class="primary">Connect</button>
@@ -670,18 +670,28 @@
       }
     });
 
-    async function connect() {
-      // 1) Ask the user to pick a device. Default filter targets the espp
-      //    ODrive vendor VID/PID; "Any device" shows every device instead.
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
       try {
-        // WebUSB has no `acceptAllDevices` option (that is Web Bluetooth) --
-        // `filters` is a required member, and a single empty filter object `{}`
-        // matches every device. The default filter is VID-only so any espp
-        // device (VID 0x1209) is offered, not just the ODrive PID.
-        const options = els.anyDevice.checked
-          ? { filters: [{}] }
-          : { filters: [{ vendorId: DEFAULT_VID }] };
-        device = await navigator.usb.requestDevice(options);
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
+
+    async function connect() {
+      // 1) Ask the user to pick a device. Default filter is VID-only (any
+      //    device with VID 0x1209, not just the ODrive PID); "Any device"
+      //    shows every connected device instead.
+      try {
+        device = await requestUsbDevice(els.anyDevice.checked);
       } catch (e) {
         // Only a NotFoundError means the user dismissed the chooser (or nothing
         // matched). Anything else is a real error worth surfacing.
@@ -1184,8 +1194,8 @@
       }
       setStatus("", "Disconnected");
       setConnectedUI(false);
-      logLine("sys", "Ready. Click Connect and pick the ODrive vendor USB device.");
-      logLine("sys", `Default filter: any espp device (VID 0x${DEFAULT_VID.toString(16)}). Tick "Any device" to see all.`);
+      logLine("sys", "Ready. Click Connect and pick your ODrive (the chooser lists any device with VID 0x1209).");
+      logLine("sys", `Default filter: any device with VID 0x${DEFAULT_VID.toString(16).padStart(4, "0")}. Tick "Any device" to see all.`);
       drawSpark();
     }
 
