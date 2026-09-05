@@ -298,6 +298,23 @@ jobs:
           target: esp32s3
         - path: 'components/state_machine/example'
           target: esp32
+          # this example GENERATES its state machine from Complex.json
+          # at configure time, and the esp-idf image has no node
+          command: >-
+            node_major=$(node -v 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/');
+            if [ "${node_major:-0}" -lt 18 ]; then
+              apt-get update &&
+              apt-get install -y ca-certificates curl gnupg &&
+              install -d -m 0755 /etc/apt/keyrings &&
+              curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key |
+                gpg --dearmor --yes -o /etc/apt/keyrings/nodesource.gpg &&
+              chmod a+r /etc/apt/keyrings/nodesource.gpg &&
+              printf '%s\n' 'deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main' |
+                tee /etc/apt/sources.list.d/nodesource.list >/dev/null &&
+              apt-get update &&
+              apt-get install -y nodejs;
+            fi &&
+            IDF_COMPONENT_MANAGER=0 idf.py build
         - path: 'components/stream_frame/example'
           target: esp32
         - path: 'components/sx126x/example'
