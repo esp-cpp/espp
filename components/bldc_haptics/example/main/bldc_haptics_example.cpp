@@ -794,6 +794,10 @@ extern "C" void app_main(void) {
            } else if (start - telemetry_stall_start > kTelemetryStallTimeout) {
              streaming = false; // host abandoned the stream: stop flooding a full FIFO
              telemetry_stall_start = {};
+             // Drop the queued backlog now (a tab close does not unmount, so it
+             // is not cleared for us) so a reconnecting host reads a clean stream
+             // instead of stale telemetry it might mis-parse as a command reply.
+             usb.vendor_write_clear();
              logger.warn("Telemetry auto-paused: the host stopped draining the USB vendor "
                          "endpoint (re-enable streaming from the web console)");
            }
