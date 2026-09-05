@@ -222,7 +222,11 @@ extern "C" void espp_usb_device_event_cb(tinyusb_event_t *event, void *arg) {
   // fail-fast TX path instead of vTaskDelay()-ing inside the TinyUSB task
   // (which would deadlock USB servicing).
   note_tinyusb_task();
-  auto *dev = static_cast<espp::UsbDevice *>(arg);
+  // Load the teardown-guarded singleton (not event_arg): a destructor that has
+  // atomically detached the instance during teardown then yields nullptr here,
+  // matching the other tud_*_cb trampolines.
+  (void)arg;
+  auto *dev = s_device.load();
   if (!dev || !event)
     return;
   if (event->id == TINYUSB_EVENT_ATTACHED)
@@ -845,8 +849,9 @@ bool UsbDevice::initialize(std::error_code &ec) {
 
   // Route esp_tinyusb's device lifecycle events (mount / unmount) to us so we
   // can clear the TX FIFOs on unmount and invoke any app-registered callbacks.
+  // The callback loads the teardown-guarded s_device singleton itself, so no
+  // event_arg is needed.
   tusb_cfg.event_cb = espp_usb_device_event_cb;
-  tusb_cfg.event_arg = this;
 
   // Register before installing so the BOS / vendor callbacks can find us.
   // Claim the singleton slot ATOMICALLY: the null check at the top of

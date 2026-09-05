@@ -298,9 +298,9 @@ public:
   void set_mount_callback(const event_callback_fn &cb);
 
   /// @brief Register a callback invoked when the device is unmounted (detached /
-  ///        re-enumerated / suspended). The component clears the vendor + CDC TX
-  ///        FIFOs before invoking it. Runs in the TinyUSB device-task context;
-  ///        nullptr detaches. Register here instead of defining tud_umount_cb
+  ///        re-enumerated). The component clears the vendor + CDC TX FIFOs before
+  ///        invoking it. Runs in the TinyUSB device-task context; nullptr
+  ///        detaches. Register here instead of defining tud_umount_cb
   ///        (esp_tinyusb already defines it).
   void set_unmount_callback(const event_callback_fn &cb);
 
