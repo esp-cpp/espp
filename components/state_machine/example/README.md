@@ -14,6 +14,10 @@ The HFSM's C++ is generated from [`main/Complex.json`](main/Complex.json)
 every time the example is configured. The model is the source; the C++ is
 a build product, like an object file.
 
+The generation is one call to `espp_generate_hfsm()`, provided by the
+`state_machine` component — see its README to use it from your own
+component.
+
 This needs **node (>= 18)** on your PATH — nothing else, and nothing to
 install by hand. `npx` fetches the generator on demand:
 
@@ -41,7 +45,7 @@ If you are working on the generator itself, point the build at your
 checkout instead of npx:
 
 ```
-idf.py -DHFSM_GEN_COMMAND="node;/path/to/webgme-hfsm/bin/hfsm-gen.js" build
+idf.py -DESPP_HFSM_GEN_COMMAND="node;/path/to/webgme-hfsm/bin/hfsm-gen.js" build
 ```
 
 The same flag is the way to build without network access.
