@@ -480,6 +480,9 @@
     let device = null, ifaceNumber = null, epIn = null, epOut = null;
     let manualDisconnect = false;
     const parser = new StreamParser();
+    // True during the brief pre-handshake RX drain (see initializeDevice): stale
+    // frames left in the device's TX FIFO by a previous session are discarded.
+    let draining = false;
 
     // Single in-flight transaction: resolved by the RX pump when a frame of an
     // accepted reply type (or ERROR) arrives.
@@ -643,6 +646,9 @@
     }
 
     function dispatchFrame(frame) {
+      // Discard everything during the brief pre-handshake RX drain: these are
+      // stale frames from a previous session, not replies to anything we sent.
+      if (draining) return;
       // Discovery reply (reserved module 0xFF): hand the TLV payload to a pending
       // module probe. Not this device's haptics module, so handle it before the
       // module filter below drops it.
@@ -793,6 +799,15 @@
 
     async function initializeDevice() {
       try {
+        // Flush any stale frames the device queued for a previous session (its TX
+        // FIFO is not cleared on an abrupt tab close) before we send anything, so
+        // an old telemetry / reply frame can't be mis-read as the response to our
+        // first command. RX keeps running; dispatchFrame drops frames while
+        // draining is set.
+        draining = true;
+        parser.reset();
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        draining = false;
         // Confirm this device serves the haptics module (best-effort warning only;
         // we still attempt init so the user can force it if discovery is stale).
         await checkModulePresent();
