@@ -1169,6 +1169,22 @@
     els.streamToggle.addEventListener("change", applyStreaming);
     els.rateSelect.addEventListener("change", () => { if (els.streamToggle.checked) applyStreaming(); });
 
+    // Pause telemetry while the tab is hidden. A backgrounded tab is throttled
+    // and stops draining the USB IN endpoint, so the device's TX FIFO fills and
+    // it drops frames (the firmware also auto-pauses after a couple seconds of
+    // this). Tell the device to stop now, and resume when the tab is shown again
+    // (the streamToggle keeps the user's intent). Best-effort: if the tab is
+    // frozen the send may not land, but the firmware auto-pause covers that.
+    document.addEventListener("visibilitychange", () => {
+      if (!device) return;
+      if (document.hidden) {
+        transact(TYPE.SET_STREAMING, streamingPayload(false, parseInt(els.rateSelect.value, 10)),
+                 [TYPE.OK], CMD_TIMEOUT_MS).catch(() => {});
+      } else if (els.streamToggle.checked) {
+        applyStreaming();
+      }
+    });
+
     window.addEventListener("resize", drawDial);
     logLine("sys", "espp BLDC Haptics Console ready. Connect a device running the bldc_haptics USB example.");
   </script>
