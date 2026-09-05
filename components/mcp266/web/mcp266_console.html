@@ -90,7 +90,7 @@
     .statusline { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
     .statusline b { color: var(--text); font-weight: 600; }
     .log { background: var(--log-bg); color: var(--log-text); border-radius: 8px; padding: 10px 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5; height: 170px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
-    .log .t { color: var(--time); } .log .tx { color: var(--tx); } .log .rx { color: var(--rx); } .log .err { color: var(--err); } .log .sys { color: var(--sys); }
+    .log .t { color: var(--time); } .log .tx { color: var(--tx); } .log .rx { color: var(--rx); } .log .err { color: var(--err); } .log .warn { color: #d08770; } .log .sys { color: var(--sys); }
     footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
     #unsupported { display: none; background: var(--panel-bg); border: 1px solid var(--danger); color: var(--danger); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
   </style>
@@ -243,11 +243,25 @@
 
     // ===================== Transports (WebUSB + Web Serial) =====================
     let transport = null;
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
     class UsbTransport {
       constructor() { this.device=null; this.iface=null; this.epIn=null; this.epOut=null; this.reading=false; }
       async open(anyDevice) {
-        const options = anyDevice ? { filters: [{}] } : { filters: [{ vendorId: DEFAULT_VID }] };
-        this.device = await navigator.usb.requestDevice(options);
+        this.device = await requestUsbDevice(anyDevice);
         await this.device.open();
         if (this.device.configuration === null) await this.device.selectConfiguration(1);
         const config = this.device.configuration; if (!config) throw new Error("no active USB configuration");
@@ -429,7 +443,7 @@
         return;
       }
       const names = info.modules.map((m) => m.name + " (#" + m.id + ")").join(", ") || "none";
-      logLine("err", "This device does not advertise the MCP266 module. Detected: " + names +
+      logLine("warn", "This device does not advertise the MCP266 module. Detected: " + names +
               ". You may have selected the wrong device, or its firmware lacks MCP266 support.");
     }
 
