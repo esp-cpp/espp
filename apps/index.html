@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>espp Web Apps</title>
+<meta name="description" content="Browser tools hosted with the espp documentation: Web Serial / WebUSB / WebHID consoles, control panels, and flashers.">
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a2e; --muted: #666; --card: #f6f7f9;
+    --border: #d9dce1; --accent: #2563eb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a; --fg: #e6e6e6; --muted: #9aa0a6; --card: #1d2127;
+      --border: #333842; --accent: #7aa2ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 2rem 1rem; background: var(--bg); color: var(--fg);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 60rem; margin: 0 auto; }
+  h1 { margin: 0 0 .25rem; }
+  .sub { color: var(--muted); margin: 0 0 2rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; }
+  .card { display: block; padding: 1rem 1.25rem; background: var(--card);
+          border: 1px solid var(--border); border-radius: .6rem;
+          color: inherit; text-decoration: none; }
+  .card:hover { border-color: var(--accent); }
+  .card h2 { margin: 0 0 .4rem; font-size: 1.05rem; color: var(--accent); }
+  .card p { margin: 0; color: var(--muted); font-size: .92rem; }
+  footer { margin-top: 2.5rem; color: var(--muted); font-size: .85rem; }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+  <main>
+    <h1>espp Web Apps</h1>
+    <p class="sub">14 self-contained browser tools hosted with the espp
+    documentation. They use the Web&nbsp;Serial / WebUSB / WebHID APIs
+    (Chromium-based browsers) and talk directly to your hardware &mdash; nothing
+    to install.</p>
+    <div class="grid">
+      <a class="card" href="mcp_console.html">
+        <h2>Basicmicro MCP Console</h2>
+        <p>Test and configure Basicmicro MCP/RoboClaw motor controllers over a USB-UART (packet serial) or USB-CAN (slcan + CANopen/DS402) adapter: device info, motion control, encoders, and an SDO object browser.</p>
+      </a>
+      <a class="card" href="can_console.html">
+        <h2>CAN Bus Console (slcan)</h2>
+        <p>Generic CAN bus console for slcan (LAWICEL) USB-CAN adapters over Web Serial: send standard/extended/RTR frames, periodic transmits, live per-ID monitoring, and log export.</p>
+      </a>
+      <a class="card" href="haptics_console.html">
+        <h2>espp BLDC Haptics Console (WebUSB)</h2>
+        <p>Control and visualize an espp BLDC haptic knob over WebUSB: live dial, detent presets, and control commands. Firmware update and crash inspection are separate modules (see the ota / coredump consoles via the device hub).</p>
+      </a>
+      <a class="card" href="board_console.html">
+        <h2>espp Board Console &amp; ESP Flasher</h2>
+        <p>General-purpose Web Serial board console and ESP flasher (esptool-js): serial monitor, reset/bootloader controls, and firmware flashing.</p>
+      </a>
+      <a class="card" href="can_bridge_console.html">
+        <h2>espp CAN Bridge Console (WebUSB / Web Serial)</h2>
+        <p>Drive a USB-to-CAN bridge device over WebUSB or Web Serial: configure the bus, send CAN frames, and watch a live monitor of received traffic using the espp stream_frame protocol.</p>
+      </a>
+      <a class="card" href="coredump_console.html">
+        <h2>espp Core Dump Console (WebUSB / Web Serial)</h2>
+        <p>Inspect ESP-IDF flash core dumps in the browser: crash summary, ELF core dump download, client-side nearest-symbol backtrace resolution and erase, over WebUSB or Web Serial via the espp coredump component.</p>
+      </a>
+      <a class="card" href="dispatcher_hub.html">
+        <h2>espp Device Hub (WebUSB / Web Serial)</h2>
+        <p>Connect to an espp device over USB (WebUSB / Web Serial) and discover which modules it runs. The device answers a capability query on the reserved dispatcher discovery module (0xFF) with its name, firmware, and the list of modules — each shown as a tab that links to its hosted web app.</p>
+      </a>
+      <a class="card" href="ds402_panel.html">
+        <h2>espp DS402 Drive Panel (WebUSB / Web Serial)</h2>
+        <p>Commission a CANopen CiA 402 (DS402) drive over a USB-to-CAN bridge from the browser: SDO object read/write, the DS402 state machine, mode selection, target/actual values, and a generic object-dictionary panel for vendor-specific addresses.</p>
+      </a>
+      <a class="card" href="mcp266_console.html">
+        <h2>espp MCP266 Console (WebUSB / Web Serial)</h2>
+        <p>Configure, command, and monitor a Basicmicro MCP266 dual-channel motor controller from the browser over USB (WebUSB / Web Serial): per-axis position loop setup, profile-position moves, and live status. The device runs the CANopen driver and exposes a high-level protocol.</p>
+      </a>
+      <a class="card" href="ota_console.html">
+        <h2>espp OTA Console (WebUSB)</h2>
+        <p>Update espp device firmware over WebUSB: streams a .bin to the espp ota component</p>
+      </a>
+      <a class="card" href="odrive_console.html">
+        <h2>ODrive ASCII Web Serial Console</h2>
+        <p>Web Serial console for the ODrive ASCII protocol: interactive terminal, quick motor controls, and live position/velocity plotting.</p>
+      </a>
+      <a class="card" href="odrive_webusb_console.html">
+        <h2>ODrive ASCII WebUSB Console</h2>
+        <p>WebUSB console speaking the ODrive ASCII protocol over the vendor bulk interface (no serial driver needed).</p>
+      </a>
+      <a class="card" href="odrive_control_panel.html">
+        <h2>ODrive Native WebUSB Control Panel</h2>
+        <p>WebUSB control panel for the ODrive native (Fibre) binary protocol: endpoint tree browser, live multi-signal plots, and quick controls.</p>
+      </a>
+      <a class="card" href="hid_visualizer.html">
+        <h2>WebHID Gamepad Input Visualizer</h2>
+        <p>WebHID input visualizer: connect any HID gamepad or device and watch its decoded buttons, sticks, and raw input reports live.</p>
+      </a>
+    </div>
+    <footer>Part of the <a href="../index.html">espp documentation</a> &middot;
+    <a href="https://github.com/esp-cpp/espp">esp-cpp/espp</a></footer>
+  </main>
+</body>
+</html>

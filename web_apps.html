@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Apps - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'web_apps';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Core &amp; RTOS APIs" href="core/index.html" />
+    <link rel="prev" title="Getting Started" href="getting_started.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Web Apps</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#device-hub-dispatcher-module-consoles">Device hub &amp; dispatcher-module consoles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#motor-control">Motor control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#can-serial-adapters">CAN &amp; serial adapters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#general">General</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#adding-a-new-app">Adding a new app</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Web Apps</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/a08fc9fe/docs/en/web_apps.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="web-apps">
+<h1>Web Apps<a class="headerlink" href="#web-apps" title="Permalink to this heading"></a></h1>
+<p>espp ships a growing set of <strong>self-contained browser tools</strong> that talk directly
+to your hardware using the Web Serial / WebUSB / WebHID APIs (Chromium-based
+browsers) — nothing to install, no CDN, no network access. They are hosted
+alongside this documentation:</p>
+<blockquote>
+<div><p><strong>→</strong> <a class="reference external" href="https://esp-cpp.github.io/espp/apps/index.html">esp-cpp.github.io/espp/apps</a></p>
+</div></blockquote>
+<p>Each app is a single HTML file; it also runs offline straight from its
+<code class="docutils literal notranslate"><span class="pre">components/&lt;name&gt;/web/</span></code> directory via a <code class="docutils literal notranslate"><span class="pre">file://</span></code> URL.</p>
+<section id="device-hub-dispatcher-module-consoles">
+<h2>Device hub &amp; dispatcher-module consoles<a class="headerlink" href="#device-hub-dispatcher-module-consoles" title="Permalink to this heading"></a></h2>
+<p>Devices built on the <a class="reference internal" href="dispatcher/dispatcher.html"><span class="doc">dispatcher</span></a> / <code class="docutils literal notranslate"><span class="pre">stream_frame</span></code>
+protocol expose one or more <em>modules</em> over a single USB vendor (WebUSB)
+interface. Start from the hub, which discovers what a device runs and links to
+the matching console; each console also confirms its module is present when it
+connects.</p>
+<ul class="simple">
+<li><p><strong>Device Hub</strong> (<code class="docutils literal notranslate"><span class="pre">dispatcher_hub.html</span></code>) — connect over WebUSB / Web Serial,
+query the device’s advertised modules, and open each module’s console.</p></li>
+<li><p><strong>OTA Console</strong> (<code class="docutils literal notranslate"><span class="pre">ota_console.html</span></code>) — stream a firmware <code class="docutils literal notranslate"><span class="pre">.bin</span></code> to the
+<a class="reference internal" href="ota/ota.html"><span class="doc">ota</span></a> component with live progress and a rollback-aware finish.</p></li>
+<li><p><strong>Core Dump Console</strong> (<code class="docutils literal notranslate"><span class="pre">coredump_console.html</span></code>) — crash summary, <code class="docutils literal notranslate"><span class="pre">core.elf</span></code>
+download, client-side nearest-symbol backtrace resolution, and erase for the
+<a class="reference internal" href="coredump/coredump.html"><span class="doc">coredump</span></a> service (over WebUSB or Web Serial, where
+it doubles as a serial monitor).</p></li>
+<li><p><strong>BLDC Haptics Console</strong> (<code class="docutils literal notranslate"><span class="pre">haptics_console.html</span></code>) — live dial, detent
+presets, and control commands for the <a class="reference internal" href="haptics/bldc_haptics.html"><span class="doc">bldc_haptics</span></a> example.</p></li>
+<li><p><strong>CAN Bridge Console</strong> (<code class="docutils literal notranslate"><span class="pre">can_bridge_console.html</span></code>) — configure the bus, send
+CAN frames, and watch a live monitor of received traffic for a USB↔CAN bridge.</p></li>
+<li><p><strong>DS402 Drive Panel</strong> (<code class="docutils literal notranslate"><span class="pre">ds402_panel.html</span></code>) — in-browser CANopen SDO client
+plus a DS402 state machine / control panel for a <a class="reference internal" href="buses/canopen.html"><span class="doc">canopen</span></a> drive.</p></li>
+<li><p><strong>MCP266 Console</strong> (<code class="docutils literal notranslate"><span class="pre">mcp266_console.html</span></code>) — status, motor, and configuration
+controls for the <a class="reference internal" href="motor_control/mcp266.html"><span class="doc">mcp266</span></a> motor controller.</p></li>
+</ul>
+</section>
+<section id="motor-control">
+<h2>Motor control<a class="headerlink" href="#motor-control" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>ODrive ASCII console</strong> — interactive terminals with quick motor controls and
+live position / velocity plotting for the <a class="reference internal" href="motor_control/odrive_ascii.html"><span class="doc">odrive_ascii</span></a> protocol, over Web Serial
+(<code class="docutils literal notranslate"><span class="pre">odrive_console.html</span></code>) or WebUSB (<code class="docutils literal notranslate"><span class="pre">odrive_webusb_console.html</span></code>).</p></li>
+<li><p><strong>ODrive Native Control Panel</strong> (<code class="docutils literal notranslate"><span class="pre">odrive_control_panel.html</span></code>) — endpoint-tree
+browser, live multi-signal plots, and typed read/write for the ODrive native
+(Fibre-endpoint) binary protocol.</p></li>
+<li><p><strong>WebHID Input Visualizer</strong> (<code class="docutils literal notranslate"><span class="pre">hid_visualizer.html</span></code>) — decoded buttons /
+sticks / raw reports for any HID device, driven entirely by its report
+descriptor.</p></li>
+</ul>
+</section>
+<section id="can-serial-adapters">
+<h2>CAN &amp; serial adapters<a class="headerlink" href="#can-serial-adapters" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Basicmicro MCP Console</strong> (<code class="docutils literal notranslate"><span class="pre">mcp_console.html</span></code>) — Web Serial console for the
+<a class="reference internal" href="motor_control/basicmicro.html"><span class="doc">Basicmicro</span></a> MCP packet-serial motor
+controllers.</p></li>
+<li><p><strong>CAN Bus Console</strong> (<code class="docutils literal notranslate"><span class="pre">can_console.html</span></code>) — LAWICEL slcan serial monitor for a
+USB-CAN adapter (see <a class="reference internal" href="buses/twai.html"><span class="doc">twai</span></a>).</p></li>
+</ul>
+</section>
+<section id="general">
+<h2>General<a class="headerlink" href="#general" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Board Console &amp; ESP Flasher</strong> (<code class="docutils literal notranslate"><span class="pre">board_console.html</span></code>) — general-purpose Web
+Serial monitor with reset / bootloader controls and an <code class="docutils literal notranslate"><span class="pre">esptool-js</span></code>-based
+firmware flasher.</p></li>
+</ul>
+</section>
+<section id="adding-a-new-app">
+<h2>Adding a new app<a class="headerlink" href="#adding-a-new-app" title="Permalink to this heading"></a></h2>
+<p>Any single-file app placed in a component’s <code class="docutils literal notranslate"><span class="pre">web/</span></code> directory
+(<code class="docutils literal notranslate"><span class="pre">components/&lt;name&gt;/web/*.html</span></code>, plus optional same-origin <code class="docutils literal notranslate"><span class="pre">.js</span></code> assets) is
+hosted automatically by the docs workflow, and the <a class="reference external" href="https://esp-cpp.github.io/espp/apps/index.html">apps landing page</a> lists it using the file’s
+<code class="docutils literal notranslate"><span class="pre">&lt;title&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;meta</span> <span class="pre">name=&quot;description&quot;&gt;</span></code> tags — no registry to maintain.
+Apps must be fully self-contained (no CDN resources) so they work offline and
+under GitHub Pages’ strict hosting.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="getting_started.html" class="btn btn-neutral float-left" title="Getting Started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="core/index.html" class="btn btn-neutral float-right" title="Core &amp; RTOS APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

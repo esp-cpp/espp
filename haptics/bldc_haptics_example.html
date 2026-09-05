@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BLDC Haptics Example (USB / WebUSB controlled) - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'haptics/bldc_haptics_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="DRV2605 Haptic Motor Driver" href="drv2605.html" />
+    <link rel="prev" title="BLDC Haptics" href="bldc_haptics.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Haptics APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="bldc_haptics.html">BLDC Haptics</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">BLDC Haptics Example (USB / WebUSB controlled)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-use-example">How to use example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-behaviors">Example Behaviors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-breakdown">Example Breakdown</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="bldc_haptics.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="drv2605.html">DRV2605 Haptic Motor Driver</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Haptics APIs</a></li>
+          <li class="breadcrumb-item"><a href="bldc_haptics.html">BLDC Haptics</a></li>
+      <li class="breadcrumb-item active">BLDC Haptics Example (USB / WebUSB controlled)</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/a08fc9fe/docs/en/haptics/bldc_haptics_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="bldc-haptics-example-usb-webusb-controlled">
+<h1>BLDC Haptics Example (USB / WebUSB controlled)<a class="headerlink" href="#bldc-haptics-example-usb-webusb-controlled" title="Permalink to this heading"></a></h1>
+<p>This example shows the use of the <code class="docutils literal notranslate"><span class="pre">BldcHaptics</span></code> component to drive a BLDC motor
+(such as a tiny gimbal motor) as a user input / output device that provides
+haptic feedback (such as might be used as a rotary encoder input).</p>
+<p>On top of the haptic engine, the example exposes a <strong>USB vendor-specific
+(WebUSB) interface</strong> (via the espp <code class="docutils literal notranslate"><span class="pre">usb_device</span></code> component) so the knob can be
+controlled and visualized live from a Chromium browser — no driver, no app
+install:</p>
+<ul class="simple">
+<li><p><strong>Live telemetry + dial visualization</strong> — position / detent index, continuous
+knob value, shaft angle and velocity, streamed at a configurable rate and
+rendered on an animated dial (detents, end stops and the current detent
+marked).</p></li>
+<li><p><strong>Control</strong> — enable/disable the haptics, move to a detent, play a haptic
+“click” with adjustable strength.</p></li>
+<li><p><strong>Mode switching</strong> — select any of the built-in <code class="docutils literal notranslate"><span class="pre">espp::detail</span></code> detent presets
+(unbounded, bounded, multi-rev, on/off, coarse/fine, magnetic detents,
+return-to-center) from a dropdown.</p></li>
+<li><p><strong>Firmware update + crash inspection</strong> — the same USB link also serves the
+standard espp OTA protocol (dispatcher module 0) and the coredump service
+(module 4), so <code class="docutils literal notranslate"><span class="pre">ota_console.html</span></code> and <code class="docutils literal notranslate"><span class="pre">coredump_console.html</span></code> — or the device
+hub, which discovers all three modules — work against this device directly.</p></li>
+</ul>
+<p>The wire protocol is documented in <a class="reference internal" href="#./PROTOCOL.md"><span class="xref myst">PROTOCOL.md</span></a>; the browser
+console lives in <a class="reference internal" href="#./webapp/index.html"><span class="xref myst">webapp/index.html</span></a>.</p>
+<section id="how-to-use-example">
+<h2>How to use example<a class="headerlink" href="#how-to-use-example" title="Permalink to this heading"></a></h2>
+<section id="hardware-required">
+<h3>Hardware Required<a class="headerlink" href="#hardware-required" title="Permalink to this heading"></a></h3>
+<p>This example targets ESP32-S3 hardware (the native USB-OTG peripheral is
+required for the vendor / WebUSB interface). Select the hardware via
+<code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">menuconfig</span></code> → <code class="docutils literal notranslate"><span class="pre">Example</span> <span class="pre">Configuration</span></code>:</p>
+<ul class="simple">
+<li><p><strong>MotorGo Mini</strong> or <strong>MotorGo Axis</strong> — everything on-board (motor driver +
+SSI magnetic encoder); just connect a gimbal motor.</p></li>
+<li><p><strong>BLDC Motor Test Stand (TinyS3)</strong> (default) — discrete wiring:</p>
+<ul>
+<li><p>Magnetic encoder chip (this example uses <code class="docutils literal notranslate"><span class="pre">Mt6701</span></code>) over I2C</p></li>
+<li><p>BLDC Motor Driver chip (tested with the <code class="docutils literal notranslate"><span class="pre">TMC6300</span> <span class="pre">BOB</span></code> dev board)</p></li>
+<li><p>Some mounting hardware to mount the motor, magnet, encoder, etc.</p></li>
+<li><p>Motor powered via a benchtop power supply at 5V</p></li>
+</ul>
+</li>
+</ul>
+<p>:warning:</p>
+<blockquote>
+<div><p>NOTE: you MUST make sure that you run the example with the
+<code class="docutils literal notranslate"><span class="pre">zero_electrical_offset</span></code> value set to 0 (or not provided) at least once
+otherwise the sample will not work and could potentially damage your motor.</p>
+</div></blockquote>
+</section>
+<section id="build-and-flash">
+<h3>Build and Flash<a class="headerlink" href="#build-and-flash" title="Permalink to this heading"></a></h3>
+<p>Build the project and flash it to the board, then run monitor tool to view
+serial output:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">idf</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">p</span> <span class="n">PORT</span> <span class="n">flash</span> <span class="n">monitor</span>
+</pre></div>
+</div>
+<p>(Replace PORT with the name of the serial port to use; to exit the serial
+monitor, type <code class="docutils literal notranslate"><span class="pre">Ctrl-]</span></code>.)</p>
+<p>The example uses an OTA-capable partition table (<code class="docutils literal notranslate"><span class="pre">partitions.csv</span></code>: <code class="docutils literal notranslate"><span class="pre">otadata</span></code> +
+two 3 MB app slots on an 8 MB flash), so the very first flash must be a full
+<code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">flash</span></code> (not just <code class="docutils literal notranslate"><span class="pre">app-flash</span></code>) to lay down the partition table and
+otadata.</p>
+<blockquote>
+<div><p>On boards whose only USB connector is the ESP32-S3’s native USB (e.g. MotorGo
+Mini), TinyUSB takes over the connector once the app starts, so the
+USB-Serial-JTAG console (<code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">monitor</span></code>) goes away. Runtime logs are still
+available over the same cable: the example exposes a CDC-ACM serial port and
+routes the system console to it, so attach any serial terminal (e.g.
+<code class="docutils literal notranslate"><span class="pre">screen</span> <span class="pre">/dev/tty.usbmodem*</span></code>) for live logs. Flashing also still works over
+the same connector via the ROM bootloader (hold BOOT while resetting, or
+just use <code class="docutils literal notranslate"><span class="pre">ota_console.html</span></code> for OTA updates after the first flash).</p>
+</div></blockquote>
+</section>
+<section id="web-console">
+<h3>Web console<a class="headerlink" href="#web-console" title="Permalink to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>Flash and start the example, then connect the board’s <strong>native USB-OTG</strong>
+port to your computer (on an S3 devkit this is the “USB” connector, not
+“UART”).</p></li>
+<li><p>Open <code class="docutils literal notranslate"><span class="pre">webapp/index.html</span></code> in a Chromium browser (Chrome / Edge / Opera). It
+is a single self-contained file and works from <code class="docutils literal notranslate"><span class="pre">file://</span></code>, <code class="docutils literal notranslate"><span class="pre">http://localhost</span></code>
+or any <code class="docutils literal notranslate"><span class="pre">https</span></code> origin. (Chrome may also offer the hosted console
+automatically via the WebUSB landing-page notification.)</p></li>
+<li><p>Click <strong>Connect</strong> and pick “espp BLDC Haptics” (VID <code class="docutils literal notranslate"><span class="pre">0x1209</span></code>, PID <code class="docutils literal notranslate"><span class="pre">0x0d34</span></code>).</p></li>
+<li><p>The dial starts animating from the telemetry stream. Use the controls to
+switch detent presets, enable/disable the motor, move to a detent, or play a
+haptic click.</p></li>
+</ol>
+</section>
+<section id="firmware-update-crash-inspection">
+<h3>Firmware update + crash inspection<a class="headerlink" href="#firmware-update-crash-inspection" title="Permalink to this heading"></a></h3>
+<p>OTA and crash-dump download are the <strong>standard</strong> espp protocols on their own
+dispatcher modules (not part of the haptics protocol), so the plain consoles
+work against this device:</p>
+<ul class="simple">
+<li><p><strong>OTA (module 0)</strong>: build (do not flash), then open <code class="docutils literal notranslate"><span class="pre">ota_console.html</span></code>,
+connect, and upload <code class="docutils literal notranslate"><span class="pre">build/bldc_haptics_example.bin</span></code> (the app image — NOT the
+merged / bootloader image). The device streams it into the inactive OTA slot,
+validates it (structure + SHA-256), switches the boot partition and reboots
+(expect a USB disconnect). The freshly-booted image starts in <code class="docutils literal notranslate"><span class="pre">PENDING_VERIFY</span></code>
+and marks itself valid after its self-check; a crash before that rolls back.</p></li>
+<li><p><strong>Core dump (module 4)</strong>: after an abnormal reset, open <code class="docutils literal notranslate"><span class="pre">coredump_console.html</span></code>
+to download / erase the flash core dump (the boot log also prints a summary).</p></li>
+</ul>
+<p>The <strong>device hub</strong> (<code class="docutils literal notranslate"><span class="pre">dispatcher_hub.html</span></code>) discovers all three modules on this
+one device and links to each console.</p>
+</section>
+</section>
+<section id="example-behaviors">
+<h2>Example Behaviors<a class="headerlink" href="#example-behaviors" title="Permalink to this heading"></a></h2>
+<p>The detent presets can be switched at runtime from the web console (or by
+editing the default in the code). Some examples:</p>
+<section id="coarse-values-strong-detents-best-with-sound">
+<h3>coarse values strong detents (best with sound)<a class="headerlink" href="#coarse-values-strong-detents-best-with-sound" title="Permalink to this heading"></a></h3>
+<p>https://github.com/esp-cpp/espp/assets/213467/a256b401-6e45-4284-89c7-2dec9a49daa7</p>
+</section>
+<section id="magnetic-detents-best-with-sound">
+<h3>magnetic detents (best with sound)<a class="headerlink" href="#magnetic-detents-best-with-sound" title="Permalink to this heading"></a></h3>
+<p>https://github.com/esp-cpp/espp/assets/213467/ab1ace5c-f967-4cfc-b304-7736fdb35bcb</p>
+</section>
+<section id="on-off-strong-detents-best-with-sound">
+<h3>On / Off Strong Detents (best with sound)<a class="headerlink" href="#on-off-strong-detents-best-with-sound" title="Permalink to this heading"></a></h3>
+<p>https://github.com/esp-cpp/espp/assets/213467/038d79b1-7cd9-4af9-b7e8-1b4daf6a363a</p>
+</section>
+<section id="multi-rev-no-detents">
+<h3>Multi-rev no detents<a class="headerlink" href="#multi-rev-no-detents" title="Permalink to this heading"></a></h3>
+<p>https://github.com/esp-cpp/espp/assets/213467/2af81edb-67b8-488b-ae7a-3549be36b8cc</p>
+<p>For more information, see the documentation or the original PR:
+https://github.com/esp-cpp/espp/pull/60</p>
+</section>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this heading"></a></h2>
+<p>Make sure to run the example once with <code class="docutils literal notranslate"><span class="pre">zero_electrical_offset</span></code> set to 0 so that
+the motor will go through a calibration / zero offset routine. At the end of
+this startup routine it will print the measured zero electrical offset that you
+can then provide within the code, at which point it will not need to run the
+calibration routine.</p>
+<p>You must run this calibration any time you change your hardware configuration
+(such as by remounting your motor, magnet, encoder chip).</p>
+<p>If the web console cannot see the device:</p>
+<ul class="simple">
+<li><p>WebUSB needs a Chromium-based browser and a secure context (<code class="docutils literal notranslate"><span class="pre">https</span></code>,
+<code class="docutils literal notranslate"><span class="pre">http://localhost</span></code> or <code class="docutils literal notranslate"><span class="pre">file://</span></code>).</p></li>
+<li><p>Make sure you connected the <em>native USB-OTG</em> port (not a UART bridge port).</p></li>
+<li><p>On Linux you may need a udev rule granting access to VID <code class="docutils literal notranslate"><span class="pre">0x1209</span></code>.</p></li>
+<li><p>Tick “show all USB devices” in the console to bypass the VID/PID filter.</p></li>
+</ul>
+</section>
+<section id="example-breakdown">
+<h2>Example Breakdown<a class="headerlink" href="#example-breakdown" title="Permalink to this heading"></a></h2>
+<p>This example builds complex haptic behavior + connectivity using the following
+components:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::Mt6701</span></code> (I2C on the test stand, SSI on the MotorGo boards)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::BldcDriver</span></code> / the MotorGo board components</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::BldcMotor</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::BldcHaptics</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::UsbDevice</span></code> — native USB vendor interface with WebUSB + MS OS 2.0
+descriptors (driverless browser access)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::Ota</span></code> — transport-agnostic OTA engine (served on module 0)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::CoreDump</span></code> / <code class="docutils literal notranslate"><span class="pre">espp::CoreDumpService</span></code> — crash core-dump access (module 4)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::Dispatcher</span></code> + the <code class="docutils literal notranslate"><span class="pre">stream_frame</span></code> codec — route the vendor stream to the
+OTA (0), haptics (2) and coredump (4) modules, each advertised for capability
+discovery (see <a class="reference internal" href="#./PROTOCOL.md"><span class="xref myst">PROTOCOL.md</span></a>)</p></li>
+</ul>
+<p>You combine the <code class="docutils literal notranslate"><span class="pre">Mt6701</span></code> and <code class="docutils literal notranslate"><span class="pre">BldcDriver</span></code> together when creating the <code class="docutils literal notranslate"><span class="pre">BldcMotor</span></code>
+and then simply pass the <code class="docutils literal notranslate"><span class="pre">BldcMotor</span></code> to the <code class="docutils literal notranslate"><span class="pre">BldcHaptics</span></code> component. At that
+point, you only have to interface to the <code class="docutils literal notranslate"><span class="pre">BldcHaptics</span></code> to read the input
+position or reconfigure the haptics — which is exactly what the USB protocol
+handlers do.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="bldc_haptics.html" class="btn btn-neutral float-left" title="BLDC Haptics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="drv2605.html" class="btn btn-neutral float-right" title="DRV2605 Haptic Motor Driver" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

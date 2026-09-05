@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCP266 CANopen Motor Controller Component - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'motor_control/mcp266';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="MCP266 CANopen Example" href="mcp266_example.html" />
+    <link rel="prev" title="Basicmicro (MCP / RoboClaw) Example" href="basicmicro_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Motor Control APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adrc.html">ADRC APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="motor_controller.html">Motor Controller Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basicmicro.html">Basicmicro (MCP / RoboClaw) Motor Controller Component</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">MCP266 CANopen Motor Controller Component</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#what-works-and-what-does-not">What works, and what does not</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#device-specifics">Device specifics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="mcp266_example.html">MCP266 CANopen Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_native.html">ODrive Native (Fibre endpoint) Protocol Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trajectory_planner.html">Trajectory Planner APIs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Motor Control APIs</a></li>
+      <li class="breadcrumb-item active">MCP266 CANopen Motor Controller Component</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/a08fc9fe/docs/en/motor_control/mcp266.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="mcp266-canopen-motor-controller-component">
+<h1>MCP266 CANopen Motor Controller Component<a class="headerlink" href="#mcp266-canopen-motor-controller-component" title="Permalink to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">espp::Mcp266</span></code> is a dual-channel controller for a Basicmicro <strong>MCP266</strong>
+(RoboClaw family) brushed DC motor driver over <strong>CANopen</strong>. It is layered on
+<code class="docutils literal notranslate"><span class="pre">espp::CanopenClient</span></code> (like <code class="docutils literal notranslate"><span class="pre">espp::Ds402Drive</span></code>), so it is transport-agnostic:
+the application owns the CAN transport, feeds received frames to the client’s
+<code class="docutils literal notranslate"><span class="pre">process_frame()</span></code>, and the client’s node id selects the MCP266.</p>
+<p>Both motor channels (<code class="docutils literal notranslate"><span class="pre">M1</span></code>, <code class="docutils literal notranslate"><span class="pre">M2</span></code>) are driven symmetrically. M2’s CiA 402
+objects mirror M1’s at <code class="docutils literal notranslate"><span class="pre">+0x800</span></code>, handled through <code class="docutils literal notranslate"><span class="pre">Ds402Drive</span></code>’s object
+offset. The reverse-engineered object mapping lives in <code class="docutils literal notranslate"><span class="pre">espp::detail</span></code> inside
+<code class="docutils literal notranslate"><span class="pre">include/detail/mcp266_core.hpp</span></code>, a host-buildable core that depends only on
+the C++20 standard library and is unit-tested off-target.</p>
+</section>
+<section id="what-works-and-what-does-not">
+<h2>What works, and what does not<a class="headerlink" href="#what-works-and-what-does-not" title="Permalink to this heading"></a></h2>
+<p><strong>Position control</strong> uses the standard CiA 402 profile position mode
+(<code class="docutils literal notranslate"><span class="pre">move_to_position</span></code>) and is the supported, validated capability. It needs the
+position loop configured first (<code class="docutils literal notranslate"><span class="pre">configure_position_loop</span></code>).</p>
+<p><strong>Velocity / duty control is not functional</strong> on the MCP266 firmware tested.
+Both the standard target objects and the manufacturer speed/duty command mirror
+are accepted by the drive but leave the velocity generator idle even with the
+drive in Operation Enabled. Supported-drive-modes (<code class="docutils literal notranslate"><span class="pre">0x6502</span></code>) advertises only
+the cyclic-sync modes, so velocity likely requires csv mode with cyclic
+SYNC/PDO updates, which is undocumented for this device. <code class="docutils literal notranslate"><span class="pre">drive_speed</span></code> /
+<code class="docutils literal notranslate"><span class="pre">drive_duty</span></code> are implemented but are currently a no-op for motion.</p>
+</section>
+<section id="device-specifics">
+<h2>Device specifics<a class="headerlink" href="#device-specifics" title="Permalink to this heading"></a></h2>
+<p>The MCP266’s control-loop parameters are <strong>not</strong> standard CiA 402 objects. The
+MCP mirrors its packet-serial command set into the manufacturer region of the
+object dictionary at index <code class="docutils literal notranslate"><span class="pre">0x2000</span> <span class="pre">+</span> <span class="pre">command</span> <span class="pre">number</span></code>. This component uses
+that to configure the position PID (commands 61-64), issue the manufacturer
+speed/duty commands (32/33, 35/36), and read telemetry (main battery 24,
+temperature 82).</p>
+<p>Two device quirks are handled by <code class="docutils literal notranslate"><span class="pre">configure_position_loop()</span></code>, which must be
+called once per boot (the MCP reverts to its EEPROM configuration on power-up):</p>
+<ul class="simple">
+<li><p>The position PID’s <code class="docutils literal notranslate"><span class="pre">MinPos</span></code>/<code class="docutils literal notranslate"><span class="pre">MaxPos</span></code> clamp defaults to <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">0]</span></code>, which
+forces every position target to zero — it is widened here.</p></li>
+<li><p>The setter (commands 61/62) uses field order <code class="docutils literal notranslate"><span class="pre">D,</span> <span class="pre">P,</span> <span class="pre">I</span></code> while the readback
+(63/64) uses <code class="docutils literal notranslate"><span class="pre">P,</span> <span class="pre">I,</span> <span class="pre">D</span></code>, so a naive read-modify-write of the record would
+move <code class="docutils literal notranslate"><span class="pre">P</span></code> into the <code class="docutils literal notranslate"><span class="pre">D</span></code> slot and zero <code class="docutils literal notranslate"><span class="pre">P</span></code>. The correct field shuffle (and
+seeding a non-zero <code class="docutils literal notranslate"><span class="pre">P</span></code> when the record has none) is done here.</p></li>
+</ul>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="mcp266_example.html">MCP266 CANopen Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="mcp266_example.html#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp266_example.html#hardware">Hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp266_example.html#build">Build</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a08fc9fe/components/mcp266/include/mcp266.hpp">components/mcp266/include/mcp266.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp266E">
+<span id="_CPPv3N4espp6Mcp266E"></span><span id="_CPPv2N4espp6Mcp266E"></span><span id="espp::Mcp266"></span><span class="target" id="classespp_1_1Mcp266"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Mcp266</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Mcp266E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Dual-channel controller for a <a class="reference internal" href="basicmicro.html#classespp_1_1Basicmicro"><span class="std std-ref">Basicmicro</span></a> MCP266 (RoboClaw family) brushed-DC motor driver over CANopen. </p>
+<p>Layered on a <a class="reference internal" href="../buses/canopen.html#classespp_1_1CanopenClient"><span class="std std-ref">CanopenClient</span></a> (like <a class="reference internal" href="../buses/canopen.html#classespp_1_1Ds402Drive"><span class="std std-ref">Ds402Drive</span></a>), so it is transport-agnostic: the application owns the CAN transport, feeds received frames to the client’s process_frame(), and the client’s node id selects the MCP266. Both motor channels (M1, M2) are driven symmetrically; M2’s CiA 402 objects mirror M1’s at +0x800, handled through <a class="reference internal" href="../buses/canopen.html#classespp_1_1Ds402Drive"><span class="std std-ref">Ds402Drive</span></a>’s object offset.</p>
+<p>Position control uses the standard CiA 402 profile position mode and is the supported, validated capability. The MCP266’s control-loop parameters are NOT standard CiA 402 objects: the MCP mirrors its packet-serial command set into the manufacturer region at object index 0x2000 + command number, which this class uses to configure the position PID (commands 61-64), issue the manufacturer speed/duty commands (32/33, 35/36), and read telemetry (24, 82). See detail/mcp266_core.hpp.</p>
+<p><strong>Important:</strong> two device quirks must be handled, both done by <a class="reference internal" href="#classespp_1_1Mcp266_1a129ed9bc64c531ecbda5cbac6e2ba3ae"><span class="std std-ref">configure_position_loop()</span></a>:<ul class="simple">
+<li><p>The position PID’s MinPos/MaxPos clamp defaults to [0, 0], which forces every position target to zero.</p></li>
+<li><p>The setter (commands 61/62) uses field order D, P, I while the readback (63/64) uses P, I, D, so a naive read-modify-write of the record moves P into the D slot and zeros P. The MCP reverts to its EEPROM configuration on power-up, so call <a class="reference internal" href="#classespp_1_1Mcp266_1a129ed9bc64c531ecbda5cbac6e2ba3ae"><span class="std std-ref">configure_position_loop()</span></a> once per boot before commanding moves.</p></li>
+</ul>
+</p>
+<p><strong>Note:</strong> the manufacturer speed/duty command mirror (drive_speed / drive_duty) is implemented but does NOT produce motion on the MCP266 firmware tested (the command is accepted but the velocity generator stays idle). Use position mode for motion.</p>
+<section id="classespp_1_1Mcp266_1mcp266_ex0">
+<h4>MCP266 Example<a class="headerlink" href="#classespp_1_1Mcp266_1mcp266_ex0" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Mcp266_1mcp266_ex0"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// The CANopen node id configured on the MCP266 (Motion Studio -&gt; CAN</span>
+<span class="w">  </span><span class="c1">// settings). Change to match your device.</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">node_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Forward-declared handle so the Twai on_receive callback (registered at</span>
+<span class="w">  </span><span class="c1">// Twai construction) can feed frames to the client constructed below.</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">CanopenClient</span><span class="w"> </span><span class="o">*</span><span class="n">client_ptr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Bring up the TWAI (CAN 2.0) peripheral. Talking to a real MCP266 requires</span>
+<span class="w">  </span><span class="c1">// Mode::NORMAL with a 3.3 V CAN transceiver on the tx/rx GPIOs, a properly</span>
+<span class="w">  </span><span class="c1">// terminated bus, and a matching baudrate (set in Motion Studio).</span>
+<span class="w">  </span><span class="c1">// NOTE: twai / client / mcp are function-local statics: the Twai receive</span>
+<span class="w">  </span><span class="c1">// task and the client's send lambda reference them, and app_main() has</span>
+<span class="w">  </span><span class="c1">// early-return paths, so static storage keeps them alive for every callback.</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Twai</span><span class="w"> </span><span class="nf">twai</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">tx_gpio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">17</span><span class="p">,</span><span class="w"> </span><span class="c1">// change to match your board / transceiver</span>
+<span class="w">      </span><span class="p">.</span><span class="n">rx_gpio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">16</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">baudrate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Twai</span><span class="o">::</span><span class="n">Mode</span><span class="o">::</span><span class="n">NORMAL</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">tx_queue_depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_receive</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Twai</span><span class="o">::</span><span class="n">Message</span><span class="w"> </span><span class="o">&amp;</span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">client_ptr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="n">client_ptr</span><span class="o">-&gt;</span><span class="n">process_frame</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">CanopenClient</span><span class="o">::</span><span class="n">CanFrame</span><span class="p">{</span>
+<span class="w">                  </span><span class="p">.</span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">msg</span><span class="p">.</span><span class="n">id</span><span class="p">,</span>
+<span class="w">                  </span><span class="p">.</span><span class="n">extended</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">msg</span><span class="p">.</span><span class="n">extended</span><span class="p">,</span>
+<span class="w">                  </span><span class="p">.</span><span class="n">rtr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">msg</span><span class="p">.</span><span class="n">rtr</span><span class="p">,</span>
+<span class="w">                  </span><span class="p">.</span><span class="n">dlc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">msg</span><span class="p">.</span><span class="n">dlc</span><span class="p">,</span>
+<span class="w">                  </span><span class="p">.</span><span class="n">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">msg</span><span class="p">.</span><span class="n">data</span><span class="p">,</span>
+<span class="w">              </span><span class="p">});</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">CanopenClient</span><span class="w"> </span><span class="nf">client</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">node_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node_id</span><span class="p">,</span>
+<span class="w">      </span><span class="c1">// captureless: twai has static storage duration and is referenced</span>
+<span class="w">      </span><span class="o">//</span><span class="w"> </span><span class="n">directly</span><span class="w"> </span><span class="p">(</span><span class="n">capturing</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">is</span><span class="w"> </span><span class="n">ill</span><span class="o">-</span><span class="n">formed</span><span class="w"> </span><span class="n">under</span><span class="w"> </span><span class="o">-</span><span class="n">Werror</span><span class="p">)</span>
+<span class="w">      </span><span class="p">.</span><span class="n">send</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">CanopenClient</span><span class="o">::</span><span class="n">CanFrame</span><span class="w"> </span><span class="o">&amp;</span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">espp</span><span class="o">::</span><span class="n">Twai</span><span class="o">::</span><span class="n">Message</span><span class="w"> </span><span class="n">msg</span><span class="p">{</span>
+<span class="w">                </span><span class="p">.</span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">frame</span><span class="p">.</span><span class="n">id</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">extended</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">frame</span><span class="p">.</span><span class="n">extended</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">rtr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">frame</span><span class="p">.</span><span class="n">rtr</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">dlc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">frame</span><span class="p">.</span><span class="n">dlc</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">frame</span><span class="p">.</span><span class="n">data</span><span class="p">,</span>
+<span class="w">            </span><span class="p">};</span>
+<span class="w">            </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">tx_ec</span><span class="p">;</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">twai</span><span class="p">.</span><span class="n">transmit</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span><span class="w"> </span><span class="n">tx_ec</span><span class="p">);</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">sdo_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="n">ms</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="w">  </span><span class="n">client_ptr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">client</span><span class="p">;</span>
+
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Mcp266</span><span class="w"> </span><span class="nf">mcp</span><span class="p">(</span><span class="n">client</span><span class="p">,</span><span class="w"> </span><span class="p">{.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">twai</span><span class="p">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Failed to initialize TWAI: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="c1">// NMT-start the node and clear any latched faults on both axes.</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">mcp</span><span class="p">.</span><span class="n">start</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Failed to start MCP266: {} -- is the node on the bus?"</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Telemetry sanity check.</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">volts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="n">temp_c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mcp</span><span class="p">.</span><span class="n">read_main_battery_voltage</span><span class="p">(</span><span class="n">volts</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Main battery: {:.1f} V"</span><span class="p">,</span><span class="w"> </span><span class="n">volts</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mcp</span><span class="p">.</span><span class="n">read_temperature</span><span class="p">(</span><span class="n">temp_c</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Board temperature: {:.1f} C"</span><span class="p">,</span><span class="w"> </span><span class="n">temp_c</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">Axis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Mcp266</span><span class="o">::</span><span class="n">Axis</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// One-time per-boot position-loop setup on M1: widen the MinPos/MaxPos clamp</span>
+<span class="w">  </span><span class="c1">// (factory [0, 0] forces every target to zero) and ensure a non-zero</span>
+<span class="w">  </span><span class="c1">// position P gain. The MCP reverts to EEPROM on power-up, so this must run</span>
+<span class="w">  </span><span class="c1">// every boot before commanding moves. Clear any latched e-stop first.</span>
+<span class="w">  </span><span class="n">mcp</span><span class="p">.</span><span class="n">reset_estop</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">mcp</span><span class="p">.</span><span class="n">configure_position_loop</span><span class="p">(</span><span class="n">Axis</span><span class="o">::</span><span class="n">M1</span><span class="p">,</span><span class="w"> </span><span class="mi">-2'000'000'000</span><span class="p">,</span><span class="w"> </span><span class="mi">2'000'000'000</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Failed to configure M1 position loop: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">mcp</span><span class="p">.</span><span class="n">set_software_position_limits</span><span class="p">(</span><span class="n">Axis</span><span class="o">::</span><span class="n">M1</span><span class="p">,</span><span class="w"> </span><span class="mi">-20'000</span><span class="p">,</span><span class="w"> </span><span class="mi">20'000</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Failed to set M1 software position limits: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Run a small profile-position sequence and report arrival.</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">targets</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">10'000</span><span class="p">,</span><span class="w"> </span><span class="mi">-10'000</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">};</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">profile_velocity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="p">;</span><span class="w"> </span><span class="c1">// counts/s</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">profile_accel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="p">;</span><span class="w">    </span><span class="c1">// counts/s^2</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">profile_decel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="p">;</span><span class="w">    </span><span class="c1">// counts/s^2</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">tolerance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span><span class="w">         </span><span class="c1">// counts</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int32_t</span><span class="w"> </span><span class="n">target</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">targets</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Moving M1 to {}"</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">mcp</span><span class="p">.</span><span class="n">move_to_position</span><span class="p">(</span><span class="n">Axis</span><span class="o">::</span><span class="n">M1</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="n">profile_velocity</span><span class="p">,</span><span class="w"> </span><span class="n">profile_accel</span><span class="p">,</span><span class="w"> </span><span class="n">profile_decel</span><span class="p">,</span>
+<span class="w">                              </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Move command rejected: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="k">continue</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">deadline</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">30</span><span class="n">s</span><span class="p">;</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">deadline</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">250</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mcp</span><span class="p">.</span><span class="n">read_encoder</span><span class="p">(</span><span class="n">Axis</span><span class="o">::</span><span class="n">M1</span><span class="p">,</span><span class="w"> </span><span class="n">position</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">position</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">target</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">tolerance</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  reached {} (position={})"</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="n">position</span><span class="p">);</span>
+<span class="w">        </span><span class="k">break</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-position-control-(cia-402-profile-position-mode)">Position control (CiA 402 profile position mode)</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26623configure_position_loopE4Axis7int32_t7int32_t7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26623configure_position_loopE4Axis7int32_t7int32_t7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26623configure_position_loopE4Axis7int32_t7int32_t7int32_tRNSt10error_codeE"></span><span id="espp::Mcp266::configure_position_loop__Axis.int32_t.int32_t.int32_t.std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1a129ed9bc64c531ecbda5cbac6e2ba3ae"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_position_loop</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Mcp2664AxisE" title="espp::Mcp266::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">min_pos</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_pos</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">fallback_p</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26623configure_position_loopE4Axis7int32_t7int32_t7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure an axis’s position loop for use: widen the MinPos/MaxPos clamp (factory [0, 0] forces every target to zero) and, only if the drive’s stored position P gain reads back as zero, seed a non-zero P so the loop produces output. The record is written through the setter’s D, P, I field order and the clamp verified via the readback. The MCP reverts to EEPROM on power-up, so call once per boot. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">fallback_p</span></code> is a coarse starting value used ONLY when the drive has no stored P gain; it is not motor-tuned. For good motion, tune the position PID in <a class="reference internal" href="basicmicro.html#classespp_1_1Basicmicro"><span class="std std-ref">Basicmicro</span></a> Motion Studio (or pass a value appropriate for your motor / encoder) &amp;#8212; an unsuitable P gain can leave the axis sluggish or make it oscillate. A drive whose P gain is already non-zero keeps its stored gains untouched. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – The motor channel. </p></li>
+<li><p><strong>min_pos</strong> – Minimum commandable position. </p></li>
+<li><p><strong>max_pos</strong> – Maximum commandable position. </p></li>
+<li><p><strong>fallback_p</strong> – Position P gain to seed when the stored gain is zero. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26623configure_position_loopE4Axis7int32_t7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26623configure_position_loopE4Axis7int32_t7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26623configure_position_loopE4Axis7int32_t7int32_tRNSt10error_codeE"></span><span id="espp::Mcp266::configure_position_loop__Axis.int32_t.int32_t.std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1a227b5e7326b1d47127e4443b1fc3f211"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_position_loop</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Mcp2664AxisE" title="espp::Mcp266::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">min_pos</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_pos</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26623configure_position_loopE4Axis7int32_t7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure an axis’s position loop using the default coarse fallback P gain (see the fallback_p overload). Convenience for the common case. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26628set_software_position_limitsE4Axis7int32_t7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26628set_software_position_limitsE4Axis7int32_t7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26628set_software_position_limitsE4Axis7int32_t7int32_tRNSt10error_codeE"></span><span id="espp::Mcp266::set_software_position_limits__Axis.int32_t.int32_t.std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1a95409f4d23ec4d3066e66ee5f3f87fb8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_software_position_limits</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Mcp2664AxisE" title="espp::Mcp266::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">min_pos</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_pos</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26628set_software_position_limitsE4Axis7int32_t7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the CiA 402 software position limits (object 0x607D:1/:2) for an axis — a per-move envelope enforced by the drive’s trajectory generator. Distinct from <a class="reference internal" href="#classespp_1_1Mcp266_1a129ed9bc64c531ecbda5cbac6e2ba3ae"><span class="std std-ref">configure_position_loop()</span></a>’s min/max, which writes the manufacturer position-PID MinPos/MaxPos clamp. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – The motor channel. </p></li>
+<li><p><strong>min_pos</strong> – Lower limit. </p></li>
+<li><p><strong>max_pos</strong> – Upper limit. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26616move_to_positionE4Axis7int32_t8uint32_t8uint32_t8uint32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26616move_to_positionE4Axis7int32_t8uint32_t8uint32_t8uint32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26616move_to_positionE4Axis7int32_t8uint32_t8uint32_t8uint32_tRNSt10error_codeE"></span><span id="espp::Mcp266::move_to_position__Axis.int32_t.uint32_t.uint32_t.uint32_t.std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1aa68f631e46930af10c800b23b89c15fb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">move_to_position</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Mcp2664AxisE" title="espp::Mcp266::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">target_position</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">profile_velocity</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">profile_acceleration</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">profile_deceleration</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26616move_to_positionE4Axis7int32_t8uint32_t8uint32_t8uint32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Command a profile-position move: enable the axis, set the motion profile, and issue the target with the new-set-point handshake. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – The motor channel. </p></li>
+<li><p><strong>target_position</strong> – Absolute target position (encoder counts). </p></li>
+<li><p><strong>profile_velocity</strong> – Cruise velocity. </p></li>
+<li><p><strong>profile_acceleration</strong> – Acceleration. </p></li>
+<li><p><strong>profile_deceleration</strong> – Deceleration. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True once the set-point is accepted. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-manufacturer-speed-/-duty-command-mirror">Manufacturer speed / duty command mirror</p>
+<p><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Accepted by the drive but inert on the MCP266 firmware tested; kept for completeness and in case a firmware update activates them. </p>
+</div>
+</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26611drive_speedE4Axis7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26611drive_speedE4Axis7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26611drive_speedE4Axis7int32_tRNSt10error_codeE"></span><span id="espp::Mcp266::drive_speed__Axis.int32_t.std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1a254c95c7f4d7a5c05ef8c9685adfcd3e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drive_speed</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Mcp2664AxisE" title="espp::Mcp266::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpps</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26611drive_speedE4Axis7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Closed-loop speed via the mirrored packet-serial command (35/36). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26610drive_dutyE4Axis7int16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26610drive_dutyE4Axis7int16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26610drive_dutyE4Axis7int16_tRNSt10error_codeE"></span><span id="espp::Mcp266::drive_duty__Axis.int16_t.std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1abf47127c30c1ca781e7a239438cc1704"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drive_duty</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Mcp2664AxisE" title="espp::Mcp266::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duty</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26610drive_dutyE4Axis7int16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Open-loop duty via the mirrored packet-serial command (32/33). </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-feedback">Feedback</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26612read_encoderE4AxisR7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26612read_encoderE4AxisR7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26612read_encoderE4AxisR7int32_tRNSt10error_codeE"></span><span id="espp::Mcp266::read_encoder__Axis.int32_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1ad5c2b371df39b2ddbc70f031bf76c18e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_encoder</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Mcp2664AxisE" title="espp::Mcp266::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">count</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26612read_encoderE4AxisR7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the actual position (0x6064 / 0x6864). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Channel. </p></li>
+<li><p><strong>count</strong> – Out: encoder counts. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26610read_speedE4AxisR7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26610read_speedE4AxisR7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26610read_speedE4AxisR7int32_tRNSt10error_codeE"></span><span id="espp::Mcp266::read_speed__Axis.int32_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1afe7fe2b54d99d9a8610382f99aff0fd7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_speed</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Mcp2664AxisE" title="espp::Mcp266::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">qpps</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26610read_speedE4AxisR7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the actual velocity (0x606C / 0x686C). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Channel. </p></li>
+<li><p><strong>qpps</strong> – Out: counts/s. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26615read_statuswordE4AxisR8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26615read_statuswordE4AxisR8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26615read_statuswordE4AxisR8uint16_tRNSt10error_codeE"></span><span id="espp::Mcp266::read_statusword__Axis.uint16_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1a9877729e59dd443d654e29f11d326912"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_statusword</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Mcp2664AxisE" title="espp::Mcp266::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">statusword</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26615read_statuswordE4AxisR8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the CiA 402 statusword (0x6041 / 0x6841). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Channel. </p></li>
+<li><p><strong>statusword</strong> – Out. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp2669get_stateE4AxisRN10Ds402Drive5StateERNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp2669get_stateE4AxisRN10Ds402Drive5StateERNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp2669get_stateE4AxisRN10Ds402Drive5StateERNSt10error_codeE"></span><span id="espp::Mcp266::get_state__Axis.Ds402Drive::StateR.std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1a1be5011725ae1e5622497332450d27d2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_state</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Mcp2664AxisE" title="espp::Mcp266::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <a class="reference internal" href="../buses/canopen.html#_CPPv4N4espp10Ds402DriveE" title="espp::Ds402Drive"><span class="n"><span class="pre">Ds402Drive</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../buses/canopen.html#_CPPv4N4espp10Ds402Drive5StateE" title="espp::Ds402Drive::State"><span class="n"><span class="pre">State</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">state</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp2669get_stateE4AxisRN10Ds402Drive5StateERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the decoded CiA 402 drive state of an axis (from its statusword). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Channel. </p></li>
+<li><p><strong>state</strong> – Out: the power-drive-system state. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26617is_target_reachedE4AxisRbRNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26617is_target_reachedE4AxisRbRNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26617is_target_reachedE4AxisRbRNSt10error_codeE"></span><span id="espp::Mcp266::is_target_reached__Axis.bR.std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1a7b423b91dbdc371fc0de70bcba5660aa"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_target_reached</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Mcp2664AxisE" title="espp::Mcp266::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">reached</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26617is_target_reachedE4AxisRbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether an axis reports “target reached” (statusword bit 10) — the authoritative arrival signal for profile moves. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Channel. </p></li>
+<li><p><strong>reached</strong> – Out. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-device-telemetry">Device telemetry</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26625read_main_battery_voltageERfRNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26625read_main_battery_voltageERfRNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26625read_main_battery_voltageERfRNSt10error_codeE"></span><span id="espp::Mcp266::read_main_battery_voltage__floatR.std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1a3c514cd845bb33745ead6d6818aa9ab5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_main_battery_voltage</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">volts</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26625read_main_battery_voltageERfRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the main battery voltage (mirrored command 24). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>volts</strong> – Out: volts. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26616read_temperatureERfRNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26616read_temperatureERfRNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26616read_temperatureERfRNSt10error_codeE"></span><span id="espp::Mcp266::read_temperature__floatR.std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1a104510fc28ebdb8414b39a0b4d225389"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_temperature</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">temp_c</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26616read_temperatureERfRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the board temperature (mirrored command 82). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>temp_c</strong> – Out: degrees C. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26616read_device_infoERNSt6stringER8uint32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26616read_device_infoERNSt6stringER8uint32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26616read_device_infoERNSt6stringER8uint32_tRNSt10error_codeE"></span><span id="espp::Mcp266::read_device_info__ssR.uint32_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1ac1614e2a7bde2683299dc4ab9ba0a0f2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_device_info</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">device_name</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">device_type</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26616read_device_infoERNSt6stringER8uint32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the standard device type (0x1000) and name (0x1008). </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp2664AxisE">
+<span id="_CPPv3N4espp6Mcp2664AxisE"></span><span id="_CPPv2N4espp6Mcp2664AxisE"></span><span class="target" id="classespp_1_1Mcp266_1aad659dd7b602ddf0d439839694c0784c"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Axis</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">MotorAxis</span></span><a class="headerlink" href="#_CPPv4N4espp6Mcp2664AxisE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Motor channel selector (shared across the espp motor drivers). </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp2666Mcp266ER13CanopenClientRK6Config">
+<span id="_CPPv3N4espp6Mcp2666Mcp266ER13CanopenClientRK6Config"></span><span id="_CPPv2N4espp6Mcp2666Mcp266ER13CanopenClientRK6Config"></span><span id="espp::Mcp266::Mcp266__CanopenClientR.ConfigCR"></span><span class="target" id="classespp_1_1Mcp266_1adeec584f1ea838d808e01f9213311992"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Mcp266</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../buses/canopen.html#_CPPv4N4espp13CanopenClientE" title="espp::CanopenClient"><span class="n"><span class="pre">CanopenClient</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">client</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Mcp2666ConfigE" title="espp::Mcp266::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp2666Mcp266ER13CanopenClientRK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create an MCP266 controller. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>client</strong> – The CANopen client for the MCP266’s node. Must outlive this object, and its process_frame() must be driven from another task (e.g. the transport’s receive task) per <a class="reference internal" href="../buses/canopen.html#classespp_1_1CanopenClient"><span class="std std-ref">CanopenClient</span></a>’s contract. </p></li>
+<li><p><strong>config</strong> – The configuration. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp2666Mcp266ER13CanopenClient">
+<span id="_CPPv3N4espp6Mcp2666Mcp266ER13CanopenClient"></span><span id="_CPPv2N4espp6Mcp2666Mcp266ER13CanopenClient"></span><span id="espp::Mcp266::Mcp266__CanopenClientR"></span><span class="target" id="classespp_1_1Mcp266_1a444d158a9a63f26070f597553c6bfecf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Mcp266</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../buses/canopen.html#_CPPv4N4espp13CanopenClientE" title="espp::CanopenClient"><span class="n"><span class="pre">CanopenClient</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">client</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp2666Mcp266ER13CanopenClient" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create an MCP266 controller with the default configuration. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp2665startERNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp2665startERNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp2665startERNSt10error_codeE"></span><span id="espp::Mcp266::start__std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1a93e912e589d32c894f1bf824017b8263"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp2665startERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>NMT-start the node and clear any latched CiA 402 faults on both axes. Call once after the transport and client are up. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26612reset_faultsERNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26612reset_faultsERNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26612reset_faultsERNSt10error_codeE"></span><span id="espp::Mcp266::reset_faults__std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1a9bb8d1eedd91d96dcceb08a42548d213"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_faults</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26612reset_faultsERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear any latched CiA 402 fault on both axes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26611reset_estopERNSt10error_codeE">
+<span id="_CPPv3N4espp6Mcp26611reset_estopERNSt10error_codeE"></span><span id="_CPPv2N4espp6Mcp26611reset_estopERNSt10error_codeE"></span><span id="espp::Mcp266::reset_estop__std::error_codeR"></span><span class="target" id="classespp_1_1Mcp266_1a03c31438bcf474e6fedfcc6e72b36e8c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_estop</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26611reset_estopERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Attempt an E-stop reset (mirrored packet-serial command 200 at 0x20C8). Harmless when nothing is latched. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if accepted. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp2665driveE4Axis">
+<span id="_CPPv3N4espp6Mcp2665driveE4Axis"></span><span id="_CPPv2N4espp6Mcp2665driveE4Axis"></span><span id="espp::Mcp266::drive__Axis"></span><span class="target" id="classespp_1_1Mcp266_1af40d11fc29f95d6c03f4e395d63f31da"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="../buses/canopen.html#_CPPv4N4espp10Ds402DriveE" title="espp::Ds402Drive"><span class="n"><span class="pre">Ds402Drive</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">drive</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Mcp2664AxisE" title="espp::Mcp266::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp2665driveE4Axis" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access an axis’s underlying <a class="reference internal" href="../buses/canopen.html#classespp_1_1Ds402Drive"><span class="std std-ref">Ds402Drive</span></a> for advanced CiA 402 use. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>axis</strong> – The motor channel. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Pointer to the axis drive helper, or nullptr if <code class="docutils literal notranslate"><span class="pre">axis</span></code> is not a valid channel (M1 / M2) &amp;#8212; so an axis decoded from an untrusted byte cannot silently return the M2 drive. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Mcp2668get_nameEv">
+<span id="_CPPv3NK4espp6Mcp2668get_nameEv"></span><span id="_CPPv2NK4espp6Mcp2668get_nameEv"></span><span id="espp::Mcp266::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Mcp2668get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26611set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp6Mcp26611set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp6Mcp26611set_log_tagERKNSt11string_viewE"></span><span id="espp::Mcp266::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26611set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Mcp26613get_log_levelEv">
+<span id="_CPPv3NK4espp6Mcp26613get_log_levelEv"></span><span id="_CPPv2NK4espp6Mcp26613get_log_levelEv"></span><span id="espp::Mcp266::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Mcp26613get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26613set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp6Mcp26613set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp6Mcp26613set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Mcp266::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26613set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26617set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp6Mcp26617set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp6Mcp26617set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Mcp266::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26617set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Mcp26617get_log_verbosityEv">
+<span id="_CPPv3NK4espp6Mcp26617get_log_verbosityEv"></span><span id="_CPPv2NK4espp6Mcp26617get_log_verbosityEv"></span><span id="espp::Mcp266::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Mcp26617get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp26618set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp6Mcp26618set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp6Mcp26618set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Mcp266::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mcp26618set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp2666ConfigE">
+<span id="_CPPv3N4espp6Mcp2666ConfigE"></span><span id="_CPPv2N4espp6Mcp2666ConfigE"></span><span id="espp::Mcp266::Config"></span><span class="target" id="structespp_1_1Mcp266_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Mcp2666ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the <a class="reference internal" href="#classespp_1_1Mcp266"><span class="std std-ref">Mcp266</span></a> controller. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp2666Config13state_timeoutE">
+<span id="_CPPv3N4espp6Mcp2666Config13state_timeoutE"></span><span id="_CPPv2N4espp6Mcp2666Config13state_timeoutE"></span><span id="espp::Mcp266::Config::state_timeout__std::chrono::milliseconds"></span><span class="target" id="structespp_1_1Mcp266_1_1Config_1a50aba6ba59b556d028bda9a6a30c1e00"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">state_timeout</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">1000</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Mcp2666Config13state_timeoutE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Per-axis CiA 402 transition timeout. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp2666Config11poll_periodE">
+<span id="_CPPv3N4espp6Mcp2666Config11poll_periodE"></span><span id="_CPPv2N4espp6Mcp2666Config11poll_periodE"></span><span id="espp::Mcp266::Config::poll_period__std::chrono::milliseconds"></span><span class="target" id="structespp_1_1Mcp266_1_1Config_1a7fa98c90f120e461b1ce3f7525e04e33"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">poll_period</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">25</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Mcp2666Config11poll_periodE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Statusword polling period. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mcp2666Config9log_levelE">
+<span id="_CPPv3N4espp6Mcp2666Config9log_levelE"></span><span id="_CPPv2N4espp6Mcp2666Config9log_levelE"></span><span id="espp::Mcp266::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1Mcp266_1_1Config_1ae40405137a5f5302cf9c3f550b3b2d91"></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Mcp2666Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> verbosity. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="basicmicro_example.html" class="btn btn-neutral float-left" title="Basicmicro (MCP / RoboClaw) Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="mcp266_example.html" class="btn btn-neutral float-right" title="MCP266 CANopen Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

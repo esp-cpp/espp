@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Socket Reactor - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'network/socket_reactor';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="WiFi APIs" href="../wifi/index.html" />
+    <link rel="prev" title="UDP Sockets" href="udp_socket.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Network APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="dns_server.html">DNS Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ethernet.html">Ethernet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ethernet_example.html">Ethernet Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ping.html">Ping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="provisioning.html">Provisioning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="socket_example.html">Socket Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="socket.html">Socket Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tcp_socket.html">TCP Sockets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="udp_socket.html">UDP Sockets</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Socket Reactor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#priority-bands-and-dscp">Priority bands and DSCP</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id1">Header File</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Network APIs</a></li>
+      <li class="breadcrumb-item active">Socket Reactor</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/a08fc9fe/docs/en/network/socket_reactor.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="socket-reactor">
+<h1>Socket Reactor<a class="headerlink" href="#socket-reactor" title="Permalink to this heading"></a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">SocketReactor</span></code> multiplexes many receiver sockets on a single
+<code class="docutils literal notranslate"><span class="pre">select()</span></code> event-loop thread and dispatches each socket’s read + user callback
+onto a shared <a class="reference internal" href="../core/thread_pool.html"><span class="doc">ThreadPool</span></a>, instead of
+dedicating one thread (one <code class="docutils literal notranslate"><span class="pre">espp::Task</span></code>) to every receiving socket. This
+collapses “N receiver threads” into “1 loop thread + a small fixed pool”, which
+can additionally be shared across several subsystems.</p>
+<p>To keep per-socket handling correct under level-triggered <code class="docutils literal notranslate"><span class="pre">select()</span></code>, the
+reactor is one-shot: when a socket is reported readable it is <em>disarmed</em> and a
+job is submitted to the pool, and it is <em>re-armed</em> only after that job completes.
+This guarantees at most one in-flight handler per socket (so per-socket ordering
+is preserved and there is no concurrent <code class="docutils literal notranslate"><span class="pre">recv</span></code> on one fd), while different
+sockets’ handlers run concurrently on the pool. If the pool is saturated the
+socket is simply left for the next <code class="docutils literal notranslate"><span class="pre">select()</span></code> to re-report - the datagram stays
+buffered, giving natural backpressure with no loss.</p>
+<p>Registration changes, re-arming, and stop are made immediately responsive by a
+loopback UDP “wakeup” socket that is also in the select set.</p>
+<p>The reactor drives:</p>
+<ul class="simple">
+<li><p><strong>UDP receivers</strong> via <code class="docutils literal notranslate"><span class="pre">add_udp_receiver()</span></code> (binds the socket, calls the
+receive callback on a pool worker, and sends any returned response), replacing
+a per-socket <code class="docutils literal notranslate"><span class="pre">UdpSocket::start_receiving()</span></code> thread.</p></li>
+<li><p><strong>TCP listeners</strong> via <code class="docutils literal notranslate"><span class="pre">add_tcp_listener()</span></code> (accepts connections and hands
+each new client to a callback) and <strong>TCP streams</strong> via <code class="docutils literal notranslate"><span class="pre">add_tcp_stream()</span></code>
+(reads a connected socket, invokes a data callback, and auto-unregisters on
+disconnect) - so a whole TCP server runs with no accept thread and no
+thread-per-client.</p></li>
+</ul>
+<p>A low-level <code class="docutils literal notranslate"><span class="pre">add_fd()</span></code> / <code class="docutils literal notranslate"><span class="pre">remove()</span></code> pair is also available.</p>
+<section id="priority-bands-and-dscp">
+<h2>Priority bands and DSCP<a class="headerlink" href="#priority-bands-and-dscp" title="Permalink to this heading"></a></h2>
+<p>Each registration carries an <code class="xref cpp cpp-enum docutils literal notranslate"><span class="pre">espp::QosBand</span></code> (<code class="docutils literal notranslate"><span class="pre">Critical</span></code> / <code class="docutils literal notranslate"><span class="pre">High</span></code>
+/ <code class="docutils literal notranslate"><span class="pre">Normal</span></code> / <code class="docutils literal notranslate"><span class="pre">Low</span></code>; <code class="docutils literal notranslate"><span class="pre">Normal</span></code> by default, preserving the pre-band FIFO
+behavior): when several sockets are readable in one <code class="docutils literal notranslate"><span class="pre">select()</span></code> round the
+ready set is dispatched most-urgent-first, and each handler is submitted to the
+<a class="reference internal" href="../core/thread_pool.html"><span class="doc">ThreadPool</span></a> <em>at its band</em>, so a <code class="docutils literal notranslate"><span class="pre">Critical</span></code>
+socket’s handler overtakes already-queued lower-band handlers even on a
+saturated pool. <code class="docutils literal notranslate"><span class="pre">UdpSocket::ReceiveConfig::band</span></code> sets the band for UDP
+receivers; <code class="docutils literal notranslate"><span class="pre">add_tcp_listener()</span></code> / <code class="docutils literal notranslate"><span class="pre">add_tcp_stream()</span></code> / <code class="docutils literal notranslate"><span class="pre">add_fd()</span></code> take a
+band argument.</p>
+<p>UDP receivers can additionally set <code class="docutils literal notranslate"><span class="pre">UdpSocket::ReceiveConfig::dscp</span></code> to mark
+their <em>transmitted</em> replies with a DSCP code point (applied as <code class="docutils literal notranslate"><span class="pre">IP_TOS</span></code> at
+registration, best-effort), using the typed <code class="xref cpp cpp-enum docutils literal notranslate"><span class="pre">espp::Dscp</span></code> enum of
+standard DiffServ names - e.g. <code class="docutils literal notranslate"><span class="pre">Dscp::Ef</span></code> (expedited forwarding for
+latency-critical flows), <code class="docutils literal notranslate"><span class="pre">Dscp::Cs1</span></code> (low-priority data), <code class="docutils literal notranslate"><span class="pre">Dscp::Af41</span></code>
+(high-priority assured forwarding). This affects network / driver treatment of
+outgoing traffic and is orthogonal to the local <code class="docutils literal notranslate"><span class="pre">band</span></code> scheduling. A custom
+code point can be expressed with <code class="docutils literal notranslate"><span class="pre">static_cast&lt;Dscp&gt;(0-63)</span></code>; out-of-range
+values are rejected with a warning.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Lifetime: registered sockets and callbacks must outlive their registration.
+<code class="docutils literal notranslate"><span class="pre">stop()</span></code> (and the destructor) waits for any in-flight handler to finish, so
+the guaranteed-safe teardown order is to <code class="docutils literal notranslate"><span class="pre">stop()</span></code> / destroy the reactor
+first, then destroy the sockets. <code class="docutils literal notranslate"><span class="pre">remove()</span></code> is <em>asynchronous</em> with respect
+to a handler that is already running for that id.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">select()</span></code> backend uses <code class="docutils literal notranslate"><span class="pre">fd_set</span></code>, so on POSIX/lwip a registered file
+descriptor must be below <code class="docutils literal notranslate"><span class="pre">FD_SETSIZE</span></code>; registration rejects an fd at or
+above that limit. On lwip, socket fds occupy
+<code class="docutils literal notranslate"><span class="pre">[FD_SETSIZE</span> <span class="pre">-</span> <span class="pre">CONFIG_LWIP_MAX_SOCKETS,</span> <span class="pre">FD_SETSIZE)</span></code>, so this is only hit if
+those limits are raised past the compiled <code class="docutils literal notranslate"><span class="pre">FD_SETSIZE</span></code>.</p>
+</div>
+<p>Code examples for the reactor are provided in the <code class="docutils literal notranslate"><span class="pre">socket</span></code> example folder (the
+“Socket reactor”, “Reactor priority bands”, and “TCP reactor” scenarios).</p>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a08fc9fe/components/socket/include/socket_reactor.hpp">components/socket/include/socket_reactor.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactorE">
+<span id="_CPPv3N4espp13SocketReactorE"></span><span id="_CPPv2N4espp13SocketReactorE"></span><span id="espp::SocketReactor"></span><span class="target" id="classespp_1_1SocketReactor"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SocketReactor</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp13SocketReactorE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>A single-threaded select() event loop that multiplexes many receiver sockets and dispatches their read handling onto a shared thread pool. </p>
+<p>Instead of dedicating one background thread (one <a class="reference internal" href="../core/task.html#classespp_1_1Task"><span class="std std-ref">espp::Task</span></a>) to every receiving socket, register the sockets with a single <a class="reference internal" href="#classespp_1_1SocketReactor"><span class="std std-ref">SocketReactor</span></a>. One loop thread waits in <code class="docutils literal notranslate"><span class="pre">::select()</span></code> on all registered file descriptors at once; when a socket becomes readable the reactor hands that socket’s read + user callback to a <a class="reference internal" href="../core/thread_pool.html#classespp_1_1ThreadPool"><span class="std std-ref">espp::ThreadPool</span></a> worker. This collapses “N receiver threads” down to “1 loop thread + a small fixed pool”, which can additionally be shared across several subsystems.</p>
+<p>To keep per-socket handling correct under level-triggered <code class="docutils literal notranslate"><span class="pre">select()</span></code>, the reactor is one-shot: when a socket is reported readable it is <strong>disarmed</strong> (removed from the interest set) and a job is submitted; the socket is <strong>re-armed</strong> only after that job completes. This guarantees at most one in-flight handler per socket (so per-socket ordering is preserved and there is no concurrent <code class="docutils literal notranslate"><span class="pre">recv</span></code> on the same fd), while different sockets’ handlers run concurrently on the pool.</p>
+<p>Registration changes, re-arming, and stop are made immediately responsive by a loopback UDP “wakeup” socket that is also in the select set: poking it interrupts <code class="docutils literal notranslate"><span class="pre">select()</span></code> at once.</p>
+<p>Each registration carries a priority band (espp::QosBand, default Normal). When one <code class="docutils literal notranslate"><span class="pre">select()</span></code> wakeup reports several sockets readable at once, their handlers are submitted to the pool in band order (most urgent first) and each is submitted AT its band, so band-aware pools (see <a class="reference internal" href="../core/thread_pool.html#classespp_1_1ThreadPool"><span class="std std-ref">espp::ThreadPool</span></a>) run urgent sockets’ handlers first. This also shapes the saturation policy: when the pool is (nearly) full, urgent sockets win the remaining queue slots while less urgent ones simply stay readable and are re-reported by the next <code class="docutils literal notranslate"><span class="pre">select()</span></code> (kernel-buffer backpressure, no data loss for TCP / bounded loss semantics identical to before for UDP). With the default band on every registration the dispatch order and behavior are unchanged from the pre-band reactor.</p>
+<section id="classespp_1_1SocketReactor_1socket_reactor_ex1">
+<h4>Socket Reactor UDP Example<a class="headerlink" href="#classespp_1_1SocketReactor_1socket_reactor_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1SocketReactor_1socket_reactor_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">SocketReactor</span><span class="w"> </span><span class="nf">reactor</span><span class="p">({.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UdpSocket</span><span class="w"> </span><span class="nf">server_a</span><span class="p">({.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UdpSocket</span><span class="w"> </span><span class="nf">server_b</span><span class="p">({.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">id_a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reactor</span><span class="p">.</span><span class="n">add_udp_receiver</span><span class="p">(</span>
+<span class="w">      </span><span class="n">server_a</span><span class="p">,</span>
+<span class="w">      </span><span class="p">{.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">port_a</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kMaxPacketSize</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">on_receive_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">echo_reversed</span><span class="p">});</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">id_b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reactor</span><span class="p">.</span><span class="n">add_udp_receiver</span><span class="p">(</span>
+<span class="w">      </span><span class="n">server_b</span><span class="p">,</span>
+<span class="w">      </span><span class="p">{.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">port_b</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kMaxPacketSize</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">on_receive_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">echo_reversed</span><span class="p">});</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1SocketReactor_1socket_reactor_ex2">
+<h4>Socket Reactor TCP Example<a class="headerlink" href="#classespp_1_1SocketReactor_1socket_reactor_ex2" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1SocketReactor_1socket_reactor_ex2"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">reactor</span><span class="p">.</span><span class="n">add_tcp_listener</span><span class="p">(</span><span class="n">server</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="o">&gt;</span><span class="w"> </span><span class="n">client</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="o">++</span><span class="n">accepted</span><span class="p">;</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="w"> </span><span class="o">*</span><span class="n">conn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">;</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">clients_mutex</span><span class="p">);</span>
+<span class="w">        </span><span class="n">clients</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">client</span><span class="p">));</span>
+<span class="w">        </span><span class="n">conn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">clients</span><span class="p">.</span><span class="n">back</span><span class="p">().</span><span class="n">get</span><span class="p">();</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="c1">// Register the accepted connection as a stream that echoes bytes back.</span>
+<span class="w">      </span><span class="n">reactor</span><span class="p">.</span><span class="n">add_tcp_stream</span><span class="p">(</span>
+<span class="w">          </span><span class="o">*</span><span class="n">conn</span><span class="p">,</span><span class="w"> </span><span class="p">[](</span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="w"> </span><span class="o">&amp;</span><span class="n">connection</span><span class="p">,</span><span class="w"> </span><span class="n">ByteVector</span><span class="w"> </span><span class="o">&amp;</span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">connection</span><span class="p">.</span><span class="n">transmit</span><span class="p">(</span><span class="n">data</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">          </span><span class="n">kMaxPacketSize</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">closed</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">closed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
+<span class="w">    </span><span class="p">});</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1SocketReactor_1socket_reactor_ex3">
+<h4>Socket Reactor Priority Bands Example<a class="headerlink" href="#classespp_1_1SocketReactor_1socket_reactor_ex3" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1SocketReactor_1socket_reactor_ex3"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">SocketReactor</span><span class="w"> </span><span class="nf">reactor</span><span class="p">({.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UdpSocket</span><span class="w"> </span><span class="nf">critical_server</span><span class="p">({.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UdpSocket</span><span class="w"> </span><span class="nf">low_server</span><span class="p">({.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">critical_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reactor</span><span class="p">.</span><span class="n">add_udp_receiver</span><span class="p">(</span><span class="n">critical_server</span><span class="p">,</span>
+<span class="w">                                              </span><span class="p">{.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">critical_port</span><span class="p">,</span>
+<span class="w">                                               </span><span class="p">.</span><span class="n">buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kMaxPacketSize</span><span class="p">,</span>
+<span class="w">                                               </span><span class="p">.</span><span class="n">on_receive_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">echo_reversed</span><span class="p">,</span>
+<span class="w">                                               </span><span class="p">.</span><span class="n">band</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">QosBand</span><span class="o">::</span><span class="n">Critical</span><span class="p">,</span>
+<span class="w">                                               </span><span class="p">.</span><span class="n">dscp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Dscp</span><span class="o">::</span><span class="n">Ef</span><span class="p">});</span><span class="w"> </span><span class="c1">// latency-critical replies</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">low_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reactor</span><span class="p">.</span><span class="n">add_udp_receiver</span><span class="p">(</span><span class="n">low_server</span><span class="p">,</span><span class="w"> </span><span class="p">{.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">low_port</span><span class="p">,</span>
+<span class="w">                                                      </span><span class="p">.</span><span class="n">buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kMaxPacketSize</span><span class="p">,</span>
+<span class="w">                                                      </span><span class="p">.</span><span class="n">on_receive_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">echo_reversed</span><span class="p">,</span>
+<span class="w">                                                      </span><span class="p">.</span><span class="n">band</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">QosBand</span><span class="o">::</span><span class="n">Low</span><span class="p">});</span>
+</pre></div>
+</div>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Lifetime. Registered sockets and callbacks must outlive their registration. <a class="reference internal" href="#classespp_1_1SocketReactor_1a03ce73ebdd819c50dcf15c643efe180c"><span class="std std-ref">stop</span></a> (and the destructor) waits for any in-flight handler to finish, so the guaranteed-safe teardown order is: <a class="reference internal" href="#classespp_1_1SocketReactor_1a03ce73ebdd819c50dcf15c643efe180c"><span class="std std-ref">stop()</span></a> / destroy the reactor first, then destroy the sockets. <a class="reference internal" href="#classespp_1_1SocketReactor_1ac6ffac3f4e0b035ff87a70f30c4dcd7f"><span class="std std-ref">remove</span></a> is *asynchronous* with respect to a handler that is already running for that id (it unregisters, but a handler mid-recv() will still finish); do not free a socket immediately after <a class="reference internal" href="#classespp_1_1SocketReactor_1ac6ffac3f4e0b035ff87a70f30c4dcd7f"><span class="std std-ref">remove()</span></a> while its handler may be executing - unregister and then rely on reactor teardown, or ensure the socket outlives the reactor. <a class="reference internal" href="#classespp_1_1SocketReactor_1a03ce73ebdd819c50dcf15c643efe180c"><span class="std std-ref">stop</span></a> (and destroying the reactor) must NOT be called from within a handler: it waits for the calling handler to finish (and joins an owned pool), which would deadlock - stop from another thread. A <a class="reference internal" href="#classespp_1_1SocketReactor_1a03ce73ebdd819c50dcf15c643efe180c"><span class="std std-ref">stop()</span></a> invoked from a handler is refused + logged.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The select() backend uses <code class="docutils literal notranslate"><span class="pre">fd_set</span></code>, which on POSIX/lwip can only hold file descriptors with value &lt; <code class="docutils literal notranslate"><span class="pre">FD_SETSIZE</span></code>. Registration rejects an fd at or above that limit. On lwip, socket fds occupy [FD_SETSIZE - CONFIG_LWIP_MAX_SOCKETS, FD_SETSIZE), so this is only hit if those limits are raised past the compiled <code class="docutils literal notranslate"><span class="pre">FD_SETSIZE</span></code>.</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor2IdE">
+<span id="_CPPv3N4espp13SocketReactor2IdE"></span><span id="_CPPv2N4espp13SocketReactor2IdE"></span><span class="target" id="classespp_1_1SocketReactor_1a31237822a3106a881020033ae31dcd27"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint32_t</span></span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor2IdE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Opaque handle for a registration, returned by the add_* methods and passed to <a class="reference internal" href="#classespp_1_1SocketReactor_1ac6ffac3f4e0b035ff87a70f30c4dcd7f"><span class="std std-ref">remove</span></a>. INVALID_ID (0) is never returned on success. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor11ReadHandlerE">
+<span id="_CPPv3N4espp13SocketReactor11ReadHandlerE"></span><span id="_CPPv2N4espp13SocketReactor11ReadHandlerE"></span><span class="target" id="classespp_1_1SocketReactor_1a393cfb566ae64a3c73287324177d67c8"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ReadHandler</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor11ReadHandlerE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Low-level read handler, invoked on a thread-pool worker when the registered socket is readable. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The reactor guarantees at most one in-flight invocation per registration (disarm-on-dispatch, re-arm on completion), so the handler need not guard against concurrent calls for the same socket. The handler is expected to read from the socket (draining it as appropriate) and process the data. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor14AcceptCallbackE">
+<span id="_CPPv3N4espp13SocketReactor14AcceptCallbackE"></span><span id="_CPPv2N4espp13SocketReactor14AcceptCallbackE"></span><span class="target" id="classespp_1_1SocketReactor_1a9785fb4ffbf4b9d344375b021b6573cd"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AcceptCallback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="tcp_socket.html#_CPPv4N4espp9TcpSocketE" title="espp::TcpSocket"><span class="n"><span class="pre">TcpSocket</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n"><span class="pre">client</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor14AcceptCallbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Called (on a pool worker) when a listening <a class="reference internal" href="tcp_socket.html#classespp_1_1TcpSocket"><span class="std std-ref">TcpSocket</span></a> accepts a new client. The consumer takes ownership of <code class="docutils literal notranslate"><span class="pre">client</span></code> and typically registers it with <a class="reference internal" href="#classespp_1_1SocketReactor_1ab8e79358178954e0da8005d0da0390fb"><span class="std std-ref">add_tcp_stream()</span></a> on this same reactor. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor14StreamCallbackE">
+<span id="_CPPv3N4espp13SocketReactor14StreamCallbackE"></span><span id="_CPPv2N4espp13SocketReactor14StreamCallbackE"></span><span class="target" id="classespp_1_1SocketReactor_1ac2d971e42aabef7d73f634d8a4a6b60d"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">StreamCallback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="tcp_socket.html#_CPPv4N4espp9TcpSocketE" title="espp::TcpSocket"><span class="n"><span class="pre">TcpSocket</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">connection</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor14StreamCallbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Called (on a pool worker) with data read from a connected <a class="reference internal" href="tcp_socket.html#classespp_1_1TcpSocket"><span class="std std-ref">TcpSocket</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor13CloseCallbackE">
+<span id="_CPPv3N4espp13SocketReactor13CloseCallbackE"></span><span id="_CPPv2N4espp13SocketReactor13CloseCallbackE"></span><span class="target" id="classespp_1_1SocketReactor_1a299873ec1cab626ea799afc44399f17f"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CloseCallback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor13CloseCallbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Called (on a pool worker) when a connected <a class="reference internal" href="tcp_socket.html#classespp_1_1TcpSocket"><span class="std std-ref">TcpSocket</span></a> reaches EOF / closes. After this fires the stream is automatically unregistered. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor15RemovedCallbackE">
+<span id="_CPPv3N4espp13SocketReactor15RemovedCallbackE"></span><span id="_CPPv2N4espp13SocketReactor15RemovedCallbackE"></span><span class="target" id="classespp_1_1SocketReactor_1adb5e1e77999f9c52316d6736e1e8068c"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RemovedCallback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor15RemovedCallbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Removal-completion notification for <a class="reference internal" href="#classespp_1_1SocketReactor_1ac6ffac3f4e0b035ff87a70f30c4dcd7f"><span class="std std-ref">remove()</span></a>: see the two-argument <a class="reference internal" href="#classespp_1_1SocketReactor_1ac6ffac3f4e0b035ff87a70f30c4dcd7f"><span class="std std-ref">remove()</span></a> overload for the exact invocation guarantees. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor13SocketReactorERK6Config">
+<span id="_CPPv3N4espp13SocketReactor13SocketReactorERK6Config"></span><span id="_CPPv2N4espp13SocketReactor13SocketReactorERK6Config"></span><span id="espp::SocketReactor::SocketReactor__ConfigCR"></span><span class="target" id="classespp_1_1SocketReactor_1a84057c34497a20ec886db75a790fead0"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SocketReactor</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13SocketReactor6ConfigE" title="espp::SocketReactor::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor13SocketReactorERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct the reactor (and, if configured, start it). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration for the reactor. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactorD0Ev">
+<span id="_CPPv3N4espp13SocketReactorD0Ev"></span><span id="_CPPv2N4espp13SocketReactorD0Ev"></span><span id="espp::SocketReactor::~SocketReactor"></span><span class="target" id="classespp_1_1SocketReactor_1aefc45e08604312ce5a3a0d97b798a4d1"></span><span class="sig-name descname"><span class="n"><span class="pre">~SocketReactor</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13SocketReactorD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop the loop and unregister everything. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor5startEv">
+<span id="_CPPv3N4espp13SocketReactor5startEv"></span><span id="_CPPv2N4espp13SocketReactor5startEv"></span><span id="espp::SocketReactor::start"></span><span class="target" id="classespp_1_1SocketReactor_1ad0a7dadb7d2d46ebfdcd6f225e026181"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor5startEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start the select() loop and (if owned) the thread pool. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the reactor is running. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor4stopEv">
+<span id="_CPPv3N4espp13SocketReactor4stopEv"></span><span id="_CPPv2N4espp13SocketReactor4stopEv"></span><span id="espp::SocketReactor::stop"></span><span class="target" id="classespp_1_1SocketReactor_1a03ce73ebdd819c50dcf15c643efe180c"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor4stopEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop the loop, wait for any in-flight handlers to finish, and (if owned) stop the thread pool. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp13SocketReactor10is_runningEv">
+<span id="_CPPv3NK4espp13SocketReactor10is_runningEv"></span><span id="_CPPv2NK4espp13SocketReactor10is_runningEv"></span><span id="espp::SocketReactor::is_runningC"></span><span class="target" id="classespp_1_1SocketReactor_1a5481f0f38722a73d63fd68ae8680d324"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_running</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp13SocketReactor10is_runningEv" title="Permalink to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the loop is running. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor16add_udp_receiverERN4espp9UdpSocketERKN4espp9UdpSocket13ReceiveConfigE">
+<span id="_CPPv3N4espp13SocketReactor16add_udp_receiverERN4espp9UdpSocketERKN4espp9UdpSocket13ReceiveConfigE"></span><span id="_CPPv2N4espp13SocketReactor16add_udp_receiverERN4espp9UdpSocketERKN4espp9UdpSocket13ReceiveConfigE"></span><span id="espp::SocketReactor::add_udp_receiver__espp::UdpSocketR.espp::UdpSocket::ReceiveConfigCR"></span><span class="target" id="classespp_1_1SocketReactor_1a60cfc02c26238ddfa0d6c9d96ce45224"></span><a class="reference internal" href="#_CPPv4N4espp13SocketReactor2IdE" title="espp::SocketReactor::Id"><span class="n"><span class="pre">Id</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_udp_receiver</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="udp_socket.html#_CPPv4N4espp9UdpSocketE" title="espp::UdpSocket"><span class="n"><span class="pre">UdpSocket</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">socket</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="udp_socket.html#_CPPv4N4espp9UdpSocketE" title="espp::UdpSocket"><span class="n"><span class="pre">UdpSocket</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="udp_socket.html#_CPPv4N4espp9UdpSocket13ReceiveConfigE" title="espp::UdpSocket::ReceiveConfig"><span class="n"><span class="pre">ReceiveConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">receive_config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor16add_udp_receiverERN4espp9UdpSocketERKN4espp9UdpSocket13ReceiveConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Bind <code class="docutils literal notranslate"><span class="pre">socket</span></code> per <code class="docutils literal notranslate"><span class="pre">receive_config</span></code> and register it to receive on this reactor. When a datagram arrives the reactor calls <code class="docutils literal notranslate"><span class="pre">socket.receive()</span></code> and invokes <code class="docutils literal notranslate"><span class="pre">receive_config.on_receive_callback</span></code> with the data and sender on a pool worker; if the callback returns data, it is sent back to the sender. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This replaces <a class="reference internal" href="udp_socket.html#classespp_1_1UdpSocket_1ac4efcd1a44523e2098ee7cb14340b0dd"><span class="std std-ref">UdpSocket::start_receiving()</span></a> (which spawns a dedicated thread) - the reactor drives the socket instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The receive_config’s band field selects the priority band this socket’s handling is dispatched at, and its dscp field (if set) is applied to the socket via IP_TOS here (best-effort, marks transmitted packets - see <a class="reference internal" href="udp_socket.html#structespp_1_1UdpSocket_1_1ReceiveConfig"><span class="std std-ref">UdpSocket::ReceiveConfig</span></a>). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>socket</strong> – A <a class="reference internal" href="udp_socket.html#classespp_1_1UdpSocket"><span class="std std-ref">UdpSocket</span></a> to bind and receive on. Must outlive the registration (call <a class="reference internal" href="#classespp_1_1SocketReactor_1ac6ffac3f4e0b035ff87a70f30c4dcd7f"><span class="std std-ref">remove()</span></a> before destroying it). </p></li>
+<li><p><strong>receive_config</strong> – Port / multicast / buffer_size / callback / band / dscp config. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A registration Id, or INVALID_ID on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor16add_tcp_listenerERN4espp9TcpSocketERK14AcceptCallback7QosBand">
+<span id="_CPPv3N4espp13SocketReactor16add_tcp_listenerERN4espp9TcpSocketERK14AcceptCallback7QosBand"></span><span id="_CPPv2N4espp13SocketReactor16add_tcp_listenerERN4espp9TcpSocketERK14AcceptCallback7QosBand"></span><span id="espp::SocketReactor::add_tcp_listener__espp::TcpSocketR.AcceptCallbackCR.QosBand"></span><span class="target" id="classespp_1_1SocketReactor_1a03be22b76a28f80a1abcf4ec0d280b07"></span><a class="reference internal" href="#_CPPv4N4espp13SocketReactor2IdE" title="espp::SocketReactor::Id"><span class="n"><span class="pre">Id</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_tcp_listener</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="tcp_socket.html#_CPPv4N4espp9TcpSocketE" title="espp::TcpSocket"><span class="n"><span class="pre">TcpSocket</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">listener</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13SocketReactor14AcceptCallbackE" title="espp::SocketReactor::AcceptCallback"><span class="n"><span class="pre">AcceptCallback</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">on_accept</span></span>, <span class="n"><span class="pre">QosBand</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">band</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">QosBand</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Normal</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor16add_tcp_listenerERN4espp9TcpSocketERK14AcceptCallback7QosBand" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Register a listening <a class="reference internal" href="tcp_socket.html#classespp_1_1TcpSocket"><span class="std std-ref">TcpSocket</span></a>. When a connection is pending the reactor calls <code class="docutils literal notranslate"><span class="pre">listener.accept()</span></code> and invokes <code class="docutils literal notranslate"><span class="pre">on_accept</span></code> with the new client on a pool worker. The listener stays registered. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>listener</strong> – A <a class="reference internal" href="tcp_socket.html#classespp_1_1TcpSocket"><span class="std std-ref">TcpSocket</span></a> that has already been bind()+listen()’d. Must outlive the registration. </p></li>
+<li><p><strong>on_accept</strong> – Callback given ownership of each accepted client. </p></li>
+<li><p><strong>band</strong> – Priority band to dispatch accept handling at (see espp::QosBand; default Normal = pre-band behavior). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A registration Id, or INVALID_ID on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor14add_tcp_streamERN4espp9TcpSocketERK14StreamCallback6size_tRK13CloseCallback7QosBand">
+<span id="_CPPv3N4espp13SocketReactor14add_tcp_streamERN4espp9TcpSocketERK14StreamCallback6size_tRK13CloseCallback7QosBand"></span><span id="_CPPv2N4espp13SocketReactor14add_tcp_streamERN4espp9TcpSocketERK14StreamCallback6size_tRK13CloseCallback7QosBand"></span><span id="espp::SocketReactor::add_tcp_stream__espp::TcpSocketR.StreamCallbackCR.s.CloseCallbackCR.QosBand"></span><span class="target" id="classespp_1_1SocketReactor_1ab8e79358178954e0da8005d0da0390fb"></span><a class="reference internal" href="#_CPPv4N4espp13SocketReactor2IdE" title="espp::SocketReactor::Id"><span class="n"><span class="pre">Id</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_tcp_stream</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="tcp_socket.html#_CPPv4N4espp9TcpSocketE" title="espp::TcpSocket"><span class="n"><span class="pre">TcpSocket</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">connection</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13SocketReactor14StreamCallbackE" title="espp::SocketReactor::StreamCallback"><span class="n"><span class="pre">StreamCallback</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">on_data</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">buffer_size</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13SocketReactor13CloseCallbackE" title="espp::SocketReactor::CloseCallback"><span class="n"><span class="pre">CloseCallback</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">on_close</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span>, <span class="n"><span class="pre">QosBand</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">band</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">QosBand</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Normal</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor14add_tcp_streamERN4espp9TcpSocketERK14StreamCallback6size_tRK13CloseCallback7QosBand" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Register a connected <a class="reference internal" href="tcp_socket.html#classespp_1_1TcpSocket"><span class="std std-ref">TcpSocket</span></a> for reading. When it is readable the reactor reads up to <code class="docutils literal notranslate"><span class="pre">buffer_size</span></code> bytes and invokes <code class="docutils literal notranslate"><span class="pre">on_data</span></code> on a pool worker. On EOF / disconnect it invokes <code class="docutils literal notranslate"><span class="pre">on_close</span></code> (if set) and automatically unregisters the stream. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>connection</strong> – A connected <a class="reference internal" href="tcp_socket.html#classespp_1_1TcpSocket"><span class="std std-ref">TcpSocket</span></a> (e.g. from add_tcp_listener’s callback or <a class="reference internal" href="tcp_socket.html#classespp_1_1TcpSocket_1aec2d363a41404c25507b8495a73fcc55"><span class="std std-ref">TcpSocket::connect</span></a>). Must outlive the registration. </p></li>
+<li><p><strong>on_data</strong> – Callback given the connection and the bytes read. </p></li>
+<li><p><strong>buffer_size</strong> – Max bytes to read per readable event. </p></li>
+<li><p><strong>on_close</strong> – Optional callback fired once when the peer closes. </p></li>
+<li><p><strong>band</strong> – Priority band to dispatch read handling at (see espp::QosBand; default Normal = pre-band behavior). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A registration Id, or INVALID_ID on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor6add_fdE11sock_type_t11ReadHandler7QosBand">
+<span id="_CPPv3N4espp13SocketReactor6add_fdE11sock_type_t11ReadHandler7QosBand"></span><span id="_CPPv2N4espp13SocketReactor6add_fdE11sock_type_t11ReadHandler7QosBand"></span><span id="espp::SocketReactor::add_fd__sock_type_t.ReadHandler.QosBand"></span><span class="target" id="classespp_1_1SocketReactor_1a5813ed4867d8bff34cbaef6b58565f3a"></span><a class="reference internal" href="#_CPPv4N4espp13SocketReactor2IdE" title="espp::SocketReactor::Id"><span class="n"><span class="pre">Id</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_fd</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sock_type_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">fd</span></span>, <a class="reference internal" href="#_CPPv4N4espp13SocketReactor11ReadHandlerE" title="espp::SocketReactor::ReadHandler"><span class="n"><span class="pre">ReadHandler</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">handler</span></span>, <span class="n"><span class="pre">QosBand</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">band</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">QosBand</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Normal</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor6add_fdE11sock_type_t11ReadHandler7QosBand" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Low-level registration: watch <code class="docutils literal notranslate"><span class="pre">fd</span></code> for readability and run <code class="docutils literal notranslate"><span class="pre">handler</span></code> (on a pool worker) each time it is readable. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fd</strong> – A valid socket file descriptor (see <a class="reference internal" href="udp_socket.html#classespp_1_1Socket_1a7f8170194823eaec0112c8aa7f6b51ec"><span class="std std-ref">Socket::native_handle()</span></a>). </p></li>
+<li><p><strong>handler</strong> – Handler that reads/processes the socket. </p></li>
+<li><p><strong>band</strong> – Priority band to dispatch the handler at (see espp::QosBand; default Normal = pre-band behavior). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A registration Id, or INVALID_ID on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor6removeE2Id">
+<span id="_CPPv3N4espp13SocketReactor6removeE2Id"></span><span id="_CPPv2N4espp13SocketReactor6removeE2Id"></span><span id="espp::SocketReactor::remove__Id"></span><span class="target" id="classespp_1_1SocketReactor_1ac6ffac3f4e0b035ff87a70f30c4dcd7f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13SocketReactor2IdE" title="espp::SocketReactor::Id"><span class="n"><span class="pre">Id</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor6removeE2Id" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Unregister a socket. Safe to call from any thread, including from within a running handler. If a handler for this id is currently in-flight, the entry is erased once it completes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – The registration Id returned by an add_* method. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the id was found. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor6removeE2Id15RemovedCallback">
+<span id="_CPPv3N4espp13SocketReactor6removeE2Id15RemovedCallback"></span><span id="_CPPv2N4espp13SocketReactor6removeE2Id15RemovedCallback"></span><span id="espp::SocketReactor::remove__Id.RemovedCallback"></span><span class="target" id="classespp_1_1SocketReactor_1a19722d7de7a85ca26ca3f48d9bd9b5b9"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13SocketReactor2IdE" title="espp::SocketReactor::Id"><span class="n"><span class="pre">Id</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span>, <a class="reference internal" href="#_CPPv4N4espp13SocketReactor15RemovedCallbackE" title="espp::SocketReactor::RemovedCallback"><span class="n"><span class="pre">RemovedCallback</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">on_removed</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor6removeE2Id15RemovedCallback" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Unregister a socket and be notified when the removal has fully completed - i.e. the registration is erased AND any handler that was running or pending for it has finished, so no reactor code can reference the socket/fd anymore. Use this to know when it is safe to destroy the socket (the reactor’s handlers hold references to it, and <a class="reference internal" href="#classespp_1_1SocketReactor_1ac6ffac3f4e0b035ff87a70f30c4dcd7f"><span class="std std-ref">remove()</span></a> itself never blocks). </p>
+<p>Invocation guarantees for <code class="docutils literal notranslate"><span class="pre">on_removed:</span></code> <ul class="simple">
+<li><p>Invoked EXACTLY ONCE, and only when this call returns true (an unknown id returns false and never invokes it).</p></li>
+<li><p>Thread: the CALLER’s thread (synchronously, before <a class="reference internal" href="#classespp_1_1SocketReactor_1ac6ffac3f4e0b035ff87a70f30c4dcd7f"><span class="std std-ref">remove()</span></a> returns) when no handler is in flight at <a class="reference internal" href="#classespp_1_1SocketReactor_1ac6ffac3f4e0b035ff87a70f30c4dcd7f"><span class="std std-ref">remove()</span></a> time; otherwise the pool worker that finishes the in-flight handler, or the reactor loop thread when a pending dispatch is reverted (pool saturated). Callers must be prepared for any of the three.</p></li>
+<li><p>Runs with NO reactor lock held: it may re-enter the reactor (add_*, remove), but must return promptly (it can run on a worker or the loop) and must not call <a class="reference internal" href="#classespp_1_1SocketReactor_1a03ce73ebdd819c50dcf15c643efe180c"><span class="std std-ref">stop()</span></a> when it runs from a worker/loop context.</p></li>
+<li><p>Residual fd caveat: an already-blocked select() may still have the fd in its interest set for one iteration (the reactor wakes itself on removal, so the window is tiny). Closing the fd from the callback is safe; if the OS immediately reuses the fd number, the worst case is one bounded spurious wake of the new registration (handlers must already tolerate spurious readiness - see <a class="reference internal" href="#classespp_1_1SocketReactor_1a60cfc02c26238ddfa0d6c9d96ce45224"><span class="std std-ref">add_udp_receiver()</span></a>’s receive bound).</p></li>
+<li><p>Calling <a class="reference internal" href="#classespp_1_1SocketReactor_1ac6ffac3f4e0b035ff87a70f30c4dcd7f"><span class="std std-ref">remove()</span></a> again for an id whose removal is still pending chains the callbacks (both fire on completion).</p></li>
+</ul>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – The registration Id returned by an add_* method. </p></li>
+<li><p><strong>on_removed</strong> – Invoked once the removal has fully completed (may be empty, making this identical to remove(id)). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the id was found. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp13SocketReactor14num_registeredEv">
+<span id="_CPPv3NK4espp13SocketReactor14num_registeredEv"></span><span id="_CPPv2NK4espp13SocketReactor14num_registeredEv"></span><span id="espp::SocketReactor::num_registeredC"></span><span class="target" id="classespp_1_1SocketReactor_1abf5eafa317bb55b9b282d1ea98b7fd76"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_registered</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp13SocketReactor14num_registeredEv" title="Permalink to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the number of currently registered sockets. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp13SocketReactor8get_nameEv">
+<span id="_CPPv3NK4espp13SocketReactor8get_nameEv"></span><span id="_CPPv2NK4espp13SocketReactor8get_nameEv"></span><span id="espp::SocketReactor::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp13SocketReactor8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp13SocketReactor11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp13SocketReactor11set_log_tagERKNSt11string_viewE"></span><span id="espp::SocketReactor::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp13SocketReactor13get_log_levelEv">
+<span id="_CPPv3NK4espp13SocketReactor13get_log_levelEv"></span><span id="_CPPv2NK4espp13SocketReactor13get_log_levelEv"></span><span id="espp::SocketReactor::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp13SocketReactor13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp13SocketReactor13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp13SocketReactor13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::SocketReactor::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp13SocketReactor17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp13SocketReactor17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::SocketReactor::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp13SocketReactor17get_log_verbosityEv">
+<span id="_CPPv3NK4espp13SocketReactor17get_log_verbosityEv"></span><span id="_CPPv2NK4espp13SocketReactor17get_log_verbosityEv"></span><span id="espp::SocketReactor::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp13SocketReactor17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp13SocketReactor18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp13SocketReactor18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::SocketReactor::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor10INVALID_IDE">
+<span id="_CPPv3N4espp13SocketReactor10INVALID_IDE"></span><span id="_CPPv2N4espp13SocketReactor10INVALID_IDE"></span><span id="espp::SocketReactor::INVALID_ID__Id"></span><span class="target" id="classespp_1_1SocketReactor_1aa13b296ea7a698e87e3fa8588ce57641"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13SocketReactor2IdE" title="espp::SocketReactor::Id"><span class="n"><span class="pre">Id</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INVALID_ID</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor10INVALID_IDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Never a valid registration id. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor6ConfigE">
+<span id="_CPPv3N4espp13SocketReactor6ConfigE"></span><span id="_CPPv2N4espp13SocketReactor6ConfigE"></span><span id="espp::SocketReactor::Config"></span><span class="target" id="structespp_1_1SocketReactor_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the <a class="reference internal" href="#classespp_1_1SocketReactor"><span class="std std-ref">SocketReactor</span></a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor6Config11thread_poolE">
+<span id="_CPPv3N4espp13SocketReactor6Config11thread_poolE"></span><span id="_CPPv2N4espp13SocketReactor6Config11thread_poolE"></span><span id="espp::SocketReactor::Config::thread_pool__std::shared_ptr:espp::ThreadPool:"></span><span class="target" id="structespp_1_1SocketReactor_1_1Config_1a44c0be94dcdc830ce394f6a0bc86f129"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/thread_pool.html#_CPPv4N4espp10ThreadPoolE" title="espp::ThreadPool"><span class="n"><span class="pre">ThreadPool</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">thread_pool</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor6Config11thread_poolE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Pool to dispatch handlers on. If null, the reactor creates and owns one from <a class="reference internal" href="#structespp_1_1SocketReactor_1_1Config_1a91518a079182823c39a922bf4a33dadf"><span class="std std-ref">pool_config</span></a>; provide a shared pool to share workers across subsystems. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1SocketReactor_1_1Config_1a91518a079182823c39a922bf4a33dadf"></span><span class="sig-name descname"><span class="pre">espp::ThreadPool::Config</span> <span class="pre">pool_config</span>&#160; <span class="pre">{.worker_count</span> <span class="pre">=</span> <span class="pre">2,.worker_task_config</span> <span class="pre">=</span> <span class="pre">{.name</span> <span class="pre">=</span> <span class="pre">&quot;SocketReactor</span> <span class="pre">pool&quot;,.stack_size_bytes</span> <span class="pre">=</span> <span class="pre">4096,.priority</span> <span class="pre">=</span> <span class="pre">5}}</span></span></dt>
+<dd><p>Used only when <a class="reference internal" href="#structespp_1_1SocketReactor_1_1Config_1a44c0be94dcdc830ce394f6a0bc86f129"><span class="std std-ref">thread_pool</span></a> is null. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1SocketReactor_1_1Config_1aa79b4f1f4db3efc571927257f91ffcb5"></span><span class="sig-name descname"><span class="pre">espp::Task::BaseConfig</span> <span class="pre">loop_task_config</span>&#160; <span class="pre">{.name</span> <span class="pre">=</span> <span class="pre">&quot;SocketReactor&quot;,.stack_size_bytes</span> <span class="pre">=</span> <span class="pre">4096,.priority</span> <span class="pre">=</span> <span class="pre">5,.core_id</span> <span class="pre">=-1}</span></span></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1SocketReactor_1_1Config"><span class="std std-ref">Config</span></a> for the single select() loop task. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor6Config14select_timeoutE">
+<span id="_CPPv3N4espp13SocketReactor6Config14select_timeoutE"></span><span id="_CPPv2N4espp13SocketReactor6Config14select_timeoutE"></span><span id="espp::SocketReactor::Config::select_timeout__std::chrono::microseconds"></span><span class="target" id="structespp_1_1SocketReactor_1_1Config_1a25a8c22404ebe23554fc77ac36e25166"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">microseconds</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">select_timeout</span></span></span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">seconds</span></span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor6Config14select_timeoutE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Max time select() blocks; the wakeup socket makes registration/stop responsive regardless of this. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor6Config10auto_startE">
+<span id="_CPPv3N4espp13SocketReactor6Config10auto_startE"></span><span id="_CPPv2N4espp13SocketReactor6Config10auto_startE"></span><span id="espp::SocketReactor::Config::auto_start__b"></span><span class="target" id="structespp_1_1SocketReactor_1_1Config_1a13d53a9829e3a6b162363a0905fdffb3"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_start</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor6Config10auto_startE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start the loop (and owned pool) on construction. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13SocketReactor6Config9log_levelE">
+<span id="_CPPv3N4espp13SocketReactor6Config9log_levelE"></span><span id="_CPPv2N4espp13SocketReactor6Config9log_levelE"></span><span id="espp::SocketReactor::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1SocketReactor_1_1Config_1a49e47a84d04734e47257a4c9f194b917"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp13SocketReactor6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> verbosity. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="id1">
+<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a08fc9fe/components/socket/include/dscp.hpp">components/socket/include/dscp.hpp</a></p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="udp_socket.html" class="btn btn-neutral float-left" title="UDP Sockets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../wifi/index.html" class="btn btn-neutral float-right" title="WiFi APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

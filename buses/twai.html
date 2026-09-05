@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TWAI (CAN 2.0) APIs - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'buses/twai';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="TWAI (CAN 2.0) Example" href="twai_example.html" />
+    <link rel="prev" title="RMT Example" href="rmt_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Buses &amp; Low-Level I/O APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spi.html">SPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">TWAI (CAN 2.0) APIs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="twai_example.html">TWAI (CAN 2.0) Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="canopen.html">CANopen (CiA 301) Client APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usb_cdc.html">USB Device Component</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Buses &amp; Low-Level I/O APIs</a></li>
+      <li class="breadcrumb-item active">TWAI (CAN 2.0) APIs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/a08fc9fe/docs/en/buses/twai.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="twai-can-2-0-apis">
+<h1>TWAI (CAN 2.0) APIs<a class="headerlink" href="#twai-can-2-0-apis" title="Permalink to this heading"></a></h1>
+<p>The <cite>Twai</cite> class provides an idiomatic C++ interface to the ESP TWAI (Two-Wire
+Automotive Interface, i.e. CAN 2.0) peripheral. It wraps the modern node-based
+ESP-IDF driver (<cite>esp_driver_twai</cite>) and takes care of creating an on-chip TWAI
+node, registering the driver’s ISR event callbacks, and marshaling received
+frames (and optional error / state-change events) from ISR context into a
+task-context callback via an internal FreeRTOS queue and an <code class="docutils literal notranslate"><span class="pre">espp::Task</span></code>.</p>
+<p>Because the driver’s <code class="docutils literal notranslate"><span class="pre">on_rx_done</span></code> / <code class="docutils literal notranslate"><span class="pre">on_error</span></code> / <code class="docutils literal notranslate"><span class="pre">on_state_change</span></code>
+callbacks run in ISR context, the <cite>Twai</cite> class copies each event into a FreeRTOS
+queue from the ISR (<code class="docutils literal notranslate"><span class="pre">xQueueSendFromISR</span></code>) and drains that queue from an internal
+task. Your <code class="docutils literal notranslate"><span class="pre">on_receive</span></code>, <code class="docutils literal notranslate"><span class="pre">on_error</span></code>, and <code class="docutils literal notranslate"><span class="pre">on_state_change</span></code> callbacks are
+therefore always invoked from task context - never from the ISR - so they may
+safely call blocking or non-IRAM-safe APIs. No lock is held while your callback
+runs.</p>
+<p>The class supports the classic CAN 2.0 frame format (up to 8 data bytes). CAN-FD
+is a possible future extension; the underlying driver and frame types support
+it, but this wrapper intentionally keeps to classic CAN for a small, clean
+surface.</p>
+<p>The example uses <code class="docutils literal notranslate"><span class="pre">Mode::LOOPBACK</span></code> (internal loopback + self-test) so it runs on
+a bare devkit with no CAN transceiver and no other node on the bus. To talk to a
+real bus, use <code class="docutils literal notranslate"><span class="pre">Mode::NORMAL</span></code> with a 3.3V CAN transceiver (e.g. SN65HVD230)
+wired to the TX/RX GPIOs and at least one other node present to acknowledge
+frames.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="twai_example.html">TWAI (CAN 2.0) Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="twai_example.html#switching-to-a-real-bus-normal-mode">Switching to a real bus (NORMAL mode)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twai_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="twai_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twai_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="twai_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a08fc9fe/components/twai/include/twai.hpp">components/twai/include/twai.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4TwaiE">
+<span id="_CPPv3N4espp4TwaiE"></span><span id="_CPPv2N4espp4TwaiE"></span><span id="espp::Twai"></span><span class="target" id="classespp_1_1Twai"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Twai</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp4TwaiE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>A class to interface with the ESP TWAI (CAN 2.0) peripheral. </p>
+<p>This class wraps the modern node-based ESP-IDF TWAI driver (<code class="docutils literal notranslate"><span class="pre">esp_driver_twai</span></code>) in an idiomatic C++ interface. It creates an on-chip TWAI node, registers ISR event callbacks, and marshals received frames (and optional error / state-change events) from ISR context into a task-context callback using an internal FreeRTOS queue and an <code class="docutils literal notranslate"><a class="reference internal" href="../core/task.html#classespp_1_1Task"><span class="std std-ref"><span class="pre">espp::Task</span></span></a></code>.</p>
+<p>All user callbacks (on_receive, on_error, on_state_change) are invoked from the internal task context - never from the ISR - so they may safely call blocking / non-IRAM-safe APIs. No lock is held while a user callback is invoked.</p>
+<p>The class supports the classic CAN 2.0 frame format (up to 8 data bytes). CAN-FD (up to 64 data bytes, bit-rate switching) is a possible future extension; the underlying driver and frame types support it, but this wrapper intentionally keeps to classic CAN for a small, clean surface.</p>
+<section id="classespp_1_1Twai_1twai_ex0">
+<h4>TWAI (loopback) Example<a class="headerlink" href="#classespp_1_1Twai_1twai_ex0" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Twai_1twai_ex0"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Count the frames we receive back, so we can assert the round-trip.</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">num_received</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// The receive callback runs in task context (not ISR). It is invoked for</span>
+<span class="w">  </span><span class="c1">// every frame the node receives - in loopback mode that is every frame we</span>
+<span class="w">  </span><span class="c1">// transmit.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">on_receive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Twai</span><span class="o">::</span><span class="n">Message</span><span class="w"> </span><span class="o">&amp;</span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">num_received</span><span class="o">++</span><span class="p">;</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"RX: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">);</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">on_state_change</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Twai</span><span class="o">::</span><span class="n">StateChange</span><span class="w"> </span><span class="o">&amp;</span><span class="n">sc</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">"State change: {} -&gt; {}"</span><span class="p">,</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">sc</span><span class="p">.</span><span class="n">old_state</span><span class="p">),</span>
+<span class="w">                </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">sc</span><span class="p">.</span><span class="n">new_state</span><span class="p">));</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// NOTE: We use Mode::LOOPBACK (internal loopback + self-test) so this example</span>
+<span class="w">  </span><span class="c1">// runs on a bare devkit with NO CAN transceiver and NO other node on the bus.</span>
+<span class="w">  </span><span class="c1">// To talk to a real bus, use Mode::NORMAL with a transceiver (e.g.</span>
+<span class="w">  </span><span class="c1">// SN65HVD230) wired to the tx/rx GPIOs, and make sure at least one other node</span>
+<span class="w">  </span><span class="c1">// is present to acknowledge frames.</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Twai</span><span class="w"> </span><span class="n">twai</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">tx_gpio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="c1">// GPIO5 (change to match your board / transceiver)</span>
+<span class="w">      </span><span class="p">.</span><span class="n">rx_gpio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="c1">// GPIO4 (change to match your board / transceiver)</span>
+<span class="w">      </span><span class="p">.</span><span class="n">baudrate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500000</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Twai</span><span class="o">::</span><span class="n">Mode</span><span class="o">::</span><span class="n">LOOPBACK</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">tx_queue_depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_receive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">on_receive</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_state_change</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">on_state_change</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">twai</span><span class="p">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Failed to initialize TWAI: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Transmit a few frames; in loopback mode each is received back via on_receive.</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">num_to_send</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_to_send</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Twai</span><span class="o">::</span><span class="n">Message</span><span class="w"> </span><span class="n">msg</span><span class="p">;</span>
+<span class="w">    </span><span class="n">msg</span><span class="p">.</span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x100</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="w">    </span><span class="n">msg</span><span class="p">.</span><span class="n">extended</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="n">msg</span><span class="p">.</span><span class="n">rtr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="n">msg</span><span class="p">.</span><span class="n">dlc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+<span class="w">    </span><span class="n">msg</span><span class="p">.</span><span class="n">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">i</span><span class="p">),</span><span class="w"> </span><span class="mh">0xDE</span><span class="p">,</span><span class="w"> </span><span class="mh">0xAD</span><span class="p">,</span><span class="w"> </span><span class="mh">0xBE</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">};</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">twai</span><span class="p">.</span><span class="n">transmit</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"TX: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Failed to transmit frame {}: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">50</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// give the RX task a moment to drain the queue</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">200</span><span class="n">ms</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Sent {} frames, received {} frames"</span><span class="p">,</span><span class="w"> </span><span class="n">num_to_send</span><span class="p">,</span><span class="w"> </span><span class="n">num_received</span><span class="p">.</span><span class="n">load</span><span class="p">());</span>
+
+<span class="w">  </span><span class="c1">// print out the node status / statistics</span>
+<span class="w">  </span><span class="n">twai_node_status_t</span><span class="w"> </span><span class="n">status</span><span class="p">;</span>
+<span class="w">  </span><span class="n">twai_node_record_t</span><span class="w"> </span><span class="n">record</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">twai</span><span class="p">.</span><span class="n">get_info</span><span class="p">(</span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="n">record</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Node state={}, tx_err={}, rx_err={}, bus_err_num={}"</span><span class="p">,</span>
+<span class="w">                </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">status</span><span class="p">.</span><span class="n">state</span><span class="p">),</span><span class="w"> </span><span class="n">status</span><span class="p">.</span><span class="n">tx_error_count</span><span class="p">,</span><span class="w"> </span><span class="n">status</span><span class="p">.</span><span class="n">rx_error_count</span><span class="p">,</span>
+<span class="w">                </span><span class="n">record</span><span class="p">.</span><span class="n">bus_err_num</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// assert the round trip</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">num_received</span><span class="p">.</span><span class="n">load</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">num_to_send</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"SUCCESS: all {} frames were received back in loopback mode"</span><span class="p">,</span><span class="w"> </span><span class="n">num_to_send</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"FAILURE: expected {} frames, got {}"</span><span class="p">,</span><span class="w"> </span><span class="n">num_to_send</span><span class="p">,</span><span class="w"> </span><span class="n">num_received</span><span class="p">.</span><span class="n">load</span><span class="p">());</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai4ModeE">
+<span id="_CPPv3N4espp4Twai4ModeE"></span><span id="_CPPv2N4espp4Twai4ModeE"></span><span class="target" id="classespp_1_1Twai_1a65c8b7af0d0589b21c660f5f0344da54"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Mode</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Twai4ModeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The operating mode of the TWAI node. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai4Mode6NORMALE">
+<span id="_CPPv3N4espp4Twai4Mode6NORMALE"></span><span id="_CPPv2N4espp4Twai4Mode6NORMALE"></span><span class="target" id="classespp_1_1Twai_1a65c8b7af0d0589b21c660f5f0344da54a1e23852820b9154316c7c06e2b7ba051"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NORMAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Twai4Mode6NORMALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Normal mode: transmit, receive, and acknowledge frames on the bus. Requires a transceiver and at least one other acknowledging node. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai4Mode11LISTEN_ONLYE">
+<span id="_CPPv3N4espp4Twai4Mode11LISTEN_ONLYE"></span><span id="_CPPv2N4espp4Twai4Mode11LISTEN_ONLYE"></span><span class="target" id="classespp_1_1Twai_1a65c8b7af0d0589b21c660f5f0344da54a43b50ec8079b0ba76be61ce6b4703726"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LISTEN_ONLY</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Twai4Mode11LISTEN_ONLYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Listen-only mode: the node only monitors the bus and never transmits or acknowledges. Useful for passive bus monitoring / sniffing. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai4Mode8LOOPBACKE">
+<span id="_CPPv3N4espp4Twai4Mode8LOOPBACKE"></span><span id="_CPPv2N4espp4Twai4Mode8LOOPBACKE"></span><span class="target" id="classespp_1_1Twai_1a65c8b7af0d0589b21c660f5f0344da54adab05d7d3062cdb1da0d1c27ab4e51a0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LOOPBACK</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Twai4Mode8LOOPBACKE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Loopback self-test mode: the controller receives back the frames it transmits and does not require acknowledgement. This lets the node run with no transceiver and no other node on the bus (used by the example). </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai19receive_callback_fnE">
+<span id="_CPPv3N4espp4Twai19receive_callback_fnE"></span><span id="_CPPv2N4espp4Twai19receive_callback_fnE"></span><span id="espp::Twai::receive_callback_fn"></span><span class="target" id="classespp_1_1Twai_1abd7bfbf8470439aff885798c6eb248bc"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Twai7MessageE" title="espp::Twai::Message"><span class="n"><span class="pre">Message</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">receive_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Twai19receive_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Receive callback type. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai24state_change_callback_fnE">
+<span id="_CPPv3N4espp4Twai24state_change_callback_fnE"></span><span id="_CPPv2N4espp4Twai24state_change_callback_fnE"></span><span id="espp::Twai::state_change_callback_fn"></span><span class="target" id="classespp_1_1Twai_1a66afa6bc874f1c8af9c27f8f793a528b"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Twai11StateChangeE" title="espp::Twai::StateChange"><span class="n"><span class="pre">StateChange</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">state_change_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Twai24state_change_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>State-change callback type. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai17error_callback_fnE">
+<span id="_CPPv3N4espp4Twai17error_callback_fnE"></span><span id="_CPPv2N4espp4Twai17error_callback_fnE"></span><span id="espp::Twai::error_callback_fn"></span><span class="target" id="classespp_1_1Twai_1afeae5ef80dbc085307b410051159d91f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">twai_error_flags_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">error_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Twai17error_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Error callback type. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai4TwaiERK6Config">
+<span id="_CPPv3N4espp4Twai4TwaiERK6Config"></span><span id="_CPPv2N4espp4Twai4TwaiERK6Config"></span><span id="espp::Twai::Twai__ConfigCR"></span><span class="target" id="classespp_1_1Twai_1a91890a85975f7133ab0180b0d664cc95"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Twai</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Twai6ConfigE" title="espp::Twai::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Twai4TwaiERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a new <a class="reference internal" href="#classespp_1_1Twai"><span class="std std-ref">Twai</span></a> object. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This does not touch the hardware; call <a class="reference internal" href="#classespp_1_1Twai_1aca95b700982589d6261ea2725069b118"><span class="std std-ref">initialize()</span></a> to create the node and start the receive task. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the TWAI node. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4TwaiD0Ev">
+<span id="_CPPv3N4espp4TwaiD0Ev"></span><span id="_CPPv2N4espp4TwaiD0Ev"></span><span id="espp::Twai::~Twai"></span><span class="target" id="classespp_1_1Twai_1ad27c1e084eb8d3cd02b889e8144666c1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~Twai</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4TwaiD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Destructor. Stops the receive task and disables + deletes the node. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai10initializeERNSt10error_codeE">
+<span id="_CPPv3N4espp4Twai10initializeERNSt10error_codeE"></span><span id="_CPPv2N4espp4Twai10initializeERNSt10error_codeE"></span><span id="espp::Twai::initialize__std::error_codeR"></span><span class="target" id="classespp_1_1Twai_1aca95b700982589d6261ea2725069b118"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Twai10initializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the TWAI node. </p>
+<p>Creates the on-chip node, registers ISR event callbacks, applies the optional acceptance filter, creates the internal event queue and receive task, and (if <a class="reference internal" href="#structespp_1_1Twai_1_1Config_1af2cf6d7e6052b86db0cbbaa87a68a3e1"><span class="std std-ref">Config::auto_start</span></a> is true) enables the node. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code, set if initialization fails. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai5startERNSt10error_codeE">
+<span id="_CPPv3N4espp4Twai5startERNSt10error_codeE"></span><span id="_CPPv2N4espp4Twai5startERNSt10error_codeE"></span><span id="espp::Twai::start__std::error_codeR"></span><span class="target" id="classespp_1_1Twai_1a14d582be65bbad6f64d6fb890849f9cf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Twai5startERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable (start) the TWAI node so it participates on the bus. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code, set if the node could not be enabled. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai4stopERNSt10error_codeE">
+<span id="_CPPv3N4espp4Twai4stopERNSt10error_codeE"></span><span id="_CPPv2N4espp4Twai4stopERNSt10error_codeE"></span><span id="espp::Twai::stop__std::error_codeR"></span><span class="target" id="classespp_1_1Twai_1ae213d75006ec7549712376a7c33a39c3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Twai4stopERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Disable (stop) the TWAI node. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code, set if the node could not be disabled. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai8transmitERK7MessageRNSt10error_codeEi">
+<span id="_CPPv3N4espp4Twai8transmitERK7MessageRNSt10error_codeEi"></span><span id="_CPPv2N4espp4Twai8transmitERK7MessageRNSt10error_codeEi"></span><span id="espp::Twai::transmit__MessageCR.std::error_codeR.i"></span><span class="target" id="classespp_1_1Twai_1a72ae0e9a572d3c5bee44d7ea4a90e960"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">transmit</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Twai7MessageE" title="espp::Twai::Message"><span class="n"><span class="pre">Message</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">message</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">timeout_ms</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Twai21DEFAULT_TX_TIMEOUT_MSE" title="espp::Twai::DEFAULT_TX_TIMEOUT_MS"><span class="n"><span class="pre">DEFAULT_TX_TIMEOUT_MS</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Twai8transmitERK7MessageRNSt10error_codeEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Transmit a CAN message and wait for it to complete. </p>
+<p><code class="docutils literal notranslate"><span class="pre">twai_node_transmit()</span></code> only QUEUES the transmission: the driver keeps the passed <code class="docutils literal notranslate"><span class="pre">twai_frame_t</span></code> pointer (and its data buffer) and formats the frame later, in the TX ISR. The descriptor must therefore stay valid until the on_tx_done callback fires &amp;#8212; a stack-local frame is read after the caller’s stack is gone, transmitting garbage (or tripping the driver’s DLC assert). This method copies the message into member storage that outlives the call, serializes transmitters, and blocks until the driver reports transmission complete. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> – The message to transmit. </p></li>
+<li><p><strong>ec</strong> – The error code, set if the transmission could not be queued or did not complete within the timeout. </p></li>
+<li><p><strong>timeout_ms</strong> – Max time (ms) to wait to queue the frame (-1 = forever for the queueing step). The subsequent wait for transmit completion is always bounded (by this value when &gt;= 0, else by DEFAULT_TX_TIMEOUT_MS) so an unacknowledged frame cannot hang the caller. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the message was transmitted, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai7recoverERNSt10error_codeE">
+<span id="_CPPv3N4espp4Twai7recoverERNSt10error_codeE"></span><span id="_CPPv2N4espp4Twai7recoverERNSt10error_codeE"></span><span id="espp::Twai::recover__std::error_codeR"></span><span class="target" id="classespp_1_1Twai_1aa9d36f17cfc797e3e29b17476d450b36"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">recover</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Twai7recoverERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Begin bus-off recovery. </p>
+<p>Starts the recovery process for a node in the bus-off state. Use the on_state_change callback or <a class="reference internal" href="#classespp_1_1Twai_1a1c8563f2b7c7eafc8a4f38f162bc1d25"><span class="std std-ref">get_status()</span></a> to know when recovery has finished. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code, set if recovery could not be started. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if recovery was started, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai10get_statusER18twai_node_status_tRNSt10error_codeE">
+<span id="_CPPv3N4espp4Twai10get_statusER18twai_node_status_tRNSt10error_codeE"></span><span id="_CPPv2N4espp4Twai10get_statusER18twai_node_status_tRNSt10error_codeE"></span><span id="espp::Twai::get_status__twai_node_status_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Twai_1a1c8563f2b7c7eafc8a4f38f162bc1d25"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_status</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">twai_node_status_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">status</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Twai10get_statusER18twai_node_status_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current node status (error state, error counters, TX queue space). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>status</strong> – The status structure to fill in. </p></li>
+<li><p><strong>ec</strong> – The error code, set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai14get_statisticsER18twai_node_record_tRNSt10error_codeE">
+<span id="_CPPv3N4espp4Twai14get_statisticsER18twai_node_record_tRNSt10error_codeE"></span><span id="_CPPv2N4espp4Twai14get_statisticsER18twai_node_record_tRNSt10error_codeE"></span><span id="espp::Twai::get_statistics__twai_node_record_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Twai_1a768d009d39816d411f1a5618f8f807f7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_statistics</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">twai_node_record_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">record</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Twai14get_statisticsER18twai_node_record_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the node statistics (cumulative bus error count). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>record</strong> – The statistics structure to fill in. </p></li>
+<li><p><strong>ec</strong> – The error code, set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai8get_infoER18twai_node_status_tR18twai_node_record_tRNSt10error_codeE">
+<span id="_CPPv3N4espp4Twai8get_infoER18twai_node_status_tR18twai_node_record_tRNSt10error_codeE"></span><span id="_CPPv2N4espp4Twai8get_infoER18twai_node_status_tR18twai_node_record_tRNSt10error_codeE"></span><span id="espp::Twai::get_info__twai_node_status_tR.twai_node_record_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Twai_1a435d671315a3f8a8baa54f5b2d041596"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_info</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">twai_node_status_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">status</span></span>, <span class="n"><span class="pre">twai_node_record_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">record</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Twai8get_infoER18twai_node_status_tR18twai_node_record_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get both the node status and statistics. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>status</strong> – The status structure to fill in. </p></li>
+<li><p><strong>record</strong> – The statistics structure to fill in. </p></li>
+<li><p><strong>ec</strong> – The error code, set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Twai10is_enabledEv">
+<span id="_CPPv3NK4espp4Twai10is_enabledEv"></span><span id="_CPPv2NK4espp4Twai10is_enabledEv"></span><span id="espp::Twai::is_enabledC"></span><span class="target" id="classespp_1_1Twai_1aff77d755bec51856f55e5e70ac857d70"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_enabled</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Twai10is_enabledEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether the node is currently enabled (started). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the node is enabled, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Twai8get_nameEv">
+<span id="_CPPv3NK4espp4Twai8get_nameEv"></span><span id="_CPPv2NK4espp4Twai8get_nameEv"></span><span id="espp::Twai::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Twai8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp4Twai11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp4Twai11set_log_tagERKNSt11string_viewE"></span><span id="espp::Twai::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Twai11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Twai13get_log_levelEv">
+<span id="_CPPv3NK4espp4Twai13get_log_levelEv"></span><span id="_CPPv2NK4espp4Twai13get_log_levelEv"></span><span id="espp::Twai::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Twai13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp4Twai13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp4Twai13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Twai::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Twai13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp4Twai17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp4Twai17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Twai::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Twai17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Twai17get_log_verbosityEv">
+<span id="_CPPv3NK4espp4Twai17get_log_verbosityEv"></span><span id="_CPPv2NK4espp4Twai17get_log_verbosityEv"></span><span id="espp::Twai::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Twai17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp4Twai18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp4Twai18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Twai::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Twai18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai12MAX_DATA_LENE">
+<span id="_CPPv3N4espp4Twai12MAX_DATA_LENE"></span><span id="_CPPv2N4espp4Twai12MAX_DATA_LENE"></span><span id="espp::Twai::MAX_DATA_LEN__s"></span><span class="target" id="classespp_1_1Twai_1ace302eabca4d3006e948c928f3b70e90"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MAX_DATA_LEN</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai12MAX_DATA_LENE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum number of data bytes in a classic CAN 2.0 frame. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai21DEFAULT_TX_TIMEOUT_MSE">
+<span id="_CPPv3N4espp4Twai21DEFAULT_TX_TIMEOUT_MSE"></span><span id="_CPPv2N4espp4Twai21DEFAULT_TX_TIMEOUT_MSE"></span><span id="espp::Twai::DEFAULT_TX_TIMEOUT_MS__i"></span><span class="target" id="classespp_1_1Twai_1a88f944bcc0c878cc458952d8ef65d17e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEFAULT_TX_TIMEOUT_MS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">100</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai21DEFAULT_TX_TIMEOUT_MSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Default timeout (ms) used when transmitting a frame. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6ConfigE">
+<span id="_CPPv3N4espp4Twai6ConfigE"></span><span id="_CPPv2N4espp4Twai6ConfigE"></span><span id="espp::Twai::Config"></span><span class="target" id="structespp_1_1Twai_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the TWAI node. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Config7tx_gpioE">
+<span id="_CPPv3N4espp4Twai6Config7tx_gpioE"></span><span id="_CPPv2N4espp4Twai6Config7tx_gpioE"></span><span id="espp::Twai::Config::tx_gpio__i"></span><span class="target" id="structespp_1_1Twai_1_1Config_1a28624b9349f30eaf859cea3be3065370"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tx_gpio</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Config7tx_gpioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>GPIO number for TWAI TX. Must be set (validated). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Config7rx_gpioE">
+<span id="_CPPv3N4espp4Twai6Config7rx_gpioE"></span><span id="_CPPv2N4espp4Twai6Config7rx_gpioE"></span><span id="espp::Twai::Config::rx_gpio__i"></span><span class="target" id="structespp_1_1Twai_1_1Config_1aabb4788c0cabf809fa31995a4061391e"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rx_gpio</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Config7rx_gpioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>GPIO number for TWAI RX. Must be set (validated). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Config8baudrateE">
+<span id="_CPPv3N4espp4Twai6Config8baudrateE"></span><span id="_CPPv2N4espp4Twai6Config8baudrateE"></span><span id="espp::Twai::Config::baudrate__uint32_t"></span><span class="target" id="structespp_1_1Twai_1_1Config_1add8be648953f258aaf4d3497be8d73c1"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">baudrate</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">500000</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Config8baudrateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Bus baud rate / bit rate in bits/second (e.g. 500000). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Config4modeE">
+<span id="_CPPv3N4espp4Twai6Config4modeE"></span><span id="_CPPv2N4espp4Twai6Config4modeE"></span><span id="espp::Twai::Config::mode__Mode"></span><span class="target" id="structespp_1_1Twai_1_1Config_1a4ce02e634de8a72037932aaa745f8b74"></span><a class="reference internal" href="#_CPPv4N4espp4Twai4ModeE" title="espp::Twai::Mode"><span class="n"><span class="pre">Mode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4N4espp4Twai4ModeE" title="espp::Twai::Mode"><span class="n"><span class="pre">Mode</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Twai4Mode6NORMALE" title="espp::Twai::Mode::NORMAL"><span class="n"><span class="pre">NORMAL</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Config4modeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Operating mode of the node. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Config14tx_queue_depthE">
+<span id="_CPPv3N4espp4Twai6Config14tx_queue_depthE"></span><span id="_CPPv2N4espp4Twai6Config14tx_queue_depthE"></span><span id="espp::Twai::Config::tx_queue_depth__s"></span><span class="target" id="structespp_1_1Twai_1_1Config_1a1ae131681ac7cda3e01c77de46533838"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tx_queue_depth</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">5</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Config14tx_queue_depthE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Depth of the hardware transmit queue. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Config6filterE">
+<span id="_CPPv3N4espp4Twai6Config6filterE"></span><span id="_CPPv2N4espp4Twai6Config6filterE"></span><span id="espp::Twai::Config::filter__std::optional:Filter:"></span><span class="target" id="structespp_1_1Twai_1_1Config_1a26e6ff4f5951b09a82a1ac5ace055d26"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp4Twai6FilterE" title="espp::Twai::Filter"><span class="n"><span class="pre">Filter</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">filter</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Config6filterE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Optional acceptance filter (default: accept all). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Config10on_receiveE">
+<span id="_CPPv3N4espp4Twai6Config10on_receiveE"></span><span id="_CPPv2N4espp4Twai6Config10on_receiveE"></span><span id="espp::Twai::Config::on_receive__receive_callback_fn"></span><span class="target" id="structespp_1_1Twai_1_1Config_1a1008628abea90a28ea35257867f1f2ca"></span><a class="reference internal" href="#_CPPv4N4espp4Twai19receive_callback_fnE" title="espp::Twai::receive_callback_fn"><span class="n"><span class="pre">receive_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_receive</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Config10on_receiveE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Called (in task context) for each received frame. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Config8on_errorE">
+<span id="_CPPv3N4espp4Twai6Config8on_errorE"></span><span id="_CPPv2N4espp4Twai6Config8on_errorE"></span><span id="espp::Twai::Config::on_error__error_callback_fn"></span><span class="target" id="structespp_1_1Twai_1_1Config_1aab1abdec3721079877ffdb01481bb135"></span><a class="reference internal" href="#_CPPv4N4espp4Twai17error_callback_fnE" title="espp::Twai::error_callback_fn"><span class="n"><span class="pre">error_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_error</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Config8on_errorE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Optional: called (in task context) on a bus error. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Config15on_state_changeE">
+<span id="_CPPv3N4espp4Twai6Config15on_state_changeE"></span><span id="_CPPv2N4espp4Twai6Config15on_state_changeE"></span><span id="espp::Twai::Config::on_state_change__state_change_callback_fn"></span><span class="target" id="structespp_1_1Twai_1_1Config_1acf7a51391e4f170b8d44f82cc3c4d74a"></span><a class="reference internal" href="#_CPPv4N4espp4Twai24state_change_callback_fnE" title="espp::Twai::state_change_callback_fn"><span class="n"><span class="pre">state_change_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_state_change</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Config15on_state_changeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Optional: called (in task context) on an error-state change. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Config10auto_startE">
+<span id="_CPPv3N4espp4Twai6Config10auto_startE"></span><span id="_CPPv2N4espp4Twai6Config10auto_startE"></span><span id="espp::Twai::Config::auto_start__b"></span><span class="target" id="structespp_1_1Twai_1_1Config_1af2cf6d7e6052b86db0cbbaa87a68a3e1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_start</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Config10auto_startE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>If true, the node is enabled at the end of <a class="reference internal" href="#classespp_1_1Twai_1aca95b700982589d6261ea2725069b118"><span class="std std-ref">initialize()</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Config13rx_queue_sizeE">
+<span id="_CPPv3N4espp4Twai6Config13rx_queue_sizeE"></span><span id="_CPPv2N4espp4Twai6Config13rx_queue_sizeE"></span><span id="espp::Twai::Config::rx_queue_size__s"></span><span class="target" id="structespp_1_1Twai_1_1Config_1a7a29ae9ce02cc20400d4eda9453a55df"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rx_queue_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">16</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Config13rx_queue_sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Size (number of events) of the internal ISR-&gt;task event queue. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1Twai_1_1Config_1a0409be0e829d7f1db1d7a6101446c6fd"></span><span class="sig-name descname"><span class="pre">Task::BaseConfig</span> <span class="pre">task_config</span>&#160; <span class="pre">{.name</span> <span class="pre">=</span> <span class="pre">&quot;Twai</span> <span class="pre">Task&quot;,.stack_size_bytes</span> <span class="pre">=</span> <span class="pre">4096,.priority</span> <span class="pre">=</span> <span class="pre">10,}</span></span></dt>
+<dd><p>Configuration for the internal receive task. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Config9log_levelE">
+<span id="_CPPv3N4espp4Twai6Config9log_levelE"></span><span id="_CPPv2N4espp4Twai6Config9log_levelE"></span><span id="espp::Twai::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1Twai_1_1Config_1ab3ce087f4964725f519625f70ed23831"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log verbosity. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6FilterE">
+<span id="_CPPv3N4espp4Twai6FilterE"></span><span id="_CPPv2N4espp4Twai6FilterE"></span><span id="espp::Twai::Filter"></span><span class="target" id="structespp_1_1Twai_1_1Filter"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Filter</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6FilterE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>An acceptance (hardware) filter for received frames. </p>
+<p>A frame is accepted if <code class="docutils literal notranslate"><span class="pre">(received_id</span> <span class="pre">&amp;</span> <span class="pre">mask)</span> <span class="pre">==</span> <span class="pre">(id</span> <span class="pre">&amp;</span> <span class="pre">mask)</span></code>. A mask bit of 1 means the corresponding ID bit must match; a mask bit of 0 means “don’t care”. Therefore <code class="docutils literal notranslate"><span class="pre">id</span></code> = 0, <code class="docutils literal notranslate"><span class="pre">mask</span></code> = 0 accepts all frames. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Filter2idE">
+<span id="_CPPv3N4espp4Twai6Filter2idE"></span><span id="_CPPv2N4espp4Twai6Filter2idE"></span><span id="espp::Twai::Filter::id__uint32_t"></span><span class="target" id="structespp_1_1Twai_1_1Filter_1a22114f26bfcfb997ef9d92ac9d9e7f17"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Filter2idE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The base ID to match. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Filter4maskE">
+<span id="_CPPv3N4espp4Twai6Filter4maskE"></span><span id="_CPPv2N4espp4Twai6Filter4maskE"></span><span id="espp::Twai::Filter::mask__uint32_t"></span><span class="target" id="structespp_1_1Twai_1_1Filter_1a0b89891335835c017b267c0b954b5c40"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mask</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Filter4maskE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The mask (1 = bit must match, 0 = don’t care). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Filter8extendedE">
+<span id="_CPPv3N4espp4Twai6Filter8extendedE"></span><span id="_CPPv2N4espp4Twai6Filter8extendedE"></span><span id="espp::Twai::Filter::extended__b"></span><span class="target" id="structespp_1_1Twai_1_1Filter_1a0bca96dd06ff3ea8d6119ad04ebdd764"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">extended</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Filter8extendedE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>True to filter on extended (29-bit) IDs, false for standard (11-bit). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai6Filter4dualE">
+<span id="_CPPv3N4espp4Twai6Filter4dualE"></span><span id="_CPPv2N4espp4Twai6Filter4dualE"></span><span id="espp::Twai::Filter::dual__b"></span><span class="target" id="structespp_1_1Twai_1_1Filter_1afb38318ffa79389eb25f6e909376093e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dual</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai6Filter4dualE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the filter as a dual 16-bit filter (advanced). </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai7MessageE">
+<span id="_CPPv3N4espp4Twai7MessageE"></span><span id="_CPPv2N4espp4Twai7MessageE"></span><span id="espp::Twai::Message"></span><span class="target" id="structespp_1_1Twai_1_1Message"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Message</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Twai7MessageE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>A classic CAN 2.0 message / frame. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Twai7Message13to_twai_frameEv">
+<span id="_CPPv3NK4espp4Twai7Message13to_twai_frameEv"></span><span id="_CPPv2NK4espp4Twai7Message13to_twai_frameEv"></span><span id="espp::Twai::Message::to_twai_frameC"></span><span class="target" id="structespp_1_1Twai_1_1Message_1aae62c9b493b976e0f02a4d3cfe0ae7d8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">twai_frame_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_twai_frame</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Twai7Message13to_twai_frameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Convert this <a class="reference internal" href="#structespp_1_1Twai_1_1Message"><span class="std std-ref">Message</span></a> into a driver <code class="docutils literal notranslate"><span class="pre">twai_frame_t</span></code> for transmission. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The returned frame’s <code class="docutils literal notranslate"><span class="pre">buffer</span></code> points into this <a class="reference internal" href="#structespp_1_1Twai_1_1Message"><span class="std std-ref">Message</span></a>’s <code class="docutils literal notranslate"><span class="pre">data</span></code> array, and the driver reads both the frame and the buffer from the TX ISR after <code class="docutils literal notranslate"><span class="pre">twai_node_transmit()</span></code> queues them &amp;#8212; so both must stay valid until the on_tx_done callback (<a class="reference internal" href="#classespp_1_1Twai_1a72ae0e9a572d3c5bee44d7ea4a90e960"><span class="std std-ref">transmit()</span></a> guarantees this by using member storage and waiting for completion). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A <code class="docutils literal notranslate"><span class="pre">twai_frame_t</span></code> describing this message. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai7Message2idE">
+<span id="_CPPv3N4espp4Twai7Message2idE"></span><span id="_CPPv2N4espp4Twai7Message2idE"></span><span id="espp::Twai::Message::id__uint32_t"></span><span class="target" id="structespp_1_1Twai_1_1Message_1aa0eae2be6b9839284069a6c4c5142f33"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai7Message2idE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Arbitration ID (11-bit standard, or 29-bit if <code class="docutils literal notranslate"><span class="pre">extended</span></code> is true). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai7Message8extendedE">
+<span id="_CPPv3N4espp4Twai7Message8extendedE"></span><span id="_CPPv2N4espp4Twai7Message8extendedE"></span><span id="espp::Twai::Message::extended__b"></span><span class="target" id="structespp_1_1Twai_1_1Message_1a84d11a532beffe2ce1a08a77683d3e44"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">extended</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai7Message8extendedE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>True for an extended (29-bit) ID, false for standard (11-bit) ID. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai7Message3rtrE">
+<span id="_CPPv3N4espp4Twai7Message3rtrE"></span><span id="_CPPv2N4espp4Twai7Message3rtrE"></span><span id="espp::Twai::Message::rtr__b"></span><span class="target" id="structespp_1_1Twai_1_1Message_1a9567ac164165814c70d9de401e904435"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rtr</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai7Message3rtrE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>True if this is a Remote Transmission Request frame (no data). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai7Message3dlcE">
+<span id="_CPPv3N4espp4Twai7Message3dlcE"></span><span id="_CPPv2N4espp4Twai7Message3dlcE"></span><span id="espp::Twai::Message::dlc__uint8_t"></span><span class="target" id="structespp_1_1Twai_1_1Message_1acce1e8ea39f32a37f31aa85a02d08403"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dlc</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai7Message3dlcE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Data Length Code / number of valid data bytes (0-8). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai7Message4dataE">
+<span id="_CPPv3N4espp4Twai7Message4dataE"></span><span id="_CPPv2N4espp4Twai7Message4dataE"></span><span id="espp::Twai::Message::data__std::array:uint8_t.MAX_DATA_LEN:"></span><span class="target" id="structespp_1_1Twai_1_1Message_1a851d8cb8b5f90e59581aec92b3a9c183"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Twai12MAX_DATA_LENE" title="espp::Twai::MAX_DATA_LEN"><span class="n"><span class="pre">MAX_DATA_LEN</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">data</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Twai7Message4dataE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Frame payload (only the first <code class="docutils literal notranslate"><span class="pre">dlc</span></code> bytes valid). </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai7Message15from_twai_frameERK12twai_frame_t">
+<span id="_CPPv3N4espp4Twai7Message15from_twai_frameERK12twai_frame_t"></span><span id="_CPPv2N4espp4Twai7Message15from_twai_frameERK12twai_frame_t"></span><span id="espp::Twai::Message::from_twai_frame__twai_frame_tCR"></span><span class="target" id="structespp_1_1Twai_1_1Message_1a3da3f302c56d7b7426af8adb841bbedf"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Twai7MessageE" title="espp::Twai::Message"><span class="n"><span class="pre">Message</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_twai_frame</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">twai_frame_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">frame</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Twai7Message15from_twai_frameERK12twai_frame_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Build a <a class="reference internal" href="#structespp_1_1Twai_1_1Message"><span class="std std-ref">Message</span></a> from a driver <code class="docutils literal notranslate"><span class="pre">twai_frame_t</span></code>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>frame</strong> – The driver frame (as returned by <code class="docutils literal notranslate"><span class="pre">twai_node_receive_from_isr</span></code>). </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="#structespp_1_1Twai_1_1Message"><span class="std std-ref">Message</span></a> copy of the frame’s header + data. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai11StateChangeE">
+<span id="_CPPv3N4espp4Twai11StateChangeE"></span><span id="_CPPv2N4espp4Twai11StateChangeE"></span><span id="espp::Twai::StateChange"></span><span class="target" id="structespp_1_1Twai_1_1StateChange"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">StateChange</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Twai11StateChangeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Data passed to the state-change callback. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai11StateChange9old_stateE">
+<span id="_CPPv3N4espp4Twai11StateChange9old_stateE"></span><span id="_CPPv2N4espp4Twai11StateChange9old_stateE"></span><span id="espp::Twai::StateChange::old_state__twai_error_state_t"></span><span class="target" id="structespp_1_1Twai_1_1StateChange_1ab0f0fb7aec79821c6e83f742ecd43cfd"></span><span class="n"><span class="pre">twai_error_state_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">old_state</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Twai11StateChange9old_stateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The previous error state. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Twai11StateChange9new_stateE">
+<span id="_CPPv3N4espp4Twai11StateChange9new_stateE"></span><span id="_CPPv2N4espp4Twai11StateChange9new_stateE"></span><span id="espp::Twai::StateChange::new_state__twai_error_state_t"></span><span class="target" id="structespp_1_1Twai_1_1StateChange_1ac2d159cf231180d86ccc23e9992dfbaf"></span><span class="n"><span class="pre">twai_error_state_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">new_state</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Twai11StateChange9new_stateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The new error state. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rmt_example.html" class="btn btn-neutral float-left" title="RMT Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="twai_example.html" class="btn btn-neutral float-right" title="TWAI (CAN 2.0) Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

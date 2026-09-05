@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dispatcher - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'dispatcher/dispatcher';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Wireless &amp; Radio APIs" href="../wireless/index.html" />
+    <link rel="prev" title="Dispatcher APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Dispatcher APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Dispatcher</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-id">Module id</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dispatcher APIs</a></li>
+      <li class="breadcrumb-item active">Dispatcher</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/a08fc9fe/docs/en/dispatcher/dispatcher.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="dispatcher">
+<h1>Dispatcher<a class="headerlink" href="#dispatcher" title="Permalink to this heading"></a></h1>
+<p>The <cite>Dispatcher</cite> routes framed messages from one byte stream to per-module
+handlers, letting several independent protocols share a single USB vendor / CDC
+/ socket / UART link. Rather than run a separate <code class="docutils literal notranslate"><span class="pre">StreamParser</span></code> per protocol
+over the same bytes (each re-buffering the whole stream and needing its own
+reset-on-overflow bookkeeping), a Dispatcher parses the
+<a class="reference internal" href="../stream_frame/index.html"><span class="doc">Stream Frame APIs</span></a> stream once and hands each complete frame to the
+handler registered for its <code class="docutils literal notranslate"><span class="pre">module</span></code> id.</p>
+<section id="module-id">
+<h2>Module id<a class="headerlink" href="#module-id" title="Permalink to this heading"></a></h2>
+<p>The frame’s <code class="docutils literal notranslate"><span class="pre">module</span></code> byte (0..255) is the routing key — a full byte, so up to
+256 protocols can coexist on one stream. The message/transaction <code class="docutils literal notranslate"><span class="pre">type</span></code> and
+the request/reply direction (<code class="docutils literal notranslate"><span class="pre">flags</span></code>) travel with the frame and are handed to
+the module’s handler untouched; the Dispatcher does not interpret them. espp
+built-in protocols use, for example:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Module id</p></th>
+<th class="head"><p>Protocol</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>OTA</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>crash dump</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>CAN bridge</p></td>
+</tr>
+</tbody>
+</table>
+<p>A device-side dispatcher registers the modules it serves; frames for an
+unregistered module are silently ignored. A protocol’s replies use the <strong>same</strong>
+module as its requests (the reply/direction lives in the frame’s <code class="docutils literal notranslate"><span class="pre">flags</span></code>, not
+the module), so both directions route to the one registered handler — use
+<code class="docutils literal notranslate"><span class="pre">frame.is_reply()</span></code> to tell them apart. In practice a device only <em>receives</em>
+requests (it <em>sends</em> the replies), so its handler normally sees requests only.
+Application code may assign any unused module id to its own protocol; nothing is
+hard-wired to a specific service.</p>
+<p>The example multiplexes two toy protocols over one in-memory byte stream (the
+same <code class="docutils literal notranslate"><span class="pre">feed()</span></code> / <code class="docutils literal notranslate"><span class="pre">register_module()</span></code> pattern applies to a USB vendor / CDC /
+socket / UART receive path):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">namespace</span><span class="w"> </span><span class="nn">sf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">espp</span><span class="o">::</span><span class="nn">stream_frame</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Two toy protocols sharing one stream: "control" on module 0 and "telemetry"</span>
+<span class="w">  </span><span class="c1">// on module 4 (module is a full byte, so up to 256 protocols can coexist).</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">kModuleControl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">kModuleTelemetry</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Dispatcher</span><span class="w"> </span><span class="n">dispatcher</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// Register each module WITH discovery metadata (name / web app / description)</span>
+<span class="w">  </span><span class="c1">// so a connected peer can enumerate them (see the discovery section below).</span>
+<span class="w">  </span><span class="n">dispatcher</span><span class="p">.</span><span class="n">register_module</span><span class="p">(</span>
+<span class="w">      </span><span class="n">kModuleControl</span><span class="p">,</span>
+<span class="w">      </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">sf</span><span class="o">::</span><span class="n">Frame</span><span class="w"> </span><span class="o">&amp;</span><span class="n">f</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"[control] {} type=0x{:02X} ({} payload bytes)"</span><span class="p">,</span>
+<span class="w">                    </span><span class="n">f</span><span class="p">.</span><span class="n">is_reply</span><span class="p">()</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">"reply"</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">"request"</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="p">.</span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="p">.</span><span class="n">payload</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Control"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">app</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"control_console.html"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Device control channel"</span><span class="p">});</span>
+<span class="w">  </span><span class="n">dispatcher</span><span class="p">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">kModuleTelemetry</span><span class="p">,</span>
+<span class="w">                             </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">sf</span><span class="o">::</span><span class="n">Frame</span><span class="w"> </span><span class="o">&amp;</span><span class="n">f</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                               </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">f</span><span class="p">.</span><span class="n">payload</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">sf</span><span class="o">::</span><span class="n">get_u32</span><span class="p">(</span><span class="n">f</span><span class="p">.</span><span class="n">payload</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">                               </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"[telemetry] type=0x{:02X} value={}"</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="p">.</span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">);</span>
+<span class="w">                             </span><span class="p">},</span>
+<span class="w">                             </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Telemetry"</span><span class="p">,</span>
+<span class="w">                              </span><span class="p">.</span><span class="n">app</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"telemetry_console.html"</span><span class="p">,</span>
+<span class="w">                              </span><span class="p">.</span><span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Live telemetry stream"</span><span class="p">});</span>
+
+<span class="w">  </span><span class="c1">// Build a mixed stream, as a peer would send it.</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">telemetry_payload</span><span class="p">;</span>
+<span class="w">  </span><span class="n">sf</span><span class="o">::</span><span class="n">put_u32</span><span class="p">(</span><span class="n">telemetry_payload</span><span class="p">,</span><span class="w"> </span><span class="mi">42</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">stream</span><span class="p">;</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">append</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">stream</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">stream</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span><span class="w"> </span><span class="n">frame</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">frame</span><span class="p">.</span><span class="n">end</span><span class="p">());</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">start</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="sc">'s'</span><span class="p">,</span><span class="w"> </span><span class="sc">'t'</span><span class="p">,</span><span class="w"> </span><span class="sc">'a'</span><span class="p">,</span><span class="w"> </span><span class="sc">'r'</span><span class="p">,</span><span class="w"> </span><span class="sc">'t'</span><span class="p">};</span>
+<span class="w">  </span><span class="n">append</span><span class="p">(</span><span class="n">sf</span><span class="o">::</span><span class="n">build_frame</span><span class="p">(</span><span class="cm">/*reply=*/</span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">kModuleControl</span><span class="p">,</span><span class="w"> </span><span class="mh">0x01</span><span class="p">,</span><span class="w"> </span><span class="n">start</span><span class="p">));</span>
+<span class="w">  </span><span class="n">append</span><span class="p">(</span><span class="n">sf</span><span class="o">::</span><span class="n">build_frame</span><span class="p">(</span><span class="cm">/*reply=*/</span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">kModuleTelemetry</span><span class="p">,</span><span class="w"> </span><span class="mh">0x01</span><span class="p">,</span><span class="w"> </span><span class="n">telemetry_payload</span><span class="p">));</span>
+<span class="w">  </span><span class="c1">// A frame for an unregistered module is silently ignored.</span>
+<span class="w">  </span><span class="n">append</span><span class="p">(</span><span class="n">sf</span><span class="o">::</span><span class="n">build_frame</span><span class="p">(</span><span class="cm">/*reply=*/</span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00</span><span class="p">));</span>
+<span class="w">  </span><span class="n">append</span><span class="p">(</span><span class="n">sf</span><span class="o">::</span><span class="n">build_frame</span><span class="p">(</span><span class="cm">/*reply=*/</span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="n">kModuleControl</span><span class="p">,</span><span class="w"> </span><span class="mh">0x81</span><span class="p">));</span><span class="w"> </span><span class="c1">// a reply/event</span>
+
+<span class="w">  </span><span class="c1">// Feed it in two arbitrary chunks to show the parser reassembles split frames.</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">half</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stream</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">  </span><span class="n">dispatcher</span><span class="p">.</span><span class="n">feed</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">stream</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="n">half</span><span class="p">));</span>
+<span class="w">  </span><span class="n">dispatcher</span><span class="p">.</span><span class="n">feed</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">stream</span><span class="p">.</span><span class="n">data</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">half</span><span class="p">,</span><span class="w"> </span><span class="n">stream</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">half</span><span class="p">));</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"done ({} bytes dropped while resyncing)"</span><span class="p">,</span><span class="w"> </span><span class="n">dispatcher</span><span class="p">.</span><span class="n">dropped_bytes</span><span class="p">());</span>
+
+<span class="w">  </span><span class="c1">// --- capability discovery -------------------------------------------------</span>
+<span class="w">  </span><span class="c1">// A connected peer (e.g. the browser hub app) can ask WHICH modules this</span>
+<span class="w">  </span><span class="c1">// device runs, over the reserved discovery module id 0xFF. Advertise a device</span>
+<span class="w">  </span><span class="c1">// name + firmware, then opt in to auto-answering the query. serve_discovery()</span>
+<span class="w">  </span><span class="c1">// is the ONLY path by which the Dispatcher sends: it hands the encoded reply</span>
+<span class="w">  </span><span class="c1">// frame to the transmit callback we supply. On real hardware that callback is</span>
+<span class="w">  </span><span class="c1">// usb.write_vendor / socket send / etc.; here we just capture it in-process</span>
+<span class="w">  </span><span class="c1">// and decode it to show what a peer receives.</span>
+<span class="w">  </span><span class="n">dispatcher</span><span class="p">.</span><span class="n">set_device_info</span><span class="p">(</span><span class="s">"espp Dispatcher Example"</span><span class="p">,</span><span class="w"> </span><span class="s">"1.0.0"</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">discovery_reply</span><span class="p">;</span>
+<span class="w">  </span><span class="n">dispatcher</span><span class="p">.</span><span class="n">serve_discovery</span><span class="p">(</span>
+<span class="w">      </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">discovery_reply</span><span class="p">.</span><span class="n">assign</span><span class="p">(</span><span class="n">frame</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">frame</span><span class="p">.</span><span class="n">end</span><span class="p">());</span><span class="w"> </span><span class="p">});</span>
+
+<span class="w">  </span><span class="n">dispatcher</span><span class="p">.</span><span class="n">feed</span><span class="p">(</span><span class="n">sf</span><span class="o">::</span><span class="n">build_frame</span><span class="p">(</span><span class="cm">/*reply=*/</span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Dispatcher</span><span class="o">::</span><span class="n">kDiscoveryModule</span><span class="p">,</span>
+<span class="w">                                  </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Dispatcher</span><span class="o">::</span><span class="n">Discovery</span><span class="o">::</span><span class="n">ListModules</span><span class="p">)));</span>
+
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">reply_frames</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sf</span><span class="o">::</span><span class="n">StreamParser</span><span class="p">{}.</span><span class="n">feed</span><span class="p">(</span><span class="n">discovery_reply</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">reply_frames</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reply_frames</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">payload</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w"> </span><span class="c1">// skip [version][reserved]</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">rd_str</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="o">++</span><span class="p">];</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">s</span><span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+<span class="w">      </span><span class="n">i</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">n</span><span class="p">;</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">s</span><span class="p">;</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dev</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rd_str</span><span class="p">();</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">fw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rd_str</span><span class="p">();</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="o">++</span><span class="p">];</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"discovery: '{}' (fw {}) advertises {} module(s):"</span><span class="p">,</span><span class="w"> </span><span class="n">dev</span><span class="p">,</span><span class="w"> </span><span class="n">fw</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">count</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="o">++</span><span class="p">];</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rd_str</span><span class="p">();</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">app</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rd_str</span><span class="p">();</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">desc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rd_str</span><span class="p">();</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  module {}: {} [app={}] — {}"</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">app</span><span class="p">,</span><span class="w"> </span><span class="n">desc</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+<p>The codec and dispatcher are also exposed to Python (<code class="docutils literal notranslate"><span class="pre">espp.stream_frame</span></code> and
+<code class="docutils literal notranslate"><span class="pre">espp.Dispatcher</span></code>); see <code class="docutils literal notranslate"><span class="pre">python/dispatcher.py</span></code> and <code class="docutils literal notranslate"><span class="pre">python/dispatcher_test.py</span></code>.</p>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a08fc9fe/components/dispatcher/include/dispatcher.hpp">components/dispatcher/include/dispatcher.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10DispatcherE">
+<span id="_CPPv3N4espp10DispatcherE"></span><span id="_CPPv2N4espp10DispatcherE"></span><span id="espp::Dispatcher"></span><span class="target" id="classespp_1_1Dispatcher"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Dispatcher</span></span></span><a class="headerlink" href="#_CPPv4N4espp10DispatcherE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Routes framed messages from one byte stream to per-module handlers. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher9DiscoveryE">
+<span id="_CPPv3N4espp10Dispatcher9DiscoveryE"></span><span id="_CPPv2N4espp10Dispatcher9DiscoveryE"></span><span class="target" id="classespp_1_1Dispatcher_1a50136eb4e531ddd46fe1e740ad9c16a2"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Discovery</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher9DiscoveryE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>`type` values within the discovery module (kDiscoveryModule). </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher9Discovery11ListModulesE">
+<span id="_CPPv3N4espp10Dispatcher9Discovery11ListModulesE"></span><span id="_CPPv2N4espp10Dispatcher9Discovery11ListModulesE"></span><span class="target" id="classespp_1_1Dispatcher_1a50136eb4e531ddd46fe1e740ad9c16a2a953729fea8b0cbe8823d6fd545b66488"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ListModules</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher9Discovery11ListModulesE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>request: list the device’s modules; reply payload = <a class="reference internal" href="#classespp_1_1Dispatcher_1a27d625d8176321d3589315e7149d518a"><span class="std std-ref">describe()</span></a>. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher10handler_fnE">
+<span id="_CPPv3N4espp10Dispatcher10handler_fnE"></span><span id="_CPPv2N4espp10Dispatcher10handler_fnE"></span><span class="target" id="classespp_1_1Dispatcher_1afdb1ee1449c0dc81b056bf98e7596f36"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">handler_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">stream_frame</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Frame</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">frame</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher10handler_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Handler invoked for every frame whose module was registered. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param frame<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The decoded frame (module, type, flags/reply, payload). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher8reply_fnE">
+<span id="_CPPv3N4espp10Dispatcher8reply_fnE"></span><span id="_CPPv2N4espp10Dispatcher8reply_fnE"></span><span class="target" id="classespp_1_1Dispatcher_1a75b703e30c9faa32b244799b946b7337"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reply_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n"><span class="pre">frame</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher8reply_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Transmit callback for <a class="reference internal" href="#classespp_1_1Dispatcher_1a1cadeb33c44bf3f00819c05d0e8bde82"><span class="std std-ref">serve_discovery()</span></a>: sends one already-encoded stream_frame back to the peer over the application’s transport. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher15register_moduleE7uint8_t10handler_fn">
+<span id="_CPPv3N4espp10Dispatcher15register_moduleE7uint8_t10handler_fn"></span><span id="_CPPv2N4espp10Dispatcher15register_moduleE7uint8_t10handler_fn"></span><span id="espp::Dispatcher::register_module__uint8_t.handler_fn"></span><span class="target" id="classespp_1_1Dispatcher_1a5bf21b0413d1da39a25a32be17bbb019"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_module</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">module_id</span></span>, <a class="reference internal" href="#_CPPv4N4espp10Dispatcher10handler_fnE" title="espp::Dispatcher::handler_fn"><span class="n"><span class="pre">handler_fn</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">handler</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher15register_moduleE7uint8_t10handler_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Register (or replace) the handler for a module id. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>module_id</strong> – Module id (0..255) to route to <code class="docutils literal notranslate"><span class="pre">handler</span></code>. </p></li>
+<li><p><strong>handler</strong> – Callback for frames with this module id. A null handler unregisters the module. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher15register_moduleE7uint8_t10handler_fn10ModuleInfo">
+<span id="_CPPv3N4espp10Dispatcher15register_moduleE7uint8_t10handler_fn10ModuleInfo"></span><span id="_CPPv2N4espp10Dispatcher15register_moduleE7uint8_t10handler_fn10ModuleInfo"></span><span id="espp::Dispatcher::register_module__uint8_t.handler_fn.ModuleInfo"></span><span class="target" id="classespp_1_1Dispatcher_1a86381a3986d9e922d2d352ca67ceec43"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_module</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">module_id</span></span>, <a class="reference internal" href="#_CPPv4N4espp10Dispatcher10handler_fnE" title="espp::Dispatcher::handler_fn"><span class="n"><span class="pre">handler_fn</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">handler</span></span>, <a class="reference internal" href="#_CPPv4N4espp10Dispatcher10ModuleInfoE" title="espp::Dispatcher::ModuleInfo"><span class="n"><span class="pre">ModuleInfo</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">info</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher15register_moduleE7uint8_t10handler_fn10ModuleInfo" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Register (or replace) a module’s handler AND its discovery metadata. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Registration fully replaces any previous entry, so re-registering a module with the 2-argument overload clears its metadata. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>module_id</strong> – Module id (0..255) to route to <code class="docutils literal notranslate"><span class="pre">handler</span></code>. </p></li>
+<li><p><strong>handler</strong> – Callback for frames with this module id (a null handler unregisters the module; <code class="docutils literal notranslate"><span class="pre">info</span></code> is then ignored). </p></li>
+<li><p><strong>info</strong> – Metadata advertised to a discovery peer (see <a class="reference internal" href="#classespp_1_1Dispatcher_1a27d625d8176321d3589315e7149d518a"><span class="std std-ref">describe()</span></a>). </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher17unregister_moduleE7uint8_t">
+<span id="_CPPv3N4espp10Dispatcher17unregister_moduleE7uint8_t"></span><span id="_CPPv2N4espp10Dispatcher17unregister_moduleE7uint8_t"></span><span id="espp::Dispatcher::unregister_module__uint8_t"></span><span class="target" id="classespp_1_1Dispatcher_1a3b868a267ddffe93784543b2f0d4acdd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unregister_module</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">module_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher17unregister_moduleE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Remove the handler for a module id (frames for it become ignored). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10Dispatcher10has_moduleE7uint8_t">
+<span id="_CPPv3NK4espp10Dispatcher10has_moduleE7uint8_t"></span><span id="_CPPv2NK4espp10Dispatcher10has_moduleE7uint8_t"></span><span id="espp::Dispatcher::has_module__uint8_tC"></span><span class="target" id="classespp_1_1Dispatcher_1a26e3bfc3acf4102f0bffb931599e5d20"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">has_module</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">module_id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10Dispatcher10has_moduleE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether a handler is registered for a module id (reflects applied registrations; changes made during a dispatch apply after it ends). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher15set_device_infoENSt6stringENSt6stringE">
+<span id="_CPPv3N4espp10Dispatcher15set_device_infoENSt6stringENSt6stringE"></span><span id="_CPPv2N4espp10Dispatcher15set_device_infoENSt6stringENSt6stringE"></span><span id="espp::Dispatcher::set_device_info__ss.ss"></span><span class="target" id="classespp_1_1Dispatcher_1aad76f60e417cf7bcb70c29fb40ad1c7a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_device_info</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">firmware</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher15set_device_infoENSt6stringENSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the device-level info advertised at the head of <a class="reference internal" href="#classespp_1_1Dispatcher_1a27d625d8176321d3589315e7149d518a"><span class="std std-ref">describe()</span></a> (so a peer can show “Connected to &lt;name&gt; &lt;firmware&gt;”). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10Dispatcher8describeEv">
+<span id="_CPPv3NK4espp10Dispatcher8describeEv"></span><span id="_CPPv2NK4espp10Dispatcher8describeEv"></span><span id="espp::Dispatcher::describeC"></span><span class="target" id="classespp_1_1Dispatcher_1a27d625d8176321d3589315e7149d518a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">describe</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10Dispatcher8describeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Serialize the device info + every registered module that carries a (non-empty) name into the binary discovery payload. </p>
+<p>Layout (all lengths are one byte; strings are [len][bytes], truncated at 255): [version u8][reserved u8][device_name str][device_fw str] [module_count u8] then per module [id u8][name str][app str][desc str]. The reserved discovery module (0xFF) is never listed. At most 255 modules are emitted, and trailing modules are dropped if the payload would exceed stream_frame::kMaxPayloadSize &amp;#8212; module_count always reflects the number actually emitted, so the payload is self-consistent and fits one frame. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The payload bytes (to be sent as the ListModules reply). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher15serve_discoveryE8reply_fn">
+<span id="_CPPv3N4espp10Dispatcher15serve_discoveryE8reply_fn"></span><span id="_CPPv2N4espp10Dispatcher15serve_discoveryE8reply_fn"></span><span id="espp::Dispatcher::serve_discovery__reply_fn"></span><span class="target" id="classespp_1_1Dispatcher_1a1cadeb33c44bf3f00819c05d0e8bde82"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">serve_discovery</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10Dispatcher8reply_fnE" title="espp::Dispatcher::reply_fn"><span class="n"><span class="pre">reply_fn</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">reply</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher15serve_discoveryE8reply_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Opt in to auto-answering capability discovery. </p>
+<p>Registers a handler on kDiscoveryModule that, on a <a class="reference internal" href="#classespp_1_1Dispatcher_1a50136eb4e531ddd46fe1e740ad9c16a2a953729fea8b0cbe8823d6fd545b66488"><span class="std std-ref">Discovery::ListModules</span></a> request, encodes <a class="reference internal" href="#classespp_1_1Dispatcher_1a27d625d8176321d3589315e7149d518a"><span class="std std-ref">describe()</span></a> into a reply frame (echoing the request’s correlation id, if any) and hands it to <code class="docutils literal notranslate"><span class="pre">reply</span></code> for transmission. This is the only path by which a <a class="reference internal" href="#classespp_1_1Dispatcher"><span class="std std-ref">Dispatcher</span></a> ever sends — the app supplies the transport. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>reply</strong> – Transmit callback (sends the encoded reply frame). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher4feedENSt4spanIK7uint8_tEE">
+<span id="_CPPv3N4espp10Dispatcher4feedENSt4spanIK7uint8_tEE"></span><span id="_CPPv2N4espp10Dispatcher4feedENSt4spanIK7uint8_tEE"></span><span id="espp::Dispatcher::feed__std::span:uint8_tC:"></span><span class="target" id="classespp_1_1Dispatcher_1a8aeedf0f368efd8292c9699a0042aae8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feed</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher4feedENSt4spanIK7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Feed raw received bytes: parse and route each complete frame to its module’s handler. Frames whose module has no handler are ignored (so unrelated protocols on the same stream are harmless). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher8dispatchERKN12stream_frame5FrameE">
+<span id="_CPPv3N4espp10Dispatcher8dispatchERKN12stream_frame5FrameE"></span><span id="_CPPv2N4espp10Dispatcher8dispatchERKN12stream_frame5FrameE"></span><span id="espp::Dispatcher::dispatch__stream_frame::FrameCR"></span><span class="target" id="classespp_1_1Dispatcher_1aac80a94cfd9f181f4358d35b6d0dd8f5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dispatch</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">stream_frame</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Frame</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">frame</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher8dispatchERKN12stream_frame5FrameE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Route an already-parsed frame (for callers running their own parser). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher5resetEv">
+<span id="_CPPv3N4espp10Dispatcher5resetEv"></span><span id="_CPPv2N4espp10Dispatcher5resetEv"></span><span id="espp::Dispatcher::reset"></span><span class="target" id="classespp_1_1Dispatcher_1a94be1447f234bd8a9280f7494da8f0e8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher5resetEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Discard any partially-buffered frame bytes (transport reconnect or RX overflow) so a frame straddling the gap resynchronizes at once. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10Dispatcher8bufferedEv">
+<span id="_CPPv3NK4espp10Dispatcher8bufferedEv"></span><span id="_CPPv2NK4espp10Dispatcher8bufferedEv"></span><span id="espp::Dispatcher::bufferedC"></span><span class="target" id="classespp_1_1Dispatcher_1a0f56f185a84ce88019cf66aa02143ee5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">buffered</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10Dispatcher8bufferedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Bytes buffered awaiting frame completion. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10Dispatcher13dropped_bytesEv">
+<span id="_CPPv3NK4espp10Dispatcher13dropped_bytesEv"></span><span id="_CPPv2NK4espp10Dispatcher13dropped_bytesEv"></span><span id="espp::Dispatcher::dropped_bytesC"></span><span class="target" id="classespp_1_1Dispatcher_1ae5df340fd88a6be8b6db25780aa2d876"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dropped_bytes</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10Dispatcher13dropped_bytesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Total bytes discarded while resynchronizing (diagnostics). </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher9module_ofERKN12stream_frame5FrameE">
+<span id="_CPPv3N4espp10Dispatcher9module_ofERKN12stream_frame5FrameE"></span><span id="_CPPv2N4espp10Dispatcher9module_ofERKN12stream_frame5FrameE"></span><span id="espp::Dispatcher::module_of__stream_frame::FrameCRCE"></span><span class="target" id="classespp_1_1Dispatcher_1add679e1f2a4991bb5dc1a464391b7cc5"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">module_of</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">stream_frame</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Frame</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">frame</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher9module_ofERKN12stream_frame5FrameE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The module id a frame will route to (its `module` byte). </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher16kDiscoveryModuleE">
+<span id="_CPPv3N4espp10Dispatcher16kDiscoveryModuleE"></span><span id="_CPPv2N4espp10Dispatcher16kDiscoveryModuleE"></span><span id="espp::Dispatcher::kDiscoveryModule__uint8_t"></span><span class="target" id="classespp_1_1Dispatcher_1ac58881832f65556c55f22de9417fd755"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kDiscoveryModule</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFF</span></span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher16kDiscoveryModuleE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reserved module id for capability discovery. A peer sends a <a class="reference internal" href="#classespp_1_1Dispatcher_1a50136eb4e531ddd46fe1e740ad9c16a2a953729fea8b0cbe8823d6fd545b66488"><span class="std std-ref">Discovery::ListModules</span></a> request here; the device answers with the serialized module list (see <a class="reference internal" href="#classespp_1_1Dispatcher_1a27d625d8176321d3589315e7149d518a"><span class="std std-ref">describe()</span></a> / <a class="reference internal" href="#classespp_1_1Dispatcher_1a1cadeb33c44bf3f00819c05d0e8bde82"><span class="std std-ref">serve_discovery()</span></a>). Module ids 0xF0..0xFF are reserved for dispatcher / meta use. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher17kDiscoveryVersionE">
+<span id="_CPPv3N4espp10Dispatcher17kDiscoveryVersionE"></span><span id="_CPPv2N4espp10Dispatcher17kDiscoveryVersionE"></span><span id="espp::Dispatcher::kDiscoveryVersion__uint8_t"></span><span class="target" id="classespp_1_1Dispatcher_1a6b08b61ccc0b7613183d85d07cc6233a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kDiscoveryVersion</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher17kDiscoveryVersionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Version byte at the start of a <a class="reference internal" href="#classespp_1_1Dispatcher_1a27d625d8176321d3589315e7149d518a"><span class="std std-ref">describe()</span></a> payload, so the wire format can evolve without a framing change. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher10ModuleInfoE">
+<span id="_CPPv3N4espp10Dispatcher10ModuleInfoE"></span><span id="_CPPv2N4espp10Dispatcher10ModuleInfoE"></span><span id="espp::Dispatcher::ModuleInfo"></span><span class="target" id="structespp_1_1Dispatcher_1_1ModuleInfo"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ModuleInfo</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher10ModuleInfoE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Optional human/browser-facing metadata advertised for a module. </p>
+<p>All fields are optional; a module with an empty name is not advertised by <a class="reference internal" href="#classespp_1_1Dispatcher_1a27d625d8176321d3589315e7149d518a"><span class="std std-ref">describe()</span></a>. Kept short — each string is serialized with a one-byte length, so anything past 255 bytes is truncated. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher10ModuleInfo4nameE">
+<span id="_CPPv3N4espp10Dispatcher10ModuleInfo4nameE"></span><span id="_CPPv2N4espp10Dispatcher10ModuleInfo4nameE"></span><span id="espp::Dispatcher::ModuleInfo::name__ss"></span><span class="target" id="structespp_1_1Dispatcher_1_1ModuleInfo_1add5992e65b5129545a84f86898e95ae4"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher10ModuleInfo4nameE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Human-readable module name, e.g. “MCP266 Console”. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher10ModuleInfo3appE">
+<span id="_CPPv3N4espp10Dispatcher10ModuleInfo3appE"></span><span id="_CPPv2N4espp10Dispatcher10ModuleInfo3appE"></span><span id="espp::Dispatcher::ModuleInfo::app__ss"></span><span class="target" id="structespp_1_1Dispatcher_1_1ModuleInfo_1a498f0fdd1d1bd8a48a9f144809de63ca"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">app</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher10ModuleInfo3appE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Hosted web-app filename, e.g. “mcp266_console.html” (optional). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Dispatcher10ModuleInfo11descriptionE">
+<span id="_CPPv3N4espp10Dispatcher10ModuleInfo11descriptionE"></span><span id="_CPPv2N4espp10Dispatcher10ModuleInfo11descriptionE"></span><span id="espp::Dispatcher::ModuleInfo::description__ss"></span><span class="target" id="structespp_1_1Dispatcher_1_1ModuleInfo_1a83af069025219eabfe4c9d96771cc5d6"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">description</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Dispatcher10ModuleInfo11descriptionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>One-line description (optional). </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Dispatcher APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../wireless/index.html" class="btn btn-neutral float-right" title="Wireless &amp; Radio APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>espp OTA Console (WebUSB)</title>
+<meta name="description" content="Update espp device firmware over WebUSB: streams a .bin to the espp ota component's vendor-interface protocol with progress and rollback-aware finish.">
+  <!--
+    espp OTA Console (WebUSB)
+    =========================
+    A single-file, fully offline, dependency-free browser firmware updater for
+    devices running the espp `ota` component's USB vendor-interface stream
+    protocol (see components/ota/include/detail/ota_stream_protocol.hpp for the
+    authoritative wire spec).
+
+    Wire format v2 (all fields LITTLE-ENDIAN):
+      [magic u16 = 0x4F54 "OT"][flags u8][module u8][type u8][len u32][payload...][crc32 u32]
+    - flags u8: bit0 = reply (0 host->device request, 1 device->host reply);
+      bits 4-7 = protocol version = 1. So a request byte = 0x10, a reply = 0x11.
+    - module u8: OTA is module 0.
+    - the crc32 is the standard zlib CRC-32 (poly 0xEDB88320 reflected, init /
+      final xor 0xFFFFFFFF) over the 9-byte header + payload; check value
+      crc32("123456789") == 0xCBF43926.
+    - payload length is capped at 4096 bytes per frame.
+    - host -> device requests (flags reply bit 0): 0x01 BEGIN(u32 image_size),
+      0x02 DATA(bytes), 0x03 FINISH, 0x04 ABORT; device -> host replies
+      (flags reply bit 1): 0x05 OK(u32 bytes_received),
+      0x06 ERROR(u32 code + utf8 message), 0x07 PROGRESS(u32 written, u32 total).
+    - transactions are serialized: exactly one command frame is in flight and
+      the host waits for its OK / ERROR reply (PROGRESS frames are
+      informational and may arrive before the reply).
+
+    Transport: the firmware's dedicated USB *vendor* interface
+    (bInterfaceClass = 0xFF) with one bulk IN + one bulk OUT endpoint,
+    discovered at runtime by walking the device's descriptors.
+
+    No external dependencies, no CDN, no network fetches: everything is inline
+    and works from a file:// URL, http://localhost, or any secure (https)
+    origin in a Chromium browser.
+  -->
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --panel-bg: #ffffff;
+      --panel-border: #d9dee6;
+      --text: #1c2330;
+      --text-muted: #5c6675;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff;
+      --danger: #dc2626;
+      --ok: #16a34a;
+      --warn: #b45309;
+      --log-bg: #0f1420;
+      --log-text: #d6dbe6;
+      --tx-color: #7dd3fc;
+      --rx-color: #86efac;
+      --err-color: #fca5a5;
+      --sys-color: #fcd34d;
+      --time-color: #64748b;
+      --input-bg: #ffffff;
+      --input-border: #c3cbd6;
+      --chip-bg: #eef2f8;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0e14;
+        --panel-bg: #151a23;
+        --panel-border: #262d3a;
+        --text: #e6eaf2;
+        --text-muted: #98a2b3;
+        --accent: #3b82f6;
+        --accent-hover: #60a5fa;
+        --accent-contrast: #0b0e14;
+        --danger: #ef4444;
+        --ok: #22c55e;
+        --warn: #f59e0b;
+        --log-bg: #05070c;
+        --log-text: #cdd4e0;
+        --tx-color: #38bdf8;
+        --rx-color: #4ade80;
+        --err-color: #f87171;
+        --sys-color: #fbbf24;
+        --time-color: #64748b;
+        --input-bg: #0e1219;
+        --input-border: #2b3341;
+        --chip-bg: #1b2230;
+        --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+    /* Explicit theme overrides (viewer toggle stamps data-theme on :root). */
+    :root[data-theme="dark"] {
+      --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+      --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+      --accent-contrast: #0b0e14; --danger: #ef4444; --ok: #22c55e; --warn: #f59e0b;
+      --log-bg: #05070c; --log-text: #cdd4e0; --tx-color: #38bdf8; --rx-color: #4ade80;
+      --err-color: #f87171; --sys-color: #fbbf24; --input-bg: #0e1219;
+      --input-border: #2b3341; --chip-bg: #1b2230;
+    }
+    :root[data-theme="light"] {
+      --bg: #f4f6f9; --panel-bg: #ffffff; --panel-border: #d9dee6; --text: #1c2330;
+      --text-muted: #5c6675; --accent: #2563eb; --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff; --danger: #dc2626; --ok: #16a34a; --warn: #b45309;
+      --log-bg: #0f1420; --log-text: #d6dbe6; --tx-color: #7dd3fc; --rx-color: #86efac;
+      --err-color: #fca5a5; --sys-color: #fcd34d; --input-bg: #ffffff;
+      --input-border: #c3cbd6; --chip-bg: #eef2f8;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 16px; }
+    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    header h1 { font-size: 18px; margin: 0; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      background: var(--chip-bg); color: var(--text-muted);
+      border: 1px solid var(--panel-border);
+    }
+    .status-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+    .status-pill.connected { color: var(--ok); }
+    .status-pill.connected::before { background: var(--ok); }
+    .status-pill.error { color: var(--danger); }
+    .status-pill.error::before { background: var(--danger); }
+    .status-pill.busy { color: var(--warn); }
+    .status-pill.busy::before { background: var(--warn); }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 10px; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .muted { color: var(--text-muted); font-size: 12.5px; }
+    .warn-text { color: var(--warn); font-size: 12.5px; }
+
+    button {
+      font: inherit; padding: 7px 14px; border-radius: 7px; cursor: pointer;
+      border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text);
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    input[type="file"] { font: inherit; color: var(--text); max-width: 100%; }
+    label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+
+    .progress-track {
+      width: 100%; height: 14px; border-radius: 999px; overflow: hidden;
+      background: var(--chip-bg); border: 1px solid var(--panel-border);
+    }
+    .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.15s linear; }
+    .progress-fill.done { background: var(--ok); }
+    .progress-fill.failed { background: var(--danger); }
+    .stats { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+    .log {
+      background: var(--log-bg); color: var(--log-text);
+      border-radius: 8px; padding: 10px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px; line-height: 1.5;
+      height: 220px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+    }
+    .log .t { color: var(--time-color); }
+    .log .tx { color: var(--tx-color); }
+    .log .rx { color: var(--rx-color); }
+    .log .err { color: var(--err-color); }
+    .log .warn { color: #d08770; }
+    .log .sys { color: var(--sys-color); }
+    footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
+    #unsupported {
+      display: none; background: var(--panel-bg); border: 1px solid var(--danger);
+      color: var(--danger); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>espp OTA Console <span class="muted">(WebUSB)</span></h1>
+      <span id="status" class="status-pill">Disconnected</span>
+    </header>
+
+    <div id="unsupported">
+      This browser does not support WebUSB. Use a Chromium-based browser
+      (Chrome / Edge / Opera) on a secure origin (https, localhost or file://).
+    </div>
+
+    <div class="panel">
+      <h2>Device</h2>
+      <div class="row">
+        <button id="connectBtn" class="primary">Connect</button>
+        <label><input type="checkbox" id="anyDevice"> show all USB devices (no VID/PID filter)</label>
+      </div>
+      <p id="devInfo" class="muted" style="margin: 8px 0 0;">Not connected. Default filter: any espp device (VID 0x1209); the vendor (0xFF) interface is discovered from the descriptors at runtime.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Firmware update</h2>
+      <div class="row">
+        <input type="file" id="fileInput" accept=".bin,application/octet-stream">
+      </div>
+      <p id="fileInfo" class="muted" style="margin: 8px 0;">No file selected. Pick the app image (e.g. <code>build/ota_example.bin</code>) — NOT the merged / bootloader image.</p>
+      <div class="row" style="margin-bottom: 10px;">
+        <button id="uploadBtn" class="primary" disabled>Upload</button>
+        <button id="abortBtn" class="danger" disabled>Abort</button>
+      </div>
+      <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+      <div class="stats" style="margin-top: 8px;">
+        <span id="statBytes">0 / 0 bytes</span>
+        <span id="statPercent">0%</span>
+        <span id="statRate">-</span>
+        <span id="statNote"></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Log</h2>
+      <div class="row" style="margin-bottom: 8px;">
+        <label><input type="checkbox" id="logFrames"> log raw frames</label>
+        <button id="clearLogBtn">Clear</button>
+      </div>
+      <div id="log" class="log" aria-live="polite"></div>
+    </div>
+
+    <footer>
+      Speaks the espp <code>ota</code> component's vendor-interface stream protocol
+      (frame: magic "OT" + flags + module + type + len + payload + CRC-32, 4096-byte max payload, one
+      transaction in flight). After FINISH the device validates the image
+      (SHA-256), sets the boot partition and restarts; with bootloader rollback
+      enabled the new app must mark itself valid or the device rolls back.
+    </footer>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ===================================================================
+    // Constants (must match detail/ota_stream_protocol.hpp)
+    // ===================================================================
+    const DEFAULT_VID = 0x1209, DEFAULT_PID = 0x0d32;
+    const VENDOR_CLASS = 0xFF;
+    const MAGIC0 = 0x54, MAGIC1 = 0x4F;      // u16 0x4F54 "OT", little-endian on the wire
+    // v2 framing: [magic u16][flags u8][module u8][type u8][len u32] => 9-byte header.
+    const HEADER_SIZE = 9, CRC_SIZE = 4;
+    const MAX_PAYLOAD = 4096;
+    const MAX_FRAME = HEADER_SIZE + MAX_PAYLOAD + CRC_SIZE;
+    const MODULE_OTA = 0;                     // OTA is module 0
+    // Reserved dispatcher discovery module: a device running an espp::Dispatcher
+    // answers a ListModules query on 0xFF with the modules it serves, so we can
+    // confirm the OTA module is present before offering to flash it.
+    const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
+    const DISCOVERY_TIMEOUT_MS = 800;        // module-presence probe (0xFF ListModules) timeout
+    const FLAGS_VERSION = 1;                  // protocol version lives in flags bits 4-7
+    const FLAGS_REQUEST = (FLAGS_VERSION << 4) | 0; // host->device request: 0x10 (reply bit 0)
+    const FLAGS_REPLY_BIT = 0x01;            // bit0 set on device->host replies
+    const FLAG_CORRELATION = 0x02;           // bit1: optional u16 correlation id present after `type`
+    const TYPE = { BEGIN: 0x01, DATA: 0x02, FINISH: 0x03, ABORT: 0x04, OK: 0x05, ERROR: 0x06, PROGRESS: 0x07 };
+    const TYPE_NAME = { 0x01: "BEGIN", 0x02: "DATA", 0x03: "FINISH", 0x04: "ABORT", 0x05: "OK", 0x06: "ERROR", 0x07: "PROGRESS" };
+    // esp_ota_begin erases flash (seconds for a large / unknown-size image) and
+    // esp_ota_end re-reads + hashes the whole image, so give BEGIN / FINISH a
+    // much longer deadline than the per-4KiB DATA writes.
+    const DATA_TIMEOUT_MS = 5000, BEGIN_TIMEOUT_MS = 60000, FINISH_TIMEOUT_MS = 60000;
+    const ESP_IMAGE_MAGIC = 0xE9;
+    const MAX_IMAGE_SIZE = 64 * 1024 * 1024; // sanity cap (no ESP flash is larger)
+
+    // ===================================================================
+    // Elements & logging
+    // ===================================================================
+    const els = {};
+    for (const id of ["status", "connectBtn", "anyDevice", "devInfo", "fileInput", "fileInfo",
+                      "uploadBtn", "abortBtn", "progressFill", "statBytes", "statPercent",
+                      "statRate", "statNote", "logFrames", "clearLogBtn", "log", "unsupported"]) {
+      els[id] = document.getElementById(id);
+    }
+
+    function logLine(cls, text) {
+      const line = document.createElement("div");
+      const time = document.createElement("span");
+      time.className = "t";
+      time.textContent = new Date().toLocaleTimeString() + " ";
+      const body = document.createElement("span");
+      body.className = cls;
+      body.textContent = text;
+      line.appendChild(time); line.appendChild(body);
+      els.log.appendChild(line);
+      while (els.log.childNodes.length > 400) els.log.removeChild(els.log.firstChild);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+    els.clearLogBtn.addEventListener("click", () => { els.log.textContent = ""; });
+
+    function hex(bytes, max) {
+      const n = Math.min(bytes.length, max || 32);
+      let s = "";
+      for (let i = 0; i < n; i++) s += bytes[i].toString(16).padStart(2, "0") + " ";
+      if (bytes.length > n) s += "... (" + bytes.length + " B)";
+      return s.trim();
+    }
+
+    function setStatus(state, text) {
+      els.status.className = "status-pill" + (state ? " " + state : "");
+      els.status.textContent = text;
+    }
+
+    // ===================================================================
+    // CRC-32 (zlib / IEEE 802.3): poly 0xEDB88320 reflected, init/final 0xFFFFFFFF.
+    // Golden check value: crc32("123456789") === 0xCBF43926.
+    // ===================================================================
+    const CRC_TABLE = (() => {
+      const table = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let k = 0; k < 8; k++) c = (c & 1) ? ((c >>> 1) ^ 0xEDB88320) : (c >>> 1);
+        table[i] = c >>> 0;
+      }
+      return table;
+    })();
+    function crc32(bytes, seed) {
+      let c = (~(seed || 0)) >>> 0;
+      for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+      return (~c) >>> 0;
+    }
+    // Self-test the golden vector at load; refuse to run with a broken CRC.
+    if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) {
+      throw new Error("CRC-32 self-test failed");
+    }
+
+    // ===================================================================
+    // Frame building & incremental parsing (mirrors detail/ota_stream_protocol.hpp)
+    // ===================================================================
+    // This app sends OTA requests (module defaults to MODULE_OTA); the module arg
+    // lets us also emit a discovery query on MODULE_DISCOVERY. flags are always
+    // FLAGS_REQUEST (reply bit clear).
+    function buildFrame(type, payload, module = MODULE_OTA) {
+      payload = payload || new Uint8Array(0);
+      if (payload.length > MAX_PAYLOAD) throw new Error("payload exceeds " + MAX_PAYLOAD + " bytes");
+      const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
+      const view = new DataView(frame.buffer);
+      view.setUint16(0, 0x4F54, true);   // magic 'T''O' on the wire
+      frame[2] = FLAGS_REQUEST;          // flags: version 1, request (reply bit 0)
+      frame[3] = module;                 // module: OTA = 0 (discovery = 0xFF)
+      frame[4] = type;                   // message type
+      view.setUint32(5, payload.length, true);
+      frame.set(payload, HEADER_SIZE);
+      view.setUint32(HEADER_SIZE + payload.length,
+                     crc32(frame.subarray(0, HEADER_SIZE + payload.length)), true);
+      return frame;
+    }
+    function u32Payload(value) {
+      const payload = new Uint8Array(4);
+      new DataView(payload.buffer).setUint32(0, value >>> 0, true);
+      return payload;
+    }
+
+    // Incremental parser: feed arbitrary chunks, yields verified frames,
+    // resyncs on bad magic / oversized len / bad CRC (bounded buffering).
+    class StreamParser {
+      constructor() { this.buf = new Uint8Array(0); }
+      reset() { this.buf = new Uint8Array(0); }
+      feed(chunk) {
+        const merged = new Uint8Array(this.buf.length + chunk.length);
+        merged.set(this.buf, 0); merged.set(chunk, this.buf.length);
+        const frames = [];
+        let pos = 0;
+        for (;;) {
+          // resync: advance to the next (possibly split) magic
+          while (pos < merged.length &&
+                 !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) {
+            pos++;
+          }
+          if (merged.length - pos < 3) break; // need magic+flags before header size is known
+          const flags = merged[pos + 2];
+          // v2: flags bit1 => optional u16 correlation id sits after `type`
+          const ext = (flags & FLAG_CORRELATION) ? 2 : 0;
+          const headerSize = HEADER_SIZE + ext;
+          if (merged.length - pos < headerSize) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true); // v2: len u32 follows magic+flags+module+type(+correlation)
+          if (len > MAX_PAYLOAD) { pos++; continue; } // remote-supplied len cap
+          const total = headerSize + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(headerSize + len, true);
+          const actual = crc32(merged.subarray(pos, pos + headerSize + len));
+          if (actual !== expected) { pos++; continue; } // corrupt: resync
+          const correlation = ext ? (merged[pos + 5] | (merged[pos + 6] << 8)) : null;
+          frames.push({ flags,
+                        reply: (flags & FLAGS_REPLY_BIT) !== 0,
+                        correlation,
+                        module: merged[pos + 3],
+                        type: merged[pos + 4],
+                        payload: merged.slice(pos + headerSize, pos + headerSize + len) });
+          pos += total;
+        }
+        this.buf = merged.slice(pos);
+        return frames;
+      }
+    }
+
+    function parseU32(payload) {
+      if (payload.length !== 4) return null;
+      return new DataView(payload.buffer, payload.byteOffset, 4).getUint32(0, true);
+    }
+    function parseError(payload) {
+      if (payload.length < 4) return null;
+      const code = new DataView(payload.buffer, payload.byteOffset, 4).getUint32(0, true);
+      let message = "";
+      try { message = new TextDecoder().decode(payload.subarray(4)); } catch (_) {}
+      return { code, message };
+    }
+    function parseProgress(payload) {
+      if (payload.length !== 8) return null;
+      const view = new DataView(payload.buffer, payload.byteOffset, 8);
+      return { written: view.getUint32(0, true), total: view.getUint32(4, true) };
+    }
+
+    // ===================================================================
+    // WebUSB connect / disconnect (vendor 0xFF interface discovery)
+    // ===================================================================
+    let device = null, ifaceNumber = null, epIn = null, epOut = null;
+    let inPacketSize = 64;
+    let manualDisconnect = false;
+    let uploading = false;
+    let expectRestart = false;
+    const parser = new StreamParser();
+
+    if (!navigator.usb) {
+      els.unsupported.style.display = "block";
+      els.connectBtn.disabled = true;
+    }
+
+    els.connectBtn.addEventListener("click", async () => {
+      if (device) await disconnect(); else await connect();
+    });
+
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
+
+    async function connect() {
+      try {
+        device = await requestUsbDevice(els.anyDevice.checked);
+      } catch (e) {
+        // Only NotFoundError is a user cancel / no-match; anything else is real.
+        if (e && e.name === "NotFoundError") logLine("sys", "Device selection cancelled.");
+        else logLine("err", "Device selection failed: " + (e && e.message ? e.message : e));
+        device = null; return;
+      }
+      try {
+        await openAndClaim();
+      } catch (e) {
+        logLine("err", "Failed to open device: " + e.message);
+        setStatus("error", "Open failed"); await safeClose(); return;
+      }
+      manualDisconnect = false; expectRestart = false;
+      parser.reset();
+      setConnectedUI(true);
+      const name = describeDevice(device);
+      setStatus("connected", "Connected");
+      els.devInfo.textContent =
+        name + " · iface " + ifaceNumber + " · IN 0x" + epIn.toString(16) +
+        " (" + inPacketSize + "B) · OUT 0x" + epOut.toString(16);
+      logLine("sys", "Connected to " + name + ". Vendor iface " + ifaceNumber +
+              ", bulk IN 0x" + epIn.toString(16) + " / OUT 0x" + epOut.toString(16) + ".");
+      checkModulePresent().catch(() => {}); // best-effort: warn if this device lacks the OTA module
+    }
+
+    async function openAndClaim() {
+      await device.open();
+      if (device.configuration === null) await device.selectConfiguration(1);
+      const config = device.configuration;
+      if (!config) throw new Error("device has no active USB configuration");
+      let found = null;
+      for (const itf of config.interfaces) {
+        for (const alt of itf.alternates) {
+          if (alt.interfaceClass !== VENDOR_CLASS) continue;
+          let inEp = null, outEp = null;
+          for (const ep of alt.endpoints) {
+            if (ep.type !== "bulk") continue;
+            if (ep.direction === "in" && inEp === null) inEp = ep;
+            else if (ep.direction === "out" && outEp === null) outEp = ep;
+          }
+          if (inEp && outEp) { found = { interfaceNumber: itf.interfaceNumber, alternateSetting: alt.alternateSetting, inEp, outEp }; break; }
+        }
+        if (found) break;
+      }
+      if (!found) throw new Error("no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found");
+      await device.claimInterface(found.interfaceNumber);
+      if (found.alternateSetting !== 0) {
+        // The chosen endpoints belong to this alternate; if selecting it fails
+        // they are not active, so let the rejection propagate and fail the
+        // connect (instead of reporting Connected with dead endpoints).
+        await device.selectAlternateInterface(found.interfaceNumber, found.alternateSetting);
+      }
+      ifaceNumber = found.interfaceNumber;
+      epIn = found.inEp.endpointNumber; epOut = found.outEp.endpointNumber;
+      inPacketSize = found.inEp.packetSize || 64;
+    }
+
+    function describeDevice(dev) {
+      const vid = dev.vendorId.toString(16).padStart(4, "0");
+      const pid = dev.productId.toString(16).padStart(4, "0");
+      return (dev.productName || "USB device") + " (" + vid + ":" + pid + ")";
+    }
+
+    async function disconnect() {
+      manualDisconnect = true;
+      logLine("sys", "Disconnecting...");
+      await safeClose();
+    }
+
+    async function safeClose() {
+      if (device) {
+        if (ifaceNumber !== null) { try { await device.releaseInterface(ifaceNumber); } catch (_) {} }
+        try { await device.close(); } catch (_) {}
+      }
+      device = null; ifaceNumber = null; epIn = epOut = null;
+      uploading = false;
+      parser.reset();
+      setConnectedUI(false);
+      setStatus("", "Disconnected");
+    }
+
+    if (navigator.usb && navigator.usb.addEventListener) {
+      navigator.usb.addEventListener("disconnect", (e) => {
+        if (device && e.device === device) {
+          if (expectRestart) {
+            logLine("sys", "Device disconnected — restarting into the new firmware.");
+            setNote("Device restarting with the new firmware...");
+          } else {
+            logLine("err", "Device disconnected.");
+          }
+          manualDisconnect = false;
+          safeClose();
+        }
+      });
+    }
+
+    function setConnectedUI(connected) {
+      els.connectBtn.textContent = connected ? "Disconnect" : "Connect";
+      els.connectBtn.classList.toggle("danger", connected);
+      els.connectBtn.classList.toggle("primary", !connected);
+      els.anyDevice.disabled = connected;
+      updateUploadUI();
+    }
+    function updateUploadUI() {
+      const file = els.fileInput.files && els.fileInput.files[0];
+      els.uploadBtn.disabled = !(device && file && !uploading);
+      els.abortBtn.disabled = !uploading;
+      if (!device) els.devInfo.textContent = "Not connected. Default filter: any espp device (VID 0x1209); the vendor (0xFF) interface is discovered from the descriptors at runtime.";
+    }
+
+    // ===================================================================
+    // Serialized request/response transactions with timeout + reset recovery
+    // ===================================================================
+    let txnChain = Promise.resolve();
+    function enqueue(fn) {
+      const run = txnChain.then(fn, fn);
+      txnChain = run.then(() => {}, () => {});
+      return run;
+    }
+
+    async function readBytes(timeoutMs, deadline) {
+      // WebUSB transfers are NOT cancelable: on timeout the transferIn below
+      // stays pending and would consume a LATER reply, permanently desyncing
+      // the link. On timeout we silence the abandoned promise and tag the
+      // error so the caller runs recoverLink(), whose device.reset() aborts
+      // the pending transfer for real.
+      let timer = null;
+      const xfer = device.transferIn(epIn, MAX_FRAME);
+      const timeout = new Promise((_, reject) => {
+        const ms = Math.max(50, Math.min(timeoutMs, deadline - Date.now()));
+        timer = setTimeout(() => {
+          xfer.catch(() => {}); // rejects when recoverLink() resets the device
+          const e = new Error("response timeout");
+          e.needsRecovery = true;
+          reject(e);
+        }, ms);
+      });
+      try {
+        const result = await Promise.race([xfer, timeout]);
+        if (result.status === "stall") {
+          try { await device.clearHalt("in", epIn); } catch (_) {}
+          throw new Error("IN endpoint stalled");
+        }
+        if (result.status === "babble") throw new Error("IN endpoint babble (device sent too much)");
+        // result.data is a DataView; honor its byteOffset/byteLength so we do
+        // not read trailing junk from the underlying ArrayBuffer.
+        return result.data
+          ? new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength)
+          : new Uint8Array(0);
+      } finally { if (timer) clearTimeout(timer); }
+    }
+
+    // Recover a desynced link (response timeout). WebUSB transfers cannot be
+    // canceled, so draining or clearing halts cannot reliably resynchronize --
+    // an abandoned transferIn keeps competing for the next reply. Instead
+    // reset the device: that aborts every pending transfer (their promises
+    // reject) and returns the endpoints to a clean state, with the browser
+    // restoring the configuration and interface claims. If even the reset
+    // fails, close the connection so the UI reflects reality.
+    async function recoverLink(reason) {
+      if (!device) return;
+      logLine("err", "Recovering link (" + reason + "): resetting device...");
+      try {
+        await device.reset();
+        parser.reset();
+        logLine("sys", "Device reset complete; link resynchronized.");
+      } catch (e) {
+        logLine("err", "Device reset failed (" + e.message + "); disconnecting.");
+        manualDisconnect = false;
+        await safeClose();
+      }
+    }
+
+    // Send one command frame and await its OK / ERROR reply. PROGRESS frames
+    // received while waiting update the progress bar and the wait continues.
+    // Resolves with the OK payload (u32 bytes_received) or rejects on ERROR /
+    // timeout / transport failure.
+    function transact(type, payload, timeoutMs) {
+      return enqueue(async () => {
+        if (!device || epOut === null) throw new Error("not connected");
+        const frame = buildFrame(type, payload);
+        if (els.logFrames.checked) logLine("tx", TYPE_NAME[type] + " " + hex(frame));
+        const out = await device.transferOut(epOut, frame);
+        if (out.status === "stall") {
+          try { await device.clearHalt("out", epOut); } catch (_) {}
+          throw new Error("OUT endpoint stalled");
+        }
+        const deadline = Date.now() + timeoutMs;
+        for (;;) {
+          let bytes;
+          try {
+            bytes = await readBytes(timeoutMs, deadline);
+          } catch (e) {
+            if (e && e.needsRecovery && !manualDisconnect) await recoverLink(TYPE_NAME[type] + " " + e.message);
+            throw e;
+          }
+          const frames = parser.feed(bytes);
+          for (const reply of frames) {
+            if (els.logFrames.checked) logLine("rx", (TYPE_NAME[reply.type] || ("0x" + reply.type.toString(16))) + " " + hex(reply.payload));
+            // Only OTA (module 0) device->host replies are relevant here.
+            if (reply.module !== MODULE_OTA || !reply.reply) {
+              logLine("err", "Ignoring non-OTA/non-reply frame (module 0x" +
+                      reply.module.toString(16) + ", flags 0x" + reply.flags.toString(16) + ")");
+              continue;
+            }
+            if (reply.type === TYPE.PROGRESS) {
+              const progress = parseProgress(reply.payload);
+              if (progress) updateProgress(progress.written, progress.total || null);
+              continue; // informational; keep waiting for OK / ERROR
+            }
+            if (reply.type === TYPE.OK) return parseU32(reply.payload);
+            if (reply.type === TYPE.ERROR) {
+              const info = parseError(reply.payload);
+              throw new Error("device error" + (info ? " (code " + info.code + "): " + info.message : ""));
+            }
+            logLine("err", "Ignoring unexpected reply type 0x" + reply.type.toString(16));
+          }
+          if (Date.now() >= deadline) {
+            const e = new Error("response deadline exceeded");
+            e.needsRecovery = true;
+            if (!manualDisconnect) await recoverLink(TYPE_NAME[type] + " deadline");
+            throw e;
+          }
+        }
+      });
+    }
+
+    // ===================================================================
+    // Module presence check (dispatcher discovery)
+    // ===================================================================
+    // Decode the ListModules TLV (see espp::Dispatcher::describe).
+    function parseDiscovery(payload) {
+      let i = 0;
+      const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
+      const u8 = () => { need(1); return payload[i++]; };
+      const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
+      const version = u8(); u8();            // version, reserved
+      const dev = str(), fw = str();
+      const count = u8();
+      const modules = [];
+      for (let m = 0; m < count; m++) modules.push({ id: u8(), name: str(), app: str(), desc: str() });
+      return { version, device: dev, fw, modules };
+    }
+    // Ask the device which dispatcher modules it serves and warn (best-effort) if
+    // the OTA module is not among them. A device / firmware without the discovery
+    // module never replies: readBytes times out, we resync the link (a benign USB
+    // reset, not a reboot) and stay quiet -- a real BEGIN later still reports a
+    // genuinely missing module.
+    function checkModulePresent() {
+      return enqueue(async () => {
+        if (!device || epOut === null) return;
+        try {
+          await device.transferOut(epOut, buildFrame(T_LIST_MODULES, null, MODULE_DISCOVERY));
+        } catch (_) { return; }
+        const timeoutMs = DISCOVERY_TIMEOUT_MS, deadline = Date.now() + timeoutMs;
+        for (;;) {
+          let bytes;
+          try {
+            bytes = await readBytes(timeoutMs, deadline);
+          } catch (e) {
+            if (e && e.needsRecovery && !manualDisconnect) await recoverLink("module discovery");
+            return; // no discovery support -> stay quiet
+          }
+          for (const reply of parser.feed(bytes)) {
+            if (reply.module !== MODULE_DISCOVERY || !reply.reply || reply.type !== T_LIST_MODULES) continue;
+            let info;
+            try { info = parseDiscovery(reply.payload); } catch (_) { return; }
+            if (info.modules.some((m) => m.id === MODULE_OTA)) {
+              logLine("sys", "Device advertises " + info.modules.length + " module(s); OTA module present.");
+            } else {
+              const names = info.modules.map((m) => m.name + " (#" + m.id + ")").join(", ") || "none";
+              logLine("warn", "This device does not advertise the OTA module. Detected: " + names +
+                      ". You may have selected the wrong device, or its firmware lacks OTA.");
+            }
+            return;
+          }
+          if (Date.now() >= deadline) return;
+        }
+      });
+    }
+
+    // ===================================================================
+    // File selection & validation
+    // ===================================================================
+    els.fileInput.addEventListener("change", () => {
+      const file = els.fileInput.files && els.fileInput.files[0];
+      if (!file) { els.fileInfo.textContent = "No file selected."; updateUploadUI(); return; }
+      els.fileInfo.textContent = file.name + " — " + file.size.toLocaleString() + " bytes";
+      els.fileInfo.className = "muted";
+      if (file.size === 0) {
+        els.fileInfo.textContent += " — EMPTY FILE, cannot upload.";
+        els.fileInfo.className = "warn-text";
+      } else if (file.size > MAX_IMAGE_SIZE) {
+        els.fileInfo.textContent += " — larger than any ESP flash, cannot upload.";
+        els.fileInfo.className = "warn-text";
+      }
+      updateUploadUI();
+    });
+
+    // ===================================================================
+    // Upload flow: BEGIN -> DATA... -> FINISH (ABORT on request/failure)
+    // ===================================================================
+    let abortRequested = false;
+
+    function setNote(text) { els.statNote.textContent = text || ""; }
+    function updateProgress(written, total) {
+      const t = total || 0;
+      els.statBytes.textContent = written.toLocaleString() + " / " + (t ? t.toLocaleString() : "?") + " bytes";
+      if (t > 0) {
+        const percent = Math.min(100, (written / t) * 100);
+        els.progressFill.style.width = percent.toFixed(1) + "%";
+        els.statPercent.textContent = percent.toFixed(1) + "%";
+      }
+    }
+
+    els.uploadBtn.addEventListener("click", async () => {
+      const file = els.fileInput.files && els.fileInput.files[0];
+      if (!device || !file || uploading) return;
+      if (file.size === 0) { logLine("err", "Refusing to upload an empty file."); return; }
+      if (file.size > MAX_IMAGE_SIZE) { logLine("err", "Refusing to upload: file is larger than any ESP flash."); return; }
+
+      let image;
+      try {
+        image = new Uint8Array(await file.arrayBuffer());
+      } catch (e) {
+        logLine("err", "Could not read file: " + e.message); return;
+      }
+      if (image[0] !== ESP_IMAGE_MAGIC) {
+        logLine("err", "Warning: first byte is 0x" + image[0].toString(16).padStart(2, "0") +
+                ", not the ESP image magic 0xE9 — this does not look like an app image. " +
+                "The device will reject it on the first chunk.");
+      }
+
+      uploading = true; abortRequested = false; expectRestart = false;
+      updateUploadUI();
+      els.progressFill.className = "progress-fill";
+      els.progressFill.style.width = "0%";
+      els.statPercent.textContent = "0%";
+      els.statRate.textContent = "-";
+      setNote("");
+      setStatus("busy", "Updating...");
+      const startedAt = Date.now();
+      let sent = 0;
+
+      try {
+        logLine("sys", "BEGIN: image size " + image.length.toLocaleString() + " bytes (device erases the update partition — this can take a while)...");
+        await transact(TYPE.BEGIN, u32Payload(image.length), BEGIN_TIMEOUT_MS);
+        logLine("sys", "Device ready; streaming data (" + MAX_PAYLOAD + " B per frame)...");
+        while (sent < image.length) {
+          if (abortRequested) throw Object.assign(new Error("aborted by user"), { userAbort: true });
+          const chunk = image.subarray(sent, Math.min(sent + MAX_PAYLOAD, image.length));
+          const received = await transact(TYPE.DATA, chunk, DATA_TIMEOUT_MS);
+          sent += chunk.length;
+          // trust the device's byte count when it provides one
+          updateProgress(received !== null ? received : sent, image.length);
+          const elapsed = (Date.now() - startedAt) / 1000;
+          if (elapsed > 0.5) els.statRate.textContent = ((sent / 1024) / elapsed).toFixed(1) + " KiB/s";
+        }
+        logLine("sys", "FINISH: device is validating (SHA-256) + activating the image...");
+        setNote("Validating image on device...");
+        await transact(TYPE.FINISH, null, FINISH_TIMEOUT_MS);
+        expectRestart = true;
+        els.progressFill.className = "progress-fill done";
+        els.progressFill.style.width = "100%";
+        setStatus("connected", "Update complete");
+        setNote("Update complete — device is restarting into the new firmware. " +
+                "With rollback enabled it must mark itself valid on first boot.");
+        logLine("sys", "Update complete (" + sent.toLocaleString() + " bytes). Device restarting — expect a USB disconnect.");
+      } catch (e) {
+        els.progressFill.className = "progress-fill failed";
+        if (e && e.userAbort) {
+          logLine("sys", "Sending ABORT...");
+          try {
+            await transact(TYPE.ABORT, null, DATA_TIMEOUT_MS);
+            logLine("sys", "Update aborted; device discarded the partial image.");
+          } catch (abortErr) {
+            logLine("err", "Abort delivery failed: " + abortErr.message);
+          }
+          setStatus(device ? "connected" : "", device ? "Connected" : "Disconnected");
+          setNote("Update aborted.");
+        } else {
+          logLine("err", "Update failed: " + e.message);
+          setStatus(device ? "error" : "", device ? "Update failed" : "Disconnected");
+          setNote("Update failed: " + e.message);
+          // Best effort: tell the device to drop the partial session so a
+          // retry can begin cleanly (harmless if the session is already gone).
+          if (device) { try { await transact(TYPE.ABORT, null, DATA_TIMEOUT_MS); } catch (_) {} }
+        }
+      } finally {
+        uploading = false;
+        updateUploadUI();
+      }
+    });
+
+    els.abortBtn.addEventListener("click", () => {
+      if (!uploading) return;
+      abortRequested = true;
+      logLine("sys", "Abort requested; stopping after the in-flight chunk...");
+    });
+
+    logLine("sys", "espp OTA Console ready. Connect a device running the espp ota example (vendor/WebUSB interface).");
+  </script>
+</body>
+</html>

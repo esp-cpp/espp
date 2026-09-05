@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Magnetic Encoder Base - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'encoder/magnetic_encoder';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="AS5600 Magnetic Encoder" href="as5600.html" />
+    <link rel="prev" title="Encoder Types" href="encoder_types.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Encoder APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="abi_encoder.html">ABI Encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="encoder_types.html">Encoder Types</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Magnetic Encoder Base</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="as5600.html">AS5600 Magnetic Encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mt6701.html">MT6701 Magnetic Encoder</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Encoder APIs</a></li>
+      <li class="breadcrumb-item active">Magnetic Encoder Base</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/a08fc9fe/docs/en/encoder/magnetic_encoder.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="magnetic-encoder-base">
+<h1>Magnetic Encoder Base<a class="headerlink" href="#magnetic-encoder-base" title="Permalink to this heading"></a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">MagneticEncoderBase</span></code> is the shared CRTP base class for the magnetic
+angle encoders (<a class="reference internal" href="as5600.html"><span class="doc">AS5600 Magnetic Encoder</span></a> and <a class="reference internal" href="mt6701.html"><span class="doc">MT6701 Magnetic Encoder</span></a>). It holds all of the machinery
+common to those encoders:</p>
+<ul class="simple">
+<li><p>the periodic update loop (raw-count accumulation + velocity estimation),</p></li>
+<li><p>the position / velocity accessors (count, radians, degrees, accumulator, RPM),</p></li>
+<li><p>and the periodic driver that calls <code class="docutils literal notranslate"><span class="pre">update()</span></code> at the configured rate.</p></li>
+</ul>
+<p>The concrete encoder supplies exactly one thing - a <code class="docutils literal notranslate"><span class="pre">read()</span></code> that refreshes
+the raw count from the sensor - which the base invokes through static (CRTP)
+dispatch, so there is no virtual-call overhead even when the update loop runs at
+very high frequency (e.g. 1-2 kHz).</p>
+<p>The periodic driver is selected at compile time (per encoder, via KConfig /
+menuconfig):</p>
+<ul class="simple">
+<li><p>a <a class="reference internal" href="../core/timer.html#_CPPv4N4espp19HighResolutionTimerE" title="espp::HighResolutionTimer"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">espp::HighResolutionTimer</span></code></a> (default), which has microsecond
+resolution and is the right choice for sub-millisecond update periods, or</p></li>
+<li><p>an <a class="reference internal" href="../core/timer.html#_CPPv4N4espp5TimerE" title="espp::Timer"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">espp::Timer</span></code></a>, which schedules against an absolute wake-up time
+(drift-free and in phase - important for stable velocity / accumulator state)
+but is limited to the FreeRTOS tick resolution.</p></li>
+</ul>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a08fc9fe/components/magnetic_encoder/include/magnetic_encoder_base.hpp">components/magnetic_encoder/include/magnetic_encoder_base.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I0_b_i_i_NSt8integralE_bEN4espp19MagneticEncoderBaseE">
+<span id="_CPPv3I0_b_i_i_NSt8integralE_bEN4espp19MagneticEncoderBaseE"></span><span id="_CPPv2I0_b_i_i_NSt8integralE_bEN4espp19MagneticEncoderBaseE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Derived</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UseHighResTimer</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CountsPerRevolution</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MinDiff</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">integral</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RegisterAddressType</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UseAddress</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1MagneticEncoderBase"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MagneticEncoderBase</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I0_b_i_i_NSt8integralE_bEN4espp19MagneticEncoderBaseE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>CRTP base class for magnetic angle encoders (e.g. <a class="reference internal" href="as5600.html#classespp_1_1As5600"><span class="std std-ref">As5600</span></a>, <a class="reference internal" href="mt6701.html#classespp_1_1Mt6701"><span class="std std-ref">Mt6701</span></a>). </p>
+<p>This class holds all of the machinery shared by the magnetic encoders: the periodic update loop (raw-count accumulation + velocity estimation), the position / velocity accessors, and the periodic driver that calls <a class="reference internal" href="mt6701.html#classespp_1_1MagneticEncoderBase_1ad47688b87770e2c56c56c0eef7fa6bbc"><span class="std std-ref">update()</span></a> at the configured rate. The concrete encoder supplies exactly one thing - a `read(std::error_code&amp;)` that refreshes `count_` from the sensor (and any device-specific state) - which the base invokes through static (CRTP) dispatch, so there is no virtual-call overhead even when the update loop runs at very high frequency (e.g. 1-2 kHz).</p>
+<p>The periodic driver is selected at compile time via <code class="docutils literal notranslate"><span class="pre">UseHighResTimer:</span></code> <ul class="simple">
+<li><p>`true` (default in the encoders’ Kconfig): an esp_timer-backed <a class="reference internal" href="../core/timer.html#classespp_1_1HighResolutionTimer"><span class="std std-ref">espp::HighResolutionTimer</span></a>, which has microsecond resolution and is the right choice for sub-millisecond update periods.</p></li>
+<li><p>`false`: an <a class="reference internal" href="../core/timer.html#classespp_1_1Timer"><span class="std std-ref">espp::Timer</span></a>, which schedules against an absolute wake-up time (the k-th callback targets `start + k * period`) so it is periodic and in phase - critical for stable velocity / accumulator state - but is limited to the FreeRTOS tick resolution.</p></li>
+</ul>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There is an implicit assumption regarding the maximum velocity that can be measured (above which there will be aliasing). The fastest velocity that can be measured is `0.5 / update_period * 60` RPM, i.e. half a rotation in one update period. This also bounds the reliability of the accumulator, since it accumulates position differences every update.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>You should not call <a class="reference internal" href="mt6701.html#classespp_1_1MagneticEncoderBase_1ad47688b87770e2c56c56c0eef7fa6bbc"><span class="std std-ref">update()</span></a> yourself if you have configured the encoder to run its own timer (run_task = true) or if you have called <a class="reference internal" href="mt6701.html#classespp_1_1MagneticEncoderBase_1a401db4bb3e1885d2a76d3ad56a8778c1"><span class="std std-ref">start()</span></a>.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Derived</strong> – The concrete encoder class (CRTP). Must provide `void read(std::error_code&amp;)` which updates `count_`. </p></li>
+<li><p><strong>UseHighResTimer</strong> – If true, drive updates with <a class="reference internal" href="../core/timer.html#classespp_1_1HighResolutionTimer"><span class="std std-ref">HighResolutionTimer</span></a>; if false, drive with <a class="reference internal" href="../core/timer.html#classespp_1_1Timer"><span class="std std-ref">espp::Timer</span></a>. </p></li>
+<li><p><strong>CountsPerRevolution</strong> – Number of raw counts per mechanical revolution (e.g. 4096 for the 12-bit <a class="reference internal" href="as5600.html#classespp_1_1As5600"><span class="std std-ref">As5600</span></a>, 16384 for the 14-bit <a class="reference internal" href="mt6701.html#classespp_1_1Mt6701"><span class="std std-ref">Mt6701</span></a>). </p></li>
+<li><p><strong>MinDiff</strong> – Minimum count difference required to update the velocity estimate; smaller differences are treated as zero velocity to reject noise / jitter. </p></li>
+<li><p><strong>RegisterAddressType</strong> – Register address type for <a class="reference internal" href="../core/base_peripheral.html#classespp_1_1BasePeripheral"><span class="std std-ref">BasePeripheral</span></a>. </p></li>
+<li><p><strong>UseAddress</strong> – Whether the peripheral is addressed (I2C) or not (SSI). </p></li>
+</ul>
+</dd>
+</dl>
+<p>Subclassed by <a class="reference internal" href="mt6701.html#classespp_1_1Mt6701"><span class="std std-ref">espp::Mt6701&lt; Interface &gt;</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase9TimerTypeE">
+<span id="_CPPv3N4espp19MagneticEncoderBase9TimerTypeE"></span><span id="_CPPv2N4espp19MagneticEncoderBase9TimerTypeE"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1a2c15d1760123d08154a9c3ed6f41f050"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TimerType</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">conditional_t</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0_b_i_i_NSt8integralE_bEN4espp19MagneticEncoderBaseE" title="espp::MagneticEncoderBase::UseHighResTimer"><span class="n"><span class="pre">UseHighResTimer</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/timer.html#_CPPv4N4espp19HighResolutionTimerE" title="espp::HighResolutionTimer"><span class="n"><span class="pre">HighResolutionTimer</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/timer.html#_CPPv4N4espp5TimerE" title="espp::Timer"><span class="n"><span class="pre">Timer</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase9TimerTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The periodic driver type selected by <code class="docutils literal notranslate"><span class="pre">UseHighResTimer</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase18velocity_filter_fnE">
+<span id="_CPPv3N4espp19MagneticEncoderBase18velocity_filter_fnE"></span><span id="_CPPv2N4espp19MagneticEncoderBase18velocity_filter_fnE"></span><span id="espp::MagneticEncoderBase::velocity_filter_fn"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1a66bfe7d74f14ebeda7bd9459ba97a8be"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n"><span class="pre">raw</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">velocity_filter_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase18velocity_filter_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Filter the input raw velocity and return it. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param raw<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Most recent raw velocity measured. </p>
+</dd>
+<dt class="field-even">Return<span class="colon">:</span></dt>
+<dd class="field-even"><p>Filtered velocity. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase8probe_fnE">
+<span id="_CPPv3N4espp19MagneticEncoderBase8probe_fnE"></span><span id="_CPPv2N4espp19MagneticEncoderBase8probe_fnE"></span><span id="espp::MagneticEncoderBase::probe_fn"></span><span class="target" id="classespp_1_1BasePeripheral_1ad12a713efc443157b7d6fd1ba4fdf88f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase8probe_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to probe the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address to probe </p>
+</dd>
+<dt class="field-even">Return<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found at the given address </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp19MagneticEncoderBase17needs_zero_searchEv">
+<span id="_CPPv3NK4espp19MagneticEncoderBase17needs_zero_searchEv"></span><span id="_CPPv2NK4espp19MagneticEncoderBase17needs_zero_searchEv"></span><span id="espp::MagneticEncoderBase::needs_zero_searchC"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1a7385b77cea461f704196072faf89b572"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">needs_zero_search</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp19MagneticEncoderBase17needs_zero_searchEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return whether the sensor needs to search for absolute 0 on startup. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Magnetic angle encoders (using I2C / SPI) always know their absolute angle on startup, so this always returns false. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>False. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp19MagneticEncoderBase9get_countEv">
+<span id="_CPPv3NK4espp19MagneticEncoderBase9get_countEv"></span><span id="_CPPv2NK4espp19MagneticEncoderBase9get_countEv"></span><span id="espp::MagneticEncoderBase::get_countC"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1ad948e43655960f092be4087e5209aeaa"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_count</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp19MagneticEncoderBase9get_countEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the most recently updated raw count value from the encoder. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This value always represents the angle of the encoder modulo one rotation, meaning it only represents the range 0 to 360 degrees. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Raw count value in the range [0, COUNTS_PER_REVOLUTION). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp19MagneticEncoderBase15get_accumulatorEv">
+<span id="_CPPv3NK4espp19MagneticEncoderBase15get_accumulatorEv"></span><span id="_CPPv2NK4espp19MagneticEncoderBase15get_accumulatorEv"></span><span id="espp::MagneticEncoderBase::get_accumulatorC"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1ae9a26cbc7c566bd59a60937dbefd7bc5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">int64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_accumulator</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp19MagneticEncoderBase15get_accumulatorEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the accumulated count generated since initialization. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This value is a raw counter value that can be +/-; divide by COUNTS_PER_REVOLUTION to convert it to revolutions. It is stored as a 64-bit value so it does not overflow during long, continuous rotation. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Raw accumulator value. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase17reset_accumulatorEv">
+<span id="_CPPv3N4espp19MagneticEncoderBase17reset_accumulatorEv"></span><span id="_CPPv2N4espp19MagneticEncoderBase17reset_accumulatorEv"></span><span id="espp::MagneticEncoderBase::reset_accumulator"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1aaeab5d574354a6ef2d91174e8e3c2677"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_accumulator</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase17reset_accumulatorEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reset the accumulator to zero. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp19MagneticEncoderBase22get_mechanical_radiansEv">
+<span id="_CPPv3NK4espp19MagneticEncoderBase22get_mechanical_radiansEv"></span><span id="_CPPv2NK4espp19MagneticEncoderBase22get_mechanical_radiansEv"></span><span id="espp::MagneticEncoderBase::get_mechanical_radiansC"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1a9c4639791e6cea2ce14e20611f74ed05"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mechanical_radians</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp19MagneticEncoderBase22get_mechanical_radiansEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the mechanical / shaft angle of the encoder, in radians, within the range [0, 2pi]. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Angle in radians of the encoder within the range [0, 2pi]. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp19MagneticEncoderBase22get_mechanical_degreesEv">
+<span id="_CPPv3NK4espp19MagneticEncoderBase22get_mechanical_degreesEv"></span><span id="_CPPv2NK4espp19MagneticEncoderBase22get_mechanical_degreesEv"></span><span id="espp::MagneticEncoderBase::get_mechanical_degreesC"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1affd52b08ab993b7605fce2d4d949a1f3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mechanical_degrees</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp19MagneticEncoderBase22get_mechanical_degreesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the mechanical / shaft angle of the encoder, in degrees, within the range [0, 360]. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Angle in degrees of the encoder within the range [0, 360]. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp19MagneticEncoderBase11get_radiansEv">
+<span id="_CPPv3NK4espp19MagneticEncoderBase11get_radiansEv"></span><span id="_CPPv2NK4espp19MagneticEncoderBase11get_radiansEv"></span><span id="espp::MagneticEncoderBase::get_radiansC"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1aebb4ad8065b63786e240a02fd797d141"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_radians</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp19MagneticEncoderBase11get_radiansEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the accumulated position of the encoder, in radians. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This can be any value, it is not restricted to [-2pi, 2pi]. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Position in radians of the encoder. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp19MagneticEncoderBase11get_degreesEv">
+<span id="_CPPv3NK4espp19MagneticEncoderBase11get_degreesEv"></span><span id="_CPPv2NK4espp19MagneticEncoderBase11get_degreesEv"></span><span id="espp::MagneticEncoderBase::get_degreesC"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1ad7f555a8950d1cf15cf60aa0765b93d5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_degrees</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp19MagneticEncoderBase11get_degreesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the accumulated position of the encoder, in degrees. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This can be any value, it is not restricted to [-360, 360]. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Position in degrees of the encoder. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp19MagneticEncoderBase7get_rpmEv">
+<span id="_CPPv3NK4espp19MagneticEncoderBase7get_rpmEv"></span><span id="_CPPv2NK4espp19MagneticEncoderBase7get_rpmEv"></span><span id="espp::MagneticEncoderBase::get_rpmC"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1abece7a26f713d62de62da3e1dc8049c2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_rpm</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp19MagneticEncoderBase7get_rpmEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the filtered velocity of the encoder, in RPM. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Filtered velocity (revolutions / minute, RPM). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase10initializeERNSt10error_codeE">
+<span id="_CPPv3N4espp19MagneticEncoderBase10initializeERNSt10error_codeE"></span><span id="_CPPv2N4espp19MagneticEncoderBase10initializeERNSt10error_codeE"></span><span id="espp::MagneticEncoderBase::initialize__std::error_codeR"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1a79917bada3c7d644360e29bc3ebda3ab"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase10initializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the accumulator to the current position and start the update timer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if there is an error. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase10initializeEbRNSt10error_codeE">
+<span id="_CPPv3N4espp19MagneticEncoderBase10initializeEbRNSt10error_codeE"></span><span id="_CPPv2N4espp19MagneticEncoderBase10initializeEbRNSt10error_codeE"></span><span id="espp::MagneticEncoderBase::initialize__b.std::error_codeR"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1a536323adb263c0e2367f290d13be0801"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">run_task</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase10initializeEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the accumulator to the current position and start the update timer, if desired. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you do not start the timer, you must call <a class="reference internal" href="mt6701.html#classespp_1_1MagneticEncoderBase_1ad47688b87770e2c56c56c0eef7fa6bbc"><span class="std std-ref">update()</span></a> manually. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>run_task</strong> – Whether to start the update timer. </p></li>
+<li><p><strong>ec</strong> – Error code to set if there is an error. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase6updateERNSt10error_codeE">
+<span id="_CPPv3N4espp19MagneticEncoderBase6updateERNSt10error_codeE"></span><span id="_CPPv2N4espp19MagneticEncoderBase6updateERNSt10error_codeE"></span><span id="espp::MagneticEncoderBase::update__std::error_codeR"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1ad47688b87770e2c56c56c0eef7fa6bbc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase6updateERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Update the state of the encoder by reading the latest data from the encoder and updating the associated state. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You should not call this function if you have started the encoder’s update timer (e.g. run_task = true, or you called <a class="reference internal" href="mt6701.html#classespp_1_1MagneticEncoderBase_1a401db4bb3e1885d2a76d3ad56a8778c1"><span class="std std-ref">start()</span></a>). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if there is an error. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase5startEv">
+<span id="_CPPv3N4espp19MagneticEncoderBase5startEv"></span><span id="_CPPv2N4espp19MagneticEncoderBase5startEv"></span><span id="espp::MagneticEncoderBase::start"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1a401db4bb3e1885d2a76d3ad56a8778c1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase5startEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start the update timer. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will start the timer that calls <a class="reference internal" href="mt6701.html#classespp_1_1MagneticEncoderBase_1ad47688b87770e2c56c56c0eef7fa6bbc"><span class="std std-ref">update()</span></a> at the update_period. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only useful if you previously stopped the timer or if you initialized with run_task = false. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the timer was started successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase4stopEv">
+<span id="_CPPv3N4espp19MagneticEncoderBase4stopEv"></span><span id="_CPPv2N4espp19MagneticEncoderBase4stopEv"></span><span id="espp::MagneticEncoderBase::stop"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1a272bbb2f424c699ca482aaffa4de83cd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase4stopEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop the update timer. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will stop the timer that calls <a class="reference internal" href="mt6701.html#classespp_1_1MagneticEncoderBase_1ad47688b87770e2c56c56c0eef7fa6bbc"><span class="std std-ref">update()</span></a> at the update_period. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>After stopping, you can manually call <a class="reference internal" href="mt6701.html#classespp_1_1MagneticEncoderBase_1ad47688b87770e2c56c56c0eef7fa6bbc"><span class="std std-ref">update()</span></a> or restart with <a class="reference internal" href="mt6701.html#classespp_1_1MagneticEncoderBase_1a401db4bb3e1885d2a76d3ad56a8778c1"><span class="std std-ref">start()</span></a>. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp19MagneticEncoderBase5probeERNSt10error_codeE">
+<span id="_CPPv3NK4espp19MagneticEncoderBase5probeERNSt10error_codeE"></span><span id="_CPPv2NK4espp19MagneticEncoderBase5probeERNSt10error_codeE"></span><span id="espp::MagneticEncoderBase::probe__std::error_codeRC"></span><span class="target" id="classespp_1_1BasePeripheral_1a05481a009a7302fff3b43d301de6b1eb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp19MagneticEncoderBase5probeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Probe the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the probe function is not set, this function will return false and set the error code to operation_not_supported </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if there is an error </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase11set_addressE7uint8_t">
+<span id="_CPPv3N4espp19MagneticEncoderBase11set_addressE7uint8_t"></span><span id="_CPPv2N4espp19MagneticEncoderBase11set_addressE7uint8_t"></span><span id="espp::MagneticEncoderBase::set_address__uint8_t"></span><span class="target" id="classespp_1_1BasePeripheral_1a31fb8ec471403bf9be06428dbc46277a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">address</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase11set_addressE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the address of the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>address</strong> – The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase9set_probeERK8probe_fn">
+<span id="_CPPv3N4espp19MagneticEncoderBase9set_probeERK8probe_fn"></span><span id="_CPPv2N4espp19MagneticEncoderBase9set_probeERK8probe_fn"></span><span id="espp::MagneticEncoderBase::set_probe__probe_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a5b5d7753ea6ccf361e495fdc80c81f19"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_probe</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp19MagneticEncoderBase8probe_fnE" title="espp::MagneticEncoderBase::probe_fn"><span class="n"><span class="pre">probe_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">probe</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase9set_probeERK8probe_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the probe function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the probe function is usually set in the constructor. If you need to change the probe function, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>probe</strong> – The probe function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase9set_writeERK8write_fn">
+<span id="_CPPv3N4espp19MagneticEncoderBase9set_writeERK8write_fn"></span><span id="_CPPv2N4espp19MagneticEncoderBase9set_writeERK8write_fn"></span><span id="espp::MagneticEncoderBase::set_write__write_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1ab5d5d18cd4e8893ed4f937dcfdaba5ba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase9set_writeERK8write_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write function is usually set in the constructor. If you need to change the write function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write</strong> – The write function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase8set_readERK7read_fn">
+<span id="_CPPv3N4espp19MagneticEncoderBase8set_readERK7read_fn"></span><span id="_CPPv2N4espp19MagneticEncoderBase8set_readERK7read_fn"></span><span id="espp::MagneticEncoderBase::set_read__read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1aa6d8131a30233e8439628815db8b1843"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase8set_readERK7read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read function is usually set in the constructor. If you need to change the read function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read</strong> – The read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase17set_read_registerERK16read_register_fn">
+<span id="_CPPv3N4espp19MagneticEncoderBase17set_read_registerERK16read_register_fn"></span><span id="_CPPv2N4espp19MagneticEncoderBase17set_read_registerERK16read_register_fn"></span><span id="espp::MagneticEncoderBase::set_read_register__read_register_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a72e039592417cd32bc47c77120005d3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read_register</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_register_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read_register</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase17set_read_registerERK16read_register_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read register function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read register function is usually set in the constructor. If you need to change the read register function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read_register</strong> – The read register function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase19set_write_then_readERK18write_then_read_fn">
+<span id="_CPPv3N4espp19MagneticEncoderBase19set_write_then_readERK18write_then_read_fn"></span><span id="_CPPv2N4espp19MagneticEncoderBase19set_write_then_readERK18write_then_read_fn"></span><span id="espp::MagneticEncoderBase::set_write_then_read__write_then_read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a07b152dbfba43b5c82a498416f6887b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write_then_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_then_read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write_then_read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase19set_write_then_readERK18write_then_read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write then read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write then read function is usually set in the constructor. If you need to change the write then </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write_then_read</strong> – The write then read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase34set_separate_write_then_read_delayERKNSt6chrono12millisecondsE">
+<span id="_CPPv3N4espp19MagneticEncoderBase34set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="_CPPv2N4espp19MagneticEncoderBase34set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="espp::MagneticEncoderBase::set_separate_write_then_read_delay__std::chrono::millisecondsCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a8c70b96c37525f90cc85ddfe4a40b82a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_separate_write_then_read_delay</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">delay</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase34set_separate_write_then_read_delayERKNSt6chrono12millisecondsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the delay between the write and read operations in write_then_read </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the delay is usually set in the constructor. If you need to change the delay, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This delay is only used if the write_then_read function is not set to a custom function and the write and read functions are separate functions. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>delay</strong> – The delay between the write and read operations in write_then_read </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase10set_configERK6Config">
+<span id="_CPPv3N4espp19MagneticEncoderBase10set_configERK6Config"></span><span id="_CPPv2N4espp19MagneticEncoderBase10set_configERK6Config"></span><span id="espp::MagneticEncoderBase::set_config__ConfigCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a163b98a30940711b23a7e7dce81efe0c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Config</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase10set_configERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase10set_configERR6Config">
+<span id="_CPPv3N4espp19MagneticEncoderBase10set_configERR6Config"></span><span id="_CPPv2N4espp19MagneticEncoderBase10set_configERR6Config"></span><span id="espp::MagneticEncoderBase::set_config__ConfigRR"></span><span class="target" id="classespp_1_1BasePeripheral_1a704004cfda66bf3ce5ed725b3003c32b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">Config</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase10set_configERR6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp19MagneticEncoderBase6configEv">
+<span id="_CPPv3NK4espp19MagneticEncoderBase6configEv"></span><span id="_CPPv2NK4espp19MagneticEncoderBase6configEv"></span><span id="espp::MagneticEncoderBase::configC"></span><span class="target" id="classespp_1_1BasePeripheral_1ae66896cf25c9dde79522f354cdb23896"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Config</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp19MagneticEncoderBase6configEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the configuration for the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp19MagneticEncoderBase7addressEv">
+<span id="_CPPv3NK4espp19MagneticEncoderBase7addressEv"></span><span id="_CPPv2NK4espp19MagneticEncoderBase7addressEv"></span><span id="espp::MagneticEncoderBase::addressC"></span><span class="target" id="classespp_1_1BasePeripheral_1add730fb3307dd52ed5f8905a576e7ecc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp19MagneticEncoderBase7addressEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the address of the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp19MagneticEncoderBase8get_nameEv">
+<span id="_CPPv3NK4espp19MagneticEncoderBase8get_nameEv"></span><span id="_CPPv2NK4espp19MagneticEncoderBase8get_nameEv"></span><span id="espp::MagneticEncoderBase::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp19MagneticEncoderBase8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp19MagneticEncoderBase11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp19MagneticEncoderBase11set_log_tagERKNSt11string_viewE"></span><span id="espp::MagneticEncoderBase::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp19MagneticEncoderBase13get_log_levelEv">
+<span id="_CPPv3NK4espp19MagneticEncoderBase13get_log_levelEv"></span><span id="_CPPv2NK4espp19MagneticEncoderBase13get_log_levelEv"></span><span id="espp::MagneticEncoderBase::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp19MagneticEncoderBase13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp19MagneticEncoderBase13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp19MagneticEncoderBase13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::MagneticEncoderBase::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp19MagneticEncoderBase17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp19MagneticEncoderBase17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::MagneticEncoderBase::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp19MagneticEncoderBase17get_log_verbosityEv">
+<span id="_CPPv3NK4espp19MagneticEncoderBase17get_log_verbosityEv"></span><span id="_CPPv2NK4espp19MagneticEncoderBase17get_log_verbosityEv"></span><span id="espp::MagneticEncoderBase::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp19MagneticEncoderBase17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp19MagneticEncoderBase18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp19MagneticEncoderBase18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::MagneticEncoderBase::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase21COUNTS_PER_REVOLUTIONE">
+<span id="_CPPv3N4espp19MagneticEncoderBase21COUNTS_PER_REVOLUTIONE"></span><span id="_CPPv2N4espp19MagneticEncoderBase21COUNTS_PER_REVOLUTIONE"></span><span id="espp::MagneticEncoderBase::COUNTS_PER_REVOLUTION__i"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1a6a96342c45626c8ba535357eece26479"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">COUNTS_PER_REVOLUTION</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_b_i_i_NSt8integralE_bEN4espp19MagneticEncoderBaseE" title="espp::MagneticEncoderBase::CountsPerRevolution"><span class="n"><span class="pre">CountsPerRevolution</span></span></a><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase21COUNTS_PER_REVOLUTIONE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Int number of counts per revolution for the magnetic encoder. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase23COUNTS_PER_REVOLUTION_FE">
+<span id="_CPPv3N4espp19MagneticEncoderBase23COUNTS_PER_REVOLUTION_FE"></span><span id="_CPPv2N4espp19MagneticEncoderBase23COUNTS_PER_REVOLUTION_FE"></span><span id="espp::MagneticEncoderBase::COUNTS_PER_REVOLUTION_F__float"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1a58cf3257679e31afd68b323fb4ced088"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">COUNTS_PER_REVOLUTION_F</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">)</span></span><a class="reference internal" href="#_CPPv4I0_b_i_i_NSt8integralE_bEN4espp19MagneticEncoderBaseE" title="espp::MagneticEncoderBase::CountsPerRevolution"><span class="n"><span class="pre">CountsPerRevolution</span></span></a><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase23COUNTS_PER_REVOLUTION_FE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Float number of counts per revolution. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase17COUNTS_TO_RADIANSE">
+<span id="_CPPv3N4espp19MagneticEncoderBase17COUNTS_TO_RADIANSE"></span><span id="_CPPv2N4espp19MagneticEncoderBase17COUNTS_TO_RADIANSE"></span><span id="espp::MagneticEncoderBase::COUNTS_TO_RADIANS__float"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1a2babe76c5751c5b4cf1a7f1ce52fb3ce"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">COUNTS_TO_RADIANS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">2.0f</span></span><span class="w"> </span><span class="o"><span class="pre">*</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">M_PI</span></span><span class="p"><span class="pre">)</span></span><span class="w"> </span><span class="o"><span class="pre">/</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp19MagneticEncoderBase23COUNTS_PER_REVOLUTION_FE" title="espp::MagneticEncoderBase::COUNTS_PER_REVOLUTION_F"><span class="n"><span class="pre">COUNTS_PER_REVOLUTION_F</span></span></a><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase17COUNTS_TO_RADIANSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Conversion factor to convert from count value to radians. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase17COUNTS_TO_DEGREESE">
+<span id="_CPPv3N4espp19MagneticEncoderBase17COUNTS_TO_DEGREESE"></span><span id="_CPPv2N4espp19MagneticEncoderBase17COUNTS_TO_DEGREESE"></span><span id="espp::MagneticEncoderBase::COUNTS_TO_DEGREES__float"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1a4895c02b0011675b385d363169f9c318"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">COUNTS_TO_DEGREES</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">360.0f</span></span><span class="w"> </span><span class="o"><span class="pre">/</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp19MagneticEncoderBase23COUNTS_PER_REVOLUTION_FE" title="espp::MagneticEncoderBase::COUNTS_PER_REVOLUTION_F"><span class="n"><span class="pre">COUNTS_PER_REVOLUTION_F</span></span></a><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase17COUNTS_TO_DEGREESE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Conversion factor to convert from count value to degrees. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase18SECONDS_PER_MINUTEE">
+<span id="_CPPv3N4espp19MagneticEncoderBase18SECONDS_PER_MINUTEE"></span><span id="_CPPv2N4espp19MagneticEncoderBase18SECONDS_PER_MINUTEE"></span><span id="espp::MagneticEncoderBase::SECONDS_PER_MINUTE__float"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1ac17f1ebb77cdbad766bcaa506519864e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SECONDS_PER_MINUTE</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">60.0f</span></span><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase18SECONDS_PER_MINUTEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Conversion factor to convert from seconds to minutes. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp19MagneticEncoderBase8MIN_DIFFE">
+<span id="_CPPv3N4espp19MagneticEncoderBase8MIN_DIFFE"></span><span id="_CPPv2N4espp19MagneticEncoderBase8MIN_DIFFE"></span><span id="espp::MagneticEncoderBase::MIN_DIFF__i"></span><span class="target" id="classespp_1_1MagneticEncoderBase_1ac9ea67f732f654ace8710704fb8c2ca7"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIN_DIFF</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_b_i_i_NSt8integralE_bEN4espp19MagneticEncoderBaseE" title="espp::MagneticEncoderBase::MinDiff"><span class="n"><span class="pre">MinDiff</span></span></a><a class="headerlink" href="#_CPPv4N4espp19MagneticEncoderBase8MIN_DIFFE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Minimum difference for velocity calculation. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="encoder_types.html" class="btn btn-neutral float-left" title="Encoder Types" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="as5600.html" class="btn btn-neutral float-right" title="AS5600 Magnetic Encoder" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

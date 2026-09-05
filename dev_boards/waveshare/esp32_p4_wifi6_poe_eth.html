@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Waveshare ESP32-P4-WIFI6-POE-ETH - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'dev_boards/waveshare/esp32_p4_wifi6_poe_eth';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="ESP32-P4-WIFI6-POE-ETH Example" href="esp32_p4_wifi6_poe_eth_example.html" />
+    <link rel="prev" title="ESP32-P4-WIFI6-DEV-KIT Example" href="esp32_p4_wifi6_dev_kit_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ESPP
+              <img src="../../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Dev Boards (BSPs)</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../espressif/index.html">Espressif Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../adafruit/index.html">Adafruit Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lilygo/index.html">LilyGo Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../m5stack/index.html">M5Stack Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../motorgo/index.html">MotorGo Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../seeed/index.html">Seeed Studio Boards</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Waveshare Boards</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="esp32_p4_eth.html">Waveshare ESP32-P4-ETH</a></li>
+<li class="toctree-l3"><a class="reference internal" href="esp32_p4_module_dev_kit.html">Waveshare ESP32-P4-Module-DEV-KIT</a></li>
+<li class="toctree-l3"><a class="reference internal" href="esp32_p4_nano.html">Waveshare ESP32-P4-NANO</a></li>
+<li class="toctree-l3"><a class="reference internal" href="esp32_p4_wifi6_dev_kit.html">Waveshare ESP32-P4-WIFI6-DEV-KIT</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Waveshare ESP32-P4-WIFI6-POE-ETH</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#esp32-p4-wifi6-poe-eth">ESP32-P4-WIFI6-POE-ETH</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../other/index.html">Other Boards</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dev Boards (BSPs)</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Waveshare Boards</a></li>
+      <li class="breadcrumb-item active">Waveshare ESP32-P4-WIFI6-POE-ETH</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/a08fc9fe/docs/en/dev_boards/waveshare/esp32_p4_wifi6_poe_eth.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="waveshare-esp32-p4-wifi6-poe-eth">
+<h1>Waveshare ESP32-P4-WIFI6-POE-ETH<a class="headerlink" href="#waveshare-esp32-p4-wifi6-poe-eth" title="Permalink to this heading"></a></h1>
+<section id="esp32-p4-wifi6-poe-eth">
+<h2>ESP32-P4-WIFI6-POE-ETH<a class="headerlink" href="#esp32-p4-wifi6-poe-eth" title="Permalink to this heading"></a></h2>
+<p>The Waveshare ESP32-P4-WIFI6-POE-ETH pairs an ESP32-P4 (dual-core 360 MHz
+RISC-V, 32 MB stacked PSRAM, 32 MB NOR flash) with an on-board ESP32-C6-MINI-1
+Wi-Fi 6 / Bluetooth 5 LE co-processor and a 10/100 RJ45 Ethernet port with a
+reserved header for Waveshare’s plug-in PoE power module.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">espp::Esp32P4Wifi6PoeEth</span></code> component provides a singleton hardware
+abstraction for bringing up the board’s peripherals:</p>
+<ul class="simple">
+<li><p><strong>Ethernet:</strong> 10/100 via the internal EMAC and an IP101GRI RMII PHY,
+delegating to the reusable <a class="reference internal" href="../../network/ethernet.html"><span class="doc">espp::Ethernet</span></a>
+component and supplying the board-specific RMII pins (DHCP client / server).
+PoE is purely a power-supply feature — no GPIO is involved, so a PoE-powered
+board looks identical to a USB-powered one in software.</p></li>
+<li><p><strong>Internal I2C bus:</strong> shared by the on-board ES8311 audio codec and the
+MIPI-DSI / MIPI-CSI connectors and 40-pin header.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The board’s BOOT key shares GPIO35 with the RMII TXD1 line (GPIO35 is the
+ESP32-P4’s boot-strap pin, sampled only at reset), so it cannot be used as
+a runtime input and the BSP does not expose a button API.</p>
+</div>
+<p>Wi-Fi 6 / BLE are provided by the on-board ESP32-C6 over SDIO using
+Espressif’s ESP-Hosted + <code class="docutils literal notranslate"><span class="pre">esp_wifi_remote</span></code> components; the BSP documents the
+board’s SDIO wiring (which matches the ESP-Hosted defaults for the ESP32-P4)
+rather than wrapping it — see the example README for how to enable Wi-Fi in
+your own application.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="esp32_p4_wifi6_poe_eth_example.html">ESP32-P4-WIFI6-POE-ETH Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="esp32_p4_wifi6_poe_eth_example.html#hardware">Hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="esp32_p4_wifi6_poe_eth_example.html#how-to-build-and-flash">How to build and flash</a></li>
+<li class="toctree-l2"><a class="reference internal" href="esp32_p4_wifi6_poe_eth_example.html#wi-fi-6-via-the-on-board-esp32-c6-esp-hosted">Wi-Fi 6 via the on-board ESP32-C6 (ESP-Hosted)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="esp32_p4_wifi6_poe_eth_example.html#example-output">Example output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a08fc9fe/components/esp32-p4-wifi6-poe-eth/include/esp32-p4-wifi6-poe-eth.hpp">components/esp32-p4-wifi6-poe-eth/include/esp32-p4-wifi6-poe-eth.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEthE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEthE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEthE"></span><span id="espp::Esp32P4Wifi6PoeEth"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Esp32P4Wifi6PoeEth</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEthE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Board Support Package (BSP) for the Waveshare ESP32-P4-WIFI6-POE-ETH board. </p>
+<p>The ESP32-P4-WIFI6-POE-ETH pairs an ESP32-P4 (dual-core 360 MHz RISC-V, 32 MB stacked PSRAM, 32 MB NOR flash) with an on-board ESP32-C6-MINI-1 (Wi-Fi 6 + Bluetooth 5 LE co-processor over SDIO) and a 10/100 RJ45 <a class="reference internal" href="../../network/ethernet.html#classespp_1_1Ethernet"><span class="std std-ref">Ethernet</span></a> port with a reserved header for a plug-in PoE power module.</p>
+<p>This class provides a singleton interface to the board’s peripherals:<ul class="simple">
+<li><p>10/100 <a class="reference internal" href="../../network/ethernet.html#classespp_1_1Ethernet"><span class="std std-ref">Ethernet</span></a> via the ESP32-P4 internal EMAC and an IP101GRI RMII PHY. PoE is purely a power-supply feature (the RJ45 center taps feed bridge rectifiers and a 5-pin header for Waveshare’s PoE module, which produces the board’s 5 V rail) — no GPIO is involved, so a PoE-powered board looks identical to a USB-powered one in software.</p></li>
+<li><p>The internal I2C bus (SDA=GPIO7, SCL=GPIO8), shared by the on-board ES8311 audio codec (0x18) and the DSI/CSI connectors + 40-pin header.</p></li>
+</ul>
+</p>
+<p>Wi-Fi 6 / BLE are provided by the on-board ESP32-C6 over SDIO using Espressif’s ESP-Hosted + esp_wifi_remote components; espp does not (yet) wrap that pattern in a BSP API, so this BSP documents the wiring (see the pin constants below and the example README) instead of wrapping it:</p>
+<p><table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Signal</p></th>
+<th class="head"><p>ESP32-P4 GPIO</p></th>
+<th class="head"><p>ESP32-C6 pin </p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>SDIO CLK</p></td>
+<td><p>18</p></td>
+<td><p>IO19 (SDIO_CLK) </p></td>
+</tr>
+<tr class="row-odd"><td><p>SDIO CMD</p></td>
+<td><p>19</p></td>
+<td><p>IO18 (SDIO_CMD) </p></td>
+</tr>
+<tr class="row-even"><td><p>SDIO D0</p></td>
+<td><p>14</p></td>
+<td><p>IO20 (SDIO_DATA0) </p></td>
+</tr>
+<tr class="row-odd"><td><p>SDIO D1</p></td>
+<td><p>15</p></td>
+<td><p>IO21 (SDIO_DATA1) </p></td>
+</tr>
+<tr class="row-even"><td><p>SDIO D2</p></td>
+<td><p>16</p></td>
+<td><p>IO22 (SDIO_DATA2) </p></td>
+</tr>
+<tr class="row-odd"><td><p>SDIO D3</p></td>
+<td><p>17</p></td>
+<td><p>IO23 (SDIO_DATA3) </p></td>
+</tr>
+<tr class="row-even"><td><p>C6 reset (CHIP_PU / EN)</p></td>
+<td><p>54</p></td>
+<td><p>EN </p></td>
+</tr>
+<tr class="row-odd"><td><p>Spare cross-connect (0 Ω)</p></td>
+<td><p>6</p></td>
+<td><p>IO2 </p></td>
+</tr>
+</tbody>
+</table>
+</p>
+<p>RMII pin mapping (ESP32-P4 routable EMAC pins; identical to the Waveshare ESP32-P4-ETH / ESP32-P4-NANO). REF_CLK carries a 50 MHz reference clock generated by the IP101GRI from its 25 MHz crystal:</p>
+<p><table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Signal</p></th>
+<th class="head"><p>GPIO </p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>REF_CLK</p></td>
+<td><p>50 </p></td>
+</tr>
+<tr class="row-odd"><td><p>TX_EN</p></td>
+<td><p>49 </p></td>
+</tr>
+<tr class="row-even"><td><p>TXD0</p></td>
+<td><p>34 </p></td>
+</tr>
+<tr class="row-odd"><td><p>TXD1</p></td>
+<td><p>35 (also the BOOT key / boot-strap pin, see below) </p></td>
+</tr>
+<tr class="row-even"><td><p>CRS_DV</p></td>
+<td><p>28 </p></td>
+</tr>
+<tr class="row-odd"><td><p>RXD0</p></td>
+<td><p>29 </p></td>
+</tr>
+<tr class="row-even"><td><p>RXD1</p></td>
+<td><p>30 </p></td>
+</tr>
+<tr class="row-odd"><td><p>MDC</p></td>
+<td><p>31 </p></td>
+</tr>
+<tr class="row-even"><td><p>MDIO</p></td>
+<td><p>52 </p></td>
+</tr>
+<tr class="row-odd"><td><p>PHY_RST</p></td>
+<td><p>51 </p></td>
+</tr>
+</tbody>
+</table>
+</p>
+<p>Other on-board hardware not (yet) wrapped by this BSP (pin data from the Waveshare schematic, see the component README):<ul class="simple">
+<li><p>ES8311 audio codec + NS4150B amplifier + analog microphone (I2S: MCLK=13, BCLK=12, WS/LRCK=10, DSDIN=9, ASDOUT=11; PA enable=53).</p></li>
+<li><p>microSD / TF slot on the fixed 4-bit SDMMC pins (CLK=43, CMD=44, D0..D3=39/40/41/42; pull-ups powered from LDO_VO4).</p></li>
+<li><p>MIPI-DSI and MIPI-CSI 15-pin (Raspberry-Pi-style) connectors; panels and cameras are sold separately (the Kit-C / Kit-D bundles include them).</p></li>
+<li><p>USB-A: native USB 2.0 OTG HS. USB-C: CH343P USB-UART console on UART0 (TX=GPIO37, RX=GPIO38) with auto-reset/boot circuitry.</p></li>
+<li><p>The red LED next to the RJ45 is a 5 V power indicator, and the RJ45 green/yellow LEDs are driven by the PHY — none are GPIO-controllable.</p></li>
+</ul>
+</p>
+<p>
+The class is a singleton and can be accessed via <a class="reference internal" href="#classespp_1_1Esp32P4Wifi6PoeEth_1a7ef5c9bab1c5bfb33f075ceda15639a0"><span class="std std-ref">get()</span></a>.</p>
+<section id="classespp_1_1Esp32P4Wifi6PoeEth_1esp32_p4_wifi6_poe_eth_example">
+<h4>Example<a class="headerlink" href="#classespp_1_1Esp32P4Wifi6PoeEth_1esp32_p4_wifi6_poe_eth_example" title="Permalink to this heading"></a></h4>
+<section id="classespp_1_1Esp32P4Wifi6PoeEth_1esp32_p4_wifi6_poe_eth_get_instance">
+<span id="classespp_1_1Esp32P4Wifi6PoeEth_1esp32_p4_wifi6_poe_eth_example"></span><h5>Get Instance<a class="headerlink" href="#classespp_1_1Esp32P4Wifi6PoeEth_1esp32_p4_wifi6_poe_eth_get_instance" title="Permalink to this heading"></a></h5>
+<div class="highlight-cpp notranslate" id="classespp_1_1Esp32P4Wifi6PoeEth_1esp32_p4_wifi6_poe_eth_get_instance"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">board</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Esp32P4Wifi6PoeEth</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1Esp32P4Wifi6PoeEth_1esp32_p4_wifi6_poe_eth_dhcp_server">
+<h5>DHCP Server<a class="headerlink" href="#classespp_1_1Esp32P4Wifi6PoeEth_1esp32_p4_wifi6_poe_eth_dhcp_server" title="Permalink to this heading"></a></h5>
+<div class="highlight-cpp notranslate" id="classespp_1_1Esp32P4Wifi6PoeEth_1esp32_p4_wifi6_poe_eth_dhcp_server"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Esp32P4Wifi6PoeEth</span><span class="o">::</span><span class="n">ServerConfig</span><span class="w"> </span><span class="n">srv_cfg</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">esp_netif_str_to_ip4</span><span class="p">(</span><span class="n">CONFIG_EXAMPLE_ETH_SERVER_IP</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">srv_cfg</span><span class="p">.</span><span class="n">ip_info</span><span class="p">.</span><span class="n">ip</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="w"> </span><span class="o">||</span>
+<span class="w">      </span><span class="n">esp_netif_str_to_ip4</span><span class="p">(</span><span class="n">CONFIG_EXAMPLE_ETH_SERVER_NETMASK</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">srv_cfg</span><span class="p">.</span><span class="n">ip_info</span><span class="p">.</span><span class="n">netmask</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="w"> </span><span class="o">||</span>
+<span class="w">      </span><span class="n">esp_netif_str_to_ip4</span><span class="p">(</span><span class="n">CONFIG_EXAMPLE_ETH_SERVER_GW</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">srv_cfg</span><span class="p">.</span><span class="n">ip_info</span><span class="p">.</span><span class="n">gw</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Invalid DHCP-server address in menuconfig (ip='{}' netmask='{}' gw='{}'); "</span>
+<span class="w">                 </span><span class="s">"aborting Ethernet init"</span><span class="p">,</span>
+<span class="w">                 </span><span class="n">CONFIG_EXAMPLE_ETH_SERVER_IP</span><span class="p">,</span><span class="w"> </span><span class="n">CONFIG_EXAMPLE_ETH_SERVER_NETMASK</span><span class="p">,</span>
+<span class="w">                 </span><span class="n">CONFIG_EXAMPLE_ETH_SERVER_GW</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">srv_cfg</span><span class="p">.</span><span class="n">on_client_assigned</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">esp_ip4_addr_t</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="o">&gt;</span><span class="w"> </span><span class="n">mac</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Client assigned {}.{}.{}.{} (mac {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x})"</span><span class="p">,</span>
+<span class="w">                </span><span class="n">esp_ip4_addr1_16</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ip</span><span class="p">),</span><span class="w"> </span><span class="n">esp_ip4_addr2_16</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ip</span><span class="p">),</span><span class="w"> </span><span class="n">esp_ip4_addr3_16</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ip</span><span class="p">),</span>
+<span class="w">                </span><span class="n">esp_ip4_addr4_16</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ip</span><span class="p">),</span><span class="w"> </span><span class="n">mac</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">mac</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="n">mac</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="w"> </span><span class="n">mac</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="w"> </span><span class="n">mac</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="w"> </span><span class="n">mac</span><span class="p">[</span><span class="mi">5</span><span class="p">]);</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">eth_ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">board</span><span class="p">.</span><span class="n">initialize_ethernet</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DhcpMode</span><span class="o">::</span><span class="n">SERVER</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">server_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">srv_cfg</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_link_up</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Ethernet link up"</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_link_down</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">"Ethernet link down"</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_got_ip</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">esp_ip4_addr_t</span><span class="w"> </span><span class="n">ip</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"DHCP server up at {}.{}.{}.{}"</span><span class="p">,</span><span class="w"> </span><span class="n">esp_ip4_addr1_16</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ip</span><span class="p">),</span>
+<span class="w">                        </span><span class="n">esp_ip4_addr2_16</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ip</span><span class="p">),</span><span class="w"> </span><span class="n">esp_ip4_addr3_16</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ip</span><span class="p">),</span><span class="w"> </span><span class="n">esp_ip4_addr4_16</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ip</span><span class="p">));</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_lost_ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">"Ethernet lost IP"</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">});</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1Esp32P4Wifi6PoeEth_1esp32_p4_wifi6_poe_eth_dhcp_client">
+<h5>DHCP Client<a class="headerlink" href="#classespp_1_1Esp32P4Wifi6PoeEth_1esp32_p4_wifi6_poe_eth_dhcp_client" title="Permalink to this heading"></a></h5>
+<div class="highlight-cpp notranslate" id="classespp_1_1Esp32P4Wifi6PoeEth_1esp32_p4_wifi6_poe_eth_dhcp_client"><div class="highlight"><pre><span></span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">eth_ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">board</span><span class="p">.</span><span class="n">initialize_ethernet</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DhcpMode</span><span class="o">::</span><span class="n">CLIENT</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_link_up</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Ethernet link up"</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_link_down</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">"Ethernet link down"</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_got_ip</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">esp_ip4_addr_t</span><span class="w"> </span><span class="n">ip</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"DHCP lease acquired: {}.{}.{}.{}"</span><span class="p">,</span><span class="w"> </span><span class="n">esp_ip4_addr1_16</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ip</span><span class="p">),</span>
+<span class="w">                        </span><span class="n">esp_ip4_addr2_16</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ip</span><span class="p">),</span><span class="w"> </span><span class="n">esp_ip4_addr3_16</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ip</span><span class="p">),</span><span class="w"> </span><span class="n">esp_ip4_addr4_16</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ip</span><span class="p">));</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_lost_ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">"Ethernet lost IP"</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">});</span>
+</pre></div>
+</div>
+</section>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The BOOT key (Key1) is wired to GPIO35, which per the schematic is also the RMII TXD1 line to the IP101GRI. GPIO35 is the ESP32-P4’s boot-strap pin, sampled only at reset — once the EMAC is running the pin is a TXD1 output, so the BOOT key cannot be used as a runtime input. Like the other ESP32-P4 RMII BSPs (ESP32-P4-ETH / ESP32-P4-NANO, identical pinout) this BSP therefore does not expose a button API; the key is only useful for entering the serial bootloader at reset.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Assumption pending hardware verification: PHY address 1 (PHY_AD0 is strapped high through a 5.1 kΩ pull-up like the ESP32-P4-ETH).</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth8DhcpModeE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth8DhcpModeE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth8DhcpModeE"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1ab0d2d0b13ddf71be6cf5c6461f5983a1"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DhcpMode</span></span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth8DhcpModeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>DHCP operating mode for the <a class="reference internal" href="../../network/ethernet.html#classespp_1_1Ethernet"><span class="std std-ref">Ethernet</span></a> interface. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth8DhcpMode6CLIENTE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth8DhcpMode6CLIENTE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth8DhcpMode6CLIENTE"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1ab0d2d0b13ddf71be6cf5c6461f5983a1aef10c650df47bffd6399e5e78da2a9b1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLIENT</span></span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth8DhcpMode6CLIENTE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>DHCP client — acquire an IP from an upstream server (default) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth8DhcpMode6SERVERE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth8DhcpMode6SERVERE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth8DhcpMode6SERVERE"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1ab0d2d0b13ddf71be6cf5c6461f5983a1a3d27c95bfdbea691b250894d96852844"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SERVER</span></span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth8DhcpMode6SERVERE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>DHCP server — assign IPs to hosts connected to this interface. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth20client_ip_callback_tE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth20client_ip_callback_tE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth20client_ip_callback_tE"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1af4dbf6b463c9fe85a0c07dd075a509c3"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">client_ip_callback_t</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">esp_ip4_addr_t</span></span><span class="w"> </span><span class="n"><span class="pre">ip</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">6</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n"><span class="pre">mac</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth20client_ip_callback_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback invoked (SERVER mode only) each time the DHCP server assigns an IP address to a connected client. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth20EthernetLinkCallbackE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth20EthernetLinkCallbackE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth20EthernetLinkCallbackE"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1aeafb2f46e25f1ffe534235414535b379"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EthernetLinkCallback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth20EthernetLinkCallbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback invoked when the <a class="reference internal" href="../../network/ethernet.html#classespp_1_1Ethernet"><span class="std std-ref">Ethernet</span></a> link state changes (comes up or goes down) or when the IP address is lost. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Runs in the ESP-IDF event-loop task context — return quickly, do not block. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth18EthernetIpCallbackE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth18EthernetIpCallbackE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth18EthernetIpCallbackE"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1af814172bc86d9331e85d9e7444e88777"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EthernetIpCallback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">esp_ip4_addr_t</span></span><span class="w"> </span><span class="n"><span class="pre">ip</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth18EthernetIpCallbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback invoked when the interface obtains an IPv4 address. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Runs in the ESP-IDF event-loop task context — return quickly, do not block. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Param ip<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The assigned IPv4 address. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth12internal_i2cEv">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth12internal_i2cEv"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth12internal_i2cEv"></span><span id="espp::Esp32P4Wifi6PoeEth::internal_i2c"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1ab4013c5034e8c198e7890e7b1e652f1d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="../../buses/i2c.html#_CPPv4N4espp3I2cE" title="espp::I2c"><span class="n"><span class="pre">I2c</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">internal_i2c</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth12internal_i2cEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the internal I2C bus (SDA=GPIO7, SCL=GPIO8) </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Shared by the on-board ES8311 audio codec (0x18) and the DSI / CSI connectors and 40-pin header </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the internal I2C bus </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth19initialize_ethernetERK14EthernetConfig">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth19initialize_ethernetERK14EthernetConfig"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth19initialize_ethernetERK14EthernetConfig"></span><span id="espp::Esp32P4Wifi6PoeEth::initialize_ethernet__EthernetConfigCR"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1a5ddcda465acab481d544a3d4e2808d68"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_ethernet</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfigE" title="espp::Esp32P4Wifi6PoeEth::EthernetConfig"><span class="n"><span class="pre">EthernetConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth19initialize_ethernetERK14EthernetConfig" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the <a class="reference internal" href="../../network/ethernet.html#classespp_1_1Ethernet"><span class="std std-ref">Ethernet</span></a> interface (EMAC + IP101GRI RMII PHY). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Requires the ESP-IDF TCP/IP stack and default event loop. The underlying <a class="reference internal" href="../../network/ethernet.html#classespp_1_1Ethernet"><span class="std std-ref">espp::Ethernet</span></a> component calls esp_netif_init() and esp_event_loop_create_default() during its initialize(), so they are created here if the application has not already done so. </p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If <a class="reference internal" href="../../network/ethernet.html#classespp_1_1Ethernet"><span class="std std-ref">Ethernet</span></a> is already initialized, the provided <code class="docutils literal notranslate"><span class="pre">config</span></code> is IGNORED and a warning is logged &amp;#8212; the interface keeps running with its original configuration (reconfiguration is not supported). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – <a class="reference internal" href="../../network/ethernet.html#classespp_1_1Ethernet"><span class="std std-ref">Ethernet</span></a> configuration (DHCP mode, callbacks). All fields have defaults so <code class="docutils literal notranslate"><a class="reference internal" href="#structespp_1_1Esp32P4Wifi6PoeEth_1_1EthernetConfig"><span class="std std-ref"><span class="pre">EthernetConfig</span></span></a><span class="pre">{}</span></code> gives a plain DHCP-client interface with no callbacks. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if <a class="reference internal" href="../../network/ethernet.html#classespp_1_1Ethernet"><span class="std std-ref">Ethernet</span></a> was successfully initialized and started, or if it was already initialized (the call is idempotent). False only on initialization failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth19initialize_ethernetEv">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth19initialize_ethernetEv"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth19initialize_ethernetEv"></span><span id="espp::Esp32P4Wifi6PoeEth::initialize_ethernet"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1ab0512e8ae6bae123ab7065a69137ab6c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_ethernet</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth19initialize_ethernetEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize <a class="reference internal" href="../../network/ethernet.html#classespp_1_1Ethernet"><span class="std std-ref">Ethernet</span></a> with default configuration (DHCP client mode). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if <a class="reference internal" href="../../network/ethernet.html#classespp_1_1Ethernet"><span class="std std-ref">Ethernet</span></a> was successfully initialized and started, or if it was already initialized (the call is idempotent). False only on initialization failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp18Esp32P4Wifi6PoeEth21is_ethernet_connectedEv">
+<span id="_CPPv3NK4espp18Esp32P4Wifi6PoeEth21is_ethernet_connectedEv"></span><span id="_CPPv2NK4espp18Esp32P4Wifi6PoeEth21is_ethernet_connectedEv"></span><span id="espp::Esp32P4Wifi6PoeEth::is_ethernet_connectedC"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1ac5f0032f8805fbe090ba7fabf9f2bdc8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_ethernet_connected</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp18Esp32P4Wifi6PoeEth21is_ethernet_connectedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check whether the interface has a usable IP address (DHCP lease granted in CLIENT mode, or link is up in SERVER mode). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the interface is connected with a valid IP. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp18Esp32P4Wifi6PoeEth11ethernet_ipEv">
+<span id="_CPPv3NK4espp18Esp32P4Wifi6PoeEth11ethernet_ipEv"></span><span id="_CPPv2NK4espp18Esp32P4Wifi6PoeEth11ethernet_ipEv"></span><span id="espp::Esp32P4Wifi6PoeEth::ethernet_ipC"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1a3f025b698865d19b3eb931ac7c5fd116"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">esp_ip4_addr_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ethernet_ip</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp18Esp32P4Wifi6PoeEth11ethernet_ipEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the most recently acquired IPv4 address (0 if none). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The IPv4 address. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp18Esp32P4Wifi6PoeEth8get_nameEv">
+<span id="_CPPv3NK4espp18Esp32P4Wifi6PoeEth8get_nameEv"></span><span id="_CPPv2NK4espp18Esp32P4Wifi6PoeEth8get_nameEv"></span><span id="espp::Esp32P4Wifi6PoeEth::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp18Esp32P4Wifi6PoeEth8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth11set_log_tagERKNSt11string_viewE"></span><span id="espp::Esp32P4Wifi6PoeEth::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp18Esp32P4Wifi6PoeEth13get_log_levelEv">
+<span id="_CPPv3NK4espp18Esp32P4Wifi6PoeEth13get_log_levelEv"></span><span id="_CPPv2NK4espp18Esp32P4Wifi6PoeEth13get_log_levelEv"></span><span id="espp::Esp32P4Wifi6PoeEth::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp18Esp32P4Wifi6PoeEth13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Esp32P4Wifi6PoeEth::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Esp32P4Wifi6PoeEth::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp18Esp32P4Wifi6PoeEth17get_log_verbosityEv">
+<span id="_CPPv3NK4espp18Esp32P4Wifi6PoeEth17get_log_verbosityEv"></span><span id="_CPPv2NK4espp18Esp32P4Wifi6PoeEth17get_log_verbosityEv"></span><span id="espp::Esp32P4Wifi6PoeEth::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp18Esp32P4Wifi6PoeEth17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Esp32P4Wifi6PoeEth::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth3getEv">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth3getEv"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth3getEv"></span><span id="espp::Esp32P4Wifi6PoeEth::get"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1a7ef5c9bab1c5bfb33f075ceda15639a0"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEthE" title="espp::Esp32P4Wifi6PoeEth"><span class="n"><span class="pre">Esp32P4Wifi6PoeEth</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth3getEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access the singleton instance. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reference to the singleton instance </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth14c6_sdio_clk_ioE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth14c6_sdio_clk_ioE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth14c6_sdio_clk_ioE"></span><span id="espp::Esp32P4Wifi6PoeEth::c6_sdio_clk_io__i"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1aa856b1bceb0ee634546d0db057183a67"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">c6_sdio_clk_io</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">18</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth14c6_sdio_clk_ioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>P4 SDIO CLK -&gt; C6 IO19 (SDIO_CLK) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth14c6_sdio_cmd_ioE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth14c6_sdio_cmd_ioE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth14c6_sdio_cmd_ioE"></span><span id="espp::Esp32P4Wifi6PoeEth::c6_sdio_cmd_io__i"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1a5d49879af93a429076c388914e620c73"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">c6_sdio_cmd_io</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">19</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth14c6_sdio_cmd_ioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>P4 SDIO CMD -&gt; C6 IO18 (SDIO_CMD) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d0_ioE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d0_ioE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d0_ioE"></span><span id="espp::Esp32P4Wifi6PoeEth::c6_sdio_d0_io__i"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1a8e4a6e68d52c084092885fb5bd3afcd0"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">c6_sdio_d0_io</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">14</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d0_ioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>P4 SDIO D0 -&gt; C6 IO20 (SDIO_DATA0) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d1_ioE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d1_ioE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d1_ioE"></span><span id="espp::Esp32P4Wifi6PoeEth::c6_sdio_d1_io__i"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1a58b80283cbc2cd08d8614aaba15ed684"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">c6_sdio_d1_io</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">15</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d1_ioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>P4 SDIO D1 -&gt; C6 IO21 (SDIO_DATA1) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d2_ioE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d2_ioE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d2_ioE"></span><span id="espp::Esp32P4Wifi6PoeEth::c6_sdio_d2_io__i"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1a7b3884202a3e9a1b2e2887721ecbf32d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">c6_sdio_d2_io</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">16</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d2_ioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>P4 SDIO D2 -&gt; C6 IO22 (SDIO_DATA2) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d3_ioE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d3_ioE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d3_ioE"></span><span id="espp::Esp32P4Wifi6PoeEth::c6_sdio_d3_io__i"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1a1572e2e2580695a4d5cd5416924407c8"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">c6_sdio_d3_io</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">17</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth13c6_sdio_d3_ioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>P4 SDIO D3 -&gt; C6 IO23 (SDIO_DATA3) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth11c6_reset_ioE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth11c6_reset_ioE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth11c6_reset_ioE"></span><span id="espp::Esp32P4Wifi6PoeEth::c6_reset_io__i"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1af9a4bbf37bdb9595bd305d82a98efb93"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">c6_reset_io</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">54</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth11c6_reset_ioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>P4 GPIO54 -&gt; C6 EN (CHIP_PU) via 0 Ω </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth11c6_spare_ioE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth11c6_spare_ioE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth11c6_spare_ioE"></span><span id="espp::Esp32P4Wifi6PoeEth::c6_spare_io__i"></span><span class="target" id="classespp_1_1Esp32P4Wifi6PoeEth_1a662d7f662e451e9d700bdee5c301cd26"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">c6_spare_io</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">6</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth11c6_spare_ioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>P4 GPIO6 -&gt; C6 IO2 via 0 Ω (unused spare) </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfigE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth14EthernetConfigE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth14EthernetConfigE"></span><span id="espp::Esp32P4Wifi6PoeEth::EthernetConfig"></span><span class="target" id="structespp_1_1Esp32P4Wifi6PoeEth_1_1EthernetConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EthernetConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the <a class="reference internal" href="../../network/ethernet.html#classespp_1_1Ethernet"><span class="std std-ref">Ethernet</span></a> interface. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfig4modeE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth14EthernetConfig4modeE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth14EthernetConfig4modeE"></span><span id="espp::Esp32P4Wifi6PoeEth::EthernetConfig::mode__DhcpMode"></span><span class="target" id="structespp_1_1Esp32P4Wifi6PoeEth_1_1EthernetConfig_1a0847d6c77e61fb00c716038348691272"></span><a class="reference internal" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth8DhcpModeE" title="espp::Esp32P4Wifi6PoeEth::DhcpMode"><span class="n"><span class="pre">DhcpMode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth8DhcpModeE" title="espp::Esp32P4Wifi6PoeEth::DhcpMode"><span class="n"><span class="pre">DhcpMode</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth8DhcpMode6CLIENTE" title="espp::Esp32P4Wifi6PoeEth::DhcpMode::CLIENT"><span class="n"><span class="pre">CLIENT</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfig4modeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>DHCP operating mode. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfig13server_configE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth14EthernetConfig13server_configE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth14EthernetConfig13server_configE"></span><span id="espp::Esp32P4Wifi6PoeEth::EthernetConfig::server_config__ServerConfig"></span><span class="target" id="structespp_1_1Esp32P4Wifi6PoeEth_1_1EthernetConfig_1aeba499f078857eddb7a538d7a6337e14"></span><a class="reference internal" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth12ServerConfigE" title="espp::Esp32P4Wifi6PoeEth::ServerConfig"><span class="n"><span class="pre">ServerConfig</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">server_config</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfig13server_configE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Only used when mode == SERVER. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfig10on_link_upE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth14EthernetConfig10on_link_upE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth14EthernetConfig10on_link_upE"></span><span id="espp::Esp32P4Wifi6PoeEth::EthernetConfig::on_link_up__EthernetLinkCallback"></span><span class="target" id="structespp_1_1Esp32P4Wifi6PoeEth_1_1EthernetConfig_1a9451c80bb28de4759a75a21900581e2c"></span><a class="reference internal" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth20EthernetLinkCallbackE" title="espp::Esp32P4Wifi6PoeEth::EthernetLinkCallback"><span class="n"><span class="pre">EthernetLinkCallback</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_link_up</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfig10on_link_upE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Physical link came up. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfig12on_link_downE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth14EthernetConfig12on_link_downE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth14EthernetConfig12on_link_downE"></span><span id="espp::Esp32P4Wifi6PoeEth::EthernetConfig::on_link_down__EthernetLinkCallback"></span><span class="target" id="structespp_1_1Esp32P4Wifi6PoeEth_1_1EthernetConfig_1aab7fbce2290546f5c31845dd9941490e"></span><a class="reference internal" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth20EthernetLinkCallbackE" title="espp::Esp32P4Wifi6PoeEth::EthernetLinkCallback"><span class="n"><span class="pre">EthernetLinkCallback</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_link_down</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfig12on_link_downE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Physical link went down. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfig9on_got_ipE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth14EthernetConfig9on_got_ipE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth14EthernetConfig9on_got_ipE"></span><span id="espp::Esp32P4Wifi6PoeEth::EthernetConfig::on_got_ip__EthernetIpCallback"></span><span class="target" id="structespp_1_1Esp32P4Wifi6PoeEth_1_1EthernetConfig_1a1348a3e7d813b9b44972c88df3e9d522"></span><a class="reference internal" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth18EthernetIpCallbackE" title="espp::Esp32P4Wifi6PoeEth::EthernetIpCallback"><span class="n"><span class="pre">EthernetIpCallback</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_got_ip</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfig9on_got_ipE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Interface obtained an IPv4 address. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfig10on_lost_ipE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth14EthernetConfig10on_lost_ipE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth14EthernetConfig10on_lost_ipE"></span><span id="espp::Esp32P4Wifi6PoeEth::EthernetConfig::on_lost_ip__EthernetLinkCallback"></span><span class="target" id="structespp_1_1Esp32P4Wifi6PoeEth_1_1EthernetConfig_1a825f54db264b72f24ec69146a2d4c5ff"></span><a class="reference internal" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth20EthernetLinkCallbackE" title="espp::Esp32P4Wifi6PoeEth::EthernetLinkCallback"><span class="n"><span class="pre">EthernetLinkCallback</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_lost_ip</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth14EthernetConfig10on_lost_ipE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Interface lost its IPv4 address. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth12ServerConfigE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth12ServerConfigE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth12ServerConfigE"></span><span id="espp::Esp32P4Wifi6PoeEth::ServerConfig"></span><span class="target" id="structespp_1_1Esp32P4Wifi6PoeEth_1_1ServerConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ServerConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth12ServerConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Static IP configuration used when operating as a DHCP server. Leave <code class="docutils literal notranslate"><span class="pre">ip_info</span></code> zero-initialised to use the built-in defaults (192.168.4.1 / 255.255.255.0 / gw 192.168.4.1). </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth12ServerConfig7ip_infoE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth12ServerConfig7ip_infoE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth12ServerConfig7ip_infoE"></span><span id="espp::Esp32P4Wifi6PoeEth::ServerConfig::ip_info__esp_netif_ip_info_t"></span><span class="target" id="structespp_1_1Esp32P4Wifi6PoeEth_1_1ServerConfig_1a8c6c8717b82d83a64bd52915ea90952c"></span><span class="n"><span class="pre">esp_netif_ip_info_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ip_info</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth12ServerConfig7ip_infoE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>zero-initialised → 192.168.4.1/24 </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp18Esp32P4Wifi6PoeEth12ServerConfig18on_client_assignedE">
+<span id="_CPPv3N4espp18Esp32P4Wifi6PoeEth12ServerConfig18on_client_assignedE"></span><span id="_CPPv2N4espp18Esp32P4Wifi6PoeEth12ServerConfig18on_client_assignedE"></span><span id="espp::Esp32P4Wifi6PoeEth::ServerConfig::on_client_assigned__client_ip_callback_t"></span><span class="target" id="structespp_1_1Esp32P4Wifi6PoeEth_1_1ServerConfig_1ac37cd4cf7070aa3bfe2846f1149cc6c6"></span><a class="reference internal" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth20client_ip_callback_tE" title="espp::Esp32P4Wifi6PoeEth::client_ip_callback_t"><span class="n"><span class="pre">client_ip_callback_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_client_assigned</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp18Esp32P4Wifi6PoeEth12ServerConfig18on_client_assignedE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Called for each assigned client IP. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="esp32_p4_wifi6_dev_kit_example.html" class="btn btn-neutral float-left" title="ESP32-P4-WIFI6-DEV-KIT Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="esp32_p4_wifi6_poe_eth_example.html" class="btn btn-neutral float-right" title="ESP32-P4-WIFI6-POE-ETH Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

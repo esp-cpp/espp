@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Basicmicro (MCP / RoboClaw) Motor Controller Component - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'motor_control/basicmicro';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Basicmicro (MCP / RoboClaw) Example" href="basicmicro_example.html" />
+    <link rel="prev" title="Motor Controller Interface" href="motor_controller.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Motor Control APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adrc.html">ADRC APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="motor_controller.html">Motor Controller Interface</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Basicmicro (MCP / RoboClaw) Motor Controller Component</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#features">Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#protocol">Protocol</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#basic-usage">Basic Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="basicmicro_example.html">Basicmicro (MCP / RoboClaw) Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="mcp266.html">MCP266 CANopen Motor Controller Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_native.html">ODrive Native (Fibre endpoint) Protocol Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trajectory_planner.html">Trajectory Planner APIs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Motor Control APIs</a></li>
+      <li class="breadcrumb-item active">Basicmicro (MCP / RoboClaw) Motor Controller Component</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/a08fc9fe/docs/en/motor_control/basicmicro.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="basicmicro-mcp-roboclaw-motor-controller-component">
+<h1>Basicmicro (MCP / RoboClaw) Motor Controller Component<a class="headerlink" href="#basicmicro-mcp-roboclaw-motor-controller-component" title="Permalink to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">espp::Basicmicro</span></code> is a driver for Basicmicro MCP236 / MCP266 (and other
+RoboClaw-family) brushed DC motor controllers speaking their packet serial
+protocol, typically over UART.</p>
+<p>The component is transport-agnostic: it performs no I/O itself and instead
+calls user-provided <code class="docutils literal notranslate"><span class="pre">write</span></code> / <code class="docutils literal notranslate"><span class="pre">read</span></code> functions for each transaction, so it
+works over a UART driver, USB CDC, an RS-232 adapter, etc. All wire-format
+logic (CRC16, packet building, reply validation, big-endian codecs) lives in
+<code class="docutils literal notranslate"><span class="pre">espp::detail</span></code> inside <code class="docutils literal notranslate"><span class="pre">include/detail/basicmicro_core.hpp</span></code>, a
+host-buildable core that depends only on the C++20 standard library and is
+unit-tested off-target.</p>
+</section>
+<section id="features">
+<h2>Features<a class="headerlink" href="#features" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>Duty-cycle drive (commands 32/33/34) and closed-loop speed drive in
+quadrature pulses per second (35/36/37), with optional acceleration ramps
+(38/39/40)</p></li>
+<li><p>Buffered speed / accel / distance motion commands (41-46) plus buffer-state
+readback (47)</p></li>
+<li><p>Encoder counts (16/17/78), speeds (18/19/79), reset (20) and encoder-mode
+readback (91)</p></li>
+<li><p>Velocity PID get/set with automatic 16.16 fixed-point conversion (28/29,
+55/56)</p></li>
+<li><p>Telemetry: firmware version (21), battery voltages (24/25), motor currents
+(49), motor PWMs (48), board temperatures (82/83) and unit status (90)</p></li>
+<li><p>Management: write settings to EEPROM (94), E-Stop reset (200)</p></li>
+<li><p>No exceptions; all methods report errors via <code class="docutils literal notranslate"><span class="pre">std::error_code</span></code></p></li>
+<li><p>Thread-safe: each transaction (request write + ACK/reply read) is serialized
+by an internal mutex</p></li>
+</ul>
+</section>
+<section id="protocol">
+<h2>Protocol<a class="headerlink" href="#protocol" title="Permalink to this heading"></a></h2>
+<p>Per the MCP Series User Manual (section 2.2), write commands send
+<code class="docutils literal notranslate"><span class="pre">[Address,</span> <span class="pre">Command,</span> <span class="pre">Data...,</span> <span class="pre">CRC16]</span></code> and are acknowledged with a single
+<code class="docutils literal notranslate"><span class="pre">0xFF</span></code> byte, while read commands send <code class="docutils literal notranslate"><span class="pre">[Address,</span> <span class="pre">Command]</span></code> (no CRC) and
+reply with the data followed by a CRC16 seeded with the sent address and
+command bytes. All multi-byte values are big-endian and the CRC is
+CRC-16/XMODEM (poly <code class="docutils literal notranslate"><span class="pre">0x1021</span></code>, init <code class="docutils literal notranslate"><span class="pre">0</span></code>). A 10 ms inter-byte gap clears the
+controller’s packet buffer, so the configured receive timeout (&gt;= 10 ms)
+doubles as the error-recovery mechanism.</p>
+</section>
+<section id="basic-usage">
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Permalink to this heading"></a></h2>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">espp</span><span class="o">::</span><span class="n">Basicmicro</span><span class="w"> </span><span class="nf">mcp</span><span class="p">({</span>
+<span class="w">    </span><span class="p">.</span><span class="n">address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x80</span><span class="p">,</span>
+<span class="w">    </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* UART write */</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">milliseconds</span><span class="w"> </span><span class="n">timeout</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="cm">/* UART read with timeout, return bytes read */</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="p">});</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="k">using</span><span class="w"> </span><span class="n">Axis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Basicmicro</span><span class="o">::</span><span class="n">Axis</span><span class="p">;</span><span class="w">   </span><span class="c1">// shared espp::MotorAxis (M1 / M2)</span>
+<span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">version</span><span class="p">;</span>
+<span class="n">mcp</span><span class="p">.</span><span class="n">read_firmware_version</span><span class="p">(</span><span class="n">version</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="n">mcp</span><span class="p">.</span><span class="n">drive_duty</span><span class="p">(</span><span class="n">Axis</span><span class="o">::</span><span class="n">M1</span><span class="p">,</span><span class="w"> </span><span class="mi">4096</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w">    </span><span class="c1">// ~12.5% duty</span>
+<span class="kt">int32_t</span><span class="w"> </span><span class="n">count</span><span class="p">;</span>
+<span class="n">mcp</span><span class="p">.</span><span class="n">read_encoder</span><span class="p">(</span><span class="n">Axis</span><span class="o">::</span><span class="n">M1</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="n">mcp</span><span class="p">.</span><span class="n">drive_duty</span><span class="p">(</span><span class="n">Axis</span><span class="o">::</span><span class="n">M1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+</pre></div>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="basicmicro_example.html">Basicmicro (MCP / RoboClaw) Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="basicmicro_example.html#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basicmicro_example.html#hardware">Hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basicmicro_example.html#build">Build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basicmicro_example.html#flash-and-monitor">Flash and Monitor</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a08fc9fe/components/basicmicro/include/basicmicro.hpp">components/basicmicro/include/basicmicro.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BasicmicroE">
+<span id="_CPPv3N4espp10BasicmicroE"></span><span id="_CPPv2N4espp10BasicmicroE"></span><span id="espp::Basicmicro"></span><span class="target" id="classespp_1_1Basicmicro"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Basicmicro</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp10BasicmicroE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Driver for <a class="reference internal" href="#classespp_1_1Basicmicro"><span class="std std-ref">Basicmicro</span></a> (MCP236 / MCP266 and RoboClaw-family) brushed DC motor controllers speaking the PACKET SERIAL protocol, typically over UART. </p>
+<p>The component is transport-agnostic: it performs no I/O itself and instead calls the user-provided write / read functions for each transaction, so it works over a UART driver, USB CDC, RS-232 adapter, etc. Wire-format logic (CRC16, packet building, reply validation, big-endian codecs) lives in `include/detail/basicmicro_core.hpp`, a host-buildable core with zero ESP dependencies.</p>
+<p>Protocol summary (MCP Series User Manual section 2.2):<ul class="simple">
+<li><p>Write commands send [Address, Command, Data…, CRC16] and the controller replies with a single 0xFF ACK byte only when the packet was valid.</p></li>
+<li><p>Read commands send [Address, Command] (no CRC) and the controller replies with the data followed by a CRC16 seeded with the sent address + command.</p></li>
+<li><p>Error recovery: a &gt;=10 ms gap between bytes makes the controller discard any partial packet, so the configured receive timeout (&gt;=10 ms, default 20 ms) doubles as the recovery mechanism — after a timed-out transaction the controller’s packet buffer has already cleared itself and the next packet starts fresh.</p></li>
+</ul>
+</p>
+<p>All methods report errors via a std::error_code out-parameter (no exceptions) and return true on success.</p>
+<section id="classespp_1_1Basicmicro_1basicmicro_ex1">
+<h4>Basicmicro Example<a class="headerlink" href="#classespp_1_1Basicmicro_1basicmicro_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Basicmicro_1basicmicro_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">uart_config_t</span><span class="w"> </span><span class="n">uart_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
+<span class="w">  </span><span class="n">uart_config</span><span class="p">.</span><span class="n">baud_rate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">uart_baud</span><span class="p">;</span>
+<span class="w">  </span><span class="n">uart_config</span><span class="p">.</span><span class="n">data_bits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UART_DATA_8_BITS</span><span class="p">;</span>
+<span class="w">  </span><span class="n">uart_config</span><span class="p">.</span><span class="n">parity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UART_PARITY_DISABLE</span><span class="p">;</span>
+<span class="w">  </span><span class="n">uart_config</span><span class="p">.</span><span class="n">stop_bits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UART_STOP_BITS_1</span><span class="p">;</span>
+<span class="w">  </span><span class="n">uart_config</span><span class="p">.</span><span class="n">flow_ctrl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UART_HW_FLOWCTRL_DISABLE</span><span class="p">;</span>
+<span class="w">  </span><span class="n">uart_config</span><span class="p">.</span><span class="n">source_clk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UART_SCLK_DEFAULT</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ESP_ERROR_CHECK</span><span class="p">(</span><span class="n">uart_driver_install</span><span class="p">(</span><span class="n">uart_port</span><span class="p">,</span><span class="w"> </span><span class="mi">256</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">));</span>
+<span class="w">  </span><span class="n">ESP_ERROR_CHECK</span><span class="p">(</span><span class="n">uart_param_config</span><span class="p">(</span><span class="n">uart_port</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">uart_config</span><span class="p">));</span>
+<span class="w">  </span><span class="n">ESP_ERROR_CHECK</span><span class="p">(</span>
+<span class="w">      </span><span class="n">uart_set_pin</span><span class="p">(</span><span class="n">uart_port</span><span class="p">,</span><span class="w"> </span><span class="n">uart_tx_pin</span><span class="p">,</span><span class="w"> </span><span class="n">uart_rx_pin</span><span class="p">,</span><span class="w"> </span><span class="n">UART_PIN_NO_CHANGE</span><span class="p">,</span><span class="w"> </span><span class="n">UART_PIN_NO_CHANGE</span><span class="p">));</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Basicmicro</span><span class="w"> </span><span class="nf">mcp</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x80</span><span class="p">,</span><span class="w"> </span><span class="o">//</span><span class="w"> </span><span class="k">default</span><span class="w"> </span><span class="n">packet</span><span class="w"> </span><span class="n">serial</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="p">(</span><span class="mh">0x80</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mh">0x87</span><span class="p">)</span>
+<span class="w">      </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">written</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">uart_write_bytes</span><span class="p">(</span>
+<span class="w">                </span><span class="n">uart_port</span><span class="p">,</span><span class="w"> </span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*&gt;</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">data</span><span class="p">()),</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">written</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">milliseconds</span><span class="w"> </span><span class="n">timeout</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">read</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="n">uart_read_bytes</span><span class="p">(</span><span class="n">uart_port</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span><span class="w"> </span><span class="n">pdMS_TO_TICKS</span><span class="p">(</span><span class="n">timeout</span><span class="p">.</span><span class="n">count</span><span class="p">()));</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">read</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">read</span><span class="p">);</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="c1">// must be &gt;= 10 ms: a 10 ms quiet gap is also what clears the</span>
+<span class="w">      </span><span class="c1">// controller's packet buffer after a communication error</span>
+<span class="w">      </span><span class="p">.</span><span class="n">timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">20</span><span class="n">ms</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// identify the controller</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">version</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mcp</span><span class="p">.</span><span class="n">read_firmware_version</span><span class="p">(</span><span class="n">version</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Firmware version: '{}'"</span><span class="p">,</span><span class="w"> </span><span class="n">version</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Could not read firmware version: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Is the controller connected, powered, and in packet serial mode?"</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">volts</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mcp</span><span class="p">.</span><span class="n">read_main_battery_voltage</span><span class="p">(</span><span class="n">volts</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Main battery: {:.1f} V"</span><span class="p">,</span><span class="w"> </span><span class="n">volts</span><span class="p">);</span>
+
+<span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">status</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mcp</span><span class="p">.</span><span class="n">read_status</span><span class="p">(</span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Status: 0x{:08X}{}"</span><span class="p">,</span><span class="w"> </span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">" (normal)"</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">""</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// start from a known encoder state</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mcp</span><span class="p">.</span><span class="n">reset_encoders</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Encoders reset"</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// gentle speed ramp on M1 (up to ~12.5% duty) with encoder readback, then</span>
+<span class="w">  </span><span class="c1">// back down to a stop. Duty-cycle drive works without a tuned velocity PID;</span>
+<span class="w">  </span><span class="c1">// if your encoders + PID are configured, try drive_speed(Axis::M1, ...)</span>
+<span class="w">  </span><span class="c1">// instead. The channel is selected with the shared espp::MotorAxis enum.</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">Axis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Basicmicro</span><span class="o">::</span><span class="n">Axis</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int16_t</span><span class="w"> </span><span class="n">max_duty</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4096</span><span class="p">;</span><span class="w"> </span><span class="c1">// of 32767</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int16_t</span><span class="w"> </span><span class="n">step</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">512</span><span class="p">;</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int16_t</span><span class="w"> </span><span class="n">duty</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">duty</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">max_duty</span><span class="p">;</span><span class="w"> </span><span class="n">duty</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int16_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">duty</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">step</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">mcp</span><span class="p">.</span><span class="n">drive_duty</span><span class="p">(</span><span class="n">Axis</span><span class="o">::</span><span class="n">M1</span><span class="p">,</span><span class="w"> </span><span class="n">duty</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"drive_duty(M1, {}) failed: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">duty</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">250</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">count</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">    </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">speed</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">direction</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mcp</span><span class="p">.</span><span class="n">read_encoder</span><span class="p">(</span><span class="n">Axis</span><span class="o">::</span><span class="n">M1</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">mcp</span><span class="p">.</span><span class="n">read_speed</span><span class="p">(</span><span class="n">Axis</span><span class="o">::</span><span class="n">M1</span><span class="p">,</span><span class="w"> </span><span class="n">speed</span><span class="p">,</span><span class="w"> </span><span class="n">direction</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"duty {:5d}: encoder count = {:10d}, speed = {} pulses/s ({})"</span><span class="p">,</span><span class="w"> </span><span class="n">duty</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">,</span>
+<span class="w">                  </span><span class="n">speed</span><span class="p">,</span><span class="w"> </span><span class="n">direction</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">"backward"</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">"forward"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int16_t</span><span class="w"> </span><span class="n">duty</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">max_duty</span><span class="p">;</span><span class="w"> </span><span class="n">duty</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">duty</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int16_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">duty</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">step</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">mcp</span><span class="p">.</span><span class="n">drive_duty</span><span class="p">(</span><span class="n">Axis</span><span class="o">::</span><span class="n">M1</span><span class="p">,</span><span class="w"> </span><span class="n">duty</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span>
+<span class="w">      </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// make sure the motor is stopped</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mcp</span><span class="p">.</span><span class="n">drive_duty</span><span class="p">(</span><span class="n">Axis</span><span class="o">::</span><span class="n">M1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Motor stopped"</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Thread safety: every public method runs one complete transaction (write the request, then read the ACK / reply) while holding an internal mutex, so concurrent calls from multiple tasks serialize cleanly and replies cannot interleave. The user-provided read / write functions ARE called with that mutex held — this is intentional, since the transaction is precisely the I/O — so they must not call back into this component.</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro7CommandE">
+<span id="_CPPv3N4espp10Basicmicro7CommandE"></span><span id="_CPPv2N4espp10Basicmicro7CommandE"></span><span class="target" id="classespp_1_1Basicmicro_1afc0743c7398553fd3e542774aeed1d0c"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Command</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">detail</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">BasicmicroCommand</span></span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro7CommandE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Command bytes (verified against the MCP Series User Manual). </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro6StatusE">
+<span id="_CPPv3N4espp10Basicmicro6StatusE"></span><span id="_CPPv2N4espp10Basicmicro6StatusE"></span><span class="target" id="classespp_1_1Basicmicro_1a5abd5389397aac2939387d0e28c7f7c1"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Status</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">detail</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">BasicmicroStatus</span></span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro6StatusE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Status bit masks returned by <a class="reference internal" href="#classespp_1_1Basicmicro_1ad8447f6f0f8c29deeb4c65e76c639db0"><span class="std std-ref">read_status()</span></a> (manual command 90). </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro4AxisE">
+<span id="_CPPv3N4espp10Basicmicro4AxisE"></span><span id="_CPPv2N4espp10Basicmicro4AxisE"></span><span class="target" id="classespp_1_1Basicmicro_1a42e57b818ea65a2901e14d482a34033e"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Axis</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">MotorAxis</span></span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro4AxisE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Motor channel selector, shared with the other espp motor drivers (e.g. <a class="reference internal" href="mcp266.html#classespp_1_1Mcp266"><span class="std std-ref">espp::Mcp266</span></a>) so generic code can command either transport by axis. <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>espp::MotorController</p>
+</div>
+</p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro8write_fnE">
+<span id="_CPPv3N4espp10Basicmicro8write_fnE"></span><span id="_CPPv2N4espp10Basicmicro8write_fnE"></span><span id="espp::Basicmicro::write_fn"></span><span class="target" id="classespp_1_1Basicmicro_1a51aa5f78e5f196c23d2a35de33f04741"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro8write_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function used to transmit a complete packet to the controller. Should return true when all bytes were written. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro7read_fnE">
+<span id="_CPPv3N4espp10Basicmicro7read_fnE"></span><span id="_CPPv2N4espp10Basicmicro7read_fnE"></span><span id="espp::Basicmicro::read_fn"></span><span class="target" id="classespp_1_1Basicmicro_1ac3f9c03ff1b81ba9f0ce202ed92e8857"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro7read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function used to receive reply bytes from the controller. Should block until at least one byte is available or the timeout expires, and return the number of bytes actually read into the span (0 on timeout). </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro10BasicmicroERK6Config">
+<span id="_CPPv3N4espp10Basicmicro10BasicmicroERK6Config"></span><span id="_CPPv2N4espp10Basicmicro10BasicmicroERK6Config"></span><span id="espp::Basicmicro::Basicmicro__ConfigCR"></span><span class="target" id="classespp_1_1Basicmicro_1a1360eeed7c22a541723cf49bee9cd3bf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Basicmicro</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro6ConfigE" title="espp::Basicmicro::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro10BasicmicroERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a <a class="reference internal" href="#classespp_1_1Basicmicro"><span class="std std-ref">Basicmicro</span></a> driver. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The documented contracts are enforced here: a timeout below the protocol’s 10 ms packet-clear window is clamped up to 10 ms, and an address outside 0x80-0x87 is clamped into the valid range (both with a warning) rather than silently violating the wire protocol. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration parameters. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro10drive_dutyE4Axis7int16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro10drive_dutyE4Axis7int16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro10drive_dutyE4Axis7int16_tRNSt10error_codeE"></span><span id="espp::Basicmicro::drive_duty__Axis.int16_t.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a46d0a54996109f218f1bc985f18114c4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drive_duty</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro4AxisE" title="espp::Basicmicro::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duty</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro10drive_dutyE4Axis7int16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Drive one motor with a signed duty cycle (commands 32 / 33). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Motor channel to drive. </p></li>
+<li><p><strong>duty</strong> – Signed duty, -32767 to +32767 (= -100% to +100%). </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro15drive_both_dutyE7int16_t7int16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro15drive_both_dutyE7int16_t7int16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro15drive_both_dutyE7int16_t7int16_tRNSt10error_codeE"></span><span id="espp::Basicmicro::drive_both_duty__int16_t.int16_t.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a8472372943bbce047a33dd86665c88d3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drive_both_duty</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duty_m1</span></span>, <span class="n"><span class="pre">int16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duty_m2</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro15drive_both_dutyE7int16_t7int16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Drive both motors with signed duty cycles in one packet (command 34). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>duty_m1</strong> – Signed duty for motor 1, -32767 to +32767. </p></li>
+<li><p><strong>duty_m2</strong> – Signed duty for motor 2, -32767 to +32767. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro11drive_speedE4Axis7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro11drive_speedE4Axis7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro11drive_speedE4Axis7int32_tRNSt10error_codeE"></span><span id="espp::Basicmicro::drive_speed__Axis.int32_t.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a4c8d87352a9cd3007c015fc28eb843ea"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drive_speed</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro4AxisE" title="espp::Basicmicro::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpps</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro11drive_speedE4Axis7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Drive one motor at a signed speed in quadrature pulses per second (commands 35 / 36). Requires an encoder and tuned velocity PID. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Motor channel to drive. </p></li>
+<li><p><strong>qpps</strong> – Signed speed in quad pulses per second. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro16drive_both_speedE7int32_t7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro16drive_both_speedE7int32_t7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro16drive_both_speedE7int32_t7int32_tRNSt10error_codeE"></span><span id="espp::Basicmicro::drive_both_speed__int32_t.int32_t.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a3c179a092fb42dfa0fc0887e8590d70c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drive_both_speed</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpps_m1</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpps_m2</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro16drive_both_speedE7int32_t7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Drive both motors at signed speeds in one packet (command 37). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qpps_m1</strong> – Signed speed for motor 1 in quad pulses per second. </p></li>
+<li><p><strong>qpps_m2</strong> – Signed speed for motor 2 in quad pulses per second. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro17drive_speed_accelE4Axis8uint32_t7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro17drive_speed_accelE4Axis8uint32_t7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro17drive_speed_accelE4Axis8uint32_t7int32_tRNSt10error_codeE"></span><span id="espp::Basicmicro::drive_speed_accel__Axis.uint32_t.int32_t.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a048216d88560d1e8bc788605892b6298"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drive_speed_accel</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro4AxisE" title="espp::Basicmicro::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">accel</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpps</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro17drive_speed_accelE4Axis8uint32_t7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Drive one motor at a signed speed with an acceleration ramp (commands 38 / 39). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Motor channel to drive. </p></li>
+<li><p><strong>accel</strong> – Acceleration in qpps per second (unsigned). </p></li>
+<li><p><strong>qpps</strong> – Signed target speed in quad pulses per second. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro22drive_both_speed_accelE8uint32_t7int32_t7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro22drive_both_speed_accelE8uint32_t7int32_t7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro22drive_both_speed_accelE8uint32_t7int32_t7int32_tRNSt10error_codeE"></span><span id="espp::Basicmicro::drive_both_speed_accel__uint32_t.int32_t.int32_t.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1ac3d6b6ede123925775f181284d1effa3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drive_both_speed_accel</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">accel</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpps_m1</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpps_m2</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro22drive_both_speed_accelE8uint32_t7int32_t7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Drive both motors at signed speeds with a shared acceleration ramp (command 40). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>accel</strong> – Acceleration in qpps per second (unsigned, applies to both). </p></li>
+<li><p><strong>qpps_m1</strong> – Signed target speed for motor 1. </p></li>
+<li><p><strong>qpps_m2</strong> – Signed target speed for motor 2. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro29buffered_drive_speed_distanceE4Axis7int32_t8uint32_tbRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro29buffered_drive_speed_distanceE4Axis7int32_t8uint32_tbRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro29buffered_drive_speed_distanceE4Axis7int32_t8uint32_tbRNSt10error_codeE"></span><span id="espp::Basicmicro::buffered_drive_speed_distance__Axis.int32_t.uint32_t.b.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a19c3c6c5b2dc4b577483073486fc7173"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">buffered_drive_speed_distance</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro4AxisE" title="espp::Basicmicro::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpps</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">distance</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">immediate</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro29buffered_drive_speed_distanceE4Axis7int32_t8uint32_tbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Buffered drive of one motor with signed speed and distance (commands 41 / 42). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Motor channel to drive. </p></li>
+<li><p><strong>qpps</strong> – Signed speed in quad pulses per second. </p></li>
+<li><p><strong>distance</strong> – Distance in quad pulses (unsigned). </p></li>
+<li><p><strong>immediate</strong> – If true, stop the currently-executing command, flush the buffer and run this command now; if false, queue it (up to 64 commands per motor buffer). </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro34buffered_drive_both_speed_distanceE7int32_t8uint32_t7int32_t8uint32_tbRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro34buffered_drive_both_speed_distanceE7int32_t8uint32_t7int32_t8uint32_tbRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro34buffered_drive_both_speed_distanceE7int32_t8uint32_t7int32_t8uint32_tbRNSt10error_codeE"></span><span id="espp::Basicmicro::buffered_drive_both_speed_distance__int32_t.uint32_t.int32_t.uint32_t.b.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a408d812c6adbeb00536fcc4b0566cf50"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">buffered_drive_both_speed_distance</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpps_m1</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">distance_m1</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpps_m2</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">distance_m2</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">immediate</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro34buffered_drive_both_speed_distanceE7int32_t8uint32_t7int32_t8uint32_tbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Buffered drive of both motors with signed speeds and distances (command 43). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qpps_m1</strong> – Signed speed for motor 1 in quad pulses per second. </p></li>
+<li><p><strong>distance_m1</strong> – Distance for motor 1 in quad pulses (unsigned). </p></li>
+<li><p><strong>qpps_m2</strong> – Signed speed for motor 2 in quad pulses per second. </p></li>
+<li><p><strong>distance_m2</strong> – Distance for motor 2 in quad pulses (unsigned). </p></li>
+<li><p><strong>immediate</strong> – If true, stop the currently-executing command, flush the buffer and run this command now; if false, queue it. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro35buffered_drive_speed_accel_distanceE4Axis8uint32_t7int32_t8uint32_tbRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro35buffered_drive_speed_accel_distanceE4Axis8uint32_t7int32_t8uint32_tbRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro35buffered_drive_speed_accel_distanceE4Axis8uint32_t7int32_t8uint32_tbRNSt10error_codeE"></span><span id="espp::Basicmicro::buffered_drive_speed_accel_distance__Axis.uint32_t.int32_t.uint32_t.b.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1acb612288d674c7c49a2ee5a01c5396b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">buffered_drive_speed_accel_distance</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro4AxisE" title="espp::Basicmicro::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">accel</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpps</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">distance</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">immediate</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro35buffered_drive_speed_accel_distanceE4Axis8uint32_t7int32_t8uint32_tbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Buffered drive of one motor with acceleration, signed speed and distance (commands 44 / 45). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Motor channel to drive. </p></li>
+<li><p><strong>accel</strong> – Acceleration in qpps per second (unsigned). </p></li>
+<li><p><strong>qpps</strong> – Signed speed in quad pulses per second. </p></li>
+<li><p><strong>distance</strong> – Distance in quad pulses (unsigned). </p></li>
+<li><p><strong>immediate</strong> – If true, stop the currently-executing command, flush the buffer and run this command now; if false, queue it. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro40buffered_drive_both_speed_accel_distanceE8uint32_t7int32_t8uint32_t7int32_t8uint32_tbRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro40buffered_drive_both_speed_accel_distanceE8uint32_t7int32_t8uint32_t7int32_t8uint32_tbRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro40buffered_drive_both_speed_accel_distanceE8uint32_t7int32_t8uint32_t7int32_t8uint32_tbRNSt10error_codeE"></span><span id="espp::Basicmicro::buffered_drive_both_speed_accel_distance__uint32_t.int32_t.uint32_t.int32_t.uint32_t.b.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1ac392e5ffcbb3c0660e15ab05e0a8da3d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">buffered_drive_both_speed_accel_distance</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">accel</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpps_m1</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">distance_m1</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpps_m2</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">distance_m2</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">immediate</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro40buffered_drive_both_speed_accel_distanceE8uint32_t7int32_t8uint32_t7int32_t8uint32_tbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Buffered drive of both motors with a shared acceleration, signed speeds and distances (command 46). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>accel</strong> – Acceleration in qpps per second (unsigned, applies to both). </p></li>
+<li><p><strong>qpps_m1</strong> – Signed speed for motor 1 in quad pulses per second. </p></li>
+<li><p><strong>distance_m1</strong> – Distance for motor 1 in quad pulses (unsigned). </p></li>
+<li><p><strong>qpps_m2</strong> – Signed speed for motor 2 in quad pulses per second. </p></li>
+<li><p><strong>distance_m2</strong> – Distance for motor 2 in quad pulses (unsigned). </p></li>
+<li><p><strong>immediate</strong> – If true, stop the currently-executing command, flush the buffer and run this command now; if false, queue it. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro19read_buffer_lengthsER7uint8_tR7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro19read_buffer_lengthsER7uint8_tR7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro19read_buffer_lengthsER7uint8_tR7uint8_tRNSt10error_codeE"></span><span id="espp::Basicmicro::read_buffer_lengths__uint8_tR.uint8_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a9964dac53115c7553a60959ccef83f1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_buffer_lengths</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">buffer_m1</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">buffer_m2</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro19read_buffer_lengthsER7uint8_tR7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read how many buffered commands are waiting per motor (command 47). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>buffer_m1</strong> – Motor 1 buffer state: 0x80 = buffer empty / last command finished, 0 = last command is executing, 1-0x3F = commands waiting. </p></li>
+<li><p><strong>buffer_m2</strong> – Motor 2 buffer state (same encoding). </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro12read_encoderE4AxisR7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro12read_encoderE4AxisR7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro12read_encoderE4AxisR7int32_tRNSt10error_codeE"></span><span id="espp::Basicmicro::read_encoder__Axis.int32_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a25c3dd913ef57f044de2c5f397fb814a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_encoder</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro4AxisE" title="espp::Basicmicro::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">count</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro12read_encoderE4AxisR7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read one motor’s encoder count / position (commands 16 / 17). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The controller reports the counter as raw 32 bits; it is returned here as a signed int32 so a quadrature encoder run in reverse reads as a negative count. Use the overload taking a <code class="docutils literal notranslate"><span class="pre">status</span></code> out-parameter for the underflow / direction / overflow flags. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Motor channel to read. </p></li>
+<li><p><strong>count</strong> – Signed encoder count (quadrature counters wrap through the full 32-bit range; an absolute encoder reports 0-4095). </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro12read_encoderE4AxisR7int32_tR7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro12read_encoderE4AxisR7int32_tR7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro12read_encoderE4AxisR7int32_tR7uint8_tRNSt10error_codeE"></span><span id="espp::Basicmicro::read_encoder__Axis.int32_tR.uint8_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a9029d4b968b54d802138969c19708c67"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_encoder</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro4AxisE" title="espp::Basicmicro::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">count</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">status</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro12read_encoderE4AxisR7int32_tR7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read one motor’s encoder count / position and status byte (commands 16 / 17). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Motor channel to read. </p></li>
+<li><p><strong>count</strong> – Signed encoder count (see the two-argument overload). </p></li>
+<li><p><strong>status</strong> – Status bits: bit0 = underflow occurred (cleared on read), bit1 = direction (0 forward, 1 backward), bit2 = overflow occurred (cleared on read). </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro13read_encodersER8uint32_tR8uint32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro13read_encodersER8uint32_tR8uint32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro13read_encodersER8uint32_tR8uint32_tRNSt10error_codeE"></span><span id="espp::Basicmicro::read_encoders__uint32_tR.uint32_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1aecfb09e8ff9250efc67d99229ee1f1bd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_encoders</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">count_m1</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">count_m2</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro13read_encodersER8uint32_tR8uint32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read both encoder counters in one transaction (command 78). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>count_m1</strong> – Motor 1 encoder count. </p></li>
+<li><p><strong>count_m2</strong> – Motor 2 encoder count. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro14reset_encodersERNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro14reset_encodersERNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro14reset_encodersERNSt10error_codeE"></span><span id="espp::Basicmicro::reset_encoders__std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a5107d933fde64cd856d455b79654ec4d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_encoders</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro14reset_encodersERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reset both quadrature encoder counters to zero (command 20). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro10read_speedE4AxisR7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro10read_speedE4AxisR7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro10read_speedE4AxisR7int32_tRNSt10error_codeE"></span><span id="espp::Basicmicro::read_speed__Axis.int32_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a3a52e970502c3fb9548639916550274e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_speed</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro4AxisE" title="espp::Basicmicro::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">qpps</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro10read_speedE4AxisR7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read one motor’s encoder speed in pulses per second (commands 18 / 19). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Commands 18/19 report an unsigned speed magnitude plus a separate direction byte; this overload folds that direction into the sign so reverse motion reads as a negative speed (the signed-speed contract of espp::MotorController). Use the overload taking a <code class="docutils literal notranslate"><span class="pre">direction</span></code> out-parameter to read the raw magnitude and the 0 = forward / 1 = backward flag separately. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Motor channel to read. </p></li>
+<li><p><strong>qpps</strong> – Speed in pulses per second (as reported by the controller). </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro10read_speedE4AxisR7int32_tR7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro10read_speedE4AxisR7int32_tR7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro10read_speedE4AxisR7int32_tR7uint8_tRNSt10error_codeE"></span><span id="espp::Basicmicro::read_speed__Axis.int32_tR.uint8_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a6be542240e72c06ebc94d5489a1c8c9a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_speed</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro4AxisE" title="espp::Basicmicro::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">qpps</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">direction</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro10read_speedE4AxisR7int32_tR7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read one motor’s encoder speed and direction (commands 18 / 19). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Motor channel to read. </p></li>
+<li><p><strong>qpps</strong> – Speed in pulses per second (as reported by the controller). </p></li>
+<li><p><strong>direction</strong> – 0 = forward, 1 = backward. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro12read_ispeedsER7int32_tR7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro12read_ispeedsER7int32_tR7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro12read_ispeedsER7int32_tR7int32_tRNSt10error_codeE"></span><span id="espp::Basicmicro::read_ispeeds__int32_tR.int32_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1aa87e169446823b6f48e182ad133a301e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_ispeeds</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">qpps_m1</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">qpps_m2</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro12read_ispeedsER7int32_tR7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read both instantaneous speeds (counts per second over the last 1/300th of a second) in one transaction (command 79). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qpps_m1</strong> – Motor 1 instantaneous speed. </p></li>
+<li><p><strong>qpps_m2</strong> – Motor 2 instantaneous speed. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro18read_encoder_modesER7uint8_tR7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro18read_encoder_modesER7uint8_tR7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro18read_encoder_modesER7uint8_tR7uint8_tRNSt10error_codeE"></span><span id="espp::Basicmicro::read_encoder_modes__uint8_tR.uint8_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1aeeca8fce7459e876549b2cf223c33ea4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_encoder_modes</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">mode_m1</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">mode_m2</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro18read_encoder_modesER7uint8_tR7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the encoder modes / pin assignments for both motors (command 91). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mode_m1</strong> – Motor 1 encoder mode. </p></li>
+<li><p><strong>mode_m2</strong> – Motor 2 encoder mode. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro16set_velocity_pidE4Axisfff8uint32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro16set_velocity_pidE4Axisfff8uint32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro16set_velocity_pidE4Axisfff8uint32_tRNSt10error_codeE"></span><span id="espp::Basicmicro::set_velocity_pid__Axis.float.float.float.uint32_t.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1aedd5706f5470f03378d25f84638b782b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_velocity_pid</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro4AxisE" title="espp::Basicmicro::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">i</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">d</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpps</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro16set_velocity_pidE4Axisfff8uint32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set one motor’s velocity PID constants and QPPS (commands 28 / 29). </p>
+<p>Gains are converted to the controller’s 16.16 fixed-point representation (value * 65536); the controller defaults correspond to P=1.0, I=0.5, D=0.25, QPPS=44000. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Motor channel to configure. </p></li>
+<li><p><strong>p</strong> – Proportional gain. </p></li>
+<li><p><strong>i</strong> – Integral gain. </p></li>
+<li><p><strong>d</strong> – Derivative gain. </p></li>
+<li><p><strong>qpps</strong> – Encoder speed (quad pulses per second) at 100% motor power. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro17read_velocity_pidE4AxisRfRfRfR8uint32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro17read_velocity_pidE4AxisRfRfRfR8uint32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro17read_velocity_pidE4AxisRfRfRfR8uint32_tRNSt10error_codeE"></span><span id="espp::Basicmicro::read_velocity_pid__Axis.floatR.floatR.floatR.uint32_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a9ca50ce1ba403f084983b1dfc437cf9e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_velocity_pid</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro4AxisE" title="espp::Basicmicro::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">i</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">d</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">qpps</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro17read_velocity_pidE4AxisRfRfRfR8uint32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read one motor’s velocity PID constants and QPPS (commands 55 / 56). Fixed-point values are converted back to floats (divide by 65536). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Motor channel to read. </p></li>
+<li><p><strong>p</strong> – Proportional gain. </p></li>
+<li><p><strong>i</strong> – Integral gain. </p></li>
+<li><p><strong>d</strong> – Derivative gain. </p></li>
+<li><p><strong>qpps</strong> – Encoder speed (quad pulses per second) at 100% motor power. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro16set_position_pidE4Axisfff8uint32_t8uint32_t7int32_t7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro16set_position_pidE4Axisfff8uint32_t8uint32_t7int32_t7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro16set_position_pidE4Axisfff8uint32_t8uint32_t7int32_t7int32_tRNSt10error_codeE"></span><span id="espp::Basicmicro::set_position_pid__Axis.float.float.float.uint32_t.uint32_t.int32_t.int32_t.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a5aaf058fbf6084a59e558cc98c473aa1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_position_pid</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro4AxisE" title="espp::Basicmicro::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">i</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">d</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_i</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">deadzone</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">min_pos</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_pos</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro16set_position_pidE4Axisfff8uint32_t8uint32_t7int32_t7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set one motor’s position PID constants (commands 61 / 62). </p>
+<p>The position loop has seven constants: P, I, D gains (transferred scaled by 1024), MaxI (integral windup limit), Deadzone (in encoder counts), and MinPos / MaxPos (the position range the loop will command; a target outside it is clamped). The factory default for every constant is zero, so position commands (65-67) produce no motion until these are set. Note the wire order for this command is D, P, I (unlike the P, I, D read order of command 63). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Motor channel to configure. </p></li>
+<li><p><strong>p</strong> – Proportional gain. </p></li>
+<li><p><strong>i</strong> – Integral gain. </p></li>
+<li><p><strong>d</strong> – Derivative gain. </p></li>
+<li><p><strong>max_i</strong> – Maximum integral windup. </p></li>
+<li><p><strong>deadzone</strong> – Deadzone in encoder counts. </p></li>
+<li><p><strong>min_pos</strong> – Minimum commandable position. </p></li>
+<li><p><strong>max_pos</strong> – Maximum commandable position. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro17read_position_pidE4AxisRfRfRfR8uint32_tR8uint32_tR7int32_tR7int32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro17read_position_pidE4AxisRfRfRfR8uint32_tR8uint32_tR7int32_tR7int32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro17read_position_pidE4AxisRfRfRfR8uint32_tR8uint32_tR7int32_tR7int32_tRNSt10error_codeE"></span><span id="espp::Basicmicro::read_position_pid__Axis.floatR.floatR.floatR.uint32_tR.uint32_tR.int32_tR.int32_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a8f80b95b3acf0c95f894b420edf918b1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_position_pid</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro4AxisE" title="espp::Basicmicro::Axis"><span class="n"><span class="pre">Axis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">i</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">d</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">max_i</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">deadzone</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">min_pos</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">max_pos</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro17read_position_pidE4AxisRfRfRfR8uint32_tR8uint32_tR7int32_tR7int32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read one motor’s position PID constants (commands 63 / 64). Gains are converted back to floats (divide by 1024). The reply order is P, I, D (unlike the D, P, I write order of command 61). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> – Motor channel to read. </p></li>
+<li><p><strong>p</strong> – Proportional gain. </p></li>
+<li><p><strong>i</strong> – Integral gain. </p></li>
+<li><p><strong>d</strong> – Derivative gain. </p></li>
+<li><p><strong>max_i</strong> – Maximum integral windup. </p></li>
+<li><p><strong>deadzone</strong> – Deadzone in encoder counts. </p></li>
+<li><p><strong>min_pos</strong> – Minimum commandable position. </p></li>
+<li><p><strong>max_pos</strong> – Maximum commandable position. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro21read_firmware_versionERNSt6stringERNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro21read_firmware_versionERNSt6stringERNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro21read_firmware_versionERNSt6stringERNSt10error_codeE"></span><span id="espp::Basicmicro::read_firmware_version__ssR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a4d321e68c767d8f559eef885ab499574"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_firmware_version</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">version</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro21read_firmware_versionERNSt6stringERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the firmware version string (command 21). </p>
+<p>The controller returns up to 48 bytes terminated by a line feed and a NUL character (e.g. “MCP266 2x60A v1.0.0”); the returned string has the terminators stripped. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>version</strong> – The firmware / product version string. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro25read_main_battery_voltageERfRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro25read_main_battery_voltageERfRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro25read_main_battery_voltageERfRNSt10error_codeE"></span><span id="espp::Basicmicro::read_main_battery_voltage__floatR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a3564fb16eee93962ffa1e9df5e94e0e7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_main_battery_voltage</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">volts</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro25read_main_battery_voltageERfRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the main battery (B+/B-) voltage (command 24). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>volts</strong> – Voltage in volts (the controller reports tenths of a volt). </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro26read_logic_battery_voltageERfRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro26read_logic_battery_voltageERfRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro26read_logic_battery_voltageERfRNSt10error_codeE"></span><span id="espp::Basicmicro::read_logic_battery_voltage__floatR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1ae0da5d3dfb98212e55734c3beab276fb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_logic_battery_voltage</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">volts</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro26read_logic_battery_voltageERfRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the logic battery (LB+/LB-) voltage (command 25). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>volts</strong> – Voltage in volts (the controller reports tenths of a volt). </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro13read_currentsERfRfRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro13read_currentsERfRfRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro13read_currentsERfRfRNSt10error_codeE"></span><span id="espp::Basicmicro::read_currents__floatR.floatR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1aa8fea9c763b9ee74a5337f3652e3310c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_currents</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">amps_m1</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">amps_m2</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro13read_currentsERfRfRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the motor currents (command 49). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>amps_m1</strong> – Motor 1 current in amps (the controller reports 10 mA units, i.e. value / 100). </p></li>
+<li><p><strong>amps_m2</strong> – Motor 2 current in amps. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro15read_motor_pwmsERfRfRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro15read_motor_pwmsERfRfRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro15read_motor_pwmsERfRfRNSt10error_codeE"></span><span id="espp::Basicmicro::read_motor_pwms__floatR.floatR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1a2fbd76f25b71678cd8503e8f3a3acdd6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_motor_pwms</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">percent_m1</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">percent_m2</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro15read_motor_pwmsERfRfRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the motor PWM output values (command 48). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>percent_m1</strong> – Motor 1 duty cycle in percent (-100 to +100; the controller reports +/-32767, i.e. value / 327.67). </p></li>
+<li><p><strong>percent_m2</strong> – Motor 2 duty cycle in percent. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro16read_temperatureERfRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro16read_temperatureERfRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro16read_temperatureERfRNSt10error_codeE"></span><span id="espp::Basicmicro::read_temperature__floatR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1aba1fa854ed82f8e30b1aedd09aaa287d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_temperature</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">degrees</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro16read_temperatureERfRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the board temperature (command 82). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>degrees</strong> – Temperature in degrees (the controller reports tenths of a degree). </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro17read_temperature2ERfRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro17read_temperature2ERfRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro17read_temperature2ERfRNSt10error_codeE"></span><span id="espp::Basicmicro::read_temperature2__floatR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1af7a9ef463c4d6e22b568bf21b71c3f65"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_temperature2</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">degrees</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro17read_temperature2ERfRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the second board temperature (command 83, only on supported units). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>degrees</strong> – Temperature in degrees (the controller reports tenths of a degree). </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro11read_statusER8uint32_tRNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro11read_statusER8uint32_tRNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro11read_statusER8uint32_tRNSt10error_codeE"></span><span id="espp::Basicmicro::read_status__uint32_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1ad8447f6f0f8c29deeb4c65e76c639db0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_status</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">status</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro11read_statusER8uint32_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the unit status bit mask (command 90). See <a class="reference internal" href="#classespp_1_1Basicmicro_1a5abd5389397aac2939387d0e28c7f7c1"><span class="std std-ref">Basicmicro::Status</span></a> for the bit definitions (the manual documents the low 16 bits). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The manual leaves the field width unstated, but current MCP firmware returns a 32-bit status (<a class="reference internal" href="#classespp_1_1Basicmicro"><span class="std std-ref">Basicmicro</span></a>’s official Arduino library reads it with Read4). This reads 4 bytes first; if that transaction fails (older firmware replying 16-bit makes the reply end mid-read), the device’s 10 ms packet-clear gap has already elapsed via the timeout, so a single 16-bit retry is performed for legacy-firmware units. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>status</strong> – The status bit mask (0 = normal). </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro24write_settings_to_eepromERNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro24write_settings_to_eepromERNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro24write_settings_to_eepromERNSt10error_codeE"></span><span id="espp::Basicmicro::write_settings_to_eeprom__std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1aa77d6d9318beda214fe53def52daf258"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_settings_to_eeprom</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro24write_settings_to_eepromERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write all settings to non-volatile memory (command 94) so they are reloaded on power-up. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Per the manual this request is sent WITHOUT a CRC ([Address, 94]) but is still acknowledged with 0xFF. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro11reset_estopERNSt10error_codeE">
+<span id="_CPPv3N4espp10Basicmicro11reset_estopERNSt10error_codeE"></span><span id="_CPPv2N4espp10Basicmicro11reset_estopERNSt10error_codeE"></span><span id="espp::Basicmicro::reset_estop__std::error_codeR"></span><span class="target" id="classespp_1_1Basicmicro_1acc7b5e26c365684070988e41a9a25038"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_estop</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro11reset_estopERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reset an E-Stop condition (command 200). Does nothing unless the E-Stop reset has been unlocked (manual command 201). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10Basicmicro8get_nameEv">
+<span id="_CPPv3NK4espp10Basicmicro8get_nameEv"></span><span id="_CPPv2NK4espp10Basicmicro8get_nameEv"></span><span id="espp::Basicmicro::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10Basicmicro8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp10Basicmicro11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp10Basicmicro11set_log_tagERKNSt11string_viewE"></span><span id="espp::Basicmicro::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10Basicmicro13get_log_levelEv">
+<span id="_CPPv3NK4espp10Basicmicro13get_log_levelEv"></span><span id="_CPPv2NK4espp10Basicmicro13get_log_levelEv"></span><span id="espp::Basicmicro::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10Basicmicro13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp10Basicmicro13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp10Basicmicro13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Basicmicro::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp10Basicmicro17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp10Basicmicro17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Basicmicro::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10Basicmicro17get_log_verbosityEv">
+<span id="_CPPv3NK4espp10Basicmicro17get_log_verbosityEv"></span><span id="_CPPv2NK4espp10Basicmicro17get_log_verbosityEv"></span><span id="espp::Basicmicro::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10Basicmicro17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp10Basicmicro18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp10Basicmicro18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Basicmicro::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro6ConfigE">
+<span id="_CPPv3N4espp10Basicmicro6ConfigE"></span><span id="_CPPv2N4espp10Basicmicro6ConfigE"></span><span id="espp::Basicmicro::Config"></span><span class="target" id="structespp_1_1Basicmicro_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the <a class="reference internal" href="#classespp_1_1Basicmicro"><span class="std std-ref">Basicmicro</span></a> driver. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro6Config7addressE">
+<span id="_CPPv3N4espp10Basicmicro6Config7addressE"></span><span id="_CPPv2N4espp10Basicmicro6Config7addressE"></span><span id="espp::Basicmicro::Config::address__uint8_t"></span><span class="target" id="structespp_1_1Basicmicro_1_1Config_1a0463c37b2b2bbd71ffc47301bc2c8f1f"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0x80</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro6Config7addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Packet serial address of the controller (0x80 - 0x87). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro6Config5writeE">
+<span id="_CPPv3N4espp10Basicmicro6Config5writeE"></span><span id="_CPPv2N4espp10Basicmicro6Config5writeE"></span><span id="espp::Basicmicro::Config::write__write_fn"></span><span class="target" id="structespp_1_1Basicmicro_1_1Config_1a9657a18d7898483da4a252783f084065"></span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro8write_fnE" title="espp::Basicmicro::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro6Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write bytes to the controller. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro6Config4readE">
+<span id="_CPPv3N4espp10Basicmicro6Config4readE"></span><span id="_CPPv2N4espp10Basicmicro6Config4readE"></span><span id="espp::Basicmicro::Config::read__read_fn"></span><span class="target" id="structespp_1_1Basicmicro_1_1Config_1a647e62a4cc43858643cf83383eb935e3"></span><a class="reference internal" href="#_CPPv4N4espp10Basicmicro7read_fnE" title="espp::Basicmicro::read_fn"><span class="n"><span class="pre">read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro6Config4readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read bytes from the controller. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro6Config7timeoutE">
+<span id="_CPPv3N4espp10Basicmicro6Config7timeoutE"></span><span id="_CPPv2N4espp10Basicmicro6Config7timeoutE"></span><span id="espp::Basicmicro::Config::timeout__std::chrono::milliseconds"></span><span class="target" id="structespp_1_1Basicmicro_1_1Config_1af7ca840e4834b438b7e903cae10f83a5"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">timeout</span></span></span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">20</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro6Config7timeoutE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Total receive timeout per transaction. Must be &gt;= 10 ms: the controller discards a partial packet after a 10 ms inter-byte gap (manual section 2.2.4), so waiting at least that long guarantees its packet buffer has cleared before the next transaction. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Basicmicro6Config9log_levelE">
+<span id="_CPPv3N4espp10Basicmicro6Config9log_levelE"></span><span id="_CPPv2N4espp10Basicmicro6Config9log_levelE"></span><span id="espp::Basicmicro::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1Basicmicro_1_1Config_1ab48d1eef75ad5888d09198f553029b2b"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10Basicmicro6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> verbosity. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="motor_controller.html" class="btn btn-neutral float-left" title="Motor Controller Interface" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="basicmicro_example.html" class="btn btn-neutral float-right" title="Basicmicro (MCP / RoboClaw) Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

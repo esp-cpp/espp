@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Core Dump (Crash Reporting) - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'coredump/coredump';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="CoreDump Example" href="coredump_example.html" />
+    <link rel="prev" title="Crash Reporting (Core Dump) APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Crash Reporting (Core Dump) APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Core Dump (Crash Reporting)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="coredump_example.html">CoreDump Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#macros">Macros</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id1">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Crash Reporting (Core Dump) APIs</a></li>
+      <li class="breadcrumb-item active">Core Dump (Crash Reporting)</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/a08fc9fe/docs/en/coredump/coredump.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="core-dump-crash-reporting">
+<h1>Core Dump (Crash Reporting)<a class="headerlink" href="#core-dump-crash-reporting" title="Permalink to this heading"></a></h1>
+<p>The <cite>CoreDump</cite> class wraps ESP-IDF’s flash core dump (<code class="docutils literal notranslate"><span class="pre">espcoredump</span></code> with
+<code class="docutils literal notranslate"><span class="pre">CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y</span></code> and a <code class="docutils literal notranslate"><span class="pre">coredump</span></code> data partition)
+in an idiomatic espp API: <code class="docutils literal notranslate"><span class="pre">has_core_dump()</span></code>, <code class="docutils literal notranslate"><span class="pre">summary()</span></code> (the raw
+<code class="docutils literal notranslate"><span class="pre">esp_core_dump_summary_t</span></code>), and <code class="docutils literal notranslate"><span class="pre">format_report()</span></code> — a ready-to-print text
+report with the reset reason, panic reason, crashed task + PC, the raw
+backtrace addresses (Xtensa, with a <code class="docutils literal notranslate"><span class="pre">(corrupted)</span></code> marker when the on-device
+unwind failed) or captured stack dump (RISC-V), and the exact <code class="docutils literal notranslate"><span class="pre">addr2line</span></code>
+command line using the right toolchain prefix for the build target. Abnormal
+resets that write no core dump (brownout, interrupt / task watchdog) are
+still reported with a short hint. Raw image access (<code class="docutils literal notranslate"><span class="pre">image_size()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">read_image()</span></code>, <code class="docutils literal notranslate"><span class="pre">erase()</span></code>) supports downloading the complete ELF core
+dump over any transport; all failures are reported via <code class="docutils literal notranslate"><span class="pre">std::error_code</span></code>.</p>
+<p>The <cite>CoreDumpService</cite> class serves that information over <strong>any byte stream</strong>:
+it reuses the espp <a class="reference internal" href="../ota/ota.html"><span class="doc">ota</span></a> component’s CRC-32-verified stream
+framing (<code class="docutils literal notranslate"><span class="pre">detail/ota_stream_protocol.hpp</span></code>) with message types in a
+dedicated range (<code class="docutils literal notranslate"><span class="pre">GET_SUMMARY</span></code> / <code class="docutils literal notranslate"><span class="pre">GET_SIZE</span></code> / <code class="docutils literal notranslate"><span class="pre">READ</span></code> / <code class="docutils literal notranslate"><span class="pre">ERASE</span></code>
+requests, <code class="docutils literal notranslate"><span class="pre">SUMMARY</span></code> / <code class="docutils literal notranslate"><span class="pre">SIZE</span></code> / <code class="docutils literal notranslate"><span class="pre">DATA</span></code> / <code class="docutils literal notranslate"><span class="pre">OK</span></code> / <code class="docutils literal notranslate"><span class="pre">ERROR</span></code> replies).
+Construct it with a <code class="docutils literal notranslate"><span class="pre">send</span></code> function and feed it received bytes — mounting
+it on a USB vendor (WebUSB) callback, a CDC (Web Serial) callback, or a
+socket takes a few lines. Unknown frame types are ignored, so the service
+coexists with other framed protocols — and, because the parser
+resynchronizes on the frame magic, with free-form <strong>console text</strong> — on the
+same stream.</p>
+<p>The hosted <a class="reference external" href="https://esp-cpp.github.io/espp/apps/coredump_console.html">espp Core Dump Console</a> web app speaks
+the protocol over <strong>WebUSB</strong> (vendor interface) or <strong>Web Serial</strong> (CDC, where
+it doubles as a serial monitor): crash summary, chunked <code class="docutils literal notranslate"><span class="pre">core.elf</span></code>
+download, client-side nearest-symbol backtrace resolution against your local
+app ELF, and erase.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="coredump_example.html">CoreDump Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="coredump_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="coredump_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="coredump_example.html#build-and-flash">Build and Flash</a></li>
+<li class="toctree-l3"><a class="reference internal" href="coredump_example.html#typical-flow">Typical flow</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a08fc9fe/components/coredump/include/coredump.hpp">components/coredump/include/coredump.hpp</a></p></li>
+</ul>
+</section>
+<section id="macros">
+<h3>Macros<a class="headerlink" href="#macros" title="Permalink to this heading"></a></h3>
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ESPP_COREDUMP_HAS_ELF_SUMMARY">
+<span class="target" id="coredump_8hpp_1ada3ad917474df2f2f965136bfd0530b6"></span><span class="sig-name descname"><span class="n"><span class="pre">ESPP_COREDUMP_HAS_ELF_SUMMARY</span></span></span><a class="headerlink" href="#c.ESPP_COREDUMP_HAS_ELF_SUMMARY" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ESP_IDF_VERSION_VAL">
+<span class="target" id="continuous__adc_8hpp_1aea8ce4a4670ccfc09ca0994e6dabac92"></span><span class="sig-name descname"><span class="n"><span class="pre">ESP_IDF_VERSION_VAL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">major</span></span>, <span class="n"><span class="pre">minor</span></span>, <span class="n"><span class="pre">patch</span></span><span class="sig-paren">)</span><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ESP_IDF_VERSION">
+<span class="target" id="continuous__adc_8hpp_1af08c7d5a609db4a3c74fb0fdd870d36f"></span><span class="sig-name descname"><span class="n"><span class="pre">ESP_IDF_VERSION</span></span></span><br /></dt>
+<dd></dd></dl>
+
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8CoreDumpE">
+<span id="_CPPv3N4espp8CoreDumpE"></span><span id="_CPPv2N4espp8CoreDumpE"></span><span id="espp::CoreDump"></span><span class="target" id="classespp_1_1CoreDump"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CoreDump</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp8CoreDumpE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Idiomatic espp access to the ESP-IDF flash core dump. </p>
+<p>Wraps the `espcoredump` component’s flash APIs (`CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH` + a `coredump` data partition) in a no-exceptions, `std::error_code`-reporting espp API:</p>
+<p><ul class="simple">
+<li><p>**Crash detection &amp; summary**: `has_core_dump()`, `summary()` (the raw `esp_core_dump_summary_t`) and `format_report()` — a ready-to-print / ready-to-transmit text report with the reset reason, crashed task, PC, raw backtrace addresses (Xtensa) or a captured stack dump (RISC-V), and the exact `addr2line` command line (with the right toolchain prefix for the build target) to decode them. Abnormal resets that do NOT produce a core dump (brownout, interrupt / task watchdog) are still reported with a short hint (e.g. brownout → check power).</p></li>
+<li><p>**Raw image access**: `image_size()`, `read_image(offset, out, ec)` and `erase(ec)` for downloading the complete core-dump image (the flash header + ELF core file + checksum) over any transport, so host tools (`espcoredump.py`, gdb, or the espp core-dump web console) can do the full offline analysis.</p></li>
+</ul>
+</p>
+<p>The class performs no allocation beyond the returned strings and holds no state other than a small cache of the validated image location (the full-image checksum scan runs once, not once per <a class="reference internal" href="#classespp_1_1CoreDump_1affee32a901ace8ae53bbb9d8ae7dcd03"><span class="std std-ref">read_image()</span></a> chunk, so chunked downloads stay linear; <a class="reference internal" href="#classespp_1_1CoreDump_1aabb3be5c413724b801178d64f07be434"><span class="std std-ref">erase()</span></a> invalidates the cache); all methods are safe to call whether or not a core dump is present. All flash-touching methods (`has_core_dump()`, `summary()`, `format_report()`, `image_size()`, `read_image()`, `erase()`) are serialized by an internal mutex, so one <a class="reference internal" href="#classespp_1_1CoreDump"><span class="std std-ref">CoreDump</span></a> instance can be shared by several threads / transports (e.g. multiple <a class="reference internal" href="#classespp_1_1CoreDumpService"><span class="std std-ref">espp::CoreDumpService</span></a> instances) without a READ on one racing an ERASE on another. When `CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH` is disabled, the dump-related methods degrade gracefully (no dump present) and `format_report()` still reports every abnormal reset reason (panic, brownout, watchdogs, …) — it returns an empty string only for clean reset reasons (power-on, software reset, deep-sleep wake, …).</p>
+<p>For serving this information over a byte-stream transport (USB vendor / WebUSB, CDC / Web Serial, sockets) see <a class="reference internal" href="#classespp_1_1CoreDumpService"><span class="std std-ref">espp::CoreDumpService</span></a> (`coredump_service.hpp`) and the browser web app `web/coredump_console.html`.</p>
+<section id="classespp_1_1CoreDump_1coredump_ex1">
+<h4>CoreDump Example<a class="headerlink" href="#classespp_1_1CoreDump_1coredump_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1CoreDump_1coredump_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// --------------------------------------------------------------------------</span>
+<span class="w">  </span><span class="c1">// Core dump accessor: crash report + raw image access for the service below.</span>
+<span class="w">  </span><span class="c1">// --------------------------------------------------------------------------</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">CoreDump</span><span class="w"> </span><span class="nf">core_dump</span><span class="p">({.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">core_dump</span><span class="p">.</span><span class="n">format_report</span><span class="p">();</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">report</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Clean boot history (reset reason: {})"</span><span class="p">,</span>
+<span class="w">                </span><span class="n">espp</span><span class="o">::</span><span class="n">CoreDump</span><span class="o">::</span><span class="n">reset_reason_name</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">CoreDump</span><span class="o">::</span><span class="n">reset_reason</span><span class="p">()));</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Previous abnormal reset:</span><span class="se">\n</span><span class="s">{}"</span><span class="p">,</span><span class="w"> </span><span class="n">report</span><span class="p">);</span>
+<span class="cp">#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH </span><span class="c1">// avoid a constant-condition warning when disabled</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">core_dump</span><span class="p">.</span><span class="n">has_core_dump</span><span class="p">())</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Core dump image in flash: {} bytes (download / erase it with the web console)"</span><span class="p">,</span>
+<span class="w">                  </span><span class="n">core_dump</span><span class="p">.</span><span class="n">image_size</span><span class="p">());</span>
+<span class="cp">#endif</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// --------------------------------------------------------------------------</span>
+<span class="w">  </span><span class="c1">// USB composite device: a vendor/WebUSB function (framed protocol only) and</span>
+<span class="w">  </span><span class="c1">// a CDC function carrying the system console PLUS the same framed protocol</span>
+<span class="w">  </span><span class="c1">// (the web console's Web Serial transport separates text from frames).</span>
+<span class="w">  </span><span class="c1">// --------------------------------------------------------------------------</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="n">usb_cfg</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x0d36</span><span class="p">;</span><span class="w"> </span><span class="c1">// distinct from the espp default so the webapp filter is specific</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">manufacturer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"espp"</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">product</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"espp CoreDump"</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">;</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="o">::</span><span class="n">CdcFunction</span><span class="w"> </span><span class="n">cdc</span><span class="p">;</span>
+<span class="w">  </span><span class="n">cdc</span><span class="p">.</span><span class="n">interface_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"espp CoreDump (console)"</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">cdc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cdc</span><span class="p">;</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="o">::</span><span class="n">VendorFunction</span><span class="w"> </span><span class="n">vendor</span><span class="p">;</span>
+<span class="w">  </span><span class="n">vendor</span><span class="p">.</span><span class="n">interface_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"espp CoreDump (WebUSB)"</span><span class="p">;</span>
+<span class="w">  </span><span class="n">vendor</span><span class="p">.</span><span class="n">webusb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="c1">// advertise BOS / WebUSB / MS OS 2.0 descriptors</span>
+<span class="w">  </span><span class="n">vendor</span><span class="p">.</span><span class="n">landing_page_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"esp-cpp.github.io/espp/apps/coredump_console.html"</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">vendor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vendor</span><span class="p">;</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="w"> </span><span class="nf">usb</span><span class="p">(</span><span class="n">usb_cfg</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// One CoreDumpService per byte stream (each owns its own frame parser),</span>
+<span class="w">  </span><span class="c1">// both sharing the same espp::CoreDump. Replies go back on the stream the</span>
+<span class="w">  </span><span class="c1">// request came in on.</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">CoreDumpService</span><span class="w"> </span><span class="nf">vendor_service</span><span class="p">(</span>
+<span class="w">      </span><span class="n">core_dump</span><span class="p">,</span><span class="w"> </span><span class="p">{.</span><span class="n">send</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">usb</span><span class="p">.</span><span class="n">write_vendor</span><span class="p">(</span><span class="n">frame</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                  </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">CoreDumpService</span><span class="w"> </span><span class="nf">cdc_service</span><span class="p">(</span>
+<span class="w">      </span><span class="n">core_dump</span><span class="p">,</span><span class="w"> </span><span class="p">{.</span><span class="n">send</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">usb</span><span class="p">.</span><span class="n">write_cdc</span><span class="p">(</span><span class="n">frame</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                  </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8CoreDump8CoreDumpEv">
+<span id="_CPPv3N4espp8CoreDump8CoreDumpEv"></span><span id="_CPPv2N4espp8CoreDump8CoreDumpEv"></span><span id="espp::CoreDump::CoreDump"></span><span class="target" id="classespp_1_1CoreDump_1ab692dc37c3100b2fce9ccf5ade451b4b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CoreDump</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8CoreDump8CoreDumpEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct the <a class="reference internal" href="#classespp_1_1CoreDump"><span class="std std-ref">CoreDump</span></a> accessor with the default configuration. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8CoreDump8CoreDumpERK6Config">
+<span id="_CPPv3N4espp8CoreDump8CoreDumpERK6Config"></span><span id="_CPPv2N4espp8CoreDump8CoreDumpERK6Config"></span><span id="espp::CoreDump::CoreDump__ConfigCR"></span><span class="target" id="classespp_1_1CoreDump_1a99ba6f0e1e65324a01a864ed648ef549"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CoreDump</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8CoreDump6ConfigE" title="espp::CoreDump::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8CoreDump8CoreDumpERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct the <a class="reference internal" href="#classespp_1_1CoreDump"><span class="std std-ref">CoreDump</span></a> accessor. Does not touch the flash. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration parameters. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8CoreDump13has_core_dumpEv">
+<span id="_CPPv3NK4espp8CoreDump13has_core_dumpEv"></span><span id="_CPPv2NK4espp8CoreDump13has_core_dumpEv"></span><span id="espp::CoreDump::has_core_dumpC"></span><span class="target" id="classespp_1_1CoreDump_1a74b0bc260fe72cedcde871286b42fd86"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">has_core_dump</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8CoreDump13has_core_dumpEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether a valid core dump image is present in the coredump flash partition (`esp_core_dump_image_check()`). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8CoreDump13format_reportEv">
+<span id="_CPPv3NK4espp8CoreDump13format_reportEv"></span><span id="_CPPv2NK4espp8CoreDump13format_reportEv"></span><span id="espp::CoreDump::format_reportC"></span><span class="target" id="classespp_1_1CoreDump_1a7ec3a2f64020fb336250560407bbd023"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">format_report</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8CoreDump13format_reportEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Format a human-readable report of the last reset and any stored core dump. </p>
+<p>The report describes two related but SEPARATE events: the reset reason of THIS boot, and the stored core dump image — which is not necessarily from the latest reset, because IDF keeps the image until it is explicitly erased (a later brownout / software / watchdog reset leaves an older panic image in place, and no-overwrite mode can even preserve one across another panic).</p>
+<p><ul class="simple">
+<li><p>With a core dump present: the reset reason, panic reason (if recorded), crashed task + PC, the raw backtrace addresses (with a “(corrupted)” marker when the on-device unwind failed) on Xtensa targets or the size of the captured stack dump on RISC-V, and the exact `addr2line` command line (correct toolchain prefix for CONFIG_IDF_TARGET) to decode the addresses against the app ELF. When the current reset reason is NOT PANIC, the dump is explicitly labeled as coming from an earlier crash rather than from this reset.</p></li>
+<li><p><p>Abnormal reset without a core dump: the reset reason itself is reported with a short hint. Brownout and watchdog resets never write a dump (brownout → check the power supply; watchdog → a task or ISR hogged the CPU); any other abnormal reason (PANIC when the dump is missing — core dump to flash disabled, no `coredump` partition, or the dump failed / was already erased — plus UNKNOWN, power-glitch, CPU-lockup, efuse-error resets) is reported as “no core dump image</p>
+<p>available”.</p>
+</p></li>
+<li><p>Only genuinely clean reset reasons return an empty string, meaning “nothing abnormal to report”: power-on, external-pin reset, software reset, deep-sleep wake, SDIO, and USB / JTAG resets.</p></li>
+</ul>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The report text (”” = clean boot history). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8CoreDump10image_sizeEv">
+<span id="_CPPv3NK4espp8CoreDump10image_sizeEv"></span><span id="_CPPv2NK4espp8CoreDump10image_sizeEv"></span><span id="espp::CoreDump::image_sizeC"></span><span class="target" id="classespp_1_1CoreDump_1ac18cc721551c5960d03787a7d5907484"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">image_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8CoreDump10image_sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Total size in bytes of the stored core dump image (flash header + ELF data + checksum), or 0 if no valid core dump is present. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8CoreDump10read_imageE6size_tNSt4spanI7uint8_tEERNSt10error_codeE">
+<span id="_CPPv3NK4espp8CoreDump10read_imageE6size_tNSt4spanI7uint8_tEERNSt10error_codeE"></span><span id="_CPPv2NK4espp8CoreDump10read_imageE6size_tNSt4spanI7uint8_tEERNSt10error_codeE"></span><span id="espp::CoreDump::read_image__s.std::span:uint8_t:.std::error_codeRC"></span><span class="target" id="classespp_1_1CoreDump_1affee32a901ace8ae53bbb9d8ae7dcd03"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_image</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">offset</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">out</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8CoreDump10read_imageE6size_tNSt4spanI7uint8_tEERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read a chunk of the raw core dump image from flash. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>offset</strong> – Byte offset into the image (0 .. <a class="reference internal" href="#classespp_1_1CoreDump_1ac18cc721551c5960d03787a7d5907484"><span class="std std-ref">image_size()</span></a>-1). </p></li>
+<li><p><strong>out</strong> – Destination span; up to `out.size()` bytes are read (the span is NOT resized — reads past the end of the image fail). </p></li>
+<li><p><strong>ec</strong> – <strong>[out]</strong> Set on failure: no core dump present (no_such_device), the requested range exceeds the image or the reported image lies outside the coredump partition (result_out_of_range), or the flash read failed (io_error). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if `out.size()` bytes were read into <code class="docutils literal notranslate"><span class="pre">out</span></code>, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8CoreDump5eraseERNSt10error_codeE">
+<span id="_CPPv3N4espp8CoreDump5eraseERNSt10error_codeE"></span><span id="_CPPv2N4espp8CoreDump5eraseERNSt10error_codeE"></span><span id="espp::CoreDump::erase__std::error_codeR"></span><span class="target" id="classespp_1_1CoreDump_1aabb3be5c413724b801178d64f07be434"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">erase</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8CoreDump5eraseERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Erase the stored core dump (`esp_core_dump_image_erase()`). Note: this only removes the stored dump. The reset reason of the current boot is unaffected — after a panic reset, <a class="reference internal" href="#classespp_1_1CoreDump_1a7ec3a2f64020fb336250560407bbd023"><span class="std std-ref">format_report()</span></a> still reports the abnormal reset reason (with no dump attached) until a clean reset follows. Idempotent: succeeds as a no-op when no dump is present. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – <strong>[out]</strong> Set on failure (io_error). </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success (or no-op), false otherwise (ec is set). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8CoreDump8get_nameEv">
+<span id="_CPPv3NK4espp8CoreDump8get_nameEv"></span><span id="_CPPv2NK4espp8CoreDump8get_nameEv"></span><span id="espp::CoreDump::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8CoreDump8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8CoreDump11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp8CoreDump11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp8CoreDump11set_log_tagERKNSt11string_viewE"></span><span id="espp::CoreDump::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8CoreDump11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8CoreDump13get_log_levelEv">
+<span id="_CPPv3NK4espp8CoreDump13get_log_levelEv"></span><span id="_CPPv2NK4espp8CoreDump13get_log_levelEv"></span><span id="espp::CoreDump::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8CoreDump13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8CoreDump13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp8CoreDump13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp8CoreDump13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::CoreDump::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8CoreDump13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8CoreDump17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp8CoreDump17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp8CoreDump17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::CoreDump::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8CoreDump17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8CoreDump17get_log_verbosityEv">
+<span id="_CPPv3NK4espp8CoreDump17get_log_verbosityEv"></span><span id="_CPPv2NK4espp8CoreDump17get_log_verbosityEv"></span><span id="espp::CoreDump::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8CoreDump17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8CoreDump18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp8CoreDump18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp8CoreDump18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::CoreDump::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8CoreDump18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8CoreDump12reset_reasonEv">
+<span id="_CPPv3N4espp8CoreDump12reset_reasonEv"></span><span id="_CPPv2N4espp8CoreDump12reset_reasonEv"></span><span id="espp::CoreDump::reset_reason"></span><span class="target" id="classespp_1_1CoreDump_1a0ef56f01765160eab5bbd201cc7201ac"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">esp_reset_reason_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_reason</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8CoreDump12reset_reasonEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The reset reason of THIS boot (`esp_reset_reason()`). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8CoreDump17reset_reason_nameE18esp_reset_reason_t">
+<span id="_CPPv3N4espp8CoreDump17reset_reason_nameE18esp_reset_reason_t"></span><span id="_CPPv2N4espp8CoreDump17reset_reason_nameE18esp_reset_reason_t"></span><span id="espp::CoreDump::reset_reason_name__esp_reset_reason_t"></span><span class="target" id="classespp_1_1CoreDump_1a1eff775213d132e3aa75f30fd005f575"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">reset_reason_name</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">esp_reset_reason_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reason</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8CoreDump17reset_reason_nameE18esp_reset_reason_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Human-readable name for a reset reason (e.g. “PANIC”, “BROWNOUT”). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8CoreDump21is_clean_reset_reasonE18esp_reset_reason_t">
+<span id="_CPPv3N4espp8CoreDump21is_clean_reset_reasonE18esp_reset_reason_t"></span><span id="_CPPv2N4espp8CoreDump21is_clean_reset_reasonE18esp_reset_reason_t"></span><span id="espp::CoreDump::is_clean_reset_reason__esp_reset_reason_t"></span><span class="target" id="classespp_1_1CoreDump_1a543b9158aba6dc1004762b83427ea278"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_clean_reset_reason</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">esp_reset_reason_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reason</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8CoreDump21is_clean_reset_reasonE18esp_reset_reason_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether a reset reason indicates a normal, deliberate reset (a clean boot history: power-on, external pin, software reset, deep-sleep wake, SDIO, USB / JTAG). Everything else (panic, watchdogs, brownout, power glitch, CPU lockup, unknown, …) is abnormal and worth reporting even without a core dump. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8CoreDump16toolchain_prefixEv">
+<span id="_CPPv3N4espp8CoreDump16toolchain_prefixEv"></span><span id="_CPPv2N4espp8CoreDump16toolchain_prefixEv"></span><span id="espp::CoreDump::toolchain_prefixCE"></span><span class="target" id="classespp_1_1CoreDump_1a58257a549e689c658c291699d46c5a44"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">toolchain_prefix</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8CoreDump16toolchain_prefixEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The GNU toolchain binary prefix for the build target (e.g. “xtensa-esp32s3-elf-” or “riscv32-esp-elf-“), for composing addr2line / gdb command lines in reports and host tools. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8CoreDump6ConfigE">
+<span id="_CPPv3N4espp8CoreDump6ConfigE"></span><span id="_CPPv2N4espp8CoreDump6ConfigE"></span><span id="espp::CoreDump::Config"></span><span class="target" id="structespp_1_1CoreDump_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp8CoreDump6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the <a class="reference internal" href="#classespp_1_1CoreDump"><span class="std std-ref">CoreDump</span></a> component. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8CoreDump6Config9log_levelE">
+<span id="_CPPv3N4espp8CoreDump6Config9log_levelE"></span><span id="_CPPv2N4espp8CoreDump6Config9log_levelE"></span><span id="espp::CoreDump::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1CoreDump_1_1Config_1afd5e30a1daa4da0e4b92165f07b8c097"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8CoreDump6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> verbosity. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="id1">
+<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a08fc9fe/components/coredump/include/coredump_service.hpp">components/coredump/include/coredump_service.hpp</a></p></li>
+</ul>
+</section>
+<section id="id2">
+<h3>Classes<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpServiceE">
+<span id="_CPPv3N4espp15CoreDumpServiceE"></span><span id="_CPPv2N4espp15CoreDumpServiceE"></span><span id="espp::CoreDumpService"></span><span class="target" id="classespp_1_1CoreDumpService"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CoreDumpService</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp15CoreDumpServiceE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Transport-agnostic service exposing the flash core dump (see <a class="reference internal" href="#classespp_1_1CoreDump"><span class="std std-ref">espp::CoreDump</span></a>) over any framed byte stream. </p>
+<p>The service answers the core-dump protocol requests (GET_SUMMARY / GET_SIZE / READ / ERASE — see `coredump_service.hpp`’s header comment for the wire spec) with replies encoded by the espp `stream_frame` codec. It is constructed with a `send` function that transmits an encoded reply frame, so mounting it on a transport takes a few lines:</p>
+<p><ul class="simple">
+<li><p>**USB vendor / WebUSB**: `send` = `usb.write_vendor(frame)`, and call `feed(data)` from the vendor receive callback.</p></li>
+<li><p>**USB CDC / Web Serial**: `send` = `usb.write_cdc(frame)`, and call `feed(data)` from the CDC receive callback. The framing parser resynchronizes on the frame magic, so the SAME stream can also carry console text (the espp core-dump web console renders the text and the frames side by side).</p></li>
+<li><p>**Sockets / UART / …**: same pattern with the transport’s send / receive.</p></li>
+</ul>
+</p>
+<p>`feed()` runs an internal incremental frame parser and dispatches every complete, CRC-verified frame to `handle_frame()`; a transport that already parses frames itself (e.g. one shared parser for several protocols) can call `handle_frame(type, payload)` directly (after routing by module). <a class="reference internal" href="#classespp_1_1CoreDumpService_1a513485c40b4d8dc1d4295775b037f7d7"><span class="std std-ref">feed()</span></a> ignores frames for other modules, and <a class="reference internal" href="#classespp_1_1CoreDumpService_1af787b292bdfdad7084196e3e0e3f3cb5"><span class="std std-ref">handle_frame()</span></a> returns false for types outside the core-dump protocol, so the service coexists with other protocols on one stream.</p>
+<p>Each instance owns one parser, so create one instance per byte stream (they can all share the same <a class="reference internal" href="#classespp_1_1CoreDump"><span class="std std-ref">espp::CoreDump</span></a>: it serializes its flash-touching methods with its own internal mutex, so e.g. a READ arriving on one transport cannot interleave with an ERASE arriving on another).</p>
+<p>**Threading &amp; the `send` callback contract**: `feed()` / `handle_frame()` / `reset_parser()` are serialized against each other by an internal mutex, which covers the parser state, the flash access, and building the reply frame — but the `send` callback is always invoked AFTER that mutex is released. `send` may therefore freely call back into the service (e.g. a loopback transport, or an error path that calls `reset_parser()`) without deadlocking. The flip side: the service does NOT serialize `send` itself — with the recommended one-instance-per-stream design each instance’s `send` is only ever called from that stream’s single receive context, but if you do feed one instance from multiple tasks, `send` can be invoked concurrently and must be thread-safe.</p>
+<section id="classespp_1_1CoreDumpService_1coredump_service_ex1">
+<h4>CoreDumpService Example<a class="headerlink" href="#classespp_1_1CoreDumpService_1coredump_service_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1CoreDumpService_1coredump_service_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// --------------------------------------------------------------------------</span>
+<span class="w">  </span><span class="c1">// Core dump accessor: crash report + raw image access for the service below.</span>
+<span class="w">  </span><span class="c1">// --------------------------------------------------------------------------</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">CoreDump</span><span class="w"> </span><span class="nf">core_dump</span><span class="p">({.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">core_dump</span><span class="p">.</span><span class="n">format_report</span><span class="p">();</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">report</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Clean boot history (reset reason: {})"</span><span class="p">,</span>
+<span class="w">                </span><span class="n">espp</span><span class="o">::</span><span class="n">CoreDump</span><span class="o">::</span><span class="n">reset_reason_name</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">CoreDump</span><span class="o">::</span><span class="n">reset_reason</span><span class="p">()));</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Previous abnormal reset:</span><span class="se">\n</span><span class="s">{}"</span><span class="p">,</span><span class="w"> </span><span class="n">report</span><span class="p">);</span>
+<span class="cp">#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH </span><span class="c1">// avoid a constant-condition warning when disabled</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">core_dump</span><span class="p">.</span><span class="n">has_core_dump</span><span class="p">())</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Core dump image in flash: {} bytes (download / erase it with the web console)"</span><span class="p">,</span>
+<span class="w">                  </span><span class="n">core_dump</span><span class="p">.</span><span class="n">image_size</span><span class="p">());</span>
+<span class="cp">#endif</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// --------------------------------------------------------------------------</span>
+<span class="w">  </span><span class="c1">// USB composite device: a vendor/WebUSB function (framed protocol only) and</span>
+<span class="w">  </span><span class="c1">// a CDC function carrying the system console PLUS the same framed protocol</span>
+<span class="w">  </span><span class="c1">// (the web console's Web Serial transport separates text from frames).</span>
+<span class="w">  </span><span class="c1">// --------------------------------------------------------------------------</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="n">usb_cfg</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x0d36</span><span class="p">;</span><span class="w"> </span><span class="c1">// distinct from the espp default so the webapp filter is specific</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">manufacturer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"espp"</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">product</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"espp CoreDump"</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">;</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="o">::</span><span class="n">CdcFunction</span><span class="w"> </span><span class="n">cdc</span><span class="p">;</span>
+<span class="w">  </span><span class="n">cdc</span><span class="p">.</span><span class="n">interface_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"espp CoreDump (console)"</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">cdc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cdc</span><span class="p">;</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="o">::</span><span class="n">VendorFunction</span><span class="w"> </span><span class="n">vendor</span><span class="p">;</span>
+<span class="w">  </span><span class="n">vendor</span><span class="p">.</span><span class="n">interface_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"espp CoreDump (WebUSB)"</span><span class="p">;</span>
+<span class="w">  </span><span class="n">vendor</span><span class="p">.</span><span class="n">webusb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="c1">// advertise BOS / WebUSB / MS OS 2.0 descriptors</span>
+<span class="w">  </span><span class="n">vendor</span><span class="p">.</span><span class="n">landing_page_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"esp-cpp.github.io/espp/apps/coredump_console.html"</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">vendor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vendor</span><span class="p">;</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="w"> </span><span class="nf">usb</span><span class="p">(</span><span class="n">usb_cfg</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// One CoreDumpService per byte stream (each owns its own frame parser),</span>
+<span class="w">  </span><span class="c1">// both sharing the same espp::CoreDump. Replies go back on the stream the</span>
+<span class="w">  </span><span class="c1">// request came in on.</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">CoreDumpService</span><span class="w"> </span><span class="nf">vendor_service</span><span class="p">(</span>
+<span class="w">      </span><span class="n">core_dump</span><span class="p">,</span><span class="w"> </span><span class="p">{.</span><span class="n">send</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">usb</span><span class="p">.</span><span class="n">write_vendor</span><span class="p">(</span><span class="n">frame</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                  </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">CoreDumpService</span><span class="w"> </span><span class="nf">cdc_service</span><span class="p">(</span>
+<span class="w">      </span><span class="n">core_dump</span><span class="p">,</span><span class="w"> </span><span class="p">{.</span><span class="n">send</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">usb</span><span class="p">.</span><span class="n">write_cdc</span><span class="p">(</span><span class="n">frame</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                  </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+</pre></div>
+</div>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>`handle_frame()` runs the flash access (and the reply `send`) in the caller’s context. Reads are fast, but ERASE can take tens of milliseconds — when feeding from a latency-sensitive context (e.g. the TinyUSB task), queue the received bytes and `feed()` from a worker task (see the example).</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService3MsgE">
+<span id="_CPPv3N4espp15CoreDumpService3MsgE"></span><span id="_CPPv2N4espp15CoreDumpService3MsgE"></span><span class="target" id="classespp_1_1CoreDumpService_1a1d87873341169692781a341e7f307de9"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Msg</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService3MsgE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Core-dump protocol message types (the stream_frame `type` byte within module 4; see the header comment for the payload spec). </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService3Msg10GetSummaryE">
+<span id="_CPPv3N4espp15CoreDumpService3Msg10GetSummaryE"></span><span id="_CPPv2N4espp15CoreDumpService3Msg10GetSummaryE"></span><span class="target" id="classespp_1_1CoreDumpService_1a1d87873341169692781a341e7f307de9aa5ed8e9ff82418af650c5b7ace02f3bd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetSummary</span></span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService3Msg10GetSummaryE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>request the crash report text </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService3Msg7GetSizeE">
+<span id="_CPPv3N4espp15CoreDumpService3Msg7GetSizeE"></span><span id="_CPPv2N4espp15CoreDumpService3Msg7GetSizeE"></span><span class="target" id="classespp_1_1CoreDumpService_1a1d87873341169692781a341e7f307de9a73f3268c6d235c8253880e70560a2a46"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetSize</span></span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService3Msg7GetSizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>request the core-dump image size </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService3Msg4ReadE">
+<span id="_CPPv3N4espp15CoreDumpService3Msg4ReadE"></span><span id="_CPPv2N4espp15CoreDumpService3Msg4ReadE"></span><span class="target" id="classespp_1_1CoreDumpService_1a1d87873341169692781a341e7f307de9a7a1a5f3e79fdc91edf2f5ead9d66abb4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Read</span></span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService3Msg4ReadE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>read image bytes (u32 offset + u16 length) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService3Msg5EraseE">
+<span id="_CPPv3N4espp15CoreDumpService3Msg5EraseE"></span><span id="_CPPv2N4espp15CoreDumpService3Msg5EraseE"></span><span class="target" id="classespp_1_1CoreDumpService_1a1d87873341169692781a341e7f307de9aedc187bdea52d6e32b9c0f84e0849ec5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Erase</span></span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService3Msg5EraseE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>erase the stored core dump </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService3Msg7SummaryE">
+<span id="_CPPv3N4espp15CoreDumpService3Msg7SummaryE"></span><span id="_CPPv2N4espp15CoreDumpService3Msg7SummaryE"></span><span class="target" id="classespp_1_1CoreDumpService_1a1d87873341169692781a341e7f307de9a290612199861c31d1036b185b4e69b75"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Summary</span></span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService3Msg7SummaryE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>UTF-8 crash report (empty = clean boot history) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService3Msg4SizeE">
+<span id="_CPPv3N4espp15CoreDumpService3Msg4SizeE"></span><span id="_CPPv2N4espp15CoreDumpService3Msg4SizeE"></span><span class="target" id="classespp_1_1CoreDumpService_1a1d87873341169692781a341e7f307de9a6f6cb72d544962fa333e2e34ce64f719"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Size</span></span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService3Msg4SizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>u32 image size (0 = no core dump) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService3Msg4DataE">
+<span id="_CPPv3N4espp15CoreDumpService3Msg4DataE"></span><span id="_CPPv2N4espp15CoreDumpService3Msg4DataE"></span><span class="target" id="classespp_1_1CoreDumpService_1a1d87873341169692781a341e7f307de9af6068daa29dbb05a7ead1e3b5a48bbee"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Data</span></span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService3Msg4DataE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>u32 offset + image bytes </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService3Msg2OkE">
+<span id="_CPPv3N4espp15CoreDumpService3Msg2OkE"></span><span id="_CPPv2N4espp15CoreDumpService3Msg2OkE"></span><span class="target" id="classespp_1_1CoreDumpService_1a1d87873341169692781a341e7f307de9aa60852f204ed8028c1c58808b746d115"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ok</span></span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService3Msg2OkE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>u32 context-dependent success value </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService3Msg5ErrorE">
+<span id="_CPPv3N4espp15CoreDumpService3Msg5ErrorE"></span><span id="_CPPv2N4espp15CoreDumpService3Msg5ErrorE"></span><span class="target" id="classespp_1_1CoreDumpService_1a1d87873341169692781a341e7f307de9a902b0d55fddef6f8d651fe1035b7d4bd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Error</span></span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService3Msg5ErrorE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>u32 informational code + authoritative UTF-8 message </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService6StreamE">
+<span id="_CPPv3N4espp15CoreDumpService6StreamE"></span><span id="_CPPv2N4espp15CoreDumpService6StreamE"></span><span class="target" id="classespp_1_1CoreDumpService_1a4a378a8b178842616e04bf2522204237"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Stream</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">stream_frame</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../stream_frame/stream_frame.html#_CPPv4N4espp12stream_frame12StreamParserE" title="espp::stream_frame::StreamParser"><span class="n"><span class="pre">StreamParser</span></span></a><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService6StreamE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Frame-stream parser type (from the shared stream_frame codec). </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService7send_fnE">
+<span id="_CPPv3N4espp15CoreDumpService7send_fnE"></span><span id="_CPPv2N4espp15CoreDumpService7send_fnE"></span><span class="target" id="classespp_1_1CoreDumpService_1ab3415b71a76eb2139fcfbe906979923e"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n"><span class="pre">frame</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService7send_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function used to transmit one encoded reply frame to the host. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param frame<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The complete encoded frame bytes (header + payload + CRC). </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService15CoreDumpServiceER8CoreDumpRK6Config">
+<span id="_CPPv3N4espp15CoreDumpService15CoreDumpServiceER8CoreDumpRK6Config"></span><span id="_CPPv2N4espp15CoreDumpService15CoreDumpServiceER8CoreDumpRK6Config"></span><span id="espp::CoreDumpService::CoreDumpService__CoreDumpR.ConfigCR"></span><span class="target" id="classespp_1_1CoreDumpService_1ac873c5d9a270fcb95ea17becd591763f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CoreDumpService</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp8CoreDumpE" title="espp::CoreDump"><span class="n"><span class="pre">CoreDump</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">core_dump</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp15CoreDumpService6ConfigE" title="espp::CoreDumpService::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService15CoreDumpServiceER8CoreDumpRK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct the service. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>core_dump</strong> – The core-dump accessor to serve (may be shared between several service instances / transports; must outlive the service). </p></li>
+<li><p><strong>config</strong> – Configuration parameters (the reply `send` function). </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService4feedENSt4spanIK7uint8_tEE">
+<span id="_CPPv3N4espp15CoreDumpService4feedENSt4spanIK7uint8_tEE"></span><span id="_CPPv2N4espp15CoreDumpService4feedENSt4spanIK7uint8_tEE"></span><span id="espp::CoreDumpService::feed__std::span:uint8_tC:"></span><span class="target" id="classespp_1_1CoreDumpService_1a513485c40b4d8dc1d4295775b037f7d7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feed</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService4feedENSt4spanIK7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Feed received transport bytes to the service. </p>
+<p>Runs the internal incremental frame parser (arbitrary chunking, CRC verification, resynchronization past non-frame bytes such as console text) and processes every complete frame (see <a class="reference internal" href="#classespp_1_1CoreDumpService_1af787b292bdfdad7084196e3e0e3f3cb5"><span class="std std-ref">handle_frame()</span></a>).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The reply `send` callback is invoked after the internal mutex has been released (see the class-level threading notes). Frames are processed and their replies sent ONE AT A TIME, so reply memory is bounded at a single frame regardless of how many requests one input chunk carries (a max-length READ request is only 17 bytes on the wire while its DATA reply can be ~4 KiB, so accumulating all the replies first would let a single 4 KiB receive chunk materialize close to 1 MiB). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – Any number of received bytes.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService12handle_frameE7uint8_tNSt4spanIK7uint8_tEE">
+<span id="_CPPv3N4espp15CoreDumpService12handle_frameE7uint8_tNSt4spanIK7uint8_tEE"></span><span id="_CPPv2N4espp15CoreDumpService12handle_frameE7uint8_tNSt4spanIK7uint8_tEE"></span><span id="espp::CoreDumpService::handle_frame__uint8_t.std::span:uint8_tC:"></span><span class="target" id="classespp_1_1CoreDumpService_1af787b292bdfdad7084196e3e0e3f3cb5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">handle_frame</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">payload</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService12handle_frameE7uint8_tNSt4spanIK7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Handle one already-parsed frame. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The reply `send` callback is invoked after the internal mutex has been released (see the class-level threading notes). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>type</strong> – The frame type byte. </p></li>
+<li><p><strong>payload</strong> – The frame payload bytes. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the frame type belongs to the core-dump protocol and the frame was processed (a reply frame is produced; it is delivered only when a `send` callback is configured, and dropped with a warning otherwise), false if it was ignored (another protocol’s frame — nothing is produced, so multiple services can share one stream).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService12reset_parserEv">
+<span id="_CPPv3N4espp15CoreDumpService12reset_parserEv"></span><span id="_CPPv2N4espp15CoreDumpService12reset_parserEv"></span><span id="espp::CoreDumpService::reset_parser"></span><span class="target" id="classespp_1_1CoreDumpService_1afc317006bdb644603f4d753d5603898b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_parser</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService12reset_parserEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Discard any partially-buffered frame bytes (e.g. on transport reconnect or after an RX overflow). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp15CoreDumpService8get_nameEv">
+<span id="_CPPv3NK4espp15CoreDumpService8get_nameEv"></span><span id="_CPPv2NK4espp15CoreDumpService8get_nameEv"></span><span id="espp::CoreDumpService::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp15CoreDumpService8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp15CoreDumpService11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp15CoreDumpService11set_log_tagERKNSt11string_viewE"></span><span id="espp::CoreDumpService::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp15CoreDumpService13get_log_levelEv">
+<span id="_CPPv3NK4espp15CoreDumpService13get_log_levelEv"></span><span id="_CPPv2NK4espp15CoreDumpService13get_log_levelEv"></span><span id="espp::CoreDumpService::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp15CoreDumpService13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp15CoreDumpService13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp15CoreDumpService13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::CoreDumpService::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp15CoreDumpService17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp15CoreDumpService17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::CoreDumpService::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp15CoreDumpService17get_log_verbosityEv">
+<span id="_CPPv3NK4espp15CoreDumpService17get_log_verbosityEv"></span><span id="_CPPv2NK4espp15CoreDumpService17get_log_verbosityEv"></span><span id="espp::CoreDumpService::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp15CoreDumpService17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp15CoreDumpService18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp15CoreDumpService18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::CoreDumpService::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService7kModuleE">
+<span id="_CPPv3N4espp15CoreDumpService7kModuleE"></span><span id="_CPPv2N4espp15CoreDumpService7kModuleE"></span><span id="espp::CoreDumpService::kModule__uint8_t"></span><span class="target" id="classespp_1_1CoreDumpService_1a9de17eb71784b1bc36d64b0da5670bae"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kModule</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService7kModuleE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../dispatcher/dispatcher.html#classespp_1_1Dispatcher"><span class="std std-ref">Dispatcher</span></a> module id owned by the core-dump protocol (the frame `module` byte). Reply Msg values keep the high bit set, which build() maps to the frame reply flag. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService14kMaxReadLengthE">
+<span id="_CPPv3N4espp15CoreDumpService14kMaxReadLengthE"></span><span id="_CPPv2N4espp15CoreDumpService14kMaxReadLengthE"></span><span id="espp::CoreDumpService::kMaxReadLength__s"></span><span class="target" id="classespp_1_1CoreDumpService_1a7b47373480538c87f24efa728912007b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kMaxReadLength</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">stream_frame</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">kMaxPayloadSize</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService14kMaxReadLengthE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum image bytes per READ request / DATA reply (the DATA payload is a 4-byte offset plus the data, capped by the framing’s payload limit). </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService6ConfigE">
+<span id="_CPPv3N4espp15CoreDumpService6ConfigE"></span><span id="_CPPv2N4espp15CoreDumpService6ConfigE"></span><span id="espp::CoreDumpService::Config"></span><span class="target" id="structespp_1_1CoreDumpService_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the <a class="reference internal" href="#classespp_1_1CoreDumpService"><span class="std std-ref">CoreDumpService</span></a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService6Config4sendE">
+<span id="_CPPv3N4espp15CoreDumpService6Config4sendE"></span><span id="_CPPv2N4espp15CoreDumpService6Config4sendE"></span><span id="espp::CoreDumpService::Config::send__send_fn"></span><span class="target" id="structespp_1_1CoreDumpService_1_1Config_1ad0209fb00144b573ac1425f5b8ab32e8"></span><a class="reference internal" href="#_CPPv4N4espp15CoreDumpService7send_fnE" title="espp::CoreDumpService::send_fn"><span class="n"><span class="pre">send_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService6Config4sendE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Transmits an encoded reply frame (required). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15CoreDumpService6Config9log_levelE">
+<span id="_CPPv3N4espp15CoreDumpService6Config9log_levelE"></span><span id="_CPPv2N4espp15CoreDumpService6Config9log_levelE"></span><span id="espp::CoreDumpService::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1CoreDumpService_1_1Config_1ad8b0f6a1e3e3be90d6c5310564c920aa"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp15CoreDumpService6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> verbosity. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Crash Reporting (Core Dump) APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="coredump_example.html" class="btn btn-neutral float-right" title="CoreDump Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
