@@ -9,11 +9,10 @@
 
 set(HFSM_MODEL "${CMAKE_CURRENT_LIST_DIR}/Complex.json")
 
-# Pinned so a build is reproducible. This is a git ref rather than an
-# npm version because the packaging fix that makes `npx webgme-hfsm`
-# work at all is not in a release yet; switch to "webgme-hfsm@^1.8.0"
-# once it is published.
-set(HFSM_GEN_SPEC "github:finger563/webgme-hfsm#3f4652e5b3c89b80e1ba7befb856f22aa959c02e"
+# Pinned to a minor range so a build is reproducible but picks up
+# fixes. 1.8.0 is the first release the CLI can be installed from at
+# all, and the first with --no-support.
+set(HFSM_GEN_SPEC "webgme-hfsm@^1.8.0"
     CACHE STRING "npm/npx spec for the webgme-hfsm code generator")
 
 # Set this to skip npx entirely -- e.g. a local checkout while working
