@@ -209,19 +209,30 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
 
 #endif // CFG_TUD_VENDOR > 0
 
-// Device unmount: drop any bytes still queued in the TX FIFOs. A host that goes
-// away (cable pull / re-enumeration / suspend) leaves its unread backlog in the
-// software FIFO; clearing it here means the next host to mount starts from an
-// empty pipe and cannot mis-parse a stale frame as the reply to its first
-// command. (An abrupt tab close does NOT unmount, so it does not reach here --
-// that path relies on the streaming producer's own backpressure handling.)
-void tud_umount_cb(void) {
-#if (CFG_TUD_VENDOR > 0)
-  tud_vendor_write_clear();
-#endif
-#if (CFG_TUD_CDC > 0)
-  tud_cdc_n_write_clear(kCdcPort);
-#endif
+// NOTE: the TinyUSB device lifecycle callbacks (tud_mount_cb / tud_umount_cb /
+// tud_suspend_cb / tud_resume_cb) are defined by esp_tinyusb itself, which
+// forwards them to the tinyusb_config_t::event_cb we register in initialize().
+// Do NOT define tud_umount_cb here -- it would be a duplicate symbol. The
+// unmount TX-FIFO clear + the app mount/unmount hooks live in the handlers
+// below, driven by this event callback.
+// cppcheck-suppress constParameterCallback // signature must match tinyusb_event_cb_t
+extern "C" void espp_usb_device_event_cb(tinyusb_event_t *event, void *arg) {
+  // Runs in the TinyUSB device-task context: record it so a mount/unmount
+  // callback that calls write_cdc()/write_vendor() takes the non-blocking
+  // fail-fast TX path instead of vTaskDelay()-ing inside the TinyUSB task
+  // (which would deadlock USB servicing).
+  note_tinyusb_task();
+  // Load the teardown-guarded singleton (not event_arg): a destructor that has
+  // atomically detached the instance during teardown then yields nullptr here,
+  // matching the other tud_*_cb trampolines.
+  (void)arg;
+  auto *dev = s_device.load();
+  if (!dev || !event)
+    return;
+  if (event->id == TINYUSB_EVENT_ATTACHED)
+    dev->handle_usb_mount();
+  else if (event->id == TINYUSB_EVENT_DETACHED)
+    dev->handle_usb_unmount();
 }
 
 #if (CFG_TUD_HID > 0)
@@ -289,6 +300,7 @@ const uint8_t *UsbDevice::hid_report_descriptor() const {
 // ---------------------------------------------------------------------------
 
 void UsbDevice::handle_cdc_rx() {
+#if (CFG_TUD_CDC > 0)
   receive_callback_fn cb;
   {
     std::scoped_lock lk(cb_mutex_);
@@ -310,6 +322,7 @@ void UsbDevice::handle_cdc_rx() {
     if (rx_size > 0 && cb)
       cb(std::span<const uint8_t>(buf.data(), rx_size));
   } while (rx_size == buf.size());
+#endif
 }
 
 void UsbDevice::handle_vendor_rx(const uint8_t *buffer, size_t bufsize) {
@@ -834,6 +847,12 @@ bool UsbDevice::initialize(std::error_code &ec) {
   tusb_cfg.descriptor.qualifier = &impl_->qualifier_desc;
 #endif
 
+  // Route esp_tinyusb's device lifecycle events (mount / unmount) to us so we
+  // can clear the TX FIFOs on unmount and invoke any app-registered callbacks.
+  // The callback loads the teardown-guarded s_device singleton itself, so no
+  // event_arg is needed.
+  tusb_cfg.event_cb = espp_usb_device_event_cb;
+
   // Register before installing so the BOS / vendor callbacks can find us.
   // Claim the singleton slot ATOMICALLY: the null check at the top of
   // initialize() is only a fast-fail, so two threads (or two instances) that
@@ -1143,18 +1162,68 @@ void UsbDevice::set_vendor_receive_callback(const receive_callback_fn &cb) {
   on_vendor_receive_ = cb;
 }
 
+void UsbDevice::set_mount_callback(const event_callback_fn &cb) {
+  std::scoped_lock lk(cb_mutex_);
+  on_mount_ = cb;
+}
+
+void UsbDevice::set_unmount_callback(const event_callback_fn &cb) {
+  std::scoped_lock lk(cb_mutex_);
+  on_unmount_ = cb;
+}
+
+void UsbDevice::handle_usb_mount() {
+  event_callback_fn cb;
+  {
+    std::scoped_lock lk(cb_mutex_);
+    cb = on_mount_;
+  }
+  if (cb)
+    cb(); // runs in the TinyUSB task context
+}
+
+void UsbDevice::handle_usb_unmount() {
+  // Drop any bytes still queued in the TX FIFOs so the next host to mount starts
+  // from an empty pipe (a departed host's unread backlog otherwise lingers in
+  // the software FIFO and can be mis-parsed as a reply to the next host's first
+  // command).
+#if (CFG_TUD_VENDOR > 0)
+  if (config_.vendor)
+    tud_vendor_write_clear();
+#endif
+#if (CFG_TUD_CDC > 0)
+  if (config_.cdc)
+    tud_cdc_n_write_clear(kCdcPort);
+#endif
+  event_callback_fn cb;
+  {
+    std::scoped_lock lk(cb_mutex_);
+    cb = on_unmount_;
+  }
+  if (cb)
+    cb(); // runs in the TinyUSB task context
+}
+
 bool UsbDevice::is_initialized() const { return initialized_; }
 
 bool UsbDevice::is_cdc_connected() const {
+#if (CFG_TUD_CDC > 0)
   if (!initialized_ || !config_.cdc)
     return false;
   return tud_cdc_n_connected(kCdcPort);
+#else
+  return false;
+#endif
 }
 
 bool UsbDevice::is_vendor_connected() const {
+#if (CFG_TUD_VENDOR > 0)
   if (!initialized_ || !config_.vendor)
     return false;
   return tud_mounted();
+#else
+  return false;
+#endif
 }
 
 size_t UsbDevice::vendor_write_available() const {
@@ -1168,9 +1237,13 @@ size_t UsbDevice::vendor_write_available() const {
 }
 
 size_t UsbDevice::cdc_write_available() const {
+#if (CFG_TUD_CDC > 0)
   if (!initialized_ || !config_.cdc || !tud_mounted())
     return 0;
   return tud_cdc_n_write_available(kCdcPort);
+#else
+  return 0;
+#endif
 }
 
 void UsbDevice::vendor_write_clear() {
@@ -1181,8 +1254,10 @@ void UsbDevice::vendor_write_clear() {
 }
 
 void UsbDevice::cdc_write_clear() {
+#if (CFG_TUD_CDC > 0)
   if (initialized_ && config_.cdc)
     tud_cdc_n_write_clear(kCdcPort);
+#endif
 }
 
 bool UsbDevice::is_hid_ready() const {

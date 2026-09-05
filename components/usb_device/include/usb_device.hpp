@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "base_component.hpp"
+#include "tinyusb.h" // for tinyusb_event_t (esp_tinyusb is already a REQUIRES dependency)
 
 namespace espp {
 
@@ -56,6 +57,13 @@ namespace espp {
  * \section usb_device_ex1 UsbDevice (composite CDC + Vendor/WebUSB) Example
  * \snippet usb_cdc_example.cpp usb_cdc_example
  */
+
+// Forward-declare the extern "C" trampoline (defined in usb_device.cpp, inside
+// `namespace espp`) so the in-class friend declaration below refers to this
+// existing C-linkage declaration instead of introducing a conflicting
+// C++-linkage espp::espp_usb_device_event_cb.
+extern "C" void espp_usb_device_event_cb(tinyusb_event_t *event, void *arg);
+
 class UsbDevice : public BaseComponent {
 public:
   /**
@@ -63,6 +71,10 @@ public:
    * @param data Span of received bytes (valid only for the duration of the call).
    */
   using receive_callback_fn = std::function<void(std::span<const uint8_t> data)>;
+
+  /// @brief Callback for a device lifecycle event (mount / unmount). Invoked in
+  ///        the TinyUSB device-task context.
+  using event_callback_fn = std::function<void()>;
 
   /**
    * @brief CDC-ACM (virtual serial port) function.
@@ -287,6 +299,19 @@ public:
   /// @brief Set or replace the vendor receive callback (nullptr to detach).
   void set_vendor_receive_callback(const receive_callback_fn &cb);
 
+  /// @brief Register a callback invoked when the device is mounted (the host has
+  ///        configured it). Runs in the TinyUSB device-task context; nullptr
+  ///        detaches. esp_tinyusb owns the raw tud_mount_cb, so applications
+  ///        should register here rather than defining that callback themselves.
+  void set_mount_callback(const event_callback_fn &cb);
+
+  /// @brief Register a callback invoked when the device is unmounted (detached /
+  ///        re-enumerated). The component clears the vendor + CDC TX FIFOs before
+  ///        invoking it. Runs in the TinyUSB device-task context; nullptr
+  ///        detaches. Register here instead of defining tud_umount_cb
+  ///        (esp_tinyusb already defines it).
+  void set_unmount_callback(const event_callback_fn &cb);
+
   /// @brief Whether initialize() has completed successfully.
   bool is_initialized() const;
 
@@ -332,6 +357,15 @@ public:
   static UsbDevice *instance();
 
 private:
+  // Trampoline registered as tinyusb_config_t::event_cb; routes
+  // TINYUSB_EVENT_ATTACHED/DETACHED to the private handlers below.
+  friend void espp_usb_device_event_cb(tinyusb_event_t *event, void *arg);
+
+  /// @brief Internal: mount / unmount handling driven by esp_tinyusb's event_cb
+  ///        (clears the TX FIFOs on unmount, then invokes the app callback).
+  void handle_usb_mount();
+  void handle_usb_unmount();
+
   struct Impl; // holds TinyUSB descriptors, kept alive for driver lifetime
   std::unique_ptr<Impl> impl_;
 
@@ -341,6 +375,8 @@ private:
   std::mutex cb_mutex_;
   receive_callback_fn on_cdc_receive_;
   receive_callback_fn on_vendor_receive_;
+  event_callback_fn on_mount_;
+  event_callback_fn on_unmount_;
 
   // Preallocated RX scratch buffers (sized in initialize()) so the TinyUSB-task
   // RX handlers stay allocation-free (no heap churn on the hot path).

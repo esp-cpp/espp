@@ -189,6 +189,13 @@ Notes
   (the TinyUSB stack and the BOS / vendor control callbacks are global).
 - The receive callbacks run in the TinyUSB device task; keep them short and
   non-blocking. It is safe to call the matching ``write_*()`` from within them.
+- The TinyUSB device lifecycle callbacks (``tud_mount_cb`` / ``tud_umount_cb`` /
+  ``tud_suspend_cb`` / ``tud_resume_cb``) are owned by ``esp_tinyusb``. Register
+  mount / unmount handlers via ``set_mount_callback()`` / ``set_unmount_callback()``
+  rather than defining those callbacks yourself (which would be a duplicate
+  symbol). On unmount the component clears the vendor + CDC TX FIFOs — so a
+  departed host's queued backlog is not delivered to the next host that mounts —
+  before invoking your callback; both handlers run in the TinyUSB device task.
 - The WebUSB landing-page URL is configured *without* a scheme; the scheme is
   encoded separately via ``VendorFunction::url_scheme`` (0 = http, 1 = https).
 
