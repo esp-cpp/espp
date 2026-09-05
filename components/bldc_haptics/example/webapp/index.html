@@ -172,6 +172,7 @@
     .log .tx { color: var(--tx-color); }
     .log .rx { color: var(--rx-color); }
     .log .err { color: var(--err-color); }
+    .log .warn { color: #d08770; }
     .log .sys { color: var(--sys-color); }
     footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
     #unsupported {
@@ -292,6 +293,7 @@
     // answers a ListModules query on 0xFF with the set of modules it serves, so we
     // can confirm this device actually has the haptics module before driving it.
     const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
+    const DISCOVERY_TIMEOUT_MS = 800;        // module-presence probe (0xFF ListModules) timeout
     const FLAGS_VERSION = 1;                  // protocol version lives in flags bits 4-7
     const FLAGS_REQUEST = (FLAGS_VERSION << 4) | 0; // host->device request: 0x10 (reply bit 0)
     const FLAGS_REPLY_BIT = 0x01;            // bit0 set on device->host replies/telemetry
@@ -500,18 +502,25 @@
       if (device) await disconnect(); else await connect();
     });
 
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
+
     async function connect() {
       try {
-        // default: match exactly this example's VID:PID; the checkbox lifts
-        // the filter for other devices. WebUSB has no acceptAllDevices option
-        // (that's Web Bluetooth) — `filters` is a required member, and a
-        // single empty filter object matches every connected device (all
-        // USBDeviceFilter members are optional), regardless of how strictly
-        // an implementation treats an empty `filters` list.
-        const options = els.anyDevice.checked
-          ? { filters: [{}] }
-          : { filters: [{ vendorId: DEFAULT_VID }] };  // any espp device (VID 0x1209), any PID
-        device = await navigator.usb.requestDevice(options);
+        device = await requestUsbDevice(els.anyDevice.checked);
       } catch (e) {
         if (e && e.name === "NotFoundError") logLine("sys", "Device selection cancelled.");
         else logLine("err", "Device selection failed: " + (e && e.message ? e.message : e));
@@ -760,10 +769,14 @@
     // the normal init below still surfaces a genuinely missing module via timeout).
     async function checkModulePresent() {
       const payload = await new Promise((resolve) => {
-        const timer = setTimeout(() => { discoveryResolve = null; resolve(null); }, 800);
-        discoveryResolve = (p) => { clearTimeout(timer); resolve(p); };
+        let timer = null;
+        // settle guards the shared resolver: only clear it if it is still ours,
+        // so a prior probe's timeout can't cancel a newer probe's resolver.
+        const settle = (p) => { clearTimeout(timer); if (discoveryResolve === settle) discoveryResolve = null; resolve(p); };
+        timer = setTimeout(() => settle(null), DISCOVERY_TIMEOUT_MS);
+        discoveryResolve = settle;
         device.transferOut(epOut, buildFrame(T_LIST_MODULES, null, MODULE_DISCOVERY))
-          .catch(() => { clearTimeout(timer); discoveryResolve = null; resolve(null); });
+          .catch(() => settle(null));
       });
       if (!payload) return undefined;        // no discovery reply -> older firmware
       let info;
@@ -773,7 +786,7 @@
         return true;
       }
       const names = info.modules.map((m) => m.name + " (#" + m.id + ")").join(", ") || "none";
-      logLine("err", "This device does not advertise the haptics module. Detected: " + names +
+      logLine("warn", "This device does not advertise the haptics module. Detected: " + names +
               ". You may have selected the wrong device, or its firmware lacks the haptics module.");
       return false;
     }

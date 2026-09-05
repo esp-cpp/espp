@@ -178,6 +178,7 @@
     .log .tx { color: var(--tx-color); }
     .log .rx { color: var(--rx-color); }
     .log .err { color: var(--err-color); }
+    .log .warn { color: #d08770; }
     .log .sys { color: var(--sys-color); }
     footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
     #unsupported {
@@ -262,6 +263,7 @@
     // answers a ListModules query on 0xFF with the modules it serves, so we can
     // confirm the OTA module is present before offering to flash it.
     const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
+    const DISCOVERY_TIMEOUT_MS = 800;        // module-presence probe (0xFF ListModules) timeout
     const FLAGS_VERSION = 1;                  // protocol version lives in flags bits 4-7
     const FLAGS_REQUEST = (FLAGS_VERSION << 4) | 0; // host->device request: 0x10 (reply bit 0)
     const FLAGS_REPLY_BIT = 0x01;            // bit0 set on device->host replies
@@ -443,15 +445,25 @@
       if (device) await disconnect(); else await connect();
     });
 
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
+
     async function connect() {
       try {
-        // WebUSB has no `acceptAllDevices` option (that is Web Bluetooth) --
-        // `filters` is a required member, and a single empty filter object
-        // `{}` matches every connected device (all members are optional).
-        const options = els.anyDevice.checked
-          ? { filters: [{}] }
-          : { filters: [{ vendorId: DEFAULT_VID }] };  // any espp device (VID 0x1209), any PID
-        device = await navigator.usb.requestDevice(options);
+        device = await requestUsbDevice(els.anyDevice.checked);
       } catch (e) {
         // Only NotFoundError is a user cancel / no-match; anything else is real.
         if (e && e.name === "NotFoundError") logLine("sys", "Device selection cancelled.");
@@ -474,7 +486,7 @@
         " (" + inPacketSize + "B) · OUT 0x" + epOut.toString(16);
       logLine("sys", "Connected to " + name + ". Vendor iface " + ifaceNumber +
               ", bulk IN 0x" + epIn.toString(16) + " / OUT 0x" + epOut.toString(16) + ".");
-      checkModulePresent(); // best-effort: warn if this device lacks the OTA module
+      checkModulePresent().catch(() => {}); // best-effort: warn if this device lacks the OTA module
     }
 
     async function openAndClaim() {
@@ -706,7 +718,7 @@
         try {
           await device.transferOut(epOut, buildFrame(T_LIST_MODULES, null, MODULE_DISCOVERY));
         } catch (_) { return; }
-        const timeoutMs = 800, deadline = Date.now() + timeoutMs;
+        const timeoutMs = DISCOVERY_TIMEOUT_MS, deadline = Date.now() + timeoutMs;
         for (;;) {
           let bytes;
           try {
@@ -723,7 +735,7 @@
               logLine("sys", "Device advertises " + info.modules.length + " module(s); OTA module present.");
             } else {
               const names = info.modules.map((m) => m.name + " (#" + m.id + ")").join(", ") || "none";
-              logLine("err", "This device does not advertise the OTA module. Detected: " + names +
+              logLine("warn", "This device does not advertise the OTA module. Detected: " + names +
                       ". You may have selected the wrong device, or its firmware lacks OTA.");
             }
             return;
