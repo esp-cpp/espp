@@ -57,6 +57,13 @@ namespace espp {
  * \section usb_device_ex1 UsbDevice (composite CDC + Vendor/WebUSB) Example
  * \snippet usb_cdc_example.cpp usb_cdc_example
  */
+
+// Forward-declare the extern "C" trampoline (defined in usb_device.cpp, inside
+// `namespace espp`) so the in-class friend declaration below refers to this
+// existing C-linkage declaration instead of introducing a conflicting
+// C++-linkage espp::espp_usb_device_event_cb.
+extern "C" void espp_usb_device_event_cb(tinyusb_event_t *event, void *arg);
+
 class UsbDevice : public BaseComponent {
 public:
   /**
