@@ -221,6 +221,7 @@
     .log .tx { color: var(--tx-color); }
     .log .rx { color: var(--rx-color); }
     .log .err { color: var(--err-color); }
+    .log .warn { color: #d08770; }
     .log .sys { color: var(--sys-color); }
     footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
     #unsupported {
@@ -621,14 +622,27 @@
     // when the 0xFF ListModules reply arrives.
     let discoveryResolve = null;
 
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
+
     // ---- WebUSB transport -------------------------------------------------
     class UsbTransport {
       constructor() { this.device = null; this.iface = null; this.epIn = null; this.epOut = null; this.inSize = 64; this.reading = false; }
       async open(anyDevice) {
-        const options = anyDevice
-          ? { filters: [{}] }
-          : { filters: [{ vendorId: DEFAULT_VID }] };
-        this.device = await navigator.usb.requestDevice(options);
+        this.device = await requestUsbDevice(anyDevice);
         await this.device.open();
         if (this.device.configuration === null) await this.device.selectConfiguration(1);
         const config = this.device.configuration;
@@ -906,7 +920,7 @@
         return;
       }
       const names = info.modules.map((m) => m.name + " (#" + m.id + ")").join(", ") || "none";
-      logLine("err", "This device does not advertise the CAN bridge module. Detected: " + names +
+      logLine("warn", "This device does not advertise the CAN bridge module. Detected: " + names +
               ". You may have selected the wrong device, or its firmware lacks CAN bridge support.");
     }
 
