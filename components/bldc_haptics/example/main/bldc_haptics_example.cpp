@@ -727,11 +727,21 @@ extern "C" void app_main(void) {
          }
          if (overflowed) {
            // Bytes were dropped: any in-flight frame / OTA image is unusable.
+           // Report the drop on the module whose transfer was in flight so the
+           // driving host console sees it immediately: an active OTA session
+           // means ota_console (module 0) is uploading, otherwise it is a
+           // haptics command (module 2). Sending the wrong module's error would
+           // be ignored by the host, which would then wait for its own timeout.
+           const bool ota_was_active = ota.session_active();
            std::error_code abort_ec;
            ota.abort(abort_ec);
            dispatcher.reset();
-           reply_errc(std::errc::no_buffer_space,
-                      "RX overflow: frames dropped -- wait for OK replies between frames");
+           if (ota_was_active)
+             ota_error(std::make_error_code(std::errc::no_buffer_space),
+                       "RX overflow: frames dropped, update aborted");
+           else
+             reply_errc(std::errc::no_buffer_space,
+                        "RX overflow: frames dropped -- wait for OK replies between frames");
            return false; // dropped chunks are gone; skip parse
          }
          for (const auto &chunk : chunks)
