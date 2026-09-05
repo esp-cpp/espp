@@ -1,0 +1,38 @@
+menu "Switch 2 Pro Controller"
+
+    config SWITCH2_PRO_PATCH_NIMBLE_5MS
+        bool "Patch the BLE controller to allow the console's 5 ms connection interval"
+        default n
+        help
+            The console drives the link at a 5 ms connection interval, below the
+            7.5 ms Bluetooth spec minimum. It reaches 5 ms in every mode: on
+            RECONNECT and WAKE-FROM-SLEEP it connects a recognised (bonded)
+            controller at 5 ms from its CONNECT_IND, and on a FRESH session it
+            renegotiates down to 5 ms (LL_CONNECTION_UPDATE) about 1.5 s after the
+            console subscribes to input. The controller stack must accept that
+            sub-spec interval or the connection/stream fails.
+
+            THIS OPTION IS ONLY FOR THE OPEN NimBLE CONTROLLER CHIPS
+            (ESP32-C6/C61/C2/H2), which have no config option for a sub-spec
+            interval. On ESP32-S3 / C3 use the OFFICIAL ESP-IDF option instead:
+            CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (default y) lets the BTDM
+            controller and the BLE host accept sub-spec intervals with no binary
+            patching, in ESP-IDF >= v6.1 (or the v6.0/v5.5/v5.4/v5.3 backports; see
+            espressif/esp-idf#18467). Enabling THIS option on S3/C3 is a build
+            error — there is no verified S3/C3 binary-patch fallback.
+
+            When enabled on a supported chip, the component build patches the
+            prebuilt closed controller library in your global $IDF_PATH install to
+            lower the minimum-interval floor from 6 units (7.5 ms) to 4 (5 ms):
+            ESP32-C6/C61/C2/H2 NimBLE controller (libble_app.a).
+            THIS MODIFIES YOUR ESP-IDF INSTALLATION. Undo with
+            tools/patch_nimble_5ms.py --target <chip> --restore, and verify with
+            tools/smoke_test_5ms.py --target <chip>.
+
+            Required for SUSTAINED input (fresh or reconnected) as well as
+            reconnect and wake-from-sleep. Only the initial pairing handshake
+            (~15 ms, the first ~1.5 s) works without sub-spec support. Leave OFF
+            only if you accept that the console will drop the session once it
+            switches to 5 ms.
+
+endmenu

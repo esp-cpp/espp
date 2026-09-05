@@ -69,6 +69,13 @@ public:
   /// @param conn_info The connection information for the device.
   typedef std::function<void(const NimBLEConnInfo &)> authentication_complete_callback_t;
 
+  /// @brief Callback for when the connection parameters are updated (fires on
+  ///        completion of any connection-parameter-update procedure — whether
+  ///        peer- or self-initiated, accepted or rejected; read the live
+  ///        parameters from conn_info to see the outcome).
+  /// @param conn_info The connection information for the device.
+  typedef std::function<void(const NimBLEConnInfo &)> conn_params_update_callback_t;
+
   /// @brief Callback to retrieve the passkey for the device.
   /// @return The passkey for the device.
   typedef std::function<uint32_t(void)> get_passkey_callback_t;
@@ -131,6 +138,8 @@ public:
         nullptr; ///< Callback for when a device disconnects from the GATT server.
     authentication_complete_callback_t authentication_complete_callback =
         nullptr; ///< Callback for when a device completes authentication.
+    conn_params_update_callback_t conn_params_update_callback =
+        nullptr; ///< Callback for when the connection parameters are updated.
     get_passkey_callback_t get_passkey_callback =
         nullptr; ///< Callback for getting the passkey.
                  /// @note If not provided, will simply return
@@ -259,13 +268,33 @@ public:
     // set the server callbacks
     server_->setCallbacks(new BleGattServerCallbacks(this));
 
-    // create the device info service
-    device_info_service_.init(server_);
+    if (builtin_info_services_) {
+      // create the device info service
+      device_info_service_.init(server_);
 
-    // create the battery service
-    battery_service_.init(server_);
+      // create the battery service
+      battery_service_.init(server_);
+    }
 
     return true;
+  }
+
+  /// Enable or disable the built-in Device Information and Battery services.
+  /// @param enabled Whether init()/start_services() create and start the
+  ///        built-in Device Information (0x180A) and Battery (0x180F) services.
+  ///        Defaults to true. Set to false BEFORE init() for peripherals that
+  ///        must expose only their own services (e.g. emulating a device whose
+  ///        GATT layout must match a specific attribute table).
+  /// @note Must be called before init(). Calling it after init() has no effect
+  ///       (the built-in services are created/skipped during init) and is ignored
+  ///       with a warning, since honoring it would leave services created but never
+  ///       started or torn down.
+  void set_builtin_info_services_enabled(bool enabled) {
+    if (server_) {
+      logger_.warn("set_builtin_info_services_enabled() ignored: must be called before init()");
+      return;
+    }
+    builtin_info_services_ = enabled;
   }
 
   /// Deinitialize the GATT server
@@ -283,8 +312,10 @@ public:
     }
 
     // deinitialize the services
-    device_info_service_.deinit();
-    battery_service_.deinit();
+    if (builtin_info_services_) {
+      device_info_service_.deinit();
+      battery_service_.deinit();
+    }
     // if true, deletes all server/advertising/scan/client objects which
     // invalidates any references/pointers to them
     bool clear_all = true;
@@ -296,8 +327,10 @@ public:
   /// Start the services
   /// This method starts the device info and battery services.
   void start_services() {
-    device_info_service_.start();
-    battery_service_.start();
+    if (builtin_info_services_) {
+      device_info_service_.start();
+      battery_service_.start();
+    }
   }
 
   /// Start the server
@@ -806,6 +839,8 @@ protected:
   NimBLEServer *server_{nullptr};         ///< The GATT server.
   DeviceInfoService device_info_service_; ///< The device info service.
   BatteryService battery_service_;        ///< The battery service.
+  bool builtin_info_services_{
+      true}; ///< Whether to create/start the built-in DIS + battery services.
 };
 } // namespace espp
 

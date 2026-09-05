@@ -1,0 +1,38 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Emulate a Nintendo Switch 2 Pro Controller over BLE (custom GATT + reverse-engineered pairing) so a real Switch 2 accepts it as a native controller and can be woken from sleep."
+url: "https://github.com/esp-cpp/espp/tree/main/components/switch2_pro"
+repository: "https://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/ble/switch2_pro.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - BLE
+  - NimBLE
+  - HID
+  - Gamepad
+  - Nintendo
+  - Switch2
+dependencies:
+  idf:
+    # Floor for the component itself. NOTE: the ESP32-S3/C3 targets additionally
+    # need the official sub-spec-interval fix (CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE)
+    # for reconnect/wake — ESP-IDF >= v6.1 (or the v6.0.2 / v5.5.x / v5.4.x / v5.3.x
+    # backports; espressif/esp-idf#18467). CMakeLists warns at configure time if a
+    # S3/C3 build lacks it (the version floor here can't be target-conditional).
+    version: '>=5.5'
+  # NOTE: this component needs NimBLEServer::registerServicesFirst() (to place the
+  # Nintendo services at the low attribute handles the console addresses by fixed
+  # handle). That API is not in a released esp-nimble-cpp yet — it is upstream at
+  # h2zero/esp-nimble-cpp#443. Until it ships in a tagged release, build against
+  # the pinned esp-cpp/esp-nimble-cpp submodule; bump the version floor below to
+  # the release that includes it once available.
+  h2zero/esp-nimble-cpp:
+    version: '>=2.3.0'
+  espp/ble_gatt_server: '>=1.0'
+  espp/base_component: '>=1.0'
+  espp/timer: '>=1.0'
