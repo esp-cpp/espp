@@ -64,6 +64,10 @@ public:
    */
   using receive_callback_fn = std::function<void(std::span<const uint8_t> data)>;
 
+  /// @brief Callback for a device lifecycle event (mount / unmount). Invoked in
+  ///        the TinyUSB device-task context.
+  using event_callback_fn = std::function<void()>;
+
   /**
    * @brief CDC-ACM (virtual serial port) function.
    *
@@ -287,6 +291,19 @@ public:
   /// @brief Set or replace the vendor receive callback (nullptr to detach).
   void set_vendor_receive_callback(const receive_callback_fn &cb);
 
+  /// @brief Register a callback invoked when the device is mounted (the host has
+  ///        configured it). Runs in the TinyUSB device-task context; nullptr
+  ///        detaches. esp_tinyusb owns the raw tud_mount_cb, so applications
+  ///        should register here rather than defining that callback themselves.
+  void set_mount_callback(const event_callback_fn &cb);
+
+  /// @brief Register a callback invoked when the device is unmounted (detached /
+  ///        re-enumerated / suspended). The component clears the vendor + CDC TX
+  ///        FIFOs before invoking it. Runs in the TinyUSB device-task context;
+  ///        nullptr detaches. Register here instead of defining tud_umount_cb
+  ///        (esp_tinyusb already defines it).
+  void set_unmount_callback(const event_callback_fn &cb);
+
   /// @brief Whether initialize() has completed successfully.
   bool is_initialized() const;
 
@@ -310,6 +327,11 @@ public:
   ///        variant), the FIFO is drained via `tud_vendor_read()` instead.
   /// @param bufsize Number of bytes at @p buffer (0 when @p buffer is null).
   void handle_vendor_rx(const uint8_t *buffer = nullptr, size_t bufsize = 0);
+
+  /// @brief Internal: mount / unmount handling driven by esp_tinyusb's event_cb
+  ///        (clears the TX FIFOs on unmount, then invokes the app callback).
+  void handle_usb_mount();
+  void handle_usb_unmount();
 
   /// @brief Internal: pointer to the BOS descriptor bytes (nullptr if none).
   const uint8_t *bos_descriptor() const;
@@ -341,6 +363,8 @@ private:
   std::mutex cb_mutex_;
   receive_callback_fn on_cdc_receive_;
   receive_callback_fn on_vendor_receive_;
+  event_callback_fn on_mount_;
+  event_callback_fn on_unmount_;
 
   // Preallocated RX scratch buffers (sized in initialize()) so the TinyUSB-task
   // RX handlers stay allocation-free (no heap churn on the hot path).
