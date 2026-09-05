@@ -19,8 +19,11 @@ entirely in the browser — no install, no server — with the
 [**HFSM Playground**][playground], or from the command line:
 
 ```sh
-npx -p webgme-hfsm hfsm-gen my_machine.json -o generated
+npx -y -p webgme-hfsm@^1.8.0 hfsm-gen my_machine.json -o generated
 ```
+
+(`-y` skips npx's install prompt for non-interactive/CI use; the `@^1.8.0`
+pin matches the example's CMake so generation is reproducible.)
 
 The example wires that into its CMake, so its C++ is generated at build
 time from [`Complex.json`](example/main/Complex.json) rather than

@@ -51,6 +51,14 @@ endif()
 # and its magic_enum is newer than the generator's -- so a second copy
 # beside the generated machine would land on the include path and
 # shadow them.
+# Clear stale artifacts first: the generator only overwrites the files it emits,
+# so a machine renamed or removed in the model would otherwise leave an obsolete
+# generated .cpp behind in the (persistent) binary dir for CMake to keep
+# compiling. Wipe + recreate the output dir so a regeneration cannot succeed
+# against stale output.
+file(REMOVE_RECURSE "${HFSM_DIR}")
+file(MAKE_DIRECTORY "${HFSM_DIR}")
+
 message(STATUS "hfsm: generating C++ from ${HFSM_MODEL}")
 execute_process(
   COMMAND ${_hfsm_cmd} "${HFSM_MODEL}" -o "${HFSM_DIR}" --no-support
