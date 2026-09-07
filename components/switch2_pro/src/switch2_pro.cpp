@@ -378,7 +378,7 @@ bool Switch2Pro::build_gatt() {
   // with our services shifted to 0x0022+ the console is forced into a discovery
   // + firmware-probe fallback path that rejects at the pairing commit. Must be
   // set before start_services() (below) starts the GATT server.
-  server->registerServicesFirst(true);
+  server->registerAppServicesFirst(true);
 
   // Attach a tracing callback to every characteristic so bring-up logs show
   // exactly what the console does. Roles: 1 = command 0x0014, 2 = vibration+
