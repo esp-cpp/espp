@@ -683,7 +683,7 @@ void test_edge_cases(espp::Logger &logger) {
     }
   }
 
-  // Test 5: Packet of exactly block len with no zero's in the data
+  // Test 5: Packet of exactly 255 bytes with no zeros in the data
   {
     std::vector<uint8_t> block_len_packet(255, 0x42);
 
@@ -693,13 +693,13 @@ void test_edge_cases(espp::Logger &logger) {
     bool success = (decoded.size() == block_len_packet.size()) &&
                    (std::memcmp(decoded.data(), block_len_packet.data(), block_len_packet.size()) == 0);
     if (success) {
-      logger.info("Test 5: PASS - Packet of exactly block len with no zeros");
+      logger.info("Test 5: PASS - Packet of exactly 255 bytes with no zeros");
     } else {
       logger.error(
-          "Test 5: FAIL - Packet of exactly block len with no zeros (decoded: {}, expected: {}, encoded: {})",
+          "Test 5: FAIL - Packet of exactly 255 bytes with no zeros (decoded: {}, expected: {}, encoded: {})",
           decoded.size(), block_len_packet.size(), encoded.size());
     }
-  }  
+  }
 }
 
 extern "C" void app_main(void) {
