@@ -23,6 +23,7 @@
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
+#include <freertos/semphr.h>
 #include <freertos/stream_buffer.h>
 #include <freertos/task.h>
 
@@ -285,6 +286,10 @@ public:
   /// \note This method queues the panel transfer asynchronously and may return
   ///       before the write has completed.
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
+  // Issue one draw_bitmap and block until the DPI copy completes (or a
+  // bounded timeout). Caller must hold panel_op_mutex_. Returns false if the
+  // draw was rejected/failed (no completion will arrive).
+  bool draw_and_wait(int x1, int y1, int x2, int y2, const void *data);
 
   /////////////////////////////////////////////////////////////////////////////
   // Audio System
@@ -944,6 +949,44 @@ protected:
     esp_lcd_panel_handle_t panel{nullptr};          // color handle
   } lcd_handles_{};
 
+  // Publication gate for the LCD state that flush() / write_lcd_lines() /
+  // on_display_rotation() read from other threads (lcd_handles_,
+  // dpi_framebuffer_ + dpi_framebuffer_bytes_, display_driver_,
+  // display_controller_). Those fields are plain (non-atomic) and are written
+  // by initialize_lcd() on the init thread; if the LVGL display already exists
+  // (initialize_display() called first) the LVGL thread can be flushing
+  // concurrently, so the readers must not touch them until they are all
+  // written. initialize_lcd() only runs while this flag is false (it refuses
+  // to re-initialize once the gate has opened — clearing the flag would not
+  // wait for readers that already observed true), writes every field, applies
+  // the initial panel rotation, and store-releases it true as its final
+  // publication step; the readers load-acquire it and bail out while it is
+  // false. The release/acquire pair makes all of the writes happen-before any
+  // read that observes true, and the flag never transitions true -> false.
+  std::atomic<bool> lcd_initialized_{false};
+
+  // Serializes every panel draw. esp_lcd_panel_draw_bitmap() is asynchronous and
+  // single-flight when the DMA2D hook is enabled (a second call while one is in
+  // flight returns ESP_ERR_INVALID_STATE), and flush() and the public,
+  // cross-thread write_lcd_lines() both issue draws. Holding this mutex across
+  // the draw AND its completion wait means only one transfer is ever in flight,
+  // so a direct write cannot make an LVGL flush's draw fail (which would leave
+  // LVGL waiting forever) and a direct write's completion cannot be mistaken for
+  // an LVGL flush completion.
+  std::mutex panel_op_mutex_;
+  // Signalled from the on_color_trans_done ISR for each completed draw; the
+  // issuing draw (under panel_op_mutex_) waits on it, making draws synchronous.
+  SemaphoreHandle_t draw_done_sem_{nullptr};
+
+  // The DPI panel's (PSRAM) framebuffer, queried from esp_lcd once the panel
+  // is created. flush() uses it to rotate LVGL draw buffers directly into the
+  // scanned-out framebuffer with the PPA, skipping the intermediate scratch
+  // buffer + draw_bitmap copy (which doubles the PSRAM traffic and can starve
+  // the DSI scan-out DMA into FIFO underruns / on-screen streaking). Null when
+  // unavailable, in which case flush() falls back to the scratch-buffer path.
+  void *dpi_framebuffer_{nullptr};
+  size_t dpi_framebuffer_bytes_{0};
+
   // Display controller detection
   DisplayController display_controller_{DisplayController::UNKNOWN};
 
@@ -952,6 +995,22 @@ protected:
   esp_err_t (*original_panel_init_)(esp_lcd_panel_t *panel){nullptr};
 
   void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
+  // Called by espp::Display (LV_EVENT_RESOLUTION_CHANGED) whenever the LVGL
+  // display rotation changes; routes the rotation to the display driver
+  // (MADCTL) when the active panel can honor it in hardware.
+  void on_display_rotation(const DisplayRotation &rotation);
+  // Gate-free core of on_display_rotation(): routes the rotation to the
+  // display driver (MADCTL) when the active panel honors it in hardware.
+  // Callers must guarantee display_driver_ / display_controller_ are safe to
+  // read: on_display_rotation() does so via its lcd_initialized_ acquire
+  // load; initialize_lcd() calls this directly on the init thread (which
+  // wrote those fields) BEFORE opening the gate, so the initial scan
+  // direction is programmed before any flush() can skip the PPA rotation.
+  void apply_panel_rotation(const DisplayRotation &rotation);
+  // Whether the active display controller applies the given LVGL rotation in
+  // panel hardware (via the display driver's set_rotation()/MADCTL), making
+  // buffer rotation (PPA / software) in flush() unnecessary.
+  bool panel_handles_rotation(lv_display_rotation_t rotation) const;
   static bool notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel,
                                       esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx);
 
