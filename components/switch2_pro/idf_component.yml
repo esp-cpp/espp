@@ -25,12 +25,18 @@ dependencies:
     # backports; espressif/esp-idf#18467). CMakeLists warns at configure time if a
     # S3/C3 build lacks it (the version floor here can't be target-conditional).
     version: '>=5.5'
-  # NOTE: this component needs NimBLEServer::registerAppServicesFirst() (to
-  # place the Nintendo services at the low attribute handles the console
-  # addresses by fixed handle). That API is not in a released esp-nimble-cpp yet
-  # — it is upstream at h2zero/esp-nimble-cpp#443. Until it ships in a tagged
-  # release, build against the pinned esp-cpp/esp-nimble-cpp submodule; bump the
-  # version floor below to the release that includes it once available.
+  # NOTE: these floors are placeholders that MUST be raised before this component
+  # is published to the registry, because it depends on APIs that are not yet in a
+  # tagged release of each dependency:
+  #   * h2zero/esp-nimble-cpp — NimBLEServer::registerAppServicesFirst() (upstream
+  #     h2zero/esp-nimble-cpp#443, still open; built here against the pinned
+  #     esp-cpp/esp-nimble-cpp submodule until it ships).
+  #   * espp/ble_gatt_server — the conn_params_update_callback, the bool return of
+  #     start(), and set_builtin_info_services_enabled() (added in this same repo).
+  #   * espp/nvs — std::vector<uint8_t> blob set/get (added in this same repo).
+  # For espp's own (monorepo) build these resolve to the in-tree components; the
+  # floors are bumped to the first release containing each change when this lands.
+  # This is tracked by the "do not merge until #443 releases" gate on the PR.
   h2zero/esp-nimble-cpp:
     version: '>=2.3.0'
   espp/ble_gatt_server: '>=1.0'

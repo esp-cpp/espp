@@ -84,14 +84,21 @@ private:
 };
 
 bool Switch2Pro::init() {
-  // init() is one-shot. A second call would reach the input_stream_thread_
-  // assignment below while the first streaming thread is still joinable, and
-  // assigning to a joinable std::thread calls std::terminate. Treat an already-
-  // initialized instance as a no-op success.
-  if (input_stream_thread_.joinable()) {
+  // init() is one-shot. A fully-initialized instance is an idempotent no-op. A
+  // PARTIAL failure (e.g. build_gatt()/start()/advertise() failing after services
+  // and callbacks were registered) leaves the server in a state that cannot be
+  // safely rebuilt — re-running build_gatt() would duplicate services / mutate a
+  // started DB — so refuse a retry and require the caller to destroy + recreate.
+  if (initialized_) {
     logger_.warn("init() called again while already initialized — ignoring");
     return true;
   }
+  if (init_attempted_) {
+    logger_.error("init() previously failed partway — destroy and recreate the Switch2Pro "
+                  "before retrying");
+    return false;
+  }
+  init_attempted_ = true;
   // Keep the NimBLE host log quiet — our own Switch2Pro trace carries the
   // protocol flow. Bump these to ESP_LOG_DEBUG when the raw stack-level view
   // (every ATT/ACL byte) is needed.
@@ -219,6 +226,7 @@ bool Switch2Pro::init() {
   if (esp_pthread_set_cfg(&cfg) != ESP_OK)
     logger_.warn("esp_pthread_set_cfg failed; streaming thread will use default stack/prio/core");
   input_stream_thread_ = std::thread(&Switch2Pro::input_stream_loop, this);
+  initialized_ = true;
   return true;
 }
 
@@ -1062,13 +1070,31 @@ bool Switch2Pro::clear_bond() {
   bool ok = true;
   espp::Nvs nvs;
   std::error_code ec;
-  std::vector<uint8_t> existing;
-  nvs.get_var(kNvsNamespace, kNvsBondKey, existing, ec);
-  if (!ec) { // a bond is stored — erase it (NVS persists the erase immediately)
-    std::error_code erase_ec;
-    nvs.erase(kNvsNamespace, kNvsBondKey, erase_ec);
-    if (erase_ec) {
-      logger_.error("clear_bond: failed to erase persisted bond ({})", erase_ec.message());
+  espp::NvsHandle handle = nvs.get_handle(kNvsNamespace, ec);
+  if (ec) {
+    logger_.error("clear_bond: could not open NVS namespace ({})", ec.message());
+    ok = false;
+  } else {
+    // Distinguish "no bond stored" (benign) from a real read failure, then erase and
+    // commit (NVS requires a commit to persist a mutation). The espp NVS error
+    // category is per-translation-unit (anonymous namespace), so match not-found by
+    // value + category name rather than by error_code equality.
+    std::vector<uint8_t> existing;
+    std::error_code get_ec;
+    handle.get(kNvsBondKey, existing, get_ec);
+    const bool not_found = get_ec.value() == static_cast<int>(NvsErrc::Key_Not_Found) &&
+                           std::strcmp(get_ec.category().name(), "nvs") == 0;
+    if (!get_ec) { // a bond is stored — erase it and commit
+      std::error_code erase_ec, commit_ec;
+      handle.erase(kNvsBondKey, erase_ec);
+      handle.commit(commit_ec);
+      if (erase_ec || commit_ec) {
+        logger_.error("clear_bond: erasing the bond failed (erase={}, commit={})",
+                      erase_ec.message(), commit_ec.message());
+        ok = false;
+      }
+    } else if (!not_found) { // a real read failure (not simply "no bond stored")
+      logger_.error("clear_bond: reading the stored bond failed ({})", get_ec.message());
       ok = false;
     }
   }

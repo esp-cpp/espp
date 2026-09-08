@@ -190,20 +190,27 @@ def main() -> int:
                 continue
             # Refuse to restore a STALE backup: if ESP-IDF was updated in place after
             # patching, the current archive is a different (newer) library and putting
-            # the old .original back would silently downgrade it. When we recorded the
-            # patched archive's digest, require the current archive to still match it.
-            if os.path.isfile(digest_file):
-                with open(digest_file) as f:
-                    recorded = f.read().strip()
-                if sha256_file(lib) != recorded:
-                    sys.exit(f"{lib}: the current archive does not match the patched version this "
-                             f".original was saved against (ESP-IDF updated in place?). Refusing to "
-                             f"restore a stale backup — delete {backup} and {digest_file} by hand "
-                             f"if you are certain.")
+            # the old .original back would silently downgrade it. Require the recorded
+            # digest of the patched archive and that the current archive still matches
+            # it. A backup without a digest cannot be verified, so refuse it too rather
+            # than risk a downgrade.
+            if not os.path.isfile(digest_file):
+                sys.exit(f"{lib}: found {backup} but no {digest_file} to verify it against; "
+                         f"refusing to restore an unverifiable backup — delete {backup} by hand "
+                         f"if you are certain it is the unpatched library.")
+            with open(digest_file) as f:
+                recorded = f.read().strip()
+            if sha256_file(lib) != recorded:
+                sys.exit(f"{lib}: the current archive does not match the patched version this "
+                         f".original was saved against (ESP-IDF updated in place?). Refusing to "
+                         f"restore a stale backup — delete {backup} and {digest_file} by hand if "
+                         f"you are certain.")
             shutil.copy2(backup, lib)
-            for sidecar in (digest_file,):  # backup is kept; the digest no longer applies
-                if os.path.isfile(sidecar):
-                    os.remove(sidecar)
+            # Remove both sidecars: the backup is consumed (the archive is now the
+            # original), so a later restore after an in-place IDF update can't reuse a
+            # now-stale .original to downgrade the library.
+            os.remove(backup)
+            os.remove(digest_file)
             print(f"restored {lib}")
             n += 1
         if n == 0:

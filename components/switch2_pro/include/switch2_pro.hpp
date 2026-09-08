@@ -291,6 +291,12 @@ protected:
   /// when this is 3, so an out-of-order/malformed peer cannot persist a bad bond.
   /// Reset to 0 on each new connection.
   uint8_t pairing_stage_{0};
+  /// init() lifecycle: init_attempted_ latches on the first init() call so a retry
+  /// after a partial failure is refused (it would rebuild GATT against a live
+  /// server); initialized_ is set only on full success and makes a repeat call an
+  /// idempotent no-op.
+  bool init_attempted_{false};
+  bool initialized_{false};
   /// Booted with a stored bond (reconnect, not fresh pair). Written by FINALISE
   /// (host task) / init, read by advertise() and wake_console() (app task) — atomic.
   std::atomic<bool> reconnect_mode_{false};
