@@ -273,6 +273,7 @@ void Switch2Pro::configure_callbacks() {
     // Remember the connection so the pairing exchange can report the exact
     // over-the-air address the console connected to (see local_bt_address()).
     active_conn_handle_ = info.getConnHandle();
+    encrypted_ = false; // not yet encrypted — set on authentication_complete
     pairing_stage_ = 0; // a fresh connection restarts the 0x15 handshake sequence
     // NOTE: the wake latches (wake_pending_ / boot_wake_pending_) are deliberately
     // NOT cleared here. A console we just woke can connect and then drop again before
@@ -330,6 +331,7 @@ void Switch2Pro::configure_callbacks() {
     // re-run the 0x15 handshake). Use is_connected()/is_input_streaming() for
     // live-session state.
     input_subscribed_ = false;
+    encrypted_ = false;           // require a fresh encrypted session before streaming again
     active_conn_handle_ = 0xffff; // so the wake timer knows we're disconnected
     advertise();
   };
@@ -352,6 +354,11 @@ void Switch2Pro::configure_callbacks() {
     // accepted.
     logger_.info("AUTH complete: encrypted={} bonded={} authenticated={}", info.isEncrypted(),
                  info.isBonded(), info.isAuthenticated());
+    // Gate input streaming on this: we only send live reports over an encrypted
+    // link (established by the console's LL encryption after the 0x15 handshake),
+    // so a peer that merely connects and subscribes without pairing never receives
+    // button/stick data.
+    encrypted_ = info.isEncrypted();
     // A usable (encrypted) session is now established, so any pending wake has
     // succeeded: drop the wake latches. Doing it here (not on the raw connect event)
     // means a transient connect/drop before encryption keeps the wake variant on the
@@ -820,7 +827,11 @@ void Switch2Pro::input_stream_loop() {
   //    controller's tx-servicing bug (it stops draining tx ~3 s into any
   //    sustained encrypted stream — see README "Known issues").
   while (!stream_stop_.load()) {
-    if (!input_subscribed_ || active_conn_handle_ == 0xffff || pro2_input_ == nullptr) {
+    // Require an encrypted (paired) session, not just a CCCD subscription, before
+    // streaming — otherwise any peer that connects and subscribes to this NOTIFY
+    // characteristic without completing pairing would receive live input.
+    if (!input_subscribed_ || !encrypted_ || active_conn_handle_ == 0xffff ||
+        pro2_input_ == nullptr) {
       have_streamed_ = false; // (re)subscribe forces a fresh initial send
       idle_intervals_ = 0;
       stream_start_us_ = 0; // reset the wedge diagnostics for the next run
@@ -946,11 +957,22 @@ bool Switch2Pro::send_input_report(
   // Low-level notify so the exact rc is visible (esp-nimble-cpp's notify() hides it).
   struct os_mbuf *om = ble_hs_mbuf_from_flat(buf.data(), buf.size());
   const bool mbuf_alloc_failed = (om == nullptr); // host MSYS pool exhausted vs downstream
-  int rc = om ? ble_gatts_notify_custom(active_conn_handle_, pro2_input_->getHandle(), om)
-              : BLE_HS_ENOMEM;
+  int rc;
+  if (om) {
+    // Increment BEFORE the notify: NimBLE fires the NOTIFY_TX callback synchronously
+    // inside ble_gatts_notify_custom, and on_notify_tx() decrements the in-flight
+    // count — incrementing afterwards would leave the callback seeing 0 and the
+    // counter growing without bound. A submission that fails here never fires
+    // NOTIFY_TX, so undo the increment on a nonzero rc.
+    notify_in_flight_.fetch_add(1);
+    rc = ble_gatts_notify_custom(active_conn_handle_, pro2_input_->getHandle(), om);
+    if (rc != 0)
+      notify_in_flight_.fetch_sub(1);
+  } else {
+    rc = BLE_HS_ENOMEM;
+  }
   if (rc == 0) {
     ++report_counter_; // +1 per delivered report, matching the real device
-    notify_in_flight_.fetch_add(1);
   } else if (rc == BLE_HS_ENOMEM) {
     ++enomem_count_;
     if (!wedge_reported_) { // one-shot snapshot at the exact moment the stall begins
@@ -1095,6 +1117,20 @@ bool Switch2Pro::clear_bond() {
       }
     } else if (!not_found) { // a real read failure (not simply "no bond stored")
       logger_.error("clear_bond: reading the stored bond failed ({})", get_ec.message());
+      ok = false;
+    }
+  }
+  // Also delete the NimBLE security-store record for the injected LTK, so the old
+  // peer's LL encryption key is not usable for the rest of this boot (a persisted
+  // NVS erase alone leaves the live key in place). Do this while the peer address is
+  // still in RAM, before it is zeroed below.
+  if (paired_ || reconnect_mode_) {
+    ble_addr_t peer{};
+    peer.type = bond_peer_type_;
+    std::copy(bond_peer_val_.begin(), bond_peer_val_.end(), peer.val);
+    int rc = ble_gap_unpair(&peer);
+    if (rc != 0 && rc != BLE_HS_ENOENT) { // ENOENT = nothing stored for this peer
+      logger_.error("clear_bond: failed to delete the NimBLE security record (rc={})", rc);
       ok = false;
     }
   }

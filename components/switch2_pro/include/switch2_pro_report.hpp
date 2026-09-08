@@ -40,9 +40,12 @@ public:
 
   void increment_counter() { data_[0]++; }
 
-  /// battery_level: 0..9; charging/external-power flags in the same byte.
+  /// battery_level: 0..9 (values above 9 are clamped — 10..15 are reserved, and the
+  /// field is only 4 bits, so a larger value would otherwise encode a reserved level
+  /// or wrap). charging/external-power flags share the byte.
   void set_power(uint8_t battery_level, bool charging, bool external_power) {
-    data_[1] = static_cast<uint8_t>(((battery_level & 0x0f) << 2) | (charging ? 0x02 : 0x00) |
+    const uint8_t level = battery_level > 9 ? 9 : battery_level;
+    data_[1] = static_cast<uint8_t>((level << 2) | (charging ? 0x02 : 0x00) |
                                     (external_power ? 0x01 : 0x00));
   }
 

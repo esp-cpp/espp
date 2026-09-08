@@ -313,6 +313,10 @@ protected:
   /// Console has enabled input-report notifications (0x000e). Written from the
   /// NimBLE callback thread, read by the streaming thread — atomic to avoid a race.
   std::atomic<bool> input_subscribed_{false};
+  /// Link is LL-encrypted (authentication_complete with isEncrypted()). The stream
+  /// loop requires this so input is only sent to a paired/encrypted peer, never to a
+  /// stranger that merely subscribed. Set on auth-complete, cleared on connect/disconnect.
+  std::atomic<bool> encrypted_{false};
   uint8_t report_counter_{0}; ///< input-report sequence (byte 0); +1 per delivered report
   std::atomic<int> notify_in_flight_{0}; ///< queued-but-not-yet-transmitted input notifications
   std::atomic<uint32_t> tx_completions_{
