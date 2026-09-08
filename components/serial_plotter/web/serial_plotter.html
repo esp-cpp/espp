@@ -472,7 +472,9 @@
       const grid = cssVar("--grid") || "#ddd";
       const xyMode = mode === "xy";
       const asPoints = xyMode && $("points").checked;
-      const linePaths = xyMode && uPlot.paths && uPlot.paths.linear ? uPlot.paths.linear() : undefined;
+      const paths = uPlot.paths || {};
+      const linePaths = xyMode && paths.linear ? paths.linear() : undefined;
+      const pointPaths = xyMode && paths.points ? paths.points() : undefined;
 
       const series = [xyMode ? {} : { label: xAxisLabel() }];
       ys.forEach((ci, k) => {
@@ -482,8 +484,10 @@
           show: isVisible(schema.labels[ci]),
           stroke: color,
           width: 1.5,
-          points: { show: asPoints, size: 5, fill: color, stroke: color },
-          paths: asPoints ? () => null : (xyMode ? linePaths : undefined),
+          // In X-Y mode the marker/line is drawn by the path builder itself
+          // (mode 2); points.show is left off to avoid a duplicate point layer.
+          points: { show: false, size: 6, fill: color, stroke: color },
+          paths: xyMode ? (asPoints ? pointPaths : linePaths) : undefined,
         };
         // uPlot mode 2 needs each series to declare which scale each dim uses.
         if (xyMode) s.facets = [{ scale: "x", auto: true }, { scale: "y", auto: true }];
