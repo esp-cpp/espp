@@ -119,6 +119,15 @@ public:
   /// the advertisement was issued.
   bool wake_console();
 
+  /// Forget the persisted bond and return to fresh-pairing (discovery) mode.
+  /// Erases the NVS bond blob (console address + LTK), clears the in-memory bond
+  /// state, and — if not currently connected — re-advertises for discovery. Use
+  /// this when the console has forgotten the controller (otherwise every boot
+  /// stays in reconnect mode and never advertises for a fresh pairing), or to
+  /// factory-reset the emulated controller. @return true if the bond was erased
+  /// (or none was stored); false if the NVS erase/commit failed.
+  bool clear_bond();
+
   /// Whether the console has subscribed to the input characteristic (0x000e) and
   /// we are actively streaming input reports. Goes true near the end of init and
   /// false on disconnect; useful for driving post-connect behaviour (e.g. the
@@ -236,9 +245,12 @@ protected:
   /// Track CCCD subscribe/unsubscribe so we only stream input when the console
   /// has asked for it (updates input_subscribed_ for the 0x000e characteristic).
   void on_subscribe(NimBLECharacteristic *characteristic, uint16_t sub_value);
-  /// Notification tx-complete for `characteristic` (frees a tx buffer). Decrements
-  /// the in-flight count for the input characteristic so notify_input_report can
-  /// flow-control the stream and never overrun the link's tx pool.
+  /// NimBLE NOTIFY_TX callback for `characteristic`. Maintains diagnostics only:
+  /// it decrements notify_in_flight_ and advances the tx-completion telemetry
+  /// (tx_completions_/last_tx_complete_us_). It is NOT the stream's backpressure —
+  /// send_input_report() gates on the real msys1 mbuf headroom, because NOTIFY_TX
+  /// fires at the host->controller handoff (not over-air completion) and so cannot
+  /// detect a growing backlog. Do not reinstate NOTIFY_TX-count-based flow control.
   /// @param status NimBLE NOTIFY_TX outcome (0 = transmitted; nonzero = failed
   ///        attempt, e.g. ENOMEM). Completion telemetry only advances on 0.
   void on_notify_tx(NimBLECharacteristic *characteristic, int status);

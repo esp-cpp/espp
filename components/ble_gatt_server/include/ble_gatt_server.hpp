@@ -342,8 +342,7 @@ public:
     if (!server_) {
       return false;
     }
-    server_->start();
-    return true;
+    return server_->start();
   }
 
 #if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)

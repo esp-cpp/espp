@@ -33,12 +33,21 @@ binaries — it only edits the archives already present in the user's local ESP-
 """
 
 import argparse
+import hashlib
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
 from typing import Optional
+
+
+def sha256_file(path: str) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 16), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 # Per-target patch spec. `arch` selects the toolchain archiver/objdump (the
 # archives are GNU-format; macOS BSD `ar` cannot read them). `archives` is a
@@ -176,10 +185,27 @@ def main() -> int:
         n = 0
         for lib in libs:
             backup = lib + ".original"
-            if os.path.isfile(backup):
-                shutil.copy2(backup, lib)
-                print(f"restored {lib}")
-                n += 1
+            digest_file = lib + ".patched.sha256"
+            if not os.path.isfile(backup):
+                continue
+            # Refuse to restore a STALE backup: if ESP-IDF was updated in place after
+            # patching, the current archive is a different (newer) library and putting
+            # the old .original back would silently downgrade it. When we recorded the
+            # patched archive's digest, require the current archive to still match it.
+            if os.path.isfile(digest_file):
+                with open(digest_file) as f:
+                    recorded = f.read().strip()
+                if sha256_file(lib) != recorded:
+                    sys.exit(f"{lib}: the current archive does not match the patched version this "
+                             f".original was saved against (ESP-IDF updated in place?). Refusing to "
+                             f"restore a stale backup — delete {backup} and {digest_file} by hand "
+                             f"if you are certain.")
+            shutil.copy2(backup, lib)
+            for sidecar in (digest_file,):  # backup is kept; the digest no longer applies
+                if os.path.isfile(sidecar):
+                    os.remove(sidecar)
+            print(f"restored {lib}")
+            n += 1
         if n == 0:
             sys.exit("no .original backups found to restore")
         return 0
@@ -237,6 +263,10 @@ def main() -> int:
             shutil.copy2(lib, backup)  # refresh backup from the confirmed-unpatched archive
             backed_up.append((lib, backup))
             write_object(ar, lib, obj, patched)
+            # Record the patched archive's digest so --restore can detect a later
+            # in-place ESP-IDF update and refuse to overwrite the new library.
+            with open(lib + ".patched.sha256", "w") as f:
+                f.write(sha256_file(lib))
             print(f"{tag}: backed up + patched — now accepts a 5 ms connection interval")
     except Exception as exc:  # noqa: BLE001 — any failure must roll back
         for lib, backup in reversed(backed_up):

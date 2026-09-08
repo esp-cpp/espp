@@ -158,14 +158,17 @@ bool Switch2Pro::init() {
     return false;
   }
   ble_gatt_server_.start_services();
-  ble_gatt_server_.start();
+  if (!ble_gatt_server_.start()) {
+    logger_.error("init failed: could not start the GATT server");
+    return false;
+  }
   log_handle_map(); // after start(), so handles are assigned
   // On reconnect the console skips the 0x15 pairing and jumps straight to LL
   // encryption, so the LTK must already be in NimBLE's store before it connects.
   if (reconnect_mode_) {
     if (!inject_ltk(bond_peer_type_, bond_peer_val_.data()))
       logger_.error("reconnect: pre-loading the stored LTK failed — a bonded reconnect/wake "
-                    "will not encrypt; delete the bond and re-pair to recover");
+                    "will not encrypt; call clear_bond() and re-pair to recover");
     if (wake_console_on_boot_) {
       logger_.info(
           "wake-on-boot: broadcasting the wake advertisement every {:.0f}s until connected",
@@ -1049,6 +1052,45 @@ bool Switch2Pro::load_bond() {
   std::copy(std::begin(b.ltk), std::end(b.ltk), ltk_.begin());
   std::copy(std::begin(b.host_addr), std::end(b.host_addr), host_addr_.begin());
   return true;
+}
+
+bool Switch2Pro::clear_bond() {
+  // Erase the persisted bond blob. A missing key/namespace is success (nothing to
+  // forget); only a real erase/commit failure is reported.
+  bool ok = true;
+  nvs_handle_t h;
+  esp_err_t open_err = nvs_open(kNvsNamespace, NVS_READWRITE, &h);
+  if (open_err == ESP_OK) {
+    esp_err_t erase_err = nvs_erase_key(h, kNvsBondKey);
+    esp_err_t commit_err = nvs_commit(h);
+    nvs_close(h);
+    if (erase_err != ESP_OK && erase_err != ESP_ERR_NVS_NOT_FOUND) {
+      logger_.error("clear_bond: nvs_erase_key failed ({})", esp_err_to_name(erase_err));
+      ok = false;
+    }
+    if (commit_err != ESP_OK) {
+      logger_.error("clear_bond: nvs_commit failed ({})", esp_err_to_name(commit_err));
+      ok = false;
+    }
+  } else if (open_err != ESP_ERR_NVS_NOT_FOUND) {
+    logger_.error("clear_bond: nvs_open failed ({})", esp_err_to_name(open_err));
+    ok = false;
+  }
+  // Reset in-memory bond state back to fresh-pairing (discovery) mode.
+  reconnect_mode_ = false;
+  paired_ = false;
+  wake_pending_ = false;
+  boot_wake_pending_ = false;
+  bond_peer_type_ = 0;
+  bond_peer_val_ = {};
+  host_addr_ = {};
+  ltk_ = {};
+  logger_.info("bond cleared — returning to fresh-pairing (discovery) mode");
+  // If nothing is connected, re-advertise now so we are discoverable for a fresh
+  // pairing immediately (advertise() picks Discovery since reconnect_mode_ is off).
+  if (active_conn_handle_ == 0xffff)
+    advertise();
+  return ok;
 }
 
 void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, PairingSub sub,
