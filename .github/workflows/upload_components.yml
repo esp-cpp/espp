@@ -157,6 +157,7 @@ jobs:
             components/runqueue
             components/rx8130ce
             components/seeed-studio-round-display
+            components/serial_plotter
             components/serialization
             components/smartpanlee-sc01-plus
             components/socket
