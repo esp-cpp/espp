@@ -283,6 +283,15 @@
         else { const first = cap - start; out.set(buf.subarray(start, cap), 0); out.set(buf.subarray(0, count - first), first); }
         return out;
       }
+      // Copy every `step`-th sample (oldest->newest) into out; returns the count
+      // written. Reads only count/step elements - no full-length copy.
+      toOrderedStrided(out, step) {
+        const { buf, cap, head, count } = this;
+        const start = (head - count + cap) % cap;
+        let j = 0;
+        for (let i = 0; i < count; i += step) out[j++] = buf[(start + i) % cap];
+        return j;
+      }
     }
 
     // ---------------------------------------------------------------- state
@@ -301,7 +310,9 @@
 
     // scratch arrays reused across draws (resized only when count changes)
     let scratch = { cap: -1, x: null, ys: [] };            // capacity-sized 2D draw buffers
-    let scene = { cap: -1, xs: null, ys: null, zs: null }; // capacity-sized 3D draw buffers
+    // Decimated, pre-normalized 3D points, rebuilt only when the data/columns
+    // change - so camera rotation/zoom just re-projects the cached set.
+    let sceneCache = { key: "", m: 0, px: null, py: null, pz: null, t: null };
     const MAX_RETAIN = 2000000;     // hard cap on retained points/series
     const MAX_COLS = 512;           // reject absurdly wide "schemas" (likely a parse error)
     const BYTE_BUDGET = 256 * 1024 * 1024;   // total rings+scratch budget; caps points x columns
@@ -336,14 +347,17 @@
       return "drop";                                                        // mixed -> junk/log
     }
 
+    // Bound total memory, not just points/series: with many columns the
+    // per-series cap must shrink so points x columns stays within budget.
+    // bytes/point ~= Float64 t + Float32 rings + Float64 scratch (x + ys).
+    function computeCap(ncols) {
+      const want = Math.min(MAX_RETAIN, Math.max(100, parseInt($("retain").value, 10) || 200000));
+      return Math.max(100, Math.min(want, Math.floor(BYTE_BUDGET / (16 + 12 * ncols))));
+    }
+
     function setSchema(labels, delim) {
       schema = { labels: labels.slice(), ncols: labels.length, delim };
-      // Bound total memory, not just points/series: with many columns the
-      // per-series cap must shrink so points x columns stays within budget.
-      // bytes/point ~= Float64 t + Float32 rings + Float64 scratch (x + ys).
-      const want = Math.min(MAX_RETAIN, Math.max(100, parseInt($("retain").value, 10) || 200000));
-      const bytesPerPt = 16 + 12 * labels.length;
-      cap = Math.max(100, Math.min(want, Math.floor(BYTE_BUDGET / bytesPerPt)));
+      cap = computeCap(labels.length);
       $("retain").value = cap;      // reflect the effective cap back to the input
       tRing = new Ring(cap, Float64Array);
       colRings = labels.map(() => new Ring(cap, Float32Array));
@@ -351,7 +365,7 @@
       // make arrival-time X non-monotonic. clearData() owns the t0 reset, and
       // buildData() rebases each dataset to its first retained timestamp.
       stats.kept = 0;
-      scratch.cap = -1; scene.cap = -1;
+      scratch.cap = -1; sceneCache.key = "";
       rebuildColumnSelects();
       buildPlot();
       updateSchemaLabel();
@@ -611,41 +625,34 @@
       const xi = +$("xCol").value || 0, yi = +$("yCol").value || 0, zi = +$("zCol").value || 0;
       const n = tRing.count;
       if (!n) return;
-      // capacity-sized buffers reused across frames (subarray views for the fill)
-      if (scene.cap !== cap) { scene.cap = cap; scene.xs = new Float32Array(cap); scene.ys = new Float32Array(cap); scene.zs = new Float32Array(cap); }
-      const xs = colRings[xi].toOrdered(scene.xs.subarray(0, n));
-      const ys = colRings[yi].toOrdered(scene.ys.subarray(0, n));
-      const zs = colRings[zi].toOrdered(scene.zs.subarray(0, n));
-
-      // normalize each axis to [-1,1]
-      const norm = (a) => { let lo = Infinity, hi = -Infinity; for (let i = 0; i < n; i++) { const v = a[i]; if (v < lo) lo = v; if (v > hi) hi = v; } const c = (lo + hi) / 2, r = (hi - lo) / 2 || 1; return { c, r }; };
-      const nx = norm(xs), ny = norm(ys), nz = norm(zs);
+      // Rebuild the decimated point cache only when the data or column mapping
+      // changes; a camera move (same key) reuses it and just re-projects.
+      const key = xi + "|" + yi + "|" + zi + "|" + n + "|" + cap;
+      if (key !== sceneCache.key) { build3dCache(xi, yi, zi, n); sceneCache.key = key; }
+      const c = sceneCache;
 
       const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
       const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
       const scale = Math.min(W, H) * 0.34 * cam.zoom;
       const ox = W / 2, oy = H / 2;
-
-      // draw axes box (unit cube) faintly
-      g.strokeStyle = cssVar("--grid"); g.lineWidth = 1;
       const proj = (x, y, z) => {
         const x1 = x * cy - z * sy, z1 = x * sy + z * cy;
         const y1 = y * cp - z1 * sp;
         return [ox + x1 * scale, oy - y1 * scale];
       };
+
+      // draw axes box (unit cube) faintly
+      g.strokeStyle = cssVar("--grid"); g.lineWidth = 1;
       const cube = [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
       const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
       g.globalAlpha = 0.5;
       edges.forEach(([a, b]) => { const p = proj(...cube[a]), q = proj(...cube[b]); g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); g.stroke(); });
       g.globalAlpha = 1;
 
-      // points, colored oldest->newest along the accent hue ramp
-      const step = n > 20000 ? Math.ceil(n / 20000) : 1;   // cap draw cost
-      for (let i = 0; i < n; i += step) {
-        const px = (xs[i] - nx.c) / nx.r, py = (ys[i] - ny.c) / ny.r, pz = (zs[i] - nz.c) / nz.r;
-        const [sx, syy] = proj(px, py, pz);
-        const t = i / n;
-        g.fillStyle = `hsl(${210 + t * 120}, 70%, 55%)`;
+      // cached points, colored oldest->newest along the accent hue ramp
+      for (let j = 0; j < c.m; j++) {
+        const [sx, syy] = proj(c.px[j], c.py[j], c.pz[j]);
+        g.fillStyle = `hsl(${210 + c.t[j] * 120}, 70%, 55%)`;
         g.fillRect(sx - 1.5, syy - 1.5, 3, 3);
       }
       // axis labels
@@ -656,11 +663,40 @@
       lp(-1, -1, 1.15, schema.labels[zi]);
     }
 
+    // Read every step-th sample of the X/Y/Z columns (aligned), find extrema over
+    // that decimated set, and store points normalized to the unit cube. Cost is
+    // O(points / step) with no full-length copy, so it scales to the retain cap.
+    function build3dCache(xi, yi, zi, n) {
+      const step = n > 20000 ? Math.ceil(n / 20000) : 1;
+      const m = Math.ceil(n / step);
+      if (!sceneCache.px || sceneCache.px.length < m) {
+        sceneCache.px = new Float32Array(m); sceneCache.py = new Float32Array(m);
+        sceneCache.pz = new Float32Array(m); sceneCache.t = new Float32Array(m);
+      }
+      const px = sceneCache.px, py = sceneCache.py, pz = sceneCache.pz, tt = sceneCache.t;
+      const mm = colRings[xi].toOrderedStrided(px, step);
+      colRings[yi].toOrderedStrided(py, step);
+      colRings[zi].toOrderedStrided(pz, step);
+      const ext = (a) => {
+        let lo = Infinity, hi = -Infinity;
+        for (let j = 0; j < mm; j++) { const v = a[j]; if (v < lo) lo = v; if (v > hi) hi = v; }
+        return { c: (lo + hi) / 2, r: (hi - lo) / 2 || 1 };
+      };
+      const nx = ext(px), ny = ext(py), nz = ext(pz);
+      for (let j = 0; j < mm; j++) {
+        tt[j] = (j * step) / n;
+        px[j] = (px[j] - nx.c) / nx.r;
+        py[j] = (py[j] - ny.c) / ny.r;
+        pz[j] = (pz[j] - nz.c) / nz.r;
+      }
+      sceneCache.m = mm;
+    }
+
     // 3D orbit / zoom
     (function bind3d() {
       const cv = $("plot3d");
       let dragging = false, lx = 0, ly = 0;
-      cv.addEventListener("pointerdown", (e) => { dragging = true; lx = e.clientX; ly = e.clientY; cv.classList.add("drag"); cv.setPointerCapture(e.pointerId); });
+      cv.addEventListener("pointerdown", (e) => { dragging = true; lx = e.clientX; ly = e.clientY; cv.classList.add("drag"); try { cv.setPointerCapture(e.pointerId); } catch (err) {} });
       cv.addEventListener("pointermove", (e) => {
         if (!dragging) return;
         cam.yaw += (e.clientX - lx) * 0.01; cam.pitch += (e.clientY - ly) * 0.01;
@@ -822,7 +858,33 @@
     function clearData() {
       if (tRing) { tRing.clear(); colRings.forEach((r) => r.clear()); }
       stats = { rows: 0, kept: 0, drop: 0 };
-      rateWin = []; t0 = 0; scratch.cap = -1; scene.cap = -1; pendingHeader = null;
+      rateWin = []; t0 = 0; scratch.cap = -1; sceneCache.key = ""; pendingHeader = null;
+    }
+
+    // Resize the rings to the new Retain value, keeping the newest samples
+    // instead of discarding the whole capture.
+    function resizeRetain() {
+      if (!schema) {
+        $("retain").value = Math.min(MAX_RETAIN, Math.max(100, parseInt($("retain").value, 10) || 200000));
+        return;
+      }
+      const newCap = computeCap(schema.ncols);
+      $("retain").value = newCap;
+      if (newCap === cap) return;
+      const n = tRing.count, keep = Math.min(n, newCap);
+      const migrate = (ring, Type) => {
+        const nr = new Ring(newCap, Type);
+        if (keep) { const ord = ring.toOrdered(new Type(n)); for (let i = n - keep; i < n; i++) nr.push(ord[i]); }
+        return nr;
+      };
+      tRing = migrate(tRing, Float64Array);
+      colRings = colRings.map((r) => migrate(r, Float32Array));
+      cap = newCap;
+      stats.kept = tRing.count;
+      scratch.cap = -1; sceneCache.key = "";
+      buildPlot();
+      scheduleDraw();
+      updateStats();
     }
 
     function syncModeUI() {
@@ -859,7 +921,7 @@
     $("seriesFilter").addEventListener("input", () => { applyVisibility(); renderSeriesPanel(); });
     $("seriesAll").addEventListener("click", () => setAllVisible(true));
     $("seriesNone").addEventListener("click", () => setAllVisible(false));
-    $("retain").addEventListener("change", () => { if (schema) setSchema(schema.labels, schema.delim); });
+    $("retain").addEventListener("change", resizeRetain);
     $("save").addEventListener("click", saveCSV);
     $("load").addEventListener("click", () => $("file").click());
     $("file").addEventListener("change", (e) => { if (e.target.files[0]) loadCSV(e.target.files[0]); e.target.value = ""; });
