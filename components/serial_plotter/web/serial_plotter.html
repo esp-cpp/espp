@@ -62,6 +62,8 @@
     }
 
     * { box-sizing: border-box; }
+    /* the hidden attribute must win over any element's explicit `display` */
+    [hidden] { display: none !important; }
     html, body { height: 100%; }
     body {
       margin: 0; background: var(--bg); color: var(--text);
@@ -447,7 +449,7 @@
       const host = $("plotHost");
       $("hint").hidden = !!schema;
       $("plot3d").hidden = true;
-      if (!schema || mode === "xyz") { if (mode === "xyz") drawScene(); return; }
+      if (!schema || mode === "xyz") { renderSeriesPanel(); if (mode === "xyz") drawScene(); return; }
 
       const { ys } = axisMap();
       const asPoints = mode === "xy" && $("points").checked;
@@ -466,11 +468,23 @@
         });
       });
 
+      // Time-series X is monotonic, so uPlot's fast endpoint-based x-range is
+      // fine. An X-Y plot's X column is arbitrary (non-monotonic), and uPlot
+      // assumes sorted X — so scan the actual min/max for the x scale there.
+      const xScale = mode === "xy"
+        ? { time: false, range: (u) => {
+            const d = u.data[0]; let lo = Infinity, hi = -Infinity;
+            for (let i = 0; i < d.length; i++) { const v = d[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+            if (!isFinite(lo)) return [0, 1];
+            const pad = (hi - lo) * 0.02 || 1; return [lo - pad, hi + pad];
+          } }
+        : { time: false };
+
       const opts = {
         width: host.clientWidth, height: host.clientHeight,
         padding: [10, 14, 4, 6],
         cursor: { drag: { x: true, y: true, uni: 20 } },
-        scales: { x: { time: false } },
+        scales: { x: xScale },
         legend: { live: true },
         axes: [
           { stroke, grid: { stroke: grid, width: 1 }, ticks: { stroke: grid }, label: xAxisLabel(), labelSize: 24 },
