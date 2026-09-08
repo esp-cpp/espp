@@ -4,12 +4,14 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <system_error>
+#include <vector>
 
 #include "esp_log.h"
 #include "esp_mac.h"
-#include "esp_pthread.h" // esp_pthread_set_cfg — size the streaming task's stack
-#include "esp_timer.h"   // esp_timer_get_time — µs timestamps for tx-wedge telemetry
-#include "nvs.h"
+#include "esp_pthread.h"   // esp_pthread_set_cfg — size the streaming task's stack
+#include "esp_timer.h"     // esp_timer_get_time — µs timestamps for tx-wedge telemetry
+#include "nvs.hpp"         // espp::Nvs — bond persistence via the espp NVS component
 #include "os/os_mempool.h" // os_mempool_info_get_next — mbuf pool free/low-water telemetry
 
 #include "host/ble_gatt.h"    // ble_gatts_notify_custom — low-level notify (exposes rc)
@@ -1017,35 +1019,34 @@ void Switch2Pro::save_bond() {
   std::copy(std::begin(desc.peer_id_addr.val), std::end(desc.peer_id_addr.val), b.peer_val);
   std::copy(ltk_.begin(), ltk_.end(), b.ltk);
   std::copy(host_addr_.begin(), host_addr_.end(), b.host_addr);
-  nvs_handle_t h;
-  if (nvs_open(kNvsNamespace, NVS_READWRITE, &h) != ESP_OK) {
-    logger_.error("save_bond: nvs_open failed");
-    return;
-  }
-  esp_err_t set_err = nvs_set_blob(h, kNvsBondKey, &b, sizeof(b));
-  esp_err_t commit_err = (set_err == ESP_OK) ? nvs_commit(h) : set_err;
-  nvs_close(h);
+  // Persist via the espp NVS component (set_var writes the blob and commits).
+  std::vector<uint8_t> blob(sizeof(b));
+  std::memcpy(blob.data(), &b, sizeof(b));
+  espp::Nvs nvs;
+  std::error_code ec;
+  nvs.set_var(kNvsNamespace, kNvsBondKey, blob, ec);
   // Keep the bond in RAM regardless so this session can still reconnect/wake; only
   // persistence across a reboot is lost if the write failed.
   bond_peer_type_ = b.peer_type;
   std::copy(std::begin(b.peer_val), std::end(b.peer_val), bond_peer_val_.begin());
-  if (set_err != ESP_OK || commit_err != ESP_OK)
-    logger_.error("save_bond: NVS write failed (set={}, commit={}) — bond kept in RAM for "
-                  "this boot, but reconnect/wake after a reboot will not work",
-                  esp_err_to_name(set_err), esp_err_to_name(commit_err));
+  if (ec)
+    logger_.error("save_bond: NVS write failed ({}) — bond kept in RAM for this boot, but "
+                  "reconnect/wake after a reboot will not work",
+                  ec.message());
   else
     logger_.info("saved bond to NVS (console addr + LTK)");
 }
 
 bool Switch2Pro::load_bond() {
-  nvs_handle_t h;
-  if (nvs_open(kNvsNamespace, NVS_READONLY, &h) != ESP_OK)
+  espp::Nvs nvs;
+  std::error_code ec;
+  std::vector<uint8_t> blob;
+  nvs.get_var(kNvsNamespace, kNvsBondKey, blob, ec);
+  if (ec || blob.size() != sizeof(StoredBond))
     return false;
   StoredBond b{};
-  size_t sz = sizeof(b);
-  esp_err_t err = nvs_get_blob(h, kNvsBondKey, &b, &sz);
-  nvs_close(h);
-  if (err != ESP_OK || sz != sizeof(b) || b.magic != kBondMagic)
+  std::memcpy(&b, blob.data(), sizeof(b));
+  if (b.magic != kBondMagic)
     return false;
   bond_peer_type_ = b.peer_type;
   std::copy(std::begin(b.peer_val), std::end(b.peer_val), bond_peer_val_.begin());
@@ -1055,26 +1056,21 @@ bool Switch2Pro::load_bond() {
 }
 
 bool Switch2Pro::clear_bond() {
-  // Erase the persisted bond blob. A missing key/namespace is success (nothing to
-  // forget); only a real erase/commit failure is reported.
+  // Erase the persisted bond via the espp NVS component. A missing bond is success
+  // (nothing to forget); only a real erase failure is reported. Check existence
+  // first so "no bond stored" is distinguishable from a genuine erase error.
   bool ok = true;
-  nvs_handle_t h;
-  esp_err_t open_err = nvs_open(kNvsNamespace, NVS_READWRITE, &h);
-  if (open_err == ESP_OK) {
-    esp_err_t erase_err = nvs_erase_key(h, kNvsBondKey);
-    esp_err_t commit_err = nvs_commit(h);
-    nvs_close(h);
-    if (erase_err != ESP_OK && erase_err != ESP_ERR_NVS_NOT_FOUND) {
-      logger_.error("clear_bond: nvs_erase_key failed ({})", esp_err_to_name(erase_err));
+  espp::Nvs nvs;
+  std::error_code ec;
+  std::vector<uint8_t> existing;
+  nvs.get_var(kNvsNamespace, kNvsBondKey, existing, ec);
+  if (!ec) { // a bond is stored — erase it (NVS persists the erase immediately)
+    std::error_code erase_ec;
+    nvs.erase(kNvsNamespace, kNvsBondKey, erase_ec);
+    if (erase_ec) {
+      logger_.error("clear_bond: failed to erase persisted bond ({})", erase_ec.message());
       ok = false;
     }
-    if (commit_err != ESP_OK) {
-      logger_.error("clear_bond: nvs_commit failed ({})", esp_err_to_name(commit_err));
-      ok = false;
-    }
-  } else if (open_err != ESP_ERR_NVS_NOT_FOUND) {
-    logger_.error("clear_bond: nvs_open failed ({})", esp_err_to_name(open_err));
-    ok = false;
   }
   // Reset in-memory bond state back to fresh-pairing (discovery) mode.
   reconnect_mode_ = false;

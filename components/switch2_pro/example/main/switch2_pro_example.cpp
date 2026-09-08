@@ -1,9 +1,10 @@
 #include <chrono>
+#include <system_error>
 #include <thread>
 
 #include "driver/gpio.h"
-#include "nvs_flash.h"
 
+#include "nvs.hpp"
 #include "switch2_pro.hpp"
 
 #include "logger.hpp"
@@ -23,15 +24,17 @@ extern "C" void app_main(void) {
   espp::Logger logger({.tag = "switch2_pro example", .level = espp::Logger::Verbosity::INFO});
 
   // Bond persistence (LTK + console address) is stored in NVS so the controller
-  // reconnects after a reboot without re-pairing.
-  esp_err_t nvs_err = nvs_flash_init();
-  if (nvs_err == ESP_ERR_NVS_NO_FREE_PAGES || nvs_err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    nvs_err = nvs_flash_init();
-  }
+  // reconnects after a reboot without re-pairing. espp::Nvs::init() handles flash
+  // init plus the erase-and-retry when the partition is truncated / out of date.
+  espp::Nvs nvs;
+  std::error_code ec;
+  nvs.init(ec);
   // Fail fast: the reconnect/wake contract depends on NVS, so a controller that
   // came up with NVS broken would pair but silently lose its bond on reboot.
-  ESP_ERROR_CHECK(nvs_err);
+  if (ec) {
+    logger.error("NVS init failed: {}", ec.message());
+    return;
+  }
 
   //! [switch2_pro example]
   // Bring up the emulated Switch 2 Pro Controller. init() verifies the pairing

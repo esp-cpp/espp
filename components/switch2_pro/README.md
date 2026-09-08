@@ -37,17 +37,15 @@ handshake, not BLE SMP**. So this component does *not* use espp's `hid_service`
 / `hid-rp`; it builds the Nintendo custom services directly on `BleGattServer`.
 
 ```cpp
-#include "nvs_flash.h"
+#include "nvs.hpp"
 #include "switch2_pro.hpp"
 
 // init() persists the bond (console address + LTK) in NVS for reboot
-// reconnect/wake, so NVS must be initialized first (as the example does).
-esp_err_t nvs_err = nvs_flash_init();
-if (nvs_err == ESP_ERR_NVS_NO_FREE_PAGES || nvs_err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-  ESP_ERROR_CHECK(nvs_flash_erase());
-  nvs_err = nvs_flash_init();
-}
-ESP_ERROR_CHECK(nvs_err);
+// reconnect/wake, so NVS must be initialized first. espp::Nvs::init() does the
+// flash init plus the erase-and-retry when the partition is truncated/outdated.
+espp::Nvs nvs;
+std::error_code ec;
+nvs.init(ec);          // handle ec in real code
 
 espp::Switch2Pro controller({.device_name = "Pro Controller"});
 controller.init();   // verifies pairing crypto, builds GATT, advertises

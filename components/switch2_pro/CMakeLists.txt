@@ -1,7 +1,7 @@
 idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src"
-  REQUIRES base_component ble_gatt_server esp-nimble-cpp timer
+  REQUIRES base_component ble_gatt_server esp-nimble-cpp nvs timer
   PRIV_REQUIRES mbedtls)
 
 # Opt-in: patch the prebuilt BLE controller library to accept the console's
