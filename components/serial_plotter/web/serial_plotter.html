@@ -93,7 +93,7 @@
     .toolbar .sep { width: 1px; align-self: stretch; background: var(--panel-border); margin: 0 2px; }
     label.field { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 13px; }
 
-    button, select, input[type=number] {
+    button, select, input[type=number], input[type=text] {
       font: inherit; color: var(--text); background: var(--input-bg);
       border: 1px solid var(--input-border); border-radius: 7px; padding: 6px 10px;
     }
@@ -103,7 +103,29 @@
     button:disabled { opacity: .5; cursor: not-allowed; }
     button.primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); font-weight: 600; }
     button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.mini { padding: 4px 8px; font-size: 12px; border-radius: 6px; }
     input[type=checkbox] { accent-color: var(--accent); }
+
+    /* series filter / visibility bar */
+    #seriesBar {
+      display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap;
+      padding: 8px 16px; background: var(--panel-bg);
+      border-bottom: 1px solid var(--panel-border);
+    }
+    #seriesBar .label { color: var(--text-muted); font-size: 13px; white-space: nowrap; }
+    #seriesFilter { min-width: 150px; padding: 5px 9px; }
+    #seriesList { display: flex; align-items: center; gap: 6px 7px; flex-wrap: wrap; }
+    #seriesList:empty::after { content: "no series match"; color: var(--text-muted); font-size: 12px; }
+    .series-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px 3px 6px; border-radius: 999px;
+      border: 1px solid var(--panel-border); background: var(--chip-bg);
+      font-size: 12px; cursor: pointer; user-select: none; line-height: 1.2;
+    }
+    .series-chip .swatch { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+    .series-chip input { margin: 0; }
+    .series-chip.off { opacity: .42; }
+    .series-chip.off .swatch { filter: grayscale(1); }
 
     #unsupported {
       display: none; margin: 16px; padding: 12px 16px; border-radius: 10px;
@@ -209,6 +231,14 @@
     </div>
   </div>
 
+  <div id="seriesBar" hidden>
+    <span class="label">Series</span>
+    <input type="text" id="seriesFilter" placeholder="filter by name..." autocomplete="off" spellcheck="false">
+    <button id="seriesAll" class="mini">All</button>
+    <button id="seriesNone" class="mini">None</button>
+    <div id="seriesList"></div>
+  </div>
+
   <main>
     <div id="plotHost">
       <canvas id="plot3d" hidden></canvas>
@@ -265,6 +295,7 @@
     let mode = "time";
     let stats = { rows: 0, kept: 0, drop: 0 };
     let rateWin = [];               // timestamps of recent samples, for rate
+    let seriesVisible = {};         // label -> bool; manual per-series show/hide (persists across rebuilds)
 
     // scratch arrays reused across draws (resized only when count changes)
     let scratch = { n: -1, x: null, ys: [] };
@@ -427,6 +458,7 @@
       ys.forEach((ci, k) => {
         series.push({
           label: schema.labels[ci],
+          show: isVisible(schema.labels[ci]),
           stroke: COLORS[k % COLORS.length],
           width: 1.5,
           points: { show: asPoints, size: 5, fill: COLORS[k % COLORS.length] },
@@ -447,6 +479,64 @@
         series,
       };
       plot = new uPlot(opts, buildData(), host);
+      renderSeriesPanel();
+    }
+
+    // ---------------------------------------------------------------- series filter / visibility
+    // A series is drawn when its checkbox is on AND (no name filter, or its
+    // label matches the filter). The filter box narrows the plot to specific
+    // columns / tags; the chips give manual per-series control.
+    function isVisible(label) {
+      if (seriesVisible[label] === false) return false;
+      const f = $("seriesFilter").value.trim().toLowerCase();
+      return f === "" || label.toLowerCase().indexOf(f) >= 0;
+    }
+    function applyVisibility() {
+      if (!plot || !schema) return;
+      const { ys } = axisMap();
+      ys.forEach((ci, k) => plot.setSeries(k + 1, { show: isVisible(schema.labels[ci]) }));
+    }
+    function renderSeriesPanel() {
+      const bar = $("seriesBar");
+      const showBar = !!schema && (mode === "time" || mode === "xy");
+      bar.hidden = !showBar;
+      if (!showBar) return;
+      const f = $("seriesFilter").value.trim().toLowerCase();
+      const { ys } = axisMap();
+      const list = $("seriesList");
+      list.innerHTML = "";
+      ys.forEach((ci, k) => {
+        const label = schema.labels[ci];
+        if (f && label.toLowerCase().indexOf(f) < 0) return;   // not in this filter
+        const on = seriesVisible[label] !== false;
+        const chip = document.createElement("label");
+        chip.className = "series-chip" + (on ? "" : " off");
+        chip.title = label;
+        const cb = document.createElement("input");
+        cb.type = "checkbox"; cb.checked = on;
+        cb.addEventListener("change", () => {
+          seriesVisible[label] = cb.checked;
+          chip.classList.toggle("off", !cb.checked);
+          if (plot) plot.setSeries(k + 1, { show: isVisible(label) });
+        });
+        const sw = document.createElement("span");
+        sw.className = "swatch"; sw.style.background = COLORS[k % COLORS.length];
+        const tx = document.createElement("span"); tx.textContent = label;
+        chip.appendChild(cb); chip.appendChild(sw); chip.appendChild(tx);
+        list.appendChild(chip);
+      });
+    }
+    function setAllVisible(v) {
+      if (!schema) return;
+      const f = $("seriesFilter").value.trim().toLowerCase();
+      const { ys } = axisMap();
+      ys.forEach((ci) => {
+        const label = schema.labels[ci];
+        if (f && label.toLowerCase().indexOf(f) < 0) return;   // only the filtered set
+        seriesVisible[label] = v;
+      });
+      applyVisibility();
+      renderSeriesPanel();
     }
 
     // rAF-coalesced redraw
@@ -687,6 +777,9 @@
     $("xMode").addEventListener("change", () => { buildPlot(); scheduleDraw(); });
     ["xCol", "yCol", "zCol"].forEach((id) => $(id).addEventListener("change", () => { buildPlot(); scheduleDraw(); }));
     $("points").addEventListener("change", () => { buildPlot(); scheduleDraw(); });
+    $("seriesFilter").addEventListener("input", () => { applyVisibility(); renderSeriesPanel(); });
+    $("seriesAll").addEventListener("click", () => setAllVisible(true));
+    $("seriesNone").addEventListener("click", () => setAllVisible(false));
     $("retain").addEventListener("change", () => { if (schema) setSchema(schema.labels, schema.delim); });
     $("save").addEventListener("click", saveCSV);
     $("load").addEventListener("click", () => $("file").click());

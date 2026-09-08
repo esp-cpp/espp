@@ -27,6 +27,9 @@ install, no CDN, no network access.
   (`Float32Array`) and are drawn with [uPlot](https://github.com/leeoniya/uPlot),
   which does the pixel decimation. Redraws are coalesced to one per animation
   frame. The retained-points cap is configurable (default 200k per series).
+- **Series filter.** A filter bar shows a colored chip per column: click to
+  toggle a series on/off, or type in the name box to plot only the columns /
+  tags that match (composes with the manual toggles), plus **All** / **None**.
 - **Plot modes.**
   - *Time series* (default) — X is arrival time, the sample index, or a chosen
     first column; Y is every other column.
