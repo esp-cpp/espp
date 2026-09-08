@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>espp Serial Plotter</title>
+  <meta name="description" content="Web Serial data plotter: auto-parses columnar serial output (header + numeric rows), plots a high number of points efficiently with uPlot, and saves/loads CSV. Optional 2D X-Y and 3D X-Y-Z modes.">
+  <!--
+    Self-contained: no CDN, no build step. Works from file://, http://localhost,
+    or the hosted docs (apps/). Web Serial is Chromium-only and needs a secure
+    context. Plotting is done with uPlot (MIT) vendored as the sibling
+    uPlot.iife.min.js; its small CSS is inlined below because the docs workflow
+    ships only *.html and *.js from components/*/web/.
+  -->
+  <style>
+    /* ---- vendored uPlot v1.6.31 CSS (MIT, https://github.com/leeoniya/uPlot) ---- */
+    .uplot, .uplot *, .uplot *::before, .uplot *::after {box-sizing: border-box;}
+    .uplot {font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;line-height: 1.5;width: min-content;}
+    .u-title {text-align: center;font-size: 18px;font-weight: bold;}
+    .u-wrap {position: relative;user-select: none;}
+    .u-over, .u-under {position: absolute;}
+    .u-under {overflow: hidden;}
+    .uplot canvas {display: block;position: relative;width: 100%;height: 100%;}
+    .u-axis {position: absolute;}
+    .u-legend {font-size: 13px;margin: auto;text-align: center;}
+    .u-inline {display: block;}
+    .u-inline * {display: inline-block;}
+    .u-inline tr {margin-right: 16px;}
+    .u-legend th {font-weight: 600;}
+    .u-legend th > * {vertical-align: middle;display: inline-block;}
+    .u-legend .u-marker {width: 1em;height: 1em;margin-right: 4px;background-clip: padding-box !important;}
+    .u-inline.u-live th::after {content: ":";vertical-align: middle;}
+    .u-inline:not(.u-live) .u-value {display: none;}
+    .u-series > * {padding: 4px;}
+    .u-series th {cursor: pointer;}
+    .u-legend .u-off > * {opacity: 0.3;}
+    .u-select {background: rgba(0,0,0,0.07);position: absolute;pointer-events: none;}
+    .u-cursor-x, .u-cursor-y {position: absolute;left: 0;top: 0;pointer-events: none;will-change: transform;}
+    .u-hz .u-cursor-x, .u-vt .u-cursor-y {height: 100%;border-right: 1px dashed #607D8B;}
+    .u-hz .u-cursor-y, .u-vt .u-cursor-x {width: 100%;border-bottom: 1px dashed #607D8B;}
+    .u-cursor-pt {position: absolute;top: 0;left: 0;border-radius: 50%;border: 0 solid;pointer-events: none;will-change: transform;background-clip: padding-box !important;}
+    .u-axis.u-off, .u-select.u-off, .u-cursor-x.u-off, .u-cursor-y.u-off, .u-cursor-pt.u-off {display: none;}
+
+    /* ---- app theme (shared with the other espp consoles) ---- */
+    :root {
+      --bg: #f4f6f9; --panel-bg: #ffffff; --panel-border: #d9dee6; --text: #1c2330;
+      --text-muted: #5c6675; --accent: #2563eb; --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff; --danger: #dc2626; --ok: #16a34a; --warn: #b45309;
+      --input-bg: #ffffff; --input-border: #c3cbd6; --chip-bg: #eef2f8;
+      --grid: #e5e9f0; --plot-bg: #ffffff;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+        --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+        --accent-contrast: #0b0e14; --danger: #ef4444; --ok: #22c55e; --warn: #f59e0b;
+        --input-bg: #0e1219; --input-border: #2b3341; --chip-bg: #1b2230;
+        --grid: #232b39; --plot-bg: #0e1219;
+        --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      display: flex; flex-direction: column;
+    }
+    header {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 10px 16px; background: var(--panel-bg);
+      border-bottom: 1px solid var(--panel-border); box-shadow: var(--shadow);
+    }
+    header h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: .01em; }
+    header .spacer { flex: 1; }
+    .chip {
+      font-size: 12px; padding: 3px 9px; border-radius: 999px;
+      background: var(--chip-bg); color: var(--text-muted);
+      border: 1px solid var(--panel-border); white-space: nowrap;
+    }
+    .chip.on   { color: var(--ok);     border-color: color-mix(in srgb, var(--ok) 40%, var(--panel-border)); }
+    .chip.err  { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--panel-border)); }
+    .chip.busy { color: var(--warn);   border-color: color-mix(in srgb, var(--warn) 40%, var(--panel-border)); }
+
+    .toolbar {
+      display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap;
+      padding: 10px 16px; background: var(--panel-bg);
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .toolbar .group { display: flex; align-items: center; gap: 6px; }
+    .toolbar .sep { width: 1px; align-self: stretch; background: var(--panel-border); margin: 0 2px; }
+    label.field { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 13px; }
+
+    button, select, input[type=number] {
+      font: inherit; color: var(--text); background: var(--input-bg);
+      border: 1px solid var(--input-border); border-radius: 7px; padding: 6px 10px;
+    }
+    input[type=number] { width: 84px; }
+    button { cursor: pointer; }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button.primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); font-weight: 600; }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    input[type=checkbox] { accent-color: var(--accent); }
+
+    #unsupported {
+      display: none; margin: 16px; padding: 12px 16px; border-radius: 10px;
+      background: color-mix(in srgb, var(--danger) 10%, var(--panel-bg));
+      border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--panel-border));
+      color: var(--text);
+    }
+    #unsupported strong { color: var(--danger); }
+
+    main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 12px 16px; gap: 8px; }
+    #plotHost {
+      flex: 1; min-height: 0; position: relative;
+      background: var(--plot-bg); border: 1px solid var(--panel-border);
+      border-radius: 10px; box-shadow: var(--shadow); overflow: hidden;
+    }
+    #plotHost .uplot { width: 100% !important; }
+    .u-legend { color: var(--text); }
+    #plot3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+    #plot3d.drag { cursor: grabbing; }
+    #hint {
+      position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+      text-align: center; color: var(--text-muted); pointer-events: none; padding: 0 24px;
+    }
+    #hint code { background: var(--chip-bg); padding: 1px 6px; border-radius: 5px; }
+
+    .statusbar {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      font-size: 12px; color: var(--text-muted);
+    }
+    .statusbar b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .statusbar .schema { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>espp Serial Plotter</h1>
+    <span id="status" class="chip">Disconnected</span>
+    <span class="spacer"></span>
+    <span class="chip" id="fps" title="plot refresh"></span>
+  </header>
+
+  <div id="unsupported">
+    <strong>Web Serial is not available in this browser.</strong>
+    Use a Chromium-based browser (Chrome, Edge, Opera) over <code>https</code>,
+    <code>http://localhost</code>, or <code>file://</code>. You can still
+    <b>Load CSV</b> to view a saved capture.
+  </div>
+
+  <div class="toolbar">
+    <div class="group">
+      <button id="connect" class="primary">Connect</button>
+      <label class="field">Baud
+        <select id="baud">
+          <option>9600</option><option>19200</option><option>38400</option>
+          <option>57600</option><option>74880</option>
+          <option selected>115200</option><option>230400</option>
+          <option>460800</option><option>921600</option>
+        </select>
+      </label>
+      <button id="reset" disabled title="Pulse DTR/RTS to reset the device">Reset</button>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="group">
+      <button id="pause" disabled>Pause</button>
+      <button id="clear">Clear</button>
+      <label class="field">Retain
+        <input type="number" id="retain" min="100" step="1000" value="200000" title="Max points kept per series">
+      </label>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="group">
+      <label class="field">Mode
+        <select id="mode">
+          <option value="time" selected>Time series</option>
+          <option value="xy">2D&nbsp;X-Y</option>
+          <option value="xyz">3D&nbsp;X-Y-Z</option>
+        </select>
+      </label>
+      <label class="field" id="xModeWrap">X
+        <select id="xMode">
+          <option value="time" selected>Arrival time</option>
+          <option value="firstcol">First column</option>
+          <option value="index">Sample index</option>
+        </select>
+      </label>
+      <label class="field" id="xColWrap" hidden>X <select id="xCol"></select></label>
+      <label class="field" id="yColWrap" hidden>Y <select id="yCol"></select></label>
+      <label class="field" id="zColWrap" hidden>Z <select id="zCol"></select></label>
+      <label class="field" id="pointsWrap" hidden><input type="checkbox" id="points"> Points</label>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="group">
+      <button id="save">Save CSV</button>
+      <button id="load">Load CSV</button>
+      <input type="file" id="file" accept=".csv,.tsv,.txt,text/*" hidden>
+    </div>
+  </div>
+
+  <main>
+    <div id="plotHost">
+      <canvas id="plot3d" hidden></canvas>
+      <div id="hint">Connect to a serial port, or <b>Load CSV</b>. The plotter
+        auto-detects a header line and plots the numeric rows that follow.</div>
+    </div>
+    <div class="statusbar">
+      <span>rows <b id="stRows">0</b></span>
+      <span>kept <b id="stKept">0</b></span>
+      <span>discarded <b id="stDrop">0</b></span>
+      <span>rate <b id="stRate">0</b>/s</span>
+      <span class="schema" id="stSchema">no schema yet</span>
+    </div>
+  </main>
+
+  <script src="uPlot.iife.min.js"></script>
+  <script>
+  "use strict";
+  (function () {
+    const $ = (id) => document.getElementById(id);
+
+    // ---------------------------------------------------------------- palette
+    const COLORS = [
+      "#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed", "#0891b2",
+      "#db2777", "#65a30d", "#0d9488", "#c026d3", "#2dd4bf", "#f59e0b",
+    ];
+    const cssVar = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
+
+    // ---------------------------------------------------------------- ring buffer
+    // Fixed-capacity per-column ring; toOrdered() copies into a reusable typed
+    // array so uPlot always receives contiguous, oldest->newest data.
+    class Ring {
+      constructor(cap, Type) { this.cap = cap; this.buf = new Type(cap); this.head = 0; this.count = 0; }
+      push(v) { this.buf[this.head] = v; this.head = (this.head + 1) % this.cap; if (this.count < this.cap) this.count++; }
+      clear() { this.head = 0; this.count = 0; }
+      toOrdered(out) {
+        const { buf, cap, head, count } = this;
+        const start = (head - count + cap) % cap;
+        if (start + count <= cap) { out.set(buf.subarray(start, start + count)); }
+        else { const first = cap - start; out.set(buf.subarray(start, cap), 0); out.set(buf.subarray(0, count - first), first); }
+        return out;
+      }
+    }
+
+    // ---------------------------------------------------------------- state
+    let schema = null;              // { labels:[...], ncols, delim }
+    let pendingHeader = null;       // provisional header, binds the next matching data row
+    let tRing = null;               // arrival-time ring (Float64, seconds)
+    let colRings = [];              // one Ring<Float32> per column
+    let cap = 200000;               // retained points per series
+    let t0 = 0;                     // performance.now() at first sample
+    let paused = false;
+    let plot = null;                // uPlot instance (time / xy modes)
+    let mode = "time";
+    let stats = { rows: 0, kept: 0, drop: 0 };
+    let rateWin = [];               // timestamps of recent samples, for rate
+
+    // scratch arrays reused across draws (resized only when count changes)
+    let scratch = { n: -1, x: null, ys: [] };
+
+    // ---------------------------------------------------------------- parsing
+    const isNum = (s) => s !== "" && Number.isFinite(Number(s));
+
+    function detectDelim(line) {
+      if (line.indexOf(",") >= 0) return ",";
+      if (line.indexOf("\t") >= 0) return "\t";
+      if (line.indexOf(";") >= 0) return ";";
+      return " ";                   // whitespace (collapsed)
+    }
+    function splitLine(line, delim) {
+      return delim === " " ? line.trim().split(/\s+/) : line.split(delim).map((s) => s.trim());
+    }
+
+    // Classify a line against / into the schema. Returns "header", "data", or "drop".
+    function classify(tokens) {
+      if (tokens.length < 1 || (tokens.length === 1 && tokens[0] === "")) return "drop";
+      const numeric = tokens.filter(isNum).length;
+      if (numeric === tokens.length && tokens.length >= 1) return "data";   // all numeric
+      if (numeric === 0 && tokens.length >= 1) return "header";             // all labels
+      return "drop";                                                        // mixed -> junk/log
+    }
+
+    function setSchema(labels, delim) {
+      schema = { labels: labels.slice(), ncols: labels.length, delim };
+      cap = Math.max(100, parseInt($("retain").value, 10) || 200000);
+      tRing = new Ring(cap, Float64Array);
+      colRings = labels.map(() => new Ring(cap, Float32Array));
+      t0 = 0;
+      stats.kept = 0;
+      scratch.n = -1;
+      rebuildColumnSelects();
+      buildPlot();
+      updateSchemaLabel();
+    }
+
+    function pushSample(nums, tSec) {
+      tRing.push(tSec);
+      for (let i = 0; i < colRings.length; i++) colRings[i].push(nums[i]);
+      stats.kept = tRing.count;
+    }
+
+    // Feed one raw line. Delimiter is detected per line so a header and its
+    // rows can differ (e.g. a whitespace log line vs comma-separated data).
+    function ingestLine(line, arrivalSec) {
+      const delim = detectDelim(line);
+      const tokens = splitLine(line, delim);
+      const kind = classify(tokens);
+
+      if (kind === "header") {
+        // Provisional only: a header takes effect once a data row of the same
+        // width follows, so all-text log lines can't hijack the schema.
+        pendingHeader = { labels: tokens.slice(), delim };
+        return;
+      }
+      if (kind !== "data") { stats.drop++; return; }   // mixed line -> junk/log
+
+      stats.rows++;
+      if (pendingHeader && pendingHeader.labels.length === tokens.length) {
+        // Confirmed header -> (re-)evaluate: new labels/count start fresh.
+        if (!schema || schema.labels.join(" ") !== pendingHeader.labels.join(" "))
+          setSchema(pendingHeader.labels, delim);
+      } else if (!schema) {
+        setSchema(tokens.map((_, i) => "ch" + i), delim);   // data before any header
+      }
+      pendingHeader = null;                                  // a header binds only the next row
+      if (tokens.length !== schema.ncols) { stats.drop++; return; }  // wrong width
+      const nums = new Array(schema.ncols);
+      for (let i = 0; i < schema.ncols; i++) nums[i] = Number(tokens[i]);
+      pushSample(nums, arrivalSec);
+      rateWin.push(arrivalSec);
+    }
+
+    // ---------------------------------------------------------------- column selects
+    function fillSelect(sel, keep) {
+      const prev = sel.value;
+      sel.innerHTML = "";
+      (schema ? schema.labels : []).forEach((lbl, i) => {
+        const o = document.createElement("option");
+        o.value = String(i); o.textContent = lbl;
+        sel.appendChild(o);
+      });
+      if (keep && prev !== "" && +prev < (schema ? schema.ncols : 0)) sel.value = prev;
+    }
+    function rebuildColumnSelects() {
+      fillSelect($("xCol"), true);
+      fillSelect($("yCol"), true);
+      fillSelect($("zCol"), true);
+      if (schema && schema.ncols >= 2) {
+        if ($("xCol").value === $("yCol").value) $("yCol").selectedIndex = 1;
+        if (schema.ncols >= 3 && $("zCol").value === $("xCol").value) $("zCol").selectedIndex = 2;
+      }
+    }
+
+    // Which column index is X, and which indices are the Y series, for the
+    // current mode + selectors. Returns {xIdx:-1 means synthetic, ys:[...]}.
+    function axisMap() {
+      if (!schema) return { xIdx: -1, ys: [] };
+      const all = schema.labels.map((_, i) => i);
+      if (mode === "xy") {
+        const xi = +$("xCol").value || 0;
+        return { xIdx: xi, ys: all.filter((i) => i !== xi) };
+      }
+      // time-series
+      const xm = $("xMode").value;
+      if (xm === "firstcol") return { xIdx: 0, ys: all.slice(1) };
+      return { xIdx: -1, ys: all };   // synthetic x (time or index)
+    }
+
+    // ---------------------------------------------------------------- uPlot build
+    function ensureScratch(n, nSeries) {
+      if (scratch.n === n && scratch.ys.length === nSeries) return;
+      scratch.n = n;
+      scratch.x = new Float64Array(n);
+      scratch.ys = Array.from({ length: nSeries }, () => new Float64Array(n));
+    }
+
+    function buildData() {
+      const { xIdx, ys } = axisMap();
+      const n = tRing ? tRing.count : 0;
+      ensureScratch(n, ys.length);
+      // x
+      if (xIdx === -1 && $("xMode").value === "index" && mode === "time") {
+        for (let i = 0; i < n; i++) scratch.x[i] = i;
+      } else if (xIdx === -1) {
+        tRing.toOrdered(scratch.x);            // arrival time (relative seconds)
+        if (n) { const base = scratch.x[0]; for (let i = 0; i < n; i++) scratch.x[i] -= base; }
+      } else {
+        colRings[xIdx].toOrdered(scratch.x);
+      }
+      // ys
+      for (let s = 0; s < ys.length; s++) colRings[ys[s]].toOrdered(scratch.ys[s]);
+      return [scratch.x, ...scratch.ys];
+    }
+
+    function xAxisLabel() {
+      if (mode === "xy") return schema.labels[+$("xCol").value || 0];
+      const xm = $("xMode").value;
+      if (xm === "firstcol") return schema.labels[0];
+      if (xm === "index") return "sample";
+      return "time (s)";
+    }
+
+    function buildPlot() {
+      if (plot) { plot.destroy(); plot = null; }
+      const host = $("plotHost");
+      $("hint").hidden = !!schema;
+      $("plot3d").hidden = true;
+      if (!schema || mode === "xyz") { if (mode === "xyz") drawScene(); return; }
+
+      const { ys } = axisMap();
+      const asPoints = mode === "xy" && $("points").checked;
+      const stroke = cssVar("--text-muted") || "#888";
+      const grid = cssVar("--grid") || "#ddd";
+
+      const series = [{ label: xAxisLabel() }];
+      ys.forEach((ci, k) => {
+        series.push({
+          label: schema.labels[ci],
+          stroke: COLORS[k % COLORS.length],
+          width: 1.5,
+          points: { show: asPoints, size: 5, fill: COLORS[k % COLORS.length] },
+          paths: asPoints ? () => null : undefined,
+        });
+      });
+
+      const opts = {
+        width: host.clientWidth, height: host.clientHeight,
+        padding: [10, 14, 4, 6],
+        cursor: { drag: { x: true, y: true, uni: 20 } },
+        scales: { x: { time: false } },
+        legend: { live: true },
+        axes: [
+          { stroke, grid: { stroke: grid, width: 1 }, ticks: { stroke: grid }, label: xAxisLabel(), labelSize: 24 },
+          { stroke, grid: { stroke: grid, width: 1 }, ticks: { stroke: grid } },
+        ],
+        series,
+      };
+      plot = new uPlot(opts, buildData(), host);
+    }
+
+    // rAF-coalesced redraw
+    let drawQueued = false;
+    function scheduleDraw() {
+      if (drawQueued) return;
+      drawQueued = true;
+      requestAnimationFrame(() => {
+        drawQueued = false;
+        if (paused || !schema) return;
+        if (mode === "xyz") { drawScene(); return; }
+        if (plot) plot.setData(buildData());
+      });
+    }
+
+    // ---------------------------------------------------------------- 3D scatter (canvas, dependency-free)
+    const cam = { yaw: 0.6, pitch: 0.5, zoom: 1 };
+    function drawScene() {
+      const cv = $("plot3d");
+      cv.hidden = false;
+      $("hint").hidden = !!schema;
+      if (!schema || schema.ncols < 3) return;
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const W = cv.clientWidth, H = cv.clientHeight;
+      if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+      const g = cv.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.clearRect(0, 0, W, H);
+
+      const xi = +$("xCol").value || 0, yi = +$("yCol").value || 0, zi = +$("zCol").value || 0;
+      const n = tRing.count;
+      if (!n) return;
+      const xs = colRings[xi].toOrdered(new Float32Array(n));
+      const ys = colRings[yi].toOrdered(new Float32Array(n));
+      const zs = colRings[zi].toOrdered(new Float32Array(n));
+
+      // normalize each axis to [-1,1]
+      const norm = (a) => { let lo = Infinity, hi = -Infinity; for (let i = 0; i < n; i++) { const v = a[i]; if (v < lo) lo = v; if (v > hi) hi = v; } const c = (lo + hi) / 2, r = (hi - lo) / 2 || 1; return { c, r }; };
+      const nx = norm(xs), ny = norm(ys), nz = norm(zs);
+
+      const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+      const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+      const scale = Math.min(W, H) * 0.34 * cam.zoom;
+      const ox = W / 2, oy = H / 2;
+
+      // draw axes box (unit cube) faintly
+      g.strokeStyle = cssVar("--grid"); g.lineWidth = 1;
+      const proj = (x, y, z) => {
+        const x1 = x * cy - z * sy, z1 = x * sy + z * cy;
+        const y1 = y * cp - z1 * sp;
+        return [ox + x1 * scale, oy - y1 * scale];
+      };
+      const cube = [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+      const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+      g.globalAlpha = 0.5;
+      edges.forEach(([a, b]) => { const p = proj(...cube[a]), q = proj(...cube[b]); g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); g.stroke(); });
+      g.globalAlpha = 1;
+
+      // points, colored oldest->newest along the accent hue ramp
+      const step = n > 20000 ? Math.ceil(n / 20000) : 1;   // cap draw cost
+      for (let i = 0; i < n; i += step) {
+        const px = (xs[i] - nx.c) / nx.r, py = (ys[i] - ny.c) / ny.r, pz = (zs[i] - nz.c) / nz.r;
+        const [sx, syy] = proj(px, py, pz);
+        const t = i / n;
+        g.fillStyle = `hsl(${210 + t * 120}, 70%, 55%)`;
+        g.fillRect(sx - 1.5, syy - 1.5, 3, 3);
+      }
+      // axis labels
+      g.fillStyle = cssVar("--text-muted"); g.font = "12px system-ui";
+      const lp = (x, y, z, txt) => { const [a, b] = proj(x, y, z); g.fillText(txt, a + 4, b); };
+      lp(1.15, -1, -1, schema.labels[xi]);
+      lp(-1, 1.15, -1, schema.labels[yi]);
+      lp(-1, -1, 1.15, schema.labels[zi]);
+    }
+
+    // 3D orbit / zoom
+    (function bind3d() {
+      const cv = $("plot3d");
+      let dragging = false, lx = 0, ly = 0;
+      cv.addEventListener("pointerdown", (e) => { dragging = true; lx = e.clientX; ly = e.clientY; cv.classList.add("drag"); cv.setPointerCapture(e.pointerId); });
+      cv.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        cam.yaw += (e.clientX - lx) * 0.01; cam.pitch += (e.clientY - ly) * 0.01;
+        cam.pitch = Math.max(-1.4, Math.min(1.4, cam.pitch));
+        lx = e.clientX; ly = e.clientY; if (mode === "xyz") drawScene();
+      });
+      const end = () => { dragging = false; cv.classList.remove("drag"); };
+      cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+      cv.addEventListener("wheel", (e) => { e.preventDefault(); cam.zoom *= e.deltaY < 0 ? 1.1 : 0.9; cam.zoom = Math.max(0.2, Math.min(8, cam.zoom)); if (mode === "xyz") drawScene(); }, { passive: false });
+    })();
+
+    // ---------------------------------------------------------------- serial transport
+    let port = null, reader = null, keepReading = false, readLoopDone = Promise.resolve();
+    let rxBuf = "";
+
+    function setStatus(cls, text) { const el = $("status"); el.className = "chip " + (cls || ""); el.textContent = text; }
+
+    async function connect() {
+      if (port) return disconnect();
+      try {
+        port = await navigator.serial.requestPort();
+      } catch (e) { return; /* user cancelled */ }
+      const baud = parseInt($("baud").value, 10) || 115200;
+      try { await port.open({ baudRate: baud }); }
+      catch (e) { setStatus("err", "Open failed: " + e.message); port = null; return; }
+      keepReading = true;
+      rxBuf = "";
+      readLoopDone = readLoop();
+      setStatus("on", "Connected @ " + baud);
+      $("connect").textContent = "Disconnect";
+      $("pause").disabled = false; $("reset").disabled = false;
+    }
+
+    async function disconnect() {
+      keepReading = false;
+      try { if (reader) await reader.cancel(); } catch (e) {}
+      try { await readLoopDone; } catch (e) {}
+      try { if (port) await port.close(); } catch (e) {}
+      port = null; reader = null;
+      setStatus("", "Disconnected");
+      $("connect").textContent = "Connect";
+      $("pause").disabled = true; $("reset").disabled = true;
+    }
+
+    async function readLoop() {
+      const decoder = new TextDecoder("utf-8", { fatal: false });
+      while (port && port.readable && keepReading) {
+        reader = port.readable.getReader();
+        try {
+          for (;;) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            if (value) feedText(decoder.decode(value, { stream: true }));
+          }
+        } catch (e) {
+          if (keepReading) setStatus("err", "Read error: " + e.message);
+        } finally {
+          try { reader.releaseLock(); } catch (e) {}
+        }
+      }
+    }
+
+    // line-buffer decoded text, parse whole lines, keep the trailing partial
+    function feedText(chunk) {
+      if (paused) return;
+      if (!t0) t0 = performance.now();
+      rxBuf += chunk;
+      let nl;
+      while ((nl = rxBuf.indexOf("\n")) >= 0) {
+        let line = rxBuf.slice(0, nl);
+        rxBuf = rxBuf.slice(nl + 1);
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.length) ingestLine(line, (performance.now() - t0) / 1000);
+      }
+      if (rxBuf.length > 1 << 20) rxBuf = "";   // runaway line without newline
+      scheduleDraw();
+    }
+
+    async function resetDevice() {
+      if (!port) return;
+      try {
+        await port.setSignals({ dataTerminalReady: false, requestToSend: true });
+        await new Promise((r) => setTimeout(r, 120));
+        await port.setSignals({ dataTerminalReady: true, requestToSend: false });
+      } catch (e) { setStatus("err", "Reset failed: " + e.message); }
+    }
+
+    // ---------------------------------------------------------------- save / load CSV
+    function saveCSV() {
+      if (!schema || !tRing.count) return;
+      const n = tRing.count;
+      const t = tRing.toOrdered(new Float64Array(n));
+      const cols = colRings.map((r) => r.toOrdered(new Float32Array(n)));
+      const rows = [["time_s", ...schema.labels].join(",")];
+      for (let i = 0; i < n; i++) {
+        const base = t[0];
+        rows.push([(t[i] - base).toFixed(6), ...cols.map((c) => c[i])].join(","));
+      }
+      const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "serial_capture_" + new Date().toISOString().replace(/[:.]/g, "-") + ".csv";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }
+
+    function loadCSV(file) {
+      const rd = new FileReader();
+      rd.onload = () => {
+        clearData();
+        // File carries its own X: default to first column so saved captures round-trip.
+        $("xMode").value = "firstcol"; syncModeUI();
+        const lines = String(rd.result).split(/\r?\n/);
+        for (const line of lines) if (line.length) ingestLine(line, 0);
+        buildPlot();
+        scheduleDraw();
+        updateStats();
+        setStatus($("connect").textContent === "Disconnect" ? "on" : "", "Loaded " + file.name);
+      };
+      rd.readAsText(file);
+    }
+
+    // ---------------------------------------------------------------- controls
+    function clearData() {
+      if (tRing) { tRing.clear(); colRings.forEach((r) => r.clear()); }
+      stats = { rows: 0, kept: 0, drop: 0 };
+      rateWin = []; t0 = 0; scratch.n = -1; pendingHeader = null;
+    }
+
+    function syncModeUI() {
+      mode = $("mode").value;
+      $("xModeWrap").hidden = mode !== "time";
+      $("xColWrap").hidden = !(mode === "xy" || mode === "xyz");
+      $("yColWrap").hidden = mode !== "xyz";
+      $("zColWrap").hidden = mode !== "xyz";
+      $("pointsWrap").hidden = mode !== "xy";
+      buildPlot();
+      scheduleDraw();
+    }
+    function updateSchemaLabel() {
+      $("stSchema").textContent = schema
+        ? `${schema.ncols} cols [${schema.labels.join(", ")}]  delim '${schema.delim === " " ? "ws" : schema.delim}'`
+        : "no schema yet";
+    }
+    function updateStats() {
+      $("stRows").textContent = stats.rows;
+      $("stKept").textContent = stats.kept;
+      $("stDrop").textContent = stats.drop;
+      updateSchemaLabel();
+    }
+
+    // ---------------------------------------------------------------- wiring
+    $("connect").addEventListener("click", connect);
+    $("reset").addEventListener("click", resetDevice);
+    $("pause").addEventListener("click", () => { paused = !paused; $("pause").textContent = paused ? "Resume" : "Pause"; if (!paused) scheduleDraw(); });
+    $("clear").addEventListener("click", () => { clearData(); if (plot) plot.setData(buildData()); if (mode === "xyz") drawScene(); updateStats(); });
+    $("mode").addEventListener("change", syncModeUI);
+    $("xMode").addEventListener("change", () => { buildPlot(); scheduleDraw(); });
+    ["xCol", "yCol", "zCol"].forEach((id) => $(id).addEventListener("change", () => { buildPlot(); scheduleDraw(); }));
+    $("points").addEventListener("change", () => { buildPlot(); scheduleDraw(); });
+    $("retain").addEventListener("change", () => { if (schema) setSchema(schema.labels, schema.delim); });
+    $("save").addEventListener("click", saveCSV);
+    $("load").addEventListener("click", () => $("file").click());
+    $("file").addEventListener("change", (e) => { if (e.target.files[0]) loadCSV(e.target.files[0]); e.target.value = ""; });
+
+    // periodic stats + rate + fps (decoupled from the draw loop)
+    setInterval(() => {
+      const now = performance.now() / 1000;
+      rateWin = rateWin.filter((t) => now - t < 1);
+      $("stRate").textContent = rateWin.length;
+      updateStats();
+    }, 500);
+
+    // resize the plot with its host
+    new ResizeObserver(() => {
+      const host = $("plotHost");
+      if (plot) plot.setSize({ width: host.clientWidth, height: host.clientHeight });
+      if (mode === "xyz") drawScene();
+    }).observe($("plotHost"));
+
+    // feature detection
+    if (!("serial" in navigator)) {
+      $("unsupported").style.display = "block";
+      $("connect").disabled = true; $("baud").disabled = true;
+    }
+    syncModeUI();
+  })();
+  </script>
+</body>
+</html>
