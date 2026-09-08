@@ -12,6 +12,6 @@ tags:
   - serial
   - web-serial
   - telemetry
-dependencies:
-  idf:
-    version: '>=6.0'
+# No dependencies: this component currently ships only the browser webapp and
+# has no firmware source, so it imposes no ESP-IDF version constraint. The
+# planned telemetry service will add the deps (and an idf floor) it needs.
