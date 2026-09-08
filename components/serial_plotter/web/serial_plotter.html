@@ -197,7 +197,7 @@
       <button id="pause" disabled>Pause</button>
       <button id="clear">Clear</button>
       <label class="field">Retain
-        <input type="number" id="retain" min="100" step="1000" value="200000" title="Max points kept per series">
+        <input type="number" id="retain" min="100" max="2000000" step="1000" value="200000" title="Max points kept per series">
       </label>
     </div>
 
@@ -301,6 +301,8 @@
 
     // scratch arrays reused across draws (resized only when count changes)
     let scratch = { n: -1, x: null, ys: [] };
+    let scene = { n: -1, xs: null, ys: null, zs: null };   // reused 3D draw buffers
+    const MAX_RETAIN = 2000000;     // hard cap on retained points/series (guards against OOM)
 
     // ---------------------------------------------------------------- parsing
     const isNum = (s) => s !== "" && Number.isFinite(Number(s));
@@ -326,12 +328,13 @@
 
     function setSchema(labels, delim) {
       schema = { labels: labels.slice(), ncols: labels.length, delim };
-      cap = Math.max(100, parseInt($("retain").value, 10) || 200000);
+      cap = Math.min(MAX_RETAIN, Math.max(100, parseInt($("retain").value, 10) || 200000));
+      $("retain").value = cap;      // reflect the clamped value back to the input
       tRing = new Ring(cap, Float64Array);
       colRings = labels.map(() => new Ring(cap, Float32Array));
       t0 = 0;
       stats.kept = 0;
-      scratch.n = -1;
+      scratch.n = -1; scene.n = -1;
       rebuildColumnSelects();
       buildPlot();
       updateSchemaLabel();
@@ -371,7 +374,7 @@
       const nums = new Array(schema.ncols);
       for (let i = 0; i < schema.ncols; i++) nums[i] = Number(tokens[i]);
       pushSample(nums, arrivalSec);
-      rateWin.push(arrivalSec);
+      rateWin.push(performance.now() / 1000);   // absolute, to match the rate window below
     }
 
     // ---------------------------------------------------------------- column selects
@@ -583,9 +586,11 @@
       const xi = +$("xCol").value || 0, yi = +$("yCol").value || 0, zi = +$("zCol").value || 0;
       const n = tRing.count;
       if (!n) return;
-      const xs = colRings[xi].toOrdered(new Float32Array(n));
-      const ys = colRings[yi].toOrdered(new Float32Array(n));
-      const zs = colRings[zi].toOrdered(new Float32Array(n));
+      // reuse draw buffers across frames (resized only when the point count changes)
+      if (scene.n !== n) { scene.n = n; scene.xs = new Float32Array(n); scene.ys = new Float32Array(n); scene.zs = new Float32Array(n); }
+      const xs = colRings[xi].toOrdered(scene.xs);
+      const ys = colRings[yi].toOrdered(scene.ys);
+      const zs = colRings[zi].toOrdered(scene.zs);
 
       // normalize each axis to [-1,1]
       const norm = (a) => { let lo = Infinity, hi = -Infinity; for (let i = 0; i < n; i++) { const v = a[i]; if (v < lo) lo = v; if (v > hi) hi = v; } const c = (lo + hi) / 2, r = (hi - lo) / 2 || 1; return { c, r }; };
@@ -745,6 +750,7 @@
         $("xMode").value = "firstcol"; syncModeUI();
         const lines = String(rd.result).split(/\r?\n/);
         for (const line of lines) if (line.length) ingestLine(line, 0);
+        rateWin = [];               // a bulk file load isn't a live sample rate
         buildPlot();
         scheduleDraw();
         updateStats();
@@ -757,7 +763,7 @@
     function clearData() {
       if (tRing) { tRing.clear(); colRings.forEach((r) => r.clear()); }
       stats = { rows: 0, kept: 0, drop: 0 };
-      rateWin = []; t0 = 0; scratch.n = -1; pendingHeader = null;
+      rateWin = []; t0 = 0; scratch.n = -1; scene.n = -1; pendingHeader = null;
     }
 
     function syncModeUI() {
