@@ -36,10 +36,13 @@ rest, with the per-series filter bar:
   detected per line. A line of non-numeric labels is treated as a **header**; the
   first numeric row of matching width confirms it and becomes the schema. Rows
   that do not match the schema (wrong column count, non-numeric, or log lines)
-  are **discarded**. A header only binds the row that follows it, so ordinary
-  ESP-IDF log lines never hijack the schema.
-- **Re-evaluates on a new header.** When a different header arrives mid-stream,
-  the next matching row starts a fresh dataset — just like `uart_serial_plotter`.
+  are **discarded**. A header only binds the row that follows it, and ESP-IDF log
+  lines (`I (123) tag: …`, ANSI colors included) are rejected outright, so
+  ordinary logging never hijacks the schema.
+- **Re-evaluates on a changed header.** When a header with different labels or a
+  different column count arrives mid-stream, the next matching row starts a fresh
+  dataset — just like `uart_serial_plotter`. A repeat of the same header keeps the
+  running dataset (so periodic header echoes don't wipe your capture).
 - **High point counts.** Samples land in fixed-capacity per-series ring buffers
   (`Float32Array`) and are drawn with [uPlot](https://github.com/leeoniya/uPlot),
   which does the pixel decimation. Redraws are coalesced to one per animation

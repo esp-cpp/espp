@@ -300,12 +300,17 @@
     let seriesVisible = {};         // label -> bool; manual per-series show/hide (persists across rebuilds)
 
     // scratch arrays reused across draws (resized only when count changes)
-    let scratch = { n: -1, x: null, ys: [] };
-    let scene = { n: -1, xs: null, ys: null, zs: null };   // reused 3D draw buffers
+    let scratch = { cap: -1, x: null, ys: [] };            // capacity-sized 2D draw buffers
+    let scene = { cap: -1, xs: null, ys: null, zs: null }; // capacity-sized 3D draw buffers
     const MAX_RETAIN = 2000000;     // hard cap on retained points/series (guards against OOM)
 
     // ---------------------------------------------------------------- parsing
     const isNum = (s) => s !== "" && Number.isFinite(Number(s));
+
+    // ESP-IDF logs ("I (123) tag: msg", optionally ANSI-colored) tokenize as
+    // all-label lines and would otherwise look like a header; reject them up
+    // front so a same-width data row can never confirm one as the schema.
+    const ESP_LOG = /^(?:\x1b\[[0-9;]*m)?[EWIDVN] \(\d+\)/;
 
     function detectDelim(line) {
       if (line.indexOf(",") >= 0) return ",";
@@ -334,7 +339,7 @@
       colRings = labels.map(() => new Ring(cap, Float32Array));
       t0 = 0;
       stats.kept = 0;
-      scratch.n = -1; scene.n = -1;
+      scratch.cap = -1; scene.cap = -1;
       rebuildColumnSelects();
       buildPlot();
       updateSchemaLabel();
@@ -349,6 +354,7 @@
     // Feed one raw line. Delimiter is detected per line so a header and its
     // rows can differ (e.g. a whitespace log line vs comma-separated data).
     function ingestLine(line, arrivalSec) {
+      if (ESP_LOG.test(line)) { stats.drop++; return; }   // ESP-IDF log line -> discard
       const delim = detectDelim(line);
       const tokens = splitLine(line, delim);
       const kind = classify(tokens);
@@ -414,29 +420,36 @@
     }
 
     // ---------------------------------------------------------------- uPlot build
-    function ensureScratch(n, nSeries) {
-      if (scratch.n === n && scratch.ys.length === nSeries) return;
-      scratch.n = n;
-      scratch.x = new Float64Array(n);
-      scratch.ys = Array.from({ length: nSeries }, () => new Float64Array(n));
+    // Allocate the draw buffers once at capacity and hand uPlot subarray views;
+    // during live capture `n` grows every frame, so per-frame allocation would
+    // defeat the high-point-count goal.
+    function ensureScratch(nSeries) {
+      if (scratch.cap === cap && scratch.ys.length === nSeries) return;
+      scratch.cap = cap;
+      scratch.x = new Float64Array(cap);
+      scratch.ys = Array.from({ length: nSeries }, () => new Float64Array(cap));
     }
 
     function buildData() {
       const { xIdx, ys } = axisMap();
       const n = tRing ? tRing.count : 0;
-      ensureScratch(n, ys.length);
+      ensureScratch(ys.length);
+      const xv = scratch.x.subarray(0, n);
       // x
       if (xIdx === -1 && $("xMode").value === "index" && mode === "time") {
-        for (let i = 0; i < n; i++) scratch.x[i] = i;
+        for (let i = 0; i < n; i++) xv[i] = i;
       } else if (xIdx === -1) {
-        tRing.toOrdered(scratch.x);            // arrival time (relative seconds)
-        if (n) { const base = scratch.x[0]; for (let i = 0; i < n; i++) scratch.x[i] -= base; }
+        tRing.toOrdered(xv);                   // arrival time (relative seconds)
+        if (n) { const base = xv[0]; for (let i = 0; i < n; i++) xv[i] -= base; }
       } else {
-        colRings[xIdx].toOrdered(scratch.x);
+        colRings[xIdx].toOrdered(xv);
       }
       // ys
-      for (let s = 0; s < ys.length; s++) colRings[ys[s]].toOrdered(scratch.ys[s]);
-      return [scratch.x, ...scratch.ys];
+      const yvs = ys.map((ci, s) => { const yv = scratch.ys[s].subarray(0, n); colRings[ci].toOrdered(yv); return yv; });
+      // X-Y uses uPlot mode 2 ([x,y] per series) so a non-monotonic X is handled
+      // correctly (range, zoom, cursor); time-series uses fast mode 1.
+      if (mode === "xy") return [null, ...yvs.map((yv) => [xv, yv])];
+      return [xv, ...yvs];
     }
 
     function xAxisLabel() {
@@ -455,39 +468,33 @@
       if (!schema || mode === "xyz") { renderSeriesPanel(); if (mode === "xyz") drawScene(); return; }
 
       const { ys } = axisMap();
-      const asPoints = mode === "xy" && $("points").checked;
       const stroke = cssVar("--text-muted") || "#888";
       const grid = cssVar("--grid") || "#ddd";
+      const xyMode = mode === "xy";
+      const asPoints = xyMode && $("points").checked;
+      const linePaths = xyMode && uPlot.paths && uPlot.paths.linear ? uPlot.paths.linear() : undefined;
 
-      const series = [{ label: xAxisLabel() }];
+      const series = [xyMode ? {} : { label: xAxisLabel() }];
       ys.forEach((ci, k) => {
-        series.push({
+        const color = COLORS[k % COLORS.length];
+        const s = {
           label: schema.labels[ci],
           show: isVisible(schema.labels[ci]),
-          stroke: COLORS[k % COLORS.length],
+          stroke: color,
           width: 1.5,
-          points: { show: asPoints, size: 5, fill: COLORS[k % COLORS.length] },
-          paths: asPoints ? () => null : undefined,
-        });
+          points: { show: asPoints, size: 5, fill: color, stroke: color },
+          paths: asPoints ? () => null : (xyMode ? linePaths : undefined),
+        };
+        // uPlot mode 2 needs each series to declare which scale each dim uses.
+        if (xyMode) s.facets = [{ scale: "x", auto: true }, { scale: "y", auto: true }];
+        series.push(s);
       });
-
-      // Time-series X is monotonic, so uPlot's fast endpoint-based x-range is
-      // fine. An X-Y plot's X column is arbitrary (non-monotonic), and uPlot
-      // assumes sorted X — so scan the actual min/max for the x scale there.
-      const xScale = mode === "xy"
-        ? { time: false, range: (u) => {
-            const d = u.data[0]; let lo = Infinity, hi = -Infinity;
-            for (let i = 0; i < d.length; i++) { const v = d[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
-            if (!isFinite(lo)) return [0, 1];
-            const pad = (hi - lo) * 0.02 || 1; return [lo - pad, hi + pad];
-          } }
-        : { time: false };
 
       const opts = {
         width: host.clientWidth, height: host.clientHeight,
         padding: [10, 14, 4, 6],
         cursor: { drag: { x: true, y: true, uni: 20 } },
-        scales: { x: xScale },
+        scales: { x: { time: false }, y: {} },
         legend: { live: true },
         axes: [
           { stroke, grid: { stroke: grid, width: 1 }, ticks: { stroke: grid }, label: xAxisLabel(), labelSize: 24 },
@@ -495,6 +502,7 @@
         ],
         series,
       };
+      if (xyMode) opts.mode = 2;   // [x,y]-per-series: correct for non-monotonic X
       plot = new uPlot(opts, buildData(), host);
       renderSeriesPanel();
     }
@@ -669,15 +677,31 @@
       $("pause").disabled = false; $("reset").disabled = false;
     }
 
+    function resetConnUI(text, cls) {
+      setStatus(cls || "", text);
+      $("connect").textContent = "Connect";
+      $("pause").disabled = true; $("reset").disabled = true;
+      paused = false; $("pause").textContent = "Pause";
+    }
+
     async function disconnect() {
       keepReading = false;
       try { if (reader) await reader.cancel(); } catch (e) {}
       try { await readLoopDone; } catch (e) {}
       try { if (port) await port.close(); } catch (e) {}
       port = null; reader = null;
-      setStatus("", "Disconnected");
-      $("connect").textContent = "Connect";
-      $("pause").disabled = true; $("reset").disabled = true;
+      resetConnUI("Disconnected");
+    }
+
+    // Unexpected link loss (device unplugged): the read loop ends on its own.
+    // Tear down and reset the controls WITHOUT awaiting readLoopDone (we may be
+    // inside it) so the next Connect actually reconnects.
+    function handleLinkLost() {
+      if (!port) return;
+      keepReading = false;
+      const p = port; port = null; reader = null;
+      try { p.close(); } catch (e) {}      // fire-and-forget; do not await
+      resetConnUI("Device disconnected", "err");
     }
 
     async function readLoop() {
@@ -696,22 +720,25 @@
           try { reader.releaseLock(); } catch (e) {}
         }
       }
+      if (keepReading) handleLinkLost();   // stream ended but user didn't disconnect
     }
 
     // line-buffer decoded text, parse whole lines, keep the trailing partial
     function feedText(chunk) {
-      if (paused) return;
       if (!t0) t0 = performance.now();
       rxBuf += chunk;
       let nl;
       while ((nl = rxBuf.indexOf("\n")) >= 0) {
         let line = rxBuf.slice(0, nl);
         rxBuf = rxBuf.slice(nl + 1);
+        // Keep framing while paused (so resume starts on a clean line boundary),
+        // but don't ingest the paused lines.
+        if (paused) continue;
         if (line.endsWith("\r")) line = line.slice(0, -1);
         if (line.length) ingestLine(line, (performance.now() - t0) / 1000);
       }
       if (rxBuf.length > 1 << 20) rxBuf = "";   // runaway line without newline
-      scheduleDraw();
+      if (!paused) scheduleDraw();
     }
 
     async function resetDevice() {
@@ -727,12 +754,19 @@
     function saveCSV() {
       if (!schema || !tRing.count) return;
       const n = tRing.count;
-      const t = tRing.toOrdered(new Float64Array(n));
       const cols = colRings.map((r) => r.toOrdered(new Float32Array(n)));
-      const rows = [["time_s", ...schema.labels].join(",")];
+      // Prepend an arrival-time column only for a live capture; a loaded file
+      // already has time_s as its first column, so re-saving must not add a
+      // second one (which would round-trip-grow a zero-filled column).
+      const hasTime = schema.labels[0] === "time_s";
+      const header = hasTime ? schema.labels.slice() : ["time_s", ...schema.labels];
+      const rows = [header.join(",")];
+      let t = null, base = 0;
+      if (!hasTime) { t = tRing.toOrdered(new Float64Array(n)); base = t[0]; }
       for (let i = 0; i < n; i++) {
-        const base = t[0];
-        rows.push([(t[i] - base).toFixed(6), ...cols.map((c) => c[i])].join(","));
+        const cells = hasTime ? [] : [(t[i] - base).toFixed(6)];
+        for (let c = 0; c < cols.length; c++) cells.push(cols[c][i]);
+        rows.push(cells.join(","));
       }
       const blob = new Blob([rows.join("\n")], { type: "text/csv" });
       const a = document.createElement("a");
@@ -763,7 +797,7 @@
     function clearData() {
       if (tRing) { tRing.clear(); colRings.forEach((r) => r.clear()); }
       stats = { rows: 0, kept: 0, drop: 0 };
-      rateWin = []; t0 = 0; scratch.n = -1; scene.n = -1; pendingHeader = null;
+      rateWin = []; t0 = 0; scratch.cap = -1; scene.cap = -1; pendingHeader = null;
     }
 
     function syncModeUI() {
@@ -824,6 +858,11 @@
     if (!("serial" in navigator)) {
       $("unsupported").style.display = "block";
       $("connect").disabled = true; $("baud").disabled = true;
+    } else {
+      // also catch an unplug that fires the platform disconnect event
+      navigator.serial.addEventListener("disconnect", (e) => {
+        if (port && e.target === port) handleLinkLost();
+      });
     }
     syncModeUI();
   })();
