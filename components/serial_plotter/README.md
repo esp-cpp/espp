@@ -13,6 +13,23 @@ install, no CDN, no network access.
 > higher-bandwidth, typed channels) is a planned follow-up; the same webapp will
 > gain a WebUSB transport that feeds the same plot.
 
+## Screenshots
+
+The demo data below is a Lorenz attractor (`time,x,y,z`) loaded via **Load CSV**.
+
+Time series — X is a chosen column (or arrival time / sample index), Y is the
+rest, with the per-series filter bar:
+
+![Serial Plotter — time series](https://github.com/user-attachments/assets/64668e83-8ff8-4ba8-9f97-1be5e1c3ad6d)
+
+2D X–Y — pick any column as X (here `x` vs `z`, the classic Lorenz butterfly):
+
+![Serial Plotter — 2D X-Y](https://github.com/user-attachments/assets/41850b0d-eb5d-4122-b467-9f35e0d33e30)
+
+3D X–Y–Z — orbit / zoom point cloud (small dependency-free canvas renderer):
+
+![Serial Plotter — 3D X-Y-Z](https://github.com/user-attachments/assets/60de3ba6-2cb0-42a4-9e61-fde228b5dc55)
+
 ## Features
 
 - **Automatic parsing.** The delimiter (comma / tab / semicolon / whitespace) is

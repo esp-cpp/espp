@@ -73,6 +73,11 @@ Data plotting
   capture as CSV. Optional **2D X–Y** and **3D X–Y–Z** modes plot the same parsed
   columns against each other.
 
+.. image:: https://github.com/user-attachments/assets/64668e83-8ff8-4ba8-9f97-1be5e1c3ad6d
+   :alt: espp Serial Plotter plotting a Lorenz-attractor capture as a time series
+   :width: 100%
+   :target: https://esp-cpp.github.io/espp/apps/serial_plotter.html
+
 General
 =======
 
