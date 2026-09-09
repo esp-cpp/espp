@@ -127,6 +127,15 @@ public:
   void emit(std::span<const float> values, uint32_t timestamp_us) {
     if (!streaming_.load())
       return;
+    // Hold send_mutex_ across BOTH building this sample (which reads the current
+    // channel count) and sending it. That makes the sample's width and its
+    // delivery atomic with respect to set_channels()/send_schema() (which take
+    // the same outer lock), so a new SCHEMA can never be interleaved between a
+    // sample built from one channel set and its transmission - which would make
+    // the host decode the sample at the wrong record width. Lock order is always
+    // send_mutex_ (outer) -> mutex_ (inner); no sender ever takes them the other
+    // way, so this cannot deadlock.
+    std::lock_guard<std::mutex> send_lock(send_mutex_);
     std::vector<uint8_t> frame;
     send_fn s;
     {
@@ -146,20 +155,31 @@ public:
         put_f32(p, v);
       frame = build(Type::Sample, p);
     }
-    deliver(s, frame); // serialized send, outside the build lock
+    s(std::span<const uint8_t>(frame)); // send while still holding send_mutex_
   }
 
   /// @brief Push one sample timestamped with the current device time.
   void emit(std::span<const float> values) { emit(values, now_us()); }
 
   /// @brief Redefine the channel set at runtime and send a fresh SCHEMA.
+  /// @note The channel-set update and the outbound SCHEMA are performed together
+  ///       under send_mutex_, so a concurrent emit() cannot deliver a sample
+  ///       built from the new channels before (or the old channels after) the
+  ///       matching SCHEMA reaches the host.
   void set_channels(std::vector<std::string> channels) {
+    std::lock_guard<std::mutex> send_lock(send_mutex_);
+    std::vector<uint8_t> frame;
+    send_fn s;
     {
       std::lock_guard<std::mutex> lock(mutex_);
       channels_ = std::move(channels);
       clamp_channels();
+      if (!send_)
+        return; // no transport yet; the next GetSchema will carry the new set
+      s = send_;
+      frame = build(Type::Schema, build_schema_payload_locked());
     }
-    send_schema();
+    s(std::span<const uint8_t>(frame)); // send while still holding send_mutex_
   }
 
   /// @brief The current channel names (schema order).
@@ -178,7 +198,10 @@ public:
   uint16_t period_ms() const { return period_ms_.load(); }
 
   /// @brief Send the current SCHEMA frame now (device->host).
+  /// @note Uses the same send_mutex_-outer / mutex_-inner order as emit() so the
+  ///       SCHEMA and any concurrent SAMPLE stay consistently ordered.
   void send_schema() const {
+    std::lock_guard<std::mutex> send_lock(send_mutex_);
     std::vector<uint8_t> frame;
     send_fn s;
     {
@@ -188,7 +211,7 @@ public:
       s = send_;
       frame = build(Type::Schema, build_schema_payload_locked());
     }
-    deliver(s, frame);
+    s(std::span<const uint8_t>(frame)); // send while still holding send_mutex_
   }
 
   /// @brief Dispatcher handler: process one frame addressed to this module.
@@ -297,24 +320,19 @@ protected:
     send_frame(build(Type::Error, p));
   }
 
-  /// Transmit an already-built frame via the configured send function (copies
-  /// the function pointer under the lock, then sends with the lock released).
+  /// Transmit an already-built frame via the configured send function. Takes
+  /// send_mutex_ (outer) then mutex_ (inner) - the same order as emit() and
+  /// send_schema() - so frames' bytes never interleave and no lock-order
+  /// inversion is possible. Never called while mutex_ is already held.
   void send_frame(const std::vector<uint8_t> &frame) const {
+    std::lock_guard<std::mutex> send_lock(send_mutex_);
     send_fn s;
     {
       std::lock_guard<std::mutex> lock(mutex_);
       s = send_;
     }
     if (s)
-      deliver(s, frame);
-  }
-
-  /// Invoke the send callback for one built frame, serialized on send_mutex_ so
-  /// two frames' bytes never interleave even if `send` is not itself
-  /// thread-safe. Never called while mutex_ is held.
-  void deliver(const send_fn &s, const std::vector<uint8_t> &frame) const {
-    std::lock_guard<std::mutex> lock(send_mutex_);
-    s(std::span<const uint8_t>(frame));
+      s(std::span<const uint8_t>(frame)); // send while still holding send_mutex_
   }
 
   /// Build an encoded frame for a telemetry message type. Device->host types
@@ -339,7 +357,9 @@ protected:
   }
 
   mutable std::mutex mutex_;      ///< guards channels_, send_, and the parser
-  mutable std::mutex send_mutex_; ///< serializes send callback invocations
+  mutable std::mutex send_mutex_; ///< outer lock: serializes send callbacks and
+                                  ///< keeps each frame's build+send atomic (order:
+                                  ///< send_mutex_ then mutex_)
   std::vector<std::string> channels_;
   send_fn send_;
   std::atomic<bool> streaming_;

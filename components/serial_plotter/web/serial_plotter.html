@@ -625,6 +625,11 @@
 
     function buildPlot() {
       if (plot) { plot.destroy(); plot = null; }
+      // The X source / plot mode may have changed, so the last drawn X value is
+      // now in different units (device seconds vs sample index vs a column) —
+      // forget it so the not-following live-scroll doesn't shift the new scale by
+      // a delta computed across mismatched units.
+      lastLiveX = null;
       const host = $("plotHost");
       $("hint").hidden = !!schema;
       $("plot3d").hidden = true;
@@ -935,7 +940,7 @@
       setStatus(cls || "", text);
       $("connect").textContent = "Connect Serial";
       $("pause").disabled = true; $("reset").disabled = true;
-      $("usb").disabled = false;
+      $("usb").disabled = !hasUsb;   // re-enable WebUSB only if this browser has it
       paused = false; $("pause").textContent = "Pause";
     }
 
@@ -1020,6 +1025,8 @@
     const TM_MODULE = 3;                    // telemetry dispatcher module id
     const TM_GET_SCHEMA = 0x01, TM_SET_STREAM = 0x02;
     const TM_SCHEMA = 0x81, TM_SAMPLE = 0x82, TM_ERROR = 0x84;
+    const TM_SCHEMA_VERSION = 1;            // must match kSchemaVersion in the header
+    const TM_CH_F32 = 0;                    // the only channel type the SAMPLE path decodes
     // stream_frame v2 envelope (see components/stream_frame/include/stream_frame.hpp)
     const SF_MAGIC0 = 0x54, SF_MAGIC1 = 0x4F, SF_HEADER = 9, SF_CRC = 4, SF_CORR = 2;
     const SF_MAX_PAYLOAD = 4096, SF_MAX_FRAME = SF_HEADER + SF_CORR + SF_MAX_PAYLOAD + SF_CRC;
@@ -1199,24 +1206,34 @@
     }
 
     function usbResetUI(text, cls) {
+      usbHaveSchema = false;          // no live binary schema once the link is down
       $("usb").textContent = "Connect WebUSB";
       $("pause").disabled = true; paused = false; $("pause").textContent = "Pause";
-      $("connect").disabled = false; $("baud").disabled = false;
+      // Re-enable Web Serial only if this browser has it (don't undo feature detection).
+      $("connect").disabled = !hasSerial; $("baud").disabled = !hasSerial;
       setStatus(cls, text);
     }
 
     // Decode a SCHEMA payload -> channel labels (see telemetry_service.hpp).
+    // Rejects anything the SAMPLE path can't actually decode: an unknown schema
+    // version, reserved flags that aren't zero, a non-f32 channel type, or
+    // trailing bytes after the last name (a record-width mismatch we'd otherwise
+    // misparse). Returns null on any of these so the handshake keeps retrying
+    // rather than plotting garbage.
     function decodeSchema(p) {
       if (p.length < 3) return null;
-      const ncols = p[2];               // [version u8][flags u8][nchannels u8]
+      if (p[0] !== TM_SCHEMA_VERSION) return null;   // [version u8]
+      if (p[1] !== 0) return null;                   // [flags u8] (reserved, must be 0)
+      const ncols = p[2];               // [nchannels u8]
       let i = 3; const labels = []; const dec = new TextDecoder();
       for (let c = 0; c < ncols; c++) {
         if (i + 2 > p.length) return null;
-        i++;                            // channel type (0 = f32)
+        if (p[i++] !== TM_CH_F32) return null;       // channel type (only f32 supported)
         const len = p[i++];
         if (i + len > p.length) return null;
         labels.push(dec.decode(p.subarray(i, i + len))); i += len;
       }
+      if (i !== p.length) return null;  // trailing bytes ⇒ schema we don't understand
       return labels;
     }
 
@@ -1402,7 +1419,17 @@
     $("retain").addEventListener("change", resizeRetain);
     $("save").addEventListener("click", saveCSV);
     $("load").addEventListener("click", () => $("file").click());
-    $("file").addEventListener("change", (e) => { if (e.target.files[0]) loadCSV(e.target.files[0]); e.target.value = ""; });
+    $("file").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      e.target.value = "";            // allow re-selecting the same file
+      if (!file) return;
+      // A still-connected transport would keep feeding live samples into the
+      // loaded dataset — and WebUSB binary frames would be split at the CSV's
+      // column count — corrupting it. Stop the active transport first.
+      if (usb) await usbDisconnect();
+      else if (port) await disconnect();
+      loadCSV(file);
+    });
 
     // ---------------------------------------------------------------- settings popover
     // Wheel-zoom sensitivity, shown/edited as "% per notch" and persisted per

@@ -102,6 +102,7 @@ extern "C" void app_main(void) {
   std::deque<std::vector<uint8_t>> rx_queue;
   size_t rx_queued_bytes = 0;
   bool rx_overflow = false;
+  bool rx_reset = false; // a (re)enumeration asked for a parser reset; done in rx_task
   static constexpr size_t kMaxQueuedRxBytes = 8 * sf::kMaxFrameSize;
   usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) {
     {
@@ -122,14 +123,28 @@ extern "C" void app_main(void) {
   // stale vendor TX backlog, and reset the frame parser so the next host starts
   // clean. (A WebUSB tab close does NOT unmount, so that case is handled by the
   // backpressure clear in `send` above.)
+  // These run on the TinyUSB task, concurrently with rx_task's dispatcher.feed().
+  // The dispatcher's frame parser is not thread-safe, so don't reset it here -
+  // drop any queued pre-reset chunks and flag a reset for rx_task to perform,
+  // so all parser access stays on the one thread. (set_streaming is atomic and
+  // vendor_write_clear touches only the TX FIFO, so both are fine to call here.)
+  auto request_parser_reset = [&] {
+    {
+      std::lock_guard<std::mutex> lock(rx_mutex);
+      rx_queue.clear();
+      rx_queued_bytes = 0;
+      rx_reset = true;
+    }
+    rx_cv.notify_one();
+  };
   usb.set_unmount_callback([&] {
     telemetry.set_streaming(false);
     usb.vendor_write_clear();
-    dispatcher.reset();
+    request_parser_reset();
   });
   usb.set_mount_callback([&] {
     usb.vendor_write_clear();
-    dispatcher.reset();
+    request_parser_reset();
   });
 
   std::error_code usb_ec;
@@ -141,20 +156,26 @@ extern "C" void app_main(void) {
 
   espp::Task rx_task({.callback = [&](std::mutex &, std::condition_variable &) -> bool {
                         std::deque<std::vector<uint8_t>> chunks;
-                        bool overflowed = false;
+                        bool overflowed = false, do_reset = false;
                         {
                           std::unique_lock<std::mutex> lock(rx_mutex);
-                          rx_cv.wait_for(lock, 100ms,
-                                         [&] { return !rx_queue.empty() || rx_overflow; });
+                          rx_cv.wait_for(lock, 100ms, [&] {
+                            return !rx_queue.empty() || rx_overflow || rx_reset;
+                          });
                           std::swap(chunks, rx_queue);
                           rx_queued_bytes = 0;
                           overflowed = rx_overflow;
                           rx_overflow = false;
+                          do_reset = rx_reset;
+                          rx_reset = false;
                         }
-                        if (overflowed) {
+                        // All parser mutation happens here on the one rx thread.
+                        // Reset first (enumeration change or overflow), then feed
+                        // any chunks that arrived after the reset was requested.
+                        if (do_reset || overflowed)
                           dispatcher.reset();
-                          return false;
-                        }
+                        if (overflowed)
+                          return false; // chunks were dropped on overflow
                         for (const auto &chunk : chunks)
                           dispatcher.feed(chunk);
                         return false;
