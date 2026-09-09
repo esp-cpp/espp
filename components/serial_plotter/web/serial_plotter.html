@@ -108,6 +108,23 @@
     button.mini { padding: 4px 8px; font-size: 12px; border-radius: 6px; }
     input[type=checkbox] { accent-color: var(--accent); }
 
+    /* settings popover */
+    #settingsGroup { position: relative; }
+    #settings { padding: 6px 9px; line-height: 1; font-size: 15px; }
+    #settingsPanel {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
+      min-width: 250px; padding: 14px; display: flex; flex-direction: column; gap: 12px;
+      background: var(--panel-bg); border: 1px solid var(--panel-border);
+      border-radius: 10px; box-shadow: var(--shadow);
+    }
+    .settings-title { font-weight: 600; font-size: 13px; color: var(--text); }
+    .settings-row { display: flex; flex-direction: column; gap: 7px; font-size: 13px; }
+    .settings-row > label { color: var(--text-muted); }
+    .settings-slider { display: flex; align-items: center; gap: 10px; }
+    .settings-slider input[type=range] { flex: 1; accent-color: var(--accent); padding: 0; }
+    .settings-slider output { color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 62px; text-align: right; }
+    .settings-hint { color: var(--text-muted); font-size: 11.5px; line-height: 1.35; }
+
     /* series filter / visibility bar */
     #seriesBar {
       display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap;
@@ -236,6 +253,25 @@
       <button id="save">Save CSV</button>
       <button id="load">Load CSV</button>
       <input type="file" id="file" accept=".csv,.tsv,.txt,text/*" hidden>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="group" id="settingsGroup">
+      <button id="settings" title="Settings" aria-haspopup="dialog" aria-expanded="false">&#9881;</button>
+      <div id="settingsPanel" hidden role="dialog" aria-label="Settings">
+        <div class="settings-title">Settings</div>
+        <div class="settings-row">
+          <label for="zoomSens">Wheel zoom sensitivity</label>
+          <div class="settings-slider">
+            <input type="range" id="zoomSens" min="2" max="30" step="1" value="10"
+                   title="How much one scroll notch zooms the plot">
+            <output id="zoomSensOut">10% / notch</output>
+          </div>
+          <span class="settings-hint">Amount one mouse-wheel notch zooms. Applies to wheel (X) and Shift+wheel (Y).</span>
+        </div>
+        <button id="settingsReset" class="mini">Reset to default</button>
+      </div>
     </div>
   </div>
 
@@ -526,8 +562,11 @@
     // once (below), not re-added on every buildPlot() overlay rebuild.
     let activePan = null;
     // Wheel-zoom sensitivity: fraction of range zoomed per pixel of wheel travel.
-    // ~0.0008 ⇒ one mouse notch (~120px) zooms about 10%. Tune to taste.
-    const WHEEL_ZOOM_RATE = 0.0008;
+    // Exposed in the Settings popover as "% per notch" (see setZoomPct); one
+    // mouse notch is ~120px, so rate = -ln(1 - pct/100) / 120.
+    const WHEEL_NOTCH_PX = 120;
+    const DEFAULT_ZOOM_PCT = 10;
+    let WHEEL_ZOOM_RATE = -Math.log(1 - DEFAULT_ZOOM_PCT / 100) / WHEEL_NOTCH_PX;
     function bindPanZoom(u) {
       const over = u.over;
       const zoomAxis = (key, atVal, factor) => {
@@ -1364,6 +1403,37 @@
     $("save").addEventListener("click", saveCSV);
     $("load").addEventListener("click", () => $("file").click());
     $("file").addEventListener("change", (e) => { if (e.target.files[0]) loadCSV(e.target.files[0]); e.target.value = ""; });
+
+    // ---------------------------------------------------------------- settings popover
+    // Wheel-zoom sensitivity, shown/edited as "% per notch" and persisted per
+    // browser. Wrapped in try/catch since localStorage can throw (private mode).
+    const ZOOM_PCT_KEY = "sp.wheelZoomPct";
+    function setZoomPct(pct) {
+      pct = Math.min(30, Math.max(2, Math.round(pct)));
+      WHEEL_ZOOM_RATE = -Math.log(1 - pct / 100) / WHEEL_NOTCH_PX;
+      $("zoomSens").value = String(pct);
+      $("zoomSensOut").textContent = pct + "% / notch";
+      try { localStorage.setItem(ZOOM_PCT_KEY, String(pct)); } catch (_) {}
+    }
+    (function initZoomPct() {
+      let pct = DEFAULT_ZOOM_PCT;
+      try { const v = parseInt(localStorage.getItem(ZOOM_PCT_KEY), 10); if (Number.isFinite(v)) pct = v; } catch (_) {}
+      setZoomPct(pct);
+    })();
+    $("zoomSens").addEventListener("input", () => setZoomPct(parseInt($("zoomSens").value, 10)));
+    $("settingsReset").addEventListener("click", () => setZoomPct(DEFAULT_ZOOM_PCT));
+
+    function openSettings(on) {
+      const panel = $("settingsPanel"), btn = $("settings");
+      const show = on == null ? panel.hidden : on;
+      panel.hidden = !show;
+      btn.setAttribute("aria-expanded", show ? "true" : "false");
+    }
+    $("settings").addEventListener("click", (e) => { e.stopPropagation(); openSettings(); });
+    // Click outside or Escape closes it; clicks inside the panel don't.
+    $("settingsPanel").addEventListener("click", (e) => e.stopPropagation());
+    document.addEventListener("click", () => { if (!$("settingsPanel").hidden) openSettings(false); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("settingsPanel").hidden) openSettings(false); });
 
     // periodic stats + rate + fps (decoupled from the draw loop)
     setInterval(() => {
