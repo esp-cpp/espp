@@ -33,9 +33,13 @@ Host requests are ``GET_SCHEMA`` and ``SET_STREAM`` (enable/disable + rate).
 
 Construct it with the channel names and a ``send`` function, register
 ``handle()`` on a :doc:`dispatcher <../dispatcher/dispatcher>` module (or feed
-raw bytes to ``feed()``), and call ``emit()`` from your producer. Frames are
-built under an internal mutex and the ``send`` callback runs with the lock
-released, so ``emit()`` and request handling are safe to call concurrently. See
+raw bytes to ``feed()``), and call ``emit()`` from your producer. ``emit()`` and
+request handling are safe to call concurrently: every outbound frame is
+serialized on an internal send mutex that is held across the ``send`` callback,
+so frames never interleave and a SAMPLE always carries the channel set it was
+built from. Because that mutex is held while ``send`` runs, the callback must
+**not** re-enter the emitter (``emit()``, ``send_schema()``, ``set_channels()``,
+``handle()`` / ``feed()``) — keep it to writing the bytes to the transport. See
 the example for USB vendor (WebUSB) wiring and capability discovery that lists
 the app in the browser Device Hub. (The framing is transport-agnostic — CDC /
 UART / a socket work too — but the web app's binary path consumes WebUSB.)

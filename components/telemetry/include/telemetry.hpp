@@ -131,7 +131,7 @@ public:
   /// @note No-op while streaming is disabled or no send function is configured.
   void emit(std::span<const float> values, uint32_t timestamp_us) {
     if (!streaming_.load())
-      return;
+      return; // fast path; the authoritative check is under send_mutex_ below
     // Hold send_mutex_ across BOTH building this sample (which reads the current
     // channel count) and sending it. That makes the sample's width and its
     // delivery atomic with respect to set_channels()/send_schema() (which take
@@ -141,6 +141,12 @@ public:
     // send_mutex_ (outer) -> mutex_ (inner); no sender ever takes them the other
     // way, so this cannot deadlock.
     std::lock_guard<std::mutex> send_lock(send_mutex_);
+    // Re-check streaming under send_mutex_: a SET_STREAM(false) handler stores
+    // false and then sends its OK through this same mutex. Re-reading the flag
+    // here guarantees any SAMPLE we send precedes that OK - a sample can never be
+    // delivered after the stream-disable acknowledgment.
+    if (!streaming_.load())
+      return;
     std::vector<uint8_t> frame;
     send_fn s;
     {
