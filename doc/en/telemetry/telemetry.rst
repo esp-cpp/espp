@@ -1,7 +1,7 @@
-Serial Plotter
-**************
+Telemetry
+*********
 
-The ``serial_plotter`` component pairs a self-contained browser **data plotter**
+The ``telemetry`` component pairs a self-contained browser **data plotter**
 web app with an optional firmware-side **binary telemetry** emitter, so you can
 plot live data from a device two complementary ways:
 
@@ -14,8 +14,8 @@ plot live data from a device two complementary ways:
   timestamps. The same web app decodes and plots them.
 
 The hosted app is at
-`esp-cpp.github.io/espp/apps/serial_plotter.html
-<https://esp-cpp.github.io/espp/apps/serial_plotter.html>`_ (Chromium, secure
+`esp-cpp.github.io/espp/apps/telemetry.html
+<https://esp-cpp.github.io/espp/apps/telemetry.html>`_ (Chromium, secure
 context). It plots a high number of points efficiently (``uPlot``) with drag
 zoom, a per-series filter, and CSV save / load, plus optional 2D X–Y and 3D
 X–Y–Z modes over the same parsed columns.
@@ -44,9 +44,9 @@ UART / a socket work too — but the web app's binary path consumes WebUSB.)
 
 .. toctree::
 
-   serial_plotter_example
+   telemetry_example
 
 API Reference
 -------------
 
-.. include-build-file:: inc/telemetry_service.inc
+.. include-build-file:: inc/telemetry.inc

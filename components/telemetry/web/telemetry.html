@@ -1020,7 +1020,7 @@
     // Binary counterpart to the text Web-Serial path: an espp device streams a
     // SCHEMA (channel names) + SAMPLE frames (device timestamp + one f32 per
     // channel) over the stream_frame framing on dispatcher module 3, which feeds
-    // the SAME plot. See components/serial_plotter/include/telemetry_service.hpp.
+    // the SAME plot. See components/telemetry/include/telemetry.hpp.
     const USB_VID = 0x1209;                 // pid.codes VID shared by espp devices
     const TM_MODULE = 3;                    // telemetry dispatcher module id
     const TM_GET_SCHEMA = 0x01, TM_SET_STREAM = 0x02;
@@ -1214,7 +1214,7 @@
       setStatus(cls, text);
     }
 
-    // Decode a SCHEMA payload -> channel labels (see telemetry_service.hpp).
+    // Decode a SCHEMA payload -> channel labels (see telemetry.hpp).
     // Rejects anything the SAMPLE path can't actually decode: an unknown schema
     // version, reserved flags that aren't zero, a non-f32 channel type, or
     // trailing bytes after the last name (a record-width mismatch we'd otherwise

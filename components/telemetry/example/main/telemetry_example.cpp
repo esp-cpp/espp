@@ -2,7 +2,7 @@
 //
 // Streams a few synthetic float channels from an ESP32-S3 to the browser over
 // USB using the espp::Telemetry emitter (a small binary protocol carried on the
-// stream_frame framing, dispatcher module 3). The hosted `serial_plotter.html`
+// stream_frame framing, dispatcher module 3). The hosted `telemetry.html`
 // web app connects on the vendor (WebUSB) interface, reads the SCHEMA (channel
 // names), and plots the SAMPLE stream live — the binary, higher-rate,
 // device-timestamped counterpart to the app's text/CSV Web Serial transport.
@@ -27,7 +27,7 @@
 #include "logger.hpp"
 #include "stream_frame.hpp"
 #include "task.hpp"
-#include "telemetry_service.hpp"
+#include "telemetry.hpp"
 #include "timer.hpp"
 #include "usb_device.hpp"
 
@@ -62,7 +62,7 @@ extern "C" void app_main(void) {
   espp::UsbDevice::VendorFunction vendor;
   vendor.interface_name = "espp Telemetry (WebUSB)";
   vendor.webusb = true;
-  vendor.landing_page_url = "esp-cpp.github.io/espp/apps/serial_plotter.html";
+  vendor.landing_page_url = "esp-cpp.github.io/espp/apps/telemetry.html";
   usb_cfg.vendor = vendor;
   espp::UsbDevice usb(usb_cfg);
 
@@ -89,7 +89,7 @@ extern "C" void app_main(void) {
   // --- dispatcher: route module-3 frames to the telemetry service + discovery -
   espp::Dispatcher dispatcher;
   const espp::Dispatcher::ModuleInfo info{.name = "Serial Plotter",
-                                          .app = "serial_plotter.html",
+                                          .app = "telemetry.html",
                                           .description = "Live device telemetry plotting"};
   dispatcher.register_module(
       espp::Telemetry::kModule, [&](const sf::Frame &frame) { telemetry.handle(frame); }, info);

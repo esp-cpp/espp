@@ -86,7 +86,7 @@ collected under :doc:`web_apps`.
    ota/index
    stream_frame/index
    dispatcher/index
-   serial_plotter/index
+   telemetry/index
    wireless/index
    protocols/index
 

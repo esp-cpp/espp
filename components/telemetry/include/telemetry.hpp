@@ -22,7 +22,7 @@ namespace espp {
 /// (so it can share one USB vendor / CDC stream with other modules via
 /// `espp::Dispatcher`). Firmware declares a fixed set of named float channels
 /// (the SCHEMA) and pushes SAMPLE frames — a device timestamp plus one float
-/// per channel — which the hosted `serial_plotter.html` web app decodes and
+/// per channel — which the hosted `telemetry.html` web app decodes and
 /// plots, exactly like the columnar Web-Serial path but binary, higher rate,
 /// and with device-accurate timestamps.
 ///

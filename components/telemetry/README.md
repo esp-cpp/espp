@@ -1,18 +1,20 @@
-# Serial Plotter
+# Telemetry
 
-A self-contained browser tool for reading data and plotting it efficiently —
-modeled on [esp-cpp/uart_serial_plotter](https://github.com/esp-cpp/uart_serial_plotter),
+The `telemetry` component pairs a firmware-side `espp::Telemetry` emitter with a
+self-contained browser **Serial Plotter** web app that reads data and plots it
+efficiently — modeled on
+[esp-cpp/uart_serial_plotter](https://github.com/esp-cpp/uart_serial_plotter),
 but running entirely in a Chromium-based browser. No install, no CDN, no network
 access. Two transports feed the same plot:
 
 - **Web Serial (text / CSV)** — auto-parses columnar output (a header line plus
   numeric rows) from any device that prints it.
 - **WebUSB (binary telemetry)** — an espp device streams typed float channels
-  via `espp::Telemetry` (see `include/telemetry_service.hpp` and the
+  via `espp::Telemetry` (see `include/telemetry.hpp` and the
   [example](example/)) for higher rate and device-accurate timestamps.
 
-- **Hosted:** <https://esp-cpp.github.io/espp/apps/serial_plotter.html>
-- **Offline:** open `web/serial_plotter.html` directly via a `file://` URL.
+- **Hosted:** <https://esp-cpp.github.io/espp/apps/telemetry.html>
+- **Offline:** open `web/telemetry.html` directly via a `file://` URL.
 
 ## Screenshots
 
@@ -85,4 +87,4 @@ S2 / P4) device; see [`example/`](example/).
 Plotting uses **uPlot** (`web/uPlot.iife.min.js`), MIT-licensed, pinned to
 v1.6.31 — <https://github.com/leeoniya/uPlot>. It is vendored as a sibling `.js`
 file (the docs workflow ships `web/*.html` and `web/*.js`); uPlot's small CSS is
-inlined into `serial_plotter.html`. Everything else is dependency-free.
+inlined into `telemetry.html`. Everything else is dependency-free.
