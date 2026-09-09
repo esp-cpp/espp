@@ -219,6 +219,7 @@
       <label class="field" id="xModeWrap">X
         <select id="xMode">
           <option value="time" selected>Arrival time</option>
+          <option value="arrival" hidden>Arrival time</option>
           <option value="firstcol">First column</option>
           <option value="index">Sample index</option>
         </select>
@@ -302,7 +303,8 @@
     // ---------------------------------------------------------------- state
     let schema = null;              // { labels:[...], ncols, delim }
     let pendingHeader = null;       // provisional header, binds the next matching data row
-    let tRing = null;               // arrival-time ring (Float64, seconds)
+    let tRing = null;               // primary time ring (Float64 s): device time over WebUSB, else arrival
+    let aRing = null;               // browser arrival-time ring (Float64 s), for the "Arrival time" X source
     let colRings = [];              // one Ring<Float32> per column
     let cap = 200000;               // retained points per series
     let t0 = 0;                     // performance.now() at first sample
@@ -367,6 +369,7 @@
       cap = computeCap(labels.length);
       $("retain").value = cap;      // reflect the effective cap back to the input
       tRing = new Ring(cap, Float64Array);
+      aRing = new Ring(cap, Float64Array);
       colRings = labels.map(() => new Ring(cap, Float32Array));
       // NB: t0 is intentionally NOT reset here - resetting it mid-chunk would
       // make arrival-time X non-monotonic. clearData() owns the t0 reset, and
@@ -381,6 +384,7 @@
 
     function pushSample(nums, tSec) {
       tRing.push(tSec);
+      aRing.push(performance.now() / 1000);   // browser arrival time (for the Arrival-time X source)
       for (let i = 0; i < colRings.length; i++) colRings[i].push(nums[i]);
       stats.kept = tRing.count;
     }
@@ -470,11 +474,15 @@
       const n = tRing ? tRing.count : 0;
       ensureScratch(ys.length);
       const xv = scratch.x.subarray(0, n);
+      const xm = mode === "time" ? $("xMode").value : "time";
       // x
-      if (xIdx === -1 && $("xMode").value === "index" && mode === "time") {
-        for (let i = 0; i < n; i++) xv[i] = i;
+      if (xIdx === -1 && xm === "index") {
+        for (let i = 0; i < n; i++) xv[i] = i;               // sample index
+      } else if (xIdx === -1 && xm === "arrival") {
+        aRing.toOrdered(xv);                                 // browser arrival time (relative)
+        if (n) { const base = xv[0]; for (let i = 0; i < n; i++) xv[i] -= base; }
       } else if (xIdx === -1) {
-        tRing.toOrdered(xv);
+        tRing.toOrdered(xv);                                 // primary time source
         // Browser arrival time is relative, so rebase to the first retained
         // sample (start at 0). The WebUSB device timestamp is absolute (device
         // clock since boot) — keep it as-is so it shows real device time and
@@ -499,6 +507,7 @@
       const xm = $("xMode").value;
       if (xm === "firstcol") return schema.labels[0];
       if (xm === "index") return "sample";
+      if (xm === "arrival") return "arrival (s)";
       return usbBinary() ? "device time (s)" : "time (s)";
     }
 
@@ -1150,7 +1159,7 @@
 
     // ---------------------------------------------------------------- controls
     function clearData() {
-      if (tRing) { tRing.clear(); colRings.forEach((r) => r.clear()); }
+      if (tRing) { tRing.clear(); aRing.clear(); colRings.forEach((r) => r.clear()); }
       stats = { rows: 0, kept: 0, drop: 0 };
       rateWin = []; t0 = 0; scratch.cap = -1; sceneCache.key = ""; pendingHeader = null;
     }
@@ -1172,6 +1181,7 @@
         return nr;
       };
       tRing = migrate(tRing, Float64Array);
+      aRing = migrate(aRing, Float64Array);
       colRings = colRings.map((r) => migrate(r, Float32Array));
       cap = newCap;
       stats.kept = tRing.count;
@@ -1192,10 +1202,15 @@
       scheduleDraw();
     }
     function updateSchemaLabel() {
-      // Name the "time" X source for what it actually is on each transport: the
-      // device hardware timestamp over WebUSB, browser arrival time over serial.
-      const timeOpt = $("xMode").querySelector('option[value="time"]');
+      // Name the "time" X source for what it actually is on each transport, and
+      // offer a separate "Arrival time" source over WebUSB (where "time" is the
+      // device clock): device hardware timestamp vs browser arrival time.
+      const sel = $("xMode");
+      const timeOpt = sel.querySelector('option[value="time"]');
+      const arrivalOpt = sel.querySelector('option[value="arrival"]');
       if (timeOpt) timeOpt.textContent = usbBinary() ? "Device time" : "Arrival time";
+      if (arrivalOpt) arrivalOpt.hidden = !usbBinary();
+      if (!usbBinary() && sel.value === "arrival") sel.value = "time"; // arrival source is USB-only
       if (!schema) { $("stSchema").textContent = "no schema yet"; return; }
       const src = schema.delim === "webusb" ? "binary (WebUSB)"
                 : "delim '" + (schema.delim === " " ? "ws" : schema.delim) + "'";
