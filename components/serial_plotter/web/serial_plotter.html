@@ -197,7 +197,7 @@
     <div class="group">
       <button id="pause" disabled>Pause</button>
       <button id="clear">Clear</button>
-      <button id="follow" class="primary" title="Auto-scroll to the latest data. Drag to zoom drops out of Follow so your view sticks.">Following</button>
+      <button id="follow" class="primary" title="Auto-scroll to the latest data. To explore the retained data: wheel = zoom X (Shift+wheel = zoom Y), drag = zoom box, Shift+drag = pan, double-click = reset + resume Follow. Any of these drops out of Follow so your view sticks.">Following</button>
       <label class="field">Window&nbsp;(s)
         <input type="number" id="window" min="0" step="1" placeholder="all" style="width:64px" title="Follow window in seconds (blank = show all retained data)">
       </label>
@@ -514,6 +514,65 @@
       return usbBinary() ? "device time (s)" : "time (s)";
     }
 
+    // uPlot has no built-in pan (drag = box-zoom, dbl-click = reset). Add the
+    // missing gestures on its overlay so a static / non-Follow plot is navigable:
+    //   • wheel           → zoom the X range about the cursor
+    //   • Shift + wheel    → zoom the Y range about the cursor
+    //   • Shift + drag     → pan (X and Y); plain drag stays uPlot's box-zoom
+    // Any of these drops out of Follow first so the view isn't re-autoscaled the
+    // next frame. Capture-phase mousedown lets Shift+drag pre-empt uPlot's drag.
+    // An in-progress Shift+drag pan: { u, over, px, py, vpx, vpy, x/y min/max }.
+    // Held at module scope so the window-level move/up handlers are installed
+    // once (below), not re-added on every buildPlot() overlay rebuild.
+    let activePan = null;
+    function bindPanZoom(u) {
+      const over = u.over;
+      const zoomAxis = (key, atVal, factor) => {
+        const sc = u.scales[key];
+        if (sc == null || sc.min == null || sc.max == null) return;
+        setFollowing(false);
+        u.setScale(key, { min: atVal + (sc.min - atVal) * factor,
+                          max: atVal + (sc.max - atVal) * factor });
+      };
+      over.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        const rect = over.getBoundingClientRect();
+        const factor = e.deltaY < 0 ? 0.85 : 1 / 0.85; // scroll up = zoom in
+        if (e.shiftKey) zoomAxis("y", u.posToVal(e.clientY - rect.top, "y"), factor);
+        else            zoomAxis("x", u.posToVal(e.clientX - rect.left, "x"), factor);
+      }, { passive: false });
+      over.addEventListener("mousedown", (e) => {
+        if (e.button !== 0 || !e.shiftKey) return; // let plain drag box-zoom
+        e.preventDefault();
+        e.stopImmediatePropagation();              // pre-empt uPlot's own drag
+        setFollowing(false);
+        const rect = over.getBoundingClientRect();
+        const sx = u.scales.x, sy = u.scales.y;
+        activePan = {
+          u, over, px: e.clientX, py: e.clientY,
+          vpx: (sx.max - sx.min) / rect.width,
+          vpy: (sy.max - sy.min) / rect.height,
+          xmin: sx.min, xmax: sx.max, ymin: sy.min, ymax: sy.max,
+        };
+        over.style.cursor = "grabbing";
+      }, true);
+    }
+    window.addEventListener("mousemove", (e) => {
+      const p = activePan;
+      if (!p) return;
+      const dx = (e.clientX - p.px) * p.vpx; // content follows the cursor
+      const dy = (e.clientY - p.py) * p.vpy; // screen Y is inverted → +=
+      p.u.batch(() => {
+        p.u.setScale("x", { min: p.xmin - dx, max: p.xmax - dx });
+        p.u.setScale("y", { min: p.ymin + dy, max: p.ymax + dy });
+      });
+    });
+    window.addEventListener("mouseup", () => {
+      if (!activePan) return;
+      activePan.over.style.cursor = "";
+      activePan = null;
+    });
+
     function buildPlot() {
       if (plot) { plot.destroy(); plot = null; }
       const host = $("plotHost");
@@ -560,7 +619,12 @@
         ],
         // A user drag-to-zoom drops out of Follow so the zoomed view persists
         // across live updates (which would otherwise re-autoscale every frame).
-        hooks: { setSelect: [(u) => { if (u.select && u.select.width > 2) setFollowing(false); }] },
+        // ready: wire panning/zoom that uPlot has no built-in for — wheel zooms X
+        // about the cursor, Shift+drag pans (plain drag stays uPlot box-zoom).
+        hooks: {
+          setSelect: [(u) => { if (u.select && u.select.width > 2) setFollowing(false); }],
+          ready: [(u) => bindPanZoom(u)],
+        },
         series,
       };
       if (xyMode) opts.mode = 2;   // [x,y]-per-series: correct for non-monotonic X
