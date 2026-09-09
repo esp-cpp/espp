@@ -474,8 +474,12 @@
       if (xIdx === -1 && $("xMode").value === "index" && mode === "time") {
         for (let i = 0; i < n; i++) xv[i] = i;
       } else if (xIdx === -1) {
-        tRing.toOrdered(xv);                   // arrival time (relative seconds)
-        if (n) { const base = xv[0]; for (let i = 0; i < n; i++) xv[i] -= base; }
+        tRing.toOrdered(xv);
+        // Browser arrival time is relative, so rebase to the first retained
+        // sample (start at 0). The WebUSB device timestamp is absolute (device
+        // clock since boot) — keep it as-is so it shows real device time and
+        // stays continuous across reconnects (not reset to 0 each session).
+        if (n && !usbBinary()) { const base = xv[0]; for (let i = 0; i < n; i++) xv[i] -= base; }
       } else {
         colRings[xIdx].toOrdered(xv);
       }
