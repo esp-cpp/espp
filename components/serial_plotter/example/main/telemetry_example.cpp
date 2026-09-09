@@ -159,8 +159,8 @@ extern "C" void app_main(void) {
        .task_config = {.name = "telemetry_gen", .stack_size_bytes = 4096}});
   gen_task.start();
 
-  logger.info("Telemetry ready. Open the Serial Plotter web app and connect over WebUSB / Web "
-              "Serial (channels: sine, cosine, noise, ramp).");
+  logger.info("Telemetry ready. Open the Serial Plotter web app and connect over WebUSB "
+              "(channels: sine, cosine, noise, ramp).");
 
   while (true) {
     std::this_thread::sleep_for(1s);
