@@ -525,6 +525,9 @@
     // Held at module scope so the window-level move/up handlers are installed
     // once (below), not re-added on every buildPlot() overlay rebuild.
     let activePan = null;
+    // Wheel-zoom sensitivity: fraction of range zoomed per pixel of wheel travel.
+    // ~0.0008 ⇒ one mouse notch (~120px) zooms about 10%. Tune to taste.
+    const WHEEL_ZOOM_RATE = 0.0008;
     function bindPanZoom(u) {
       const over = u.over;
       const zoomAxis = (key, atVal, factor) => {
@@ -537,7 +540,15 @@
       over.addEventListener("wheel", (e) => {
         e.preventDefault();
         const rect = over.getBoundingClientRect();
-        const factor = e.deltaY < 0 ? 0.85 : 1 / 0.85; // scroll up = zoom in
+        // Zoom amount scales with how far the wheel/trackpad moved, so one mouse
+        // notch is a modest step and a trackpad's small deltas stay gentle (a
+        // fixed factor made every scroll a big jump). Normalize the delta across
+        // deltaMode units, then WHEEL_ZOOM_RATE (per pixel) sets the sensitivity —
+        // lower it for finer steps, raise it for faster zoom.
+        let dy = e.deltaY;
+        if (e.deltaMode === 1) dy *= 16;                 // lines → ~px
+        else if (e.deltaMode === 2) dy *= over.clientHeight; // pages → ~px
+        const factor = Math.exp(WHEEL_ZOOM_RATE * dy);  // deltaY<0 (up) ⇒ <1 = zoom in
         if (e.shiftKey) zoomAxis("y", u.posToVal(e.clientY - rect.top, "y"), factor);
         else            zoomAxis("x", u.posToVal(e.clientX - rect.left, "x"), factor);
       }, { passive: false });
@@ -691,6 +702,9 @@
 
     // rAF-coalesced redraw
     let drawQueued = false;
+    // Latest X value drawn (in the current X units), so the not-following branch
+    // can tell whether the user's view is still parked at the live edge.
+    let lastLiveX = null;
     function scheduleDraw() {
       if (drawQueued) return;
       drawQueued = true;
@@ -719,10 +733,28 @@
             plot.setScale("x", { min: xs[Math.min(lo, n - 1)], max: xs[n - 1] });
           }
         } else {
-          // Not following: keep the user's zoom/pan (don't reset the scales), but
-          // still stream in new samples so live data flows through their view.
+          // Not following: keep the user's zoom WIDTH (don't autoscale). Stream
+          // the new samples in, and if the view is still parked at the live edge,
+          // slide the x-window forward by however far the latest sample advanced
+          // so live data keeps scrolling through at their zoom. If they've panned
+          // back into history (right edge behind the last sample), hold the view
+          // where they left it. Skipped for the non-monotonic first-column X.
+          const xs = data[0], n = xs.length;
+          const sc = plot.scales.x;
+          const curMin = sc.min, curMax = sc.max;
           plot.setData(data, false);
+          if (n && lastLiveX != null && curMin != null && curMax != null &&
+              $("xMode").value !== "firstcol") {
+            const newMax = xs[n - 1];
+            const shift = newMax - lastLiveX;
+            // "At the edge" = the previous latest point sat at/after the right
+            // edge (within a small slice of the window), not scrolled back.
+            if (shift > 0 && curMax >= lastLiveX - (curMax - curMin) * 0.02)
+              plot.setScale("x", { min: curMin + shift, max: curMax + shift });
+          }
         }
+        const xs = data[0];
+        if (xs.length) lastLiveX = xs[xs.length - 1];
       });
     }
 
