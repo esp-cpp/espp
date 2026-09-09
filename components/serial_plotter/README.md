@@ -48,6 +48,11 @@ rest, with the per-series filter bar:
   (`Float32Array`) and are drawn with [uPlot](https://github.com/leeoniya/uPlot),
   which does the pixel decimation. Redraws are coalesced to one per animation
   frame. The retained-points cap is configurable (default 200k per series).
+- **Live zoom (Follow).** While streaming, the view auto-scrolls to the latest
+  data — optionally to a rolling **Window** of the last _N_ seconds. Drag to zoom
+  and it drops out of **Follow** so your zoomed view stays put (all retained
+  samples remain there to pan/zoom through); double-click, or click **Follow**,
+  to snap back to live.
 - **Series filter.** A filter bar shows a colored chip per column: click to
   toggle a series on/off, or type in the name box to plot only the columns /
   tags that match (composes with the manual toggles), plus **All** / **None**.

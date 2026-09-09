@@ -197,6 +197,10 @@
     <div class="group">
       <button id="pause" disabled>Pause</button>
       <button id="clear">Clear</button>
+      <button id="follow" class="primary" title="Auto-scroll to the latest data. Drag to zoom drops out of Follow so your view sticks.">Following</button>
+      <label class="field">Window
+        <input type="number" id="window" min="0" step="1" placeholder="all" style="width:64px" title="Follow window in seconds (blank = show all retained data)">
+      </label>
       <label class="field">Retain
         <input type="number" id="retain" min="100" max="2000000" step="1000" value="200000" title="Max points kept per series">
       </label>
@@ -305,6 +309,8 @@
     let paused = false;
     let plot = null;                // uPlot instance (time / xy modes)
     let mode = "time";
+    let following = true;           // live view auto-scrolls to the latest data
+    let windowSec = 0;              // Follow window length in seconds (0 = show all)
     let stats = { rows: 0, kept: 0, drop: 0 };
     let rateWin = [];               // timestamps of recent samples, for rate
     let seriesVisible = {};         // label -> bool; manual per-series show/hide (persists across rebuilds)
@@ -370,6 +376,7 @@
       rebuildColumnSelects();
       buildPlot();
       updateSchemaLabel();
+      setFollowing(true);   // a fresh dataset follows the latest by default
     }
 
     function pushSample(nums, tSec) {
@@ -532,6 +539,9 @@
           { stroke, grid: { stroke: grid, width: 1 }, ticks: { stroke: grid }, label: xAxisLabel(), labelSize: 24 },
           { stroke, grid: { stroke: grid, width: 1 }, ticks: { stroke: grid } },
         ],
+        // A user drag-to-zoom drops out of Follow so the zoomed view persists
+        // across live updates (which would otherwise re-autoscale every frame).
+        hooks: { setSelect: [(u) => { if (u.select && u.select.width > 2) setFollowing(false); }] },
         series,
       };
       if (xyMode) opts.mode = 2;   // [x,y]-per-series: correct for non-monotonic X
@@ -605,8 +615,34 @@
         drawQueued = false;
         if (paused || !schema) return;
         if (mode === "xyz") { drawScene(); return; }
-        if (plot) plot.setData(buildData());
+        if (!plot) return;
+        const data = buildData();
+        if (following) {
+          // Auto-scroll to the latest data (autoscale), optionally to a rolling
+          // window of the last `windowSec` seconds so recent detail stays legible
+          // even with a large retention.
+          plot.setData(data, true);
+          const xs = data[0], n = xs.length;
+          if (windowSec > 0 && n) {
+            const maxX = xs[n - 1];
+            plot.setScale("x", { min: maxX - windowSec, max: maxX });
+          }
+        } else {
+          // Not following: keep the user's zoom/pan (don't reset the scales), but
+          // still stream in new samples so live data flows through their view.
+          plot.setData(data, false);
+        }
       });
+    }
+
+    // Toggle live auto-scroll. Dragging to zoom drops out of Follow (see the
+    // setSelect hook in buildPlot) so the zoomed view sticks while data streams;
+    // re-enabling snaps back to the latest.
+    function setFollowing(on) {
+      following = on;
+      const b = $("follow");
+      if (b) { b.classList.toggle("primary", on); b.textContent = on ? "Following" : "Follow"; }
+      if (on) scheduleDraw();
     }
 
     // ---------------------------------------------------------------- 3D scatter (canvas, dependency-free)
@@ -1174,6 +1210,10 @@
       if (!paused) scheduleDraw();
     });
     $("clear").addEventListener("click", () => { clearData(); if (plot) plot.setData(buildData()); if (mode === "xyz") drawScene(); updateStats(); });
+    $("follow").addEventListener("click", () => setFollowing(!following));
+    $("window").addEventListener("input", () => { windowSec = Math.max(0, parseFloat($("window").value) || 0); if (following) scheduleDraw(); });
+    // double-click the plot resumes live Follow (in addition to uPlot's own zoom reset)
+    $("plotHost").addEventListener("dblclick", () => { if (mode !== "xyz") setFollowing(true); });
     $("mode").addEventListener("change", syncModeUI);
     $("xMode").addEventListener("change", () => { buildPlot(); scheduleDraw(); });
     ["xCol", "yCol", "zCol"].forEach((id) => $(id).addEventListener("change", () => { buildPlot(); scheduleDraw(); }));
