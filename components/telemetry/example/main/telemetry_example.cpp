@@ -208,7 +208,18 @@ extern "C" void app_main(void) {
   logger.info("Telemetry ready. Open the Serial Plotter web app and connect over WebUSB "
               "(channels: sine, cosine, noise, ramp).");
 
+  // The web app can change the sample rate via SET_STREAM, which updates the
+  // Telemetry period atomic but not the running producer timer. Poll it and
+  // retune the timer when it changes so the advertised rate is actually honored
+  // (set_period() is called here, off the timer's own callback thread).
+  uint16_t applied_period_ms = telemetry.period_ms();
   while (true) {
-    std::this_thread::sleep_for(1s);
+    std::this_thread::sleep_for(200ms);
+    const uint16_t want = telemetry.period_ms();
+    if (want != 0 && want != applied_period_ms) {
+      gen_timer.set_period(std::chrono::milliseconds(want));
+      applied_period_ms = want;
+      logger.debug("retuned producer timer to {} ms", want);
+    }
   }
 }

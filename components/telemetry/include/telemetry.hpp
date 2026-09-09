@@ -55,12 +55,17 @@ namespace espp {
 /// ## Threading
 ///
 /// emit() is typically called from a producer task while requests are handled
-/// on a transport RX task; both are safe to call concurrently. Frames are built
-/// under one mutex and transmitted under a separate send mutex, so the user
-/// `send` callback is (a) never invoked while the build mutex is held — a
-/// re-entrant transport cannot deadlock — and (b) never invoked concurrently, so
-/// a `send` that is not itself thread-safe still cannot interleave the bytes of
-/// two frames.
+/// on a transport RX task; both are safe to call concurrently. Every outbound
+/// frame is serialized on an internal send mutex that is held across the user
+/// `send` callback, so the callback (a) never runs concurrently with itself — a
+/// `send` that is not itself thread-safe cannot interleave the bytes of two
+/// frames — and (b) always delivers a SAMPLE together with the channel set it
+/// was built from, so the host never decodes a sample against a stale SCHEMA.
+///
+/// Because that send mutex is held while `send` runs, the callback MUST NOT
+/// re-enter this object — do not call emit(), send_schema(), set_channels(),
+/// handle() or feed() from inside `send`, or it will deadlock on the same
+/// (non-recursive) mutex. Keep `send` to writing the bytes to the transport.
 class Telemetry : public espp::BaseComponent {
 public:
   /// Dispatcher module id owned by the telemetry protocol (the frame `module`
@@ -296,13 +301,38 @@ protected:
     return p;
   }
 
-  /// Truncate channels_ to the u8 SCHEMA limit (caller holds mutex_, or is the
-  /// constructor). Warns when channels are dropped.
+  /// Clamp channels_ so a SCHEMA frame is always well-formed (caller holds
+  /// mutex_, or is the constructor). Enforces the u8 channel-count limit AND the
+  /// stream_frame payload-size limit, and warns for an empty configuration.
   void clamp_channels() {
+    if (channels_.empty()) {
+      // The config contract asks for >= 1 channel; a zero-channel SCHEMA is
+      // ignored by the web client. Warn rather than emit a silently-useless one.
+      logger_.warn("Telemetry configured with no channels; SCHEMA will be empty");
+      return;
+    }
+    // Cap the channel count to the u8 nchannels field.
     if (channels_.size() > kMaxChannels) {
       logger_.warn("{} channels exceeds the {}-channel SCHEMA limit; truncating", channels_.size(),
                    kMaxChannels);
       channels_.resize(kMaxChannels);
+    }
+    // Cap so the encoded SCHEMA fits kMaxPayloadSize: a 3-byte header (version,
+    // flags, nchannels) plus, per channel, [type u8][len u8][<=255 name bytes].
+    // Drop overflowing channels so build_frame() never rejects an oversized
+    // payload (which would call `send` with an empty frame). At least one
+    // channel always fits (3 + 2 + 255 < kMaxPayloadSize).
+    size_t bytes = 3, kept = 0;
+    for (; kept < channels_.size(); kept++) {
+      const size_t next = bytes + 2 + std::min<size_t>(channels_[kept].size(), 255);
+      if (next > espp::stream_frame::kMaxPayloadSize)
+        break;
+      bytes = next;
+    }
+    if (kept < channels_.size()) {
+      logger_.warn("encoded SCHEMA would exceed {} bytes; keeping {} of {} channels",
+                   espp::stream_frame::kMaxPayloadSize, kept, channels_.size());
+      channels_.resize(kept);
     }
   }
 

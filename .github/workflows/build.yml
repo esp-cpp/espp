@@ -284,9 +284,6 @@ jobs:
           target: esp32s3
         - path: 'components/seeed-studio-round-display/example'
           target: esp32s3
-        - path: 'components/telemetry/example'
-          target: esp32s3
-          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/serialization/example'
           target: esp32
         - path: 'components/smartpanlee-sc01-plus/example'
@@ -332,6 +329,9 @@ jobs:
           target: esp32
         - path: 'components/task/example'
           target: esp32
+        - path: 'components/telemetry/example'
+          target: esp32s3
+          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/thermistor/example'
           target: esp32
         - path: 'components/thread_pool/example'

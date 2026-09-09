@@ -370,6 +370,16 @@
     // front so a same-width data row can never confirm one as the schema.
     const ESP_LOG = /^(?:\x1b\[[0-9;]*m)?[EWIDVN] \(\d+\)/;
 
+    // ANSI/VT100 CSI escape sequences (color codes, cursor moves) — stripped from
+    // every line before parsing so a colored data row still reads as numbers and
+    // a colored header yields clean labels.
+    const ANSI_RE = /\x1b\[[0-9;?]*[ -/]*[@-~]/g;
+    const stripAnsi = (s) => s.replace(ANSI_RE, "");
+    // Turn a raw header token into a display label: drop the '%' field-marker /
+    // delimiter some devices wrap field names in, and trim surrounding space, so
+    // axis labels, the legend, and the series filter read cleanly.
+    const cleanLabel = (s) => s.replace(/%/g, "").trim();
+
     function detectDelim(line) {
       if (line.indexOf(",") >= 0) return ",";
       if (line.indexOf("\t") >= 0) return "\t";
@@ -426,6 +436,7 @@
     // Feed one raw line. Delimiter is detected per line so a header and its
     // rows can differ (e.g. a whitespace log line vs comma-separated data).
     function ingestLine(line, arrivalSec) {
+      line = stripAnsi(line);                             // drop color/cursor escapes first
       if (ESP_LOG.test(line)) { stats.drop++; return; }   // ESP-IDF log line -> discard
       const delim = detectDelim(line);
       const tokens = splitLine(line, delim);
@@ -433,8 +444,10 @@
 
       if (kind === "header") {
         // Provisional only: a header takes effect once a data row of the same
-        // width follows, so all-text log lines can't hijack the schema.
-        pendingHeader = { labels: tokens.slice(), delim };
+        // width follows, so all-text log lines can't hijack the schema. Clean the
+        // labels (strip the '%' field marker) but keep the token count so a data
+        // row of the same width still confirms it.
+        pendingHeader = { labels: tokens.map(cleanLabel), delim };
         return;
       }
       if (kind !== "data") { stats.drop++; return; }   // mixed line -> junk/log
@@ -758,12 +771,23 @@
         if (mode === "xyz") { drawScene(); return; }
         if (!plot) return;
         const data = buildData();
+
+        // Only time-series mode has a single chronological X axis (data[0] is the
+        // X array). In 2D X–Y (uPlot mode 2) data[0] is null and each series is
+        // [x, y], and the Follow window / live-edge scrolling are time concepts
+        // that don't apply — so there we just stream data in and let uPlot
+        // autoscale (following) or keep the user's zoom (not following).
+        if (mode !== "time") {
+          plot.setData(data, following);
+          return;
+        }
+
+        const xs = data[0], n = xs.length;
         if (following) {
           // Auto-scroll to the latest data (autoscale), optionally to a rolling
           // window of the last `windowSec` seconds so recent detail stays legible
           // even with a large retention.
           plot.setData(data, true);
-          const xs = data[0], n = xs.length;
           if (windowSec > 0 && n) {
             // Window is always in SECONDS regardless of the X source: find the
             // first sample within the last windowSec seconds by the actual sample
@@ -783,7 +807,6 @@
           // so live data keeps scrolling through at their zoom. If they've panned
           // back into history (right edge behind the last sample), hold the view
           // where they left it. Skipped for the non-monotonic first-column X.
-          const xs = data[0], n = xs.length;
           const sc = plot.scales.x;
           const curMin = sc.min, curMax = sc.max;
           plot.setData(data, false);
@@ -797,8 +820,7 @@
               plot.setScale("x", { min: curMin + shift, max: curMax + shift });
           }
         }
-        const xs = data[0];
-        if (xs.length) lastLiveX = xs[xs.length - 1];
+        if (n) lastLiveX = xs[n - 1];
       });
     }
 
