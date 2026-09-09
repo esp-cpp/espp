@@ -1,17 +1,22 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
-description: "Browser Web Serial data plotter (uPlot): auto-parses columnar serial output and plots a high number of points, with CSV save/load and optional 2D/3D modes. A firmware-side telemetry service is a planned follow-up."
+description: "Browser data plotter (Web Serial + WebUSB) that auto-parses columnar serial output and plots it, plus espp::Telemetry: a binary telemetry emitter (dispatcher module over stream_frame) the web app plots over WebUSB."
 url: "https://github.com/esp-cpp/espp/tree/main/components/serial_plotter"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/apps/serial_plotter.html"
+examples:
+  - path: example
 tags:
   - webapp
   - plotting
   - serial
   - web-serial
+  - webusb
   - telemetry
-# No dependencies: this component currently ships only the browser webapp and
-# has no firmware source, so it imposes no ESP-IDF version constraint. The
-# planned telemetry service will add the deps (and an idf floor) it needs.
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'
+  espp/stream_frame: '>=1.0'
