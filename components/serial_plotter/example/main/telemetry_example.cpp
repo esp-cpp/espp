@@ -40,8 +40,11 @@ extern "C" void app_main(void) {
   // --- the telemetry emitter: one float per named channel, in schema order ---
   espp::Telemetry telemetry({
       .channels = {"sine", "cosine", "noise", "ramp"},
-      .stream_on_start = true, // stream immediately; the web app can pause via SET_STREAM
-      .period_ms = 10,         // default 100 Hz (the web app may request another rate)
+      // Start paused: only stream once a host connects and sends SET_STREAM, so
+      // the vendor TX FIFO doesn't fill with un-drained telemetry before anyone
+      // is reading (which a reconnecting host would then have to parse past).
+      .stream_on_start = false,
+      .period_ms = 10, // default 100 Hz (the web app may request another rate)
       .log_level = espp::Logger::Verbosity::WARN,
   });
 
@@ -68,9 +71,17 @@ extern "C" void app_main(void) {
   std::mutex tx_mutex;
   auto send = [&](std::span<const uint8_t> bytes) {
     std::lock_guard<std::mutex> lock(tx_mutex);
-    if (!usb.write_vendor(bytes))
-      logger.warn_rate_limited("dropped a {}-byte frame (USB TX backpressure or disconnect)",
+    if (!usb.write_vendor(bytes)) {
+      // Backpressure: the host stopped draining (e.g. a WebUSB tab closed
+      // without unmounting the device). write_vendor is all-or-nothing, so the
+      // dropped frame left nothing partial — but clear the FIFO so the queued
+      // backlog isn't delivered to (and mis-parsed by) the next host that
+      // connects, ahead of its first schema reply.
+      logger.warn_rate_limited("vendor TX backpressure; dropped a {}-byte frame and cleared the "
+                               "stale backlog",
                                bytes.size());
+      usb.vendor_write_clear();
+    }
   };
   telemetry.set_send(send);
 
@@ -104,6 +115,20 @@ extern "C" void app_main(void) {
       }
     }
     rx_cv.notify_one();
+  });
+
+  // A physical unplug/replug re-enumerates the device: stop streaming, drop any
+  // stale vendor TX backlog, and reset the frame parser so the next host starts
+  // clean. (A WebUSB tab close does NOT unmount, so that case is handled by the
+  // backpressure clear in `send` above.)
+  usb.set_unmount_callback([&] {
+    telemetry.set_streaming(false);
+    usb.vendor_write_clear();
+    dispatcher.reset();
+  });
+  usb.set_mount_callback([&] {
+    usb.vendor_write_clear();
+    dispatcher.reset();
   });
 
   std::error_code usb_ec;

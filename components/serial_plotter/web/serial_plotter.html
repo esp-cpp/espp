@@ -935,7 +935,7 @@
       }
     }
 
-    let usb = null, usbReadDone = Promise.resolve();
+    let usb = null, usbReadDone = Promise.resolve(), usbSchemaTimer = null;
     const usbParser = new SfParser();
     let usbTimeWrap = 0, usbPrevRaw = 0, usbHaveSchema = false; // device u32-us timestamp unwrap
 
@@ -958,14 +958,30 @@
       $("usb").textContent = "Disconnect WebUSB";
       $("pause").disabled = false;
       $("connect").disabled = true; $("baud").disabled = true; $("reset").disabled = true;
-      // request the schema, then start the stream
-      try {
-        await usb.send(sfBuild(TM_MODULE, TM_GET_SCHEMA));
-        await usb.send(sfBuild(TM_MODULE, TM_SET_STREAM, new Uint8Array([1, 0, 0])));
-      } catch (e) { setStatus("err", "USB send: " + (e && e.message ? e.message : e)); }
+      // Ask for the schema, retrying until it arrives: a device that was left
+      // streaming can bury the first reply behind queued samples the read loop
+      // discards (no schema yet). The stream is started (SET_STREAM) only once
+      // the schema lands (see onUsbFrame), so it begins on a clean handshake.
+      requestSchema();
+    }
+
+    function clearSchemaTimer() { if (usbSchemaTimer) { clearTimeout(usbSchemaTimer); usbSchemaTimer = null; } }
+
+    function requestSchema() {
+      clearSchemaTimer();
+      let tries = 0;
+      const ask = () => {
+        usbSchemaTimer = null;
+        if (!usb || usbHaveSchema) return;
+        if (tries++ > 20) { setStatus("err", "USB: no schema (is the telemetry example running?)"); return; }
+        usb.send(sfBuild(TM_MODULE, TM_GET_SCHEMA)).catch(() => {});
+        usbSchemaTimer = setTimeout(ask, 300);
+      };
+      ask();
     }
 
     async function usbDisconnect() {
+      clearSchemaTimer();
       const t = usb; usb = null;
       if (t) {
         try { await t.send(sfBuild(TM_MODULE, TM_SET_STREAM, new Uint8Array([0, 0, 0]))); } catch (e) {}
@@ -978,6 +994,7 @@
     // Unexpected USB link loss (device unplugged): tear down without awaiting the
     // read loop (we may be inside it).
     function usbLinkLost() {
+      clearSchemaTimer();
       const t = usb; usb = null;
       if (t) t.close().catch(() => {});
       usbResetUI("USB disconnected", "err");
@@ -1009,10 +1026,15 @@
       if (f.module !== TM_MODULE) return; // ignore discovery / other modules
       if (f.type === TM_SCHEMA) {
         const labels = decodeSchema(f.payload);
+        // A duplicate reply to a retried GET_SCHEMA must not re-reset the rings.
+        if (usbHaveSchema && schema && labels && sameLabels(schema.labels, labels)) { clearSchemaTimer(); return; }
         if (labels && labels.length) {
           $("xMode").value = "time";      // device timestamp is the X axis
           usbTimeWrap = 0; usbPrevRaw = 0; usbHaveSchema = true;
           setSchema(labels, "webusb");
+          clearSchemaTimer();             // handshake done; stop re-asking
+          // start (or resume) the device stream now that we can plot it
+          if (usb) usb.send(sfBuild(TM_MODULE, TM_SET_STREAM, new Uint8Array([paused ? 0 : 1, 0, 0]))).catch(() => {});
         }
         return;
       }
