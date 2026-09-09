@@ -179,7 +179,8 @@
 
   <div class="toolbar">
     <div class="group">
-      <button id="connect" class="primary" title="Web Serial: text / CSV columns">Connect</button>
+      <button id="connect" class="primary" title="Web Serial: text / CSV columns">Connect Serial</button>
+      <button id="usb" class="primary" title="WebUSB: binary telemetry (espp::Telemetry)">Connect WebUSB</button>
       <label class="field">Baud
         <select id="baud">
           <option>9600</option><option>19200</option><option>38400</option>
@@ -189,7 +190,6 @@
         </select>
       </label>
       <button id="reset" disabled title="Pulse DTR/RTS to reset the device">Reset</button>
-      <button id="usb" title="WebUSB: binary telemetry (espp::Telemetry)">USB</button>
     </div>
 
     <div class="sep"></div>
@@ -728,14 +728,14 @@
       dataFromFile = false;         // live capture from here on
       readLoopDone = readLoop();
       setStatus("on", "Connected @ " + baud);
-      $("connect").textContent = "Disconnect";
+      $("connect").textContent = "Disconnect Serial";
       $("pause").disabled = false; $("reset").disabled = false;
       $("usb").disabled = true;     // one transport at a time
     }
 
     function resetConnUI(text, cls) {
       setStatus(cls || "", text);
-      $("connect").textContent = "Connect";
+      $("connect").textContent = "Connect Serial";
       $("pause").disabled = true; $("reset").disabled = true;
       $("usb").disabled = false;
       paused = false; $("pause").textContent = "Pause";
@@ -955,7 +955,7 @@
       usbReadDone = usb.readLoop((chunk) => { for (const f of usbParser.feed(chunk)) onUsbFrame(f); })
         .catch((e) => { if (usb) { setStatus("err", "USB read: " + (e && e.message ? e.message : e)); usbLinkLost(); } });
       setStatus("on", "USB: " + usb.name());
-      $("usb").textContent = "Disconnect USB";
+      $("usb").textContent = "Disconnect WebUSB";
       $("pause").disabled = false;
       $("connect").disabled = true; $("baud").disabled = true; $("reset").disabled = true;
       // request the schema, then start the stream
@@ -984,7 +984,7 @@
     }
 
     function usbResetUI(text, cls) {
-      $("usb").textContent = "USB";
+      $("usb").textContent = "Connect WebUSB";
       $("pause").disabled = true; paused = false; $("pause").textContent = "Pause";
       $("connect").disabled = false; $("baud").disabled = false;
       setStatus(cls, text);
@@ -1078,7 +1078,7 @@
         buildPlot();
         scheduleDraw();
         updateStats();
-        setStatus($("connect").textContent === "Disconnect" ? "on" : "", "Loaded " + file.name);
+        setStatus((port || usb) ? "on" : "", "Loaded " + file.name);
       };
       rd.readAsText(file);
     }
