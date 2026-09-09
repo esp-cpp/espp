@@ -198,11 +198,11 @@
       <button id="pause" disabled>Pause</button>
       <button id="clear">Clear</button>
       <button id="follow" class="primary" title="Auto-scroll to the latest data. Drag to zoom drops out of Follow so your view sticks.">Following</button>
-      <label class="field">Window
+      <label class="field">Window&nbsp;(s)
         <input type="number" id="window" min="0" step="1" placeholder="all" style="width:64px" title="Follow window in seconds (blank = show all retained data)">
       </label>
-      <label class="field">Retain
-        <input type="number" id="retain" min="100" max="2000000" step="1000" value="200000" title="Max points kept per series">
+      <label class="field">Retain&nbsp;(samples)
+        <input type="number" id="retain" min="100" max="2000000" step="1000" value="200000" title="Max samples kept per series">
       </label>
     </div>
 
@@ -487,12 +487,15 @@
       return [xv, ...yvs];
     }
 
+    // WebUSB samples carry a device hardware timestamp (stored as the time axis),
+    // so label the "time" X source accordingly.
+    function usbBinary() { return !!schema && schema.delim === "webusb"; }
     function xAxisLabel() {
       if (mode === "xy") return schema.labels[+$("xCol").value || 0];
       const xm = $("xMode").value;
       if (xm === "firstcol") return schema.labels[0];
       if (xm === "index") return "sample";
-      return "time (s)";
+      return usbBinary() ? "device time (s)" : "time (s)";
     }
 
     function buildPlot() {
@@ -1185,6 +1188,10 @@
       scheduleDraw();
     }
     function updateSchemaLabel() {
+      // Name the "time" X source for what it actually is on each transport: the
+      // device hardware timestamp over WebUSB, browser arrival time over serial.
+      const timeOpt = $("xMode").querySelector('option[value="time"]');
+      if (timeOpt) timeOpt.textContent = usbBinary() ? "Device time" : "Arrival time";
       if (!schema) { $("stSchema").textContent = "no schema yet"; return; }
       const src = schema.delim === "webusb" ? "binary (WebUSB)"
                 : "delim '" + (schema.delim === " " ? "ws" : schema.delim) + "'";
