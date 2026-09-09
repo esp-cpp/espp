@@ -121,9 +121,11 @@ extern "C" void app_main(void) {
       [&](std::span<const uint8_t> data) { enqueue_rx(Transport::Cdc, data); });
 
   std::error_code usb_ec;
-  if (!usb.initialize(usb_ec))
-    logger.error("Failed to initialize USB device: {} - no host transport available",
+  if (!usb.initialize(usb_ec)) {
+    logger.error("Failed to initialize USB device: {} - no host transport available; aborting",
                  usb_ec.message());
+    return;
+  }
 
   espp::Task rx_task(
       {.callback = [&](std::mutex &, std::condition_variable &) -> bool {

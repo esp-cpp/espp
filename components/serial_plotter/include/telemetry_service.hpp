@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -8,6 +9,7 @@
 #include <mutex>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "base_component.hpp"
@@ -66,6 +68,9 @@ public:
   /// Version byte at the head of a SCHEMA payload, so the wire format can evolve.
   static constexpr uint8_t kSchemaVersion = 1;
 
+  /// Maximum channel count (the SCHEMA encodes it as a u8).
+  static constexpr size_t kMaxChannels = 255;
+
   /// Frame `type` values within the telemetry module.
   enum class Type : uint8_t {
     // host -> device
@@ -101,7 +106,9 @@ public:
       , channels_(config.channels)
       , send_(config.send)
       , streaming_(config.stream_on_start)
-      , period_ms_(config.period_ms) {}
+      , period_ms_(config.period_ms) {
+    clamp_channels();
+  }
 
   /// @brief Set (or replace) the transmit function, e.g. after USB init.
   void set_send(send_fn fn) {
@@ -136,7 +143,7 @@ public:
         put_f32(p, v);
       frame = build(Type::Sample, p);
     }
-    s(frame); // send outside the lock
+    s(std::span<const uint8_t>(frame)); // send outside the lock
   }
 
   /// @brief Push one sample timestamped with the current device time.
@@ -147,6 +154,7 @@ public:
     {
       std::lock_guard<std::mutex> lock(mutex_);
       channels_ = std::move(channels);
+      clamp_channels();
     }
     send_schema();
   }
@@ -167,7 +175,7 @@ public:
   uint16_t period_ms() const { return period_ms_.load(); }
 
   /// @brief Send the current SCHEMA frame now (device->host).
-  void send_schema() {
+  void send_schema() const {
     std::vector<uint8_t> frame;
     send_fn s;
     {
@@ -177,7 +185,7 @@ public:
       s = send_;
       frame = build(Type::Schema, build_schema_payload_locked());
     }
-    s(frame);
+    s(std::span<const uint8_t>(frame));
   }
 
   /// @brief Dispatcher handler: process one frame addressed to this module.
@@ -242,13 +250,18 @@ protected:
     }
   }
 
-  /// Serialize the SCHEMA payload. Caller must hold `mutex_`.
+  /// Serialize the SCHEMA payload. Caller must hold `mutex_`. The channel count
+  /// is a u8; channels_ is capped at kMaxChannels (see clamp_channels), but the
+  /// count and the serialized channels are derived from the same bound so the
+  /// payload is always self-consistent.
   std::vector<uint8_t> build_schema_payload_locked() const {
+    const size_t n = std::min<size_t>(channels_.size(), kMaxChannels);
     std::vector<uint8_t> p;
     p.push_back(kSchemaVersion);
     p.push_back(0); // flags (reserved)
-    p.push_back(static_cast<uint8_t>(channels_.size()));
-    for (const auto &name : channels_) {
+    p.push_back(static_cast<uint8_t>(n));
+    for (size_t i = 0; i < n; i++) {
+      const auto &name = channels_[i];
       p.push_back(static_cast<uint8_t>(ChannelType::F32));
       const uint8_t len = static_cast<uint8_t>(std::min<size_t>(name.size(), 255));
       p.push_back(len);
@@ -257,12 +270,22 @@ protected:
     return p;
   }
 
-  void send_ok(uint8_t request_type) {
+  /// Truncate channels_ to the u8 SCHEMA limit (caller holds mutex_, or is the
+  /// constructor). Warns when channels are dropped.
+  void clamp_channels() {
+    if (channels_.size() > kMaxChannels) {
+      logger_.warn("{} channels exceeds the {}-channel SCHEMA limit; truncating", channels_.size(),
+                   kMaxChannels);
+      channels_.resize(kMaxChannels);
+    }
+  }
+
+  void send_ok(uint8_t request_type) const {
     const uint8_t p[] = {request_type};
     send_frame(build(Type::Ok, p));
   }
 
-  void send_error(uint8_t request_type, std::string_view message) {
+  void send_error(uint8_t request_type, std::string_view message) const {
     logger_.warn("{} (type 0x{:02x})", message, request_type);
     std::vector<uint8_t> p;
     p.push_back(request_type);
@@ -273,14 +296,14 @@ protected:
 
   /// Transmit an already-built frame via the configured send function (copies
   /// the function pointer under the lock, then sends with the lock released).
-  void send_frame(std::vector<uint8_t> frame) {
+  void send_frame(std::vector<uint8_t> frame) const {
     send_fn s;
     {
       std::lock_guard<std::mutex> lock(mutex_);
       s = send_;
     }
     if (s)
-      s(frame);
+      s(std::span<const uint8_t>(frame));
   }
 
   /// Build an encoded frame for a telemetry message type. Device->host types
