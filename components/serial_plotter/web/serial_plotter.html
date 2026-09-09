@@ -317,7 +317,7 @@
     let seriesVisible = {};         // label -> bool; manual per-series show/hide (persists across rebuilds)
 
     // scratch arrays reused across draws (resized only when count changes)
-    let scratch = { cap: -1, x: null, ys: [] };            // capacity-sized 2D draw buffers
+    let scratch = { cap: -1, x: null, ys: [], t: null };   // capacity-sized 2D draw buffers (t = time, for the Follow window)
     // Decimated, pre-normalized 3D points, rebuilt only when the data/columns
     // change - so camera rotation/zoom just re-projects the cached set.
     let sceneCache = { key: "", m: 0, px: null, py: null, pz: null, t: null };
@@ -464,6 +464,7 @@
       if (scratch.cap === cap && scratch.ys.length === nSeries) return;
       scratch.cap = cap;
       scratch.x = new Float64Array(cap);
+      scratch.t = new Float64Array(cap);
       scratch.ys = Array.from({ length: nSeries }, () => new Float64Array(cap));
     }
 
@@ -642,8 +643,16 @@
           plot.setData(data, true);
           const xs = data[0], n = xs.length;
           if (windowSec > 0 && n) {
-            const maxX = xs[n - 1];
-            plot.setScale("x", { min: maxX - windowSec, max: maxX });
+            // Window is always in SECONDS regardless of the X source: find the
+            // first sample within the last windowSec seconds by the actual sample
+            // time (tRing), then set the x-range to span those samples in the
+            // current X units (so index / column axes show the same time span).
+            const tv = scratch.t.subarray(0, n);
+            tRing.toOrdered(tv);
+            const minT = tv[n - 1] - windowSec;
+            let lo = 0, hi = n;                        // binary search: first index with tv >= minT
+            while (lo < hi) { const mid = (lo + hi) >> 1; if (tv[mid] < minT) lo = mid + 1; else hi = mid; }
+            plot.setScale("x", { min: xs[Math.min(lo, n - 1)], max: xs[n - 1] });
           }
         } else {
           // Not following: keep the user's zoom/pan (don't reset the scales), but
