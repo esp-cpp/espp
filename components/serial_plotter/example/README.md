@@ -5,20 +5,24 @@ Plotter** web app over USB, using `espp::Telemetry` (a binary telemetry emitter
 carried on the `stream_frame` framing, dispatcher module 3).
 
 The hosted app — <https://esp-cpp.github.io/espp/apps/serial_plotter.html> —
-connects on the **vendor (WebUSB)** or **CDC (Web Serial)** interface, reads the
-channel **schema**, and plots the live **sample** stream. It is the binary,
-higher-rate, device-timestamped counterpart to the app's text/CSV transport.
+connects on the **vendor (WebUSB)** interface, reads the channel **schema**, and
+plots the live **sample** stream. It is the binary, higher-rate,
+device-timestamped counterpart to the app's text/CSV Web Serial transport.
 
 ## What it does
 
 - Declares four channels — `sine`, `cosine`, `noise`, `ramp` — as the schema.
 - A producer task emits one sample (a `float` per channel) every ~10 ms (100 Hz),
   timestamped with the device clock.
-- Exposes the stream over USB vendor **and** CDC; a `Dispatcher` on each transport
+- Exposes the stream over the USB **vendor (WebUSB)** interface; a `Dispatcher`
   routes module-3 frames to the emitter and serves capability discovery so the
   browser **Device Hub** lists this device and links to `serial_plotter.html`.
 - The web app can pause/resume the stream and request a rate (`SET_STREAM`), and
   requests the schema on connect (`GET_SCHEMA`).
+
+`espp::Telemetry` itself is transport-agnostic (the `stream_frame` framing works
+over CDC / UART / a socket too); this example streams over WebUSB because that is
+what the web app's binary path consumes.
 
 Swap the synthetic generator for your real signals: build a `std::array<float, N>`
 in channel order and call `telemetry.emit(...)`.
@@ -35,8 +39,8 @@ built-in USB-Serial-JTAG.
 
 ## Notes
 
-- Native USB (vendor/WebUSB + CDC) needs an ESP32-S3 (also S2 / P4) — not the
+- Native USB (vendor / WebUSB) needs an ESP32-S3 (also S2 / P4) — not the
   classic ESP32. `sdkconfig.defaults` pins `esp32s3` and enables the TinyUSB
-  vendor + CDC classes.
+  vendor class.
 - WebUSB / Web Serial are Chromium-only and need a secure context (`https`,
   `http://localhost`, or `file://`).

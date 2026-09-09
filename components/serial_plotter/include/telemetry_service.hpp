@@ -56,8 +56,11 @@ namespace espp {
 ///
 /// emit() is typically called from a producer task while requests are handled
 /// on a transport RX task; both are safe to call concurrently. Frames are built
-/// under an internal mutex and the user `send` callback is always invoked with
-/// the mutex released, so a re-entrant transport cannot deadlock.
+/// under one mutex and transmitted under a separate send mutex, so the user
+/// `send` callback is (a) never invoked while the build mutex is held — a
+/// re-entrant transport cannot deadlock — and (b) never invoked concurrently, so
+/// a `send` that is not itself thread-safe still cannot interleave the bytes of
+/// two frames.
 class Telemetry : public espp::BaseComponent {
 public:
   /// Dispatcher module id owned by the telemetry protocol (the frame `module`
@@ -143,7 +146,7 @@ public:
         put_f32(p, v);
       frame = build(Type::Sample, p);
     }
-    s(std::span<const uint8_t>(frame)); // send outside the lock
+    deliver(s, frame); // serialized send, outside the build lock
   }
 
   /// @brief Push one sample timestamped with the current device time.
@@ -185,7 +188,7 @@ public:
       s = send_;
       frame = build(Type::Schema, build_schema_payload_locked());
     }
-    s(std::span<const uint8_t>(frame));
+    deliver(s, frame);
   }
 
   /// @brief Dispatcher handler: process one frame addressed to this module.
@@ -296,14 +299,22 @@ protected:
 
   /// Transmit an already-built frame via the configured send function (copies
   /// the function pointer under the lock, then sends with the lock released).
-  void send_frame(std::vector<uint8_t> frame) const {
+  void send_frame(const std::vector<uint8_t> &frame) const {
     send_fn s;
     {
       std::lock_guard<std::mutex> lock(mutex_);
       s = send_;
     }
     if (s)
-      s(std::span<const uint8_t>(frame));
+      deliver(s, frame);
+  }
+
+  /// Invoke the send callback for one built frame, serialized on send_mutex_ so
+  /// two frames' bytes never interleave even if `send` is not itself
+  /// thread-safe. Never called while mutex_ is held.
+  void deliver(const send_fn &s, const std::vector<uint8_t> &frame) const {
+    std::lock_guard<std::mutex> lock(send_mutex_);
+    s(std::span<const uint8_t>(frame));
   }
 
   /// Build an encoded frame for a telemetry message type. Device->host types
@@ -327,7 +338,8 @@ protected:
         duration_cast<microseconds>(steady_clock::now().time_since_epoch()).count());
   }
 
-  mutable std::mutex mutex_;
+  mutable std::mutex mutex_;      ///< guards channels_, send_, and the parser
+  mutable std::mutex send_mutex_; ///< serializes send callback invocations
   std::vector<std::string> channels_;
   send_fn send_;
   std::atomic<bool> streaming_;

@@ -943,7 +943,13 @@
       if (usb) return usbDisconnect();
       const t = new UsbTransport();
       try { await t.open(); }
-      catch (e) { if (!e || e.name !== "NotFoundError") setStatus("err", "USB: " + (e && e.message ? e.message : e)); return; }
+      catch (e) {
+        // open() may fail after the device/interface was already opened; close
+        // it so it isn't left claimed and blocking the next attempt.
+        try { await t.close(); } catch (e2) {}
+        if (!e || e.name !== "NotFoundError") setStatus("err", "USB: " + (e && e.message ? e.message : e));
+        return;
+      }
       usb = t; usbParser.reset(); usbTimeWrap = 0; usbPrevRaw = 0; usbHaveSchema = false;
       clearData(); dataFromFile = false;
       usbReadDone = usb.readLoop((chunk) => { for (const f of usbParser.feed(chunk)) onUsbFrame(f); })
@@ -1137,7 +1143,14 @@
     $("connect").addEventListener("click", connect);
     $("usb").addEventListener("click", usbConnect);
     $("reset").addEventListener("click", resetDevice);
-    $("pause").addEventListener("click", () => { paused = !paused; $("pause").textContent = paused ? "Resume" : "Pause"; if (!paused) scheduleDraw(); });
+    $("pause").addEventListener("click", () => {
+      paused = !paused;
+      $("pause").textContent = paused ? "Resume" : "Pause";
+      // Over WebUSB, actually stop/start the device stream (not just local
+      // drawing); text Web Serial keeps the local-only pause.
+      if (usb) usb.send(sfBuild(TM_MODULE, TM_SET_STREAM, new Uint8Array([paused ? 0 : 1, 0, 0]))).catch(() => {});
+      if (!paused) scheduleDraw();
+    });
     $("clear").addEventListener("click", () => { clearData(); if (plot) plot.setData(buildData()); if (mode === "xyz") drawScene(); updateStats(); });
     $("mode").addEventListener("change", syncModeUI);
     $("xMode").addEventListener("change", () => { buildPlot(); scheduleDraw(); });

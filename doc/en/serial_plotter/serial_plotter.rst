@@ -36,8 +36,9 @@ Construct it with the channel names and a ``send`` function, register
 raw bytes to ``feed()``), and call ``emit()`` from your producer. Frames are
 built under an internal mutex and the ``send`` callback runs with the lock
 released, so ``emit()`` and request handling are safe to call concurrently. See
-the example for USB vendor (WebUSB) + CDC (Web Serial) wiring and capability
-discovery that lists the app in the browser Device Hub.
+the example for USB vendor (WebUSB) wiring and capability discovery that lists
+the app in the browser Device Hub. (The framing is transport-agnostic — CDC /
+UART / a socket work too — but the web app's binary path consumes WebUSB.)
 
 .. ------------------------------- Example -------------------------------------
 

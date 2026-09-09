@@ -1,6 +1,6 @@
-# This example uses the native USB-OTG peripheral (vendor / WebUSB + CDC), which
-# is only available on the ESP32-S3 (also S2 / P4) -- NOT the classic ESP32. Pin
-# the target here so a bare `idf.py build` does not fall back to esp32.
+# This example uses the native USB-OTG peripheral (vendor / WebUSB), which is
+# only available on the ESP32-S3 (also S2 / P4) -- NOT the classic ESP32. Pin the
+# target here so a bare `idf.py build` does not fall back to esp32.
 CONFIG_IDF_TARGET="esp32s3"
 
 # Common ESP-related
@@ -13,20 +13,19 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 # works. The telemetry web app plots over this WebUSB interface.
 CONFIG_TINYUSB_VENDOR_COUNT=1
 
-# The CDC function carries the system console (esp_tusb_init_console) AND the
-# telemetry frames (so the web app also works over Web Serial); the HID count
-# just keeps the usb_device component's HID references compiling (no HID
-# interface is instantiated here).
+# CDC + HID are enabled only to keep the usb_device component compiling (it
+# includes the TinyUSB CDC/HID headers unconditionally). This example creates
+# NO CDC or HID interface -- it exposes the vendor (WebUSB) interface only, so
+# the device enumerates with just that one telemetry interface.
 CONFIG_TINYUSB_CDC_ENABLED=y
 CONFIG_TINYUSB_CDC_COUNT=1
 CONFIG_TINYUSB_HID_COUNT=1
 
 # Telemetry frames are small (a SAMPLE is a 4-byte timestamp + 4 bytes/channel),
-# but give the TX FIFOs headroom so a burst of batched samples is never
+# but give the vendor TX FIFO headroom so a burst of batched samples is never
 # truncated by TinyUSB backpressure. The vendor RX FIFO only carries short
 # requests (GET_SCHEMA / SET_STREAM), so 512 bytes is plenty there.
 CONFIG_TINYUSB_VENDOR_RX_BUFSIZE=512
 CONFIG_TINYUSB_VENDOR_TX_BUFSIZE=4096
-CONFIG_TINYUSB_CDC_TX_BUFSIZE=4096
 
 CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
