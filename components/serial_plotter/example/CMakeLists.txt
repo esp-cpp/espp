@@ -25,6 +25,7 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/serial_plotter"
   "../../../components/stream_frame"
   "../../../components/task"
+  "../../../components/timer"
   "../../../components/usb_device"
 )
 
@@ -42,7 +43,7 @@ endif()
 
 set(
   COMPONENTS
-  "main esptool_py base_component dispatcher format logger serial_plotter stream_frame task usb_device esp_tinyusb"
+  "main esptool_py base_component dispatcher format logger serial_plotter stream_frame task timer usb_device esp_tinyusb"
   CACHE STRING
   "List of components to include"
   )

@@ -28,6 +28,7 @@
 #include "stream_frame.hpp"
 #include "task.hpp"
 #include "telemetry_service.hpp"
+#include "timer.hpp"
 #include "usb_device.hpp"
 
 using namespace std::chrono_literals;
@@ -164,8 +165,9 @@ extern "C" void app_main(void) {
   // --- synthetic signal producer: emit one SAMPLE per period ------------------
   // Replace this with your real signals. Values are in schema (channel) order.
   const auto t0 = std::chrono::steady_clock::now();
-  espp::Task gen_task(
-      {.callback = [&](std::mutex &m, std::condition_variable &cv) -> bool {
+  espp::Timer gen_timer(
+      {.period = std::chrono::milliseconds(telemetry.period_ms()),
+       .callback = [&]() -> bool {
          const float t =
              std::chrono::duration<float>(std::chrono::steady_clock::now() - t0).count();
          const float two_pi = 6.2831853f;
@@ -177,12 +179,10 @@ extern "C" void app_main(void) {
              std::fmod(t, 2.0f) - 1.0f,   // -1..1 sawtooth ramp
          };
          telemetry.emit(values); // no-op while streaming is paused
-         std::unique_lock<std::mutex> lock(m);
-         cv.wait_for(lock, std::chrono::milliseconds(std::max<uint16_t>(1, telemetry.period_ms())));
-         return false; // keep running
+         return false;           // keep running
        },
        .task_config = {.name = "telemetry_gen", .stack_size_bytes = 4096}});
-  gen_task.start();
+  gen_timer.start();
 
   logger.info("Telemetry ready. Open the Serial Plotter web app and connect over WebUSB "
               "(channels: sine, cosine, noise, ramp).");
