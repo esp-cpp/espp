@@ -219,7 +219,7 @@
       <label class="field" id="xModeWrap">X
         <select id="xMode">
           <option value="time" selected>Arrival time</option>
-          <option value="arrival" hidden>Arrival time</option>
+          <option value="elapsed" hidden>Elapsed time</option>
           <option value="firstcol">First column</option>
           <option value="index">Sample index</option>
         </select>
@@ -476,7 +476,7 @@
       // x
       if (xIdx === -1 && xm === "index") {
         for (let i = 0; i < n; i++) xv[i] = i;               // sample index
-      } else if (xIdx === -1 && xm === "arrival") {
+      } else if (xIdx === -1 && xm === "elapsed") {
         // Relative time: the device clock rebased to the first retained sample
         // (starts at 0). Uses the device timestamp — NOT browser arrival, which
         // is bursty over USB (many samples share one transfer's receive time)
@@ -509,7 +509,7 @@
       const xm = $("xMode").value;
       if (xm === "firstcol") return schema.labels[0];
       if (xm === "index") return "sample";
-      if (xm === "arrival") return "arrival (s)";
+      if (xm === "elapsed") return "elapsed (s)";
       return usbBinary() ? "device time (s)" : "time (s)";
     }
 
@@ -1207,15 +1207,16 @@
     // mutating a native <select> (option text/hidden/value) closes it if it is
     // open, which would make it unusable while streaming.
     function updateXModeOptions() {
-      // Over WebUSB the "time" source is the device hardware clock, and a
-      // separate "Arrival time" source is offered; over serial "time" already is
-      // browser arrival time, so the extra option is hidden.
+      // Over WebUSB the "time" source is the absolute device hardware clock, and
+      // a separate "Elapsed time" source (device clock rebased to the capture
+      // start) is offered; over serial "time" is browser arrival time, so the
+      // extra option is hidden.
       const sel = $("xMode");
       const timeOpt = sel.querySelector('option[value="time"]');
-      const arrivalOpt = sel.querySelector('option[value="arrival"]');
+      const elapsedOpt = sel.querySelector('option[value="elapsed"]');
       if (timeOpt) timeOpt.textContent = usbBinary() ? "Device time" : "Arrival time";
-      if (arrivalOpt) arrivalOpt.hidden = !usbBinary();
-      if (!usbBinary() && sel.value === "arrival") sel.value = "time"; // arrival source is USB-only
+      if (elapsedOpt) elapsedOpt.hidden = !usbBinary();
+      if (!usbBinary() && sel.value === "elapsed") sel.value = "time"; // elapsed source is USB-only
     }
     function updateSchemaLabel() {
       if (!schema) { $("stSchema").textContent = "no schema yet"; return; }
