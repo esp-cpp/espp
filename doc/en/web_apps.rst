@@ -71,7 +71,9 @@ Data plotting
   arrives. It plots a high number of points efficiently (``uPlot``) with drag
   zoom, a per-series legend, and cursor readout, and saves or loads the
   capture as CSV. Optional **2D X–Y** and **3D X–Y–Z** modes plot the same parsed
-  columns against each other.
+  columns against each other. It can also plot **binary telemetry over WebUSB**
+  from an espp device running :doc:`espp::Telemetry <serial_plotter/serial_plotter>`
+  (typed float channels, device timestamps).
 
 .. image:: https://github.com/user-attachments/assets/64668e83-8ff8-4ba8-9f97-1be5e1c3ad6d
    :alt: espp Serial Plotter plotting a Lorenz-attractor capture as a time series

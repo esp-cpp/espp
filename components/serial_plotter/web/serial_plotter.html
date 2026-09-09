@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>espp Serial Plotter</title>
-  <meta name="description" content="Web Serial data plotter: auto-parses columnar serial output (header + numeric rows), plots a high number of points efficiently with uPlot, and saves/loads CSV. Optional 2D X-Y and 3D X-Y-Z modes.">
+  <meta name="description" content="Data plotter: auto-parses columnar serial output over Web Serial, or plots binary telemetry (espp::Telemetry) over WebUSB. Efficient high-point-count plots (uPlot), per-series filter, CSV save/load, and optional 2D X-Y / 3D X-Y-Z modes.">
   <!--
     Self-contained: no CDN, no build step. Works from file://, http://localhost,
     or the hosted docs (apps/). Web Serial is Chromium-only and needs a secure
@@ -179,7 +179,7 @@
 
   <div class="toolbar">
     <div class="group">
-      <button id="connect" class="primary">Connect</button>
+      <button id="connect" class="primary" title="Web Serial: text / CSV columns">Connect</button>
       <label class="field">Baud
         <select id="baud">
           <option>9600</option><option>19200</option><option>38400</option>
@@ -189,6 +189,7 @@
         </select>
       </label>
       <button id="reset" disabled title="Pulse DTR/RTS to reset the device">Reset</button>
+      <button id="usb" title="WebUSB: binary telemetry (espp::Telemetry)">USB</button>
     </div>
 
     <div class="sep"></div>
@@ -729,12 +730,14 @@
       setStatus("on", "Connected @ " + baud);
       $("connect").textContent = "Disconnect";
       $("pause").disabled = false; $("reset").disabled = false;
+      $("usb").disabled = true;     // one transport at a time
     }
 
     function resetConnUI(text, cls) {
       setStatus(cls || "", text);
       $("connect").textContent = "Connect";
       $("pause").disabled = true; $("reset").disabled = true;
+      $("usb").disabled = false;
       paused = false; $("pause").textContent = "Pause";
     }
 
@@ -808,6 +811,226 @@
         await new Promise((r) => setTimeout(r, 120));
         await port.setSignals({ dataTerminalReady: false, requestToSend: false }); // EN high (release)
       } catch (e) { setStatus("err", "Reset failed: " + e.message); }
+    }
+
+    // ---------------------------------------------------------------- WebUSB telemetry transport
+    // Binary counterpart to the text Web-Serial path: an espp device streams a
+    // SCHEMA (channel names) + SAMPLE frames (device timestamp + one f32 per
+    // channel) over the stream_frame framing on dispatcher module 3, which feeds
+    // the SAME plot. See components/serial_plotter/include/telemetry_service.hpp.
+    const USB_VID = 0x1209;                 // pid.codes VID shared by espp devices
+    const TM_MODULE = 3;                    // telemetry dispatcher module id
+    const TM_GET_SCHEMA = 0x01, TM_SET_STREAM = 0x02;
+    const TM_SCHEMA = 0x81, TM_SAMPLE = 0x82, TM_ERROR = 0x84;
+    // stream_frame v2 envelope (see components/stream_frame/include/stream_frame.hpp)
+    const SF_MAGIC0 = 0x54, SF_MAGIC1 = 0x4F, SF_HEADER = 9, SF_CRC = 4, SF_CORR = 2;
+    const SF_MAX_PAYLOAD = 4096, SF_MAX_FRAME = SF_HEADER + SF_CORR + SF_MAX_PAYLOAD + SF_CRC;
+    const SF_REQUEST = (1 << 4), SF_REPLY_BIT = 0x01, SF_CORR_BIT = 0x02;
+    const SF_CRC_TABLE = (() => {
+      const t = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = (c & 1) ? ((c >>> 1) ^ 0xEDB88320) : (c >>> 1); t[i] = c >>> 0; }
+      return t;
+    })();
+    const sfCrc32 = (b) => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = SF_CRC_TABLE[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (~c) >>> 0; };
+
+    // Build a host->device request frame (reply flag clear; no correlation id).
+    function sfBuild(module, type, payload) {
+      payload = payload || new Uint8Array(0);
+      const f = new Uint8Array(SF_HEADER + payload.length + SF_CRC);
+      const v = new DataView(f.buffer);
+      v.setUint16(0, 0x4F54, true); f[2] = SF_REQUEST; f[3] = module; f[4] = type;
+      v.setUint32(5, payload.length, true);
+      f.set(payload, SF_HEADER);
+      v.setUint32(SF_HEADER + payload.length, sfCrc32(f.subarray(0, SF_HEADER + payload.length)), true);
+      return f;
+    }
+
+    // Incremental stream_frame parser: buffers bytes, finds magic, validates the
+    // CRC, yields {module,type,reply,payload}, and resynchronizes past junk.
+    class SfParser {
+      constructor() { this.buf = new Uint8Array(0); }
+      reset() { this.buf = new Uint8Array(0); }
+      feed(chunk) {
+        const m = new Uint8Array(this.buf.length + chunk.length);
+        m.set(this.buf, 0); m.set(chunk, this.buf.length);
+        const out = []; let pos = 0;
+        for (;;) {
+          while (pos < m.length && !(m[pos] === SF_MAGIC0 && (pos + 1 >= m.length || m[pos + 1] === SF_MAGIC1))) pos++;
+          if (m.length - pos < 3) break;
+          const flags = m[pos + 2];
+          const ext = (flags & SF_CORR_BIT) ? SF_CORR : 0;
+          const hs = SF_HEADER + ext;
+          if (m.length - pos < hs) break;
+          const view = new DataView(m.buffer, m.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true);
+          if (len > SF_MAX_PAYLOAD) { pos++; continue; }
+          const total = hs + len + SF_CRC;
+          if (m.length - pos < total) break;
+          const expected = view.getUint32(hs + len, true);
+          if (sfCrc32(m.subarray(pos, pos + hs + len)) !== expected) { pos++; continue; }
+          out.push({ module: m[pos + 3], type: m[pos + 4], reply: (flags & SF_REPLY_BIT) !== 0,
+                     payload: m.slice(pos + hs, pos + hs + len) });
+          pos += total;
+        }
+        this.buf = m.slice(pos);
+        return out;
+      }
+    }
+
+    // Minimal WebUSB transport: claims the vendor-specific (0xFF) interface's
+    // bulk IN/OUT endpoint pair and streams raw bytes.
+    class UsbTransport {
+      constructor() { this.device = null; this.iface = null; this.epIn = null; this.epOut = null; this.reading = false; }
+      async open() {
+        this.device = await navigator.usb.requestDevice({ filters: [{ vendorId: USB_VID }] });
+        await this.device.open();
+        if (this.device.configuration === null) await this.device.selectConfiguration(1);
+        const config = this.device.configuration;
+        if (!config) throw new Error("no active USB configuration");
+        let found = null;
+        for (const itf of config.interfaces) {
+          for (const alt of itf.alternates) {
+            if (alt.interfaceClass !== 0xFF) continue;
+            let inEp = null, outEp = null;
+            for (const ep of alt.endpoints) {
+              if (ep.type !== "bulk") continue;
+              if (ep.direction === "in" && !inEp) inEp = ep; else if (ep.direction === "out" && !outEp) outEp = ep;
+            }
+            if (inEp && outEp) { found = { itf: itf.interfaceNumber, alt: alt.alternateSetting, inEp, outEp }; break; }
+          }
+          if (found) break;
+        }
+        if (!found) throw new Error("no vendor (0xFF) interface with a bulk IN+OUT endpoint pair");
+        await this.device.claimInterface(found.itf);
+        if (found.alt !== 0) await this.device.selectAlternateInterface(found.itf, found.alt);
+        this.iface = found.itf; this.epIn = found.inEp.endpointNumber; this.epOut = found.outEp.endpointNumber;
+      }
+      name() { const d = this.device; return (d.productName || "USB device") + " (" + d.vendorId.toString(16).padStart(4, "0") + ":" + d.productId.toString(16).padStart(4, "0") + ")"; }
+      async send(bytes) {
+        let sent = 0;
+        while (sent < bytes.length) {
+          const out = await this.device.transferOut(this.epOut, sent === 0 ? bytes : bytes.subarray(sent));
+          if (out.status === "stall") { try { await this.device.clearHalt("out", this.epOut); } catch (e) {} throw new Error("OUT endpoint stalled"); }
+          if (out.status !== "ok") throw new Error("OUT transfer: " + out.status);
+          const n = out.bytesWritten || 0; if (n === 0) throw new Error("OUT made no progress"); sent += n;
+        }
+      }
+      async readLoop(onData) {
+        this.reading = true;
+        while (this.reading && this.device) {
+          let r;
+          try { r = await this.device.transferIn(this.epIn, SF_MAX_FRAME); } catch (e) { if (this.reading) throw e; return; }
+          if (!this.reading) return;
+          if (r.status === "stall") { try { await this.device.clearHalt("in", this.epIn); } catch (e) {} continue; }
+          if (r.data && r.data.byteLength) onData(new Uint8Array(r.data.buffer, r.data.byteOffset, r.data.byteLength));
+        }
+      }
+      async close() {
+        this.reading = false;
+        if (this.device) {
+          if (this.iface !== null) { try { await this.device.releaseInterface(this.iface); } catch (e) {} }
+          try { await this.device.close(); } catch (e) {}
+        }
+        this.device = null;
+      }
+    }
+
+    let usb = null, usbReadDone = Promise.resolve();
+    const usbParser = new SfParser();
+    let usbTimeWrap = 0, usbPrevRaw = 0, usbHaveSchema = false; // device u32-us timestamp unwrap
+
+    async function usbConnect() {
+      if (usb) return usbDisconnect();
+      const t = new UsbTransport();
+      try { await t.open(); }
+      catch (e) { if (!e || e.name !== "NotFoundError") setStatus("err", "USB: " + (e && e.message ? e.message : e)); return; }
+      usb = t; usbParser.reset(); usbTimeWrap = 0; usbPrevRaw = 0; usbHaveSchema = false;
+      clearData(); dataFromFile = false;
+      usbReadDone = usb.readLoop((chunk) => { for (const f of usbParser.feed(chunk)) onUsbFrame(f); })
+        .catch((e) => { if (usb) { setStatus("err", "USB read: " + (e && e.message ? e.message : e)); usbLinkLost(); } });
+      setStatus("on", "USB: " + usb.name());
+      $("usb").textContent = "Disconnect USB";
+      $("pause").disabled = false;
+      $("connect").disabled = true; $("baud").disabled = true; $("reset").disabled = true;
+      // request the schema, then start the stream
+      try {
+        await usb.send(sfBuild(TM_MODULE, TM_GET_SCHEMA));
+        await usb.send(sfBuild(TM_MODULE, TM_SET_STREAM, new Uint8Array([1, 0, 0])));
+      } catch (e) { setStatus("err", "USB send: " + (e && e.message ? e.message : e)); }
+    }
+
+    async function usbDisconnect() {
+      const t = usb; usb = null;
+      if (t) {
+        try { await t.send(sfBuild(TM_MODULE, TM_SET_STREAM, new Uint8Array([0, 0, 0]))); } catch (e) {}
+        try { await t.close(); } catch (e) {}
+      }
+      try { await usbReadDone; } catch (e) {}
+      usbResetUI("Disconnected", "");
+    }
+
+    // Unexpected USB link loss (device unplugged): tear down without awaiting the
+    // read loop (we may be inside it).
+    function usbLinkLost() {
+      const t = usb; usb = null;
+      if (t) t.close().catch(() => {});
+      usbResetUI("USB disconnected", "err");
+    }
+
+    function usbResetUI(text, cls) {
+      $("usb").textContent = "USB";
+      $("pause").disabled = true; paused = false; $("pause").textContent = "Pause";
+      $("connect").disabled = false; $("baud").disabled = false;
+      setStatus(cls, text);
+    }
+
+    // Decode a SCHEMA payload -> channel labels (see telemetry_service.hpp).
+    function decodeSchema(p) {
+      if (p.length < 3) return null;
+      const ncols = p[2];               // [version u8][flags u8][nchannels u8]
+      let i = 3; const labels = []; const dec = new TextDecoder();
+      for (let c = 0; c < ncols; c++) {
+        if (i + 2 > p.length) return null;
+        i++;                            // channel type (0 = f32)
+        const len = p[i++];
+        if (i + len > p.length) return null;
+        labels.push(dec.decode(p.subarray(i, i + len))); i += len;
+      }
+      return labels;
+    }
+
+    function onUsbFrame(f) {
+      if (f.module !== TM_MODULE) return; // ignore discovery / other modules
+      if (f.type === TM_SCHEMA) {
+        const labels = decodeSchema(f.payload);
+        if (labels && labels.length) {
+          $("xMode").value = "time";      // device timestamp is the X axis
+          usbTimeWrap = 0; usbPrevRaw = 0; usbHaveSchema = true;
+          setSchema(labels, "webusb");
+        }
+        return;
+      }
+      if (f.type === TM_SAMPLE) {
+        if (!usbHaveSchema || !schema || paused) return;
+        const n = schema.ncols, rec = 4 + 4 * n;
+        const dv = new DataView(f.payload.buffer, f.payload.byteOffset, f.payload.byteLength);
+        let off = 0, got = false;
+        while (off + rec <= f.payload.byteLength) {
+          const raw = dv.getUint32(off, true); off += 4;
+          if (raw < usbPrevRaw) usbTimeWrap += 4294967296; // u32 microsecond wrap
+          usbPrevRaw = raw;
+          const nums = new Array(n);
+          for (let i = 0; i < n; i++) { nums[i] = dv.getFloat32(off, true); off += 4; }
+          pushSample(nums, (usbTimeWrap + raw) / 1e6);
+          stats.rows++;
+          rateWin.push(performance.now() / 1000);
+          got = true;
+        }
+        if (got) scheduleDraw();
+        return;
+      }
+      if (f.type === TM_ERROR) setStatus("err", "device reported an error");
+      // TM_OK: acknowledged, nothing to do
     }
 
     // ---------------------------------------------------------------- save / load CSV
@@ -898,9 +1121,10 @@
       scheduleDraw();
     }
     function updateSchemaLabel() {
-      $("stSchema").textContent = schema
-        ? `${schema.ncols} cols [${schema.labels.join(", ")}]  delim '${schema.delim === " " ? "ws" : schema.delim}'`
-        : "no schema yet";
+      if (!schema) { $("stSchema").textContent = "no schema yet"; return; }
+      const src = schema.delim === "webusb" ? "binary (WebUSB)"
+                : "delim '" + (schema.delim === " " ? "ws" : schema.delim) + "'";
+      $("stSchema").textContent = `${schema.ncols} cols [${schema.labels.join(", ")}]  ${src}`;
     }
     function updateStats() {
       $("stRows").textContent = stats.rows;
@@ -911,6 +1135,7 @@
 
     // ---------------------------------------------------------------- wiring
     $("connect").addEventListener("click", connect);
+    $("usb").addEventListener("click", usbConnect);
     $("reset").addEventListener("click", resetDevice);
     $("pause").addEventListener("click", () => { paused = !paused; $("pause").textContent = paused ? "Resume" : "Pause"; if (!paused) scheduleDraw(); });
     $("clear").addEventListener("click", () => { clearData(); if (plot) plot.setData(buildData()); if (mode === "xyz") drawScene(); updateStats(); });
@@ -941,15 +1166,23 @@
       if (mode === "xyz") drawScene();
     }).observe($("plotHost"));
 
-    // feature detection
-    if (!("serial" in navigator)) {
-      $("unsupported").style.display = "block";
-      $("connect").disabled = true; $("baud").disabled = true;
-    } else {
-      // also catch an unplug that fires the platform disconnect event
+    // feature detection: Web Serial (text) and/or WebUSB (binary telemetry)
+    const hasSerial = "serial" in navigator, hasUsb = "usb" in navigator;
+    if (!hasSerial && !hasUsb) $("unsupported").style.display = "block";
+    if (hasSerial) {
+      // catch an unplug that fires the platform disconnect event
       navigator.serial.addEventListener("disconnect", (e) => {
         if (port && e.target === port) handleLinkLost();
       });
+    } else {
+      $("connect").disabled = true; $("baud").disabled = true;
+    }
+    if (hasUsb) {
+      navigator.usb.addEventListener("disconnect", (e) => {
+        if (usb && usb.device === e.device) usbLinkLost();
+      });
+    } else {
+      $("usb").disabled = true;
     }
     syncModeUI();
   })();
