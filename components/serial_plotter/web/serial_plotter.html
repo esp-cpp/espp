@@ -376,6 +376,7 @@
       // buildData() rebases each dataset to its first retained timestamp.
       stats.kept = 0;
       scratch.cap = -1; sceneCache.key = "";
+      updateXModeOptions();   // transport may have changed (once, not on the stats tick)
       rebuildColumnSelects();
       buildPlot();
       updateSchemaLabel();
@@ -1201,16 +1202,22 @@
       buildPlot();
       scheduleDraw();
     }
-    function updateSchemaLabel() {
-      // Name the "time" X source for what it actually is on each transport, and
-      // offer a separate "Arrival time" source over WebUSB (where "time" is the
-      // device clock): device hardware timestamp vs browser arrival time.
+    // Reconcile the X-source dropdown with the current transport. Called ONLY on
+    // a schema/transport change — NOT from the periodic stats tick, since
+    // mutating a native <select> (option text/hidden/value) closes it if it is
+    // open, which would make it unusable while streaming.
+    function updateXModeOptions() {
+      // Over WebUSB the "time" source is the device hardware clock, and a
+      // separate "Arrival time" source is offered; over serial "time" already is
+      // browser arrival time, so the extra option is hidden.
       const sel = $("xMode");
       const timeOpt = sel.querySelector('option[value="time"]');
       const arrivalOpt = sel.querySelector('option[value="arrival"]');
       if (timeOpt) timeOpt.textContent = usbBinary() ? "Device time" : "Arrival time";
       if (arrivalOpt) arrivalOpt.hidden = !usbBinary();
       if (!usbBinary() && sel.value === "arrival") sel.value = "time"; // arrival source is USB-only
+    }
+    function updateSchemaLabel() {
       if (!schema) { $("stSchema").textContent = "no schema yet"; return; }
       const src = schema.delim === "webusb" ? "binary (WebUSB)"
                 : "delim '" + (schema.delim === " " ? "ws" : schema.delim) + "'";
