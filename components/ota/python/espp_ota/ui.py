@@ -204,9 +204,9 @@ class Progress:
             try:
                 self._rich.stop()
             except Exception:
-                pass
+                pass  # tearing down the display must never raise
         try:
             if self._own_term and self._term is not None:
                 self._term.close()
         except Exception:
-            pass
+            pass  # closing the borrowed /dev/tty handle is best-effort

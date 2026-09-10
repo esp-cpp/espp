@@ -58,7 +58,7 @@ class OtaClient:
 
         PROGRESS frames are surfaced to the callback and skipped; an ERROR reply
         raises :class:`OtaError`; frames for other modules are ignored."""
-        self._t.write(request, timeout_ms=self._data_to)
+        self._t.write(request, timeout_ms=timeout_ms)
         deadline = time.monotonic() + timeout_ms / 1000.0
         while True:
             fr = self._next_frame(deadline)

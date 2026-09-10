@@ -41,7 +41,7 @@ python -m espp_ota discover                       # probe the device's dispatche
 ```
 
 Installed with the espp wheel it's also available as the `espp-ota` command
-(`pip install "espp[usb]"`).
+(`pip install "espp[usb]"`, or `"espp[usb-ui]"` to also get the `rich` UI).
 
 ## Library use
 
@@ -84,7 +84,7 @@ straight to the controlling terminal (`/dev/tty`, `CONOUT$` on Windows) and stil
 animates in place. Without a terminal (CI / redirected output) it prints periodic
 plain-text lines instead. `rich` is optional — the output degrades to a plain
 `\r` bar or text without it. It ships in the ESP-IDF Python environment (so
-`idf.py ota-usb` already has it) and is pulled in by `pip install "espp[usb]"`.
+`idf.py ota-usb` already has it) and is pulled in by `pip install "espp[usb-ui]"`.
 
 `idf.py ota-usb` mid-flash — the rich bar (%, size, transfer speed, ETA) animates
 in place even though idf.py captures the tool's output:

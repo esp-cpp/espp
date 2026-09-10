@@ -179,8 +179,14 @@ class UsbVendorTransport:
         try:
             arr = self._ep_in.read(max_len, timeout_ms)
         except self._core.USBError as exc:
-            # errno 110 == ETIMEDOUT; pyusb>=1.1 raises the USBTimeoutError subclass.
-            if getattr(exc, "errno", None) in (110, None) or "timeout" in str(exc).lower():
+            # A genuine timeout is expected (poll again), but a real I/O error must
+            # propagate. pyusb>=1.1 raises the USBTimeoutError subclass; older pyusb
+            # raises USBError with errno 110 (ETIMEDOUT). Do NOT treat an unknown
+            # errno as a timeout — that would silently swallow backend failures.
+            timeout_cls = getattr(self._core, "USBTimeoutError", None)
+            is_timeout = (timeout_cls is not None and isinstance(exc, timeout_cls)) or (
+                getattr(exc, "errno", None) == 110)
+            if is_timeout:
                 return b""
             raise
         return bytes(arr)

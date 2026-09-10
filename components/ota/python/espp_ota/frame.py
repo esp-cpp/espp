@@ -115,6 +115,7 @@ class StreamParser:
 
     def reset(self) -> None:
         self._buf.clear()
+        self.dropped_bytes = 0
 
     def buffered(self) -> int:
         return len(self._buf)

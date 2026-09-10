@@ -25,8 +25,22 @@ if(NOT TARGET ota-usb)
     # idf_build_process includes this file); the app .bin lands in the build dir.
     set(__espp_ota_bin "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin")
 
+    # Prepend our package dir to PYTHONPATH rather than replacing it, so a
+    # PYTHONPATH the environment already relies on is preserved. Use the host's
+    # path separator. ($ENV{PYTHONPATH} is the value at configure time, which is
+    # the same environment `idf.py ota-usb` runs in.)
+    if(WIN32)
+        set(__espp_ota_pathsep ";")
+    else()
+        set(__espp_ota_pathsep ":")
+    endif()
+    set(__espp_ota_pythonpath "${__espp_ota_pkg_dir}")
+    if(DEFINED ENV{PYTHONPATH} AND NOT "$ENV{PYTHONPATH}" STREQUAL "")
+        set(__espp_ota_pythonpath "${__espp_ota_pkg_dir}${__espp_ota_pathsep}$ENV{PYTHONPATH}")
+    endif()
+
     add_custom_target(ota-usb
-        COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=${__espp_ota_pkg_dir}"
+        COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=${__espp_ota_pythonpath}"
                 ${python} -m espp_ota flash "${__espp_ota_bin}"
         WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
         VERBATIM
