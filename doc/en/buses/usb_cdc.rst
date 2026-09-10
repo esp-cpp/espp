@@ -212,3 +212,4 @@ API Reference
 
 .. include-build-file:: inc/usb_device.inc
 .. include-build-file:: inc/usb_cdc.inc
+.. include-build-file:: inc/xinput.inc
