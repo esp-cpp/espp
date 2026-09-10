@@ -153,12 +153,29 @@ uint16_t xinput_drv_open(uint8_t rhport, tusb_desc_interface_t const *desc_itf, 
 }
 
 bool xinput_drv_control_xfer(uint8_t rhport, uint8_t stage, tusb_control_request_t const *request) {
-  (void)rhport;
-  (void)stage;
-  (void)request;
-  // X-Input issues a few vendor/class control requests during init; none are
-  // needed for the interrupt data path, so leave them to be stalled (return
-  // false = "not handled by this driver"). Windows' XUSB driver tolerates this.
+  if (stage != CONTROL_STAGE_SETUP)
+    return true; // DATA / ACK stages: nothing to do
+
+  // Log every control request the host sends to the X-Input interface so the
+  // XUSB init handshake is observable on the USB-Serial-JTAG console.
+  ESP_LOGI("espp_xinput", "control SETUP bmReq=0x%02x bReq=0x%02x wVal=0x%04x wIdx=0x%04x wLen=%u",
+           request->bmRequestType, request->bRequest, request->wValue, request->wIndex,
+           request->wLength);
+
+  // XUSB sends a few VENDOR-type control requests during init. Respond to them
+  // (instead of stalling) so the driver proceeds to the interrupt-IN report
+  // stream: an IN request gets a zero-filled buffer of the requested length; an
+  // OUT / no-data request is ACKed. We do not implement the real semantics --
+  // this is a best-effort "don't stall the handshake". Standard / class requests
+  // are left to TinyUSB's default handling (return false).
+  if (request->bmRequestType_bit.type == TUSB_REQ_TYPE_VENDOR) {
+    if (request->bmRequestType_bit.direction == TUSB_DIR_IN) {
+      static uint8_t resp[64] = {0};
+      uint16_t len = request->wLength <= sizeof(resp) ? request->wLength : sizeof(resp);
+      return tud_control_xfer(rhport, request, resp, len);
+    }
+    return tud_control_status(rhport, request);
+  }
   return false;
 }
 
@@ -310,6 +327,14 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
   if (stage != CONTROL_STAGE_SETUP)
     return true; // nothing to do on DATA / ACK stages
   auto *dev = s_device.load();
+  // Diagnostic: surface any vendor control request that reaches the *global*
+  // vendor path (e.g. device-recipient) rather than the per-interface X-Input
+  // handler, so we can tell where XUSB's init requests actually land.
+  if (dev && dev->xinput_active())
+    ESP_LOGI("espp_xinput",
+             "global vendor control bmReq=0x%02x bReq=0x%02x wVal=0x%04x wIdx=0x%04x wLen=%u",
+             request->bmRequestType, request->bRequest, request->wValue, request->wIndex,
+             request->wLength);
   if (!dev || !dev->vendor_config().has_value())
     return false;
   const auto &vendor = *dev->vendor_config();

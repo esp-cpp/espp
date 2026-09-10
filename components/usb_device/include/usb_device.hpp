@@ -402,6 +402,9 @@ public:
   /// @brief Internal: config for the vendor control-request handler.
   const std::optional<VendorFunction> &vendor_config() const { return config_.vendor; }
 
+  /// @brief Internal: whether the XInput function is enabled (for diagnostics).
+  bool xinput_active() const { return config_.xinput.has_value(); }
+
   /// @brief Internal: dispatch received X-Input rumble / LED report bytes to the
   ///        on_rumble callback. Called from the XInput class driver's OUT
   ///        transfer-complete callback (TinyUSB device task context).
