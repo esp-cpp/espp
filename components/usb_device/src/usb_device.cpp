@@ -164,21 +164,14 @@ bool xinput_drv_control_xfer(uint8_t rhport, uint8_t stage, tusb_control_request
            request->bmRequestType, request->bRequest, request->wValue, request->wIndex,
            request->wLength);
 
-  // XUSB sends a few VENDOR-type control requests during init. Respond to them
-  // (instead of stalling) so the driver proceeds to the interrupt-IN report
-  // stream: an IN request gets a zero-filled buffer of the requested length; an
-  // OUT / no-data request is ACKed. We do not implement the real semantics --
-  // this is a best-effort "don't stall the handshake". Standard / class requests
-  // are left to TinyUSB's default handling (return false).
-  if (request->bmRequestType_bit.type == TUSB_REQ_TYPE_VENDOR) {
-    if (request->bmRequestType_bit.direction == TUSB_DIR_IN) {
-      static uint8_t resp[64] = {0};
-      uint16_t len = request->wLength <= sizeof(resp) ? request->wLength : sizeof(resp);
-      return tud_control_xfer(rhport, request, resp, len);
-    }
-    return tud_control_status(rhport, request);
-  }
-  return false;
+  // Do NOT synthesize responses to XUSB's vendor control requests. In particular
+  // GET_CAPABILITIES (bmReq 0xC1, bReq 0x01, wValue 0x0100) expects a real 20-byte
+  // capabilities report; answering it with zeros tells XUSB the controller has no
+  // controls, so it ignores all input. A real wired 360 controller and the
+  // known-working esp32s3 references simply leave these requests unanswered and
+  // XUSB falls back to full default capabilities. Return true to consider them
+  // handled (no data/stall), matching that behavior.
+  return true;
 }
 
 bool xinput_drv_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t result,
