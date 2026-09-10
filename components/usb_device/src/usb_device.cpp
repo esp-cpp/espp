@@ -2,6 +2,7 @@
 
 #include <array>
 #include <atomic>
+#include <cstdio>
 #include <cstring>
 
 #include "esp_log.h"
@@ -1494,6 +1495,16 @@ bool UsbDevice::is_hid_ready() const {
 uint8_t UsbDevice::xinput_in_endpoint() const { return impl_->xinput_ep_in; }
 
 void UsbDevice::handle_xinput_out(const uint8_t *buffer, size_t bufsize) {
+  // Diagnostic: log every OUT (rumble/LED) report the host sends, RAW and
+  // unconditionally, so we can tell whether the interrupt-OUT path receives
+  // anything at all (independent of how the app callback filters it).
+  if (buffer && bufsize > 0) {
+    char hex[3 * 16 + 1] = {0};
+    const size_t n = bufsize < 16 ? bufsize : 16;
+    for (size_t i = 0; i < n; i++)
+      snprintf(hex + i * 3, 4, "%02x ", buffer[i]);
+    ESP_LOGI("espp_xinput", "OUT report (%u bytes): %s", static_cast<unsigned>(bufsize), hex);
+  }
   receive_callback_fn cb;
   {
     std::scoped_lock lk(cb_mutex_);
