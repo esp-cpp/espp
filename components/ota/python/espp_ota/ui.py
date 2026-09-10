@@ -31,6 +31,28 @@ def _isatty() -> bool:
         return False
 
 
+def _open_progress_stream():
+    """A writable stream connected to the real terminal, plus an 'owned' flag.
+
+    A live progress bar needs a terminal to animate on. Under ``idf.py ota-usb``
+    the tool's stdout/stderr are captured pipes (so it forwards our lines one at a
+    time, scrolling), but the process still has a *controlling terminal* — so we
+    open ``/dev/tty`` (``CONOUT$`` on Windows) and draw the bar straight to it,
+    bypassing the capture. Returns ``(stream, owned)`` or ``(None, False)`` when
+    there is no terminal at all (CI, fully redirected)."""
+    try:
+        if sys.stderr.isatty():
+            return sys.stderr, False
+    except Exception:
+        pass
+    for name in ("/dev/tty", "CONOUT$"):
+        try:
+            return open(name, "w"), True
+        except Exception:
+            continue
+    return None, False
+
+
 def _have_rich() -> bool:
     try:
         import rich  # noqa: F401
@@ -93,21 +115,27 @@ class Progress:
         self._total = total or 0
         self._label = label
         self._quiet = quiet
-        self._rich = None
+        self._rich = None       # rich Progress, when available
         self._task = None
+        self._term = None       # a real-terminal stream for an in-place bar
+        self._own_term = False
+        self._plain = False     # draw a manual \r bar on self._term
         self._last_pct = -1000
         self._last_t = 0.0
-        # rich's live bar can't animate through idf.py's line capture, so use it
-        # only on a real terminal; otherwise emit "(NN %)" lines idf.py renders.
-        self._use_rich = (not quiet) and _isatty() and _have_rich()
+        self._newline_done = False
 
     def __enter__(self) -> "Progress":
-        if self._use_rich:
+        if self._quiet:
+            return self
+        self._term, self._own_term = _open_progress_stream()
+        if self._term is not None and _have_rich():
             try:
                 from rich.console import Console as RichConsole
                 from rich.progress import (BarColumn, DownloadColumn, Progress as RichProgress,
                                            SpinnerColumn, TaskProgressColumn, TextColumn,
                                            TimeRemainingColumn, TransferSpeedColumn)
+                # force_terminal: the stream is a real tty (possibly /dev/tty) even
+                # though our stdout/stderr were captured by idf.py.
                 self._rich = RichProgress(
                     SpinnerColumn(),
                     TextColumn("[bold blue]{task.description}"),
@@ -116,12 +144,14 @@ class Progress:
                     DownloadColumn(),
                     TransferSpeedColumn(),
                     TimeRemainingColumn(),
-                    console=RichConsole(file=sys.stderr),
+                    console=RichConsole(file=self._term, force_terminal=True),
                 )
                 self._rich.start()
                 self._task = self._rich.add_task(self._label, total=self._total or None)
             except Exception:
-                self._rich = None  # fall back to text lines
+                self._rich = None
+        if self._rich is None and self._term is not None:
+            self._plain = True  # manual in-place bar on the terminal
         return self
 
     def update(self, written: int, total: int) -> None:
@@ -132,23 +162,36 @@ class Progress:
             return
         now = time.monotonic()
         done = bool(total) and written >= total
+        if self._plain:
+            # in-place carriage-return bar on the real terminal (throttled ~10 Hz)
+            if now - self._last_t < 0.1 and not done:
+                return
+            self._last_t = now
+            if total:
+                pct = min(100, int(100 * written / total))
+                self._term.write(f"\r  {self._label} {self._text_bar(pct)} "
+                                 f"{written // 1024}/{total // 1024} KB {pct:3d}%")
+            else:
+                self._term.write(f"\r  {self._label} {written // 1024} KB")
+            if done:
+                self._term.write("\n")
+            self._term.flush()
+            return
+        # No terminal at all (CI / fully redirected): throttled newline lines.
         if total:
             pct = int(100 * written / total)
-            # every 1% (and always the final frame). The line ends in "(NN %)" so
-            # idf.py re-renders it in place; standalone it prints one line per %.
-            if done or pct >= self._last_pct + 1:
+            if done or pct >= self._last_pct + 5:
                 self._last_pct = 100 if done else pct
-                bar = self._text_bar(self._last_pct)
-                sys.stderr.write(f"  {self._label} {bar} {written // 1024:>5}/"
-                                 f"{total // 1024} KB ({self._last_pct} %)\n")
+                sys.stderr.write(f"  {self._label} {written // 1024}/{total // 1024} KB "
+                                 f"({self._last_pct} %)\n")
                 sys.stderr.flush()
-        elif done or now - self._last_t >= 0.5:
+        elif done or now - self._last_t >= 1.0:
             self._last_t = now
             sys.stderr.write(f"  {self._label} {written // 1024} KB\n")
             sys.stderr.flush()
 
     @staticmethod
-    def _text_bar(pct: int, width: int = 24) -> str:
+    def _text_bar(pct: int, width: int = 28) -> str:
         filled = min(width, max(0, pct * width // 100))
         return "[" + "#" * filled + "-" * (width - filled) + "]"
 
@@ -158,3 +201,8 @@ class Progress:
                 self._rich.stop()
             except Exception:
                 pass
+        try:
+            if self._own_term and self._term is not None:
+                self._term.close()
+        except Exception:
+            pass

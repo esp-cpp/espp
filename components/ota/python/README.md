@@ -77,13 +77,14 @@ in `tests/test_ota_host.py` and run with plain `python3`.
 
 ## Output
 
-On a real terminal the tool draws a [`rich`](https://pypi.org/project/rich/)
-progress bar (spinner, bar, %, bytes, transfer speed, ETA) and colorizes status /
-error lines. Run through `idf.py ota-usb`, whose output capture re-renders lines
-ending in `(NN %)` in place (the same way esptool's progress shows under
-`idf.py flash`), it emits a live in-place text bar. `rich` is optional — without
-it the output degrades to plain text. It ships in the ESP-IDF Python environment
-(so `idf.py ota-usb` already has it) and is pulled in by `pip install "espp[usb]"`.
+The tool draws a [`rich`](https://pypi.org/project/rich/) progress bar (spinner,
+bar, %, bytes, transfer speed, ETA) and colorizes status / error lines. Under
+`idf.py ota-usb` the tool's stdout/stderr are captured pipes, so the bar is drawn
+straight to the controlling terminal (`/dev/tty`, `CONOUT$` on Windows) and still
+animates in place. Without a terminal (CI / redirected output) it prints periodic
+plain-text lines instead. `rich` is optional — the output degrades to a plain
+`\r` bar or text without it. It ships in the ESP-IDF Python environment (so
+`idf.py ota-usb` already has it) and is pulled in by `pip install "espp[usb]"`.
 
 ## Requirements
 
