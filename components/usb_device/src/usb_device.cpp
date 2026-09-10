@@ -1544,6 +1544,13 @@ bool UsbDevice::update_gamepad(const espp::xinput::GamepadState &state, std::err
   }
   // The buffer must outlive the (asynchronous) transfer, so it lives in Impl.
   impl_->xinput_report = state.report();
+  // Debug: log the exact bytes we hand to the stack. A USB capture shows the wire
+  // reports arriving with a spurious leading 0x01 (00 14 .. shifted by one); this
+  // confirms whether that byte originates here or below us in esp_tinyusb/DWC2.
+  logger_.info_rate_limited(
+      "XInput TX[{}]: {:02x} {:02x} {:02x} {:02x} {:02x} {:02x}", impl_->xinput_report.size(),
+      impl_->xinput_report[0], impl_->xinput_report[1], impl_->xinput_report[2],
+      impl_->xinput_report[3], impl_->xinput_report[4], impl_->xinput_report[5]);
   if (!usbd_edpt_xfer(0, ep_in, impl_->xinput_report.data(),
                       static_cast<uint16_t>(impl_->xinput_report.size()), false)) {
     usbd_edpt_release(0, ep_in); // undo the claim so the endpoint isn't wedged
