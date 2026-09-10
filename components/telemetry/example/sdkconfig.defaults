@@ -21,11 +21,15 @@ CONFIG_TINYUSB_CDC_ENABLED=y
 CONFIG_TINYUSB_CDC_COUNT=1
 CONFIG_TINYUSB_HID_COUNT=1
 
-# Telemetry frames are small (a SAMPLE is a 4-byte timestamp + 4 bytes/channel),
-# but give the vendor TX FIFO headroom so a burst of batched samples is never
-# truncated by TinyUSB backpressure. The vendor RX FIFO only carries short
-# requests (GET_SCHEMA / SET_STREAM), so 512 bytes is plenty there.
+# The vendor TX FIFO must hold the LARGEST single frame the emitter can produce
+# so UsbDevice::write_vendor() stays all-or-nothing (the send callback relies on
+# that: a rejected frame leaves nothing partial in the FIFO). The biggest frame
+# is a full SCHEMA: clamp_channels() bounds its payload to stream_frame's
+# kMaxPayloadSize (4096), which encodes to ~4109 bytes with the 9-byte header and
+# 4-byte CRC. Size the FIFO comfortably above that (8192) — this also leaves
+# headroom for a burst of batched SAMPLE frames. The vendor RX FIFO only carries
+# short requests (GET_SCHEMA / SET_STREAM), so 512 bytes is plenty there.
 CONFIG_TINYUSB_VENDOR_RX_BUFSIZE=512
-CONFIG_TINYUSB_VENDOR_TX_BUFSIZE=4096
+CONFIG_TINYUSB_VENDOR_TX_BUFSIZE=8192
 
 CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
