@@ -44,10 +44,11 @@ def _add_device_args(p: argparse.ArgumentParser) -> None:
                    help="force a specific vendor interface number")
 
 
-def _open_transport(args) -> UsbVendorTransport:
+def _make_transport(args) -> UsbVendorTransport:
+    """Build an (unopened) transport; use it as a context manager (`with`)."""
     pid = None if args.pid is not None and args.pid < 0 else args.pid
     return UsbVendorTransport(vid=args.vid, pid=pid, serial=args.serial,
-                              interface=args.interface).open()
+                              interface=args.interface)
 
 
 class _ProgressBar:
@@ -81,8 +82,7 @@ def _cmd_flash(args) -> int:
         print("error: image is empty", file=sys.stderr)
         return 2
     size = 0 if args.unknown_size else len(image)
-    t = _open_transport(args)
-    try:
+    with _make_transport(args) as t:
         if not args.quiet:
             print(f"Connected to {t.description}; flashing {args.binary} "
                   f"({len(image)} bytes)...", file=sys.stderr)
@@ -101,8 +101,6 @@ def _cmd_flash(args) -> int:
             rate = len(image) / dt / 1024 if dt else 0
             print(f"OTA complete in {dt:.1f}s ({rate:.0f} KiB/s). The device "
                   f"activates the new image and reboots per its own policy.", file=sys.stderr)
-    finally:
-        t.close()
     return 0
 
 
@@ -118,8 +116,7 @@ def _cmd_list(args) -> int:
 
 
 def _cmd_discover(args) -> int:
-    t = _open_transport(args)
-    try:
+    with _make_transport(args) as t:
         frames = OtaClient(t).discover(timeout_ms=args.timeout)
         if not frames:
             print("no discovery reply (device may not run a Dispatcher on the "
@@ -128,8 +125,6 @@ def _cmd_discover(args) -> int:
         for fr in frames:
             print(f"reply module=0x{fr.module:02x} type=0x{fr.type:02x} "
                   f"reply={fr.is_reply} payload={len(fr.payload)} bytes")
-    finally:
-        t.close()
     return 0
 
 

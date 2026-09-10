@@ -62,8 +62,12 @@ class OtaClient:
         deadline = time.monotonic() + timeout_ms / 1000.0
         while True:
             fr = self._next_frame(deadline)
-            if fr.module != _p.MODULE:
-                continue  # discovery / other module chatter
+            # Only device->host replies on module 0 are ours. Skip other modules'
+            # traffic and any device-originated *request* on module 0 (reply flag
+            # clear) so a request whose type collides with OK/ERROR/PROGRESS can
+            # never be mistaken for a reply (as the browser probe also enforces).
+            if fr.module != _p.MODULE or not fr.is_reply:
+                continue
             if fr.type == MessageType.PROGRESS:
                 info = _p.parse_progress(fr)
                 if info and self._progress:
@@ -88,35 +92,51 @@ class OtaClient:
             raise OtaError("empty image")
         size = len(image) if image_size is None else image_size
 
-        self._transact(_p.make_begin(size), self._begin_to)
+        # The device keeps its OTA session across a host disconnect, so a failed
+        # or interrupted flash would leave it "busy" and reject a retry's BEGIN.
+        # On any failure (device ERROR, timeout, Ctrl-C, transport error) send a
+        # best-effort ABORT to release the session before propagating.
+        try:
+            self._transact(_p.make_begin(size), self._begin_to)
 
-        total = len(image)
-        sent = 0
-        for off in range(0, total, self._chunk):
-            chunk = image[off : off + self._chunk]
-            ok = self._transact(_p.make_data(chunk), self._data_to)
-            sent += len(chunk)
-            # OK carries bytes_received; prefer it, fall back to our own count.
-            received = _p.parse_u32(ok)
-            if self._progress:
-                self._progress(received if received is not None else sent, total)
+            total = len(image)
+            sent = 0
+            for off in range(0, total, self._chunk):
+                chunk = image[off : off + self._chunk]
+                ok = self._transact(_p.make_data(chunk), self._data_to)
+                sent += len(chunk)
+                # OK carries bytes_received; prefer it, fall back to our own count.
+                received = _p.parse_u32(ok)
+                if self._progress:
+                    self._progress(received if received is not None else sent, total)
 
-        self._transact(_p.make_finish(), self._finish_to)
+            self._transact(_p.make_finish(), self._finish_to)
+        except BaseException:
+            self.abort()  # best-effort; swallows its own errors
+            raise
 
     def abort(self) -> None:
+        # Best-effort: called from flash()'s failure path where the transport may
+        # already be gone, so swallow every error (OtaError, transport, etc.).
         try:
             self._transact(_p.make_abort(), self._data_to)
-        except OtaError:
-            pass  # best-effort
+        except Exception:
+            pass
 
     def discover(self, timeout_ms: int = 2000) -> List[_f.Frame]:
-        """Send a dispatcher ListModules request; return the reply frame(s).
+        """Send a dispatcher ListModules request; return the matching reply.
 
-        Useful as a connectivity probe before flashing. Returns raw frames (the
-        discovery TLV is not decoded here)."""
+        Useful as a connectivity probe before flashing. Reads until the actual
+        discovery reply arrives (module 0xFF, reply flag set, ListModules type),
+        ignoring unrelated / device-initiated frames; returns [] on timeout. The
+        discovery TLV payload is not decoded here."""
         self._t.write(_p.make_discovery_request(), timeout_ms=self._data_to)
         deadline = time.monotonic() + timeout_ms / 1000.0
-        try:
-            return [self._next_frame(deadline)]
-        except OtaError:
-            return []
+        while True:
+            try:
+                fr = self._next_frame(deadline)
+            except OtaError:
+                return []  # timed out
+            if (fr.module == _p.DISCOVERY_MODULE and fr.is_reply
+                    and fr.type == _p.DISCOVERY_LIST_MODULES):
+                return [fr]

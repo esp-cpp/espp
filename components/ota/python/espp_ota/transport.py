@@ -118,7 +118,7 @@ class UsbVendorTransport:
             if dev.is_kernel_driver_active(self._itf_num):
                 dev.detach_kernel_driver(self._itf_num)
         except (NotImplementedError, self._core.USBError):
-            pass
+            pass  # no kernel driver bound (or the platform can't detach) -> nothing to do
 
         self._util.claim_interface(dev, self._itf_num)
         self._claimed = True
@@ -154,11 +154,11 @@ class UsbVendorTransport:
             if self._claimed and self._itf_num is not None:
                 self._util.release_interface(self._dev, self._itf_num)
         except Exception:
-            pass
+            pass  # teardown is best-effort (device may already be gone/unplugged)
         try:
             self._util.dispose_resources(self._dev)
         except Exception:
-            pass
+            pass  # ditto: free libusb handles best-effort, never raise from close()
         self._dev = None
         self._claimed = False
 

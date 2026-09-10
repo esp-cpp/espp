@@ -76,6 +76,43 @@ def _ok(name, cond):
         raise SystemExit(1)
 
 
+def test_frame_golden():
+    """Byte-level fixtures independent of the mock loopback: any change to the
+    wire encoding (or a divergence from the C++ codec) breaks these."""
+    # zlib/IEEE CRC-32 golden vector, same as espp::stream_frame::crc32.
+    _ok("golden crc vector", F.crc32(b"123456789") == 0xCBF43926)
+    # A request's flags byte is version 1 << 4, reply bit clear.
+    _ok("request flags 0x10", F.make_flags(False) == 0x10)
+    # Whole-frame goldens (magic "TO", flags, module, type, len LE, payload, crc LE).
+    _ok("BEGIN(0) bytes",
+        P.make_begin(0) == bytes.fromhex("544f100001040000000000000096ed77b9"))
+    _ok("discovery request bytes",
+        P.make_discovery_request() == bytes.fromhex("544f10ff000000000097e310ba"))
+
+
+def test_parser_resync():
+    """The StreamParser must skip leading garbage and a bad-CRC frame and still
+    yield the valid frame that follows (the interoperability-critical behavior)."""
+    good = P.make_begin(12345)
+    # leading garbage (no 0x54 magic byte) before a valid frame
+    p = F.StreamParser()
+    _ok("garbage holds", p.feed(b"\x00\xffJUNK") == [])
+    frames = p.feed(good)
+    _ok("resync past garbage", len(frames) == 1 and frames[0].type == 1 and p.dropped_bytes == 6)
+    # a CRC-corrupted frame followed by a good one -> only the good one survives
+    bad = bytearray(good)
+    bad[-1] ^= 0xFF
+    p2 = F.StreamParser()
+    frames2 = p2.feed(bytes(bad) + good)
+    _ok("skip bad CRC, keep good",
+        len(frames2) == 1 and frames2[0].type == 1 and p2.dropped_bytes >= 1)
+    # a frame split across two feeds
+    p3 = F.StreamParser()
+    half = len(good) // 2
+    _ok("partial holds", p3.feed(good[:half]) == [])
+    _ok("completes on rest", len(p3.feed(good[half:])) == 1)
+
+
 def test_full_flash():
     image = bytes(bytearray((i * 7) & 0xFF for i in range(4096 * 2 + 123)))  # 2+ chunks
     dev = MockDevice(emit_progress=True)
@@ -105,6 +142,8 @@ def test_small_image_one_chunk():
 
 
 if __name__ == "__main__":
+    test_frame_golden()
+    test_parser_resync()
     test_full_flash()
     test_error_reply()
     test_small_image_one_chunk()
