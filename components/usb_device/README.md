@@ -17,6 +17,16 @@ Today it can enable, in any combination (subject to the endpoint budget):
 - A **HID** function (one interrupt IN, optionally one interrupt OUT) carrying an
   application-supplied report descriptor (e.g. a gamepad built with the espp
   `hid-rp` component), with input reports sent via `write_hid_report()`.
+- An **X-Input** function that presents the device as a wired **Xbox 360
+  controller** (served by a small custom TinyUSB application class driver built
+  into this component — no `CFG_TUD_*` count required). Gamepad state is sent with
+  `update_gamepad()` (`include/xinput.hpp`), and rumble/LED reports arrive via an
+  `on_rumble` callback. Because a PC's XUSB driver only binds a recognized Xbox
+  360 VID/PID, and because the built-in vendor class also claims interface class
+  0xFF, **use X-Input as the only enabled function** (it then advertises the Xbox
+  identity + 0xFF/0xFF/0xFF device class so the host recognizes it). See the
+  [`xinput_example`](xinput_example/). *These are Microsoft's IDs, for emulation /
+  testing of your own device only.*
 
 Interface numbers, endpoint addresses and string indices are allocated
 *sequentially* as functions are enabled, and the result is checked against the
@@ -168,6 +178,7 @@ consumes:
 | CDC-ACM           | 2 (1 interrupt-IN notif + 1 bulk-IN)        | 1 (bulk-OUT)                   |
 | Vendor / WebUSB   | 1 (bulk-IN)                                  | 1 (bulk-OUT)                   |
 | HID               | 1 (interrupt-IN)                            | 0 or 1 (optional interrupt-OUT) |
+| X-Input (Xbox 360)| 1 (interrupt-IN)                            | 1 (interrupt-OUT)              |
 | MSC (future)      | 1 (bulk-IN)                                  | 1 (bulk-OUT)                   |
 
 This is why the device is **selectable** ("not all at once"). Combinations that

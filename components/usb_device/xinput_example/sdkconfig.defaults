@@ -1,0 +1,18 @@
+# This example uses the native USB-OTG peripheral, which is only available on the
+# ESP32-S3 (also S2 / P4) -- NOT the classic ESP32. Pin the target here so a bare
+# `idf.py build` does not fall back to esp32.
+CONFIG_IDF_TARGET="esp32s3"
+
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# Keep the console/logs on the built-in USB-Serial-JTAG so they stay separate
+# from the native USB-OTG interface presented as the Xbox controller.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+
+# The X-Input interface is served by usb_device's own custom TinyUSB application
+# class driver, so NO built-in class driver count is required (vendor/HID stay 0,
+# which also avoids the built-in vendor driver claiming the 0xFF interface). But
+# usb_device.cpp includes tinyusb_cdc_acm.h unconditionally, so the CDC feature
+# must be compiled in even though this example creates no CDC interface.
+CONFIG_TINYUSB_CDC_ENABLED=y
+CONFIG_TINYUSB_CDC_COUNT=1

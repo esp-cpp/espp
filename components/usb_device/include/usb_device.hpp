@@ -12,7 +12,8 @@
 #include <vector>
 
 #include "base_component.hpp"
-#include "tinyusb.h" // for tinyusb_event_t (esp_tinyusb is already a REQUIRES dependency)
+#include "tinyusb.h"  // for tinyusb_event_t (esp_tinyusb is already a REQUIRES dependency)
+#include "xinput.hpp" // X-Input (Xbox 360) gamepad state + descriptor helpers
 
 namespace espp {
 
@@ -144,6 +145,35 @@ public:
   };
 
   /**
+   * @brief X-Input (Xbox 360 wired controller) function.
+   *
+   * Presents a vendor-specific interface (bInterfaceClass 0xFF / SubClass 0x5D /
+   * Protocol 0x01) with one interrupt IN endpoint (20-byte input reports, sent
+   * with `UsbDevice::update_gamepad()`) and one interrupt OUT endpoint (8-byte
+   * rumble / LED reports, delivered to `on_rumble`). Unlike HID it is served by a
+   * small custom TinyUSB application class driver built into this component (no
+   * `CFG_TUD_*` count is required).
+   *
+   * A PC's XUSB driver only binds a device whose VID/PID is a recognized Xbox 360
+   * controller, so `vid` / `pid` default to Microsoft's identifiers
+   * (`0x045E:0x028E`) -- for emulation / testing of your own device only. When
+   * the XInput function is the ONLY enabled function these identifiers (and a
+   * 0xFF/0xFF/0xFF device class) override the top-level Config vid/pid so the
+   * host recognizes it; combine XInput with other functions only if you do not
+   * need XUSB to bind (the built-in vendor/WebUSB class also claims class 0xFF).
+   *
+   * Consumes 1 interrupt IN + 1 interrupt OUT endpoint.
+   */
+  struct XInputFunction {
+    std::string interface_name{"espp XInput"}; /**< XInput interface string descriptor. */
+    uint16_t vid{espp::xinput::kDefaultVid};   /**< Xbox 360 controller VID (Microsoft). */
+    uint16_t pid{espp::xinput::kDefaultPid};   /**< Xbox 360 controller PID. */
+    /** @brief Callback invoked with received rumble / LED report bytes (8-byte
+     *  reports on the interrupt OUT endpoint). Runs in the TinyUSB device task. */
+    receive_callback_fn on_rumble{nullptr};
+  };
+
+  /**
    * @brief (Future) MSC (mass storage) function extension point. Not implemented yet.
    *
    * An MSC function consumes 1 bulk IN + 1 bulk OUT endpoint and requires SCSI +
@@ -168,6 +198,7 @@ public:
     std::optional<CdcFunction> cdc{};       /**< Enable a CDC-ACM function. */
     std::optional<VendorFunction> vendor{}; /**< Enable a vendor-specific / WebUSB function. */
     std::optional<HidFunction> hid{};       /**< Enable a HID function. */
+    std::optional<XInputFunction> xinput{}; /**< Enable an X-Input (Xbox 360) function. */
     std::optional<MscFunction> msc{};       /**< (Future) enable an MSC function. */
 
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Logger verbosity. */
@@ -293,6 +324,24 @@ public:
   ///        new input report (no report in flight).
   bool is_hid_ready() const;
 
+  /**
+   * @brief Send a fresh X-Input (Xbox 360) input report from a gamepad state.
+   * @param state Buttons / triggers / sticks to serialize into the 20-byte report.
+   * @param[out] ec Set on failure (XInput not enabled / not initialized, host not
+   *        ready / a previous report still in flight, or a transfer error).
+   * @return true if the report was queued for transmission, false otherwise.
+   * @note Single-writer: call from one task. The report bytes are held in an
+   *       internal buffer for the duration of the (asynchronous) transfer.
+   */
+  bool update_gamepad(const espp::xinput::GamepadState &state, std::error_code &ec);
+
+  /// @brief Convenience overload of update_gamepad() that ignores errors.
+  bool update_gamepad(const espp::xinput::GamepadState &state);
+
+  /// @brief Whether the XInput function is enabled, mounted and ready to accept a
+  ///        new input report (no report in flight).
+  bool is_xinput_ready() const;
+
   /// @brief Set or replace the CDC receive callback (nullptr to detach).
   void set_cdc_receive_callback(const receive_callback_fn &cb);
 
@@ -353,6 +402,15 @@ public:
   /// @brief Internal: config for the vendor control-request handler.
   const std::optional<VendorFunction> &vendor_config() const { return config_.vendor; }
 
+  /// @brief Internal: dispatch received X-Input rumble / LED report bytes to the
+  ///        on_rumble callback. Called from the XInput class driver's OUT
+  ///        transfer-complete callback (TinyUSB device task context).
+  void handle_xinput_out(const uint8_t *buffer, size_t bufsize);
+
+  /// @brief Internal: the allocated X-Input IN endpoint address (0 if the XInput
+  ///        function is not enabled). Used by the write path / readiness check.
+  uint8_t xinput_in_endpoint() const;
+
   /// @brief Internal: the singleton instance handling the global USB callbacks.
   static UsbDevice *instance();
 
@@ -375,6 +433,7 @@ private:
   std::mutex cb_mutex_;
   receive_callback_fn on_cdc_receive_;
   receive_callback_fn on_vendor_receive_;
+  receive_callback_fn on_xinput_rumble_;
   event_callback_fn on_mount_;
   event_callback_fn on_unmount_;
 

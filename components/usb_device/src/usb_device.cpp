@@ -11,6 +11,12 @@
 #include "tinyusb_cdc_acm.h"
 #include "tinyusb_default_config.h"
 #include "tusb.h"
+// TinyUSB private class-driver API (usbd_class_driver_t, usbd_edpt_*,
+// usbd_app_driver_get_cb). `src/device` is a private include of the tinyusb
+// component, but `src/` is public, so reach it via the `device/` prefix.
+#include "device/usbd_pvt.h"
+
+#include "xinput.hpp"
 
 namespace {
 
@@ -64,7 +70,117 @@ bool on_tinyusb_task() {
   return xTaskGetCurrentTaskHandle() == s_tinyusb_task.load(std::memory_order_relaxed);
 }
 
+// --- X-Input (Xbox 360) custom TinyUSB application class driver ---------------
+// TinyUSB's built-in vendor driver only handles BULK 0xFF interfaces; X-Input
+// needs INTERRUPT IN+OUT on a 0xFF/0x5D/0x01 interface, so we register this
+// application class driver via the weak usbd_app_driver_get_cb() override below.
+// Only one USB device exists, so the driver's endpoint state is file-scope. The
+// driver is always registered but open() only claims an X-Input interface, so it
+// is inert when no XInput function is enabled.
+struct XInputDriver {
+  uint8_t itf_num{0xFF};
+  uint8_t ep_in{0};
+  uint8_t ep_out{0};
+  std::array<uint8_t, 64> out_buf{}; // interrupt-OUT receive buffer (>= kEpSize)
+};
+XInputDriver s_xinput_drv;
+
+void xinput_drv_init() {}
+bool xinput_drv_deinit() { return true; }
+void xinput_drv_reset(uint8_t rhport) {
+  (void)rhport;
+  s_xinput_drv.itf_num = 0xFF;
+  s_xinput_drv.ep_in = 0;
+  s_xinput_drv.ep_out = 0;
+}
+
+uint16_t xinput_drv_open(uint8_t rhport, tusb_desc_interface_t const *desc_itf, uint16_t max_len) {
+  // Only claim the X-Input interface (0xFF / 0x5D / 0x01); return 0 for anything
+  // else so the built-in CDC/HID/vendor drivers still handle their interfaces.
+  if (desc_itf->bInterfaceClass != espp::xinput::kInterfaceClass ||
+      desc_itf->bInterfaceSubClass != espp::xinput::kInterfaceSubClass ||
+      desc_itf->bInterfaceProtocol != espp::xinput::kInterfaceProtocol)
+    return 0;
+
+  note_tinyusb_task();
+  const uint8_t *desc_end = reinterpret_cast<const uint8_t *>(desc_itf) + max_len;
+  const uint8_t *p = tu_desc_next(desc_itf); // skip the interface descriptor
+  s_xinput_drv.itf_num = desc_itf->bInterfaceNumber;
+  s_xinput_drv.ep_in = 0;
+  s_xinput_drv.ep_out = 0;
+
+  // Walk to the endpoints (the XID vendor descriptor between them is skipped).
+  while (tu_desc_in_bounds(p, desc_end)) {
+    const uint8_t type = tu_desc_type(p);
+    if (type == TUSB_DESC_INTERFACE || type == TUSB_DESC_INTERFACE_ASSOCIATION)
+      break;
+    if (type == TUSB_DESC_ENDPOINT) {
+      const tusb_desc_endpoint_t *ep = reinterpret_cast<const tusb_desc_endpoint_t *>(p);
+      if (!usbd_edpt_open(rhport, ep))
+        return 0;
+      if (tu_edpt_dir(ep->bEndpointAddress) == TUSB_DIR_IN)
+        s_xinput_drv.ep_in = ep->bEndpointAddress;
+      else
+        s_xinput_drv.ep_out = ep->bEndpointAddress;
+    }
+    p = tu_desc_next(p);
+  }
+
+  // Prime the interrupt-OUT endpoint to receive the first rumble / LED report.
+  if (s_xinput_drv.ep_out)
+    usbd_edpt_xfer(rhport, s_xinput_drv.ep_out, s_xinput_drv.out_buf.data(), espp::xinput::kEpSize,
+                   false);
+
+  return static_cast<uint16_t>(reinterpret_cast<uintptr_t>(p) -
+                               reinterpret_cast<uintptr_t>(desc_itf));
+}
+
+bool xinput_drv_control_xfer(uint8_t rhport, uint8_t stage, tusb_control_request_t const *request) {
+  (void)rhport;
+  (void)stage;
+  (void)request;
+  // X-Input issues a few vendor/class control requests during init; none are
+  // needed for the interrupt data path, so leave them to be stalled (return
+  // false = "not handled by this driver"). Windows' XUSB driver tolerates this.
+  return false;
+}
+
+bool xinput_drv_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t result,
+                        uint32_t xferred_bytes) {
+  note_tinyusb_task();
+  if (ep_addr == s_xinput_drv.ep_out) {
+    if (result == XFER_RESULT_SUCCESS && xferred_bytes > 0) {
+      auto *dev = s_device.load();
+      if (dev)
+        dev->handle_xinput_out(s_xinput_drv.out_buf.data(), static_cast<size_t>(xferred_bytes));
+    }
+    // Re-prime the OUT endpoint for the next report.
+    usbd_edpt_xfer(rhport, s_xinput_drv.ep_out, s_xinput_drv.out_buf.data(), espp::xinput::kEpSize,
+                   false);
+  }
+  // IN completion needs no action; usbd_edpt_busy() reflects readiness.
+  return true;
+}
+
+const usbd_class_driver_t s_xinput_class_driver = {
+    .name = "xinput",
+    .init = xinput_drv_init,
+    .deinit = xinput_drv_deinit,
+    .reset = xinput_drv_reset,
+    .open = xinput_drv_open,
+    .control_xfer_cb = xinput_drv_control_xfer,
+    .xfer_cb = xinput_drv_xfer_cb,
+    .xfer_isr = nullptr,
+    .sof = nullptr,
+};
+
 } // namespace
+
+// Override TinyUSB's weak app-driver hook to register the X-Input class driver.
+extern "C" usbd_class_driver_t const *usbd_app_driver_get_cb(uint8_t *driver_count) {
+  *driver_count = 1;
+  return &s_xinput_class_driver;
+}
 
 namespace espp {
 
@@ -88,6 +204,12 @@ struct UsbDevice::Impl {
   // Allocated interface / endpoint identifiers, filled in during initialize().
   uint8_t vendor_itf{0xFF};
   uint8_t hid_itf{0xFF};
+  uint8_t xinput_itf{0xFF};
+  uint8_t xinput_ep_in{0};  // 0x80|n, or 0 if the XInput function is disabled
+  uint8_t xinput_ep_out{0}; // n, or 0 if disabled
+  // Input-report TX buffer; held for the duration of the async interrupt-IN
+  // transfer submitted by update_gamepad().
+  std::array<uint8_t, espp::xinput::kReportInSize> xinput_report{};
 };
 
 UsbDevice *UsbDevice::instance() { return s_device; }
@@ -97,7 +219,8 @@ UsbDevice::UsbDevice(const Config &config)
     , impl_(std::make_unique<Impl>())
     , config_(config)
     , on_cdc_receive_(config.cdc ? config.cdc->on_receive : nullptr)
-    , on_vendor_receive_(config.vendor ? config.vendor->on_receive : nullptr) {}
+    , on_vendor_receive_(config.vendor ? config.vendor->on_receive : nullptr)
+    , on_xinput_rumble_(config.xinput ? config.xinput->on_rumble : nullptr) {}
 
 UsbDevice::~UsbDevice() {
   if (initialized_) {
@@ -374,8 +497,8 @@ bool UsbDevice::initialize(std::error_code &ec) {
     ec = std::make_error_code(std::errc::device_or_resource_busy);
     return false;
   }
-  if (!config_.cdc && !config_.vendor && !config_.hid) {
-    logger_.error("No USB function enabled (enable cdc, vendor and/or hid)");
+  if (!config_.cdc && !config_.vendor && !config_.hid && !config_.xinput) {
+    logger_.error("No USB function enabled (enable cdc, vendor, hid and/or xinput)");
     ec = std::make_error_code(std::errc::invalid_argument);
     return false;
   }
@@ -471,7 +594,9 @@ bool UsbDevice::initialize(std::error_code &ec) {
     impl_->vendor_itf = vendor_itf;
   }
 
-  uint8_t hid_itf = 0, hid_str = 0, hid_in = 0, hid_out = 0;
+  // hid_str/hid_in/hid_out are consumed only in the CFG_TUD_HID-guarded
+  // descriptor branch below, so they are unused when HID is not compiled in.
+  [[maybe_unused]] uint8_t hid_itf = 0, hid_str = 0, hid_in = 0, hid_out = 0;
   if (config_.hid) {
     hid_itf = next_itf++;
     hid_str = next_str++;
@@ -486,6 +611,19 @@ bool UsbDevice::initialize(std::error_code &ec) {
     impl_->hid_itf = hid_itf;
     // Keep our own copy of the report descriptor alive for the driver lifetime.
     impl_->hid_report_desc = config_.hid->report_descriptor;
+  }
+
+  uint8_t xinput_itf = 0, xinput_str = 0, xinput_ep = 0;
+  if (config_.xinput) {
+    xinput_itf = next_itf++;
+    xinput_str = next_str++;
+    impl_->owned_strings.push_back(config_.xinput->interface_name);
+    xinput_ep = next_ep++;                                        // IN = 0x80|n, OUT = n
+    impl_->xinput_ep_in = static_cast<uint8_t>(0x80 | xinput_ep); // interrupt IN
+    impl_->xinput_ep_out = xinput_ep;                             // interrupt OUT
+    in_used++;
+    out_used++;
+    impl_->xinput_itf = xinput_itf;
   }
 
   // --- Endpoint budget check ---
@@ -504,6 +642,11 @@ bool UsbDevice::initialize(std::error_code &ec) {
 
   // --- Device descriptor ---
   const bool webusb = config_.vendor && config_.vendor->webusb;
+  // When the X-Input function is the ONLY function, the device must present the
+  // Xbox 360 controller's identity (VID/PID/bcdDevice) and a 0xFF/0xFF/0xFF
+  // device class so a PC's XUSB driver binds it. Combining XInput with other
+  // functions keeps the normal composite identity (and XUSB will not bind).
+  const bool xinput_only = config_.xinput && !config_.cdc && !config_.vendor && !config_.hid;
   impl_->device_desc = tusb_desc_device_t{};
   impl_->device_desc.bLength = sizeof(tusb_desc_device_t);
   impl_->device_desc.bDescriptorType = TUSB_DESC_DEVICE;
@@ -512,8 +655,13 @@ bool UsbDevice::initialize(std::error_code &ec) {
   // Advertise the IAD-based composite class (0xEF/0x02/0x01) only when CDC is
   // enabled, since CDC is the function that emits an Interface Association
   // Descriptor. For a vendor-only and/or HID-only device there is no IAD, so use
-  // 0x00/0x00/0x00 and let the interface descriptors declare the class(es).
-  if (config_.cdc) {
+  // 0x00/0x00/0x00 and let the interface descriptors declare the class(es). An
+  // X-Input-only device declares the Xbox controller's 0xFF/0xFF/0xFF class.
+  if (xinput_only) {
+    impl_->device_desc.bDeviceClass = 0xFF;
+    impl_->device_desc.bDeviceSubClass = 0xFF;
+    impl_->device_desc.bDeviceProtocol = 0xFF;
+  } else if (config_.cdc) {
     impl_->device_desc.bDeviceClass = TUSB_CLASS_MISC;
     impl_->device_desc.bDeviceSubClass = MISC_SUBCLASS_COMMON;
     impl_->device_desc.bDeviceProtocol = MISC_PROTOCOL_IAD;
@@ -523,9 +671,9 @@ bool UsbDevice::initialize(std::error_code &ec) {
     impl_->device_desc.bDeviceProtocol = 0x00;
   }
   impl_->device_desc.bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE;
-  impl_->device_desc.idVendor = config_.vid;
-  impl_->device_desc.idProduct = config_.pid;
-  impl_->device_desc.bcdDevice = 0x0100;
+  impl_->device_desc.idVendor = xinput_only ? config_.xinput->vid : config_.vid;
+  impl_->device_desc.idProduct = xinput_only ? config_.xinput->pid : config_.pid;
+  impl_->device_desc.bcdDevice = xinput_only ? espp::xinput::kDefaultBcdDevice : 0x0100;
   impl_->device_desc.iManufacturer = 0x01;
   impl_->device_desc.iProduct = 0x02;
   impl_->device_desc.iSerialNumber = 0x03;
@@ -546,6 +694,10 @@ bool UsbDevice::initialize(std::error_code &ec) {
     itf_count = static_cast<uint8_t>(itf_count + 1);
     total_len = static_cast<uint16_t>(
         total_len + (config_.hid->has_out_endpoint ? TUD_HID_INOUT_DESC_LEN : TUD_HID_DESC_LEN));
+  }
+  if (config_.xinput) {
+    itf_count = static_cast<uint8_t>(itf_count + 1);
+    total_len = static_cast<uint16_t>(total_len + espp::xinput::kInterfaceDescriptorLen);
   }
 
   // Build one configuration descriptor for a given bus speed. Bulk endpoints
@@ -577,6 +729,11 @@ bool UsbDevice::initialize(std::error_code &ec) {
       };
       append(d, sizeof(d));
     }
+#if (CFG_TUD_HID > 0)
+    // Guarded because the TUD_HID_* macros reference HID class constants only
+    // declared when the HID class driver is compiled in. config_.hid can never be
+    // set here when CFG_TUD_HID==0 (initialize() rejects it earlier), so this
+    // branch is dead in that case and safe to compile out.
     if (config_.hid) {
       const uint16_t report_len = static_cast<uint16_t>(impl_->hid_report_desc.size());
       // Interrupt endpoints are <=64 byte packets at either speed; a 64-byte
@@ -598,6 +755,16 @@ bool UsbDevice::initialize(std::error_code &ec) {
         };
         append(d, sizeof(d));
       }
+    }
+#endif
+    if (config_.xinput) {
+      // Hand-built interface + XID + two interrupt endpoints (the built-in TinyUSB
+      // descriptor macros can't express X-Input's class triple / XID blob). The
+      // bIntervals are the full-speed values; on an HS-capable part they are
+      // interpreted as exponents, but X-Input is a full-speed protocol (and the
+      // ESP32-S3 USB-OTG is full speed).
+      const auto d = espp::xinput::interface_descriptor(xinput_itf, xinput_str, xinput_ep);
+      append(d.data(), d.size());
     }
   };
 
@@ -892,10 +1059,14 @@ bool UsbDevice::initialize(std::error_code &ec) {
   }
 
   initialized_ = true;
-  logger_.info(
-      "Initialized native USB device (VID=0x{:04x} PID=0x{:04x}) cdc={} vendor={} hid={}{}",
-      config_.vid, config_.pid, config_.cdc.has_value(), config_.vendor.has_value(),
-      config_.hid.has_value(), webusb ? " webusb" : "");
+  // Copy the packed descriptor fields into locals: they cannot bind to the
+  // logger's const-reference parameters directly.
+  const uint16_t enum_vid = impl_->device_desc.idVendor;
+  const uint16_t enum_pid = impl_->device_desc.idProduct;
+  logger_.info("Initialized native USB device (VID=0x{:04x} PID=0x{:04x}) cdc={} vendor={} hid={} "
+               "xinput={}{}",
+               enum_vid, enum_pid, config_.cdc.has_value(), config_.vendor.has_value(),
+               config_.hid.has_value(), config_.xinput.has_value(), webusb ? " webusb" : "");
   return true;
 }
 
@@ -1268,6 +1439,65 @@ bool UsbDevice::is_hid_ready() const {
 #else
   return false;
 #endif
+}
+
+// ---------------------------------------------------------------------------
+// X-Input (Xbox 360) function.
+// ---------------------------------------------------------------------------
+
+uint8_t UsbDevice::xinput_in_endpoint() const { return impl_->xinput_ep_in; }
+
+void UsbDevice::handle_xinput_out(const uint8_t *buffer, size_t bufsize) {
+  receive_callback_fn cb;
+  {
+    std::scoped_lock lk(cb_mutex_);
+    cb = on_xinput_rumble_;
+  }
+  if (cb && buffer && bufsize > 0)
+    cb(std::span<const uint8_t>(buffer, bufsize)); // TinyUSB task context
+}
+
+bool UsbDevice::update_gamepad(const espp::xinput::GamepadState &state, std::error_code &ec) {
+  ec.clear();
+  if (!initialized_ || !config_.xinput) {
+    ec = std::make_error_code(std::errc::not_connected);
+    return false;
+  }
+  const uint8_t ep_in = impl_->xinput_ep_in;
+  if (!tud_mounted() || ep_in == 0) {
+    ec = std::make_error_code(std::errc::not_connected);
+    return false;
+  }
+  if (usbd_edpt_busy(0, ep_in)) {
+    // A previous report is still in flight -- transient backpressure, distinct
+    // from a disconnect so callers can retry on the next tick.
+    ec = std::make_error_code(std::errc::resource_unavailable_try_again);
+    return false;
+  }
+  // Serialize into the persistent buffer, then submit the interrupt-IN transfer.
+  // The buffer must outlive the (asynchronous) transfer, so it lives in Impl.
+  // Single-writer (documented), so a busy check + xfer is sufficient; the CLAIM
+  // bit is only needed to arbitrate multiple submitters on one endpoint.
+  impl_->xinput_report = state.report();
+  if (!usbd_edpt_xfer(0, ep_in, impl_->xinput_report.data(),
+                      static_cast<uint16_t>(impl_->xinput_report.size()), false)) {
+    logger_.warn_rate_limited("XInput report send failed");
+    ec = std::make_error_code(std::errc::io_error);
+    return false;
+  }
+  return true;
+}
+
+bool UsbDevice::update_gamepad(const espp::xinput::GamepadState &state) {
+  std::error_code ec;
+  return update_gamepad(state, ec);
+}
+
+bool UsbDevice::is_xinput_ready() const {
+  if (!initialized_ || !config_.xinput)
+    return false;
+  const uint8_t ep_in = impl_->xinput_ep_in;
+  return tud_mounted() && ep_in != 0 && !usbd_edpt_busy(0, ep_in);
 }
 
 } // namespace espp
