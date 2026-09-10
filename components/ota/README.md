@@ -103,6 +103,20 @@ is the routing id (OTA is **module 0**). OTA layers its message types on it.
 The [espp OTA Console](https://esp-cpp.github.io/espp/apps/ota_console.html)
 (`web/ota_console.html`) implements this protocol over WebUSB in the browser.
 
+### Command line: build → OTA
+
+The [`python/espp_ota`](python/) tool speaks the same protocol from a terminal.
+Because this component ships a `project_include.cmake`, any project using it gets
+a build-and-flash-over-USB target — the OTA counterpart to `idf.py flash`:
+
+```sh
+pip install pyusb          # once (needs a libusb backend)
+idf.py ota-usb            # builds the app, then OTAs it over USB
+```
+
+Or drive it directly: `python -m espp_ota flash build/<app>.bin` (see
+[`python/README.md`](python/README.md)).
+
 ## Rollback
 
 With `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y`, a freshly-installed app boots

@@ -1,0 +1,181 @@
+"""Command-line interface: ``python -m espp_ota <command>``.
+
+Commands:
+  flash <binary>   BEGIN -> stream DATA -> FINISH an image over USB.
+  list             List matching USB devices.
+  discover         Probe the device (dispatcher ListModules) and report reply.
+
+VID/PID default to the espp UsbDevice default (0x1209:0x0d32) but can be
+overridden (also via the ESPP_OTA_VID / ESPP_OTA_PID env vars, which the CMake
+``ota-usb`` target forwards).
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+import time
+from typing import Optional
+
+from . import __version__
+from .client import OtaClient
+from .protocol import OtaError
+from .transport import DEFAULT_PID, DEFAULT_VID, TransportError, UsbVendorTransport, list_devices
+
+
+def _auto_int(text: str) -> int:
+    return int(text, 0)  # accepts 0x1209, 4617, etc.
+
+
+def _env_int(name: str, default: int) -> int:
+    val = os.environ.get(name)
+    return _auto_int(val) if val else default
+
+
+def _add_device_args(p: argparse.ArgumentParser) -> None:
+    p.add_argument("--vid", type=_auto_int, default=_env_int("ESPP_OTA_VID", DEFAULT_VID),
+                   help="USB vendor id (default 0x%04x)" % DEFAULT_VID)
+    p.add_argument("--pid", type=_auto_int, default=_env_int("ESPP_OTA_PID", DEFAULT_PID),
+                   help="USB product id (default 0x%04x; pass -1 to match any)" % DEFAULT_PID)
+    p.add_argument("--serial", default=os.environ.get("ESPP_OTA_SERIAL"),
+                   help="match a specific device serial number")
+    p.add_argument("--interface", type=_auto_int, default=None,
+                   help="force a specific vendor interface number")
+
+
+def _open_transport(args) -> UsbVendorTransport:
+    pid = None if args.pid is not None and args.pid < 0 else args.pid
+    return UsbVendorTransport(vid=args.vid, pid=pid, serial=args.serial,
+                              interface=args.interface).open()
+
+
+class _ProgressBar:
+    def __init__(self, quiet: bool) -> None:
+        self._quiet = quiet
+        self._last = 0.0
+
+    def __call__(self, written: int, total: int) -> None:
+        if self._quiet:
+            return
+        now = time.monotonic()
+        done = total and written >= total
+        if now - self._last < 0.1 and not done:
+            return
+        self._last = now
+        if total:
+            pct = min(100.0, 100.0 * written / total)
+            bar = "#" * int(pct / 2.5)
+            sys.stderr.write(f"\r  [{bar:<40}] {pct:5.1f}%  {written}/{total} B")
+        else:
+            sys.stderr.write(f"\r  {written} B")
+        if done:
+            sys.stderr.write("\n")
+        sys.stderr.flush()
+
+
+def _cmd_flash(args) -> int:
+    with open(args.binary, "rb") as fh:
+        image = fh.read()
+    if not image:
+        print("error: image is empty", file=sys.stderr)
+        return 2
+    size = 0 if args.unknown_size else len(image)
+    t = _open_transport(args)
+    try:
+        if not args.quiet:
+            print(f"Connected to {t.description}; flashing {args.binary} "
+                  f"({len(image)} bytes)...", file=sys.stderr)
+        client = OtaClient(
+            t,
+            chunk_size=args.chunk_size,
+            progress=_ProgressBar(args.quiet),
+            begin_timeout_ms=args.begin_timeout,
+            data_timeout_ms=args.data_timeout,
+            finish_timeout_ms=args.finish_timeout,
+        )
+        start = time.monotonic()
+        client.flash(image, image_size=size)
+        if not args.quiet:
+            dt = time.monotonic() - start
+            rate = len(image) / dt / 1024 if dt else 0
+            print(f"OTA complete in {dt:.1f}s ({rate:.0f} KiB/s). The device "
+                  f"activates the new image and reboots per its own policy.", file=sys.stderr)
+    finally:
+        t.close()
+    return 0
+
+
+def _cmd_list(args) -> int:
+    pid = None if args.pid is not None and args.pid < 0 else args.pid
+    found = list_devices(vid=args.vid, pid=pid)
+    if not found:
+        print("no matching USB devices found", file=sys.stderr)
+        return 1
+    for vid, pid_, desc in found:
+        print(f"0x{vid:04x}:0x{pid_:04x}  {desc}")
+    return 0
+
+
+def _cmd_discover(args) -> int:
+    t = _open_transport(args)
+    try:
+        frames = OtaClient(t).discover(timeout_ms=args.timeout)
+        if not frames:
+            print("no discovery reply (device may not run a Dispatcher on the "
+                  "vendor interface)", file=sys.stderr)
+            return 1
+        for fr in frames:
+            print(f"reply module=0x{fr.module:02x} type=0x{fr.type:02x} "
+                  f"reply={fr.is_reply} payload={len(fr.payload)} bytes")
+    finally:
+        t.close()
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="espp_ota", description=__doc__.split("\n")[0])
+    p.add_argument("--version", action="version", version=f"espp_ota {__version__}")
+    sub = p.add_subparsers(dest="command", required=True)
+
+    f = sub.add_parser("flash", help="OTA-update a binary over USB")
+    f.add_argument("binary", help="path to the app .bin to flash")
+    _add_device_args(f)
+    f.add_argument("--chunk-size", type=_auto_int, default=4096,
+                   help="DATA payload bytes per frame (1..4096, default 4096)")
+    f.add_argument("--unknown-size", action="store_true",
+                   help="stream with size 0 (device erases the whole partition)")
+    f.add_argument("--begin-timeout", type=int, default=60000, help="ms (default 60000)")
+    f.add_argument("--data-timeout", type=int, default=5000, help="ms (default 5000)")
+    f.add_argument("--finish-timeout", type=int, default=60000, help="ms (default 60000)")
+    f.add_argument("-q", "--quiet", action="store_true", help="suppress progress output")
+    f.set_defaults(func=_cmd_flash)
+
+    lst = sub.add_parser("list", help="list matching USB devices")
+    _add_device_args(lst)
+    lst.set_defaults(func=_cmd_list)
+
+    d = sub.add_parser("discover", help="probe the device's dispatcher (ListModules)")
+    _add_device_args(d)
+    d.add_argument("--timeout", type=int, default=2000, help="ms (default 2000)")
+    d.set_defaults(func=_cmd_discover)
+    return p
+
+
+def main(argv: Optional[list] = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        return args.func(args)
+    except (OtaError, TransportError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    except FileNotFoundError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except KeyboardInterrupt:
+        print("\ninterrupted", file=sys.stderr)
+        return 130
+
+
+if __name__ == "__main__":
+    sys.exit(main())

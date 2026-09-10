@@ -35,6 +35,14 @@ Issues = "https://github.com/esp-cpp/espp/issues"
 # the shipped packages is stdlib-only. `pip install espp[serial]` enables the
 # espp_odrive serial/UART transports.
 serial = ["pyserial"]
+# espp_ota's USB transport imports pyusb lazily; the frame codec + OTA protocol
+# are stdlib-only. `pip install espp[usb]` enables the OTA-over-USB host tool.
+usb = ["pyusb"]
+
+[project.scripts]
+# Standalone CLI (also runnable as `python -m espp_ota`). The `ota` component's
+# CMake integration wires `idf.py ota-usb` to the same tool for a build->OTA flow.
+espp-ota = "espp_ota.cli:main"
 
 [tool.scikit-build]
 # The CMake project for the host (PC) build lives in lib/; the repo root is the
@@ -48,6 +56,10 @@ cmake.source-dir = "lib"
 wheel.packages = [
   "lib/python_bindings/espp",
   "components/odrive_native/python/espp_odrive",
+  # espp_ota: pure-python OTA-over-USB host tool (stdlib-only except a
+  # lazily-imported pyusb; see the `usb` extra). Single source of truth lives in
+  # the ota component.
+  "components/ota/python/espp_ota",
 ]
 wheel.exclude = ["**/.mypy_cache", "**/__pycache__"]
 # Persistent CMake build dir (gitignored) so repeated local builds - notably
