@@ -136,10 +136,14 @@ uint16_t xinput_drv_open(uint8_t rhport, tusb_desc_interface_t const *desc_itf, 
     p = tu_desc_next(p);
   }
 
-  // Prime the interrupt-OUT endpoint to receive the first rumble / LED report.
-  if (s_xinput_drv.ep_out)
-    usbd_edpt_xfer(rhport, s_xinput_drv.ep_out, s_xinput_drv.out_buf.data(), espp::xinput::kEpSize,
-                   false);
+  // NOTE: We deliberately do NOT post a read on the interrupt-OUT endpoint. On
+  // the ESP32-S3 DWC2, posting an OUT read corrupts the interrupt-IN stream — a
+  // USB capture showed every IN report arriving with the OUT endpoint NUMBER
+  // prepended (shifting the report by one byte), so XUSB rejects them and no
+  // input registers. The endpoint is still declared/opened (a real 360 controller
+  // has an OUT endpoint), we just never drive it — matching the known-working
+  // esp32s3-tinyusb-xinput reference. Consequence: host->device rumble/LED
+  // reports are not consumed (see handle_xinput_out).
 
   // Diagnostic (USB-Serial-JTAG console): if this line does NOT appear when the
   // host enumerates the device, the app class driver was not registered (the
@@ -176,18 +180,14 @@ bool xinput_drv_control_xfer(uint8_t rhport, uint8_t stage, tusb_control_request
 
 bool xinput_drv_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t result,
                         uint32_t xferred_bytes) {
+  (void)rhport;
+  (void)ep_addr;
+  (void)result;
+  (void)xferred_bytes;
   note_tinyusb_task();
-  if (ep_addr == s_xinput_drv.ep_out) {
-    if (result == XFER_RESULT_SUCCESS && xferred_bytes > 0) {
-      auto *dev = s_device.load();
-      if (dev)
-        dev->handle_xinput_out(s_xinput_drv.out_buf.data(), static_cast<size_t>(xferred_bytes));
-    }
-    // Re-prime the OUT endpoint for the next report.
-    usbd_edpt_xfer(rhport, s_xinput_drv.ep_out, s_xinput_drv.out_buf.data(), espp::xinput::kEpSize,
-                   false);
-  }
-  // IN completion needs no action; usbd_edpt_busy() reflects readiness.
+  // We never post OUT reads (see xinput_drv_open — priming OUT corrupts the IN
+  // stream on the ESP32-S3 DWC2), so there is nothing to re-prime here. IN
+  // completion needs no action; usbd_edpt_busy() reflects readiness.
   return true;
 }
 
