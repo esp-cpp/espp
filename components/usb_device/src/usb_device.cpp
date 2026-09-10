@@ -98,6 +98,10 @@ void xinput_drv_reset(uint8_t rhport) {
 uint16_t xinput_drv_open(uint8_t rhport, tusb_desc_interface_t const *desc_itf, uint16_t max_len) {
   // Only claim the X-Input interface (0xFF / 0x5D / 0x01); return 0 for anything
   // else so the built-in CDC/HID/vendor drivers still handle their interfaces.
+  // NOTE: application class drivers are tried BEFORE the built-in ones
+  // (usbd.c get_driver / process_set_config iterate app drivers first, "to allow
+  // overwriting built-in ones"), so even when CFG_TUD_VENDOR>0 this driver claims
+  // the X-Input 0xFF interface before the built-in vendor (bulk) driver can.
   if (desc_itf->bInterfaceClass != espp::xinput::kInterfaceClass ||
       desc_itf->bInterfaceSubClass != espp::xinput::kInterfaceSubClass ||
       desc_itf->bInterfaceProtocol != espp::xinput::kInterfaceProtocol)
@@ -1477,7 +1481,11 @@ bool UsbDevice::update_gamepad(const espp::xinput::GamepadState &state, std::err
     ec = std::make_error_code(std::errc::not_connected);
     return false;
   }
-  const uint8_t ep_in = impl_->xinput_ep_in;
+  // Use the endpoint the class driver actually OPENED (set in xinput_drv_open,
+  // cleared on bus reset), not the planned address from allocation. So if open()
+  // never ran (e.g. the app driver failed to register) this correctly reports
+  // not-ready instead of pretending the endpoint exists.
+  const uint8_t ep_in = s_xinput_drv.ep_in;
   if (!tud_mounted() || ep_in == 0) {
     logger_.warn_rate_limited("XInput not ready to send: mounted={} ep_in=0x{:02x}", tud_mounted(),
                               ep_in);
@@ -1515,7 +1523,9 @@ bool UsbDevice::update_gamepad(const espp::xinput::GamepadState &state) {
 bool UsbDevice::is_xinput_ready() const {
   if (!initialized_ || !config_.xinput)
     return false;
-  const uint8_t ep_in = impl_->xinput_ep_in;
+  // The endpoint the class driver actually opened (0 until open() runs), so this
+  // never reports ready before the interface is truly configured.
+  const uint8_t ep_in = s_xinput_drv.ep_in;
   return tud_mounted() && ep_in != 0 && !usbd_edpt_busy(0, ep_in);
 }
 
