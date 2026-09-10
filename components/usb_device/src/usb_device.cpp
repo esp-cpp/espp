@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstring>
 
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -131,6 +132,15 @@ uint16_t xinput_drv_open(uint8_t rhport, tusb_desc_interface_t const *desc_itf, 
     usbd_edpt_xfer(rhport, s_xinput_drv.ep_out, s_xinput_drv.out_buf.data(), espp::xinput::kEpSize,
                    false);
 
+  // Diagnostic (USB-Serial-JTAG console): if this line does NOT appear when the
+  // host enumerates the device, the app class driver was not registered (the
+  // usbd_app_driver_get_cb weak override did not take effect) and no reports can
+  // flow even though Windows shows the device by VID/PID.
+  ESP_LOGI("espp_xinput", "class driver open: itf=%u ep_in=0x%02x ep_out=0x%02x",
+           s_xinput_drv.itf_num, s_xinput_drv.ep_in, s_xinput_drv.ep_out);
+  if (s_xinput_drv.ep_in == 0)
+    ESP_LOGW("espp_xinput", "no interrupt IN endpoint opened -- host will get no input reports");
+
   return static_cast<uint16_t>(reinterpret_cast<uintptr_t>(p) -
                                reinterpret_cast<uintptr_t>(desc_itf));
 }
@@ -177,7 +187,11 @@ const usbd_class_driver_t s_xinput_class_driver = {
 } // namespace
 
 // Override TinyUSB's weak app-driver hook to register the X-Input class driver.
+// NOTE: usbd.c both defines this as weak AND calls it in the same translation
+// unit, so this strong override only wins if the linker keeps it — the
+// usb_device component CMakeLists forces it with `-u usbd_app_driver_get_cb`.
 extern "C" usbd_class_driver_t const *usbd_app_driver_get_cb(uint8_t *driver_count) {
+  ESP_LOGI("espp_xinput", "registering X-Input application class driver");
   *driver_count = 1;
   return &s_xinput_class_driver;
 }
@@ -1465,26 +1479,31 @@ bool UsbDevice::update_gamepad(const espp::xinput::GamepadState &state, std::err
   }
   const uint8_t ep_in = impl_->xinput_ep_in;
   if (!tud_mounted() || ep_in == 0) {
+    logger_.warn_rate_limited("XInput not ready to send: mounted={} ep_in=0x{:02x}", tud_mounted(),
+                              ep_in);
     ec = std::make_error_code(std::errc::not_connected);
     return false;
   }
-  if (usbd_edpt_busy(0, ep_in)) {
-    // A previous report is still in flight -- transient backpressure, distinct
-    // from a disconnect so callers can retry on the next tick.
+  // update_gamepad() runs on the caller's task, not the TinyUSB task, so claim
+  // the endpoint (atomic, mutex-guarded) before submitting — the same pattern
+  // tud_hid_report() uses. This both arbitrates against the USB task and is the
+  // reliable way to hand a transfer to the interrupt-IN endpoint cross-task; a
+  // bare busy-check + xfer can race and wedge the endpoint. claim() fails if a
+  // previous report is still in flight (transient backpressure).
+  if (!usbd_edpt_claim(0, ep_in)) {
     ec = std::make_error_code(std::errc::resource_unavailable_try_again);
     return false;
   }
-  // Serialize into the persistent buffer, then submit the interrupt-IN transfer.
   // The buffer must outlive the (asynchronous) transfer, so it lives in Impl.
-  // Single-writer (documented), so a busy check + xfer is sufficient; the CLAIM
-  // bit is only needed to arbitrate multiple submitters on one endpoint.
   impl_->xinput_report = state.report();
   if (!usbd_edpt_xfer(0, ep_in, impl_->xinput_report.data(),
                       static_cast<uint16_t>(impl_->xinput_report.size()), false)) {
-    logger_.warn_rate_limited("XInput report send failed");
+    usbd_edpt_release(0, ep_in); // undo the claim so the endpoint isn't wedged
+    logger_.warn_rate_limited("XInput report send (usbd_edpt_xfer) failed on ep 0x{:02x}", ep_in);
     ec = std::make_error_code(std::errc::io_error);
     return false;
   }
+  logger_.info_rate_limited("XInput reports flowing on ep 0x{:02x}", ep_in);
   return true;
 }
 
