@@ -121,7 +121,7 @@ class OtaClient:
         try:
             self._transact(_p.make_abort(), self._data_to)
         except Exception:
-            pass
+            pass  # best-effort cleanup; the link may already be gone
 
     def discover(self, timeout_ms: int = 2000) -> List[_f.Frame]:
         """Send a dispatcher ListModules request; return the matching reply.

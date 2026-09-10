@@ -44,7 +44,7 @@ def _open_progress_stream():
         if sys.stderr.isatty():
             return sys.stderr, False
     except Exception:
-        pass
+        pass  # stderr may not support isatty() (e.g. a wrapped stream); fall through
     for name in ("/dev/tty", "CONOUT$"):
         try:
             return open(name, "w"), True
