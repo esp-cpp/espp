@@ -18,10 +18,12 @@ import sys
 import time
 from typing import Optional
 
-from . import __version__
+from . import __version__, ui
 from .client import OtaClient
 from .protocol import OtaError
 from .transport import DEFAULT_PID, DEFAULT_VID, TransportError, UsbVendorTransport, list_devices
+
+CON = ui.Console()
 
 
 def _auto_int(text: str) -> int:
@@ -51,99 +53,33 @@ def _make_transport(args) -> UsbVendorTransport:
                               interface=args.interface)
 
 
-def _safe_isatty() -> bool:
-    try:
-        return sys.stderr.isatty()
-    except Exception:
-        return False
-
-
-def _color_enabled() -> bool:
-    """Whether to emit ANSI color on stderr (respects NO_COLOR / *COLOR_FORCE)."""
-    if os.environ.get("NO_COLOR") is not None:
-        return False
-    if os.environ.get("CLICOLOR_FORCE") or os.environ.get("FORCE_COLOR"):
-        return True
-    return _safe_isatty()
-
-
-def _paint(text: str, code: str) -> str:
-    return f"\033[{code}m{text}\033[0m" if _color_enabled() else text
-
-
-class _ProgressBar:
-    """Progress reporter that adapts to its output.
-
-    On a TTY it draws an in-place carriage-return bar. When stderr is a pipe
-    (e.g. run through ``idf.py ota-usb``, whose capture buffers until a newline)
-    it prints throttled newline-terminated lines instead, so progress shows live
-    rather than all at once when the flash completes.
-    """
-
-    def __init__(self, quiet: bool) -> None:
-        self._quiet = quiet
-        self._tty = _safe_isatty()
-        self._last = 0.0
-        self._last_pct = -100
-
-    def __call__(self, written: int, total: int) -> None:
-        if self._quiet:
-            return
-        now = time.monotonic()
-        done = bool(total) and written >= total
-        if self._tty:
-            if now - self._last < 0.1 and not done:
-                return
-            self._last = now
-            if total:
-                pct = min(100.0, 100.0 * written / total)
-                bar = "#" * int(pct / 2.5)
-                sys.stderr.write(f"\r  [{bar:<40}] {pct:5.1f}%  {written}/{total} B")
-            else:
-                sys.stderr.write(f"\r  {written} B")
-            if done:
-                sys.stderr.write("\n")
-            sys.stderr.flush()
-            return
-        # Piped: newline-terminated updates (throttled to every ~2%) so each line
-        # flushes through the capturing parent immediately.
-        if total:
-            pct = int(100 * written / total)
-            if done or pct >= self._last_pct + 2:
-                self._last_pct = 100 if done else pct
-                print(f"  OTA {self._last_pct:3d}%  {written}/{total} B",
-                      file=sys.stderr, flush=True)
-        elif done or now - self._last >= 0.5:
-            self._last = now
-            print(f"  OTA {written} B", file=sys.stderr, flush=True)
-
-
 def _cmd_flash(args) -> int:
     with open(args.binary, "rb") as fh:
         image = fh.read()
     if not image:
-        _error("image is empty")
+        CON.error("image is empty")
         return 2
     size = 0 if args.unknown_size else len(image)
     with _make_transport(args) as t:
         if not args.quiet:
-            print(f"Connected to {t.description}; flashing {args.binary} "
-                  f"({len(image)} bytes)...", file=sys.stderr)
-        client = OtaClient(
-            t,
-            chunk_size=args.chunk_size,
-            progress=_ProgressBar(args.quiet),
-            begin_timeout_ms=args.begin_timeout,
-            data_timeout_ms=args.data_timeout,
-            finish_timeout_ms=args.finish_timeout,
-        )
+            CON.info(f"Connected to {t.description}; flashing {args.binary} "
+                     f"({len(image)} bytes)…")
         start = time.monotonic()
-        client.flash(image, image_size=size)
+        with ui.Progress(len(image), label="Flashing", quiet=args.quiet) as prog:
+            client = OtaClient(
+                t,
+                chunk_size=args.chunk_size,
+                progress=prog.update,
+                begin_timeout_ms=args.begin_timeout,
+                data_timeout_ms=args.data_timeout,
+                finish_timeout_ms=args.finish_timeout,
+            )
+            client.flash(image, image_size=size)
         if not args.quiet:
             dt = time.monotonic() - start
             rate = len(image) / dt / 1024 if dt else 0
-            print(f"OTA complete in {dt:.1f}s ({rate:.0f} KiB/s). The device "
-                  f"activates the new image and reboots per its own policy.", file=sys.stderr)
+            CON.success(f"OTA complete in {dt:.1f}s ({rate:.0f} KiB/s). The device "
+                        f"activates the new image and reboots per its own policy.")
     return 0
 
 
@@ -151,7 +87,7 @@ def _cmd_list(args) -> int:
     pid = None if args.pid is not None and args.pid < 0 else args.pid
     found = list_devices(vid=args.vid, pid=pid)
     if not found:
-        print("no matching USB devices found", file=sys.stderr)
+        CON.warn("no matching USB devices found")
         return 1
     for vid, pid_, desc in found:
         print(f"0x{vid:04x}:0x{pid_:04x}  {desc}")
@@ -162,12 +98,12 @@ def _cmd_discover(args) -> int:
     with _make_transport(args) as t:
         frames = OtaClient(t).discover(timeout_ms=args.timeout)
         if not frames:
-            print("no discovery reply (device may not run a Dispatcher on the "
-                  "vendor interface)", file=sys.stderr)
+            CON.warn("no discovery reply (device may not run a Dispatcher on the "
+                     "vendor interface)")
             return 1
         for fr in frames:
-            print(f"reply module=0x{fr.module:02x} type=0x{fr.type:02x} "
-                  f"reply={fr.is_reply} payload={len(fr.payload)} bytes")
+            CON.info(f"reply module=0x{fr.module:02x} type=0x{fr.type:02x} "
+                     f"reply={fr.is_reply} payload={len(fr.payload)} bytes")
     return 0
 
 
@@ -200,26 +136,18 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def _error(msg: str) -> None:
-    """Print a prominent error. Red+bold on a color terminal; always a distinct
-    'espp_ota ERROR:' prefix so it stands out even through idf.py's plain capture."""
-    label = _paint("espp_ota ERROR:", "1;31")
-    sys.stderr.write(f"\n{label} {_paint(str(msg), '31')}\n")
-    sys.stderr.flush()
-
-
 def main(argv: Optional[list] = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)
     except (OtaError, TransportError) as exc:
-        _error(exc)
+        CON.error(exc)
         return 1
     except FileNotFoundError as exc:
-        _error(exc)
+        CON.error(exc)
         return 2
     except KeyboardInterrupt:
-        sys.stderr.write("\n" + _paint("interrupted", "33") + "\n")
+        CON.warn("interrupted")
         return 130
 
 

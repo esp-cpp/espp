@@ -75,6 +75,16 @@ The wire framing is `espp::stream_frame` v2 (magic `0x4F54`, CRC-32); see
 `espp_ota/frame.py`. Host tests (codec + a full OTA against a mock device) live
 in `tests/test_ota_host.py` and run with plain `python3`.
 
+## Output
+
+On a real terminal the tool draws a [`rich`](https://pypi.org/project/rich/)
+progress bar (spinner, bar, %, bytes, transfer speed, ETA) and colorizes status /
+error lines. Run through `idf.py ota-usb`, whose output capture re-renders lines
+ending in `(NN %)` in place (the same way esptool's progress shows under
+`idf.py flash`), it emits a live in-place text bar. `rich` is optional — without
+it the output degrades to plain text. It ships in the ESP-IDF Python environment
+(so `idf.py ota-usb` already has it) and is pulled in by `pip install "espp[usb]"`.
+
 ## Requirements
 
 - Python 3.8+

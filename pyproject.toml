@@ -37,7 +37,10 @@ Issues = "https://github.com/esp-cpp/espp/issues"
 serial = ["pyserial"]
 # espp_ota's USB transport imports pyusb lazily; the frame codec + OTA protocol
 # are stdlib-only. `pip install espp[usb]` enables the OTA-over-USB host tool.
-usb = ["pyusb"]
+# `rich` is optional but gives the nice progress bar / colorized output (it also
+# ships in the ESP-IDF Python env, so `idf.py ota-usb` has it already); the tool
+# degrades to plain text without it.
+usb = ["pyusb", "rich"]
 
 [project.scripts]
 # Standalone CLI (also runnable as `python -m espp_ota`). The `ota` component's
