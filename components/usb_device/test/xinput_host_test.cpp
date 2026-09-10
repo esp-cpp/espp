@@ -1,8 +1,10 @@
 // Host-buildable unit tests for the espp X-Input (Xbox 360) helpers in
 // include/xinput.hpp: the 20-byte input-report packing and the interface + XID +
-// endpoint descriptor builder. No ESP-IDF / TinyUSB headers required. Build&run:
-//   c++ -std=c++20 -Wall -Wextra -Werror -I components/usb_device/include \
-//       components/usb_device/test/xinput_host_test.cpp -o test && ./test
+// endpoint descriptor builder. No ESP-IDF / TinyUSB headers required.
+//
+/* Build & run (a block comment so the line-continuation doesn't trip -Wcomment):
+     c++ -std=c++20 -Wall -Wextra -Werror -I components/usb_device/include \
+         components/usb_device/test/xinput_host_test.cpp -o test && ./test        */
 
 #include <cstdio>
 

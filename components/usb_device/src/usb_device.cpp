@@ -79,9 +79,12 @@ bool on_tinyusb_task() {
 // driver is always registered but open() only claims an X-Input interface, so it
 // is inert when no XInput function is enabled.
 struct XInputDriver {
-  uint8_t itf_num{0xFF};
-  uint8_t ep_in{0};
-  uint8_t ep_out{0};
+  uint8_t itf_num{0xFF}; // touched only on the TinyUSB task (open/reset/log)
+  // ep_in / ep_out are written by open()/reset() on the TinyUSB task and read by
+  // update_gamepad()/is_xinput_ready() on the caller's task, so they are atomic
+  // to avoid a data race on disconnect/reset concurrent with reporting.
+  std::atomic<uint8_t> ep_in{0};
+  std::atomic<uint8_t> ep_out{0};
   std::array<uint8_t, 64> out_buf{}; // interrupt-OUT receive buffer (>= kEpSize)
 };
 XInputDriver s_xinput_drv;
@@ -141,7 +144,7 @@ uint16_t xinput_drv_open(uint8_t rhport, tusb_desc_interface_t const *desc_itf, 
   // usbd_app_driver_get_cb weak override did not take effect) and no reports can
   // flow even though Windows shows the device by VID/PID.
   ESP_LOGI("espp_xinput", "class driver open: itf=%u ep_in=0x%02x ep_out=0x%02x",
-           s_xinput_drv.itf_num, s_xinput_drv.ep_in, s_xinput_drv.ep_out);
+           s_xinput_drv.itf_num, s_xinput_drv.ep_in.load(), s_xinput_drv.ep_out.load());
   if (s_xinput_drv.ep_in == 0)
     ESP_LOGW("espp_xinput", "no interrupt IN endpoint opened -- host will get no input reports");
 
