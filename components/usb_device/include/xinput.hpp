@@ -113,14 +113,14 @@ struct GamepadState {
 };
 
 /// Build the interface + XID + two interrupt-endpoint descriptor bytes for an
-/// X-Input interface. @p ep_num is the endpoint NUMBER n; the IN endpoint is
-/// 0x80|n and the OUT endpoint is n (the XID blob embeds the IN endpoint address
-/// and the report sizes, so it is patched to match @p ep_num).
-inline std::vector<uint8_t> interface_descriptor(uint8_t itf_num, uint8_t str_idx, uint8_t ep_num,
-                                                 uint8_t in_interval = kInInterval,
+/// X-Input interface. @p ep_in and @p ep_out are the full endpoint ADDRESSES
+/// (e.g. 0x81 IN, 0x02 OUT). The retail controller shares endpoint number 1 for
+/// both directions, but the ESP32-S3 DWC2 corrupts the IN stream when the number
+/// is shared, so a separate OUT endpoint number is used; the XID blob's [6]/[13]
+/// endpoint fields are set to match.
+inline std::vector<uint8_t> interface_descriptor(uint8_t itf_num, uint8_t str_idx, uint8_t ep_in,
+                                                 uint8_t ep_out, uint8_t in_interval = kInInterval,
                                                  uint8_t out_interval = kOutInterval) {
-  const uint8_t ep_in = static_cast<uint8_t>(0x80 | ep_num);
-  const uint8_t ep_out = ep_num;
   return {
       // clang-format off
       // Interface descriptor (9 bytes): vendor-specific 0xFF/0x5D/0x01, 2 endpoints.
@@ -129,9 +129,10 @@ inline std::vector<uint8_t> interface_descriptor(uint8_t itf_num, uint8_t str_id
       // XID "unknown" vendor descriptor (17 bytes), matched byte-for-byte to a
       // real wired Xbox 360 controller (bLength 0x11, bDescriptorType 0x21). [2]
       // is 0x10 on the retail controller; [6] = IN endpoint address, [7] = IN
-      // report size (0x14 = 20), [14] = OUT report size (0x08 = 8).
+      // report size (0x14 = 20), [13] = OUT endpoint address, [14] = OUT report
+      // size (0x08 = 8).
       0x11, 0x21, 0x10, 0x01, 0x01, 0x25,
-      ep_in, 0x14, 0x00, 0x00, 0x00, 0x00, 0x13, 0x01, 0x08, 0x00, 0x00,
+      ep_in, 0x14, 0x00, 0x00, 0x00, 0x00, 0x13, ep_out, 0x08, 0x00, 0x00,
       // Endpoint IN (7 bytes): interrupt, wMaxPacketSize 32, bInterval.
       0x07, 0x05 /* ENDPOINT */, ep_in, 0x03 /* interrupt */, kEpSize, 0x00, in_interval,
       // Endpoint OUT (7 bytes): interrupt, wMaxPacketSize 32, bInterval.

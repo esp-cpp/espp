@@ -52,19 +52,20 @@ int main() {
   s.set(Button::A, false);
   CHECK(s.report()[3] == 0x00);
 
-  // --- descriptor builder (itf 3, string 5, endpoint number 2 -> IN 0x82, OUT 0x02) ---
-  const auto d = interface_descriptor(3, 5, 2);
+  // --- descriptor builder (itf 3, string 5, IN 0x82, OUT 0x03) ---
+  const auto d = interface_descriptor(3, 5, 0x82, 0x03);
   CHECK(d.size() == kInterfaceDescriptorLen && d.size() == 40);
   // interface descriptor
   CHECK(d[0] == 0x09 && d[1] == 0x04 && d[2] == 3 && d[4] == 0x02);
   CHECK(d[5] == kInterfaceClass && d[6] == kInterfaceSubClass && d[7] == kInterfaceProtocol);
   CHECK(d[8] == 5);
-  // XID blob, with the IN endpoint address patched in
-  CHECK(d[9] == 0x11 && d[10] == 0x21 && d[15] == 0x82 && d[16] == 0x14 && d[23] == 0x08);
+  // XID blob, with the IN (d[15]) and OUT (d[22]) endpoint addresses patched in
+  CHECK(d[9] == 0x11 && d[10] == 0x21 && d[15] == 0x82 && d[16] == 0x14);
+  CHECK(d[22] == 0x03 && d[23] == 0x08);
   // IN endpoint (interrupt, size 32)
   CHECK(d[26] == 0x07 && d[27] == 0x05 && d[28] == 0x82 && d[29] == 0x03 && d[30] == kEpSize);
   // OUT endpoint
-  CHECK(d[33] == 0x07 && d[34] == 0x05 && d[35] == 0x02 && d[36] == 0x03 && d[37] == kEpSize);
+  CHECK(d[33] == 0x07 && d[34] == 0x05 && d[35] == 0x03 && d[36] == 0x03 && d[37] == kEpSize);
 
   if (g_failures == 0)
     std::printf("all xinput host tests passed\n");

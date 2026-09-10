@@ -661,14 +661,18 @@ bool UsbDevice::initialize(std::error_code &ec) {
     impl_->hid_report_desc = config_.hid->report_descriptor;
   }
 
-  uint8_t xinput_itf = 0, xinput_str = 0, xinput_ep = 0;
+  uint8_t xinput_itf = 0, xinput_str = 0;
   if (config_.xinput) {
     xinput_itf = next_itf++;
     xinput_str = next_str++;
     impl_->owned_strings.push_back(config_.xinput->interface_name);
-    xinput_ep = next_ep++;                                        // IN = 0x80|n, OUT = n
-    impl_->xinput_ep_in = static_cast<uint8_t>(0x80 | xinput_ep); // interrupt IN
-    impl_->xinput_ep_out = xinput_ep;                             // interrupt OUT
+    // Use SEPARATE endpoint numbers for IN and OUT. The retail controller shares
+    // number 1, but the ESP32-S3 DWC2 corrupts the interrupt-IN stream (a leading
+    // 0x01 byte) when the same number is used for both directions.
+    const uint8_t in_ep = next_ep++;
+    const uint8_t out_ep = next_ep++;
+    impl_->xinput_ep_in = static_cast<uint8_t>(0x80 | in_ep); // interrupt IN
+    impl_->xinput_ep_out = out_ep;                            // interrupt OUT
     in_used++;
     out_used++;
     impl_->xinput_itf = xinput_itf;
@@ -811,7 +815,8 @@ bool UsbDevice::initialize(std::error_code &ec) {
       // bIntervals are the full-speed values; on an HS-capable part they are
       // interpreted as exponents, but X-Input is a full-speed protocol (and the
       // ESP32-S3 USB-OTG is full speed).
-      const auto d = espp::xinput::interface_descriptor(xinput_itf, xinput_str, xinput_ep);
+      const auto d = espp::xinput::interface_descriptor(xinput_itf, xinput_str, impl_->xinput_ep_in,
+                                                        impl_->xinput_ep_out);
       append(d.data(), d.size());
     }
   };
