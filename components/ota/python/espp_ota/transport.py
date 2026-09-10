@@ -189,4 +189,4 @@ class UsbVendorTransport:
     def description(self) -> str:
         if self._dev is None:
             return "<closed>"
-        return f"0x{self._dev.idVendor:04x}:0x{self._dev.idProduct:04x} itf {self._itf_num}"
+        return f"0x{self._dev.idVendor:04x}:0x{self._dev.idProduct:04x} (interface {self._itf_num})"

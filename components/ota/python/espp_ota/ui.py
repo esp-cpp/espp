@@ -93,6 +93,10 @@ class Console:
     def info(self, text: str) -> None:
         self._emit(text, None, None)
 
+    def note(self, text: str) -> None:
+        """A prominent status line (e.g. the connected device) — bold cyan."""
+        self._emit(text, "bold cyan", "1;36")
+
     def success(self, text: str) -> None:
         self._emit(text, "bold green", "1;32")
 

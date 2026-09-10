@@ -30,6 +30,15 @@ def _auto_int(text: str) -> int:
     return int(text, 0)  # accepts 0x1209, 4617, etc.
 
 
+def _human_size(n: int) -> str:
+    size = float(n)
+    for unit in ("B", "KiB", "MiB", "GiB"):
+        if size < 1024 or unit == "GiB":
+            return f"{int(size)} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{n} B"
+
+
 def _env_int(name: str, default: int) -> int:
     val = os.environ.get(name)
     return _auto_int(val) if val else default
@@ -62,8 +71,8 @@ def _cmd_flash(args) -> int:
     size = 0 if args.unknown_size else len(image)
     with _make_transport(args) as t:
         if not args.quiet:
-            CON.info(f"Connected to {t.description}; flashing {args.binary} "
-                     f"({len(image)} bytes)…")
+            CON.note(f"● Connected to {t.description}")
+            CON.info(f"  Flashing {args.binary} ({_human_size(len(image))})")
         start = time.monotonic()
         with ui.Progress(len(image), label="Flashing", quiet=args.quiet) as prog:
             client = OtaClient(

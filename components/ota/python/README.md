@@ -86,6 +86,15 @@ plain-text lines instead. `rich` is optional — the output degrades to a plain
 `\r` bar or text without it. It ships in the ESP-IDF Python environment (so
 `idf.py ota-usb` already has it) and is pulled in by `pip install "espp[usb]"`.
 
+`idf.py ota-usb` mid-flash — the rich bar (%, size, transfer speed, ETA) animates
+in place even though idf.py captures the tool's output:
+
+![espp_ota flashing over USB](https://github.com/user-attachments/assets/a042481a-2964-4b06-9109-bb2dcb4e355b)
+
+…and on completion:
+
+![espp_ota OTA complete](https://github.com/user-attachments/assets/da8e1b71-c65f-4ecc-9223-e232f8591ceb)
+
 ## Requirements
 
 - Python 3.8+
