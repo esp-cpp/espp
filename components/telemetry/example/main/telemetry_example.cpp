@@ -72,17 +72,20 @@ extern "C" void app_main(void) {
   std::mutex tx_mutex;
   auto send = [&](std::span<const uint8_t> bytes) {
     std::lock_guard<std::mutex> lock(tx_mutex);
-    if (!usb.write_vendor(bytes)) {
-      // Backpressure: the host stopped draining (e.g. a WebUSB tab closed
-      // without unmounting the device). write_vendor is all-or-nothing, so the
-      // dropped frame left nothing partial — but clear the FIFO so the queued
-      // backlog isn't delivered to (and mis-parsed by) the next host that
-      // connects, ahead of its first schema reply.
-      logger.warn_rate_limited("vendor TX backpressure; dropped a {}-byte frame and cleared the "
-                               "stale backlog",
-                               bytes.size());
-      usb.vendor_write_clear();
-    }
+    if (usb.write_vendor(bytes))
+      return;
+    // Backpressure: the host stopped draining (e.g. a WebUSB tab closed without
+    // unmounting the device). write_vendor is all-or-nothing, so nothing partial
+    // was sent. Drop the stale queued backlog so it isn't delivered to (and
+    // mis-parsed by) the next host ahead of its first schema reply...
+    usb.vendor_write_clear();
+    // ...then retry THIS frame into the now-empty FIFO. This matters for the
+    // one-shot SCHEMA (Telemetry has already committed the new channel width, so
+    // dropping it would make the host decode later SAMPLEs at the wrong width);
+    // for a SAMPLE the retry just delivers the latest values. Only warn if the
+    // frame is lost even after making room (host truly gone).
+    if (!usb.write_vendor(bytes))
+      logger.warn_rate_limited("vendor TX backpressure; dropped a {}-byte frame", bytes.size());
   };
   telemetry.set_send(send);
 
