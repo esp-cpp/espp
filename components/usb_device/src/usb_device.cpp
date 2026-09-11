@@ -87,7 +87,9 @@ struct XInputDriver {
   uint8_t itf_num{0xFF};
   uint8_t ep_in{0};
   uint8_t ep_out{0};
-  std::array<uint8_t, 64> out_buf{}; // interrupt-OUT receive buffer (>= kEpSize)
+  // 4-byte aligned: the DWC2 also reads/writes endpoint buffers by DMA (see the
+  // note on Impl::xinput_report), so keep this on a word boundary too.
+  alignas(4) std::array<uint8_t, 64> out_buf{}; // interrupt-OUT receive buffer (>= kEpSize)
 };
 XInputDriver s_xinput_drv;
 
@@ -126,33 +128,20 @@ uint16_t xinput_drv_open(uint8_t rhport, tusb_desc_interface_t const *desc_itf, 
       break;
     if (type == TUSB_DESC_ENDPOINT) {
       const tusb_desc_endpoint_t *ep = reinterpret_cast<const tusb_desc_endpoint_t *>(p);
-      if (tu_edpt_dir(ep->bEndpointAddress) == TUSB_DIR_IN) {
-        if (!usbd_edpt_open(rhport, ep))
-          return 0;
+      if (!usbd_edpt_open(rhport, ep))
+        return 0;
+      if (tu_edpt_dir(ep->bEndpointAddress) == TUSB_DIR_IN)
         s_xinput_drv.ep_in = ep->bEndpointAddress;
-      } else {
-        // EXPERIMENT: record the OUT endpoint address (it stays in the descriptor
-        // so XUSB sees a normal 2-endpoint 360 controller) but do NOT open it in
-        // the DWC2. Two captures showed every interrupt-IN report arriving with
-        // the OUT endpoint NUMBER prepended (0x01, then 0x02 after we moved it),
-        // shifting the report and making XUSB reject it. The corruption tracks the
-        // OUT endpoint number and persisted even after we stopped posting OUT
-        // reads, so an *active* interrupt-OUT endpoint in the DWC2 appears to be
-        // the trigger. Leaving it unopened tests that (at the cost of no rumble).
+      else
         s_xinput_drv.ep_out = ep->bEndpointAddress;
-      }
     }
     p = tu_desc_next(p);
   }
 
-  // NOTE: We deliberately do NOT post a read on the interrupt-OUT endpoint. On
-  // the ESP32-S3 DWC2, posting an OUT read corrupts the interrupt-IN stream — a
-  // USB capture showed every IN report arriving with the OUT endpoint NUMBER
-  // prepended (shifting the report by one byte), so XUSB rejects them and no
-  // input registers. The endpoint is still declared/opened (a real 360 controller
-  // has an OUT endpoint), we just never drive it — matching the known-working
-  // esp32s3-tinyusb-xinput reference. Consequence: host->device rumble/LED
-  // reports are not consumed (see handle_xinput_out).
+  // Prime the interrupt-OUT endpoint to receive the first rumble / LED report.
+  if (s_xinput_drv.ep_out)
+    usbd_edpt_xfer(rhport, s_xinput_drv.ep_out, s_xinput_drv.out_buf.data(), espp::xinput::kEpSize,
+                   false);
 
   // Diagnostic (USB-Serial-JTAG console): if this line does NOT appear when the
   // host enumerates the device, the app class driver was not registered (the
@@ -189,14 +178,18 @@ bool xinput_drv_control_xfer(uint8_t rhport, uint8_t stage, tusb_control_request
 
 bool xinput_drv_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t result,
                         uint32_t xferred_bytes) {
-  (void)rhport;
-  (void)ep_addr;
-  (void)result;
-  (void)xferred_bytes;
   note_tinyusb_task();
-  // We never post OUT reads (see xinput_drv_open — priming OUT corrupts the IN
-  // stream on the ESP32-S3 DWC2), so there is nothing to re-prime here. IN
-  // completion needs no action; usbd_edpt_busy() reflects readiness.
+  if (ep_addr == s_xinput_drv.ep_out) {
+    if (result == XFER_RESULT_SUCCESS && xferred_bytes > 0) {
+      auto *dev = s_device.load();
+      if (dev)
+        dev->handle_xinput_out(s_xinput_drv.out_buf.data(), static_cast<size_t>(xferred_bytes));
+    }
+    // Re-prime the OUT endpoint for the next report.
+    usbd_edpt_xfer(rhport, s_xinput_drv.ep_out, s_xinput_drv.out_buf.data(), espp::xinput::kEpSize,
+                   false);
+  }
+  // IN completion needs no action; usbd_edpt_busy() reflects readiness.
   return true;
 }
 
@@ -250,8 +243,11 @@ struct UsbDevice::Impl {
   uint8_t xinput_ep_in{0};  // 0x80|n, or 0 if the XInput function is disabled
   uint8_t xinput_ep_out{0}; // n, or 0 if disabled
   // Input-report TX buffer; held for the duration of the async interrupt-IN
-  // transfer submitted by update_gamepad().
-  std::array<uint8_t, espp::xinput::kReportInSize> xinput_report{};
+  // transfer submitted by update_gamepad(). MUST be 4-byte aligned: the ESP32-S3
+  // DWC2 reads it by DMA and a misaligned buffer makes the controller read from
+  // the aligned-down address, prepending the preceding byte to every report
+  // (which shifted our "00 14 .." report by one and made XUSB reject all input).
+  alignas(4) std::array<uint8_t, espp::xinput::kReportInSize> xinput_report{};
 };
 
 UsbDevice *UsbDevice::instance() { return s_device; }
