@@ -85,6 +85,13 @@ constexpr tinyusb_cdcacm_itf_t kCdcPort = TINYUSB_CDC_ACM_0;
 constexpr char kConsoleVfsPath[] = "/dev/usbcons";
 int s_console_tee_fd = -1;     // fd of the original (UART) console kept as a tee, or -1
 bool s_console_routed = false; // whether stdout has been redirected
+// The UsbDevice that owns the routed console. Loaded (not s_device) by the VFS
+// write, which runs on ARBITRARY tasks doing stdout writes -- so it is cleared in
+// ~UsbDevice() to stop console writes from reaching a destroyed device; after
+// that the VFS degrades to the UART tee only. (Redirecting stdout to an object
+// couples their lifetimes: a console-routed UsbDevice must outlive concurrent
+// logging -- normally trivially true, as it is a program-lifetime singleton.)
+std::atomic<espp::UsbDevice *> s_console_usb{nullptr};
 
 // Open the primary console (a UART) so route_console_to_cdc() can tee to it, or
 // return -1 when there is nothing independent to tee to. Only a UART console has a
@@ -118,7 +125,7 @@ ssize_t cdc_console_write(int, const void *data, size_t size) {
   // serial monitor often does not assert it, yet a console should still emit; the
   // host's CDC driver buffers what we send until a reader attaches. If nothing
   // drains, the FIFO fills and we drop the chunk (harmless for logs).
-  auto *dev = s_device.load();
+  auto *dev = s_console_usb.load();
   if (dev && dev->cdc_write_available() >= size) {
     std::error_code ec;
     dev->write_cdc({static_cast<const uint8_t *>(data), size}, ec);
@@ -360,6 +367,19 @@ UsbDevice::UsbDevice(const Config &config)
     , on_xinput_rumble_(config.xinput ? config.xinput->on_rumble : nullptr) {}
 
 UsbDevice::~UsbDevice() {
+#if (CFG_TUD_CDC > 0)
+  // If this instance owns the routed console, detach it FIRST so stdout writes
+  // from other tasks stop reaching this destructing instance (they degrade to the
+  // UART tee). stdout stays pointed at the VFS device (its functions are
+  // file-scope, not tied to this instance), so logging keeps working. NOTE: a
+  // write already past this load when we clear it can still race destruction --
+  // a console-routed UsbDevice must outlive concurrent logging (see
+  // route_console_to_cdc): normally trivial, as it is a program-lifetime object.
+  {
+    UsbDevice *expected_console = this;
+    s_console_usb.compare_exchange_strong(expected_console, nullptr);
+  }
+#endif
   if (initialized_) {
     // Detach the global callback routing BEFORE tearing down the driver so a
     // TinyUSB callback that fires during deinit cannot dereference this
@@ -1636,7 +1656,11 @@ bool UsbDevice::route_console_to_cdc(std::error_code &ec) {
     ec = std::make_error_code(std::errc::io_error);
     return false;
   }
+  // Publish the console owner BEFORE freopen makes stdout point at the VFS, so the
+  // write callback never loads a null owner while stdout already targets it.
+  s_console_usb.store(this);
   if (freopen(kConsoleVfsPath, "w", stdout) == nullptr) {
+    s_console_usb.store(nullptr);
     ec = std::make_error_code(std::errc::io_error);
     return false;
   }

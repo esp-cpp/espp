@@ -1,7 +1,9 @@
 idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src"
-  REQUIRES base_component esp_tinyusb
+  # vfs: route_console_to_cdc() registers a VFS device (esp_vfs_register /
+  # esp_vfs_t) to redirect stdout to the CDC interface.
+  REQUIRES base_component esp_tinyusb vfs
 )
 
 # X-Input registers a custom TinyUSB application class driver by overriding the

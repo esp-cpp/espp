@@ -349,6 +349,12 @@ public:
    * Idempotent (a second call is a no-op). Requires the CDC function to be enabled
    * and the device initialized.
    *
+   * @note Lifetime: routing points `stdout` at this device. On destruction the
+   *       device detaches itself (later stdout writes degrade to the UART tee),
+   *       but a write already in flight can still race destruction -- so a
+   *       console-routed UsbDevice must outlive concurrent logging. This is
+   *       normally trivial: it is a program-lifetime singleton.
+   *
    * @param[out] ec Set on failure (CDC not enabled / not initialized, or the VFS
    *        device could not be registered / stdout could not be reopened).
    * @return true if the console is now routed to CDC (or already was).
