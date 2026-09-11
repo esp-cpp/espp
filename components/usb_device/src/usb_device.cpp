@@ -45,7 +45,6 @@ struct UsbDevice::Callbacks {
     return d->webusb_url_descriptor(len);
   }
   static const uint8_t *hid_report(UsbDevice *d) { return d->hid_report_descriptor(); }
-  static bool xinput_active(UsbDevice *d) { return d->xinput_active(); }
   static const std::optional<UsbDevice::VendorFunction> &vendor_config(UsbDevice *d) {
     return d->vendor_config();
   }
@@ -187,11 +186,7 @@ uint16_t xinput_drv_open(uint8_t rhport, tusb_desc_interface_t const *desc_itf, 
     usbd_edpt_xfer(rhport, s_xinput_drv.ep_out, s_xinput_drv.out_buf.data(), espp::xinput::kEpSize,
                    false);
 
-  // Diagnostic (USB-Serial-JTAG console): if this line does NOT appear when the
-  // host enumerates the device, the app class driver was not registered (the
-  // usbd_app_driver_get_cb weak override did not take effect) and no reports can
-  // flow even though Windows shows the device by VID/PID.
-  ESP_LOGI("espp_xinput", "class driver open: itf=%u ep_in=0x%02x ep_out=0x%02x",
+  ESP_LOGD("espp_xinput", "class driver open: itf=%u ep_in=0x%02x ep_out=0x%02x",
            s_xinput_drv.itf_num, s_xinput_drv.ep_in, s_xinput_drv.ep_out);
   if (s_xinput_drv.ep_in == 0)
     ESP_LOGW("espp_xinput", "no interrupt IN endpoint opened -- host will get no input reports");
@@ -204,9 +199,7 @@ bool xinput_drv_control_xfer(uint8_t rhport, uint8_t stage, tusb_control_request
   if (stage != CONTROL_STAGE_SETUP)
     return true; // DATA / ACK stages: nothing to do
 
-  // Log every control request the host sends to the X-Input interface so the
-  // XUSB init handshake is observable on the USB-Serial-JTAG console.
-  ESP_LOGI("espp_xinput", "control SETUP bmReq=0x%02x bReq=0x%02x wVal=0x%04x wIdx=0x%04x wLen=%u",
+  ESP_LOGD("espp_xinput", "control SETUP bmReq=0x%02x bReq=0x%02x wVal=0x%04x wIdx=0x%04x wLen=%u",
            request->bmRequestType, request->bRequest, request->wValue, request->wIndex,
            request->wLength);
 
@@ -259,7 +252,7 @@ const usbd_class_driver_t s_xinput_class_driver = {
 // unit, so this strong override only wins if the linker keeps it — the
 // usb_device component CMakeLists forces it with `-u usbd_app_driver_get_cb`.
 extern "C" usbd_class_driver_t const *usbd_app_driver_get_cb(uint8_t *driver_count) {
-  ESP_LOGI("espp_xinput", "registering X-Input application class driver");
+  ESP_LOGD("espp_xinput", "registering X-Input application class driver");
   *driver_count = 1;
   return &s_xinput_class_driver;
 }
@@ -378,14 +371,6 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
   if (stage != CONTROL_STAGE_SETUP)
     return true; // nothing to do on DATA / ACK stages
   auto *dev = s_device.load();
-  // Diagnostic: surface any vendor control request that reaches the *global*
-  // vendor path (e.g. device-recipient) rather than the per-interface X-Input
-  // handler, so we can tell where XUSB's init requests actually land.
-  if (dev && UsbDevice::Callbacks::xinput_active(dev))
-    ESP_LOGI("espp_xinput",
-             "global vendor control bmReq=0x%02x bReq=0x%02x wVal=0x%04x wIdx=0x%04x wLen=%u",
-             request->bmRequestType, request->bRequest, request->wValue, request->wIndex,
-             request->wLength);
   if (!dev || !UsbDevice::Callbacks::vendor_config(dev).has_value())
     return false;
   const auto &vendor = *UsbDevice::Callbacks::vendor_config(dev);
@@ -1567,16 +1552,6 @@ bool UsbDevice::is_hid_ready() const {
 uint8_t UsbDevice::xinput_in_endpoint() const { return impl_->xinput_ep_in; }
 
 void UsbDevice::handle_xinput_out(const uint8_t *buffer, size_t bufsize) {
-  // Diagnostic: log every OUT (rumble/LED) report the host sends, RAW and
-  // unconditionally, so we can tell whether the interrupt-OUT path receives
-  // anything at all (independent of how the app callback filters it).
-  if (buffer && bufsize > 0) {
-    char hex[3 * 16 + 1] = {0};
-    const size_t n = bufsize < 16 ? bufsize : 16;
-    for (size_t i = 0; i < n; i++)
-      snprintf(hex + i * 3, 4, "%02x ", buffer[i]);
-    ESP_LOGI("espp_xinput", "OUT report (%u bytes): %s", static_cast<unsigned>(bufsize), hex);
-  }
   receive_callback_fn cb;
   {
     std::scoped_lock lk(cb_mutex_);
@@ -1598,8 +1573,8 @@ bool UsbDevice::update_xinput_state(const espp::xinput::GamepadState &state, std
   // for this (only) interface — so a mounted device has its endpoint open.
   const uint8_t ep_in = impl_->xinput_ep_in;
   if (!tud_mounted() || ep_in == 0) {
-    logger_.warn_rate_limited("XInput not ready to send: mounted={} ep_in=0x{:02x}", tud_mounted(),
-                              ep_in);
+    // Normal before the host mounts the device (the app may poll update_* in a
+    // loop): report it via ec and let the caller decide -- don't log.
     ec = std::make_error_code(std::errc::not_connected);
     return false;
   }
@@ -1629,7 +1604,6 @@ bool UsbDevice::update_xinput_state(const espp::xinput::GamepadState &state, std
     ec = std::make_error_code(std::errc::io_error);
     return false;
   }
-  logger_.info_rate_limited("XInput reports flowing on ep 0x{:02x}", ep_in);
   return true;
 }
 
