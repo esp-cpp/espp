@@ -66,8 +66,14 @@ int cdc_vfs_fstat(int, struct stat *st) {
 ssize_t cdc_vfs_write(int, const void *data, size_t size) {
   if (g_console_fallback_fd >= 0)
     ::write(g_console_fallback_fd, data, size); // always keep UART0 as a tee
-  if (g_console_usb && g_console_usb->is_cdc_connected() &&
-      g_console_usb->cdc_write_available() >= size) {
+  // Mirror to USB-CDC when the interface is mounted and the whole chunk fits the
+  // TX FIFO right now. cdc_write_available() returns 0 unless the device is
+  // mounted, so this never blocks and never partially writes. We intentionally
+  // do NOT gate on DTR (is_cdc_connected()): a plain serial monitor frequently
+  // does not assert DTR, yet a debug console should still emit — the host's CDC
+  // driver buffers what we send and hands it over once a reader attaches. If
+  // nothing is draining, the FIFO fills and we simply drop the chunk (harmless).
+  if (g_console_usb && g_console_usb->cdc_write_available() >= size) {
     std::error_code ec;
     g_console_usb->write_cdc({static_cast<const uint8_t *>(data), size}, ec);
   }
@@ -576,9 +582,17 @@ extern "C" void app_main(void) {
   //! [ota_example]
 
   logger.info("OTA example ready; transports: USB vendor/WebUSB, HTTP POST /ota (WiFi/Ethernet)");
+  size_t ticks = 0;
   while (true) {
     std::this_thread::sleep_for(10s);
-    if (ota.session_active())
+    if (ota.session_active()) {
       logger.info("update in progress: {} / {} bytes", ota.bytes_written(), ota.image_size());
+      continue;
+    }
+    // Idle heartbeat: the device otherwise logs only on events (boot / OTA), so
+    // print a periodic liveness line. It also makes the USB-CDC console visibly
+    // work when you attach a monitor to it after boot.
+    logger.info("alive {}s{}", (++ticks) * 10,
+                ota.is_pending_verify() ? " (PENDING VERIFY — awaiting host MARK_VALID)" : "");
   }
 }
