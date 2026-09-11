@@ -92,6 +92,12 @@ bool s_console_routed = false; // whether stdout has been redirected
 // couples their lifetimes: a console-routed UsbDevice must outlive concurrent
 // logging -- normally trivially true, as it is a program-lifetime singleton.)
 std::atomic<espp::UsbDevice *> s_console_usb{nullptr};
+// Serializes concurrent console writers (arbitrary tasks calling printf) so the
+// "does the whole chunk fit?" check and the write are atomic -- otherwise another
+// writer could consume the FIFO in between and push the write into write_cdc()'s
+// blocking drain loop, violating the console's non-blocking contract. try_lock:
+// if another writer holds it, the chunk is simply dropped (never block).
+std::mutex s_console_cdc_mutex;
 
 // Open the primary console (a UART) so route_console_to_cdc() can tee to it, or
 // return -1 when there is nothing independent to tee to. Only a UART console has a
@@ -119,16 +125,23 @@ int cdc_console_fstat(int, struct stat *st) {
 ssize_t cdc_console_write(int, const void *data, size_t size) {
   if (s_console_tee_fd >= 0)
     ::write(s_console_tee_fd, data, size); // keep the original console as a tee
-  // Mirror to CDC only when the whole chunk fits the TX FIFO right now:
-  // cdc_write_available() returns 0 unless the interface is mounted, so this never
-  // blocks and never partial-writes. We intentionally do NOT gate on DTR -- a plain
-  // serial monitor often does not assert it, yet a console should still emit; the
-  // host's CDC driver buffers what we send until a reader attaches. If nothing
-  // drains, the FIFO fills and we drop the chunk (harmless for logs).
+  // Mirror to CDC, NON-BLOCKING. cdc_write_available() returns 0 unless the
+  // interface is mounted, so we only emit when mounted; we do NOT gate on DTR (a
+  // plain serial monitor often does not assert it -- a console should still emit,
+  // and the host's CDC driver buffers until a reader attaches). Serialize console
+  // writers with a try-lock so the space check and the write are atomic (no other
+  // writer can consume the FIFO in between and force write_cdc()'s blocking
+  // drain); if the lock is held or the whole chunk doesn't fit right now, drop it
+  // -- logs are best-effort and must never block the writing task.
   auto *dev = s_console_usb.load();
-  if (dev && dev->cdc_write_available() >= size) {
-    std::error_code ec;
-    dev->write_cdc({static_cast<const uint8_t *>(data), size}, ec);
+  if (dev) {
+    std::unique_lock<std::mutex> lk(s_console_cdc_mutex, std::try_to_lock);
+    if (lk.owns_lock() && dev->cdc_write_available() >= size) {
+      // We hold the only console-writer lock and just checked space, so this
+      // single write fits and cannot enter a drain loop.
+      tud_cdc_n_write(kCdcPort, static_cast<const uint8_t *>(data), size);
+      tud_cdc_n_write_flush(kCdcPort);
+    }
   }
   return static_cast<ssize_t>(size);
 }
@@ -1631,8 +1644,15 @@ bool UsbDevice::route_console_to_cdc(std::error_code &ec) {
     ec = std::make_error_code(std::errc::function_not_supported);
     return false;
   }
-  if (s_console_routed)
-    return true; // idempotent: stdout is already on the CDC VFS device
+  if (s_console_routed) {
+    // The VFS is already installed + stdout redirected (by this device on a repeat
+    // call, or by a previous device that has since been destroyed). Re-attach this
+    // instance as the console owner so CDC logging resumes on it -- otherwise a
+    // freshly created device would return success without owning the sink and its
+    // CDC logs would be silently dropped.
+    s_console_usb.store(this);
+    return true;
+  }
   fflush(stdout);
   // Optionally keep the original console as a tee (best-effort). ESP-IDF's libc
   // has no dup(), so we re-open the primary console device by path rather than
@@ -1652,7 +1672,16 @@ bool UsbDevice::route_console_to_cdc(std::error_code &ec) {
   vfs.close = &cdc_console_close;
   vfs.fstat = &cdc_console_fstat;
 #pragma GCC diagnostic pop
+  // Close the tee fd on any failure below so a retry after a transient error does
+  // not leak a descriptor each time.
+  auto close_tee = [] {
+    if (s_console_tee_fd >= 0) {
+      close(s_console_tee_fd);
+      s_console_tee_fd = -1;
+    }
+  };
   if (esp_vfs_register(kConsoleVfsPath, &vfs, nullptr) != ESP_OK) {
+    close_tee();
     ec = std::make_error_code(std::errc::io_error);
     return false;
   }
@@ -1661,6 +1690,8 @@ bool UsbDevice::route_console_to_cdc(std::error_code &ec) {
   s_console_usb.store(this);
   if (freopen(kConsoleVfsPath, "w", stdout) == nullptr) {
     s_console_usb.store(nullptr);
+    esp_vfs_unregister(kConsoleVfsPath); // undo the registration too
+    close_tee();
     ec = std::make_error_code(std::errc::io_error);
     return false;
   }
