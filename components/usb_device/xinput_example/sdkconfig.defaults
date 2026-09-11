@@ -1,0 +1,27 @@
+# This example uses the native USB-OTG peripheral, which is only available on the
+# ESP32-S3 (also S2 / P4) -- NOT the classic ESP32. Pin the target here so a bare
+# `idf.py build` does not fall back to esp32.
+CONFIG_IDF_TARGET="esp32s3"
+
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# Put the console on UART0, NOT the USB-Serial-JTAG peripheral. This example hands
+# the native USB-OTG port to TinyUSB (the X-Input interface), and on the ESP32-S3
+# the USB-Serial-JTAG controller and USB-OTG share the SAME internal USB PHY /
+# physical port (GPIO19/20) — they are NOT separate. Running the console on
+# USB-Serial-JTAG therefore contends with the X-Input interface for that one port
+# and makes the device reboot-loop at boot. UART0 is an independent peripheral, so
+# the console always has a place to go once TinyUSB takes over the USB port.
+# (Connect a UART / USB-UART adapter to UART0 for `idf.py monitor`.) USB-Serial-JTAG
+# stays as the SECONDARY console so early-boot / bootloader logs are still visible
+# on the native USB port before TinyUSB comes up.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y
+
+# The X-Input interface is served by usb_device's own custom TinyUSB application
+# class driver, so NO built-in class driver is required: CDC, vendor and HID all
+# stay disabled (0). Keeping the built-in vendor driver off also avoids it
+# claiming the 0xFF interface. usb_device now compiles its CDC support
+# conditionally (#if CFG_TUD_CDC), so an X-Input-only build needs no CDC at all.
+CONFIG_TINYUSB_CDC_ENABLED=n
+CONFIG_TINYUSB_CDC_COUNT=0

@@ -8,6 +8,7 @@ maintainers:
 documentation: "https://esp-cpp.github.io/espp/buses/usb_cdc.html"
 examples:
   - path: example
+  - path: xinput_example
 tags:
   - cpp
   - Component
@@ -18,8 +19,19 @@ tags:
   - TinyUSB
   - Serial
   - Transport
+  - HID
+  - XInput
+  - Gamepad
 dependencies:
   idf:
     version: '>=5.0'
   espp/base_component: '>=1.0'
   espressif/esp_tinyusb: '>=2.0'
+  # The X-Input class driver uses the 5-argument usbd_edpt_xfer(..., is_isr) API
+  # (and the usbd_class_driver_t `xfer_isr` member). TinyUSB 0.21 provides that
+  # 5-argument form; earlier releases (e.g. 0.19) still have the 4-argument
+  # usbd_edpt_xfer, which fails to compile here. esp_tinyusb only requires tinyusb
+  # >= 0.17, so pin the tested 0.21 floor here.
+  tinyusb:
+    version: '>=0.21.0'
+    public: true

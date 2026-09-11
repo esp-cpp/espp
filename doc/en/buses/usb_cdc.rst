@@ -19,6 +19,14 @@ Today it can enable, in any combination (subject to the endpoint budget):
 - A **HID** function (one interrupt IN, optionally one interrupt OUT) carrying an
   application-supplied report descriptor (for example a gamepad built with the
   espp ``hid-rp`` component), with input reports sent via ``write_hid_report()``.
+- An **X-Input** function that presents the device as a wired **Xbox 360
+  controller** (a custom TinyUSB application class driver built into this
+  component — no ``CFG_TUD_*`` count needed). Gamepad state is sent with
+  ``update_xinput_state()`` (see ``xinput.hpp``) and rumble/LED reports arrive via an
+  ``on_rumble`` callback. Because the host's XUSB driver only binds a recognized
+  Xbox 360 VID/PID and the built-in vendor class also claims interface class 0xFF,
+  **use X-Input as the only enabled function** (Microsoft's IDs, for emulation /
+  testing of your own device only).
 
 Interface numbers, endpoint addresses and string indices are allocated
 *sequentially* as functions are enabled, and the result is checked against the
@@ -42,6 +50,8 @@ Features
 - Vendor-specific interface (class 0xFF) with a bulk IN + bulk OUT raw byte stream
 - HID interface with an application-supplied report descriptor (built with
   ``hid-rp`` in the example) and ``write_hid_report()``
+- X-Input interface (wired Xbox 360 controller) via a custom application class
+  driver, with ``update_xinput_state()`` and an ``on_rumble`` callback
 - WebUSB: BOS descriptor + WebUSB URL descriptor + MS OS 2.0 descriptor for
   driverless browser access, with a configurable landing-page URL
 - Sequential interface / endpoint / string allocation with an endpoint-budget check
@@ -129,6 +139,22 @@ example builds them with the espp ``hid-rp`` component), assign them to
 ``CFG_TUD_HID == 0``, ``initialize()`` fails with
 ``std::errc::function_not_supported``.
 
+Enabling X-Input (Xbox 360)
+---------------------------
+
+X-Input needs **no** ``CFG_TUD_*`` count — it is served by a custom TinyUSB
+application class driver built into this component (registered via the weak
+``usbd_app_driver_get_cb``, forced into the link with ``-u``). An X-Input-only
+project therefore enables no built-in USB class; the ``xinput_example`` disables
+them all (``CONFIG_TINYUSB_CDC_ENABLED=n``). Keep ``CFG_TUD_VENDOR`` at 0 so the
+built-in bulk vendor driver does not claim the X-Input 0xFF interface, and use
+X-Input as the **only** enabled function (it then advertises the Xbox 360 identity
++ ``0xFF/0xFF/0xFF`` device class so the host's XUSB driver binds it). Send gamepad
+state with ``update_xinput_state()`` and receive rumble/LED via ``on_rumble``. The
+interface uses one interrupt-IN (0x81) + one interrupt-OUT endpoint with separate
+endpoint numbers, and the report DMA buffers are word-aligned as the ESP32-S3 DWC2
+requires.
+
 Endpoint budget (ESP32-S3 USB-OTG)
 ----------------------------------
 
@@ -151,6 +177,9 @@ OUT endpoints**. Each function consumes:
    * - HID
      - 1 (interrupt-IN)
      - 0 or 1 (optional interrupt-OUT)
+   * - X-Input (Xbox 360)
+     - 1 (interrupt-IN)
+     - 1 (interrupt-OUT)
    * - MSC (future)
      - 1 (bulk-IN)
      - 1 (bulk-OUT)
@@ -204,6 +233,7 @@ Notes
 .. toctree::
 
    usb_cdc_example.md
+   xinput_example.md
 
 .. ---------------------------- API Reference ----------------------------------
 
@@ -212,3 +242,4 @@ API Reference
 
 .. include-build-file:: inc/usb_device.inc
 .. include-build-file:: inc/usb_cdc.inc
+.. include-build-file:: inc/xinput.inc
