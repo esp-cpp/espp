@@ -76,7 +76,7 @@ static constexpr uint8_t spi_rom_data_60[] = {
     0x00, 0x08, 0x80, // rx_center, ry_center
     0xFF, 0xF7, 0x7F, // rx_min, ry_min
 
-    // unkown / unused byte (0x4F)
+    // unknown / unused byte (0x4F)
     0xff,
     // address 0x50
     0x82, 0x82, 0x82, // body color
@@ -108,7 +108,7 @@ static constexpr uint8_t spi_rom_data_60[] = {
     0xC7, 0x79, 0x9C, // unknown x,y
     0x33, 0x36, 0x63, // unknown x,y
 
-    // unused / unkown
+    // unused / unknown
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 };
 

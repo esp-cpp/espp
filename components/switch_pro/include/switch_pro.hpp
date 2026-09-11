@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <mutex>
@@ -159,7 +160,9 @@ protected:
   std::array<uint8_t, std::size(sp::spi_rom_data_60)> spi_rom_factory_data_{};
   std::array<uint8_t, std::size(sp::spi_rom_data_80)> spi_rom_user_data_{};
 
-  bool hid_ready_ = false;      // set after device info has been queried / USB HID enabled
+  // set after device info has been queried / USB HID enabled. Atomic: written from
+  // the TinyUSB callback (on_hid_report) and read from the app's sender/demo task.
+  std::atomic<bool> hid_ready_{false};
   uint8_t battery_level_ = 100; // reported battery percentage (re-applied by apply_housekeeping)
 
   uint8_t input_report_mode_ = 0; // standard (0x30), nfc/ir (0x31), simpleHID (0x3F)

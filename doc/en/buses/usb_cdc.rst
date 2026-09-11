@@ -130,13 +130,19 @@ option. To use the HID function you must set, in your project's
   CONFIG_TINYUSB_HID_COUNT=1   # compiles in the TinyUSB HID class driver (CFG_TUD_HID)
 
 ``espp::UsbDevice`` provides the required TinyUSB HID weak-callback overrides:
-``tud_hid_descriptor_report_cb`` returns the stored report descriptor, while
-``tud_hid_get_report_cb`` returns 0 and ``tud_hid_set_report_cb`` is a no-op since
-the gamepad is input-only. Supply the report-descriptor bytes yourself (the
-example builds them with the espp ``hid-rp`` component), assign them to
+``tud_hid_descriptor_report_cb`` returns the stored report descriptor and
+``tud_hid_get_report_cb`` returns 0. Supply the report-descriptor bytes yourself
+(the example builds them with the espp ``hid-rp`` component), assign them to
 ``HidFunction::report_descriptor``, and send input reports with
-``write_hid_report(report_id, report)``. If the HID function is requested but
-``CFG_TUD_HID == 0``, ``initialize()`` fails with
+``write_hid_report(report_id, report)``.
+
+To **receive** host→device OUTPUT / SET_REPORT reports (for request/response HID
+protocols such as the Nintendo Switch Pro controller handshake), set
+``HidFunction::on_receive`` (or ``set_hid_receive_callback()``) and set
+``HidFunction::has_out_endpoint`` for interrupt-OUT reports. The callback is
+invoked from the TinyUSB task with the report id as byte 0 of its span; reply by
+sending an INPUT report with ``write_hid_report()``. If the HID function is
+requested but ``CFG_TUD_HID == 0``, ``initialize()`` fails with
 ``std::errc::function_not_supported``.
 
 Enabling X-Input (Xbox 360)

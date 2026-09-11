@@ -132,8 +132,10 @@ void SwitchPro::set_device_info(std::vector<uint8_t> &report) {
 
   replace_subarray(report, 14, sizeof(sp::device_info), sp::device_info);
 
-  // overwrite the device-info MAC placeholder (bytes 18-23) with our MAC
-  std::memcpy(report.data() + 18, mac_address_.data(), mac_address_.size());
+  // overwrite the device-info MAC placeholder (bytes 18-23) with our MAC, in the
+  // protocol's REVERSED byte order (device_info's placeholder is reversed;
+  // esp_read_mac() returns forward order).
+  std::reverse_copy(mac_address_.begin(), mac_address_.end(), report.begin() + 18);
 }
 
 void SwitchPro::set_shipment(std::vector<uint8_t> &report) {
@@ -226,6 +228,10 @@ void SwitchPro::set_trigger_buttons(std::vector<uint8_t> &report) {
   report[13] = 0x04; // subcommand reply
   // 7 little-endian uint16 in units of 10ms: L,R,ZL,ZR,SL,SR,HOME. See
   // https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering
+  // Read trigger_times_ under the lock that set_trigger_elapsed_times() writes it
+  // with (recursive mutex, so a caller already holding it is fine) to avoid a
+  // torn read racing an application update.
+  std::lock_guard<std::recursive_mutex> lock(input_report_mutex_);
   std::memcpy(report.data() + 14, &trigger_times_, sizeof(trigger_times_));
 }
 

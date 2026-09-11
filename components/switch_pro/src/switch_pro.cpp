@@ -69,15 +69,27 @@ void SwitchPro::set_trigger_elapsed_times(const std::array<uint16_t, 7> &times_1
 
 std::vector<uint8_t> SwitchPro::device_info_report() const {
   // the device-init report data (device type + placeholder MAC) with our MAC
-  // stamped in
+  // stamped in. The protocol encodes the MAC in REVERSED byte order (the
+  // placeholder in device_init_report_data is reversed), while esp_read_mac()
+  // returns forward order -- so reverse it here.
   std::vector<uint8_t> data(sp::device_init_report_data,
                             sp::device_init_report_data + std::size(sp::device_init_report_data));
-  std::copy(mac_address_.begin(), mac_address_.end(),
-            data.begin() + sp::device_init_report_data_mac_addr_offset);
+  std::reverse_copy(mac_address_.begin(), mac_address_.end(),
+                    data.begin() + sp::device_init_report_data_mac_addr_offset);
   return data;
 }
 
 std::optional<SwitchPro::ReportData> SwitchPro::on_attach() {
+  // A (re)attach starts a fresh handshake: reset session readiness/state so the
+  // sender does not stream stale 0x30 input reports before the new 0x81/0x80
+  // exchange completes (the example uses this as its mount callback, and there is
+  // no separate detach reset).
+  hid_ready_ = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(input_report_mutex_);
+    input_report_mode_ = 0;
+    input_report_id_ = 0x21;
+  }
   // kick off the initialization sequence by advertising device info (report 0x81)
   return ReportData{sp::DEVICE_INIT_REPORT, device_info_report()};
 }
@@ -103,10 +115,13 @@ std::optional<SwitchPro::ReportData> SwitchPro::on_hid_report(uint8_t report_id,
       // rejected by the host) -- the same payload on_attach() advertises.
       resp = device_info_report();
       break;
-    case INIT_COMMAND_HANDSHAKE:
-      // echo the payload back to the host
-      std::copy(data + 1, data + len, resp.begin());
+    case INIT_COMMAND_HANDSHAKE: {
+      // echo the payload back to the host, bounded to the response buffer (len is
+      // caller-supplied, so an oversized report must not overflow resp).
+      const size_t n = std::min<size_t>(len - 1, resp.size());
+      std::copy(data + 1, data + 1 + n, resp.begin());
       break;
+    }
     case INIT_COMMAND_SET_BAUD_RATE:
       break;
     case INIT_COMMAND_ENABLE_USB_HID:
