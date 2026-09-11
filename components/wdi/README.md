@@ -67,13 +67,37 @@ if (auto fb = wdi::FeedbackReport::parse(bytes)) {
 }
 ```
 
+## Device role (`espp::WdiDevice`)
+
+`WdiDevice` (in `wdi.hpp`) is the app / accessory side, transport-agnostic: give
+it a `send` callback (put a report on the wire) and feed it the host's reports via
+`handle_output()`. It owns the keepalive state machine — call `poll()` periodically
+(from an `espp::Timer` / `Task` on device) and it emits a Keepalive when one is due;
+`send_control()` / `request_feedback()` reset that timer per the spec. Time is read
+through a caller-supplied clock (default: a steady ms clock) so it is fully
+host-testable.
+
+```cpp
+espp::WdiDevice::Config cfg;
+cfg.send = [&](wdi::ReportId id, std::span<const uint8_t> body) {
+  return usb.write_hid_report(static_cast<uint8_t>(id), body); // USB HID Input report
+};
+cfg.on_feedback = [](const wdi::FeedbackReport &f) { /* update UI */ };
+espp::WdiDevice dev(cfg);
+// app loop / timer:
+dev.send_control(joystick_report); // drive the chair
+dev.poll();                        // keepalive if due
+// transport RX (HID OUT / BLE write): dev.handle_output(id, bytes);
+```
+
 ## Status
 
 - [x] Protocol core + host tests (`test/wdi_protocol_host_test.cpp`)
-- [ ] Device role — USB HID device (`espp::UsbDevice`) + BLE peripheral, with the
-      keepalive state machine
+- [x] Device role core — `WdiDevice`, keepalive state machine, host-tested
+      (`test/wdi_device_host_test.cpp`)
+- [ ] Device role transports — USB HID device (`espp::UsbDevice`) + BLE peripheral,
+      and examples
 - [ ] Host role — USB Host HID + BLE central
-- [ ] Examples (USB + BLE)
 
 ## Testing
 
