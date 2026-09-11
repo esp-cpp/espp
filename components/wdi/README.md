@@ -123,6 +123,28 @@ c++ -std=c++20 -Wall -Wextra -Werror -I components/wdi/include \
     components/wdi/test/wdi_hid_host_test.cpp -o wdi_hid_test && ./wdi_hid_test
 ```
 
+## Host library (C++ and Python)
+
+The protocol core is bundled into the espp **host library** (`lib/`), so it is
+available off-device for CI/interop testing and for building the **WDI host** (the
+wheelchair side) on a PC to test a real peripheral against:
+
+- **C++**: the `wdi/include` headers are on the host library's include path
+  (`espp::wdi::ControlReport`, `FeedbackReport`, `HostUuid`, `WdiDevice`, …).
+- **Python**: `espp.wdi` exposes the reports/bitfields/enums
+  (`ControlReport`/`FeedbackReport`/`HostUuid` with `serialize()` / `parse()`),
+  so a host or an interop test parses Control reports and builds Feedback reports:
+
+  ```python
+  import espp
+  wdi = espp.wdi
+  got = wdi.ControlReport.parse(bytes_from_peripheral)  # the wheelchair reads control
+  fb = wdi.FeedbackReport(); fb.set(wdi.FeedbackBit.DriveEnabled); fb.speed = 4
+  send(fb.serialize())                                    # ...and replies with status
+  ```
+
+  Python binding test: `python/wdi_test.py`.
+
 ## Emulation / safety note
 
 This component can **emulate** a WDI device or host for development and testing.
