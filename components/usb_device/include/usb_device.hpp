@@ -149,7 +149,7 @@ public:
    *
    * Presents a vendor-specific interface (bInterfaceClass 0xFF / SubClass 0x5D /
    * Protocol 0x01) with one interrupt IN endpoint (20-byte input reports, sent
-   * with `UsbDevice::update_gamepad()`) and one interrupt OUT endpoint (8-byte
+   * with `UsbDevice::update_xinput_state()`) and one interrupt OUT endpoint (8-byte
    * rumble / LED reports, delivered to `on_rumble`). Unlike HID it is served by a
    * small custom TinyUSB application class driver built into this component (no
    * `CFG_TUD_*` count is required).
@@ -333,10 +333,10 @@ public:
    * @note Single-writer: call from one task. The report bytes are held in an
    *       internal buffer for the duration of the (asynchronous) transfer.
    */
-  bool update_gamepad(const espp::xinput::GamepadState &state, std::error_code &ec);
+  bool update_xinput_state(const espp::xinput::GamepadState &state, std::error_code &ec);
 
-  /// @brief Convenience overload of update_gamepad() that ignores errors.
-  bool update_gamepad(const espp::xinput::GamepadState &state);
+  /// @brief Convenience overload of update_xinput_state() that ignores errors.
+  bool update_xinput_state(const espp::xinput::GamepadState &state);
 
   /// @brief Whether the XInput function is enabled, mounted and ready to accept a
   ///        new input report (no report in flight).
@@ -370,9 +370,17 @@ public:
   /// @brief Whether the vendor function is enabled and the device is mounted.
   bool is_vendor_connected() const;
 
+  /// @brief Opaque bridge letting the TinyUSB C callback trampolines reach the
+  ///        device-task-only methods below (defined in usb_device.cpp). An
+  ///        implementation detail: it is incomplete here, with nothing callable
+  ///        from application code.
+  struct Callbacks;
+
+protected:
   //
   // Internal: invoked from the TinyUSB device task via C trampolines / weak
-  // overrides. Not intended to be called by application code.
+  // overrides (through the Callbacks bridge, or the friended event trampoline).
+  // Not part of the public API; not intended to be called by application code.
   //
 
   /// @brief Internal: drain the CDC RX FIFO and dispatch to the CDC callback.

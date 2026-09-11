@@ -25,6 +25,33 @@
 
 #include "xinput.hpp"
 
+namespace espp {
+// Bridges the global TinyUSB C callback trampolines to UsbDevice's device-task-
+// only methods, which are non-public (protected). A nested type has access to the
+// enclosing class's non-public members, so these thin static forwarders keep those
+// methods off the public API without a raft of friend declarations for the
+// (variously file-static / extern "C" / version-conditional) callbacks.
+struct UsbDevice::Callbacks {
+  static void cdc_rx(UsbDevice *d) { d->handle_cdc_rx(); }
+  static void vendor_rx(UsbDevice *d, const uint8_t *buf, size_t n) { d->handle_vendor_rx(buf, n); }
+  static void xinput_out(UsbDevice *d, const uint8_t *buf, size_t n) {
+    d->handle_xinput_out(buf, n);
+  }
+  static const uint8_t *bos(UsbDevice *d) { return d->bos_descriptor(); }
+  static const uint8_t *ms_os_20(UsbDevice *d, uint16_t &len) {
+    return d->ms_os_20_descriptor(len);
+  }
+  static const uint8_t *webusb_url(UsbDevice *d, uint8_t &len) {
+    return d->webusb_url_descriptor(len);
+  }
+  static const uint8_t *hid_report(UsbDevice *d) { return d->hid_report_descriptor(); }
+  static bool xinput_active(UsbDevice *d) { return d->xinput_active(); }
+  static const std::optional<UsbDevice::VendorFunction> &vendor_config(UsbDevice *d) {
+    return d->vendor_config();
+  }
+};
+} // namespace espp
+
 namespace {
 
 // Only a single USB device exists on the chip; the BOS descriptor and the vendor
@@ -90,7 +117,7 @@ void note_tinyusb_task() {
 // is inert when no XInput function is enabled.
 struct XInputDriver {
   // All fields are touched only on the TinyUSB task (open/reset/xfer_cb/log). The
-  // app-facing update_gamepad()/is_xinput_ready() use UsbDevice's own
+  // app-facing update_xinput_state()/is_xinput_ready() use UsbDevice's own
   // impl_->xinput_ep_in (fixed at initialize(), immutable afterwards) instead of
   // reading these, so there is no cross-task access here to synchronize.
   uint8_t itf_num{0xFF};
@@ -202,7 +229,8 @@ bool xinput_drv_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t result,
     if (result == XFER_RESULT_SUCCESS && xferred_bytes > 0) {
       auto *dev = s_device.load();
       if (dev)
-        dev->handle_xinput_out(s_xinput_drv.out_buf.data(), static_cast<size_t>(xferred_bytes));
+        espp::UsbDevice::Callbacks::xinput_out(dev, s_xinput_drv.out_buf.data(),
+                                               static_cast<size_t>(xferred_bytes));
     }
     // Re-prime the OUT endpoint for the next report.
     usbd_edpt_xfer(rhport, s_xinput_drv.ep_out, s_xinput_drv.out_buf.data(), espp::xinput::kEpSize,
@@ -262,7 +290,7 @@ struct UsbDevice::Impl {
   uint8_t xinput_ep_in{0};  // 0x80|n, or 0 if the XInput function is disabled
   uint8_t xinput_ep_out{0}; // n, or 0 if disabled
   // Input-report TX buffer; held for the duration of the async interrupt-IN
-  // transfer submitted by update_gamepad(). MUST be 4-byte aligned: the ESP32-S3
+  // transfer submitted by update_xinput_state(). MUST be 4-byte aligned: the ESP32-S3
   // DWC2 reads it by DMA and a misaligned buffer makes the controller read from
   // the aligned-down address, prepending the preceding byte to every report
   // (which shifted our "00 14 .." report by one and made XUSB reject all input).
@@ -311,7 +339,7 @@ static void cdc_rx_trampoline(int itf, cdcacm_event_t *event) {
   // load once: the pointer must not be re-read between check and use
   auto *dev = s_device.load();
   if (dev)
-    dev->handle_cdc_rx();
+    UsbDevice::Callbacks::cdc_rx(dev);
 }
 #endif
 
@@ -322,7 +350,7 @@ extern "C" {
 uint8_t const *tud_descriptor_bos_cb(void) {
   note_tinyusb_task();
   auto *dev = s_device.load();
-  return dev ? dev->bos_descriptor() : nullptr;
+  return dev ? UsbDevice::Callbacks::bos(dev) : nullptr;
 }
 
 #if (CFG_TUD_VENDOR > 0)
@@ -339,7 +367,7 @@ void tud_vendor_rx_cb(uint8_t itf, uint8_t const *buffer, uint32_t bufsize) {
   // tud_vendor_read); the zero-copy variant passes the received bytes directly.
   auto *dev = s_device.load();
   if (dev)
-    dev->handle_vendor_rx(buffer, static_cast<size_t>(bufsize));
+    UsbDevice::Callbacks::vendor_rx(dev, buffer, static_cast<size_t>(bufsize));
 }
 
 // Vendor control-transfer callback: answer the WebUSB URL and MS OS 2.0
@@ -353,14 +381,14 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
   // Diagnostic: surface any vendor control request that reaches the *global*
   // vendor path (e.g. device-recipient) rather than the per-interface X-Input
   // handler, so we can tell where XUSB's init requests actually land.
-  if (dev && dev->xinput_active())
+  if (dev && UsbDevice::Callbacks::xinput_active(dev))
     ESP_LOGI("espp_xinput",
              "global vendor control bmReq=0x%02x bReq=0x%02x wVal=0x%04x wIdx=0x%04x wLen=%u",
              request->bmRequestType, request->bRequest, request->wValue, request->wIndex,
              request->wLength);
-  if (!dev || !dev->vendor_config().has_value())
+  if (!dev || !UsbDevice::Callbacks::vendor_config(dev).has_value())
     return false;
-  const auto &vendor = *dev->vendor_config();
+  const auto &vendor = *UsbDevice::Callbacks::vendor_config(dev);
 
   switch (request->bmRequestType_bit.type) {
   case TUSB_REQ_TYPE_VENDOR:
@@ -370,7 +398,7 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
     if (request->bRequest == vendor.webusb_vendor_code && request->wIndex == 2) {
       // Return the WebUSB landing-page URL descriptor.
       uint8_t len = 0;
-      const uint8_t *url = dev->webusb_url_descriptor(len);
+      const uint8_t *url = UsbDevice::Callbacks::webusb_url(dev, len);
       if (!url)
         return false;
       return tud_control_xfer(rhport, request, (void *)(uintptr_t)url, len);
@@ -378,7 +406,7 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
     if (request->bRequest == vendor.ms_os_vendor_code && request->wIndex == 7) {
       // Return the MS OS 2.0 descriptor set.
       uint16_t total_len = 0;
-      const uint8_t *ms = dev->ms_os_20_descriptor(total_len);
+      const uint8_t *ms = UsbDevice::Callbacks::ms_os_20(dev, total_len);
       if (!ms)
         return false;
       return tud_control_xfer(rhport, request, (void *)(uintptr_t)ms, total_len);
@@ -433,7 +461,7 @@ extern "C" void espp_usb_device_event_cb(tinyusb_event_t *event, void *arg) {
 uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance) {
   (void)instance;
   auto *dev = s_device.load();
-  return dev ? dev->hid_report_descriptor() : nullptr;
+  return dev ? UsbDevice::Callbacks::hid_report(dev) : nullptr;
 }
 
 // HID GET_REPORT control request: this device is input-only, so nothing to do.
@@ -1558,7 +1586,7 @@ void UsbDevice::handle_xinput_out(const uint8_t *buffer, size_t bufsize) {
     cb(std::span<const uint8_t>(buffer, bufsize)); // TinyUSB task context
 }
 
-bool UsbDevice::update_gamepad(const espp::xinput::GamepadState &state, std::error_code &ec) {
+bool UsbDevice::update_xinput_state(const espp::xinput::GamepadState &state, std::error_code &ec) {
   ec.clear();
   if (!initialized_ || !config_.xinput) {
     ec = std::make_error_code(std::errc::not_connected);
@@ -1575,7 +1603,7 @@ bool UsbDevice::update_gamepad(const espp::xinput::GamepadState &state, std::err
     ec = std::make_error_code(std::errc::not_connected);
     return false;
   }
-  // update_gamepad() runs on the caller's task, not the TinyUSB task. Follow the
+  // update_xinput_state() runs on the caller's task, not the TinyUSB task. Follow the
   // TinyUSB endpoint contract exactly (busy-check, then claim/xfer/release):
   //  - usbd_edpt_busy() rejects submitting while a previous report is still in
   //    flight (transient backpressure) — and is required because usbd_edpt_xfer()
@@ -1605,9 +1633,9 @@ bool UsbDevice::update_gamepad(const espp::xinput::GamepadState &state, std::err
   return true;
 }
 
-bool UsbDevice::update_gamepad(const espp::xinput::GamepadState &state) {
+bool UsbDevice::update_xinput_state(const espp::xinput::GamepadState &state) {
   std::error_code ec;
-  return update_gamepad(state, ec);
+  return update_xinput_state(state, ec);
 }
 
 bool UsbDevice::is_xinput_ready() const {

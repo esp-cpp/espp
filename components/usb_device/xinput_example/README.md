@@ -42,7 +42,7 @@ usb.initialize(ec);
 espp::xinput::GamepadState state;
 state.set(espp::xinput::Button::A, true);
 state.lx = 20000;                             // left stick X
-usb.update_gamepad(state);                    // send a 20-byte input report
+usb.update_xinput_state(state);                    // send a 20-byte input report
 ```
 
 See `components/usb_device/include/xinput.hpp` for the `GamepadState` /

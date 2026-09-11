@@ -67,7 +67,7 @@ extern "C" void app_main(void) {
       state.set(b, false);
     state.set(face[(tick / 50) % 4], true);
 
-    usb.update_gamepad(state); // no-op / retry-later while not mounted or busy
+    usb.update_xinput_state(state); // no-op / retry-later while not mounted or busy
 
     tick++;
     std::this_thread::sleep_for(20ms);

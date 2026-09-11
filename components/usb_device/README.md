@@ -20,7 +20,7 @@ Today it can enable, in any combination (subject to the endpoint budget):
 - An **X-Input** function that presents the device as a wired **Xbox 360
   controller** (served by a small custom TinyUSB application class driver built
   into this component — no `CFG_TUD_*` count required). Gamepad state is sent with
-  `update_gamepad()` (`include/xinput.hpp`), and rumble/LED reports arrive via an
+  `update_xinput_state()` (`include/xinput.hpp`), and rumble/LED reports arrive via an
   `on_rumble` callback. Because a PC's XUSB driver only binds a recognized Xbox
   360 VID/PID, and because the built-in vendor class also claims interface class
   0xFF, **use X-Input as the only enabled function** (it then advertises the Xbox
@@ -195,7 +195,7 @@ CONFIG_TINYUSB_CDC_COUNT=0
 ```
 
 Set `Config::xinput` (only — see the "only enabled function" note above), send
-gamepad state with `update_gamepad(GamepadState)`, and receive rumble/LED reports
+gamepad state with `update_xinput_state(GamepadState)`, and receive rumble/LED reports
 via `XInputFunction::on_rumble`. The interface uses one interrupt-IN endpoint
 (0x81, 20-byte input reports) and one interrupt-OUT endpoint (rumble/LED); the two
 use **separate endpoint numbers**, and the DMA report buffers are word-aligned, as
