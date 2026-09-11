@@ -1,0 +1,22 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Browser data plotter (Web Serial + WebUSB) that auto-parses columnar serial output and plots it, plus espp::Telemetry: a binary telemetry emitter (dispatcher module over stream_frame) the web app plots over WebUSB."
+url: "https://github.com/esp-cpp/espp/tree/main/components/telemetry"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/apps/telemetry.html"
+examples:
+  - path: example
+tags:
+  - webapp
+  - plotting
+  - serial
+  - web-serial
+  - webusb
+  - telemetry
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'
+  espp/stream_frame: '>=1.0'

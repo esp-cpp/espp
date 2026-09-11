@@ -157,7 +157,6 @@ jobs:
             components/runqueue
             components/rx8130ce
             components/seeed-studio-round-display
-            components/serial_plotter
             components/serialization
             components/smartpanlee-sc01-plus
             components/socket
@@ -171,6 +170,7 @@ jobs:
             components/t-dongle-s3
             components/tabulate
             components/task
+            components/telemetry
             components/thermistor
             components/thread_pool
             components/timer

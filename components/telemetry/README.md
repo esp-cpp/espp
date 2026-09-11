@@ -1,17 +1,20 @@
-# Serial Plotter
+# Telemetry
 
-A self-contained browser tool for reading columnar serial data and plotting it
-efficiently — modeled on [esp-cpp/uart_serial_plotter](https://github.com/esp-cpp/uart_serial_plotter),
-but running entirely in a Chromium-based browser over the Web Serial API. No
-install, no CDN, no network access.
+The `telemetry` component pairs a firmware-side `espp::Telemetry` emitter with a
+self-contained browser **Serial Plotter** web app that reads data and plots it
+efficiently — modeled on
+[esp-cpp/uart_serial_plotter](https://github.com/esp-cpp/uart_serial_plotter),
+but running entirely in a Chromium-based browser. No install, no CDN, no network
+access. Two transports feed the same plot:
 
-- **Hosted:** <https://esp-cpp.github.io/espp/apps/serial_plotter.html>
-- **Offline:** open `web/serial_plotter.html` directly via a `file://` URL.
+- **Web Serial (text / CSV)** — auto-parses columnar output (a header line plus
+  numeric rows) from any device that prints it.
+- **WebUSB (binary telemetry)** — an espp device streams typed float channels
+  via `espp::Telemetry` (see `include/telemetry.hpp` and the
+  [example](example/)) for higher rate and device-accurate timestamps.
 
-> This component currently ships the webapp only. A firmware-side binary
-> **telemetry** transport (a `stream_frame` / `dispatcher` module for
-> higher-bandwidth, typed channels) is a planned follow-up; the same webapp will
-> gain a WebUSB transport that feeds the same plot.
+- **Hosted:** <https://esp-cpp.github.io/espp/apps/telemetry.html>
+- **Offline:** open `web/telemetry.html` directly via a `file://` URL.
 
 ## Screenshots
 
@@ -47,6 +50,11 @@ rest, with the per-series filter bar:
   (`Float32Array`) and are drawn with [uPlot](https://github.com/leeoniya/uPlot),
   which does the pixel decimation. Redraws are coalesced to one per animation
   frame. The retained-points cap is configurable (default 200k per series).
+- **Live zoom (Follow).** While streaming, the view auto-scrolls to the latest
+  data — optionally to a rolling **Window** of the last _N_ seconds. Drag to zoom
+  and it drops out of **Follow** so your zoomed view stays put (all retained
+  samples remain there to pan/zoom through); double-click, or click **Follow**,
+  to snap back to live.
 - **Series filter.** A filter bar shows a colored chip per column: click to
   toggle a series on/off, or type in the name box to plot only the columns /
   tags that match (composes with the manual toggles), plus **All** / **None**.
@@ -60,16 +68,23 @@ rest, with the per-series filter bar:
   (or any matching CSV) to view it offline with no device connected.
 - **Serial controls.** Baud selector, pause / resume, clear, and a DTR/RTS device
   reset.
+- **Binary telemetry over WebUSB.** Connect with **USB** to an espp device
+  running `espp::Telemetry`: the app reads the channel schema and plots the
+  device-timestamped sample stream (decoded from the `stream_frame` framing,
+  dispatcher module 3) into the same plot. Requests the schema on connect and
+  can pause/resume the device stream.
 
 ## Requirements
 
-Web Serial is available only in Chromium-based browsers (Chrome, Edge, Opera) and
-needs a secure context — it works from `https`, `http://localhost`, or `file://`.
-In an unsupported browser the app still loads and can **Load CSV** for viewing.
+Web Serial and WebUSB are available only in Chromium-based browsers (Chrome,
+Edge, Opera) and need a secure context — they work from `https`,
+`http://localhost`, or `file://`. In an unsupported browser the app still loads
+and can **Load CSV** for viewing. Native USB telemetry needs an ESP32-S3 (also
+S2 / P4) device; see [`example/`](example/).
 
 ## Third-party
 
 Plotting uses **uPlot** (`web/uPlot.iife.min.js`), MIT-licensed, pinned to
 v1.6.31 — <https://github.com/leeoniya/uPlot>. It is vendored as a sibling `.js`
 file (the docs workflow ships `web/*.html` and `web/*.js`); uPlot's small CSS is
-inlined into `serial_plotter.html`. Everything else is dependency-free.
+inlined into `telemetry.html`. Everything else is dependency-free.
