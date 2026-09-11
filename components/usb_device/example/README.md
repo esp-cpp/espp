@@ -12,8 +12,11 @@ state (matching how a real ODrive splits its protocols across interfaces):
 - **HID** → an animated **gamepad** input device (built with the `hid-rp`
   component; visualize it with the WebHID `hid_visualizer.html`).
 
-The device enumerates with an ODrive-like VID/PID (0x1209 / 0x0d32), separate from
-the log console which stays on the USB-Serial-JTAG peripheral.
+The device enumerates with an ODrive-like VID/PID (0x1209 / 0x0d32) on the native
+USB port. The log console is on **UART0** (with USB-Serial-JTAG as an early-boot
+secondary): on the ESP32-S3 the USB-Serial-JTAG controller and USB-OTG share the
+same native USB PHY, so keeping the console on it would contend with the TinyUSB
+interfaces here and reboot-loop the device.
 
 Each protocol server is transport-agnostic: the CDC RX callback feeds bytes to
 `OdriveAscii::process_bytes()`, the vendor RX callback feeds bytes to
@@ -58,8 +61,8 @@ idf.py build
 
 ## Flash and Monitor
 
-Flash / monitor over the USB-Serial-JTAG (or UART) console, which is kept separate
-from the native USB interfaces:
+Flash / monitor over the UART0 console (a USB-UART adapter), which is independent
+of the native USB interfaces this example presents:
 
 ```sh
 idf.py flash monitor
@@ -111,5 +114,6 @@ and connect.
 - The HID report descriptor is built with the `hid-rp` component
   (`espp::GamepadInputReport`); the main loop animates the state and pushes reports
   with `write_hid_report()` when the HID interface is ready.
-- The log console remains on the USB-Serial-JTAG peripheral (see
-  `sdkconfig.defaults.esp32s3`).
+- The log console is on UART0, with USB-Serial-JTAG as an early-boot secondary
+  (see `sdkconfig.defaults.esp32s3`) — it cannot stay on USB-Serial-JTAG because
+  that shares the native USB PHY with the USB-OTG interfaces here.

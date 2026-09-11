@@ -1,7 +1,14 @@
 # USB-OTG is available on the ESP32-S3 (also S2 / P4).
 CONFIG_IDF_TARGET="esp32s3"
 
-# Keep the log console on the built-in USB-Serial-JTAG peripheral so it stays
-# completely separate from the native USB-OTG CDC interface created by
-# espp::UsbCdc. (On an ESP32-S3 devkit these are two distinct USB connectors.)
-CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# Put the log console on UART0, NOT the USB-Serial-JTAG peripheral. This example
+# hands the native USB-OTG port to TinyUSB (the CDC / vendor / HID interfaces), and
+# on the ESP32-S3 the USB-Serial-JTAG controller and USB-OTG share the SAME
+# internal USB PHY / physical port (GPIO19/20) — they are NOT separate. Running the
+# console on USB-Serial-JTAG therefore contends with the TinyUSB interfaces for that
+# one port and makes the device reboot-loop at boot. UART0 is an independent
+# peripheral (the devkit's other, "UART", connector via its USB-UART bridge), so the
+# console is unaffected once TinyUSB takes over the native USB port. USB-Serial-JTAG
+# stays as the SECONDARY console for early-boot logs before TinyUSB comes up.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y

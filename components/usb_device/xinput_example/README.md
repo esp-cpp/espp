@@ -7,8 +7,11 @@ controllers" (`joy.cpl`) and any X-Input game, or under Linux `xpad`.
 
 The demo sweeps the sticks/triggers in a circle and steps the face buttons
 A/B/X/Y one at a time each second, so you can see live input, and logs any
-rumble / LED reports the host sends back. The console/logs go to the separate
-built-in USB-Serial-JTAG so they stay off the emulated controller interface.
+rumble / LED reports the host sends back. The console/logs go to **UART0** (with
+USB-Serial-JTAG as an early-boot secondary): on the ESP32-S3 the USB-Serial-JTAG
+controller shares the native USB port's PHY with USB-OTG, so keeping the console
+on it would contend with the emulated controller interface and reboot-loop the
+device. Use a UART / USB-UART adapter on UART0 for `idf.py monitor`.
 
 ## Build & flash
 
@@ -18,7 +21,7 @@ example's `sdkconfig.defaults` disables CDC/vendor/HID entirely. Flash it to an
 ESP32-S3 and plug the native USB-OTG port into a PC:
 
 ```sh
-idf.py -p <PORT> flash monitor   # monitor is the USB-Serial-JTAG console
+idf.py -p <PORT> flash monitor   # console is on UART0 (USB-UART adapter)
 ```
 
 ## Identity (emulation only)
