@@ -36,6 +36,11 @@ class MockDevice:
             self._handle(fr)
 
     def read(self, max_len, timeout_ms=0):
+        # Simulate the device dropping off the bus (a reboot mid-transaction):
+        # UsbVendorTransport.read() re-raises a non-timeout USBError, which is an
+        # OSError subclass. Only trigger once there is nothing buffered to hand back.
+        if getattr(self, "_disconnect", False) and not self._out:
+            raise OSError("device disconnected")
         if not self._out:
             return b""
         chunk = bytes(self._out[:max_len])
@@ -88,7 +93,12 @@ class MockDevice:
             self._reply(P._build(MessageType.OK, struct.pack("<I", 0)))
         elif t == MessageType.MARK_INVALID:
             self.rolled_back = True
-            self._reply(P._build(MessageType.OK, struct.pack("<I", 0)))
+            if getattr(self, "_rollback_refused", False):
+                # e.g. no valid previous image: the device refuses and stays put.
+                self._reply(P._build(MessageType.ERROR, struct.pack("<I", 2) + b"no valid app"))
+            elif getattr(self, "_rollback_disconnect", False):
+                self._disconnect = True  # the device reboots -> read() raises OSError
+            # else: reboot with NO reply -> the host's read times out (success)
 
 
 def _ok(name, cond):
@@ -173,8 +183,34 @@ def test_rollback_control():
     _ok("mark_valid confirmed", getattr(dev, "marked_valid", False) and not dev._pending)
     st2 = OtaClient(dev).get_status()
     _ok("status confirmed after mark_valid", not st2.pending_verify)
-    OtaClient(dev).mark_invalid()
-    _ok("rollback requested", getattr(dev, "rolled_back", False))
+
+
+def test_rollback_reboots_no_reply():
+    """Success = the device reboots WITHOUT replying, so the host's read times out.
+    A short data timeout keeps the test fast."""
+    dev = MockDevice()
+    OtaClient(dev, data_timeout_ms=50).mark_invalid()  # no reply -> timeout -> success
+    _ok("rollback (no reply) requested", getattr(dev, "rolled_back", False))
+
+
+def test_rollback_disconnect_is_success():
+    """A USB disconnect while awaiting the reply (read() raises OSError) also means
+    the device rebooted -> success, not a raised error."""
+    dev = MockDevice()
+    dev._rollback_disconnect = True
+    OtaClient(dev, data_timeout_ms=50).mark_invalid()  # OSError on read -> success
+    _ok("rollback (disconnect) requested", getattr(dev, "rolled_back", False))
+
+
+def test_rollback_refused_raises():
+    """A device ERROR reply (e.g. no valid previous image) is a genuine failure."""
+    dev = MockDevice()
+    dev._rollback_refused = True
+    try:
+        OtaClient(dev, data_timeout_ms=50).mark_invalid()
+        _ok("rollback refused raises", False)
+    except OtaError:
+        _ok("rollback refused raises", True)
 
 
 def test_begin_busy_recovers():
@@ -194,4 +230,7 @@ if __name__ == "__main__":
     test_small_image_one_chunk()
     test_begin_busy_recovers()
     test_rollback_control()
+    test_rollback_reboots_no_reply()
+    test_rollback_disconnect_is_success()
+    test_rollback_refused_raises()
     print("all host tests passed")

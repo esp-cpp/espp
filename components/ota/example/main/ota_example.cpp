@@ -174,7 +174,15 @@ function postAction(url,pending){
   msg.textContent=pending;xhr.send();
 }
 mv.addEventListener("click",()=>postAction("/mark-valid","Marking image valid…"));
-rb.addEventListener("click",()=>{if(confirm("Roll back to the previous image and reboot?"))postAction("/rollback","Rolling back…");});
+rb.addEventListener("click",()=>{
+  if(!confirm("Roll back to the previous image and reboot?"))return;
+  const xhr=new XMLHttpRequest();xhr.open("POST","/rollback");authHeader(xhr);
+  // On success the device reboots with no reply -> the connection drops (onerror).
+  // A completed response means rollback was refused (e.g. no image to roll back to).
+  xhr.onload=()=>{msg.textContent="Rollback refused: "+xhr.responseText;};
+  xhr.onerror=()=>{msg.textContent="Device is rolling back and rebooting…";};
+  msg.textContent="Requesting rollback…";xhr.send();
+});
 $("refresh").addEventListener("click",loadStatus);
 b.addEventListener("click",()=>{
   const file=f.files&&f.files[0];
@@ -292,20 +300,18 @@ static esp_err_t ota_mark_valid_handler(httpd_req_t *req) {
 }
 
 // POST /rollback: reject the running image and reboot into the previous one.
-// Replies first because mark_app_invalid_and_rollback() reboots on success.
+// mark_app_invalid_and_rollback() does NOT return on success (it reboots), so
+// there is deliberately NO "ok" response: the client sees the connection drop as
+// the device reboots, and the page treats that as success. Only a *failure*
+// (e.g. no valid image to roll back to) returns here and gets an explicit error
+// response — so we never report "rolling back" for a rollback that was refused.
 static esp_err_t ota_rollback_handler(httpd_req_t *req) {
   if (!ota_http_authorized(req))
     return ESP_OK;
   auto *ota = static_cast<espp::Ota *>(req->user_ctx);
-  httpd_resp_set_type(req, "application/json");
-  httpd_resp_send(req,
-                  "{\"status\":\"ok\",\"message\":\"rolling back to the previous image; "
-                  "rebooting\"}",
-                  HTTPD_RESP_USE_STRLEN);
-  std::this_thread::sleep_for(750ms); // let the response flush before we reboot
   std::error_code ec;
-  ota->mark_app_invalid_and_rollback(ec); // reboots on success; response already sent
-  return ESP_OK;
+  ota->mark_app_invalid_and_rollback(ec);                // reboots on success (never returns)
+  return ota_post_fail(req, ota, ec, "rollback failed"); // only reached on failure
 }
 
 static esp_err_t ota_post_handler(httpd_req_t *req) {
@@ -565,11 +571,15 @@ extern "C" void app_main(void) {
         reply_error(ec, "mark valid failed");
       break;
     case proto::MessageType::MarkInvalid:
-      // Reject the running image: roll back to the previous app and reboot. This
-      // does not return on success (the device reboots), so reply first.
-      usb.write_vendor(proto::make_ok(0));
+      // Reject the running image: roll back to the previous app and reboot.
+      // mark_app_invalid_and_rollback() does NOT return on success (the device
+      // reboots), so DON'T pre-send OK: the reboot / USB disconnect IS the
+      // success signal to the host. Only a *failure* (e.g. no valid image to
+      // roll back to) returns here, and it is the sole reply — an ERROR. Sending
+      // OK first would let the host report success even when rollback was
+      // refused, leaving a stale ERROR on the stream.
       if (!ota.mark_app_invalid_and_rollback(ec))
-        reply_error(ec, "rollback failed"); // only reached if rollback failed
+        reply_error(ec, "rollback failed");
       break;
     default:
       reply_error(std::make_error_code(std::errc::not_supported), "unknown message type");

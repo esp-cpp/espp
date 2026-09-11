@@ -155,15 +155,31 @@ class OtaClient:
 
     def mark_invalid(self) -> None:
         """Reject the running image: the device rolls back to the previous app and
-        reboots. The device may reboot before/without replying, so a missing reply
-        is treated as success."""
-        try:
-            self._transact(_p.make_mark_invalid(), self._data_to)
-        except OtaError as exc:
-            # A timeout (no code) is expected — the device rebooted. Re-raise a
-            # real device ERROR (rollback refused, e.g. no previous app).
-            if exc.code is not None:
-                raise
+        reboots. On success it reboots *without* replying, so a missing reply is the
+        expected outcome. This must NOT use _transact(), which cannot tell a write
+        failure from link loss while awaiting the reply. Instead: send first (a
+        failure there means the command never reached the device -> a real error
+        that propagates), then wait -- a read timeout OR a USB disconnect (the
+        device dropping off the bus as it re-enumerates) both mean it rebooted, so
+        both are success. Only an explicit device ERROR (rollback refused, e.g. no
+        previous app to roll back to) is a genuine failure."""
+        self._t.write(_p.make_mark_invalid(), timeout_ms=self._data_to)
+        deadline = time.monotonic() + self._data_to / 1000.0
+        while True:
+            try:
+                fr = self._next_frame(deadline)
+            except OtaError:
+                return  # read timed out: no reply -> the device rebooted (success)
+            except OSError:
+                return  # USB disconnect while awaiting -> the device rebooted (success)
+            if fr.module != _p.MODULE or not fr.is_reply:
+                continue  # not our reply; keep waiting
+            if fr.type == MessageType.ERROR:
+                info = _p.parse_error(fr)
+                raise OtaError(
+                    f"device error: {info.message}" if info else "rollback refused",
+                    info.code if info else None)
+            return  # OK / any other reply: the device acknowledged -> done
 
     def discover(self, timeout_ms: int = 2000) -> List[_f.Frame]:
         """Send a dispatcher ListModules request; return the matching reply.

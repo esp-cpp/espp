@@ -50,6 +50,9 @@ static void test_requests_are_module0_requests() {
       {ota::make_data(img), MessageType::Data},
       {ota::make_finish(), MessageType::Finish},
       {ota::make_abort(), MessageType::Abort},
+      {ota::make_get_status(), MessageType::GetStatus},
+      {ota::make_mark_valid(), MessageType::MarkValid},
+      {ota::make_mark_invalid(), MessageType::MarkInvalid},
   };
   for (const auto &c : cases) {
     ota::Frame f{};
@@ -95,6 +98,81 @@ static void test_replies_carry_reply_flag() {
   }
 }
 
+static void test_status_reply() {
+  std::printf("test_status_reply\n");
+  // Full STATUS: both flags set + version + project round-trip.
+  ota::Frame s{};
+  CHECK(parse_one(ota::make_status(ota::kStatusPendingVerify | ota::kStatusRollbackSupported,
+                                   "v1.2.3", "ota_example"),
+                  s));
+  CHECK(s.is_reply() && s.type == static_cast<uint8_t>(MessageType::Status));
+  auto info = ota::parse_status(s);
+  CHECK(info.has_value());
+  if (info.has_value()) {
+    CHECK(info->pending_verify());
+    CHECK(info->rollback_supported());
+    CHECK(info->version == "v1.2.3");
+    CHECK(info->project_name == "ota_example");
+  }
+
+  // Flags-only STATUS (older device: no strings) still parses; strings empty.
+  ota::Frame s2{};
+  CHECK(parse_one(ota::make_status(0), s2));
+  auto info2 = ota::parse_status(s2);
+  CHECK(info2.has_value());
+  if (info2.has_value()) {
+    CHECK(!info2->pending_verify());
+    CHECK(!info2->rollback_supported());
+    CHECK(info2->version.empty() && info2->project_name.empty());
+  }
+
+  // Only the rollback-supported flag set (a confirmed image on a rollback build).
+  ota::Frame s3{};
+  CHECK(parse_one(ota::make_status(ota::kStatusRollbackSupported, "v2", "p"), s3));
+  auto info3 = ota::parse_status(s3);
+  CHECK(info3.has_value());
+  if (info3.has_value()) {
+    CHECK(!info3->pending_verify() && info3->rollback_supported());
+  }
+}
+
+static void test_malformed_status_payloads() {
+  std::printf("test_malformed_status_payloads\n");
+  // Empty payload -> nullopt (no flags byte).
+  ota::Frame empty{};
+  CHECK(!ota::parse_status(empty).has_value());
+
+  // Flags byte only -> valid, empty strings.
+  ota::Frame flags_only{};
+  flags_only.payload = {ota::kStatusPendingVerify};
+  auto a = ota::parse_status(flags_only);
+  CHECK(a.has_value());
+  if (a.has_value()) {
+    CHECK(a->pending_verify() && a->version.empty() && a->project_name.empty());
+  }
+
+  // Truncated version string (declares len 5, only 2 bytes present): clamp, don't
+  // over-read, and leave the project empty.
+  ota::Frame trunc{};
+  trunc.payload = {0x02 /*flags*/, 0x05 /*version len*/, 'v', '2'};
+  auto b = ota::parse_status(trunc);
+  CHECK(b.has_value());
+  if (b.has_value()) {
+    CHECK(b->rollback_supported());
+    CHECK(b->version == "v2"); // clamped to the available bytes
+    CHECK(b->project_name.empty());
+  }
+
+  // Version present, project length declared but zero bytes follow.
+  ota::Frame missing_proj{};
+  missing_proj.payload = {0x00, 0x01, 'x', 0x04 /*project len, no bytes*/};
+  auto c = ota::parse_status(missing_proj);
+  CHECK(c.has_value());
+  if (c.has_value()) {
+    CHECK(c->version == "x" && c->project_name.empty());
+  }
+}
+
 static void test_malformed_reply_payloads() {
   std::printf("test_malformed_reply_payloads\n");
   ota::Frame f{};
@@ -119,6 +197,8 @@ static void test_malformed_reply_payloads() {
 int main() {
   test_requests_are_module0_requests();
   test_replies_carry_reply_flag();
+  test_status_reply();
+  test_malformed_status_payloads();
   test_malformed_reply_payloads();
   if (g_failures == 0) {
     std::printf("ALL TESTS PASSED\n");

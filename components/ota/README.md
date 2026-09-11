@@ -128,11 +128,25 @@ Or drive it directly: `python -m espp_ota flash build/<app>.bin` (see
 
 ## Rollback
 
-With `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y`, a freshly-installed app boots
-in the `ESP_OTA_IMG_PENDING_VERIFY` state; it **must** call `mark_app_valid()`
-after its own health checks pass, or the bootloader rolls back to the previous
-image on the next reset. `mark_app_invalid_and_rollback()` actively rejects the
-new image and reboots into the previous one.
+With `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y`, a freshly-installed app boots in
+the `ESP_OTA_IMG_PENDING_VERIFY` state and the bootloader rolls it back to the
+previous image on the next reset **unless it is confirmed**
+(`mark_app_valid()`). `mark_app_invalid_and_rollback()` actively rejects the new
+image and reboots into the previous one. The engine only provides these
+primitives; **who** calls them, and **when**, is a policy the application picks:
+
+- **Device self-validation**: the app runs its own health checks at boot and
+  calls `mark_app_valid()` itself. Simple, but a broken build can validate
+  itself right before failing (the check may not catch what breaks it).
+- **Host-driven confirmation** (what this example + tooling do): the app does
+  **not** confirm itself — it stays pending and exposes `GET_STATUS` /
+  `MARK_VALID` / `MARK_INVALID` over the stream protocol, and the **host**
+  confirms the image once it has verified the device is healthy (the
+  [OTA Console](https://esp-cpp.github.io/espp/apps/ota_console.html) and the
+  `espp-ota` CLI do this on reconnect). More robust: an image that cannot boot
+  and answer the host is never confirmed, so it rolls back.
+
+See the [example](./example) for the host-driven wiring.
 
 ## Example
 
@@ -152,6 +166,10 @@ engine on an ESP32-S3:
 The wire framing is host-tested (no ESP-IDF needed):
 
 ```bash
-c++ -std=c++20 -Werror -I components/ota/include \
+c++ -std=c++20 -Werror -I components/ota/include -I components/stream_frame/include \
     components/ota/test/ota_protocol_host_test.cpp -o ota_test && ./ota_test
 ```
+
+It covers every request builder + reply parser, including the status / rollback
+messages (`GET_STATUS` / `MARK_VALID` / `MARK_INVALID`, `make_status` /
+`parse_status`) and malformed / truncated `STATUS` payloads.

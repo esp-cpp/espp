@@ -674,9 +674,9 @@
         const result = await Promise.race([xfer, timeout]);
         if (result.status === "stall") {
           try { await device.clearHalt("in", epIn); } catch (_) {}
-          throw new Error("IN endpoint stalled");
+          const e = new Error("IN endpoint stalled"); e.stalled = true; throw e;
         }
-        if (result.status === "babble") throw new Error("IN endpoint babble (device sent too much)");
+        if (result.status === "babble") { const e = new Error("IN endpoint babble (device sent too much)"); e.stalled = true; throw e; }
         // result.data is a DataView; honor its byteOffset/byteLength so we do
         // not read trailing junk from the underlying ArrayBuffer.
         return result.data
@@ -715,10 +715,18 @@
         if (!device || epOut === null) throw new Error("not connected");
         const frame = buildFrame(type, payload);
         if (els.logFrames.checked) logLine("tx", TYPE_NAME[type] + " " + hex(frame));
-        const out = await device.transferOut(epOut, frame);
+        let out;
+        try {
+          out = await device.transferOut(epOut, frame);
+        } catch (e) {
+          // The command never went out on the wire: a send failure, not a reply
+          // (or its absence). Tag it so callers don't mistake it for a reboot.
+          e.sendFailed = true;
+          throw e;
+        }
         if (out.status === "stall") {
           try { await device.clearHalt("out", epOut); } catch (_) {}
-          throw new Error("OUT endpoint stalled");
+          const e = new Error("OUT endpoint stalled"); e.stalled = true; throw e;
         }
         const deadline = Date.now() + timeoutMs;
         for (;;) {
@@ -748,7 +756,9 @@
             if (reply.type === TYPE.OK) return parseU32(reply.payload);
             if (reply.type === TYPE.ERROR) {
               const info = parseError(reply.payload);
-              throw new Error("device error" + (info ? " (code " + info.code + "): " + info.message : ""));
+              const e = new Error("device error" + (info ? " (code " + info.code + "): " + info.message : ""));
+              e.deviceError = true; // the device explicitly rejected the command
+              throw e;
             }
             logLine("err", "Ignoring unexpected reply type 0x" + reply.type.toString(16));
           }
@@ -978,13 +988,20 @@
 
     els.rollbackBtn.addEventListener("click", async () => {
       if (!confirm("Roll back to the previous image and reboot the device?")) return;
-      // The device reboots on success and may not reply, so a deadline/link loss
-      // here is the expected outcome, not an error.
+      // The device does NOT reply OK to MARK_INVALID on success -- it reboots -- so
+      // ONLY an expected timeout / link loss (no reply, because the device went
+      // away) counts as success. A device ERROR reply, an endpoint stall, or a
+      // send failure means the rollback was refused or never delivered.
       try {
         await transact(TYPE.MARK_INVALID, null, DATA_TIMEOUT_MS);
-        logLine("ok", "Rollback acknowledged; device rebooting into the previous image.");
+        // Resolved => the device answered instead of rebooting (unexpected).
+        logLine("err", "Rollback not performed: the device replied instead of rebooting.");
       } catch (e) {
-        logLine("sys", "Rollback sent; device is rebooting (no reply expected). [" + e.message + "]");
+        if (e && (e.deviceError || e.stalled || e.sendFailed)) {
+          logLine("err", "Rollback failed: " + e.message);
+        } else {
+          logLine("ok", "Rollback accepted; device is rebooting into the previous image.");
+        }
       }
     });
 
