@@ -52,6 +52,10 @@ Features
   ``hid-rp`` in the example) and ``write_hid_report()``
 - X-Input interface (wired Xbox 360 controller) via a custom application class
   driver, with ``update_xinput_state()`` and an ``on_rumble`` callback
+- Console over CDC: optionally route the ESP console (stdout) to the CDC interface
+  (``CdcFunction::route_console`` or ``route_console_to_cdc()``) so one native USB
+  cable carries the logs alongside a vendor / HID / XInput interface; non-blocking,
+  and teed to the primary UART console by default
 - WebUSB: BOS descriptor + WebUSB URL descriptor + MS OS 2.0 descriptor for
   driverless browser access, with a configurable landing-page URL
 - Sequential interface / endpoint / string allocation with an endpoint-budget check
@@ -154,6 +158,35 @@ state with ``update_xinput_state()`` and receive rumble/LED via ``on_rumble``. T
 interface uses one interrupt-IN (0x81) + one interrupt-OUT endpoint with separate
 endpoint numbers, and the report DMA buffers are word-aligned as the ESP32-S3 DWC2
 requires.
+
+Routing the console over CDC
+----------------------------
+
+When the native USB port is given to TinyUSB for a vendor / HID / XInput interface,
+the ESP console can no longer live on USB-Serial-JTAG (on the ESP32-S3 it shares
+the USB-OTG PHY, so it contends and reboot-loops the device). Add a CDC function
+and route the console to it, and one native USB cable carries both the logs and the
+other interface:
+
+.. code-block:: cpp
+
+   espp::UsbDevice::CdcFunction cdc;
+   cdc.route_console = true;   // redirect stdout -> CDC at the end of initialize()
+   // cdc.tee_console = true;  // (default) also keep the primary UART console
+   usb_cfg.cdc = cdc;
+   usb_cfg.vendor = my_vendor; // CDC is just the log channel
+   espp::UsbDevice usb(usb_cfg);
+   usb.initialize(ec);         // console now on CDC (teed to UART)
+
+Or call ``usb.route_console_to_cdc()`` yourself after a successful ``initialize()``.
+``printf`` / ``ESP_LOG`` / ``espp::Logger`` all write to ``stdout``, which is
+``freopen``ed onto a tiny write-only VFS device; its writes forward to
+``write_cdc()`` only when the whole chunk fits the TX FIFO (never blocking on an
+absent reader, and not gated on DTR) and, with ``tee_console`` (default), are also
+written to the primary UART console so ``idf.py monitor`` keeps working. Recommended
+console config: UART0 primary (``CONFIG_ESP_CONSOLE_UART_DEFAULT``) with
+USB-Serial-JTAG as the secondary console for early-boot logs. The ``ota`` example
+uses this.
 
 Endpoint budget (ESP32-S3 USB-OTG)
 ----------------------------------

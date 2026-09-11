@@ -12,14 +12,9 @@
 #include <thread>
 #include <vector>
 
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
 #include "sdkconfig.h"
 
 #include "esp_http_server.h"
-#include "esp_vfs.h"
 #include "nvs_flash.h"
 
 #include "detail/ota_stream_protocol.hpp"
@@ -31,84 +26,6 @@
 #include "wifi_sta.hpp"
 
 using namespace std::chrono_literals;
-
-/////////////////////////////////////////////////////////////////////////////
-// Console -> USB-CDC routing.
-//
-// The native USB port is handed to TinyUSB for the OTA vendor interface, so the
-// ESP console runs on UART0 (primary) with USB-Serial-JTAG as an early-boot
-// secondary (see sdkconfig.defaults). Once TinyUSB is up we ALSO add a USB-CDC
-// interface and route the console to it, so a single native USB cable carries
-// BOTH the OTA vendor stream and the logs.
-//
-// espp::Logger writes with fmt::print(...) to stdout (not ESP_LOG's vprintf),
-// and printf / ESP_LOG default to stdout too, so redirecting *stdout* captures
-// all of them. We register a tiny write-only VFS device whose write() tees each
-// chunk to (a) the original UART0 console fd — kept as a permanent fallback so
-// `idf.py monitor` on UART0 keeps working and nothing is lost when no CDC host
-// is attached — and (b) the USB-CDC interface, but only when a host has it open
-// (DTR) AND the whole chunk fits the TX FIFO right now. That last check keeps
-// logging non-blocking: write_cdc() would otherwise sleep up to 250 ms waiting
-// for an absent / slow reader to drain. Dropped console bytes are harmless.
-/////////////////////////////////////////////////////////////////////////////
-namespace {
-espp::UsbDevice *g_console_usb = nullptr;
-int g_console_fallback_fd = -1; // fd of the primary (UART0) console, kept as a tee
-
-int cdc_vfs_open(const char *, int, int) { return 0; }
-int cdc_vfs_close(int) { return 0; }
-int cdc_vfs_fstat(int, struct stat *st) {
-  *st = {};
-  st->st_mode = S_IFCHR; // a character device (console), so stdio uses line/no buffering
-  return 0;
-}
-
-ssize_t cdc_vfs_write(int, const void *data, size_t size) {
-  if (g_console_fallback_fd >= 0)
-    ::write(g_console_fallback_fd, data, size); // always keep UART0 as a tee
-  // Mirror to USB-CDC when the interface is mounted and the whole chunk fits the
-  // TX FIFO right now. cdc_write_available() returns 0 unless the device is
-  // mounted, so this never blocks and never partially writes. We intentionally
-  // do NOT gate on DTR (is_cdc_connected()): a plain serial monitor frequently
-  // does not assert DTR, yet a debug console should still emit — the host's CDC
-  // driver buffers what we send and hands it over once a reader attaches. If
-  // nothing is draining, the FIFO fills and we simply drop the chunk (harmless).
-  if (g_console_usb && g_console_usb->cdc_write_available() >= size) {
-    std::error_code ec;
-    g_console_usb->write_cdc({static_cast<const uint8_t *>(data), size}, ec);
-  }
-  return static_cast<ssize_t>(size);
-}
-
-// Redirect stdout to the CDC-teeing VFS device. Call once, after the USB device
-// (with a CDC function) has initialized. Best-effort: on any failure the console
-// simply stays on UART0.
-void route_console_to_cdc(espp::UsbDevice &usb) {
-  fflush(stdout);
-  g_console_usb = &usb;
-  // Open the primary console (UART0) directly to keep it as a tee. (ESP-IDF's
-  // libc has no dup(), so we can't dup stdout's fd; the uart VFS exposes the
-  // device by path instead.) On failure we simply don't tee to UART0.
-  g_console_fallback_fd = open("/dev/uart/0", O_WRONLY);
-  esp_vfs_t vfs = {};
-  vfs.flags = ESP_VFS_FLAG_DEFAULT;
-  // The classic (context-pointer-less) esp_vfs_t members are marked deprecated
-  // in IDF v6, but are perfect for this tiny write-only console sink; use them
-  // deliberately and suppress the deprecation notice.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  vfs.open = &cdc_vfs_open;
-  vfs.write = &cdc_vfs_write;
-  vfs.close = &cdc_vfs_close;
-  vfs.fstat = &cdc_vfs_fstat;
-#pragma GCC diagnostic pop
-  if (esp_vfs_register("/dev/cdc", &vfs, nullptr) != ESP_OK)
-    return;
-  if (freopen("/dev/cdc", "w", stdout) == nullptr)
-    return;
-  setvbuf(stdout, nullptr, _IONBF, 0); // push each log line to CDC promptly
-}
-} // namespace
 
 /////////////////////////////////////////////////////////////////////////////
 // HTTP transport: esp_http_server handlers streaming into espp::Ota.
@@ -420,11 +337,16 @@ extern "C" void app_main(void) {
   vendor.landing_page_url = "esp-cpp.github.io/espp/apps/ota_console.html";
   usb_cfg.vendor = vendor;
   // Add a CDC-ACM function so the SAME native USB cable also carries the log
-  // console once TinyUSB is up (routed below, after initialize()). CDC uses 1
-  // interrupt IN + 1 bulk IN + 1 bulk OUT; with the vendor function's bulk IN +
-  // OUT that is 3 IN / 2 OUT endpoints — within the ESP32-S3 budget.
+  // console. `route_console = true` makes UsbDevice redirect the ESP console
+  // (stdout: printf / ESP_LOG / espp::Logger) to this CDC interface at the end of
+  // initialize(), teeing to the UART0 console so `idf.py monitor` still works. So
+  // one native USB cable carries both the OTA vendor stream and the logs -- no
+  // manual VFS plumbing in the app. CDC uses 1 interrupt IN + 1 bulk IN + 1 bulk
+  // OUT; with the vendor function's bulk IN + OUT that is 3 IN / 2 OUT endpoints,
+  // within the ESP32-S3 budget.
   espp::UsbDevice::CdcFunction cdc;
   cdc.interface_name = "espp OTA console";
+  cdc.route_console = true; // redirect the console to this CDC interface (tee to UART0)
   usb_cfg.cdc = cdc;
   espp::UsbDevice usb(usb_cfg);
 
@@ -460,16 +382,10 @@ extern "C" void app_main(void) {
   });
 
   std::error_code usb_ec;
-  if (!usb.initialize(usb_ec)) {
+  if (!usb.initialize(usb_ec))
     logger.error("Failed to initialize USB device: {}", usb_ec.message());
-  } else {
-    // TinyUSB now owns the native USB port (vendor OTA + CDC). Route the console
-    // to the CDC interface so one cable carries logs too; UART0 stays teed as a
-    // fallback (see route_console_to_cdc). Log the handoff on UART0 first.
-    logger.info("Routing console to USB-CDC (single cable: OTA + logs; UART0 stays teed).");
-    route_console_to_cdc(usb);
-    logger.info("Console is now also on USB-CDC.");
-  }
+  // On success the console is now on USB-CDC (cdc.route_console above), teed to
+  // UART0 -- this and later logs travel over the native USB cable and UART0.
 
   // Route the vendor stream through a Dispatcher: OTA occupies module id 0 (its
   // opcodes are 0x0X). Other protocols (e.g. a crash-dump service on module 4)

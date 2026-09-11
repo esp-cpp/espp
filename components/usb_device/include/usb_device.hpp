@@ -87,6 +87,30 @@ public:
     std::string interface_name{"espp CDC"};  /**< CDC interface string descriptor. */
     receive_callback_fn on_receive{nullptr}; /**< Callback invoked with received bytes. */
     size_t rx_chunk_size{64}; /**< Buffer size used to drain the CDC RX FIFO per read. */
+
+    /**
+     * @brief Route the ESP console to this CDC interface once `initialize()`
+     *        succeeds (equivalent to calling `route_console_to_cdc()` yourself).
+     *
+     * The native USB port is often handed to TinyUSB for a vendor / HID / XInput
+     * interface, which on the ESP32-S3 means the console can no longer live on
+     * USB-Serial-JTAG (it shares that USB PHY). Enabling this redirects the
+     * console (stdout — `printf`, `ESP_LOG`, and `espp::Logger`'s `fmt::print` all
+     * default there) to this CDC interface, so a single native USB cable carries
+     * both the logs and the other interface(s). Writes are non-blocking and are
+     * dropped when no host is draining the CDC endpoint.
+     */
+    bool route_console{false};
+
+    /**
+     * @brief When `route_console` (or `route_console_to_cdc()`) redirects the
+     *        console, also keep writing it to the ORIGINAL console (a tee), so
+     *        `idf.py monitor` on the primary UART keeps working and nothing is
+     *        lost when no CDC host is attached. Best-effort: teeing is only done
+     *        when the primary console is a UART (it has an independent port);
+     *        with a USB-Serial-JTAG or no console there is nothing to tee to.
+     */
+    bool tee_console{true};
   };
 
   /**
@@ -305,6 +329,37 @@ public:
   /// @brief Discard any bytes queued in the CDC TX FIFO that have not been sent
   ///        yet. See vendor_write_clear() for usage notes.
   void cdc_write_clear();
+
+  /**
+   * @brief Redirect the ESP console (stdout) to the CDC interface, so the device's
+   *        logs travel over the same native USB cable as the other USB
+   *        interface(s) (vendor / HID / XInput). Call this AFTER a successful
+   *        `initialize()`; or just set `CdcFunction::route_console` and it is done
+   *        for you at the end of `initialize()`.
+   *
+   * `printf`, `ESP_LOG` (via its default vprintf), and `espp::Logger` (which uses
+   * `fmt::print`) all write to `stdout`, so redirecting stdout captures them all.
+   * A small write-only VFS device is registered and `stdout` is `freopen`ed onto
+   * it; its writes forward to `write_cdc()` only when the CDC TX FIFO can take the
+   * whole chunk right now, so logging NEVER blocks on an absent or slow reader
+   * (dropped console bytes are harmless). When `CdcFunction::tee_console` is set
+   * (the default) and the primary console is a UART, writes are also teed to that
+   * UART so `idf.py monitor` keeps working.
+   *
+   * Idempotent (a second call is a no-op). Requires the CDC function to be enabled
+   * and the device initialized.
+   *
+   * @param[out] ec Set on failure (CDC not enabled / not initialized, or the VFS
+   *        device could not be registered / stdout could not be reopened).
+   * @return true if the console is now routed to CDC (or already was).
+   */
+  bool route_console_to_cdc(std::error_code &ec);
+
+  /// @brief Convenience overload of route_console_to_cdc() that ignores errors.
+  bool route_console_to_cdc();
+
+  /// @brief Whether the console is currently routed to the CDC interface.
+  bool is_console_routed_to_cdc() const;
 
   /**
    * @brief Send a HID input report on the HID function's interrupt IN endpoint.
