@@ -5,8 +5,8 @@
 // it (VID/PID default to Microsoft's 0x045E:0x028E), so it shows up as an Xbox
 // 360 controller in the OS gamepad tester / games. This demo cycles the buttons
 // and sweeps the sticks/triggers so you can see live input, and logs any rumble
-// / LED reports the host sends back. The console/logs go to the separate
-// built-in USB-Serial-JTAG.
+// / LED reports the host sends back. The console/logs go to UART0; the native
+// USB port is reserved for the emulated controller.
 
 #include <chrono>
 #include <cmath>
