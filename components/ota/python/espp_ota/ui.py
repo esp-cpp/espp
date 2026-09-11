@@ -1,19 +1,15 @@
 """Terminal UI: a nice progress bar + colorized messages, with graceful fallback.
 
-Two rendering paths so it looks good both standalone and under ``idf.py``:
+The progress bar is drawn on the controlling terminal, so it animates in place
+both standalone and under ``idf.py ota-usb`` (where the tool's stdout/stderr are
+captured pipes — see ``_open_progress_stream``, which opens ``/dev/tty`` /
+``CONOUT$`` to bypass the capture). If `rich` is available it draws a rich bar
+(spinner, bar, %, bytes, transfer speed, ETA) and colorizes status/error lines;
+otherwise it falls back to a manual ``\r`` bar, and to periodic plain-text lines
+when there is no terminal at all (CI / redirected output).
 
-* **Standalone, real terminal** — if `rich` is available (it ships in the
-  ESP-IDF Python environment, and `pip install "espp[usb]"` pulls it in) we draw
-  a `rich` progress bar (spinner, bar, %, bytes, transfer speed, ETA) and print
-  colorized status/error lines.
-* **Captured (e.g. under `idf.py ota-usb`)** — idf.py reads the target's output
-  line-by-line and re-renders any line ending in ``(NN %)`` *in place* (the same
-  mechanism that makes esptool's progress animate under `idf.py flash`). So there
-  we emit throttled ``… (NN %)`` lines, which idf.py turns into a live in-place
-  bar. `rich`'s own live display can't animate through that line capture, so it's
-  intentionally only used on a real TTY.
-
-Everything degrades to plain text; `rich` is optional.
+`rich` is optional. It ships in the ESP-IDF Python environment (so
+``idf.py ota-usb`` already has it) and is pulled in by ``pip install "espp[usb-ui]"``.
 """
 
 from __future__ import annotations

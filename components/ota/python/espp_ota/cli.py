@@ -155,6 +155,12 @@ def main(argv: Optional[list] = None) -> int:
     except FileNotFoundError as exc:
         CON.error(exc)
         return 2
+    except OSError as exc:
+        # pyusb's USBError derives from OSError/IOError, so routine USB failures
+        # (unplug mid-flash, permission denied, missing libusb backend) land here
+        # instead of raising an ugly traceback. Report them cleanly.
+        CON.error(exc)
+        return 1
     except KeyboardInterrupt:
         CON.warn("interrupted")
         return 130

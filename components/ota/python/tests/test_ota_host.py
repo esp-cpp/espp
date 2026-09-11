@@ -50,6 +50,11 @@ class MockDevice:
             return
         t = fr.type
         if t == MessageType.BEGIN:
+            # Emulate a stale session left by a prior interrupted flash: reject the
+            # first BEGIN as busy until an ABORT clears it.
+            if getattr(self, "_busy", False):
+                self._reply(P._build(MessageType.ERROR, struct.pack("<I", 16) + b"busy"))
+                return
             self.received = 0
             self.image = bytearray()
             self._reply(P._build(MessageType.OK, struct.pack("<I", 0)))
@@ -67,6 +72,7 @@ class MockDevice:
             self.finished = True
             self._reply(P._build(MessageType.OK, struct.pack("<I", self.received)))
         elif t == MessageType.ABORT:
+            self._busy = False  # ABORT clears a stale session
             self._reply(P._build(MessageType.OK, struct.pack("<I", self.received)))
 
 
@@ -141,10 +147,20 @@ def test_small_image_one_chunk():
     _ok("single-chunk image", bytes(dev.image) == b"\xe9tiny firmware" and dev.data_frames == 1)
 
 
+def test_begin_busy_recovers():
+    """A stale session (BEGIN rejected as busy) is cleared by an ABORT + retry."""
+    dev = MockDevice()
+    dev._busy = True  # device thinks a prior session is still open
+    OtaClient(dev).flash(b"\xe9hello world payload")
+    _ok("recovered from busy BEGIN", bytes(dev.image) == b"\xe9hello world payload"
+        and dev.finished)
+
+
 if __name__ == "__main__":
     test_frame_golden()
     test_parser_resync()
     test_full_flash()
     test_error_reply()
     test_small_image_one_chunk()
+    test_begin_busy_recovers()
     print("all host tests passed")

@@ -92,13 +92,19 @@ class OtaClient:
             raise OtaError("empty image")
         size = len(image) if image_size is None else image_size
 
-        # The device keeps its OTA session across a host disconnect, so a failed
-        # or interrupted flash would leave it "busy" and reject a retry's BEGIN.
-        # On any failure (device ERROR, timeout, Ctrl-C, transport error) send a
-        # best-effort ABORT to release the session before propagating.
+        # The device keeps its OTA session across a host disconnect, so a
+        # previously interrupted flash can leave it "busy" and reject this run's
+        # BEGIN. If BEGIN fails, send an ABORT to release any stale session and
+        # retry BEGIN once before giving up.
         try:
             self._transact(_p.make_begin(size), self._begin_to)
+        except OtaError:
+            self.abort()  # clear a stale session left by a prior interrupted run
+            self._transact(_p.make_begin(size), self._begin_to)
 
+        # From here on, on any failure (device ERROR, timeout, Ctrl-C, transport
+        # error) send a best-effort ABORT to release the session before propagating.
+        try:
             total = len(image)
             sent = 0
             for off in range(0, total, self._chunk):
