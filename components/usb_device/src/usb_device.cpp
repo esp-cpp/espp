@@ -5,6 +5,8 @@
 #include <cstdio>
 #include <cstring>
 
+#include "sdkconfig.h" // CONFIG_ESP_CONSOLE_UART_NUM for the console-tee path
+
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -79,28 +81,24 @@ constexpr tinyusb_cdcacm_itf_t kCdcPort = TINYUSB_CDC_ACM_0;
 // forwards each chunk to the CDC interface (and optionally tees to the original
 // UART console). There is only one USB device (s_device), so this state is
 // file-scope rather than per-instance.
-constexpr char kConsoleVfsPath[] = "/dev/espp_cdc_console";
+// Must be <= ESP_VFS_PATH_MAX (15) or esp_vfs_register() rejects it.
+constexpr char kConsoleVfsPath[] = "/dev/usbcons";
 int s_console_tee_fd = -1;     // fd of the original (UART) console kept as a tee, or -1
 bool s_console_routed = false; // whether stdout has been redirected
 
-// Path of the primary console device to tee to, or "" when there is nothing
-// independent to tee to. Only a UART console has a separate physical port; a
-// USB-Serial-JTAG console shares the native USB PHY with USB-OTG (so teeing to it
-// while TinyUSB owns that port is pointless), and CONSOLE_NONE has no console.
-const char *primary_console_device_path() {
+// Open the primary console (a UART) so route_console_to_cdc() can tee to it, or
+// return -1 when there is nothing independent to tee to. Only a UART console has a
+// separate physical port; a USB-Serial-JTAG console shares the native USB PHY with
+// USB-OTG (teeing to it while TinyUSB owns that port is pointless) and CONSOLE_NONE
+// has none -- in those builds CONFIG_ESP_CONSOLE_UART_NUM is undefined, so the tee
+// is simply compiled out.
+int open_primary_console_for_tee() {
 #if defined(CONFIG_ESP_CONSOLE_UART_NUM)
-  switch (CONFIG_ESP_CONSOLE_UART_NUM) {
-  case 0:
-    return "/dev/uart/0";
-  case 1:
-    return "/dev/uart/1";
-  case 2:
-    return "/dev/uart/2";
-  default:
-    return "";
-  }
+  char path[16];
+  std::snprintf(path, sizeof(path), "/dev/uart/%d", CONFIG_ESP_CONSOLE_UART_NUM);
+  return open(path, O_WRONLY);
 #else
-  return "";
+  return -1;
 #endif
 }
 
@@ -1618,13 +1616,10 @@ bool UsbDevice::route_console_to_cdc(std::error_code &ec) {
   fflush(stdout);
   // Optionally keep the original console as a tee (best-effort). ESP-IDF's libc
   // has no dup(), so we re-open the primary console device by path rather than
-  // duplicating stdout's fd. A UART console has an independent port; a JTAG / no
-  // console has nothing to tee to (primary_console_device_path() returns "").
-  if (config_.cdc->tee_console) {
-    const char *path = primary_console_device_path();
-    if (path[0] != '\0')
-      s_console_tee_fd = open(path, O_WRONLY);
-  }
+  // duplicating stdout's fd. Only a UART console has an independent port to tee
+  // to; a JTAG / no console has none (open_primary_console_for_tee() returns -1).
+  if (config_.cdc->tee_console)
+    s_console_tee_fd = open_primary_console_for_tee();
   esp_vfs_t vfs = {};
   vfs.flags = ESP_VFS_FLAG_DEFAULT;
   // The classic (context-pointer-less) esp_vfs_t members are deprecated in IDF v6
