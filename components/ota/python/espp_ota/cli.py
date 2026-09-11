@@ -62,6 +62,18 @@ def _make_transport(args) -> UsbVendorTransport:
                               interface=args.interface)
 
 
+def _reconnect(args, timeout_s: float = 20.0):
+    """Reopen the device after it reboots (same VID/PID, re-enumerates). Retries
+    until it appears or the timeout elapses; returns the opened transport or None."""
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        try:
+            return _make_transport(args)
+        except TransportError:
+            time.sleep(0.5)
+    return None
+
+
 def _cmd_flash(args) -> int:
     with open(args.binary, "rb") as fh:
         image = fh.read()
@@ -69,9 +81,19 @@ def _cmd_flash(args) -> int:
         CON.error("image is empty")
         return 2
     size = 0 if args.unknown_size else len(image)
+
+    before = None  # firmware running before the flash
     with _make_transport(args) as t:
         if not args.quiet:
             CON.note(f"● Connected to {t.description}")
+        client = OtaClient(t)
+        try:
+            before = client.get_status()
+            if not args.quiet:
+                CON.info(f"  Currently running: {before.firmware_str()}")
+        except OtaError:
+            pass  # older device without GET_STATUS; carry on
+        if not args.quiet:
             CON.info(f"  Flashing {args.binary} ({_human_size(len(image))})")
         start = time.monotonic()
         with ui.Progress(len(image), label="Flashing", quiet=args.quiet) as prog:
@@ -87,8 +109,51 @@ def _cmd_flash(args) -> int:
         if not args.quiet:
             dt = time.monotonic() - start
             rate = len(image) / dt / 1024 if dt else 0
-            CON.success(f"OTA complete in {dt:.1f}s ({rate:.0f} KiB/s). The device "
-                        f"activates the new image and reboots per its own policy.")
+            CON.success(f"OTA complete in {dt:.1f}s ({rate:.0f} KiB/s). "
+                        f"The device is activating the new image and rebooting.")
+
+    if args.no_verify:
+        CON.info("Auto-verify disabled. Once you have checked the device, confirm the "
+                 "image with `espp-ota mark-valid` (or it rolls back on the next reset).")
+        return 0
+    return _auto_verify(args, before)
+
+
+def _auto_verify(args, before) -> int:
+    """Reconnect after the reboot and confirm the running image can respond before
+    marking it valid. This is the safety check: a pending-verify image that can
+    answer OTA commands has booted, so the host confirms it."""
+    CON.info("Waiting for the device to reboot and reconnect…")
+    time.sleep(2.0)  # give it a moment to drop off the bus before we scan
+    t = _reconnect(args, timeout_s=args.verify_timeout)
+    if t is None:
+        CON.warn("device did not reappear after the reboot. If it booted correctly, "
+                 "confirm the image with `espp-ota mark-valid`; otherwise it will roll "
+                 "back on the next reset.")
+        return 1
+    with t:
+        client = OtaClient(t)
+        try:
+            st = client.get_status()
+        except OtaError as exc:
+            CON.error(f"reconnected but the device did not report status: {exc}. "
+                      "Not confirming — it will roll back on the next reset.")
+            return 1
+        # Report the transition.
+        if before is not None:
+            CON.note(f"● {before.firmware_str()}  →  {st.firmware_str()}")
+        else:
+            CON.note(f"● Now running: {st.firmware_str()}")
+        if not st.rollback_supported:
+            CON.success("Update complete (device has no rollback; nothing to confirm).")
+            return 0
+        if not st.pending_verify:
+            CON.success("Update complete; the running image is already confirmed.")
+            return 0
+        # It responded to OTA commands AND is pending verify -> it booted; confirm.
+        client.mark_valid()
+        CON.success("The new image booted and responded, so it has been marked valid "
+                    "(rollback cancelled).")
     return 0
 
 
@@ -119,6 +184,7 @@ def _cmd_discover(args) -> int:
 def _cmd_status(args) -> int:
     with _make_transport(args) as t:
         st = OtaClient(t).get_status()
+    CON.note(f"● Running: {st.firmware_str()}")
     if not st.rollback_supported:
         CON.info("rollback: not supported (CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE off)")
     elif st.pending_verify:
@@ -131,8 +197,14 @@ def _cmd_status(args) -> int:
 
 def _cmd_mark_valid(args) -> int:
     with _make_transport(args) as t:
-        OtaClient(t).mark_valid()
-    CON.success("running image marked valid; rollback cancelled")
+        client = OtaClient(t)
+        try:
+            fw = client.get_status().firmware_str()
+        except OtaError:
+            fw = None
+        client.mark_valid()
+    CON.success("running image marked valid; rollback cancelled"
+                + (f" ({fw})" if fw else ""))
     return 0
 
 
@@ -159,6 +231,10 @@ def build_parser() -> argparse.ArgumentParser:
     f.add_argument("--data-timeout", type=int, default=5000, help="ms (default 5000)")
     f.add_argument("--finish-timeout", type=int, default=60000, help="ms (default 60000)")
     f.add_argument("-q", "--quiet", action="store_true", help="suppress progress output")
+    f.add_argument("--no-verify", action="store_true",
+                   help="don't auto-verify: skip the reconnect + mark-valid after reboot")
+    f.add_argument("--verify-timeout", type=float, default=20.0,
+                   help="seconds to wait for the device to reappear after reboot (default 20)")
     f.set_defaults(func=_cmd_flash)
 
     lst = sub.add_parser("list", help="list matching USB devices")

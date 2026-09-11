@@ -37,7 +37,9 @@
 //   0x05 OK       — payload: u32 bytes_received so far.
 //   0x06 ERROR    — payload: u32 code followed by a UTF-8 message.
 //   0x07 PROGRESS — payload: u32 written, u32 total (0 if unknown). Optional.
-//   0x0B STATUS   — payload: u8 flags (bit0 pending_verify, bit1 rollback_supported).
+//   0x0B STATUS   — payload: u8 flags (bit0 pending_verify, bit1 rollback_supported),
+//                   then the running app's version and project name (each a
+//                   u8-length-prefixed UTF-8 string).
 //
 // Rollback (bootloader rollback support): a freshly flashed image boots "pending
 // verify" and rolls back on the next reset unless confirmed. The device app must
@@ -153,9 +155,22 @@ inline std::vector<uint8_t> make_mark_valid() { return build_frame(MessageType::
 /// Build a MARK_INVALID frame (no payload). Rolls back + reboots the device.
 inline std::vector<uint8_t> make_mark_invalid() { return build_frame(MessageType::MarkInvalid); }
 
-/// Build a STATUS reply (flags: OR of StatusFlags).
-inline std::vector<uint8_t> make_status(uint8_t flags) {
-  const uint8_t p[] = {flags};
+/// Append a length-prefixed (u8 length) UTF-8 string, truncated to 255 bytes.
+inline void put_str(std::vector<uint8_t> &out, std::string_view s) {
+  const uint8_t len = static_cast<uint8_t>(std::min<size_t>(s.size(), 255));
+  out.push_back(len);
+  out.insert(out.end(), s.begin(), s.begin() + len);
+}
+
+/// Build a STATUS reply: flags (OR of StatusFlags) plus the running app's version
+/// and project name (each a u8-length-prefixed string), so the host can report
+/// what firmware is now running before confirming it.
+inline std::vector<uint8_t> make_status(uint8_t flags, std::string_view version = {},
+                                        std::string_view project = {}) {
+  std::vector<uint8_t> p;
+  p.push_back(flags);
+  put_str(p, version);
+  put_str(p, project);
   return build_frame(MessageType::Status, p);
 }
 
@@ -226,12 +241,36 @@ inline std::optional<ProgressInfo> parse_progress(const Frame &frame) {
   return info;
 }
 
-/// Parse a STATUS frame payload; returns the flags byte, or std::nullopt if the
-/// payload is empty.
-inline std::optional<uint8_t> parse_status(const Frame &frame) {
+/// Decoded STATUS reply payload.
+struct StatusInfo {
+  uint8_t flags{};          ///< OR of StatusFlags (pending_verify / rollback_supported)
+  std::string version;      ///< Running app version (may be empty)
+  std::string project_name; ///< Running app project name (may be empty)
+
+  bool pending_verify() const { return (flags & kStatusPendingVerify) != 0; }
+  bool rollback_supported() const { return (flags & kStatusRollbackSupported) != 0; }
+};
+
+/// Parse a STATUS frame payload: [flags u8][version u8-len+bytes][project
+/// u8-len+bytes]. Trailing strings are optional (older devices sent flags only);
+/// returns std::nullopt only if the payload is empty.
+inline std::optional<StatusInfo> parse_status(const Frame &frame) {
   if (frame.payload.empty())
     return std::nullopt;
-  return frame.payload[0];
+  StatusInfo info{};
+  info.flags = frame.payload[0];
+  size_t i = 1;
+  auto read_str = [&](std::string &out) {
+    if (i >= frame.payload.size())
+      return;
+    const size_t len = frame.payload[i++];
+    const size_t n = std::min(len, frame.payload.size() - i);
+    out.assign(frame.payload.begin() + i, frame.payload.begin() + i + n);
+    i += n;
+  };
+  read_str(info.version);
+  read_str(info.project_name);
+  return info;
 }
 
 } // namespace ota_stream

@@ -349,15 +349,16 @@ extern "C" void app_main(void) {
       break;
     }
     case proto::MessageType::GetStatus: {
-      // Report rollback status so the host can decide whether to confirm the
-      // running image. Session-independent (does not require BEGIN).
+      // Report rollback status + the running firmware (so the host can show what
+      // is now running before confirming it). Session-independent (no BEGIN).
       uint8_t flags = 0;
 #if defined(CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE)
       flags |= proto::kStatusRollbackSupported;
       if (ota.is_pending_verify())
         flags |= proto::kStatusPendingVerify;
 #endif
-      usb.write_vendor(proto::make_status(flags));
+      const auto desc = ota.running_app_description();
+      usb.write_vendor(proto::make_status(flags, desc.version, desc.project_name));
       break;
     }
     case proto::MessageType::MarkValid:

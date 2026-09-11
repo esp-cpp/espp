@@ -97,8 +97,9 @@ is the routing id (OTA is **module 0**). OTA layers its message types on it.
   `0x03 FINISH`, `0x04 ABORT`, `0x08 GET_STATUS`, `0x09 MARK_VALID`,
   `0x0A MARK_INVALID`; device → host (replies, reply flag set):
   `0x05 OK(u32 bytes_received)`, `0x06 ERROR(u32 code + utf8 message)`,
-  `0x07 PROGRESS(u32 written, u32 total)`, `0x0B STATUS(u8 flags)` (bit0 =
-  pending-verify, bit1 = rollback-supported)
+  `0x07 PROGRESS(u32 written, u32 total)`, `0x0B STATUS(u8 flags + running app
+  version + project name)` (flags bit0 = pending-verify, bit1 = rollback-supported;
+  each string is u8-length-prefixed)
 - transactions are serialized: the host waits for `OK` / `ERROR` (or `STATUS`)
   before the next frame
 - **rollback is host-driven** (see below): after an OTA the new image boots

@@ -51,9 +51,25 @@ Installed with the espp wheel it's also available as the `espp-ota` command
 With bootloader rollback enabled, a freshly flashed image boots **pending verify**
 and rolls back on the next reset unless it is confirmed. Confirmation is
 deliberately **host-driven** — the running app must not mark *itself* valid, since
-a broken build could do so right before crashing. So the flow is: `flash` → the
-device reboots into the new image → you verify it works → `mark-valid` (or
-`rollback` to reject it). `status` reports whether confirmation is still pending.
+a broken build could do so right before crashing.
+
+`flash` **auto-verifies by default**: after streaming the image it waits for the
+device to reboot, reconnects (the device re-enumerates with the same VID/PID),
+and reads the running firmware + rollback status. If the new image is *responding*
+to OTA commands and still *pending verify*, it has booted — so the host marks it
+valid. It prints the before → after firmware, e.g.:
+
+```
+● Currently running: ota_example 1.0.0
+  ... flashing ...
+● ota_example 1.0.0  →  ota_example 1.1.0
+The new image booted and responded, so it has been marked valid (rollback cancelled).
+```
+
+Pass `--no-verify` to skip that step (then confirm later with `mark-valid`), or
+`--verify-timeout <seconds>` to change how long it waits for the device to
+reappear. The `status`, `mark-valid`, and `rollback` commands remain available to
+do it manually; `rollback` rejects the running image (roll back + reboot).
 
 ## Library use
 

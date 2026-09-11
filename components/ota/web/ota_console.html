@@ -441,6 +441,25 @@
       return { written: view.getUint32(0, true), total: view.getUint32(4, true) };
     }
 
+    // STATUS payload: [flags u8][version u8-len+bytes][project u8-len+bytes].
+    function parseStatus(payload) {
+      if (!payload || payload.length < 1) return null;
+      const dec = new TextDecoder();
+      let i = 1;
+      const readStr = () => {
+        if (i >= payload.length) return "";
+        const n = payload[i++]; const s = dec.decode(payload.subarray(i, i + n)); i += n; return s;
+      };
+      const version = readStr(), project = readStr();
+      return {
+        flags: payload[0],
+        pendingVerify: !!(payload[0] & STATUS_PENDING_VERIFY),
+        rollbackSupported: !!(payload[0] & STATUS_ROLLBACK_SUPPORTED),
+        version, project,
+        firmware: (project && version) ? (project + " " + version) : (project || version || "(unknown)"),
+      };
+    }
+
     // ===================================================================
     // WebUSB connect / disconnect (vendor 0xFF interface discovery)
     // ===================================================================
@@ -449,6 +468,10 @@
     let manualDisconnect = false;
     let uploading = false;
     let expectRestart = false;
+    // After a successful upload the device reboots (dropping WebUSB). When the
+    // user reconnects we auto-check the new firmware and offer to confirm it.
+    // Holds { before: "<firmware string before the update>" } or null.
+    let awaitingVerify = null;
     const parser = new StreamParser();
 
     if (!navigator.usb) {
@@ -502,6 +525,32 @@
       logLine("sys", "Connected to " + name + ". Vendor iface " + ifaceNumber +
               ", bulk IN 0x" + epIn.toString(16) + " / OUT 0x" + epOut.toString(16) + ".");
       checkModulePresent().catch(() => {}); // best-effort: warn if this device lacks the OTA module
+      maybePromptVerify().catch(() => {});   // if we just flashed, verify + confirm the new image
+    }
+
+    // After a reboot-triggering upload the user reconnects here; auto-check the
+    // running image and, if it is pending verify (so it booted and can answer),
+    // ask the user to confirm it — the firmware must not confirm itself.
+    async function maybePromptVerify() {
+      if (!awaitingVerify) return;
+      const before = awaitingVerify.before;
+      awaitingVerify = null;
+      const st = await queryStatus();
+      if (!st) return;
+      if (!st.rollbackSupported) { logLine("ok", "Reconnected; running " + st.firmware + " (no rollback to confirm)."); return; }
+      if (!st.pendingVerify) { logLine("ok", "Reconnected; running " + st.firmware + " (already confirmed)."); return; }
+      const msg = "The device rebooted into new firmware and is responding.\n\n" +
+                  (before ? "Previous: " + before + "\n" : "") +
+                  "Now running: " + st.firmware + "\n\n" +
+                  "Mark this image VALID? It rolls back on the next reset if you don't.";
+      if (confirm(msg)) {
+        try {
+          await transact(TYPE.MARK_VALID, null, DATA_TIMEOUT_MS);
+          logLine("ok", "New image (" + st.firmware + ") marked valid; rollback cancelled.");
+        } catch (e) { logLine("err", "Mark valid failed: " + e.message); }
+      } else {
+        logLine("err", "Left unconfirmed (" + st.firmware + "); it rolls back on the next reset. Use “Mark valid” to confirm later.");
+      }
     }
 
     async function openAndClaim() {
@@ -830,6 +879,14 @@
       const startedAt = Date.now();
       let sent = 0;
 
+      // Record the firmware we're replacing so the post-reboot prompt can show
+      // the before -> after transition (best-effort; older devices lack STATUS).
+      let beforeFirmware = "";
+      try {
+        const st0 = parseStatus(await transact(TYPE.GET_STATUS, null, DATA_TIMEOUT_MS));
+        if (st0) beforeFirmware = st0.firmware;
+      } catch (_) {}
+
       try {
         logLine("sys", "BEGIN: image size " + image.length.toLocaleString() + " bytes (device erases the update partition — this can take a while)...");
         await transact(TYPE.BEGIN, u32Payload(image.length), BEGIN_TIMEOUT_MS);
@@ -851,9 +908,14 @@
         els.progressFill.className = "progress-fill done";
         els.progressFill.style.width = "100%";
         setStatus("connected", "Update complete");
-        setNote("Update complete — device is restarting into the new firmware. " +
-                "With rollback enabled it must mark itself valid on first boot.");
+        // Arm the post-reboot verification: when the user reconnects, we check the
+        // new image can respond and prompt to confirm it (the app must not confirm
+        // itself). The reboot drops WebUSB, so this needs a manual reconnect.
+        awaitingVerify = { before: beforeFirmware };
+        setNote("Update complete — device is restarting into the new firmware. It "
+                + "boots pending-verify; reconnect to confirm it (it must not confirm itself).");
         logLine("sys", "Update complete (" + sent.toLocaleString() + " bytes). Device restarting — expect a USB disconnect.");
+        logLine("sys", "Reconnect with the Connect button to verify + confirm the new image.");
       } catch (e) {
         els.progressFill.className = "progress-fill failed";
         if (e && e.userAbort) {
@@ -887,18 +949,24 @@
     });
 
     // ---- rollback controls (host confirms the image; the app must not) --------
-    els.statusBtn.addEventListener("click", async () => {
+    // Query STATUS and return the parsed info (logs + returns null on failure).
+    async function queryStatus() {
       try {
-        const payload = await transact(TYPE.GET_STATUS, null, DATA_TIMEOUT_MS);
-        const flags = (payload && payload.length) ? payload[0] : 0;
-        if (!(flags & STATUS_ROLLBACK_SUPPORTED)) {
-          logLine("sys", "Rollback not supported on the device (CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE off).");
-        } else if (flags & STATUS_PENDING_VERIFY) {
-          logLine("err", "Running image is PENDING VERIFY — click “Mark valid” to confirm it, or it rolls back on the next reset.");
-        } else {
-          logLine("ok", "Running image is confirmed (not pending verify).");
-        }
-      } catch (e) { logLine("err", "Status failed: " + e.message); }
+        const st = parseStatus(await transact(TYPE.GET_STATUS, null, DATA_TIMEOUT_MS));
+        return st;
+      } catch (e) { logLine("err", "Status failed: " + e.message); return null; }
+    }
+    els.statusBtn.addEventListener("click", async () => {
+      const st = await queryStatus();
+      if (!st) return;
+      logLine("sys", "Running firmware: " + st.firmware);
+      if (!st.rollbackSupported) {
+        logLine("sys", "Rollback not supported on the device (CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE off).");
+      } else if (st.pendingVerify) {
+        logLine("err", "Running image is PENDING VERIFY — click “Mark valid” to confirm it, or it rolls back on the next reset.");
+      } else {
+        logLine("ok", "Running image is confirmed (not pending verify).");
+      }
     });
 
     els.markValidBtn.addEventListener("click", async () => {

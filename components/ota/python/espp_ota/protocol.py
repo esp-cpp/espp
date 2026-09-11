@@ -123,17 +123,43 @@ def parse_progress(fr: _f.Frame) -> Optional[ProgressInfo]:
 
 @dataclass
 class StatusInfo:
-    pending_verify: bool     # running image awaits confirmation (rolls back if not)
+    pending_verify: bool      # running image awaits confirmation (rolls back if not)
     rollback_supported: bool  # bootloader rollback support is compiled in
+    version: str = ""         # running app version (may be empty)
+    project_name: str = ""    # running app project name (may be empty)
+
+    def firmware_str(self) -> str:
+        """A short 'project vX.Y' label for the running firmware."""
+        if self.project_name and self.version:
+            return f"{self.project_name} {self.version}"
+        return self.project_name or self.version or "(unknown)"
 
 
 def parse_status(fr: _f.Frame) -> Optional[StatusInfo]:
+    # payload: [flags u8][version u8-len+bytes][project u8-len+bytes]; the strings
+    # are optional (older devices sent flags only).
     if not fr.payload:
         return None
     flags = fr.payload[0]
+    i = 1
+
+    def read_str() -> str:
+        nonlocal i
+        if i >= len(fr.payload):
+            return ""
+        n = fr.payload[i]
+        i += 1
+        s = fr.payload[i:i + n].decode("utf-8", errors="replace")
+        i += n
+        return s
+
+    version = read_str()
+    project = read_str()
     return StatusInfo(
         pending_verify=bool(flags & StatusFlags.PENDING_VERIFY),
         rollback_supported=bool(flags & StatusFlags.ROLLBACK_SUPPORTED),
+        version=version,
+        project_name=project,
     )
 
 

@@ -78,7 +78,10 @@ class MockDevice:
             flags = P.StatusFlags.ROLLBACK_SUPPORTED
             if getattr(self, "_pending", False):
                 flags |= P.StatusFlags.PENDING_VERIFY
-            self._reply(P._build(MessageType.STATUS, bytes([flags])))
+            ver = getattr(self, "_version", "1.0.0").encode()
+            proj = b"ota_example"
+            payload = bytes([flags, len(ver)]) + ver + bytes([len(proj)]) + proj
+            self._reply(P._build(MessageType.STATUS, payload))
         elif t == MessageType.MARK_VALID:
             self.marked_valid = True
             self._pending = False
@@ -165,6 +168,7 @@ def test_rollback_control():
     dev._pending = True
     st = OtaClient(dev).get_status()
     _ok("status pending+supported", st.pending_verify and st.rollback_supported)
+    _ok("status reports firmware", st.version == "1.0.0" and st.project_name == "ota_example")
     OtaClient(dev).mark_valid()
     _ok("mark_valid confirmed", getattr(dev, "marked_valid", False) and not dev._pending)
     st2 = OtaClient(dev).get_status()
