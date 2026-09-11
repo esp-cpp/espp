@@ -8,6 +8,7 @@ maintainers:
 documentation: "https://esp-cpp.github.io/espp/buses/usb_cdc.html"
 examples:
   - path: example
+  - path: xinput_example
 tags:
   - cpp
   - Component
@@ -18,6 +19,9 @@ tags:
   - TinyUSB
   - Serial
   - Transport
+  - HID
+  - XInput
+  - Gamepad
 dependencies:
   idf:
     version: '>=5.0'
