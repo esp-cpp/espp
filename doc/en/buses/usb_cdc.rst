@@ -22,7 +22,7 @@ Today it can enable, in any combination (subject to the endpoint budget):
 - An **X-Input** function that presents the device as a wired **Xbox 360
   controller** (a custom TinyUSB application class driver built into this
   component — no ``CFG_TUD_*`` count needed). Gamepad state is sent with
-  ``update_gamepad()`` (see ``xinput.hpp``) and rumble/LED reports arrive via an
+  ``update_xinput_state()`` (see ``xinput.hpp``) and rumble/LED reports arrive via an
   ``on_rumble`` callback. Because the host's XUSB driver only binds a recognized
   Xbox 360 VID/PID and the built-in vendor class also claims interface class 0xFF,
   **use X-Input as the only enabled function** (Microsoft's IDs, for emulation /
