@@ -18,9 +18,13 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 # peripheral, so the console always has a place to go once TinyUSB takes over the
 # USB port. (Connect a UART/USB-UART adapter to UART0 for `idf.py monitor`.)
 CONFIG_ESP_CONSOLE_UART_DEFAULT=y
-# Also disable the SECONDARY console (USB-Serial-JTAG by default on the S3) so the
-# native USB port is left entirely to TinyUSB — nothing else drives that USB PHY.
-CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+# Keep USB-Serial-JTAG as the SECONDARY console so early-boot / bootloader logs are
+# still visible on the native USB port BEFORE the app brings up TinyUSB. Once the
+# app initializes TinyUSB (which takes that USB PHY for the OTA vendor + a CDC
+# interface), it reroutes the console to the USB-CDC interface, so a single native
+# USB cable carries logs the whole time (JTAG at boot -> CDC after). The primary
+# console stays on UART0 as a safe fallback that TinyUSB never touches.
+CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y
 
 # Enable the TinyUSB vendor-specific class (THE key enablement for the vendor /
 # WebUSB OTA interface). esp_tinyusb gates CFG_TUD_VENDOR behind
