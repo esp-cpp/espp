@@ -45,6 +45,9 @@ struct UsbDevice::Callbacks {
     return d->webusb_url_descriptor(len);
   }
   static const uint8_t *hid_report(UsbDevice *d) { return d->hid_report_descriptor(); }
+  static void hid_rx(UsbDevice *d, uint8_t report_id, const uint8_t *b, size_t n) {
+    d->handle_hid_rx(report_id, b, n);
+  }
   static const std::optional<UsbDevice::VendorFunction> &vendor_config(UsbDevice *d) {
     return d->vendor_config();
   }
@@ -298,7 +301,8 @@ UsbDevice::UsbDevice(const Config &config)
     , config_(config)
     , on_cdc_receive_(config.cdc ? config.cdc->on_receive : nullptr)
     , on_vendor_receive_(config.vendor ? config.vendor->on_receive : nullptr)
-    , on_xinput_rumble_(config.xinput ? config.xinput->on_rumble : nullptr) {}
+    , on_xinput_rumble_(config.xinput ? config.xinput->on_rumble : nullptr)
+    , on_hid_receive_(config.hid ? config.hid->on_receive : nullptr) {}
 
 UsbDevice::~UsbDevice() {
   if (initialized_) {
@@ -460,14 +464,17 @@ uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_t
   return 0;
 }
 
-// HID SET_REPORT control request (and OUT endpoint data): unused / ignored.
+// HID SET_REPORT control request AND interrupt-OUT endpoint data: dispatch the
+// received bytes to the application's HID receive callback (host -> device),
+// enabling request/response HID protocols (e.g. the Switch Pro handshake).
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type,
                            uint8_t const *buffer, uint16_t bufsize) {
   (void)instance;
-  (void)report_id;
   (void)report_type;
-  (void)buffer;
-  (void)bufsize;
+  note_tinyusb_task();
+  auto *dev = s_device.load();
+  if (dev)
+    UsbDevice::Callbacks::hid_rx(dev, report_id, buffer, static_cast<size_t>(bufsize));
 }
 
 #endif // CFG_TUD_HID > 0
@@ -1435,6 +1442,40 @@ void UsbDevice::set_cdc_receive_callback(const receive_callback_fn &cb) {
 void UsbDevice::set_vendor_receive_callback(const receive_callback_fn &cb) {
   std::scoped_lock lk(cb_mutex_);
   on_vendor_receive_ = cb;
+}
+
+void UsbDevice::set_hid_receive_callback(const receive_callback_fn &cb) {
+  std::scoped_lock lk(cb_mutex_);
+  on_hid_receive_ = cb;
+}
+
+void UsbDevice::handle_hid_rx(uint8_t report_id, const uint8_t *buffer, size_t bufsize) {
+#if (CFG_TUD_HID > 0)
+  receive_callback_fn cb;
+  {
+    std::scoped_lock lk(cb_mutex_);
+    cb = on_hid_receive_;
+  }
+  if (!cb || !config_.hid)
+    return;
+  if (report_id == 0) {
+    // Interrupt-OUT (or report-id-less SET_REPORT): TinyUSB passes the report as
+    // received, so byte 0 is already the report id when the descriptor uses them.
+    cb(std::span<const uint8_t>(buffer, bufsize));
+  } else {
+    // Control SET_REPORT with a report id: TinyUSB parses the id out of wValue, so
+    // prepend it to keep the callback contract "byte 0 is the report id".
+    std::vector<uint8_t> framed;
+    framed.reserve(bufsize + 1);
+    framed.push_back(report_id);
+    framed.insert(framed.end(), buffer, buffer + bufsize);
+    cb(std::span<const uint8_t>(framed.data(), framed.size()));
+  }
+#else
+  (void)report_id;
+  (void)buffer;
+  (void)bufsize;
+#endif
 }
 
 void UsbDevice::set_mount_callback(const event_callback_fn &cb) {

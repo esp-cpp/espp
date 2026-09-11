@@ -142,6 +142,17 @@ public:
     std::vector<uint8_t> report_descriptor{}; /**< HID report descriptor bytes. */
     bool has_out_endpoint{false};             /**< Whether to allocate an interrupt OUT endpoint. */
     uint8_t poll_interval_ms{10};             /**< Interrupt IN polling interval (bInterval), ms. */
+    /**
+     * @brief Callback invoked with received HID OUTPUT / SET_REPORT bytes
+     *        (host -> device). Enables request/response HID protocols (e.g. the
+     *        Nintendo Switch Pro controller handshake): reply by sending an INPUT
+     *        report with `write_hid_report()`. When the report descriptor uses
+     *        report IDs, byte 0 of the delivered span is the report id. Delivered
+     *        from the TinyUSB device task; `write_hid_report()` is safe to call
+     *        from within it. Requires `has_out_endpoint` for interrupt-OUT reports
+     *        (control SET_REPORT is delivered regardless).
+     */
+    receive_callback_fn on_receive{nullptr};
   };
 
   /**
@@ -348,6 +359,10 @@ public:
   /// @brief Set or replace the vendor receive callback (nullptr to detach).
   void set_vendor_receive_callback(const receive_callback_fn &cb);
 
+  /// @brief Set or replace the HID receive callback (received OUTPUT / SET_REPORT
+  ///        bytes, host -> device; nullptr to detach).
+  void set_hid_receive_callback(const receive_callback_fn &cb);
+
   /// @brief Register a callback invoked when the device is mounted (the host has
   ///        configured it). Runs in the TinyUSB device-task context; nullptr
   ///        detaches. esp_tinyusb owns the raw tud_mount_cb, so applications
@@ -392,6 +407,12 @@ protected:
   ///        variant), the FIFO is drained via `tud_vendor_read()` instead.
   /// @param bufsize Number of bytes at @p buffer (0 when @p buffer is null).
   void handle_vendor_rx(const uint8_t *buffer = nullptr, size_t bufsize = 0);
+
+  /// @brief Internal: dispatch a received HID OUTPUT / SET_REPORT to the HID
+  ///        receive callback. `report_id` is the SET_REPORT report id (0 for an
+  ///        interrupt-OUT report, whose report id, if any, is buffer[0]); the
+  ///        callback always receives the report id as byte 0 of its span.
+  void handle_hid_rx(uint8_t report_id, const uint8_t *buffer, size_t bufsize);
 
   /// @brief Internal: pointer to the BOS descriptor bytes (nullptr if none).
   const uint8_t *bos_descriptor() const;
@@ -442,6 +463,7 @@ private:
   receive_callback_fn on_cdc_receive_;
   receive_callback_fn on_vendor_receive_;
   receive_callback_fn on_xinput_rumble_;
+  receive_callback_fn on_hid_receive_;
   event_callback_fn on_mount_;
   event_callback_fn on_unmount_;
 
