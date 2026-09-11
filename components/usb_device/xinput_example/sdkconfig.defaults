@@ -10,9 +10,9 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 
 # The X-Input interface is served by usb_device's own custom TinyUSB application
-# class driver, so NO built-in class driver count is required (vendor/HID stay 0,
-# which also avoids the built-in vendor driver claiming the 0xFF interface). But
-# usb_device.cpp includes tinyusb_cdc_acm.h unconditionally, so the CDC feature
-# must be compiled in even though this example creates no CDC interface.
-CONFIG_TINYUSB_CDC_ENABLED=y
-CONFIG_TINYUSB_CDC_COUNT=1
+# class driver, so NO built-in class driver is required: CDC, vendor and HID all
+# stay disabled (0). Keeping the built-in vendor driver off also avoids it
+# claiming the 0xFF interface. usb_device now compiles its CDC support
+# conditionally (#if CFG_TUD_CDC), so an X-Input-only build needs no CDC at all.
+CONFIG_TINYUSB_CDC_ENABLED=n
+CONFIG_TINYUSB_CDC_COUNT=0
