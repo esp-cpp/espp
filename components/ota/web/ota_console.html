@@ -23,9 +23,11 @@
       crc32("123456789") == 0xCBF43926.
     - payload length is capped at 4096 bytes per frame.
     - host -> device requests (flags reply bit 0): 0x01 BEGIN(u32 image_size),
-      0x02 DATA(bytes), 0x03 FINISH, 0x04 ABORT; device -> host replies
-      (flags reply bit 1): 0x05 OK(u32 bytes_received),
-      0x06 ERROR(u32 code + utf8 message), 0x07 PROGRESS(u32 written, u32 total).
+      0x02 DATA(bytes), 0x03 FINISH, 0x04 ABORT, 0x08 GET_STATUS, 0x09 MARK_VALID,
+      0x0A MARK_INVALID; device -> host replies (flags reply bit 1):
+      0x05 OK(u32 bytes_received), 0x06 ERROR(u32 code + utf8 message),
+      0x07 PROGRESS(u32 written, u32 total), 0x0B STATUS(u8 flags: bit0 pending
+      verify, bit1 rollback supported).
     - transactions are serialized: exactly one command frame is in flight and
       the host waits for its OK / ERROR reply (PROGRESS frames are
       informational and may arrive before the reply).
@@ -218,6 +220,14 @@
         <button id="uploadBtn" class="primary" disabled>Upload</button>
         <button id="abortBtn" class="danger" disabled>Abort</button>
       </div>
+      <div class="row" style="margin-bottom: 10px;">
+        <button id="statusBtn" disabled title="Query whether the running image is pending verify">Check status</button>
+        <button id="markValidBtn" disabled title="Confirm the running image so it is not rolled back">Mark valid</button>
+        <button id="rollbackBtn" class="danger" disabled title="Roll the device back to the previous image and reboot">Roll back</button>
+      </div>
+      <p class="muted" style="margin: 0 0 10px;">After an OTA the new image boots
+        <em>pending verify</em>: confirm it here (the app must not confirm itself)
+        or it rolls back on the next reset.</p>
       <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
       <div class="stats" style="margin-top: 8px;">
         <span id="statBytes">0 / 0 bytes</span>
@@ -268,8 +278,12 @@
     const FLAGS_REQUEST = (FLAGS_VERSION << 4) | 0; // host->device request: 0x10 (reply bit 0)
     const FLAGS_REPLY_BIT = 0x01;            // bit0 set on device->host replies
     const FLAG_CORRELATION = 0x02;           // bit1: optional u16 correlation id present after `type`
-    const TYPE = { BEGIN: 0x01, DATA: 0x02, FINISH: 0x03, ABORT: 0x04, OK: 0x05, ERROR: 0x06, PROGRESS: 0x07 };
-    const TYPE_NAME = { 0x01: "BEGIN", 0x02: "DATA", 0x03: "FINISH", 0x04: "ABORT", 0x05: "OK", 0x06: "ERROR", 0x07: "PROGRESS" };
+    const TYPE = { BEGIN: 0x01, DATA: 0x02, FINISH: 0x03, ABORT: 0x04, OK: 0x05, ERROR: 0x06, PROGRESS: 0x07,
+                   GET_STATUS: 0x08, MARK_VALID: 0x09, MARK_INVALID: 0x0A, STATUS: 0x0B };
+    const TYPE_NAME = { 0x01: "BEGIN", 0x02: "DATA", 0x03: "FINISH", 0x04: "ABORT", 0x05: "OK", 0x06: "ERROR", 0x07: "PROGRESS",
+                        0x08: "GET_STATUS", 0x09: "MARK_VALID", 0x0A: "MARK_INVALID", 0x0B: "STATUS" };
+    // STATUS reply flag bits.
+    const STATUS_PENDING_VERIFY = 0x01, STATUS_ROLLBACK_SUPPORTED = 0x02;
     // esp_ota_begin erases flash (seconds for a large / unknown-size image) and
     // esp_ota_end re-reads + hashes the whole image, so give BEGIN / FINISH a
     // much longer deadline than the per-4KiB DATA writes.
@@ -282,7 +296,8 @@
     // ===================================================================
     const els = {};
     for (const id of ["status", "connectBtn", "anyDevice", "devInfo", "fileInput", "fileInfo",
-                      "uploadBtn", "abortBtn", "progressFill", "statBytes", "statPercent",
+                      "uploadBtn", "abortBtn", "statusBtn", "markValidBtn", "rollbackBtn",
+                      "progressFill", "statBytes", "statPercent",
                       "statRate", "statNote", "logFrames", "clearLogBtn", "log", "unsupported"]) {
       els[id] = document.getElementById(id);
     }
@@ -571,6 +586,11 @@
       const file = els.fileInput.files && els.fileInput.files[0];
       els.uploadBtn.disabled = !(device && file && !uploading);
       els.abortBtn.disabled = !uploading;
+      // Rollback controls need a connection and no upload in flight.
+      const rbReady = !!device && !uploading;
+      els.statusBtn.disabled = !rbReady;
+      els.markValidBtn.disabled = !rbReady;
+      els.rollbackBtn.disabled = !rbReady;
       if (!device) els.devInfo.textContent = "Not connected. Default filter: any espp device (VID 0x1209); the vendor (0xFF) interface is discovered from the descriptors at runtime.";
     }
 
@@ -674,6 +694,8 @@
               if (progress) updateProgress(progress.written, progress.total || null);
               continue; // informational; keep waiting for OK / ERROR
             }
+            // STATUS is the reply to GET_STATUS; return its raw payload (flags byte).
+            if (reply.type === TYPE.STATUS) return reply.payload;
             if (reply.type === TYPE.OK) return parseU32(reply.payload);
             if (reply.type === TYPE.ERROR) {
               const info = parseError(reply.payload);
@@ -862,6 +884,40 @@
       if (!uploading) return;
       abortRequested = true;
       logLine("sys", "Abort requested; stopping after the in-flight chunk...");
+    });
+
+    // ---- rollback controls (host confirms the image; the app must not) --------
+    els.statusBtn.addEventListener("click", async () => {
+      try {
+        const payload = await transact(TYPE.GET_STATUS, null, DATA_TIMEOUT_MS);
+        const flags = (payload && payload.length) ? payload[0] : 0;
+        if (!(flags & STATUS_ROLLBACK_SUPPORTED)) {
+          logLine("sys", "Rollback not supported on the device (CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE off).");
+        } else if (flags & STATUS_PENDING_VERIFY) {
+          logLine("err", "Running image is PENDING VERIFY — click “Mark valid” to confirm it, or it rolls back on the next reset.");
+        } else {
+          logLine("ok", "Running image is confirmed (not pending verify).");
+        }
+      } catch (e) { logLine("err", "Status failed: " + e.message); }
+    });
+
+    els.markValidBtn.addEventListener("click", async () => {
+      try {
+        await transact(TYPE.MARK_VALID, null, DATA_TIMEOUT_MS);
+        logLine("ok", "Running image marked valid; rollback cancelled.");
+      } catch (e) { logLine("err", "Mark valid failed: " + e.message); }
+    });
+
+    els.rollbackBtn.addEventListener("click", async () => {
+      if (!confirm("Roll back to the previous image and reboot the device?")) return;
+      // The device reboots on success and may not reply, so a deadline/link loss
+      // here is the expected outcome, not an error.
+      try {
+        await transact(TYPE.MARK_INVALID, null, DATA_TIMEOUT_MS);
+        logLine("ok", "Rollback acknowledged; device rebooting into the previous image.");
+      } catch (e) {
+        logLine("sys", "Rollback sent; device is rebooting (no reply expected). [" + e.message + "]");
+      }
     });
 
     logLine("sys", "espp OTA Console ready. Connect a device running the espp ota example (vendor/WebUSB interface).");

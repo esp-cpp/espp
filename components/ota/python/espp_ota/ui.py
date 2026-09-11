@@ -41,12 +41,14 @@ def _open_progress_stream():
             return sys.stderr, False
     except Exception:
         pass  # stderr may not support isatty() (e.g. a wrapped stream); fall through
-    for name in ("/dev/tty", "CONOUT$"):
-        try:
-            return open(name, "w"), True
-        except Exception:
-            continue
-    return None, False
+    # Try only the terminal device for THIS platform. Using the wrong name (e.g.
+    # "CONOUT$" on POSIX) would create a stray regular file in the cwd and write
+    # progress there instead of falling back to stderr.
+    term_name = "CONOUT$" if os.name == "nt" else "/dev/tty"
+    try:
+        return open(term_name, "w"), True
+    except Exception:
+        return None, False  # no controlling terminal (CI / redirected) -> stderr fallback
 
 
 def _have_rich() -> bool:

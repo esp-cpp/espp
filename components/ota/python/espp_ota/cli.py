@@ -116,6 +116,33 @@ def _cmd_discover(args) -> int:
     return 0
 
 
+def _cmd_status(args) -> int:
+    with _make_transport(args) as t:
+        st = OtaClient(t).get_status()
+    if not st.rollback_supported:
+        CON.info("rollback: not supported (CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE off)")
+    elif st.pending_verify:
+        CON.warn("running image is PENDING VERIFY — confirm it with `mark-valid` "
+                 "(or it rolls back on the next reset)")
+    else:
+        CON.success("running image is confirmed (not pending verify)")
+    return 0
+
+
+def _cmd_mark_valid(args) -> int:
+    with _make_transport(args) as t:
+        OtaClient(t).mark_valid()
+    CON.success("running image marked valid; rollback cancelled")
+    return 0
+
+
+def _cmd_rollback(args) -> int:
+    with _make_transport(args) as t:
+        OtaClient(t).mark_invalid()
+    CON.success("device rolling back to the previous image and rebooting")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="espp_ota", description=__doc__.split("\n")[0])
     p.add_argument("--version", action="version", version=f"espp_ota {__version__}")
@@ -142,6 +169,19 @@ def build_parser() -> argparse.ArgumentParser:
     _add_device_args(d)
     d.add_argument("--timeout", type=int, default=2000, help="ms (default 2000)")
     d.set_defaults(func=_cmd_discover)
+
+    st = sub.add_parser("status", help="query rollback status (is the image pending verify?)")
+    _add_device_args(st)
+    st.set_defaults(func=_cmd_status)
+
+    mv = sub.add_parser("mark-valid",
+                        help="confirm the running image (cancel rollback) after verifying it")
+    _add_device_args(mv)
+    mv.set_defaults(func=_cmd_mark_valid)
+
+    rb = sub.add_parser("rollback", help="reject the running image: roll back + reboot")
+    _add_device_args(rb)
+    rb.set_defaults(func=_cmd_rollback)
     return p
 
 

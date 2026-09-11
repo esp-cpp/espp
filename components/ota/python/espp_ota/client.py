@@ -9,6 +9,7 @@ matching the device and ``ota_console.html``.
 
 from __future__ import annotations
 
+import errno
 import time
 from collections import deque
 from typing import Callable, Deque, List, Optional
@@ -53,19 +54,22 @@ class OtaClient:
             if data:
                 self._pending.extend(self._parser.feed(data))
 
-    def _transact(self, request: bytes, timeout_ms: int) -> _f.Frame:
-        """Send one request and return the matching OK reply (module 0).
+    def _transact(self, request: bytes, timeout_ms: int,
+                  want: MessageType = MessageType.OK) -> _f.Frame:
+        """Send one request and return the matching reply (module 0).
 
-        PROGRESS frames are surfaced to the callback and skipped; an ERROR reply
-        raises :class:`OtaError`; frames for other modules are ignored."""
+        ``want`` is the success reply type expected (OK by default; STATUS for a
+        status query). PROGRESS frames are surfaced to the callback and skipped;
+        an ERROR reply raises :class:`OtaError`; frames for other modules are
+        ignored."""
         self._t.write(request, timeout_ms=timeout_ms)
         deadline = time.monotonic() + timeout_ms / 1000.0
         while True:
             fr = self._next_frame(deadline)
             # Only device->host replies on module 0 are ours. Skip other modules'
             # traffic and any device-originated *request* on module 0 (reply flag
-            # clear) so a request whose type collides with OK/ERROR/PROGRESS can
-            # never be mistaken for a reply (as the browser probe also enforces).
+            # clear) so a request whose type collides with a reply type can never
+            # be mistaken for a reply (as the browser probe also enforces).
             if fr.module != _p.MODULE or not fr.is_reply:
                 continue
             if fr.type == MessageType.PROGRESS:
@@ -78,7 +82,7 @@ class OtaClient:
                 if info:
                     raise OtaError(f"device error: {info.message}", info.code)
                 raise OtaError("device error (unparseable ERROR reply)")
-            if fr.type == MessageType.OK:
+            if fr.type == want:
                 return fr
             raise OtaError(f"unexpected reply type 0x{fr.type:02x}")
 
@@ -94,11 +98,16 @@ class OtaClient:
 
         # The device keeps its OTA session across a host disconnect, so a
         # previously interrupted flash can leave it "busy" and reject this run's
-        # BEGIN. If BEGIN fails, send an ABORT to release any stale session and
-        # retry BEGIN once before giving up.
+        # BEGIN. Recover from THAT case only: if BEGIN is rejected specifically
+        # with device_or_resource_busy (EBUSY), send an ABORT to release the stale
+        # session and retry BEGIN once. Any other failure (a timeout, a transport
+        # error) is NOT retried — retrying on the same uncorrelated stream could
+        # pair a delayed reply with the wrong request and desync the protocol.
         try:
             self._transact(_p.make_begin(size), self._begin_to)
-        except OtaError:
+        except OtaError as exc:
+            if exc.code != errno.EBUSY:
+                raise
             self.abort()  # clear a stale session left by a prior interrupted run
             self._transact(_p.make_begin(size), self._begin_to)
 
@@ -128,6 +137,33 @@ class OtaClient:
             self._transact(_p.make_abort(), self._data_to)
         except Exception:
             pass  # best-effort cleanup; the link may already be gone
+
+    # -- rollback control -----------------------------------------------------
+    def get_status(self) -> "_p.StatusInfo":
+        """Query the device's rollback status (a STATUS reply)."""
+        fr = self._transact(_p.make_get_status(), self._data_to, want=MessageType.STATUS)
+        info = _p.parse_status(fr)
+        if info is None:
+            raise OtaError("unparseable STATUS reply")
+        return info
+
+    def mark_valid(self) -> None:
+        """Confirm the running image (cancel the pending rollback). The host does
+        this after verifying the device is healthy — the app must not confirm
+        itself."""
+        self._transact(_p.make_mark_valid(), self._data_to)
+
+    def mark_invalid(self) -> None:
+        """Reject the running image: the device rolls back to the previous app and
+        reboots. The device may reboot before/without replying, so a missing reply
+        is treated as success."""
+        try:
+            self._transact(_p.make_mark_invalid(), self._data_to)
+        except OtaError as exc:
+            # A timeout (no code) is expected — the device rebooted. Re-raise a
+            # real device ERROR (rollback refused, e.g. no previous app).
+            if exc.code is not None:
+                raise
 
     def discover(self, timeout_ms: int = 2000) -> List[_f.Frame]:
         """Send a dispatcher ListModules request; return the matching reply.

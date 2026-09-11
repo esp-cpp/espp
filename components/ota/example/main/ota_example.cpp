@@ -348,6 +348,33 @@ extern "C" void app_main(void) {
         reply_error(ec, "abort failed");
       break;
     }
+    case proto::MessageType::GetStatus: {
+      // Report rollback status so the host can decide whether to confirm the
+      // running image. Session-independent (does not require BEGIN).
+      uint8_t flags = 0;
+#if defined(CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE)
+      flags |= proto::kStatusRollbackSupported;
+      if (ota.is_pending_verify())
+        flags |= proto::kStatusPendingVerify;
+#endif
+      usb.write_vendor(proto::make_status(flags));
+      break;
+    }
+    case proto::MessageType::MarkValid:
+      // The HOST confirms the running image after its own health checks — the app
+      // must not confirm itself. Cancels the pending rollback.
+      if (ota.mark_app_valid(ec))
+        usb.write_vendor(proto::make_ok(0));
+      else
+        reply_error(ec, "mark valid failed");
+      break;
+    case proto::MessageType::MarkInvalid:
+      // Reject the running image: roll back to the previous app and reboot. This
+      // does not return on success (the device reboots), so reply first.
+      usb.write_vendor(proto::make_ok(0));
+      if (!ota.mark_app_invalid_and_rollback(ec))
+        reply_error(ec, "rollback failed"); // only reached if rollback failed
+      break;
     default:
       reply_error(std::make_error_code(std::errc::not_supported), "unknown message type");
       break;

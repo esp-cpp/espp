@@ -38,10 +38,22 @@ python -m espp_ota flash build/my_app.bin        # BEGIN -> stream -> FINISH
 python -m espp_ota flash build/my_app.bin --pid 0x1234 --chunk-size 2048
 python -m espp_ota list                          # list matching USB devices
 python -m espp_ota discover                       # probe the device's dispatcher
+python -m espp_ota status                         # is the running image pending verify?
+python -m espp_ota mark-valid                     # confirm the running image (cancel rollback)
+python -m espp_ota rollback                        # reject it: roll back + reboot
 ```
 
 Installed with the espp wheel it's also available as the `espp-ota` command
 (`pip install "espp[usb]"`, or `"espp[usb-ui]"` to also get the `rich` UI).
+
+### Rollback: confirm the image from the host
+
+With bootloader rollback enabled, a freshly flashed image boots **pending verify**
+and rolls back on the next reset unless it is confirmed. Confirmation is
+deliberately **host-driven** — the running app must not mark *itself* valid, since
+a broken build could do so right before crashing. So the flow is: `flash` → the
+device reboots into the new image → you verify it works → `mark-valid` (or
+`rollback` to reject it). `status` reports whether confirmation is still pending.
 
 ## Library use
 

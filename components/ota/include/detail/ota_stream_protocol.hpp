@@ -25,15 +25,24 @@
 // message.
 //
 // Message types & payloads (host -> device, requests):
-//   0x01 BEGIN  — payload: u32 image_size (0 = unknown / streaming).
-//   0x02 DATA   — payload: raw image bytes (1..kMaxPayloadSize per frame).
-//   0x03 FINISH — no payload. Validates + activates the received image.
-//   0x04 ABORT  — no payload. Discards the in-progress session.
+//   0x01 BEGIN       — payload: u32 image_size (0 = unknown / streaming).
+//   0x02 DATA        — payload: raw image bytes (1..kMaxPayloadSize per frame).
+//   0x03 FINISH      — no payload. Validates + activates the received image.
+//   0x04 ABORT       — no payload. Discards the in-progress session.
+//   0x08 GET_STATUS  — no payload. Asks for a STATUS reply (rollback state).
+//   0x09 MARK_VALID  — no payload. Confirms the running image (cancel rollback).
+//   0x0A MARK_INVALID— no payload. Rolls back to the previous image + reboots.
 //
 // Message types & payloads (device -> host, replies; reply flag set):
 //   0x05 OK       — payload: u32 bytes_received so far.
 //   0x06 ERROR    — payload: u32 code followed by a UTF-8 message.
 //   0x07 PROGRESS — payload: u32 written, u32 total (0 if unknown). Optional.
+//   0x0B STATUS   — payload: u8 flags (bit0 pending_verify, bit1 rollback_supported).
+//
+// Rollback (bootloader rollback support): a freshly flashed image boots "pending
+// verify" and rolls back on the next reset unless confirmed. The device app must
+// NOT confirm itself; the HOST confirms it (MARK_VALID) after its own health
+// checks — a broken build could otherwise mark itself valid before failing.
 //
 // Flow control: the host serializes transactions — it sends one frame and waits
 // for the matching OK / ERROR reply before sending the next — so the device
@@ -86,11 +95,26 @@ enum class MessageType : uint8_t {
   Ok = 0x05,       ///< device -> host: success reply (payload: u32 bytes_received so far)
   Error = 0x06,    ///< device -> host: failure reply (payload: u32 code + utf8 message)
   Progress = 0x07, ///< device -> host: optional progress (payload: u32 written, u32 total)
+  // Rollback control (bootloader rollback support). After an OTA the new image
+  // boots "pending verify" and rolls back on the next reset unless confirmed.
+  // The device app must NOT confirm itself (a broken app could still do so before
+  // failing); the HOST confirms it once it has verified the device is healthy.
+  GetStatus = 0x08,   ///< host -> device: query rollback status (no payload) -> Status reply
+  MarkValid = 0x09,   ///< host -> device: confirm the running image (cancel rollback), no payload
+  MarkInvalid = 0x0A, ///< host -> device: reject the running image (roll back + reboot), no payload
+  Status = 0x0B, ///< device -> host reply: u8 flags (bit0 pending_verify, bit1 rollback_supported)
+};
+
+/// Status-reply flag bits (MessageType::Status payload byte 0).
+enum StatusFlags : uint8_t {
+  kStatusPendingVerify = 0x01,     ///< running image awaits confirmation (will roll back if not)
+  kStatusRollbackSupported = 0x02, ///< bootloader rollback support is compiled in
 };
 
 /// Whether a message type is a device->host reply (sets the frame reply flag).
 inline bool is_reply(MessageType type) {
-  return type == MessageType::Ok || type == MessageType::Error || type == MessageType::Progress;
+  return type == MessageType::Ok || type == MessageType::Error || type == MessageType::Progress ||
+         type == MessageType::Status;
 }
 
 /// @brief Build an encoded OTA frame (typed overload of stream_frame::build_frame).
@@ -119,6 +143,21 @@ inline std::vector<uint8_t> make_finish() { return build_frame(MessageType::Fini
 
 /// Build an ABORT frame (no payload).
 inline std::vector<uint8_t> make_abort() { return build_frame(MessageType::Abort); }
+
+/// Build a GET_STATUS frame (no payload). The device replies with STATUS.
+inline std::vector<uint8_t> make_get_status() { return build_frame(MessageType::GetStatus); }
+
+/// Build a MARK_VALID frame (no payload). Confirms the running image.
+inline std::vector<uint8_t> make_mark_valid() { return build_frame(MessageType::MarkValid); }
+
+/// Build a MARK_INVALID frame (no payload). Rolls back + reboots the device.
+inline std::vector<uint8_t> make_mark_invalid() { return build_frame(MessageType::MarkInvalid); }
+
+/// Build a STATUS reply (flags: OR of StatusFlags).
+inline std::vector<uint8_t> make_status(uint8_t flags) {
+  const uint8_t p[] = {flags};
+  return build_frame(MessageType::Status, p);
+}
 
 /// Build an OK reply (bytes_received so far).
 inline std::vector<uint8_t> make_ok(uint32_t bytes_received) {
@@ -185,6 +224,14 @@ inline std::optional<ProgressInfo> parse_progress(const Frame &frame) {
   info.written = get_u32(frame.payload);
   info.total = get_u32(std::span<const uint8_t>(frame.payload).subspan(4));
   return info;
+}
+
+/// Parse a STATUS frame payload; returns the flags byte, or std::nullopt if the
+/// payload is empty.
+inline std::optional<uint8_t> parse_status(const Frame &frame) {
+  if (frame.payload.empty())
+    return std::nullopt;
+  return frame.payload[0];
 }
 
 } // namespace ota_stream

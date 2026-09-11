@@ -34,9 +34,18 @@ class MessageType(IntEnum):
     OK = 0x05        # device->host: u32 bytes_received so far
     ERROR = 0x06     # device->host: u32 code + utf-8 message
     PROGRESS = 0x07  # device->host: u32 written, u32 total (0 if unknown)
+    GET_STATUS = 0x08    # host->device: query rollback status (no payload) -> STATUS
+    MARK_VALID = 0x09    # host->device: confirm the running image (cancel rollback)
+    MARK_INVALID = 0x0A  # host->device: reject the running image (roll back + reboot)
+    STATUS = 0x0B        # device->host: u8 flags (see StatusFlags)
 
 
-_REPLY_TYPES = {MessageType.OK, MessageType.ERROR, MessageType.PROGRESS}
+class StatusFlags(IntEnum):
+    PENDING_VERIFY = 0x01     # running image awaits confirmation (rolls back if not)
+    ROLLBACK_SUPPORTED = 0x02  # bootloader rollback support is compiled in
+
+
+_REPLY_TYPES = {MessageType.OK, MessageType.ERROR, MessageType.PROGRESS, MessageType.STATUS}
 
 
 def _build(type_: MessageType, payload: bytes = b"") -> bytes:
@@ -58,6 +67,18 @@ def make_finish() -> bytes:
 
 def make_abort() -> bytes:
     return _build(MessageType.ABORT)
+
+
+def make_get_status() -> bytes:
+    return _build(MessageType.GET_STATUS)
+
+
+def make_mark_valid() -> bytes:
+    return _build(MessageType.MARK_VALID)
+
+
+def make_mark_invalid() -> bytes:
+    return _build(MessageType.MARK_INVALID)
 
 
 def make_discovery_request() -> bytes:
@@ -98,6 +119,22 @@ def parse_progress(fr: _f.Frame) -> Optional[ProgressInfo]:
         return None
     written, total = struct.unpack("<II", fr.payload)
     return ProgressInfo(written, total)
+
+
+@dataclass
+class StatusInfo:
+    pending_verify: bool     # running image awaits confirmation (rolls back if not)
+    rollback_supported: bool  # bootloader rollback support is compiled in
+
+
+def parse_status(fr: _f.Frame) -> Optional[StatusInfo]:
+    if not fr.payload:
+        return None
+    flags = fr.payload[0]
+    return StatusInfo(
+        pending_verify=bool(flags & StatusFlags.PENDING_VERIFY),
+        rollback_supported=bool(flags & StatusFlags.ROLLBACK_SUPPORTED),
+    )
 
 
 class OtaError(RuntimeError):

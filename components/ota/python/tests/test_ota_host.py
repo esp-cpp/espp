@@ -74,6 +74,18 @@ class MockDevice:
         elif t == MessageType.ABORT:
             self._busy = False  # ABORT clears a stale session
             self._reply(P._build(MessageType.OK, struct.pack("<I", self.received)))
+        elif t == MessageType.GET_STATUS:
+            flags = P.StatusFlags.ROLLBACK_SUPPORTED
+            if getattr(self, "_pending", False):
+                flags |= P.StatusFlags.PENDING_VERIFY
+            self._reply(P._build(MessageType.STATUS, bytes([flags])))
+        elif t == MessageType.MARK_VALID:
+            self.marked_valid = True
+            self._pending = False
+            self._reply(P._build(MessageType.OK, struct.pack("<I", 0)))
+        elif t == MessageType.MARK_INVALID:
+            self.rolled_back = True
+            self._reply(P._build(MessageType.OK, struct.pack("<I", 0)))
 
 
 def _ok(name, cond):
@@ -147,6 +159,20 @@ def test_small_image_one_chunk():
     _ok("single-chunk image", bytes(dev.image) == b"\xe9tiny firmware" and dev.data_frames == 1)
 
 
+def test_rollback_control():
+    """get_status / mark_valid over the loopback mock."""
+    dev = MockDevice()
+    dev._pending = True
+    st = OtaClient(dev).get_status()
+    _ok("status pending+supported", st.pending_verify and st.rollback_supported)
+    OtaClient(dev).mark_valid()
+    _ok("mark_valid confirmed", getattr(dev, "marked_valid", False) and not dev._pending)
+    st2 = OtaClient(dev).get_status()
+    _ok("status confirmed after mark_valid", not st2.pending_verify)
+    OtaClient(dev).mark_invalid()
+    _ok("rollback requested", getattr(dev, "rolled_back", False))
+
+
 def test_begin_busy_recovers():
     """A stale session (BEGIN rejected as busy) is cleared by an ABORT + retry."""
     dev = MockDevice()
@@ -163,4 +189,5 @@ if __name__ == "__main__":
     test_error_reply()
     test_small_image_one_chunk()
     test_begin_busy_recovers()
+    test_rollback_control()
     print("all host tests passed")

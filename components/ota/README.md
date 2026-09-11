@@ -94,11 +94,19 @@ is the routing id (OTA is **module 0**). OTA layers its message types on it.
   rejects and resynchronizes past oversized or corrupt frames, so buffering
   stays bounded
 - host → device (requests): `0x01 BEGIN(u32 image_size)`, `0x02 DATA(bytes)`,
-  `0x03 FINISH`, `0x04 ABORT`; device → host (replies, reply flag set):
+  `0x03 FINISH`, `0x04 ABORT`, `0x08 GET_STATUS`, `0x09 MARK_VALID`,
+  `0x0A MARK_INVALID`; device → host (replies, reply flag set):
   `0x05 OK(u32 bytes_received)`, `0x06 ERROR(u32 code + utf8 message)`,
-  `0x07 PROGRESS(u32 written, u32 total)`
-- transactions are serialized: the host waits for `OK` / `ERROR` before the
-  next frame
+  `0x07 PROGRESS(u32 written, u32 total)`, `0x0B STATUS(u8 flags)` (bit0 =
+  pending-verify, bit1 = rollback-supported)
+- transactions are serialized: the host waits for `OK` / `ERROR` (or `STATUS`)
+  before the next frame
+- **rollback is host-driven** (see below): after an OTA the new image boots
+  *pending verify*, and the **host** confirms it with `MARK_VALID` once it has
+  checked the device is healthy — the running app must not confirm itself, or a
+  broken build could mark itself valid before failing. `MARK_INVALID` rolls back
+  to the previous image and reboots; `GET_STATUS` reports whether the running
+  image is still pending verify.
 
 The [espp OTA Console](https://esp-cpp.github.io/espp/apps/ota_console.html)
 (`web/ota_console.html`) implements this protocol over WebUSB in the browser.
