@@ -9,11 +9,18 @@ CONFIG_IDF_TARGET="esp32s3"
 CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 
-# Keep the log console on the built-in USB-Serial-JTAG peripheral so it stays
-# completely separate from the native USB-OTG (vendor / WebUSB) interface
-# created by espp::UsbDevice. (On an ESP32-S3 devkit these are two distinct USB
-# connectors.)
-CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# Put the log console on UART0, NOT the USB-Serial-JTAG peripheral. This example
+# hands the native USB-OTG port to TinyUSB for the vendor / WebUSB OTA interface,
+# and on the ESP32-S3 the USB-Serial-JTAG controller and the USB-OTG controller
+# share the SAME internal USB PHY / physical port (GPIO19/20). Running the console
+# on USB-Serial-JTAG therefore contends with the OTA USB interface for that one
+# port and makes the device reboot-loop at boot. UART0 is a fully independent
+# peripheral, so the console always has a place to go once TinyUSB takes over the
+# USB port. (Connect a UART/USB-UART adapter to UART0 for `idf.py monitor`.)
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+# Also disable the SECONDARY console (USB-Serial-JTAG by default on the S3) so the
+# native USB port is left entirely to TinyUSB — nothing else drives that USB PHY.
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
 
 # Enable the TinyUSB vendor-specific class (THE key enablement for the vendor /
 # WebUSB OTA interface). esp_tinyusb gates CFG_TUD_VENDOR behind

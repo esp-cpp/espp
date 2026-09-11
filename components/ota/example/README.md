@@ -41,9 +41,13 @@ Ethernet needs no separate OTA code path, just bring up its netif instead of
 ### Hardware Required
 
 An ESP32-S3 (the native USB-OTG peripheral is required for the USB / WebUSB
-transport; the target is pinned in `sdkconfig.defaults`). Connect BOTH USB
-connectors of a devkit: the USB-Serial-JTAG port carries the log console and
-flashing, the USB-OTG port presents the vendor / WebUSB OTA interface.
+transport; the target is pinned in `sdkconfig.defaults`). The **native USB port is
+dedicated to the OTA vendor / WebUSB interface** (TinyUSB), so the log console runs
+on **UART0** — connect a UART / USB-UART adapter for `idf.py monitor`. This is
+deliberate: on the ESP32-S3 the USB-Serial-JTAG console and the USB-OTG controller
+share the same internal USB PHY / port, so running the console on USB-Serial-JTAG
+contends with the OTA USB interface and reboot-loops the device. UART0 is a
+separate peripheral, so the console is unaffected when TinyUSB takes the USB port.
 
 ### Configure
 
