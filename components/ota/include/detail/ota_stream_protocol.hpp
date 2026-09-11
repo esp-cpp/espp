@@ -25,15 +25,26 @@
 // message.
 //
 // Message types & payloads (host -> device, requests):
-//   0x01 BEGIN  — payload: u32 image_size (0 = unknown / streaming).
-//   0x02 DATA   — payload: raw image bytes (1..kMaxPayloadSize per frame).
-//   0x03 FINISH — no payload. Validates + activates the received image.
-//   0x04 ABORT  — no payload. Discards the in-progress session.
+//   0x01 BEGIN       — payload: u32 image_size (0 = unknown / streaming).
+//   0x02 DATA        — payload: raw image bytes (1..kMaxPayloadSize per frame).
+//   0x03 FINISH      — no payload. Validates + activates the received image.
+//   0x04 ABORT       — no payload. Discards the in-progress session.
+//   0x08 GET_STATUS  — no payload. Asks for a STATUS reply (rollback state).
+//   0x09 MARK_VALID  — no payload. Confirms the running image (cancel rollback).
+//   0x0A MARK_INVALID— no payload. Rolls back to the previous image + reboots.
 //
 // Message types & payloads (device -> host, replies; reply flag set):
 //   0x05 OK       — payload: u32 bytes_received so far.
 //   0x06 ERROR    — payload: u32 code followed by a UTF-8 message.
 //   0x07 PROGRESS — payload: u32 written, u32 total (0 if unknown). Optional.
+//   0x0B STATUS   — payload: u8 flags (bit0 pending_verify, bit1 rollback_supported),
+//                   then the running app's version and project name (each a
+//                   u8-length-prefixed UTF-8 string).
+//
+// Rollback (bootloader rollback support): a freshly flashed image boots "pending
+// verify" and rolls back on the next reset unless confirmed. The device app must
+// NOT confirm itself; the HOST confirms it (MARK_VALID) after its own health
+// checks — a broken build could otherwise mark itself valid before failing.
 //
 // Flow control: the host serializes transactions — it sends one frame and waits
 // for the matching OK / ERROR reply before sending the next — so the device
@@ -86,11 +97,26 @@ enum class MessageType : uint8_t {
   Ok = 0x05,       ///< device -> host: success reply (payload: u32 bytes_received so far)
   Error = 0x06,    ///< device -> host: failure reply (payload: u32 code + utf8 message)
   Progress = 0x07, ///< device -> host: optional progress (payload: u32 written, u32 total)
+  // Rollback control (bootloader rollback support). After an OTA the new image
+  // boots "pending verify" and rolls back on the next reset unless confirmed.
+  // The device app must NOT confirm itself (a broken app could still do so before
+  // failing); the HOST confirms it once it has verified the device is healthy.
+  GetStatus = 0x08,   ///< host -> device: query rollback status (no payload) -> Status reply
+  MarkValid = 0x09,   ///< host -> device: confirm the running image (cancel rollback), no payload
+  MarkInvalid = 0x0A, ///< host -> device: reject the running image (roll back + reboot), no payload
+  Status = 0x0B, ///< device -> host reply: u8 flags (bit0 pending_verify, bit1 rollback_supported)
+};
+
+/// Status-reply flag bits (MessageType::Status payload byte 0).
+enum StatusFlags : uint8_t {
+  kStatusPendingVerify = 0x01,     ///< running image awaits confirmation (will roll back if not)
+  kStatusRollbackSupported = 0x02, ///< bootloader rollback support is compiled in
 };
 
 /// Whether a message type is a device->host reply (sets the frame reply flag).
 inline bool is_reply(MessageType type) {
-  return type == MessageType::Ok || type == MessageType::Error || type == MessageType::Progress;
+  return type == MessageType::Ok || type == MessageType::Error || type == MessageType::Progress ||
+         type == MessageType::Status;
 }
 
 /// @brief Build an encoded OTA frame (typed overload of stream_frame::build_frame).
@@ -119,6 +145,34 @@ inline std::vector<uint8_t> make_finish() { return build_frame(MessageType::Fini
 
 /// Build an ABORT frame (no payload).
 inline std::vector<uint8_t> make_abort() { return build_frame(MessageType::Abort); }
+
+/// Build a GET_STATUS frame (no payload). The device replies with STATUS.
+inline std::vector<uint8_t> make_get_status() { return build_frame(MessageType::GetStatus); }
+
+/// Build a MARK_VALID frame (no payload). Confirms the running image.
+inline std::vector<uint8_t> make_mark_valid() { return build_frame(MessageType::MarkValid); }
+
+/// Build a MARK_INVALID frame (no payload). Rolls back + reboots the device.
+inline std::vector<uint8_t> make_mark_invalid() { return build_frame(MessageType::MarkInvalid); }
+
+/// Append a length-prefixed (u8 length) UTF-8 string, truncated to 255 bytes.
+inline void put_str(std::vector<uint8_t> &out, std::string_view s) {
+  const uint8_t len = static_cast<uint8_t>(std::min<size_t>(s.size(), 255));
+  out.push_back(len);
+  out.insert(out.end(), s.begin(), s.begin() + len);
+}
+
+/// Build a STATUS reply: flags (OR of StatusFlags) plus the running app's version
+/// and project name (each a u8-length-prefixed string), so the host can report
+/// what firmware is now running before confirming it.
+inline std::vector<uint8_t> make_status(uint8_t flags, std::string_view version = {},
+                                        std::string_view project = {}) {
+  std::vector<uint8_t> p;
+  p.push_back(flags);
+  put_str(p, version);
+  put_str(p, project);
+  return build_frame(MessageType::Status, p);
+}
 
 /// Build an OK reply (bytes_received so far).
 inline std::vector<uint8_t> make_ok(uint32_t bytes_received) {
@@ -184,6 +238,38 @@ inline std::optional<ProgressInfo> parse_progress(const Frame &frame) {
   ProgressInfo info{};
   info.written = get_u32(frame.payload);
   info.total = get_u32(std::span<const uint8_t>(frame.payload).subspan(4));
+  return info;
+}
+
+/// Decoded STATUS reply payload.
+struct StatusInfo {
+  uint8_t flags{};          ///< OR of StatusFlags (pending_verify / rollback_supported)
+  std::string version;      ///< Running app version (may be empty)
+  std::string project_name; ///< Running app project name (may be empty)
+
+  bool pending_verify() const { return (flags & kStatusPendingVerify) != 0; }
+  bool rollback_supported() const { return (flags & kStatusRollbackSupported) != 0; }
+};
+
+/// Parse a STATUS frame payload: [flags u8][version u8-len+bytes][project
+/// u8-len+bytes]. Trailing strings are optional (older devices sent flags only);
+/// returns std::nullopt only if the payload is empty.
+inline std::optional<StatusInfo> parse_status(const Frame &frame) {
+  if (frame.payload.empty())
+    return std::nullopt;
+  StatusInfo info{};
+  info.flags = frame.payload[0];
+  size_t i = 1;
+  auto read_str = [&](std::string &out) {
+    if (i >= frame.payload.size())
+      return;
+    const size_t len = frame.payload[i++];
+    const size_t n = std::min(len, frame.payload.size() - i);
+    out.assign(frame.payload.begin() + i, frame.payload.begin() + i + n);
+    i += n;
+  };
+  read_str(info.version);
+  read_str(info.project_name);
   return info;
 }
 

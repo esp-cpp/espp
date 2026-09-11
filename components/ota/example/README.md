@@ -41,9 +41,25 @@ Ethernet needs no separate OTA code path, just bring up its netif instead of
 ### Hardware Required
 
 An ESP32-S3 (the native USB-OTG peripheral is required for the USB / WebUSB
-transport; the target is pinned in `sdkconfig.defaults`). Connect BOTH USB
-connectors of a devkit: the USB-Serial-JTAG port carries the log console and
-flashing, the USB-OTG port presents the vendor / WebUSB OTA interface.
+transport; the target is pinned in `sdkconfig.defaults`).
+
+**Console routing.** On the ESP32-S3 the USB-Serial-JTAG console and the USB-OTG
+controller share the same internal USB PHY / port, so the console cannot stay on
+USB-Serial-JTAG once this example hands that port to TinyUSB — doing so
+reboot-loops the device. Instead the console is set up so a **single native USB
+cable carries both the OTA stream and the logs**:
+
+- **primary console: UART0** — always available (connect a UART / USB-UART
+  adapter for `idf.py monitor`); TinyUSB never touches it, so it is the safe
+  fallback.
+- **secondary console: USB-Serial-JTAG** — carries the early-boot / bootloader
+  logs on the native USB port *before* the app brings up TinyUSB.
+- once TinyUSB is up the example adds a **USB-CDC** interface and **reroutes the
+  console (stdout) to it**, teeing to UART0 as well. So on the native USB port
+  you see boot logs over USB-Serial-JTAG and then, seamlessly, the running app's
+  logs over USB-CDC — alongside the OTA vendor / WebUSB interface on the same
+  cable. (The CDC console only emits while a host has the CDC port open, and
+  never blocks the app if nothing is reading it.)
 
 ### Configure
 
@@ -80,21 +96,48 @@ update alternates to the other slot.
 
 ### Update over HTTP (WiFi or Ethernet)
 
-- Browser: open `http://<ip>/ota`, pick the `.bin`, upload.
+- Browser: open `http://<ip>/ota`. The page shows a **status card** — the
+  currently-running firmware (project + version) and whether it is still
+  **pending verify** — with **Mark valid** / **Roll back** buttons, then the
+  file picker. Pick the `.bin` and upload.
 - CLI: `curl --data-binary @build/ota_example.bin http://<ip>/ota` — returns
   `{"status":"ok",...}` on success or a 4xx/5xx JSON error.
+
+The device exposes these HTTP endpoints (the mutating ones honor the same
+optional `EXAMPLE_OTA_HTTP_TOKEN` bearer token as `POST /ota`):
+
+| method + path | purpose |
+|---|---|
+| `GET /ota` | the upload page (status card + file picker) |
+| `POST /ota` | stream a raw `.bin` image (Content-Length = size) |
+| `GET /status` | JSON: `{project, version, pending_verify, rollback_supported}` |
+| `POST /mark-valid` | confirm the running image (cancel rollback) |
+| `POST /rollback` | reject the running image: roll back + reboot |
+
+So the whole host-driven flow works from a plain browser on the LAN: upload →
+the device reboots into the new image (now *pending verify*) → reopen the page →
+it shows **PENDING VERIFY** → press **Mark valid** to confirm it.
 
 ### Rollback semantics
 
 `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y` is set, so a freshly-installed image
-boots in the `PENDING_VERIFY` state. On boot the example logs the running
-partition + version, and if the image is pending verification it runs a
-(trivial) self-check and calls `espp::Ota::mark_app_valid()` — watch for the
-"image marked VALID; rollback cancelled" log line on the first boot after an
-update. If an updated app crashes/resets before marking itself valid, the
-bootloader automatically **rolls back** to the previous slot. A failed
-self-check would instead call `mark_app_invalid_and_rollback()` to return to
-the old image immediately.
+boots in the `PENDING_VERIFY` state and rolls back to the previous slot on the
+next reset unless it is confirmed. This example demonstrates **host-driven**
+confirmation: the app deliberately does **not** mark itself valid. On boot it
+logs the running partition + version, and if the image is pending verify it just
+logs that it is **waiting for the host to confirm it** — a broken build could
+otherwise self-validate right before failing. The **host** confirms the image
+(`MARK_VALID` over the OTA protocol) once it has checked the device is healthy:
+the [ota-console web app](../web/ota_console.html) prompts to confirm on
+reconnect, and `espp-ota flash` auto-verifies (reconnects after the reboot,
+reads status, and marks the image valid if it booted and responded). `status`,
+`mark-valid`, and `rollback` (mark invalid + reboot to the previous image) are
+also available to do it manually.
+
+(If your own product prefers device self-validation instead, run your health
+checks at boot and call `espp::Ota::mark_app_valid()` /
+`mark_app_invalid_and_rollback()` directly — see the commented note in
+`ota_example.cpp`.)
 
 Note: `espp::Ota::finish()` only validates the image and sets the boot
 partition; the restart is a separate explicit `restart()` call (this example
@@ -106,6 +149,8 @@ restarts ~750 ms after replying to the host, on any transport).
 I (608) OtaExample: Running 'ota_example' version 'v1.2.3-14-g35e120b' (built Aug 19 2026 12:34:56) from partition 'ota_0' (1966080 bytes)
 I (618) OtaExample: Next update will target partition 'ota_1' (1966080 bytes)
 I (668) espp_UsbDevice: USB device initialized (vendor/WebUSB interface ready)
+I (670) OtaExample: Routing console to USB-CDC (single cable: OTA + logs; UART0 stays teed).
+I (672) OtaExample: Console is now also on USB-CDC.
 I (5178) OtaExample: got IP: 192.168.1.23
 I (5178) OtaExample:   browser upload page: http://192.168.1.23/ota
 I (5178) OtaExample:   curl --data-binary @build/ota_example.bin http://192.168.1.23/ota
@@ -114,7 +159,7 @@ I (5198) OtaExample: OTA example ready; transports: USB vendor/WebUSB, HTTP POST
 I (42198) Ota: incoming firmware: project 'ota_example', version 'v1.2.4', built Aug 20 2026 09:00:00 (IDF v6.0)
 I (55123) Ota: finish: 1204224 bytes validated; boot partition set to 'ota_1' — call restart() to boot the new image
 ...reboot...
-W (612) OtaExample: This image is PENDING VERIFY (first boot after an OTA update)
-I (614) Ota: running app marked valid; rollback cancelled
-I (615) OtaExample: Self-check passed -> image marked VALID; rollback cancelled
+W (612) OtaExample: This image is PENDING VERIFY (first boot after an OTA update). Waiting for the host to confirm it (MARK_VALID); it rolls back on the next reset if not.
+...host reconnects and confirms (ota-console prompt / `espp-ota flash` auto-verify)...
+I (9051) Ota: running app marked valid; rollback cancelled
 ```
