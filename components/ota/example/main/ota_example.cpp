@@ -261,11 +261,18 @@ static bool ota_http_authorized(httpd_req_t *req) {
   return true;
 }
 
+// JSON boolean literal for a runtime flag. Kept as a function (not an inline
+// `b ? "true" : "false"`) so a caller whose argument is a compile-time constant
+// in a given build config -- e.g. the rollback flags below when
+// CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE is off -- does not become a
+// known-true/false *condition* that static analysis flags.
+static const char *json_bool(bool b) { return b ? "true" : "false"; }
+
 // GET /status: report the running firmware + rollback state as JSON, so the
 // upload page can show what is running and whether it still needs confirming.
 // Session-independent; mirrors the vendor GET_STATUS reply.
 static esp_err_t ota_status_handler(httpd_req_t *req) {
-  auto *ota = static_cast<espp::Ota *>(req->user_ctx);
+  const auto *ota = static_cast<const espp::Ota *>(req->user_ctx);
   bool rollback_supported = false, pending = false;
 #if defined(CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE)
   rollback_supported = true;
@@ -276,8 +283,8 @@ static esp_err_t ota_status_handler(httpd_req_t *req) {
   snprintf(body, sizeof(body),
            "{\"project\":\"%s\",\"version\":\"%s\",\"pending_verify\":%s,"
            "\"rollback_supported\":%s}",
-           desc.project_name.c_str(), desc.version.c_str(), pending ? "true" : "false",
-           rollback_supported ? "true" : "false");
+           desc.project_name.c_str(), desc.version.c_str(), json_bool(pending),
+           json_bool(rollback_supported));
   httpd_resp_set_type(req, "application/json");
   httpd_resp_send(req, body, HTTPD_RESP_USE_STRLEN);
   return ESP_OK;
@@ -574,12 +581,13 @@ extern "C" void app_main(void) {
       // Reject the running image: roll back to the previous app and reboot.
       // mark_app_invalid_and_rollback() does NOT return on success (the device
       // reboots), so DON'T pre-send OK: the reboot / USB disconnect IS the
-      // success signal to the host. Only a *failure* (e.g. no valid image to
-      // roll back to) returns here, and it is the sole reply — an ERROR. Sending
-      // OK first would let the host report success even when rollback was
-      // refused, leaving a stale ERROR on the stream.
-      if (!ota.mark_app_invalid_and_rollback(ec))
-        reply_error(ec, "rollback failed");
+      // success signal to the host. It only returns on *failure* (e.g. no valid
+      // image to roll back to), so the reply below is reached only then and an
+      // ERROR is the sole reply. Sending OK first would let the host report
+      // success even when rollback was refused, leaving a stale ERROR on the
+      // stream.
+      ota.mark_app_invalid_and_rollback(ec);
+      reply_error(ec, "rollback failed"); // only reached on failure
       break;
     default:
       reply_error(std::make_error_code(std::errc::not_supported), "unknown message type");
