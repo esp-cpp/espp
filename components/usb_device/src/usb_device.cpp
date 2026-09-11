@@ -126,12 +126,21 @@ uint16_t xinput_drv_open(uint8_t rhport, tusb_desc_interface_t const *desc_itf, 
       break;
     if (type == TUSB_DESC_ENDPOINT) {
       const tusb_desc_endpoint_t *ep = reinterpret_cast<const tusb_desc_endpoint_t *>(p);
-      if (!usbd_edpt_open(rhport, ep))
-        return 0;
-      if (tu_edpt_dir(ep->bEndpointAddress) == TUSB_DIR_IN)
+      if (tu_edpt_dir(ep->bEndpointAddress) == TUSB_DIR_IN) {
+        if (!usbd_edpt_open(rhport, ep))
+          return 0;
         s_xinput_drv.ep_in = ep->bEndpointAddress;
-      else
+      } else {
+        // EXPERIMENT: record the OUT endpoint address (it stays in the descriptor
+        // so XUSB sees a normal 2-endpoint 360 controller) but do NOT open it in
+        // the DWC2. Two captures showed every interrupt-IN report arriving with
+        // the OUT endpoint NUMBER prepended (0x01, then 0x02 after we moved it),
+        // shifting the report and making XUSB reject it. The corruption tracks the
+        // OUT endpoint number and persisted even after we stopped posting OUT
+        // reads, so an *active* interrupt-OUT endpoint in the DWC2 appears to be
+        // the trigger. Leaving it unopened tests that (at the cost of no rumble).
         s_xinput_drv.ep_out = ep->bEndpointAddress;
+      }
     }
     p = tu_desc_next(p);
   }
