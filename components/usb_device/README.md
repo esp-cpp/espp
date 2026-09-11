@@ -45,6 +45,8 @@ for back-compatibility.
   - [Features](#features)
   - [API](#api)
   - [Enabling the vendor / WebUSB class](#enabling-the-vendor--webusb-class)
+  - [Enabling the HID class](#enabling-the-hid-class)
+  - [Enabling X-Input (Xbox 360)](#enabling-x-input-xbox-360)
   - [Endpoint budget (ESP32-S3 USB-OTG)](#endpoint-budget-esp32-s3-usb-otg)
   - [Extending with HID / MSC](#extending-with-hid--msc)
   - [Example](#example)
@@ -136,8 +138,6 @@ The vendor class is gated in `esp_tinyusb` behind a Kconfig option. To use the
 vendor function, set in your project's `sdkconfig.defaults`:
 
 ```
-CONFIG_TINYUSB_CDC_ENABLED=y
-CONFIG_TINYUSB_CDC_COUNT=1
 CONFIG_TINYUSB_VENDOR_COUNT=1   # THE key enablement: compiles in the vendor class
 ```
 
@@ -148,6 +148,18 @@ control requests are provided by `espp::UsbDevice` through the standard TinyUSB
 weak-callback overrides (`tud_descriptor_bos_cb`, `tud_vendor_control_xfer_cb`,
 `tud_vendor_rx_cb`). If the vendor function is requested but `CFG_TUD_VENDOR == 0`,
 `initialize()` fails with `std::errc::function_not_supported`.
+
+CDC support is compiled conditionally (`#if CFG_TUD_CDC > 0`), so a vendor-only,
+HID-only or X-Input-only build does **not** need CDC enabled. Enable it only when
+you use the CDC function:
+
+```
+CONFIG_TINYUSB_CDC_ENABLED=y
+CONFIG_TINYUSB_CDC_COUNT=1
+```
+
+(Requesting a CDC function while `CFG_TUD_CDC == 0` fails `initialize()` with
+`std::errc::function_not_supported`, matching the vendor/HID checks.)
 
 ## Enabling the HID class
 
@@ -166,6 +178,29 @@ builds them with the espp `hid-rp` component), assign them to
 `HidFunction::report_descriptor`, and send input reports with
 `write_hid_report(report_id, report)`. If the HID function is requested but
 `CFG_TUD_HID == 0`, `initialize()` fails with `std::errc::function_not_supported`.
+
+## Enabling X-Input (Xbox 360)
+
+X-Input needs **no** `CFG_TUD_*` count — it is served by a custom TinyUSB
+application class driver built into this component (registered via the weak
+`usbd_app_driver_get_cb`, forced into the link with `-u`). So an X-Input-only
+project needs no CDC/vendor/HID class enabled at all; the
+[`xinput_example`](xinput_example/) sdkconfig disables them:
+
+```
+CONFIG_TINYUSB_CDC_ENABLED=n
+CONFIG_TINYUSB_CDC_COUNT=0
+# vendor/HID counts default to 0 — importantly, keep CFG_TUD_VENDOR at 0 so the
+# built-in bulk vendor driver does not claim the X-Input 0xFF interface.
+```
+
+Set `Config::xinput` (only — see the "only enabled function" note above), send
+gamepad state with `update_gamepad(GamepadState)`, and receive rumble/LED reports
+via `XInputFunction::on_rumble`. The interface uses one interrupt-IN endpoint
+(0x81, 20-byte input reports) and one interrupt-OUT endpoint (rumble/LED); the two
+use **separate endpoint numbers**, and the DMA report buffers are word-aligned, as
+the ESP32-S3 DWC2 requires. See `include/xinput.hpp` for the report/`GamepadState`
+API and the button/axis layout.
 
 ## Endpoint budget (ESP32-S3 USB-OTG)
 
