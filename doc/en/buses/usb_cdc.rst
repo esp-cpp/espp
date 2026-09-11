@@ -51,7 +51,7 @@ Features
 - HID interface with an application-supplied report descriptor (built with
   ``hid-rp`` in the example) and ``write_hid_report()``
 - X-Input interface (wired Xbox 360 controller) via a custom application class
-  driver, with ``update_gamepad()`` and an ``on_rumble`` callback
+  driver, with ``update_xinput_state()`` and an ``on_rumble`` callback
 - WebUSB: BOS descriptor + WebUSB URL descriptor + MS OS 2.0 descriptor for
   driverless browser access, with a configurable landing-page URL
 - Sequential interface / endpoint / string allocation with an endpoint-budget check
@@ -150,7 +150,7 @@ them all (``CONFIG_TINYUSB_CDC_ENABLED=n``). Keep ``CFG_TUD_VENDOR`` at 0 so the
 built-in bulk vendor driver does not claim the X-Input 0xFF interface, and use
 X-Input as the **only** enabled function (it then advertises the Xbox 360 identity
 + ``0xFF/0xFF/0xFF`` device class so the host's XUSB driver binds it). Send gamepad
-state with ``update_gamepad()`` and receive rumble/LED via ``on_rumble``. The
+state with ``update_xinput_state()`` and receive rumble/LED via ``on_rumble``. The
 interface uses one interrupt-IN (0x81) + one interrupt-OUT endpoint with separate
 endpoint numbers, and the report DMA buffers are word-aligned as the ESP32-S3 DWC2
 requires.
