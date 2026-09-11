@@ -96,9 +96,27 @@ update alternates to the other slot.
 
 ### Update over HTTP (WiFi or Ethernet)
 
-- Browser: open `http://<ip>/ota`, pick the `.bin`, upload.
+- Browser: open `http://<ip>/ota`. The page shows a **status card** — the
+  currently-running firmware (project + version) and whether it is still
+  **pending verify** — with **Mark valid** / **Roll back** buttons, then the
+  file picker. Pick the `.bin` and upload.
 - CLI: `curl --data-binary @build/ota_example.bin http://<ip>/ota` — returns
   `{"status":"ok",...}` on success or a 4xx/5xx JSON error.
+
+The device exposes these HTTP endpoints (the mutating ones honor the same
+optional `EXAMPLE_OTA_HTTP_TOKEN` bearer token as `POST /ota`):
+
+| method + path | purpose |
+|---|---|
+| `GET /ota` | the upload page (status card + file picker) |
+| `POST /ota` | stream a raw `.bin` image (Content-Length = size) |
+| `GET /status` | JSON: `{project, version, pending_verify, rollback_supported}` |
+| `POST /mark-valid` | confirm the running image (cancel rollback) |
+| `POST /rollback` | reject the running image: roll back + reboot |
+
+So the whole host-driven flow works from a plain browser on the LAN: upload →
+the device reboots into the new image (now *pending verify*) → reopen the page →
+it shows **PENDING VERIFY** → press **Mark valid** to confirm it.
 
 ### Rollback semantics
 

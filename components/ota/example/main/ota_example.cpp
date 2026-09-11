@@ -129,8 +129,24 @@ static constexpr char kUploadPage[] = R"HTML(<!DOCTYPE html>
   body{font-family:system-ui,sans-serif;max-width:32rem;margin:2rem auto;padding:0 1rem;background:#f4f6f9;color:#1c2330}
   @media(prefers-color-scheme:dark){body{background:#0b0e14;color:#e6eaf2}}
   progress{width:100%;height:1rem}button{padding:.4rem 1rem}#msg{white-space:pre-wrap}
+  .card{background:#fff;border:1px solid #d6dae2;border-radius:.5rem;padding:.75rem 1rem;margin:1rem 0}
+  @media(prefers-color-scheme:dark){.card{background:#141a24;border-color:#2a3240}}
+  .badge{display:inline-block;padding:.1rem .5rem;border-radius:1rem;font-size:.85rem;font-weight:600}
+  .ok{background:#1f8f4e22;color:#1f8f4e}.warn{background:#c8860022;color:#c88600}.muted{opacity:.7}
+  #fw{font-family:ui-monospace,monospace}
 </style></head><body>
 <h2>espp OTA firmware upload</h2>
+
+<div class="card">
+  <div>Currently running: <span id="fw" class="muted">loading…</span></div>
+  <div id="state" style="margin-top:.35rem"></div>
+  <div style="margin-top:.5rem">
+    <button id="mv" hidden>Mark running image valid</button>
+    <button id="rb" hidden>Roll back to previous image</button>
+    <button id="refresh" title="Refresh status">↻</button>
+  </div>
+</div>
+
 <p>Pick the new firmware image (e.g. <code>build/ota_example.bin</code>) and upload; the device validates, activates and reboots into it.</p>
 <input type="file" id="f" accept=".bin"> <button id="b">Upload</button><br>
 <label for="t">OTA token (only if configured on the device):</label>
@@ -139,15 +155,33 @@ static constexpr char kUploadPage[] = R"HTML(<!DOCTYPE html>
 <p id="msg"></p>
 <script>
 "use strict";
-const f=document.getElementById("f"),b=document.getElementById("b"),p=document.getElementById("p"),msg=document.getElementById("msg");
+const $=(id)=>document.getElementById(id);
+const f=$("f"),b=$("b"),p=$("p"),msg=$("msg"),fw=$("fw"),state=$("state"),mv=$("mv"),rb=$("rb");
+function authHeader(xhr){const tok=$("t").value;if(tok)xhr.setRequestHeader("Authorization","Bearer "+tok);}
+function loadStatus(){
+  fetch("/status").then(r=>r.json()).then(s=>{
+    fw.textContent=s.project+" "+s.version;fw.classList.remove("muted");
+    if(!s.rollback_supported){state.innerHTML='<span class="badge muted">rollback not supported</span>';mv.hidden=true;rb.hidden=true;return;}
+    if(s.pending_verify){state.innerHTML='<span class="badge warn">PENDING VERIFY</span> — rolls back on the next reset unless confirmed.';}
+    else{state.innerHTML='<span class="badge ok">confirmed</span>';}
+    mv.hidden=!s.pending_verify;rb.hidden=false;
+  }).catch(()=>{fw.textContent="(status unavailable)";});
+}
+function postAction(url,pending){
+  const xhr=new XMLHttpRequest();xhr.open("POST",url);authHeader(xhr);
+  xhr.onload=()=>{msg.textContent=(xhr.status===200?"OK: ":"Error "+xhr.status+": ")+xhr.responseText;setTimeout(loadStatus,300);};
+  xhr.onerror=()=>{msg.textContent="Request failed (connection error).";};
+  msg.textContent=pending;xhr.send();
+}
+mv.addEventListener("click",()=>postAction("/mark-valid","Marking image valid…"));
+rb.addEventListener("click",()=>{if(confirm("Roll back to the previous image and reboot?"))postAction("/rollback","Rolling back…");});
+$("refresh").addEventListener("click",loadStatus);
 b.addEventListener("click",()=>{
   const file=f.files&&f.files[0];
   if(!file){msg.textContent="Choose a .bin file first.";return;}
   if(file.size===0){msg.textContent="File is empty.";return;}
   const xhr=new XMLHttpRequest();
-  xhr.open("POST","/ota");
-  const tok=document.getElementById("t").value;
-  if(tok)xhr.setRequestHeader("Authorization","Bearer "+tok);
+  xhr.open("POST","/ota");authHeader(xhr);
   xhr.upload.onprogress=(e)=>{if(e.lengthComputable){p.hidden=false;p.value=e.loaded/e.total;}};
   xhr.onload=()=>{msg.textContent=xhr.status===200?"Success: "+xhr.responseText+"\ndevice is restarting...":"Error "+xhr.status+": "+xhr.responseText;};
   xhr.onerror=()=>{msg.textContent="Upload failed (connection error).";};
@@ -155,6 +189,7 @@ b.addEventListener("click",()=>{
   msg.textContent="Uploading "+file.size+" bytes...";
   xhr.send(file);
 });
+loadStatus();
 </script></body></html>
 )HTML";
 
@@ -192,13 +227,13 @@ static esp_err_t ota_post_fail(httpd_req_t *req, espp::Ota *ota, const std::erro
 // POST /ota: stream the raw request body (the .bin image) chunk-by-chunk into
 // espp::Ota, using Content-Length as the image size. e.g.:
 //   curl --data-binary @build/ota_example.bin http://<ip>/ota
-static esp_err_t ota_post_handler(httpd_req_t *req) {
-  auto *ota = static_cast<espp::Ota *>(req->user_ctx);
-  std::error_code ec;
-  // Optional bearer-token gate (CONFIG_EXAMPLE_OTA_HTTP_TOKEN). This is
-  // transport-level gating for the demo only -- real deployments should
-  // enable secure boot / signed images so the bootloader rejects unauthorized
-  // firmware regardless of how it arrives.
+// Optional bearer-token gate (CONFIG_EXAMPLE_OTA_HTTP_TOKEN) shared by every
+// mutating endpoint (POST /ota, /mark-valid, /rollback). Returns true when the
+// request is authorized (or no token is configured); otherwise sends a 401 JSON
+// response and returns false. This is transport-level gating for the demo only
+// -- real deployments should enable secure boot / signed images so the
+// bootloader rejects unauthorized firmware regardless of how it arrives.
+static bool ota_http_authorized(httpd_req_t *req) {
   if constexpr (sizeof(CONFIG_EXAMPLE_OTA_HTTP_TOKEN) > 1) {
     static constexpr char kExpected[] = "Bearer " CONFIG_EXAMPLE_OTA_HTTP_TOKEN;
     char auth[128] = {};
@@ -212,9 +247,72 @@ static esp_err_t ota_post_handler(httpd_req_t *req) {
                       "{\"status\":\"error\",\"message\":\"missing or invalid "
                       "Authorization: Bearer token\"}",
                       HTTPD_RESP_USE_STRLEN);
-      return ESP_OK;
+      return false;
     }
   }
+  return true;
+}
+
+// GET /status: report the running firmware + rollback state as JSON, so the
+// upload page can show what is running and whether it still needs confirming.
+// Session-independent; mirrors the vendor GET_STATUS reply.
+static esp_err_t ota_status_handler(httpd_req_t *req) {
+  auto *ota = static_cast<espp::Ota *>(req->user_ctx);
+  bool rollback_supported = false, pending = false;
+#if defined(CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE)
+  rollback_supported = true;
+  pending = ota->is_pending_verify();
+#endif
+  const auto desc = ota->running_app_description();
+  char body[256];
+  snprintf(body, sizeof(body),
+           "{\"project\":\"%s\",\"version\":\"%s\",\"pending_verify\":%s,"
+           "\"rollback_supported\":%s}",
+           desc.project_name.c_str(), desc.version.c_str(), pending ? "true" : "false",
+           rollback_supported ? "true" : "false");
+  httpd_resp_set_type(req, "application/json");
+  httpd_resp_send(req, body, HTTPD_RESP_USE_STRLEN);
+  return ESP_OK;
+}
+
+// POST /mark-valid: HOST-driven confirmation of the running image (cancel the
+// pending rollback). The app must not confirm itself; this lets an operator do
+// it from the LAN page after checking the device is healthy.
+static esp_err_t ota_mark_valid_handler(httpd_req_t *req) {
+  if (!ota_http_authorized(req))
+    return ESP_OK;
+  auto *ota = static_cast<espp::Ota *>(req->user_ctx);
+  std::error_code ec;
+  if (!ota->mark_app_valid(ec))
+    return ota_post_fail(req, ota, ec, "mark valid failed");
+  httpd_resp_set_type(req, "application/json");
+  httpd_resp_send(req, "{\"status\":\"ok\",\"message\":\"image marked valid; rollback cancelled\"}",
+                  HTTPD_RESP_USE_STRLEN);
+  return ESP_OK;
+}
+
+// POST /rollback: reject the running image and reboot into the previous one.
+// Replies first because mark_app_invalid_and_rollback() reboots on success.
+static esp_err_t ota_rollback_handler(httpd_req_t *req) {
+  if (!ota_http_authorized(req))
+    return ESP_OK;
+  auto *ota = static_cast<espp::Ota *>(req->user_ctx);
+  httpd_resp_set_type(req, "application/json");
+  httpd_resp_send(req,
+                  "{\"status\":\"ok\",\"message\":\"rolling back to the previous image; "
+                  "rebooting\"}",
+                  HTTPD_RESP_USE_STRLEN);
+  std::this_thread::sleep_for(750ms); // let the response flush before we reboot
+  std::error_code ec;
+  ota->mark_app_invalid_and_rollback(ec); // reboots on success; response already sent
+  return ESP_OK;
+}
+
+static esp_err_t ota_post_handler(httpd_req_t *req) {
+  auto *ota = static_cast<espp::Ota *>(req->user_ctx);
+  std::error_code ec;
+  if (!ota_http_authorized(req))
+    return ESP_OK;
   if (req->content_len == 0) {
     ec = std::make_error_code(std::errc::invalid_argument);
     return ota_post_fail(req, ota, ec, "empty request body");
@@ -567,9 +665,23 @@ extern "C" void app_main(void) {
         .uri = "/ota", .method = HTTP_GET, .handler = ota_get_handler, .user_ctx = nullptr};
     const httpd_uri_t post_uri = {
         .uri = "/ota", .method = HTTP_POST, .handler = ota_post_handler, .user_ctx = &ota};
+    // Status + host-driven rollback endpoints backing the upload page's status
+    // card (running firmware, pending-verify state, mark-valid / rollback).
+    const httpd_uri_t status_uri = {
+        .uri = "/status", .method = HTTP_GET, .handler = ota_status_handler, .user_ctx = &ota};
+    const httpd_uri_t mark_valid_uri = {.uri = "/mark-valid",
+                                        .method = HTTP_POST,
+                                        .handler = ota_mark_valid_handler,
+                                        .user_ctx = &ota};
+    const httpd_uri_t rollback_uri = {
+        .uri = "/rollback", .method = HTTP_POST, .handler = ota_rollback_handler, .user_ctx = &ota};
     httpd_register_uri_handler(http_server, &get_uri);
     httpd_register_uri_handler(http_server, &post_uri);
-    logger.info("HTTP OTA server ready: GET /ota (upload page), POST /ota (raw image)");
+    httpd_register_uri_handler(http_server, &status_uri);
+    httpd_register_uri_handler(http_server, &mark_valid_uri);
+    httpd_register_uri_handler(http_server, &rollback_uri);
+    logger.info("HTTP OTA server ready: GET /ota (upload page + status), POST /ota (raw image), "
+                "GET /status, POST /mark-valid, POST /rollback");
     if constexpr (sizeof(CONFIG_EXAMPLE_OTA_HTTP_TOKEN) <= 1) {
       logger.warn("POST /ota is UNAUTHENTICATED (demo default): any peer that can reach this "
                   "device can install structurally-valid firmware. Set EXAMPLE_OTA_HTTP_TOKEN in "
