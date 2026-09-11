@@ -93,13 +93,41 @@ dev.poll();                        // keepalive if due
 // transport RX (HID OUT / BLE write): dev.handle_output(id, bytes);
 ```
 
+### BLE peripheral (`espp::WdiBlePeripheral`)
+
+`wdi_ble.hpp` wraps `WdiDevice` with the WDI GATT service (service `10A50001-…`,
+characteristics `10A5000{6..A}`) on `espp::BleGattServer` (esp-nimble-cpp). After
+`BleGattServer::init()`, create the service, start it, advertise, and poll:
+
+```cpp
+espp::WdiBlePeripheral wdi({.on_feedback = [](const espp::wdi::FeedbackReport &f){ /*...*/ }});
+espp::BleGattServer ble;
+ble.init("espp WDI");
+wdi.make_service(ble.server());
+ble.start_services();
+wdi.start();
+ble.start();
+espp::BleGattServer::AdvertisedData adv;
+adv.setName("espp WDI");
+adv.addServiceUUID(espp::WdiBlePeripheral::service_uuid());
+ble.set_advertisement_data(adv);
+ble.start_advertising();
+// loop: wdi.send_control(report); wdi.poll();  // poll() sends keepalives when due
+```
+
+See `ble_example/` for a full runnable example (esp32s3). Control /
+Request-Feedback / Keepalive are Notify characteristics (device→central);
+Feedback / Keepalive-Response are Write-Without-Response (central→device).
+
 ## Status
 
 - [x] Protocol core + host tests (`test/wdi_protocol_host_test.cpp`)
 - [x] Device role core — `WdiDevice`, keepalive state machine, host-tested
       (`test/wdi_device_host_test.cpp`)
-- [ ] Device role transports — USB HID device (`espp::UsbDevice`) + BLE peripheral,
-      and examples
+- [x] Device role — **BLE peripheral** (`WdiBlePeripheral`, `wdi_ble.hpp`): the WDI
+      GATT service + characteristics on `ble_gatt_server`, with a `ble_example`
+- [ ] Device role — USB HID device (`espp::UsbDevice`); the `usb_device` HID-OUT
+      support it needs lands with the switch_pro PR (#787)
 - [ ] Host role — USB Host HID + BLE central
 
 ## Testing
