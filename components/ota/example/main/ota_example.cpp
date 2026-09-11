@@ -194,20 +194,19 @@ extern "C" void app_main(void) {
 
   // --- Rollback handling ------------------------------------------------------
   // With CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE, an app booted right after an
-  // OTA update is in the PENDING_VERIFY state: it must prove it is healthy and
-  // mark itself valid, or the bootloader ROLLS BACK to the previous image on
-  // the next reset. Run the application's self-checks here; this example's
-  // trivial check is that we made it this far with some free heap.
+  // OTA update is in the PENDING_VERIFY state: it will ROLL BACK to the previous
+  // image on the next reset unless it is confirmed. This example demonstrates
+  // HOST-DRIVEN confirmation: it deliberately does NOT mark itself valid here.
+  // Instead it stays pending and lets the host confirm it (MARK_VALID over the
+  // OTA protocol) once the host has verified the device is healthy — a broken
+  // build could otherwise self-validate right before failing. The ota-console web
+  // app / `espp-ota` CLI do this after reconnecting.
+  //
+  // (If your own product prefers device self-validation, run your health checks
+  // here and call ota.mark_app_valid() / ota.mark_app_invalid_and_rollback().)
   if (ota.is_pending_verify()) {
-    logger.warn("This image is PENDING VERIFY (first boot after an OTA update)");
-    const bool self_check_passed = esp_get_free_heap_size() > 10 * 1024;
-    std::error_code ec;
-    if (self_check_passed && ota.mark_app_valid(ec)) {
-      logger.info("Self-check passed -> image marked VALID; rollback cancelled");
-    } else {
-      logger.error("Self-check failed ({}) -> rolling back to the previous image", ec.message());
-      ota.mark_app_invalid_and_rollback(ec); // reboots into the old image
-    }
+    logger.warn("This image is PENDING VERIFY (first boot after an OTA update). Waiting for the "
+                "host to confirm it (MARK_VALID); it rolls back on the next reset if not.");
   }
 
   // --- Transport 1: USB vendor / WebUSB (espp::UsbDevice) --------------------
