@@ -64,14 +64,26 @@ def _make_transport(args) -> UsbVendorTransport:
 
 def _reconnect(args, timeout_s: float = 20.0):
     """Reopen the device after it reboots (same VID/PID, re-enumerates). Retries
-    until it appears or the timeout elapses; returns the opened transport or None."""
+    OPENING the device until it appears or the timeout elapses; returns the opened
+    transport (the caller owns closing it) or None on timeout.
+
+    NB: constructing a transport does not touch the bus — it only probes for the
+    device on open(). So the retry MUST call open() here; returning an unopened
+    transport would defer the "no device found" failure to the caller and defeat
+    the wait entirely (the reboot drops the device off the bus for a second)."""
     deadline = time.monotonic() + timeout_s
-    while time.monotonic() < deadline:
+    while True:
+        t = _make_transport(args)
         try:
-            return _make_transport(args)
-        except TransportError:
+            t.open()
+            return t
+        except (TransportError, OSError):
+            # OSError covers pyusb's USBError (open/claim can fail transiently
+            # while the device is mid-re-enumeration); keep polling.
+            t.close()
+            if time.monotonic() >= deadline:
+                return None
             time.sleep(0.5)
-    return None
 
 
 def _cmd_flash(args) -> int:
@@ -131,7 +143,9 @@ def _auto_verify(args, before) -> int:
                  "confirm the image with `espp-ota mark-valid`; otherwise it will roll "
                  "back on the next reset.")
         return 1
-    with t:
+    # _reconnect returns an already-opened transport (it retried open() until the
+    # rebooted device reappeared); close it ourselves rather than re-open via `with`.
+    try:
         client = OtaClient(t)
         try:
             st = client.get_status()
@@ -154,6 +168,8 @@ def _auto_verify(args, before) -> int:
         client.mark_valid()
         CON.success("The new image booted and responded, so it has been marked valid "
                     "(rollback cancelled).")
+    finally:
+        t.close()
     return 0
 
 
