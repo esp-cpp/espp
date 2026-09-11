@@ -10,8 +10,11 @@ and receive status/telemetry back.
 The component is layered so the same protocol serves every combination:
 
 - **Protocol core** (`include/detail/wdi_protocol.hpp`) — host-testable, ESP-free:
-  the five HID reports, their bitfields, the shared HID report descriptor, and
-  pack/parse helpers.
+  the five HID reports, their bitfields, and pack/parse helpers.
+- **HID report descriptor** (`include/wdi_hid.hpp`) — the vendor (usage page
+  0xFF00) report descriptor, built with the espp `hid-rp` component. Only the USB
+  HID transport needs it (BLE carries the same reports as GATT characteristics),
+  so it is kept out of the dependency-free core.
 - **Device role** — the app / accessory: a USB HID **device** (via
   `espp::UsbDevice`) or a BLE **peripheral**. Sends Control, receives Feedback.
 - **Host role** — the wheelchair: a USB **host** (USB Host HID) or a BLE
@@ -101,11 +104,23 @@ dev.poll();                        // keepalive if due
 
 ## Testing
 
-The protocol core builds and runs on a host with just a C++20 standard library:
+The protocol core and device role build and run on a host with just a C++20
+standard library:
 
 ```bash
 c++ -std=c++20 -Wall -Wextra -Werror -I components/wdi/include \
     components/wdi/test/wdi_protocol_host_test.cpp -o wdi_test && ./wdi_test
+c++ -std=c++20 -Wall -Wextra -Werror -I components/wdi/include \
+    components/wdi/test/wdi_device_host_test.cpp -o wdi_dev_test && ./wdi_dev_test
+```
+
+The hid-rp report descriptor also builds on a host (hid-rp is header-only; add it
+as `-isystem` so its third-party headers don't trip `-Werror`):
+
+```bash
+c++ -std=c++20 -Wall -Wextra -Werror -I components/wdi/include \
+    -isystem components/hid-rp/include -isystem components/hid-rp/detail/hid-rp/hid-rp \
+    components/wdi/test/wdi_hid_host_test.cpp -o wdi_hid_test && ./wdi_hid_test
 ```
 
 ## Emulation / safety note

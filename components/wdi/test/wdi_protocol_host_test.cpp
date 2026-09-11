@@ -20,21 +20,13 @@ static int g_failures = 0;
     }                                                                                              \
   } while (0)
 
-static void test_sizes_and_descriptor() {
-  std::printf("test_sizes_and_descriptor\n");
+static void test_sizes() {
+  std::printf("test_sizes\n");
   CHECK(wdi::kControlSize == 18);
   CHECK(wdi::kFeedbackSize == 19);
+  CHECK(wdi::kRequestFeedbackSize == 1);
+  CHECK(wdi::kKeepaliveSize == 1);
   CHECK(wdi::kKeepaliveResponseSize == 16);
-  // Descriptor sanity: vendor usage page, application collection, ends with 0xC0,
-  // and declares all five report IDs.
-  const auto &d = wdi::kReportDescriptor;
-  CHECK(d[0] == 0x06 && d[1] == 0x00 && d[2] == 0xFF); // Usage Page (Vendor 0xFF00)
-  CHECK(d.back() == 0xC0);                             // End Collection
-  int report_ids = 0;
-  for (size_t i = 0; i + 1 < d.size(); ++i)
-    if (d[i] == 0x85) // Report ID item
-      ++report_ids;
-  CHECK(report_ids == 5);
 }
 
 static void test_control_roundtrip() {
@@ -161,7 +153,7 @@ static void test_host_uuid() {
 }
 
 int main() {
-  test_sizes_and_descriptor();
+  test_sizes();
   test_control_roundtrip();
   test_control_release_and_bad_size();
   test_feedback_roundtrip();

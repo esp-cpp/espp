@@ -260,46 +260,10 @@ inline constexpr uint32_t kHostKeepaliveWindowMs = 257;  ///< host's per-window 
 inline constexpr uint32_t kHostMissedWindowsToDisconnect =
     3; ///< 3 missed → disconnect + drive-disable
 
-/// @brief The shared HID report descriptor (usage page 0xFF00, usage 0x01),
-///        declaring all five reports from the WDI **device** point of view:
-///        Control (0x01) / RequestFeedback (0x03) / Keepalive (0x04) as INPUT,
-///        Feedback (0x02) / KeepaliveResponse (0x05) as OUTPUT. Each field is a
-///        vendor-defined byte array; the meaning of the bytes is defined above.
-inline constexpr auto kReportDescriptor = std::to_array<uint8_t>({
-    0x06, 0x00, 0xFF, //   Usage Page (Vendor Defined 0xFF00)
-    0x09, 0x01,       //   Usage (0x01, Wheelchair Control Device)
-    0xA1, 0x01,       //   Collection (Application)
-    // Globals shared by every report: unsigned bytes.
-    0x15, 0x00,       //     Logical Minimum (0)
-    0x26, 0xFF, 0x00, //     Logical Maximum (255)
-    0x75, 0x08,       //     Report Size (8 bits)
-    // Report 0x01 — Control (Input, 18 bytes)
-    0x85, 0x01, //     Report ID (1)
-    0x09, 0x01, //     Usage (0x01)
-    0x95, 0x12, //     Report Count (18)
-    0x81, 0x02, //     Input (Data,Var,Abs)
-    // Report 0x02 — Feedback (Output, 19 bytes)
-    0x85, 0x02, //     Report ID (2)
-    0x09, 0x02, //     Usage (0x02)
-    0x95, 0x13, //     Report Count (19)
-    0x91, 0x02, //     Output (Data,Var,Abs)
-    // Report 0x03 — Request Feedback (Input, 1 byte)
-    0x85, 0x03, //     Report ID (3)
-    0x09, 0x03, //     Usage (0x03)
-    0x95, 0x01, //     Report Count (1)
-    0x81, 0x02, //     Input (Data,Var,Abs)
-    // Report 0x04 — Keepalive (Input, 1 byte)
-    0x85, 0x04, //     Report ID (4)
-    0x09, 0x04, //     Usage (0x04)
-    0x95, 0x01, //     Report Count (1)
-    0x81, 0x02, //     Input (Data,Var,Abs)
-    // Report 0x05 — Keepalive Response (Output, 16 bytes)
-    0x85, 0x05, //     Report ID (5)
-    0x09, 0x05, //     Usage (0x05)
-    0x95, 0x10, //     Report Count (16)
-    0x91, 0x02, //     Output (Data,Var,Abs)
-    0xC0,       //   End Collection
-});
+// The HID report descriptor (usage page 0xFF00) lives in wdi_hid.hpp, built with
+// the espp hid-rp component. It is only needed by the USB HID transport (BLE
+// carries the same reports as GATT characteristics), so it is kept out of this
+// dependency-free core.
 
 } // namespace wdi
 } // namespace espp
