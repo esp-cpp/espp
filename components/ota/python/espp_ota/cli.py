@@ -144,8 +144,9 @@ def _auto_verify(args, before) -> int:
                  "back on the next reset.")
         return 1
     # _reconnect returns an already-opened transport (it retried open() until the
-    # rebooted device reappeared); close it ourselves rather than re-open via `with`.
-    try:
+    # rebooted device reappeared); `with` re-enters open() as a no-op (idempotent)
+    # and closes it on exit.
+    with t:
         client = OtaClient(t)
         try:
             st = client.get_status()
@@ -168,8 +169,6 @@ def _auto_verify(args, before) -> int:
         client.mark_valid()
         CON.success("The new image booted and responded, so it has been marked valid "
                     "(rollback cancelled).")
-    finally:
-        t.close()
     return 0
 
 

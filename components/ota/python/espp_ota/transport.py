@@ -85,6 +85,11 @@ class UsbVendorTransport:
 
     # -- lifecycle ------------------------------------------------------------
     def open(self) -> "UsbVendorTransport":
+        # Idempotent: re-opening an already-open transport is a no-op. This lets a
+        # transport that _reconnect() already opened be used with a `with` block
+        # (whose __enter__ calls open() again) without re-probing the bus.
+        if self._claimed and self._dev is not None:
+            return self
         core, util = self._core, self._util
 
         def _match(dev):
