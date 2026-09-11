@@ -317,6 +317,8 @@ jobs:
             IDF_COMPONENT_MANAGER=0 idf.py build
         - path: 'components/stream_frame/example'
           target: esp32
+        - path: 'components/switch_pro/example'
+          target: esp32s3
         - path: 'components/sx126x/example'
           target: esp32s3
         - path: 'components/t-deck/example'
