@@ -67,14 +67,19 @@ void SwitchPro::set_trigger_elapsed_times(const std::array<uint16_t, 7> &times_1
     trigger_times_.values[i] = times_10ms[i];
 }
 
-std::optional<SwitchPro::ReportData> SwitchPro::on_attach() {
-  // copy the device-init report data into a vector and stamp in our MAC address
+std::vector<uint8_t> SwitchPro::device_info_report() const {
+  // the device-init report data (device type + placeholder MAC) with our MAC
+  // stamped in
   std::vector<uint8_t> data(sp::device_init_report_data,
                             sp::device_init_report_data + std::size(sp::device_init_report_data));
   std::copy(mac_address_.begin(), mac_address_.end(),
             data.begin() + sp::device_init_report_data_mac_addr_offset);
+  return data;
+}
+
+std::optional<SwitchPro::ReportData> SwitchPro::on_attach() {
   // kick off the initialization sequence by advertising device info (report 0x81)
-  return ReportData{sp::DEVICE_INIT_REPORT, std::move(data)};
+  return ReportData{sp::DEVICE_INIT_REPORT, device_info_report()};
 }
 
 std::optional<SwitchPro::ReportData> SwitchPro::on_hid_report(uint8_t report_id,
@@ -94,6 +99,9 @@ std::optional<SwitchPro::ReportData> SwitchPro::on_hid_report(uint8_t report_id,
     resp[0] = cmd;
     switch (cmd) {
     case INIT_COMMAND_DEVICE_INFO:
+      // reply with the device type + MAC (a bare 0x81 0x01 with no info is
+      // rejected by the host) -- the same payload on_attach() advertises.
+      resp = device_info_report();
       break;
     case INIT_COMMAND_HANDSHAKE:
       // echo the payload back to the host

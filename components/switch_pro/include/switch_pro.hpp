@@ -126,6 +126,10 @@ protected:
   void apply_housekeeping();
 
   // --- request/response handlers (ported from the reference protocol) ---------
+  /// @brief Build the device-info payload (report 0x81, command 0x01): device
+  ///        type + our MAC. Sent both proactively on attach and in reply to the
+  ///        host's 0x80 0x01 device-info request.
+  std::vector<uint8_t> device_info_report() const;
   ReportData process_command(const uint8_t *data, size_t len);
   void set_subcommand_reply(std::vector<uint8_t> &report);
   void set_unknown_subcommand(std::vector<uint8_t> &report, uint8_t subcommand_id);
