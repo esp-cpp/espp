@@ -24,6 +24,7 @@
 // if the accessory goes quiet. on_disconnected may fire twice for one link loss
 // (watchdog, then the USB detach); it is idempotent for its purpose.
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <memory>
