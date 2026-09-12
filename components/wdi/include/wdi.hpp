@@ -16,9 +16,11 @@
 // caller-supplied clock (defaulting to a steady millisecond clock) so tests can
 // drive it deterministically.
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <functional>
+#include <mutex>
 #include <optional>
 #include <span>
 #include <utility>
@@ -59,7 +61,7 @@ public:
     if (!config_.now_ms)
       config_.now_ms = default_clock;
     // Initialize so the first poll() emits a keepalive promptly (kickstart).
-    last_tx_ms_ = config_.now_ms() - config_.keepalive_interval_ms;
+    last_tx_ms_.store(config_.now_ms() - config_.keepalive_interval_ms);
   }
 
   // --- app -> host (the accessory's controls) --------------------------------
@@ -91,14 +93,14 @@ public:
   bool poll() {
     const uint32_t now = config_.now_ms();
     // Unsigned subtraction is correct across wraparound for intervals < 2^31 ms.
-    if (now - last_tx_ms_ >= config_.keepalive_interval_ms)
+    if (now - last_tx_ms_.load() >= config_.keepalive_interval_ms)
       return send_keepalive();
     return false;
   }
 
   /// @brief Milliseconds until the next keepalive is due (0 if due now).
   uint32_t ms_until_keepalive() const {
-    const uint32_t elapsed = config_.now_ms() - last_tx_ms_;
+    const uint32_t elapsed = config_.now_ms() - last_tx_ms_.load();
     return elapsed >= config_.keepalive_interval_ms ? 0 : config_.keepalive_interval_ms - elapsed;
   }
 
@@ -111,14 +113,20 @@ public:
     switch (id) {
     case wdi::ReportId::Feedback:
       if (auto fb = wdi::FeedbackReport::parse(payload)) {
-        last_feedback_ = *fb;
+        {
+          std::lock_guard<std::mutex> lk(state_mutex_);
+          last_feedback_ = *fb;
+        }
         if (config_.on_feedback)
           config_.on_feedback(*fb);
       }
       break;
     case wdi::ReportId::KeepaliveResponse:
       if (auto uuid = wdi::HostUuid::parse(payload)) {
-        host_uuid_ = *uuid;
+        {
+          std::lock_guard<std::mutex> lk(state_mutex_);
+          host_uuid_ = *uuid;
+        }
         if (config_.on_keepalive_response)
           config_.on_keepalive_response(*uuid);
       }
@@ -129,9 +137,17 @@ public:
   }
 
   /// @brief The host's identity from the most recent Keepalive Response, if any.
-  std::optional<wdi::HostUuid> host_uuid() const { return host_uuid_; }
-  /// @brief The most recently received Feedback report, if any.
-  std::optional<wdi::FeedbackReport> last_feedback() const { return last_feedback_; }
+  ///        Safe to call from a different task than handle_output().
+  std::optional<wdi::HostUuid> host_uuid() const {
+    std::lock_guard<std::mutex> lk(state_mutex_);
+    return host_uuid_;
+  }
+  /// @brief The most recently received Feedback report, if any. Safe to call from
+  ///        a different task than handle_output().
+  std::optional<wdi::FeedbackReport> last_feedback() const {
+    std::lock_guard<std::mutex> lk(state_mutex_);
+    return last_feedback_;
+  }
 
 private:
   static uint32_t default_clock() {
@@ -148,12 +164,17 @@ private:
     // keepalive timer -- every transmit path routes through here, so reset on any
     // successful send.
     if (ok)
-      last_tx_ms_ = config_.now_ms();
+      last_tx_ms_.store(config_.now_ms());
     return ok;
   }
 
   Config config_;
-  uint32_t last_tx_ms_{0};
+  // last_tx_ms_ is written by transmit() (app/timer task) and read by poll();
+  // atomic so send-from-app + poll-from-timer is race-free. host_uuid_ /
+  // last_feedback_ are written by handle_output() (transport RX task) and read by
+  // the getters (app task), guarded by state_mutex_.
+  std::atomic<uint32_t> last_tx_ms_{0};
+  mutable std::mutex state_mutex_;
   std::optional<wdi::HostUuid> host_uuid_{};
   std::optional<wdi::FeedbackReport> last_feedback_{};
 };

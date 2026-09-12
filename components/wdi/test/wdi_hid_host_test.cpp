@@ -2,11 +2,13 @@
 // header-only and stdlib-only, so this builds on a host:
 //
 //   c++ -std=c++20 -Wall -Wextra -Werror \
-//       -I components/wdi/include -I components/hid-rp/include \
-//       -I components/hid-rp/detail/hid-rp/hid-rp \
+//       -I components/wdi/include -isystem components/hid-rp/include \
+//       -isystem components/hid-rp/detail/hid-rp/hid-rp \
 //       components/wdi/test/wdi_hid_host_test.cpp -o wdi_hid_test && ./wdi_hid_test
 
+#include <algorithm>
 #include <cstdio>
+#include <initializer_list>
 
 #include "wdi_hid.hpp"
 
@@ -30,18 +32,7 @@ template <typename D> static int count_item(const D &d, uint8_t tag, uint8_t val
   return n;
 }
 template <typename D> static bool contains(const D &d, std::initializer_list<uint8_t> seq) {
-  for (size_t i = 0; i + seq.size() <= d.size(); ++i) {
-    bool ok = true;
-    size_t j = 0;
-    for (uint8_t b : seq)
-      if (d[i + j++] != b) {
-        ok = false;
-        break;
-      }
-    if (ok)
-      return true;
-  }
-  return false;
+  return std::search(d.begin(), d.end(), seq.begin(), seq.end()) != d.end();
 }
 
 int main() {
@@ -49,24 +40,33 @@ int main() {
   std::printf("wdi hid descriptor: %zu bytes\n", d.size());
 
   CHECK(!d.empty());
-  // Vendor usage page 0xFF00: `06 00 FF`.
+  // Vendor usage page 0xFF00: `06 00 FF`, then application collection `A1 01`.
   CHECK(contains(d, {0x06, 0x00, 0xFF}));
-  // Application collection: `A1 01`.
   CHECK(contains(d, {0xA1, 0x01}));
-  // Five report-id items: `85 01`..`85 05`.
+  // Five report-id items: `85 01`..`85 05`, each once.
   for (uint8_t id = 1; id <= 5; ++id)
     CHECK(count_item(d, 0x85, id) == 1);
-  // Report counts: Control 18 (0x12), Feedback 19 (0x13), 1-byte reports (0x01),
-  // Keepalive Response 16 (0x10) -- `95 <count>`.
-  CHECK(count_item(d, 0x95, 0x12) == 1); // 18-byte Control
-  CHECK(count_item(d, 0x95, 0x13) == 1); // 19-byte Feedback
-  CHECK(count_item(d, 0x95, 0x10) == 1); // 16-byte Keepalive Response
-  CHECK(count_item(d, 0x95, 0x01) == 2); // two 1-byte reports (Request Feedback + Keepalive)
-  // Three Input items (`81 02`) and two Output items (`91 02`).
-  CHECK(count_item(d, 0x81, 0x02) == 3);
-  CHECK(count_item(d, 0x91, 0x02) == 2);
-  // Report size 8 bits (`75 08`) and End Collection (`C0`).
-  CHECK(contains(d, {0x75, 0x08}));
+
+  // Field-accurate layout (not opaque byte blobs):
+  //  - Control:  2x SInt8 axes (one Input item, count 2) + 4x 32-bit flag fields
+  //  - Feedback: 3x 32-bit flag fields + speed/profile + velocity + odometer + 4 reserved
+  //  - Request-Feedback / Keepalive: 1 byte each; Keepalive-Response: 16 bytes
+  // Both 1-bit (flag) and 8-bit (byte) field sizes must appear.
+  CHECK(contains(d, {0x75, 0x01})); // report_size 1 (flag bits)
+  CHECK(contains(d, {0x75, 0x08})); // report_size 8 (bytes)
+  // Seven 32-bit flag fields total (4 Control + 3 Feedback): `95 20` (count 32).
+  CHECK(count_item(d, 0x95, 0x20) == 7);
+  CHECK(contains(d, {0x95, 0x02})); // axes: count 2
+  CHECK(contains(d, {0x95, 0x10})); // Keepalive-Response: count 16
+  CHECK(contains(d, {0x95, 0x04})); // Feedback reserved: count 4
+  // Signed axes: logical minimum -127 (`15 81`) and maximum 127 (`25 7F`).
+  CHECK(contains(d, {0x15, 0x81}));
+  CHECK(contains(d, {0x25, 0x7F}));
+  // Seven Input items (`81 02`): Control axes + 4 flags, Request-Feedback, Keepalive.
+  CHECK(count_item(d, 0x81, 0x02) == 7);
+  // Eight Output items (`91 02`): Feedback 3 flags + 4 byte fields, Keepalive-Response.
+  CHECK(count_item(d, 0x91, 0x02) == 8);
+  // Terminated by End Collection (`C0`).
   CHECK(d.back() == 0xC0);
 
   if (g_failures == 0) {

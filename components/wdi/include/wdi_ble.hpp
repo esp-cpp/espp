@@ -20,6 +20,7 @@
 #include "base_component.hpp"
 
 #include "wdi.hpp"
+#include "wdi_hid.hpp" // the HID report descriptor served by the Report Map characteristic
 
 namespace espp {
 
@@ -28,6 +29,12 @@ class WdiBlePeripheral : public BaseComponent {
 public:
   // 128-bit WDI UUIDs (base 10A5xxxx-C4EA-4B47-AE30-A7D9577FC3F9).
   static constexpr const char *kServiceUuid = "10A50001-C4EA-4B47-AE30-A7D9577FC3F9";
+  // HID-over-GATT characteristics (per the WDI spec, mirroring HOGP):
+  static constexpr const char *kReportMapUuid = "10A50002-C4EA-4B47-AE30-A7D9577FC3F9";
+  static constexpr const char *kHidInformationUuid = "10A50003-C4EA-4B47-AE30-A7D9577FC3F9";
+  static constexpr const char *kHidControlPointUuid = "10A50004-C4EA-4B47-AE30-A7D9577FC3F9";
+  static constexpr const char *kProtocolModeUuid = "10A50005-C4EA-4B47-AE30-A7D9577FC3F9";
+  // Report characteristics:
   static constexpr const char *kControlUuid = "10A50006-C4EA-4B47-AE30-A7D9577FC3F9";
   static constexpr const char *kFeedbackUuid = "10A50007-C4EA-4B47-AE30-A7D9577FC3F9";
   static constexpr const char *kRequestFeedbackUuid = "10A50008-C4EA-4B47-AE30-A7D9577FC3F9";
@@ -61,6 +68,27 @@ public:
       logger_.error("failed to create WDI service");
       return;
     }
+
+    // HID-over-GATT descriptor characteristics (WDI spec 0x02..0x05). The Report
+    // Map serves the *same* HID report descriptor as the USB transport so a
+    // central can introspect the report layout.
+    auto *report_map =
+        service_->createCharacteristic(NimBLEUUID(kReportMapUuid), NIMBLE_PROPERTY::READ);
+    report_map->setValue(wdi::kReportDescriptor.data(), wdi::kReportDescriptor.size());
+    // HID Information: bcdHID 0x0111 (LE), bCountryCode 0, Flags 0x02 (normally
+    // connectable).
+    static const uint8_t kHidInfo[4] = {0x11, 0x01, 0x00, 0x02};
+    service_->createCharacteristic(NimBLEUUID(kHidInformationUuid), NIMBLE_PROPERTY::READ)
+        ->setValue(kHidInfo, sizeof(kHidInfo));
+    // HID Control Point: write-without-response suspend/resume command (accepted
+    // and ignored by this emulator).
+    service_->createCharacteristic(NimBLEUUID(kHidControlPointUuid), NIMBLE_PROPERTY::WRITE_NR);
+    // Protocol Mode: default Report Protocol (0x01).
+    auto *protocol_mode = service_->createCharacteristic(
+        NimBLEUUID(kProtocolModeUuid), NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
+    static const uint8_t kReportProtocol = 0x01;
+    protocol_mode->setValue(&kReportProtocol, 1);
+
     // app -> host (device sends): READ | NOTIFY.
     control_ = service_->createCharacteristic(NimBLEUUID(kControlUuid),
                                               NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY);
@@ -106,7 +134,7 @@ private:
   }
 
   // WdiDevice send: notify the characteristic for an app->host report.
-  bool notify_report(wdi::ReportId id, std::span<const uint8_t> payload) {
+  bool notify_report(wdi::ReportId id, std::span<const uint8_t> payload) const {
     NimBLECharacteristic *ch = nullptr;
     switch (id) {
     case wdi::ReportId::Control:

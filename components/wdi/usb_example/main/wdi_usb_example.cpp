@@ -40,14 +40,21 @@ extern "C" void app_main(void) {
   // keepalives, and ask for feedback once a second. A real accessory would map
   // physical inputs here instead. write_hid_report no-ops until the host mounts +
   // polls the interface, so this is safe to run before a host connects.
+  // SAFETY: start from a neutral "release" so the first report a host receives on
+  // connect does not command motion.
+  wdi.send_release();
+
+  // DriveEnable is intentionally NOT set below: a spec-compliant chair ignores
+  // joystick motion unless DriveEnable is asserted, so this test pattern is safe
+  // to run against a real chair. Only assert DriveEnable from a deliberate,
+  // user-initiated action on a chair you control.
   int step = 0;
   while (true) {
     espp::wdi::ControlReport c;
     const float angle = (step % 60) / 60.0f * 2.0f * 3.14159265f;
     c.x = static_cast<int8_t>(80.0f * std::sin(angle));  // right/left
     c.y = static_cast<int8_t>(-80.0f * std::cos(angle)); // forward/reverse
-    c.set(espp::wdi::ControlBit::DriveEnable);
-    wdi.send_control(c); // resets the keepalive timer
+    wdi.send_control(c);                                 // resets the keepalive timer
     if (step % 20 == 0)
       wdi.request_feedback();
     wdi.poll(); // send a keepalive if one is due

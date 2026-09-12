@@ -11,3 +11,12 @@ cstyleCast
 *:lib/*
 *:components/reflect_cpp/detail/*
 *:components/cdr/detail/*
+
+// WDI host-side tests drive WdiDevice/WdiHost through an injected clock + send
+// callback (std::function). cppcheck can't trace the reads through the lambda, so
+// it false-positives the fake-clock / send-flag members as unread / redundantly
+// assigned.
+unreadVariable:components/wdi/test/wdi_device_host_test.cpp
+redundantAssignment:components/wdi/test/wdi_device_host_test.cpp
+unreadVariable:components/wdi/test/wdi_host_host_test.cpp
+redundantAssignment:components/wdi/test/wdi_host_host_test.cpp

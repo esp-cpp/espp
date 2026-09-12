@@ -124,7 +124,9 @@ struct ControlReport {
   int8_t y{0};           ///< Longitudinal: -127 (full forward) .. +127 (full reverse)
   uint32_t standard1{0}; ///< OR of ControlBit values
   uint32_t standard2{0}; ///< reserved (all bits reserved for future use)
-  uint32_t vendor1{0};   ///< vendor-specific (bit0 = Modifier); keyed by manufacturer id
+  uint32_t vendor1{0};   ///< vendor-specific; keyed by manufacturer id. Per the spec its
+                         ///< bit0 is also a Modifier (a vendor-scope modifier, distinct from
+                         ///< ControlBit::Modifier in standard1).
   uint32_t vendor2{0};   ///< vendor-specific
 
   /// @brief Whether a Control bit is set in `standard1`.
@@ -236,7 +238,7 @@ struct HostUuid {
     return static_cast<uint16_t>((static_cast<uint16_t>(bytes[0]) << 8) | bytes[1]);
   }
 
-  std::array<uint8_t, kKeepaliveResponseSize> serialize() const { return bytes; }
+  const std::array<uint8_t, kKeepaliveResponseSize> &serialize() const { return bytes; }
   static std::optional<HostUuid> parse(std::span<const uint8_t> p) {
     if (p.size() != kKeepaliveResponseSize)
       return std::nullopt;

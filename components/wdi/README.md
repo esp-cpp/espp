@@ -46,9 +46,28 @@ big-endian (network byte order) per the spec.
   every ~233 ms; the host disconnects and drive-disables after 3 consecutive
   257 ms windows with no report.
 
-`ManufacturerId`, the keepalive timing constants, and the BLE GATT UUIDs
-(service `10A50001-C4EA-4B47-AE30-A7D9577FC3F9`, characteristics `10A5000{6..A}`)
-are all in the header.
+`ManufacturerId`, the keepalive timing constants, and the BLE GATT UUIDs (service
+`10A50001-C4EA-4B47-AE30-A7D9577FC3F9`; HID-over-GATT descriptor characteristics
+`10A5000{2..5}` = Report Map / HID Information / HID Control Point / Protocol Mode;
+report characteristics `10A5000{6..A}`) are all in the headers.
+
+## Component dependencies
+
+The component itself only `REQUIRES base_component` — the protocol core, `WdiDevice`
+and `WdiHost` need nothing else. The **transport** headers are opt-in and pull in
+their own dependencies, so a project that includes one must add that dependency to
+its own `REQUIRES` (the examples show this):
+
+| Header | Role | Extra dependencies |
+|--------|------|--------------------|
+| `wdi_hid.hpp` | HID report descriptor | `hid-rp` |
+| `wdi_usb.hpp` | USB device (`WdiUsbPeripheral`) | `usb_device`, `hid-rp` |
+| `wdi_ble.hpp` | BLE peripheral (`WdiBlePeripheral`) | `esp-nimble-cpp` (+ `hid-rp`, for the Report Map) |
+| `wdi_usb_host.hpp` | USB host (`WdiUsbHost`) | `usb_host`, `hid-rp` |
+| `wdi_ble_central.hpp` | BLE central (`WdiBleCentral`) | `esp-nimble-cpp` |
+
+This keeps a project that only wants the protocol core (or a single transport)
+from pulling in the BLE and USB stacks it does not use.
 
 ## Usage (protocol core)
 
