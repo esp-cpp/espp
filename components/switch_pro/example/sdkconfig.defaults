@@ -1,0 +1,29 @@
+# This example emulates a Nintendo Switch Pro controller over the native USB-OTG
+# peripheral, which is only available on the ESP32-S3 (also S2 / P4) -- NOT the
+# classic ESP32. Pin the target so a bare `idf.py build` does not fall back to esp32.
+CONFIG_IDF_TARGET="esp32s3"
+
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# Put the console on UART0, NOT USB-Serial-JTAG. This example hands the native
+# USB-OTG port to TinyUSB (the HID interface), and on the ESP32-S3 the
+# USB-Serial-JTAG controller and USB-OTG share the SAME internal USB PHY / port --
+# running the console on USB-Serial-JTAG contends with the HID interface and
+# reboot-loops the device. UART0 is independent (use a USB-UART adapter for
+# `idf.py monitor`). USB-Serial-JTAG stays the SECONDARY console for early-boot logs.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y
+
+# Enable the TinyUSB HID class driver (CFG_TUD_HID). The Switch Pro is a HID
+# device with an interrupt IN (input reports) + interrupt OUT (host output reports
+# / the handshake) endpoint.
+CONFIG_TINYUSB_HID_COUNT=1
+# The Switch Pro reports are 64 bytes (1 report-id + 63 data); the default HID
+# endpoint buffer (16) is too small, so size it to hold a full report.
+CONFIG_TINYUSB_HID_BUFSIZE=64
+
+# No CDC or vendor interface is used here; keep them disabled so the built-in
+# vendor driver does not claim an interface and the build stays lean.
+CONFIG_TINYUSB_CDC_ENABLED=n
+CONFIG_TINYUSB_CDC_COUNT=0
+CONFIG_TINYUSB_VENDOR_COUNT=0
