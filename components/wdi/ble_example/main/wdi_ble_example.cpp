@@ -55,17 +55,24 @@ extern "C" void app_main(void) {
   ble.start_advertising();
   logger.info("Advertising as '{}'; connect a WDI host (wheelchair).", device_name);
 
-  // Drive loop: sweep the joystick in a slow circle with drive enabled, poll for
-  // keepalives, and ask for feedback once a second. A real accessory would map
-  // physical inputs here instead.
+  // SAFETY: start from a neutral "release" so the very first report a wheelchair
+  // receives on connect does not command motion.
+  wdi.send_release();
+
+  // Demo loop: sweep the joystick in a slow circle, poll for keepalives, and ask
+  // for feedback once a second. A real accessory would map physical inputs here.
+  //
+  // DriveEnable is intentionally NOT set: a spec-compliant chair ignores joystick
+  // motion unless DriveEnable is asserted, so this test pattern is safe to run
+  // against a real chair (it will not move). Only assert DriveEnable from a
+  // deliberate, user-initiated action on a chair you control.
   int step = 0;
   while (true) {
     espp::wdi::ControlReport c;
     const float angle = (step % 60) / 60.0f * 2.0f * 3.14159265f;
     c.x = static_cast<int8_t>(80.0f * std::sin(angle));  // right/left
     c.y = static_cast<int8_t>(-80.0f * std::cos(angle)); // forward/reverse
-    c.set(espp::wdi::ControlBit::DriveEnable);
-    wdi.send_control(c); // resets the keepalive timer
+    wdi.send_control(c);                                 // resets the keepalive timer
     if (step % 20 == 0)
       wdi.request_feedback();
     wdi.poll(); // send a keepalive if one is due
