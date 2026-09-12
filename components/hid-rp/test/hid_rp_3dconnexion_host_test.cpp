@@ -148,7 +148,9 @@ static void test_descriptor() {
   auto raw_descriptor = espp::spacemouse_descriptor<>();
   std::vector<uint8_t> descriptor(raw_descriptor.begin(), raw_descriptor.end());
   std::printf("  SpaceMouse report descriptor size: %zu bytes\n", descriptor.size());
-  CHECK(descriptor.size() > 0);
+  // The fixed-index accesses below reach up to descriptor[3], so require at
+  // least 4 bytes before indexing into it.
+  CHECK(descriptor.size() >= 4);
 
   // Usage Page (Generic Desktop), Usage (Multi-Axis Controller)
   CHECK(descriptor[0] == 0x05 && descriptor[1] == 0x01);

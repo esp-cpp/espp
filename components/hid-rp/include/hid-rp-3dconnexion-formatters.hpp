@@ -1,6 +1,11 @@
 #pragma once
 
+#include <bitset>
+#include <cstddef>
+#include <cstdint>
+
 #include "format.hpp"
+#include "hid-rp-3dconnexion.hpp"
 
 template <std::int16_t LOGICAL_MIN, std::int16_t LOGICAL_MAX, uint8_t REPORT_ID>
 struct fmt::formatter<espp::SpaceMouseTranslationInputReport<LOGICAL_MIN, LOGICAL_MAX, REPORT_ID>> {

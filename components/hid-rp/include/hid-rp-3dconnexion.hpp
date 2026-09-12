@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <cstdint>
+#include <vector>
 
 #include "format.hpp"
 #include "hid-rp.hpp"
@@ -144,8 +147,10 @@ public:
   /// \param data The data to set the input report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
     // copy the data into our data array - skip the first byte, which is the
-    // report id
-    std::copy(data.begin(), data.end(), this->data() + 1);
+    // report id. Clamp the copy length to the report's payload size so an
+    // over-long input cannot write past the backing storage.
+    auto copy_size = std::min(data.size(), num_data_bytes);
+    std::copy(data.begin(), data.begin() + copy_size, this->data() + 1);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -286,8 +291,10 @@ public:
   /// \param data The data to set the input report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
     // copy the data into our data array - skip the first byte, which is the
-    // report id
-    std::copy(data.begin(), data.end(), this->data() + 1);
+    // report id. Clamp the copy length to the report's payload size so an
+    // over-long input cannot write past the backing storage.
+    auto copy_size = std::min(data.size(), num_data_bytes);
+    std::copy(data.begin(), data.begin() + copy_size, this->data() + 1);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -390,8 +397,10 @@ public:
   /// \param data The data to set the input report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
     // copy the data into our data array - skip the first byte, which is the
-    // report id
-    std::copy(data.begin(), data.end(), this->data() + 1);
+    // report id. Clamp the copy length to the report's payload size so an
+    // over-long input cannot write past the backing storage.
+    auto copy_size = std::min(data.size(), num_data_bytes);
+    std::copy(data.begin(), data.begin() + copy_size, this->data() + 1);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -471,8 +480,10 @@ public:
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
     // copy the data into our data array - skip the first byte, which is the
-    // report id
-    std::copy(data.begin(), data.end(), this->data() + 1);
+    // report id. Clamp the copy length to the report's payload size so an
+    // over-long input cannot write past the backing storage.
+    auto copy_size = std::min(data.size(), num_data_bytes);
+    std::copy(data.begin(), data.begin() + copy_size, this->data() + 1);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
