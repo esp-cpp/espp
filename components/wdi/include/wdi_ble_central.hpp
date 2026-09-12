@@ -248,12 +248,18 @@ public:
   }
 
   /// @brief Send a Feedback report now (if connected).
+  // Not const: it has side effects through the WdiHost core (sends a report /
+  // fires user callbacks) even though it only reads this wrapper.
+  // cppcheck-suppress functionConst
   bool send_feedback() {
     auto h = host();
     return h ? h->send_feedback() : false;
   }
 
   /// @brief Run the keepalive watchdog; call periodically.
+  // Not const: it has side effects through the WdiHost core (sends a report /
+  // fires user callbacks) even though it only reads this wrapper.
+  // cppcheck-suppress functionConst
   bool poll() {
     auto h = host();
     return h ? h->poll() : false;

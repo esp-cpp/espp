@@ -73,6 +73,9 @@ public:
   }
 
   /// @brief Send a Feedback report now (if a device is connected).
+  // Not const: it has side effects through the WdiHost core (sends a report /
+  // fires user callbacks) even though it only reads this wrapper.
+  // cppcheck-suppress functionConst
   bool send_feedback() {
     auto h = host();
     return h ? h->send_feedback() : false;
@@ -80,6 +83,9 @@ public:
 
   /// @brief Run the keepalive watchdog; call periodically (e.g. from a Timer).
   ///        Fires on_disconnected if the accessory has gone quiet too long.
+  // Not const: it has side effects through the WdiHost core (sends a report /
+  // fires user callbacks) even though it only reads this wrapper.
+  // cppcheck-suppress functionConst
   bool poll() {
     auto h = host();
     return h ? h->poll() : false;
