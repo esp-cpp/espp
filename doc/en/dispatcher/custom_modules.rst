@@ -59,6 +59,7 @@ coexist on one stream. espp's own protocols and examples currently claim:
 Module id  Protocol
 =========  ========================================================
 0          OTA (firmware update)
+1          Core-dump example crash trigger
 2          BLDC haptics (``components/bldc_haptics``)
 3          Telemetry (``espp::Telemetry``)
 4          Crash dump (``espp::CoreDumpService``)
