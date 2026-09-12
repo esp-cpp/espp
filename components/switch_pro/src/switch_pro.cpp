@@ -93,10 +93,17 @@ std::optional<SwitchPro::ReportData> SwitchPro::on_attach() {
   // exchange completes (the example uses this as its mount callback, and there is
   // no separate detach reset).
   hid_ready_ = false;
+  // Per-session state set by subcommand handlers must reset too, or the first
+  // streamed reports after a reconnect carry stale state (e.g. IMU frames before
+  // the new host enables the IMU).
+  imu_enabled_ = false;
+  vibrator_report_ = 0;
   {
     std::lock_guard<std::recursive_mutex> lock(input_report_mutex_);
     input_report_mode_ = 0;
     input_report_id_ = 0x21;
+    vibration_enabled_ = false;
+    player_number_ = 0;
   }
   // kick off the initialization sequence by advertising device info (report 0x81)
   return ReportData{sp::DEVICE_INIT_REPORT, device_info_report()};
