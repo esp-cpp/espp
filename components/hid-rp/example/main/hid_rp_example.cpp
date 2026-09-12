@@ -3,6 +3,7 @@
 
 #include "logger.hpp"
 
+#include "hid-rp-3dconnexion.hpp"
 #include "hid-rp-gamepad.hpp"
 #include "hid-rp-playstation.hpp"
 #include "hid-rp-ps4.hpp"
@@ -211,6 +212,29 @@ extern "C" void app_main(void) {
   logger.info("Battery report:");
   logger.info("  Size: {}", report.size());
   logger.info("  Data: {::#02X}", report);
+
+  // 3Dconnexion SpaceMouse: translation (report id 1), rotation (report id
+  // 2), and buttons (report id 3) are all sent as separate input reports.
+  using SpaceMouseTranslation = espp::SpaceMouseTranslationInputReport<>;
+  using SpaceMouseRotation = espp::SpaceMouseRotationInputReport<>;
+  using SpaceMouseButtons = espp::SpaceMouseButtonsInputReport<>;
+  SpaceMouseTranslation spacemouse_translation_report;
+  SpaceMouseRotation spacemouse_rotation_report;
+  SpaceMouseButtons spacemouse_buttons_report;
+
+  auto sm_raw_descriptor = espp::spacemouse_descriptor<>();
+  auto sm_descriptor = std::vector<uint8_t>(sm_raw_descriptor.begin(), sm_raw_descriptor.end());
+  logger.info("SpaceMouse Report Descriptor:");
+  logger.info("  Size: {}", sm_descriptor.size());
+  logger.info("  Data: {::#04X}", sm_descriptor);
+
+  spacemouse_translation_report.set_translation(350, -350, 0);
+  spacemouse_rotation_report.set_rotation(0, 100, -100);
+  spacemouse_buttons_report.set_button(1, true);
+
+  logger.info("{}", spacemouse_translation_report);
+  logger.info("{}", spacemouse_rotation_report);
+  logger.info("{}", spacemouse_buttons_report);
 
   //! [hid rp example]
 }
