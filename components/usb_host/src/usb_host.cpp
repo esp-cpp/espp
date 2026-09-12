@@ -46,8 +46,9 @@ std::error_code make_ec(esp_err_t err) {
   case ESP_ERR_TIMEOUT:
     return std::make_error_code(std::errc::timed_out);
   case ESP_ERR_NOT_FOUND:
-  case ESP_ERR_NOT_SUPPORTED:
     return std::make_error_code(std::errc::no_such_device);
+  case ESP_ERR_NOT_SUPPORTED:
+    return std::make_error_code(std::errc::not_supported);
   case ESP_ERR_NO_MEM:
     return std::make_error_code(std::errc::not_enough_memory);
   default:
@@ -100,6 +101,10 @@ void UsbHost::HidDevice::set_input_callback(input_callback_fn cb) {
 }
 
 bool UsbHost::HidDevice::start(std::error_code &ec) {
+  if (!connected_.load()) {
+    ec = std::make_error_code(std::errc::no_such_device);
+    return false;
+  }
   esp_err_t err = hid_host_device_start(handle_);
   ec = make_ec(err);
   if (!ec) {
@@ -109,6 +114,10 @@ bool UsbHost::HidDevice::start(std::error_code &ec) {
 }
 
 bool UsbHost::HidDevice::stop(std::error_code &ec) {
+  if (!connected_.load()) {
+    ec = std::make_error_code(std::errc::no_such_device);
+    return false;
+  }
   esp_err_t err = hid_host_device_stop(handle_);
   ec = make_ec(err);
   if (!ec) {
@@ -149,12 +158,20 @@ bool UsbHost::HidDevice::get_report(uint8_t report_type, uint8_t report_id,
 }
 
 bool UsbHost::HidDevice::set_idle(uint8_t duration, uint8_t report_id, std::error_code &ec) {
+  if (!connected_.load()) {
+    ec = std::make_error_code(std::errc::no_such_device);
+    return false;
+  }
   esp_err_t err = hid_class_request_set_idle(handle_, duration, report_id);
   ec = make_ec(err);
   return !ec;
 }
 
 bool UsbHost::HidDevice::set_protocol(hid_report_protocol_t protocol, std::error_code &ec) {
+  if (!connected_.load()) {
+    ec = std::make_error_code(std::errc::no_such_device);
+    return false;
+  }
   esp_err_t err = hid_class_request_set_protocol(handle_, protocol);
   ec = make_ec(err);
   return !ec;
