@@ -201,8 +201,10 @@ struct FeedbackReport {
     detail::put_u32_le(&b[8], vendor2);
     // Byte 12: high nibble = speed, low nibble = profile (each 0..15).
     b[12] = static_cast<uint8_t>(((speed & 0x0F) << 4) | (profile & 0x0F));
-    // Byte 13: high nibble = whole mph (0..15), low nibble = tenths (0..9).
-    b[13] = static_cast<uint8_t>(((velocity_whole & 0x0F) << 4) | (velocity_tenths & 0x0F));
+    // Byte 13: high nibble = whole mph (0..15), low nibble = tenths (0..9). Clamp
+    // tenths to 9 so an out-of-range value can't encode an invalid 10..15 nibble.
+    const uint8_t tenths = velocity_tenths > 9 ? 9 : velocity_tenths;
+    b[13] = static_cast<uint8_t>(((velocity_whole & 0x0F) << 4) | (tenths & 0x0F));
     b[14] = odometer;
     // bytes 15..18 reserved (left zero)
     return b;
