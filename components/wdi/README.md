@@ -119,6 +119,25 @@ See `ble_example/` for a full runnable example (esp32s3). Control /
 Request-Feedback / Keepalive are Notify characteristics (device→central);
 Feedback / Keepalive-Response are Write-Without-Response (central→device).
 
+### USB HID device (`espp::WdiUsbPeripheral`)
+
+`wdi_usb.hpp` wraps `WdiDevice` with an `espp::UsbDevice` HID interface using the
+WDI report descriptor (`wdi_hid.hpp`). Control / Request-Feedback / Keepalive are
+HID **Input** reports (device→host, `write_hid_report()`); Feedback /
+Keepalive-Response are HID **Output** reports (host→device, delivered via
+`HidFunction::on_receive` — hence `has_out_endpoint`).
+
+```cpp
+espp::WdiUsbPeripheral wdi({.on_feedback = [](const espp::wdi::FeedbackReport &f){ /*...*/ }});
+std::error_code ec;
+wdi.initialize(ec);
+// loop: wdi.send_control(report); wdi.poll();  // poll() sends keepalives when due
+```
+
+See `usb_example/` for a full runnable example (esp32s3). Because the native USB
+port is given to TinyUSB, the console runs on UART0 (with USB-Serial-JTAG as an
+early-boot secondary).
+
 ## Status
 
 - [x] Protocol core + host tests (`test/wdi_protocol_host_test.cpp`)
@@ -126,8 +145,8 @@ Feedback / Keepalive-Response are Write-Without-Response (central→device).
       (`test/wdi_device_host_test.cpp`)
 - [x] Device role — **BLE peripheral** (`WdiBlePeripheral`, `wdi_ble.hpp`): the WDI
       GATT service + characteristics on `ble_gatt_server`, with a `ble_example`
-- [ ] Device role — USB HID device (`espp::UsbDevice`); the `usb_device` HID-OUT
-      support it needs lands with the switch_pro PR (#787)
+- [x] Device role — **USB HID device** (`WdiUsbPeripheral`, `wdi_usb.hpp`): the WDI
+      HID report descriptor on `espp::UsbDevice`, with a `usb_example`
 - [ ] Host role — USB Host HID + BLE central
 
 ## Testing
