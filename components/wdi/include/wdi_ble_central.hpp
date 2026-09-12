@@ -82,81 +82,99 @@ public:
   /// @brief Connect to a specific peripheral address, discover the WDI service,
   ///        subscribe to its notify characteristics, and start the host role.
   bool connect(const NimBLEAddress &address, std::error_code &ec) {
-    std::lock_guard<std::mutex> lk(mutex_);
-    if (client_) {
-      ec = std::make_error_code(std::errc::already_connected);
-      return false;
+    {
+      std::lock_guard<std::mutex> lk(mutex_);
+      if (client_) {
+        ec = std::make_error_code(std::errc::already_connected);
+        return false;
+      }
     }
-    client_ = NimBLEDevice::createClient();
-    if (!client_) {
+    NimBLEClient *client = NimBLEDevice::createClient();
+    if (!client) {
       ec = std::make_error_code(std::errc::not_enough_memory);
       return false;
     }
-    client_->setClientCallbacks(&callbacks_, false);
     callbacks_.owner = this;
-    if (!client_->connect(address)) {
+    client->setClientCallbacks(&callbacks_, false);
+    {
+      std::lock_guard<std::mutex> lk(mutex_);
+      client_ = client; // publish so on_ble_disconnect() can tear it down
+    }
+
+    // The blocking connect + GATT discovery + subscribe below are done WITHOUT
+    // holding mutex_: NimBLE runs its host on a separate task and invokes our
+    // callbacks (onDisconnect / notify) from it, so holding the lock across these
+    // calls would deadlock (the host task would block on mutex_ and never signal
+    // completion).
+    if (!client->connect(address)) {
       logger_.error("connect failed");
-      NimBLEDevice::deleteClient(client_);
-      client_ = nullptr;
+      teardown_client(client);
       ec = std::make_error_code(std::errc::connection_refused);
       return false;
     }
-
-    NimBLERemoteService *service = client_->getService(service_uuid());
+    NimBLERemoteService *service = client->getService(service_uuid());
     if (!service) {
       logger_.error("WDI service not found on peer");
-      client_->disconnect();
-      NimBLEDevice::deleteClient(client_);
-      client_ = nullptr;
+      teardown_client(client);
       ec = std::make_error_code(std::errc::no_such_device);
       return false;
     }
-
-    control_ = service->getCharacteristic(NimBLEUUID(WdiBlePeripheral::kControlUuid));
-    request_feedback_ =
+    auto *control = service->getCharacteristic(NimBLEUUID(WdiBlePeripheral::kControlUuid));
+    auto *request_feedback =
         service->getCharacteristic(NimBLEUUID(WdiBlePeripheral::kRequestFeedbackUuid));
-    keepalive_ = service->getCharacteristic(NimBLEUUID(WdiBlePeripheral::kKeepaliveUuid));
-    feedback_ = service->getCharacteristic(NimBLEUUID(WdiBlePeripheral::kFeedbackUuid));
-    keepalive_response_ =
+    auto *keepalive = service->getCharacteristic(NimBLEUUID(WdiBlePeripheral::kKeepaliveUuid));
+    auto *feedback = service->getCharacteristic(NimBLEUUID(WdiBlePeripheral::kFeedbackUuid));
+    auto *keepalive_response =
         service->getCharacteristic(NimBLEUUID(WdiBlePeripheral::kKeepaliveResponseUuid));
-    if (!control_ || !request_feedback_ || !keepalive_ || !feedback_ || !keepalive_response_) {
+    if (!control || !request_feedback || !keepalive || !feedback || !keepalive_response) {
       logger_.error("WDI characteristics incomplete");
-      client_->disconnect();
-      NimBLEDevice::deleteClient(client_);
-      client_ = nullptr;
+      teardown_client(client);
       ec = std::make_error_code(std::errc::protocol_error);
       return false;
     }
 
-    // Build the host core: its OUTPUT reports (Feedback / Keepalive-Response) are
-    // BLE writes to the peripheral.
-    WdiHost::Config hc;
-    hc.host_uuid = config_.host_uuid;
-    hc.on_control = config_.on_control;
-    hc.feedback = config_.feedback;
-    hc.on_connected = config_.on_connected;
-    hc.on_disconnected = config_.on_disconnected;
-    hc.send = [this](wdi::ReportId id, std::span<const uint8_t> payload) {
-      NimBLERemoteCharacteristic *chr = (id == wdi::ReportId::Feedback) ? feedback_
-                                        : (id == wdi::ReportId::KeepaliveResponse)
-                                            ? keepalive_response_
-                                            : nullptr;
-      if (!chr)
-        return false;
-      return chr->writeValue(payload.data(), payload.size(), /*response=*/false);
-    };
-    host_ = std::make_unique<WdiHost>(hc);
-    if (feedback_value_)
-      host_->set_feedback(*feedback_value_);
+    // Publish the characteristics + build the host core under the lock, before
+    // subscribing, so an early notification finds a live host_.
+    {
+      std::lock_guard<std::mutex> lk(mutex_);
+      control_ = control;
+      request_feedback_ = request_feedback;
+      keepalive_ = keepalive;
+      feedback_ = feedback;
+      keepalive_response_ = keepalive_response;
+      WdiHost::Config hc;
+      hc.host_uuid = config_.host_uuid;
+      hc.on_control = config_.on_control;
+      hc.feedback = config_.feedback;
+      hc.on_connected = config_.on_connected;
+      hc.on_disconnected = config_.on_disconnected;
+      hc.send = [this](wdi::ReportId id, std::span<const uint8_t> payload) {
+        NimBLERemoteCharacteristic *chr = (id == wdi::ReportId::Feedback) ? feedback_
+                                          : (id == wdi::ReportId::KeepaliveResponse)
+                                              ? keepalive_response_
+                                              : nullptr;
+        if (!chr)
+          return false;
+        return chr->writeValue(payload.data(), payload.size(), /*response=*/false);
+      };
+      host_ = std::make_unique<WdiHost>(hc);
+      if (feedback_value_)
+        host_->set_feedback(*feedback_value_);
+    }
 
     // Subscribe to the app's INPUT reports (Notify): Control / Request-Feedback /
-    // Keepalive. Route each into the host core with the right report id.
+    // Keepalive. A failed subscription means those notifications never arrive (the
+    // watchdog would trip), so fail the connect rather than report success.
     auto cb = [this](NimBLERemoteCharacteristic *chr, uint8_t *data, size_t len, bool) {
       on_notify(chr, data, len);
     };
-    control_->subscribe(true, cb);
-    request_feedback_->subscribe(true, cb);
-    keepalive_->subscribe(true, cb);
+    if (!control->subscribe(true, cb) || !request_feedback->subscribe(true, cb) ||
+        !keepalive->subscribe(true, cb)) {
+      logger_.error("failed to subscribe to WDI notifications");
+      teardown_client(client);
+      ec = std::make_error_code(std::errc::io_error);
+      return false;
+    }
 
     logger_.info("WDI peripheral connected");
     ec.clear();
@@ -214,6 +232,22 @@ public:
   }
 
 private:
+  // Drop any published state referring to `client`, then disconnect + delete it.
+  // Called from connect()'s failure paths; does not hold mutex_ across the BLE
+  // calls.
+  void teardown_client(NimBLEClient *client) {
+    {
+      std::lock_guard<std::mutex> lk(mutex_);
+      if (client_ == client)
+        client_ = nullptr;
+      host_.reset();
+      control_ = request_feedback_ = keepalive_ = feedback_ = keepalive_response_ = nullptr;
+    }
+    if (client->isConnected())
+      client->disconnect();
+    NimBLEDevice::deleteClient(client);
+  }
+
   // Route a notification to the host core by which characteristic delivered it.
   void on_notify(NimBLERemoteCharacteristic *chr, uint8_t *data, size_t len) {
     wdi::ReportId id;
