@@ -74,20 +74,16 @@ public:
     // central can introspect the report layout.
     auto *report_map =
         service_->createCharacteristic(NimBLEUUID(kReportMapUuid), NIMBLE_PROPERTY::READ);
-    report_map->setValue(wdi::kReportDescriptor.data(), wdi::kReportDescriptor.size());
     // HID Information: bcdHID 0x0111 (LE), bCountryCode 0, Flags 0x02 (normally
     // connectable).
-    static const uint8_t kHidInfo[4] = {0x11, 0x01, 0x00, 0x02};
-    service_->createCharacteristic(NimBLEUUID(kHidInformationUuid), NIMBLE_PROPERTY::READ)
-        ->setValue(kHidInfo, sizeof(kHidInfo));
+    auto *hid_info =
+        service_->createCharacteristic(NimBLEUUID(kHidInformationUuid), NIMBLE_PROPERTY::READ);
     // HID Control Point: write-without-response suspend/resume command (accepted
     // and ignored by this emulator).
     service_->createCharacteristic(NimBLEUUID(kHidControlPointUuid), NIMBLE_PROPERTY::WRITE_NR);
     // Protocol Mode: default Report Protocol (0x01).
     auto *protocol_mode = service_->createCharacteristic(
         NimBLEUUID(kProtocolModeUuid), NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
-    static const uint8_t kReportProtocol = 0x01;
-    protocol_mode->setValue(&kReportProtocol, 1);
 
     // app -> host (device sends): READ | NOTIFY.
     control_ = service_->createCharacteristic(NimBLEUUID(kControlUuid),
@@ -99,9 +95,23 @@ public:
     // host -> app (device receives): READ | WRITE_NR (write without response).
     feedback_ = service_->createCharacteristic(NimBLEUUID(kFeedbackUuid),
                                                NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
-    feedback_->setCallbacks(&feedback_cb_);
     keepalive_resp_ = service_->createCharacteristic(
         NimBLEUUID(kKeepaliveResponseUuid), NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE_NR);
+
+    // createCharacteristic() can return nullptr (e.g. out of memory); bail before
+    // dereferencing any of them.
+    if (!report_map || !hid_info || !protocol_mode || !control_ || !request_feedback_ ||
+        !keepalive_ || !feedback_ || !keepalive_resp_) {
+      logger_.error("failed to create one or more WDI characteristics");
+      return;
+    }
+
+    report_map->setValue(wdi::kReportDescriptor.data(), wdi::kReportDescriptor.size());
+    static const uint8_t kHidInfo[4] = {0x11, 0x01, 0x00, 0x02};
+    hid_info->setValue(kHidInfo, sizeof(kHidInfo));
+    static const uint8_t kReportProtocol = 0x01;
+    protocol_mode->setValue(&kReportProtocol, 1);
+    feedback_->setCallbacks(&feedback_cb_);
     keepalive_resp_->setCallbacks(&keepalive_resp_cb_);
   }
 

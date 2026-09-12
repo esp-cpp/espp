@@ -2,7 +2,7 @@
 license: "MIT"
 description: "Native USB host (ESP-IDF USB Host library + usb_host_hid): enumerate and talk to USB HID devices (mice, keyboards, gamepads, vendor HID) from an ESP32-S2/-S3/-P4"
 url: "https://github.com/esp-cpp/espp/tree/main/components/usb_host"
-repository: "git://github.com/esp-cpp/espp.git"
+repository: "https://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/usb_host/usb_host.html"
