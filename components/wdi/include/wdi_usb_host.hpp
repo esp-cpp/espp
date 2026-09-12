@@ -107,42 +107,12 @@ public:
   /// @brief Access the underlying USB host (e.g. to enumerate all HID devices).
   UsbHost &usb() { return usb_; }
 
-  /// @brief Does a HID report descriptor describe a WDI device? Exact match
-  ///        against the descriptor this component emits, or -- for another
-  ///        implementation of the spec -- an application collection on the WDI
-  ///        vendor usage page (0xFF00) with usage 0x01 that declares report ids
-  ///        1..5. Walks the descriptor's short items rather than byte-scanning,
-  ///        so item *data* (e.g. a Logical Maximum of 0x00FF0006) cannot
-  ///        masquerade as a Usage Page item.
+  /// @brief Does a HID report descriptor describe a WDI device? See
+  ///        wdi::looks_like_wdi_descriptor() (host-tested in
+  ///        test/wdi_hid_host_test.cpp); this is what decides which HID device
+  ///        the host adopts.
   static bool looks_like_wdi(std::span<const uint8_t> d) {
-    if (d.size() == wdi::kReportDescriptor.size() &&
-        std::equal(d.begin(), d.end(), wdi::kReportDescriptor.begin()))
-      return true;
-    bool vendor_page = false; // saw Usage Page 0xFF00 immediately followed by Usage 0x01
-    uint8_t report_ids = 0;   // bit i-1 set when Report ID i (1..5) was seen
-    bool prev_was_wdi_page = false;
-    for (size_t i = 0; i < d.size();) {
-      const uint8_t prefix = d[i];
-      if (prefix == 0xFE) // long item: skip (bDataSize in the next byte)
-        return false;     // not something a WDI descriptor contains
-      const uint8_t size_code = prefix & 0x03;
-      const size_t size = size_code == 3 ? 4 : size_code;
-      if (i + 1 + size > d.size())
-        return false; // malformed
-      const uint8_t tag_type = prefix & 0xFC;
-      const uint8_t *data = &d[i + 1];
-      if (tag_type == 0x04 && size == 2 && data[0] == 0x00 && data[1] == 0xFF) {
-        prev_was_wdi_page = true; // Global: Usage Page 0xFF00
-      } else {
-        if (tag_type == 0x08 && size == 1 && data[0] == 0x01 && prev_was_wdi_page)
-          vendor_page = true; // Local: Usage 0x01 (Wheelchair Control Device)
-        prev_was_wdi_page = false;
-      }
-      if (tag_type == 0x84 && size == 1 && data[0] >= 1 && data[0] <= 5) // Global: Report ID
-        report_ids |= static_cast<uint8_t>(1u << (data[0] - 1));
-      i += 1 + size;
-    }
-    return vendor_page && report_ids == 0x1F;
+    return wdi::looks_like_wdi_descriptor(d);
   }
 
 private:
