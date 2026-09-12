@@ -59,7 +59,7 @@ coexist on one stream. espp's own protocols and examples currently claim:
 Module id  Protocol
 =========  ========================================================
 0          OTA (firmware update)
-1          Core-dump example crash trigger
+1          Core-dump example crash trigger (example only)
 2          BLDC haptics (``components/bldc_haptics``)
 3          Telemetry (``espp::Telemetry``)
 4          Crash dump (``espp::CoreDumpService``)
@@ -289,8 +289,11 @@ parser, no mutex, because a handler this small can run straight out of the
      explicit HelloModule(const Config &config) : send_(config.send) {}
 
      // 5. Entry point: register this directly as the Dispatcher handler for
-     //    hello_module::kModule (skips the feed()/handle_frame() split
-     //    CoreDumpService needs because IT owns its own parser and mutex).
+     //    hello_module::kModule (skips the feed()/handle_frame() split that
+     //    CoreDumpService needs so it can also run standalone off a raw byte
+     //    stream — feed() owns an internal parser for that case — and
+     //    serialize flash access under its own mutex; a handler this small
+     //    has neither concern).
      void handle(const espp::stream_frame::Frame &frame) {
        if (frame.is_reply() || frame.type != static_cast<uint8_t>(hello_module::Msg::Ping))
          return; // not a request we answer (ignore replies / other types)
