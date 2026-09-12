@@ -115,11 +115,10 @@ public:
     keepalive_resp_->setCallbacks(&keepalive_resp_cb_);
   }
 
-  /// @brief Start the WDI service (after make_service()).
-  void start() {
-    if (service_)
-      service_->start();
-  }
+  /// @brief Kept for API symmetry with make_service(); NimBLE starts every
+  ///        service when the server starts (NimBLEService::start() is a
+  ///        deprecated no-op), so there is nothing to do here.
+  void start() {}
 
   NimBLEService *get_service() { return service_; }
 
