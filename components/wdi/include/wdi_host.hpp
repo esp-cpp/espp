@@ -97,6 +97,9 @@ public:
   ///        Request-Feedback (0x03) or Keepalive (0x04). Any of them refreshes
   ///        the watchdog and marks the link connected. Request-Feedback triggers
   ///        a Feedback reply; Keepalive triggers a Keepalive-Response reply.
+  /// @note The 1-byte trigger reports are deliberately not validated (size or
+  ///       the 0x01 value): a peer that got as far as sending one on the right
+  ///       characteristic / report id is alive, which is all the host needs.
   void handle_input(wdi::ReportId id, std::span<const uint8_t> payload) {
     switch (id) {
     case wdi::ReportId::Control:
@@ -157,6 +160,10 @@ public:
   ///        quiet for `missed_windows_to_disconnect` windows, the link is marked
   ///        disconnected (fire on_disconnected — the caller must drive-disable).
   ///        Returns true if a disconnect transition happened this call.
+  /// @note A transport binding may report the same link loss again (the USB /
+  ///       BLE detach arriving after the watchdog already fired), so
+  ///       on_disconnected can be invoked twice for one event; it must be
+  ///       idempotent (drive-disable is).
   bool poll() {
     if (!connected_.load())
       return false;
