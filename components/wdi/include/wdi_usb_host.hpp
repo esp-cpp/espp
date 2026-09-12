@@ -156,13 +156,12 @@ private:
   }
 
   void on_device_disconnected(const std::shared_ptr<UsbHost::HidDevice> &dev) {
-    std::unique_ptr<WdiHost> dead;
     bool was_ours = false;
     {
       std::lock_guard<std::mutex> lk(mutex_);
       if (device_ && device_->handle() == dev->handle()) {
         was_ours = true;
-        dead = std::move(host_);
+        host_.reset(); // ~WdiHost does not re-enter mutex_, so reset under the lock
         device_.reset();
       }
     }

@@ -183,11 +183,10 @@ public:
 
   /// @brief Disconnect and tear down.
   void disconnect() {
-    std::unique_ptr<WdiHost> dead;
     NimBLEClient *client = nullptr;
     {
       std::lock_guard<std::mutex> lk(mutex_);
-      dead = std::move(host_);
+      host_.reset(); // ~WdiHost does not re-enter mutex_, so reset under the lock
       client = client_;
       client_ = nullptr;
       control_ = request_feedback_ = keepalive_ = feedback_ = keepalive_response_ = nullptr;
@@ -265,10 +264,9 @@ private:
   }
 
   void on_ble_disconnect() {
-    std::unique_ptr<WdiHost> dead;
     {
       std::lock_guard<std::mutex> lk(mutex_);
-      dead = std::move(host_);
+      host_.reset(); // ~WdiHost does not re-enter mutex_, so reset under the lock
       control_ = request_feedback_ = keepalive_ = feedback_ = keepalive_response_ = nullptr;
       // client_ is deleted by NimBLE after the callback; drop our pointer.
       client_ = nullptr;

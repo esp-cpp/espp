@@ -147,7 +147,7 @@ public:
 
   /// @brief Send a Keepalive Response (the host's UUID) now. Returns true if sent.
   bool send_keepalive_response() {
-    const auto bytes = config_.host_uuid.serialize();
+    const auto &bytes = config_.host_uuid.serialize();
     return transmit(wdi::ReportId::KeepaliveResponse, bytes);
   }
 
