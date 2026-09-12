@@ -1,0 +1,26 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Native USB host (ESP-IDF USB Host library + usb_host_hid): enumerate and talk to USB HID devices (mice, keyboards, gamepads, vendor HID) from an ESP32-S2/-S3/-P4"
+url: "https://github.com/esp-cpp/espp/tree/main/components/usb_host"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/usb_host/usb_host.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - USB
+  - Host
+  - HID
+  - Transport
+  - Gamepad
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'
+  # The USB Host library (`usb`) and the HID class driver come from esp-usb. For
+  # IDF >= 6.0 the `usb` component is provided by esp-usb (usb_host_hid pulls it
+  # in). Pin the tested floors.
+  espressif/usb_host_hid: '>=1.0.0'
