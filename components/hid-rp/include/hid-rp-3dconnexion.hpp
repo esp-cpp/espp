@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -73,6 +74,18 @@ public:
   static constexpr std::size_t num_data_bytes = 3 * sizeof(std::int16_t); ///< X, Y, Z (int16 each)
 
 protected:
+  // The wire format is little-endian signed 16-bit per axis; get_report()/
+  // set_data() below serialize/deserialize by copying the std::int16_t
+  // object representation directly, which is only correct on a
+  // little-endian host. This is the same idiom used by the other espp
+  // hid-rp reports (see hid-rp-gamepad.hpp, hid-rp-xbox.hpp) rather than a
+  // portability oversight - every espp/ESP-IDF target is little-endian - so
+  // this assert exists to make that assumption explicit and catch it at
+  // compile time if it's ever violated.
+  static_assert(std::endian::native == std::endian::little,
+                "SpaceMouseTranslationInputReport serializes std::int16_t axes to the wire via "
+                "direct object-representation copy, which assumes a little-endian host");
+
   std::array<std::int16_t, 3> axes{0, 0, 0}; // X, Y, Z
 
 public:
@@ -228,6 +241,15 @@ public:
       3 * sizeof(std::int16_t); ///< Rx, Ry, Rz (int16 each)
 
 protected:
+  // See espp::SpaceMouseTranslationInputReport for why this assert exists:
+  // the wire format is little-endian signed 16-bit per axis, serialized by
+  // copying the std::int16_t object representation directly in
+  // get_report()/set_data() below, matching the same idiom used by the
+  // other espp hid-rp reports.
+  static_assert(std::endian::native == std::endian::little,
+                "SpaceMouseRotationInputReport serializes std::int16_t axes to the wire via "
+                "direct object-representation copy, which assumes a little-endian host");
+
   std::array<std::int16_t, 3> axes{0, 0, 0}; // Rx, Ry, Rz
 
 public:
@@ -378,6 +400,18 @@ public:
 template <std::size_t BUTTON_COUNT = 2, uint8_t REPORT_ID = 3>
 class SpaceMouseButtonsInputReport : public hid::report::base<hid::report::type::INPUT, REPORT_ID> {
 public:
+  static_assert(BUTTON_COUNT >= 1,
+                "SpaceMouseButtonsInputReport: BUTTON_COUNT must be at least 1 (0 buttons would "
+                "generate an invalid HID descriptor, e.g. usage_limits(button(1), button(0)))");
+  // get_descriptor() below encodes REPORT_COUNT(BUTTON_COUNT) as a 1-byte
+  // short item (hid::rdf::report_count()'s DATA_SIZE defaults to 1), so a
+  // BUTTON_COUNT above 255 would silently truncate instead of failing to
+  // compile; the usage id itself (hid::page::button, a std::uint16_t) and
+  // usage_limits() (2-byte usage ids) have no such restriction.
+  static_assert(BUTTON_COUNT <= 255,
+                "SpaceMouseButtonsInputReport: BUTTON_COUNT must fit in a single byte because "
+                "get_descriptor() encodes REPORT_COUNT as a 1-byte HID report descriptor item");
+
   static constexpr std::size_t button_count = BUTTON_COUNT;
   static constexpr std::size_t num_button_bytes = (BUTTON_COUNT + 7) / 8;
   static constexpr std::size_t num_data_bytes = num_button_bytes;
@@ -584,25 +618,45 @@ public:
 
 /// Get the complete report descriptor for a 3Dconnexion SpaceMouse.
 /// \tparam BUTTON_COUNT The number of buttons to report (2 for a
-///         SpaceNavigator, more for other models in the family).
+///         SpaceNavigator, more for other models in the family). Must be
+///         between 1 and 255, inclusive (see
+///         espp::SpaceMouseButtonsInputReport).
+/// \tparam INCLUDE_LED Whether to include the (optional, Report ID 4) LED
+///         output report - see espp::SpaceMouseLedOutputReport. Defaults to
+///         true, preserving the descriptor's original shape; pass false to
+///         omit it for LED-less models or hosts that don't need it.
 /// \return The complete report descriptor for a 3Dconnexion SpaceMouse,
 ///         combining the translation (Report ID 1), rotation (Report ID 2),
-///         buttons (Report ID 3), and LED (Report ID 4) reports under the
-///         standard Generic Desktop / Multi-Axis Controller application
-///         collection.
-template <std::size_t BUTTON_COUNT = 2>
+///         and buttons (Report ID 3) reports - plus, when INCLUDE_LED is
+///         true, the LED (Report ID 4) report - under the standard Generic
+///         Desktop / Multi-Axis Controller application collection.
+template <std::size_t BUTTON_COUNT = 2, bool INCLUDE_LED = true>
 [[maybe_unused]] static constexpr auto spacemouse_descriptor() {
   using namespace hid::page;
   using namespace hid::rdf;
 
+  // Same constraints as espp::SpaceMouseButtonsInputReport; asserted again
+  // here so instantiating the descriptor builder directly with an invalid
+  // BUTTON_COUNT points at this call site.
+  static_assert(BUTTON_COUNT >= 1, "spacemouse_descriptor: BUTTON_COUNT must be at least 1");
+  static_assert(BUTTON_COUNT <= 255,
+                "spacemouse_descriptor: BUTTON_COUNT must fit in a single byte because the "
+                "buttons report encodes REPORT_COUNT as a 1-byte HID report descriptor item");
+
   auto translation_descriptor = SpaceMouseTranslationInputReport<>::get_descriptor();
   auto rotation_descriptor = SpaceMouseRotationInputReport<>::get_descriptor();
   auto buttons_descriptor = SpaceMouseButtonsInputReport<BUTTON_COUNT>::get_descriptor();
-  auto led_descriptor = SpaceMouseLedOutputReport<>::get_descriptor();
 
-  return descriptor(usage_page<generic_desktop>(), usage(generic_desktop::MULTI_AXIS_CONTROLLER),
-                    collection::application(translation_descriptor, rotation_descriptor,
-                                            buttons_descriptor, led_descriptor));
+  if constexpr (INCLUDE_LED) {
+    auto led_descriptor = SpaceMouseLedOutputReport<>::get_descriptor();
+    return descriptor(usage_page<generic_desktop>(), usage(generic_desktop::MULTI_AXIS_CONTROLLER),
+                      collection::application(translation_descriptor, rotation_descriptor,
+                                              buttons_descriptor, led_descriptor));
+  } else {
+    return descriptor(
+        usage_page<generic_desktop>(), usage(generic_desktop::MULTI_AXIS_CONTROLLER),
+        collection::application(translation_descriptor, rotation_descriptor, buttons_descriptor));
+  }
 } // spacemouse_descriptor
 
 } // namespace espp

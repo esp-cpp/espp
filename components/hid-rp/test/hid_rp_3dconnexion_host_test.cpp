@@ -206,6 +206,23 @@ static void test_descriptor() {
   CHECK(contains_8({0x95, 0x08}));       // Report Count (8)
   CHECK(contains_8({0x2a, 0x08, 0x00})); // Usage Maximum (8) -- hid-rp emits usage limits 2-byte
   CHECK(descriptor_8.size() < descriptor.size());
+
+  // INCLUDE_LED=false must omit the (optional) Report ID 4 LED block
+  // entirely: no Report ID (4) item and no LEDs usage (Generic Indicator),
+  // while the default (INCLUDE_LED=true) descriptor still has both and is
+  // therefore strictly longer.
+  auto raw_descriptor_no_led = espp::spacemouse_descriptor<2, false>();
+  std::vector<uint8_t> descriptor_no_led(raw_descriptor_no_led.begin(),
+                                         raw_descriptor_no_led.end());
+  auto contains_no_led = [&](std::initializer_list<uint8_t> pattern) {
+    return std::search(descriptor_no_led.begin(), descriptor_no_led.end(), pattern.begin(),
+                       pattern.end()) != descriptor_no_led.end();
+  };
+  CHECK(!contains_no_led({0x85, 0x04})); // no Report ID (4, LED)
+  CHECK(!contains_no_led({0x09, 0x4b})); // no Usage (LEDs: Generic Indicator)
+  CHECK(contains({0x85, 0x04}));         // default descriptor still has it
+  CHECK(contains({0x09, 0x4b}));
+  CHECK(descriptor_no_led.size() < descriptor.size());
 }
 
 int main() {
