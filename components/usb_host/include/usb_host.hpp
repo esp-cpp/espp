@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
@@ -228,10 +229,15 @@ public:
     ///        truncated (the driver copies at most this many bytes); raise it if
     ///        your device sends larger reports. 64 covers full-speed HID.
     size_t max_input_report_size{64};
-    /// @brief Hard bound on queued-but-undispatched events. When full, a new Input
-    ///        report is dropped, and a lifecycle event evicts the oldest queued Input
-    ///        report to make room, so the queue never blocks the USB stack and
-    ///        lifecycle events are never lost. Drops are counted and logged at a
+    /// @brief Bound on queued-but-undispatched events. When the queue is full: a
+    ///        new Input report is dropped; a lifecycle event first evicts the
+    ///        oldest queued Input report, and if there is none a *new-device*
+    ///        event is dropped (that device simply stays unopened while the
+    ///        consumer is overloaded) while a *disconnect* is always kept (it is
+    ///        needed to release the device, and can only follow a device that was
+    ///        opened). The queue length is therefore never more than
+    ///        max_queued_events + the number of currently open devices, and the
+    ///        USB stack is never blocked. Drops are counted and logged at a
     ///        rate-limited cadence.
     size_t max_queued_events{32};
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
@@ -275,11 +281,20 @@ private:
   friend void espp_usb_host_interface_event_cb(hid_host_device_handle_t,
                                                const hid_host_interface_event_t, void *);
 
-  // An event queued by the HID driver task for the dispatch task.
+  // An event queued by the HID driver task for the dispatch task. Input
+  // reports are stored inline (no heap traffic on the driver task) unless a
+  // larger Config::max_input_report_size was requested.
   struct Event {
+    static constexpr size_t kInlineBytes = 64; // full-speed HID interrupt max packet
     enum class Type { NewDevice, Input, Disconnected } type;
     hid_host_device_handle_t handle{nullptr};
-    std::vector<uint8_t> data{}; // Input: the report bytes (copied on the driver task)
+    std::array<uint8_t, kInlineBytes> inline_data{};
+    std::vector<uint8_t> overflow{}; // used only when max_input_report_size > kInlineBytes
+    size_t len{0};
+    std::span<const uint8_t> data() const {
+      return overflow.empty() ? std::span<const uint8_t>(inline_data.data(), len)
+                              : std::span<const uint8_t>(overflow.data(), len);
+    }
   };
 
   // Trampoline targets: run on the HID driver's background task. They only
@@ -316,6 +331,7 @@ private:
   std::deque<Event> queue_;
   uint32_t dropped_inputs_{0}; // guarded by queue_mutex_; rate-limits the drop log
   std::atomic<bool> dispatch_run_{false};
+  std::atomic<bool> accepting_{false}; // enqueue() is a no-op unless set (cleared before teardown)
   std::unique_ptr<espp::Task> dispatch_task_;
 
   mutable std::mutex devices_mutex_;
