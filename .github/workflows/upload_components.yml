@@ -180,6 +180,7 @@ jobs:
             components/tt21100
             components/twai
             components/usb_device
+            components/usb_host
             components/utils
             components/vl53l
             components/wdi
