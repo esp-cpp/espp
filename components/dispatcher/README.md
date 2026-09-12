@@ -24,6 +24,7 @@ built-in protocols use, for example:
 |-----------|----------------------|
 | 0         | OTA                  |
 | 2         | BLDC haptics         |
+| 3         | Telemetry            |
 | 4         | crash dump           |
 | 5         | CAN bridge           |
 | 6         | MCP266               |

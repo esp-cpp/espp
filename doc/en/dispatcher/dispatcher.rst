@@ -18,9 +18,9 @@ the request/reply direction (``flags``) travel with the frame and are handed to
 the module's handler untouched; the Dispatcher does not interpret them. espp
 built-in protocols use, for example:
 
-=========  ==============================
+=========  ==================================
 Module id  Protocol
-=========  ==============================
+=========  ==================================
 0          OTA
 2          BLDC haptics
 3          Telemetry
@@ -28,7 +28,7 @@ Module id  Protocol
 5          CAN bridge
 6          MCP266 console
 0xF0-0xFF  reserved (meta); 0xFF = discovery
-=========  ==============================
+=========  ==================================
 
 A device-side dispatcher registers the modules it serves; frames for an
 unregistered module are silently ignored. A protocol's replies use the **same**

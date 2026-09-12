@@ -260,6 +260,7 @@ parser, no mutex, because a handler this small can run straight out of the
 .. code-block:: cpp
 
    #include <algorithm>
+   #include <cctype>
    #include <cstdint>
    #include <functional>
    #include <span>
@@ -294,7 +295,12 @@ parser, no mutex, because a handler this small can run straight out of the
        if (frame.is_reply() || frame.type != static_cast<uint8_t>(hello_module::Msg::Ping))
          return; // not a request we answer (ignore replies / other types)
        std::string text(frame.payload.begin(), frame.payload.end());
-       std::transform(text.begin(), text.end(), text.begin(), ::toupper);
+       // Payload bytes are arbitrary, not guaranteed ASCII text, so cast to
+       // unsigned char before calling ::toupper (it's UB on a negative
+       // signed-char value); non-ASCII bytes simply pass through unchanged.
+       std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) {
+         return static_cast<char>(::toupper(c));
+       });
        send_(build(hello_module::Msg::Pong, std::span<const uint8_t>(
                                                 reinterpret_cast<const uint8_t *>(text.data()),
                                                 text.size())));
@@ -501,16 +507,16 @@ module console can reuse verbatim:
        // ... find the interface whose interfaceClass === 0xFF (VENDOR_CLASS)
        //     with a bulk IN + bulk OUT endpoint pair, then claimInterface() it.
      }
-   async send(bytes) {
-     let sent = 0;
-     while (sent < bytes.length) {
-       const out = await this.device.transferOut(this.epOut, bytes.subarray(sent));
-       if (out.status !== "ok") throw new Error("OUT transfer status: " + out.status);
-       const n = out.bytesWritten || 0;
-       if (n === 0) throw new Error("OUT transfer made no progress");
-       sent += n;
+     async send(bytes) {
+       let sent = 0;
+       while (sent < bytes.length) {
+         const out = await this.device.transferOut(this.epOut, bytes.subarray(sent));
+         if (out.status !== "ok") throw new Error("OUT transfer status: " + out.status);
+         const n = out.bytesWritten || 0;
+         if (n === 0) throw new Error("OUT transfer made no progress");
+         sent += n;
+       }
      }
-   }
      async readLoop(onData) {
        while (this.reading) {
          const result = await this.device.transferIn(this.epIn, MAX_FRAME);
@@ -522,15 +528,36 @@ module console can reuse verbatim:
 
 Every shipped module console (``coredump_console.html``, ``mcp266_console.html``,
 ``can_bridge_console.html``, ``ds402_panel.html``, the BLDC haptics webapp,
-``telemetry.html``) carries its own copy of the same three building blocks:
-a `crc32()` implementation matching `stream_frame::crc32()` (golden value
+``telemetry.html``) carries its own copy of the same three building blocks —
+a `crc32()` matching `stream_frame::crc32()` (golden value
 ``crc32("123456789") === 0xCBF43926``), a `buildFrame(module, type, payload)`
-encoder matching `stream_frame::build_frame()`, and a `StreamParser` class
-matching `stream_frame::StreamParser` byte-for-byte. Copy this JS block from
-`dispatcher_hub.html` (or any of the module consoles above) into your own
-webapp rather than re-deriving it — it is deliberately dependency-free (no
-build step, no CDN) so it drops straight into a single-file app, and keeping
-it byte-identical to the C++ codec is what makes the CRC and framing agree.
+encoder matching `stream_frame::build_frame()`, and a parser matching
+`stream_frame::StreamParser`'s framing/CRC/resync logic — but they are
+**wire-compatible variants, not byte-for-byte copies**, so check before you
+paste one in wholesale:
+
+- ``dispatcher_hub.html``, ``mcp266_console.html``, and ``ds402_panel.html``
+  correctly skip the optional correlation-id bytes when sizing a frame, but
+  their parsed frame objects (``{module, type, reply, payload}``) do not
+  surface the id — copying one of these verbatim silently drops the
+  correlation id this guide recommends for request/reply matching.
+- ``coredump_console.html``, ``can_bridge_console.html``, and the BLDC
+  haptics console *do* surface it (``{..., correlation, ...}``, ``null``
+  when the flag is clear).
+- ``telemetry.html`` uses differently-named helpers (`sfCrc32`, `sfBuild`,
+  `SfParser` instead of `crc32`, `buildFrame`, `StreamParser`) and, like the
+  hub, does not surface the correlation id.
+- ``coredump_console.html``'s parser additionally returns every skipped
+  (non-frame) byte as a ``text`` field alongside ``frames``, since it shares
+  one CDC stream with a plain-text serial console — the other consoles don't
+  need or have this.
+
+If you're using correlation ids, copy the parser from ``coredump_console.html``
+or ``can_bridge_console.html``; otherwise ``dispatcher_hub.html`` is the
+simplest starting point. Whichever you copy, it's deliberately
+dependency-free (no build step, no CDN) so it drops straight into a
+single-file app, and keeping the codec logic byte-identical to the C++ side
+is what makes the CRC and framing agree.
 
 Discovery + the webapp side
 ==============================
