@@ -132,10 +132,12 @@ void SwitchPro::set_device_info(std::vector<uint8_t> &report) {
 
   replace_subarray(report, 14, sizeof(sp::device_info), sp::device_info);
 
-  // overwrite the device-info MAC placeholder (bytes 18-23) with our MAC, in the
-  // protocol's REVERSED byte order (device_info's placeholder is reversed;
-  // esp_read_mac() returns forward order).
-  std::reverse_copy(mac_address_.begin(), mac_address_.end(), report.begin() + 18);
+  // overwrite the device-info MAC placeholder (bytes 18-23) with our MAC in
+  // FORWARD order: unlike the 0x81 init report, the 0x21/0x02 subcommand device-
+  // info reply uses normal byte order (its placeholder is 98 B6 E9 EC 5E FD, the
+  // reverse of the init sequence -- see switch_controller_protocol.hpp), which
+  // matches esp_read_mac().
+  std::copy(mac_address_.begin(), mac_address_.end(), report.begin() + 18);
 }
 
 void SwitchPro::set_shipment(std::vector<uint8_t> &report) {
@@ -149,7 +151,7 @@ void SwitchPro::toggle_imu(std::vector<uint8_t> &report, sp::Message &message) {
   report[13] = 0x40; // subcommand reply
 }
 
-void SwitchPro::set_imu_data(std::vector<uint8_t> &report) {
+void SwitchPro::set_imu_data(std::vector<uint8_t> &report) const {
   if (!imu_enabled_)
     return;
   static constexpr uint8_t imu_data[] = {0x75, 0xFD, 0xFD, 0xFF, 0x09, 0x10, 0x21, 0x00, 0xD5,

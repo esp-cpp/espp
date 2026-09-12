@@ -138,7 +138,7 @@ protected:
   void set_device_info(std::vector<uint8_t> &report);
   void set_shipment(std::vector<uint8_t> &report);
   void toggle_imu(std::vector<uint8_t> &report, sp::Message &message);
-  void set_imu_data(std::vector<uint8_t> &report);
+  void set_imu_data(std::vector<uint8_t> &report) const;
   void spi_read(std::vector<uint8_t> &report, sp::Message &message);
   void set_mode(std::vector<uint8_t> &report, sp::Message &message);
   void set_trigger_buttons(std::vector<uint8_t> &report);
@@ -168,8 +168,11 @@ protected:
   uint8_t input_report_mode_ = 0; // standard (0x30), nfc/ir (0x31), simpleHID (0x3F)
   uint8_t player_number_ = 0;     // valid values are 1, 2, 3, and 4
   bool vibration_enabled_ = false;
-  uint8_t vibrator_report_{0}; // randomly selected from sp::vibrator_bytes
-  bool imu_enabled_ = false;
+  // vibrator_report_ / imu_enabled_ are written by subcommand handlers on the
+  // TinyUSB task and read by the app sender task (get_input_report finalizes the
+  // streamed 0x30 report with them), so they are atomic.
+  std::atomic<uint8_t> vibrator_report_{0}; // randomly selected from sp::vibrator_bytes
+  std::atomic<bool> imu_enabled_{false};
   uint8_t input_report_id_ = 0x21;
   sp::TriggerTimes trigger_times_{};
 

@@ -52,7 +52,15 @@ std::vector<uint8_t> SwitchPro::get_input_report() const {
   if (!hid_ready_)
     return {};
   std::lock_guard<std::recursive_mutex> lock(input_report_mutex_);
-  return input_report_.get_report();
+  auto report = input_report_.get_report();
+  // Finalize the streamed 0x30 standard report with the current protocol state
+  // (the subcommand-reply path does this for 0x21 replies, but the streamed path
+  // must too): the vibrator byte, and the IMU frames when the host enabled the
+  // IMU. Both fields come from atomics written by the TinyUSB subcommand handlers.
+  if (report.size() > 11)
+    report[11] = vibrator_report_;
+  set_imu_data(report); // no-op unless imu_enabled_
+  return report;
 }
 
 void SwitchPro::set_battery_level(uint8_t level) {
