@@ -47,12 +47,12 @@ struct fmt::formatter<espp::SpaceMouseButtonsInputReport<BUTTON_COUNT, REPORT_ID
   auto format(const espp::SpaceMouseButtonsInputReport<BUTTON_COUNT, REPORT_ID> &report,
               FormatContext &ctx) const {
     auto out = ctx.out();
-    fmt::format_to(out, "SpaceMouseButtonsInputReport<{}> {{buttons: [", BUTTON_COUNT);
+    out = fmt::format_to(out, "SpaceMouseButtonsInputReport<{}> {{buttons: [", BUTTON_COUNT);
     std::bitset<BUTTON_COUNT> buttons;
     for (size_t i = 1; i <= BUTTON_COUNT; i++) {
       buttons.set(i - 1, report.buttons.test(hid::page::button(i)));
     }
-    fmt::format_to(out, "{}", buttons);
+    out = fmt::format_to(out, "{}", buttons);
     return fmt::format_to(out, "]}}");
   }
 };

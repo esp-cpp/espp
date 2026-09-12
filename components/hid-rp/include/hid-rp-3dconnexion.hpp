@@ -145,12 +145,19 @@ public:
 
   /// Set the input report data from a vector of bytes
   /// \param data The data to set the input report to.
+  /// \note If \p data is shorter than num_data_bytes, the remaining payload
+  ///       bytes are zero-filled (rather than left unchanged) so a short
+  ///       write always produces a well-defined report instead of retaining
+  ///       stale axis values from a previous update.
   constexpr void set_data(const std::vector<uint8_t> &data) {
     // copy the data into our data array - skip the first byte, which is the
     // report id. Clamp the copy length to the report's payload size so an
     // over-long input cannot write past the backing storage.
     auto copy_size = std::min(data.size(), num_data_bytes);
-    std::copy(data.begin(), data.begin() + copy_size, this->data() + 1);
+    auto *payload = this->data() + 1;
+    std::copy(data.begin(), data.begin() + copy_size, payload);
+    // zero-fill any remaining payload bytes not covered by a short write.
+    std::fill(payload + copy_size, payload + num_data_bytes, uint8_t{0});
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -289,12 +296,19 @@ public:
 
   /// Set the input report data from a vector of bytes
   /// \param data The data to set the input report to.
+  /// \note If \p data is shorter than num_data_bytes, the remaining payload
+  ///       bytes are zero-filled (rather than left unchanged) so a short
+  ///       write always produces a well-defined report instead of retaining
+  ///       stale axis values from a previous update.
   constexpr void set_data(const std::vector<uint8_t> &data) {
     // copy the data into our data array - skip the first byte, which is the
     // report id. Clamp the copy length to the report's payload size so an
     // over-long input cannot write past the backing storage.
     auto copy_size = std::min(data.size(), num_data_bytes);
-    std::copy(data.begin(), data.begin() + copy_size, this->data() + 1);
+    auto *payload = this->data() + 1;
+    std::copy(data.begin(), data.begin() + copy_size, payload);
+    // zero-fill any remaining payload bytes not covered by a short write.
+    std::fill(payload + copy_size, payload + num_data_bytes, uint8_t{0});
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -340,8 +354,19 @@ public:
 /// \note See espp::SpaceMouseTranslationInputReport for citations on the
 ///       verified SpaceMouse HID report layout.
 ///
+/// \note Like espp::SpaceMouseTranslationInputReport, this class (including
+///       the base `hid::report::base`) is defined with 1-byte packing so
+///       get_report()/set_data() can rely on the wire layout being exactly
+///       [report id][button bytes] with no gaps. `buttons` (a
+///       hid::report_bitset wrapping a `std::array<uint8_t, N>`) is
+///       byte-aligned, so this holds even without the pragma on every
+///       toolchain in practice, but the pragma plus the static_assert in the
+///       constructor make that guarantee explicit and self-checking rather
+///       than implicit.
+///
 /// \section hid_rp_3dconnexion_btn_ex1 HID-RP 3Dconnexion SpaceMouse Example
 /// \snippet hid_rp_example.cpp hid rp example
+#pragma pack(push, 1)
 template <std::size_t BUTTON_COUNT = 2, uint8_t REPORT_ID = 3>
 class SpaceMouseButtonsInputReport : public hid::report::base<hid::report::type::INPUT, REPORT_ID> {
 public:
@@ -355,7 +380,12 @@ protected:
 
 public:
   /// Construct a new Buttons Input Report object
-  constexpr SpaceMouseButtonsInputReport() { reset(); }
+  constexpr SpaceMouseButtonsInputReport() {
+    static_assert(sizeof(SpaceMouseButtonsInputReport) == 1 + num_data_bytes,
+                  "SpaceMouseButtonsInputReport: report id + buttons must be contiguous with no "
+                  "padding, i.e. sizeof(report) == 1 + num_data_bytes");
+    reset();
+  }
 
   /// Reset all buttons to the unpressed state
   constexpr void reset() { buttons.reset(); }
@@ -395,12 +425,19 @@ public:
 
   /// Set the input report data from a vector of bytes
   /// \param data The data to set the input report to.
+  /// \note If \p data is shorter than num_data_bytes, the remaining payload
+  ///       bytes are zero-filled (rather than left unchanged) so a short
+  ///       write always produces a well-defined report instead of retaining
+  ///       stale button values from a previous update.
   constexpr void set_data(const std::vector<uint8_t> &data) {
     // copy the data into our data array - skip the first byte, which is the
     // report id. Clamp the copy length to the report's payload size so an
     // over-long input cannot write past the backing storage.
     auto copy_size = std::min(data.size(), num_data_bytes);
-    std::copy(data.begin(), data.begin() + copy_size, this->data() + 1);
+    auto *payload = this->data() + 1;
+    std::copy(data.begin(), data.begin() + copy_size, payload);
+    // zero-fill any remaining payload bytes not covered by a short write.
+    std::fill(payload + copy_size, payload + num_data_bytes, uint8_t{0});
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -429,6 +466,7 @@ public:
 
   friend fmt::formatter<SpaceMouseButtonsInputReport<BUTTON_COUNT, REPORT_ID>>;
 };
+#pragma pack(pop)
 
 /// HID 3Dconnexion SpaceMouse LED Output Report
 ///
@@ -439,32 +477,50 @@ public:
 /// that), but is included for completeness since real hardware exposes it as
 /// Report ID 4.
 ///
+/// \note The LED state is stored as a plain payload byte (bit 0 holds the LED
+///       state, bits 1-7 are reserved/zero) rather than as a bitfield, since
+///       bitfield layout/packing is implementation-defined and this byte is
+///       serialized directly to/from the wire by get_report()/set_data() (see
+///       espp::SpaceMouseTranslationInputReport for why the whole class,
+///       including the base `hid::report::base`, is defined with 1-byte
+///       packing).
+///
 /// \section hid_rp_3dconnexion_led_ex1 HID-RP 3Dconnexion SpaceMouse Example
 /// \snippet hid_rp_example.cpp hid rp example
+#pragma pack(push, 1)
 template <uint8_t REPORT_ID = 4>
 class SpaceMouseLedOutputReport : public hid::report::base<hid::report::type::OUTPUT, REPORT_ID> {
 protected:
-  struct {
-    std::uint8_t led : 1;
-    std::uint8_t : 7;
-  };
+  static constexpr std::uint8_t led_bit_mask = 0x01;
+  std::uint8_t payload{0}; ///< bit 0: LED state, bits 1-7: reserved (always 0)
 
 public:
   static constexpr std::size_t num_data_bytes = 1;
 
   /// Construct a new LED Output Report object
-  constexpr SpaceMouseLedOutputReport() { reset(); }
+  constexpr SpaceMouseLedOutputReport() {
+    static_assert(sizeof(SpaceMouseLedOutputReport) == 1 + num_data_bytes,
+                  "SpaceMouseLedOutputReport: report id + payload must be contiguous with no "
+                  "padding, i.e. sizeof(report) == 1 + num_data_bytes");
+    reset();
+  }
 
   /// Turn the LED off
-  constexpr void reset() { led = 0; }
+  constexpr void reset() { payload = 0; }
 
   /// Set the LED state
   /// \param value True to turn the LED on, false to turn it off.
-  constexpr void set_led(bool value) { led = value ? 1 : 0; }
+  constexpr void set_led(bool value) {
+    if (value) {
+      payload |= led_bit_mask;
+    } else {
+      payload &= static_cast<std::uint8_t>(~led_bit_mask);
+    }
+  }
 
   /// Get the LED state
   /// \return True if the LED is on, false otherwise.
-  constexpr bool get_led() const { return led; }
+  constexpr bool get_led() const { return (payload & led_bit_mask) != 0; }
 
   /// Get the output report as a vector of bytes
   /// \return The output report as a vector of bytes.
@@ -478,12 +534,19 @@ public:
 
   /// Set the output report data from a vector of bytes
   /// \param data The data to set the output report to.
+  /// \note If \p data is shorter than num_data_bytes, the remaining payload
+  ///       bytes are zero-filled (rather than left unchanged) so a short
+  ///       write always produces a well-defined report instead of retaining
+  ///       a stale LED value from a previous update.
   constexpr void set_data(const std::vector<uint8_t> &data) {
     // copy the data into our data array - skip the first byte, which is the
     // report id. Clamp the copy length to the report's payload size so an
     // over-long input cannot write past the backing storage.
     auto copy_size = std::min(data.size(), num_data_bytes);
-    std::copy(data.begin(), data.begin() + copy_size, this->data() + 1);
+    auto *dest = this->data() + 1;
+    std::copy(data.begin(), data.begin() + copy_size, dest);
+    // zero-fill any remaining payload bytes not covered by a short write.
+    std::fill(dest + copy_size, dest + num_data_bytes, uint8_t{0});
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -509,6 +572,7 @@ public:
     // clang-format on
   }
 };
+#pragma pack(pop)
 
 /// Get the complete report descriptor for a 3Dconnexion SpaceMouse.
 /// \tparam BUTTON_COUNT The number of buttons to report (2 for a
