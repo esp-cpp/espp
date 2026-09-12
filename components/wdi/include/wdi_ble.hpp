@@ -134,7 +134,7 @@ public:
   std::optional<wdi::FeedbackReport> last_feedback() const { return device_.last_feedback(); }
 
 private:
-  WdiDevice::Config make_device_config(const Config &c) {
+  WdiDevice::Config make_device_config(const Config &c) const {
     WdiDevice::Config dc;
     dc.on_feedback = c.on_feedback;
     dc.on_keepalive_response = c.on_keepalive_response;
