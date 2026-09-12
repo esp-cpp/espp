@@ -15,7 +15,7 @@ It is a thin, idiomatic wrapper over the ESP-IDF USB Host library (``usb``) and
 the ``usb_host_hid`` class driver: it owns the whole host lifecycle — installing
 the host library and HID driver, running their event tasks, opening interfaces,
 and teardown — and marshals the driver's C callbacks into per-device
-``std::function``\ s. Like the rest of espp it does not throw and reports failures
+``std::function`` objects. Like the rest of espp it does not throw and reports failures
 via ``std::error_code``.
 
 Report directions are named from the connected **device's** point of view, as in
@@ -84,6 +84,33 @@ Requirements and caveats
   declares its ``usb`` dependency only through the manager, so build with the
   component manager **on** (the default) rather than the manager-off flow used by
   the device-side USB examples.
+
+Threading model
+---------------
+
+The HID class driver delivers its events on its own background task, and that
+same task is what completes the driver's *synchronous* control transfers
+(Set/Get Report, Set Protocol, ...). A control transfer issued *from* that task
+can therefore never complete. ``espp::UsbHost`` handles this the way the ESP-IDF
+HID host example does, but internally: the driver task only **enqueues** events
+(copying each Input report out of the driver's buffer, which must happen inside
+the callback), and a dedicated **dispatch task** owned by ``UsbHost``
+opens/starts/closes devices and invokes every user callback.
+
+- It is safe to call ``send_output_report()`` and the other ``HidDevice``
+  methods from inside ``on_device_connected`` / the input callback (e.g. to
+  answer a request/response HID protocol).
+- Events for a device are delivered in order (connected → inputs →
+  disconnected), and the connect callback runs *before* the device is started,
+  so an input callback installed there sees the very first report.
+- ``HidDevice`` methods may also be called from any application task; each
+  device serializes its driver calls internally.
+- Keep callbacks reasonably short: one that blocks delays every later event.
+  The event queue is bounded (``Config::max_queued_events``); when the consumer
+  falls behind, Input reports are dropped (logged) rather than blocking the USB
+  stack.
+- ``info()`` / ``params()`` / ``report_descriptor()`` are snapshots taken at
+  connect time and remain valid after the device disconnects.
 
 Roadmap
 -------

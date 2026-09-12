@@ -1,6 +1,6 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
-description: "Wheelchair Digital Interface (WDI / Open-Mobility-Hub Wheelchair HID): report protocol + device and host roles over USB and BLE"
+description: "Wheelchair Digital Interface (WDI / Open-Mobility-Hub Wheelchair HID): report protocol + device role over USB and BLE (host role in a follow-up)"
 url: "https://github.com/esp-cpp/espp/tree/main/components/wdi"
 repository: "https://github.com/esp-cpp/espp.git"
 maintainers:

@@ -108,11 +108,13 @@ public:
 
     /// @brief Device descriptor identity (VID/PID + string descriptors).
     struct Info {
-      uint16_t vid{0};             ///< idVendor
-      uint16_t pid{0};             ///< idProduct
-      std::string manufacturer{};  ///< iManufacturer string (UTF-8)
-      std::string product{};       ///< iProduct string (UTF-8)
-      std::string serial_number{}; ///< iSerialNumber string (UTF-8)
+      uint16_t vid{0}; ///< idVendor
+      uint16_t pid{0}; ///< idProduct
+      std::string
+          manufacturer{};    ///< iManufacturer string (UTF-8, converted from the device's UTF-16)
+      std::string product{}; ///< iProduct string (UTF-8, converted from the device's UTF-16)
+      std::string
+          serial_number{}; ///< iSerialNumber string (UTF-8, converted from the device's UTF-16)
     };
 
     /// @brief HID interface parameters.
@@ -152,12 +154,12 @@ public:
     bool send_output_report(uint8_t report_id, std::span<const uint8_t> data, std::error_code &ec);
 
     /// @brief Request a report from the device (HID class Get_Report).
-    /// @param report_type One of HID_REPORT_TYPE_INPUT / _OUTPUT / _FEATURE.
+    /// @param report_type The HID report type (HID_REPORT_TYPE_INPUT / _OUTPUT / _FEATURE).
     /// @param report_id The report ID.
     /// @param buffer Buffer that receives the report.
     /// @param out_length Number of bytes written into @p buffer.
     /// @param ec Set on failure.
-    bool get_report(uint8_t report_type, uint8_t report_id, std::span<uint8_t> buffer,
+    bool get_report(hid_report_type_t report_type, uint8_t report_id, std::span<uint8_t> buffer,
                     size_t &out_length, std::error_code &ec);
 
     /// @brief Set the device's idle rate (HID class Set_Idle).
@@ -226,8 +228,11 @@ public:
     ///        truncated (the driver copies at most this many bytes); raise it if
     ///        your device sends larger reports. 64 covers full-speed HID.
     size_t max_input_report_size{64};
-    /// @brief Bound on queued-but-undispatched events; when full, further Input
-    ///        reports are dropped (logged) rather than blocking the USB stack.
+    /// @brief Hard bound on queued-but-undispatched events. When full, a new Input
+    ///        report is dropped, and a lifecycle event evicts the oldest queued Input
+    ///        report to make room, so the queue never blocks the USB stack and
+    ///        lifecycle events are never lost. Drops are counted and logged at a
+    ///        rate-limited cadence.
     size_t max_queued_events{32};
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
@@ -250,9 +255,11 @@ public:
   ///        Attached devices are closed (their disconnect callbacks fire, on the
   ///        calling task) and the root port is powered down so the driver can
   ///        release them. Must not be called from within a `UsbHost` callback.
-  /// @param ec Set on failure. If the driver cannot release a device the host
+  /// @param ec Set on failure. If any step of the teardown fails (a device the
+  ///        driver cannot release, or the library refusing to uninstall) the host
   ///        stays initialized (is_initialized() remains true) and false is
-  ///        returned, rather than tearing down under a live driver.
+  ///        returned, rather than tearing down under a live driver. Destroying
+  ///        a UsbHost in that state aborts (see the destructor).
   /// @return true on success.
   bool deinitialize(std::error_code &ec);
 
@@ -307,6 +314,7 @@ private:
   std::mutex queue_mutex_;
   std::condition_variable queue_cv_;
   std::deque<Event> queue_;
+  uint32_t dropped_inputs_{0}; // guarded by queue_mutex_; rate-limits the drop log
   std::atomic<bool> dispatch_run_{false};
   std::unique_ptr<espp::Task> dispatch_task_;
 
