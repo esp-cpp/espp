@@ -501,9 +501,16 @@ module console can reuse verbatim:
        // ... find the interface whose interfaceClass === 0xFF (VENDOR_CLASS)
        //     with a bulk IN + bulk OUT endpoint pair, then claimInterface() it.
      }
-     async send(bytes) {
-       await this.device.transferOut(this.epOut, bytes);
+   async send(bytes) {
+     let sent = 0;
+     while (sent < bytes.length) {
+       const out = await this.device.transferOut(this.epOut, bytes.subarray(sent));
+       if (out.status !== "ok") throw new Error("OUT transfer status: " + out.status);
+       const n = out.bytesWritten || 0;
+       if (n === 0) throw new Error("OUT transfer made no progress");
+       sent += n;
      }
+   }
      async readLoop(onData) {
        while (this.reading) {
          const result = await this.device.transferIn(this.epIn, MAX_FRAME);
