@@ -1725,7 +1725,10 @@ bool UsbDevice::route_console_to_cdc(std::error_code &ec) {
 #if defined(CONFIG_ESP_CONSOLE_UART_NUM)
     char restore[16];
     std::snprintf(restore, sizeof(restore), "/dev/uart/%d", CONFIG_ESP_CONSOLE_UART_NUM);
-    freopen(restore, "w", stdout); // best-effort
+    // best-effort restore; freopen returns stdout (not a new resource to close),
+    // and there is nothing more to do if even this fails.
+    // cppcheck-suppress ignoredReturnValue
+    freopen(restore, "w", stdout);
 #endif
     ec = std::make_error_code(std::errc::io_error);
     return false;
