@@ -330,6 +330,9 @@ private:
   std::condition_variable queue_cv_;
   std::deque<Event> queue_;
   uint32_t dropped_inputs_{0}; // guarded by queue_mutex_; rate-limits the drop log
+  // Recycled Event::overflow buffers (only used when max_input_report_size >
+  // Event::kInlineBytes) so large reports don't allocate per report either.
+  std::vector<std::vector<uint8_t>> overflow_pool_; // guarded by queue_mutex_
   std::atomic<bool> dispatch_run_{false};
   std::atomic<bool> accepting_{false}; // enqueue() is a no-op unless set (cleared before teardown)
   std::unique_ptr<espp::Task> dispatch_task_;

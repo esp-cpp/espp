@@ -493,6 +493,12 @@ void UsbHost::enqueue(Event &&ev) {
   }
   {
     std::lock_guard<std::mutex> lk(queue_mutex_);
+    // Re-check under the lock: stop_dispatch_task() clears accepting_ and then
+    // clears the queue under this same mutex, so an enqueue that passed the
+    // unlocked check can't slip a stale event in after the clear.
+    if (!accepting_.load()) {
+      return;
+    }
     if (queue_.size() >= config_.max_queued_events) {
       // Never block the USB driver task, and keep the queue bounded (see the
       // Config::max_queued_events doc for the exact bound).
@@ -544,7 +550,17 @@ void UsbHost::on_interface_event(hid_host_device_handle_t handle,
     uint8_t *buf = ev.inline_data.data();
     size_t cap = std::min(config_.max_input_report_size, Event::kInlineBytes);
     if (config_.max_input_report_size > Event::kInlineBytes) {
-      ev.overflow.resize(config_.max_input_report_size); // opt-in larger reports only
+      // Opt-in larger reports: reuse a recycled buffer (its capacity already
+      // covers max_input_report_size, so resize() does not reallocate) rather
+      // than allocating on every report.
+      {
+        std::lock_guard<std::mutex> lk(queue_mutex_);
+        if (!overflow_pool_.empty()) {
+          ev.overflow = std::move(overflow_pool_.back());
+          overflow_pool_.pop_back();
+        }
+      }
+      ev.overflow.resize(config_.max_input_report_size);
       buf = ev.overflow.data();
       cap = ev.overflow.size();
     }
@@ -591,6 +607,12 @@ bool UsbHost::dispatch_task_fn(std::mutex & /*m*/, std::condition_variable & /*c
       break;
     case Event::Type::Input:
       handle_input(ev.handle, ev.data());
+      if (!ev.overflow.empty()) { // recycle the large-report buffer
+        std::lock_guard<std::mutex> lk(queue_mutex_);
+        if (overflow_pool_.size() < config_.max_queued_events) {
+          overflow_pool_.push_back(std::move(ev.overflow));
+        }
+      }
       break;
     case Event::Type::Disconnected:
       handle_disconnected(ev.handle);
@@ -610,6 +632,7 @@ void UsbHost::stop_dispatch_task() {
   }
   std::lock_guard<std::mutex> lk(queue_mutex_);
   queue_.clear();
+  overflow_pool_.clear();
 }
 
 void UsbHost::handle_new_device(hid_host_device_handle_t handle) {

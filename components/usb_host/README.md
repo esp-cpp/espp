@@ -100,9 +100,11 @@ espp::UsbHost host({
 std::error_code ec;
 if (!host.initialize(ec)) { /* handle ec */ }
 
-// later, send an Output report (host->device):
+// later, send an Output report (host->device) -- devices() may be empty, so
+// guard it (or keep the shared_ptr handed to on_device_connected and use that):
 std::array<uint8_t, 4> payload{...};
-host.devices().front()->send_output_report(/*report_id*/ 0x02, payload, ec);
+if (auto devs = host.devices(); !devs.empty())
+  devs.front()->send_output_report(/*report_id*/ 0x02, payload, ec);
 ```
 
 See `example/` for a full runnable example (esp32s3) that logs every connected
