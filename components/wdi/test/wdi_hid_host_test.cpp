@@ -23,7 +23,9 @@ static int g_failures = 0;
     }                                                                                              \
   } while (0)
 
-// Count non-overlapping occurrences of a 2-byte item (tag,value) in the descriptor.
+// Count occurrences of a 2-byte item (tag,value) in the descriptor. The window
+// slides by one byte, so overlapping matches are counted too -- fine here, as the
+// (tag,value) pairs searched for don't overlap themselves.
 template <typename D> static int count_item(const D &d, uint8_t tag, uint8_t value) {
   int n = 0;
   for (size_t i = 0; i + 1 < d.size(); ++i)

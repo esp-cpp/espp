@@ -10,10 +10,10 @@
 // against the on-device peripheral. The full WdiDevice role class is available in
 // the C++ host library (wdi.hpp).
 
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <span>
-#include <string>
 #include <vector>
 
 #include <pybind11/pybind11.h>
@@ -25,8 +25,13 @@ namespace py = pybind11;
 namespace wdi = espp::wdi;
 
 namespace {
-std::span<const uint8_t> as_span(const std::string &s) {
-  return {reinterpret_cast<const uint8_t *>(s.data()), s.size()};
+// parse() takes py::bytes (not std::string) so a Python str can't be passed and
+// silently UTF-8-encoded into the wrong bytes; the span is valid for the call.
+std::span<const uint8_t> as_span(const py::bytes &b) {
+  char *buf = nullptr;
+  Py_ssize_t len = 0;
+  PyBytes_AsStringAndSize(b.ptr(), &buf, &len);
+  return {reinterpret_cast<const uint8_t *>(buf), static_cast<size_t>(len)};
 }
 template <size_t N> py::bytes to_bytes(const std::array<uint8_t, N> &a) {
   return py::bytes(reinterpret_cast<const char *>(a.data()), a.size());
@@ -121,7 +126,7 @@ void py_init_wdi(py::module &m) {
       .def("is_release", &wdi::ControlReport::is_release)
       .def("serialize", [](const wdi::ControlReport &c) { return to_bytes(c.serialize()); })
       .def_static(
-          "parse", [](const std::string &b) { return wdi::ControlReport::parse(as_span(b)); },
+          "parse", [](const py::bytes &b) { return wdi::ControlReport::parse(as_span(b)); },
           py::arg("data"));
 
   py::class_<wdi::FeedbackReport>(wm, "FeedbackReport",
@@ -140,7 +145,7 @@ void py_init_wdi(py::module &m) {
       .def("velocity_mph", &wdi::FeedbackReport::velocity_mph)
       .def("serialize", [](const wdi::FeedbackReport &f) { return to_bytes(f.serialize()); })
       .def_static(
-          "parse", [](const std::string &b) { return wdi::FeedbackReport::parse(as_span(b)); },
+          "parse", [](const py::bytes &b) { return wdi::FeedbackReport::parse(as_span(b)); },
           py::arg("data"));
 
   py::class_<wdi::HostUuid>(wm, "HostUuid",
@@ -150,6 +155,6 @@ void py_init_wdi(py::module &m) {
       .def("serialize", [](const wdi::HostUuid &u) { return to_bytes(u.serialize()); })
       .def("bytes", [](const wdi::HostUuid &u) { return to_bytes(u.bytes); })
       .def_static(
-          "parse", [](const std::string &b) { return wdi::HostUuid::parse(as_span(b)); },
+          "parse", [](const py::bytes &b) { return wdi::HostUuid::parse(as_span(b)); },
           py::arg("data"));
 }
