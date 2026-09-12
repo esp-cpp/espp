@@ -1,0 +1,7 @@
+CONFIG_IDF_TARGET="esp32s3"
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+# The native USB-OTG port is used for the USB **host** role. On the ESP32-S3 the
+# USB-Serial-JTAG shares that PHY, so the console runs on UART0 (with
+# USB-Serial-JTAG as an early-boot secondary). Use a UART adapter to monitor.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y
