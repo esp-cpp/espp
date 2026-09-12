@@ -79,16 +79,19 @@ UsbHost::HidDevice::Params UsbHost::HidDevice::params() const {
   return UsbHost::read_params(handle_);
 }
 
-std::span<const uint8_t> UsbHost::HidDevice::report_descriptor() const {
+std::vector<uint8_t> UsbHost::HidDevice::report_descriptor() const {
   if (!connected_.load()) {
     return {};
   }
   size_t len = 0;
+  // The driver returns a pointer into memory it owns, valid only while the
+  // device is connected. Copy it out so the caller can't be left with a dangling
+  // reference if the device disconnects concurrently.
   uint8_t *desc = hid_host_get_report_descriptor(handle_, &len);
   if (!desc || len == 0) {
     return {};
   }
-  return {desc, len};
+  return std::vector<uint8_t>(desc, desc + len);
 }
 
 void UsbHost::HidDevice::set_input_callback(input_callback_fn cb) {
@@ -120,10 +123,12 @@ bool UsbHost::HidDevice::send_output_report(uint8_t report_id, std::span<const u
     ec = std::make_error_code(std::errc::no_such_device);
     return false;
   }
-  // hid_class_request_set_report takes a non-const buffer; copy the payload.
-  std::vector<uint8_t> buf(data.begin(), data.end());
+  // hid_class_request_set_report's signature is non-const, but a SET_REPORT is a
+  // host->device transfer: the driver only reads the buffer, it does not write
+  // it. const_cast avoids an allocation + copy on every output report (hot path
+  // for e.g. WDI feedback).
   esp_err_t err = hid_class_request_set_report(handle_, HID_REPORT_TYPE_OUTPUT, report_id,
-                                               buf.data(), buf.size());
+                                               const_cast<uint8_t *>(data.data()), data.size());
   ec = make_ec(err);
   return !ec;
 }
@@ -232,6 +237,7 @@ bool UsbHost::initialize(std::error_code &ec) {
 
   // 2) Spawn the USB-host-library event task.
   lib_task_run_.store(true);
+  lib_task_done_.store(false);
   BaseType_t core = config_.task_core_id < 0 ? tskNO_AFFINITY : config_.task_core_id;
   TaskHandle_t task = nullptr;
   BaseType_t created =
@@ -258,7 +264,7 @@ bool UsbHost::initialize(std::error_code &ec) {
   err = hid_host_install(&hid_config);
   if (err != ESP_OK) {
     logger_.error("hid_host_install failed: {}", esp_err_to_name(err));
-    lib_task_run_.store(false);
+    stop_lib_task(); // join the lib task before uninstalling the library
     usb_host_uninstall();
     ec = make_ec(err);
     return false;
@@ -277,14 +283,21 @@ bool UsbHost::deinitialize(std::error_code &ec) {
   }
   logger_.info("uninstalling USB host");
 
-  // Close + drop all devices.
+  // Collect the device handles under the lock, then close them *outside* it: the
+  // driver's close path can run callbacks that also take devices_mutex_, so
+  // closing while holding it risks lock inversion.
+  std::vector<hid_host_device_handle_t> handles;
   {
     std::lock_guard<std::mutex> lk(devices_mutex_);
+    handles.reserve(devices_.size());
     for (auto &[handle, dev] : devices_) {
       dev->mark_disconnected();
-      hid_host_device_close(handle);
+      handles.push_back(handle);
     }
     devices_.clear();
+  }
+  for (auto handle : handles) {
+    hid_host_device_close(handle);
   }
 
   // Uninstall the HID class driver (stops its background task).
@@ -293,12 +306,11 @@ bool UsbHost::deinitialize(std::error_code &ec) {
     logger_.warn("hid_host_uninstall: {}", esp_err_to_name(err));
   }
 
-  // Stop the lib task and free devices so uninstall can complete.
-  lib_task_run_.store(false);
+  // Free any remaining devices so the library can be uninstalled, then stop +
+  // join the lib task (unblocking it so it observes the stop flag promptly
+  // rather than relying on a fixed delay).
   usb_host_device_free_all();
-  // Give the lib task a chance to observe ALL_FREE and exit.
-  vTaskDelay(pdMS_TO_TICKS(100));
-  lib_task_handle_ = nullptr;
+  stop_lib_task();
 
   err = usb_host_uninstall();
   if (err != ESP_OK) {
@@ -338,7 +350,27 @@ void UsbHost::lib_task() {
       }
     }
   }
+  lib_task_done_.store(true); // signal stop_lib_task() that we have exited
   vTaskDelete(nullptr);
+}
+
+void UsbHost::stop_lib_task() {
+  if (lib_task_handle_ == nullptr) {
+    return;
+  }
+  lib_task_run_.store(false);
+  // The task blocks in usb_host_lib_handle_events(portMAX_DELAY); unblock it so
+  // it observes the stop flag and returns instead of waiting for an event.
+  usb_host_lib_unblock();
+  // Join: wait (bounded) for the task to actually exit before the caller
+  // uninstalls the library out from under it.
+  for (int i = 0; i < 100 && !lib_task_done_.load(); ++i) {
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+  if (!lib_task_done_.load()) {
+    logger_.warn("usb host lib task did not exit in time");
+  }
+  lib_task_handle_ = nullptr;
 }
 
 void UsbHost::on_driver_event(hid_host_device_handle_t handle, hid_host_driver_event_t event) {
@@ -371,7 +403,7 @@ void UsbHost::on_driver_event(hid_host_device_handle_t handle, hid_host_driver_e
   // support the request).
   hid_class_request_set_protocol(handle, HID_REPORT_PROTOCOL_REPORT);
 
-  auto device = std::shared_ptr<HidDevice>(new HidDevice(handle));
+  auto device = std::shared_ptr<HidDevice>(new HidDevice(handle, config_.max_input_report_size));
   {
     std::lock_guard<std::mutex> lk(devices_mutex_);
     devices_[handle] = device;

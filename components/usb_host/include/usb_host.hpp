@@ -112,11 +112,11 @@ public:
     /// @brief The parameters of this HID interface.
     Params params() const;
 
-    /// @brief The device's HID report descriptor.
-    /// @return The raw report-descriptor bytes (empty if unavailable). The
-    ///         underlying storage is owned by the driver and is valid only while
-    ///         the device is connected.
-    std::span<const uint8_t> report_descriptor() const;
+    /// @brief The device's HID report descriptor (a copy).
+    /// @return The raw report-descriptor bytes (empty if unavailable). A copy is
+    ///         returned rather than a view into driver-owned memory, so it stays
+    ///         valid even if the device disconnects concurrently.
+    std::vector<uint8_t> report_descriptor() const;
 
     /// @brief Install the callback invoked with each Input report.
     void set_input_callback(input_callback_fn cb);
@@ -156,8 +156,9 @@ public:
 
   private:
     friend class UsbHost;
-    explicit HidDevice(hid_host_device_handle_t handle)
-        : handle_(handle) {}
+    HidDevice(hid_host_device_handle_t handle, size_t rx_buffer_size)
+        : handle_(handle)
+        , rx_buffer_(rx_buffer_size) {}
 
     // Called by UsbHost (in the driver task) when the interface reports input.
     void deliver_input();
@@ -168,7 +169,11 @@ public:
     std::atomic<bool> started_{false};
     mutable std::mutex cb_mutex_;
     input_callback_fn on_input_{nullptr};
-    std::vector<uint8_t> rx_buffer_ = std::vector<uint8_t>(64); // grown as needed
+    // Fixed-size scratch for the current Input report. Sized from
+    // Config::max_input_report_size; a report longer than this is truncated (the
+    // driver copies at most this many bytes), so raise it if your device sends
+    // larger reports.
+    std::vector<uint8_t> rx_buffer_;
   };
 
   /// @brief Callback invoked when a HID device is connected / disconnected.
@@ -188,6 +193,10 @@ public:
     size_t task_stack_size{4096}; ///< stack for the USB-host-library event task
     size_t task_priority{5};      ///< priority of the USB-host-library event task
     int task_core_id{-1};         ///< core for the host tasks (-1 = no affinity)
+    /// @brief Per-device Input-report buffer size. A report larger than this is
+    ///        truncated (the driver copies at most this many bytes); raise it if
+    ///        your device sends larger reports. 64 covers full-speed HID.
+    size_t max_input_report_size{64};
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
 
@@ -229,6 +238,9 @@ private:
   // The USB Host library event-handling loop (own task).
   static void lib_task_trampoline(void *arg);
   void lib_task();
+  // Stop + join the lib task: signal it, unblock its event wait, and wait
+  // (bounded) for it to actually exit before the library is uninstalled.
+  void stop_lib_task();
 
   static HidDevice::Info read_info(hid_host_device_handle_t handle);
   static HidDevice::Params read_params(hid_host_device_handle_t handle);
@@ -236,6 +248,7 @@ private:
   Config config_;
   std::atomic<bool> initialized_{false};
   std::atomic<bool> lib_task_run_{false};
+  std::atomic<bool> lib_task_done_{false}; // set by the lib task as it exits (join signal)
   void *lib_task_handle_{nullptr}; // TaskHandle_t (kept type-erased to avoid a public FreeRTOS dep)
 
   mutable std::mutex devices_mutex_;

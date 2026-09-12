@@ -15,7 +15,7 @@ It is a thin, idiomatic wrapper over the ESP-IDF USB Host library (``usb``) and
 the ``usb_host_hid`` class driver: it owns the whole host lifecycle — installing
 the host library and HID driver, running their event tasks, opening interfaces,
 and teardown — and marshals the driver's C callbacks into per-device
-``std::function`` s. Like the rest of espp it does not throw and reports failures
+``std::function``\ s. Like the rest of espp it does not throw and reports failures
 via ``std::error_code``.
 
 Report directions are named from the connected **device's** point of view, as in
