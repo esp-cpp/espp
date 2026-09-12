@@ -152,12 +152,21 @@ bool UsbHost::HidDevice::send_output_report(uint8_t report_id, std::span<const u
     ec = std::make_error_code(std::errc::no_such_device);
     return false;
   }
-  // hid_class_request_set_report's signature is non-const, but a SET_REPORT is a
-  // host->device transfer: the driver only reads the buffer, it does not write
-  // it. const_cast avoids an allocation + copy on every output report (hot path
-  // for e.g. WDI feedback).
-  esp_err_t err = hid_class_request_set_report(handle_, HID_REPORT_TYPE_OUTPUT, report_id,
-                                               const_cast<uint8_t *>(data.data()), data.size());
+  // hid_class_request_set_report() takes a non-const buffer. Rather than cast
+  // away const (the caller's bytes may live in read-only memory), copy into a
+  // stack buffer -- Output reports are small -- and only fall back to the heap
+  // for an unusually large one.
+  uint8_t stack_buf[Event::kInlineBytes];
+  std::vector<uint8_t> heap_buf;
+  uint8_t *buf = stack_buf;
+  if (data.size() <= sizeof(stack_buf)) {
+    std::memcpy(stack_buf, data.data(), data.size());
+  } else {
+    heap_buf.assign(data.begin(), data.end());
+    buf = heap_buf.data();
+  }
+  esp_err_t err =
+      hid_class_request_set_report(handle_, HID_REPORT_TYPE_OUTPUT, report_id, buf, data.size());
   ec = make_ec(err);
   return !ec;
 }
@@ -332,6 +341,7 @@ bool UsbHost::initialize(std::error_code &ec) {
     ec = std::make_error_code(std::errc::not_enough_memory);
     return false;
   }
+  accepting_.store(true); // driver callbacks may now enqueue
 
   // 4) Install the HID class driver (with its own background task).
   const hid_host_driver_config_t hid_config = {
@@ -478,10 +488,14 @@ void UsbHost::stop_lib_task() {
 // HID driver task side: only enqueue
 // ---------------------------------------------------------------------------
 void UsbHost::enqueue(Event &&ev) {
+  if (!accepting_.load()) {
+    return; // tearing down (or not yet up): there is no consumer, so keep nothing
+  }
   {
     std::lock_guard<std::mutex> lk(queue_mutex_);
     if (queue_.size() >= config_.max_queued_events) {
-      // Never block the USB driver task, and keep the queue a hard bound.
+      // Never block the USB driver task, and keep the queue bounded (see the
+      // Config::max_queued_events doc for the exact bound).
       if (ev.type == Event::Type::Input) {
         // The consumer is behind: drop this report. Rate-limit the log so a
         // sustained backlog doesn't spend the driver task's time logging.
@@ -490,15 +504,18 @@ void UsbHost::enqueue(Event &&ev) {
         }
         return;
       }
-      // A lifecycle event must not be lost: make room by evicting the oldest
-      // queued Input report (those are droppable). If there is none to evict the
-      // queue holds only lifecycle events, whose count is bounded by the number
-      // of attached devices (at most a connect + a disconnect each), so pushing
-      // past the cap here cannot grow without bound.
+      // A lifecycle event: make room by evicting the oldest queued Input report.
       auto victim = std::find_if(queue_.begin(), queue_.end(),
                                  [](const Event &e) { return e.type == Event::Type::Input; });
       if (victim != queue_.end()) {
         queue_.erase(victim);
+      } else if (ev.type == Event::Type::NewDevice) {
+        // Only lifecycle events are queued and the consumer is overloaded: leave
+        // this device unopened rather than grow without bound. A Disconnected
+        // event is always kept -- it can only follow an opened device, so those
+        // are bounded by the open-device count.
+        logger_.warn("event queue full; not opening newly attached HID device");
+        return;
       }
     }
     queue_.push_back(std::move(ev));
@@ -524,14 +541,19 @@ void UsbHost::on_interface_event(hid_host_device_handle_t handle,
     // as this callback returns -- so copy it out here, then hand the copy to
     // the dispatch task.
     Event ev{.type = Event::Type::Input, .handle = handle};
-    ev.data.resize(config_.max_input_report_size);
+    uint8_t *buf = ev.inline_data.data();
+    size_t cap = std::min(config_.max_input_report_size, Event::kInlineBytes);
+    if (config_.max_input_report_size > Event::kInlineBytes) {
+      ev.overflow.resize(config_.max_input_report_size); // opt-in larger reports only
+      buf = ev.overflow.data();
+      cap = ev.overflow.size();
+    }
     size_t len = 0;
-    esp_err_t err =
-        hid_host_device_get_raw_input_report_data(handle, ev.data.data(), ev.data.size(), &len);
+    esp_err_t err = hid_host_device_get_raw_input_report_data(handle, buf, cap, &len);
     if (err != ESP_OK) {
       return;
     }
-    ev.data.resize(len);
+    ev.len = len;
     enqueue(std::move(ev));
     break;
   }
@@ -568,7 +590,7 @@ bool UsbHost::dispatch_task_fn(std::mutex & /*m*/, std::condition_variable & /*c
       handle_new_device(ev.handle);
       break;
     case Event::Type::Input:
-      handle_input(ev.handle, ev.data);
+      handle_input(ev.handle, ev.data());
       break;
     case Event::Type::Disconnected:
       handle_disconnected(ev.handle);
@@ -579,6 +601,7 @@ bool UsbHost::dispatch_task_fn(std::mutex & /*m*/, std::condition_variable & /*c
 }
 
 void UsbHost::stop_dispatch_task() {
+  accepting_.store(false); // driver callbacks that race teardown enqueue nothing
   dispatch_run_.store(false);
   queue_cv_.notify_all();
   if (dispatch_task_) {
