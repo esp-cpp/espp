@@ -264,8 +264,14 @@ public:
   /// @param ec Set on failure. If any step of the teardown fails (a device the
   ///        driver cannot release, or the library refusing to uninstall) the host
   ///        stays initialized (is_initialized() remains true) and false is
-  ///        returned, rather than tearing down under a live driver. Destroying
-  ///        a UsbHost in that state aborts (see the destructor).
+  ///        returned, rather than tearing down under a live driver. In that
+  ///        state event delivery has already stopped, every device has been
+  ///        retired, and the root port is left powered off (powering it back up
+  ///        would only make the driver re-track the device that a retry needs
+  ///        gone), so the host is not usable: the only valid next steps are to
+  ///        call deinitialize() again (which waits for the driver again) or to
+  ///        destroy the object, which aborts if teardown still fails (see the
+  ///        destructor).
   /// @return true on success.
   bool deinitialize(std::error_code &ec);
 
