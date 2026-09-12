@@ -65,7 +65,8 @@ Module id  Protocol
 4          Crash dump (``espp::CoreDumpService``)
 5          CAN bridge (``components/canopen``)
 6          MCP266 motor-controller console
-0xF0-0xFF  reserved for dispatcher / meta use (0xFF = discovery)
+0xF0-0xFE  reserved for dispatcher / meta use
+0xFF       capability discovery
 =========  ========================================================
 
 Pick any id **not** in this table (or not already used by other modules in
@@ -304,9 +305,11 @@ parser, no mutex, because a handler this small can run straight out of the
        std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) {
          return static_cast<char>(::toupper(c));
        });
-       send_(build(hello_module::Msg::Pong, std::span<const uint8_t>(
-                                                reinterpret_cast<const uint8_t *>(text.data()),
-                                                text.size())));
+       const auto reply_frame = build(hello_module::Msg::Pong, std::span<const uint8_t>(
+                                                                    reinterpret_cast<const uint8_t *>(
+                                                                        text.data()),
+                                                                    text.size()));
+       send_(reply_frame);
      }
 
    private:
@@ -321,6 +324,12 @@ parser, no mutex, because a handler this small can run straight out of the
 
      send_fn send_;
    };
+
+Note the reply is bound to a local `reply_frame` before it is handed to `send_`:
+`send_fn`'s `std::span<const uint8_t>` parameter is only valid for the
+duration of that one call, so a `send` implementation that needs to keep the
+bytes past the call (queueing it for a later retry, for example) must copy
+them rather than retain the span.
 
 Wiring it up looks exactly like any other module — construct it with a `send`
 that writes to your transport, then register it (with `ModuleInfo` so it is
@@ -426,8 +435,10 @@ Enabling the vendor interface (device side)
 .. code-block:: cpp
 
    espp::UsbDevice::Config usb_cfg;
-   usb_cfg.pid = 0x0d36; // give your device a distinct PID so a webapp's WebUSB
-                         // filter can find it specifically
+   usb_cfg.pid = 0x0000; // replace with your project's allocated PID (e.g. from
+                         // pid.codes) so a webapp's WebUSB filter can find your
+                         // device specifically — this placeholder is not a real
+                         // assignment
    usb_cfg.manufacturer = "espp";
    usb_cfg.product = "My espp Device";
 

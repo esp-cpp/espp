@@ -28,7 +28,8 @@ Module id  Protocol
 4          crash dump
 5          CAN bridge
 6          MCP266 console
-0xF0-0xFF  reserved (meta); 0xFF = discovery
+0xF0-0xFE  reserved (meta)
+0xFF       capability discovery
 =========  ==============================================
 
 A device-side dispatcher registers the modules it serves; frames for an
