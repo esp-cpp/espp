@@ -47,6 +47,7 @@ for back-compatibility.
   - [Enabling the vendor / WebUSB class](#enabling-the-vendor--webusb-class)
   - [Enabling the HID class](#enabling-the-hid-class)
   - [Enabling X-Input (Xbox 360)](#enabling-x-input-xbox-360)
+  - [Routing the console over CDC](#routing-the-console-over-cdc)
   - [Endpoint budget (ESP32-S3 USB-OTG)](#endpoint-budget-esp32-s3-usb-otg)
   - [Extending with HID / MSC](#extending-with-hid--msc)
   - [Example](#example)
@@ -63,6 +64,9 @@ for back-compatibility.
   in the example) on an interrupt IN endpoint; `write_hid_report()` sends reports.
 - **WebUSB**: BOS + WebUSB URL + MS OS 2.0 descriptors for driverless browser
   access, with a configurable landing-page URL.
+- **Console over CDC**: optionally route the ESP console (stdout) to the CDC
+  interface (`CdcFunction::route_console`, or `route_console_to_cdc()`), so one
+  native USB cable carries both the logs and the other interface(s) — see below.
 - **Sequential allocation** of interfaces / endpoints / strings with an
   endpoint-budget check (error via `std::error_code` if exceeded).
 - **Configurable identity**: VID, PID, manufacturer / product / serial / interface
@@ -207,6 +211,46 @@ via `XInputFunction::on_rumble`. The interface uses one interrupt-IN endpoint
 use **separate endpoint numbers**, and the DMA report buffers are word-aligned, as
 the ESP32-S3 DWC2 requires. See `include/xinput.hpp` for the report/`GamepadState`
 API and the button/axis layout.
+
+## Routing the console over CDC
+
+When the native USB port is handed to TinyUSB for a vendor / HID / XInput
+interface, the ESP console can no longer live on **USB-Serial-JTAG** — on the
+ESP32-S3 that controller shares the same USB PHY as USB-OTG, so a console on it
+contends with the TinyUSB interface and reboot-loops the device. Add a **CDC**
+function and route the console to it, and a single native USB cable carries both
+the logs and the other interface(s):
+
+```cpp
+espp::UsbDevice::CdcFunction cdc;
+cdc.route_console = true;   // redirect stdout -> this CDC interface after initialize()
+// cdc.tee_console = true;  // (default) also keep the primary UART console (idf.py monitor)
+usb_cfg.cdc = cdc;
+usb_cfg.vendor = my_vendor; // or hid / xinput -- CDC is just the log channel
+espp::UsbDevice usb(usb_cfg);
+usb.initialize(ec);         // console is now on CDC (teed to UART)
+```
+
+Or call it yourself for control over timing: `usb.route_console_to_cdc()` after a
+successful `initialize()`.
+
+- `printf`, `ESP_LOG` (its default vprintf), and `espp::Logger` (which uses
+  `fmt::print`) all write to `stdout`, so redirecting **stdout** captures every
+  console path. A tiny write-only VFS device is registered and `stdout` is
+  `freopen`ed onto it.
+- Writes are **non-blocking**: a chunk is mirrored to CDC only if it fits the TX
+  FIFO right now (so an absent / slow reader never stalls a logging task); it is
+  not gated on DTR, so a plain serial monitor still sees output.
+- With `tee_console` (default) the console is also written to the primary **UART**
+  console when there is one, so `idf.py monitor` on UART keeps working and nothing
+  is lost when no CDC host is attached. (There is nothing to tee to for a
+  USB-Serial-JTAG or `CONSOLE_NONE` console.)
+- Recommended sdkconfig: primary console on **UART0**
+  (`CONFIG_ESP_CONSOLE_UART_DEFAULT`), optionally USB-Serial-JTAG as the
+  **secondary** console for early-boot logs before TinyUSB comes up.
+
+The `ota` example uses this to carry its logs alongside the OTA vendor / WebUSB
+interface on one cable.
 
 ## Endpoint budget (ESP32-S3 USB-OTG)
 
