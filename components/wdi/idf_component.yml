@@ -8,7 +8,9 @@ maintainers:
 documentation: "https://esp-cpp.github.io/espp/wdi/wdi.html"
 examples:
   - path: ble_example
+  - path: ble_central_example
   - path: usb_example
+  - path: usb_host_example
 tags:
   - cpp
   - Component

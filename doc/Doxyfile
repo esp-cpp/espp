@@ -203,6 +203,10 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/usb_device/example/main/usb_cdc_example.cpp \
   $(PROJECT_PATH)/components/usb_device/xinput_example/main/xinput_example.cpp \
   $(PROJECT_PATH)/components/usb_host/example/main/usb_host_example.cpp \
+  $(PROJECT_PATH)/components/wdi/ble_example/main/wdi_ble_example.cpp \
+  $(PROJECT_PATH)/components/wdi/ble_central_example/main/wdi_ble_central_example.cpp \
+  $(PROJECT_PATH)/components/wdi/usb_example/main/wdi_usb_example.cpp \
+  $(PROJECT_PATH)/components/wdi/usb_host_example/main/wdi_usb_host_example.cpp \
   $(PROJECT_PATH)/components/vl53l/example/main/vl53l_example.cpp \
   $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp \
   $(PROJECT_PATH)/components/wrover-kit/example/main/wrover_kit_example.cpp \
@@ -473,6 +477,14 @@ INPUT = \
   $(PROJECT_PATH)/components/usb_device/include/usb_cdc.hpp \
   $(PROJECT_PATH)/components/usb_device/include/xinput.hpp \
   $(PROJECT_PATH)/components/usb_host/include/usb_host.hpp \
+  $(PROJECT_PATH)/components/wdi/include/detail/wdi_protocol.hpp \
+  $(PROJECT_PATH)/components/wdi/include/wdi.hpp \
+  $(PROJECT_PATH)/components/wdi/include/wdi_hid.hpp \
+  $(PROJECT_PATH)/components/wdi/include/wdi_ble.hpp \
+  $(PROJECT_PATH)/components/wdi/include/wdi_usb.hpp \
+  $(PROJECT_PATH)/components/wdi/include/wdi_host.hpp \
+  $(PROJECT_PATH)/components/wdi/include/wdi_usb_host.hpp \
+  $(PROJECT_PATH)/components/wdi/include/wdi_ble_central.hpp \
   $(PROJECT_PATH)/components/vl53l/include/vl53l.hpp \
   $(PROJECT_PATH)/components/utils/include/bitmask_operators.hpp \
   $(PROJECT_PATH)/components/wifi/include/wifi.hpp \

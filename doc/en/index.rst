@@ -87,6 +87,7 @@ collected under :doc:`web_apps`.
    stream_frame/index
    dispatcher/index
    telemetry/index
+   wdi/index
    wireless/index
    protocols/index
 
