@@ -172,12 +172,40 @@ static void test_descriptor() {
   CHECK(contains({0x85, 0x03}));       // Report ID (3, buttons)
   CHECK(contains({0x85, 0x04}));       // Report ID (4, LED)
 
+  // Axis usages: X/Y/Z (translation) and Rx/Ry/Rz (rotation).
+  CHECK(contains({0x09, 0x30}) && contains({0x09, 0x31}) && contains({0x09, 0x32}));
+  CHECK(contains({0x09, 0x33}) && contains({0x09, 0x34}) && contains({0x09, 0x35}));
+
+  // The hardware quirk this descriptor deliberately replicates: real
+  // SpaceMice flag the (actually absolute) translation and rotation axes as
+  // Input(Data,Var,Relative) = `81 06`. There must be one such item per axis
+  // report (two total), and the buttons must remain Input(Data,Var,Abs) = `81 02`.
+  auto count = [&](std::initializer_list<uint8_t> pattern) {
+    size_t n = 0;
+    for (auto it = descriptor.begin();; ++it) {
+      it = std::search(it, descriptor.end(), pattern.begin(), pattern.end());
+      if (it == descriptor.end())
+        return n;
+      ++n;
+    }
+  };
+  CHECK(count({0x81, 0x06}) == 2); // translation + rotation: relative
+  CHECK(contains({0x81, 0x02}));   // buttons: absolute
+  // LED output report: Usage Page (LEDs) + Usage (Generic Indicator), Output(Data,Var,Abs).
+  CHECK(contains({0x05, 0x08}) && contains({0x09, 0x4b}) && contains({0x91, 0x02}));
+
   // A button count that lands on a byte boundary (e.g. 8) needs no padding
-  // item, unlike the default 2-button SpaceNavigator layout, so the two
-  // descriptors differ in length.
+  // item, unlike the default 2-button SpaceNavigator layout: its buttons field
+  // is Report Count (8) / Usage Maximum (8) and the descriptor is shorter.
   auto raw_descriptor_8 = espp::spacemouse_descriptor<8>();
   std::vector<uint8_t> descriptor_8(raw_descriptor_8.begin(), raw_descriptor_8.end());
-  CHECK(descriptor_8.size() != descriptor.size());
+  auto contains_8 = [&](std::initializer_list<uint8_t> pattern) {
+    return std::search(descriptor_8.begin(), descriptor_8.end(), pattern.begin(), pattern.end()) !=
+           descriptor_8.end();
+  };
+  CHECK(contains_8({0x95, 0x08}));       // Report Count (8)
+  CHECK(contains_8({0x2a, 0x08, 0x00})); // Usage Maximum (8) -- hid-rp emits usage limits 2-byte
+  CHECK(descriptor_8.size() < descriptor.size());
 }
 
 int main() {

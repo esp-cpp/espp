@@ -77,7 +77,11 @@ protected:
 
 public:
   /// Construct a new Translation Input Report object
-  constexpr SpaceMouseTranslationInputReport() { reset(); }
+  constexpr SpaceMouseTranslationInputReport() {
+    static_assert(sizeof(SpaceMouseTranslationInputReport) == 1 + num_data_bytes,
+                  "report must be 1 id byte + payload with no padding (see #pragma pack)");
+    reset();
+  }
 
   /// Reset the translation axes to their centered (0) value
   constexpr void reset() { axes.fill(0); }
@@ -228,7 +232,11 @@ protected:
 
 public:
   /// Construct a new Rotation Input Report object
-  constexpr SpaceMouseRotationInputReport() { reset(); }
+  constexpr SpaceMouseRotationInputReport() {
+    static_assert(sizeof(SpaceMouseRotationInputReport) == 1 + num_data_bytes,
+                  "report must be 1 id byte + payload with no padding (see #pragma pack)");
+    reset();
+  }
 
   /// Reset the rotation axes to their centered (0) value
   constexpr void reset() { axes.fill(0); }
