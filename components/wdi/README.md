@@ -65,8 +65,8 @@ its own `REQUIRES` (the examples show this):
 | `wdi_hid.hpp` | HID report descriptor | `hid-rp` |
 | `wdi_usb.hpp` | USB device (`WdiUsbPeripheral`) | `usb_device`, `hid-rp` |
 | `wdi_ble.hpp` | BLE peripheral (`WdiBlePeripheral`) | `esp-nimble-cpp` (+ `hid-rp`, for the Report Map) |
-| `wdi_usb_host.hpp` | USB host (`WdiUsbHost`) | `usb_host`, `hid-rp` |
-| `wdi_ble_central.hpp` | BLE central (`WdiBleCentral`) | `esp-nimble-cpp` |
+| `wdi_usb_host.hpp` | USB host (`WdiUsbHost`) — *host role, follow-up PR* | `usb_host`, `hid-rp` |
+| `wdi_ble_central.hpp` | BLE central (`WdiBleCentral`) — *host role, follow-up PR* | `esp-nimble-cpp` |
 
 This keeps a project that only wants the protocol core (or a single transport)
 from pulling in the BLE and USB stacks it does not use.

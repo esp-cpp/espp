@@ -30,7 +30,9 @@ namespace {
 std::span<const uint8_t> as_span(const py::bytes &b) {
   char *buf = nullptr;
   Py_ssize_t len = 0;
-  PyBytes_AsStringAndSize(b.ptr(), &buf, &len);
+  if (PyBytes_AsStringAndSize(b.ptr(), &buf, &len) != 0) {
+    throw py::error_already_set(); // propagates the TypeError CPython just raised
+  }
   return {reinterpret_cast<const uint8_t *>(buf), static_cast<size_t>(len)};
 }
 template <size_t N> py::bytes to_bytes(const std::array<uint8_t, N> &a) {

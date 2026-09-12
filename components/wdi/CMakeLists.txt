@@ -6,8 +6,10 @@
 # consumers (detail/ lives inside include/, as in the ota / odrive_native
 # components).
 #
-# base_component is a public REQUIRES because the role classes (wdi.hpp) use
-# espp::Logger. The transport-specific roles pull their own dependencies
+# base_component is a public REQUIRES because the transport role classes
+# (wdi_ble.hpp / wdi_usb.hpp and the host-side wrappers) derive from
+# espp::BaseComponent; the protocol core and the WdiDevice / WdiHost cores are
+# dependency-free. The transport-specific roles pull their own dependencies
 # (usb_device for the USB device role; the USB Host HID + BLE stacks for the
 # host / BLE roles) in their own translation units / examples.
 idf_component_register(
