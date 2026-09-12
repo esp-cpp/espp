@@ -12,7 +12,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py wdi esp-nimble-cpp"
+  "main esptool_py wdi esp-nimble-cpp hid-rp"
   CACHE STRING
   "List of components to include"
   )

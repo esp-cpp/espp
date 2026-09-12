@@ -12,9 +12,11 @@ The component is layered so the same protocol serves every combination:
 - **Protocol core** (`include/detail/wdi_protocol.hpp`) — host-testable, ESP-free:
   the five HID reports, their bitfields, and pack/parse helpers.
 - **HID report descriptor** (`include/wdi_hid.hpp`) — the vendor (usage page
-  0xFF00) report descriptor, built with the espp `hid-rp` component. Only the USB
-  HID transport needs it (BLE carries the same reports as GATT characteristics),
-  so it is kept out of the dependency-free core.
+  0xFF00) report descriptor, built with the espp `hid-rp` component. It is used by
+  **both** transports: the USB HID interface embeds it, and the BLE profile serves
+  the identical bytes through its HID-over-GATT Report Map characteristic
+  (`10A50002`). Kept out of the dependency-free core so a protocol-only user need
+  not pull in `hid-rp`.
 - **Device role** — the app / accessory: a USB HID **device** (via
   `espp::UsbDevice`) or a BLE **peripheral**. Sends Control, receives Feedback.
 - **Host role** — the wheelchair: a USB **host** (USB Host HID) or a BLE

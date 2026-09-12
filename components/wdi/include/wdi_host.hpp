@@ -16,9 +16,11 @@
 // caller-supplied clock (default: a steady ms clock) so it is host-testable.
 
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <functional>
+#include <mutex>
 #include <optional>
 #include <span>
 #include <utility>
@@ -99,7 +101,10 @@ public:
     switch (id) {
     case wdi::ReportId::Control:
       if (auto c = wdi::ControlReport::parse(payload)) {
-        last_control_ = *c;
+        {
+          std::lock_guard<std::mutex> lk(state_mutex_);
+          last_control_ = *c;
+        }
         mark_activity();
         if (config_.on_control)
           config_.on_control(*c);
@@ -122,11 +127,20 @@ public:
 
   /// @brief Update the Feedback the host reports (used when no feedback provider
   ///        is configured, and as the value sent by send_feedback()).
-  void set_feedback(const wdi::FeedbackReport &fb) { feedback_ = fb; }
+  void set_feedback(const wdi::FeedbackReport &fb) {
+    std::lock_guard<std::mutex> lk(state_mutex_);
+    feedback_ = fb;
+  }
 
   /// @brief Send a Feedback report now (host→app). Returns true if sent.
   bool send_feedback() {
-    const wdi::FeedbackReport fb = config_.feedback ? config_.feedback() : feedback_;
+    wdi::FeedbackReport fb;
+    if (config_.feedback) {
+      fb = config_.feedback();
+    } else {
+      std::lock_guard<std::mutex> lk(state_mutex_);
+      fb = feedback_;
+    }
     const auto bytes = fb.serialize();
     return transmit(wdi::ReportId::Feedback, bytes);
   }
@@ -144,12 +158,12 @@ public:
   ///        disconnected (fire on_disconnected — the caller must drive-disable).
   ///        Returns true if a disconnect transition happened this call.
   bool poll() {
-    if (!connected_)
+    if (!connected_.load())
       return false;
     const uint32_t now = config_.now_ms();
     const uint32_t timeout = config_.keepalive_window_ms * config_.missed_windows_to_disconnect;
-    if (now - last_rx_ms_ >= timeout) {
-      connected_ = false;
+    if (now - last_rx_ms_.load() >= timeout) {
+      connected_.store(false);
       if (config_.on_disconnected)
         config_.on_disconnected();
       return true;
@@ -158,17 +172,20 @@ public:
   }
 
   /// @brief Whether the app is currently considered connected (talking).
-  bool is_connected() const { return connected_; }
+  bool is_connected() const { return connected_.load(); }
   /// @brief Milliseconds until the watchdog expires (0 if already expired / down).
   uint32_t ms_until_timeout() const {
-    if (!connected_)
+    if (!connected_.load())
       return 0;
     const uint32_t timeout = config_.keepalive_window_ms * config_.missed_windows_to_disconnect;
-    const uint32_t elapsed = config_.now_ms() - last_rx_ms_;
+    const uint32_t elapsed = config_.now_ms() - last_rx_ms_.load();
     return elapsed >= timeout ? 0 : timeout - elapsed;
   }
   /// @brief The most recently received Control report, if any.
-  std::optional<wdi::ControlReport> last_control() const { return last_control_; }
+  std::optional<wdi::ControlReport> last_control() const {
+    std::lock_guard<std::mutex> lk(state_mutex_);
+    return last_control_;
+  }
 
 private:
   static uint32_t default_clock() {
@@ -178,9 +195,9 @@ private:
   }
 
   void mark_activity() {
-    last_rx_ms_ = config_.now_ms();
-    if (!connected_) {
-      connected_ = true;
+    last_rx_ms_.store(config_.now_ms());
+    bool was = false;
+    if (connected_.compare_exchange_strong(was, true)) {
       if (config_.on_connected)
         config_.on_connected();
     }
@@ -193,8 +210,13 @@ private:
   }
 
   Config config_;
-  uint32_t last_rx_ms_{0};
-  bool connected_{false};
+  // last_rx_ms_ / connected_ are written by handle_input() (transport RX task)
+  // and read by poll() (watchdog task); atomic so the two are race-free.
+  // feedback_ / last_control_ are guarded by state_mutex_ (written on one task,
+  // read on another).
+  std::atomic<uint32_t> last_rx_ms_{0};
+  std::atomic<bool> connected_{false};
+  mutable std::mutex state_mutex_;
   wdi::FeedbackReport feedback_{};
   std::optional<wdi::ControlReport> last_control_{};
 };
