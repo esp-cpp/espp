@@ -419,9 +419,12 @@ bool UsbHost::deinitialize(std::error_code &ec) {
     // exactly what a retry of deinitialize() needs to have gone away. Event
     // delivery is already stopped, so the only valid next steps are retrying
     // deinitialize() or destroying the object (see the header).
-    logger_.error("hid_host_uninstall failed: {} (a device could not be released); "
-                  "root port left powered off, retry deinitialize()",
-                  esp_err_to_name(err));
+    // ESP_ERR_INVALID_STATE is what the driver returns while it still tracks a
+    // device; anything else is reported as-is rather than guessed at.
+    logger_.error("hid_host_uninstall failed: {}{}; root port left powered off, retry "
+                  "deinitialize()",
+                  esp_err_to_name(err),
+                  err == ESP_ERR_INVALID_STATE ? " (the driver still tracks a device)" : "");
     ec = make_ec(err);
     return false;
   }
