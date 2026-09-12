@@ -1,6 +1,8 @@
 #include "usb_host.hpp"
 
+#include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <cstring>
 #include <thread>
 
@@ -61,15 +63,45 @@ std::error_code make_ec(esp_err_t err) {
 }
 
 std::string wchars_to_utf8(const wchar_t *ws) {
+  // The HID host driver stores string descriptors as wchar_t code units carrying
+  // the device's UTF-16 (USB string descriptors are UTF-16LE). Encode to UTF-8,
+  // combining surrogate pairs; a lone/invalid surrogate becomes U+FFFD.
   std::string out;
   if (!ws) {
     return out;
   }
+  auto put = [&out](uint32_t cp) {
+    if (cp < 0x80) {
+      out.push_back(static_cast<char>(cp));
+    } else if (cp < 0x800) {
+      out.push_back(static_cast<char>(0xC0 | (cp >> 6)));
+      out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    } else if (cp < 0x10000) {
+      out.push_back(static_cast<char>(0xE0 | (cp >> 12)));
+      out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+      out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    } else {
+      out.push_back(static_cast<char>(0xF0 | (cp >> 18)));
+      out.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
+      out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+      out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    }
+  };
   for (; *ws; ++ws) {
-    // The HID host driver stores string descriptors as UCS-2; keep ASCII and
-    // approximate the rest (device identity strings are informational).
-    wchar_t c = *ws;
-    out.push_back(c < 0x80 ? static_cast<char>(c) : '?');
+    uint32_t cu = static_cast<uint32_t>(*ws) & 0xFFFF;
+    if (cu >= 0xD800 && cu <= 0xDBFF) { // high surrogate: needs a low surrogate next
+      uint32_t lo = static_cast<uint32_t>(ws[1]) & 0xFFFF;
+      if (lo >= 0xDC00 && lo <= 0xDFFF) {
+        put(0x10000 + (((cu - 0xD800) << 10) | (lo - 0xDC00)));
+        ++ws;
+      } else {
+        put(0xFFFD);
+      }
+    } else if (cu >= 0xDC00 && cu <= 0xDFFF) { // stray low surrogate
+      put(0xFFFD);
+    } else {
+      put(cu);
+    }
   }
   return out;
 }
@@ -130,7 +162,7 @@ bool UsbHost::HidDevice::send_output_report(uint8_t report_id, std::span<const u
   return !ec;
 }
 
-bool UsbHost::HidDevice::get_report(uint8_t report_type, uint8_t report_id,
+bool UsbHost::HidDevice::get_report(hid_report_type_t report_type, uint8_t report_id,
                                     std::span<uint8_t> buffer, size_t &out_length,
                                     std::error_code &ec) {
   std::lock_guard<std::mutex> lk(io_mutex_);
@@ -139,8 +171,8 @@ bool UsbHost::HidDevice::get_report(uint8_t report_type, uint8_t report_id,
     return false;
   }
   size_t len = buffer.size();
-  esp_err_t err =
-      hid_class_request_get_report(handle_, report_type, report_id, buffer.data(), &len);
+  esp_err_t err = hid_class_request_get_report(handle_, static_cast<uint8_t>(report_type),
+                                               report_id, buffer.data(), &len);
   ec = make_ec(err);
   out_length = ec ? 0 : len;
   return !ec;
@@ -200,10 +232,13 @@ UsbHost::~UsbHost() {
   if (initialized_.load()) {
     std::error_code ec;
     if (!deinitialize(ec)) {
-      // The driver still references this object; there is no safe way to
-      // continue. Make the failure impossible to miss.
-      logger_.error("destroying UsbHost while the USB host stack could not be released ({})",
+      // The USB host driver still holds a pointer to this object and would call
+      // into freed memory on the next device event. Freeing it anyway would be a
+      // silent use-after-free; failing loudly is the only safe option.
+      logger_.error("USB host stack could not be released ({}); aborting rather than freeing an "
+                    "object the driver still references",
                     ec.message());
+      abort();
     }
   }
 }
@@ -382,12 +417,16 @@ bool UsbHost::deinitialize(std::error_code &ec) {
 
   err = usb_host_uninstall();
   if (err != ESP_OK) {
-    logger_.warn("usb_host_uninstall: {}", esp_err_to_name(err));
+    // The library is still installed: stay initialized so the object is never
+    // freed under a live stack (and a retry of deinitialize() is possible).
+    logger_.error("usb_host_uninstall failed: {}", esp_err_to_name(err));
+    ec = make_ec(err);
+    return false;
   }
 
   initialized_.store(false);
-  ec = make_ec(err);
-  return !ec;
+  ec.clear();
+  return true;
 }
 
 std::vector<std::shared_ptr<UsbHost::HidDevice>> UsbHost::devices() const {
@@ -442,11 +481,24 @@ void UsbHost::enqueue(Event &&ev) {
   {
     std::lock_guard<std::mutex> lk(queue_mutex_);
     if (queue_.size() >= config_.max_queued_events) {
-      // Never block the USB driver task. Drop Input reports when the consumer is
-      // behind; keep lifecycle events (they are rare and must not be lost).
+      // Never block the USB driver task, and keep the queue a hard bound.
       if (ev.type == Event::Type::Input) {
-        logger_.debug("event queue full; dropping input report");
+        // The consumer is behind: drop this report. Rate-limit the log so a
+        // sustained backlog doesn't spend the driver task's time logging.
+        if (++dropped_inputs_ == 1 || dropped_inputs_ % 100 == 0) {
+          logger_.warn("event queue full; {} input report(s) dropped so far", dropped_inputs_);
+        }
         return;
+      }
+      // A lifecycle event must not be lost: make room by evicting the oldest
+      // queued Input report (those are droppable). If there is none to evict the
+      // queue holds only lifecycle events, whose count is bounded by the number
+      // of attached devices (at most a connect + a disconnect each), so pushing
+      // past the cap here cannot grow without bound.
+      auto victim = std::find_if(queue_.begin(), queue_.end(),
+                                 [](const Event &e) { return e.type == Event::Type::Input; });
+      if (victim != queue_.end()) {
+        queue_.erase(victim);
       }
     }
     queue_.push_back(std::move(ev));
