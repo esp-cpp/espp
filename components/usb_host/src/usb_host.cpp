@@ -413,9 +413,18 @@ bool UsbHost::deinitialize(std::error_code &ec) {
   }
   if (err != ESP_OK) {
     // Tearing down under a driver that still references us would be a
-    // use-after-free waiting to happen; stay initialized and report it.
-    logger_.error("hid_host_uninstall failed: {} (a device could not be released)",
-                  esp_err_to_name(err));
+    // use-after-free waiting to happen; stay initialized and report it. The
+    // root port deliberately stays powered OFF: powering it back up would make
+    // the driver re-enumerate (and track) the attached device again, which is
+    // exactly what a retry of deinitialize() needs to have gone away. Event
+    // delivery is already stopped, so the only valid next steps are retrying
+    // deinitialize() or destroying the object (see the header).
+    // ESP_ERR_INVALID_STATE is what the driver returns while it still tracks a
+    // device; anything else is reported as-is rather than guessed at.
+    logger_.error("hid_host_uninstall failed: {}{}; root port left powered off, retry "
+                  "deinitialize()",
+                  esp_err_to_name(err),
+                  err == ESP_ERR_INVALID_STATE ? " (the driver still tracks a device)" : "");
     ec = make_ec(err);
     return false;
   }
@@ -568,6 +577,13 @@ void UsbHost::on_interface_event(hid_host_device_handle_t handle,
     esp_err_t err = hid_host_device_get_raw_input_report_data(handle, buf, cap, &len);
     if (err != ESP_OK) {
       return;
+    }
+    if (len > cap) {
+      // The driver copies at most `cap` bytes, so this only happens if it ever
+      // reports the report's full length rather than the copied length; never
+      // let it turn into an out-of-bounds span.
+      logger_.warn("input report of {} bytes truncated to {} (max_input_report_size)", len, cap);
+      len = cap;
     }
     ev.len = len;
     enqueue(std::move(ev));
