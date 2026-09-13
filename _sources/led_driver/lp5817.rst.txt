@@ -1,0 +1,18 @@
+LP5817 RGB LED Driver
+*********************
+
+The `LP5817` RGB LED driver component allows control of 3 LED channels via I2C
+with 8-bit brightness and programmable fade (ramp) timing.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   lp5817_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/lp5817.inc

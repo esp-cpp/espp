@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USB Host Component - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'buses/usb_host';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="USB Host Example" href="usb_host_example.html" />
+    <link rel="prev" title="X-Input (Xbox 360) controller example" href="xinput_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Buses &amp; Low-Level I/O APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spi.html">SPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twai.html">TWAI (CAN 2.0) APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="canopen.html">CANopen (CiA 301) Client APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usb_cdc.html">USB Device Component</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">USB Host Component</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#features">Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#basic-usage">Basic Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#requirements-and-caveats">Requirements and caveats</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#threading-model">Threading model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#roadmap">Roadmap</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="usb_host_example.html">USB Host Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../telemetry/index.html">Telemetry APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wdi/index.html">WDI (Wheelchair Digital Interface) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Buses &amp; Low-Level I/O APIs</a></li>
+      <li class="breadcrumb-item active">USB Host Component</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/038eea4a/docs/en/buses/usb_host.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="usb-host-component">
+<h1>USB Host Component<a class="headerlink" href="#usb-host-component" title="Permalink to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">espp::UsbHost</span></code> is the host-side counterpart to <code class="docutils literal notranslate"><span class="pre">espp::UsbDevice</span></code>. It drives
+the ESP32-S2 / -S3 / -P4 USB-OTG peripheral as a <strong>USB host</strong>, enumerates
+attached devices, and exposes the <strong>HID</strong> class devices it finds — mice,
+keyboards, gamepads, and vendor-specific HID devices (for example another ESP
+running <code class="docutils literal notranslate"><span class="pre">espp::UsbDevice</span></code> as a HID device, such as an
+<code class="docutils literal notranslate"><span class="pre">espp::WdiUsbPeripheral</span></code>).</p>
+<p>It is a thin, idiomatic wrapper over the ESP-IDF USB Host library (<code class="docutils literal notranslate"><span class="pre">usb</span></code>) and
+the <code class="docutils literal notranslate"><span class="pre">usb_host_hid</span></code> class driver: it owns the whole host lifecycle — installing
+the host library and HID driver, running their event tasks, opening interfaces,
+and teardown — and marshals the driver’s C callbacks into per-device
+<code class="docutils literal notranslate"><span class="pre">std::function</span></code> objects. Like the rest of espp it does not throw and reports failures
+via <code class="docutils literal notranslate"><span class="pre">std::error_code</span></code>.</p>
+<p>Report directions are named from the connected <strong>device’s</strong> point of view, as in
+the USB HID spec: an <em>Input</em> report is device→host (delivered to a <code class="docutils literal notranslate"><span class="pre">HidDevice</span></code>
+input callback), an <em>Output</em> report is host→device (sent with
+<code class="docutils literal notranslate"><span class="pre">HidDevice::send_output_report()</span></code>). This mirrors <code class="docutils literal notranslate"><span class="pre">espp::UsbDevice</span></code> exactly,
+so the two ends of a link (for example the device and host roles of the <code class="docutils literal notranslate"><span class="pre">wdi</span></code>
+component) line up.</p>
+</section>
+<section id="features">
+<h2>Features<a class="headerlink" href="#features" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>Installs / uninstalls the USB Host library and the HID class driver and runs
+their event-handling tasks.</p></li>
+<li><p>Device <strong>connect / disconnect</strong> callbacks, with an optional filter predicate so
+only the devices you care about are opened (by VID/PID, interface, etc.).</p></li>
+<li><p>Per-device <strong>Input report</strong> callback (device→host) delivering the raw report
+bytes (report id in byte 0 for report-ID’d descriptors).</p></li>
+<li><p>Send <strong>Output reports</strong> (host→device) and issue the HID class control requests
+(Get/Set Report, Get/Set Idle, Set Protocol).</p></li>
+<li><p>Read a connected device’s <strong>HID report descriptor</strong>.</p></li>
+<li><p>No exceptions; <code class="docutils literal notranslate"><span class="pre">initialize()</span></code> reports failures via <code class="docutils literal notranslate"><span class="pre">std::error_code</span></code>.</p></li>
+</ul>
+</section>
+<section id="basic-usage">
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Permalink to this heading"></a></h2>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">espp</span><span class="o">::</span><span class="n">UsbHost</span><span class="w"> </span><span class="nf">host</span><span class="p">({</span>
+<span class="w">    </span><span class="p">.</span><span class="n">on_device_connected</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="p">[](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">UsbHost</span><span class="o">::</span><span class="n">HidDevice</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dev</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="k">auto</span><span class="w"> </span><span class="n">info</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dev</span><span class="o">-&gt;</span><span class="n">info</span><span class="p">();</span>
+<span class="w">          </span><span class="n">printf</span><span class="p">(</span><span class="s">"connected: %s %s %04x:%04x</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">info</span><span class="p">.</span><span class="n">manufacturer</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span>
+<span class="w">                 </span><span class="n">info</span><span class="p">.</span><span class="n">product</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="n">info</span><span class="p">.</span><span class="n">vid</span><span class="p">,</span><span class="w"> </span><span class="n">info</span><span class="p">.</span><span class="n">pid</span><span class="p">);</span>
+<span class="w">          </span><span class="n">dev</span><span class="o">-&gt;</span><span class="n">set_input_callback</span><span class="p">([](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">report</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// handle a device-&gt;host Input report (report[0] is the report id)</span>
+<span class="w">          </span><span class="p">});</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">    </span><span class="p">.</span><span class="n">on_device_disconnected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... */</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="c1">// optional: only open the devices you want</span>
+<span class="w">    </span><span class="c1">// .should_open = [](const auto &amp;info, const auto &amp;) { return info.vid == 0x1209; },</span>
+<span class="p">});</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">host</span><span class="p">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* handle ec */</span><span class="w"> </span><span class="p">}</span>
+
+<span class="c1">// later, send an Output report (host-&gt;device) -- devices() may be empty, so</span>
+<span class="c1">// guard it (or keep the shared_ptr handed to on_device_connected and use that):</span>
+<span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">payload</span><span class="p">{</span><span class="cm">/* ... */</span><span class="p">};</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">devs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">host</span><span class="p">.</span><span class="n">devices</span><span class="p">();</span><span class="w"> </span><span class="o">!</span><span class="n">devs</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span>
+<span class="w">  </span><span class="n">devs</span><span class="p">.</span><span class="n">front</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">send_output_report</span><span class="p">(</span><span class="cm">/*report_id*/</span><span class="w"> </span><span class="mh">0x02</span><span class="p">,</span><span class="w"> </span><span class="n">payload</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="requirements-and-caveats">
+<h2>Requirements and caveats<a class="headerlink" href="#requirements-and-caveats" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>USB-OTG <strong>host</strong> mode is only available on the <strong>ESP32-S2, -S3 and -P4</strong>.</p></li>
+<li><p>Only one <code class="docutils literal notranslate"><span class="pre">espp::UsbHost</span></code> may exist at a time (the USB Host library and HID
+class driver are global singletons). It cannot coexist with <code class="docutils literal notranslate"><span class="pre">espp::UsbDevice</span></code>
+(they both claim the USB-OTG peripheral).</p></li>
+<li><p>The board must be able to source <strong>VBUS</strong> to the attached device — a board with
+a USB-A host port / VBUS switch, or a self-powered hub. <code class="docutils literal notranslate"><span class="pre">UsbHost</span></code> does not
+manage board power.</p></li>
+<li><p>On the ESP32-S3 the USB-Serial-JTAG shares the USB-OTG PHY, so when the host
+role is active the <strong>console must run on UART0</strong> (see the example’s
+<code class="docutils literal notranslate"><span class="pre">sdkconfig.defaults</span></code>).</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">usb</span></code> and <code class="docutils literal notranslate"><span class="pre">usb_host_hid</span></code> components come from the ESP Component
+Registry via the IDF component manager. On ESP-IDF ≥ 6.0 <code class="docutils literal notranslate"><span class="pre">usb_host_hid</span></code>
+declares its <code class="docutils literal notranslate"><span class="pre">usb</span></code> dependency only through the manager, so build with the
+component manager <strong>on</strong> (the default) rather than the manager-off flow used by
+the device-side USB examples.</p></li>
+</ul>
+</section>
+<section id="threading-model">
+<h2>Threading model<a class="headerlink" href="#threading-model" title="Permalink to this heading"></a></h2>
+<p>The HID class driver delivers its events on its own background task, and that
+same task is what completes the driver’s <em>synchronous</em> control transfers
+(Set/Get Report, Set Protocol, …). A control transfer issued <em>from</em> that task
+can therefore never complete. <code class="docutils literal notranslate"><span class="pre">espp::UsbHost</span></code> handles this the way the ESP-IDF
+HID host example does, but internally: the driver task only <strong>enqueues</strong> events
+(copying each Input report out of the driver’s buffer, which must happen inside
+the callback), and a dedicated <strong>dispatch task</strong> owned by <code class="docutils literal notranslate"><span class="pre">UsbHost</span></code>
+opens/starts/closes devices and invokes every user callback.</p>
+<ul class="simple">
+<li><p>It is safe to call <code class="docutils literal notranslate"><span class="pre">send_output_report()</span></code> and the other <code class="docutils literal notranslate"><span class="pre">HidDevice</span></code>
+methods from inside <code class="docutils literal notranslate"><span class="pre">on_device_connected</span></code> / the input callback (e.g. to
+answer a request/response HID protocol).</p></li>
+<li><p>Events for a device are delivered in order (connected → inputs →
+disconnected), and the connect callback runs <em>before</em> the device is started,
+so an input callback installed there sees the very first report.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">HidDevice</span></code> methods may also be called from any application task; each
+device serializes its driver calls internally.</p></li>
+<li><p>Keep callbacks reasonably short: one that blocks delays every later event.
+The event queue is bounded (<code class="docutils literal notranslate"><span class="pre">Config::max_queued_events</span></code>); when the consumer
+falls behind, Input reports are dropped (logged) rather than blocking the USB
+stack.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">info()</span></code> / <code class="docutils literal notranslate"><span class="pre">params()</span></code> / <code class="docutils literal notranslate"><span class="pre">report_descriptor()</span></code> are snapshots taken at
+connect time and remain valid after the device disconnects.</p></li>
+</ul>
+</section>
+<section id="roadmap">
+<h2>Roadmap<a class="headerlink" href="#roadmap" title="Permalink to this heading"></a></h2>
+<p>Only the <strong>HID</strong> class driver is wired up today (it covers mice, keyboards,
+gamepads and vendor HID devices, and is what the <code class="docutils literal notranslate"><span class="pre">wdi</span></code> host role needs). The
+component is structured so other class drivers (CDC-ACM, MSC) can be layered in
+later without changing the host-lifecycle model — the same way
+<code class="docutils literal notranslate"><span class="pre">espp::UsbDevice</span></code> composes CDC / Vendor / HID functions on the device side.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="usb_host_example.html">USB Host Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usb_host_example.html#how-it-works">How it works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usb_host_example.html#hardware-build-notes">Hardware / build notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usb_host_example.html#use-it-with-the-wdi-usb-device">Use it with the WDI USB device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usb_host_example.html#build-and-flash">Build and flash</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/038eea4a/components/usb_host/include/usb_host.hpp">components/usb_host/include/usb_host.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHostE">
+<span id="_CPPv3N4espp7UsbHostE"></span><span id="_CPPv2N4espp7UsbHostE"></span><span id="espp::UsbHost"></span><span class="target" id="classespp_1_1UsbHost"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UsbHost</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp7UsbHostE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Native-USB **host** built on the ESP-IDF USB Host library (`usb`) and the `usb_host_hid` class driver, for the ESP32-S2 / -S3 / -P4 USB-OTG peripheral acting as a host. </p>
+<p>`espp<a class="reference internal" href="#classespp_1_1UsbHost_1ac1abcb06f6fef7ac0f9fd07e29917b80"><span class="std std-ref">UsbHost</span></a>` is the counterpart to `espp::UsbDevice`: instead of enumerating *as* a USB device, it drives the bus as a **host**, enumerates attached devices, and exposes the **HID** class devices it finds (mice, keyboards, gamepads, and vendor-specific HID devices such as an `espp::WdiUsbPeripheral`). It owns the whole host-side lifecycle:</p>
+<p><ul class="simple">
+<li><p>installs the USB Host library and runs its event-handling task,</p></li>
+<li><p>installs the HID class driver (with its own background task),</p></li>
+<li><p>on device attach, opens each HID interface and (optionally) starts receiving its **Input** reports, delivering them to a per-device callback,</p></li>
+<li><p>lets the application send **Output** reports (and issue the HID class Get/Set Report / Idle / Protocol control requests) back to a device,</p></li>
+<li><p>and cleans everything up on teardown.</p></li>
+</ul>
+</p>
+<p>Report directions are named from the connected **device’s** point of view (as in the USB HID spec): an *Input* report is device→host (delivered to `HidDevice`’s input callback), an *Output* report is host→device (sent with `HidDevice::send_output_report()`). This is deliberately symmetric with `espp::UsbDevice`’s HID function, so the two sides of a link (e.g. the two roles of the `wdi` component) mirror each other.</p>
+<p>**Threading model.** The HID class driver delivers its events on its own background task, and that same task is the one that completes the driver’s synchronous control transfers (Set/Get Report, Set Protocol, …). A control transfer issued *from* that task can therefore never complete. `UsbHost` handles this the way the ESP-IDF HID host example does: the driver task only *enqueues* events (copying each Input report out of the driver’s buffer, which must happen inside the callback), and a dedicated **dispatch task** owned by `UsbHost` opens/starts/closes devices and invokes every user callback. So it is safe to call `HidDevice::send_output_report()` (and the other device methods) from within the callbacks, and callbacks never stall the USB stack. Events for a device are delivered in order (connected → inputs → disconnected). Device methods may also be called from any application task; each device serializes its driver calls internally.</p>
+<p>The class is idiomatic espp: it does not throw, reports failures via `std::error_code`, and marshals the USB-host driver’s C callbacks into per-device `std::function`s.</p>
+<section id="classespp_1_1UsbHost_1usb_host_ex1">
+<h4>UsbHost (generic HID host) Example<a class="headerlink" href="#classespp_1_1UsbHost_1usb_host_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1UsbHost_1usb_host_ex1"><div class="highlight"><pre><span></span><span class="k">extern</span><span class="w"> </span><span class="s">"C"</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">app_main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="w"> </span><span class="n">logger</span><span class="p">({.</span><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"USB Host"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Starting USB HID host example"</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UsbHost</span><span class="w"> </span><span class="nf">host</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_device_connected</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">UsbHost</span><span class="o">::</span><span class="n">HidDevice</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">device</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">auto</span><span class="w"> </span><span class="n">info</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">device</span><span class="o">-&gt;</span><span class="n">info</span><span class="p">();</span>
+<span class="w">            </span><span class="k">auto</span><span class="w"> </span><span class="n">params</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">device</span><span class="o">-&gt;</span><span class="n">params</span><span class="p">();</span>
+<span class="w">            </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"connected: '{}' '{}' VID={:#06x} PID={:#06x} iface={} proto={}"</span><span class="p">,</span>
+<span class="w">                        </span><span class="n">info</span><span class="p">.</span><span class="n">manufacturer</span><span class="p">,</span><span class="w"> </span><span class="n">info</span><span class="p">.</span><span class="n">product</span><span class="p">,</span><span class="w"> </span><span class="n">info</span><span class="p">.</span><span class="n">vid</span><span class="p">,</span><span class="w"> </span><span class="n">info</span><span class="p">.</span><span class="n">pid</span><span class="p">,</span>
+<span class="w">                        </span><span class="n">params</span><span class="p">.</span><span class="n">interface_number</span><span class="p">,</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">protocol</span><span class="p">);</span>
+<span class="w">            </span><span class="k">auto</span><span class="w"> </span><span class="n">desc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">device</span><span class="o">-&gt;</span><span class="n">report_descriptor</span><span class="p">();</span>
+<span class="w">            </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  report descriptor: {} bytes"</span><span class="p">,</span><span class="w"> </span><span class="n">desc</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+
+<span class="w">            </span><span class="c1">// Log every Input report this device sends (device -&gt; host).</span>
+<span class="w">            </span><span class="n">device</span><span class="o">-&gt;</span><span class="n">set_input_callback</span><span class="p">([</span><span class="o">&amp;</span><span class="n">logger</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"input report ({} bytes): {::#04x}"</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span><span class="w"> </span><span class="n">data</span><span class="p">);</span>
+<span class="w">            </span><span class="p">});</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_device_disconnected</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">UsbHost</span><span class="o">::</span><span class="n">HidDevice</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">device</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"disconnected: PID={:#06x}"</span><span class="p">,</span><span class="w"> </span><span class="n">device</span><span class="o">-&gt;</span><span class="n">info</span><span class="p">().</span><span class="n">pid</span><span class="p">);</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">      </span><span class="c1">// .should_open = [](const auto &amp;info, const auto &amp;) { return info.vid == 0x1209; },</span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">host</span><span class="p">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Failed to initialize USB host: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"USB host ready; plug in a USB HID device."</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="s">"connected HID devices: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">host</span><span class="p">.</span><span class="n">devices</span><span class="p">().</span><span class="n">size</span><span class="p">());</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">2</span><span class="n">s</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only one `espp<a class="reference internal" href="#classespp_1_1UsbHost_1ac1abcb06f6fef7ac0f9fd07e29917b80"><span class="std std-ref">UsbHost</span></a>` may exist at a time: the USB Host library and the HID class driver are global singletons. USB-OTG **host** mode is only available on the ESP32-S2, ESP32-S3 and ESP32-P4, and the board must be able to source VBUS to the attached device (a self-powered hub or a board with a VBUS switch); the host does not manage board power.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Callbacks run on the dispatch task. Keep them reasonably short: a callback that blocks delays every later event (and `deinitialize()`).</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost18device_callback_fnE">
+<span id="_CPPv3N4espp7UsbHost18device_callback_fnE"></span><span id="_CPPv2N4espp7UsbHost18device_callback_fnE"></span><span class="target" id="classespp_1_1UsbHost_1ab66070ba6ec8e6cd8b75163f69e8c336"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_callback_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7UsbHost9HidDeviceE" title="espp::UsbHost::HidDevice"><span class="n"><span class="pre">HidDevice</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost18device_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback invoked when a HID device is connected / disconnected. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost14open_filter_fnE">
+<span id="_CPPv3N4espp7UsbHost14open_filter_fnE"></span><span id="_CPPv2N4espp7UsbHost14open_filter_fnE"></span><span class="target" id="classespp_1_1UsbHost_1ad856d5e0ebd0cb83820cadace970425c"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">open_filter_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7UsbHost9HidDeviceE" title="espp::UsbHost::HidDevice"><span class="n"><span class="pre">HidDevice</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp7UsbHost9HidDevice4InfoE" title="espp::UsbHost::HidDevice::Info"><span class="n"><span class="pre">Info</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">info</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7UsbHost9HidDeviceE" title="espp::UsbHost::HidDevice"><span class="n"><span class="pre">HidDevice</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp7UsbHost9HidDevice6ParamsE" title="espp::UsbHost::HidDevice::Params"><span class="n"><span class="pre">Params</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost14open_filter_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Predicate deciding whether to open a newly attached HID interface. Return false to ignore it (no callbacks, not listed in <a class="reference internal" href="#classespp_1_1UsbHost_1a36a406dbd1d05a65839f4be58b2e232a"><span class="std std-ref">devices()</span></a>). </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost7UsbHostERK6Config">
+<span id="_CPPv3N4espp7UsbHost7UsbHostERK6Config"></span><span id="_CPPv2N4espp7UsbHost7UsbHostERK6Config"></span><span id="espp::UsbHost::UsbHost__ConfigCR"></span><span class="target" id="classespp_1_1UsbHost_1ac1abcb06f6fef7ac0f9fd07e29917b80"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UsbHost</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7UsbHost6ConfigE" title="espp::UsbHost::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHost7UsbHostERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a USB host. Call <a class="reference internal" href="#classespp_1_1UsbHost_1a206a232b70065c983590f35cc2dafdb3"><span class="std std-ref">initialize()</span></a> to actually install the stack. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHostD0Ev">
+<span id="_CPPv3N4espp7UsbHostD0Ev"></span><span id="_CPPv2N4espp7UsbHostD0Ev"></span><span id="espp::UsbHost::~UsbHost"></span><span class="target" id="classespp_1_1UsbHost_1af64d7f29424669e2302f2ca15e1da468"></span><span class="sig-name descname"><span class="n"><span class="pre">~UsbHost</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHostD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Uninstall the stack (if still installed). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost10initializeERNSt10error_codeE">
+<span id="_CPPv3N4espp7UsbHost10initializeERNSt10error_codeE"></span><span id="_CPPv2N4espp7UsbHost10initializeERNSt10error_codeE"></span><span id="espp::UsbHost::initialize__std::error_codeR"></span><span class="target" id="classespp_1_1UsbHost_1a206a232b70065c983590f35cc2dafdb3"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHost10initializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Install the USB Host library + HID class driver and start the tasks. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost12deinitializeERNSt10error_codeE">
+<span id="_CPPv3N4espp7UsbHost12deinitializeERNSt10error_codeE"></span><span id="_CPPv2N4espp7UsbHost12deinitializeERNSt10error_codeE"></span><span id="espp::UsbHost::deinitialize__std::error_codeR"></span><span class="target" id="classespp_1_1UsbHost_1a1092a20683d3953d2a05c9e76499f4e6"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deinitialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHost12deinitializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Uninstall the HID class driver + USB Host library and stop the tasks. Attached devices are closed (their disconnect callbacks fire, on the calling task) and the root port is powered down so the driver can release them. Must not be called from within a `UsbHost` callback. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Set on failure. If any step of the teardown fails (a device the driver cannot release, or the library refusing to uninstall) the host stays initialized (<a class="reference internal" href="#classespp_1_1UsbHost_1afe95c65cd65bfbc9da2cff91379a194e"><span class="std std-ref">is_initialized()</span></a> remains true) and false is returned, rather than tearing down under a live driver. In that state event delivery has already stopped, every device has been retired, and the root port is left powered off (powering it back up would only make the driver re-track the device that a retry needs gone), so the host is not usable: the only valid next steps are to call <a class="reference internal" href="#classespp_1_1UsbHost_1a1092a20683d3953d2a05c9e76499f4e6"><span class="std std-ref">deinitialize()</span></a> again (which waits for the driver again) or to destroy the object, which aborts if teardown still fails (see the destructor). </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7UsbHost14is_initializedEv">
+<span id="_CPPv3NK4espp7UsbHost14is_initializedEv"></span><span id="_CPPv2NK4espp7UsbHost14is_initializedEv"></span><span id="espp::UsbHost::is_initializedC"></span><span class="target" id="classespp_1_1UsbHost_1afe95c65cd65bfbc9da2cff91379a194e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_initialized</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7UsbHost14is_initializedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether the host stack is installed. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7UsbHost7devicesEv">
+<span id="_CPPv3NK4espp7UsbHost7devicesEv"></span><span id="_CPPv2NK4espp7UsbHost7devicesEv"></span><span id="espp::UsbHost::devicesC"></span><span class="target" id="classespp_1_1UsbHost_1a36a406dbd1d05a65839f4be58b2e232a"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7UsbHost9HidDeviceE" title="espp::UsbHost::HidDevice"><span class="n"><span class="pre">HidDevice</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">devices</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7UsbHost7devicesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Snapshot of the currently connected (opened) HID devices. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7UsbHost8get_nameEv">
+<span id="_CPPv3NK4espp7UsbHost8get_nameEv"></span><span id="_CPPv2NK4espp7UsbHost8get_nameEv"></span><span id="espp::UsbHost::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7UsbHost8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp7UsbHost11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp7UsbHost11set_log_tagERKNSt11string_viewE"></span><span id="espp::UsbHost::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHost11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7UsbHost13get_log_levelEv">
+<span id="_CPPv3NK4espp7UsbHost13get_log_levelEv"></span><span id="_CPPv2NK4espp7UsbHost13get_log_levelEv"></span><span id="espp::UsbHost::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7UsbHost13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp7UsbHost13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp7UsbHost13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::UsbHost::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHost13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp7UsbHost17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp7UsbHost17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::UsbHost::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHost17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7UsbHost17get_log_verbosityEv">
+<span id="_CPPv3NK4espp7UsbHost17get_log_verbosityEv"></span><span id="_CPPv2NK4espp7UsbHost17get_log_verbosityEv"></span><span id="espp::UsbHost::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7UsbHost17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp7UsbHost18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp7UsbHost18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::UsbHost::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHost18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost6ConfigE">
+<span id="_CPPv3N4espp7UsbHost6ConfigE"></span><span id="_CPPv2N4espp7UsbHost6ConfigE"></span><span id="espp::UsbHost::Config"></span><span class="target" id="structespp_1_1UsbHost_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the USB host. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost6Config19on_device_connectedE">
+<span id="_CPPv3N4espp7UsbHost6Config19on_device_connectedE"></span><span id="_CPPv2N4espp7UsbHost6Config19on_device_connectedE"></span><span id="espp::UsbHost::Config::on_device_connected__device_callback_fn"></span><span class="target" id="structespp_1_1UsbHost_1_1Config_1ad3a0cdadb471d6237d106ba69a44ffd7"></span><a class="reference internal" href="#_CPPv4N4espp7UsbHost18device_callback_fnE" title="espp::UsbHost::device_callback_fn"><span class="n"><span class="pre">device_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_device_connected</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost6Config19on_device_connectedE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>a HID device attached and opened </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost6Config22on_device_disconnectedE">
+<span id="_CPPv3N4espp7UsbHost6Config22on_device_disconnectedE"></span><span id="_CPPv2N4espp7UsbHost6Config22on_device_disconnectedE"></span><span id="espp::UsbHost::Config::on_device_disconnected__device_callback_fn"></span><span class="target" id="structespp_1_1UsbHost_1_1Config_1afe91ca2428b02821dc76c429eaba5b54"></span><a class="reference internal" href="#_CPPv4N4espp7UsbHost18device_callback_fnE" title="espp::UsbHost::device_callback_fn"><span class="n"><span class="pre">device_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_device_disconnected</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost6Config22on_device_disconnectedE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>a HID device detached </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost6Config11should_openE">
+<span id="_CPPv3N4espp7UsbHost6Config11should_openE"></span><span id="_CPPv2N4espp7UsbHost6Config11should_openE"></span><span id="espp::UsbHost::Config::should_open__open_filter_fn"></span><span class="target" id="structespp_1_1UsbHost_1_1Config_1a6026543486ab0ffcd7042e1f28657951"></span><a class="reference internal" href="#_CPPv4N4espp7UsbHost14open_filter_fnE" title="espp::UsbHost::open_filter_fn"><span class="n"><span class="pre">open_filter_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">should_open</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost6Config11should_openE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>optional filter (default: open every HID interface) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost6Config10auto_startE">
+<span id="_CPPv3N4espp7UsbHost6Config10auto_startE"></span><span id="_CPPv2N4espp7UsbHost6Config10auto_startE"></span><span id="espp::UsbHost::Config::auto_start__b"></span><span class="target" id="structespp_1_1UsbHost_1_1Config_1aeee671aa40838bc2bfe5cce376f04acd"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_start</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost6Config10auto_startE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>start receiving Input reports as soon as a device opens </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost6Config13task_priorityE">
+<span id="_CPPv3N4espp7UsbHost6Config13task_priorityE"></span><span id="_CPPv2N4espp7UsbHost6Config13task_priorityE"></span><span id="espp::UsbHost::Config::task_priority__s"></span><span class="target" id="structespp_1_1UsbHost_1_1Config_1a53f4f8214bf74b816e9a29304831b7bd"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">task_priority</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">5</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost6Config13task_priorityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>priority of the internal tasks </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost6Config12task_core_idE">
+<span id="_CPPv3N4espp7UsbHost6Config12task_core_idE"></span><span id="_CPPv2N4espp7UsbHost6Config12task_core_idE"></span><span id="espp::UsbHost::Config::task_core_id__i"></span><span class="target" id="structespp_1_1UsbHost_1_1Config_1aa0932b516daa3ee55cd8a740e7b45105"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">task_core_id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost6Config12task_core_idE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>core for the internal tasks (-1 = no affinity) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost6Config19lib_task_stack_sizeE">
+<span id="_CPPv3N4espp7UsbHost6Config19lib_task_stack_sizeE"></span><span id="_CPPv2N4espp7UsbHost6Config19lib_task_stack_sizeE"></span><span id="espp::UsbHost::Config::lib_task_stack_size__s"></span><span class="target" id="structespp_1_1UsbHost_1_1Config_1af1e6efff6c4d6d9bd8492c055b0740f2"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lib_task_stack_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">4096</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost6Config19lib_task_stack_sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>stack for the USB-host-library event task </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost6Config19hid_task_stack_sizeE">
+<span id="_CPPv3N4espp7UsbHost6Config19hid_task_stack_sizeE"></span><span id="_CPPv2N4espp7UsbHost6Config19hid_task_stack_sizeE"></span><span id="espp::UsbHost::Config::hid_task_stack_size__s"></span><span class="target" id="structespp_1_1UsbHost_1_1Config_1a3dd0b489ff6f1c7579856edbf5c52784"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hid_task_stack_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">4096</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost6Config19hid_task_stack_sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>stack for the HID class driver’s task (it only enqueues) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost6Config24dispatch_task_stack_sizeE">
+<span id="_CPPv3N4espp7UsbHost6Config24dispatch_task_stack_sizeE"></span><span id="_CPPv2N4espp7UsbHost6Config24dispatch_task_stack_sizeE"></span><span id="espp::UsbHost::Config::dispatch_task_stack_size__s"></span><span class="target" id="structespp_1_1UsbHost_1_1Config_1a58c10050d676ef0dcce71350f4a71723"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dispatch_task_stack_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">6</span></span><span class="w"> </span><span class="o"><span class="pre">*</span></span><span class="w"> </span><span class="m"><span class="pre">1024</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost6Config24dispatch_task_stack_sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stack for the dispatch task that runs the user callbacks (size it for what your callbacks do &amp;#8212; logging with fmt, protocol work, …). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost6Config21max_input_report_sizeE">
+<span id="_CPPv3N4espp7UsbHost6Config21max_input_report_sizeE"></span><span id="_CPPv2N4espp7UsbHost6Config21max_input_report_sizeE"></span><span id="espp::UsbHost::Config::max_input_report_size__s"></span><span class="target" id="structespp_1_1UsbHost_1_1Config_1a4edfa31cd897b930aeed71182d3fa1d2"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_input_report_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">64</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost6Config21max_input_report_sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Per-device Input-report copy size. A report larger than this is truncated (the driver copies at most this many bytes); raise it if your device sends larger reports. 64 covers full-speed HID. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost6Config17max_queued_eventsE">
+<span id="_CPPv3N4espp7UsbHost6Config17max_queued_eventsE"></span><span id="_CPPv2N4espp7UsbHost6Config17max_queued_eventsE"></span><span id="espp::UsbHost::Config::max_queued_events__s"></span><span class="target" id="structespp_1_1UsbHost_1_1Config_1a2aaac69f140b0bce9c4e8ae55ce2509b"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_queued_events</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">32</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost6Config17max_queued_eventsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Bound on queued-but-undispatched events. When the queue is full: a new Input report is dropped; a lifecycle event first evicts the oldest queued Input report, and if there is none a *new-device* event is dropped (that device simply stays unopened while the consumer is overloaded) while a *disconnect* is always kept (it is needed to release the device, and can only follow a device that was opened). The queue length is therefore never more than max_queued_events + the number of currently open devices, and the USB stack is never blocked. Drops are counted and logged at a rate-limited cadence. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDeviceE">
+<span id="_CPPv3N4espp7UsbHost9HidDeviceE"></span><span id="_CPPv2N4espp7UsbHost9HidDeviceE"></span><span id="espp::UsbHost::HidDevice"></span><span class="target" id="classespp_1_1UsbHost_1_1HidDevice"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HidDevice</span></span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDeviceE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>A HID interface on a device connected to the host. </p>
+<p>Created by `UsbHost` when a HID device is attached; handed to the application (as a `std::shared_ptr`) through the connect / disconnect callbacks and `UsbHost<a class="reference internal" href="#classespp_1_1UsbHost_1a36a406dbd1d05a65839f4be58b2e232a"><span class="std std-ref">devices()</span></a>`. Owns nothing itself &amp;#8212; the underlying driver handle is owned by `UsbHost` &amp;#8212; and becomes inert once the device is disconnected (methods then fail with `std::errc::no_such_device`; the identity accessors keep returning the values captured at connect time). </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice17input_callback_fnE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice17input_callback_fnE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice17input_callback_fnE"></span><span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a15f79c588ac6be3b65175ed0943af86e"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">input_callback_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice17input_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback invoked with a raw HID Input report from the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param data<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The report bytes. For a device whose report descriptor uses report IDs, byte 0 is the report ID (matching how `espp::UsbDevice`’s HID receive callback delivers OUT reports). </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7UsbHost9HidDevice4infoEv">
+<span id="_CPPv3NK4espp7UsbHost9HidDevice4infoEv"></span><span id="_CPPv2NK4espp7UsbHost9HidDevice4infoEv"></span><span id="espp::UsbHost::HidDevice::infoC"></span><span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a968c88761a9f5323f6a3d6b5b6a92c9c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7UsbHost9HidDevice4InfoE" title="espp::UsbHost::HidDevice::Info"><span class="n"><span class="pre">Info</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">info</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7UsbHost9HidDevice4infoEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The identity of the connected device (captured at connect time, so it stays valid after a disconnect). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7UsbHost9HidDevice6paramsEv">
+<span id="_CPPv3NK4espp7UsbHost9HidDevice6paramsEv"></span><span id="_CPPv2NK4espp7UsbHost9HidDevice6paramsEv"></span><span id="espp::UsbHost::HidDevice::paramsC"></span><span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a77668f6253cf0b89f60b330f2b17be77"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7UsbHost9HidDevice6ParamsE" title="espp::UsbHost::HidDevice::Params"><span class="n"><span class="pre">Params</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">params</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7UsbHost9HidDevice6paramsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The parameters of this HID interface (captured at connect time). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7UsbHost9HidDevice17report_descriptorEv">
+<span id="_CPPv3NK4espp7UsbHost9HidDevice17report_descriptorEv"></span><span id="_CPPv2NK4espp7UsbHost9HidDevice17report_descriptorEv"></span><span id="espp::UsbHost::HidDevice::report_descriptorC"></span><span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a58df9691432abb4ce65eb92f14266ab4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">report_descriptor</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7UsbHost9HidDevice17report_descriptorEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The device’s HID report descriptor (captured at connect time; a copy owned by this object, not a view into driver memory). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice18set_input_callbackE17input_callback_fn">
+<span id="_CPPv3N4espp7UsbHost9HidDevice18set_input_callbackE17input_callback_fn"></span><span id="_CPPv2N4espp7UsbHost9HidDevice18set_input_callbackE17input_callback_fn"></span><span id="espp::UsbHost::HidDevice::set_input_callback__input_callback_fn"></span><span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a6fa388b2a7a7108c344cabafe75fd497"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_input_callback</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7UsbHost9HidDevice17input_callback_fnE" title="espp::UsbHost::HidDevice::input_callback_fn"><span class="n"><span class="pre">input_callback_fn</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">cb</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice18set_input_callbackE17input_callback_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Install the callback invoked with each Input report. Install it from the connect callback: `UsbHost` invokes that *before* it starts the device, so no report is missed. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice5startERNSt10error_codeE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice5startERNSt10error_codeE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice5startERNSt10error_codeE"></span><span id="espp::UsbHost::HidDevice::start__std::error_codeR"></span><span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a46f41114cccf58b769d8977fb6c730f1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice5startERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start receiving Input reports (called automatically on open when `Config::auto_start` is set). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice4stopERNSt10error_codeE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice4stopERNSt10error_codeE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice4stopERNSt10error_codeE"></span><span id="espp::UsbHost::HidDevice::stop__std::error_codeR"></span><span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a162e435cf8080fb3a21abac61cce60f2"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice4stopERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop receiving Input reports. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice18send_output_reportE7uint8_tNSt4spanIK7uint8_tEERNSt10error_codeE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice18send_output_reportE7uint8_tNSt4spanIK7uint8_tEERNSt10error_codeE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice18send_output_reportE7uint8_tNSt4spanIK7uint8_tEERNSt10error_codeE"></span><span id="espp::UsbHost::HidDevice::send_output_report__uint8_t.std::span:uint8_tC:.std::error_codeR"></span><span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a2c3c0779a4c71723df3db29f53fb9bda"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_output_report</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">report_id</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice18send_output_reportE7uint8_tNSt4spanIK7uint8_tEERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Send a HID **Output** report to the device (host→device). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>report_id</strong> – The report ID (0 if the descriptor is not report-ID’d). </p></li>
+<li><p><strong>data</strong> – The report payload (without the report-ID byte). </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice10get_reportE17hid_report_type_t7uint8_tNSt4spanI7uint8_tEER6size_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice10get_reportE17hid_report_type_t7uint8_tNSt4spanI7uint8_tEER6size_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice10get_reportE17hid_report_type_t7uint8_tNSt4spanI7uint8_tEER6size_tRNSt10error_codeE"></span><span id="espp::UsbHost::HidDevice::get_report__hid_report_type_t.uint8_t.std::span:uint8_t:.sR.std::error_codeR"></span><span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a61848f9f3c15a89bee59ec3ee65ff644"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_report</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">hid_report_type_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">report_type</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">report_id</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">buffer</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out_length</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice10get_reportE17hid_report_type_t7uint8_tNSt4spanI7uint8_tEER6size_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Request a report from the device (HID class Get_Report). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>report_type</strong> – The HID report type (HID_REPORT_TYPE_INPUT / _OUTPUT / _FEATURE). </p></li>
+<li><p><strong>report_id</strong> – The report ID. </p></li>
+<li><p><strong>buffer</strong> – Buffer that receives the report. </p></li>
+<li><p><strong>out_length</strong> – Number of bytes written into <code class="docutils literal notranslate"><span class="pre">buffer</span></code>. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice8set_idleE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice8set_idleE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice8set_idleE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::UsbHost::HidDevice::set_idle__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a83e24a2335ac8e6bf01a422f65bb49cc"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_idle</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duration</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">report_id</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice8set_idleE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the device’s idle rate (HID class Set_Idle). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice12set_protocolE21hid_report_protocol_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice12set_protocolE21hid_report_protocol_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice12set_protocolE21hid_report_protocol_tRNSt10error_codeE"></span><span id="espp::UsbHost::HidDevice::set_protocol__hid_report_protocol_t.std::error_codeR"></span><span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1ac1198903152fd7f6124b1e40cfe993fb"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_protocol</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">hid_report_protocol_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">protocol</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice12set_protocolE21hid_report_protocol_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the device’s HID protocol (boot vs report; HID class Set_Protocol). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7UsbHost9HidDevice12is_connectedEv">
+<span id="_CPPv3NK4espp7UsbHost9HidDevice12is_connectedEv"></span><span id="_CPPv2NK4espp7UsbHost9HidDevice12is_connectedEv"></span><span id="espp::UsbHost::HidDevice::is_connectedC"></span><span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1ad55be91dd6a8a840991270a36f135dc3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_connected</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7UsbHost9HidDevice12is_connectedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether the device is still connected/usable. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7UsbHost9HidDevice6handleEv">
+<span id="_CPPv3NK4espp7UsbHost9HidDevice6handleEv"></span><span id="_CPPv2NK4espp7UsbHost9HidDevice6handleEv"></span><span id="espp::UsbHost::HidDevice::handleC"></span><span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1aa15c5439897e68ae073e383a6f646276"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">hid_host_device_handle_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">handle</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7UsbHost9HidDevice6handleEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The underlying driver handle (for advanced use; only valid while is_connected()). </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice4InfoE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice4InfoE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice4InfoE"></span><span id="espp::UsbHost::HidDevice::Info"></span><span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Info"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Info</span></span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice4InfoE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Device descriptor identity (VID/PID + string descriptors). </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice4Info3vidE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice4Info3vidE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice4Info3vidE"></span><span id="espp::UsbHost::HidDevice::Info::vid__uint16_t"></span><span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Info_1a2ec6035557063e570ea89d3d7f361a7f"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vid</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice4Info3vidE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>idVendor </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice4Info3pidE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice4Info3pidE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice4Info3pidE"></span><span id="espp::UsbHost::HidDevice::Info::pid__uint16_t"></span><span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Info_1a7627059d33bb1367c4cc7044f9ea3014"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pid</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice4Info3pidE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>idProduct </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice4Info12manufacturerE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice4Info12manufacturerE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice4Info12manufacturerE"></span><span id="espp::UsbHost::HidDevice::Info::manufacturer__ss"></span><span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Info_1aa436c808cc95780f6db767e20bc54557"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">manufacturer</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice4Info12manufacturerE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>iManufacturer string (UTF-8, converted from the device’s UTF-16) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice4Info7productE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice4Info7productE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice4Info7productE"></span><span id="espp::UsbHost::HidDevice::Info::product__ss"></span><span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Info_1abf20de0cd8fcc7076bea0fc963cb46be"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">product</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice4Info7productE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>iProduct string (UTF-8, converted from the device’s UTF-16) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice4Info13serial_numberE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice4Info13serial_numberE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice4Info13serial_numberE"></span><span id="espp::UsbHost::HidDevice::Info::serial_number__ss"></span><span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Info_1a1775239083be5d385e828fba4cda700c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">serial_number</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice4Info13serial_numberE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>iSerialNumber string (UTF-8, converted from the device’s UTF-16) </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice6ParamsE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice6ParamsE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice6ParamsE"></span><span id="espp::UsbHost::HidDevice::Params"></span><span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Params"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Params</span></span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice6ParamsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>HID interface parameters. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice6Params7addressE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice6Params7addressE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice6Params7addressE"></span><span id="espp::UsbHost::HidDevice::Params::address__uint8_t"></span><span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Params_1add6e652cd431f1a8f6ff118fa45cb852"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice6Params7addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>USB device address. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice6Params16interface_numberE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice6Params16interface_numberE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice6Params16interface_numberE"></span><span id="espp::UsbHost::HidDevice::Params::interface_number__uint8_t"></span><span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Params_1abecc360e93376bb0816bd58b6016083d"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">interface_number</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice6Params16interface_numberE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>bInterfaceNumber of this HID interface </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice6Params9sub_classE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice6Params9sub_classE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice6Params9sub_classE"></span><span id="espp::UsbHost::HidDevice::Params::sub_class__uint8_t"></span><span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Params_1a7b02e35fbeab1e0891cd9129a85af2de"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sub_class</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice6Params9sub_classE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>bInterfaceSubClass (1 = boot interface) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7UsbHost9HidDevice6Params8protocolE">
+<span id="_CPPv3N4espp7UsbHost9HidDevice6Params8protocolE"></span><span id="_CPPv2N4espp7UsbHost9HidDevice6Params8protocolE"></span><span id="espp::UsbHost::HidDevice::Params::protocol__uint8_t"></span><span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Params_1af79468534d1b564a1278ed2d5abe2705"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">protocol</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7UsbHost9HidDevice6Params8protocolE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>bInterfaceProtocol (1 = keyboard, 2 = mouse, 0 = none) </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1UsbHost_1_1HidDevice"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HidDevice</span></span></span><br /></dt>
+<dd><p>A HID interface on a device connected to the host. </p>
+<p>Created by `UsbHost` when a HID device is attached; handed to the application (as a `std::shared_ptr`) through the connect / disconnect callbacks and `UsbHost<a class="reference internal" href="#classespp_1_1UsbHost_1a36a406dbd1d05a65839f4be58b2e232a"><span class="std std-ref">devices()</span></a>`. Owns nothing itself &amp;#8212; the underlying driver handle is owned by `UsbHost` &amp;#8212; and becomes inert once the device is disconnected (methods then fail with `std::errc::no_such_device`; the identity accessors keep returning the values captured at connect time). </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a15f79c588ac6be3b65175ed0943af86e"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">input_callback_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><br /></dt>
+<dd><p>Callback invoked with a raw HID Input report from the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param data<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The report bytes. For a device whose report descriptor uses report IDs, byte 0 is the report ID (matching how `espp::UsbDevice`’s HID receive callback delivers OUT reports). </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a968c88761a9f5323f6a3d6b5b6a92c9c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7UsbHost9HidDevice4InfoE" title="espp::UsbHost::HidDevice::Info"><span class="n"><span class="pre">Info</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">info</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><br /></dt>
+<dd><p>The identity of the connected device (captured at connect time, so it stays valid after a disconnect). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a77668f6253cf0b89f60b330f2b17be77"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7UsbHost9HidDevice6ParamsE" title="espp::UsbHost::HidDevice::Params"><span class="n"><span class="pre">Params</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">params</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><br /></dt>
+<dd><p>The parameters of this HID interface (captured at connect time). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a58df9691432abb4ce65eb92f14266ab4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">report_descriptor</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><br /></dt>
+<dd><p>The device’s HID report descriptor (captured at connect time; a copy owned by this object, not a view into driver memory). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a6fa388b2a7a7108c344cabafe75fd497"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_input_callback</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7UsbHost9HidDevice17input_callback_fnE" title="espp::UsbHost::HidDevice::input_callback_fn"><span class="n"><span class="pre">input_callback_fn</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">cb</span></span><span class="sig-paren">)</span><br /></dt>
+<dd><p>Install the callback invoked with each Input report. Install it from the connect callback: `UsbHost` invokes that *before* it starts the device, so no report is missed. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a46f41114cccf58b769d8977fb6c730f1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><br /></dt>
+<dd><p>Start receiving Input reports (called automatically on open when `Config::auto_start` is set). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a162e435cf8080fb3a21abac61cce60f2"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><br /></dt>
+<dd><p>Stop receiving Input reports. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a2c3c0779a4c71723df3db29f53fb9bda"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_output_report</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">report_id</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><br /></dt>
+<dd><p>Send a HID **Output** report to the device (host→device). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>report_id</strong> – The report ID (0 if the descriptor is not report-ID’d). </p></li>
+<li><p><strong>data</strong> – The report payload (without the report-ID byte). </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a61848f9f3c15a89bee59ec3ee65ff644"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_report</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">hid_report_type_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">report_type</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">report_id</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">buffer</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out_length</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><br /></dt>
+<dd><p>Request a report from the device (HID class Get_Report). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>report_type</strong> – The HID report type (HID_REPORT_TYPE_INPUT / _OUTPUT / _FEATURE). </p></li>
+<li><p><strong>report_id</strong> – The report ID. </p></li>
+<li><p><strong>buffer</strong> – Buffer that receives the report. </p></li>
+<li><p><strong>out_length</strong> – Number of bytes written into <code class="docutils literal notranslate"><span class="pre">buffer</span></code>. </p></li>
+<li><p><strong>ec</strong> – Set on failure. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1a83e24a2335ac8e6bf01a422f65bb49cc"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_idle</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duration</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">report_id</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><br /></dt>
+<dd><p>Set the device’s idle rate (HID class Set_Idle). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1ac1198903152fd7f6124b1e40cfe993fb"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_protocol</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">hid_report_protocol_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">protocol</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><br /></dt>
+<dd><p>Set the device’s HID protocol (boot vs report; HID class Set_Protocol). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1ad55be91dd6a8a840991270a36f135dc3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_connected</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><br /></dt>
+<dd><p>Whether the device is still connected/usable. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1UsbHost_1_1HidDevice_1aa15c5439897e68ae073e383a6f646276"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">hid_host_device_handle_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">handle</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><br /></dt>
+<dd><p>The underlying driver handle (for advanced use; only valid while is_connected()). </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Info"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Info</span></span></span><br /></dt>
+<dd><p>Device descriptor identity (VID/PID + string descriptors). </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Info_1a2ec6035557063e570ea89d3d7f361a7f"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vid</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><br /></dt>
+<dd><p>idVendor </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Info_1a7627059d33bb1367c4cc7044f9ea3014"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pid</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><br /></dt>
+<dd><p>idProduct </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Info_1aa436c808cc95780f6db767e20bc54557"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">manufacturer</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><br /></dt>
+<dd><p>iManufacturer string (UTF-8, converted from the device’s UTF-16) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Info_1abf20de0cd8fcc7076bea0fc963cb46be"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">product</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><br /></dt>
+<dd><p>iProduct string (UTF-8, converted from the device’s UTF-16) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Info_1a1775239083be5d385e828fba4cda700c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">serial_number</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><br /></dt>
+<dd><p>iSerialNumber string (UTF-8, converted from the device’s UTF-16) </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Params"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Params</span></span></span><br /></dt>
+<dd><p>HID interface parameters. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Params_1add6e652cd431f1a8f6ff118fa45cb852"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><br /></dt>
+<dd><p>USB device address. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Params_1abecc360e93376bb0816bd58b6016083d"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">interface_number</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><br /></dt>
+<dd><p>bInterfaceNumber of this HID interface </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Params_1a7b02e35fbeab1e0891cd9129a85af2de"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sub_class</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><br /></dt>
+<dd><p>bInterfaceSubClass (1 = boot interface) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1UsbHost_1_1HidDevice_1_1Params_1af79468534d1b564a1278ed2d5abe2705"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">protocol</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><br /></dt>
+<dd><p>bInterfaceProtocol (1 = keyboard, 2 = mouse, 0 = none) </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="xinput_example.html" class="btn btn-neutral float-left" title="X-Input (Xbox 360) controller example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="usb_host_example.html" class="btn btn-neutral float-right" title="USB Host Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

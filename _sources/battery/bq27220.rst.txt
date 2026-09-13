@@ -1,0 +1,24 @@
+BQ27220
+*******
+
+The `BQ27220` is a Texas Instruments I2C battery fuel gauge (gas gauge) for
+single-cell lithium-ion batteries. It uses TI's Impedance Track™ algorithm to
+report the battery state-of-charge, state-of-health, remaining and full-charge
+capacity, voltage, instantaneous and average current, average power,
+temperature, cycle count, and time-to-empty / time-to-full estimates over I2C.
+
+The `espp::Bq27220` component provides a simple interface to read these
+quantities. All values are 16-bit little-endian standard commands.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   bq27220_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/bq27220.inc

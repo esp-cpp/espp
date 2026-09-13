@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Telemetry - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'telemetry/telemetry';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Telemetry — USB example (→ Serial Plotter web app)" href="telemetry_example.html" />
+    <link rel="prev" title="Telemetry APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Telemetry APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Telemetry</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#telemetry-service">Telemetry service</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="telemetry_example.html">Telemetry — USB example (→ Serial Plotter web app)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../wdi/index.html">WDI (Wheelchair Digital Interface) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Telemetry APIs</a></li>
+      <li class="breadcrumb-item active">Telemetry</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/038eea4a/docs/en/telemetry/telemetry.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="telemetry">
+<h1>Telemetry<a class="headerlink" href="#telemetry" title="Permalink to this heading"></a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">telemetry</span></code> component pairs a self-contained browser <strong>data plotter</strong>
+web app with an optional firmware-side <strong>binary telemetry</strong> emitter, so you can
+plot live data from a device two complementary ways:</p>
+<ul class="simple">
+<li><p><strong>Text / CSV over Web Serial</strong> — point the web app at any device that prints
+columnar data (a header line plus numeric rows). It auto-detects the delimiter
+and schema, discards non-matching lines (including ESP-IDF log lines), and
+re-evaluates when a new header arrives. No firmware component is required.</p></li>
+<li><p><strong>Binary telemetry over WebUSB</strong> — the <cite>Telemetry</cite> class streams typed float
+channels directly, for higher rate, lower overhead, and device-accurate
+timestamps. The same web app decodes and plots them.</p></li>
+</ul>
+<p>The hosted app is at
+<a class="reference external" href="https://esp-cpp.github.io/espp/apps/telemetry.html">esp-cpp.github.io/espp/apps/telemetry.html</a> (Chromium, secure
+context). It plots a high number of points efficiently (<code class="docutils literal notranslate"><span class="pre">uPlot</span></code>) with drag
+zoom, a per-series filter, and CSV save / load, plus optional 2D X–Y and 3D
+X–Y–Z modes over the same parsed columns.</p>
+<section id="telemetry-service">
+<h2>Telemetry service<a class="headerlink" href="#telemetry-service" title="Permalink to this heading"></a></h2>
+<p>The <cite>Telemetry</cite> class is a small device→host protocol carried on the espp
+<a class="reference internal" href="../stream_frame/stream_frame.html"><span class="doc">stream_frame</span></a> framing (dispatcher module
+id 3), so it can share one USB vendor / CDC stream with other modules via
+<a class="reference internal" href="../dispatcher/dispatcher.html"><span class="doc">dispatcher</span></a>. Firmware declares a fixed set of
+named <code class="docutils literal notranslate"><span class="pre">float</span></code> channels (the <strong>SCHEMA</strong>) and pushes <strong>SAMPLE</strong> frames — a
+device timestamp plus one float per channel (batchable) — with <code class="docutils literal notranslate"><span class="pre">emit(...)</span></code>.
+Host requests are <code class="docutils literal notranslate"><span class="pre">GET_SCHEMA</span></code> and <code class="docutils literal notranslate"><span class="pre">SET_STREAM</span></code> (enable/disable + rate).</p>
+<p>Construct it with the channel names and a <code class="docutils literal notranslate"><span class="pre">send</span></code> function, register
+<code class="docutils literal notranslate"><span class="pre">handle()</span></code> on a <a class="reference internal" href="../dispatcher/dispatcher.html"><span class="doc">dispatcher</span></a> module (or feed
+raw bytes to <code class="docutils literal notranslate"><span class="pre">feed()</span></code>), and call <code class="docutils literal notranslate"><span class="pre">emit()</span></code> from your producer. <code class="docutils literal notranslate"><span class="pre">emit()</span></code> and
+request handling are safe to call concurrently: every outbound frame is
+serialized on an internal send mutex that is held across the <code class="docutils literal notranslate"><span class="pre">send</span></code> callback,
+so frames never interleave and a SAMPLE always carries the channel set it was
+built from. Because that mutex is held while <code class="docutils literal notranslate"><span class="pre">send</span></code> runs, the callback must
+<strong>not</strong> re-enter the emitter (<code class="docutils literal notranslate"><span class="pre">emit()</span></code>, <code class="docutils literal notranslate"><span class="pre">send_schema()</span></code>, <code class="docutils literal notranslate"><span class="pre">set_channels()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">handle()</span></code> / <code class="docutils literal notranslate"><span class="pre">feed()</span></code>) — keep it to writing the bytes to the transport. See
+the example for USB vendor (WebUSB) wiring and capability discovery that lists
+the app in the browser Device Hub. (The framing is transport-agnostic — CDC /
+UART / a socket work too — but the web app’s binary path consumes WebUSB.)</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="telemetry_example.html">Telemetry — USB example (→ Serial Plotter web app)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="telemetry_example.html#what-it-does">What it does</a></li>
+<li class="toctree-l2"><a class="reference internal" href="telemetry_example.html#build-run">Build &amp; run</a></li>
+<li class="toctree-l2"><a class="reference internal" href="telemetry_example.html#notes">Notes</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/038eea4a/components/telemetry/include/telemetry.hpp">components/telemetry/include/telemetry.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TelemetryE">
+<span id="_CPPv3N4espp9TelemetryE"></span><span id="_CPPv2N4espp9TelemetryE"></span><span id="espp::Telemetry"></span><span class="target" id="classespp_1_1Telemetry"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Telemetry</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp9TelemetryE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Binary telemetry emitter for the Serial Plotter web app. </p>
+<p>A tiny device-&gt;host protocol carried over the espp `stream_frame` framing (so it can share one USB vendor / CDC stream with other modules via `espp::Dispatcher`). Firmware declares a fixed set of named float channels (the SCHEMA) and pushes SAMPLE frames — a device timestamp plus one float per channel — which the hosted `telemetry.html` web app decodes and plots, exactly like the columnar Web-Serial path but binary, higher rate, and with device-accurate timestamps.</p>
+<p>This is the purpose-built counterpart to the app’s text (CSV-style) Web-Serial transport: instead of parsing printed columns, the device sends typed samples directly.</p>
+<p>## Wire protocol (dispatcher module id 3)</p>
+<p>Every message is a `stream_frame` frame with `module == kModule`. The frame `type` byte’s high bit distinguishes direction: host-&gt;device requests are `0x0X`, device-&gt;host frames are `0x8X` (which sets the frame reply flag).</p>
+<p><ul class="simple">
+<li><p>**GET_SCHEMA** (host-&gt;device, no payload): request the current SCHEMA.</p></li>
+<li><p>**SET_STREAM** (host-&gt;device, `[enabled u8][period_ms u16]`): enable or disable streaming and request a sample period (informational — the firmware’s emit cadence is authoritative; the requested period is exposed via <a class="reference internal" href="#classespp_1_1Telemetry_1aea4622b52eb09555329a6706ef527d5b"><span class="std std-ref">period_ms()</span></a> so an app can honor it). Answered with OK.</p></li>
+<li><p>**SCHEMA** (device-&gt;host): `[version u8][flags u8][nchannels u8]` then, per channel, `[type u8][name_len u8][name bytes]`. `version == kSchemaVersion`, `flags == 0` (reserved), channel `type == 0` (f32). Sent on GET_SCHEMA, on <a class="reference internal" href="#classespp_1_1Telemetry_1a552c8863c5ef510d052712c5d340d565"><span class="std std-ref">set_channels()</span></a>, and on demand via <a class="reference internal" href="#classespp_1_1Telemetry_1a5aba6f0a2ac8cfc8966b79b0898c96ca"><span class="std std-ref">send_schema()</span></a>.</p></li>
+<li><p>**SAMPLE** (device-&gt;host): one or more packed records, each `[timestamp u32 microseconds][f32 × nchannels]` little-endian. A frame may batch several records (payload size is an exact multiple of the record size) for higher throughput.</p></li>
+<li><p>**OK** (device-&gt;host, `[request_type u8]`): acknowledges a request.</p></li>
+<li><p>**ERROR** (device-&gt;host, `[request_type u8][code u32][utf8 message]`).</p></li>
+</ul>
+</p>
+<p>## Threading</p>
+<p><a class="reference internal" href="#classespp_1_1Telemetry_1a1e56f2f9c7e5aacab1a9ba3b040b383b"><span class="std std-ref">emit()</span></a> is typically called from a producer task while requests are handled on a transport RX task; both are safe to call concurrently. Every outbound frame is serialized on an internal send mutex that is held across the user `send` callback, so the callback (a) never runs concurrently with itself — a `send` that is not itself thread-safe cannot interleave the bytes of two frames — and (b) always delivers a SAMPLE together with the channel set it was built from, so the host never decodes a sample against a stale SCHEMA.</p>
+<p>Because that send mutex is held while `send` runs, the callback MUST NOT re-enter this object — do not call <a class="reference internal" href="#classespp_1_1Telemetry_1a1e56f2f9c7e5aacab1a9ba3b040b383b"><span class="std std-ref">emit()</span></a>, <a class="reference internal" href="#classespp_1_1Telemetry_1a5aba6f0a2ac8cfc8966b79b0898c96ca"><span class="std std-ref">send_schema()</span></a>, <a class="reference internal" href="#classespp_1_1Telemetry_1a552c8863c5ef510d052712c5d340d565"><span class="std std-ref">set_channels()</span></a>, <a class="reference internal" href="#classespp_1_1Telemetry_1ad0aed3cc6d1284b1bc12adb697319b85"><span class="std std-ref">handle()</span></a> or <a class="reference internal" href="#classespp_1_1Telemetry_1a666904d80a99094f55e84f0ebc76b7b5"><span class="std std-ref">feed()</span></a> from inside `send`, or it will deadlock on the same (non-recursive) mutex. Keep `send` to writing the bytes to the transport. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry4TypeE">
+<span id="_CPPv3N4espp9Telemetry4TypeE"></span><span id="_CPPv2N4espp9Telemetry4TypeE"></span><span class="target" id="classespp_1_1Telemetry_1ab9f18c3e21cf0560de2efe68874668fc"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Type</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry4TypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Frame `type` values within the telemetry module. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry4Type9GetSchemaE">
+<span id="_CPPv3N4espp9Telemetry4Type9GetSchemaE"></span><span id="_CPPv2N4espp9Telemetry4Type9GetSchemaE"></span><span class="target" id="classespp_1_1Telemetry_1ab9f18c3e21cf0560de2efe68874668fca8d3cfdcce46efdccebb2a0c7ee3eadc3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetSchema</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry4Type9GetSchemaE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>request the current SCHEMA </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry4Type9SetStreamE">
+<span id="_CPPv3N4espp9Telemetry4Type9SetStreamE"></span><span id="_CPPv2N4espp9Telemetry4Type9SetStreamE"></span><span class="target" id="classespp_1_1Telemetry_1ab9f18c3e21cf0560de2efe68874668fcab85794313be9e0471783baffc80cb93f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SetStream</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry4Type9SetStreamE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>[enabled u8][period_ms u16]: enable/disable + rate </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry4Type6SchemaE">
+<span id="_CPPv3N4espp9Telemetry4Type6SchemaE"></span><span id="_CPPv2N4espp9Telemetry4Type6SchemaE"></span><span class="target" id="classespp_1_1Telemetry_1ab9f18c3e21cf0560de2efe68874668fca7146a60667b422e69fd050fe1df6859a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Schema</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry4Type6SchemaE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>channel schema (see class docs) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry4Type6SampleE">
+<span id="_CPPv3N4espp9Telemetry4Type6SampleE"></span><span id="_CPPv2N4espp9Telemetry4Type6SampleE"></span><span class="target" id="classespp_1_1Telemetry_1ab9f18c3e21cf0560de2efe68874668fcac5dd1b2697720fe692c529688d3f4f8d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Sample</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry4Type6SampleE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>one or more [timestamp u32 us][f32 x nchannels] records </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry4Type2OkE">
+<span id="_CPPv3N4espp9Telemetry4Type2OkE"></span><span id="_CPPv2N4espp9Telemetry4Type2OkE"></span><span class="target" id="classespp_1_1Telemetry_1ab9f18c3e21cf0560de2efe68874668fcaa60852f204ed8028c1c58808b746d115"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ok</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry4Type2OkE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>[request_type u8]: request acknowledged </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry4Type5ErrorE">
+<span id="_CPPv3N4espp9Telemetry4Type5ErrorE"></span><span id="_CPPv2N4espp9Telemetry4Type5ErrorE"></span><span class="target" id="classespp_1_1Telemetry_1ab9f18c3e21cf0560de2efe68874668fca902b0d55fddef6f8d651fe1035b7d4bd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Error</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry4Type5ErrorE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>[request_type u8][code u32][utf8 message] </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry11ChannelTypeE">
+<span id="_CPPv3N4espp9Telemetry11ChannelTypeE"></span><span id="_CPPv2N4espp9Telemetry11ChannelTypeE"></span><span class="target" id="classespp_1_1Telemetry_1a681320aa2fa023defe34782798951e1b"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ChannelType</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry11ChannelTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel value type (only 32-bit float today; reserved for future widening). </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry11ChannelType3F32E">
+<span id="_CPPv3N4espp9Telemetry11ChannelType3F32E"></span><span id="_CPPv2N4espp9Telemetry11ChannelType3F32E"></span><span class="target" id="classespp_1_1Telemetry_1a681320aa2fa023defe34782798951e1ba44ad4ef5a76e6aa6fb3e3fa079a54fda"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">F32</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry11ChannelType3F32E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry7send_fnE">
+<span id="_CPPv3N4espp9Telemetry7send_fnE"></span><span id="_CPPv2N4espp9Telemetry7send_fnE"></span><span class="target" id="classespp_1_1Telemetry_1ab9d840a8981974f1655dc85993c3b32f"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n"><span class="pre">frame</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry7send_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function used to transmit one encoded frame to the host. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param frame<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The complete encoded frame bytes (header + payload + CRC). </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry9TelemetryERK6Config">
+<span id="_CPPv3N4espp9Telemetry9TelemetryERK6Config"></span><span id="_CPPv2N4espp9Telemetry9TelemetryERK6Config"></span><span id="espp::Telemetry::Telemetry__ConfigCR"></span><span class="target" id="classespp_1_1Telemetry_1af7e24e601ad63c1b6c65292e8a5d04c2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Telemetry</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9Telemetry6ConfigE" title="espp::Telemetry::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Telemetry9TelemetryERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct the emitter. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Channel names, the (optional) send function, and defaults. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry8set_sendE7send_fn">
+<span id="_CPPv3N4espp9Telemetry8set_sendE7send_fn"></span><span id="_CPPv2N4espp9Telemetry8set_sendE7send_fn"></span><span id="espp::Telemetry::set_send__send_fn"></span><span class="target" id="classespp_1_1Telemetry_1af6db4046a7eab2302a81728f55f8a55c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_send</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp9Telemetry7send_fnE" title="espp::Telemetry::send_fn"><span class="n"><span class="pre">send_fn</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">fn</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Telemetry8set_sendE7send_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set (or replace) the transmit function, e.g. after USB init. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry4emitENSt4spanIKfEE8uint32_t">
+<span id="_CPPv3N4espp9Telemetry4emitENSt4spanIKfEE8uint32_t"></span><span id="_CPPv2N4espp9Telemetry4emitENSt4spanIKfEE8uint32_t"></span><span id="espp::Telemetry::emit__std::span:floatC:.uint32_t"></span><span class="target" id="classespp_1_1Telemetry_1a1e56f2f9c7e5aacab1a9ba3b040b383b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">emit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">values</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">timestamp_us</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Telemetry4emitENSt4spanIKfEE8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Push one sample with an explicit device timestamp. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>No-op while streaming is disabled or no send function is configured. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> – One value per channel, in schema order (size must match the channel count, else the sample is dropped with a rate-limited warning). </p></li>
+<li><p><strong>timestamp_us</strong> – Device timestamp in microseconds (u32; wraps ~71 min). </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry4emitENSt4spanIKfEE">
+<span id="_CPPv3N4espp9Telemetry4emitENSt4spanIKfEE"></span><span id="_CPPv2N4espp9Telemetry4emitENSt4spanIKfEE"></span><span id="espp::Telemetry::emit__std::span:floatC:"></span><span class="target" id="classespp_1_1Telemetry_1ad4b4ac3dc8d32b7883dcff8f08482c24"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">emit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">values</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Telemetry4emitENSt4spanIKfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Push one sample timestamped with the current device time. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry12set_channelsENSt6vectorINSt6stringEEE">
+<span id="_CPPv3N4espp9Telemetry12set_channelsENSt6vectorINSt6stringEEE"></span><span id="_CPPv2N4espp9Telemetry12set_channelsENSt6vectorINSt6stringEEE"></span><span id="espp::Telemetry::set_channels__std::vector:ss:"></span><span class="target" id="classespp_1_1Telemetry_1a552c8863c5ef510d052712c5d340d565"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_channels</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">channels</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Telemetry12set_channelsENSt6vectorINSt6stringEEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Redefine the channel set at runtime and send a fresh SCHEMA. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channel-set update and the outbound SCHEMA are performed together under send_mutex_, so a concurrent <a class="reference internal" href="#classespp_1_1Telemetry_1a1e56f2f9c7e5aacab1a9ba3b040b383b"><span class="std std-ref">emit()</span></a> cannot deliver a sample built from the new channels before (or the old channels after) the matching SCHEMA reaches the host. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9Telemetry8channelsEv">
+<span id="_CPPv3NK4espp9Telemetry8channelsEv"></span><span id="_CPPv2NK4espp9Telemetry8channelsEv"></span><span id="espp::Telemetry::channelsC"></span><span class="target" id="classespp_1_1Telemetry_1a2a3bc84475b577a26f1143c78adb83e1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">channels</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9Telemetry8channelsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The current channel names (schema order). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9Telemetry9streamingEv">
+<span id="_CPPv3NK4espp9Telemetry9streamingEv"></span><span id="_CPPv2NK4espp9Telemetry9streamingEv"></span><span id="espp::Telemetry::streamingC"></span><span class="target" id="classespp_1_1Telemetry_1a2535eda6bd84242cb9247a01540ea703"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">streaming</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9Telemetry9streamingEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether streaming is currently enabled. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry13set_streamingEb">
+<span id="_CPPv3N4espp9Telemetry13set_streamingEb"></span><span id="_CPPv2N4espp9Telemetry13set_streamingEb"></span><span id="espp::Telemetry::set_streaming__b"></span><span class="target" id="classespp_1_1Telemetry_1a2817aca2399bd7f4d499581cc6babcba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_streaming</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">on</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Telemetry13set_streamingEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable or disable streaming (SAMPLE emission). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9Telemetry9period_msEv">
+<span id="_CPPv3NK4espp9Telemetry9period_msEv"></span><span id="_CPPv2NK4espp9Telemetry9period_msEv"></span><span id="espp::Telemetry::period_msC"></span><span class="target" id="classespp_1_1Telemetry_1aea4622b52eb09555329a6706ef527d5b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">period_ms</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9Telemetry9period_msEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The host-requested sample period in milliseconds (informational). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9Telemetry11send_schemaEv">
+<span id="_CPPv3NK4espp9Telemetry11send_schemaEv"></span><span id="_CPPv2NK4espp9Telemetry11send_schemaEv"></span><span id="espp::Telemetry::send_schemaC"></span><span class="target" id="classespp_1_1Telemetry_1a5aba6f0a2ac8cfc8966b79b0898c96ca"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_schema</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9Telemetry11send_schemaEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Send the current SCHEMA frame now (device-&gt;host). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Uses the same send_mutex_-outer / mutex_-inner order as <a class="reference internal" href="#classespp_1_1Telemetry_1a1e56f2f9c7e5aacab1a9ba3b040b383b"><span class="std std-ref">emit()</span></a> so the SCHEMA and any concurrent SAMPLE stay consistently ordered. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry6handleERKN4espp12stream_frame5FrameE">
+<span id="_CPPv3N4espp9Telemetry6handleERKN4espp12stream_frame5FrameE"></span><span id="_CPPv2N4espp9Telemetry6handleERKN4espp12stream_frame5FrameE"></span><span id="espp::Telemetry::handle__espp::stream_frame::FrameCR"></span><span class="target" id="classespp_1_1Telemetry_1ad0aed3cc6d1284b1bc12adb697319b85"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">handle</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">stream_frame</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Frame</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">frame</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Telemetry6handleERKN4espp12stream_frame5FrameE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../dispatcher/dispatcher.html#classespp_1_1Dispatcher"><span class="std std-ref">Dispatcher</span></a> handler: process one frame addressed to this module. </p>
+<p>Register with `dispatcher.register_module(Telemetry::kModule, …)`. Ignores reply-flagged frames (device-&gt;host pushes are never host requests). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry4feedENSt4spanIK7uint8_tEE">
+<span id="_CPPv3N4espp9Telemetry4feedENSt4spanIK7uint8_tEE"></span><span id="_CPPv2N4espp9Telemetry4feedENSt4spanIK7uint8_tEE"></span><span id="espp::Telemetry::feed__std::span:uint8_tC:"></span><span class="target" id="classespp_1_1Telemetry_1a666904d80a99094f55e84f0ebc76b7b5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feed</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Telemetry4feedENSt4spanIK7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Feed raw transport bytes through an internal frame parser (for use without a <a class="reference internal" href="../dispatcher/dispatcher.html#classespp_1_1Dispatcher"><span class="std std-ref">Dispatcher</span></a>). Processes every complete frame for this module. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry12reset_parserEv">
+<span id="_CPPv3N4espp9Telemetry12reset_parserEv"></span><span id="_CPPv2N4espp9Telemetry12reset_parserEv"></span><span id="espp::Telemetry::reset_parser"></span><span class="target" id="classespp_1_1Telemetry_1a1f089852fa96f450b15ff305b752cc7b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_parser</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Telemetry12reset_parserEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Discard any partially-buffered bytes in the internal parser (e.g. on transport reconnect). Only relevant when using <a class="reference internal" href="#classespp_1_1Telemetry_1a666904d80a99094f55e84f0ebc76b7b5"><span class="std std-ref">feed()</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9Telemetry8get_nameEv">
+<span id="_CPPv3NK4espp9Telemetry8get_nameEv"></span><span id="_CPPv2NK4espp9Telemetry8get_nameEv"></span><span id="espp::Telemetry::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9Telemetry8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp9Telemetry11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp9Telemetry11set_log_tagERKNSt11string_viewE"></span><span id="espp::Telemetry::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Telemetry11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9Telemetry13get_log_levelEv">
+<span id="_CPPv3NK4espp9Telemetry13get_log_levelEv"></span><span id="_CPPv2NK4espp9Telemetry13get_log_levelEv"></span><span id="espp::Telemetry::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9Telemetry13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp9Telemetry13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp9Telemetry13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Telemetry::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Telemetry13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp9Telemetry17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp9Telemetry17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Telemetry::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Telemetry17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9Telemetry17get_log_verbosityEv">
+<span id="_CPPv3NK4espp9Telemetry17get_log_verbosityEv"></span><span id="_CPPv2NK4espp9Telemetry17get_log_verbosityEv"></span><span id="espp::Telemetry::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9Telemetry17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp9Telemetry18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp9Telemetry18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Telemetry::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Telemetry18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry7kModuleE">
+<span id="_CPPv3N4espp9Telemetry7kModuleE"></span><span id="_CPPv2N4espp9Telemetry7kModuleE"></span><span id="espp::Telemetry::kModule__uint8_t"></span><span class="target" id="classespp_1_1Telemetry_1aad3dfbfaabc7c22bc2657af5c4a5ee22"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kModule</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry7kModuleE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../dispatcher/dispatcher.html#classespp_1_1Dispatcher"><span class="std std-ref">Dispatcher</span></a> module id owned by the telemetry protocol (the frame `module` byte). Device-&gt;host Type values keep the high bit set, which the framing maps to the reply flag. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry14kSchemaVersionE">
+<span id="_CPPv3N4espp9Telemetry14kSchemaVersionE"></span><span id="_CPPv2N4espp9Telemetry14kSchemaVersionE"></span><span id="espp::Telemetry::kSchemaVersion__uint8_t"></span><span class="target" id="classespp_1_1Telemetry_1ac0ad542ca19650d1d48a9a8150abd759"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kSchemaVersion</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry14kSchemaVersionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Version byte at the head of a SCHEMA payload, so the wire format can evolve. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry12kMaxChannelsE">
+<span id="_CPPv3N4espp9Telemetry12kMaxChannelsE"></span><span id="_CPPv2N4espp9Telemetry12kMaxChannelsE"></span><span id="espp::Telemetry::kMaxChannels__s"></span><span class="target" id="classespp_1_1Telemetry_1a0c1764c17f1f9e8e36b597e1fe13f1fb"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kMaxChannels</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">255</span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry12kMaxChannelsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum channel count (the SCHEMA encodes it as a u8). </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry6ConfigE">
+<span id="_CPPv3N4espp9Telemetry6ConfigE"></span><span id="_CPPv2N4espp9Telemetry6ConfigE"></span><span id="espp::Telemetry::Config"></span><span class="target" id="structespp_1_1Telemetry_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the <a class="reference internal" href="#classespp_1_1Telemetry"><span class="std std-ref">Telemetry</span></a> emitter. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry6Config8channelsE">
+<span id="_CPPv3N4espp9Telemetry6Config8channelsE"></span><span id="_CPPv2N4espp9Telemetry6Config8channelsE"></span><span id="espp::Telemetry::Config::channels__std::vector:ss:"></span><span class="target" id="structespp_1_1Telemetry_1_1Config_1aa4f0f0b528f209a0a77c06cd1e5c3f11"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">channels</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry6Config8channelsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel names, in sample order (&gt;= 1). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry6Config4sendE">
+<span id="_CPPv3N4espp9Telemetry6Config4sendE"></span><span id="_CPPv2N4espp9Telemetry6Config4sendE"></span><span id="espp::Telemetry::Config::send__send_fn"></span><span class="target" id="structespp_1_1Telemetry_1_1Config_1a5a467c85aca4e7e5091ab0cf500882af"></span><a class="reference internal" href="#_CPPv4N4espp9Telemetry7send_fnE" title="espp::Telemetry::send_fn"><span class="n"><span class="pre">send_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry6Config4sendE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Transmits an encoded frame (may be set later). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry6Config15stream_on_startE">
+<span id="_CPPv3N4espp9Telemetry6Config15stream_on_startE"></span><span id="_CPPv2N4espp9Telemetry6Config15stream_on_startE"></span><span id="espp::Telemetry::Config::stream_on_start__b"></span><span class="target" id="structespp_1_1Telemetry_1_1Config_1a234709d05260feb8c5e69317018cb68a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stream_on_start</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry6Config15stream_on_startE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start with streaming enabled. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry6Config9period_msE">
+<span id="_CPPv3N4espp9Telemetry6Config9period_msE"></span><span id="_CPPv2N4espp9Telemetry6Config9period_msE"></span><span id="espp::Telemetry::Config::period_ms__uint16_t"></span><span class="target" id="structespp_1_1Telemetry_1_1Config_1a222883a96b9e7f005060fbc35b065661"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">period_ms</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">20</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry6Config9period_msE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Default requested sample period (informational). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Telemetry6Config9log_levelE">
+<span id="_CPPv3N4espp9Telemetry6Config9log_levelE"></span><span id="_CPPv2N4espp9Telemetry6Config9log_levelE"></span><span id="espp::Telemetry::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1Telemetry_1_1Config_1a6f5c03c18ebd8280d2163399400171d5"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9Telemetry6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> verbosity. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Telemetry APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="telemetry_example.html" class="btn btn-neutral float-right" title="Telemetry — USB example (→ Serial Plotter web app)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

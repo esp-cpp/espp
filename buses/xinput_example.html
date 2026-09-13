@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>X-Input (Xbox 360) controller example - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'buses/xinput_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="USB Host Component" href="usb_host.html" />
+    <link rel="prev" title="ODrive-compatible USB Device Example (CDC + Vendor/WebUSB + HID)" href="usb_cdc_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Buses &amp; Low-Level I/O APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spi.html">SPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twai.html">TWAI (CAN 2.0) APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="canopen.html">CANopen (CiA 301) Client APIs</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="usb_cdc.html">USB Device Component</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#features">Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#basic-usage">Basic Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#enabling-the-vendor-webusb-class">Enabling the vendor / WebUSB class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#enabling-the-hid-class">Enabling the HID class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#enabling-x-input-xbox-360">Enabling X-Input (Xbox 360)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#routing-the-console-over-cdc">Routing the console over CDC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#endpoint-budget-esp32-s3-usb-otg">Endpoint budget (ESP32-S3 USB-OTG)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#extending-with-msc">Extending with MSC</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="usb_cdc.html#notes">Notes</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="usb_cdc_example.html">ODrive-compatible USB Device Example (CDC + Vendor/WebUSB + HID)</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">X-Input (Xbox 360) controller example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="usb_host.html">USB Host Component</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../telemetry/index.html">Telemetry APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wdi/index.html">WDI (Wheelchair Digital Interface) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Buses &amp; Low-Level I/O APIs</a></li>
+          <li class="breadcrumb-item"><a href="usb_cdc.html">USB Device Component</a></li>
+      <li class="breadcrumb-item active">X-Input (Xbox 360) controller example</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/038eea4a/docs/en/buses/xinput_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="x-input-xbox-360-controller-example">
+<h1>X-Input (Xbox 360) controller example<a class="headerlink" href="#x-input-xbox-360-controller-example" title="Permalink to this heading"></a></h1>
+<p>Presents the ESP32-S3 as a wired <strong>Xbox 360 controller</strong> over the native USB-OTG
+peripheral, using <code class="docutils literal notranslate"><span class="pre">espp::UsbDevice</span></code>’s X-Input function. A PC’s XUSB driver binds
+it, so it shows up as an Xbox 360 controller in Windows’ “Set up USB game
+controllers” (<code class="docutils literal notranslate"><span class="pre">joy.cpl</span></code>) and any X-Input game, or under Linux <code class="docutils literal notranslate"><span class="pre">xpad</span></code>.</p>
+<p>The demo sweeps the sticks/triggers in a circle and steps the face buttons
+A/B/X/Y one at a time each second, so you can see live input, and logs any
+rumble / LED reports the host sends back. The console/logs go to <strong>UART0</strong> (with
+USB-Serial-JTAG as an early-boot secondary): on the ESP32-S3 the USB-Serial-JTAG
+controller shares the native USB port’s PHY with USB-OTG, so keeping the console
+on it would contend with the emulated controller interface and reboot-loop the
+device. Use a UART / USB-UART adapter on UART0 for <code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">monitor</span></code>.</p>
+<section id="build-flash">
+<h2>Build &amp; flash<a class="headerlink" href="#build-flash" title="Permalink to this heading"></a></h2>
+<p>X-Input is served by a custom TinyUSB application class driver built into the
+<code class="docutils literal notranslate"><span class="pre">usb_device</span></code> component, so it needs <strong>no</strong> built-in USB class enabled — the
+example’s <code class="docutils literal notranslate"><span class="pre">sdkconfig.defaults</span></code> disables CDC/vendor/HID entirely. Flash it to an
+ESP32-S3 and plug the native USB-OTG port into a PC:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>idf.py<span class="w"> </span>-p<span class="w"> </span>&lt;PORT&gt;<span class="w"> </span>flash<span class="w"> </span>monitor<span class="w">   </span><span class="c1"># console is on UART0 (USB-UART adapter)</span>
+</pre></div>
+</div>
+</section>
+<section id="identity-emulation-only">
+<h2>Identity (emulation only)<a class="headerlink" href="#identity-emulation-only" title="Permalink to this heading"></a></h2>
+<p>The device enumerates with <strong>Microsoft’s Xbox 360 VID/PID (<code class="docutils literal notranslate"><span class="pre">0x045E:0x028E</span></code>)</strong> and
+device class <code class="docutils literal notranslate"><span class="pre">0xFF/0xFF/0xFF</span></code> — that identity is what makes the host’s XUSB driver
+bind it. These are Microsoft’s identifiers, for <strong>emulation / testing of your own
+device only</strong>; a shipped product must not enumerate under them.</p>
+</section>
+<section id="using-it-in-your-own-code">
+<h2>Using it in your own code<a class="headerlink" href="#using-it-in-your-own-code" title="Permalink to this heading"></a></h2>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="n">cfg</span><span class="p">;</span>
+<span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="o">::</span><span class="n">XInputFunction</span><span class="w"> </span><span class="n">xinput</span><span class="p">;</span><span class="w">      </span><span class="c1">// default VID/PID = Xbox 360 wired</span>
+<span class="n">xinput</span><span class="p">.</span><span class="n">on_rumble</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* drive motors / LEDs */</span><span class="w"> </span><span class="p">};</span>
+<span class="n">cfg</span><span class="p">.</span><span class="n">xinput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">xinput</span><span class="p">;</span><span class="w">                          </span><span class="c1">// X-Input as the ONLY function</span>
+<span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="w"> </span><span class="nf">usb</span><span class="p">(</span><span class="n">cfg</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="n">usb</span><span class="p">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+
+<span class="n">espp</span><span class="o">::</span><span class="n">xinput</span><span class="o">::</span><span class="n">GamepadState</span><span class="w"> </span><span class="n">state</span><span class="p">;</span>
+<span class="n">state</span><span class="p">.</span><span class="n">set</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">xinput</span><span class="o">::</span><span class="n">Button</span><span class="o">::</span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
+<span class="n">state</span><span class="p">.</span><span class="n">lx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">20000</span><span class="p">;</span><span class="w">                             </span><span class="c1">// left stick X</span>
+<span class="n">usb</span><span class="p">.</span><span class="n">update_xinput_state</span><span class="p">(</span><span class="n">state</span><span class="p">);</span><span class="w">                    </span><span class="c1">// send a 20-byte input report</span>
+</pre></div>
+</div>
+<p>See <code class="docutils literal notranslate"><span class="pre">components/usb_device/include/xinput.hpp</span></code> for the <code class="docutils literal notranslate"><span class="pre">GamepadState</span></code> /
+<code class="docutils literal notranslate"><span class="pre">Button</span></code> API and the report layout, and the component
+<a class="reference internal" href="#../README.md#enabling-x-input-xbox-360"><span class="xref myst">README</span></a> for the constraints (X-Input must
+be the only enabled function).</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="usb_cdc_example.html" class="btn btn-neutral float-left" title="ODrive-compatible USB Device Example (CDC + Vendor/WebUSB + HID)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="usb_host.html" class="btn btn-neutral float-right" title="USB Host Component" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

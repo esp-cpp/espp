@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Building Custom Modules &amp; Protocols - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+        <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = "pre.mermaid {\n    /* Same as .mermaid-container > pre */\n    display: block;\n    width: 100%;\n}\n\npre.mermaid > svg {\n    /* Same as .mermaid-container > pre > svg */\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}";
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = ".mermaid-container {\n    position: relative;\n    display: flex;\n    flex-direction: row;\n    width: 100%;\n}\n\n.mermaid-container > pre {\n    display: block;\n    width: 100%;\n}\n\n.mermaid-container > pre > svg {\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}\n\n.mermaid-fullscreen-btn {\n    position: absolute;\n    width: 28px;\n    height: 28px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.3);\n    border-radius: 4px;\n    cursor: pointer;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    transition: all 0.2s;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);\n    font-size: 14px;\n    line-height: 1;\n    padding: 0;\n    color: #333;\n}\n\n.mermaid-fullscreen-btn:hover {\n    opacity: 100% !important;\n    background: rgba(255, 255, 255, 1);\n    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-btn.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.3);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-btn.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal {\n    display: none;\n    position: fixed !important;\n    top: 0 !important;\n    left: 0 !important;\n    width: 95vw;\n    height: 100vh;\n    background: rgba(255, 255, 255, 0.98);\n    z-index: 9999;\n    padding: 20px;\n    overflow: auto;\n}\n\n.mermaid-fullscreen-modal.dark-theme {\n    background: rgba(0, 0, 0, 0.98);\n}\n\n.mermaid-fullscreen-modal.active {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen {\n    position: relative;\n    width: 95vw;\n    height: 90vh;\n    max-width: 95vw;\n    max-height: 90vh;\n    background: white;\n    border-radius: 8px;\n    padding: 20px;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);\n    overflow: auto;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen.dark-theme {\n    background: #1a1a1a;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);\n}\n\n.mermaid-container-fullscreen pre.mermaid {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen .mermaid svg {\n    height: 100% !important;\n    width: 100% !important;\n    cursor: grab;\n}\n\n.mermaid-fullscreen-close {\n    position: fixed !important;\n    top: 20px !important;\n    right: 20px !important;\n    width: 40px;\n    height: 40px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.2);\n    border-radius: 50%;\n    cursor: pointer;\n    z-index: 10000;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);\n    transition: all 0.2s;\n    font-size: 24px;\n    line-height: 1;\n    color: #333;\n}\n\n.mermaid-fullscreen-close:hover {\n    background: white;\n    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-close.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.2);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-close.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal .mermaid-fullscreen-btn {\n    display: none !important;\n}";
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+let _lazyObserver = null;
+let _renderQueue = Promise.resolve();
+let closeModal = () => {};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal?.classList.contains('active')) {
+        closeModal();
+    }
+});
+
+// Apply d3 zoom to each SVG. Idempotent: an SVG already wrapped is skipped,
+// so this is safe to call both for the initial batch and for diagrams that
+// render lazily once they become visible.
+const addZoomToSvgs = (svgs) => {
+    svgs.each(function() {
+        if (this.getAttribute('data-zoom-applied') === 'true') return;
+        var svg = d3.select(this);
+        svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+        var inner = svg.select("g");
+        var zoom = d3.zoom().on("zoom", function(event) {
+            inner.attr("transform", event.transform);
+        });
+        svg.call(zoom);
+        this.setAttribute('data-zoom-applied', 'true');
+    });
+};
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        // Disconnect any previous lazy rendering observer
+        if (_lazyObserver) {
+            _lazyObserver.disconnect();
+            _lazyObserver = null;
+        }
+
+        all_mermaids.forEach((el) => {
+            el.removeAttribute('data-mermaid-deferred');
+            el.removeAttribute('data-mermaid-render-failed');
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+
+        // Separate visible and hidden elements. Mermaid's layout engine measures
+        // text dimensions via the DOM, which fails for elements hidden by a parent
+        // (e.g., Reveal.js non-active slides, sphinx-design unopened tabs),
+        // producing broken SVGs. Render visible elements now, defer hidden ones.
+        const visible = [];
+        const hidden = [];
+        all_mermaids.forEach((el) => {
+            // offsetParent is null for display:none ancestors.
+            // getClientRects().length > 0 catches position:fixed elements
+            // (which also have null offsetParent but are still visible).
+            if (el.offsetParent !== null || el.getClientRects().length > 0) {
+                visible.push(el);
+            } else {
+                hidden.push(el);
+                el.setAttribute('data-mermaid-deferred', 'true');
+            }
+        });
+
+        if (visible.length > 0) {
+            try {
+                await mermaid.run({ nodes: visible });
+            } catch (e) {
+                console.error("Mermaid rendering failed:", e);
+            }
+        }
+
+        // Lazily render hidden elements when they become visible.
+        // Uses a promise chain (_renderQueue) to serialize rendering,
+        // since IntersectionObserver may report multiple entries at once
+        // and mermaid.run() is not safe to call concurrently.
+        if (hidden.length > 0) {
+            if (typeof IntersectionObserver === 'undefined') {
+                console.warn("IntersectionObserver not available; hidden mermaid diagrams will not render.");
+            } else {
+                _renderQueue = Promise.resolve();
+                _lazyObserver = new IntersectionObserver((entries) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting && entry.target.getAttribute("data-processed") !== "true") {
+                            _lazyObserver.unobserve(entry.target);
+                            const el = entry.target;
+                            _renderQueue = _renderQueue.then(async () => {
+                                try {
+                                    await mermaid.run({ nodes: [el] });
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    // Apply zoom to the now-rendered diagram, matching
+                                    // the decoration visible diagrams receive.
+                                    if (true) {
+                                        addZoomToSvgs(d3.selectAll(".mermaid").select(function() {
+                                            return this.querySelector("svg");
+                                        }));
+                                    }
+                                } catch (e) {
+                                    console.error("Mermaid deferred rendering failed:", e);
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    el.setAttribute('data-mermaid-render-failed', 'true');
+                                }
+                            });
+                        }
+                    }
+                });
+                hidden.forEach((el) => _lazyObserver.observe(el));
+            }
+        }
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    // Exclude deferred (hidden) and render-failed elements from completion checks
+    const mermaids_active = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])");
+    const mermaids_processed = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])[data-processed='true']");
+
+    if (true) {
+        const mermaids_to_add_zoom = -1 === -1 ? mermaids_active.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll(".mermaid").select(function() {
+                return this.querySelector("svg");
+            });
+            // Wait until every active (visible) diagram has rendered. Deferred
+            // diagrams are excluded, so a fixed d3_node_count that counts a
+            // hidden diagram no longer loops forever waiting for its SVG.
+            if(mermaids_active.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            }
+            addZoomToSvgs(svgs);
+        }
+    } else if(mermaids_active.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if (!true) return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = "\u26f6";
+        fullscreenBtn.style.opacity = "50%";
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scrollX, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.display = 'block';
+
+                if (true) {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+
+
+const load = async () => {
+    initStyles();
+
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "neutral" : "neutral", "theme");
+            await mermaid.initialize(
+                {...{"startOnLoad": false},
+                ...{ darkMode: darkTheme, theme: darkTheme ? "neutral" : "neutral" },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "neutral" : "neutral", "theme");
+mermaid.initialize(
+    {...{"startOnLoad": false},
+    ...{ darkMode: darkTheme, theme: darkTheme ? "neutral" : "neutral" },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'dispatcher/custom_modules';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Telemetry APIs" href="../telemetry/index.html" />
+    <link rel="prev" title="Dispatcher" href="dispatcher.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Dispatcher APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="dispatcher.html">Dispatcher</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Building Custom Modules &amp; Protocols</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#concepts-the-layers">Concepts: the layers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-ids-already-in-use">Module ids already in use</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#anatomy-of-a-module-the-coredumpservice-pattern">Anatomy of a module: the <code class="docutils literal notranslate"><span class="pre">CoreDumpService</span></code> pattern</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#a-minimal-hello-module-from-scratch">A minimal “hello” module, from scratch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#defining-a-protocol-payload">Defining a protocol / payload</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-usb-vendor-transport">The USB vendor transport</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#enabling-the-vendor-interface-device-side">Enabling the vendor interface (device side)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sending-and-receiving">Sending and receiving</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-browser-side-webusb">The browser side (WebUSB)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#discovery-the-webapp-side">Discovery + the webapp side</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#advertising-a-module">Advertising a module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#answering-discovery">Answering discovery</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-device-hub">The Device Hub</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hosting-your-webapp">Hosting your webapp</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#checklist-shipping-a-new-module-webapp">Checklist: shipping a new module + webapp</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../telemetry/index.html">Telemetry APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wdi/index.html">WDI (Wheelchair Digital Interface) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dispatcher APIs</a></li>
+      <li class="breadcrumb-item active">Building Custom Modules &amp; Protocols</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/038eea4a/docs/en/dispatcher/custom_modules.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="building-custom-modules-protocols">
+<h1>Building Custom Modules &amp; Protocols<a class="headerlink" href="#building-custom-modules-protocols" title="Permalink to this heading"></a></h1>
+<p>This page is an in-depth, worked tutorial for adding <strong>your own</strong> protocol to
+an espp device: a device-side <em>module</em> that speaks a message set you define,
+multiplexed onto a shared USB link alongside espp’s own protocols (OTA, crash
+dump, …), plus a browser web app that talks to it. It assumes you have read
+<a class="reference internal" href="../stream_frame/index.html"><span class="doc">Stream Frame APIs</span></a> and <a class="reference internal" href="dispatcher.html"><span class="doc">Dispatcher</span></a> (the API reference for
+<cite>espp::Dispatcher</cite>) already; this page is the “how do I use these to ship a
+feature” companion to those API docs.</p>
+<section id="concepts-the-layers">
+<h2>Concepts: the layers<a class="headerlink" href="#concepts-the-layers" title="Permalink to this heading"></a></h2>
+<p>A custom protocol sits on three layers, each with a single, narrow job:</p>
+<pre  class="mermaid">
+        flowchart TD
+  subgraph browser[&quot;Browser web app&quot;]
+    UI[&quot;your module's console (module_console.html)&quot;]
+  end
+  subgraph device[&quot;ESP32 device&quot;]
+    T[&quot;espp::UsbDevice\n(vendor bulk IN/OUT, or CDC)&quot;]
+    D[&quot;espp::Dispatcher\n(routes by module id, serves discovery on 0xFF)&quot;]
+    M[&quot;your module\n(Config{send_fn} + build() + feed()/handle())&quot;]
+    OTA[&quot;espp::CoreDumpService / OTA / ... (other modules)&quot;]
+    T -- &quot;write_vendor() / write_cdc()&quot; --&gt; UI
+    UI -- &quot;WebUSB transferOut / Web Serial write&quot; --&gt; T
+    T -- &quot;on_receive callback&quot; --&gt; D
+    D -- &quot;module id N&quot; --&gt; M
+    D -- &quot;module id 4, 0, ...&quot; --&gt; OTA
+  end
+    </pre><ul class="simple">
+<li><p><strong>stream_frame</strong> (<a class="reference internal" href="../stream_frame/index.html"><span class="doc">Stream Frame APIs</span></a>) is the wire <em>framing</em>: it
+turns a payload into a CRC-32-verified, length-delimited frame carrying a
+routing <code class="docutils literal notranslate"><span class="pre">module</span></code> byte, a <code class="docutils literal notranslate"><span class="pre">type</span></code> byte, and a reply/request <code class="docutils literal notranslate"><span class="pre">flags</span></code> bit
+— and turns a raw byte stream back into frames. It has no idea what any
+module means; it only builds and parses frames.</p></li>
+<li><p><strong>Dispatcher</strong> (this component) parses that stream <strong>once</strong> and routes each
+frame to the handler registered for its <code class="docutils literal notranslate"><span class="pre">module</span></code> id, so several protocols
+(yours and espp’s) can share one stream without each running its own parser.
+It also answers a reserved <em>discovery</em> query (module <code class="docutils literal notranslate"><span class="pre">0xFF</span></code>) so a peer can
+ask which modules a device runs — see <a class="reference internal" href="#discovery-the-webapp-side">Discovery + the webapp side</a> below.</p></li>
+<li><p><strong>The transport</strong> moves the encoded bytes between device and host: a USB
+<strong>vendor</strong> (WebUSB) interface, a USB <strong>CDC</strong> (Web Serial) interface, a
+socket, or a UART. <cite>espp::Dispatcher</cite> and <cite>stream_frame</cite> don’t care which —
+they only need a <cite>send</cite> function and a stream of received bytes. This guide
+focuses on <cite>espp::UsbDevice</cite>’s vendor interface, the transport used by every
+shipped espp module console.</p></li>
+</ul>
+<section id="module-ids-already-in-use">
+<h3>Module ids already in use<a class="headerlink" href="#module-ids-already-in-use" title="Permalink to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">module</span></code> byte is a full byte (0..255), so up to 256 protocols can
+coexist on one stream. espp’s own protocols and examples currently claim:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Module id</p></th>
+<th class="head"><p>Protocol</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>OTA (firmware update)</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>Core-dump example crash trigger (example only)</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>BLDC haptics (<code class="docutils literal notranslate"><span class="pre">components/bldc_haptics</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>Telemetry (<code class="docutils literal notranslate"><span class="pre">espp::Telemetry</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>Crash dump (<code class="docutils literal notranslate"><span class="pre">espp::CoreDumpService</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>CAN bridge (<code class="docutils literal notranslate"><span class="pre">components/canopen</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>6</p></td>
+<td><p>MCP266 motor-controller console</p></td>
+</tr>
+<tr class="row-odd"><td><p>0xF0-0xFE</p></td>
+<td><p>reserved for dispatcher / meta use</p></td>
+</tr>
+<tr class="row-even"><td><p>0xFF</p></td>
+<td><p>capability discovery</p></td>
+</tr>
+</tbody>
+</table>
+<p>Pick any id <strong>not</strong> in this table (or not already used by other modules in
+your own application) for your protocol. Nothing in <cite>espp::Dispatcher</cite> is
+hard-wired to a specific id — a device only ever registers the modules it
+actually serves, and frames for an unregistered id are silently ignored.</p>
+<p>Several modules can, and routinely do, share <strong>one</strong> <cite>Dispatcher</cite> over <strong>one</strong>
+USB link. The <cite>bldc_haptics</cite> example registers OTA, the crash-dump service,
+<em>and</em> its own haptics protocol on a single dispatcher instance
+(<code class="docutils literal notranslate"><span class="pre">components/bldc_haptics/example/main/bldc_haptics_example.cpp</span></code>):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">dispatcher</span><span class="p">.</span><span class="n">register_module</span><span class="p">(</span>
+<span class="w">    </span><span class="n">otap</span><span class="o">::</span><span class="n">kModule</span><span class="p">,</span>
+<span class="w">    </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">stream_frame</span><span class="o">::</span><span class="n">Frame</span><span class="w"> </span><span class="o">&amp;</span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">frame</span><span class="p">.</span><span class="n">is_reply</span><span class="p">())</span>
+<span class="w">        </span><span class="n">handle_ota_frame</span><span class="p">(</span><span class="n">frame</span><span class="p">);</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"OTA"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">app</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"ota_console.html"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Firmware update over USB"</span><span class="p">});</span>
+<span class="n">dispatcher</span><span class="p">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">CoreDumpService</span><span class="o">::</span><span class="n">kModule</span><span class="p">,</span>
+<span class="w">                           </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">stream_frame</span><span class="o">::</span><span class="n">Frame</span><span class="w"> </span><span class="o">&amp;</span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                             </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">frame</span><span class="p">.</span><span class="n">is_reply</span><span class="p">())</span>
+<span class="w">                               </span><span class="n">coredump_service</span><span class="p">.</span><span class="n">handle_frame</span><span class="p">(</span><span class="n">frame</span><span class="p">.</span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="n">frame</span><span class="p">.</span><span class="n">payload</span><span class="p">);</span>
+<span class="w">                           </span><span class="p">},</span>
+<span class="w">                           </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Core Dump"</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">app</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"coredump_console.html"</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Inspect the last crash core dump"</span><span class="p">});</span>
+<span class="n">dispatcher</span><span class="p">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">proto</span><span class="o">::</span><span class="n">kModule</span><span class="p">,</span>
+<span class="w">                           </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">proto</span><span class="o">::</span><span class="n">stream</span><span class="o">::</span><span class="n">Frame</span><span class="w"> </span><span class="o">&amp;</span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                             </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">frame</span><span class="p">.</span><span class="n">is_reply</span><span class="p">())</span>
+<span class="w">                               </span><span class="n">handle_frame</span><span class="p">(</span><span class="n">frame</span><span class="p">);</span>
+<span class="w">                           </span><span class="p">},</span>
+<span class="w">                           </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"BLDC Haptics"</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">app</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"haptics_console.html"</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Haptic detent / feedback modes"</span><span class="p">});</span>
+</pre></div>
+</div>
+<p>Your application module registers alongside these the same way — pick an
+unused id, register a handler, and (optionally) attach <cite>ModuleInfo</cite> so it is
+discoverable (see <a class="reference internal" href="#discovery-the-webapp-side">Discovery + the webapp side</a>).</p>
+</section>
+</section>
+<section id="anatomy-of-a-module-the-coredumpservice-pattern">
+<h2>Anatomy of a module: the <code class="docutils literal notranslate"><span class="pre">CoreDumpService</span></code> pattern<a class="headerlink" href="#anatomy-of-a-module-the-coredumpservice-pattern" title="Permalink to this heading"></a></h2>
+<p><cite>espp::CoreDumpService</cite> (<code class="docutils literal notranslate"><span class="pre">components/coredump/include/coredump_service.hpp</span></code>)
+is the best reference for the <em>shape</em> a device-side module takes, because it
+is a complete, production module: it owns a protocol (module id, message
+types), is transport-agnostic, and is registered on a <cite>Dispatcher</cite> exactly
+like your own module will be. The pattern has five parts:</p>
+<ol class="arabic">
+<li><p><strong>A module id.</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">/// Dispatcher module id owned by the core-dump protocol (the frame `module`</span>
+<span class="c1">/// byte). Reply Msg values keep the high bit set, which build() maps to the</span>
+<span class="c1">/// frame reply flag.</span>
+<span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">kModule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Message types</strong>, as a scoped enum of <cite>uint8_t</cite> values. <cite>CoreDumpService</cite>
+uses one <em>convention</em> — request types in <code class="docutils literal notranslate"><span class="pre">0x40</span></code>-<code class="docutils literal notranslate"><span class="pre">0x43</span></code>, and their reply
+counterparts at <code class="docutils literal notranslate"><span class="pre">0xC0</span></code>-<code class="docutils literal notranslate"><span class="pre">0xC4</span></code> (the high bit set) — purely so <cite>build()</cite>
+can derive the frame’s <cite>reply</cite> bit from the type value instead of taking it
+as a separate parameter:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Msg</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// host -&gt; device</span>
+<span class="w">  </span><span class="n">GetSummary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x40</span><span class="p">,</span><span class="w"> </span><span class="c1">///&lt; request the crash report text</span>
+<span class="w">  </span><span class="n">GetSize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x41</span><span class="p">,</span><span class="w">    </span><span class="c1">///&lt; request the core-dump image size</span>
+<span class="w">  </span><span class="n">Read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x42</span><span class="p">,</span><span class="w">       </span><span class="c1">///&lt; read image bytes (u32 offset + u16 length)</span>
+<span class="w">  </span><span class="n">Erase</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x43</span><span class="p">,</span><span class="w">      </span><span class="c1">///&lt; erase the stored core dump</span>
+<span class="w">  </span><span class="c1">// device -&gt; host</span>
+<span class="w">  </span><span class="n">Summary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xC0</span><span class="p">,</span><span class="w"> </span><span class="c1">///&lt; UTF-8 crash report (empty = clean boot history)</span>
+<span class="w">  </span><span class="n">Size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xC1</span><span class="p">,</span><span class="w">    </span><span class="c1">///&lt; u32 image size (0 = no core dump)</span>
+<span class="w">  </span><span class="n">Data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xC2</span><span class="p">,</span><span class="w">    </span><span class="c1">///&lt; u32 offset + image bytes</span>
+<span class="w">  </span><span class="n">Ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xC3</span><span class="p">,</span><span class="w">      </span><span class="c1">///&lt; u32 context-dependent success value</span>
+<span class="w">  </span><span class="n">Error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xC4</span><span class="p">,</span><span class="w">   </span><span class="c1">///&lt; u32 informational code + authoritative UTF-8 message</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p>This is a convention, <strong>not</strong> something <cite>stream_frame</cite> or <cite>Dispatcher</cite>
+requires — the authoritative reply/request signal is always the frame’s
+<cite>flags</cite> bit0 (see <cite>Frame::is_reply()</cite> and <cite>build_frame(bool reply, …)</cite>),
+which every module must set correctly regardless of how it lays out its
+<cite>type</cite> values. Other espp modules pick different layouts for the same
+underlying rule: <cite>espp::Telemetry</cite> (module 3) uses request types <code class="docutils literal notranslate"><span class="pre">0x0X</span></code>
+and reply types <code class="docutils literal notranslate"><span class="pre">0x8X</span></code>; the MCP266 console protocol
+(<code class="docutils literal notranslate"><span class="pre">components/mcp266/webapp_example/main/mcp266_protocol.hpp</span></code>, module 6)
+uses high-nibble <code class="docutils literal notranslate"><span class="pre">0x6_</span></code> for requests and <code class="docutils literal notranslate"><span class="pre">0xE_</span></code> for replies. Any layout
+works as long as your <cite>build()</cite> (or equivalent) passes the right <cite>reply</cite>
+bool to <cite>build_frame()</cite>.</p>
+</li>
+<li><p><strong>A `Config` carrying a `send_fn`.</strong> The module never touches a transport
+directly — it is handed a callback that transmits one already-encoded
+frame, so the same module class works unmodified over USB vendor, USB CDC,
+a socket, or a UART:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">using</span><span class="w"> </span><span class="n">send_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">frame</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="k">struct</span><span class="w"> </span><span class="nc">Config</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">send_fn</span><span class="w"> </span><span class="n">send</span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span><span class="w"> </span><span class="c1">///&lt; Transmits an encoded reply frame (required).</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="w"> </span><span class="n">log_level</span><span class="p">{</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">};</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p>Mounting it on a transport is then a one-liner at construction time (from
+<code class="docutils literal notranslate"><span class="pre">components/coredump/example/main/coredump_example.cpp</span></code>):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">espp</span><span class="o">::</span><span class="n">CoreDumpService</span><span class="w"> </span><span class="nf">vendor_service</span><span class="p">(</span>
+<span class="w">    </span><span class="n">core_dump</span><span class="p">,</span><span class="w"> </span><span class="p">{.</span><span class="n">send</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">usb</span><span class="p">.</span><span class="n">write_vendor</span><span class="p">(</span><span class="n">frame</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>A `build()` helper</strong> that wraps <cite>stream_frame::build_frame()</cite> so every
+reply in the module goes through one place:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">build</span><span class="p">(</span><span class="n">Msg</span><span class="w"> </span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">payload</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{})</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">namespace</span><span class="w"> </span><span class="nn">stream</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">espp</span><span class="o">::</span><span class="nn">stream_frame</span><span class="p">;</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">reply</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">type</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0x80</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">stream</span><span class="o">::</span><span class="n">build_frame</span><span class="p">(</span><span class="n">reply</span><span class="p">,</span><span class="w"> </span><span class="n">kModule</span><span class="p">,</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">type</span><span class="p">),</span><span class="w"> </span><span class="n">payload</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>`feed()` / `handle_frame()` entry points</strong> that parse (or accept an
+already-parsed) frame, build a reply payload, and only <em>then</em> invoke
+<cite>send</cite>. <cite>CoreDumpService::handle_frame_locked()</cite> runs the request under an
+internal mutex, but note carefully how the reply is delivered:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">handle_frame</span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">payload</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">reply</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">handled</span><span class="p">;</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">mutex_</span><span class="p">);</span>
+<span class="w">    </span><span class="n">handled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">handle_frame_locked</span><span class="p">(</span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="n">payload</span><span class="p">,</span><span class="w"> </span><span class="n">reply</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="c1">// send outside the lock so a re-entrant transport cannot deadlock</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">reply</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span>
+<span class="w">    </span><span class="n">send</span><span class="p">(</span><span class="n">reply</span><span class="p">);</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">handled</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The reply is always sent <strong>after</strong> releasing the module’s internal lock.
+This matters the moment your <cite>send</cite> callback might call back into the
+module (a loopback transport in a host test, or an error path that resets
+the parser) — sending under the lock would deadlock. Copy this shape even
+for a module simple enough that it seems unnecessary; it costs nothing and
+avoids a subtle bug later.</p>
+<p><cite>handle_frame_locked()</cite> itself is a plain switch over your <cite>Msg</cite> enum,
+building a reply payload with the <cite>stream_frame::put_*</cite> helpers and
+returning <cite>false</cite> for any <cite>type</cite> outside the module — which is what lets
+several protocols share a stream (<cite>feed()</cite>/<cite>Dispatcher::feed()</cite> simply
+moves on for module ids or types the handler doesn’t own):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">case</span><span class="w"> </span><span class="no">Msg</span><span class="o">::</span><span class="no">GetSize</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">raw_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">core_dump_</span><span class="p">.</span><span class="n">image_size</span><span class="p">();</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">min</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">raw_size</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;::</span><span class="n">max</span><span class="p">()));</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">reply_payload</span><span class="p">;</span>
+<span class="w">  </span><span class="n">stream</span><span class="o">::</span><span class="n">put_u32</span><span class="p">(</span><span class="n">reply_payload</span><span class="p">,</span><span class="w"> </span><span class="n">size</span><span class="p">);</span>
+<span class="w">  </span><span class="n">reply</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">build</span><span class="p">(</span><span class="n">Msg</span><span class="o">::</span><span class="n">Size</span><span class="p">,</span><span class="w"> </span><span class="n">reply_payload</span><span class="p">);</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>For errors, <cite>CoreDumpService::build_error()</cite> packs a <cite>u32</cite> code plus a
+UTF-8 message and is a good template for your own error replies: treat the
+message as authoritative and the code as best-effort/informational (see
+the header comment in <code class="docutils literal notranslate"><span class="pre">coredump_service.hpp</span></code> for why — <cite>std::errc</cite>
+numbering is not portable across C++ standard libraries).</p>
+</li>
+</ol>
+</section>
+<section id="a-minimal-hello-module-from-scratch">
+<h2>A minimal “hello” module, from scratch<a class="headerlink" href="#a-minimal-hello-module-from-scratch" title="Permalink to this heading"></a></h2>
+<p><cite>CoreDumpService</cite> is a <em>complete</em> module (flash access, a mutex, error
+mapping); the pattern above is more machinery than a small application
+protocol needs. Here is the same five-part shape reduced to the minimum: a
+module that answers a <code class="docutils literal notranslate"><span class="pre">PING</span></code> request (an arbitrary string payload) with a
+<code class="docutils literal notranslate"><span class="pre">PONG</span></code> reply (the string, upper-cased), built directly from
+<cite>espp::stream_frame</cite> and <cite>espp::Dispatcher</cite> — no protocol header, no internal
+parser, no mutex, because a handler this small can run straight out of the
+<cite>Dispatcher</cite>’s own frame:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;algorithm&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cctype&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstdint&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;functional&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;span&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;string&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;vector&gt;</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"dispatcher.hpp"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"stream_frame.hpp"</span>
+
+<span class="k">namespace</span><span class="w"> </span><span class="nn">hello_module</span><span class="w"> </span><span class="p">{</span>
+<span class="c1">// 1. Module id: pick one not already in use (see the table above).</span>
+<span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">kModule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x10</span><span class="p">;</span>
+<span class="c1">// 2. Message types: PING (host-&gt;device) and PONG (device-&gt;host, high bit</span>
+<span class="c1">//    set) — purely a naming convention, same as CoreDumpService's Msg.</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Msg</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Ping</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x00</span><span class="p">,</span><span class="w"> </span><span class="n">Pong</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x80</span><span class="w"> </span><span class="p">};</span>
+<span class="p">}</span><span class="w"> </span><span class="c1">// namespace hello_module</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">HelloModule</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="c1">// 3. Config carrying a send_fn: the module never touches USB/UART/socket</span>
+<span class="w">  </span><span class="c1">//    APIs directly.</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">send_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">frame</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">Config</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">send_fn</span><span class="w"> </span><span class="n">send</span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="k">explicit</span><span class="w"> </span><span class="n">HelloModule</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Config</span><span class="w"> </span><span class="o">&amp;</span><span class="n">config</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">send_</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">send</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="c1">// 5. Entry point: register this directly as the Dispatcher handler for</span>
+<span class="w">  </span><span class="c1">//    hello_module::kModule (skips the feed()/handle_frame() split that</span>
+<span class="w">  </span><span class="c1">//    CoreDumpService needs so it can also run standalone off a raw byte</span>
+<span class="w">  </span><span class="c1">//    stream — feed() owns an internal parser for that case — and</span>
+<span class="w">  </span><span class="c1">//    serialize flash access under its own mutex; a handler this small</span>
+<span class="w">  </span><span class="c1">//    has neither concern).</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">handle</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">stream_frame</span><span class="o">::</span><span class="n">Frame</span><span class="w"> </span><span class="o">&amp;</span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">frame</span><span class="p">.</span><span class="n">is_reply</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">frame</span><span class="p">.</span><span class="n">type</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">hello_module</span><span class="o">::</span><span class="n">Msg</span><span class="o">::</span><span class="n">Ping</span><span class="p">))</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span><span class="w"> </span><span class="c1">// not a request we answer (ignore replies / other types)</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">text</span><span class="p">(</span><span class="n">frame</span><span class="p">.</span><span class="n">payload</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">frame</span><span class="p">.</span><span class="n">payload</span><span class="p">.</span><span class="n">end</span><span class="p">());</span>
+<span class="w">    </span><span class="c1">// Payload bytes are arbitrary, not guaranteed ASCII text, so cast to</span>
+<span class="w">    </span><span class="c1">// unsigned char before calling ::toupper (it's UB on a negative</span>
+<span class="w">    </span><span class="c1">// signed-char value); non-ASCII bytes simply pass through unchanged.</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">transform</span><span class="p">(</span><span class="n">text</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">text</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span><span class="w"> </span><span class="n">text</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="p">[](</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">char</span><span class="o">&gt;</span><span class="p">(</span><span class="o">::</span><span class="n">toupper</span><span class="p">(</span><span class="n">c</span><span class="p">));</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">reply_frame</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">build</span><span class="p">(</span><span class="n">hello_module</span><span class="o">::</span><span class="n">Msg</span><span class="o">::</span><span class="n">Pong</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="w">                                                                 </span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*&gt;</span><span class="p">(</span>
+<span class="w">                                                                     </span><span class="n">text</span><span class="p">.</span><span class="n">data</span><span class="p">()),</span>
+<span class="w">                                                                 </span><span class="n">text</span><span class="p">.</span><span class="n">size</span><span class="p">()));</span>
+<span class="w">    </span><span class="n">send_</span><span class="p">(</span><span class="n">reply_frame</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+<span class="w">  </span><span class="c1">// 4. build(): every reply goes through stream_frame::build_frame(); the</span>
+<span class="w">  </span><span class="c1">//    Msg high bit (see the enum above) selects the reply flag, exactly</span>
+<span class="w">  </span><span class="c1">//    like CoreDumpService::build().</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">build</span><span class="p">(</span><span class="n">hello_module</span><span class="o">::</span><span class="n">Msg</span><span class="w"> </span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">payload</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">reply</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">type</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0x80</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">stream_frame</span><span class="o">::</span><span class="n">build_frame</span><span class="p">(</span><span class="n">reply</span><span class="p">,</span><span class="w"> </span><span class="n">hello_module</span><span class="o">::</span><span class="n">kModule</span><span class="p">,</span>
+<span class="w">                                           </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">type</span><span class="p">),</span><span class="w"> </span><span class="n">payload</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">send_fn</span><span class="w"> </span><span class="n">send_</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p>Note the reply is bound to a local <cite>reply_frame</cite> before it is handed to <cite>send_</cite>:
+<cite>send_fn</cite>’s <cite>std::span&lt;const uint8_t&gt;</cite> parameter is only valid for the
+duration of that one call, so a <cite>send</cite> implementation that needs to keep the
+bytes past the call (queueing it for a later retry, for example) must copy
+them rather than retain the span.</p>
+<p>Wiring it up looks exactly like any other module — construct it with a <cite>send</cite>
+that writes to your transport, then register it (with <cite>ModuleInfo</cite> so it is
+discoverable — see below):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">HelloModule</span><span class="w"> </span><span class="nf">hello</span><span class="p">({.</span><span class="n">send</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">usb</span><span class="p">.</span><span class="n">write_vendor</span><span class="p">(</span><span class="n">frame</span><span class="p">);</span><span class="w"> </span><span class="p">}});</span>
+<span class="n">dispatcher</span><span class="p">.</span><span class="n">register_module</span><span class="p">(</span>
+<span class="w">    </span><span class="n">hello_module</span><span class="o">::</span><span class="n">kModule</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">stream_frame</span><span class="o">::</span><span class="n">Frame</span><span class="w"> </span><span class="o">&amp;</span><span class="n">f</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">hello</span><span class="p">.</span><span class="n">handle</span><span class="p">(</span><span class="n">f</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Hello"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">app</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"hello_console.html"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"PING/PONG demo module"</span><span class="p">});</span>
+</pre></div>
+</div>
+<p>That’s a complete, working custom protocol: a module id, two message types, a
+<cite>send_fn</cite>-based <cite>Config</cite>, a <cite>build()</cite> helper, and a handler registered on a
+<cite>Dispatcher</cite>. Everything in the rest of this page — richer payloads,
+transports, and discovery — builds on exactly this shape.</p>
+</section>
+<section id="defining-a-protocol-payload">
+<h2>Defining a protocol / payload<a class="headerlink" href="#defining-a-protocol-payload" title="Permalink to this heading"></a></h2>
+<p><cite>stream_frame</cite> fixes the <em>frame</em> layout (magic, flags, module, type, len,
+payload, CRC — see <a class="reference internal" href="../stream_frame/index.html"><span class="doc">Stream Frame APIs</span></a>); the <em>payload</em> layout is
+entirely up to your protocol. A few conventions used by every espp module
+keep payloads simple to parse on both the device (C++) and the browser
+(JavaScript <cite>DataView</cite>):</p>
+<ul>
+<li><p><strong>Little-endian, fixed-width fields.</strong> The frame header itself is
+little-endian (see the wire-format comment at the top of
+<code class="docutils literal notranslate"><span class="pre">stream_frame.hpp</span></code>), and every espp module payload follows the same rule
+for multi-byte fields.</p></li>
+<li><p><strong>The `put_u16` / `put_u32` / `get_u16` / `get_u32` helpers</strong> append or read
+a little-endian integer:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">put_u16</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">out</span><span class="p">,</span><span class="w"> </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">value</span><span class="p">);</span>
+<span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">put_u32</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">out</span><span class="p">,</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">value</span><span class="p">);</span>
+<span class="kr">inline</span><span class="w"> </span><span class="kt">uint16_t</span><span class="w"> </span><span class="nf">get_u16</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bytes</span><span class="p">);</span>
+<span class="kr">inline</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="nf">get_u32</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bytes</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Strings are commonly length-prefixed with a single byte, as
+<cite>Dispatcher::describe()</cite> does for its discovery payload (see below) —
+<code class="docutils literal notranslate"><span class="pre">[len</span> <span class="pre">u8][bytes]</span></code>, truncated at 255 bytes, so a reader never needs to
+scan for a terminator.</p>
+</li>
+<li><p><strong>The `reply` bit is a `build_frame()` parameter, not a payload field.</strong>
+Whether a frame is a request or a response/event lives in the frame
+<cite>flags</cite> (bit0), set via <cite>build_frame(bool reply, uint8_t module, uint8_t
+type, payload, correlation)</cite>. Folding the direction into your <cite>type</cite> enum
+(as <cite>Msg::Summary = 0xC0</cite> does) is a convenience for <cite>build()</cite>, not a wire
+requirement — <cite>Dispatcher</cite> and <cite>stream_frame</cite> only ever look at the <cite>flags</cite>
+bit.</p></li>
+<li><p><strong>An optional `correlation` id</strong> (<cite>std::optional&lt;uint16_t&gt;</cite>, the last
+<cite>build_frame()</cite> parameter) lets a protocol match a reply to the request
+that triggered it when more than one request may be outstanding at once.
+Single-request-in-flight protocols (most espp modules, including
+<cite>CoreDumpService</cite>) don’t need it and simply omit the argument.</p></li>
+<li><p><strong>`stream_frame::kMaxPayloadSize` (4096 bytes)</strong> bounds one frame’s
+payload; <cite>build_frame()</cite> returns an empty vector if you exceed it (check
+for that, as <cite>Dispatcher::serve_discovery()</cite> does, rather than sending
+nothing silently).</p></li>
+<li><p><strong>Add typed helpers when you need them.</strong> <cite>stream_frame</cite> ships only
+integer helpers; a protocol that carries floats defines its own, the same
+way <cite>espp::Telemetry</cite> (module 3, <code class="docutils literal notranslate"><span class="pre">components/telemetry/include/telemetry.hpp</span></code>)
+does for its <cite>SAMPLE</cite> frames:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">/// Append a little-endian IEEE-754 float32 to a byte buffer.</span>
+<span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">put_f32</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">out</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">bits</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">memcpy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">bits</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">bits</span><span class="p">));</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">stream_frame</span><span class="o">::</span><span class="n">put_u32</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="w"> </span><span class="n">bits</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>used exactly like the built-in helpers when building a payload:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">p</span><span class="p">;</span>
+<span class="n">espp</span><span class="o">::</span><span class="n">stream_frame</span><span class="o">::</span><span class="n">put_u32</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">timestamp_us</span><span class="p">);</span>
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">values</span><span class="p">)</span>
+<span class="w">  </span><span class="n">put_f32</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">v</span><span class="p">);</span>
+<span class="n">frame</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">build</span><span class="p">(</span><span class="n">Type</span><span class="o">::</span><span class="n">Sample</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>On the browser side the matching read is one <cite>DataView.getFloat32(offset,
+true)</cite> call (the <cite>true</cite> selects little-endian) — no bit-reinterpretation
+needed there, since JavaScript’s <cite>DataView</cite> already has a native float
+accessor.</p>
+</li>
+</ul>
+</section>
+<section id="the-usb-vendor-transport">
+<h2>The USB vendor transport<a class="headerlink" href="#the-usb-vendor-transport" title="Permalink to this heading"></a></h2>
+<p>Every shipped espp module console reaches the device over
+<cite>espp::UsbDevice</cite>’s <strong>vendor</strong> function (a <cite>bInterfaceClass 0xFF</cite> interface
+with one bulk IN + one bulk OUT endpoint) advertising <strong>WebUSB</strong>, so a
+Chromium-based browser can open it with no driver install. The same protocol
+usually also rides the <strong>CDC</strong> function (Web Serial) so it can share a stream
+with human-readable console text.</p>
+<section id="enabling-the-vendor-interface-device-side">
+<h3>Enabling the vendor interface (device side)<a class="headerlink" href="#enabling-the-vendor-interface-device-side" title="Permalink to this heading"></a></h3>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="n">usb_cfg</span><span class="p">;</span>
+<span class="n">usb_cfg</span><span class="p">.</span><span class="n">pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x0000</span><span class="p">;</span><span class="w"> </span><span class="c1">// replace with your project's allocated PID (e.g. from</span>
+<span class="w">                      </span><span class="c1">// pid.codes) so a webapp's WebUSB filter can find your</span>
+<span class="w">                      </span><span class="c1">// device specifically — this placeholder is not a real</span>
+<span class="w">                      </span><span class="c1">// assignment</span>
+<span class="n">usb_cfg</span><span class="p">.</span><span class="n">manufacturer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"espp"</span><span class="p">;</span>
+<span class="n">usb_cfg</span><span class="p">.</span><span class="n">product</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"My espp Device"</span><span class="p">;</span>
+
+<span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="o">::</span><span class="n">VendorFunction</span><span class="w"> </span><span class="n">vendor</span><span class="p">;</span>
+<span class="n">vendor</span><span class="p">.</span><span class="n">webusb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="c1">// advertise BOS / WebUSB / MS OS 2.0 descriptors</span>
+<span class="n">vendor</span><span class="p">.</span><span class="n">landing_page_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"esp-cpp.github.io/espp/apps/hello_console.html"</span><span class="p">;</span>
+<span class="n">usb_cfg</span><span class="p">.</span><span class="n">vendor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vendor</span><span class="p">;</span>
+
+<span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="w"> </span><span class="nf">usb</span><span class="p">(</span><span class="n">usb_cfg</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">usb</span><span class="p">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* handle ec */</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+<p><cite>VendorFunction</cite> (<code class="docutils literal notranslate"><span class="pre">components/usb_device/include/usb_device.hpp</span></code>) also
+exposes <cite>on_receive</cite> (a callback invoked with received bytes — the same thing
+<cite>set_vendor_receive_callback()</cite> sets after construction), <cite>rx_chunk_size</cite>, and
+the raw WebUSB control-request fields (<cite>url_scheme</cite>, <cite>webusb_vendor_code</cite>,
+<cite>ms_os_vendor_code</cite>) if you need to customize them. Building the vendor class
+into the firmware requires enabling it in <cite>esp_tinyusb</cite>’s Kconfig
+(<code class="docutils literal notranslate"><span class="pre">sdkconfig.defaults</span></code>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CONFIG_TINYUSB_VENDOR_COUNT</span><span class="o">=</span><span class="mi">1</span>   <span class="c1"># compiles in the TinyUSB vendor class driver</span>
+</pre></div>
+</div>
+</section>
+<section id="sending-and-receiving">
+<h3>Sending and receiving<a class="headerlink" href="#sending-and-receiving" title="Permalink to this heading"></a></h3>
+<ul>
+<li><p><cite>usb.write_vendor(data, ec)</cite> (or the exception-free overload
+<cite>usb.write_vendor(data)</cite>) queues bytes on the vendor bulk IN endpoint — this
+is what your module’s <cite>send_fn</cite> calls. Writes are <strong>all-or-nothing</strong>: a
+frame that fits the TX FIFO is either queued whole or not sent at all (see
+the doc comment on <cite>write_vendor()</cite> for the exact backpressure contract),
+so a reader on the other end never sees a truncated frame.</p></li>
+<li><p><cite>usb.set_vendor_receive_callback(cb)</cite> (or <cite>VendorFunction::on_receive</cite> at
+construction) delivers received bytes from the TinyUSB device task. Feed
+them straight into your <cite>Dispatcher</cite>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">usb</span><span class="p">.</span><span class="n">set_vendor_receive_callback</span><span class="p">([</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dispatcher</span><span class="p">.</span><span class="n">feed</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+<p>Receive callbacks run in the TinyUSB task and must stay short and
+non-blocking. If a module’s handler can block for more than a
+few milliseconds (flash access, a CANopen SDO round-trip, …), queue the
+bytes and call <cite>dispatcher.feed()</cite> from a worker task instead — see the
+RX-queueing pattern in
+<code class="docutils literal notranslate"><span class="pre">components/coredump/example/main/coredump_example.cpp</span></code> (a bounded
+<cite>std::deque</cite> drained by an <cite>espp::Task</cite>, with <cite>dispatcher.reset()</cite> called
+when a chunk had to be dropped so a frame straddling the gap
+resynchronizes at once).</p>
+</li>
+<li><p>One <cite>Dispatcher</cite> per byte stream. If you enable both vendor and CDC, use
+<strong>two</strong> <cite>Dispatcher</cite> instances (one per transport) so a frame split across
+reads on one never gets stitched onto bytes from the other — every
+multi-transport espp example (<cite>coredump_example.cpp</cite>, <cite>can_bridge_example.cpp</cite>,
+the MCP266 webapp example) follows this rule.</p></li>
+</ul>
+<p>The CDC (Web Serial) function carries the exact same framed protocol using
+<cite>usb.write_cdc()</cite> / <cite>usb.set_cdc_receive_callback()</cite> in place of the vendor
+calls above. Because <cite>stream_frame</cite>’s parser resynchronizes on its magic
+bytes, plain console text and framed messages can share one CDC stream
+without interfering — the core-dump web console relies on exactly this to
+double as both a serial monitor and a structured console.</p>
+</section>
+<section id="the-browser-side-webusb">
+<h3>The browser side (WebUSB)<a class="headerlink" href="#the-browser-side-webusb" title="Permalink to this heading"></a></h3>
+<p>A web app claims the vendor interface, then exchanges raw byte arrays with
+it. The Device Hub app (<code class="docutils literal notranslate"><span class="pre">components/dispatcher/web/dispatcher_hub.html</span></code>)
+implements this in a small, dependency-free <cite>UsbTransport</cite> class that every
+module console can reuse verbatim:</p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="kd">class</span><span class="w"> </span><span class="nx">UsbTransport</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">async</span><span class="w"> </span><span class="nx">open</span><span class="p">(</span><span class="nx">anyDevice</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">anyDevice</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">filters</span><span class="o">:</span><span class="w"> </span><span class="p">[]</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">filters</span><span class="o">:</span><span class="w"> </span><span class="p">[{</span><span class="w"> </span><span class="nx">vendorId</span><span class="o">:</span><span class="w"> </span><span class="nx">DEFAULT_VID</span><span class="w"> </span><span class="p">}]</span><span class="w"> </span><span class="p">};</span>
+<span class="w">    </span><span class="k">this</span><span class="p">.</span><span class="nx">device</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">navigator</span><span class="p">.</span><span class="nx">usb</span><span class="p">.</span><span class="nx">requestDevice</span><span class="p">(</span><span class="nx">options</span><span class="p">);</span>
+<span class="w">    </span><span class="k">await</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">device</span><span class="p">.</span><span class="nx">open</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">device</span><span class="p">.</span><span class="nx">configuration</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">device</span><span class="p">.</span><span class="nx">selectConfiguration</span><span class="p">(</span><span class="mf">1</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// ... find the interface whose interfaceClass === 0xFF (VENDOR_CLASS)</span>
+<span class="w">    </span><span class="c1">//     with a bulk IN + bulk OUT endpoint pair, then claimInterface() it.</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">async</span><span class="w"> </span><span class="nx">send</span><span class="p">(</span><span class="nx">bytes</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">sent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nx">sent</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="nx">bytes</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="kd">const</span><span class="w"> </span><span class="nx">out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">device</span><span class="p">.</span><span class="nx">transferOut</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">epOut</span><span class="p">,</span><span class="w"> </span><span class="nx">bytes</span><span class="p">.</span><span class="nx">subarray</span><span class="p">(</span><span class="nx">sent</span><span class="p">));</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">out</span><span class="p">.</span><span class="nx">status</span><span class="w"> </span><span class="o">!==</span><span class="w"> </span><span class="s2">"ok"</span><span class="p">)</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="ne">Error</span><span class="p">(</span><span class="s2">"OUT transfer status: "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">out</span><span class="p">.</span><span class="nx">status</span><span class="p">);</span>
+<span class="w">      </span><span class="kd">const</span><span class="w"> </span><span class="nx">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">out</span><span class="p">.</span><span class="nx">bytesWritten</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="mf">0</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">n</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="mf">0</span><span class="p">)</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="ne">Error</span><span class="p">(</span><span class="s2">"OUT transfer made no progress"</span><span class="p">);</span>
+<span class="w">      </span><span class="nx">sent</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="nx">n</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">async</span><span class="w"> </span><span class="nx">readLoop</span><span class="p">(</span><span class="nx">onData</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">reading</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="kd">const</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">device</span><span class="p">.</span><span class="nx">transferIn</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">epIn</span><span class="p">,</span><span class="w"> </span><span class="nx">MAX_FRAME</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">data</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">byteLength</span><span class="p">)</span>
+<span class="w">        </span><span class="nx">onData</span><span class="p">(</span><span class="ow">new</span><span class="w"> </span><span class="nb">Uint8Array</span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">buffer</span><span class="p">,</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">byteOffset</span><span class="p">,</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">byteLength</span><span class="p">));</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Every shipped module console (<code class="docutils literal notranslate"><span class="pre">coredump_console.html</span></code>, <code class="docutils literal notranslate"><span class="pre">mcp266_console.html</span></code>,
+<code class="docutils literal notranslate"><span class="pre">can_bridge_console.html</span></code>, <code class="docutils literal notranslate"><span class="pre">ds402_panel.html</span></code>, the BLDC haptics webapp,
+<code class="docutils literal notranslate"><span class="pre">telemetry.html</span></code>) carries its own copy of the same three building blocks —
+a <cite>crc32()</cite> matching <cite>stream_frame::crc32()</cite> (golden value
+<code class="docutils literal notranslate"><span class="pre">crc32(&quot;123456789&quot;)</span> <span class="pre">===</span> <span class="pre">0xCBF43926</span></code>), a <cite>buildFrame(module, type, payload)</cite>
+encoder matching <cite>stream_frame::build_frame()</cite>, and a parser matching
+<cite>stream_frame::StreamParser</cite>’s framing/CRC/resync logic — but they are
+<strong>wire-compatible variants, not byte-for-byte copies</strong>, so check before you
+paste one in wholesale:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">dispatcher_hub.html</span></code>, <code class="docutils literal notranslate"><span class="pre">mcp266_console.html</span></code>, and <code class="docutils literal notranslate"><span class="pre">ds402_panel.html</span></code>
+correctly skip the optional correlation-id bytes when sizing a frame, but
+their parsed frame objects (<code class="docutils literal notranslate"><span class="pre">{module,</span> <span class="pre">type,</span> <span class="pre">reply,</span> <span class="pre">payload}</span></code>) do not
+surface the id — copying one of these verbatim silently drops the
+correlation id this guide recommends for request/reply matching.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">coredump_console.html</span></code>, <code class="docutils literal notranslate"><span class="pre">can_bridge_console.html</span></code>, and the BLDC
+haptics console <em>do</em> surface it (<code class="docutils literal notranslate"><span class="pre">{...,</span> <span class="pre">correlation,</span> <span class="pre">...}</span></code>, <code class="docutils literal notranslate"><span class="pre">null</span></code>
+when the flag is clear).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">telemetry.html</span></code> uses differently-named helpers (<cite>sfCrc32</cite>, <cite>sfBuild</cite>,
+<cite>SfParser</cite> instead of <cite>crc32</cite>, <cite>buildFrame</cite>, <cite>StreamParser</cite>) and, like the
+hub, does not surface the correlation id.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">coredump_console.html</span></code>’s parser additionally returns every skipped
+(non-frame) byte as a <code class="docutils literal notranslate"><span class="pre">text</span></code> field alongside <code class="docutils literal notranslate"><span class="pre">frames</span></code>, since it shares
+one CDC stream with a plain-text serial console — the other consoles don’t
+need or have this.</p></li>
+</ul>
+<p>If you’re using correlation ids, copy the parser from <code class="docutils literal notranslate"><span class="pre">coredump_console.html</span></code>
+or <code class="docutils literal notranslate"><span class="pre">can_bridge_console.html</span></code>; otherwise <code class="docutils literal notranslate"><span class="pre">dispatcher_hub.html</span></code> is the
+simplest starting point. Whichever you copy, it’s deliberately
+dependency-free (no build step, no CDN) so it drops straight into a
+single-file app, and keeping the codec logic byte-identical to the C++ side
+is what makes the CRC and framing agree.</p>
+</section>
+</section>
+<section id="discovery-the-webapp-side">
+<h2>Discovery + the webapp side<a class="headerlink" href="#discovery-the-webapp-side" title="Permalink to this heading"></a></h2>
+<p>A device doesn’t have to hard-code which webapp goes with which module: it
+can <strong>advertise</strong> its modules, and a generic hub app can discover and link
+them.</p>
+<section id="advertising-a-module">
+<h3>Advertising a module<a class="headerlink" href="#advertising-a-module" title="Permalink to this heading"></a></h3>
+<p>Pass a third argument to <cite>register_module()</cite>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">ModuleInfo</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">name</span><span class="p">;</span><span class="w">        </span><span class="c1">///&lt; Human-readable module name, e.g. "MCP266 Console".</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">app</span><span class="p">;</span><span class="w">         </span><span class="c1">///&lt; Hosted web-app filename, e.g. "mcp266_console.html" (optional).</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">description</span><span class="p">;</span><span class="w"> </span><span class="c1">///&lt; One-line description (optional).</span>
+<span class="p">};</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">register_module</span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">module_id</span><span class="p">,</span><span class="w"> </span><span class="n">handler_fn</span><span class="w"> </span><span class="n">handler</span><span class="p">,</span><span class="w"> </span><span class="n">ModuleInfo</span><span class="w"> </span><span class="n">info</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>A module with an empty <cite>name</cite> is not advertised (the plain two-argument
+<cite>register_module()</cite> overload defaults to this — useful for a module you want
+routed but not shown in a hub UI). <cite>app</cite> must be the exact filename of your
+module’s hosted web app (see <a class="reference internal" href="#hosting-your-webapp">Hosting your webapp</a> below); the hub treats it
+as a same-directory relative link.</p>
+</section>
+<section id="answering-discovery">
+<h3>Answering discovery<a class="headerlink" href="#answering-discovery" title="Permalink to this heading"></a></h3>
+<p>Two calls, made once per <cite>Dispatcher</cite> instance, are all a device needs to
+answer capability queries:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">dispatcher</span><span class="p">.</span><span class="n">set_device_info</span><span class="p">(</span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">product</span><span class="w"> </span><span class="cm">/* , firmware version */</span><span class="p">);</span>
+<span class="n">dispatcher</span><span class="p">.</span><span class="n">serve_discovery</span><span class="p">([</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">usb</span><span class="p">.</span><span class="n">write_vendor</span><span class="p">(</span><span class="n">frame</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
+</pre></div>
+</div>
+<p><cite>serve_discovery()</cite> registers a handler on the reserved discovery module id
+<cite>Dispatcher::kDiscoveryModule</cite> (<cite>0xFF</cite>) that answers a
+<cite>Dispatcher::Discovery::ListModules</cite> request with <cite>describe()</cite> — a compact
+binary payload: <cite>[version u8][reserved u8][device_name str][device_fw str]
+[module_count u8]</cite> then, per advertised module, <cite>[id u8][name str][app
+str][desc str]</cite> (each <cite>str</cite> is <cite>[len u8][bytes]</cite>). This is the <strong>only</strong> path
+by which a <cite>Dispatcher</cite> ever transmits on its own — it stays otherwise a pure
+router, and <cite>serve_discovery()</cite> is opt-in.</p>
+</section>
+<section id="the-device-hub">
+<h3>The Device Hub<a class="headerlink" href="#the-device-hub" title="Permalink to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">components/dispatcher/web/dispatcher_hub.html</span></code> (hosted as
+<code class="docutils literal notranslate"><span class="pre">apps/dispatcher_hub.html</span></code>) connects over WebUSB or Web Serial, sends a
+<cite>ListModules</cite> request on module <cite>0xFF</cite>, decodes the reply, and renders one tab
+per module with a link to its <cite>app</cite>. It validates <cite>app</cite> before ever using it
+as a link target — only a bare filename ending in <code class="docutils literal notranslate"><span class="pre">.html</span></code> (no scheme, no
+slash, no <code class="docutils literal notranslate"><span class="pre">..</span></code>) is accepted, so a compromised or malicious device cannot
+make the hub open a <cite>javascript:</cite>/<cite>data:</cite>/external URL:</p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="kd">function</span><span class="w"> </span><span class="nx">safeAppName</span><span class="p">(</span><span class="nx">app</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="ow">typeof</span><span class="w"> </span><span class="nx">app</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">"string"</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="sr">/^[A-Za-z0-9._-]+\.html$/</span><span class="p">.</span><span class="nx">test</span><span class="p">(</span><span class="nx">app</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">app</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">".."</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Your module’s own console additionally re-runs the same discovery query
+itself on connect (every shipped console does) so it can confirm its module
+is actually present on the device it just connected to, independent of
+whether the user arrived via the hub or opened the console directly.</p>
+</section>
+<section id="hosting-your-webapp">
+<h3>Hosting your webapp<a class="headerlink" href="#hosting-your-webapp" title="Permalink to this heading"></a></h3>
+<p>Any single self-contained HTML file placed at
+<code class="docutils literal notranslate"><span class="pre">components/&lt;your_component&gt;/web/&lt;name&gt;.html</span></code> is hosted automatically by
+the docs build alongside every other espp app (see <a class="reference internal" href="../web_apps.html"><span class="doc">Web Apps</span></a>) — no
+registry entry to add. The apps landing page lists it using its <cite>&lt;title&gt;</cite> and
+<cite>&lt;meta name=”description”&gt;</cite> tags. Keep it dependency-free (no CDN resources,
+inline CSS/JS) so it also works fully offline from a <cite>file://</cite> URL and under
+GitHub Pages’ strict hosting. Make sure the filename you host it under is the
+exact string you pass as <cite>ModuleInfo::app</cite>.</p>
+</section>
+</section>
+<section id="checklist-shipping-a-new-module-webapp">
+<h2>Checklist: shipping a new module + webapp<a class="headerlink" href="#checklist-shipping-a-new-module-webapp" title="Permalink to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Pick a module id</strong> not already listed in the <a class="reference internal" href="#module-ids-already-in-use">Module ids already in use</a>
+table (and not used elsewhere in your own application).</p></li>
+<li><p><strong>Define your message `type`s</strong> as a small enum; decide (and document) how
+request vs. reply is signalled in your <cite>type</cite> values, remembering the
+<em>authoritative</em> signal is always the frame’s <cite>flags</cite> reply bit passed to
+<cite>build_frame()</cite>.</p></li>
+<li><p><strong>Implement the module</strong>: a <cite>Config</cite> carrying a <cite>send_fn</cite>, a <cite>build()</cite>
+helper wrapping <cite>stream_frame::build_frame()</cite>, and either a direct
+<cite>Dispatcher</cite> handler (the “hello” pattern) or your own <cite>feed()</cite> /
+<cite>handle_frame()</cite> split if the module needs its own parser/locking
+(the <cite>CoreDumpService</cite> pattern) — always send replies <strong>after</strong> releasing
+any internal lock.</p></li>
+<li><p><strong>Register it</strong> on your <cite>Dispatcher</cite> with <cite>ModuleInfo{name, app,
+description}</cite> so it’s discoverable; if you support both vendor and CDC,
+register it (with the same <cite>ModuleInfo</cite>) on <strong>both</strong> dispatchers.</p></li>
+<li><p><strong>Call `set_device_info()` and `serve_discovery()`</strong> once per <cite>Dispatcher</cite>
+/ transport pair so a hub (or your own console) can find the device and
+its modules.</p></li>
+<li><p><strong>Enable the transport</strong>: <cite>CONFIG_TINYUSB_VENDOR_COUNT=1</cite> (and/or the CDC
+equivalent) in <code class="docutils literal notranslate"><span class="pre">sdkconfig.defaults</span></code>, a <cite>VendorFunction</cite> (and/or
+<cite>CdcFunction</cite>) in your <cite>UsbDevice::Config</cite>, and a receive callback that
+feeds your <cite>Dispatcher</cite>.</p></li>
+<li><p><strong>Write the webapp</strong>: copy the <cite>crc32()</cite> / <cite>buildFrame()</cite> / <cite>StreamParser</cite>
+JS block from <cite>dispatcher_hub.html</cite> (or any module console), add a small
+UI that builds/decodes your payloads, and host it at
+<code class="docutils literal notranslate"><span class="pre">components/&lt;your_component&gt;/web/&lt;name&gt;.html</span></code> — the exact string you put
+in <cite>ModuleInfo::app</cite>.</p></li>
+<li><p><strong>Test on a host</strong> before touching hardware: <cite>Dispatcher</cite> and
+<cite>stream_frame</cite> are header-only and dependency-free, so a module built on
+them can be exercised in a plain host-side C++ test — see
+<code class="docutils literal notranslate"><span class="pre">components/dispatcher/test/dispatcher_host_test.cpp</span></code> and
+<code class="docutils literal notranslate"><span class="pre">components/stream_frame/test/stream_frame_host_test.cpp</span></code> for the
+pattern (build and run with a plain <code class="docutils literal notranslate"><span class="pre">c++</span> <span class="pre">-std=c++20</span></code>, no ESP-IDF
+toolchain needed).</p></li>
+</ol>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../stream_frame/index.html"><span class="doc">Stream Frame APIs</span></a> — the frame codec this page builds on.</p></li>
+<li><p><a class="reference internal" href="dispatcher.html"><span class="doc">Dispatcher</span></a> — the <cite>Dispatcher</cite> API reference.</p></li>
+<li><p><a class="reference internal" href="../coredump/coredump.html"><span class="doc">Core Dump (Crash Reporting)</span></a> — the <cite>CoreDumpService</cite> worked example used
+throughout this page.</p></li>
+<li><p><a class="reference internal" href="../telemetry/telemetry.html"><span class="doc">Telemetry</span></a> — a module streaming typed float samples
+(the <cite>put_f32</cite> example above).</p></li>
+<li><p><a class="reference internal" href="../buses/canopen.html"><span class="doc">CANopen (CiA 301) Client APIs</span></a> — a bridge module (module 5) plus an
+in-browser CANopen/DS402 client.</p></li>
+<li><p><a class="reference internal" href="../buses/usb_cdc.html"><span class="doc">USB Device Component</span></a> — the <cite>espp::UsbDevice</cite> component reference
+(vendor / CDC / HID / X-Input functions, endpoint budgeting).</p></li>
+<li><p><a class="reference internal" href="../web_apps.html"><span class="doc">Web Apps</span></a> — how a component’s <code class="docutils literal notranslate"><span class="pre">web/</span></code> directory becomes a
+hosted app, and the full list of module consoles shipped today.</p></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="dispatcher.html" class="btn btn-neutral float-left" title="Dispatcher" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../telemetry/index.html" class="btn btn-neutral float-right" title="Telemetry APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
