@@ -18,7 +18,9 @@
 // hid-rp is header-only and standard-library-only, so this is still host-testable
 // (see test/wdi_hid_host_test.cpp).
 
+#include <algorithm>
 #include <cstdint>
+#include <span>
 
 #include "hid-rp.hpp"
 
@@ -168,6 +170,59 @@ inline constexpr auto make_hid_report_descriptor() {
 /// @brief The WDI HID report descriptor bytes (a std::array), ready to hand to
 ///        espp::UsbDevice's HID function or a BLE HID Report Map characteristic.
 inline constexpr auto kReportDescriptor = make_hid_report_descriptor();
+
+/// @brief Does a HID report descriptor describe a WDI device?
+///
+/// True for an exact match against kReportDescriptor, or -- for another
+/// implementation of the spec -- for a descriptor that declares the WDI vendor
+/// usage page (0xFF00) immediately followed by usage 0x01 (Wheelchair Control
+/// Device) and report ids 1..5. This is what a WDI host uses to decide which
+/// HID device to adopt, so it walks the descriptor's items properly rather than
+/// byte-scanning: item *data* (e.g. a Logical Maximum of 0x00FF0006) cannot
+/// masquerade as a Usage Page item, long items (prefix 0xFE) are skipped, and a
+/// truncated/malformed descriptor is rejected.
+/// @param d The report descriptor bytes.
+/// @return true if it looks like a WDI descriptor.
+constexpr bool looks_like_wdi_descriptor(std::span<const uint8_t> d) {
+  if (d.size() == kReportDescriptor.size() &&
+      std::equal(d.begin(), d.end(), kReportDescriptor.begin()))
+    return true;
+  bool vendor_usage = false; // saw Usage Page 0xFF00 immediately followed by Usage 0x01
+  uint8_t report_ids = 0;    // bit i-1 set when Report ID i (1..5) was seen
+  bool prev_was_wdi_page = false;
+  for (size_t i = 0; i < d.size();) {
+    const uint8_t prefix = d[i];
+    if (prefix == 0xFE) {
+      // Long item: [0xFE][bDataSize][bLongItemTag][data...]. Valid HID (no
+      // long items are defined today) -- skip it, but reject a truncated one.
+      if (i + 2 >= d.size())
+        return false;
+      const size_t data_size = d[i + 1];
+      if (i + 3 + data_size > d.size())
+        return false;
+      i += 3 + data_size;
+      prev_was_wdi_page = false;
+      continue;
+    }
+    const uint8_t size_code = prefix & 0x03;
+    const size_t size = size_code == 3 ? 4 : size_code;
+    if (i + 1 + size > d.size())
+      return false; // malformed / truncated short item
+    const uint8_t tag_type = prefix & 0xFC;
+    const uint8_t *data = &d[i + 1];
+    if (tag_type == 0x04 && size == 2 && data[0] == 0x00 && data[1] == 0xFF) {
+      prev_was_wdi_page = true; // Global: Usage Page 0xFF00
+    } else {
+      if (tag_type == 0x08 && size == 1 && data[0] == 0x01 && prev_was_wdi_page)
+        vendor_usage = true; // Local: Usage 0x01 (Wheelchair Control Device)
+      prev_was_wdi_page = false;
+    }
+    if (tag_type == 0x84 && size == 1 && data[0] >= 1 && data[0] <= 5) // Global: Report ID
+      report_ids |= static_cast<uint8_t>(1u << (data[0] - 1));
+    i += 1 + size;
+  }
+  return vendor_usage && report_ids == 0x1F;
+}
 
 } // namespace wdi
 } // namespace espp

@@ -65,8 +65,8 @@ its own `REQUIRES` (the examples show this):
 | `wdi_hid.hpp` | HID report descriptor | `hid-rp` |
 | `wdi_usb.hpp` | USB device (`WdiUsbPeripheral`) | `usb_device`, `hid-rp` |
 | `wdi_ble.hpp` | BLE peripheral (`WdiBlePeripheral`) | `esp-nimble-cpp` (+ `hid-rp`, for the Report Map) |
-| `wdi_usb_host.hpp` | USB host (`WdiUsbHost`) — *host role, follow-up PR* | `usb_host`, `hid-rp` |
-| `wdi_ble_central.hpp` | BLE central (`WdiBleCentral`) — *host role, follow-up PR* | `esp-nimble-cpp` |
+| `wdi_usb_host.hpp` | USB host (`WdiUsbHost`) | `usb_host`, `hid-rp` |
+| `wdi_ble_central.hpp` | BLE central (`WdiBleCentral`) | `esp-nimble-cpp` |
 
 This keeps a project that only wants the protocol core (or a single transport)
 from pulling in the BLE and USB stacks it does not use.
@@ -159,6 +159,63 @@ See `usb_example/` for a full runnable example (esp32s3). Because the native USB
 port is given to TinyUSB, the console runs on UART0 (with USB-Serial-JTAG as an
 early-boot secondary).
 
+## Host role (`espp::WdiHost`)
+
+`WdiHost` (in `wdi_host.hpp`) is the wheelchair side, transport-agnostic and the
+mirror image of `WdiDevice`: give it a `send` callback (put an OUTPUT report on
+the wire) and feed it the app's INPUT reports via `handle_input()`. It owns the
+keepalive **watchdog** — call `poll()` periodically and it fires
+`on_disconnected` (the caller must drive-disable) once the app has gone quiet for
+3 keepalive windows. Request-Feedback triggers a Feedback reply; Keepalive
+triggers a Keepalive-Response (the host's UUID). Time is read through a
+caller-supplied clock so it is fully host-testable.
+
+```cpp
+espp::WdiHost::Config cfg;
+cfg.host_uuid = espp::WdiHost::make_host_uuid(0x000B /*LUCI*/, random14);
+cfg.on_control = [](const espp::wdi::ControlReport &c) { /* drive the chair */ };
+cfg.on_disconnected = [] { /* DRIVE DISABLE */ };
+cfg.send = [&](espp::wdi::ReportId id, std::span<const uint8_t> body) {
+  return hid_device.send_output_report(static_cast<uint8_t>(id), body, ec); // USB HID Output
+};
+espp::WdiHost host(cfg);
+host.set_feedback(fb);              // status the chair reports back
+// transport RX (HID IN / BLE notify): host.handle_input(id, bytes);
+host.poll();                       // watchdog (drive-disable on timeout)
+```
+
+### USB HID host (`espp::WdiUsbHost`)
+
+`wdi_usb_host.hpp` wraps `WdiHost` with an `espp::UsbHost` (USB Host HID): it
+enumerates an attached WDI HID device (an accessory running `WdiUsbPeripheral`),
+routes its Input reports into `handle_input()`, and sends Feedback /
+Keepalive-Response as HID Output reports. See `usb_host_example/` (esp32s3). Built
+with the component manager on (the USB host stack — `usb` + `usb_host_hid` — comes
+from the registry; see the `usb_host` component).
+
+```cpp
+espp::WdiUsbHost host({.on_control = ..., .on_disconnected = ..., .host_uuid = uuid});
+std::error_code ec;
+host.initialize(ec);
+// loop: host.set_feedback(fb); host.poll();  // poll() drive-disables on timeout
+```
+
+### BLE central (`espp::WdiBleCentral`)
+
+`wdi_ble_central.hpp` wraps `WdiHost` with a NimBLE central: after
+`NimBLEDevice::init()`, `scan_and_connect()` finds a WDI peripheral, subscribes to
+the Control / Request-Feedback / Keepalive notify characteristics
+(→ `handle_input()`), and writes Feedback / Keepalive-Response. See
+`ble_central_example/` (esp32s3).
+
+```cpp
+NimBLEDevice::init("espp WDI host");
+espp::WdiBleCentral host({.on_control = ..., .on_disconnected = ..., .host_uuid = uuid});
+std::error_code ec;
+host.scan_and_connect(5000, ec);
+// loop: host.set_feedback(fb); host.poll();
+```
+
 ## Status
 
 - [x] Protocol core + host tests (`test/wdi_protocol_host_test.cpp`)
@@ -168,7 +225,12 @@ early-boot secondary).
       GATT service + characteristics on `ble_gatt_server`, with a `ble_example`
 - [x] Device role — **USB HID device** (`WdiUsbPeripheral`, `wdi_usb.hpp`): the WDI
       HID report descriptor on `espp::UsbDevice`, with a `usb_example`
-- [ ] Host role — USB Host HID + BLE central
+- [x] Host role core — `WdiHost`, keepalive watchdog, host-tested
+      (`test/wdi_host_host_test.cpp`)
+- [x] Host role — **USB Host HID** (`WdiUsbHost`, `wdi_usb_host.hpp`): the WDI host
+      on `espp::UsbHost`, with a `usb_host_example`
+- [x] Host role — **BLE central** (`WdiBleCentral`, `wdi_ble_central.hpp`): a NimBLE
+      central connecting to a WDI peripheral, with a `ble_central_example`
 
 ## Testing
 
@@ -180,6 +242,8 @@ c++ -std=c++20 -Wall -Wextra -Werror -I components/wdi/include \
     components/wdi/test/wdi_protocol_host_test.cpp -o wdi_test && ./wdi_test
 c++ -std=c++20 -Wall -Wextra -Werror -I components/wdi/include \
     components/wdi/test/wdi_device_host_test.cpp -o wdi_dev_test && ./wdi_dev_test
+c++ -std=c++20 -Wall -Wextra -Werror -I components/wdi/include \
+    components/wdi/test/wdi_host_host_test.cpp -o wdi_host_test && ./wdi_host_test
 ```
 
 The hid-rp report descriptor also builds on a host (hid-rp is header-only; add it

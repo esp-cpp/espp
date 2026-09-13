@@ -183,6 +183,7 @@ jobs:
             components/usb_host
             components/utils
             components/vl53l
+            components/wdi
             components/wifi
             components/wrover-kit
             components/ws-s3-geek

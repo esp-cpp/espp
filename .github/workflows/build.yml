@@ -359,6 +359,15 @@ jobs:
           target: esp32s3
         - path: 'components/vl53l/example'
           target: esp32s3
+        - path: 'components/wdi/ble_example'
+          target: esp32s3
+        - path: 'components/wdi/ble_central_example'
+          target: esp32s3
+        - path: 'components/wdi/usb_example'
+          target: esp32s3
+          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
+        - path: 'components/wdi/usb_host_example'
+          target: esp32s3
         - path: 'components/wifi/example'
           target: esp32
         - path: 'components/wrover-kit/example'
