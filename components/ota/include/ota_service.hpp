@@ -36,6 +36,8 @@
 #include <thread>
 #include <vector>
 
+#include "esp_system.h"
+
 #include "dispatcher.hpp"
 #include "stream_frame.hpp"
 
@@ -338,11 +340,14 @@ protected:
     if (!config_.auto_restart)
       return;
     // reply first, then restart into the new image from a detached thread so
-    // the caller's task (typically the transport worker) is never blocked
+    // the caller's task (typically the transport worker) is never blocked.
+    // The thread captures nothing owned by the caller: the service (and its
+    // Ota) may legitimately be destroyed during the delay, so it restarts
+    // directly rather than through ota_.restart().
     logger_.info("restarting in {} ms", config_.restart_delay.count());
-    std::thread([delay = config_.restart_delay, &ota = ota_]() {
+    std::thread([delay = config_.restart_delay]() {
       std::this_thread::sleep_for(delay);
-      ota.restart();
+      esp_restart();
     }).detach();
   }
 
