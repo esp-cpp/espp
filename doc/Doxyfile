@@ -82,6 +82,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/aw9523/example/main/aw9523_example.cpp \
   $(PROJECT_PATH)/components/basicmicro/example/main/basicmicro_example.cpp \
   $(PROJECT_PATH)/components/mcp266/example/main/mcp266_example.cpp \
+  $(PROJECT_PATH)/components/mcp266/webapp_example/main/mcp266_webapp_example.cpp \
   $(PROJECT_PATH)/components/bdc_driver/example/main/bdc_driver_example.cpp \
   $(PROJECT_PATH)/components/lp5817/example/main/lp5817_example.cpp \
   $(PROJECT_PATH)/components/binary-log/example/main/binary_log_example.cpp \

@@ -116,11 +116,19 @@ extern "C" void app_main(void) {
   // queue + worker task feeding one parser, so the blocking SDO command
   // handler never runs in the TinyUSB callback context). Both services share
   // the one driver and its mutex.
+  //
+  // Each transport's `send` is called from TWO tasks -- the dispatcher worker
+  // (request + discovery replies) and the service's status-stream task -- and
+  // UsbDevice's write_*() do not serialize writers, so guard each with a mutex
+  // to keep frames atomic on the wire.
+  std::mutex tx_mutex;
   auto vendor_send = [&](std::span<const uint8_t> f) {
+    std::lock_guard<std::mutex> lock(tx_mutex);
     if (!usb.write_vendor(f))
       logger.warn_rate_limited("dropped a {}-byte vendor frame (TX backpressure)", f.size());
   };
   auto cdc_send = [&](std::span<const uint8_t> f) {
+    std::lock_guard<std::mutex> lock(tx_mutex);
     if (!usb.write_cdc(f))
       logger.warn_rate_limited("dropped a {}-byte CDC frame (TX backpressure)", f.size());
   };

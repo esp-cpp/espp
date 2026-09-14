@@ -67,7 +67,11 @@ public:
 
   /// Configuration for the Mcp266Service.
   struct Config {
-    send_fn send{nullptr}; ///< Transmits an encoded frame (required).
+    /// Transmits an encoded frame (required). Called from the task that feeds
+    /// handle() (request replies) AND from this service's status-stream task,
+    /// so it must be thread-safe: if the transport does not serialize
+    /// writers (e.g. UsbDevice::write_vendor), guard it with a mutex.
+    send_fn send{nullptr};
     /// Dispatcher module id to answer on (the console expects the default).
     uint8_t module{mcp266_protocol::kModuleId};
     /// Mutex serializing every use of the Mcp266 (one SDO channel). Share it
@@ -75,8 +79,10 @@ public:
     /// application's own calls. If null the service uses a private mutex.
     std::mutex *mcp_mutex{nullptr};
     uint16_t default_stream_period_ms{200}; ///< STATUS period when the host asks for 0.
-    uint16_t min_stream_period_ms{50};      ///< Fastest STATUS stream (8 SDO reads each).
-    uint16_t max_stream_period_ms{10000};   ///< Slowest STATUS stream.
+    /// Fastest / slowest STATUS stream period the host may request (8 SDO
+    /// reads per snapshot). Swapped if given in the wrong order.
+    uint16_t min_stream_period_ms{50};
+    uint16_t max_stream_period_ms{10000};
     /// The status-streaming task (one per service instance).
     Task::BaseConfig status_task_config{.name = "mcp266_status", .stack_size_bytes = 8192};
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Logger verbosity.
@@ -94,6 +100,13 @@ public:
       , config_(config)
       , mcp_mutex_(config.mcp_mutex ? *config.mcp_mutex : own_mutex_)
       , stream_period_ms_(config.default_stream_period_ms) {
+    // std::clamp requires lo <= hi: normalize a reversed configuration instead
+    // of invoking undefined behavior on the first SET_STATUS_STREAM
+    if (config_.min_stream_period_ms > config_.max_stream_period_ms) {
+      logger_.warn("min_stream_period_ms ({}) > max_stream_period_ms ({}); swapping",
+                   config_.min_stream_period_ms, config_.max_stream_period_ms);
+      std::swap(config_.min_stream_period_ms, config_.max_stream_period_ms);
+    }
     status_task_ = Task::make_unique(
         {.callback = [this](std::mutex &m,
                             std::condition_variable &cv) { return status_task_fn(m, cv); },
