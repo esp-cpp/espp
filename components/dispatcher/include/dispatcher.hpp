@@ -107,6 +107,19 @@ public:
       apply_register(std::move(entry));
   }
 
+  /// @brief Register a *service* object: any type exposing a `static constexpr
+  ///        uint8_t kModule`, a `static ModuleInfo module_info()`, and a
+  ///        `void handle(const stream_frame::Frame &)` member (every espp
+  ///        protocol service does -- OtaService, CoreDumpService, Telemetry,
+  ///        ...). Equivalent to registering `[&](auto &f) { service.handle(f); }`
+  ///        on `Service::kModule` with `Service::module_info()`.
+  /// @param service The service; must outlive its registration.
+  template <typename Service> void register_module(Service &service) {
+    register_module(
+        Service::kModule, [&service](const stream_frame::Frame &f) { service.handle(f); },
+        Service::module_info());
+  }
+
   /// @brief Remove the handler for a module id (frames for it become ignored).
   void unregister_module(uint8_t module_id) { register_module(module_id, nullptr); }
 

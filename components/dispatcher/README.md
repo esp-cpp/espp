@@ -46,6 +46,10 @@ specific service.
 - `void register_module(uint8_t module_id, handler_fn handler)` /
   `void unregister_module(uint8_t module_id)` / `bool has_module(uint8_t)`
   where `handler_fn = std::function<void(const stream_frame::Frame&)>`.
+- `template <class Service> void register_module(Service &service)` — register a
+  *service* object (anything with `static constexpr uint8_t kModule`, `static
+  ModuleInfo module_info()` and `void handle(const stream_frame::Frame&)`):
+  `espp::OtaService`, `espp::CoreDumpService`, `espp::Telemetry`, or your own.
 - `void feed(std::span<const uint8_t> data)` — parse + route.
 - `void dispatch(const stream_frame::Frame&)` — route an already-parsed frame.
 - `void reset()` — drop buffered bytes (reconnect / RX overflow).
@@ -53,14 +57,45 @@ specific service.
 
 ```cpp
 espp::Dispatcher dispatcher;
-dispatcher.register_module(0, [&](const espp::stream_frame::Frame &f) {
-  // handle OTA frames: f.type, f.is_reply(), f.payload
-});
-dispatcher.register_module(4, [&](const espp::stream_frame::Frame &f) {
-  // handle crash-dump frames
+dispatcher.register_module(ota_service);      // espp::OtaService, module 0
+dispatcher.register_module(coredump_service); // espp::CoreDumpService, module 4
+dispatcher.register_module(0x10, [&](const espp::stream_frame::Frame &f) {
+  // your own protocol: f.type, f.is_reply(), f.payload
 });
 usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { dispatcher.feed(data); });
 ```
+
+## DispatcherWorker: feeding it from a transport
+
+Transport receive callbacks (the TinyUSB task, a socket reactor, ...) must not
+block, while protocol handlers routinely do (an OTA `BEGIN` erases a partition).
+`espp::DispatcherWorker` (`dispatcher_worker.hpp`) is a `Dispatcher` plus the
+bounded receive queue and `espp::Task` worker that feed it — the plumbing every
+espp example used to hand-roll:
+
+```cpp
+espp::DispatcherWorker link({.send = [&](std::span<const uint8_t> f) { usb.write_vendor(f); },
+                             .on_overflow = [&]() { ota_service.on_rx_overflow(); },
+                             .task_config = {.name = "usb_rx", .stack_size_bytes = 8192}});
+link.register_module(ota_service);          // handlers run on the worker task
+link.register_module(coredump_service);
+link.serve_discovery("My Device", version); // 0xFF discovery, replies via `send`
+usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { link.push(data); });
+```
+
+- `push(bytes)` — queue received bytes (any task; short lock only). Returns
+  `false` if they were dropped.
+- Overflow (`max_queued_bytes`, default eight max-size frames): everything
+  queued is dropped, the parser is reset so it resynchronizes on the next frame
+  magic, and `on_overflow` runs on the worker so a protocol can abort an
+  in-flight transfer and tell the peer.
+- `request_reset()` — discard a half-parsed frame across a transport
+  (re)connect; safe from a mount/unmount callback.
+- `sender()` — the configured `send`, to hand to services registered on this
+  stream; `dispatcher()` — the underlying router (only touch it from a handler
+  or before any bytes are pushed).
+- One worker per byte stream: vendor + CDC = two workers, each with its own
+  `send`, with the services registered on both.
 
 ## Capability discovery
 

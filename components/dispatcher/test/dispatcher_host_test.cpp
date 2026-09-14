@@ -230,7 +230,39 @@ static void test_discovery_payload_bound() {
              .empty());
 }
 
+// A minimal "service": the shape every espp protocol service exposes so it can
+// be registered with the one-argument register_module(service) overload.
+struct FakeService {
+  static constexpr uint8_t kModule = 0x42;
+  static espp::Dispatcher::ModuleInfo module_info() {
+    return {.name = "Fake", .app = "fake.html", .description = "test service"};
+  }
+  void handle(const sf::Frame &f) {
+    if (f.module != kModule || f.is_reply())
+      return;
+    types.push_back(f.type);
+  }
+  std::vector<uint8_t> types;
+};
+
+static void test_register_service() {
+  std::printf("register_module(service)\n");
+  espp::Dispatcher d;
+  FakeService svc;
+  d.register_module(svc);
+  CHECK(d.has_module(FakeService::kModule));
+  d.feed(sf::build_frame(false, FakeService::kModule, 0x11));
+  d.feed(sf::build_frame(true, FakeService::kModule, 0x22)); // reply: ignored by the service
+  d.feed(sf::build_frame(false, 0x43, 0x33));                // other module: not routed
+  CHECK(svc.types.size() == 1 && svc.types[0] == 0x11);
+  // its metadata is advertised
+  const auto payload = d.describe();
+  const std::string text(payload.begin(), payload.end());
+  CHECK(text.find("Fake") != std::string::npos && text.find("fake.html") != std::string::npos);
+}
+
 int main() {
+  test_register_service();
   test_routing_and_coexistence();
   test_register_replace_unregister();
   test_reset();

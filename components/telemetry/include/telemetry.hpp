@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "base_component.hpp"
+#include "dispatcher.hpp"
 #include "stream_frame.hpp"
 
 namespace espp {
@@ -225,12 +226,20 @@ public:
     s(std::span<const uint8_t>(frame)); // send while still holding send_mutex_
   }
 
+  /// @brief Discovery metadata for registering this service on a Dispatcher.
+  static Dispatcher::ModuleInfo module_info() {
+    return {.name = "Serial Plotter",
+            .app = "telemetry.html",
+            .description = "Live binary telemetry channels"};
+  }
+
   /// @brief Dispatcher handler: process one frame addressed to this module.
   ///
-  /// Register with `dispatcher.register_module(Telemetry::kModule, ...)`. Ignores
-  /// reply-flagged frames (device->host pushes are never host requests).
+  /// Register with `dispatcher.register_module(telemetry)`. Ignores frames for
+  /// other modules and reply-flagged frames (device->host pushes are never
+  /// host requests).
   void handle(const espp::stream_frame::Frame &frame) {
-    if (frame.is_reply())
+    if (frame.module != kModule || frame.is_reply())
       return;
     handle_request(frame.type, frame.payload);
   }

@@ -20,7 +20,6 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
-#include <deque>
 #include <mutex>
 #include <span>
 #include <string>
@@ -28,7 +27,7 @@
 #include <vector>
 
 #include "canopen_client.hpp"
-#include "dispatcher.hpp"
+#include "dispatcher_worker.hpp"
 #include "logger.hpp"
 #include "mcp266.hpp"
 #include "stream_frame.hpp"
@@ -151,13 +150,12 @@ extern "C" void app_main(void) {
   usb_cfg.cdc = cdc;
   espp::UsbDevice usb(usb_cfg);
 
-  // Reply on whichever transport the host last talked on (only one at a time).
   enum class Transport { Vendor, Cdc };
-  std::atomic<Transport> active_transport{Transport::Vendor};
   std::mutex tx_mutex;
   // All device->host writes (request replies, the status stream, AND discovery
   // replies) go through this one tx_mutex-guarded helper so concurrent senders
-  // (the RX worker + the status task) never write the TinyUSB FIFO at once.
+  // (the dispatcher workers + the status task) never write the TinyUSB FIFO at
+  // once.
   auto send_to = [&](Transport dest, std::span<const uint8_t> bytes) {
     std::lock_guard<std::mutex> lock(tx_mutex);
     const bool ok = (dest == Transport::Cdc) ? usb.write_cdc(bytes) : usb.write_vendor(bytes);
@@ -165,26 +163,34 @@ extern "C" void app_main(void) {
       logger.warn_rate_limited("dropped a {}-byte frame (USB TX backpressure or disconnect)",
                                bytes.size());
   };
-  auto send = [&](std::span<const uint8_t> bytes) { send_to(active_transport.load(), bytes); };
-  auto send_frame = [&](uint8_t type, std::span<const uint8_t> payload = {}) {
+  // Request replies always go back on the transport the request arrived on:
+  // the command handler takes that transport's `send` (see the per-worker
+  // registration below). The unsolicited STATUS stream (from the status task,
+  // no request context) goes to whichever transport the host last sent a
+  // request on -- only one is connected at a time.
+  using send_fn = espp::DispatcherWorker::send_fn;
+  std::mutex stream_mutex; // guards stream_send (workers write, status task reads)
+  send_fn stream_send;
+  auto send_frame = [&](const send_fn &send, uint8_t type, std::span<const uint8_t> payload = {}) {
     const bool reply = (type & 0x80) != 0; // 0xE_ reply types set the frame reply flag
     send(sf::build_frame(reply, proto::kModuleId, type, payload));
   };
-  auto send_ok = [&](uint8_t request_type) {
+  auto send_ok = [&](const send_fn &send, uint8_t request_type) {
     const uint8_t p[] = {request_type};
-    send_frame(proto::kOk, p);
+    send_frame(send, proto::kOk, p);
   };
-  auto reply_error = [&](uint8_t request_type, const std::error_code &ec, const std::string &ctx) {
+  auto reply_error = [&](const send_fn &send, uint8_t request_type, const std::error_code &ec,
+                         const std::string &ctx) {
     std::vector<uint8_t> p;
     p.push_back(request_type);
     sf::put_u32(p, static_cast<uint32_t>(ec.value()));
     const std::string msg = ctx + ": " + ec.message();
     p.insert(p.end(), msg.begin(), msg.end());
-    send_frame(proto::kError, p);
+    send_frame(send, proto::kError, p);
   };
 
   // --- STATUS snapshot: read both axes + device telemetry, send a STATUS frame
-  auto send_status = [&]() {
+  auto send_status = [&](const send_fn &send) {
     std::vector<uint8_t> p;
     uint8_t flags = 0;
     bool any_ok = false;
@@ -211,7 +217,7 @@ extern "C" void app_main(void) {
     if (any_ok)
       flags |= proto::kStatusFlagOnline;
     p.push_back(flags);
-    send_frame(proto::kStatus, p);
+    send_frame(send, proto::kStatus, p);
   };
 
   // --- status streaming task -------------------------------------------------
@@ -226,8 +232,17 @@ extern "C" void app_main(void) {
   std::atomic<bool> stream_enabled{false};
   std::atomic<uint32_t> stream_period_ms{kDefaultStreamPeriodMs};
   espp::Task status_task({.callback = [&](std::mutex &m, std::condition_variable &cv) -> bool {
-                            if (stream_enabled.load())
-                              send_status();
+                            if (stream_enabled.load()) {
+                              // Copy the destination rather than holding
+                              // stream_mutex across the eight SDO round-trips.
+                              send_fn dest;
+                              {
+                                std::lock_guard<std::mutex> lock(stream_mutex);
+                                dest = stream_send;
+                              }
+                              if (dest)
+                                send_status(dest);
+                            }
                             std::unique_lock<std::mutex> lock(m);
                             cv.wait_for(lock,
                                         std::chrono::milliseconds(
@@ -237,8 +252,9 @@ extern "C" void app_main(void) {
                           .task_config = {.name = "mcp266_status", .stack_size_bytes = 8192}});
   status_task.start();
 
-  // --- command handler (runs on the RX worker task, so SDO calls may block) --
-  auto handle = [&](const sf::Frame &frame) {
+  // --- command handler (runs on a dispatcher worker task, so SDO calls may
+  //     block). `send` transmits on the transport the frame arrived on.
+  auto handle = [&](const sf::Frame &frame, const send_fn &send) {
     if (frame.is_reply())
       return; // 0xE_ replies are what we SEND; never re-enter the request path
     const uint8_t type = frame.type;
@@ -246,7 +262,7 @@ extern "C" void app_main(void) {
     std::error_code ec;
     auto need = [&](size_t n) -> bool {
       if (pl.size() < n) {
-        reply_error(type, std::make_error_code(std::errc::invalid_argument), "short payload");
+        reply_error(send, type, std::make_error_code(std::errc::invalid_argument), "short payload");
         return false;
       }
       return true;
@@ -258,7 +274,7 @@ extern "C" void app_main(void) {
       if (!need(n))
         return false;
       if (pl[0] > proto::kAxisM2) {
-        reply_error(type, std::make_error_code(std::errc::invalid_argument),
+        reply_error(send, type, std::make_error_code(std::errc::invalid_argument),
                     "invalid axis (must be 0=M1 or 1=M2)");
         return false;
       }
@@ -267,49 +283,51 @@ extern "C" void app_main(void) {
     std::lock_guard<std::mutex> lock(mcp_mutex);
     switch (type) {
     case proto::kStart:
-      mcp.start(ec) ? send_ok(type) : reply_error(type, ec, "start failed");
+      mcp.start(ec) ? send_ok(send, type) : reply_error(send, type, ec, "start failed");
       break;
     case proto::kResetFaults:
-      mcp.reset_faults(ec) ? send_ok(type) : reply_error(type, ec, "reset faults failed");
+      mcp.reset_faults(ec) ? send_ok(send, type)
+                           : reply_error(send, type, ec, "reset faults failed");
       break;
     case proto::kResetEstop:
-      mcp.reset_estop(ec) ? send_ok(type) : reply_error(type, ec, "reset e-stop failed");
+      mcp.reset_estop(ec) ? send_ok(send, type)
+                          : reply_error(send, type, ec, "reset e-stop failed");
       break;
     case proto::kConfigurePositionLoop:
       if (!need_axis(13))
         break;
       mcp.configure_position_loop(axis_of(pl[0]), rd_i32(pl, 1), rd_i32(pl, 5), rd_i32(pl, 9), ec)
-          ? send_ok(type)
-          : reply_error(type, ec, "configure position loop failed");
+          ? send_ok(send, type)
+          : reply_error(send, type, ec, "configure position loop failed");
       break;
     case proto::kSetPositionLimits:
       if (!need_axis(9))
         break;
       mcp.set_software_position_limits(axis_of(pl[0]), rd_i32(pl, 1), rd_i32(pl, 5), ec)
-          ? send_ok(type)
-          : reply_error(type, ec, "set position limits failed");
+          ? send_ok(send, type)
+          : reply_error(send, type, ec, "set position limits failed");
       break;
     case proto::kMoveToPosition:
       if (!need_axis(17))
         break;
       mcp.move_to_position(axis_of(pl[0]), rd_i32(pl, 1), rd_u32(pl, 5), rd_u32(pl, 9),
                            rd_u32(pl, 13), ec)
-          ? send_ok(type)
-          : reply_error(type, ec, "move failed");
+          ? send_ok(send, type)
+          : reply_error(send, type, ec, "move failed");
       break;
     case proto::kDriveSpeed:
       if (!need_axis(5))
         break;
       mcp.drive_speed(axis_of(pl[0]), rd_i32(pl, 1), ec)
-          ? send_ok(type)
-          : reply_error(type, ec, "drive speed failed");
+          ? send_ok(send, type)
+          : reply_error(send, type, ec, "drive speed failed");
       break;
     case proto::kDriveDuty:
       if (!need_axis(3))
         break;
       mcp.drive_duty(axis_of(pl[0]), rd_i16(pl, 1), ec)
-          ? send_ok(type)
-          : reply_error(type, ec, "drive duty failed");
+          ? send_ok(send, type)
+          : reply_error(send, type, ec, "drive duty failed");
       break;
     case proto::kSetStatusStream:
       if (!need(3))
@@ -322,7 +340,7 @@ extern "C" void app_main(void) {
         stream_enabled.store(pl[0] != 0);
         stream_period_ms.store(period_ms);
       }
-      send_ok(type);
+      send_ok(send, type);
       break;
     case proto::kGetDeviceInfo: {
       std::string name;
@@ -331,105 +349,71 @@ extern "C" void app_main(void) {
         std::vector<uint8_t> p;
         sf::put_u32(p, device_type);
         p.insert(p.end(), name.begin(), name.end());
-        send_frame(proto::kDeviceInfo, p);
+        send_frame(send, proto::kDeviceInfo, p);
       } else {
-        reply_error(type, ec, "read device info failed");
+        reply_error(send, type, ec, "read device info failed");
       }
       break;
     }
     default:
-      reply_error(type, std::make_error_code(std::errc::not_supported), "unknown MCP266 message");
+      reply_error(send, type, std::make_error_code(std::errc::not_supported),
+                  "unknown MCP266 message");
       break;
     }
   };
 
-  // kGetStatus is handled outside the mcp_mutex-holding switch (send_status
-  // locks it itself). Wrap the dispatch so GET_STATUS calls send_status().
-  auto dispatch_frame = [&](const sf::Frame &frame) {
-    if (!frame.is_reply() && frame.type == proto::kGetStatus) {
-      send_status();
+  // Per-request entry point: remember the transport the host is talking on (for
+  // the STATUS stream), and handle kGetStatus outside the mcp_mutex-holding
+  // switch (send_status locks it itself).
+  auto dispatch_frame = [&](const sf::Frame &frame, const send_fn &send) {
+    if (frame.is_reply())
+      return;
+    {
+      std::lock_guard<std::mutex> lock(stream_mutex);
+      stream_send = send;
+    }
+    if (frame.type == proto::kGetStatus) {
+      send_status(send);
       return;
     }
-    handle(frame);
+    handle(frame, send);
   };
 
-  espp::Dispatcher vendor_dispatcher, cdc_dispatcher;
+  // Vendor (WebUSB) and CDC (Web Serial) are independent byte streams, so each
+  // gets its OWN DispatcherWorker: one bounded RX queue + worker task feeding
+  // one Dispatcher (one parser), so a frame split across reads on one
+  // transport is never stitched onto bytes from the other, and the (blocking
+  // SDO) command handler never runs in the TinyUSB callback context. On an RX
+  // overflow each worker resynchronizes its own parser.
+  espp::DispatcherWorker vendor_link(
+      {.send = [&](std::span<const uint8_t> f) { send_to(Transport::Vendor, f); },
+       .task_config = {.name = "mcp266_vendor", .stack_size_bytes = 16384}});
+  espp::DispatcherWorker cdc_link(
+      {.send = [&](std::span<const uint8_t> f) { send_to(Transport::Cdc, f); },
+       .task_config = {.name = "mcp266_cdc", .stack_size_bytes = 16384}});
   // Advertise the MCP266 module for capability discovery so the browser Device
-  // Hub can list and link it.
+  // Hub can list and link it. The handler is registered on each worker with
+  // THAT worker's sender captured, so replies go back on the stream the request
+  // came from.
   const espp::Dispatcher::ModuleInfo mcp_info{.name = "MCP266",
                                               .app = "mcp266_console.html",
                                               .description = "Configure & command MCP266 motors"};
-  vendor_dispatcher.register_module(proto::kModuleId, dispatch_frame, mcp_info);
-  cdc_dispatcher.register_module(proto::kModuleId, dispatch_frame, mcp_info);
-  vendor_dispatcher.set_device_info(usb_cfg.product);
-  cdc_dispatcher.set_device_info(usb_cfg.product);
-  vendor_dispatcher.serve_discovery(
-      [&](std::span<const uint8_t> f) { send_to(Transport::Vendor, f); });
-  cdc_dispatcher.serve_discovery([&](std::span<const uint8_t> f) { send_to(Transport::Cdc, f); });
+  for (auto *link : {&vendor_link, &cdc_link}) {
+    link->register_module(
+        proto::kModuleId,
+        [&, send = link->sender()](const sf::Frame &f) { dispatch_frame(f, send); }, mcp_info);
+    link->serve_discovery(usb_cfg.product);
+  }
 
-  // --- USB RX plumbing: queue in the TinyUSB callback, dispatch from a worker -
-  std::mutex rx_mutex;
-  std::condition_variable rx_cv;
-  std::deque<std::pair<Transport, std::vector<uint8_t>>> rx_queue;
-  size_t rx_queued_bytes = 0;
-  bool rx_overflow = false;
-  static constexpr size_t kMaxQueuedRxBytes = 8 * sf::kMaxFrameSize;
-  auto enqueue_rx = [&](Transport source, std::span<const uint8_t> data) {
-    // NOTE: active_transport is set by the RX worker just before it feeds each
-    // chunk (below), NOT here: a frame arriving on the other endpoint between
-    // enqueue and dispatch must not retarget a reply for the frame being handled.
-    {
-      std::lock_guard<std::mutex> lock(rx_mutex);
-      if (rx_queued_bytes + data.size() > kMaxQueuedRxBytes) {
-        rx_queue.clear();
-        rx_queued_bytes = 0;
-        rx_overflow = true;
-      } else {
-        rx_queue.emplace_back(source, std::vector<uint8_t>(data.begin(), data.end()));
-        rx_queued_bytes += data.size();
-      }
-    }
-    rx_cv.notify_one();
-  };
-  usb.set_vendor_receive_callback(
-      [&](std::span<const uint8_t> data) { enqueue_rx(Transport::Vendor, data); });
-  usb.set_cdc_receive_callback(
-      [&](std::span<const uint8_t> data) { enqueue_rx(Transport::Cdc, data); });
+  // --- USB RX plumbing: the TinyUSB callbacks just queue for the workers -----
+  usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { vendor_link.push(data); });
+  usb.set_cdc_receive_callback([&](std::span<const uint8_t> data) { cdc_link.push(data); });
 
   std::error_code usb_ec;
   const bool usb_ok = usb.initialize(usb_ec);
   if (!usb_ok)
     logger.error("Failed to initialize USB device: {} — no host transport available",
                  usb_ec.message());
-
-  espp::Task rx_task(
-      {.callback = [&](std::mutex &, std::condition_variable &) -> bool {
-         std::deque<std::pair<Transport, std::vector<uint8_t>>> chunks;
-         bool overflowed = false;
-         {
-           std::unique_lock<std::mutex> lock(rx_mutex);
-           rx_cv.wait_for(lock, 100ms, [&] { return !rx_queue.empty() || rx_overflow; });
-           std::swap(chunks, rx_queue);
-           rx_queued_bytes = 0;
-           overflowed = rx_overflow;
-           rx_overflow = false;
-         }
-         if (overflowed) {
-           vendor_dispatcher.reset();
-           cdc_dispatcher.reset();
-           return false;
-         }
-         for (const auto &[source, chunk] : chunks) {
-           // Single-writer of active_transport: set it to match the chunk being
-           // dispatched so replies/status generated during this feed go back on
-           // the transport the request arrived on.
-           active_transport.store(source);
-           (source == Transport::Vendor ? vendor_dispatcher : cdc_dispatcher).feed(chunk);
-         }
-         return false;
-       },
-       .task_config = {.name = "mcp266_rx", .stack_size_bytes = 16384}});
-  rx_task.start();
 
   if (usb_ok)
     logger.info("MCP266 console ready. Connect the web app over WebUSB / Web Serial.");

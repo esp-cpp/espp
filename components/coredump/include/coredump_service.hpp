@@ -46,6 +46,7 @@
 #include <system_error>
 #include <vector>
 
+#include "dispatcher.hpp"
 #include "stream_frame.hpp"
 
 #include "base_component.hpp"
@@ -158,6 +159,26 @@ public:
       : BaseComponent("CoreDumpService", config.log_level)
       , core_dump_(core_dump)
       , send_(config.send) {}
+
+  /// @brief Discovery metadata for registering this service on a Dispatcher.
+  static Dispatcher::ModuleInfo module_info() {
+    return {.name = "Core Dump",
+            .app = "coredump_console.html",
+            .description = "Inspect the last crash core dump"};
+  }
+
+  /**
+   * @brief Dispatcher entry point: handle one routed frame.
+   *
+   * Frames for other modules and reply-flagged frames (e.g. an echo /
+   * loopback) are ignored, so this can be registered directly:
+   * `dispatcher.register_module(service)`.
+   */
+  void handle(const espp::stream_frame::Frame &frame) {
+    if (frame.module != kModule || frame.is_reply())
+      return;
+    handle_frame(frame.type, frame.payload);
+  }
 
   /**
    * @brief Feed received transport bytes to the service.

@@ -61,3 +61,4 @@ API Reference
 -------------
 
 .. include-build-file:: inc/dispatcher.inc
+.. include-build-file:: inc/dispatcher_worker.inc

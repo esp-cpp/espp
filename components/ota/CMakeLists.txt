@@ -11,5 +11,5 @@
 #   esp_partition      — esp_partition.h
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES base_component stream_frame app_update esp_app_format bootloader_support esp_partition
+  REQUIRES base_component stream_frame dispatcher app_update esp_app_format bootloader_support esp_partition
 )

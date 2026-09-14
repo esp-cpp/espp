@@ -76,38 +76,36 @@ actually serves, and frames for an unregistered id are silently ignored.
 
 Several modules can, and routinely do, share **one** `Dispatcher` over **one**
 USB link. The `bldc_haptics` example registers OTA, the crash-dump service,
-*and* its own haptics protocol on a single dispatcher instance
+*and* its own haptics protocol on a single `espp::DispatcherWorker` (a
+`Dispatcher` fed from its own task — see `The USB vendor transport`_)
 (``components/bldc_haptics/example/main/bldc_haptics_example.cpp``):
 
 .. code-block:: cpp
 
-   dispatcher.register_module(
-       otap::kModule,
-       [&](const espp::stream_frame::Frame &frame) {
-         if (!frame.is_reply())
-           handle_ota_frame(frame);
-       },
-       {.name = "OTA", .app = "ota_console.html", .description = "Firmware update over USB"});
-   dispatcher.register_module(espp::CoreDumpService::kModule,
-                              [&](const espp::stream_frame::Frame &frame) {
-                                if (!frame.is_reply())
-                                  coredump_service.handle_frame(frame.type, frame.payload);
-                              },
-                              {.name = "Core Dump",
-                               .app = "coredump_console.html",
-                               .description = "Inspect the last crash core dump"});
-   dispatcher.register_module(proto::kModule,
-                              [&](const proto::stream::Frame &frame) {
-                                if (!frame.is_reply())
-                                  handle_frame(frame);
-                              },
-                              {.name = "BLDC Haptics",
-                               .app = "haptics_console.html",
-                               .description = "Haptic detent / feedback modes"});
+   espp::OtaService ota_service(ota, {.send = send});
+   espp::CoreDumpService coredump_service(core_dump, {.send = send});
+   espp::DispatcherWorker link({.send = send,
+                                .on_overflow = [&]() { ota_service.on_rx_overflow(); },
+                                .task_config = {.name = "haptics_usb", .stack_size_bytes = 8192}});
+   link.register_module(ota_service);      // module 0 + its discovery metadata
+   link.register_module(coredump_service); // module 4 + its discovery metadata
+   link.register_module(proto::kModule,    // the app's own protocol
+                        [&](const proto::stream::Frame &frame) {
+                          if (!frame.is_reply())
+                            handle_frame(frame);
+                        },
+                        {.name = "BLDC Haptics",
+                         .app = "haptics_console.html",
+                         .description = "Haptic detent / feedback modes"});
+   link.serve_discovery(usb_cfg.product);
 
-Your application module registers alongside these the same way — pick an
-unused id, register a handler, and (optionally) attach `ModuleInfo` so it is
-discoverable (see `Discovery + the webapp side`_).
+The espp *services* (`espp::OtaService`, `espp::CoreDumpService`,
+`espp::Telemetry`) each carry their own module id, discovery metadata and
+handler, so registering one is a single call. Your application module
+registers alongside them the same way — pick an unused id, register a
+handler, and (optionally) attach `ModuleInfo` so it is discoverable (see
+`Discovery + the webapp side`_) — or give it the same three members and
+register it with the one-argument overload too.
 
 Anatomy of a module: the ``CoreDumpService`` pattern
 =====================================================
@@ -246,6 +244,33 @@ like your own module will be. The pattern has five parts:
    the header comment in ``coredump_service.hpp`` for why — `std::errc`
    numbering is not portable across C++ standard libraries).
 
+6. **`module_info()` + `handle(frame)`** — the *service* shape. A `static
+   Dispatcher::ModuleInfo module_info()` next to `kModule`, plus a
+   `handle(const stream_frame::Frame &)` that filters on its own module id and
+   ignores reply-flagged frames, is what lets `Dispatcher::register_module(service)`
+   (and `DispatcherWorker::register_module(service)`) register a module in
+   one call, metadata included:
+
+   .. code-block:: cpp
+
+      static Dispatcher::ModuleInfo module_info() {
+        return {.name = "Core Dump",
+                .app = "coredump_console.html",
+                .description = "Inspect the last crash core dump"};
+      }
+
+      void handle(const espp::stream_frame::Frame &frame) {
+        if (frame.module != kModule || frame.is_reply())
+          return;
+        handle_frame(frame.type, frame.payload);
+      }
+
+   `espp::OtaService` (``components/ota/include/ota_service.hpp``) is the same
+   shape wrapped around the `espp::Ota` engine — BEGIN/DATA/FINISH/ABORT,
+   per-transport session ownership, rollback status/confirmation and the
+   post-update restart all live in the service, so an application never
+   re-implements the OTA state machine.
+
 A minimal "hello" module, from scratch
 =======================================
 
@@ -281,6 +306,13 @@ parser, no mutex, because a handler this small can run straight out of the
 
    class HelloModule {
    public:
+     // 1. (again) the module id and 6. its discovery metadata, so
+     //    dispatcher.register_module(hello) is all the wiring it needs.
+     static constexpr uint8_t kModule = hello_module::kModule;
+     static espp::Dispatcher::ModuleInfo module_info() {
+       return {.name = "Hello", .app = "hello_console.html", .description = "PING/PONG demo module"};
+     }
+
      // 3. Config carrying a send_fn: the module never touches USB/UART/socket
      //    APIs directly.
      using send_fn = std::function<void(std::span<const uint8_t> frame)>;
@@ -289,15 +321,15 @@ parser, no mutex, because a handler this small can run straight out of the
      };
      explicit HelloModule(const Config &config) : send_(config.send) {}
 
-     // 5. Entry point: register this directly as the Dispatcher handler for
-     //    hello_module::kModule (skips the feed()/handle_frame() split that
-     //    CoreDumpService needs so it can also run standalone off a raw byte
-     //    stream — feed() owns an internal parser for that case — and
-     //    serialize flash access under its own mutex; a handler this small
-     //    has neither concern).
+     // 5. Entry point: the Dispatcher handler for kModule (skips the
+     //    feed()/handle_frame() split that CoreDumpService needs so it can
+     //    also run standalone off a raw byte stream — feed() owns an internal
+     //    parser for that case — and serialize flash access under its own
+     //    mutex; a handler this small has neither concern).
      void handle(const espp::stream_frame::Frame &frame) {
-       if (frame.is_reply() || frame.type != static_cast<uint8_t>(hello_module::Msg::Ping))
-         return; // not a request we answer (ignore replies / other types)
+       if (frame.module != kModule || frame.is_reply() ||
+           frame.type != static_cast<uint8_t>(hello_module::Msg::Ping))
+         return; // not a request we answer (ignore other modules / replies / other types)
        std::string text(frame.payload.begin(), frame.payload.end());
        // Payload bytes are arbitrary, not guaranteed ASCII text, so cast to
        // unsigned char before calling ::toupper (it's UB on a negative
@@ -332,12 +364,15 @@ bytes past the call (queueing it for a later retry, for example) must copy
 them rather than retain the span.
 
 Wiring it up looks exactly like any other module — construct it with a `send`
-that writes to your transport, then register it (with `ModuleInfo` so it is
+that writes to your transport, then register it (its `module_info()` makes it
 discoverable — see below):
 
 .. code-block:: cpp
 
    HelloModule hello({.send = [&](std::span<const uint8_t> frame) { usb.write_vendor(frame); }});
+   dispatcher.register_module(hello);
+
+   // equivalent, for a module without module_info()/kModule members:
    dispatcher.register_module(
        hello_module::kModule, [&](const espp::stream_frame::Frame &f) { hello.handle(f); },
        {.name = "Hello", .app = "hello_console.html", .description = "PING/PONG demo module"});
@@ -471,29 +506,42 @@ Sending and receiving
   the doc comment on `write_vendor()` for the exact backpressure contract),
   so a reader on the other end never sees a truncated frame.
 - `usb.set_vendor_receive_callback(cb)` (or `VendorFunction::on_receive` at
-  construction) delivers received bytes from the TinyUSB device task. Feed
-  them straight into your `Dispatcher`:
+  construction) delivers received bytes from the TinyUSB device task. Receive
+  callbacks run in the TinyUSB task and must stay short and non-blocking,
+  while module handlers routinely block (an OTA BEGIN erases a partition, a
+  core-dump ERASE takes tens of milliseconds, a CANopen SDO round-trip waits
+  on the bus). `espp::DispatcherWorker`
+  (``components/dispatcher/include/dispatcher_worker.hpp``) is the bridge: a
+  `Dispatcher` plus the bounded receive queue and worker task that feed it.
+  The callback just pushes the bytes; handlers (and their `send` callbacks)
+  run on the worker:
 
   .. code-block:: cpp
 
-     usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) {
-       dispatcher.feed(data);
-     });
+     espp::DispatcherWorker link({.send = [&](std::span<const uint8_t> f) { usb.write_vendor(f); },
+                                  .on_overflow = [&]() { ota_service.on_rx_overflow(); },
+                                  .task_config = {.name = "usb_rx", .stack_size_bytes = 8192}});
+     link.register_module(ota_service);
+     link.register_module(hello);
+     link.serve_discovery(usb_cfg.product);
+     usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { link.push(data); });
 
-  Receive callbacks run in the TinyUSB task and must stay short and
-  non-blocking. If a module's handler can block for more than a
-  few milliseconds (flash access, a CANopen SDO round-trip, ...), queue the
-  bytes and call `dispatcher.feed()` from a worker task instead — see the
-  RX-queueing pattern in
-  ``components/coredump/example/main/coredump_example.cpp`` (a bounded
-  `std::deque` drained by an `espp::Task`, with `dispatcher.reset()` called
-  when a chunk had to be dropped so a frame straddling the gap
-  resynchronizes at once).
-- One `Dispatcher` per byte stream. If you enable both vendor and CDC, use
-  **two** `Dispatcher` instances (one per transport) so a frame split across
-  reads on one never gets stitched onto bytes from the other — every
-  multi-transport espp example (`coredump_example.cpp`, `can_bridge_example.cpp`,
-  the MCP266 webapp example) follows this rule.
+  The queue is bounded (`max_queued_bytes`, default eight max-size frames —
+  the espp protocols are one-request-in-flight, so a well-behaved peer never
+  queues more than about one). On overflow the worker drops what was queued
+  (a partial frame is useless once bytes are missing), resets the parser so it
+  resynchronizes on the next frame magic, and runs `on_overflow` so a protocol
+  can abort an in-flight transfer and tell the peer. Call
+  `link.request_reset()` from a mount/unmount callback to discard a
+  half-parsed frame across a re-enumeration — the parser is only ever touched
+  on the worker, so that is safe from any task. (A handler that really is
+  trivial can still feed a bare `Dispatcher` directly from the callback.)
+- One `DispatcherWorker` (one `Dispatcher`) per byte stream. If you enable
+  both vendor and CDC, create **two** (each with its own `send`) so a frame
+  split across reads on one never gets stitched onto bytes from the other,
+  and register your modules on both — every multi-transport espp example
+  (`coredump_example.cpp`, `can_bridge_example.cpp`, the MCP266 webapp
+  example) follows this rule.
 
 The CDC (Web Serial) function carries the exact same framed protocol using
 `usb.write_cdc()` / `usb.set_cdc_receive_callback()` in place of the vendor
@@ -605,7 +653,8 @@ Answering discovery
 ----------------------
 
 Two calls, made once per `Dispatcher` instance, are all a device needs to
-answer capability queries:
+answer capability queries (`DispatcherWorker::serve_discovery(name, firmware)`
+does both, using the worker's `send`):
 
 .. code-block:: cpp
 
@@ -665,21 +714,22 @@ Checklist: shipping a new module + webapp
    *authoritative* signal is always the frame's `flags` reply bit passed to
    `build_frame()`.
 #. **Implement the module**: a `Config` carrying a `send_fn`, a `build()`
-   helper wrapping `stream_frame::build_frame()`, and either a direct
-   `Dispatcher` handler (the "hello" pattern) or your own `feed()` /
-   `handle_frame()` split if the module needs its own parser/locking
-   (the `CoreDumpService` pattern) — always send replies **after** releasing
-   any internal lock.
-#. **Register it** on your `Dispatcher` with `ModuleInfo{name, app,
-   description}` so it's discoverable; if you support both vendor and CDC,
-   register it (with the same `ModuleInfo`) on **both** dispatchers.
-#. **Call `set_device_info()` and `serve_discovery()`** once per `Dispatcher`
-   / transport pair so a hub (or your own console) can find the device and
-   its modules.
+   helper wrapping `stream_frame::build_frame()`, a `static module_info()`,
+   and either a direct `handle(frame)` (the "hello" pattern) or your own
+   `feed()` / `handle_frame()` split if the module needs its own
+   parser/locking (the `CoreDumpService` pattern) — always send replies
+   **after** releasing any internal lock.
+#. **Register it** with `register_module(module)` (or the three-argument form
+   with an explicit `ModuleInfo{name, app, description}`) so it's
+   discoverable; if you support both vendor and CDC, register it on **both**
+   workers / dispatchers.
+#. **Call `serve_discovery(name)`** once per `DispatcherWorker` / transport
+   (or `set_device_info()` + `serve_discovery(send)` on a bare `Dispatcher`)
+   so a hub (or your own console) can find the device and its modules.
 #. **Enable the transport**: `CONFIG_TINYUSB_VENDOR_COUNT=1` (and/or the CDC
    equivalent) in ``sdkconfig.defaults``, a `VendorFunction` (and/or
    `CdcFunction`) in your `UsbDevice::Config`, and a receive callback that
-   feeds your `Dispatcher`.
+   `push()`es into your `DispatcherWorker`.
 #. **Write the webapp**: copy the `crc32()` / `buildFrame()` / `StreamParser`
    JS block from `dispatcher_hub.html` (or any module console), add a small
    UI that builds/decodes your payloads, and host it at
@@ -699,6 +749,8 @@ Checklist: shipping a new module + webapp
    - :doc:`dispatcher` — the `Dispatcher` API reference.
    - :doc:`../coredump/coredump` — the `CoreDumpService` worked example used
      throughout this page.
+   - :doc:`../ota/ota` — `OtaService`, the OTA protocol as a drop-in service
+     (module 0).
    - :doc:`../telemetry/telemetry` — a module streaming typed float samples
      (the `put_f32` example above).
    - :doc:`../buses/canopen` — a bridge module (module 5) plus an

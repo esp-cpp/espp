@@ -1,10 +1,8 @@
 #include <algorithm>
 #include <chrono>
-#include <condition_variable>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <deque>
 #include <mutex>
 #include <span>
 #include <string>
@@ -17,11 +15,10 @@
 #include "esp_http_server.h"
 #include "nvs_flash.h"
 
-#include "detail/ota_stream_protocol.hpp"
-#include "dispatcher.hpp"
+#include "dispatcher_worker.hpp"
 #include "logger.hpp"
 #include "ota.hpp"
-#include "task.hpp"
+#include "ota_service.hpp"
 #include "usb_device.hpp"
 #include "wifi_sta.hpp"
 
@@ -284,8 +281,6 @@ extern "C" void app_main(void) {
   espp::Logger logger({.tag = "OtaExample", .level = espp::Logger::Verbosity::INFO});
 
   //! [ota_example]
-  namespace proto = espp::detail::ota_stream;
-
   // --- The OTA engine (transport-agnostic) -----------------------------------
   espp::Ota ota({.reject_same_version = false,
                  .progress_callback =
@@ -324,9 +319,9 @@ extern "C" void app_main(void) {
   // The vendor interface carries the framed OTA stream protocol (see
   // detail/ota_stream_protocol.hpp); the hosted web app
   // https://esp-cpp.github.io/espp/apps/ota_console.html speaks it in the
-  // browser. RX bytes arrive in the TinyUSB task context, so they are queued
-  // and dispatched from a worker task below (esp_ota_begin's flash erase can
-  // take seconds and must not block the USB stack).
+  // browser. The protocol itself (BEGIN/DATA/FINISH/ABORT, session ownership,
+  // rollback status/confirmation, the post-update restart) is implemented by
+  // espp::OtaService; this example only wires it to a transport.
   espp::UsbDevice::Config usb_cfg;
   usb_cfg.manufacturer = "espp";
   usb_cfg.product = "espp OTA";
@@ -350,218 +345,33 @@ extern "C" void app_main(void) {
   usb_cfg.cdc = cdc;
   espp::UsbDevice usb(usb_cfg);
 
-  std::mutex usb_rx_mutex;
-  std::condition_variable usb_rx_cv;
-  std::deque<std::vector<uint8_t>> usb_rx_queue;
-  size_t usb_rx_queued_bytes = 0;
-  bool usb_rx_overflow = false;
-  // The protocol is one-frame-in-flight (the host waits for OK/ERROR before
-  // the next DATA), so a well-behaved host queues at most ~one frame while the
-  // worker is busy. Cap the queue anyway: the worker can legitimately block
-  // for seconds inside esp_ota_begin()/end() (flash erase / SHA validation),
-  // and a misbehaving host that pipelines OUT transfers must not be able to
-  // exhaust device RAM. 8 max-size frames of headroom is far more than the
-  // protocol ever needs.
-  static constexpr size_t kMaxQueuedRxBytes = 8 * espp::detail::ota_stream::kMaxFrameSize;
-  usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) {
-    // TinyUSB task context: just queue the bytes and wake the worker.
-    {
-      std::lock_guard<std::mutex> lock(usb_rx_mutex);
-      if (usb_rx_queued_bytes + data.size() > kMaxQueuedRxBytes) {
-        // Overflow: drop everything (partial frames are useless once bytes
-        // are missing) and let the worker abort + resynchronize + reply.
-        usb_rx_queue.clear();
-        usb_rx_queued_bytes = 0;
-        usb_rx_overflow = true;
-      } else {
-        usb_rx_queue.emplace_back(data.begin(), data.end());
-        usb_rx_queued_bytes += data.size();
-      }
-    }
-    usb_rx_cv.notify_one();
-  });
+  // The OTA service on this transport: replies go back over the vendor
+  // interface. One OtaService per byte stream -- it only ever appends to /
+  // finishes / aborts a session IT began, so a USB DATA frame can never touch
+  // the HTTP-started session below (and vice versa).
+  espp::OtaService ota_service(
+      ota, {.send = [&](std::span<const uint8_t> frame) { usb.write_vendor(frame); },
+            .log_level = espp::Logger::Verbosity::INFO});
+
+  // RX bytes arrive in the TinyUSB task context, where nothing may block --
+  // and an OTA BEGIN erases a partition (seconds). DispatcherWorker owns the
+  // bounded receive queue + worker task that feeds a Dispatcher, routing each
+  // frame to its module (OTA on module 0; other protocols could register
+  // alongside on the same stream) on its own task. On an RX overflow it resets
+  // the parser and lets the OTA service abort the transfer + tell the host.
+  espp::DispatcherWorker usb_link(
+      {.send = [&](std::span<const uint8_t> frame) { usb.write_vendor(frame); },
+       .on_overflow = [&]() { ota_service.on_rx_overflow(); },
+       .task_config = {.name = "ota_usb", .stack_size_bytes = 8192}});
+  usb_link.register_module(ota_service);     // module 0 + its discovery metadata
+  usb_link.serve_discovery(usb_cfg.product); // so the browser Device Hub can find it
+  usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { usb_link.push(data); });
 
   std::error_code usb_ec;
   if (!usb.initialize(usb_ec))
     logger.error("Failed to initialize USB device: {}", usb_ec.message());
   // On success the console is now on USB-CDC (cdc.route_console above), teed to
   // UART0 -- this and later logs travel over the native USB cable and UART0.
-
-  // Route the vendor stream through a Dispatcher: OTA occupies module id 0 (its
-  // opcodes are 0x0X). Other protocols (e.g. a crash-dump service on module 4)
-  // could register alongside on the same stream and would be routed
-  // independently; frames for unregistered modules are ignored rather than
-  // mis-handled as malformed OTA frames.
-  espp::Dispatcher dispatcher;
-  bool restart_pending = false;
-  // The OTA engine serializes sessions across ALL transports, but that alone
-  // is not enough here: without ownership tracking a USB DATA/FINISH/ABORT
-  // could append to / activate / cancel a session that HTTP started. Set only
-  // after a successful USB BEGIN; cleared on every terminal path (FINISH and
-  // ABORT end the session in all outcomes, and a failed write() aborts it).
-  // If the host unplugs mid-session the flag stays set, so a reconnecting
-  // host's ABORT is still honored (BEGIN would correctly fail busy first).
-  bool usb_owns_session = false;
-  auto handle_usb_frame = [&](const proto::Frame &frame) {
-    // The device only handles requests; OTA replies (OK/ERROR/PROGRESS) share
-    // module 0, so ignore any reply-flagged frame (e.g. a loopback echo) rather
-    // than treating it as an unknown request.
-    if (frame.is_reply())
-      return;
-    std::error_code ec;
-    auto reply_error = [&](const std::error_code &err, const std::string &context) {
-      usb.write_vendor(
-          proto::make_error(static_cast<uint32_t>(err.value()), context + ": " + err.message()));
-    };
-    switch (static_cast<proto::MessageType>(frame.type)) {
-    case proto::MessageType::Begin: {
-      const auto image_size = proto::parse_u32_payload(frame);
-      if (!image_size.has_value()) {
-        reply_error(std::make_error_code(std::errc::invalid_argument), "malformed BEGIN");
-        break;
-      }
-      if (ota.begin(*image_size, ec)) {
-        usb_owns_session = true;
-        usb.write_vendor(proto::make_ok(0));
-      } else {
-        // busy = another transport's session; ownership stays false
-        reply_error(ec, "begin failed");
-      }
-      break;
-    }
-    case proto::MessageType::Data:
-      if (!usb_owns_session) {
-        reply_error(std::make_error_code(std::errc::operation_not_permitted),
-                    "no USB-owned update session (send BEGIN first)");
-        break;
-      }
-      if (ota.write(frame.payload, ec)) {
-        usb.write_vendor(proto::make_ok(static_cast<uint32_t>(ota.bytes_written())));
-      } else {
-        usb_owns_session = false; // write() aborted the session on failure
-        reply_error(ec, "write failed");
-      }
-      break;
-    case proto::MessageType::Finish: {
-      if (!usb_owns_session) {
-        reply_error(std::make_error_code(std::errc::operation_not_permitted),
-                    "no USB-owned update session (send BEGIN first)");
-        break;
-      }
-      const auto written = static_cast<uint32_t>(ota.bytes_written());
-      usb_owns_session = false; // finish() ends the session in all outcomes
-      if (ota.finish(ec)) {
-        usb.write_vendor(proto::make_ok(written));
-        restart_pending = true; // reply first; the worker restarts shortly
-      } else {
-        reply_error(ec, "finish (validate/activate) failed");
-      }
-      break;
-    }
-    case proto::MessageType::Abort: {
-      if (!usb_owns_session) {
-        reply_error(std::make_error_code(std::errc::operation_not_permitted),
-                    "no USB-owned update session to abort");
-        break;
-      }
-      const auto written = static_cast<uint32_t>(ota.bytes_written());
-      usb_owns_session = false; // session over either way
-      if (ota.abort(ec))
-        usb.write_vendor(proto::make_ok(written));
-      else
-        reply_error(ec, "abort failed");
-      break;
-    }
-    case proto::MessageType::GetStatus: {
-      // Report rollback status + the running firmware (so the host can show what
-      // is now running before confirming it). Session-independent (no BEGIN).
-      uint8_t flags = 0;
-#if defined(CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE)
-      flags |= proto::kStatusRollbackSupported;
-      if (ota.is_pending_verify())
-        flags |= proto::kStatusPendingVerify;
-#endif
-      const auto desc = ota.running_app_description();
-      usb.write_vendor(proto::make_status(flags, desc.version, desc.project_name));
-      break;
-    }
-    case proto::MessageType::MarkValid:
-      // The HOST confirms the running image after its own health checks — the app
-      // must not confirm itself. Cancels the pending rollback.
-      if (ota.mark_app_valid(ec))
-        usb.write_vendor(proto::make_ok(0));
-      else
-        reply_error(ec, "mark valid failed");
-      break;
-    case proto::MessageType::MarkInvalid:
-      // Reject the running image: roll back to the previous app and reboot.
-      // mark_app_invalid_and_rollback() does NOT return on success (the device
-      // reboots), so DON'T pre-send OK: the reboot / USB disconnect IS the
-      // success signal to the host. It only returns on *failure* (e.g. no valid
-      // image to roll back to), so the reply below is reached only then and an
-      // ERROR is the sole reply. Sending OK first would let the host report
-      // success even when rollback was refused, leaving a stale ERROR on the
-      // stream.
-      ota.mark_app_invalid_and_rollback(ec);
-      reply_error(ec, "rollback failed"); // only reached on failure
-      break;
-    default:
-      reply_error(std::make_error_code(std::errc::not_supported), "unknown message type");
-      break;
-    }
-  };
-
-  // OTA is module id 0. The Dispatcher routes each frame for that module here.
-  // Advertise it (name / web app / description) so the browser Device Hub can
-  // discover and link it, and answer discovery queries over the vendor stream.
-  dispatcher.register_module(
-      proto::kModule, [&](const proto::Frame &frame) { handle_usb_frame(frame); },
-      {.name = "OTA", .app = "ota_console.html", .description = "Firmware update over USB"});
-  dispatcher.set_device_info(usb_cfg.product);
-  dispatcher.serve_discovery([&](std::span<const uint8_t> frame) { usb.write_vendor(frame); });
-
-  espp::Task usb_task(
-      {.callback = [&](std::mutex &, std::condition_variable &) -> bool {
-         std::vector<std::vector<uint8_t>> chunks;
-         bool overflowed = false;
-         {
-           std::unique_lock<std::mutex> lock(usb_rx_mutex);
-           usb_rx_cv.wait_for(lock, 100ms,
-                              [&] { return !usb_rx_queue.empty() || usb_rx_overflow; });
-           chunks.assign(std::make_move_iterator(usb_rx_queue.begin()),
-                         std::make_move_iterator(usb_rx_queue.end()));
-           usb_rx_queue.clear();
-           usb_rx_queued_bytes = 0;
-           overflowed = usb_rx_overflow;
-           usb_rx_overflow = false;
-         }
-         if (overflowed) {
-           // Bytes were dropped: any in-flight frame/image is
-           // unusable. Abort a USB-owned session, resync the
-           // parser, and tell the host to start over.
-           if (usb_owns_session) {
-             std::error_code abort_ec;
-             ota.abort(abort_ec);
-             usb_owns_session = false;
-           }
-           dispatcher.reset();
-           usb.write_vendor(proto::make_error(
-               static_cast<uint32_t>(std::make_error_code(std::errc::no_buffer_space).value()),
-               "RX overflow: frames dropped; transfer aborted -- wait for OK "
-               "replies between frames and restart the update"));
-           return false; // dropped chunks are gone; skip parse
-         }
-         for (const auto &chunk : chunks)
-           dispatcher.feed(chunk);
-         if (restart_pending) {
-           // give the final OK reply time to reach the host
-           std::this_thread::sleep_for(750ms);
-           ota.restart();
-         }
-         return false; // don't stop the task
-       },
-       .task_config = {.name = "ota_usb", .stack_size_bytes = 8192}});
-  usb_task.start();
 
   // --- Transports 2 & 3: WiFi (or Ethernet) + HTTP push -----------------------
   // NVS is required by the WiFi stack.
