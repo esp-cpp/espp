@@ -119,8 +119,12 @@ public:
       , ota_(ota)
       , config_(config) {}
 
+  /// @brief The dispatcher module id this service answers on (kModule: the
+  ///        OTA protocol's fixed id, which the OTA console / CLI expect).
+  uint8_t module_id() const { return kModule; }
+
   /// @brief Discovery metadata for registering this service on a Dispatcher.
-  static Dispatcher::ModuleInfo module_info() {
+  Dispatcher::ModuleInfo module_info() const {
     return {.name = "OTA",
             .app = "ota_console.html",
             .description = "Firmware update over the framed stream"};
@@ -140,7 +144,7 @@ public:
    * `dispatcher.register_module(service)`.
    */
   void handle(const espp::stream_frame::Frame &frame) {
-    if (frame.module != kModule || frame.is_reply())
+    if (frame.module != module_id() || frame.is_reply())
       return;
     handle_frame(frame.type, frame.payload);
   }

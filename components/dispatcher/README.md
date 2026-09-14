@@ -47,9 +47,11 @@ specific service.
   `void unregister_module(uint8_t module_id)` / `bool has_module(uint8_t)`
   where `handler_fn = std::function<void(const stream_frame::Frame&)>`.
 - `template <class Service> void register_module(Service &service)` — register a
-  *service* object (anything with `static constexpr uint8_t kModule`, `static
-  ModuleInfo module_info()` and `void handle(const stream_frame::Frame&)`):
+  *service* object (anything with `uint8_t module_id() const`, `ModuleInfo
+  module_info() const` and `void handle(const stream_frame::Frame&)`):
   `espp::OtaService`, `espp::CoreDumpService`, `espp::Telemetry`, or your own.
+  The id and metadata are read from the *object*, so a module whose id is
+  configured per instance registers under that id (static members work too).
 - `void feed(std::span<const uint8_t> data)` — parse + route.
 - `void dispatch(const stream_frame::Frame&)` — route an already-parsed frame.
 - `void reset()` — drop buffered bytes (reconnect / RX overflow).

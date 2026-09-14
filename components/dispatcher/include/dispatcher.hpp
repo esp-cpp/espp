@@ -107,17 +107,22 @@ public:
       apply_register(std::move(entry));
   }
 
-  /// @brief Register a *service* object: any type exposing a `static constexpr
-  ///        uint8_t kModule`, a `static ModuleInfo module_info()`, and a
-  ///        `void handle(const stream_frame::Frame &)` member (every espp
-  ///        protocol service does -- OtaService, CoreDumpService, Telemetry,
-  ///        ...). Equivalent to registering `[&](auto &f) { service.handle(f); }`
-  ///        on `Service::kModule` with `Service::module_info()`.
+  /// @brief Register a *service* object: any type exposing `uint8_t
+  ///        module_id() const`, `ModuleInfo module_info() const`, and
+  ///        `void handle(const stream_frame::Frame &)` (every espp protocol
+  ///        service does -- OtaService, CoreDumpService, Telemetry, ...).
+  ///        Equivalent to registering `[&](auto &f) { service.handle(f); }` on
+  ///        `service.module_id()` with `service.module_info()`.
+  /// @details The id and metadata are read from the *object*, so a service
+  ///          whose module id is configured per instance (e.g. an app module
+  ///          constructed with `{.module = 0x20}`) registers under that id; a
+  ///          class that only provides `static` members works too, since a
+  ///          static member resolves through an object expression as well.
   /// @param service The service; must outlive its registration.
   template <typename Service> void register_module(Service &service) {
     register_module(
-        Service::kModule, [&service](const stream_frame::Frame &f) { service.handle(f); },
-        Service::module_info());
+        service.module_id(), [&service](const stream_frame::Frame &f) { service.handle(f); },
+        service.module_info());
   }
 
   /// @brief Remove the handler for a module id (frames for it become ignored).

@@ -160,8 +160,12 @@ public:
       , core_dump_(core_dump)
       , send_(config.send) {}
 
+  /// @brief The dispatcher module id this service answers on (kModule: the
+  ///        core-dump protocol's fixed id, which the web console expects).
+  uint8_t module_id() const { return kModule; }
+
   /// @brief Discovery metadata for registering this service on a Dispatcher.
-  static Dispatcher::ModuleInfo module_info() {
+  Dispatcher::ModuleInfo module_info() const {
     return {.name = "Core Dump",
             .app = "coredump_console.html",
             .description = "Inspect the last crash core dump"};
@@ -175,7 +179,7 @@ public:
    * `dispatcher.register_module(service)`.
    */
   void handle(const espp::stream_frame::Frame &frame) {
-    if (frame.module != kModule || frame.is_reply())
+    if (frame.module != module_id() || frame.is_reply())
       return;
     handle_frame(frame.type, frame.payload);
   }

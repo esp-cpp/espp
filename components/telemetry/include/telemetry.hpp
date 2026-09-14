@@ -226,8 +226,12 @@ public:
     s(std::span<const uint8_t>(frame)); // send while still holding send_mutex_
   }
 
+  /// @brief The dispatcher module id this service answers on (kModule: the
+  ///        telemetry protocol's fixed id, which the Serial Plotter expects).
+  uint8_t module_id() const { return kModule; }
+
   /// @brief Discovery metadata for registering this service on a Dispatcher.
-  static Dispatcher::ModuleInfo module_info() {
+  Dispatcher::ModuleInfo module_info() const {
     return {.name = "Serial Plotter",
             .app = "telemetry.html",
             .description = "Live binary telemetry channels"};
@@ -239,7 +243,7 @@ public:
   /// other modules and reply-flagged frames (device->host pushes are never
   /// host requests).
   void handle(const espp::stream_frame::Frame &frame) {
-    if (frame.module != kModule || frame.is_reply())
+    if (frame.module != module_id() || frame.is_reply())
       return;
     handle_request(frame.type, frame.payload);
   }

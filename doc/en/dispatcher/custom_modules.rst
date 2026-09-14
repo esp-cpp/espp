@@ -114,7 +114,7 @@ Anatomy of a module: the ``CoreDumpService`` pattern
 is the best reference for the *shape* a device-side module takes, because it
 is a complete, production module: it owns a protocol (module id, message
 types), is transport-agnostic, and is registered on a `Dispatcher` exactly
-like your own module will be. The pattern has five parts:
+like your own module will be. The pattern has six parts:
 
 1. **A module id.**
 
@@ -244,23 +244,29 @@ like your own module will be. The pattern has five parts:
    the header comment in ``coredump_service.hpp`` for why — `std::errc`
    numbering is not portable across C++ standard libraries).
 
-6. **`module_info()` + `handle(frame)`** — the *service* shape. A `static
-   Dispatcher::ModuleInfo module_info()` next to `kModule`, plus a
-   `handle(const stream_frame::Frame &)` that filters on its own module id and
-   ignores reply-flagged frames, is what lets `Dispatcher::register_module(service)`
-   (and `DispatcherWorker::register_module(service)`) register a module in
-   one call, metadata included:
+6. **`module_id()` + `module_info()` + `handle(frame)`** — the *service*
+   shape. A `uint8_t module_id() const`, a `Dispatcher::ModuleInfo
+   module_info() const`, plus a `handle(const stream_frame::Frame &)` that
+   filters on its own module id and ignores reply-flagged frames, is what lets
+   `Dispatcher::register_module(service)` (and
+   `DispatcherWorker::register_module(service)`) register a module in one
+   call, metadata included. The dispatcher reads the id and metadata from the
+   *object*, so a module constructed with a configurable id (see the "hello"
+   module below) registers under that id — `CoreDumpService` simply returns
+   its protocol's fixed `kModule`:
 
    .. code-block:: cpp
 
-      static Dispatcher::ModuleInfo module_info() {
+      uint8_t module_id() const { return kModule; }
+
+      Dispatcher::ModuleInfo module_info() const {
         return {.name = "Core Dump",
                 .app = "coredump_console.html",
                 .description = "Inspect the last crash core dump"};
       }
 
       void handle(const espp::stream_frame::Frame &frame) {
-        if (frame.module != kModule || frame.is_reply())
+        if (frame.module != module_id() || frame.is_reply())
           return;
         handle_frame(frame.type, frame.payload);
       }
@@ -276,7 +282,7 @@ A minimal "hello" module, from scratch
 
 `CoreDumpService` is a *complete* module (flash access, a mutex, error
 mapping); the pattern above is more machinery than a small application
-protocol needs. Here is the same five-part shape reduced to the minimum: a
+protocol needs. Here is the same six-part shape reduced to the minimum: a
 module that answers a ``PING`` request (an arbitrary string payload) with a
 ``PONG`` reply (the string, upper-cased), built directly from
 `espp::stream_frame` and `espp::Dispatcher` — no protocol header, no internal
@@ -306,28 +312,31 @@ parser, no mutex, because a handler this small can run straight out of the
 
    class HelloModule {
    public:
-     // 1. (again) the module id and 6. its discovery metadata, so
-     //    dispatcher.register_module(hello) is all the wiring it needs.
-     static constexpr uint8_t kModule = hello_module::kModule;
-     static espp::Dispatcher::ModuleInfo module_info() {
-       return {.name = "Hello", .app = "hello_console.html", .description = "PING/PONG demo module"};
-     }
-
      // 3. Config carrying a send_fn: the module never touches USB/UART/socket
-     //    APIs directly.
+     //    APIs directly. The module id is configurable per instance (an app
+     //    may need to move it if the default collides with another module).
      using send_fn = std::function<void(std::span<const uint8_t> frame)>;
      struct Config {
        send_fn send{nullptr};
+       uint8_t module{hello_module::kModule};
      };
-     explicit HelloModule(const Config &config) : send_(config.send) {}
+     explicit HelloModule(const Config &config) : send_(config.send), module_(config.module) {}
 
-     // 5. Entry point: the Dispatcher handler for kModule (skips the
+     // 1. (again) the module id and 6. the discovery metadata, read through
+     //    the object by dispatcher.register_module(hello) -- all the wiring it
+     //    needs.
+     uint8_t module_id() const { return module_; }
+     espp::Dispatcher::ModuleInfo module_info() const {
+       return {.name = "Hello", .app = "hello_console.html", .description = "PING/PONG demo module"};
+     }
+
+     // 5. Entry point: the Dispatcher handler for module_id() (skips the
      //    feed()/handle_frame() split that CoreDumpService needs so it can
      //    also run standalone off a raw byte stream — feed() owns an internal
      //    parser for that case — and serialize flash access under its own
      //    mutex; a handler this small has neither concern).
      void handle(const espp::stream_frame::Frame &frame) {
-       if (frame.module != kModule || frame.is_reply() ||
+       if (frame.module != module_ || frame.is_reply() ||
            frame.type != static_cast<uint8_t>(hello_module::Msg::Ping))
          return; // not a request we answer (ignore other modules / replies / other types)
        std::string text(frame.payload.begin(), frame.payload.end());
@@ -347,14 +356,14 @@ parser, no mutex, because a handler this small can run straight out of the
    private:
      // 4. build(): every reply goes through stream_frame::build_frame(); the
      //    Msg high bit (see the enum above) selects the reply flag, exactly
-     //    like CoreDumpService::build().
-     static std::vector<uint8_t> build(hello_module::Msg type, std::span<const uint8_t> payload) {
+     //    like CoreDumpService::build(). Replies carry THIS instance's id.
+     std::vector<uint8_t> build(hello_module::Msg type, std::span<const uint8_t> payload) const {
        const bool reply = (static_cast<uint8_t>(type) & 0x80) != 0;
-       return espp::stream_frame::build_frame(reply, hello_module::kModule,
-                                              static_cast<uint8_t>(type), payload);
+       return espp::stream_frame::build_frame(reply, module_, static_cast<uint8_t>(type), payload);
      }
 
      send_fn send_;
+     uint8_t module_;
    };
 
 Note the reply is bound to a local `reply_frame` before it is handed to `send_`:
@@ -370,9 +379,9 @@ discoverable — see below):
 .. code-block:: cpp
 
    HelloModule hello({.send = [&](std::span<const uint8_t> frame) { usb.write_vendor(frame); }});
-   dispatcher.register_module(hello);
+   dispatcher.register_module(hello); // registers under hello.module_id()
 
-   // equivalent, for a module without module_info()/kModule members:
+   // equivalent, for a module without module_id()/module_info() members:
    dispatcher.register_module(
        hello_module::kModule, [&](const espp::stream_frame::Frame &f) { hello.handle(f); },
        {.name = "Hello", .app = "hello_console.html", .description = "PING/PONG demo module"});
@@ -714,7 +723,7 @@ Checklist: shipping a new module + webapp
    *authoritative* signal is always the frame's `flags` reply bit passed to
    `build_frame()`.
 #. **Implement the module**: a `Config` carrying a `send_fn`, a `build()`
-   helper wrapping `stream_frame::build_frame()`, a `static module_info()`,
+   helper wrapping `stream_frame::build_frame()`, `module_id()` + `module_info()` members,
    and either a direct `handle(frame)` (the "hello" pattern) or your own
    `feed()` / `handle_frame()` split if the module needs its own
    parser/locking (the `CoreDumpService` pattern) — always send replies
