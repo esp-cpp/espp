@@ -261,6 +261,23 @@ struct StaticService {
   std::vector<uint8_t> types;
 };
 
+// The contract is checkable at compile time: both shapes satisfy it, and a
+// type missing any of the three members does not.
+static_assert(espp::DispatcherModuleConcept<FakeService>);
+static_assert(espp::DispatcherModuleConcept<StaticService>);
+struct NotAModule {
+  uint8_t module_id() const { return 1; }
+  espp::Dispatcher::ModuleInfo module_info() const { return {}; }
+  // no handle(frame)
+};
+struct WrongHandle {
+  uint8_t module_id() const { return 1; }
+  espp::Dispatcher::ModuleInfo module_info() const { return {}; }
+  void handle(int) {} // wrong signature
+};
+static_assert(!espp::DispatcherModuleConcept<NotAModule>);
+static_assert(!espp::DispatcherModuleConcept<WrongHandle>);
+
 static void test_register_service() {
   std::printf("register_module(service)\n");
   espp::Dispatcher d;

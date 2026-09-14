@@ -245,15 +245,26 @@ like your own module will be. The pattern has six parts:
    numbering is not portable across C++ standard libraries).
 
 6. **`module_id()` + `module_info()` + `handle(frame)`** — the *service*
-   shape. A `uint8_t module_id() const`, a `Dispatcher::ModuleInfo
-   module_info() const`, plus a `handle(const stream_frame::Frame &)` that
-   filters on its own module id and ignores reply-flagged frames, is what lets
-   `Dispatcher::register_module(service)` (and
-   `DispatcherWorker::register_module(service)`) register a module in one
-   call, metadata included. The dispatcher reads the id and metadata from the
-   *object*, so a module constructed with a configurable id (see the "hello"
-   module below) registers under that id — `CoreDumpService` simply returns
-   its protocol's fixed `kModule`:
+   shape, spelled out as the C++20 concept `espp::DispatcherModuleConcept`
+   (``dispatcher.hpp``). A `uint8_t module_id() const`, a
+   `Dispatcher::ModuleInfo module_info() const`, plus a `handle(const
+   stream_frame::Frame &)` that filters on its own module id and ignores
+   reply-flagged frames, is what lets `Dispatcher::register_module(service)`
+   (and `DispatcherWorker::register_module(service)`) register a module in
+   one call, metadata included — those overloads are constrained on the
+   concept, so a non-conforming type fails to compile at the call with a
+   message naming the missing member. The dispatcher reads the id and
+   metadata from the *object*, so a module constructed with a configurable
+   id (see the "hello" module below) registers under that id — `CoreDumpService`
+   simply returns its protocol's fixed `kModule`. Every espp service also
+   `static_assert`s the concept right after its class definition, and so
+   should yours:
+
+   .. code-block:: cpp
+
+      static_assert(espp::DispatcherModuleConcept<MyModule>);
+
+   The members it requires:
 
    .. code-block:: cpp
 
@@ -365,6 +376,10 @@ parser, no mutex, because a handler this small can run straight out of the
      send_fn send_;
      uint8_t module_;
    };
+
+   // 6. and prove it conforms -- a broken member is a compile error here, not
+   //    a puzzling one at the register_module() call site.
+   static_assert(espp::DispatcherModuleConcept<HelloModule>);
 
 Note the reply is bound to a local `reply_frame` before it is handed to `send_`:
 `send_fn`'s `std::span<const uint8_t>` parameter is only valid for the

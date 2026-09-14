@@ -30,6 +30,7 @@
 // library), so it builds and unit-tests on a host.
 
 #include <algorithm>
+#include <concepts>
 #include <cstdint>
 #include <functional>
 #include <span>
@@ -40,6 +41,51 @@
 #include "stream_frame.hpp"
 
 namespace espp {
+
+/// @brief Optional human/browser-facing metadata advertised for a module.
+/// @details All fields are optional; a module with an empty name is not
+///          advertised by Dispatcher::describe(). Kept short — each string is
+///          serialized with a one-byte length, so anything past 255 bytes is
+///          truncated. (Also available as `Dispatcher::ModuleInfo`.)
+struct DispatcherModuleInfo {
+  std::string name;        ///< Human-readable module name, e.g. "MCP266 Console".
+  std::string app;         ///< Hosted web-app filename, e.g. "mcp266_console.html" (optional).
+  std::string description; ///< One-line description (optional).
+};
+
+/**
+ * @brief The contract a *module object* must satisfy to be registered on a
+ *        Dispatcher with one call: `dispatcher.register_module(module)`.
+ *
+ * A conforming type provides, callable on an object (instance members, or
+ * static members — a static member resolves through an object expression too):
+ *
+ * - `uint8_t module_id() const` — the dispatcher module id it answers on.
+ *   Read from the object so an id configured per instance is honored.
+ * - `DispatcherModuleInfo module_info() const` — its discovery metadata
+ *   (name / hosted web app / description); an empty name = not advertised.
+ * - `void handle(const stream_frame::Frame &)` — the entry point for every
+ *   frame routed to its id. It should ignore reply-flagged frames (echoes)
+ *   and, when it can also be fed standalone, frames for other module ids.
+ *
+ * Every espp protocol service (OtaService, CoreDumpService, Telemetry,
+ * Mcp266Service, ...) satisfies it and `static_assert`s so next to its class
+ * definition; do the same for your own module to get a precise compile-time
+ * error the moment the contract is broken:
+ *
+ *   static_assert(espp::DispatcherModuleConcept<MyModule>);
+ *
+ * The concept is deliberately minimal: it does not require a `send`
+ * callback, a parser, or any particular Config shape — those are conventions
+ * (see doc/en/dispatcher/custom_modules.rst), not requirements.
+ */
+template <typename T>
+concept DispatcherModuleConcept = requires(T &module, const T &const_module,
+                                           const stream_frame::Frame &frame) {
+  { const_module.module_id() } -> std::convertible_to<uint8_t>;
+  { const_module.module_info() } -> std::convertible_to<DispatcherModuleInfo>;
+  {module.handle(frame)};
+};
 
 /// @brief Routes framed messages from one byte stream to per-module handlers.
 class Dispatcher {
@@ -52,15 +98,8 @@ public:
   ///        stream_frame back to the peer over the application's transport.
   using reply_fn = std::function<void(std::span<const uint8_t> frame)>;
 
-  /// @brief Optional human/browser-facing metadata advertised for a module.
-  /// @details All fields are optional; a module with an empty name is not
-  ///          advertised by describe(). Kept short — each string is serialized
-  ///          with a one-byte length, so anything past 255 bytes is truncated.
-  struct ModuleInfo {
-    std::string name;        ///< Human-readable module name, e.g. "MCP266 Console".
-    std::string app;         ///< Hosted web-app filename, e.g. "mcp266_console.html" (optional).
-    std::string description; ///< One-line description (optional).
-  };
+  /// @brief Discovery metadata for a module (see DispatcherModuleInfo).
+  using ModuleInfo = DispatcherModuleInfo;
 
   /// @brief Reserved module id for capability discovery. A peer sends a
   ///        Discovery::ListModules request here; the device answers with the
@@ -107,19 +146,19 @@ public:
       apply_register(std::move(entry));
   }
 
-  /// @brief Register a *service* object: any type exposing `uint8_t
-  ///        module_id() const`, `ModuleInfo module_info() const`, and
-  ///        `void handle(const stream_frame::Frame &)` (every espp protocol
-  ///        service does -- OtaService, CoreDumpService, Telemetry, ...).
-  ///        Equivalent to registering `[&](auto &f) { service.handle(f); }` on
-  ///        `service.module_id()` with `service.module_info()`.
+  /// @brief Register a *module object* satisfying DispatcherModuleConcept
+  ///        (`module_id()` / `module_info()` / `handle(frame)` -- every espp
+  ///        protocol service does: OtaService, CoreDumpService, Telemetry,
+  ///        Mcp266Service, ...). Equivalent to registering
+  ///        `[&](auto &f) { service.handle(f); }` on `service.module_id()`
+  ///        with `service.module_info()`.
   /// @details The id and metadata are read from the *object*, so a service
   ///          whose module id is configured per instance (e.g. an app module
   ///          constructed with `{.module = 0x20}`) registers under that id; a
   ///          class that only provides `static` members works too, since a
   ///          static member resolves through an object expression as well.
   /// @param service The service; must outlive its registration.
-  template <typename Service> void register_module(Service &service) {
+  template <DispatcherModuleConcept Service> void register_module(Service &service) {
     register_module(
         service.module_id(), [&service](const stream_frame::Frame &f) { service.handle(f); },
         service.module_info());

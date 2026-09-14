@@ -329,4 +329,9 @@ protected:
   std::unique_ptr<Task> status_task_;
 };
 
+// Compile-time check that the service keeps satisfying the dispatcher's module
+// contract (module_id() / module_info() / handle(frame)) -- see
+// espp::DispatcherModuleConcept.
+static_assert(DispatcherModuleConcept<Mcp266Service>);
+
 } // namespace espp

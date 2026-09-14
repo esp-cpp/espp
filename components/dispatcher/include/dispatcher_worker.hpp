@@ -115,8 +115,9 @@ public:
 
   // --- registration (thread-safe with respect to the worker) -------------------
 
-  /// @brief Register a protocol service (see Dispatcher::register_module(Service&)).
-  template <typename Service> void register_module(Service &service) {
+  /// @brief Register a protocol service satisfying DispatcherModuleConcept
+  ///        (see Dispatcher::register_module(Service&)).
+  template <DispatcherModuleConcept Service> void register_module(Service &service) {
     std::lock_guard<std::mutex> lock(dispatcher_mutex_);
     dispatcher_.register_module(service);
   }

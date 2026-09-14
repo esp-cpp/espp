@@ -46,12 +46,16 @@ specific service.
 - `void register_module(uint8_t module_id, handler_fn handler)` /
   `void unregister_module(uint8_t module_id)` / `bool has_module(uint8_t)`
   where `handler_fn = std::function<void(const stream_frame::Frame&)>`.
-- `template <class Service> void register_module(Service &service)` — register a
-  *service* object (anything with `uint8_t module_id() const`, `ModuleInfo
-  module_info() const` and `void handle(const stream_frame::Frame&)`):
-  `espp::OtaService`, `espp::CoreDumpService`, `espp::Telemetry`, or your own.
-  The id and metadata are read from the *object*, so a module whose id is
-  configured per instance registers under that id (static members work too).
+- `template <DispatcherModuleConcept Service> void register_module(Service &service)`
+  — register a *service* object. The contract is the C++20 concept
+  `espp::DispatcherModuleConcept`: `uint8_t module_id() const`, `ModuleInfo
+  module_info() const` and `void handle(const stream_frame::Frame&)`, all
+  callable on the object (static members work too). `espp::OtaService`,
+  `espp::CoreDumpService`, `espp::Telemetry`, `espp::Mcp266Service` satisfy it
+  (and `static_assert` so); add `static_assert(espp::DispatcherModuleConcept<MyModule>);`
+  to your own module for a precise compile-time check. The id and metadata are
+  read from the *object*, so a module whose id is configured per instance
+  registers under that id.
 - `void feed(std::span<const uint8_t> data)` — parse + route.
 - `void dispatch(const stream_frame::Frame&)` — route an already-parsed frame.
 - `void reset()` — drop buffered bytes (reconnect / RX overflow).

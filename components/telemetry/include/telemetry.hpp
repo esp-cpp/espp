@@ -415,4 +415,9 @@ protected:
   std::atomic<uint16_t> period_ms_;
   espp::stream_frame::StreamParser parser_;
 };
+// Compile-time check that the service keeps satisfying the dispatcher's module
+// contract (module_id() / module_info() / handle(frame)) -- see
+// espp::DispatcherModuleConcept.
+static_assert(DispatcherModuleConcept<Telemetry>);
+
 } // namespace espp

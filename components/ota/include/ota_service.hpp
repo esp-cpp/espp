@@ -388,4 +388,9 @@ private:
   bool owns_session_{false}; // set by a successful BEGIN here; cleared on every terminal path
 };
 
+// Compile-time check that the service keeps satisfying the dispatcher's module
+// contract (module_id() / module_info() / handle(frame)) -- see
+// espp::DispatcherModuleConcept.
+static_assert(DispatcherModuleConcept<OtaService>);
+
 } // namespace espp
