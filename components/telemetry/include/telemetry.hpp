@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "base_component.hpp"
+#include "dispatcher.hpp"
 #include "stream_frame.hpp"
 
 namespace espp {
@@ -225,12 +226,24 @@ public:
     s(std::span<const uint8_t>(frame)); // send while still holding send_mutex_
   }
 
+  /// @brief The dispatcher module id this service answers on (kModule: the
+  ///        telemetry protocol's fixed id, which the Serial Plotter expects).
+  uint8_t module_id() const { return kModule; }
+
+  /// @brief Discovery metadata for registering this service on a Dispatcher.
+  Dispatcher::ModuleInfo module_info() const {
+    return {.name = "Serial Plotter",
+            .app = "telemetry.html",
+            .description = "Live binary telemetry channels"};
+  }
+
   /// @brief Dispatcher handler: process one frame addressed to this module.
   ///
-  /// Register with `dispatcher.register_module(Telemetry::kModule, ...)`. Ignores
-  /// reply-flagged frames (device->host pushes are never host requests).
+  /// Register with `dispatcher.register_module(telemetry)`. Ignores frames for
+  /// other modules and reply-flagged frames (device->host pushes are never
+  /// host requests).
   void handle(const espp::stream_frame::Frame &frame) {
-    if (frame.is_reply())
+    if (frame.module != module_id() || frame.is_reply())
       return;
     handle_request(frame.type, frame.payload);
   }
@@ -402,4 +415,9 @@ protected:
   std::atomic<uint16_t> period_ms_;
   espp::stream_frame::StreamParser parser_;
 };
+// Compile-time check that the service keeps satisfying the dispatcher's module
+// contract (module_id() / module_info() / handle(frame)) -- see
+// espp::DispatcherModuleConcept.
+static_assert(DispatcherModuleConcept<Telemetry>);
+
 } // namespace espp

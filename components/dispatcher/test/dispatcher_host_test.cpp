@@ -230,7 +230,79 @@ static void test_discovery_payload_bound() {
              .empty());
 }
 
+// A minimal "service": the shape every espp protocol service exposes so it can
+// be registered with the one-argument register_module(service) overload. The
+// module id and metadata are per-INSTANCE (read through the object), so the
+// same class can serve several ids.
+struct FakeService {
+  explicit FakeService(uint8_t module, std::string name)
+      : module_(module)
+      , name_(std::move(name)) {}
+  uint8_t module_id() const { return module_; }
+  espp::Dispatcher::ModuleInfo module_info() const {
+    return {.name = name_, .app = "fake.html", .description = "test service"};
+  }
+  void handle(const sf::Frame &f) {
+    if (f.module != module_id() || f.is_reply())
+      return;
+    types.push_back(f.type);
+  }
+  uint8_t module_;
+  std::string name_;
+  std::vector<uint8_t> types;
+};
+
+// A class that only has STATIC id/metadata members must register the same way
+// (a static member resolves through an object expression).
+struct StaticService {
+  static uint8_t module_id() { return 0x50; }
+  static espp::Dispatcher::ModuleInfo module_info() { return {.name = "Static"}; }
+  void handle(const sf::Frame &f) { types.push_back(f.type); }
+  std::vector<uint8_t> types;
+};
+
+// The contract is checkable at compile time: both shapes satisfy it, and a
+// type missing any of the three members does not.
+static_assert(espp::DispatcherModuleConcept<FakeService>);
+static_assert(espp::DispatcherModuleConcept<StaticService>);
+struct NotAModule {
+  uint8_t module_id() const { return 1; }
+  espp::Dispatcher::ModuleInfo module_info() const { return {}; }
+  // no handle(frame)
+};
+struct WrongHandle {
+  uint8_t module_id() const { return 1; }
+  espp::Dispatcher::ModuleInfo module_info() const { return {}; }
+  void handle(int) {} // wrong signature
+};
+static_assert(!espp::DispatcherModuleConcept<NotAModule>);
+static_assert(!espp::DispatcherModuleConcept<WrongHandle>);
+
+static void test_register_service() {
+  std::printf("register_module(service)\n");
+  espp::Dispatcher d;
+  FakeService a(0x42, "FakeA"), b(0x43, "FakeB");
+  StaticService s;
+  d.register_module(a);
+  d.register_module(b); // same class, a different configured id
+  d.register_module(s);
+  CHECK(d.has_module(0x42) && d.has_module(0x43) && d.has_module(0x50));
+  d.feed(sf::build_frame(false, 0x42, 0x11));
+  d.feed(sf::build_frame(true, 0x42, 0x22));  // reply: ignored by the service
+  d.feed(sf::build_frame(false, 0x43, 0x33)); // routed to b, not a
+  d.feed(sf::build_frame(false, 0x50, 0x44));
+  CHECK(a.types.size() == 1 && a.types[0] == 0x11);
+  CHECK(b.types.size() == 1 && b.types[0] == 0x33);
+  CHECK(s.types.size() == 1 && s.types[0] == 0x44);
+  // each instance's metadata is advertised
+  const auto payload = d.describe();
+  const std::string text(payload.begin(), payload.end());
+  CHECK(text.find("FakeA") != std::string::npos && text.find("FakeB") != std::string::npos &&
+        text.find("Static") != std::string::npos);
+}
+
 int main() {
+  test_register_service();
   test_routing_and_coexistence();
   test_register_replace_unregister();
   test_reset();

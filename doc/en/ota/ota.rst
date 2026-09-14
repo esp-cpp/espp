@@ -73,3 +73,4 @@ API Reference
 
 .. include-build-file:: inc/ota.inc
 .. include-build-file:: inc/ota_stream_protocol.inc
+.. include-build-file:: inc/ota_service.inc

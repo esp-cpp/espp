@@ -54,6 +54,37 @@ The [example](./example) brings up an `espp::Twai` transport and an
 `espp::CanopenClient`, NMT-starts the node, reads telemetry, configures the M1
 position loop, and runs a small profile-position sequence.
 
+## Web console: `Mcp266Service` + `mcp266_protocol.hpp`
+
+The [MCP266 Console](https://esp-cpp.github.io/espp/apps/mcp266_console.html)
+(`web/mcp266_console.html`) drives an MCP266 from the browser over USB (WebUSB
+or Web Serial) with a small high-level protocol — the CANopen/DS402 work stays
+on the device:
+
+- `mcp266_protocol.hpp` — the wire protocol (dispatcher **module 6**,
+  `stream_frame` framing): request/reply types, the payload structs
+  (`ConfigurePositionLoop`, `MoveToPosition`, `Status`, `DeviceInfo`, ...) with
+  `serialize()` / `parse()`. Standard-library only, so it is usable from any
+  client (host tests in `test/mcp266_protocol_host_test.cpp`).
+- `mcp266_service.hpp` — `espp::Mcp266Service`: the device side as a
+  [dispatcher](../dispatcher) service around an `espp::Mcp266`. It executes each
+  request under a shared MCP mutex (one SDO channel), replies after releasing
+  it, and runs the periodic STATUS stream (period clamped to a bus-safe range).
+  Register it in one call, one instance per byte stream:
+
+```cpp
+espp::Mcp266 mcp(client, {...});
+std::mutex mcp_mutex; // shared by every user of `mcp`
+espp::Mcp266Service service(mcp, {.send = send, .mcp_mutex = &mcp_mutex});
+espp::DispatcherWorker link({.send = send});
+link.register_module(service);
+link.serve_discovery("espp MCP266 Console");
+usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { link.push(data); });
+```
+
+The [webapp example](./webapp_example) does exactly this on both the vendor
+(WebUSB) and CDC (Web Serial) interfaces of an ESP32-S3.
+
 ## Related components
 
 * `espp/canopen` — the CANopen client and the `Ds402Drive` CiA 402 helper this

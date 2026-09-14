@@ -46,9 +46,12 @@ the same stream), view the crash summary, download the core dump as
 - **Raw image access**: `image_size()`, `read_image(offset, span, ec)`
   (partition-backed chunked reads), `erase(ec)`
 - **Stream service**: `espp::CoreDumpService` — transport-agnostic; construct
-  with a `send` function, then either `feed(bytes)` (internal resynchronizing
-  frame parser) or `handle_frame(type, payload)` (bring your own parser);
-  GET_SUMMARY / GET_SIZE / READ / ERASE requests, unknown frame types ignored
+  with a `send` function, then register it on a dispatcher
+  (`dispatcher.register_module(service)` — it carries its module id 4,
+  `handle(frame)` and discovery `module_info()`), or `feed(bytes)` (internal
+  resynchronizing frame parser) / `handle_frame(type, payload)` (bring your own
+  parser); GET_SUMMARY / GET_SIZE / READ / ERASE requests, unknown frame types
+  ignored
 - **Web console**: single-file, offline-capable browser app (WebUSB + Web
   Serial) with crash summary, `core.elf` download, client-side nearest-symbol
   backtrace resolution, and erase

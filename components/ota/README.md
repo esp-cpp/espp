@@ -73,6 +73,37 @@ Key class: `espp::Ota` (header-only, `ota.hpp`)
   `running_app_description()`, `incoming_app_description()`,
   `session_active()`, `bytes_written()`, `image_size()`
 
+Service class: `espp::OtaService` (`ota_service.hpp`) — the stream protocol
+below as a drop-in [dispatcher](../dispatcher) module (module 0), so an
+application never implements the OTA state machine itself:
+
+```cpp
+auto send = [&](std::span<const uint8_t> frame) { usb.write_vendor(frame); };
+espp::Ota ota({.log_level = espp::Logger::Verbosity::INFO});
+espp::OtaService ota_service(ota, {.send = send});
+espp::DispatcherWorker link({.send = send, .on_overflow = [&] { ota_service.on_rx_overflow(); }});
+link.register_module(ota_service); // module 0 + discovery metadata
+link.serve_discovery("My Device");
+usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { link.push(data); });
+```
+
+- construct with the `Ota` engine and a `send` function; `Config` also has
+  `auto_restart` (default true: reply `OK` to `FINISH`, then restart after
+  `restart_delay`, 750 ms) and `on_update_finished` (run your own logic /
+  `Ota::restart()` when `auto_restart` is off)
+- `handle(frame)` — the dispatcher entry point (ignores other modules and
+  replies); `feed(bytes)` / `handle_frame(type, payload)` for standalone use;
+  `on_rx_overflow()` — abort the transfer and tell the host after the transport
+  dropped bytes; `owns_session()`
+- **per-transport session ownership**: one `OtaService` per byte stream (they
+  may share one `Ota`); each only appends to / finishes / aborts a session *it*
+  began, so a `DATA` frame on one transport can never touch a session started
+  on another (e.g. the example's HTTP upload)
+- rollback stays host-driven (see below): the service answers `GET_STATUS` /
+  `MARK_VALID` / `MARK_INVALID` and never marks the running image valid itself
+- replies are always sent after the internal lock is released (the same
+  contract as `CoreDumpService`)
+
 ## Stream protocol (USB / WebUSB)
 
 `detail/ota_stream_protocol.hpp` frames OTA messages over any raw byte stream
