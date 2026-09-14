@@ -238,6 +238,8 @@ INPUT = \
   $(PROJECT_PATH)/components/basicmicro/include/basicmicro.hpp \
   $(PROJECT_PATH)/components/basicmicro/include/detail/basicmicro_core.hpp \
   $(PROJECT_PATH)/components/mcp266/include/mcp266.hpp \
+  $(PROJECT_PATH)/components/mcp266/include/mcp266_protocol.hpp \
+  $(PROJECT_PATH)/components/mcp266/include/mcp266_service.hpp \
   $(PROJECT_PATH)/components/mcp266/include/detail/mcp266_core.hpp \
   $(PROJECT_PATH)/components/bdc_driver/include/bdc_driver.hpp \
   $(PROJECT_PATH)/components/binary-log/include/binary-log.hpp \

@@ -64,7 +64,7 @@ Module id  Protocol
 3          Telemetry (``espp::Telemetry``)
 4          Crash dump (``espp::CoreDumpService``)
 5          CAN bridge (``components/canopen``)
-6          MCP266 motor-controller console
+6          MCP266 motor-controller console (``espp::Mcp266Service``)
 0xF0-0xFE  reserved for dispatcher / meta use
 0xFF       capability discovery
 =========  ========================================================
@@ -154,7 +154,7 @@ like your own module will be. The pattern has six parts:
    `type` values. Other espp modules pick different layouts for the same
    underlying rule: `espp::Telemetry` (module 3) uses request types ``0x0X``
    and reply types ``0x8X``; the MCP266 console protocol
-   (``components/mcp266/webapp_example/main/mcp266_protocol.hpp``, module 6)
+   (``components/mcp266/include/mcp266_protocol.hpp``, module 6)
    uses high-nibble ``0x6_`` for requests and ``0xE_`` for replies. Any layout
    works as long as your `build()` (or equivalent) passes the right `reply`
    bool to `build_frame()`.

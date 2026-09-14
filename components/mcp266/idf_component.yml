@@ -25,3 +25,6 @@ dependencies:
   espp/base_component: '>=1.0'
   espp/canopen: '>=1.0'
   espp/motor_controller: '>=1.0'
+  espp/dispatcher: '>=1.0'
+  espp/stream_frame: '>=1.0'
+  espp/task: '>=1.0'
