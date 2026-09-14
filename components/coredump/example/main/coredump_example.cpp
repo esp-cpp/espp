@@ -115,25 +115,29 @@ extern "C" void app_main(void) {
   usb_cfg.vendor = vendor;
   espp::UsbDevice usb(usb_cfg);
 
+  // Replies go back on the stream the request came in on: one send function
+  // per transport.
+  auto vendor_send = [&](std::span<const uint8_t> frame) { usb.write_vendor(frame); };
+  auto cdc_send = [&](std::span<const uint8_t> frame) { usb.write_cdc(frame); };
+
+  // One CoreDumpService per byte stream, both sharing the same espp::CoreDump
+  // (it serializes its flash access internally). Declared BEFORE the workers
+  // that call into them, so they outlive the worker tasks on teardown.
+  espp::CoreDumpService vendor_service(
+      core_dump, {.send = vendor_send, .log_level = espp::Logger::Verbosity::INFO});
+  espp::CoreDumpService cdc_service(core_dump,
+                                    {.send = cdc_send, .log_level = espp::Logger::Verbosity::INFO});
+
   // One DispatcherWorker per byte stream: each owns the bounded receive queue
   // + worker task that feeds its Dispatcher, so protocol handlers never run
   // on the TinyUSB task (ERASE can block for tens of ms) and every stream
-  // parses on exactly one thread. Replies go back on the stream the request
-  // came in on (each worker's `send`).
+  // parses on exactly one thread. Registering a service routes its module (4)
+  // to it and advertises it for discovery.
   espp::DispatcherWorker vendor_link(
-      {.send = [&](std::span<const uint8_t> frame) { usb.write_vendor(frame); },
+      {.send = vendor_send,
        .task_config = {.name = "coredump_rx_vendor", .stack_size_bytes = 8192}});
   espp::DispatcherWorker cdc_link(
-      {.send = [&](std::span<const uint8_t> frame) { usb.write_cdc(frame); },
-       .task_config = {.name = "coredump_rx_cdc", .stack_size_bytes = 8192}});
-
-  // One CoreDumpService per byte stream, both sharing the same espp::CoreDump
-  // (it serializes its flash access internally). Registering the service
-  // routes module 4 to it and advertises it for discovery.
-  espp::CoreDumpService vendor_service(
-      core_dump, {.send = vendor_link.sender(), .log_level = espp::Logger::Verbosity::INFO});
-  espp::CoreDumpService cdc_service(
-      core_dump, {.send = cdc_link.sender(), .log_level = espp::Logger::Verbosity::INFO});
+      {.send = cdc_send, .task_config = {.name = "coredump_rx_cdc", .stack_size_bytes = 8192}});
   vendor_link.register_module(vendor_service);
   cdc_link.register_module(cdc_service);
   //! [coredump_example]

@@ -65,12 +65,16 @@ namespace espp {
  * MARK_INVALID) after checking the device is healthy. This service never
  * marks the running image valid on its own.
  *
- * **Threading**: feed() / handle() / handle_frame() / on_rx_overflow() are
- * serialized by an internal mutex that covers the parser, the session
- * ownership flag and the engine call; the `send` callback runs after the
- * mutex is released. Engine calls block (a BEGIN erases the target partition,
- * which can take seconds), so feed the service from a worker task rather than
- * from a transport's receive callback (see espp::DispatcherQueue).
+ * **Threading**: an internal mutex covers the parser, the session ownership
+ * flag and each engine call, and the `send` callback always runs after it is
+ * released (so a re-entrant transport cannot deadlock). Requests are handled
+ * one at a time, but the mutex is released between the frames of one feed()
+ * call and the OTA protocol is order-sensitive (BEGIN, DATA..., FINISH), so
+ * drive one instance from ONE context per byte stream — a Dispatcher /
+ * DispatcherWorker feeding it, or a single task calling feed(). Engine calls
+ * block (a BEGIN erases the target partition, which can take seconds), so
+ * that context should be a worker task rather than a transport's receive
+ * callback (see espp::DispatcherWorker).
  *
  * \section ota_service_ex1 OtaService Example
  * \snippet ota_example.cpp ota_example

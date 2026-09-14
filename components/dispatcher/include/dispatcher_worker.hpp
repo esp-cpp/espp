@@ -95,8 +95,13 @@ public:
 
   /// @brief Stop the worker task (queued bytes are discarded).
   ~DispatcherWorker() {
-    running_ = false;
+    {
+      std::lock_guard<std::mutex> lock(rx_mutex_);
+      running_ = false; // read by the worker under the same mutex
+    }
     rx_cv_.notify_all();
+    // Task::stop() flags the task and joins it; the worker returns from its
+    // (bounded) wait promptly once running_ is false.
     if (task_)
       task_->stop();
   }
@@ -172,10 +177,14 @@ public:
   }
 
   /// @brief Ask the worker to discard any half-parsed frame before the next
-  ///        bytes (transport connect / disconnect). Safe from any task.
+  ///        bytes (transport connect / disconnect). Bytes still queued from
+  ///        before the reset are dropped too -- they belong to the old link
+  ///        and must not be fed after the parser reset. Safe from any task.
   void request_reset() {
     {
       std::lock_guard<std::mutex> lock(rx_mutex_);
+      rx_queue_.clear();
+      rx_queued_bytes_ = 0;
       rx_reset_ = true;
     }
     rx_cv_.notify_one();
@@ -203,7 +212,7 @@ protected:
         return !rx_queue_.empty() || rx_overflow_ || rx_reset_ || !running_;
       });
       if (!running_)
-        return true; // stop the task
+        return false; // shutting down: do nothing; the destructor's Task::stop() ends the task
       std::swap(chunks, rx_queue_);
       rx_queued_bytes_ = 0;
       overflowed = rx_overflow_;
