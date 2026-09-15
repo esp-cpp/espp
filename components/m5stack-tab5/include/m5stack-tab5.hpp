@@ -746,6 +746,9 @@ protected:
   static constexpr gpio_num_t sd_dat3_io = GPIO_NUM_42; // CS/DAT3
   static constexpr gpio_num_t sd_clk_io = GPIO_NUM_43;  // SCK/CLK
   static constexpr gpio_num_t sd_cmd_io = GPIO_NUM_44;  // MOSI/CMD
+  // The SD card's IO pads (GPIO39-44) are powered by the ESP32-P4's internal
+  // LDO channel 4 (LDO_VO4), which the SDMMC host has to switch on.
+  static constexpr int sd_ldo_channel = 4;
 
   // RS-485
   static constexpr gpio_num_t rs485_rx_io = GPIO_NUM_21;  // RX
@@ -927,6 +930,7 @@ protected:
 
   // uSD Card
   sdmmc_card_t *sdcard_{nullptr};
+  void *sd_pwr_ctrl_handle_{nullptr}; // sd_pwr_ctrl_handle_t (on-chip LDO)
 
   // RTC
   std::atomic<bool> rtc_initialized_{false};
