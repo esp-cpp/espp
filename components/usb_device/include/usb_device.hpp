@@ -229,21 +229,24 @@ public:
     std::string manufacturer{"espp"};          /**< Manufacturer string descriptor. */
     std::string product{"espp USB Device"};    /**< Product string descriptor. */
     std::string serial_number{"000000000001"}; /**< Serial number string descriptor. */
-    uint16_t bcd_device{
-        0x0100}; /**< bcdDevice (device release, BCD) in the device descriptor. Ignored
-                     for an XInput-only device (which reports the Xbox 360 value). */
-    uint16_t max_power_ma{100}; /**< bMaxPower in the configuration descriptor, in mA (0..500). Some
-                                    hosts compare it against the device they expect (e.g. a Switch
-                                    expects a Pro Controller's 500 mA). */
-    bool remote_wakeup{true};   /**< Advertise remote wakeup in the configuration attributes. */
-
-    std::optional<CdcFunction> cdc{};       /**< Enable a CDC-ACM function. */
-    std::optional<VendorFunction> vendor{}; /**< Enable a vendor-specific / WebUSB function. */
-    std::optional<HidFunction> hid{};       /**< Enable a HID function. */
-    std::optional<XInputFunction> xinput{}; /**< Enable an X-Input (Xbox 360) function. */
-    std::optional<MscFunction> msc{};       /**< (Future) enable an MSC function. */
+    std::optional<CdcFunction> cdc{};          /**< Enable a CDC-ACM function. */
+    std::optional<VendorFunction> vendor{};    /**< Enable a vendor-specific / WebUSB function. */
+    std::optional<HidFunction> hid{};          /**< Enable a HID function. */
+    std::optional<XInputFunction> xinput{};    /**< Enable an X-Input (Xbox 360) function. */
+    std::optional<MscFunction> msc{};          /**< (Future) enable an MSC function. */
 
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Logger verbosity. */
+
+    // Descriptor details (appended after the original members so positional
+    // aggregate initializers of earlier releases keep compiling).
+    uint16_t bcd_device{0x0100}; /**< bcdDevice (device release, BCD) in the device descriptor.
+                                     Ignored for an XInput-only device (which reports the Xbox
+                                     360 value). */
+    uint16_t max_power_ma{100};  /**< bMaxPower in the configuration descriptor, in mA; clamped
+                                     to 500 and rounded up to the next 2 mA unit. Some hosts
+                                     compare it against the device they expect (e.g. a Switch
+                                     expects a Pro Controller's 500 mA). */
+    bool remote_wakeup{true};    /**< Advertise remote wakeup in the configuration attributes. */
   };
 
   /**
