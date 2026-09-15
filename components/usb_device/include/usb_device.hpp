@@ -229,6 +229,14 @@ public:
     std::string manufacturer{"espp"};          /**< Manufacturer string descriptor. */
     std::string product{"espp USB Device"};    /**< Product string descriptor. */
     std::string serial_number{"000000000001"}; /**< Serial number string descriptor. */
+    // Descriptor details some hosts check (e.g. a Switch expects a Pro Controller
+    // to report bcdDevice 0x0210 and 500 mA).
+    uint16_t bcd_device{0x0100}; /**< bcdDevice (device release, BCD) in the device descriptor.
+                                     Ignored for an XInput-only device (which reports the Xbox
+                                     360 value). */
+    uint16_t max_power_ma{100};  /**< bMaxPower in the configuration descriptor, in mA; clamped
+                                     to 500 and rounded up to the next 2 mA unit. */
+    bool remote_wakeup{true};    /**< Advertise remote wakeup in the configuration attributes. */
 
     std::optional<CdcFunction> cdc{};       /**< Enable a CDC-ACM function. */
     std::optional<VendorFunction> vendor{}; /**< Enable a vendor-specific / WebUSB function. */

@@ -70,7 +70,9 @@ for back-compatibility.
 - **Sequential allocation** of interfaces / endpoints / strings with an
   endpoint-budget check (error via `std::error_code` if exceeded).
 - **Configurable identity**: VID, PID, manufacturer / product / serial / interface
-  strings.
+  strings, plus the descriptor details some hosts check: `bcd_device`
+  (device release), `max_power_ma` (bMaxPower, clamped to 500 mA and rounded up
+  to the next 2 mA unit) and `remote_wakeup`.
 - **Idiomatic espp**: no exceptions; `initialize()` reports failures via
   `std::error_code`.
 - **Safe marshaling**: the TinyUSB RX callbacks (TinyUSB task context) are drained
@@ -85,6 +87,11 @@ Composite CDC + vendor/WebUSB device (both interfaces carry the same raw stream)
 espp::UsbDevice::Config cfg;
 cfg.vid = 0x1209;  // pid.codes VID (ODrive uses this)
 cfg.pid = 0x0d32;  // ODrive-like PID
+// optional descriptor details (defaults: 0x0100, 100 mA, remote wakeup on);
+// e.g. a Nintendo Switch expects a Pro Controller to report 0x0210 and 500 mA
+cfg.bcd_device = 0x0100;
+cfg.max_power_ma = 100;   // clamped to 500, rounded up to a 2 mA unit
+cfg.remote_wakeup = true;
 
 espp::UsbDevice::CdcFunction cdc;
 cdc.on_receive = [&](std::span<const uint8_t> data) { /* serial rx */ };
