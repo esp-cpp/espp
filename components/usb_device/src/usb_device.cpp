@@ -1,5 +1,6 @@
 #include "usb_device.hpp"
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstdio>
@@ -888,7 +889,7 @@ bool UsbDevice::initialize(std::error_code &ec) {
   impl_->device_desc.bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE;
   impl_->device_desc.idVendor = xinput_only ? config_.xinput->vid : config_.vid;
   impl_->device_desc.idProduct = xinput_only ? config_.xinput->pid : config_.pid;
-  impl_->device_desc.bcdDevice = xinput_only ? espp::xinput::kDefaultBcdDevice : 0x0100;
+  impl_->device_desc.bcdDevice = xinput_only ? espp::xinput::kDefaultBcdDevice : config_.bcd_device;
   impl_->device_desc.iManufacturer = 0x01;
   impl_->device_desc.iProduct = 0x02;
   impl_->device_desc.iSerialNumber = 0x03;
@@ -927,11 +928,16 @@ bool UsbDevice::initialize(std::error_code &ec) {
     desc.clear();
     auto append = [&](const uint8_t *p, size_t n) { desc.insert(desc.end(), p, p + n); };
     {
-      const uint8_t hdr[] = {
+      uint8_t hdr[] = {
           // config number, interface count, string index, total length, attribute, power (mA)
           TUD_CONFIG_DESCRIPTOR(1, itf_count, 0, total_len, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP,
                                 100),
       };
+      // bmAttributes (byte 7) and bMaxPower (byte 8, 2 mA units) come from the
+      // config; patched in after the macro since its arithmetic is not constant
+      hdr[7] = static_cast<uint8_t>(
+          TU_BIT(7) | (config_.remote_wakeup ? TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP : 0));
+      hdr[8] = static_cast<uint8_t>(std::min<uint16_t>(config_.max_power_ma, 500) / 2);
       append(hdr, sizeof(hdr));
     }
 #if (CFG_TUD_CDC > 0)
