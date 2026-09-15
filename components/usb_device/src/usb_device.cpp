@@ -928,16 +928,25 @@ bool UsbDevice::initialize(std::error_code &ec) {
     desc.clear();
     auto append = [&](const uint8_t *p, size_t n) { desc.insert(desc.end(), p, p + n); };
     {
-      uint8_t hdr[] = {
-          // config number, interface count, string index, total length, attribute, power (mA)
-          TUD_CONFIG_DESCRIPTOR(1, itf_count, 0, total_len, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP,
-                                100),
-      };
-      // bmAttributes (byte 7) and bMaxPower (byte 8, 2 mA units) come from the
-      // config; patched in after the macro since its arithmetic is not constant
-      hdr[7] = static_cast<uint8_t>(
+      // The 9-byte configuration descriptor header, written out explicitly
+      // (TUD_CONFIG_DESCRIPTOR's arithmetic on runtime values is a narrowing
+      // conversion inside a braced initializer). bMaxPower is in 2 mA units:
+      // clamp to the USB 2.0 maximum (500 mA) and round UP so an odd request is
+      // never under-reported (1 mA -> 2 mA).
+      const uint16_t power_ma = std::min<uint16_t>(config_.max_power_ma, 500);
+      const uint8_t attributes = static_cast<uint8_t>(
           TU_BIT(7) | (config_.remote_wakeup ? TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP : 0));
-      hdr[8] = static_cast<uint8_t>(std::min<uint16_t>(config_.max_power_ma, 500) / 2);
+      const uint8_t hdr[9] = {
+          9,                                             // bLength
+          static_cast<uint8_t>(TUSB_DESC_CONFIGURATION), // bDescriptorType
+          static_cast<uint8_t>(total_len & 0xFF),        // wTotalLength (LE)
+          static_cast<uint8_t>(total_len >> 8),
+          static_cast<uint8_t>(itf_count),          // bNumInterfaces
+          1,                                        // bConfigurationValue
+          0,                                        // iConfiguration
+          attributes,                               // bmAttributes
+          static_cast<uint8_t>((power_ma + 1) / 2), // bMaxPower (2 mA units)
+      };
       append(hdr, sizeof(hdr));
     }
 #if (CFG_TUD_CDC > 0)
