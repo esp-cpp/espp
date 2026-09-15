@@ -1,5 +1,7 @@
 // Host-buildable unit tests for the MCP266 CANopen mapping core. Build & run:
-//   c++ -std=c++20 -I../include mcp266_host_test.cpp -o test && ./test
+//   c++ -std=c++20 -I../include -I../../motor_controller/include \
+//       mcp266_host_test.cpp -o test && ./test
+// (the -I../../motor_controller/include is for the shared BasicmicroCommand table)
 //
 // These tests exercise detail/mcp266_core.hpp directly (no ESP-IDF headers).
 // The object addresses were verified against a live MCP266's SDO object

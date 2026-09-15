@@ -17,6 +17,16 @@ Today it can enable, in any combination (subject to the endpoint budget):
 - A **HID** function (one interrupt IN, optionally one interrupt OUT) carrying an
   application-supplied report descriptor (e.g. a gamepad built with the espp
   `hid-rp` component), with input reports sent via `write_hid_report()`.
+- An **X-Input** function that presents the device as a wired **Xbox 360
+  controller** (served by a small custom TinyUSB application class driver built
+  into this component — no `CFG_TUD_*` count required). Gamepad state is sent with
+  `update_xinput_state()` (`include/xinput.hpp`), and rumble/LED reports arrive via an
+  `on_rumble` callback. Because a PC's XUSB driver only binds a recognized Xbox
+  360 VID/PID, and because the built-in vendor class also claims interface class
+  0xFF, **use X-Input as the only enabled function** (it then advertises the Xbox
+  identity + 0xFF/0xFF/0xFF device class so the host recognizes it). See the
+  [`xinput_example`](xinput_example/). *These are Microsoft's IDs, for emulation /
+  testing of your own device only.*
 
 Interface numbers, endpoint addresses and string indices are allocated
 *sequentially* as functions are enabled, and the result is checked against the
@@ -35,6 +45,9 @@ for back-compatibility.
   - [Features](#features)
   - [API](#api)
   - [Enabling the vendor / WebUSB class](#enabling-the-vendor--webusb-class)
+  - [Enabling the HID class](#enabling-the-hid-class)
+  - [Enabling X-Input (Xbox 360)](#enabling-x-input-xbox-360)
+  - [Routing the console over CDC](#routing-the-console-over-cdc)
   - [Endpoint budget (ESP32-S3 USB-OTG)](#endpoint-budget-esp32-s3-usb-otg)
   - [Extending with HID / MSC](#extending-with-hid--msc)
   - [Example](#example)
@@ -51,6 +64,9 @@ for back-compatibility.
   in the example) on an interrupt IN endpoint; `write_hid_report()` sends reports.
 - **WebUSB**: BOS + WebUSB URL + MS OS 2.0 descriptors for driverless browser
   access, with a configurable landing-page URL.
+- **Console over CDC**: optionally route the ESP console (stdout) to the CDC
+  interface (`CdcFunction::route_console`, or `route_console_to_cdc()`), so one
+  native USB cable carries both the logs and the other interface(s) — see below.
 - **Sequential allocation** of interfaces / endpoints / strings with an
   endpoint-budget check (error via `std::error_code` if exceeded).
 - **Configurable identity**: VID, PID, manufacturer / product / serial / interface
@@ -104,6 +120,16 @@ Key methods:
 - `bool write_hid_report(uint8_t report_id, std::span<const uint8_t> report, ...)` —
   send a HID input report on the HID interrupt IN endpoint.
 - `void set_cdc_receive_callback(...)` / `void set_vendor_receive_callback(...)`.
+- `void set_mount_callback(...)` / `void set_unmount_callback(...)` — register
+  device mount / unmount handlers. `esp_tinyusb` owns the raw `tud_mount_cb` /
+  `tud_umount_cb`, so register here instead of defining those yourself (which
+  would be a duplicate symbol). On unmount the component first clears the vendor
+  + CDC TX FIFOs — so a departed host's queued backlog is not delivered to the
+  next host that mounts — then invokes your callback.
+- `size_t vendor_write_available() const` / `size_t cdc_write_available() const`
+  and `void vendor_write_clear()` / `void cdc_write_clear()` — TX-FIFO free space
+  and flush helpers (skip/defer or drop a streaming frame when the host stops
+  draining).
 - `bool is_cdc_connected() const` / `bool is_vendor_connected() const` /
   `bool is_hid_ready() const`.
 
@@ -116,8 +142,6 @@ The vendor class is gated in `esp_tinyusb` behind a Kconfig option. To use the
 vendor function, set in your project's `sdkconfig.defaults`:
 
 ```
-CONFIG_TINYUSB_CDC_ENABLED=y
-CONFIG_TINYUSB_CDC_COUNT=1
 CONFIG_TINYUSB_VENDOR_COUNT=1   # THE key enablement: compiles in the vendor class
 ```
 
@@ -128,6 +152,18 @@ control requests are provided by `espp::UsbDevice` through the standard TinyUSB
 weak-callback overrides (`tud_descriptor_bos_cb`, `tud_vendor_control_xfer_cb`,
 `tud_vendor_rx_cb`). If the vendor function is requested but `CFG_TUD_VENDOR == 0`,
 `initialize()` fails with `std::errc::function_not_supported`.
+
+CDC support is compiled conditionally (`#if CFG_TUD_CDC > 0`), so a vendor-only,
+HID-only or X-Input-only build does **not** need CDC enabled. Enable it only when
+you use the CDC function:
+
+```
+CONFIG_TINYUSB_CDC_ENABLED=y
+CONFIG_TINYUSB_CDC_COUNT=1
+```
+
+(Requesting a CDC function while `CFG_TUD_CDC == 0` fails `initialize()` with
+`std::errc::function_not_supported`, matching the vendor/HID checks.)
 
 ## Enabling the HID class
 
@@ -140,12 +176,81 @@ CONFIG_TINYUSB_HID_COUNT=1   # compiles in the TinyUSB HID class driver (CFG_TUD
 
 `espp::UsbDevice` provides the required TinyUSB HID weak-callback overrides
 (`tud_hid_descriptor_report_cb` returns the stored report descriptor;
-`tud_hid_get_report_cb` returns 0 and `tud_hid_set_report_cb` is a no-op since the
-gamepad is input-only). Supply the report-descriptor bytes yourself (the example
-builds them with the espp `hid-rp` component), assign them to
+`tud_hid_get_report_cb` returns 0). Supply the report-descriptor bytes yourself
+(the example builds them with the espp `hid-rp` component), assign them to
 `HidFunction::report_descriptor`, and send input reports with
-`write_hid_report(report_id, report)`. If the HID function is requested but
-`CFG_TUD_HID == 0`, `initialize()` fails with `std::errc::function_not_supported`.
+`write_hid_report(report_id, report)`.
+
+To **receive** host→device OUTPUT / SET_REPORT reports (for request/response HID
+protocols such as the Nintendo Switch Pro handshake), set `HidFunction::on_receive`
+(or `set_hid_receive_callback()`) and set `HidFunction::has_out_endpoint` for
+interrupt-OUT reports. The callback runs on the TinyUSB task with the report id as
+byte 0 of its span; reply by sending an INPUT report with `write_hid_report()`. If
+the HID function is requested but `CFG_TUD_HID == 0`, `initialize()` fails with
+`std::errc::function_not_supported`.
+
+## Enabling X-Input (Xbox 360)
+
+X-Input needs **no** `CFG_TUD_*` count — it is served by a custom TinyUSB
+application class driver built into this component (registered via the weak
+`usbd_app_driver_get_cb`, forced into the link with `-u`). So an X-Input-only
+project needs no CDC/vendor/HID class enabled at all; the
+[`xinput_example`](xinput_example/) sdkconfig disables them:
+
+```
+CONFIG_TINYUSB_CDC_ENABLED=n
+CONFIG_TINYUSB_CDC_COUNT=0
+# vendor/HID counts default to 0 — importantly, keep CFG_TUD_VENDOR at 0 so the
+# built-in bulk vendor driver does not claim the X-Input 0xFF interface.
+```
+
+Set `Config::xinput` (only — see the "only enabled function" note above), send
+gamepad state with `update_xinput_state(GamepadState)`, and receive rumble/LED reports
+via `XInputFunction::on_rumble`. The interface uses one interrupt-IN endpoint
+(0x81, 20-byte input reports) and one interrupt-OUT endpoint (rumble/LED); the two
+use **separate endpoint numbers**, and the DMA report buffers are word-aligned, as
+the ESP32-S3 DWC2 requires. See `include/xinput.hpp` for the report/`GamepadState`
+API and the button/axis layout.
+
+## Routing the console over CDC
+
+When the native USB port is handed to TinyUSB for a vendor / HID / XInput
+interface, the ESP console can no longer live on **USB-Serial-JTAG** — on the
+ESP32-S3 that controller shares the same USB PHY as USB-OTG, so a console on it
+contends with the TinyUSB interface and reboot-loops the device. Add a **CDC**
+function and route the console to it, and a single native USB cable carries both
+the logs and the other interface(s):
+
+```cpp
+espp::UsbDevice::CdcFunction cdc;
+cdc.route_console = true;   // redirect stdout -> this CDC interface after initialize()
+// cdc.tee_console = true;  // (default) also keep the primary UART console (idf.py monitor)
+usb_cfg.cdc = cdc;
+usb_cfg.vendor = my_vendor; // or hid / xinput -- CDC is just the log channel
+espp::UsbDevice usb(usb_cfg);
+usb.initialize(ec);         // console is now on CDC (teed to UART)
+```
+
+Or call it yourself for control over timing: `usb.route_console_to_cdc()` after a
+successful `initialize()`.
+
+- `printf`, `ESP_LOG` (its default vprintf), and `espp::Logger` (which uses
+  `fmt::print`) all write to `stdout`, so redirecting **stdout** captures every
+  console path. A tiny write-only VFS device is registered and `stdout` is
+  `freopen`ed onto it.
+- Writes are **non-blocking**: a chunk is mirrored to CDC only if it fits the TX
+  FIFO right now (so an absent / slow reader never stalls a logging task); it is
+  not gated on DTR, so a plain serial monitor still sees output.
+- With `tee_console` (default) the console is also written to the primary **UART**
+  console when there is one, so `idf.py monitor` on UART keeps working and nothing
+  is lost when no CDC host is attached. (There is nothing to tee to for a
+  USB-Serial-JTAG or `CONSOLE_NONE` console.)
+- Recommended sdkconfig: primary console on **UART0**
+  (`CONFIG_ESP_CONSOLE_UART_DEFAULT`), optionally USB-Serial-JTAG as the
+  **secondary** console for early-boot logs before TinyUSB comes up.
+
+The `ota` example uses this to carry its logs alongside the OTA vendor / WebUSB
+interface on one cable.
 
 ## Endpoint budget (ESP32-S3 USB-OTG)
 
@@ -158,6 +263,7 @@ consumes:
 | CDC-ACM           | 2 (1 interrupt-IN notif + 1 bulk-IN)        | 1 (bulk-OUT)                   |
 | Vendor / WebUSB   | 1 (bulk-IN)                                  | 1 (bulk-OUT)                   |
 | HID               | 1 (interrupt-IN)                            | 0 or 1 (optional interrupt-OUT) |
+| X-Input (Xbox 360)| 1 (interrupt-IN)                            | 1 (interrupt-OUT)              |
 | MSC (future)      | 1 (bulk-IN)                                  | 1 (bulk-OUT)                   |
 
 This is why the device is **selectable** ("not all at once"). Combinations that
@@ -192,3 +298,8 @@ the USB-Serial-JTAG peripheral.
 - Only one `espp::UsbDevice` / `espp::UsbCdc` instance may exist at a time.
 - The receive callbacks run in the TinyUSB device task; keep them short and
   non-blocking.
+- The TinyUSB device lifecycle callbacks (`tud_mount_cb` / `tud_umount_cb` /
+  `tud_suspend_cb` / `tud_resume_cb`) are owned by `esp_tinyusb`. Register mount
+  / unmount handlers via `set_mount_callback()` / `set_unmount_callback()`
+  rather than defining those callbacks yourself. The mount / unmount handlers
+  also run in the TinyUSB device task.

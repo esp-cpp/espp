@@ -63,3 +63,5 @@ API Reference
 -------------
 
 .. include-build-file:: inc/mcp266.inc
+.. include-build-file:: inc/mcp266_protocol.inc
+.. include-build-file:: inc/mcp266_service.inc

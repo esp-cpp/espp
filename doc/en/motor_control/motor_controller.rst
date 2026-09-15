@@ -16,6 +16,14 @@ share it without depending on each other: :doc:`basicmicro` (packet serial) and
 :doc:`mcp266` (CANopen) each ``static_assert`` that they satisfy
 ``MotorController``, so generic code can command either transport by axis.
 
+The component also holds :cpp:enum:`espp::detail::BasicmicroCommand`
+(``basicmicro_commands.hpp``) — the packet-serial command-number table. Both
+drivers use it as the single source of truth: the serial driver sends the command
+byte directly, while the MCP266 CANopen firmware mirrors the same command set into
+its manufacturer object dictionary at ``0x2000 + command``, so ``mcp266`` derives
+those object indices from this table rather than from magic numbers that could
+drift out of sync.
+
 .. code-block:: cpp
 
    // works for either espp::Basicmicro or espp::Mcp266

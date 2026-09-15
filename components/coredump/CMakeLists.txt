@@ -9,5 +9,5 @@
 #                   coredump_service.hpp; header-only, ESP-free)
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES base_component espcoredump esp_partition esp_system format stream_frame
+  REQUIRES base_component espcoredump esp_partition esp_system format stream_frame dispatcher
 )

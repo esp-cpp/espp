@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <span>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "dispatcher.hpp"
@@ -132,11 +133,182 @@ static void test_handler_exception_recovers() {
   CHECK(hits == 1 && d.has_module(2));
 }
 
+// Minimal reader for the describe() TLV payload ([len u8][bytes] strings).
+struct TlvReader {
+  std::span<const uint8_t> b;
+  size_t p = 0;
+  uint8_t u8() { return b[p++]; }
+  std::string str() {
+    const uint8_t n = u8();
+    std::string s(reinterpret_cast<const char *>(&b[p]), n);
+    p += n;
+    return s;
+  }
+};
+
+static void test_discovery() {
+  std::printf("test_discovery\n");
+  using D = espp::Dispatcher;
+  espp::Dispatcher d;
+  d.set_device_info("espp Hub", "1.2.3");
+  d.register_module(0, [](const sf::Frame &) {},
+                    {.name = "OTA", .app = "ota_console.html", .description = "Firmware update"});
+  d.register_module(6, [](const sf::Frame &) {},
+                    {.name = "MCP266", .app = "mcp266_console.html", .description = "Motors"});
+  d.register_module(9, [](const sf::Frame &) {}); // no metadata -> not advertised
+
+  const auto payload = d.describe();
+  TlvReader r{payload};
+  CHECK(r.u8() == D::kDiscoveryVersion);
+  CHECK(r.u8() == 0); // reserved
+  CHECK(r.str() == "espp Hub");
+  CHECK(r.str() == "1.2.3");
+  const uint8_t count = r.u8();
+  CHECK(count == 2); // module 9 (no name) excluded; discovery module absent
+  const uint8_t id0 = r.u8();
+  const std::string n0 = r.str(), a0 = r.str(), de0 = r.str();
+  CHECK(id0 == 0 && n0 == "OTA" && a0 == "ota_console.html" && de0 == "Firmware update");
+  const uint8_t id1 = r.u8();
+  const std::string n1 = r.str(), a1 = r.str(), de1 = r.str();
+  CHECK(id1 == 6 && n1 == "MCP266" && a1 == "mcp266_console.html" && de1 == "Motors");
+  CHECK(r.p == payload.size());
+
+  // serve_discovery: a ListModules request produces one reply frame carrying the
+  // describe() payload and echoing the request correlation id.
+  std::vector<uint8_t> sent;
+  d.serve_discovery(
+      [&](std::span<const uint8_t> frame) { sent.assign(frame.begin(), frame.end()); });
+  CHECK(d.has_module(D::kDiscoveryModule));
+  CHECK(d.describe() == payload); // registering discovery must not list it
+  d.feed(sf::build_frame(false, D::kDiscoveryModule,
+                         static_cast<uint8_t>(D::Discovery::ListModules), {}, 0x1234));
+  CHECK(!sent.empty());
+  sf::StreamParser sp;
+  const auto frames = sp.feed(sent);
+  CHECK(frames.size() == 1);
+  CHECK(frames[0].module == D::kDiscoveryModule && frames[0].is_reply());
+  CHECK(frames[0].correlation.has_value() && *frames[0].correlation == 0x1234);
+  CHECK(frames[0].payload == payload);
+
+  // An echoed reply frame must NOT trigger another reply (avoid loops).
+  sent.clear();
+  d.feed(
+      sf::build_frame(true, D::kDiscoveryModule, static_cast<uint8_t>(D::Discovery::ListModules)));
+  CHECK(sent.empty());
+}
+
+static void test_discovery_payload_bound() {
+  std::printf("test_discovery_payload_bound\n");
+  using D = espp::Dispatcher;
+  espp::Dispatcher d;
+  const std::string big(255, 'x'); // max-length metadata (each record ~769 bytes)
+  for (int i = 0; i < 40; ++i)
+    d.register_module(static_cast<uint8_t>(i), [](const sf::Frame &) {},
+                      {.name = big, .app = big, .description = big});
+  const auto payload = d.describe();
+  // 40 * ~769 bytes >> kMaxPayloadSize, so describe() must truncate to fit.
+  CHECK(payload.size() <= sf::kMaxPayloadSize);
+  // The count must match the records that actually fit, and the walk must consume
+  // exactly the payload (self-consistent: no short/trailing bytes).
+  TlvReader r{payload};
+  r.u8();
+  r.u8(); // version, reserved
+  r.str();
+  r.str(); // device name, fw
+  const uint8_t count = r.u8();
+  for (uint8_t m = 0; m < count; ++m) {
+    r.u8();
+    r.str();
+    r.str();
+    r.str();
+  }
+  CHECK(r.p == payload.size());
+  CHECK(count > 0 && count < 40); // some fit, some were dropped
+  // The resulting payload must be encodable as a frame (i.e. within the cap).
+  CHECK(!sf::build_frame(true, D::kDiscoveryModule, static_cast<uint8_t>(D::Discovery::ListModules),
+                         payload)
+             .empty());
+}
+
+// A minimal "service": the shape every espp protocol service exposes so it can
+// be registered with the one-argument register_module(service) overload. The
+// module id and metadata are per-INSTANCE (read through the object), so the
+// same class can serve several ids.
+struct FakeService {
+  explicit FakeService(uint8_t module, std::string name)
+      : module_(module)
+      , name_(std::move(name)) {}
+  uint8_t module_id() const { return module_; }
+  espp::Dispatcher::ModuleInfo module_info() const {
+    return {.name = name_, .app = "fake.html", .description = "test service"};
+  }
+  void handle(const sf::Frame &f) {
+    if (f.module != module_id() || f.is_reply())
+      return;
+    types.push_back(f.type);
+  }
+  uint8_t module_;
+  std::string name_;
+  std::vector<uint8_t> types;
+};
+
+// A class that only has STATIC id/metadata members must register the same way
+// (a static member resolves through an object expression).
+struct StaticService {
+  static uint8_t module_id() { return 0x50; }
+  static espp::Dispatcher::ModuleInfo module_info() { return {.name = "Static"}; }
+  void handle(const sf::Frame &f) { types.push_back(f.type); }
+  std::vector<uint8_t> types;
+};
+
+// The contract is checkable at compile time: both shapes satisfy it, and a
+// type missing any of the three members does not.
+static_assert(espp::DispatcherModuleConcept<FakeService>);
+static_assert(espp::DispatcherModuleConcept<StaticService>);
+struct NotAModule {
+  uint8_t module_id() const { return 1; }
+  espp::Dispatcher::ModuleInfo module_info() const { return {}; }
+  // no handle(frame)
+};
+struct WrongHandle {
+  uint8_t module_id() const { return 1; }
+  espp::Dispatcher::ModuleInfo module_info() const { return {}; }
+  void handle(int) {} // wrong signature
+};
+static_assert(!espp::DispatcherModuleConcept<NotAModule>);
+static_assert(!espp::DispatcherModuleConcept<WrongHandle>);
+
+static void test_register_service() {
+  std::printf("register_module(service)\n");
+  espp::Dispatcher d;
+  FakeService a(0x42, "FakeA"), b(0x43, "FakeB");
+  StaticService s;
+  d.register_module(a);
+  d.register_module(b); // same class, a different configured id
+  d.register_module(s);
+  CHECK(d.has_module(0x42) && d.has_module(0x43) && d.has_module(0x50));
+  d.feed(sf::build_frame(false, 0x42, 0x11));
+  d.feed(sf::build_frame(true, 0x42, 0x22));  // reply: ignored by the service
+  d.feed(sf::build_frame(false, 0x43, 0x33)); // routed to b, not a
+  d.feed(sf::build_frame(false, 0x50, 0x44));
+  CHECK(a.types.size() == 1 && a.types[0] == 0x11);
+  CHECK(b.types.size() == 1 && b.types[0] == 0x33);
+  CHECK(s.types.size() == 1 && s.types[0] == 0x44);
+  // each instance's metadata is advertised
+  const auto payload = d.describe();
+  const std::string text(payload.begin(), payload.end());
+  CHECK(text.find("FakeA") != std::string::npos && text.find("FakeB") != std::string::npos &&
+        text.find("Static") != std::string::npos);
+}
+
 int main() {
+  test_register_service();
   test_routing_and_coexistence();
   test_register_replace_unregister();
   test_reset();
   test_reentrant_unregister();
+  test_discovery();
+  test_discovery_payload_bound();
   // cppcheck-suppress throwInEntryPoint // the handler's throw is caught inside
   // the test (cppcheck can't trace it through the std::function / feed() call)
   test_handler_exception_recovers();

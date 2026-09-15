@@ -249,10 +249,8 @@ bool Esp32P4Nano::initialize_lcd() {
   // esp_lcd_panel_disp_on_off() here.
 
   // Register the DPI "color transfer done" callback so LVGL flush completes
-  esp_lcd_dpi_panel_event_callbacks_t cbs = {
-      .on_color_trans_done = &Esp32P4Nano::notify_lvgl_flush_ready,
-      .on_refresh_done = nullptr,
-  };
+  esp_lcd_dpi_panel_event_callbacks_t cbs = {};
+  cbs.on_color_trans_done = &Esp32P4Nano::notify_lvgl_flush_ready;
   ret = esp_lcd_dpi_panel_register_event_callbacks(lcd_handles_.panel, &cbs, this);
   if (ret != ESP_OK) {
     logger_.error("Failed to register panel event callback: {}", esp_err_to_name(ret));

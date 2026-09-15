@@ -46,6 +46,7 @@
 #include <system_error>
 #include <vector>
 
+#include "dispatcher.hpp"
 #include "stream_frame.hpp"
 
 #include "base_component.hpp"
@@ -158,6 +159,30 @@ public:
       : BaseComponent("CoreDumpService", config.log_level)
       , core_dump_(core_dump)
       , send_(config.send) {}
+
+  /// @brief The dispatcher module id this service answers on (kModule: the
+  ///        core-dump protocol's fixed id, which the web console expects).
+  uint8_t module_id() const { return kModule; }
+
+  /// @brief Discovery metadata for registering this service on a Dispatcher.
+  Dispatcher::ModuleInfo module_info() const {
+    return {.name = "Core Dump",
+            .app = "coredump_console.html",
+            .description = "Inspect the last crash core dump"};
+  }
+
+  /**
+   * @brief Dispatcher entry point: handle one routed frame.
+   *
+   * Frames for other modules and reply-flagged frames (e.g. an echo /
+   * loopback) are ignored, so this can be registered directly:
+   * `dispatcher.register_module(service)`.
+   */
+  void handle(const espp::stream_frame::Frame &frame) {
+    if (frame.module != module_id() || frame.is_reply())
+      return;
+    handle_frame(frame.type, frame.payload);
+  }
 
   /**
    * @brief Feed received transport bytes to the service.
@@ -397,5 +422,10 @@ private:
   std::mutex mutex_;
   Stream parser_;
 };
+
+// Compile-time check that the service keeps satisfying the dispatcher's module
+// contract (module_id() / module_info() / handle(frame)) -- see
+// espp::DispatcherModuleConcept.
+static_assert(DispatcherModuleConcept<CoreDumpService>);
 
 } // namespace espp

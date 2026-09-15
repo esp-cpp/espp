@@ -12,6 +12,8 @@
 #include <vector>
 
 #include "base_component.hpp"
+#include "tinyusb.h"  // for tinyusb_event_t (esp_tinyusb is already a REQUIRES dependency)
+#include "xinput.hpp" // X-Input (Xbox 360) gamepad state + descriptor helpers
 
 namespace espp {
 
@@ -56,6 +58,13 @@ namespace espp {
  * \section usb_device_ex1 UsbDevice (composite CDC + Vendor/WebUSB) Example
  * \snippet usb_cdc_example.cpp usb_cdc_example
  */
+
+// Forward-declare the extern "C" trampoline (defined in usb_device.cpp, inside
+// `namespace espp`) so the in-class friend declaration below refers to this
+// existing C-linkage declaration instead of introducing a conflicting
+// C++-linkage espp::espp_usb_device_event_cb.
+extern "C" void espp_usb_device_event_cb(tinyusb_event_t *event, void *arg);
+
 class UsbDevice : public BaseComponent {
 public:
   /**
@@ -63,6 +72,10 @@ public:
    * @param data Span of received bytes (valid only for the duration of the call).
    */
   using receive_callback_fn = std::function<void(std::span<const uint8_t> data)>;
+
+  /// @brief Callback for a device lifecycle event (mount / unmount). Invoked in
+  ///        the TinyUSB device-task context.
+  using event_callback_fn = std::function<void()>;
 
   /**
    * @brief CDC-ACM (virtual serial port) function.
@@ -74,6 +87,30 @@ public:
     std::string interface_name{"espp CDC"};  /**< CDC interface string descriptor. */
     receive_callback_fn on_receive{nullptr}; /**< Callback invoked with received bytes. */
     size_t rx_chunk_size{64}; /**< Buffer size used to drain the CDC RX FIFO per read. */
+
+    /**
+     * @brief Route the ESP console to this CDC interface once `initialize()`
+     *        succeeds (equivalent to calling `route_console_to_cdc()` yourself).
+     *
+     * The native USB port is often handed to TinyUSB for a vendor / HID / XInput
+     * interface, which on the ESP32-S3 means the console can no longer live on
+     * USB-Serial-JTAG (it shares that USB PHY). Enabling this redirects the
+     * console (stdout — `printf`, `ESP_LOG`, and `espp::Logger`'s `fmt::print` all
+     * default there) to this CDC interface, so a single native USB cable carries
+     * both the logs and the other interface(s). Writes are non-blocking and are
+     * dropped when no host is draining the CDC endpoint.
+     */
+    bool route_console{false};
+
+    /**
+     * @brief When `route_console` (or `route_console_to_cdc()`) redirects the
+     *        console, also keep writing it to the ORIGINAL console (a tee), so
+     *        `idf.py monitor` on the primary UART keeps working and nothing is
+     *        lost when no CDC host is attached. Best-effort: teeing is only done
+     *        when the primary console is a UART (it has an independent port);
+     *        with a USB-Serial-JTAG or no console there is nothing to tee to.
+     */
+    bool tee_console{true};
   };
 
   /**
@@ -129,6 +166,46 @@ public:
     std::vector<uint8_t> report_descriptor{}; /**< HID report descriptor bytes. */
     bool has_out_endpoint{false};             /**< Whether to allocate an interrupt OUT endpoint. */
     uint8_t poll_interval_ms{10};             /**< Interrupt IN polling interval (bInterval), ms. */
+    /**
+     * @brief Callback invoked with received HID OUTPUT / SET_REPORT bytes
+     *        (host -> device). Enables request/response HID protocols (e.g. the
+     *        Nintendo Switch Pro controller handshake): reply by sending an INPUT
+     *        report with `write_hid_report()`. When the report descriptor uses
+     *        report IDs, byte 0 of the delivered span is the report id. Delivered
+     *        from the TinyUSB device task; `write_hid_report()` is safe to call
+     *        from within it. Requires `has_out_endpoint` for interrupt-OUT reports
+     *        (control SET_REPORT is delivered regardless).
+     */
+    receive_callback_fn on_receive{nullptr};
+  };
+
+  /**
+   * @brief X-Input (Xbox 360 wired controller) function.
+   *
+   * Presents a vendor-specific interface (bInterfaceClass 0xFF / SubClass 0x5D /
+   * Protocol 0x01) with one interrupt IN endpoint (20-byte input reports, sent
+   * with `UsbDevice::update_xinput_state()`) and one interrupt OUT endpoint (8-byte
+   * rumble / LED reports, delivered to `on_rumble`). Unlike HID it is served by a
+   * small custom TinyUSB application class driver built into this component (no
+   * `CFG_TUD_*` count is required).
+   *
+   * A PC's XUSB driver only binds a device whose VID/PID is a recognized Xbox 360
+   * controller, so `vid` / `pid` default to Microsoft's identifiers
+   * (`0x045E:0x028E`) -- for emulation / testing of your own device only. When
+   * the XInput function is the ONLY enabled function these identifiers (and a
+   * 0xFF/0xFF/0xFF device class) override the top-level Config vid/pid so the
+   * host recognizes it; combine XInput with other functions only if you do not
+   * need XUSB to bind (the built-in vendor/WebUSB class also claims class 0xFF).
+   *
+   * Consumes 1 interrupt IN + 1 interrupt OUT endpoint.
+   */
+  struct XInputFunction {
+    std::string interface_name{"espp XInput"}; /**< XInput interface string descriptor. */
+    uint16_t vid{espp::xinput::kDefaultVid};   /**< Xbox 360 controller VID (Microsoft). */
+    uint16_t pid{espp::xinput::kDefaultPid};   /**< Xbox 360 controller PID. */
+    /** @brief Callback invoked with received rumble / LED report bytes (8-byte
+     *  reports on the interrupt OUT endpoint). Runs in the TinyUSB device task. */
+    receive_callback_fn on_rumble{nullptr};
   };
 
   /**
@@ -156,6 +233,7 @@ public:
     std::optional<CdcFunction> cdc{};       /**< Enable a CDC-ACM function. */
     std::optional<VendorFunction> vendor{}; /**< Enable a vendor-specific / WebUSB function. */
     std::optional<HidFunction> hid{};       /**< Enable a HID function. */
+    std::optional<XInputFunction> xinput{}; /**< Enable an X-Input (Xbox 360) function. */
     std::optional<MscFunction> msc{};       /**< (Future) enable an MSC function. */
 
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Logger verbosity. */
@@ -237,6 +315,69 @@ public:
   /// @brief Convenience overload of write_vendor() that ignores errors.
   bool write_vendor(std::span<const uint8_t> data);
 
+  /// @brief Bytes of free space currently in the vendor TX FIFO.
+  /// @return How many bytes write_vendor() can accept right now without
+  ///         blocking, or 0 if not initialized / no vendor interface / not
+  ///         mounted. A point-in-time hint: with a single serialized writer it
+  ///         is stable, otherwise treat it as advisory. Use it to skip or defer
+  ///         a streaming frame when the host has stopped draining the endpoint,
+  ///         instead of building the frame and having write_vendor() drop it.
+  size_t vendor_write_available() const;
+
+  /// @brief Bytes of free space currently in the CDC TX FIFO.
+  /// @return How many bytes write_cdc() can accept right now, or 0 if not
+  ///         initialized / no CDC interface / not mounted. See
+  ///         vendor_write_available() for usage notes.
+  size_t cdc_write_available() const;
+
+  /// @brief Discard any bytes queued in the vendor TX FIFO that have not been
+  ///        sent yet. Call this when the host goes away (e.g. on a detected
+  ///        disconnect / stream stall) so a stale backlog (queued telemetry) is
+  ///        not delivered to the next host that connects and mis-parsed as a
+  ///        reply to its first command.
+  void vendor_write_clear();
+
+  /// @brief Discard any bytes queued in the CDC TX FIFO that have not been sent
+  ///        yet. See vendor_write_clear() for usage notes.
+  void cdc_write_clear();
+
+  /**
+   * @brief Redirect the ESP console (stdout) to the CDC interface, so the device's
+   *        logs travel over the same native USB cable as the other USB
+   *        interface(s) (vendor / HID / XInput). Call this AFTER a successful
+   *        `initialize()`; or just set `CdcFunction::route_console` and it is done
+   *        for you at the end of `initialize()`.
+   *
+   * `printf`, `ESP_LOG` (via its default vprintf), and `espp::Logger` (which uses
+   * `fmt::print`) all write to `stdout`, so redirecting stdout captures them all.
+   * A small write-only VFS device is registered and `stdout` is `freopen`ed onto
+   * it; its writes forward to `write_cdc()` only when the CDC TX FIFO can take the
+   * whole chunk right now, so logging NEVER blocks on an absent or slow reader
+   * (dropped console bytes are harmless). When `CdcFunction::tee_console` is set
+   * (the default) and the primary console is a UART, writes are also teed to that
+   * UART so `idf.py monitor` keeps working.
+   *
+   * Idempotent (a second call is a no-op). Requires the CDC function to be enabled
+   * and the device initialized.
+   *
+   * @note Lifetime: routing points `stdout` at this device. On destruction the
+   *       device detaches itself (later stdout writes degrade to the UART tee),
+   *       but a write already in flight can still race destruction -- so a
+   *       console-routed UsbDevice must outlive concurrent logging. This is
+   *       normally trivial: it is a program-lifetime singleton.
+   *
+   * @param[out] ec Set on failure (CDC not enabled / not initialized, or the VFS
+   *        device could not be registered / stdout could not be reopened).
+   * @return true if the console is now routed to CDC (or already was).
+   */
+  bool route_console_to_cdc(std::error_code &ec);
+
+  /// @brief Convenience overload of route_console_to_cdc() that ignores errors.
+  bool route_console_to_cdc();
+
+  /// @brief Whether the console is currently routed to the CDC interface.
+  bool is_console_routed_to_cdc() const;
+
   /**
    * @brief Send a HID input report on the HID function's interrupt IN endpoint.
    * @param report_id HID report id (0 if the report descriptor has no report id;
@@ -255,11 +396,46 @@ public:
   ///        new input report (no report in flight).
   bool is_hid_ready() const;
 
+  /**
+   * @brief Send a fresh X-Input (Xbox 360) input report from a gamepad state.
+   * @param state Buttons / triggers / sticks to serialize into the 20-byte report.
+   * @param[out] ec Set on failure (XInput not enabled / not initialized, host not
+   *        ready / a previous report still in flight, or a transfer error).
+   * @return true if the report was queued for transmission, false otherwise.
+   * @note Single-writer: call from one task. The report bytes are held in an
+   *       internal buffer for the duration of the (asynchronous) transfer.
+   */
+  bool update_xinput_state(const espp::xinput::GamepadState &state, std::error_code &ec);
+
+  /// @brief Convenience overload of update_xinput_state() that ignores errors.
+  bool update_xinput_state(const espp::xinput::GamepadState &state);
+
+  /// @brief Whether the XInput function is enabled, mounted and ready to accept a
+  ///        new input report (no report in flight).
+  bool is_xinput_ready() const;
+
   /// @brief Set or replace the CDC receive callback (nullptr to detach).
   void set_cdc_receive_callback(const receive_callback_fn &cb);
 
   /// @brief Set or replace the vendor receive callback (nullptr to detach).
   void set_vendor_receive_callback(const receive_callback_fn &cb);
+
+  /// @brief Set or replace the HID receive callback (received OUTPUT / SET_REPORT
+  ///        bytes, host -> device; nullptr to detach).
+  void set_hid_receive_callback(const receive_callback_fn &cb);
+
+  /// @brief Register a callback invoked when the device is mounted (the host has
+  ///        configured it). Runs in the TinyUSB device-task context; nullptr
+  ///        detaches. esp_tinyusb owns the raw tud_mount_cb, so applications
+  ///        should register here rather than defining that callback themselves.
+  void set_mount_callback(const event_callback_fn &cb);
+
+  /// @brief Register a callback invoked when the device is unmounted (detached /
+  ///        re-enumerated). The component clears the vendor + CDC TX FIFOs before
+  ///        invoking it. Runs in the TinyUSB device-task context; nullptr
+  ///        detaches. Register here instead of defining tud_umount_cb
+  ///        (esp_tinyusb already defines it).
+  void set_unmount_callback(const event_callback_fn &cb);
 
   /// @brief Whether initialize() has completed successfully.
   bool is_initialized() const;
@@ -270,9 +446,17 @@ public:
   /// @brief Whether the vendor function is enabled and the device is mounted.
   bool is_vendor_connected() const;
 
+  /// @brief Opaque bridge letting the TinyUSB C callback trampolines reach the
+  ///        device-task-only methods below (defined in usb_device.cpp). An
+  ///        implementation detail: it is incomplete here, with nothing callable
+  ///        from application code.
+  struct Callbacks;
+
+protected:
   //
   // Internal: invoked from the TinyUSB device task via C trampolines / weak
-  // overrides. Not intended to be called by application code.
+  // overrides (through the Callbacks bridge, or the friended event trampoline).
+  // Not part of the public API; not intended to be called by application code.
   //
 
   /// @brief Internal: drain the CDC RX FIFO and dispatch to the CDC callback.
@@ -284,6 +468,12 @@ public:
   ///        variant), the FIFO is drained via `tud_vendor_read()` instead.
   /// @param bufsize Number of bytes at @p buffer (0 when @p buffer is null).
   void handle_vendor_rx(const uint8_t *buffer = nullptr, size_t bufsize = 0);
+
+  /// @brief Internal: dispatch a received HID OUTPUT / SET_REPORT to the HID
+  ///        receive callback. `report_id` is the SET_REPORT report id (0 for an
+  ///        interrupt-OUT report, whose report id, if any, is buffer[0]); the
+  ///        callback always receives the report id as byte 0 of its span.
+  void handle_hid_rx(uint8_t report_id, const uint8_t *buffer, size_t bufsize);
 
   /// @brief Internal: pointer to the BOS descriptor bytes (nullptr if none).
   const uint8_t *bos_descriptor() const;
@@ -302,10 +492,28 @@ public:
   /// @brief Internal: config for the vendor control-request handler.
   const std::optional<VendorFunction> &vendor_config() const { return config_.vendor; }
 
+  /// @brief Internal: dispatch received X-Input rumble / LED report bytes to the
+  ///        on_rumble callback. Called from the XInput class driver's OUT
+  ///        transfer-complete callback (TinyUSB device task context).
+  void handle_xinput_out(const uint8_t *buffer, size_t bufsize);
+
+  /// @brief Internal: the allocated X-Input IN endpoint address (0 if the XInput
+  ///        function is not enabled). Used by the write path / readiness check.
+  uint8_t xinput_in_endpoint() const;
+
   /// @brief Internal: the singleton instance handling the global USB callbacks.
   static UsbDevice *instance();
 
 private:
+  // Trampoline registered as tinyusb_config_t::event_cb; routes
+  // TINYUSB_EVENT_ATTACHED/DETACHED to the private handlers below.
+  friend void espp_usb_device_event_cb(tinyusb_event_t *event, void *arg);
+
+  /// @brief Internal: mount / unmount handling driven by esp_tinyusb's event_cb
+  ///        (clears the TX FIFOs on unmount, then invokes the app callback).
+  void handle_usb_mount();
+  void handle_usb_unmount();
+
   struct Impl; // holds TinyUSB descriptors, kept alive for driver lifetime
   std::unique_ptr<Impl> impl_;
 
@@ -315,6 +523,10 @@ private:
   std::mutex cb_mutex_;
   receive_callback_fn on_cdc_receive_;
   receive_callback_fn on_vendor_receive_;
+  receive_callback_fn on_xinput_rumble_;
+  receive_callback_fn on_hid_receive_;
+  event_callback_fn on_mount_;
+  event_callback_fn on_unmount_;
 
   // Preallocated RX scratch buffers (sized in initialize()) so the TinyUSB-task
   // RX handlers stay allocation-free (no heap churn on the hot path).

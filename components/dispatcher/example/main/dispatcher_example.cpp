@@ -1,4 +1,5 @@
 #include <chrono>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -26,14 +27,23 @@ extern "C" void app_main(void) {
   static constexpr uint8_t kModuleTelemetry = 4;
 
   espp::Dispatcher dispatcher;
-  dispatcher.register_module(kModuleControl, [&](const sf::Frame &f) {
-    logger.info("[control] {} type=0x{:02X} ({} payload bytes)", f.is_reply() ? "reply" : "request",
-                f.type, f.payload.size());
-  });
-  dispatcher.register_module(kModuleTelemetry, [&](const sf::Frame &f) {
-    uint32_t value = f.payload.size() == 4 ? sf::get_u32(f.payload) : 0;
-    logger.info("[telemetry] type=0x{:02X} value={}", f.type, value);
-  });
+  // Register each module WITH discovery metadata (name / web app / description)
+  // so a connected peer can enumerate them (see the discovery section below).
+  dispatcher.register_module(
+      kModuleControl,
+      [&](const sf::Frame &f) {
+        logger.info("[control] {} type=0x{:02X} ({} payload bytes)",
+                    f.is_reply() ? "reply" : "request", f.type, f.payload.size());
+      },
+      {.name = "Control", .app = "control_console.html", .description = "Device control channel"});
+  dispatcher.register_module(kModuleTelemetry,
+                             [&](const sf::Frame &f) {
+                               uint32_t value = f.payload.size() == 4 ? sf::get_u32(f.payload) : 0;
+                               logger.info("[telemetry] type=0x{:02X} value={}", f.type, value);
+                             },
+                             {.name = "Telemetry",
+                              .app = "telemetry_console.html",
+                              .description = "Live telemetry stream"});
 
   // Build a mixed stream, as a peer would send it.
   std::vector<uint8_t> telemetry_payload;
@@ -54,6 +64,45 @@ extern "C" void app_main(void) {
   dispatcher.feed(std::span<const uint8_t>(stream.data(), half));
   dispatcher.feed(std::span<const uint8_t>(stream.data() + half, stream.size() - half));
   logger.info("done ({} bytes dropped while resyncing)", dispatcher.dropped_bytes());
+
+  // --- capability discovery -------------------------------------------------
+  // A connected peer (e.g. the browser hub app) can ask WHICH modules this
+  // device runs, over the reserved discovery module id 0xFF. Advertise a device
+  // name + firmware, then opt in to auto-answering the query. serve_discovery()
+  // is the ONLY path by which the Dispatcher sends: it hands the encoded reply
+  // frame to the transmit callback we supply. On real hardware that callback is
+  // usb.write_vendor / socket send / etc.; here we just capture it in-process
+  // and decode it to show what a peer receives.
+  dispatcher.set_device_info("espp Dispatcher Example", "1.0.0");
+  std::vector<uint8_t> discovery_reply;
+  dispatcher.serve_discovery(
+      [&](std::span<const uint8_t> frame) { discovery_reply.assign(frame.begin(), frame.end()); });
+
+  dispatcher.feed(sf::build_frame(/*reply=*/false, espp::Dispatcher::kDiscoveryModule,
+                                  static_cast<uint8_t>(espp::Dispatcher::Discovery::ListModules)));
+
+  const auto reply_frames = sf::StreamParser{}.feed(discovery_reply);
+  if (!reply_frames.empty()) {
+    const auto &p = reply_frames[0].payload;
+    size_t i = 2; // skip [version][reserved]
+    auto rd_str = [&]() {
+      const uint8_t n = p[i++];
+      std::string s(reinterpret_cast<const char *>(&p[i]), n);
+      i += n;
+      return s;
+    };
+    const std::string dev = rd_str();
+    const std::string fw = rd_str();
+    const uint8_t count = p[i++];
+    logger.info("discovery: '{}' (fw {}) advertises {} module(s):", dev, fw, count);
+    for (uint8_t m = 0; m < count; ++m) {
+      const uint8_t id = p[i++];
+      const std::string name = rd_str();
+      const std::string app = rd_str();
+      const std::string desc = rd_str();
+      logger.info("  module {}: {} [app={}] — {}", id, name, app, desc);
+    }
+  }
   //! [dispatcher example]
 
   while (true) {

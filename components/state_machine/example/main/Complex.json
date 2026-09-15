@@ -1,0 +1,707 @@
+{
+  "root": "/c",
+  "namespace": "espp::state_machine",
+  "objects": {
+    "/c": {
+      "name": "Complex",
+      "type": "State Machine",
+      "position": {
+        "x": 450,
+        "y": 238
+      },
+      "Declarations": "bool goToEnd      = false;\nbool goToChoice   = true;\nbool goToHistory  = false;\nbool nextState    = false;\nbool killedState  = false;\nbool someGuard    = true;\nbool someTest     = true;\n\nint someNumber = 40;\nint someValue  = 50;",
+      "Includes": "#include <stdio.h>"
+    },
+    "/c/3": {
+      "name": "EVENT1",
+      "type": "Event",
+      "position": {
+        "x": 100,
+        "y": 100
+      }
+    },
+    "/c/3/a": {
+      "name": "last_time",
+      "type": "Field",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Default": "0"
+    },
+    "/c/A": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/c/G",
+        "src": "/c/T"
+      }
+    },
+    "/c/C": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT3",
+      "pointers": {
+        "dst": "/c/v/G",
+        "src": "/c/T"
+      }
+    },
+    "/c/E": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT2",
+      "pointers": {
+        "dst": "/c/T",
+        "src": "/c/v"
+      }
+    },
+    "/c/F": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/c/G",
+        "src": "/c/v"
+      }
+    },
+    "/c/G": {
+      "name": "End State",
+      "type": "End State",
+      "position": {
+        "x": 457,
+        "y": 665
+      }
+    },
+    "/c/I": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 343,
+        "y": 189
+      },
+      "Event": "EVENT4",
+      "Guard": "someTest",
+      "pointers": {
+        "dst": "/c/X",
+        "src": "/c/Y"
+      }
+    },
+    "/c/L": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "ENDEVENT",
+      "pointers": {
+        "dst": "/c/Y",
+        "src": "/c/T"
+      }
+    },
+    "/c/Q": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT4",
+      "pointers": {
+        "dst": "/c/T/o",
+        "src": "/c/v"
+      }
+    },
+    "/c/T": {
+      "name": "State3",
+      "type": "State",
+      "position": {
+        "x": 596,
+        "y": 481
+      }
+    },
+    "/c/T/0": {
+      "name": "ChildState2",
+      "type": "State",
+      "position": {
+        "x": 617,
+        "y": 504
+      },
+      "Timer Period": 0.1
+    },
+    "/c/T/A": {
+      "name": "Shallow History Pseudostate",
+      "type": "Shallow History Pseudostate",
+      "position": {
+        "x": 495,
+        "y": 404
+      }
+    },
+    "/c/T/I": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/c/T/W",
+        "src": "/c/T/v"
+      }
+    },
+    "/c/T/L": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT1",
+      "pointers": {
+        "dst": "/c/T/0",
+        "src": "/c/T/W"
+      }
+    },
+    "/c/T/W": {
+      "name": "ChildState",
+      "type": "State",
+      "position": {
+        "x": 564,
+        "y": 433
+      },
+      "Timer Period": 0.1
+    },
+    "/c/T/h": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "ENDEVENT",
+      "pointers": {
+        "dst": "/c/T/z",
+        "src": "/c/T/0"
+      }
+    },
+    "/c/T/j": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT2",
+      "pointers": {
+        "dst": "/c/T/w",
+        "src": "/c/T/0"
+      }
+    },
+    "/c/T/o": {
+      "name": "Deep History Pseudostate",
+      "type": "Deep History Pseudostate",
+      "position": {
+        "x": 510,
+        "y": 422
+      }
+    },
+    "/c/T/p": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT3",
+      "pointers": {
+        "dst": "/c/T/W",
+        "src": "/c/T/w"
+      }
+    },
+    "/c/T/v": {
+      "name": "Initial",
+      "type": "Initial",
+      "position": {
+        "x": 527,
+        "y": 431
+      }
+    },
+    "/c/T/w": {
+      "name": "ChildState3",
+      "type": "State",
+      "position": {
+        "x": 677,
+        "y": 429
+      },
+      "Timer Period": 0.1
+    },
+    "/c/T/z": {
+      "name": "End State",
+      "type": "End State",
+      "position": {
+        "x": 618,
+        "y": 557
+      }
+    },
+    "/c/X": {
+      "name": "Choice Pseudostate",
+      "type": "Choice Pseudostate",
+      "position": {
+        "x": 495,
+        "y": 298
+      }
+    },
+    "/c/Y": {
+      "name": "State 1",
+      "type": "State",
+      "position": {
+        "x": 583,
+        "y": 221
+      },
+      "Entry": "printf(\"SerialTask :: initializing State 1\\n\");",
+      "Exit": "printf(\"Exiting State 1\\n\");",
+      "Tick": "printf(\"SerialTask::State 1::tick()\\n\");",
+      "Timer Period": 0.1
+    },
+    "/c/Y/X": {
+      "name": "Internal Transition",
+      "type": "Internal Transition",
+      "position": {
+        "x": 511,
+        "y": 229
+      },
+      "Event": "EVENT2",
+      "Guard": "someNumber > someValue"
+    },
+    "/c/Y/t": {
+      "name": "Internal Transition",
+      "type": "Internal Transition",
+      "position": {
+        "x": 511,
+        "y": 214
+      },
+      "Action": "int testVal = 32;\nfor (int i=0; i<testVal; i++) {\n    printf(\"Action iterating: %d\\n\", i);\n}",
+      "Event": "EVENT1",
+      "Guard": "someNumber < someValue"
+    },
+    "/c/Z": {
+      "name": "Initial",
+      "type": "Initial",
+      "position": {
+        "x": 440,
+        "y": 221
+      }
+    },
+    "/c/h": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Guard": "goToHistory",
+      "pointers": {
+        "dst": "/c/T/A",
+        "src": "/c/X"
+      }
+    },
+    "/c/k": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 343,
+        "y": 189
+      },
+      "Guard": "nextState",
+      "pointers": {
+        "dst": "/c/v",
+        "src": "/c/X"
+      }
+    },
+    "/c/m": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 343,
+        "y": 189
+      },
+      "pointers": {
+        "dst": "/c/Y",
+        "src": "/c/Z"
+      }
+    },
+    "/c/r": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/c/T",
+        "src": "/c/X"
+      }
+    },
+    "/c/t": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT3",
+      "pointers": {
+        "dst": "/c/T/A",
+        "src": "/c/v"
+      }
+    },
+    "/c/v": {
+      "name": "State 2",
+      "type": "State",
+      "position": {
+        "x": 294,
+        "y": 455
+      }
+    },
+    "/c/v/2": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/c/v/z",
+        "src": "/c/v/U"
+      }
+    },
+    "/c/v/E": {
+      "name": "Deep History Pseudostate",
+      "type": "Deep History Pseudostate",
+      "position": {
+        "x": 406,
+        "y": 616
+      }
+    },
+    "/c/v/F": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/c/v/U",
+        "src": "/c/v/z"
+      }
+    },
+    "/c/v/G": {
+      "name": "Shallow History Pseudostate",
+      "type": "Shallow History Pseudostate",
+      "position": {
+        "x": 402,
+        "y": 590
+      }
+    },
+    "/c/v/K": {
+      "name": "ChildState",
+      "type": "State",
+      "position": {
+        "x": 213,
+        "y": 557
+      },
+      "Timer Period": 0.1
+    },
+    "/c/v/P": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT3",
+      "Guard": "someGuard",
+      "pointers": {
+        "dst": "/c/v/K",
+        "src": "/c/v/z"
+      }
+    },
+    "/c/v/S": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT1",
+      "pointers": {
+        "dst": "/c/v/e",
+        "src": "/c/v/K"
+      }
+    },
+    "/c/v/U": {
+      "name": "Choice Pseudostate",
+      "type": "Choice Pseudostate",
+      "position": {
+        "x": 307,
+        "y": 469
+      }
+    },
+    "/c/v/W": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT2",
+      "pointers": {
+        "dst": "/c/v/z",
+        "src": "/c/v/e"
+      }
+    },
+    "/c/v/e": {
+      "name": "ChildState2",
+      "type": "State",
+      "position": {
+        "x": 387,
+        "y": 555
+      },
+      "Timer Period": 0.1
+    },
+    "/c/v/g": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Guard": "killedState",
+      "pointers": {
+        "dst": "/c/v/w",
+        "src": "/c/v/U"
+      }
+    },
+    "/c/v/j": {
+      "name": "Initial",
+      "type": "Initial",
+      "position": {
+        "x": 179,
+        "y": 559
+      }
+    },
+    "/c/v/u": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/c/v/K",
+        "src": "/c/v/j"
+      }
+    },
+    "/c/v/w": {
+      "name": "End State",
+      "type": "End State",
+      "position": {
+        "x": 309,
+        "y": 512
+      }
+    },
+    "/c/v/z": {
+      "name": "ChildState3",
+      "type": "State",
+      "position": {
+        "x": 181,
+        "y": 331
+      }
+    },
+    "/c/v/z/0": {
+      "name": "End State",
+      "type": "End State",
+      "position": {
+        "x": 343,
+        "y": 425
+      }
+    },
+    "/c/v/z/6": {
+      "name": "Grand",
+      "type": "State",
+      "position": {
+        "x": 224,
+        "y": 427
+      },
+      "Timer Period": 0.1
+    },
+    "/c/v/z/8": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/c/v/z/6",
+        "src": "/c/v/z/D"
+      }
+    },
+    "/c/v/z/9": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "ENDEVENT",
+      "pointers": {
+        "dst": "/c/v/z/0",
+        "src": "/c/v/z/c"
+      }
+    },
+    "/c/v/z/D": {
+      "name": "Initial",
+      "type": "Initial",
+      "position": {
+        "x": 188,
+        "y": 429
+      }
+    },
+    "/c/v/z/O": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/c/v/z/c",
+        "src": "/c/v/z/n"
+      }
+    },
+    "/c/v/z/R": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT2",
+      "pointers": {
+        "dst": "/c/v/z/n",
+        "src": "/c/v/z/c"
+      }
+    },
+    "/c/v/z/a": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT1",
+      "pointers": {
+        "dst": "/c/v/z/6",
+        "src": "/c/v/z/c"
+      }
+    },
+    "/c/v/z/c": {
+      "name": "Grand2",
+      "type": "State",
+      "position": {
+        "x": 286,
+        "y": 348
+      },
+      "Timer Period": 0.1
+    },
+    "/c/v/z/g": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Guard": "goToChoice",
+      "pointers": {
+        "dst": "/c/X",
+        "src": "/c/v/z/n"
+      }
+    },
+    "/c/v/z/j": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Guard": "goToEnd",
+      "pointers": {
+        "dst": "/c/v/z/0",
+        "src": "/c/v/z/n"
+      }
+    },
+    "/c/v/z/n": {
+      "name": "Choice Pseudostate",
+      "type": "Choice Pseudostate",
+      "position": {
+        "x": 380,
+        "y": 343
+      }
+    },
+    "/c/v/z/z": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT1",
+      "pointers": {
+        "dst": "/c/v/z/c",
+        "src": "/c/v/z/6"
+      }
+    },
+    "/c/w": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT4",
+      "pointers": {
+        "dst": "/c/v/E",
+        "src": "/c/T"
+      }
+    },
+    "/c/z": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT2",
+      "pointers": {
+        "dst": "/c/v",
+        "src": "/c/T"
+      }
+    }
+  }
+}

@@ -221,6 +221,7 @@
     .log .tx { color: var(--tx-color); }
     .log .rx { color: var(--rx-color); }
     .log .err { color: var(--err-color); }
+    .log .warn { color: #d08770; }
     .log .sys { color: var(--sys-color); }
     footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
     #unsupported {
@@ -250,7 +251,7 @@
         <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
         <label><input type="checkbox" id="anyDevice"> show all USB devices (no VID/PID filter)</label>
       </div>
-      <p id="devInfo" class="muted" style="margin: 8px 0 0;">Not connected. WebUSB default filter: VID 0x1209 / PID 0x0d32 (espp default); the vendor (0xFF) interface is discovered from the descriptors at runtime.</p>
+      <p id="devInfo" class="muted" style="margin: 8px 0 0;">Not connected. WebUSB default filter: any espp device (VID 0x1209); the vendor (0xFF) interface is discovered from the descriptors at runtime.</p>
     </div>
 
     <!-- ========================= Bus configuration ======================= -->
@@ -380,6 +381,11 @@
     const MAX_PAYLOAD = 4096;                // resync cap; interleaved protocols may use up to this
     const MAX_FRAME = HEADER_SIZE + CORRELATION_SIZE + MAX_PAYLOAD + CRC_SIZE;
     const MODULE_CAN = 5;                     // the CAN bridge is module 5
+    // Reserved dispatcher discovery module: a device running an espp::Dispatcher
+    // answers a ListModules query on 0xFF with the modules it serves, so we can
+    // confirm the CAN bridge module is present before driving it.
+    const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
+    const DISCOVERY_TIMEOUT_MS = 800;        // module-presence probe (0xFF ListModules) timeout
     const FLAGS_VERSION = 1;                  // protocol version lives in flags bits 4-7
     const FLAGS_REQUEST = (FLAGS_VERSION << 4) | 0; // host->device request: 0x10 (reply bit 0)
     const FLAGS_REPLY_BIT = 0x01;            // bit0 set on device->host replies/events
@@ -612,15 +618,31 @@
     // ===================================================================
     let transport = null;            // active transport or null
     let connectTime = 0;             // performance.now() at connect, for relative timestamps
+    // A pending checkModulePresent() parks its resolver here; onIncoming calls it
+    // when the 0xFF ListModules reply arrives.
+    let discoveryResolve = null;
+
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
 
     // ---- WebUSB transport -------------------------------------------------
     class UsbTransport {
       constructor() { this.device = null; this.iface = null; this.epIn = null; this.epOut = null; this.inSize = 64; this.reading = false; }
       async open(anyDevice) {
-        const options = anyDevice
-          ? { acceptAllDevices: true }
-          : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
-        this.device = await navigator.usb.requestDevice(options);
+        this.device = await requestUsbDevice(anyDevice);
         await this.device.open();
         if (this.device.configuration === null) await this.device.selectConfiguration(1);
         const config = this.device.configuration;
@@ -790,6 +812,9 @@
         if (transport === t) { logLine("err", "Read loop error: " + (e && e.message ? e.message : e)); onLinkLost(); }
       });
 
+      // Best-effort: warn if this device does not advertise the CAN bridge module.
+      checkModulePresent().catch(() => {});
+
       // Poll STATUS and request an immediate one.
       requestStatus();
       statusTimer = setInterval(requestStatus, STATUS_POLL_MS);
@@ -837,7 +862,7 @@
       els.stopBtn.disabled = !connected;
       els.sendBtn.disabled = !connected;
       if (!connected) {
-        els.devInfo.textContent = "Not connected. WebUSB default filter: VID 0x1209 / PID 0x0d32 (espp default); the vendor (0xFF) interface is discovered from the descriptors at runtime.";
+        els.devInfo.textContent = "Not connected. WebUSB default filter: any espp device (VID 0x1209); the vendor (0xFF) interface is discovered from the descriptors at runtime.";
         setStatusLine(null);
       }
     }
@@ -858,6 +883,46 @@
       }
     }
     function requestStatus() { sendFrame(T_GET_STATUS, null); }
+
+    // ---- discovery-based module presence check --------------------------------
+    // Decode the ListModules TLV (see espp::Dispatcher::describe).
+    function parseDiscovery(payload) {
+      let i = 0;
+      const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
+      const u8 = () => { need(1); return payload[i++]; };
+      const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
+      const version = u8(); u8();            // version, reserved
+      const device = str(), fw = str();
+      const count = u8();
+      const modules = [];
+      for (let m = 0; m < count; m++) modules.push({ id: u8(), name: str(), app: str(), desc: str() });
+      return { version, device, fw, modules };
+    }
+    // Ask the device which dispatcher modules it serves and warn (best-effort) if
+    // the CAN bridge module is not among them. No discovery reply (older firmware)
+    // -> stay quiet; normal STATUS polling still surfaces a real missing module.
+    async function checkModulePresent() {
+      if (!transport) return;
+      const payload = await new Promise((resolve) => {
+        let timer = null;
+        // settle guards the shared resolver: only clear it if it is still ours,
+        // so a prior probe's timeout can't cancel a newer probe's resolver.
+        const settle = (p) => { clearTimeout(timer); if (discoveryResolve === settle) discoveryResolve = null; resolve(p); };
+        timer = setTimeout(() => settle(null), DISCOVERY_TIMEOUT_MS);
+        discoveryResolve = settle;
+        transport.send(buildFrame(MODULE_DISCOVERY, T_LIST_MODULES)).catch(() => settle(null));
+      });
+      if (!payload) return;
+      let info;
+      try { info = parseDiscovery(payload); } catch (_) { return; }
+      if (info.modules.some((m) => m.id === MODULE_CAN)) {
+        logLine("sys", "Device advertises " + info.modules.length + " module(s); CAN bridge module present.");
+        return;
+      }
+      const names = info.modules.map((m) => m.name + " (#" + m.id + ")").join(", ") || "none";
+      logLine("warn", "This device does not advertise the CAN bridge module. Detected: " + names +
+              ". You may have selected the wrong device, or its firmware lacks CAN bridge support.");
+    }
 
     els.applyBtn.addEventListener("click", () => {
       const baud = parseInt(els.baud.value, 10);
@@ -948,6 +1013,12 @@
     function onIncoming(chunk) {
       const frames = parser.feed(chunk);
       for (const f of frames) {
+        // Discovery reply (reserved module 0xFF): hand the TLV to a pending module
+        // probe before the CAN-module matching below ignores it.
+        if (f.module === MODULE_DISCOVERY && f.reply && f.type === T_LIST_MODULES) {
+          if (discoveryResolve) { discoveryResolve(f.payload); discoveryResolve = null; }
+          continue;
+        }
         // Only CAN bridge (module 5) device->host reply/event frames we know.
         if (f.module !== MODULE_CAN || !f.reply || !KNOWN_RX.has(f.type)) {
           // Frame belonging to another module/protocol on the shared stream: ignore.

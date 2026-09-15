@@ -3,15 +3,13 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
-#include <condition_variable>
-#include <deque>
-#include <iterator>
 #include <memory>
 #include <mutex>
 #include <sdkconfig.h>
+#include <span>
+#include <thread>
 #include <vector>
 
-#include "esp_core_dump.h"
 #include "esp_system.h"
 #include "esp_timer.h"
 #include "tusb_cdc_acm.h"
@@ -22,9 +20,13 @@
 #include "bldc_driver.hpp"
 #include "bldc_haptics.hpp"
 #include "bldc_motor.hpp"
+#include "coredump.hpp"
+#include "coredump_service.hpp"
+#include "dispatcher_worker.hpp"
 #include "i2c.hpp"
 #include "mt6701.hpp"
 #include "ota.hpp"
+#include "ota_service.hpp"
 #include "task.hpp"
 #include "usb_device.hpp"
 
@@ -111,53 +113,23 @@ extern "C" void app_main(void) {
   namespace proto = haptics_proto;
 
   // --------------------------------------------------------------------------
-  // Last-crash report. TinyUSB owns the S3's only USB PHY, so there is no live
-  // USB-Serial-JTAG console and a panic backtrace cannot be watched directly;
-  // instead panics core-dump to flash (see sdkconfig/partitions) and THIS boot
-  // summarizes the previous crash - over the CDC banner below, the console,
-  // and the GET_CRASH protocol command (shown in the web console's log).
+  // Core dump: the last-crash summary (logged at boot + shown on the CDC banner
+  // below) plus the module-4 download service further down. TinyUSB owns the
+  // S3's only USB PHY, so there is no live USB-Serial-JTAG console to watch a
+  // panic backtrace on; panics core-dump to flash (see sdkconfig/partitions).
+  // The dump is intentionally NOT erased here -- the coredump web console can
+  // download and explicitly erase it over the module-4 protocol.
   // --------------------------------------------------------------------------
-  std::string crash_report;
-  {
-    const esp_reset_reason_t reset_reason = esp_reset_reason();
-    const char *reset_names[] = {"UNKNOWN", "POWERON",  "EXT", "SW",        "PANIC",
-                                 "INT_WDT", "TASK_WDT", "WDT", "DEEPSLEEP", "BROWNOUT",
-                                 "SDIO",    "USB",      "JTAG"};
-    const auto reason_index = static_cast<size_t>(reset_reason);
-    const char *reason_name =
-        reason_index < std::size(reset_names) ? reset_names[reason_index] : "?";
-    logger.info("Reset reason: {} ({})", reason_name, static_cast<int>(reset_reason));
-    if (esp_core_dump_image_check() == ESP_OK) {
-      esp_core_dump_summary_t summary = {};
-      if (esp_core_dump_get_summary(&summary) == ESP_OK) {
-        crash_report = fmt::format("last reset: {} | crashed task '{}' PC=0x{:08x}", reason_name,
-                                   summary.exc_task, summary.exc_pc);
-        crash_report += " | backtrace:";
-        const auto depth =
-            std::min<uint32_t>(summary.exc_bt_info.depth, std::size(summary.exc_bt_info.bt));
-        for (uint32_t i = 0; i < depth; i++)
-          crash_report += fmt::format(" 0x{:08x}", summary.exc_bt_info.bt[i]);
-        if (summary.exc_bt_info.corrupted)
-          crash_report += " (corrupted)";
-        crash_report +=
-            "\ndecode with: xtensa-esp32s3-elf-addr2line -pfiaC -e build/bldc_haptics_example.elf "
-            "<addrs>";
-        logger.error("Previous crash detected: {}", crash_report);
-        // The flash dump persists until erased; without this every subsequent
-        // clean boot would keep re-reporting the same old crash (mislabeled
-        // with the CURRENT reset reason). The summary above is the advertised
-        // decode path, so consume the dump now that it is cached in RAM.
-        if (esp_core_dump_image_erase() != ESP_OK)
-          logger.warn("Failed to erase the consumed core dump image");
-      }
-    } else if (reset_reason == ESP_RST_BROWNOUT || reset_reason == ESP_RST_INT_WDT ||
-               reset_reason == ESP_RST_TASK_WDT) {
-      // no core dump is written for these, but the reason itself is the story
-      crash_report = fmt::format(
-          "last reset: {} (no core dump: {})", reason_name,
-          reset_reason == ESP_RST_BROWNOUT ? "brownout - check motor/USB power" : "watchdog reset");
-      logger.error("Previous abnormal reset: {}", crash_report);
-    }
+  espp::CoreDump core_dump({.log_level = espp::Logger::Verbosity::INFO});
+  const std::string crash_report = core_dump.format_report();
+  if (crash_report.empty()) {
+    logger.info("Clean boot (reset reason: {})",
+                espp::CoreDump::reset_reason_name(espp::CoreDump::reset_reason()));
+  } else {
+    logger.error("Previous abnormal reset:\n{}", crash_report);
+    if (core_dump.has_core_dump())
+      logger.info("Core dump in flash ({} bytes) -- download it with the coredump web console",
+                  core_dump.image_size());
   }
 
   // --------------------------------------------------------------------------
@@ -332,7 +304,7 @@ extern "C" void app_main(void) {
   };
 
   // --------------------------------------------------------------------------
-  // OTA engine (transport-agnostic; fed from the USB protocol below)
+  // OTA engine (transport-agnostic; served over USB by the OtaService below)
   // --------------------------------------------------------------------------
   espp::Ota ota({.reject_same_version = false, .log_level = espp::Logger::Verbosity::INFO});
 
@@ -380,12 +352,18 @@ extern "C" void app_main(void) {
   usb_cfg.vendor = vendor;
   espp::UsbDevice usb(usb_cfg);
 
-  // The vendor TX path is written to from two tasks (protocol worker replies +
-  // telemetry), so serialize the writes.
+  // The vendor TX path is written to from two tasks (the dispatcher worker's
+  // replies + telemetry), so serialize the writes.
   std::mutex usb_tx_mutex;
-  auto usb_send = [&](const std::vector<uint8_t> &frame) {
+  // Takes a span so callers can pass either an owning std::vector (built by
+  // proto::build, converted implicitly, no copy) or a borrowed buffer (the
+  // discovery / OTA / coredump reply spans) without allocating. Returns true if
+  // the frame was queued, false if it was dropped (FIFO full / host not
+  // draining). Callers that don't care (command replies) ignore it; the
+  // telemetry task uses it to auto-pause a stream the host has abandoned.
+  auto usb_send = [&](std::span<const uint8_t> frame) -> bool {
     if (frame.empty())
-      return;
+      return true;
     std::lock_guard<std::mutex> lk(usb_tx_mutex);
     std::error_code tx_ec;
     if (!usb.write_vendor(frame, tx_ec)) {
@@ -395,67 +373,17 @@ extern "C" void app_main(void) {
       // disconnected host streaming telemetry cannot flood the console.
       logger.warn_rate_limited("USB vendor TX failed, dropped {}-byte frame: {}", frame.size(),
                                tx_ec.message());
+      return false;
     }
+    return true;
   };
 
-  // RX bytes arrive in the TinyUSB task context: queue them and dispatch from
-  // the worker task below (esp_ota_begin's flash erase can take seconds and
-  // must not block the USB stack). The protocol is one-command-in-flight, so a
-  // well-behaved host queues at most ~one frame; cap the queue anyway so a
-  // misbehaving host cannot exhaust device RAM while the worker blocks in the
-  // flash operations.
-  std::mutex usb_rx_mutex;
-  std::condition_variable usb_rx_cv;
-  std::deque<std::vector<uint8_t>> usb_rx_queue;
-  size_t usb_rx_queued_bytes = 0;
-  bool usb_rx_overflow = false;
-  static constexpr size_t kMaxQueuedRxBytes = 8 * proto::stream::kMaxFrameSize;
-  usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) {
-    {
-      std::lock_guard<std::mutex> lock(usb_rx_mutex);
-      if (usb_rx_queued_bytes + data.size() > kMaxQueuedRxBytes) {
-        // Overflow: drop everything (partial frames are useless once bytes are
-        // missing) and let the worker abort + resynchronize + reply.
-        usb_rx_queue.clear();
-        usb_rx_queued_bytes = 0;
-        usb_rx_overflow = true;
-      } else {
-        usb_rx_queue.emplace_back(data.begin(), data.end());
-        usb_rx_queued_bytes += data.size();
-      }
-    }
-    usb_rx_cv.notify_one();
-  });
-
-  std::error_code usb_ec;
-  const bool usb_ok = usb.initialize(usb_ec);
-  if (!usb_ok) {
-    // Not fatal for the haptics themselves: the knob keeps running standalone,
-    // but everything USB-dependent (protocol worker, telemetry, OTA, CDC
-    // console) is skipped below so no task ever touches a dead USB stack.
-    logger.error("Failed to initialize USB device: {}; continuing WITHOUT USB "
-                 "(web console / OTA / telemetry unavailable; haptics still run)",
-                 usb_ec.message());
-  } else {
-    // Route the SYSTEM console (stdout/stderr - all espp/fmt and esp_log
-    // output) to the CDC interface: TinyUSB owns the S3's only USB PHY, so
-    // this replaces the unusable USB-Serial-JTAG console. Attach any serial
-    // terminal (e.g. `screen /dev/tty.usbmodem*`) for live logs. Panic
-    // backtraces still cannot appear live (TinyUSB dies with the panic) -
-    // those are captured by the flash core dump and summarized on the next
-    // boot (see crash_report above / GET_CRASH).
-    if (esp_tusb_init_console(TINYUSB_CDC_ACM_0) != ESP_OK)
-      logger.warn("Could not route the console to USB CDC");
-  }
-
   // --------------------------------------------------------------------------
-  // Protocol frame handling (runs in the worker task)
+  // Haptics protocol (module 2) frame handling -- runs on the dispatcher
+  // worker task, never on the TinyUSB task.
   // --------------------------------------------------------------------------
-  proto::stream::StreamParser parser;
-  bool restart_pending = false;
-
   // Build replies via proto::build so they carry the haptics module (2) + reply
-  // flag — NOT the OTA make_ok/make_error (those are OTA module 0).
+  // flag — NOT the OTA reply builders (those are OTA module 0).
   auto reply_ok = [&](uint32_t value) {
     std::vector<uint8_t> payload;
     proto::put_u32(payload, value);
@@ -516,57 +444,7 @@ extern "C" void app_main(void) {
   };
 
   auto handle_frame = [&](const proto::stream::Frame &frame) {
-    std::error_code ec;
     switch (static_cast<proto::Msg>(frame.type)) {
-    // --- OTA subset ----------------------------------------------------------
-    case proto::Msg::OtaBegin: {
-      const auto image_size = proto::stream::parse_u32_payload(frame);
-      if (!image_size.has_value()) {
-        reply_errc(std::errc::invalid_argument, "malformed OTA BEGIN");
-        break;
-      }
-      if (ota.begin(*image_size, ec))
-        reply_ok(0);
-      else
-        reply_error(ec, "OTA begin failed");
-      break;
-    }
-    case proto::Msg::OtaData:
-      if (!ota.session_active()) {
-        reply_errc(std::errc::operation_not_permitted, "no update session (send BEGIN first)");
-        break;
-      }
-      if (ota.write(frame.payload, ec))
-        reply_ok(static_cast<uint32_t>(ota.bytes_written()));
-      else
-        reply_error(ec, "OTA write failed"); // write() aborted the session on failure
-      break;
-    case proto::Msg::OtaFinish: {
-      if (!ota.session_active()) {
-        reply_errc(std::errc::operation_not_permitted, "no update session (send BEGIN first)");
-        break;
-      }
-      const auto written = static_cast<uint32_t>(ota.bytes_written());
-      if (ota.finish(ec)) {
-        reply_ok(written);
-        restart_pending = true; // reply first; the worker restarts shortly
-      } else {
-        reply_error(ec, "OTA finish (validate/activate) failed");
-      }
-      break;
-    }
-    case proto::Msg::OtaAbort: {
-      if (!ota.session_active()) {
-        reply_errc(std::errc::operation_not_permitted, "no update session to abort");
-        break;
-      }
-      const auto written = static_cast<uint32_t>(ota.bytes_written());
-      if (ota.abort(ec))
-        reply_ok(written);
-      else
-        reply_error(ec, "OTA abort failed");
-      break;
-    }
     // --- Haptics commands ----------------------------------------------------
     case proto::Msg::GetInfo:
       send_info();
@@ -577,11 +455,6 @@ extern "C" void app_main(void) {
     case proto::Msg::GetModes:
       send_modes();
       break;
-    case proto::Msg::GetCrash: {
-      std::vector<uint8_t> payload(crash_report.begin(), crash_report.end());
-      usb_send(proto::build(proto::Msg::Crash, payload));
-      break;
-    }
     case proto::Msg::SetMode: {
       if (frame.payload.size() != 1 || frame.payload[0] >= kPresets.size()) {
         reply_errc(std::errc::invalid_argument, "SET_MODE needs a valid u8 mode index");
@@ -677,51 +550,101 @@ extern "C" void app_main(void) {
     }
   };
 
-  espp::Task usb_task(
-      {.callback = [&](std::mutex &, std::condition_variable &) -> bool {
-         std::vector<std::vector<uint8_t>> chunks;
-         bool overflowed = false;
-         {
-           std::unique_lock<std::mutex> lock(usb_rx_mutex);
-           usb_rx_cv.wait_for(lock, 100ms,
-                              [&] { return !usb_rx_queue.empty() || usb_rx_overflow; });
-           chunks.assign(std::make_move_iterator(usb_rx_queue.begin()),
-                         std::make_move_iterator(usb_rx_queue.end()));
-           usb_rx_queue.clear();
-           usb_rx_queued_bytes = 0;
-           overflowed = usb_rx_overflow;
-           usb_rx_overflow = false;
-         }
-         if (overflowed) {
-           // Bytes were dropped: any in-flight frame / OTA image is unusable.
-           std::error_code abort_ec;
-           ota.abort(abort_ec);
-           parser.reset();
-           reply_errc(std::errc::no_buffer_space,
-                      "RX overflow: frames dropped -- wait for OK replies between frames");
-           return false; // dropped chunks are gone; skip parse
-         }
-         for (const auto &chunk : chunks)
-           for (const auto &frame : parser.feed(chunk))
-             // this protocol's REQUESTS only: ignore other modules and
-             // reply-flagged frames (the device answers requests; a reply-typed
-             // echo must not re-enter the request handler)
-             if (frame.module == proto::kModule && !frame.is_reply())
-               handle_frame(frame);
-         if (restart_pending) {
-           // give the final OK reply time to reach the host
-           std::this_thread::sleep_for(750ms);
-           ota.restart();
-         }
-         return false; // don't stop the task
-       },
+  // --------------------------------------------------------------------------
+  // The three protocols on the one vendor stream
+  // --------------------------------------------------------------------------
+  // Each is on its own dispatcher module and each is advertised for capability
+  // discovery so the browser Device Hub lists and links them:
+  //   module 0 -> OTA          (espp::OtaService       -> ota_console)
+  //   module 2 -> BLDC haptics (this example's protocol -> haptics_console)
+  //   module 4 -> core dump    (espp::CoreDumpService  -> coredump_console)
+  // All replies -- and the discovery reply -- go through the same
+  // tx_mutex-guarded usb_send as the telemetry frames.
+
+  // --- OTA (module 0): the standard espp ota_stream protocol (BEGIN / DATA /
+  //     FINISH / ABORT, session ownership, rollback status, the post-FINISH
+  //     restart) is implemented by OtaService, so a plain ota_console can
+  //     update this device.
+  espp::OtaService ota_service(ota, {.send = [&](std::span<const uint8_t> f) { usb_send(f); },
+                                     .log_level = espp::Logger::Verbosity::INFO});
+
+  // --- Core dump (module 4): the CoreDumpService serves the flash dump over the
+  //     standard protocol, so a plain coredump_console can download / erase it.
+  espp::CoreDumpService coredump_service(core_dump,
+                                         {.send = [&](std::span<const uint8_t> f) { usb_send(f); },
+                                          .log_level = espp::Logger::Verbosity::INFO});
+
+  // RX bytes arrive in the TinyUSB task context: DispatcherWorker owns the
+  // bounded receive queue + worker task that feeds its Dispatcher, so the
+  // handlers above run on the worker (esp_ota_begin's flash erase can take
+  // seconds and must not block the USB stack). The protocol is
+  // one-command-in-flight, so a well-behaved host queues at most ~one frame;
+  // the queue is capped anyway so a misbehaving host cannot exhaust device RAM
+  // while the worker blocks in the flash operations.
+  espp::DispatcherWorker usb_link(
+      {.send = [&](std::span<const uint8_t> f) { usb_send(f); },
+       .on_overflow =
+           [&]() {
+             // Bytes were dropped: any in-flight frame / OTA image is unusable.
+             // The OTA service aborts a transfer it owned and tells the host
+             // (module 0). If no update was running the host is a haptics
+             // console (module 2), so report the drop there too -- an error
+             // on the wrong module would be ignored by the host, which would
+             // then wait for its own timeout.
+             // on_rx_overflow() aborts + replies (module 0) only if an OTA
+             // transfer was in progress; otherwise the error is ours to send.
+             if (!ota_service.on_rx_overflow())
+               reply_errc(std::errc::no_buffer_space,
+                          "RX overflow: frames dropped -- wait for OK replies between frames");
+           },
        .task_config = {.name = "haptics_usb", .stack_size_bytes = 8192}});
-  if (usb_ok)
-    usb_task.start();
+  usb_link.register_module(ota_service);      // module 0 + its discovery metadata
+  usb_link.register_module(coredump_service); // module 4 + its discovery metadata
+  // The handler gates on !is_reply() so a reply-typed echo cannot re-enter it.
+  usb_link.register_module(proto::kModule,
+                           [&](const proto::stream::Frame &frame) {
+                             if (!frame.is_reply())
+                               handle_frame(frame);
+                           },
+                           {.name = "BLDC Haptics",
+                            .app = "haptics_console.html",
+                            .description = "Haptic detent / feedback modes"});
+  usb_link.serve_discovery(usb_cfg.product); // reserved module 0xFF
+  usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { usb_link.push(data); });
+
+  std::error_code usb_ec;
+  const bool usb_ok = usb.initialize(usb_ec);
+  if (!usb_ok) {
+    // Not fatal for the haptics themselves: the knob keeps running standalone,
+    // but everything USB-dependent (telemetry, CDC console) is skipped below
+    // so no task ever touches a dead USB stack. (The dispatcher worker simply
+    // never receives any bytes.)
+    logger.error("Failed to initialize USB device: {}; continuing WITHOUT USB "
+                 "(web console / OTA / telemetry unavailable; haptics still run)",
+                 usb_ec.message());
+  } else {
+    // Route the SYSTEM console (stdout/stderr - all espp/fmt and esp_log
+    // output) to the CDC interface: TinyUSB owns the S3's only USB PHY, so
+    // this replaces the unusable USB-Serial-JTAG console. Attach any serial
+    // terminal (e.g. `screen /dev/tty.usbmodem*`) for live logs. Panic
+    // backtraces still cannot appear live (TinyUSB dies with the panic) -
+    // those are captured by the flash core dump and summarized on the next
+    // boot (see crash_report above / GET_CRASH).
+    if (esp_tusb_init_console(TINYUSB_CDC_ACM_0) != ESP_OK)
+      logger.warn("Could not route the console to USB CDC");
+  }
 
   // --------------------------------------------------------------------------
   // Telemetry streaming task
   // --------------------------------------------------------------------------
+  // Auto-pause guard: if telemetry sends fail continuously for this long, the
+  // host has stopped draining the vendor IN endpoint (tab closed / backgrounded
+  // / frozen). Streaming into a full FIFO just spams drops and, worse, buries a
+  // reconnecting host's GET_INFO reply so it can never connect -- so pause the
+  // stream until a host re-enables it (SET_STREAMING on connect).
+  constexpr auto kTelemetryStallTimeout = 2s;
+  auto telemetry_stall_start = std::chrono::steady_clock::time_point{};
+
   espp::Task telemetry_task(
       {.callback = [&](std::mutex &m, std::condition_variable &cv) -> bool {
          const auto start = std::chrono::steady_clock::now();
@@ -736,7 +659,20 @@ extern "C" void app_main(void) {
            proto::put_f32(payload, continuous_value());
            proto::put_f32(payload, motor->get_shaft_angle());
            proto::put_f32(payload, motor->get_shaft_velocity());
-           usb_send(proto::build(proto::Msg::Telemetry, payload));
+           if (usb_send(proto::build(proto::Msg::Telemetry, payload))) {
+             telemetry_stall_start = {}; // queued OK -> the host is draining
+           } else if (telemetry_stall_start == std::chrono::steady_clock::time_point{}) {
+             telemetry_stall_start = start; // first drop -> start the stall clock
+           } else if (start - telemetry_stall_start > kTelemetryStallTimeout) {
+             streaming = false; // host abandoned the stream: stop flooding a full FIFO
+             telemetry_stall_start = {};
+             // Drop the queued backlog now (a tab close does not unmount, so it
+             // is not cleared for us) so a reconnecting host reads a clean stream
+             // instead of stale telemetry it might mis-parse as a command reply.
+             usb.vendor_write_clear();
+             logger.warn("Telemetry auto-paused: the host stopped draining the USB vendor "
+                         "endpoint (re-enable streaming from the web console)");
+           }
          }
          {
            std::unique_lock<std::mutex> lk(m);

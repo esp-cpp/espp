@@ -90,7 +90,7 @@
     .statusline { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
     .statusline b { color: var(--text); font-weight: 600; }
     .log { background: var(--log-bg); color: var(--log-text); border-radius: 8px; padding: 10px 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5; height: 170px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
-    .log .t { color: var(--time); } .log .tx { color: var(--tx); } .log .rx { color: var(--rx); } .log .err { color: var(--err); } .log .sys { color: var(--sys); }
+    .log .t { color: var(--time); } .log .tx { color: var(--tx); } .log .rx { color: var(--rx); } .log .err { color: var(--err); } .log .warn { color: #d08770; } .log .sys { color: var(--sys); }
     footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
     #unsupported { display: none; background: var(--panel-bg); border: 1px solid var(--danger); color: var(--danger); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
   </style>
@@ -156,6 +156,11 @@
     const MAGIC0 = 0x54, MAGIC1 = 0x4F, HEADER_SIZE = 9, CRC_SIZE = 4, CORRELATION_SIZE = 2;
     const MAX_PAYLOAD = 4096, MAX_FRAME = HEADER_SIZE + CORRELATION_SIZE + MAX_PAYLOAD + CRC_SIZE;
     const MODULE = 6, FLAGS_VERSION = 1, FLAGS_REQUEST = (FLAGS_VERSION << 4), FLAGS_REPLY_BIT = 0x01, FLAG_CORRELATION = 0x02;
+    // Reserved dispatcher discovery module: a device running an espp::Dispatcher
+    // answers a ListModules query on 0xFF with the modules it serves, so we can
+    // confirm the MCP266 module is present before driving it.
+    const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
+    const DISCOVERY_TIMEOUT_MS = 800;        // module-presence probe (0xFF ListModules) timeout
     // requests (0x6X)
     const T_START = 0x60, T_RESET_FAULTS = 0x61, T_RESET_ESTOP = 0x62, T_CONFIG_POS = 0x63,
           T_SET_LIMITS = 0x64, T_MOVE = 0x65, T_SPEED = 0x66, T_DUTY = 0x67, T_GET_STATUS = 0x68,
@@ -189,13 +194,13 @@
     function crc32(bytes) { let c=0xFFFFFFFF; for (let i=0;i<bytes.length;i++) c=CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8); return (~c)>>>0; }
     if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) throw new Error("CRC-32 self-test failed");
 
-    function buildFrame(type, payload) {
+    function buildFrame(type, payload, module = MODULE) {
       payload = payload || new Uint8Array(0);
       const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
       const view = new DataView(frame.buffer);
       view.setUint16(0, 0x4F54, true);
       frame[2] = FLAGS_REQUEST | ((type & 0x80) ? FLAGS_REPLY_BIT : 0);
-      frame[3] = MODULE; frame[4] = type;
+      frame[3] = module; frame[4] = type;
       view.setUint32(5, payload.length, true);
       frame.set(payload, HEADER_SIZE);
       view.setUint32(HEADER_SIZE + payload.length, crc32(frame.subarray(0, HEADER_SIZE + payload.length)), true);
@@ -232,14 +237,31 @@
       }
     }
     const parser = new StreamParser();
+    // A pending checkModulePresent() parks its resolver here; onIncoming calls it
+    // when the 0xFF ListModules reply arrives.
+    let discoveryResolve = null;
 
     // ===================== Transports (WebUSB + Web Serial) =====================
     let transport = null;
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
     class UsbTransport {
       constructor() { this.device=null; this.iface=null; this.epIn=null; this.epOut=null; this.reading=false; }
       async open(anyDevice) {
-        const options = anyDevice ? { acceptAllDevices: true } : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
-        this.device = await navigator.usb.requestDevice(options);
+        this.device = await requestUsbDevice(anyDevice);
         await this.device.open();
         if (this.device.configuration === null) await this.device.selectConfiguration(1);
         const config = this.device.configuration; if (!config) throw new Error("no active USB configuration");
@@ -385,10 +407,56 @@
       e.reached.textContent = (sw & TARGET_REACHED) ? "yes" : "no";
     }
 
+    // ===================== Module presence check (discovery) =====================
+    // Decode the ListModules TLV (see espp::Dispatcher::describe).
+    function parseDiscovery(payload) {
+      let i = 0;
+      const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
+      const u8 = () => { need(1); return payload[i++]; };
+      const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
+      const version = u8(); u8();            // version, reserved
+      const device = str(), fw = str();
+      const count = u8();
+      const modules = [];
+      for (let m = 0; m < count; m++) modules.push({ id: u8(), name: str(), app: str(), desc: str() });
+      return { version, device, fw, modules };
+    }
+    // Ask the device which dispatcher modules it serves and warn (best-effort) if
+    // the MCP266 module is not among them. No discovery reply (older firmware) ->
+    // stay quiet; the normal INFO/STATUS request still surfaces a real missing module.
+    async function checkModulePresent() {
+      if (!transport) return;
+      const payload = await new Promise((resolve) => {
+        let timer = null;
+        // settle guards the shared resolver: only clear it if it is still ours,
+        // so a prior probe's timeout can't cancel a newer probe's resolver.
+        const settle = (p) => { clearTimeout(timer); if (discoveryResolve === settle) discoveryResolve = null; resolve(p); };
+        timer = setTimeout(() => settle(null), DISCOVERY_TIMEOUT_MS);
+        discoveryResolve = settle;
+        transport.send(buildFrame(T_LIST_MODULES, null, MODULE_DISCOVERY)).catch(() => settle(null));
+      });
+      if (!payload) return;
+      let info;
+      try { info = parseDiscovery(payload); } catch (_) { return; }
+      if (info.modules.some((m) => m.id === MODULE)) {
+        logLine("sys", "Device advertises " + info.modules.length + " module(s); MCP266 module present.");
+        return;
+      }
+      const names = info.modules.map((m) => m.name + " (#" + m.id + ")").join(", ") || "none";
+      logLine("warn", "This device does not advertise the MCP266 module. Detected: " + names +
+              ". You may have selected the wrong device, or its firmware lacks MCP266 support.");
+    }
+
     // ===================== Incoming frame handling =====================
     function onIncoming(chunk) {
       let frames; try { frames = parser.feed(chunk); } catch(e) { logLine("err", "parse error: " + (e && e.message ? e.message : e)); return; }
       for (const f of frames) {
+        // Discovery reply (reserved module 0xFF): hand the TLV to a pending
+        // module probe before the MODULE match below ignores it.
+        if (f.module === MODULE_DISCOVERY && f.reply && f.type === T_LIST_MODULES) {
+          if (discoveryResolve) { discoveryResolve(f.payload); discoveryResolve = null; }
+          continue;
+        }
         if (f.module !== MODULE) continue;
         const dv = new DataView(f.payload.buffer, f.payload.byteOffset, f.payload.length);
         if (f.type === T_STATUS) {
@@ -431,6 +499,7 @@
       transport = t; parser.reset(); setConnectedUI(true);
       const name = t.describe(); setStatus("connected", "Connected"); els.devInfo.textContent = name; logLine("sys", "Connected: " + name);
       t.readLoop(onIncoming).catch((e) => { if (transport === t) { logLine("err", "Read loop error: " + (e && e.message ? e.message : e)); onLinkLost(); } });
+      checkModulePresent().catch(() => {}); // best-effort: warn if this device lacks the MCP266 module
       send(T_GET_INFO); send(T_GET_STATUS);
       if (els.livePoll.checked) startStream();
     }

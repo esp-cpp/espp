@@ -2,15 +2,66 @@
 
 #include <array>
 #include <atomic>
+#include <cstdio>
 #include <cstring>
 
+#include "sdkconfig.h" // CONFIG_ESP_CONSOLE_UART_NUM for the console-tee path
+
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 #include "tinyusb.h"
-#include "tinyusb_cdc_acm.h"
 #include "tinyusb_default_config.h"
 #include "tusb.h"
+// Only pull in the CDC-ACM helper when the CDC class is actually compiled in
+// (CONFIG_TINYUSB_CDC_COUNT > 0 -> CFG_TUD_CDC). This keeps XInput-only / vendor-
+// only builds from forcing CDC support. tusb.h above defines CFG_TUD_CDC.
+#if (CFG_TUD_CDC > 0)
+#include "tinyusb_cdc_acm.h"
+// Headers for route_console_to_cdc(): a write-only VFS device that forwards
+// stdout to the CDC interface (and optionally tees to the primary UART console).
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include "esp_vfs.h"
+#endif
+// TinyUSB private class-driver API (usbd_class_driver_t, usbd_edpt_*,
+// usbd_app_driver_get_cb). `src/device` is a private include of the tinyusb
+// component, but `src/` is public, so reach it via the `device/` prefix.
+#include "device/usbd_pvt.h"
+
+#include "xinput.hpp"
+
+namespace espp {
+// Bridges the global TinyUSB C callback trampolines to UsbDevice's device-task-
+// only methods, which are non-public (protected). A nested type has access to the
+// enclosing class's non-public members, so these thin static forwarders keep those
+// methods off the public API without a raft of friend declarations for the
+// (variously file-static / extern "C" / version-conditional) callbacks.
+struct UsbDevice::Callbacks {
+  static void cdc_rx(UsbDevice *d) { d->handle_cdc_rx(); }
+  static void vendor_rx(UsbDevice *d, const uint8_t *buf, size_t n) { d->handle_vendor_rx(buf, n); }
+  static void xinput_out(UsbDevice *d, const uint8_t *buf, size_t n) {
+    d->handle_xinput_out(buf, n);
+  }
+  static const uint8_t *bos(UsbDevice *d) { return d->bos_descriptor(); }
+  static const uint8_t *ms_os_20(UsbDevice *d, uint16_t &len) {
+    return d->ms_os_20_descriptor(len);
+  }
+  static const uint8_t *webusb_url(UsbDevice *d, uint8_t &len) {
+    return d->webusb_url_descriptor(len);
+  }
+  static const uint8_t *hid_report(UsbDevice *d) { return d->hid_report_descriptor(); }
+  static void hid_rx(UsbDevice *d, uint8_t report_id, const uint8_t *b, size_t n) {
+    d->handle_hid_rx(report_id, b, n);
+  }
+  static const std::optional<UsbDevice::VendorFunction> &vendor_config(UsbDevice *d) {
+    return d->vendor_config();
+  }
+};
+} // namespace espp
 
 namespace {
 
@@ -24,8 +75,99 @@ namespace {
 // destructing instance.
 std::atomic<espp::UsbDevice *> s_device{nullptr};
 
+#if (CFG_TUD_CDC > 0)
 // The CDC port this component uses. A single dedicated CDC-ACM interface.
 constexpr tinyusb_cdcacm_itf_t kCdcPort = TINYUSB_CDC_ACM_0;
+
+// --- Console -> CDC routing (UsbDevice::route_console_to_cdc) ----------------
+// A tiny write-only VFS device: stdout is freopen'ed onto it, and its write()
+// forwards each chunk to the CDC interface (and optionally tees to the original
+// UART console). There is only one USB device (s_device), so this state is
+// file-scope rather than per-instance.
+// Must be <= ESP_VFS_PATH_MAX (15) or esp_vfs_register() rejects it.
+constexpr char kConsoleVfsPath[] = "/dev/usbcons";
+// fd of the original (UART) console kept as a tee, or -1. Atomic because a
+// re-route can reconcile it (open/close) while a console writer loads it.
+std::atomic<int> s_console_tee_fd{-1};
+bool s_console_routed = false; // whether stdout has been redirected
+// The UsbDevice that owns the routed console. Loaded (not s_device) by the VFS
+// write, which runs on ARBITRARY tasks doing stdout writes -- so it is cleared in
+// ~UsbDevice() to stop console writes from reaching a destroyed device; after
+// that the VFS degrades to the UART tee only. (Redirecting stdout to an object
+// couples their lifetimes: a console-routed UsbDevice must outlive concurrent
+// logging -- normally trivially true, as it is a program-lifetime singleton.)
+std::atomic<espp::UsbDevice *> s_console_usb{nullptr};
+// One CDC TX lock shared by BOTH the console VFS write and write_cdc(), so a
+// "does the whole chunk fit?" check and the write are atomic against every CDC
+// writer (an app write_cdc() cannot consume the FIFO between the console's check
+// and its raw write, nor vice versa). write_cdc() takes it blocking on app tasks
+// (try-lock in TinyUSB-task context, to never stall tud_task); the console takes
+// it try-lock and drops the chunk if held (its non-blocking contract).
+std::mutex s_cdc_tx_mutex;
+
+// Open the primary console (a UART) so route_console_to_cdc() can tee to it, or
+// return -1 when there is nothing independent to tee to. Only a UART console has a
+// separate physical port; a USB-Serial-JTAG console shares the native USB PHY with
+// USB-OTG (teeing to it while TinyUSB owns that port is pointless) and CONSOLE_NONE
+// has none -- in those builds CONFIG_ESP_CONSOLE_UART_NUM is undefined, so the tee
+// is simply compiled out.
+int open_primary_console_for_tee() {
+#if defined(CONFIG_ESP_CONSOLE_UART_NUM)
+  char path[16];
+  std::snprintf(path, sizeof(path), "/dev/uart/%d", CONFIG_ESP_CONSOLE_UART_NUM);
+  return open(path, O_WRONLY);
+#else
+  return -1;
+#endif
+}
+
+// Open or close the UART tee fd to match `want`, so a re-route reconciles the tee
+// with the (possibly different) current config. Idempotent. s_console_tee_fd is
+// atomic; on close we clear it BEFORE closing so a console writer that just loaded
+// it at worst writes to an already-closed fd (harmless EBADF on a dropped chunk).
+void reconcile_console_tee(bool want) {
+  const int cur = s_console_tee_fd.load();
+  if (want && cur < 0) {
+    s_console_tee_fd.store(open_primary_console_for_tee());
+  } else if (!want && cur >= 0) {
+    s_console_tee_fd.store(-1);
+    close(cur);
+  }
+}
+
+int cdc_console_open(const char *, int, int) { return 0; }
+int cdc_console_close(int) { return 0; }
+int cdc_console_fstat(int, struct stat *st) {
+  *st = {};
+  st->st_mode = S_IFCHR; // a character device (console): stdio uses no/line buffering
+  return 0;
+}
+ssize_t cdc_console_write(int, const void *data, size_t size) {
+  const int tee = s_console_tee_fd.load();
+  if (tee >= 0)
+    ::write(tee, data, size); // keep the original console as a tee
+  // Mirror to CDC, NON-BLOCKING. cdc_write_available() returns 0 unless the
+  // interface is mounted, so we only emit when mounted; we do NOT gate on DTR (a
+  // plain serial monitor often does not assert it -- a console should still emit,
+  // and the host's CDC driver buffers until a reader attaches). Serialize console
+  // writers with a try-lock so the space check and the write are atomic (no other
+  // writer can consume the FIFO in between and force write_cdc()'s blocking
+  // drain); if the lock is held or the whole chunk doesn't fit right now, drop it
+  // -- logs are best-effort and must never block the writing task.
+  auto *dev = s_console_usb.load();
+  if (dev) {
+    std::unique_lock<std::mutex> lk(s_cdc_tx_mutex, std::try_to_lock);
+    if (lk.owns_lock() && dev->cdc_write_available() >= size) {
+      // We hold the shared CDC TX lock and just checked space, so no other writer
+      // can interleave: this single write takes the whole chunk (no drain, no
+      // torn prefix) -- tud_cdc_n_write returns `size`.
+      tud_cdc_n_write(kCdcPort, static_cast<const uint8_t *>(data), size);
+      tud_cdc_n_write_flush(kCdcPort);
+    }
+  }
+  return static_cast<ssize_t>(size);
+}
+#endif
 
 // Backpressure tuning shared by write_cdc() and write_vendor() so the two TX
 // paths stay consistent. kUsbWriteTimeoutTicks bounds how long a blocking write
@@ -60,11 +202,161 @@ void note_tinyusb_task() {
   s_tinyusb_task.store(xTaskGetCurrentTaskHandle(), std::memory_order_relaxed);
 }
 
-bool on_tinyusb_task() {
+// [[maybe_unused]]: only the CDC/vendor write-drain paths call this, so it is
+// unused in an X-Input-only build (CFG_TUD_CDC == CFG_TUD_VENDOR == 0).
+[[maybe_unused]] bool on_tinyusb_task() {
   return xTaskGetCurrentTaskHandle() == s_tinyusb_task.load(std::memory_order_relaxed);
 }
 
+// --- X-Input (Xbox 360) custom TinyUSB application class driver ---------------
+// TinyUSB's built-in vendor driver only handles BULK 0xFF interfaces; X-Input
+// needs INTERRUPT IN+OUT on a 0xFF/0x5D/0x01 interface, so we register this
+// application class driver via the weak usbd_app_driver_get_cb() override below.
+// Only one USB device exists, so the driver's endpoint state is file-scope. The
+// driver is always registered but open() only claims an X-Input interface, so it
+// is inert when no XInput function is enabled.
+struct XInputDriver {
+  // All fields are touched only on the TinyUSB task (open/reset/xfer_cb/log). The
+  // app-facing update_xinput_state()/is_xinput_ready() use UsbDevice's own
+  // impl_->xinput_ep_in (fixed at initialize(), immutable afterwards) instead of
+  // reading these, so there is no cross-task access here to synchronize.
+  uint8_t itf_num{0xFF};
+  uint8_t ep_in{0};
+  uint8_t ep_out{0};
+  // 4-byte aligned: the DWC2 also reads/writes endpoint buffers by DMA (see the
+  // note on Impl::xinput_report), so keep this on a word boundary too.
+  alignas(4) std::array<uint8_t, 64> out_buf{}; // interrupt-OUT receive buffer (>= kEpSize)
+};
+XInputDriver s_xinput_drv;
+
+void xinput_drv_init() {}
+bool xinput_drv_deinit() { return true; }
+void xinput_drv_reset(uint8_t rhport) {
+  (void)rhport;
+  s_xinput_drv.itf_num = 0xFF;
+  s_xinput_drv.ep_in = 0;
+  s_xinput_drv.ep_out = 0;
+}
+
+uint16_t xinput_drv_open(uint8_t rhport, tusb_desc_interface_t const *desc_itf, uint16_t max_len) {
+  // Only claim the X-Input interface (0xFF / 0x5D / 0x01); return 0 for anything
+  // else so the built-in CDC/HID/vendor drivers still handle their interfaces.
+  // NOTE: application class drivers are tried BEFORE the built-in ones
+  // (usbd.c get_driver / process_set_config iterate app drivers first, "to allow
+  // overwriting built-in ones"), so even when CFG_TUD_VENDOR>0 this driver claims
+  // the X-Input 0xFF interface before the built-in vendor (bulk) driver can.
+  if (desc_itf->bInterfaceClass != espp::xinput::kInterfaceClass ||
+      desc_itf->bInterfaceSubClass != espp::xinput::kInterfaceSubClass ||
+      desc_itf->bInterfaceProtocol != espp::xinput::kInterfaceProtocol)
+    return 0;
+
+  note_tinyusb_task();
+  const uint8_t *desc_end = reinterpret_cast<const uint8_t *>(desc_itf) + max_len;
+  const uint8_t *p = tu_desc_next(desc_itf); // skip the interface descriptor
+  s_xinput_drv.itf_num = desc_itf->bInterfaceNumber;
+  s_xinput_drv.ep_in = 0;
+  s_xinput_drv.ep_out = 0;
+
+  // Walk to the endpoints (the XID vendor descriptor between them is skipped).
+  while (tu_desc_in_bounds(p, desc_end)) {
+    const uint8_t type = tu_desc_type(p);
+    if (type == TUSB_DESC_INTERFACE || type == TUSB_DESC_INTERFACE_ASSOCIATION)
+      break;
+    if (type == TUSB_DESC_ENDPOINT) {
+      const tusb_desc_endpoint_t *ep = reinterpret_cast<const tusb_desc_endpoint_t *>(p);
+      if (!usbd_edpt_open(rhport, ep)) {
+        // Close any endpoint already opened so we don't leave partial state.
+        if (s_xinput_drv.ep_in)
+          usbd_edpt_close(rhport, s_xinput_drv.ep_in);
+        if (s_xinput_drv.ep_out)
+          usbd_edpt_close(rhport, s_xinput_drv.ep_out);
+        s_xinput_drv.ep_in = 0;
+        s_xinput_drv.ep_out = 0;
+        return 0;
+      }
+      if (tu_edpt_dir(ep->bEndpointAddress) == TUSB_DIR_IN)
+        s_xinput_drv.ep_in = ep->bEndpointAddress;
+      else
+        s_xinput_drv.ep_out = ep->bEndpointAddress;
+    }
+    p = tu_desc_next(p);
+  }
+
+  // Prime the interrupt-OUT endpoint to receive the first rumble / LED report.
+  if (s_xinput_drv.ep_out)
+    usbd_edpt_xfer(rhport, s_xinput_drv.ep_out, s_xinput_drv.out_buf.data(), espp::xinput::kEpSize,
+                   false);
+
+  ESP_LOGD("espp_xinput", "class driver open: itf=%u ep_in=0x%02x ep_out=0x%02x",
+           s_xinput_drv.itf_num, s_xinput_drv.ep_in, s_xinput_drv.ep_out);
+  if (s_xinput_drv.ep_in == 0)
+    ESP_LOGW("espp_xinput", "no interrupt IN endpoint opened -- host will get no input reports");
+
+  return static_cast<uint16_t>(reinterpret_cast<uintptr_t>(p) -
+                               reinterpret_cast<uintptr_t>(desc_itf));
+}
+
+bool xinput_drv_control_xfer(uint8_t rhport, uint8_t stage, tusb_control_request_t const *request) {
+  if (stage != CONTROL_STAGE_SETUP)
+    return true; // DATA / ACK stages: nothing to do
+
+  ESP_LOGD("espp_xinput", "control SETUP bmReq=0x%02x bReq=0x%02x wVal=0x%04x wIdx=0x%04x wLen=%u",
+           request->bmRequestType, request->bRequest, request->wValue, request->wIndex,
+           request->wLength);
+
+  // Stall XUSB's vendor control requests (return false -> TinyUSB STALLs the
+  // request). In particular GET_CAPABILITIES (bmReq 0xC1, bReq 0x01, wValue
+  // 0x0100) expects a real 20-byte capabilities report; answering it with zeros
+  // tells XUSB the controller has no controls (so it ignores all input), and
+  // returning true without completing the control transfer leaves it pending.
+  // Stalling is unambiguous "not supported": XUSB falls back to full default
+  // capabilities, which is what a wired 360 controller's driver does and what the
+  // input path (interrupt IN reports) needs. If a specific request must be
+  // answered later, handle it explicitly with tud_control_xfer/tud_control_status.
+  return false;
+}
+
+bool xinput_drv_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t result,
+                        uint32_t xferred_bytes) {
+  note_tinyusb_task();
+  if (ep_addr == s_xinput_drv.ep_out) {
+    if (result == XFER_RESULT_SUCCESS && xferred_bytes > 0) {
+      auto *dev = s_device.load();
+      if (dev)
+        espp::UsbDevice::Callbacks::xinput_out(dev, s_xinput_drv.out_buf.data(),
+                                               static_cast<size_t>(xferred_bytes));
+    }
+    // Re-prime the OUT endpoint for the next report.
+    usbd_edpt_xfer(rhport, s_xinput_drv.ep_out, s_xinput_drv.out_buf.data(), espp::xinput::kEpSize,
+                   false);
+  }
+  // IN completion needs no action; usbd_edpt_busy() reflects readiness.
+  return true;
+}
+
+const usbd_class_driver_t s_xinput_class_driver = {
+    .name = "xinput",
+    .init = xinput_drv_init,
+    .deinit = xinput_drv_deinit,
+    .reset = xinput_drv_reset,
+    .open = xinput_drv_open,
+    .control_xfer_cb = xinput_drv_control_xfer,
+    .xfer_cb = xinput_drv_xfer_cb,
+    .xfer_isr = nullptr,
+    .sof = nullptr,
+};
+
 } // namespace
+
+// Override TinyUSB's weak app-driver hook to register the X-Input class driver.
+// NOTE: usbd.c both defines this as weak AND calls it in the same translation
+// unit, so this strong override only wins if the linker keeps it — the
+// usb_device component CMakeLists forces it with `-u usbd_app_driver_get_cb`.
+extern "C" usbd_class_driver_t const *usbd_app_driver_get_cb(uint8_t *driver_count) {
+  ESP_LOGD("espp_xinput", "registering X-Input application class driver");
+  *driver_count = 1;
+  return &s_xinput_class_driver;
+}
 
 namespace espp {
 
@@ -88,6 +380,15 @@ struct UsbDevice::Impl {
   // Allocated interface / endpoint identifiers, filled in during initialize().
   uint8_t vendor_itf{0xFF};
   uint8_t hid_itf{0xFF};
+  uint8_t xinput_itf{0xFF};
+  uint8_t xinput_ep_in{0};  // 0x80|n, or 0 if the XInput function is disabled
+  uint8_t xinput_ep_out{0}; // n, or 0 if disabled
+  // Input-report TX buffer; held for the duration of the async interrupt-IN
+  // transfer submitted by update_xinput_state(). MUST be 4-byte aligned: the ESP32-S3
+  // DWC2 reads it by DMA and a misaligned buffer makes the controller read from
+  // the aligned-down address, prepending the preceding byte to every report
+  // (which shifted our "00 14 .." report by one and made XUSB reject all input).
+  alignas(4) std::array<uint8_t, espp::xinput::kReportInSize> xinput_report{};
 };
 
 UsbDevice *UsbDevice::instance() { return s_device; }
@@ -97,9 +398,24 @@ UsbDevice::UsbDevice(const Config &config)
     , impl_(std::make_unique<Impl>())
     , config_(config)
     , on_cdc_receive_(config.cdc ? config.cdc->on_receive : nullptr)
-    , on_vendor_receive_(config.vendor ? config.vendor->on_receive : nullptr) {}
+    , on_vendor_receive_(config.vendor ? config.vendor->on_receive : nullptr)
+    , on_xinput_rumble_(config.xinput ? config.xinput->on_rumble : nullptr)
+    , on_hid_receive_(config.hid ? config.hid->on_receive : nullptr) {}
 
 UsbDevice::~UsbDevice() {
+#if (CFG_TUD_CDC > 0)
+  // If this instance owns the routed console, detach it FIRST so stdout writes
+  // from other tasks stop reaching this destructing instance (they degrade to the
+  // UART tee). stdout stays pointed at the VFS device (its functions are
+  // file-scope, not tied to this instance), so logging keeps working. NOTE: a
+  // write already past this load when we clear it can still race destruction --
+  // a console-routed UsbDevice must outlive concurrent logging (see
+  // route_console_to_cdc): normally trivial, as it is a program-lifetime object.
+  {
+    UsbDevice *expected_console = this;
+    s_console_usb.compare_exchange_strong(expected_console, nullptr);
+  }
+#endif
   if (initialized_) {
     // Detach the global callback routing BEFORE tearing down the driver so a
     // TinyUSB callback that fires during deinit cannot dereference this
@@ -108,8 +424,10 @@ UsbDevice::~UsbDevice() {
     // initialize()).
     UsbDevice *expected = this;
     s_device.compare_exchange_strong(expected, nullptr);
+#if (CFG_TUD_CDC > 0)
     if (config_.cdc)
       tinyusb_cdcacm_deinit(kCdcPort);
+#endif
     tinyusb_driver_uninstall();
     initialized_ = false;
   }
@@ -119,6 +437,7 @@ UsbDevice::~UsbDevice() {
 // TinyUSB C callbacks (global; routed to the active instance).
 // ---------------------------------------------------------------------------
 
+#if (CFG_TUD_CDC > 0)
 // CDC RX trampoline registered with esp_tinyusb; runs in the TinyUSB task.
 static void cdc_rx_trampoline(int itf, cdcacm_event_t *event) {
   (void)event;
@@ -128,8 +447,9 @@ static void cdc_rx_trampoline(int itf, cdcacm_event_t *event) {
   // load once: the pointer must not be re-read between check and use
   auto *dev = s_device.load();
   if (dev)
-    dev->handle_cdc_rx();
+    UsbDevice::Callbacks::cdc_rx(dev);
 }
+#endif
 
 extern "C" {
 
@@ -138,7 +458,7 @@ extern "C" {
 uint8_t const *tud_descriptor_bos_cb(void) {
   note_tinyusb_task();
   auto *dev = s_device.load();
-  return dev ? dev->bos_descriptor() : nullptr;
+  return dev ? UsbDevice::Callbacks::bos(dev) : nullptr;
 }
 
 #if (CFG_TUD_VENDOR > 0)
@@ -155,7 +475,7 @@ void tud_vendor_rx_cb(uint8_t itf, uint8_t const *buffer, uint32_t bufsize) {
   // tud_vendor_read); the zero-copy variant passes the received bytes directly.
   auto *dev = s_device.load();
   if (dev)
-    dev->handle_vendor_rx(buffer, static_cast<size_t>(bufsize));
+    UsbDevice::Callbacks::vendor_rx(dev, buffer, static_cast<size_t>(bufsize));
 }
 
 // Vendor control-transfer callback: answer the WebUSB URL and MS OS 2.0
@@ -166,9 +486,9 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
   if (stage != CONTROL_STAGE_SETUP)
     return true; // nothing to do on DATA / ACK stages
   auto *dev = s_device.load();
-  if (!dev || !dev->vendor_config().has_value())
+  if (!dev || !UsbDevice::Callbacks::vendor_config(dev).has_value())
     return false;
-  const auto &vendor = *dev->vendor_config();
+  const auto &vendor = *UsbDevice::Callbacks::vendor_config(dev);
 
   switch (request->bmRequestType_bit.type) {
   case TUSB_REQ_TYPE_VENDOR:
@@ -178,7 +498,7 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
     if (request->bRequest == vendor.webusb_vendor_code && request->wIndex == 2) {
       // Return the WebUSB landing-page URL descriptor.
       uint8_t len = 0;
-      const uint8_t *url = dev->webusb_url_descriptor(len);
+      const uint8_t *url = UsbDevice::Callbacks::webusb_url(dev, len);
       if (!url)
         return false;
       return tud_control_xfer(rhport, request, (void *)(uintptr_t)url, len);
@@ -186,7 +506,7 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
     if (request->bRequest == vendor.ms_os_vendor_code && request->wIndex == 7) {
       // Return the MS OS 2.0 descriptor set.
       uint16_t total_len = 0;
-      const uint8_t *ms = dev->ms_os_20_descriptor(total_len);
+      const uint8_t *ms = UsbDevice::Callbacks::ms_os_20(dev, total_len);
       if (!ms)
         return false;
       return tud_control_xfer(rhport, request, (void *)(uintptr_t)ms, total_len);
@@ -209,13 +529,39 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
 
 #endif // CFG_TUD_VENDOR > 0
 
+// NOTE: the TinyUSB device lifecycle callbacks (tud_mount_cb / tud_umount_cb /
+// tud_suspend_cb / tud_resume_cb) are defined by esp_tinyusb itself, which
+// forwards them to the tinyusb_config_t::event_cb we register in initialize().
+// Do NOT define tud_umount_cb here -- it would be a duplicate symbol. The
+// unmount TX-FIFO clear + the app mount/unmount hooks live in the handlers
+// below, driven by this event callback.
+// cppcheck-suppress constParameterCallback // signature must match tinyusb_event_cb_t
+extern "C" void espp_usb_device_event_cb(tinyusb_event_t *event, void *arg) {
+  // Runs in the TinyUSB device-task context: record it so a mount/unmount
+  // callback that calls write_cdc()/write_vendor() takes the non-blocking
+  // fail-fast TX path instead of vTaskDelay()-ing inside the TinyUSB task
+  // (which would deadlock USB servicing).
+  note_tinyusb_task();
+  // Load the teardown-guarded singleton (not event_arg): a destructor that has
+  // atomically detached the instance during teardown then yields nullptr here,
+  // matching the other tud_*_cb trampolines.
+  (void)arg;
+  auto *dev = s_device.load();
+  if (!dev || !event)
+    return;
+  if (event->id == TINYUSB_EVENT_ATTACHED)
+    dev->handle_usb_mount();
+  else if (event->id == TINYUSB_EVENT_DETACHED)
+    dev->handle_usb_unmount();
+}
+
 #if (CFG_TUD_HID > 0)
 
 // HID: return the application-supplied report descriptor for the given instance.
 uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance) {
   (void)instance;
   auto *dev = s_device.load();
-  return dev ? dev->hid_report_descriptor() : nullptr;
+  return dev ? UsbDevice::Callbacks::hid_report(dev) : nullptr;
 }
 
 // HID GET_REPORT control request: this device is input-only, so nothing to do.
@@ -229,14 +575,17 @@ uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_t
   return 0;
 }
 
-// HID SET_REPORT control request (and OUT endpoint data): unused / ignored.
+// HID SET_REPORT control request AND interrupt-OUT endpoint data: dispatch the
+// received bytes to the application's HID receive callback (host -> device),
+// enabling request/response HID protocols (e.g. the Switch Pro handshake).
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type,
                            uint8_t const *buffer, uint16_t bufsize) {
   (void)instance;
-  (void)report_id;
   (void)report_type;
-  (void)buffer;
-  (void)bufsize;
+  note_tinyusb_task();
+  auto *dev = s_device.load();
+  if (dev)
+    UsbDevice::Callbacks::hid_rx(dev, report_id, buffer, static_cast<size_t>(bufsize));
 }
 
 #endif // CFG_TUD_HID > 0
@@ -274,6 +623,7 @@ const uint8_t *UsbDevice::hid_report_descriptor() const {
 // ---------------------------------------------------------------------------
 
 void UsbDevice::handle_cdc_rx() {
+#if (CFG_TUD_CDC > 0)
   receive_callback_fn cb;
   {
     std::scoped_lock lk(cb_mutex_);
@@ -295,6 +645,7 @@ void UsbDevice::handle_cdc_rx() {
     if (rx_size > 0 && cb)
       cb(std::span<const uint8_t>(buf.data(), rx_size));
   } while (rx_size == buf.size());
+#endif
 }
 
 void UsbDevice::handle_vendor_rx(const uint8_t *buffer, size_t bufsize) {
@@ -346,8 +697,8 @@ bool UsbDevice::initialize(std::error_code &ec) {
     ec = std::make_error_code(std::errc::device_or_resource_busy);
     return false;
   }
-  if (!config_.cdc && !config_.vendor && !config_.hid) {
-    logger_.error("No USB function enabled (enable cdc, vendor and/or hid)");
+  if (!config_.cdc && !config_.vendor && !config_.hid && !config_.xinput) {
+    logger_.error("No USB function enabled (enable cdc, vendor, hid and/or xinput)");
     ec = std::make_error_code(std::errc::invalid_argument);
     return false;
   }
@@ -356,6 +707,14 @@ bool UsbDevice::initialize(std::error_code &ec) {
     logger_.error("MSC function is not implemented yet");
     ec = std::make_error_code(std::errc::function_not_supported);
     return false;
+  }
+  if (config_.cdc) {
+#if (CFG_TUD_CDC == 0)
+    logger_.error("CDC function requested but CFG_TUD_CDC==0. Set "
+                  "CONFIG_TINYUSB_CDC_COUNT>0 in sdkconfig.");
+    ec = std::make_error_code(std::errc::function_not_supported);
+    return false;
+#endif
   }
   if (config_.vendor) {
 #if (CFG_TUD_VENDOR == 0)
@@ -415,7 +774,10 @@ bool UsbDevice::initialize(std::error_code &ec) {
   impl_->owned_strings = {config_.manufacturer, config_.product, config_.serial_number};
   uint8_t next_str = 4;
 
-  uint8_t cdc_itf = 0, cdc_str = 0, cdc_notif = 0, cdc_out = 0, cdc_in = 0;
+  // [[maybe_unused]]: these feed TUD_CDC_DESCRIPTOR, which is compiled only when
+  // CFG_TUD_CDC>0; without CDC the block below never runs (config_.cdc is
+  // rejected earlier) and the values are unused.
+  [[maybe_unused]] uint8_t cdc_itf = 0, cdc_str = 0, cdc_notif = 0, cdc_out = 0, cdc_in = 0;
   if (config_.cdc) {
     cdc_itf = next_itf;
     next_itf = static_cast<uint8_t>(next_itf + 2); // comm + data interfaces
@@ -443,7 +805,9 @@ bool UsbDevice::initialize(std::error_code &ec) {
     impl_->vendor_itf = vendor_itf;
   }
 
-  uint8_t hid_itf = 0, hid_str = 0, hid_in = 0, hid_out = 0;
+  // hid_str/hid_in/hid_out are consumed only in the CFG_TUD_HID-guarded
+  // descriptor branch below, so they are unused when HID is not compiled in.
+  [[maybe_unused]] uint8_t hid_itf = 0, hid_str = 0, hid_in = 0, hid_out = 0;
   if (config_.hid) {
     hid_itf = next_itf++;
     hid_str = next_str++;
@@ -458,6 +822,23 @@ bool UsbDevice::initialize(std::error_code &ec) {
     impl_->hid_itf = hid_itf;
     // Keep our own copy of the report descriptor alive for the driver lifetime.
     impl_->hid_report_desc = config_.hid->report_descriptor;
+  }
+
+  uint8_t xinput_itf = 0, xinput_str = 0;
+  if (config_.xinput) {
+    xinput_itf = next_itf++;
+    xinput_str = next_str++;
+    impl_->owned_strings.push_back(config_.xinput->interface_name);
+    // Use SEPARATE endpoint numbers for IN and OUT. The retail controller shares
+    // number 1, but the ESP32-S3 DWC2 corrupts the interrupt-IN stream (a leading
+    // 0x01 byte) when the same number is used for both directions.
+    const uint8_t in_ep = next_ep++;
+    const uint8_t out_ep = next_ep++;
+    impl_->xinput_ep_in = static_cast<uint8_t>(0x80 | in_ep); // interrupt IN
+    impl_->xinput_ep_out = out_ep;                            // interrupt OUT
+    in_used++;
+    out_used++;
+    impl_->xinput_itf = xinput_itf;
   }
 
   // --- Endpoint budget check ---
@@ -476,6 +857,11 @@ bool UsbDevice::initialize(std::error_code &ec) {
 
   // --- Device descriptor ---
   const bool webusb = config_.vendor && config_.vendor->webusb;
+  // When the X-Input function is the ONLY function, the device must present the
+  // Xbox 360 controller's identity (VID/PID/bcdDevice) and a 0xFF/0xFF/0xFF
+  // device class so a PC's XUSB driver binds it. Combining XInput with other
+  // functions keeps the normal composite identity (and XUSB will not bind).
+  const bool xinput_only = config_.xinput && !config_.cdc && !config_.vendor && !config_.hid;
   impl_->device_desc = tusb_desc_device_t{};
   impl_->device_desc.bLength = sizeof(tusb_desc_device_t);
   impl_->device_desc.bDescriptorType = TUSB_DESC_DEVICE;
@@ -484,8 +870,13 @@ bool UsbDevice::initialize(std::error_code &ec) {
   // Advertise the IAD-based composite class (0xEF/0x02/0x01) only when CDC is
   // enabled, since CDC is the function that emits an Interface Association
   // Descriptor. For a vendor-only and/or HID-only device there is no IAD, so use
-  // 0x00/0x00/0x00 and let the interface descriptors declare the class(es).
-  if (config_.cdc) {
+  // 0x00/0x00/0x00 and let the interface descriptors declare the class(es). An
+  // X-Input-only device declares the Xbox controller's 0xFF/0xFF/0xFF class.
+  if (xinput_only) {
+    impl_->device_desc.bDeviceClass = 0xFF;
+    impl_->device_desc.bDeviceSubClass = 0xFF;
+    impl_->device_desc.bDeviceProtocol = 0xFF;
+  } else if (config_.cdc) {
     impl_->device_desc.bDeviceClass = TUSB_CLASS_MISC;
     impl_->device_desc.bDeviceSubClass = MISC_SUBCLASS_COMMON;
     impl_->device_desc.bDeviceProtocol = MISC_PROTOCOL_IAD;
@@ -495,9 +886,9 @@ bool UsbDevice::initialize(std::error_code &ec) {
     impl_->device_desc.bDeviceProtocol = 0x00;
   }
   impl_->device_desc.bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE;
-  impl_->device_desc.idVendor = config_.vid;
-  impl_->device_desc.idProduct = config_.pid;
-  impl_->device_desc.bcdDevice = 0x0100;
+  impl_->device_desc.idVendor = xinput_only ? config_.xinput->vid : config_.vid;
+  impl_->device_desc.idProduct = xinput_only ? config_.xinput->pid : config_.pid;
+  impl_->device_desc.bcdDevice = xinput_only ? espp::xinput::kDefaultBcdDevice : 0x0100;
   impl_->device_desc.iManufacturer = 0x01;
   impl_->device_desc.iProduct = 0x02;
   impl_->device_desc.iSerialNumber = 0x03;
@@ -506,10 +897,12 @@ bool UsbDevice::initialize(std::error_code &ec) {
   // --- Configuration descriptor ---
   uint8_t itf_count = 0;
   uint16_t total_len = TUD_CONFIG_DESC_LEN;
+#if (CFG_TUD_CDC > 0)
   if (config_.cdc) {
     itf_count = static_cast<uint8_t>(itf_count + 2);
     total_len = static_cast<uint16_t>(total_len + TUD_CDC_DESC_LEN);
   }
+#endif
   if (config_.vendor) {
     itf_count = static_cast<uint8_t>(itf_count + 1);
     total_len = static_cast<uint16_t>(total_len + TUD_VENDOR_DESC_LEN);
@@ -518,6 +911,10 @@ bool UsbDevice::initialize(std::error_code &ec) {
     itf_count = static_cast<uint8_t>(itf_count + 1);
     total_len = static_cast<uint16_t>(
         total_len + (config_.hid->has_out_endpoint ? TUD_HID_INOUT_DESC_LEN : TUD_HID_DESC_LEN));
+  }
+  if (config_.xinput) {
+    itf_count = static_cast<uint8_t>(itf_count + 1);
+    total_len = static_cast<uint16_t>(total_len + espp::xinput::kInterfaceDescriptorLen);
   }
 
   // Build one configuration descriptor for a given bus speed. Bulk endpoints
@@ -537,18 +934,25 @@ bool UsbDevice::initialize(std::error_code &ec) {
       };
       append(hdr, sizeof(hdr));
     }
+#if (CFG_TUD_CDC > 0)
     if (config_.cdc) {
       const uint8_t d[] = {
           TUD_CDC_DESCRIPTOR(cdc_itf, cdc_str, cdc_notif, 8, cdc_out, cdc_in, bulk_ep_size),
       };
       append(d, sizeof(d));
     }
+#endif
     if (config_.vendor) {
       const uint8_t d[] = {
           TUD_VENDOR_DESCRIPTOR(vendor_itf, vendor_str, vendor_out, vendor_in, bulk_ep_size),
       };
       append(d, sizeof(d));
     }
+#if (CFG_TUD_HID > 0)
+    // Guarded because the TUD_HID_* macros reference HID class constants only
+    // declared when the HID class driver is compiled in. config_.hid can never be
+    // set here when CFG_TUD_HID==0 (initialize() rejects it earlier), so this
+    // branch is dead in that case and safe to compile out.
     if (config_.hid) {
       const uint16_t report_len = static_cast<uint16_t>(impl_->hid_report_desc.size());
       // Interrupt endpoints are <=64 byte packets at either speed; a 64-byte
@@ -570,6 +974,17 @@ bool UsbDevice::initialize(std::error_code &ec) {
         };
         append(d, sizeof(d));
       }
+    }
+#endif
+    if (config_.xinput) {
+      // Hand-built interface + XID + two interrupt endpoints (the built-in TinyUSB
+      // descriptor macros can't express X-Input's class triple / XID blob). The
+      // bIntervals are the full-speed values; on an HS-capable part they are
+      // interpreted as exponents, but X-Input is a full-speed protocol (and the
+      // ESP32-S3 USB-OTG is full speed).
+      const auto d = espp::xinput::interface_descriptor(xinput_itf, xinput_str, impl_->xinput_ep_in,
+                                                        impl_->xinput_ep_out);
+      append(d.data(), d.size());
     }
   };
 
@@ -819,6 +1234,12 @@ bool UsbDevice::initialize(std::error_code &ec) {
   tusb_cfg.descriptor.qualifier = &impl_->qualifier_desc;
 #endif
 
+  // Route esp_tinyusb's device lifecycle events (mount / unmount) to us so we
+  // can clear the TX FIFOs on unmount and invoke any app-registered callbacks.
+  // The callback loads the teardown-guarded s_device singleton itself, so no
+  // event_arg is needed.
+  tusb_cfg.event_cb = espp_usb_device_event_cb;
+
   // Register before installing so the BOS / vendor callbacks can find us.
   // Claim the singleton slot ATOMICALLY: the null check at the top of
   // initialize() is only a fast-fail, so two threads (or two instances) that
@@ -840,6 +1261,7 @@ bool UsbDevice::initialize(std::error_code &ec) {
   }
 
   // --- Initialize the CDC-ACM function (vendor needs no explicit init) ---
+#if (CFG_TUD_CDC > 0)
   if (config_.cdc) {
     tinyusb_config_cdcacm_t acm_cfg = {};
     acm_cfg.cdc_port = kCdcPort;
@@ -856,12 +1278,27 @@ bool UsbDevice::initialize(std::error_code &ec) {
       return false;
     }
   }
+#endif
 
   initialized_ = true;
-  logger_.info(
-      "Initialized native USB device (VID=0x{:04x} PID=0x{:04x}) cdc={} vendor={} hid={}{}",
-      config_.vid, config_.pid, config_.cdc.has_value(), config_.vendor.has_value(),
-      config_.hid.has_value(), webusb ? " webusb" : "");
+  // Copy the packed descriptor fields into locals: they cannot bind to the
+  // logger's const-reference parameters directly.
+  const uint16_t enum_vid = impl_->device_desc.idVendor;
+  const uint16_t enum_pid = impl_->device_desc.idProduct;
+  logger_.info("Initialized native USB device (VID=0x{:04x} PID=0x{:04x}) cdc={} vendor={} hid={} "
+               "xinput={}{}",
+               enum_vid, enum_pid, config_.cdc.has_value(), config_.vendor.has_value(),
+               config_.hid.has_value(), config_.xinput.has_value(), webusb ? " webusb" : "");
+#if (CFG_TUD_CDC > 0)
+  // Opt-in: route the console to the CDC interface now that TinyUSB owns the USB
+  // port. Best-effort -- a routing failure must not fail initialization (the
+  // device is up; the console simply stays where it was), so log and carry on.
+  if (config_.cdc && config_.cdc->route_console) {
+    std::error_code route_ec;
+    if (!route_console_to_cdc(route_ec))
+      logger_.warn("could not route console to CDC: {}", route_ec.message());
+  }
+#endif
   return true;
 }
 
@@ -897,6 +1334,20 @@ bool UsbDevice::write_cdc(std::span<const uint8_t> data, std::error_code &ec) {
   // atomic writes.
   const bool in_tinyusb_task = on_tinyusb_task();
   const TickType_t start_tick = xTaskGetTickCount();
+
+  // Serialize with every other CDC writer (other write_cdc() callers + the console
+  // VFS sink) so the available-space check and the write below are atomic. In
+  // TinyUSB-task context we must NOT block (tud_task() is below us on the stack and
+  // drains the FIFO), so try-lock and fail fast if another writer holds it.
+  std::unique_lock<std::mutex> tx_lock(s_cdc_tx_mutex, std::defer_lock);
+  if (in_tinyusb_task) {
+    if (!tx_lock.try_lock()) {
+      ec = std::make_error_code(std::errc::no_buffer_space);
+      return false;
+    }
+  } else {
+    tx_lock.lock();
+  }
 
   if (data.size() <= CFG_TUD_CDC_TX_BUFSIZE) {
     // Atomic path: wait until the whole frame fits, then write it in one shot.
@@ -1128,18 +1579,223 @@ void UsbDevice::set_vendor_receive_callback(const receive_callback_fn &cb) {
   on_vendor_receive_ = cb;
 }
 
+void UsbDevice::set_hid_receive_callback(const receive_callback_fn &cb) {
+  std::scoped_lock lk(cb_mutex_);
+  on_hid_receive_ = cb;
+}
+
+void UsbDevice::handle_hid_rx(uint8_t report_id, const uint8_t *buffer, size_t bufsize) {
+#if (CFG_TUD_HID > 0)
+  receive_callback_fn cb;
+  {
+    std::scoped_lock lk(cb_mutex_);
+    cb = on_hid_receive_;
+  }
+  if (!cb || !config_.hid)
+    return;
+  if (report_id == 0) {
+    // Interrupt-OUT (or report-id-less SET_REPORT): TinyUSB passes the report as
+    // received, so byte 0 is already the report id when the descriptor uses them.
+    cb(std::span<const uint8_t>(buffer, bufsize));
+  } else {
+    // Control SET_REPORT with a report id: TinyUSB parses the id out of wValue, so
+    // prepend it to keep the callback contract "byte 0 is the report id".
+    std::vector<uint8_t> framed;
+    framed.reserve(bufsize + 1);
+    framed.push_back(report_id);
+    framed.insert(framed.end(), buffer, buffer + bufsize);
+    cb(std::span<const uint8_t>(framed.data(), framed.size()));
+  }
+#else
+  (void)report_id;
+  (void)buffer;
+  (void)bufsize;
+#endif
+}
+
+void UsbDevice::set_mount_callback(const event_callback_fn &cb) {
+  std::scoped_lock lk(cb_mutex_);
+  on_mount_ = cb;
+}
+
+void UsbDevice::set_unmount_callback(const event_callback_fn &cb) {
+  std::scoped_lock lk(cb_mutex_);
+  on_unmount_ = cb;
+}
+
+void UsbDevice::handle_usb_mount() {
+  event_callback_fn cb;
+  {
+    std::scoped_lock lk(cb_mutex_);
+    cb = on_mount_;
+  }
+  if (cb)
+    cb(); // runs in the TinyUSB task context
+}
+
+void UsbDevice::handle_usb_unmount() {
+  // Drop any bytes still queued in the TX FIFOs so the next host to mount starts
+  // from an empty pipe (a departed host's unread backlog otherwise lingers in
+  // the software FIFO and can be mis-parsed as a reply to the next host's first
+  // command).
+#if (CFG_TUD_VENDOR > 0)
+  if (config_.vendor)
+    tud_vendor_write_clear();
+#endif
+#if (CFG_TUD_CDC > 0)
+  if (config_.cdc)
+    tud_cdc_n_write_clear(kCdcPort);
+#endif
+  event_callback_fn cb;
+  {
+    std::scoped_lock lk(cb_mutex_);
+    cb = on_unmount_;
+  }
+  if (cb)
+    cb(); // runs in the TinyUSB task context
+}
+
 bool UsbDevice::is_initialized() const { return initialized_; }
 
 bool UsbDevice::is_cdc_connected() const {
+#if (CFG_TUD_CDC > 0)
   if (!initialized_ || !config_.cdc)
     return false;
   return tud_cdc_n_connected(kCdcPort);
+#else
+  return false;
+#endif
 }
 
 bool UsbDevice::is_vendor_connected() const {
+#if (CFG_TUD_VENDOR > 0)
   if (!initialized_ || !config_.vendor)
     return false;
   return tud_mounted();
+#else
+  return false;
+#endif
+}
+
+size_t UsbDevice::vendor_write_available() const {
+#if (CFG_TUD_VENDOR > 0)
+  if (!initialized_ || !config_.vendor || !tud_mounted())
+    return 0;
+  return tud_vendor_write_available();
+#else
+  return 0;
+#endif
+}
+
+size_t UsbDevice::cdc_write_available() const {
+#if (CFG_TUD_CDC > 0)
+  if (!initialized_ || !config_.cdc || !tud_mounted())
+    return 0;
+  return tud_cdc_n_write_available(kCdcPort);
+#else
+  return 0;
+#endif
+}
+
+void UsbDevice::vendor_write_clear() {
+#if (CFG_TUD_VENDOR > 0)
+  if (initialized_ && config_.vendor)
+    tud_vendor_write_clear();
+#endif
+}
+
+void UsbDevice::cdc_write_clear() {
+#if (CFG_TUD_CDC > 0)
+  if (initialized_ && config_.cdc)
+    tud_cdc_n_write_clear(kCdcPort);
+#endif
+}
+
+bool UsbDevice::route_console_to_cdc(std::error_code &ec) {
+  ec.clear();
+#if (CFG_TUD_CDC > 0)
+  if (!initialized_ || !config_.cdc) {
+    ec = std::make_error_code(std::errc::function_not_supported);
+    return false;
+  }
+  if (s_console_routed) {
+    // The VFS is already installed + stdout redirected (by this device on a repeat
+    // call, or by a previous device that has since been destroyed). Re-attach this
+    // instance as the console owner so CDC logging resumes on it -- otherwise a
+    // freshly created device would return success without owning the sink and its
+    // CDC logs would be silently dropped. Reconcile the tee with THIS device's
+    // config (a prior owner may have had a different tee_console setting).
+    reconcile_console_tee(config_.cdc->tee_console);
+    s_console_usb.store(this);
+    return true;
+  }
+  fflush(stdout);
+  // Optionally keep the original console as a tee (best-effort). ESP-IDF's libc
+  // has no dup(), so we re-open the primary console device by path rather than
+  // duplicating stdout's fd. Only a UART console has an independent port to tee
+  // to; a JTAG / no console has none (open_primary_console_for_tee() returns -1).
+  reconcile_console_tee(config_.cdc->tee_console);
+  esp_vfs_t vfs = {};
+  vfs.flags = ESP_VFS_FLAG_DEFAULT;
+  // The classic (context-pointer-less) esp_vfs_t members are deprecated in IDF v6
+  // but are exactly right for this tiny write-only console sink; use them
+  // deliberately and suppress the notice.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  vfs.open = &cdc_console_open;
+  vfs.write = &cdc_console_write;
+  vfs.close = &cdc_console_close;
+  vfs.fstat = &cdc_console_fstat;
+#pragma GCC diagnostic pop
+  if (esp_vfs_register(kConsoleVfsPath, &vfs, nullptr) != ESP_OK) {
+    reconcile_console_tee(false); // close the tee so a retry does not leak the fd
+    ec = std::make_error_code(std::errc::io_error);
+    return false;
+  }
+  // Publish the console owner BEFORE freopen makes stdout point at the VFS, so the
+  // write callback never loads a null owner while stdout already targets it.
+  s_console_usb.store(this);
+  if (freopen(kConsoleVfsPath, "w", stdout) == nullptr) {
+    // freopen closes stdout's previous target even when opening the new one fails,
+    // so stdout is now broken. Routing is best-effort (initialize() promises the
+    // console stays put on failure), so restore a usable console: undo the VFS +
+    // tee, then re-point stdout at the primary UART console if there is one.
+    s_console_usb.store(nullptr);
+    esp_vfs_unregister(kConsoleVfsPath);
+    reconcile_console_tee(false);
+#if defined(CONFIG_ESP_CONSOLE_UART_NUM)
+    char restore[16];
+    std::snprintf(restore, sizeof(restore), "/dev/uart/%d", CONFIG_ESP_CONSOLE_UART_NUM);
+    // best-effort restore; freopen returns stdout (not a new resource to close),
+    // and there is nothing more to do if even this fails.
+    // cppcheck-suppress ignoredReturnValue
+    freopen(restore, "w", stdout);
+#endif
+    ec = std::make_error_code(std::errc::io_error);
+    return false;
+  }
+  setvbuf(stdout, nullptr, _IONBF, 0); // push each log line to CDC promptly
+  s_console_routed = true;
+  logger_.info("console routed to USB-CDC{}",
+               s_console_tee_fd.load() >= 0 ? " (teed to the UART console)" : "");
+  return true;
+#else
+  ec = std::make_error_code(std::errc::function_not_supported);
+  return false;
+#endif
+}
+
+bool UsbDevice::route_console_to_cdc() {
+  std::error_code ec;
+  return route_console_to_cdc(ec);
+}
+
+bool UsbDevice::is_console_routed_to_cdc() const {
+#if (CFG_TUD_CDC > 0)
+  return s_console_routed;
+#else
+  return false;
+#endif
 }
 
 bool UsbDevice::is_hid_ready() const {
@@ -1150,6 +1806,82 @@ bool UsbDevice::is_hid_ready() const {
 #else
   return false;
 #endif
+}
+
+// ---------------------------------------------------------------------------
+// X-Input (Xbox 360) function.
+// ---------------------------------------------------------------------------
+
+uint8_t UsbDevice::xinput_in_endpoint() const { return impl_->xinput_ep_in; }
+
+void UsbDevice::handle_xinput_out(const uint8_t *buffer, size_t bufsize) {
+  receive_callback_fn cb;
+  {
+    std::scoped_lock lk(cb_mutex_);
+    cb = on_xinput_rumble_;
+  }
+  if (cb && buffer && bufsize > 0)
+    cb(std::span<const uint8_t>(buffer, bufsize)); // TinyUSB task context
+}
+
+bool UsbDevice::update_xinput_state(const espp::xinput::GamepadState &state, std::error_code &ec) {
+  ec.clear();
+  if (!initialized_ || !config_.xinput) {
+    ec = std::make_error_code(std::errc::not_connected);
+    return false;
+  }
+  // The interrupt-IN endpoint address, fixed at initialize() and immutable after
+  // (so no cross-task synchronization is needed). tud_mounted() gates on the host
+  // having SET_CONFIGURATION, which is exactly when the class driver's open() runs
+  // for this (only) interface — so a mounted device has its endpoint open.
+  const uint8_t ep_in = impl_->xinput_ep_in;
+  if (!tud_mounted() || ep_in == 0) {
+    // Normal before the host mounts the device (the app may poll update_* in a
+    // loop): report it via ec and let the caller decide -- don't log.
+    ec = std::make_error_code(std::errc::not_connected);
+    return false;
+  }
+  // update_xinput_state() runs on the caller's task, not the TinyUSB task. Follow the
+  // TinyUSB endpoint contract exactly (busy-check, then claim/xfer/release):
+  //  - usbd_edpt_busy() rejects submitting while a previous report is still in
+  //    flight (transient backpressure) — and is required because usbd_edpt_xfer()
+  //    asserts the endpoint is not busy.
+  //  - usbd_edpt_claim() arbitrates against the USB task; it is released after the
+  //    transfer is QUEUED (on both success and failure) so the endpoint is never
+  //    left permanently claimed if a completion is missed.
+  if (usbd_edpt_busy(0, ep_in)) {
+    ec = std::make_error_code(std::errc::resource_unavailable_try_again);
+    return false;
+  }
+  if (!usbd_edpt_claim(0, ep_in)) {
+    ec = std::make_error_code(std::errc::resource_unavailable_try_again);
+    return false;
+  }
+  // The buffer must outlive the (asynchronous) transfer, so it lives in Impl.
+  impl_->xinput_report = state.report();
+  const bool queued = usbd_edpt_xfer(0, ep_in, impl_->xinput_report.data(),
+                                     static_cast<uint16_t>(impl_->xinput_report.size()), false);
+  usbd_edpt_release(0, ep_in); // pair with claim(), regardless of queue result
+  if (!queued) {
+    logger_.warn_rate_limited("XInput report send (usbd_edpt_xfer) failed on ep 0x{:02x}", ep_in);
+    ec = std::make_error_code(std::errc::io_error);
+    return false;
+  }
+  return true;
+}
+
+bool UsbDevice::update_xinput_state(const espp::xinput::GamepadState &state) {
+  std::error_code ec;
+  return update_xinput_state(state, ec);
+}
+
+bool UsbDevice::is_xinput_ready() const {
+  if (!initialized_ || !config_.xinput)
+    return false;
+  // Fixed at initialize(), immutable after; tud_mounted() implies the class
+  // driver has opened this interface's endpoints (it is the only function).
+  const uint8_t ep_in = impl_->xinput_ep_in;
+  return tud_mounted() && ep_in != 0 && !usbd_edpt_busy(0, ep_in);
 }
 
 } // namespace espp

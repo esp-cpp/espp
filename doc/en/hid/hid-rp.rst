@@ -5,8 +5,8 @@ The `hid-rp` component provides a wrapper around
 https://github.com/intergatedcircuits/hid-rp and also provides an example
 implementation of a configurable HID Gamepad using hid-rp.
 
-It also implements Playstation DualSense, Playstation DualShock 4, Nintendo Switch Pro, and Xbox gamepad
-reports.
+It also implements Playstation DualSense, Playstation DualShock 4, Nintendo Switch Pro, Xbox gamepad,
+and 3Dconnexion SpaceMouse reports.
 
 .. ------------------------------- Example -------------------------------------
 
@@ -22,6 +22,7 @@ API Reference
 .. include-build-file:: inc/gamepad_hat.inc
 .. include-build-file:: inc/gamepad_imu.inc
 .. include-build-file:: inc/hid-rp.inc
+.. include-build-file:: inc/hid-rp-3dconnexion.inc
 .. include-build-file:: inc/hid-rp-gamepad.inc
 .. include-build-file:: inc/hid-rp-playstation.inc
 .. include-build-file:: inc/hid-rp-ps4.inc

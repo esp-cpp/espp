@@ -13,3 +13,4 @@ external chips.
    twai
    canopen
    usb_cdc
+   usb_host

@@ -44,10 +44,12 @@ reply (`OK` / `ERROR`, or the type-specific reply for the getters) before
 sending the next. Two device-to-host frame kinds may arrive *unsolicited* and
 must be tolerated at any time:
 
-- `TELEMETRY (0x93)` — when streaming is enabled;
-- `OTA_PROGRESS (0x83)` — informational during an OTA transfer.
+- `TELEMETRY (0x93)` — when streaming is enabled.
 
-The device suspends telemetry while an OTA session is active.
+> Firmware update and crash-dump inspection are **not** part of this protocol:
+> the example runs the standard espp OTA protocol on dispatcher **module 0** and
+> the coredump service on **module 4** (use the `ota` / `coredump` web consoles,
+> or the device hub, which discovers all three modules).
 
 ### Primitive types
 
@@ -59,10 +61,6 @@ The device suspends telemetry while an OTA session is active.
 
 | Type | Name          | Payload                                   | Reply |
 |------|---------------|-------------------------------------------|-------|
-| 0x01 | OTA_BEGIN     | `u32 image_size` (0 = unknown/streaming)  | OK(0) / ERROR |
-| 0x02 | OTA_DATA      | raw image bytes (1..4096)                 | OK(total bytes written) / ERROR |
-| 0x03 | OTA_FINISH    | —                                         | OK(total bytes written) / ERROR |
-| 0x04 | OTA_ABORT     | —                                         | OK(bytes written) / ERROR |
 | 0x10 | GET_INFO      | —                                         | INFO |
 | 0x11 | GET_STATUS    | —                                         | STATUS |
 | 0x12 | GET_MODES     | —                                         | MODES |
@@ -71,20 +69,9 @@ The device suspends telemetry while an OTA session is active.
 | 0x15 | SET_ENABLED   | `u8` 0 = disable, 1 = enable              | OK(0/1) / ERROR |
 | 0x16 | PLAY_HAPTIC   | `f32 strength` (clamped to 0..10)         | OK(0) / ERROR |
 | 0x17 | SET_STREAMING | `u8 enable` + `u16 period_ms` (5..1000; 0 = default 20) | OK(period_ms) / ERROR |
-| 0x18 | GET_CRASH | none | CRASH |
 
 Notes:
 
-- **OTA** semantics match the espp `ota` example, but the frames are **not**
-  byte-compatible: the haptics OTA subset rides dispatcher module 2, whereas the
-  `ota` example / `ota_console.html` use module 0. `OTA_BEGIN` erases
-  the next OTA app partition (can take several seconds — use a generous
-  timeout), `OTA_DATA` streams image bytes, `OTA_FINISH` validates the complete
-  image (structure + appended SHA-256) and sets it as the boot partition, then
-  the device **reboots ~750 ms after replying OK** (expect a USB disconnect).
-  With bootloader rollback enabled the new app must mark itself valid on first
-  boot or the bootloader rolls back. `OTA_DATA`/`OTA_FINISH`/`OTA_ABORT`
-  without an active session yield `ERROR(operation_not_permitted)`.
 - `SET_POSITION` re-labels the detent the knob is currently resting in: it sets
   the *logical* detent index (clamped to the active config's
   `[min_position, max_position]`) that position/telemetry values count from.
@@ -105,10 +92,6 @@ Notes:
 ### ERROR (0x82)
 
 `u32 code` (a `std::errc` value) followed by a UTF-8 message.
-
-### OTA_PROGRESS (0x83)
-
-`u32 written` + `u32 total` (0 if unknown). Informational; may be ignored.
 
 ### INFO (0x90)
 
@@ -194,14 +177,3 @@ detent index plus the fractional progress toward the neighboring detent, and it
 **decreases as the shaft angle increases** (the firmware's snap convention).
 `value` spans `[min_position, max_position]` for bounded modes. This is what the
 web app's dial renders.
-
-### CRASH (0x94)
-
-Reply to `GET_CRASH`. The payload is a UTF-8 text report of the previous
-abnormal reset, or EMPTY when the boot history is clean. When the previous
-reset was a panic with a flash core dump, the report includes the crashed
-task, PC, and raw backtrace addresses (decode with
-`xtensa-esp32s3-elf-addr2line -pfiaC -e build/bldc_haptics_example.elf <addrs>`);
-brownout / watchdog resets are reported by reason (no core dump exists for
-those). The web console requests this automatically after connecting and
-prints the report in its log pane.

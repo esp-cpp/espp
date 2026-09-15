@@ -1,6 +1,8 @@
 // Host-buildable unit tests for the Basicmicro (MCP / RoboClaw-family) packet
 // serial wire core. Build & run with:
-//   c++ -std=c++20 -I../include basicmicro_host_test.cpp -o test && ./test
+//   c++ -std=c++20 -I../include -I../../motor_controller/include \
+//       basicmicro_host_test.cpp -o test && ./test
+// (the -I../../motor_controller/include is for the shared BasicmicroCommand table)
 //
 // These tests exercise the helpers in detail/basicmicro_core.hpp directly so
 // they need no ESP-IDF headers. Golden CRC values were computed by executing

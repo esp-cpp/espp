@@ -271,6 +271,7 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/socket/include
   ${ESPP_COMPONENTS}/state_machine/include
   ${ESPP_COMPONENTS}/stream_frame/include
+  ${ESPP_COMPONENTS}/wdi/include
   ${CMAKE_CURRENT_LIST_DIR}/include
 )
 
@@ -355,6 +356,7 @@ set(ESPP_PYTHON_SOURCES
   ${ESPP_PYTHON_BINDINGS_DIR}/odrive_native_bindings.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/rtps_bindings.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/socket_reactor_bindings.cpp
+  ${ESPP_PYTHON_BINDINGS_DIR}/wdi_bindings.cpp
   ${ESPP_SOURCES}
 )
 

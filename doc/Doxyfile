@@ -82,6 +82,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/aw9523/example/main/aw9523_example.cpp \
   $(PROJECT_PATH)/components/basicmicro/example/main/basicmicro_example.cpp \
   $(PROJECT_PATH)/components/mcp266/example/main/mcp266_example.cpp \
+  $(PROJECT_PATH)/components/mcp266/webapp_example/main/mcp266_webapp_example.cpp \
   $(PROJECT_PATH)/components/bdc_driver/example/main/bdc_driver_example.cpp \
   $(PROJECT_PATH)/components/lp5817/example/main/lp5817_example.cpp \
   $(PROJECT_PATH)/components/binary-log/example/main/binary_log_example.cpp \
@@ -185,12 +186,14 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/state_machine/example/main/hfsm_example.cpp \
   $(PROJECT_PATH)/components/stream_frame/example/main/stream_frame_example.cpp \
   $(PROJECT_PATH)/components/switch2_pro/example/main/switch2_pro_example.cpp \
+  $(PROJECT_PATH)/components/switch_pro/example/main/switch_pro_example.cpp \
   $(PROJECT_PATH)/components/sx126x/example/main/sx126x_example.cpp \
   $(PROJECT_PATH)/components/tabulate/example/main/tabulate_example.cpp \
   $(PROJECT_PATH)/components/t-deck/example/main/t_deck_example.cpp \
   $(PROJECT_PATH)/components/t-dongle-s3/example/main/t_dongle_s3_example.cpp \
   $(PROJECT_PATH)/components/t_keyboard/example/main/t_keyboard_example.cpp \
   $(PROJECT_PATH)/components/task/example/main/task_example.cpp \
+  $(PROJECT_PATH)/components/telemetry/example/main/telemetry_example.cpp \
   $(PROJECT_PATH)/components/thermistor/example/main/thermistor_example.cpp \
   $(PROJECT_PATH)/components/thread_pool/example/main/thread_pool_example.cpp \
   $(PROJECT_PATH)/components/timer/example/main/timer_example.cpp \
@@ -200,6 +203,12 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/twai/example/main/twai_example.cpp \
   $(PROJECT_PATH)/components/tt21100/example/main/tt21100_example.cpp \
   $(PROJECT_PATH)/components/usb_device/example/main/usb_cdc_example.cpp \
+  $(PROJECT_PATH)/components/usb_device/xinput_example/main/xinput_example.cpp \
+  $(PROJECT_PATH)/components/usb_host/example/main/usb_host_example.cpp \
+  $(PROJECT_PATH)/components/wdi/ble_example/main/wdi_ble_example.cpp \
+  $(PROJECT_PATH)/components/wdi/ble_central_example/main/wdi_ble_central_example.cpp \
+  $(PROJECT_PATH)/components/wdi/usb_example/main/wdi_usb_example.cpp \
+  $(PROJECT_PATH)/components/wdi/usb_host_example/main/wdi_usb_host_example.cpp \
   $(PROJECT_PATH)/components/vl53l/example/main/vl53l_example.cpp \
   $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp \
   $(PROJECT_PATH)/components/wrover-kit/example/main/wrover_kit_example.cpp \
@@ -231,6 +240,8 @@ INPUT = \
   $(PROJECT_PATH)/components/basicmicro/include/basicmicro.hpp \
   $(PROJECT_PATH)/components/basicmicro/include/detail/basicmicro_core.hpp \
   $(PROJECT_PATH)/components/mcp266/include/mcp266.hpp \
+  $(PROJECT_PATH)/components/mcp266/include/mcp266_protocol.hpp \
+  $(PROJECT_PATH)/components/mcp266/include/mcp266_service.hpp \
   $(PROJECT_PATH)/components/mcp266/include/detail/mcp266_core.hpp \
   $(PROJECT_PATH)/components/bdc_driver/include/bdc_driver.hpp \
   $(PROJECT_PATH)/components/binary-log/include/binary-log.hpp \
@@ -274,6 +285,7 @@ INPUT = \
   $(PROJECT_PATH)/components/cst816/include/cst816.hpp \
   $(PROJECT_PATH)/components/csv/include/csv.hpp \
   $(PROJECT_PATH)/components/dispatcher/include/dispatcher.hpp \
+  $(PROJECT_PATH)/components/dispatcher/include/dispatcher_worker.hpp \
   $(PROJECT_PATH)/components/display/include/display.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/display_drivers.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/gc9a01.hpp \
@@ -374,6 +386,7 @@ INPUT = \
   $(PROJECT_PATH)/components/max1704x/include/max1704x.hpp \
   $(PROJECT_PATH)/components/monitor/include/heap_monitor.hpp \
   $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp \
+  $(PROJECT_PATH)/components/motor_controller/include/basicmicro_commands.hpp \
   $(PROJECT_PATH)/components/motor_controller/include/motor_controller.hpp \
   $(PROJECT_PATH)/components/motorgo-axis/include/motorgo-axis.hpp \
   $(PROJECT_PATH)/components/motorgo-mini/include/motorgo-mini.hpp \
@@ -393,6 +406,7 @@ INPUT = \
   $(PROJECT_PATH)/components/odrive_native/include/odrive_native.hpp \
   $(PROJECT_PATH)/components/odrive_native/include/detail/odrive_native_core.hpp \
   $(PROJECT_PATH)/components/ota/include/ota.hpp \
+  $(PROJECT_PATH)/components/ota/include/ota_service.hpp \
   $(PROJECT_PATH)/components/ota/include/detail/ota_stream_protocol.hpp \
   $(PROJECT_PATH)/components/pca9535/include/pca9535.hpp \
   $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp \
@@ -450,6 +464,7 @@ INPUT = \
   $(PROJECT_PATH)/components/switch2_pro/include/switch2_pro_pairing.hpp \
   $(PROJECT_PATH)/components/switch2_pro/include/switch2_pro_protocol.hpp \
   $(PROJECT_PATH)/components/switch2_pro/include/switch2_pro_report.hpp \
+  $(PROJECT_PATH)/components/switch_pro/include/switch_pro.hpp \
   $(PROJECT_PATH)/components/sx126x/include/sx126x.hpp \
   $(PROJECT_PATH)/components/t-deck/include/t-deck.hpp \
   $(PROJECT_PATH)/components/t-dongle-s3/include/t-dongle-s3.hpp \
@@ -457,6 +472,7 @@ INPUT = \
   $(PROJECT_PATH)/components/tabulate/include/tabulate.hpp \
   $(PROJECT_PATH)/components/task/include/task.hpp \
   $(PROJECT_PATH)/components/task/include/run_on_core.hpp \
+  $(PROJECT_PATH)/components/telemetry/include/telemetry.hpp \
   $(PROJECT_PATH)/components/thermistor/include/thermistor.hpp \
   $(PROJECT_PATH)/components/thread_pool/include/qos_band.hpp \
   $(PROJECT_PATH)/components/thread_pool/include/thread_pool.hpp \
@@ -469,6 +485,16 @@ INPUT = \
   $(PROJECT_PATH)/components/tt21100/include/tt21100.hpp \
   $(PROJECT_PATH)/components/usb_device/include/usb_device.hpp \
   $(PROJECT_PATH)/components/usb_device/include/usb_cdc.hpp \
+  $(PROJECT_PATH)/components/usb_device/include/xinput.hpp \
+  $(PROJECT_PATH)/components/usb_host/include/usb_host.hpp \
+  $(PROJECT_PATH)/components/wdi/include/detail/wdi_protocol.hpp \
+  $(PROJECT_PATH)/components/wdi/include/wdi.hpp \
+  $(PROJECT_PATH)/components/wdi/include/wdi_hid.hpp \
+  $(PROJECT_PATH)/components/wdi/include/wdi_ble.hpp \
+  $(PROJECT_PATH)/components/wdi/include/wdi_usb.hpp \
+  $(PROJECT_PATH)/components/wdi/include/wdi_host.hpp \
+  $(PROJECT_PATH)/components/wdi/include/wdi_usb_host.hpp \
+  $(PROJECT_PATH)/components/wdi/include/wdi_ble_central.hpp \
   $(PROJECT_PATH)/components/vl53l/include/vl53l.hpp \
   $(PROJECT_PATH)/components/utils/include/bitmask_operators.hpp \
   $(PROJECT_PATH)/components/wifi/include/wifi.hpp \

@@ -24,6 +24,9 @@ void py_init_odrive_native(py::module &m);
 // build_frame / ...) and espp::Dispatcher. Both are header-only and
 // dependency-free; kept out of the generated bindings (see dispatcher_bindings.cpp).
 void py_init_dispatcher(py::module &m);
+// Hand-written bindings for the `wdi` (Wheelchair Digital Interface) protocol core
+// (reports / bitfields, header-only + dependency-free; see wdi_bindings.cpp).
+void py_init_wdi(py::module &m);
 
 // This builds the native python extension module `espp._espp`, which the
 // `espp` python package (python_bindings/espp/__init__.py) re-exports.
@@ -39,4 +42,5 @@ PYBIND11_MODULE(_espp, m) {
   py_init_socket_reactor(m);
   py_init_odrive_native(m);
   py_init_dispatcher(m);
+  py_init_wdi(m);
 }

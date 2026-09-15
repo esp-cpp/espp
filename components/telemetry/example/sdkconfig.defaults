@@ -1,0 +1,35 @@
+# This example uses the native USB-OTG peripheral (vendor / WebUSB), which is
+# only available on the ESP32-S3 (also S2 / P4) -- NOT the classic ESP32. Pin the
+# target here so a bare `idf.py build` does not fall back to esp32.
+CONFIG_IDF_TARGET="esp32s3"
+
+# Common ESP-related
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# Enable the TinyUSB vendor-specific class (THE key enablement for the vendor /
+# WebUSB interface). esp_tinyusb gates CFG_TUD_VENDOR behind
+# CONFIG_TINYUSB_VENDOR_COUNT; setting it > 0 compiles in the vendor class
+# driver so espp::UsbDevice's vendor function (bInterfaceClass 0xFF + WebUSB)
+# works. The telemetry web app plots over this WebUSB interface.
+CONFIG_TINYUSB_VENDOR_COUNT=1
+
+# CDC + HID are enabled only to keep the usb_device component compiling (it
+# includes the TinyUSB CDC/HID headers unconditionally). This example creates
+# NO CDC or HID interface -- it exposes the vendor (WebUSB) interface only, so
+# the device enumerates with just that one telemetry interface.
+CONFIG_TINYUSB_CDC_ENABLED=y
+CONFIG_TINYUSB_CDC_COUNT=1
+CONFIG_TINYUSB_HID_COUNT=1
+
+# The vendor TX FIFO must hold the LARGEST single frame the emitter can produce
+# so UsbDevice::write_vendor() stays all-or-nothing (the send callback relies on
+# that: a rejected frame leaves nothing partial in the FIFO). The biggest frame
+# is a full SCHEMA: clamp_channels() bounds its payload to stream_frame's
+# kMaxPayloadSize (4096), which encodes to ~4109 bytes with the 9-byte header and
+# 4-byte CRC. Size the FIFO comfortably above that (8192) — this also leaves
+# headroom for a burst of batched SAMPLE frames. The vendor RX FIFO only carries
+# short requests (GET_SCHEMA / SET_STREAM), so 512 bytes is plenty there.
+CONFIG_TINYUSB_VENDOR_RX_BUFSIZE=512
+CONFIG_TINYUSB_VENDOR_TX_BUFSIZE=8192
+
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
