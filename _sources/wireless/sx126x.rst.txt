@@ -1,0 +1,21 @@
+SX126x LoRa Radio
+*****************
+
+The `Sx126x` component provides a driver for the Semtech SX126x series of
+sub-GHz LoRa radio transceivers (SX1261, SX1262) and compatible chips such as
+the LLCC68. It supports LoRa modem configuration, interrupt-driven or polled
+operation, blocking and non-blocking transmit, continuous receive with RSSI /
+SNR packet status, channel activity detection, and TCXO / RF-switch control.
+
+The radio is a command-based SPI peripheral and can share an SPI bus with
+other devices (as on the LilyGo T-Deck, where it shares the bus with the
+display and uSD card).
+
+.. toctree::
+
+   sx126x_example
+
+API Reference
+-------------
+
+.. include-build-file:: inc/sx126x.inc

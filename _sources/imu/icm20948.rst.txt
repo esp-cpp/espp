@@ -1,0 +1,19 @@
+ICM20948 9-Axis IMU
+*******************
+
+The `Icm20948` component provides a driver for the ICM20948 9-Axis Inertial
+Measurement Unit (IMU).
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   icm20948_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/icm20948.inc
+.. include-build-file:: inc/icm20948_detail.inc

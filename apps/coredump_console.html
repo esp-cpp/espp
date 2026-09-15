@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>espp Core Dump Console (WebUSB / Web Serial)</title>
+<meta name="description" content="Inspect ESP-IDF flash core dumps in the browser: crash summary, ELF core dump download, client-side nearest-symbol backtrace resolution and erase, over WebUSB or Web Serial via the espp coredump component.">
+  <!--
+    espp Core Dump Console (WebUSB / Web Serial)
+    ============================================
+    A single-file, fully offline, dependency-free browser tool for devices
+    running the espp `coredump` component's stream service (see
+    components/coredump/include/coredump_service.hpp for the authoritative
+    wire spec). It connects over either:
+
+      - WebUSB: the device's vendor-specific (0xFF) interface, or
+      - Web Serial: the device's CDC-ACM port. Over CDC the byte stream may
+        interleave the system CONSOLE TEXT with protocol frames; this app
+        scans for the frame magic, feeds frames to the protocol layer and
+        renders everything else in a live console pane (it doubles as a
+        serial monitor, and the input row sends console commands).
+
+    Wire framing v2 (shared with the espp `ota` component; all LITTLE-ENDIAN):
+      [magic u16 = 0x4F54 "OT"][flags u8][module u8][type u8][len u32][payload...][crc32 u32]
+    - 9-byte header. flags u8: bit0 = reply (0 host->device request,
+      1 device->host reply); bits 4-7 = protocol version = 1. So a request
+      byte = 0x10, a reply = 0x11.
+    - module u8: coredump is module 4; the crash-trigger command is module 1.
+    - crc32 = zlib CRC-32 over the 9-byte header + payload; max payload 4096 B.
+
+    Core-dump protocol messages (MODULE 4):
+      host -> device : 0x40 GET_SUMMARY, 0x41 GET_SIZE,
+                       0x42 READ(u32 offset + u16 len), 0x43 ERASE
+      device -> host : 0xC0 SUMMARY(utf8 report; empty = clean boot),
+                       0xC1 SIZE(u32; 0 = no dump),
+                       0xC2 DATA(u32 offset + bytes),
+                       0xC3 OK(u32), 0xC4 ERROR(u32 code + utf8 message;
+                       the message is authoritative - the code is
+                       informational only and is displayed, never interpreted)
+    One request in flight; the host waits for the matching reply.
+
+    Crash-trigger command (MODULE 1): host -> device type 0x00 with a single
+    CrashKind payload byte (1=null-ptr, 2=assert, 3=divzero, 4=hang).
+
+    Extra, fully client-side: hand the app your firmware's .elf file and it
+    resolves the backtrace addresses to the NEAREST SYMBOL by parsing the ELF
+    symbol table (symtab/strtab only, no DWARF) - approximate by design, but
+    instant and offline.
+
+    No external dependencies, no CDN, no network fetches: everything is inline
+    and works from a file:// URL, http://localhost, or any secure (https)
+    origin in a Chromium browser.
+  -->
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --panel-bg: #ffffff;
+      --panel-border: #d9dee6;
+      --text: #1c2330;
+      --text-muted: #5c6675;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff;
+      --danger: #dc2626;
+      --ok: #16a34a;
+      --warn: #b45309;
+      --log-bg: #0f1420;
+      --log-text: #d6dbe6;
+      --tx-color: #7dd3fc;
+      --rx-color: #86efac;
+      --err-color: #fca5a5;
+      --sys-color: #fcd34d;
+      --time-color: #64748b;
+      --input-bg: #ffffff;
+      --input-border: #c3cbd6;
+      --chip-bg: #eef2f8;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0e14;
+        --panel-bg: #151a23;
+        --panel-border: #262d3a;
+        --text: #e6eaf2;
+        --text-muted: #98a2b3;
+        --accent: #3b82f6;
+        --accent-hover: #60a5fa;
+        --accent-contrast: #0b0e14;
+        --danger: #ef4444;
+        --ok: #22c55e;
+        --warn: #f59e0b;
+        --log-bg: #05070c;
+        --log-text: #cdd4e0;
+        --tx-color: #38bdf8;
+        --rx-color: #4ade80;
+        --err-color: #f87171;
+        --sys-color: #fbbf24;
+        --time-color: #64748b;
+        --input-bg: #0e1219;
+        --input-border: #2b3341;
+        --chip-bg: #1b2230;
+        --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+    /* Explicit theme overrides (viewer toggle stamps data-theme on :root). */
+    :root[data-theme="dark"] {
+      --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+      --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+      --accent-contrast: #0b0e14; --danger: #ef4444; --ok: #22c55e; --warn: #f59e0b;
+      --log-bg: #05070c; --log-text: #cdd4e0; --tx-color: #38bdf8; --rx-color: #4ade80;
+      --err-color: #f87171; --sys-color: #fbbf24; --input-bg: #0e1219;
+      --input-border: #2b3341; --chip-bg: #1b2230;
+    }
+    :root[data-theme="light"] {
+      --bg: #f4f6f9; --panel-bg: #ffffff; --panel-border: #d9dee6; --text: #1c2330;
+      --text-muted: #5c6675; --accent: #2563eb; --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff; --danger: #dc2626; --ok: #16a34a; --warn: #b45309;
+      --log-bg: #0f1420; --log-text: #d6dbe6; --tx-color: #7dd3fc; --rx-color: #86efac;
+      --err-color: #fca5a5; --sys-color: #fcd34d; --input-bg: #ffffff;
+      --input-border: #c3cbd6; --chip-bg: #eef2f8;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 16px; }
+    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    header h1 { font-size: 18px; margin: 0; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      background: var(--chip-bg); color: var(--text-muted);
+      border: 1px solid var(--panel-border);
+    }
+    .status-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+    .status-pill.connected { color: var(--ok); }
+    .status-pill.connected::before { background: var(--ok); }
+    .status-pill.error { color: var(--danger); }
+    .status-pill.error::before { background: var(--danger); }
+    .status-pill.busy { color: var(--warn); }
+    .status-pill.busy::before { background: var(--warn); }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 10px; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .muted { color: var(--text-muted); font-size: 12.5px; }
+    .warn-text { color: var(--warn); font-size: 12.5px; }
+
+    button {
+      font: inherit; padding: 7px 14px; border-radius: 7px; cursor: pointer;
+      border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text);
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    input[type="file"] { font: inherit; color: var(--text); max-width: 100%; }
+    input[type="text"] {
+      font: inherit; color: var(--text); background: var(--input-bg);
+      border: 1px solid var(--input-border); border-radius: 7px; padding: 6px 10px;
+      flex: 1; min-width: 120px;
+    }
+    label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+
+    pre.report {
+      background: var(--log-bg); color: var(--log-text);
+      border-radius: 8px; padding: 10px 12px; margin: 8px 0 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px; line-height: 1.5;
+      overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+    }
+    pre.cmd {
+      background: var(--chip-bg); color: var(--text);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px; padding: 8px 10px; margin: 6px 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px; overflow-x: auto; white-space: pre;
+    }
+    .cmdrow { display: flex; align-items: flex-start; gap: 8px; }
+    .cmdrow pre.cmd { flex: 1; min-width: 0; }
+    .cmdrow button { margin-top: 6px; }
+
+    .progress-track {
+      width: 100%; height: 14px; border-radius: 999px; overflow: hidden;
+      background: var(--chip-bg); border: 1px solid var(--panel-border);
+    }
+    .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.15s linear; }
+    .progress-fill.done { background: var(--ok); }
+    .progress-fill.failed { background: var(--danger); }
+    .stats { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+    table.syms { border-collapse: collapse; width: 100%; font-size: 12.5px; margin-top: 8px; }
+    table.syms th, table.syms td {
+      text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--panel-border);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: nowrap;
+    }
+    table.syms th { color: var(--text-muted); font-family: inherit; font-weight: 600; }
+    .syms-wrap { overflow-x: auto; }
+
+    .log {
+      background: var(--log-bg); color: var(--log-text);
+      border-radius: 8px; padding: 10px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px; line-height: 1.5;
+      height: 260px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+    }
+    .log .t { color: var(--time-color); }
+    .log .tx { color: var(--tx-color); }
+    .log .rx { color: var(--rx-color); }
+    .log .err { color: var(--err-color); }
+    .log .warn { color: #d08770; }
+    .log .sys { color: var(--sys-color); }
+    .log .con { color: var(--log-text); }
+    footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
+    #unsupported {
+      display: none; background: var(--panel-bg); border: 1px solid var(--danger);
+      color: var(--danger); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>espp Core Dump Console <span class="muted">(WebUSB / Web Serial)</span></h1>
+      <span id="status" class="status-pill">Disconnected</span>
+    </header>
+
+    <div id="unsupported">
+      This browser supports neither WebUSB nor Web Serial. Use a Chromium-based
+      browser (Chrome / Edge / Opera) on a secure origin (https, localhost or file://).
+    </div>
+
+    <div class="panel">
+      <h2>Device</h2>
+      <div class="row">
+        <button id="usbBtn" class="primary">Connect WebUSB</button>
+        <button id="serialBtn" class="primary">Connect Web Serial</button>
+        <label><input type="checkbox" id="anyDevice"> show all USB devices (no VID/PID filter)</label>
+      </div>
+      <p id="devInfo" class="muted" style="margin: 8px 0 0;">
+        Not connected. WebUSB talks to the vendor (0xFF) interface (default filter VID 0x1209);
+        Web Serial talks to the CDC port, where the device console and the protocol share one
+        stream — this page renders the console text and speaks the protocol at the same time.
+      </p>
+    </div>
+
+    <div class="panel">
+      <h2>Crash summary</h2>
+      <div class="row">
+        <button id="summaryBtn" class="primary" disabled>Get summary</button>
+        <button id="eraseBtn" class="danger" disabled>Erase core dump</button>
+        <span id="dumpInfo" class="muted"></span>
+      </div>
+      <pre id="report" class="report" hidden></pre>
+    </div>
+
+    <div class="panel">
+      <h2>Core dump download</h2>
+      <div class="row" style="margin-bottom: 10px;">
+        <button id="downloadElfBtn" class="primary" disabled>Download core.elf</button>
+        <button id="analyzeBtn" disabled>Analyze in browser (backtrace)</button>
+        <button id="downloadRawBtn" disabled>Download raw image</button>
+        <span class="muted">core.elf drops the flash header before the ELF magic (trailing checksum bytes remain; ELF tools ignore them); the raw image is the whole stored blob.</span>
+      </div>
+      <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+      <div class="stats" style="margin-top: 8px;">
+        <span id="statBytes">0 / 0 bytes</span>
+        <span id="statPercent">0%</span>
+        <span id="statRate">-</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Decode on your machine</h2>
+      <p class="muted" style="margin: 0 0 6px;">
+        Full decode (all tasks, registers, memory) with ESP-IDF's
+        <code>espcoredump.py</code>, or quick backtrace-only resolution with
+        <code>addr2line</code>. Replace <code>build/coredump_example.elf</code> with your app's ELF.
+      </p>
+      <div class="cmdrow"><pre id="cmdCoredump" class="cmd">espcoredump.py info_corefile --core core.elf --core-format elf build/coredump_example.elf</pre><button data-copy="cmdCoredump">Copy</button></div>
+      <div class="cmdrow"><pre id="cmdAddr2line" class="cmd">xtensa-esp32s3-elf-addr2line -pfiaC -e build/coredump_example.elf &lt;addrs&gt;</pre><button data-copy="cmdAddr2line">Copy</button></div>
+    </div>
+
+    <div class="panel">
+      <h2>Resolve backtrace locally (nearest symbol)</h2>
+      <p class="muted" style="margin: 0 0 8px;">
+        Pick your firmware's <code>.elf</code> (e.g. <code>build/coredump_example.elf</code> — it never
+        leaves the browser) and the backtrace addresses from the summary are resolved against its
+        symbol table (<code>symtab</code>/<code>strtab</code> only, no DWARF): results are
+        <strong>nearest-symbol approximations</strong>, not exact source lines.
+      </p>
+      <div class="row">
+        <label for="elfInput" class="muted">Firmware ELF:</label>
+        <input type="file" id="elfInput" accept=".elf" aria-label="Firmware .elf file for symbol resolution">
+        <span id="elfInfo" class="muted">No ELF loaded.</span>
+      </div>
+      <div class="syms-wrap"><table id="symTable" class="syms" hidden>
+        <thead><tr><th>#</th><th>Address</th><th>Nearest symbol</th><th>Offset</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+
+    <div class="panel">
+      <h2>Console / log</h2>
+      <div class="row" style="margin-bottom: 8px;">
+        <label><input type="checkbox" id="logFrames"> log raw frames</label>
+        <button id="clearLogBtn">Clear</button>
+      </div>
+      <div class="row" style="margin-bottom: 8px;">
+        <span class="muted">Trigger a test crash:</span>
+        <button id="crashNullBtn" disabled>Null-ptr</button>
+        <button id="crashAssertBtn" disabled>Assert</button>
+        <button id="crashDivBtn" disabled>Divide-by-zero</button>
+        <button id="crashHangBtn" disabled>Hang (INT_WDT)</button>
+      </div>
+      <div id="log" class="log" aria-live="polite"></div>
+      <div class="row" style="margin-top: 8px;">
+        <input type="text" id="consoleInput" placeholder="console command (Web Serial only, e.g. 'help', 'crash')" disabled>
+        <button id="consoleSendBtn" disabled>Send</button>
+      </div>
+    </div>
+
+    <footer>
+      Speaks the espp <code>coredump</code> component's stream service (v2 frames shared with the espp
+      OTA framing: magic "OT" + flags + module + type + len + payload + CRC-32; coredump is module 4,
+      message types 0x40-0x43 / 0xC0-0xC4, one request in flight). Everything runs locally in your browser.
+    </footer>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ===================================================================
+    // Constants (must match coredump_service.hpp / ota_stream_protocol.hpp)
+    // ===================================================================
+    const DEFAULT_VID = 0x1209, DEFAULT_PID = 0x0d36;
+    const VENDOR_CLASS = 0xFF;
+    const MAGIC0 = 0x54, MAGIC1 = 0x4F;      // u16 0x4F54 "OT", little-endian on the wire
+    // v2 framing: [magic u16][flags u8][module u8][type u8][len u32] => 9-byte header.
+    const HEADER_SIZE = 9, CRC_SIZE = 4;
+    const MAX_PAYLOAD = 4096;
+    const MAX_FRAME = HEADER_SIZE + MAX_PAYLOAD + CRC_SIZE;
+    const MODULE_COREDUMP = 4;               // coredump protocol lives on module 4
+    const MODULE_CRASH = 1;                  // test-crash trigger command lives on module 1
+    // Reserved dispatcher discovery module: a device running an espp::Dispatcher
+    // answers a ListModules query on 0xFF with the modules it serves, so we can
+    // confirm the core dump module is present before driving it.
+    const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
+    const DISCOVERY_TIMEOUT_MS = 800;        // module-presence probe (0xFF ListModules) timeout
+    const FLAGS_VERSION = 1;                 // protocol version lives in flags bits 4-7
+    const FLAGS_REQUEST = (FLAGS_VERSION << 4) | 0; // host->device request: 0x10 (reply bit 0)
+    const FLAGS_REPLY_BIT = 0x01;            // bit0 set on device->host replies
+    const FLAG_CORRELATION = 0x02;           // bit1: optional u16 correlation id present after `type`
+    const TYPE = {
+      GET_SUMMARY: 0x40, GET_SIZE: 0x41, READ: 0x42, ERASE: 0x43,
+      SUMMARY: 0xC0, SIZE: 0xC1, DATA: 0xC2, OK: 0xC3, ERROR: 0xC4,
+      TRIGGER_CRASH: 0x00, // module 1, host->device
+    };
+    const TYPE_NAME = {
+      0x40: "GET_SUMMARY", 0x41: "GET_SIZE", 0x42: "READ", 0x43: "ERASE",
+      0xC0: "SUMMARY", 0xC1: "SIZE", 0xC2: "DATA", 0xC3: "OK", 0xC4: "ERROR",
+    };
+    const READ_CHUNK = 2048;             // <= 4092 (DATA payload = u32 offset + bytes)
+    const CMD_TIMEOUT_MS = 5000;
+    const ERASE_TIMEOUT_MS = 20000;      // flash erase of the coredump partition
+    const SERIAL_BAUD = 115200;          // CDC-ACM ignores it, but open() requires one
+
+    // ===================================================================
+    // Elements & logging
+    // ===================================================================
+    const els = {};
+    for (const id of ["status", "usbBtn", "serialBtn", "anyDevice", "devInfo",
+                      "summaryBtn", "eraseBtn", "dumpInfo", "report",
+                      "downloadElfBtn", "downloadRawBtn", "analyzeBtn", "progressFill",
+                      "statBytes", "statPercent", "statRate",
+                      "cmdCoredump", "cmdAddr2line",
+                      "elfInput", "elfInfo", "symTable",
+                      "logFrames", "clearLogBtn", "log",
+                      "consoleInput", "consoleSendBtn", "crashNullBtn", "crashAssertBtn",
+                      "crashDivBtn", "crashHangBtn", "unsupported"]) {
+      els[id] = document.getElementById(id);
+    }
+
+    function logLine(cls, text) {
+      const line = document.createElement("div");
+      const time = document.createElement("span");
+      time.className = "t";
+      time.textContent = new Date().toLocaleTimeString() + " ";
+      const body = document.createElement("span");
+      body.className = cls;
+      body.textContent = text;
+      line.appendChild(time); line.appendChild(body);
+      els.log.appendChild(line);
+      while (els.log.childNodes.length > 600) els.log.removeChild(els.log.firstChild);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+    els.clearLogBtn.addEventListener("click", () => { els.log.textContent = ""; });
+
+    function hex(bytes, max) {
+      const n = Math.min(bytes.length, max || 32);
+      let s = "";
+      for (let i = 0; i < n; i++) s += bytes[i].toString(16).padStart(2, "0") + " ";
+      if (bytes.length > n) s += "... (" + bytes.length + " B)";
+      return s.trim();
+    }
+
+    function setStatus(state, text) {
+      els.status.className = "status-pill" + (state ? " " + state : "");
+      els.status.textContent = text;
+    }
+
+    for (const btn of document.querySelectorAll("button[data-copy]")) {
+      btn.addEventListener("click", async () => {
+        const text = document.getElementById(btn.dataset.copy).textContent;
+        try { await navigator.clipboard.writeText(text); btn.textContent = "Copied"; }
+        catch (_) { btn.textContent = "Select + copy manually"; }
+        setTimeout(() => { btn.textContent = "Copy"; }, 1200);
+      });
+    }
+
+    // ===================================================================
+    // CRC-32 (zlib / IEEE 802.3). Golden: crc32("123456789") === 0xCBF43926.
+    // ===================================================================
+    const CRC_TABLE = (() => {
+      const table = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let k = 0; k < 8; k++) c = (c & 1) ? ((c >>> 1) ^ 0xEDB88320) : (c >>> 1);
+        table[i] = c >>> 0;
+      }
+      return table;
+    })();
+    function crc32(bytes) {
+      let c = 0xFFFFFFFF;
+      for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+      return (~c) >>> 0;
+    }
+    if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) {
+      throw new Error("CRC-32 self-test failed");
+    }
+
+    // ===================================================================
+    // Frame building & incremental parsing. Unlike the pure-protocol OTA
+    // console, this parser also RETURNS the skipped (non-frame) bytes so a
+    // shared console+protocol stream (CDC / Web Serial) can render its text.
+    // ===================================================================
+    // This app only ever sends requests, so flags are hardcoded to
+    // FLAGS_REQUEST (reply bit clear); `module` selects the coredump (4) or
+    // crash-trigger (1) protocol.
+    function buildFrame(module, type, payload) {
+      payload = payload || new Uint8Array(0);
+      if (payload.length > MAX_PAYLOAD) throw new Error("payload exceeds " + MAX_PAYLOAD + " bytes");
+      const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
+      const view = new DataView(frame.buffer);
+      view.setUint16(0, 0x4F54, true);   // magic 'T''O' on the wire
+      frame[2] = FLAGS_REQUEST;          // flags: version 1, request (reply bit 0)
+      frame[3] = module;                 // module selector
+      frame[4] = type;                   // message type
+      view.setUint32(5, payload.length, true);
+      frame.set(payload, HEADER_SIZE);
+      view.setUint32(HEADER_SIZE + payload.length,
+                     crc32(frame.subarray(0, HEADER_SIZE + payload.length)), true);
+      return frame;
+    }
+
+    class StreamParser {
+      constructor() { this.buf = new Uint8Array(0); this.lastActivity = 0; }
+      reset() { this.buf = new Uint8Array(0); }
+      // feed(chunk) -> { frames: [{type, payload}], text: Uint8Array }
+      // `text` is every byte that is provably not part of a frame (resync
+      // skips): on a console+protocol stream that is the console output.
+      feed(chunk) {
+        const merged = new Uint8Array(this.buf.length + chunk.length);
+        merged.set(this.buf, 0); merged.set(chunk, this.buf.length);
+        const frames = [];
+        // skipped (non-frame) regions of `merged`, as [start, end) index
+        // pairs; accumulated as ranges and concatenated ONCE per feed() so a
+        // noisy console stream doesn't pay a per-byte push()/from() cost
+        const textRanges = [];
+        let textLen = 0;
+        const skip = (start, end) => {
+          if (end <= start) return;
+          const last = textRanges[textRanges.length - 1];
+          if (last && last[1] === start) last[1] = end; // coalesce adjacent
+          else textRanges.push([start, end]);
+          textLen += end - start;
+        };
+        let pos = 0;
+        for (;;) {
+          // resync: advance to the next (possibly split) magic, collecting
+          // the skipped bytes as console text
+          const runStart = pos;
+          while (pos < merged.length &&
+                 !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) {
+            pos++;
+          }
+          skip(runStart, pos);
+          if (merged.length - pos < 3) break; // need magic+flags before header size is known
+          const flags = merged[pos + 2];
+          // v2: flags bit1 => optional u16 correlation id sits after `type`
+          const ext = (flags & FLAG_CORRELATION) ? 2 : 0;
+          const headerSize = HEADER_SIZE + ext;
+          if (merged.length - pos < headerSize) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true); // v2: len u32 follows magic+flags+module+type(+correlation)
+          if (len > MAX_PAYLOAD) { skip(pos, pos + 1); pos++; continue; }
+          const total = headerSize + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(headerSize + len, true);
+          const actual = crc32(merged.subarray(pos, pos + headerSize + len));
+          if (actual !== expected) { skip(pos, pos + 1); pos++; continue; }
+          const correlation = ext ? (merged[pos + 5] | (merged[pos + 6] << 8)) : null;
+          frames.push({ flags,
+                        reply: (flags & FLAGS_REPLY_BIT) !== 0,
+                        correlation,
+                        module: merged[pos + 3],
+                        type: merged[pos + 4],
+                        payload: merged.slice(pos + headerSize, pos + headerSize + len) });
+          pos += total;
+        }
+        this.buf = merged.slice(pos);
+        this.lastActivity = Date.now();
+        const text = new Uint8Array(textLen);
+        let off = 0;
+        for (const [start, end] of textRanges) {
+          text.set(merged.subarray(start, end), off);
+          off += end - start;
+        }
+        return { frames, text };
+      }
+      // Console text that HAPPENS to contain the magic bytes ("TO...") gets
+      // buffered awaiting a frame that never completes; flush it as text once
+      // it has been sitting long enough (only called when it is safe, i.e. no
+      // protocol reply is pending).
+      flushStale(maxAgeMs) {
+        if (this.buf.length === 0 || Date.now() - this.lastActivity < maxAgeMs) return null;
+        const text = this.buf;
+        this.buf = new Uint8Array(0);
+        return text;
+      }
+    }
+
+    function u32(value) {
+      const payload = new Uint8Array(4);
+      new DataView(payload.buffer).setUint32(0, value >>> 0, true);
+      return payload;
+    }
+    function readU32(payload, offset) {
+      return new DataView(payload.buffer, payload.byteOffset + offset, 4).getUint32(0, true);
+    }
+    function parseErrorReply(payload) {
+      if (payload.length < 4) return { code: 0, message: "(malformed error reply)" };
+      let message = "";
+      try { message = new TextDecoder().decode(payload.subarray(4)); } catch (_) {}
+      return { code: readU32(payload, 0), message };
+    }
+
+    // ===================================================================
+    // Transport abstraction: { name, send(bytes), close() } with a persistent
+    // RX pump that feeds the shared parser. Frames go to the protocol layer;
+    // text goes to the console pane.
+    // ===================================================================
+    let transport = null;         // active transport object or null
+    const parser = new StreamParser();
+    const consoleDecoder = new TextDecoder("utf-8", { fatal: false });
+    let consoleCarry = "";        // partial console line across chunks
+
+    function renderConsoleText(bytes) {
+      if (!bytes || bytes.length === 0) return;
+      const text = consoleCarry + consoleDecoder.decode(bytes, { stream: true });
+      const lines = text.split(/\r\n|\r|\n/);
+      consoleCarry = lines.pop();
+      for (const line of lines) if (line.length) logLine("con", line);
+      // very long partial lines: flush rather than growing unboundedly
+      if (consoleCarry.length > 500) { logLine("con", consoleCarry); consoleCarry = ""; }
+    }
+
+    function handleRxBytes(bytes) {
+      const { frames, text } = parser.feed(bytes);
+      renderConsoleText(text);
+      for (const frame of frames) dispatchFrame(frame);
+    }
+
+    // Periodically flush console text stuck in the parser (contains "TO" but
+    // never completed as a frame) — but never while a reply is pending, since
+    // the buffered bytes may be the head of that reply still in flight.
+    setInterval(() => {
+      if (pendingTxn) return;
+      const stale = parser.flushStale(750);
+      if (stale) renderConsoleText(stale);
+    }, 300);
+
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
+
+    // --- WebUSB ---------------------------------------------------------
+    async function connectUsb() {
+      let device;
+      try {
+        device = await requestUsbDevice(els.anyDevice.checked);
+      } catch (e) {
+        if (e && e.name === "NotFoundError") logLine("sys", "Device selection cancelled.");
+        else logLine("err", "Device selection failed: " + (e && e.message ? e.message : e));
+        return null;
+      }
+      await device.open();
+      try {
+        if (device.configuration === null) await device.selectConfiguration(1);
+        const config = device.configuration;
+        if (!config) throw new Error("device has no active USB configuration");
+        let found = null;
+        for (const itf of config.interfaces) {
+          for (const alt of itf.alternates) {
+            if (alt.interfaceClass !== VENDOR_CLASS) continue;
+            let inEp = null, outEp = null;
+            for (const ep of alt.endpoints) {
+              if (ep.type !== "bulk") continue;
+              if (ep.direction === "in" && inEp === null) inEp = ep;
+              else if (ep.direction === "out" && outEp === null) outEp = ep;
+            }
+            if (inEp && outEp) {
+              found = { interfaceNumber: itf.interfaceNumber,
+                        alternateSetting: alt.alternateSetting, inEp, outEp };
+              break;
+            }
+          }
+          if (found) break;
+        }
+        if (!found) throw new Error("no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found");
+        await device.claimInterface(found.interfaceNumber);
+        if (found.alternateSetting !== 0)
+          await device.selectAlternateInterface(found.interfaceNumber, found.alternateSetting);
+        const epIn = found.inEp.endpointNumber, epOut = found.outEp.endpointNumber;
+
+        const t = {
+          kind: "usb",
+          name: (device.productName || "USB device") + " (" +
+                device.vendorId.toString(16).padStart(4, "0") + ":" +
+                device.productId.toString(16).padStart(4, "0") + ") · vendor iface " +
+                found.interfaceNumber,
+          device,
+          closing: false,
+          async send(bytes) {
+            // transferOut() may report status "ok" with bytesWritten smaller
+            // than the supplied buffer; keep sending the unsent suffix so a
+            // request frame is never silently truncated (which would leave
+            // the device parser waiting and time the transaction out).
+            let remaining = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+            while (remaining.length > 0) {
+              const result = await device.transferOut(epOut, remaining);
+              if (result.status === "stall") {
+                try { await device.clearHalt("out", epOut); } catch (_) {}
+                throw new Error("OUT endpoint stalled");
+              }
+              if (result.status !== "ok")
+                throw new Error("USB write failed: " + result.status);
+              const written = result.bytesWritten || 0;
+              if (written <= 0) throw new Error("USB write made no progress");
+              remaining = remaining.subarray(written);
+            }
+          },
+          async close() {
+            this.closing = true;
+            try { await device.releaseInterface(found.interfaceNumber); } catch (_) {}
+            try { await device.close(); } catch (_) {}
+          },
+        };
+        // persistent RX pump: one transferIn in flight at all times
+        (async () => {
+          for (;;) {
+            let result;
+            try { result = await device.transferIn(epIn, MAX_FRAME); }
+            catch (e) {
+              if (!t.closing) { logLine("err", "USB read error: " + e.message); onTransportGone(t); }
+              return;
+            }
+            if (t.closing) return;
+            if (result.status === "stall") {
+              try { await device.clearHalt("in", epIn); } catch (_) {}
+              continue;
+            }
+            if (result.data && result.data.byteLength)
+              handleRxBytes(new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength));
+          }
+        })();
+        return t;
+      } catch (e) {
+        try { await device.close(); } catch (_) {}
+        throw e;
+      }
+    }
+
+    if (navigator.usb && navigator.usb.addEventListener) {
+      navigator.usb.addEventListener("disconnect", (e) => {
+        if (transport && transport.kind === "usb" && e.device === transport.device) {
+          logLine("err", "USB device disconnected.");
+          onTransportGone(transport);
+        }
+      });
+    }
+
+    // --- Web Serial -----------------------------------------------------
+    async function connectSerial() {
+      let port;
+      try {
+        port = await navigator.serial.requestPort();
+      } catch (e) {
+        if (e && e.name === "NotFoundError") logLine("sys", "Port selection cancelled.");
+        else logLine("err", "Port selection failed: " + (e && e.message ? e.message : e));
+        return null;
+      }
+      await port.open({ baudRate: SERIAL_BAUD });
+      const writer = port.writable.getWriter();
+      const t = {
+        kind: "serial",
+        name: "serial port (CDC console + protocol)",
+        port,
+        closing: false,
+        reader: null,
+        async send(bytes) { await writer.write(bytes); },
+        async close() {
+          this.closing = true;
+          try { if (this.reader) await this.reader.cancel(); } catch (_) {}
+          try { writer.releaseLock(); } catch (_) {}
+          try { await port.close(); } catch (_) {}
+        },
+      };
+      // persistent RX pump
+      (async () => {
+        while (port.readable && !t.closing) {
+          const reader = port.readable.getReader();
+          t.reader = reader;
+          try {
+            for (;;) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              if (value && value.length) handleRxBytes(value);
+            }
+          } catch (e) {
+            if (!t.closing) logLine("err", "Serial read error: " + e.message);
+          } finally {
+            try { reader.releaseLock(); } catch (_) {}
+          }
+          if (t.closing) return;
+        }
+        if (!t.closing) { logLine("err", "Serial port closed."); onTransportGone(t); }
+      })();
+      return t;
+    }
+
+    if (navigator.serial && navigator.serial.addEventListener) {
+      navigator.serial.addEventListener("disconnect", (e) => {
+        // Per the Web Serial spec the disconnect event fires AT the
+        // SerialPort and bubbles up to navigator.serial, so when listening
+        // here `e.target` IS the port. Early Chromium builds instead shipped
+        // a SerialConnectionEvent that carried the port as `e.port`. Accept
+        // either so every implementation matches the active port.
+        const eventPort = e.port ?? e.target;
+        if (transport && transport.kind === "serial" && eventPort === transport.port) {
+          logLine("err", "Serial device disconnected.");
+          onTransportGone(transport);
+        }
+      });
+    }
+
+    // --- connect / disconnect UI ---------------------------------------
+    if (!navigator.usb) els.usbBtn.disabled = true;
+    if (!navigator.serial) els.serialBtn.disabled = true;
+    if (!navigator.usb && !navigator.serial) els.unsupported.style.display = "block";
+
+    async function disconnect() {
+      if (!transport) return;
+      const t = transport;
+      transport = null;
+      failPending(new Error("disconnected"));
+      await t.close();
+      parser.reset();
+      consoleCarry = "";
+      updateUI();
+      setStatus("", "Disconnected");
+      logLine("sys", "Disconnected.");
+    }
+    function onTransportGone(t) {
+      if (transport !== t) return;
+      transport = null;
+      failPending(new Error("transport lost"));
+      // close() is async for both transports (reader cancel / port close / USB
+      // interface release); the transport is already gone, so ignore the result
+      // and swallow rejections rather than leave an unhandled promise.
+      Promise.resolve(t.close()).catch(() => {});
+      parser.reset();
+      consoleCarry = "";
+      updateUI();
+      setStatus("", "Disconnected");
+    }
+
+    els.usbBtn.addEventListener("click", async () => {
+      if (transport) { await disconnect(); return; }
+      try {
+        const t = await connectUsb();
+        if (t) onConnected(t);
+      } catch (e) {
+        logLine("err", "WebUSB connect failed: " + e.message);
+        setStatus("error", "Connect failed");
+      }
+    });
+    els.serialBtn.addEventListener("click", async () => {
+      if (transport) { await disconnect(); return; }
+      try {
+        const t = await connectSerial();
+        if (t) onConnected(t);
+      } catch (e) {
+        logLine("err", "Web Serial connect failed: " + e.message);
+        setStatus("error", "Connect failed");
+      }
+    });
+
+    function onConnected(t) {
+      transport = t;
+      parser.reset();
+      consoleCarry = "";
+      updateUI();
+      setStatus("connected", "Connected");
+      els.devInfo.textContent = "Connected: " + t.name;
+      logLine("sys", "Connected (" + (t.kind === "usb" ? "WebUSB vendor interface" : "Web Serial / CDC") + ").");
+      checkModulePresent().catch(() => {}); // best-effort: warn if this device lacks the core dump module
+      refreshSummary(); // fetch summary + size right away
+    }
+
+    function updateUI() {
+      const connected = !!transport;
+      els.usbBtn.textContent = connected && transport.kind === "usb" ? "Disconnect" : "Connect WebUSB";
+      els.serialBtn.textContent = connected && transport.kind === "serial" ? "Disconnect" : "Connect Web Serial";
+      els.usbBtn.classList.toggle("danger", connected && transport.kind === "usb");
+      els.usbBtn.classList.toggle("primary", !(connected && transport.kind === "usb"));
+      els.serialBtn.classList.toggle("danger", connected && transport.kind === "serial");
+      els.serialBtn.classList.toggle("primary", !(connected && transport.kind === "serial"));
+      if (navigator.usb) els.usbBtn.disabled = connected && transport.kind !== "usb";
+      if (navigator.serial) els.serialBtn.disabled = connected && transport.kind !== "serial";
+      els.anyDevice.disabled = connected;
+      els.summaryBtn.disabled = !connected || busy;
+      els.eraseBtn.disabled = !connected || busy;
+      els.downloadElfBtn.disabled = !connected || busy || !dumpSize;
+      els.analyzeBtn.disabled = !connected || busy || !dumpSize;
+      els.downloadRawBtn.disabled = !connected || busy || !dumpSize;
+      const serial = connected && transport.kind === "serial";
+      els.consoleInput.disabled = !serial;
+      els.consoleSendBtn.disabled = !serial;
+      for (const b of [els.crashNullBtn, els.crashAssertBtn, els.crashDivBtn, els.crashHangBtn])
+        b.disabled = !connected || busy;
+      if (!connected) els.devInfo.textContent = "Not connected.";
+    }
+
+    // ===================================================================
+    // Serialized transactions: one request in flight; replies matched by an
+    // expected-type set (ERROR always matches). Console text may interleave
+    // freely — the parser routes it away from the protocol layer.
+    // ===================================================================
+    let pendingTxn = null; // { expect:Set, resolve, reject, timer }
+    let txnChain = Promise.resolve();
+    let busy = false;
+
+    function failPending(err) {
+      if (pendingTxn) {
+        clearTimeout(pendingTxn.timer);
+        const p = pendingTxn;
+        pendingTxn = null;
+        p.reject(err);
+      }
+    }
+
+    function dispatchFrame(frame) {
+      // Discovery reply (reserved module 0xFF): hand the TLV to a pending module
+      // probe before the coredump-module matching below ignores it.
+      if (frame.module === MODULE_DISCOVERY && frame.reply && frame.type === T_LIST_MODULES) {
+        if (discoveryResolve) { discoveryResolve(frame.payload); discoveryResolve = null; }
+        return;
+      }
+      if (els.logFrames.checked)
+        logLine("rx", (TYPE_NAME[frame.type] || ("0x" + frame.type.toString(16))) + " " + hex(frame.payload));
+      if (pendingTxn && frame.module === MODULE_COREDUMP && frame.reply &&
+          (pendingTxn.expect.has(frame.type) || frame.type === TYPE.ERROR)) {
+        clearTimeout(pendingTxn.timer);
+        const p = pendingTxn;
+        pendingTxn = null;
+        if (frame.type === TYPE.ERROR) {
+          const info = parseErrorReply(frame.payload);
+          p.reject(new Error("device error (code " + info.code + "): " + info.message));
+        } else {
+          p.resolve(frame);
+        }
+        return;
+      }
+      // unsolicited frame (e.g. another protocol on the shared stream)
+      if (!els.logFrames.checked)
+        logLine("sys", "Unsolicited frame " + (TYPE_NAME[frame.type] || ("0x" + frame.type.toString(16))) +
+                " (" + frame.payload.length + " B payload)");
+    }
+
+    function transact(type, payload, expectTypes, timeoutMs, retries) {
+      const attempt = () => new Promise((resolve, reject) => {
+        if (!transport) { reject(new Error("not connected")); return; }
+        const frame = buildFrame(MODULE_COREDUMP, type, payload);
+        if (els.logFrames.checked) logLine("tx", TYPE_NAME[type] + " " + hex(frame));
+        pendingTxn = {
+          expect: new Set(expectTypes),
+          resolve, reject,
+          timer: setTimeout(() => {
+            if (pendingTxn) { const p = pendingTxn; pendingTxn = null; p.reject(new Error(TYPE_NAME[type] + " timed out")); }
+          }, timeoutMs),
+        };
+        transport.send(frame).catch((e) => {
+          failPending(new Error("send failed: " + e.message));
+        });
+      });
+      const run = async () => {
+        // On a console-sharing CDC stream a frame can (rarely) be corrupted by
+        // interleaved console output; one retry makes that invisible.
+        let attempts = 1 + (retries || 0);
+        for (;;) {
+          try { return await attempt(); }
+          catch (e) {
+            attempts--;
+            if (attempts <= 0 || !transport || /not connected|disconnected|transport lost/.test(e.message)) throw e;
+            logLine("sys", TYPE_NAME[type] + " failed (" + e.message + "); retrying...");
+          }
+        }
+      };
+      const result = txnChain.then(run, run);
+      txnChain = result.then(() => {}, () => {});
+      return result;
+    }
+
+    // ---- discovery-based module presence check --------------------------------
+    // A pending checkModulePresent() parks its resolver here; dispatchFrame calls
+    // it when the 0xFF ListModules reply arrives.
+    let discoveryResolve = null;
+    // Decode the ListModules TLV (see espp::Dispatcher::describe).
+    function parseDiscovery(payload) {
+      let i = 0;
+      const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
+      const u8 = () => { need(1); return payload[i++]; };
+      const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
+      const version = u8(); u8();            // version, reserved
+      const device = str(), fw = str();
+      const count = u8();
+      const modules = [];
+      for (let m = 0; m < count; m++) modules.push({ id: u8(), name: str(), app: str(), desc: str() });
+      return { version, device, fw, modules };
+    }
+    // Ask the device which dispatcher modules it serves and warn (best-effort) if
+    // the core dump module is not among them. No discovery reply (older firmware)
+    // -> stay quiet; the normal summary fetch still surfaces a real missing module.
+    async function checkModulePresent() {
+      if (!transport) return;
+      const payload = await new Promise((resolve) => {
+        let timer = null;
+        // settle guards the shared resolver: only clear it if it is still ours,
+        // so a prior probe's timeout can't cancel a newer probe's resolver.
+        const settle = (p) => { clearTimeout(timer); if (discoveryResolve === settle) discoveryResolve = null; resolve(p); };
+        timer = setTimeout(() => settle(null), DISCOVERY_TIMEOUT_MS);
+        discoveryResolve = settle;
+        transport.send(buildFrame(MODULE_DISCOVERY, T_LIST_MODULES))
+          .catch(() => settle(null));
+      });
+      if (!payload) return;
+      let info;
+      try { info = parseDiscovery(payload); } catch (_) { return; }
+      if (info.modules.some((m) => m.id === MODULE_COREDUMP)) {
+        logLine("sys", "Device advertises " + info.modules.length + " module(s); core dump module present.");
+        return;
+      }
+      const names = info.modules.map((m) => m.name + " (#" + m.id + ")").join(", ") || "none";
+      logLine("warn", "This device does not advertise the core dump module. Detected: " + names +
+              ". You may have selected the wrong device, or its firmware lacks core dump support.");
+    }
+
+    // ===================================================================
+    // Crash summary / size / erase
+    // ===================================================================
+    let dumpSize = 0;
+    let lastReport = "";
+    let backtraceAddrs = [];
+
+    function extractAddresses(report) {
+      // the PC (the faulting address, first) + the addresses on the
+      // "backtrace:" line, deduplicated (the Xtensa backtrace normally
+      // starts with the PC)
+      const addrs = [];
+      const push = (a) => { if (!addrs.includes(a)) addrs.push(a); };
+      const pcMatch = report.match(/PC=(0x[0-9a-fA-F]{8})/);
+      if (pcMatch) push(pcMatch[1]);
+      const btMatch = report.match(/backtrace:((?:\s+0x[0-9a-fA-F]{8})+)/);
+      if (btMatch) for (const a of btMatch[1].match(/0x[0-9a-fA-F]{8}/g)) push(a);
+      return addrs;
+    }
+
+    function updateCommands() {
+      const elf = "build/coredump_example.elf";
+      els.cmdCoredump.textContent = "espcoredump.py info_corefile --core core.elf --core-format elf " + elf;
+      // pick the toolchain prefix from the report's own decode hint when present
+      const hint = lastReport.match(/([A-Za-z0-9_-]+-elf-)addr2line/);
+      const prefix = hint ? hint[1] : "xtensa-esp32s3-elf-";
+      els.cmdAddr2line.textContent = prefix + "addr2line -pfiaC -e " + elf + " " +
+        (backtraceAddrs.length ? backtraceAddrs.join(" ") : "<addrs>");
+    }
+
+    async function refreshSummary() {
+      busy = true; updateUI();
+      try {
+        const summary = await transact(TYPE.GET_SUMMARY, null, [TYPE.SUMMARY], CMD_TIMEOUT_MS, 1);
+        lastReport = summary.payload.length ? new TextDecoder().decode(summary.payload) : "";
+        const size = await transact(TYPE.GET_SIZE, null, [TYPE.SIZE], CMD_TIMEOUT_MS, 1);
+        dumpSize = size.payload.length === 4 ? readU32(size.payload, 0) : 0;
+        if (lastReport) {
+          els.report.hidden = false;
+          els.report.textContent = lastReport;
+          backtraceAddrs = extractAddresses(lastReport);
+          logLine("err", "Device crash report received (" + lastReport.split("\n").length + " lines).");
+        } else {
+          els.report.hidden = false;
+          els.report.textContent = "(clean boot history — no crash to report)";
+          backtraceAddrs = [];
+          logLine("sys", "Clean boot history: no crash to report.");
+        }
+        els.dumpInfo.textContent = dumpSize
+          ? "core dump in flash: " + dumpSize.toLocaleString() + " bytes"
+          : "no core dump image stored";
+        updateCommands();
+        renderSymbols(); // re-resolve against a loaded ELF, if any
+        if (transport) setStatus("connected", "Connected");
+      } catch (e) {
+        logLine("err", "Summary failed: " + e.message);
+        setStatus(transport ? "error" : "", transport ? "Summary failed" : "Disconnected");
+      } finally {
+        busy = false; updateUI();
+      }
+    }
+    els.summaryBtn.addEventListener("click", refreshSummary);
+
+    els.eraseBtn.addEventListener("click", async () => {
+      if (!transport || !dumpSize) return;
+      if (!window.confirm("Erase the stored core dump from flash?")) return;
+      busy = true; updateUI(); setStatus("busy", "Erasing...");
+      try {
+        await transact(TYPE.ERASE, null, [TYPE.OK], ERASE_TIMEOUT_MS);
+        logLine("sys", "Core dump erased.");
+        dumpSize = 0;
+        els.dumpInfo.textContent = "no core dump image stored";
+        // NOTE: the summary is derived from the reset reason + dump; refresh it
+        await refreshSummary();
+      } catch (e) {
+        logLine("err", "Erase failed: " + e.message);
+      } finally {
+        busy = false; updateUI();
+        if (transport) setStatus("connected", "Connected");
+      }
+    });
+
+    // ===================================================================
+    // Core dump download (chunked READ), core.elf extraction
+    // ===================================================================
+    function setProgress(read, total) {
+      els.statBytes.textContent = read.toLocaleString() + " / " + total.toLocaleString() + " bytes";
+      const percent = total ? Math.min(100, (read / total) * 100) : 0;
+      els.progressFill.style.width = percent.toFixed(1) + "%";
+      els.statPercent.textContent = percent.toFixed(1) + "%";
+    }
+
+    async function downloadImage() {
+      const size = dumpSize;
+      const image = new Uint8Array(size);
+      const startedAt = Date.now();
+      let read = 0;
+      els.progressFill.className = "progress-fill";
+      while (read < size) {
+        const length = Math.min(READ_CHUNK, size - read);
+        const payload = new Uint8Array(6);
+        const view = new DataView(payload.buffer);
+        view.setUint32(0, read, true);
+        view.setUint16(4, length, true);
+        const reply = await transact(TYPE.READ, payload, [TYPE.DATA], CMD_TIMEOUT_MS, 2);
+        if (reply.payload.length < 4) throw new Error("malformed DATA reply");
+        const offset = readU32(reply.payload, 0);
+        const bytes = reply.payload.subarray(4);
+        if (offset !== read || bytes.length !== length)
+          throw new Error("DATA reply mismatch (expected " + length + " B @ " + read +
+                          ", got " + bytes.length + " B @ " + offset + ")");
+        image.set(bytes, read);
+        read += bytes.length;
+        setProgress(read, size);
+        const elapsed = (Date.now() - startedAt) / 1000;
+        if (elapsed > 0.5) els.statRate.textContent = ((read / 1024) / elapsed).toFixed(1) + " KiB/s";
+      }
+      els.progressFill.className = "progress-fill done";
+      return image;
+    }
+
+    // The stored image is [flash header][ELF core file][checksum]; find the
+    // ELF magic near the start and slice from there (the trailing checksum
+    // bytes are harmless to ELF readers, which follow the internal offsets).
+    // The flash header is core_dump_header_t (esp_core_dump_types.h): three
+    // u32 fields (data_len, version, chip_rev) = 12 bytes today, so the ELF
+    // magic sits at offset 12 - but search the first 1 KiB to stay robust if
+    // a future IDF grows the header.
+    function extractElf(image) {
+      const MAGIC = [0x7F, 0x45, 0x4C, 0x46]; // \x7fELF
+      const limit = Math.min(image.length - 4, 1024);
+      for (let i = 0; i <= limit; i++) {
+        if (image[i] === MAGIC[0] && image[i + 1] === MAGIC[1] &&
+            image[i + 2] === MAGIC[2] && image[i + 3] === MAGIC[3])
+          return image.subarray(i);
+      }
+      return null;
+    }
+
+    function saveBlob(bytes, filename) {
+      const blob = new Blob([bytes], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+
+    async function doDownload(raw) {
+      if (!transport || !dumpSize || busy) return;
+      busy = true; updateUI(); setStatus("busy", "Downloading...");
+      try {
+        const image = await downloadImage();
+        if (raw) {
+          saveBlob(image, "coredump_raw.bin");
+          logLine("sys", "Saved raw core dump image (" + image.length.toLocaleString() + " bytes).");
+        } else {
+          const elf = extractElf(image);
+          if (!elf) {
+            saveBlob(image, "coredump_raw.bin");
+            logLine("err", "No ELF magic found in the image (BIN-format core dump?); saved the raw image instead. " +
+                    "Decode with: espcoredump.py info_corefile --core coredump_raw.bin --core-format raw <app.elf>");
+          } else {
+            saveBlob(elf, "core.elf");
+            logLine("sys", "Saved core.elf (" + elf.length.toLocaleString() + " bytes). Decode with the espcoredump.py command above.");
+          }
+        }
+      } catch (e) {
+        els.progressFill.className = "progress-fill failed";
+        logLine("err", "Download failed: " + e.message);
+      } finally {
+        busy = false; updateUI();
+        if (transport) setStatus("connected", "Connected");
+      }
+    }
+    els.downloadElfBtn.addEventListener("click", () => doDownload(false));
+    els.downloadRawBtn.addEventListener("click", () => doDownload(true));
+
+    // ===================================================================
+    // In-browser backtrace: parse the core-dump ELF (register sets + task
+    // stacks) and unwind, so a backtrace is available even when the on-device
+    // esp_core_dump_get_summary() came up empty. Xtensa uses the windowed-ABI
+    // stack walk (same as ESP-IDF's esp_backtrace_get_next_frame, no DWARF);
+    // RISC-V needs DWARF CFI (use espcoredump.py for now).
+    // ===================================================================
+    const EM_XTENSA = 94, EM_RISCV = 243;
+
+    // Parse the core-dump ELF32-LE: PT_LOAD segments (memory) + PT_NOTE
+    // NT_PRSTATUS notes (per-task register arrays). Returns { machine, regsets,
+    // readU32 }. Grounded in esp_coredump's PrStatus layout: a 72-byte prstatus
+    // header precedes the register array; Xtensa gregset is pc,ps,...(8),ar[64]
+    // starting at index 64, with windowbase at index 7.
+    function parseCoreDump(elf) {
+      if (elf.length < 52) throw new Error("core dump too small");
+      const view = new DataView(elf.buffer, elf.byteOffset, elf.byteLength);
+      if (view.getUint32(0, false) !== 0x7F454C46) throw new Error("core dump: bad ELF magic");
+      if (elf[4] !== 1 || elf[5] !== 1) throw new Error("core dump: expected 32-bit little-endian ELF");
+      const machine = view.getUint16(0x12, true);
+      const phoff = view.getUint32(0x1C, true);
+      const phentsize = view.getUint16(0x2A, true);
+      const phnum = view.getUint16(0x2C, true);
+      if (!phoff || !phnum) throw new Error("core dump has no program headers");
+      const loads = [];
+      const regsets = [];
+      for (let i = 0; i < phnum; i++) {
+        const ph = phoff + i * phentsize;
+        if (ph + 32 > elf.length) break;
+        const type = view.getUint32(ph, true);
+        const off = view.getUint32(ph + 4, true);
+        const vaddr = view.getUint32(ph + 8, true);
+        const filesz = view.getUint32(ph + 16, true);
+        if (type === 1 /* PT_LOAD */ && filesz > 0) {
+          loads.push({ vaddr: vaddr >>> 0, off, size: filesz });
+        } else if (type === 4 /* PT_NOTE */) {
+          // Walk the notes: namesz, descsz, ntype, name(pad4), desc(pad4).
+          let o = off;
+          const end = Math.min(off + filesz, elf.length);
+          while (o + 12 <= end) {
+            const namesz = view.getUint32(o, true);
+            const descsz = view.getUint32(o + 4, true);
+            const ntype = view.getUint32(o + 8, true);
+            const descOff = o + 12 + (((namesz + 3) >> 2) << 2);
+            if (ntype === 1 /* NT_PRSTATUS */ && descsz > 72) {
+              const regBytes = descsz - 72;
+              const nregs = regBytes >> 2;
+              const regs = new Uint32Array(nregs);
+              for (let r = 0; r < nregs; r++) regs[r] = view.getUint32(descOff + 72 + r * 4, true);
+              regsets.push(regs);
+            }
+            o = descOff + (((descsz + 3) >> 2) << 2);
+          }
+        }
+      }
+      const readU32 = (addr) => {
+        addr = addr >>> 0;
+        for (const s of loads) {
+          if (addr >= s.vaddr && addr + 4 <= s.vaddr + s.size) {
+            const p = s.off + (addr - s.vaddr);
+            if (p + 4 <= elf.length) return view.getUint32(p, true);
+          }
+        }
+        return null;
+      };
+      return { machine, regsets, readU32 };
+    }
+
+    // Xtensa return-address fix-up: replace the window-rotation bits with the
+    // code region (esp_cpu_process_stack_pc).
+    function xtensaFixPc(pc) { return (pc & 0x80000000) ? ((pc & 0x3fffffff) | 0x40000000) >>> 0 : pc >>> 0; }
+    function pcLooksLikeCode(pc) { return (pc >>> 0) >= 0x40000000 && (pc >>> 0) < 0x60000000; }
+
+    // Walk the crashed task's frames (regsets[0]) using the ESP-IDF base-save
+    // convention: pc = next_pc; next_pc = *(sp-16); sp = *(sp-12); stop when
+    // next_pc is 0 / sp does not grow / pc is not executable.
+    function unwindXtensa(core) {
+      const regs = core.regsets[0];
+      if (!regs || regs.length < 68) throw new Error("no Xtensa register set in the core dump");
+      const wb = regs[7] >>> 0;              // windowbase
+      const ar = 64;                          // ar[] base index in the gregset
+      const a0 = regs[ar + ((wb * 4) % 64)] >>> 0;
+      const a1 = regs[ar + ((wb * 4 + 1) % 64)] >>> 0;
+      let pc = regs[0] >>> 0, nextPc = xtensaFixPc(a0), sp = a1 >>> 0;
+      const pcs = [];
+      for (let depth = 0; depth < 64; depth++) {
+        if (pcLooksLikeCode(pc)) pcs.push("0x" + (pc >>> 0).toString(16).padStart(8, "0"));
+        if (nextPc === 0) break;
+        const savedA0 = core.readU32(sp - 16);
+        const savedSp = core.readU32(sp - 12);
+        if (savedSp === null || (savedSp >>> 0) <= (sp >>> 0)) break; // stack must grow up
+        pc = nextPc; nextPc = savedA0 === null ? 0 : xtensaFixPc(savedA0); sp = savedSp >>> 0;
+        if (!pcLooksLikeCode(pc)) break;
+      }
+      return pcs;
+    }
+
+    async function analyzeCoreDump() {
+      if (!transport || !dumpSize || busy) return;
+      busy = true; updateUI(); setStatus("busy", "Analyzing...");
+      try {
+        const image = await downloadImage();
+        const elf = extractElf(image);
+        if (!elf) throw new Error("no ELF core dump in the image (BIN-format?); use espcoredump.py");
+        const core = parseCoreDump(elf);
+        if (core.machine === EM_XTENSA) {
+          const pcs = unwindXtensa(core);
+          if (pcs.length === 0) throw new Error("unwind produced no frames");
+          backtraceAddrs = pcs;
+          updateCommands();
+          renderSymbols();
+          logLine("sys", "Unwound " + pcs.length + " frame(s) from the core dump" +
+                  (symbols ? "; resolved against the loaded ELF (table above the console)." :
+                             ". Load your app ELF to resolve them to symbols."));
+        } else if (core.machine === EM_RISCV) {
+          logLine("err", "RISC-V backtrace needs DWARF CFI unwinding, not yet implemented in the " +
+                  "browser. Download core.elf and run the espcoredump.py command above.");
+        } else {
+          logLine("err", "Unsupported core-dump machine type 0x" + core.machine.toString(16) + ".");
+        }
+      } catch (e) {
+        logLine("err", "Core-dump analysis failed: " + e.message);
+      } finally {
+        busy = false; updateUI();
+        if (transport) setStatus("connected", "Connected");
+      }
+    }
+    els.analyzeBtn.addEventListener("click", analyzeCoreDump);
+
+    // ===================================================================
+    // Client-side nearest-symbol resolution (ELF32 LE symtab/strtab; no DWARF)
+    // ===================================================================
+    let symbols = null; // sorted [{ value, size, name }]
+
+    function parseElfSymbols(bytes) {
+      if (bytes.length < 52) throw new Error("file too small to be an ELF");
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      if (view.getUint32(0, false) !== 0x7F454C46) throw new Error("not an ELF file (bad magic)");
+      if (bytes[4] !== 1) throw new Error("not a 32-bit ELF (ESP app ELFs are ELF32)");
+      if (bytes[5] !== 1) throw new Error("not a little-endian ELF");
+      // e_type at 0x10 (u16 LE). ET_CORE (4) means the downloaded core dump was
+      // picked by mistake - it carries no function symbols. Point at the app ELF.
+      if (view.getUint16(0x10, true) === 4)
+        throw new Error("this is a core-dump ELF (core.elf), not your firmware - " +
+                        "pick your app build ELF (e.g. build/coredump_example.elf) instead");
+      const shoff = view.getUint32(0x20, true);
+      const shentsize = view.getUint16(0x2E, true);
+      const shnum = view.getUint16(0x30, true);
+      if (!shoff || !shnum) throw new Error("ELF has no section headers (stripped?)");
+      // ELF32 section headers are 40 bytes; a smaller e_shentsize is malformed and
+      // would make the loop below reread/misread headers.
+      if (shentsize < 40)
+        throw new Error(`invalid ELF section header entry size (${shentsize} < 40)`);
+      if (shoff + shnum * shentsize > bytes.length) throw new Error("truncated section headers");
+      const sections = [];
+      for (let i = 0; i < shnum; i++) {
+        const off = shoff + i * shentsize;
+        if (off + 40 > bytes.length) throw new Error("truncated section headers");
+        sections.push({
+          type: view.getUint32(off + 4, true),
+          offset: view.getUint32(off + 16, true),
+          size: view.getUint32(off + 20, true),
+          link: view.getUint32(off + 24, true),
+          entsize: view.getUint32(off + 36, true),
+        });
+      }
+      const symtab = sections.find((s) => s.type === 2); // SHT_SYMTAB
+      if (!symtab)
+        throw new Error("no .symtab section - is this a stripped or core-dump ELF? " +
+                        "pick your app build ELF (build/<app>.elf)");
+      const strtab = sections[symtab.link];
+      if (!strtab) throw new Error("symtab has no linked string table");
+      // Clamp the string table to the file so a malformed strtab header can't
+      // send name reads out of bounds.
+      const strtabEnd = Math.min(strtab.offset + strtab.size, bytes.length);
+      if (strtab.offset >= strtabEnd) throw new Error("string table lies outside the file");
+      if (symtab.entsize !== 0 && symtab.entsize < 16)
+        throw new Error(`invalid ELF symbol entry size (${symtab.entsize} < 16)`);
+      const entsize = symtab.entsize || 16;
+      const symtabEnd = Math.min(symtab.offset + symtab.size, bytes.length);
+      if (symtab.offset >= symtabEnd) throw new Error("symbol table lies outside the file");
+      const count = Math.floor((symtabEnd - symtab.offset) / entsize);
+      const decoder = new TextDecoder();
+      const readName = (nameOffset) => {
+        // Names must start inside the string table; the NUL scan is capped at
+        // the table's end (and 512 B) so it can't run into unrelated sections.
+        if (!(nameOffset >= 0 && nameOffset < strtab.size)) return "";
+        const start = strtab.offset + nameOffset;
+        if (start >= strtabEnd) return "";
+        let end = start;
+        while (end < strtabEnd && bytes[end] !== 0 && end - start < 512) end++;
+        return decoder.decode(bytes.subarray(start, end));
+      };
+      const out = [];
+      for (let i = 0; i < count; i++) {
+        const off = symtab.offset + i * entsize;
+        if (off + 16 > bytes.length) break;
+        const info = bytes[off + 12];
+        const type = info & 0xF;
+        if (type !== 2) continue; // STT_FUNC only
+        const value = view.getUint32(off + 4, true);
+        if (value === 0) continue;
+        out.push({ value: value >>> 0, size: view.getUint32(off + 8, true),
+                   name: readName(view.getUint32(off, true)) });
+      }
+      if (out.length === 0) throw new Error("no function symbols found");
+      out.sort((a, b) => a.value - b.value);
+      return out;
+    }
+
+    function resolveAddress(addr) {
+      if (!symbols) return null;
+      // binary search: greatest symbol value <= addr
+      let lo = 0, hi = symbols.length - 1, best = -1;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (symbols[mid].value <= addr) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
+      }
+      if (best < 0) return null;
+      const sym = symbols[best];
+      const offset = addr - sym.value;
+      // reject absurd distances (address not in any known function)
+      if (sym.size > 0 ? offset >= sym.size + 64 : offset > 0x4000) return null;
+      return { name: sym.name, offset, inexact: sym.size > 0 && offset >= sym.size };
+    }
+
+    function renderSymbols() {
+      const tbody = els.symTable.querySelector("tbody");
+      tbody.textContent = "";
+      if (!symbols || backtraceAddrs.length === 0) {
+        els.symTable.hidden = true;
+        return;
+      }
+      backtraceAddrs.forEach((addrText, i) => {
+        const addr = parseInt(addrText, 16) >>> 0;
+        const resolved = resolveAddress(addr);
+        const tr = document.createElement("tr");
+        const cells = [
+          "#" + i,
+          addrText,
+          resolved ? resolved.name + (resolved.inexact ? " (past end?)" : "") : "(no nearby symbol)",
+          resolved ? "+0x" + resolved.offset.toString(16) : "-",
+        ];
+        for (const text of cells) {
+          const td = document.createElement("td");
+          td.textContent = text;
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      });
+      els.symTable.hidden = false;
+    }
+
+    els.elfInput.addEventListener("change", async () => {
+      const file = els.elfInput.files && els.elfInput.files[0];
+      if (!file) return;
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        symbols = parseElfSymbols(bytes);
+        els.elfInfo.textContent = file.name + ": " + symbols.length.toLocaleString() +
+          " function symbols loaded (nearest-symbol resolution, no DWARF).";
+        els.elfInfo.className = "muted";
+        renderSymbols();
+        if (backtraceAddrs.length === 0) {
+          logLine("sys", "Loaded " + symbols.length + " symbols from " + file.name +
+                  ", but there are no backtrace addresses yet - fetch a crash summary " +
+                  "(Refresh) first; the resolved table appears above the console.");
+        } else {
+          logLine("sys", "Loaded " + symbols.length + " symbols from " + file.name +
+                  "; resolved " + backtraceAddrs.length +
+                  " backtrace address(es) - see the table above the console.");
+        }
+      } catch (e) {
+        symbols = null;
+        els.elfInfo.textContent = file.name + ": " + e.message;
+        els.elfInfo.className = "warn-text";
+        renderSymbols();
+        logLine("err", "ELF parse failed: " + e.message);
+      }
+    });
+
+    // ===================================================================
+    // Console input (Web Serial only): send text commands to the device
+    // console sharing the CDC stream (e.g. 'help', 'crash', 'report').
+    // ===================================================================
+    async function sendConsoleLine() {
+      if (!transport || transport.kind !== "serial") return;
+      const line = els.consoleInput.value;
+      if (!line) return;
+      els.consoleInput.value = "";
+      logLine("tx", "> " + line);
+      try {
+        await transport.send(new TextEncoder().encode(line + "\n"));
+      } catch (e) {
+        logLine("err", "Send failed: " + e.message);
+      }
+    }
+    els.consoleSendBtn.addEventListener("click", sendConsoleLine);
+    els.consoleInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendConsoleLine(); });
+
+    // Test-crash buttons. Over WebUSB (vendor) send a module-1 TRIGGER_CRASH
+    // (type 0x00) frame carrying the CrashKind byte; over Web Serial (CDC text
+    // console) send the equivalent text command. CrashKind: 1=null-ptr,
+    // 2=assert, 3=divzero, 4=hang.
+    async function triggerCrash(kind, textCmd, label) {
+      if (!transport) return;
+      logLine("tx", "> trigger crash: " + label);
+      try {
+        if (transport.kind === "usb") {
+          await transport.send(buildFrame(MODULE_CRASH, TYPE.TRIGGER_CRASH, new Uint8Array([kind])));
+        } else {
+          await transport.send(new TextEncoder().encode(textCmd + "\n"));
+        }
+        logLine("sys", "Crash requested (" + label + "); the device will crash/reset shortly. " +
+                "Reconnect after it reboots, then Refresh the summary.");
+      } catch (e) {
+        logLine("err", "Trigger failed: " + e.message);
+      }
+    }
+    els.crashNullBtn.addEventListener("click", () => triggerCrash(1, "crash", "null-pointer write"));
+    els.crashAssertBtn.addEventListener("click", () => triggerCrash(2, "assert", "failed assert"));
+    els.crashDivBtn.addEventListener("click", () => triggerCrash(3, "divzero", "divide by zero"));
+    els.crashHangBtn.addEventListener("click", () => triggerCrash(4, "hang", "INT_WDT hang (no core dump)"));
+
+    updateUI();
+    logLine("sys", "espp Core Dump Console ready. Connect a device running the espp coredump example " +
+            "(WebUSB vendor interface, or Web Serial for the CDC console+protocol stream).");
+  </script>
+</body>
+</html>
