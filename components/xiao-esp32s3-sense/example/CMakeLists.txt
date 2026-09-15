@@ -29,3 +29,15 @@ set(
 project(xiao_esp32s3_sense_example)
 
 set(CMAKE_CXX_STANDARD 20)
+
+# The mDNS component (espressif/mdns from the registry, or the vendored copy)
+# trips -Werror=stringop-truncation under the ESP-IDF v6 toolchain (GCC 15). It
+# is third-party code this example only consumes, so keep the warning but do not
+# let it fail the build. Scoped to that one component; espp code stays -Werror.
+idf_build_get_property(_build_components BUILD_COMPONENTS)
+foreach(_mdns_name IN ITEMS mdns espressif__mdns)
+  if("${_mdns_name}" IN_LIST _build_components)
+    idf_component_get_property(_mdns_lib ${_mdns_name} COMPONENT_LIB)
+    target_compile_options(${_mdns_lib} PRIVATE -Wno-error=stringop-truncation)
+  endif()
+endforeach()
