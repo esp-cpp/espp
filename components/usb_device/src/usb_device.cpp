@@ -69,7 +69,6 @@ struct UsbDevice::Callbacks {
   static const std::optional<UsbDevice::VendorFunction> &vendor_config(UsbDevice *d) {
     return d->vendor_config();
   }
-  // cppcheck-suppress constParameterPointer // handle_msc_event() is non-const
   static void msc_event(UsbDevice *d, const void *storage, UsbDevice::MscEvent e,
                         UsbDevice::MscOwner o) {
     d->handle_msc_event(storage, e, o);
@@ -406,6 +405,10 @@ void msc_event_trampoline(tinyusb_msc_storage_handle_t handle, tinyusb_msc_event
   default:
     return;
   }
+  // event->mount_point is the medium's owner at the moment the event is emitted:
+  // esp_tinyusb emits MOUNT_START before it updates the owner (the previous
+  // owner) and MOUNT_COMPLETE after (the new owner) -- tinyusb_msc.c
+  // msc_storage_mount() / msc_storage_unmount().
   const auto owner = event->mount_point == TINYUSB_MSC_STORAGE_MOUNT_APP
                          ? espp::UsbDevice::MscOwner::App
                          : espp::UsbDevice::MscOwner::Host;
@@ -809,19 +812,20 @@ bool UsbDevice::initialize(std::error_code &ec) {
         return false;
       }
       if (m.type == MscMedium::Type::SdCard) {
-#if !SOC_SDMMC_HOST_SUPPORTED
+        if (!m.sd_card) {
+          logger_.error("MSC medium {}: type SdCard but sd_card is null", i);
+          ec = std::make_error_code(std::errc::invalid_argument);
+          return false;
+        }
+#if SOC_SDMMC_HOST_SUPPORTED
+        ++sd_cards;
+#else
         logger_.error("MSC medium {}: SD card media need a target with an SDMMC host "
                       "(esp_tinyusb's SD backend is not built for this target)",
                       i);
         ec = std::make_error_code(std::errc::function_not_supported);
         return false;
 #endif
-        if (!m.sd_card) {
-          logger_.error("MSC medium {}: type SdCard but sd_card is null", i);
-          ec = std::make_error_code(std::errc::invalid_argument);
-          return false;
-        }
-        ++sd_cards;
       } else {
         if (m.partition_label.empty()) {
           logger_.error("MSC medium {}: type FlashPartition but partition_label is empty", i);
@@ -2095,6 +2099,7 @@ bool UsbDevice::init_msc(std::error_code &ec) {
     lun.base_path = m.base_path; // esp_tinyusb keeps a pointer to this string
 
     tinyusb_msc_storage_config_t storage_cfg{};
+    // data(), not c_str(): the esp_tinyusb field is a non-const `char *`
     storage_cfg.fat_fs.base_path = lun.base_path.data();
     storage_cfg.fat_fs.config.max_files = m.max_files;
     storage_cfg.fat_fs.do_not_format = !m.format_if_unformatted;
@@ -2199,9 +2204,15 @@ void UsbDevice::handle_msc_event(const void *storage, MscEvent event, MscOwner o
   case MscEvent::OwnerChanged:
     break;
   case MscEvent::OwnerChangeFailed:
-  case MscEvent::FormatFailed:
     lun.last_result = 1;
-    logger_.warn("MSC medium {}: hand-over failed", lun_index);
+    logger_.warn("MSC medium {}: hand-over to the {} failed (mount / unmount error)", lun_index,
+                 owner == MscOwner::App ? "application" : "host");
+    break;
+  case MscEvent::FormatFailed:
+    // esp_tinyusb reports no error code with this event; its own log (tag
+    // "tinyusb_msc_storage") has the FatFs result
+    lun.last_result = 1;
+    logger_.warn("MSC medium {}: formatting the FAT filesystem failed", lun_index);
     break;
   case MscEvent::FormatRequired:
     lun.last_result = 2;
