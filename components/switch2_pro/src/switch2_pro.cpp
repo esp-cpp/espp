@@ -175,7 +175,14 @@ bool Switch2Pro::init() {
   // On reconnect the console skips the 0x15 pairing and jumps straight to LL
   // encryption, so the LTK must already be in NimBLE's store before it connects.
   if (reconnect_mode_) {
-    if (!inject_ltk(bond_peer_type_, bond_peer_val_.data()))
+    uint8_t peer_type = 0;
+    std::array<uint8_t, 6> peer_val{};
+    {
+      std::lock_guard<std::mutex> lk(bond_mutex_);
+      peer_type = bond_peer_type_;
+      peer_val = bond_peer_val_;
+    }
+    if (!inject_ltk(peer_type, peer_val.data()))
       logger_.error("reconnect: pre-loading the stored LTK failed — a bonded reconnect/wake "
                     "will not encrypt; call clear_bond() and re-pair to recover");
     if (wake_console_on_boot_) {
@@ -565,10 +572,19 @@ bool Switch2Pro::advertise() {
   // variant from its idle screens, and a waking console may transiently
   // connect/drop (which re-enters here) — the latch keeps the wake variant on
   // the air until a connection actually completes.
-  if (reconnect_mode_ && (boot_wake_pending_ || wake_pending_))
-    return start_advertising(AdvMode::Wake, host_addr_);
-  if (reconnect_mode_)
-    return start_advertising(AdvMode::Reconnect, host_addr_);
+  bool reconnect = false;
+  std::array<uint8_t, 6> host_addr{};
+  {
+    // snapshot the mode and the address together (clear_bond resets both under
+    // this lock), then advertise without holding it
+    std::lock_guard<std::mutex> lk(bond_mutex_);
+    reconnect = reconnect_mode_;
+    host_addr = host_addr_;
+  }
+  if (reconnect && (boot_wake_pending_ || wake_pending_))
+    return start_advertising(AdvMode::Wake, host_addr);
+  if (reconnect)
+    return start_advertising(AdvMode::Reconnect, host_addr);
   return start_advertising(AdvMode::Discovery);
 }
 
@@ -580,12 +596,19 @@ bool Switch2Pro::wake_console() {
   // it becomes nonzero mid-pairing (EXCHANGE_ADDRESSES), before any bond exists, so
   // a failed pairing would otherwise let this emit a wake advertisement.
   static constexpr std::array<uint8_t, 6> kZeroAddr{};
-  if (!reconnect_mode_ || host_addr_ == kZeroAddr)
+  bool reconnect = false;
+  std::array<uint8_t, 6> host_addr{};
+  {
+    std::lock_guard<std::mutex> lk(bond_mutex_);
+    reconnect = reconnect_mode_;
+    host_addr = host_addr_;
+  }
+  if (!reconnect || host_addr == kZeroAddr)
     return false; // no bonded console to wake
   logger_.info("wake: broadcasting wake advertisement (user-requested)");
   wake_pending_ = true; // keep the wake variant on the air (across any transient
                         // connect/drop while the console boots) until connected
-  if (!start_advertising(AdvMode::Wake, host_addr_)) {
+  if (!start_advertising(AdvMode::Wake, host_addr)) {
     wake_pending_ = false; // nothing is on the air — don't leave the latch set
     logger_.error("wake: failed to start the wake advertisement");
     return false;
@@ -1014,7 +1037,10 @@ bool Switch2Pro::inject_ltk(uint8_t peer_type, const uint8_t *peer_val_le) {
   // be in the same order the console's controller uses: ltk_ (= A1 ^ B1) as
   // computed. (The 0x03/0x07 "send pairing info" blob is this value reversed,
   // but that is just the on-wire transmission form, not the key order.)
-  std::copy(ltk_.begin(), ltk_.end(), sec.ltk);
+  {
+    std::lock_guard<std::mutex> lk(bond_mutex_);
+    std::copy(ltk_.begin(), ltk_.end(), sec.ltk);
+  }
   sec.ltk_present = 1;
   sec.authenticated = 1;
   int rc = ble_store_write_our_sec(&sec);
@@ -1047,8 +1073,11 @@ void Switch2Pro::save_bond() {
   b.magic = kBondMagic;
   b.peer_type = desc.peer_id_addr.type;
   std::copy(std::begin(desc.peer_id_addr.val), std::end(desc.peer_id_addr.val), b.peer_val);
-  std::copy(ltk_.begin(), ltk_.end(), b.ltk);
-  std::copy(host_addr_.begin(), host_addr_.end(), b.host_addr);
+  {
+    std::lock_guard<std::mutex> lk(bond_mutex_);
+    std::copy(ltk_.begin(), ltk_.end(), b.ltk);
+    std::copy(host_addr_.begin(), host_addr_.end(), b.host_addr);
+  }
   // Persist via the espp NVS component (set_var writes the blob and commits).
   std::vector<uint8_t> blob(sizeof(b));
   std::memcpy(blob.data(), &b, sizeof(b));
@@ -1057,8 +1086,11 @@ void Switch2Pro::save_bond() {
   nvs.set_var(kNvsNamespace, kNvsBondKey, blob, ec);
   // Keep the bond in RAM regardless so this session can still reconnect/wake; only
   // persistence across a reboot is lost if the write failed.
-  bond_peer_type_ = b.peer_type;
-  std::copy(std::begin(b.peer_val), std::end(b.peer_val), bond_peer_val_.begin());
+  {
+    std::lock_guard<std::mutex> lk(bond_mutex_);
+    bond_peer_type_ = b.peer_type;
+    std::copy(std::begin(b.peer_val), std::end(b.peer_val), bond_peer_val_.begin());
+  }
   if (ec)
     logger_.error("save_bond: NVS write failed ({}) — bond kept in RAM for this boot, but "
                   "reconnect/wake after a reboot will not work",
@@ -1078,6 +1110,7 @@ bool Switch2Pro::load_bond() {
   std::memcpy(&b, blob.data(), sizeof(b));
   if (b.magic != kBondMagic)
     return false;
+  std::lock_guard<std::mutex> lk(bond_mutex_);
   bond_peer_type_ = b.peer_type;
   std::copy(std::begin(b.peer_val), std::end(b.peer_val), bond_peer_val_.begin());
   std::copy(std::begin(b.ltk), std::end(b.ltk), ltk_.begin());
@@ -1126,23 +1159,31 @@ bool Switch2Pro::clear_bond() {
   // still in RAM, before it is zeroed below.
   if (paired_ || reconnect_mode_) {
     ble_addr_t peer{};
-    peer.type = bond_peer_type_;
-    std::copy(bond_peer_val_.begin(), bond_peer_val_.end(), peer.val);
+    {
+      std::lock_guard<std::mutex> lk(bond_mutex_);
+      peer.type = bond_peer_type_;
+      std::copy(bond_peer_val_.begin(), bond_peer_val_.end(), peer.val);
+    }
     int rc = ble_gap_unpair(&peer);
     if (rc != 0 && rc != BLE_HS_ENOENT) { // ENOENT = nothing stored for this peer
       logger_.error("clear_bond: failed to delete the NimBLE security record (rc={})", rc);
       ok = false;
     }
   }
-  // Reset in-memory bond state back to fresh-pairing (discovery) mode.
-  reconnect_mode_ = false;
-  paired_ = false;
-  wake_pending_ = false;
-  boot_wake_pending_ = false;
-  bond_peer_type_ = 0;
-  bond_peer_val_ = {};
-  host_addr_ = {};
-  ltk_ = {};
+  // Reset in-memory bond state back to fresh-pairing (discovery) mode. The mode
+  // flag and the identity are reset under one lock, so a concurrent advertise()
+  // sees either the old bond or none -- never a half-cleared address.
+  {
+    std::lock_guard<std::mutex> lk(bond_mutex_);
+    reconnect_mode_ = false;
+    paired_ = false;
+    wake_pending_ = false;
+    boot_wake_pending_ = false;
+    bond_peer_type_ = 0;
+    bond_peer_val_ = {};
+    host_addr_ = {};
+    ltk_ = {};
+  }
   logger_.info("bond cleared — returning to fresh-pairing (discovery) mode");
   // If nothing is connected, re-advertise now so we are discoverable for a fresh
   // pairing immediately (advertise() picks Discovery since reconnect_mode_ is off).
@@ -1165,15 +1206,24 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
     // connection address to its identity; this app-level exchange is where we get
     // the stable address.) Previously we byte-reversed payload[0..5], which read
     // the 0x00/count prefix as the address — garbage the console never recognises.
-    if (len >= 8) {
-      std::copy(payload + 2, payload + 8, host_addr_.begin());
-      pairing_stage_ = 1;
-      logger_.info(
-          "pairing: stored console identity addr {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
-          host_addr_[5], host_addr_[4], host_addr_[3], host_addr_[2], host_addr_[1], host_addr_[0]);
-    } else {
-      logger_.warn("pairing: exchange-addresses payload too short ({} bytes)", len);
+    // A malformed request cannot start a handshake that could ever complete:
+    // reject it without the success reply (like FINALISE below) so the console
+    // does not carry on, and restart the sequence.
+    if (len < 8) {
+      logger_.warn("pairing: exchange-addresses rejected — payload too short ({} bytes)", len);
+      pairing_stage_ = 0;
+      break;
     }
+    std::array<uint8_t, 6> host_addr{};
+    std::copy(payload + 2, payload + 8, host_addr.begin());
+    {
+      std::lock_guard<std::mutex> lk(bond_mutex_);
+      host_addr_ = host_addr;
+    }
+    pairing_stage_ = 1;
+    logger_.info("pairing: stored console identity addr {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
+                 host_addr[5], host_addr[4], host_addr[3], host_addr[2], host_addr[1],
+                 host_addr[0]);
     // Reply: {0x01, 0x04, 0x01} + our BT address. The 0x04/0x01 prefix bytes
     // are as observed in captures; address byte order to be confirmed on HW.
     const auto addr = local_bt_address();
@@ -1188,15 +1238,20 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
   }
   case PairingSub::EXCHANGE_KEYS: {
     // Request data is [0x00][A1 (16 bytes)] — skip the leading 0x00.
-    if (pairing_stage_ >= 1 && len >= 17) {
+    if (pairing_stage_ < 1 || len < 17) {
+      logger_.warn("pairing: exchange-keys rejected — out of order or short (stage={}, len={})",
+                   pairing_stage_, len);
+      pairing_stage_ = 0;
+      break;
+    }
+    {
       std::array<uint8_t, 16> a1{};
       std::copy(payload + 1, payload + 17, a1.begin());
-      ltk_ = PairingCrypto::derive_ltk(a1);
-      pairing_stage_ = 2;
-    } else {
-      logger_.warn("pairing: exchange-keys out of order or short (stage={}, len={})",
-                   pairing_stage_, len);
+      const auto ltk = PairingCrypto::derive_ltk(a1);
+      std::lock_guard<std::mutex> lk(bond_mutex_);
+      ltk_ = ltk;
     }
+    pairing_stage_ = 2;
     // Reply: {0x01} + fixed controller key B1.
     std::array<uint8_t, 17> reply{0x01};
     std::copy(CONTROLLER_KEY_B1.begin(), CONTROLLER_KEY_B1.end(), reply.begin() + 1);
@@ -1207,16 +1262,21 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
   }
   case PairingSub::CONFIRM_LTK: {
     // Request data is [0x00][A2 challenge (16 bytes)] — skip the leading 0x00.
-    std::array<uint8_t, 16> b2{};
-    if (pairing_stage_ >= 2 && len >= 17) {
-      std::array<uint8_t, 16> a2{};
-      std::copy(payload + 1, payload + 17, a2.begin());
-      b2 = PairingCrypto::confirm(ltk_, a2);
-      pairing_stage_ = 3;
-    } else {
-      logger_.warn("pairing: confirm out of order or short (stage={}, len={})", pairing_stage_,
-                   len);
+    if (pairing_stage_ < 2 || len < 17) {
+      logger_.warn("pairing: confirm rejected — out of order or short (stage={}, len={})",
+                   pairing_stage_, len);
+      pairing_stage_ = 0;
+      break;
     }
+    std::array<uint8_t, 16> a2{};
+    std::copy(payload + 1, payload + 17, a2.begin());
+    std::array<uint8_t, 16> ltk{};
+    {
+      std::lock_guard<std::mutex> lk(bond_mutex_);
+      ltk = ltk_;
+    }
+    const std::array<uint8_t, 16> b2 = PairingCrypto::confirm(ltk, a2);
+    pairing_stage_ = 3;
     // Reply: {0x01} + B2 = AES-128-ECB(rev(LTK), rev(A2)).
     std::array<uint8_t, 17> reply{0x01};
     std::copy(b2.begin(), b2.end(), reply.begin() + 1);

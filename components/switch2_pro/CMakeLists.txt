@@ -2,7 +2,9 @@ idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src"
   REQUIRES base_component ble_gatt_server esp-nimble-cpp nvs timer
-  PRIV_REQUIRES mbedtls)
+  # esp_hw_support (esp_mac.h), esp_timer (esp_timer.h) and pthread
+  # (esp_pthread.h) are only included by the sources, so they are private
+  PRIV_REQUIRES mbedtls esp_hw_support esp_timer pthread)
 
 # Opt-in: patch the prebuilt BLE controller library to accept the console's
 # sub-spec 5 ms connection interval. Off by default. Covers ONLY the open RISC-V

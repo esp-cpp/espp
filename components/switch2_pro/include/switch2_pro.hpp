@@ -128,9 +128,10 @@ public:
   /// (or none was stored); false if the NVS erase/commit failed.
   bool clear_bond();
 
-  /// Whether the console has subscribed to the input characteristic (0x000e) and
-  /// we are actively streaming input reports. Goes true near the end of init and
-  /// false on disconnect; useful for driving post-connect behaviour (e.g. the
+  /// Whether the console has subscribed to the input characteristic (0x000e) on an
+  /// LL-encrypted connection, i.e. the stream loop is actually sending input
+  /// reports. Goes true once the subscribed link is encrypted and false on
+  /// disconnect; useful for driving post-connect behaviour (e.g. the
   /// L+R "select this controller" prompt) from the application.
   bool is_input_streaming() const {
     return input_subscribed_ && encrypted_ && active_conn_handle_ != 0xffff;
@@ -355,6 +356,14 @@ protected:
   /// Current connection handle (0xffff = BLE_HS_CONN_HANDLE_NONE). Written from the
   /// NimBLE connect/disconnect callbacks, read by the streaming/timer threads — atomic.
   std::atomic<uint16_t> active_conn_handle_{0xffff};
+  /// Guards the bond / session identity below. It is written by the pairing
+  /// handler (NimBLE host task), load/save/clear_bond (init, host task, app
+  /// task) and read by advertise() / wake_console() / inject_ltk() (host task,
+  /// wake timer, app task). Readers copy what they need under the lock and call
+  /// NimBLE after releasing it; clear_bond() resets the fields together with
+  /// reconnect_mode_ under it, so an advertisement never embeds a half-cleared
+  /// address.
+  mutable std::mutex bond_mutex_;
   std::array<uint8_t, 16> ltk_{};          ///< derived during key exchange (A1 ^ B1)
   std::array<uint8_t, 6> host_addr_{};     ///< console BD_ADDR (from exchange-addresses)
   uint8_t bond_peer_type_{0};              ///< persisted console address type
