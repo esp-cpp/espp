@@ -1,6 +1,6 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
-description: "Composable native USB device (esp_tinyusb): CDC-ACM + vendor-specific/WebUSB with configurable VID/PID for ESP-IDF"
+description: "Composable native USB device (esp_tinyusb): CDC-ACM, vendor-specific/WebUSB, HID, X-Input and mass storage (MSC) with configurable VID/PID for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/usb_device"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
@@ -9,6 +9,7 @@ documentation: "https://esp-cpp.github.io/espp/buses/usb_cdc.html"
 examples:
   - path: example
   - path: xinput_example
+  - path: msc_example
 tags:
   - cpp
   - Component
@@ -22,6 +23,9 @@ tags:
   - HID
   - XInput
   - Gamepad
+  - MSC
+  - Mass-Storage
+  - SD-Card
 dependencies:
   idf:
     version: '>=5.0'

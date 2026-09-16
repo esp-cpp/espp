@@ -32,6 +32,14 @@
 // usbd_app_driver_get_cb). `src/device` is a private include of the tinyusb
 // component, but `src/` is public, so reach it via the `device/` prefix.
 #include "device/usbd_pvt.h"
+// MSC: esp_tinyusb's storage backend (SCSI callbacks, SD card / wear-levelled
+// flash media, VFS hand-over). Compiled in only with CONFIG_TINYUSB_MSC_ENABLED.
+#if (CFG_TUD_MSC > 0)
+#include "esp_partition.h"
+#include "soc/soc_caps.h"
+#include "tinyusb_msc.h"
+#include "wear_levelling.h"
+#endif
 
 #include "xinput.hpp"
 
@@ -60,6 +68,11 @@ struct UsbDevice::Callbacks {
   }
   static const std::optional<UsbDevice::VendorFunction> &vendor_config(UsbDevice *d) {
     return d->vendor_config();
+  }
+  // cppcheck-suppress constParameterPointer // handle_msc_event() is non-const
+  static void msc_event(UsbDevice *d, const void *storage, UsbDevice::MscEvent e,
+                        UsbDevice::MscOwner o) {
+    d->handle_msc_event(storage, e, o);
   }
 };
 } // namespace espp
@@ -185,6 +198,9 @@ constexpr TickType_t kUsbWriteDrainPollTicks = pdMS_TO_TICKS(1) > 0 ? pdMS_TO_TI
 // fit.
 constexpr uint8_t kMaxInEndpoints = 5;
 constexpr uint8_t kMaxOutEndpoints = 5;
+// esp_tinyusb's MSC storage backend supports two LUNs, and at most one medium of
+// each type (its SD card and wear-levelling media are singletons).
+constexpr size_t kMaxMscLuns = 2;
 
 // The MS OS 2.0 descriptor set length used below (fixed by the registry-property
 // payload; identical to TinyUSB's webusb_serial example).
@@ -359,6 +375,45 @@ extern "C" usbd_class_driver_t const *usbd_app_driver_get_cb(uint8_t *driver_cou
   return &s_xinput_class_driver;
 }
 
+#if (CFG_TUD_MSC > 0)
+namespace {
+// esp_tinyusb MSC storage event -> UsbDevice. Fires in the TinyUSB task for
+// host-driven hand-overs and in the calling task for set_msc_owner() / storage
+// creation. Loads the teardown-guarded singleton, like the other trampolines.
+// cppcheck-suppress constParameterCallback // signature must match tusb_msc_callback_t
+void msc_event_trampoline(tinyusb_msc_storage_handle_t handle, tinyusb_msc_event_t *event, void *) {
+  auto *dev = s_device.load();
+  if (!dev || !event)
+    return;
+  using Event = espp::UsbDevice::MscEvent;
+  Event e = Event::OwnerChangeFailed;
+  switch (event->id) {
+  case TINYUSB_MSC_EVENT_MOUNT_START:
+    e = Event::OwnerChangeStarted;
+    break;
+  case TINYUSB_MSC_EVENT_MOUNT_COMPLETE:
+    e = Event::OwnerChanged;
+    break;
+  case TINYUSB_MSC_EVENT_MOUNT_FAILED:
+    e = Event::OwnerChangeFailed;
+    break;
+  case TINYUSB_MSC_EVENT_FORMAT_REQUIRED:
+    e = Event::FormatRequired;
+    break;
+  case TINYUSB_MSC_EVENT_FORMAT_FAILED:
+    e = Event::FormatFailed;
+    break;
+  default:
+    return;
+  }
+  const auto owner = event->mount_point == TINYUSB_MSC_STORAGE_MOUNT_APP
+                         ? espp::UsbDevice::MscOwner::App
+                         : espp::UsbDevice::MscOwner::Host;
+  espp::UsbDevice::Callbacks::msc_event(dev, handle, e, owner);
+}
+} // namespace
+#endif // CFG_TUD_MSC > 0
+
 namespace espp {
 
 // Storage for the descriptors that TinyUSB references by pointer for the lifetime
@@ -390,6 +445,25 @@ struct UsbDevice::Impl {
   // the aligned-down address, prepending the preceding byte to every report
   // (which shifted our "00 14 .." report by one and made XUSB reject all input).
   alignas(4) std::array<uint8_t, espp::xinput::kReportInSize> xinput_report{};
+
+#if (CFG_TUD_MSC > 0)
+  // MSC media. A fixed array (never a growing vector): esp_tinyusb keeps a raw
+  // pointer to each base_path string for the storage object's lifetime.
+  struct MscLun {
+    tinyusb_msc_storage_handle_t storage{nullptr};
+    wl_handle_t wl{WL_INVALID_HANDLE}; // flash media: our wear-levelling mount
+    std::string base_path;
+    // Result of the last hand-over, recorded by the event bridge so
+    // set_msc_owner() can report it (esp_tinyusb's setter ignores the outcome).
+    std::atomic<uint8_t> last_result{0}; // 0 ok, 1 failed, 2 no filesystem
+  };
+  std::array<MscLun, kMaxMscLuns> msc_luns{};
+  size_t msc_lun_count{0};
+  // LUN whose storage object is being created: its events arrive (in the
+  // creating task) before the handle is known.
+  std::atomic<int> msc_creating_lun{-1};
+  bool msc_driver_installed{false};
+#endif
 };
 
 UsbDevice *UsbDevice::instance() { return s_device; }
@@ -401,7 +475,8 @@ UsbDevice::UsbDevice(const Config &config)
     , on_cdc_receive_(config.cdc ? config.cdc->on_receive : nullptr)
     , on_vendor_receive_(config.vendor ? config.vendor->on_receive : nullptr)
     , on_xinput_rumble_(config.xinput ? config.xinput->on_rumble : nullptr)
-    , on_hid_receive_(config.hid ? config.hid->on_receive : nullptr) {}
+    , on_hid_receive_(config.hid ? config.hid->on_receive : nullptr)
+    , on_msc_event_(config.msc ? config.msc->on_event : nullptr) {}
 
 UsbDevice::~UsbDevice() {
 #if (CFG_TUD_CDC > 0)
@@ -430,6 +505,9 @@ UsbDevice::~UsbDevice() {
       tinyusb_cdcacm_deinit(kCdcPort);
 #endif
     tinyusb_driver_uninstall();
+    // After the TinyUSB task is stopped, so no SCSI request can reach a medium
+    // being torn down. Unmounts the application's VFS path for App-owned media.
+    deinit_msc();
     initialized_ = false;
   }
 }
@@ -698,16 +776,68 @@ bool UsbDevice::initialize(std::error_code &ec) {
     ec = std::make_error_code(std::errc::device_or_resource_busy);
     return false;
   }
-  if (!config_.cdc && !config_.vendor && !config_.hid && !config_.xinput) {
-    logger_.error("No USB function enabled (enable cdc, vendor, hid and/or xinput)");
+  if (!config_.cdc && !config_.vendor && !config_.hid && !config_.xinput && !config_.msc) {
+    logger_.error("No USB function enabled (enable cdc, vendor, hid, xinput and/or msc)");
     ec = std::make_error_code(std::errc::invalid_argument);
     return false;
   }
   if (config_.msc) {
-    // Reserved extension point; not implemented yet (see README endpoint table).
-    logger_.error("MSC function is not implemented yet");
+#if (CFG_TUD_MSC == 0)
+    logger_.error("MSC function requested but CFG_TUD_MSC==0. Set "
+                  "CONFIG_TINYUSB_MSC_ENABLED=y in sdkconfig.");
     ec = std::make_error_code(std::errc::function_not_supported);
     return false;
+#else
+    const auto &media = config_.msc->media;
+    if (media.empty() || media.size() > kMaxMscLuns) {
+      logger_.error("MSC function needs 1..{} media, got {}", kMaxMscLuns, media.size());
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+    size_t sd_cards = 0, partitions = 0;
+    for (size_t i = 0; i < media.size(); ++i) {
+      const auto &m = media[i];
+      if (m.base_path.size() < 2 || m.base_path.front() != '/') {
+        logger_.error("MSC medium {}: base_path '{}' must be an absolute VFS path like '/msc'", i,
+                      m.base_path);
+        ec = std::make_error_code(std::errc::invalid_argument);
+        return false;
+      }
+      if (i > 0 && media[0].base_path == m.base_path) {
+        logger_.error("MSC media 0 and 1 share base_path '{}'; each needs its own", m.base_path);
+        ec = std::make_error_code(std::errc::invalid_argument);
+        return false;
+      }
+      if (m.type == MscMedium::Type::SdCard) {
+#if !SOC_SDMMC_HOST_SUPPORTED
+        logger_.error("MSC medium {}: SD card media need a target with an SDMMC host "
+                      "(esp_tinyusb's SD backend is not built for this target)",
+                      i);
+        ec = std::make_error_code(std::errc::function_not_supported);
+        return false;
+#endif
+        if (!m.sd_card) {
+          logger_.error("MSC medium {}: type SdCard but sd_card is null", i);
+          ec = std::make_error_code(std::errc::invalid_argument);
+          return false;
+        }
+        ++sd_cards;
+      } else {
+        if (m.partition_label.empty()) {
+          logger_.error("MSC medium {}: type FlashPartition but partition_label is empty", i);
+          ec = std::make_error_code(std::errc::invalid_argument);
+          return false;
+        }
+        ++partitions;
+      }
+    }
+    if (sd_cards > 1 || partitions > 1) {
+      logger_.error("MSC supports at most one SD card and one flash partition (esp_tinyusb's "
+                    "media backends are singletons)");
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+#endif
   }
   if (config_.cdc) {
 #if (CFG_TUD_CDC == 0)
@@ -842,6 +972,20 @@ bool UsbDevice::initialize(std::error_code &ec) {
     impl_->xinput_itf = xinput_itf;
   }
 
+  // MSC: one interface, bulk OUT + bulk IN on one endpoint number. msc_* are only
+  // consumed by the CFG_TUD_MSC-guarded descriptor branch below.
+  [[maybe_unused]] uint8_t msc_itf = 0, msc_str = 0, msc_out = 0, msc_in = 0;
+  if (config_.msc) {
+    msc_itf = next_itf++;
+    msc_str = next_str++;
+    impl_->owned_strings.push_back(config_.msc->interface_name);
+    const uint8_t m_ep = next_ep++;
+    msc_out = m_ep;                             // bulk OUT
+    msc_in = static_cast<uint8_t>(0x80 | m_ep); // bulk IN
+    in_used++;
+    out_used++;
+  }
+
   // --- Endpoint budget check ---
   if (in_used > kMaxInEndpoints || out_used > kMaxOutEndpoints) {
     logger_.error("Endpoint budget exceeded: IN={} (max {}), OUT={} (max {})", in_used,
@@ -917,6 +1061,12 @@ bool UsbDevice::initialize(std::error_code &ec) {
     itf_count = static_cast<uint8_t>(itf_count + 1);
     total_len = static_cast<uint16_t>(total_len + espp::xinput::kInterfaceDescriptorLen);
   }
+#if (CFG_TUD_MSC > 0)
+  if (config_.msc) {
+    itf_count = static_cast<uint8_t>(itf_count + 1);
+    total_len = static_cast<uint16_t>(total_len + TUD_MSC_DESC_LEN);
+  }
+#endif
 
   // Build one configuration descriptor for a given bus speed. Bulk endpoints
   // are 64 bytes at full speed and 512 at high speed; the HID interrupt
@@ -1001,6 +1151,14 @@ bool UsbDevice::initialize(std::error_code &ec) {
                                                         impl_->xinput_ep_out);
       append(d.data(), d.size());
     }
+#if (CFG_TUD_MSC > 0)
+    if (config_.msc) {
+      const uint8_t d[] = {
+          TUD_MSC_DESCRIPTOR(msc_itf, msc_str, msc_out, msc_in, bulk_ep_size),
+      };
+      append(d, sizeof(d));
+    }
+#endif
   };
 
   const uint8_t hid_poll_ms = config_.hid ? config_.hid->poll_interval_ms : 0;
@@ -1267,10 +1425,21 @@ bool UsbDevice::initialize(std::error_code &ec) {
     return false;
   }
 
+  // MSC media come up BEFORE the driver: a host that is already connected
+  // mounts the device as soon as the driver starts, and the hand-over on that
+  // first mount must find the storage objects.
+#if (CFG_TUD_MSC > 0)
+  if (config_.msc && !init_msc(ec)) {
+    s_device = nullptr;
+    return false;
+  }
+#endif
+
   esp_err_t err = tinyusb_driver_install(&tusb_cfg);
   if (err != ESP_OK) {
     logger_.error("tinyusb_driver_install failed: {}", esp_err_to_name(err));
     s_device = nullptr;
+    deinit_msc();
     ec = std::make_error_code(std::errc::io_error);
     return false;
   }
@@ -1289,6 +1458,7 @@ bool UsbDevice::initialize(std::error_code &ec) {
       logger_.error("tinyusb_cdcacm_init failed: {}", esp_err_to_name(err));
       s_device = nullptr;
       tinyusb_driver_uninstall();
+      deinit_msc();
       ec = std::make_error_code(std::errc::io_error);
       return false;
     }
@@ -1301,9 +1471,10 @@ bool UsbDevice::initialize(std::error_code &ec) {
   const uint16_t enum_vid = impl_->device_desc.idVendor;
   const uint16_t enum_pid = impl_->device_desc.idProduct;
   logger_.info("Initialized native USB device (VID=0x{:04x} PID=0x{:04x}) cdc={} vendor={} hid={} "
-               "xinput={}{}",
+               "xinput={} msc={}{}",
                enum_vid, enum_pid, config_.cdc.has_value(), config_.vendor.has_value(),
-               config_.hid.has_value(), config_.xinput.has_value(), webusb ? " webusb" : "");
+               config_.hid.has_value(), config_.xinput.has_value(),
+               config_.msc ? config_.msc->media.size() : 0, webusb ? " webusb" : "");
 #if (CFG_TUD_CDC > 0)
   // Opt-in: route the console to the CDC interface now that TinyUSB owns the USB
   // port. Best-effort -- a routing failure must not fail initialization (the
@@ -1897,6 +2068,280 @@ bool UsbDevice::is_xinput_ready() const {
   // driver has opened this interface's endpoints (it is the only function).
   const uint8_t ep_in = impl_->xinput_ep_in;
   return tud_mounted() && ep_in != 0 && !usbd_edpt_busy(0, ep_in);
+}
+
+// ---------------------------------------------------------------------------
+// MSC (mass storage).
+// ---------------------------------------------------------------------------
+
+bool UsbDevice::init_msc(std::error_code &ec) {
+#if (CFG_TUD_MSC > 0)
+  tinyusb_msc_driver_config_t driver_cfg{};
+  driver_cfg.user_flags.auto_mount_off = config_.msc->auto_handover ? 0 : 1;
+  driver_cfg.callback = &msc_event_trampoline;
+  driver_cfg.callback_arg = nullptr;
+  esp_err_t err = tinyusb_msc_install_driver(&driver_cfg);
+  if (err != ESP_OK) {
+    logger_.error("tinyusb_msc_install_driver failed: {}", esp_err_to_name(err));
+    ec = std::make_error_code(std::errc::io_error);
+    return false;
+  }
+  impl_->msc_driver_installed = true;
+
+  const auto &media = config_.msc->media;
+  for (size_t i = 0; i < media.size(); ++i) {
+    const auto &m = media[i];
+    auto &lun = impl_->msc_luns[i];
+    lun.base_path = m.base_path; // esp_tinyusb keeps a pointer to this string
+
+    tinyusb_msc_storage_config_t storage_cfg{};
+    storage_cfg.fat_fs.base_path = lun.base_path.data();
+    storage_cfg.fat_fs.config.max_files = m.max_files;
+    storage_cfg.fat_fs.do_not_format = !m.format_if_unformatted;
+    storage_cfg.fat_fs.format_flags = 0; // FM_ANY
+    storage_cfg.mount_point = m.initial_owner == MscOwner::App ? TINYUSB_MSC_STORAGE_MOUNT_APP
+                                                               : TINYUSB_MSC_STORAGE_MOUNT_USB;
+
+    impl_->msc_creating_lun = static_cast<int>(i);
+    if (m.type == MscMedium::Type::SdCard) {
+#if SOC_SDMMC_HOST_SUPPORTED
+      storage_cfg.medium.card = m.sd_card;
+      err = tinyusb_msc_new_storage_sdmmc(&storage_cfg, &lun.storage);
+#endif
+    } else {
+      const esp_partition_t *partition = esp_partition_find_first(
+          ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, m.partition_label.c_str());
+      if (!partition) {
+        impl_->msc_creating_lun = -1;
+        logger_.error(
+            "MSC medium {}: no 'data, fat' partition labelled '{}' in the partition table", i,
+            m.partition_label);
+        deinit_msc();
+        ec = std::make_error_code(std::errc::no_such_device);
+        return false;
+      }
+      err = wl_mount(partition, &lun.wl);
+      if (err == ESP_OK) {
+        storage_cfg.medium.wl_handle = lun.wl;
+        err = tinyusb_msc_new_storage_spiflash(&storage_cfg, &lun.storage);
+      } else {
+        logger_.error("MSC medium {}: wear levelling mount of '{}' failed: {}", i,
+                      m.partition_label, esp_err_to_name(err));
+      }
+    }
+    impl_->msc_creating_lun = -1;
+    if (err != ESP_OK || !lun.storage) {
+      logger_.error("MSC medium {}: creating the storage failed: {}", i, esp_err_to_name(err));
+      deinit_msc();
+      ec = std::make_error_code(std::errc::io_error);
+      return false;
+    }
+    impl_->msc_lun_count = i + 1;
+
+    uint32_t sectors = 0, sector_size = 0; // best-effort, for the log line only
+    tinyusb_msc_get_storage_capacity(lun.storage, &sectors);
+    tinyusb_msc_get_storage_sector_size(lun.storage, &sector_size);
+    logger_.info("MSC medium {}: {} ({} KiB) at '{}', owned by the {}", i,
+                 m.type == MscMedium::Type::SdCard ? "SD card" : m.partition_label,
+                 static_cast<uint64_t>(sectors) * sector_size / 1024, lun.base_path,
+                 m.initial_owner == MscOwner::App ? "application" : "host");
+  }
+  return true;
+#else
+  (void)ec;
+  return true;
+#endif
+}
+
+void UsbDevice::deinit_msc() {
+#if (CFG_TUD_MSC > 0)
+  for (size_t i = kMaxMscLuns; i-- > 0;) {
+    auto &lun = impl_->msc_luns[i];
+    if (lun.storage) {
+      esp_err_t err = tinyusb_msc_delete_storage(lun.storage);
+      if (err != ESP_OK)
+        logger_.warn("MSC medium {}: deleting the storage failed: {}", i, esp_err_to_name(err));
+      lun.storage = nullptr;
+    }
+    if (lun.wl != WL_INVALID_HANDLE) {
+      wl_unmount(lun.wl);
+      lun.wl = WL_INVALID_HANDLE;
+    }
+  }
+  impl_->msc_lun_count = 0;
+  if (impl_->msc_driver_installed) {
+    tinyusb_msc_uninstall_driver();
+    impl_->msc_driver_installed = false;
+  }
+#endif
+}
+
+void UsbDevice::handle_msc_event(const void *storage, MscEvent event, MscOwner owner) {
+  size_t lun_index = 0;
+#if (CFG_TUD_MSC > 0)
+  bool found = false;
+  for (size_t i = 0; i < kMaxMscLuns; ++i) {
+    if (storage && impl_->msc_luns[i].storage == storage) {
+      lun_index = i;
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    const int creating = impl_->msc_creating_lun.load();
+    if (creating < 0)
+      return; // not one of ours (or already torn down)
+    lun_index = static_cast<size_t>(creating);
+  }
+  auto &lun = impl_->msc_luns[lun_index];
+  switch (event) {
+  case MscEvent::OwnerChangeStarted:
+  case MscEvent::OwnerChanged:
+    break;
+  case MscEvent::OwnerChangeFailed:
+  case MscEvent::FormatFailed:
+    lun.last_result = 1;
+    logger_.warn("MSC medium {}: hand-over failed", lun_index);
+    break;
+  case MscEvent::FormatRequired:
+    lun.last_result = 2;
+    logger_.warn("MSC medium {}: no FAT filesystem (format it, or enable format_if_unformatted)",
+                 lun_index);
+    break;
+  }
+#else
+  (void)storage;
+#endif
+  msc_event_callback_fn cb;
+  {
+    std::lock_guard<std::mutex> lock(cb_mutex_);
+    cb = on_msc_event_;
+  }
+  if (cb)
+    cb(lun_index, event, owner); // outside the lock: it may take its time / log
+}
+
+bool UsbDevice::set_msc_owner(size_t lun, MscOwner owner, std::error_code &ec) {
+  ec.clear();
+#if (CFG_TUD_MSC > 0)
+  if (!initialized_ || !config_.msc) {
+    ec = std::make_error_code(std::errc::not_connected);
+    return false;
+  }
+  if (lun >= impl_->msc_lun_count) {
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
+  auto &l = impl_->msc_luns[lun];
+  l.last_result = 0; // the hand-over's events run synchronously in this call
+  const auto target =
+      owner == MscOwner::App ? TINYUSB_MSC_STORAGE_MOUNT_APP : TINYUSB_MSC_STORAGE_MOUNT_USB;
+  if (tinyusb_msc_set_storage_mount_point(l.storage, target) != ESP_OK) {
+    ec = std::make_error_code(std::errc::io_error);
+    return false;
+  }
+  switch (l.last_result.load()) {
+  case 0:
+    return true;
+  case 2:
+    ec = std::make_error_code(std::errc::no_such_device); // no FAT filesystem on the medium
+    return false;
+  default:
+    ec = std::make_error_code(std::errc::io_error);
+    return false;
+  }
+#else
+  (void)lun;
+  (void)owner;
+  ec = std::make_error_code(std::errc::function_not_supported);
+  return false;
+#endif
+}
+
+bool UsbDevice::set_msc_owner(size_t lun, MscOwner owner) {
+  std::error_code ec;
+  return set_msc_owner(lun, owner, ec);
+}
+
+std::optional<UsbDevice::MscOwner> UsbDevice::msc_owner(size_t lun) const {
+#if (CFG_TUD_MSC > 0)
+  if (!initialized_ || !config_.msc || lun >= impl_->msc_lun_count)
+    return std::nullopt;
+  tinyusb_msc_mount_point_t mount_point = TINYUSB_MSC_STORAGE_MOUNT_USB;
+  if (tinyusb_msc_get_storage_mount_point(impl_->msc_luns[lun].storage, &mount_point) != ESP_OK)
+    return std::nullopt;
+  return mount_point == TINYUSB_MSC_STORAGE_MOUNT_APP ? MscOwner::App : MscOwner::Host;
+#else
+  (void)lun;
+  return std::nullopt;
+#endif
+}
+
+std::optional<UsbDevice::MscCapacity> UsbDevice::msc_capacity(size_t lun) const {
+#if (CFG_TUD_MSC > 0)
+  if (!initialized_ || !config_.msc || lun >= impl_->msc_lun_count)
+    return std::nullopt;
+  MscCapacity capacity;
+  const auto storage = impl_->msc_luns[lun].storage;
+  if (tinyusb_msc_get_storage_capacity(storage, &capacity.sector_count) != ESP_OK ||
+      tinyusb_msc_get_storage_sector_size(storage, &capacity.sector_size) != ESP_OK)
+    return std::nullopt;
+  return capacity;
+#else
+  (void)lun;
+  return std::nullopt;
+#endif
+}
+
+size_t UsbDevice::msc_lun_count() const {
+#if (CFG_TUD_MSC > 0)
+  return initialized_ && config_.msc ? impl_->msc_lun_count : 0;
+#else
+  return 0;
+#endif
+}
+
+bool UsbDevice::format_msc_medium(size_t lun, std::error_code &ec) {
+  ec.clear();
+#if (CFG_TUD_MSC > 0)
+  if (!initialized_ || !config_.msc) {
+    ec = std::make_error_code(std::errc::not_connected);
+    return false;
+  }
+  if (lun >= impl_->msc_lun_count) {
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
+  if (msc_owner(lun) != MscOwner::App) {
+    logger_.error("MSC medium {}: hand it to the application before formatting", lun);
+    ec = std::make_error_code(std::errc::operation_not_permitted);
+    return false;
+  }
+  const esp_err_t err = tinyusb_msc_format_storage(impl_->msc_luns[lun].storage);
+  switch (err) {
+  case ESP_OK:
+    logger_.info("MSC medium {}: formatted and mounted at '{}'", lun,
+                 impl_->msc_luns[lun].base_path);
+    return true;
+  case ESP_ERR_NOT_FOUND:     // a filesystem is already on the medium
+  case ESP_ERR_INVALID_STATE: // ...and it is mounted (its VFS path is registered)
+    ec = std::make_error_code(std::errc::file_exists);
+    return false;
+  default:
+    logger_.error("MSC medium {}: format failed: {}", lun, esp_err_to_name(err));
+    ec = std::make_error_code(std::errc::io_error);
+    return false;
+  }
+#else
+  (void)lun;
+  ec = std::make_error_code(std::errc::function_not_supported);
+  return false;
+#endif
+}
+
+void UsbDevice::set_msc_event_callback(const msc_event_callback_fn &cb) {
+  std::lock_guard<std::mutex> lock(cb_mutex_);
+  on_msc_event_ = cb;
 }
 
 } // namespace espp

@@ -27,12 +27,13 @@ Today it can enable, in any combination (subject to the endpoint budget):
   Xbox 360 VID/PID and the built-in vendor class also claims interface class 0xFF,
   **use X-Input as the only enabled function** (Microsoft's IDs, for emulation /
   testing of your own device only).
+- An **MSC** (mass storage) function exposing an SD card and/or a FAT partition in
+  flash as USB drives, shared with the application through an ownership hand-over.
 
 Interface numbers, endpoint addresses and string indices are allocated
 *sequentially* as functions are enabled, and the result is checked against the
 USB-OTG endpoint budget (an error is reported via ``std::error_code`` if it is
-exceeded). The model is designed so an **MSC** function can be added later
-without changing the descriptor-building approach.
+exceeded).
 
 Because it uses the native USB-OTG peripheral rather than the built-in
 USB-Serial-JTAG that carries the ESP console, a device can advertise its own USB
@@ -52,6 +53,8 @@ Features
   ``hid-rp`` in the example) and ``write_hid_report()``
 - X-Input interface (wired Xbox 360 controller) via a custom application class
   driver, with ``update_xinput_state()`` and an ``on_rumble`` callback
+- Mass storage (MSC): an SD card and/or a wear-levelled FAT flash partition as USB
+  drives, handed between the application (VFS file access) and the host
 - Console over CDC: optionally route the ESP console (stdout) to the CDC interface
   (``CdcFunction::route_console`` or ``route_console_to_cdc()``) so one native USB
   cable carries the logs alongside a vendor / HID / XInput interface; non-blocking,
@@ -173,6 +176,54 @@ interface uses one interrupt-IN (0x81) + one interrupt-OUT endpoint with separat
 endpoint numbers, and the report DMA buffers are word-aligned as the ESP32-S3 DWC2
 requires.
 
+Enabling mass storage (MSC)
+---------------------------
+
+The MSC function exposes up to **two media** as USB drives: an SD card and/or a
+FAT data partition in flash (accessed through wear levelling). It is built on
+esp_tinyusb's MSC storage backend, which provides the SCSI handling, so it needs
+``CONFIG_TINYUSB_MSC_ENABLED=y``; flash media additionally need
+``CONFIG_TINYUSB_MSC_BUFSIZE >= CONFIG_WL_SECTOR_SIZE`` (the ``msc_example`` uses
+512-byte wear-levelling sectors).
+
+A medium belongs to one side at a time, so the firmware and a PC never write the
+same FAT volume at once. While the **application** owns it, the volume is mounted
+at the medium's ``base_path`` and ordinary file APIs work (``fopen``,
+``std::fstream``, ``std::filesystem``); a connected host sees "no medium". While the
+**host** owns it, ``base_path`` is unmounted and the PC sees the volume. With
+``MscFunction::auto_handover`` (the default) the host takes the media when it
+mounts the device and the application gets them back when the host ejects the
+drive or the device is detached; turn it off to decide with
+``set_msc_owner()``. ``msc_owner()``, ``msc_capacity()`` and
+``MscFunction::on_event`` report the state (the event callback runs in the
+TinyUSB task for host-driven hand-overs).
+
+.. code-block:: cpp
+
+  espp::UsbDevice::MscMedium card;
+  card.type = espp::UsbDevice::MscMedium::Type::SdCard;
+  card.sd_card = sd_card;     // an initialized sdmmc_card_t* (SDMMC or SDSPI host)
+  card.base_path = "/sdcard"; // do not also mount the card with esp_vfs_fat_*_mount()
+
+  espp::UsbDevice::MscMedium flash;
+  flash.type = espp::UsbDevice::MscMedium::Type::FlashPartition;
+  flash.partition_label = "storage"; // a `data, fat` partition
+  flash.base_path = "/data";
+
+  espp::UsbDevice::MscFunction msc;
+  msc.media = {card, flash}; // LUN 0 and LUN 1
+  cfg.msc = msc;
+
+Limits, all from esp_tinyusb's backend: at most one SD card and one flash
+partition; SD card media need a target with an SDMMC host peripheral (ESP32-S3 /
+-P4), even for an SPI-wired card; the SCSI inquiry strings are fixed. Formatting
+(``format_if_unformatted`` / ``format_msc_medium()``) runs on FatFs drive 0 rather
+than the medium's own drive, so only use it when no other FAT volume is mounted. A
+host can only read FAT, so LittleFS or SPIFFS partitions cannot be exposed as a
+drive. Destroying the ``UsbDevice`` releases the media: an application-owned
+medium's ``base_path`` is unmounted (an SD card stays initialized, but must be
+mounted again if the application still needs it).
+
 Routing the console over CDC
 ----------------------------
 
@@ -227,7 +278,7 @@ OUT endpoints**. Each function consumes:
    * - X-Input (Xbox 360)
      - 1 (interrupt-IN)
      - 1 (interrupt-OUT)
-   * - MSC (future)
+   * - MSC
      - 1 (bulk-IN)
      - 1 (bulk-OUT)
 
@@ -242,20 +293,6 @@ Enabling CDC + Vendor + HID + MSC together reaches 5 IN endpoints, which is at t
 hard limit and is not recommended. ``espp::UsbDevice`` computes the totals as
 functions are enabled and returns ``std::errc::value_too_large`` if the IN or OUT
 budget is exceeded.
-
-Extending with MSC
-------------------
-
-The **HID** function is implemented (see "Enabling the HID class" above): it
-appends one HID interface (application-supplied report descriptor) claiming an
-interrupt-IN endpoint, plus an optional interrupt-OUT endpoint.
-``espp::UsbDevice::Config`` still reserves a ``std::optional`` slot for an
-``MscFunction`` as a documented extension point; it is not implemented yet, and
-enabling it today makes ``initialize()`` fail with
-``std::errc::function_not_supported``. When implemented it slots into the same
-sequential interface / endpoint / string allocator: an MSC function appends one
-MSC interface (SCSI + storage read/write/capacity callbacks) claiming a bulk IN +
-bulk OUT endpoint.
 
 Notes
 -----
@@ -281,6 +318,7 @@ Notes
 
    usb_cdc_example.md
    xinput_example.md
+   msc_example.md
 
 .. ---------------------------- API Reference ----------------------------------
 
