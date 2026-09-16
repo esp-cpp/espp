@@ -132,7 +132,9 @@ public:
   /// we are actively streaming input reports. Goes true near the end of init and
   /// false on disconnect; useful for driving post-connect behaviour (e.g. the
   /// L+R "select this controller" prompt) from the application.
-  bool is_input_streaming() const { return input_subscribed_; }
+  bool is_input_streaming() const {
+    return input_subscribed_ && encrypted_ && active_conn_handle_ != 0xffff;
+  }
 
   /// Store the latest controller state. This does NOT send — a driver-owned
   /// streaming task notifies the newest stored report once per connection
