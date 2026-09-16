@@ -35,6 +35,7 @@
 // MSC: esp_tinyusb's storage backend (SCSI callbacks, SD card / wear-levelled
 // flash media, VFS hand-over). Compiled in only with CONFIG_TINYUSB_MSC_ENABLED.
 #if (CFG_TUD_MSC > 0)
+#include "diskio_impl.h" // ff_diskio_get_drive: tell "no free FatFs drive" apart when formatting
 #include "esp_partition.h"
 #include "soc/soc_caps.h"
 #include "tinyusb_msc.h"
@@ -462,6 +463,10 @@ struct UsbDevice::Impl {
     // Set while hand_over_msc() quietly resets the owner after a failed mount, so
     // that internal step is not reported as a user-visible hand-over.
     std::atomic<bool> reverting{false};
+    // The medium has no FAT filesystem (FormatRequired). Unlike last_result it
+    // survives across calls: esp_tinyusb leaves such a medium application-owned
+    // with nothing mounted and emits no event when asked for that owner again.
+    std::atomic<bool> no_filesystem{false};
   };
   std::array<MscLun, kMaxMscLuns> msc_luns{};
   size_t msc_lun_count{0};
@@ -507,9 +512,19 @@ UsbDevice::~UsbDevice() {
     if (config_.cdc)
       tinyusb_cdcacm_deinit(kCdcPort);
 #endif
+#if (CFG_TUD_MSC > 0)
+    if (config_.msc) {
+      // Host writes are queued and run later on the TinyUSB task, and a storage
+      // object with writes still queued cannot be deleted. So: stop the host
+      // sending more (drop the pull-up), let the task finish what is queued, and
+      // delete the media while it still runs -- stopping the task first would
+      // lose the last writes and leak the storage.
+      tud_disconnect();
+      deinit_msc(std::chrono::milliseconds(1000));
+    }
+#endif
     tinyusb_driver_uninstall();
-    // After the TinyUSB task is stopped, so no SCSI request can reach a medium
-    // being torn down. Unmounts the application's VFS path for App-owned media.
+    // Anything the drain above could not release (normally nothing).
     deinit_msc();
     initialized_ = false;
   }
@@ -2176,26 +2191,49 @@ bool UsbDevice::init_msc(std::error_code &ec) {
 #endif
 }
 
-void UsbDevice::deinit_msc() {
+void UsbDevice::deinit_msc(std::chrono::milliseconds drain_timeout) {
 #if (CFG_TUD_MSC > 0)
+  const auto deadline = std::chrono::steady_clock::now() + drain_timeout;
+  bool all_released = true;
   for (size_t i = kMaxMscLuns; i-- > 0;) {
     auto &lun = impl_->msc_luns[i];
     if (lun.storage) {
       esp_err_t err = tinyusb_msc_delete_storage(lun.storage);
-      if (err != ESP_OK)
-        logger_.warn("MSC medium {}: deleting the storage failed: {}", i, esp_err_to_name(err));
+      // ESP_ERR_INVALID_STATE: host writes are still queued on the TinyUSB task
+      while (err == ESP_ERR_INVALID_STATE && std::chrono::steady_clock::now() < deadline) {
+        vTaskDelay(pdMS_TO_TICKS(10));
+        err = tinyusb_msc_delete_storage(lun.storage);
+      }
+      if (err != ESP_OK) {
+        // Keep the handle and the medium behind it: the storage object is still
+        // mapped as a LUN, so unmounting its wear levelling here would leave it
+        // pointing at an invalid handle.
+        if (drain_timeout.count() > 0 || err != ESP_ERR_INVALID_STATE)
+          logger_.error("MSC medium {}: deleting the storage failed ({}); leaving it in place", i,
+                        esp_err_to_name(err));
+        all_released = false;
+        continue;
+      }
       lun.storage = nullptr;
     }
     if (lun.wl != WL_INVALID_HANDLE) {
       wl_unmount(lun.wl);
       lun.wl = WL_INVALID_HANDLE;
     }
+    lun.no_filesystem = false;
   }
+  if (!all_released)
+    return; // the driver cannot be uninstalled while a LUN is still mapped
   impl_->msc_lun_count = 0;
   if (impl_->msc_driver_installed) {
-    tinyusb_msc_uninstall_driver();
-    impl_->msc_driver_installed = false;
+    const esp_err_t err = tinyusb_msc_uninstall_driver();
+    if (err == ESP_OK)
+      impl_->msc_driver_installed = false;
+    else
+      logger_.error("tinyusb_msc_uninstall_driver failed: {}", esp_err_to_name(err));
   }
+#else
+  (void)drain_timeout;
 #endif
 }
 
@@ -2217,7 +2255,10 @@ void UsbDevice::handle_msc_event(const void *storage, MscEvent event, MscOwner o
     return; // hand_over_msc() resetting the owner after a failed mount
   switch (event) {
   case MscEvent::OwnerChangeStarted:
+    break;
   case MscEvent::OwnerChanged:
+    if (owner == MscOwner::App)
+      lun.no_filesystem = false; // it mounted, so it has one
     break;
   case MscEvent::OwnerChangeFailed:
     lun.last_result = 1;
@@ -2233,6 +2274,7 @@ void UsbDevice::handle_msc_event(const void *storage, MscEvent event, MscOwner o
     break;
   case MscEvent::FormatRequired:
     lun.last_result = 2;
+    lun.no_filesystem = true;
     logger_.warn("MSC medium {}: no FAT filesystem (format it, or enable format_if_unformatted)",
                  lun_index);
     break;
@@ -2254,6 +2296,31 @@ bool UsbDevice::hand_over_msc(size_t index, MscOwner owner, std::error_code &ec)
 #if (CFG_TUD_MSC > 0)
   auto &lun = impl_->msc_luns[index];
   const bool to_app = owner == MscOwner::App;
+  const auto app_mounted = [&lun]() {
+    uint64_t total_bytes = 0, free_bytes = 0;
+    return esp_vfs_fat_info(lun.base_path.c_str(), &total_bytes, &free_bytes) == ESP_OK;
+  };
+
+  if (to_app) {
+    tinyusb_msc_mount_point_t current = TINYUSB_MSC_STORAGE_MOUNT_USB;
+    tinyusb_msc_get_storage_mount_point(lun.storage, &current);
+    if (current == TINYUSB_MSC_STORAGE_MOUNT_APP) {
+      if (app_mounted())
+        return true; // already the application's
+      if (lun.no_filesystem) {
+        ec = std::make_error_code(std::errc::no_such_device); // still waiting for a format
+        return false;
+      }
+      // Marked application-owned with nothing mounted (an earlier hand-over
+      // failed): esp_tinyusb would treat this request as a no-op, so quietly
+      // reset it to the host (nothing mounted: this only resets the owner) and
+      // mount it again below.
+      lun.reverting = true;
+      tinyusb_msc_set_storage_mount_point(lun.storage, TINYUSB_MSC_STORAGE_MOUNT_USB);
+      lun.reverting = false;
+    }
+  }
+
   lun.last_result = 0; // the hand-over's events run synchronously in this call
   if (tinyusb_msc_set_storage_mount_point(lun.storage, to_app ? TINYUSB_MSC_STORAGE_MOUNT_APP
                                                               : TINYUSB_MSC_STORAGE_MOUNT_USB) !=
@@ -2265,10 +2332,6 @@ bool UsbDevice::hand_over_msc(size_t index, MscOwner owner, std::error_code &ec)
   // did, and several of its failure paths raise no event, so confirm the result
   // against the VFS: the application has the medium exactly when a mounted FAT
   // volume answers at its base_path.
-  const auto app_mounted = [&lun]() {
-    uint64_t total_bytes = 0, free_bytes = 0;
-    return esp_vfs_fat_info(lun.base_path.c_str(), &total_bytes, &free_bytes) == ESP_OK;
-  };
   if (to_app == app_mounted())
     return true;
 
@@ -2391,14 +2454,34 @@ bool UsbDevice::format_msc_medium(size_t lun, std::error_code &ec) {
     ec = std::make_error_code(std::errc::operation_not_permitted);
     return false;
   }
-  const esp_err_t err = tinyusb_msc_format_storage(impl_->msc_luns[lun].storage);
+  auto &l = impl_->msc_luns[lun];
+  {
+    uint64_t total_bytes = 0, free_bytes = 0;
+    if (esp_vfs_fat_info(l.base_path.c_str(), &total_bytes, &free_bytes) == ESP_OK) {
+      ec = std::make_error_code(std::errc::file_exists); // mounted: it has a filesystem
+      return false;
+    }
+  }
+  {
+    // esp_tinyusb reports "every FatFs drive slot is taken" with the same
+    // ESP_ERR_NOT_FOUND it uses for "a filesystem already exists"
+    BYTE pdrv = 0xFF;
+    if (ff_diskio_get_drive(&pdrv) != ESP_OK) {
+      logger_.error("MSC medium {}: no free FatFs drive to format it on (raise "
+                    "CONFIG_FATFS_VOLUME_COUNT or unmount another FAT volume)",
+                    lun);
+      ec = std::make_error_code(std::errc::device_or_resource_busy);
+      return false;
+    }
+  }
+  const esp_err_t err = tinyusb_msc_format_storage(l.storage);
   switch (err) {
   case ESP_OK:
-    logger_.info("MSC medium {}: formatted and mounted at '{}'", lun,
-                 impl_->msc_luns[lun].base_path);
+    l.no_filesystem = false;
+    logger_.info("MSC medium {}: formatted and mounted at '{}'", lun, l.base_path);
     return true;
   case ESP_ERR_NOT_FOUND:     // a filesystem is already on the medium
-  case ESP_ERR_INVALID_STATE: // ...and it is mounted (its VFS path is registered)
+  case ESP_ERR_INVALID_STATE: // ...and its VFS path is registered
     ec = std::make_error_code(std::errc::file_exists);
     return false;
   default:

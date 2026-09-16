@@ -5,9 +5,9 @@ idf_component_register(
   # esp_vfs_t) to redirect stdout to the CDC interface.
   # sdmmc: the public header names sdmmc_card_t (MscMedium::sd_card).
   REQUIRES base_component esp_tinyusb sdmmc vfs
-  # MSC flash media: esp_partition (find the FAT partition) and wear_levelling
-  # (wl_mount), used only by the source.
-  PRIV_REQUIRES esp_partition wear_levelling
+  # MSC, used only by the source: esp_partition (find the FAT partition),
+  # wear_levelling (wl_mount), fatfs (esp_vfs_fat_info / ff_diskio_get_drive).
+  PRIV_REQUIRES esp_partition fatfs wear_levelling
 )
 
 # X-Input registers a custom TinyUSB application class driver by overriding the

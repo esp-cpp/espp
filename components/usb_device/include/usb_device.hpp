@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -527,7 +528,9 @@ public:
    * @return true if `owner` now has the medium.
    * @note Blocks for the mount / unmount. Call it from an application task, not
    *       from a USB callback. With auto_handover, the next host mount / eject /
-   *       detach still moves the medium automatically.
+   *       detach still moves the medium automatically -- and a host mount or
+   *       eject that happens during this call races it, so turn auto_handover
+   *       off if the application drives ownership itself.
    */
   bool set_msc_owner(size_t lun, MscOwner owner, std::error_code &ec);
 
@@ -535,7 +538,8 @@ public:
   bool set_msc_owner(size_t lun, MscOwner owner);
 
   /// @brief Who currently has an MSC medium (nullopt if MSC is not enabled /
-  ///        initialized or the index is out of range).
+  ///        initialized or the index is out of range). An unformatted medium
+  ///        waiting for format_msc_medium() reports App, with nothing mounted.
   std::optional<MscOwner> msc_owner(size_t lun) const;
 
   /// @brief Size of an MSC medium (nullopt if MSC is not enabled / initialized
@@ -550,8 +554,9 @@ public:
    *        MscEvent::FormatRequired), and mount it for the application.
    * @param lun Medium index.
    * @param[out] ec Set on failure: MSC not enabled / not initialized, bad index,
-   *        the application does not own the medium, a filesystem already exists
-   *        (`std::errc::file_exists`), or formatting failed.
+   *        the application does not own the medium (`operation_not_permitted`), a
+   *        filesystem already exists (`file_exists`), every FatFs drive slot is in
+   *        use (`device_or_resource_busy`), or formatting failed (`io_error`).
    * @return true if the medium was formatted.
    * @warning See MscMedium::format_if_unformatted: esp_tinyusb formats FatFs
    *          drive 0, so only use this when no other FAT volume is mounted.
@@ -666,8 +671,12 @@ protected:
   bool init_msc(std::error_code &ec);
 
   /// @brief Internal: tear down the MSC media (storage objects, wear levelling,
-  ///        MSC driver). Safe to call when none were set up.
-  void deinit_msc();
+  ///        MSC driver). Safe to call when none were set up. A storage object
+  ///        with host writes still queued cannot be deleted; with a non-zero
+  ///        @p drain_timeout the deletion is retried until they have run (the
+  ///        TinyUSB task must still be running for that). Resources behind a
+  ///        storage that could not be deleted are left in place, not freed.
+  void deinit_msc(std::chrono::milliseconds drain_timeout = std::chrono::milliseconds(0));
 
   /// @brief Internal: the singleton instance handling the global USB callbacks.
   static UsbDevice *instance();
