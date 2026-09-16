@@ -232,8 +232,9 @@ public:
   };
 
   /// @brief MSC storage event callback: the medium index (LUN), the event, and
-  ///        the owner at the time of the event (the previous owner for
-  ///        OwnerChangeStarted, the new one for OwnerChanged). Runs in the TinyUSB device task for
+  ///        the owner at the time of the event: the previous owner for
+  ///        OwnerChangeStarted and OwnerChangeFailed (the side that still has
+  ///        the medium), the new one for OwnerChanged. Runs in the TinyUSB device task for
   ///        host-driven hand-overs (mount / eject / disconnect) and in the
   ///        caller's task for set_msc_owner(); keep it short and do not call
   ///        set_msc_owner() from it.
@@ -653,6 +654,11 @@ protected:
   /// @param event The translated event.
   /// @param owner The owner the event refers to.
   void handle_msc_event(const void *storage, MscEvent event, MscOwner owner);
+
+  /// @brief Internal: hand an MSC medium over and confirm the result against the
+  ///        VFS (esp_tinyusb's setter records the requested owner even when the
+  ///        mount / unmount failed, and not every failure raises an event).
+  bool hand_over_msc(size_t index, MscOwner owner, std::error_code &ec);
 
   /// @brief Internal: install the MSC driver and create the storage objects for
   ///        the configured media (before the TinyUSB driver is installed, so a
