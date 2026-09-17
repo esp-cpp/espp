@@ -2198,6 +2198,20 @@ void UsbDevice::deinit_msc(std::chrono::milliseconds drain_timeout) {
   for (size_t i = kMaxMscLuns; i-- > 0;) {
     auto &lun = impl_->msc_luns[i];
     if (lun.storage) {
+      // A medium marked application-owned with nothing mounted (unformatted, or a
+      // failed mount) must be reset to the host first: esp_tinyusb's delete does
+      // ESP_ERROR_CHECK(msc_storage_unmount()), and that unmount fails with
+      // ESP_ERR_INVALID_STATE when no drive is registered -- aborting the device.
+      // The setter records the host owner even though its own unmount fails.
+      tinyusb_msc_mount_point_t current = TINYUSB_MSC_STORAGE_MOUNT_USB;
+      tinyusb_msc_get_storage_mount_point(lun.storage, &current);
+      uint64_t total_bytes = 0, free_bytes = 0;
+      if (current == TINYUSB_MSC_STORAGE_MOUNT_APP &&
+          esp_vfs_fat_info(lun.base_path.c_str(), &total_bytes, &free_bytes) != ESP_OK) {
+        lun.reverting = true;
+        tinyusb_msc_set_storage_mount_point(lun.storage, TINYUSB_MSC_STORAGE_MOUNT_USB);
+        lun.reverting = false;
+      }
       esp_err_t err = tinyusb_msc_delete_storage(lun.storage);
       // ESP_ERR_INVALID_STATE: host writes are still queued on the TinyUSB task
       while (err == ESP_ERR_INVALID_STATE && std::chrono::steady_clock::now() < deadline) {
