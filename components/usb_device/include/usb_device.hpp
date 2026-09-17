@@ -290,18 +290,20 @@ public:
    * `CONFIG_TINYUSB_MSC_ENABLED=y`; a flash partition additionally needs
    * `CONFIG_TINYUSB_MSC_BUFSIZE >= CONFIG_WL_SECTOR_SIZE`.
    *
-   * Ownership: with `auto_handover` (the default) a medium moves to the host when
+   * Ownership: with `auto_handover` (the default) the media move to the host when
    * the host mounts (configures) the device, and back to the application when the
-   * host ejects it or the device is detached. Turn it off to decide yourself with
-   * set_msc_owner() (e.g. only expose the card while a "USB drive mode" screen is
-   * shown). Either way, never let the application and the host write the same
-   * volume at once -- that is what the ownership model prevents.
+   * host ejects a drive or the device is detached. The hand-over is for ALL media
+   * at once: esp_tinyusb ignores which drive was ejected, so ejecting either one
+   * returns both to the application (the other drive disappears from the host too). Turn it off to
+   * decide yourself with set_msc_owner() (e.g. only expose the card while a "USB drive mode" screen
+   * is shown). Either way, never let the application and the host write the same volume at once --
+   * that is what the ownership model prevents.
    */
   struct MscFunction {
     std::string interface_name{"espp MSC"}; /**< MSC interface string descriptor. */
     std::vector<MscMedium> media{};         /**< One or two media (LUN 0, LUN 1). */
-    bool auto_handover{true}; /**< Host takes the media on mount; the app gets them back on
-                                   eject / detach. */
+    bool auto_handover{true}; /**< Host takes all media on mount; the app gets all of them
+                                   back on any eject / detach. */
     msc_event_callback_fn on_event{nullptr}; /**< Optional storage event callback. */
   };
 
@@ -525,9 +527,16 @@ public:
    *        medium's `base_path`; handing it to the Host unmounts it there first.
    * @param[out] ec Set on failure: MSC not enabled / not initialized
    *        (`not_connected`), bad index (`invalid_argument`), the medium has no
-   *        FAT filesystem (`no_such_device`, see format_msc_medium()), or the
-   *        volume could not be mounted / unmounted (`io_error`).
+   *        FAT filesystem (`no_such_device`, see format_msc_medium()), the host
+   *        is attached and still has the medium (`device_or_resource_busy`, see
+   *        below), or the volume could not be mounted / unmounted (`io_error`).
    * @return true if `owner` now has the medium.
+   * @note Taking a medium from an attached host is refused: esp_tinyusb accepts
+   *       host writes and runs them later, without re-checking ownership, so a
+   *       write already queued could land under the application's mounted FAT
+   *       volume. Have the host eject the drive (auto_handover then returns it),
+   *       or detach / destroy the device, first. Handing a medium to the host is
+   *       always allowed.
    * @note Blocks for the mount / unmount. Call it from an application task, not
    *       from a USB callback. With auto_handover, the next host mount / eject /
    *       detach still moves the medium automatically -- and a host mount or
@@ -562,6 +571,9 @@ public:
    * @return true if the medium was formatted.
    * @warning See MscMedium::format_if_unformatted: esp_tinyusb formats FatFs
    *          drive 0, so only use this when no other FAT volume is mounted.
+   * @note With auto_handover, the USB connection is dropped for the duration of
+   *       the format (and restored after) so a host attaching mid-format cannot
+   *       take the medium while esp_tinyusb is formatting it.
    */
   bool format_msc_medium(size_t lun, std::error_code &ec);
 

@@ -193,8 +193,11 @@ at the medium's ``base_path`` and ordinary file APIs work (``fopen``,
 **host** owns it, ``base_path`` is unmounted and the PC sees the volume. With
 ``MscFunction::auto_handover`` (the default) the host takes the media when it
 mounts the device and the application gets them back when the host ejects the
-drive or the device is detached; turn it off to decide with
-``set_msc_owner()``. ``msc_owner()``, ``msc_capacity()`` and
+drive or the device is detached (for all media at once: esp_tinyusb ignores
+which drive was ejected); turn it off to decide with ``set_msc_owner()``. Taking a
+medium from an attached host is refused (``device_or_resource_busy``), since host
+writes already queued could land under the application's volume; eject the drive
+on the host first. ``msc_owner()``, ``msc_capacity()`` and
 ``MscFunction::on_event`` report the state (the event callback runs in the
 TinyUSB task for host-driven hand-overs).
 

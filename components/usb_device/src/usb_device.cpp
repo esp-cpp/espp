@@ -2429,6 +2429,17 @@ bool UsbDevice::set_msc_owner(size_t lun, MscOwner owner, std::error_code &ec) {
     ec = std::make_error_code(std::errc::invalid_argument);
     return false;
   }
+  if (owner == MscOwner::App && tud_mounted() && msc_owner(lun) == MscOwner::Host) {
+    // esp_tinyusb accepts WRITE(10) data and runs the write later on the TinyUSB
+    // task, without re-checking ownership, so a write the attached host already
+    // queued could land after the FAT volume is mounted for the application.
+    // There is no backend drain primitive: refuse, and let the host eject first.
+    logger_.warn("MSC medium {}: the attached host still has it; eject it on the host (or "
+                 "detach) before handing it to the application",
+                 lun);
+    ec = std::make_error_code(std::errc::device_or_resource_busy);
+    return false;
+  }
   return hand_over_msc(lun, owner, ec);
 #else
   (void)lun;
@@ -2517,7 +2528,20 @@ bool UsbDevice::format_msc_medium(size_t lun, std::error_code &ec) {
       return false;
     }
   }
+  // esp_tinyusb's format does not take the storage lock, and with auto_handover a
+  // host attaching (or detaching) mid-format would run its mount / unmount on the
+  // TinyUSB task against the same drive. Drop the connection for the format so no
+  // attach can happen, let any detach finish first, and reconnect afterwards.
+  const bool pause_usb = config_.msc->auto_handover;
+  if (pause_usb) {
+    tud_disconnect();
+    for (int i = 0; i < 50 && tud_mounted(); ++i)
+      vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(20)); // let a detach callback already running complete
+  }
   const esp_err_t err = tinyusb_msc_format_storage(l.storage);
+  if (pause_usb)
+    tud_connect();
   switch (err) {
   case ESP_OK:
     l.no_filesystem = false;
