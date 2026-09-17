@@ -255,8 +255,10 @@ public:
       FlashPartition, ///< A FAT data partition in flash, by label: `partition_label`.
     };
     Type type{Type::FlashPartition}; /**< Which storage backs this LUN. */
-    /** For Type::SdCard: the card from sdmmc_card_init() / esp_vfs_fat_sdspi_mount()
-     *  etc. Must outlive the UsbDevice. Requires a target with an SDMMC host
+    /** For Type::SdCard: a caller-owned card initialized with sdmmc_card_init() on
+     *  an SDMMC or SDSPI host. Must outlive the UsbDevice. Do not pass the card
+     *  from esp_vfs_fat_sdmmc_mount() / esp_vfs_fat_sdspi_mount(): the matching
+     *  esp_vfs_fat_sdcard_unmount() frees it. Requires a target with an SDMMC host
      *  peripheral (e.g. ESP32-S3, ESP32-P4), even when the card is on SPI. */
     sdmmc_card_t *sd_card{nullptr};
     /** For Type::FlashPartition: label of a `data, fat` partition. The device
@@ -676,7 +678,14 @@ protected:
   ///        @p drain_timeout the deletion is retried until they have run (the
   ///        TinyUSB task must still be running for that). Resources behind a
   ///        storage that could not be deleted are left in place, not freed.
-  void deinit_msc(std::chrono::milliseconds drain_timeout = std::chrono::milliseconds(0));
+  /// @return true if every medium and the MSC driver were released.
+  bool deinit_msc(std::chrono::milliseconds drain_timeout = std::chrono::milliseconds(0));
+
+  /// @brief Internal: disconnect the host and release the MSC media while the
+  ///        TinyUSB task still runs (so queued host writes complete). Must run
+  ///        before tinyusb_driver_uninstall(). @return false if a medium is still
+  ///        mapped, in which case the driver must NOT be uninstalled.
+  bool release_msc_before_uninstall();
 
   /// @brief Internal: the singleton instance handling the global USB callbacks.
   static UsbDevice *instance();

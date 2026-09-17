@@ -30,7 +30,10 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/base_component: '>=1.0'
-  espressif/esp_tinyusb: '>=2.0'
+  # >= 2.0.1: MSC storage-operation multitask protection, and delete_storage()
+  # refusing to free a storage with host writes still queued (MSC teardown
+  # relies on both).
+  espressif/esp_tinyusb: '>=2.0.1'
   # The X-Input class driver uses the 5-argument usbd_edpt_xfer(..., is_isr) API
   # (and the usbd_class_driver_t `xfer_isr` member). TinyUSB 0.21 provides that
   # 5-argument form; earlier releases (e.g. 0.19) still have the 4-argument

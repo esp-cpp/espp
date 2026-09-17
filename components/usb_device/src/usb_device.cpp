@@ -513,19 +513,17 @@ UsbDevice::~UsbDevice() {
       tinyusb_cdcacm_deinit(kCdcPort);
 #endif
 #if (CFG_TUD_MSC > 0)
-    if (config_.msc) {
-      // Host writes are queued and run later on the TinyUSB task, and a storage
-      // object with writes still queued cannot be deleted. So: stop the host
-      // sending more (drop the pull-up), let the task finish what is queued, and
-      // delete the media while it still runs -- stopping the task first would
-      // lose the last writes and leak the storage.
-      tud_disconnect();
-      deinit_msc(std::chrono::milliseconds(1000));
+    if (!release_msc_before_uninstall()) {
+      // A storage object is still mapped (its queued writes never completed).
+      // Keep the TinyUSB driver running and deliberately leak impl_: esp_tinyusb
+      // still points at its base_path strings and backing media, and uninstalling
+      // would strand the queued writes. A later UsbDevice cannot initialize.
+      (void)impl_.release();
+      initialized_ = false;
+      return;
     }
 #endif
     tinyusb_driver_uninstall();
-    // Anything the drain above could not release (normally nothing).
-    deinit_msc();
     initialized_ = false;
   }
 }
@@ -1025,7 +1023,8 @@ bool UsbDevice::initialize(std::error_code &ec) {
   // Xbox 360 controller's identity (VID/PID/bcdDevice) and a 0xFF/0xFF/0xFF
   // device class so a PC's XUSB driver binds it. Combining XInput with other
   // functions keeps the normal composite identity (and XUSB will not bind).
-  const bool xinput_only = config_.xinput && !config_.cdc && !config_.vendor && !config_.hid;
+  const bool xinput_only =
+      config_.xinput && !config_.cdc && !config_.vendor && !config_.hid && !config_.msc;
   impl_->device_desc = tusb_desc_device_t{};
   impl_->device_desc.bLength = sizeof(tusb_desc_device_t);
   impl_->device_desc.bDescriptorType = TUSB_DESC_DEVICE;
@@ -1476,8 +1475,17 @@ bool UsbDevice::initialize(std::error_code &ec) {
     if (err != ESP_OK) {
       logger_.error("tinyusb_cdcacm_init failed: {}", esp_err_to_name(err));
       s_device = nullptr;
+      // A host may already have enumerated and queued MSC writes: release the
+      // media while the TinyUSB task can still run them, like the destructor.
+#if (CFG_TUD_MSC > 0)
+      if (!release_msc_before_uninstall()) {
+        (void)impl_.release(); // storage still mapped: keep its strings alive
+        impl_ = std::make_unique<Impl>();
+        ec = std::make_error_code(std::errc::io_error);
+        return false;
+      }
+#endif
       tinyusb_driver_uninstall();
-      deinit_msc();
       ec = std::make_error_code(std::errc::io_error);
       return false;
     }
@@ -2191,7 +2199,7 @@ bool UsbDevice::init_msc(std::error_code &ec) {
 #endif
 }
 
-void UsbDevice::deinit_msc(std::chrono::milliseconds drain_timeout) {
+bool UsbDevice::deinit_msc(std::chrono::milliseconds drain_timeout) {
 #if (CFG_TUD_MSC > 0)
   const auto deadline = std::chrono::steady_clock::now() + drain_timeout;
   bool all_released = true;
@@ -2237,7 +2245,7 @@ void UsbDevice::deinit_msc(std::chrono::milliseconds drain_timeout) {
     lun.no_filesystem = false;
   }
   if (!all_released)
-    return; // the driver cannot be uninstalled while a LUN is still mapped
+    return false; // the driver cannot be uninstalled while a LUN is still mapped
   impl_->msc_lun_count = 0;
   if (impl_->msc_driver_installed) {
     const esp_err_t err = tinyusb_msc_uninstall_driver();
@@ -2246,8 +2254,29 @@ void UsbDevice::deinit_msc(std::chrono::milliseconds drain_timeout) {
     else
       logger_.error("tinyusb_msc_uninstall_driver failed: {}", esp_err_to_name(err));
   }
+  return true;
 #else
   (void)drain_timeout;
+  return true;
+#endif
+}
+
+bool UsbDevice::release_msc_before_uninstall() {
+#if (CFG_TUD_MSC > 0)
+  if (!config_.msc)
+    return true;
+  // Host writes are queued and run later on the TinyUSB task, and a storage
+  // object with writes still queued cannot be deleted. Stop the host sending
+  // more (drop the pull-up) and delete the media while the task still runs;
+  // stopping it first would lose the queued writes and strand the storage.
+  tud_disconnect();
+  if (deinit_msc(std::chrono::milliseconds(1000)))
+    return true;
+  logger_.error("MSC media could not be released (host writes still queued); leaving the USB "
+                "driver installed -- no new UsbDevice can be initialized");
+  return false;
+#else
+  return true;
 #endif
 }
 

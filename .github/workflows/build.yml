@@ -352,10 +352,10 @@ jobs:
           target: esp32
         - path: 'components/usb_device/example'
           target: esp32s3
-        - path: 'components/usb_device/xinput_example'
+        - path: 'components/usb_device/msc_example'
           target: esp32s3
           command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
-        - path: 'components/usb_device/msc_example'
+        - path: 'components/usb_device/xinput_example'
           target: esp32s3
           command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/usb_host/example'
