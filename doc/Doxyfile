@@ -202,6 +202,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/twai/example/main/twai_example.cpp \
   $(PROJECT_PATH)/components/tt21100/example/main/tt21100_example.cpp \
   $(PROJECT_PATH)/components/usb_device/example/main/usb_cdc_example.cpp \
+  $(PROJECT_PATH)/components/usb_device/msc_example/main/msc_example.cpp \
   $(PROJECT_PATH)/components/usb_device/xinput_example/main/xinput_example.cpp \
   $(PROJECT_PATH)/components/usb_host/example/main/usb_host_example.cpp \
   $(PROJECT_PATH)/components/wdi/ble_example/main/wdi_ble_example.cpp \

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -12,8 +13,9 @@
 #include <vector>
 
 #include "base_component.hpp"
-#include "tinyusb.h"  // for tinyusb_event_t (esp_tinyusb is already a REQUIRES dependency)
-#include "xinput.hpp" // X-Input (Xbox 360) gamepad state + descriptor helpers
+#include "sd_protocol_types.h" // sdmmc_card_t, for MscMedium::sd_card
+#include "tinyusb.h"           // for tinyusb_event_t (esp_tinyusb is already a REQUIRES dependency)
+#include "xinput.hpp"          // X-Input (Xbox 360) gamepad state + descriptor helpers
 
 namespace espp {
 
@@ -33,9 +35,12 @@ namespace espp {
  * enabled, and the device checks the result against the USB-OTG endpoint budget
  * (reporting an error via `std::error_code` if it is exceeded).
  *
- * The design also leaves room for an **MSC** function to be added later without
- * changing the descriptor-building model (see `MscFunction` below and the
- * endpoint-budget table in the README).
+ * It can also enable an **MSC** (mass storage) function exposing up to two
+ * media -- an SD card and/or a wear-levelled FAT partition in flash -- as USB
+ * drives. Each medium is owned by one side at a time: the application reads and
+ * writes files through the VFS at its `base_path`, or the USB host sees the FAT
+ * volume; ownership moves to the host when it mounts the device and back to the
+ * application when it ejects or disconnects (see `MscFunction`).
  *
  * The VID/PID and manufacturer / product / serial strings are configurable so a
  * device can advertise its own identifiers (e.g. ODrive-like) on a link that is
@@ -208,16 +213,116 @@ public:
     receive_callback_fn on_rumble{nullptr};
   };
 
+  /// @brief Which side currently has an MSC medium. A medium belongs to exactly
+  ///        one side: while the host has it, the application's `base_path` is
+  ///        unmounted (open files there become invalid); while the application
+  ///        has it, the host sees the drive as "no medium".
+  enum class MscOwner : uint8_t {
+    Host = 0, ///< Exposed to the USB host as a drive.
+    App,      ///< Mounted at MscMedium::base_path for the application (fopen, std::filesystem).
+  };
+
+  /// @brief Storage events reported through MscFunction::on_event /
+  ///        set_msc_event_callback().
+  enum class MscEvent : uint8_t {
+    OwnerChangeStarted, ///< A hand-over between application and host is starting.
+    OwnerChanged,       ///< The hand-over completed; `owner` is the new owner.
+    OwnerChangeFailed,  ///< The hand-over failed (e.g. the FAT volume could not be mounted).
+    FormatRequired,     ///< The medium has no FAT filesystem and format_if_unformatted is off.
+    FormatFailed,       ///< Formatting the medium failed.
+  };
+
+  /// @brief MSC storage event callback: the medium index (LUN), the event, and
+  ///        the owner at the time of the event: the previous owner for
+  ///        OwnerChangeStarted and OwnerChangeFailed (the side that still has
+  ///        the medium), the new one for OwnerChanged. Runs in the TinyUSB device task for
+  ///        host-driven hand-overs (mount / eject / disconnect) and in the
+  ///        caller's task for set_msc_owner(); keep it short and do not call
+  ///        set_msc_owner() from it.
+  using msc_event_callback_fn = std::function<void(size_t lun, MscEvent event, MscOwner owner)>;
+
   /**
-   * @brief (Future) MSC (mass storage) function extension point. Not implemented yet.
+   * @brief One medium exposed by the MSC function (one LUN).
    *
-   * An MSC function consumes 1 bulk IN + 1 bulk OUT endpoint and requires SCSI +
-   * storage callbacks (read10 / write10 / inquiry / capacity). Enabling it today
-   * makes initialize() fail with `std::errc::function_not_supported`.
+   * The host only understands FAT, so the medium carries a FAT volume: an SD
+   * card, or a FAT data partition in flash (accessed through wear levelling).
+   * esp_tinyusb supports at most one medium of each type.
+   */
+  struct MscMedium {
+    /// @brief The kind of storage behind this LUN.
+    enum class Type : uint8_t {
+      SdCard,         ///< An already-initialized SD/MMC card (SDMMC or SDSPI host): `sd_card`.
+      FlashPartition, ///< A FAT data partition in flash, by label: `partition_label`.
+    };
+    Type type{Type::FlashPartition}; /**< Which storage backs this LUN. */
+    /** For Type::SdCard: a caller-owned card initialized with sdmmc_card_init() on
+     *  an SDMMC or SDSPI host. Must outlive the UsbDevice. Do not pass the card
+     *  from esp_vfs_fat_sdmmc_mount() / esp_vfs_fat_sdspi_mount(): the matching
+     *  esp_vfs_fat_sdcard_unmount() frees it. Requires a target with an SDMMC host
+     *  peripheral (e.g. ESP32-S3, ESP32-P4), even when the card is on SPI. */
+    sdmmc_card_t *sd_card{nullptr};
+    /** For Type::FlashPartition: label of a `data, fat` partition. The device
+     *  mounts wear levelling on it and unmounts it on destruction. */
+    std::string partition_label{"storage"};
+    /** VFS path where the application sees the files while it owns the medium.
+     *  Must be unique per medium, and must not already be mounted by the app
+     *  (unmount your own esp_vfs_fat mount of the card first). */
+    std::string base_path{"/msc"};
+    int max_files{5}; /**< Files the application may keep open at once. */
+    /** FAT volume label: the name the host shows for the drive (up to 11
+     *  characters; FAT stores it upper-case). Written at initialize() and after
+     *  format_msc_medium() when it differs from the medium's current label.
+     *  Empty = leave the label alone. Requires CONFIG_FATFS_USE_LABEL=y. */
+    std::string volume_label{};
+    /** Format the medium as FAT when it is handed to the application and has no
+     *  filesystem. Off by default: an unformatted medium raises
+     *  MscEvent::FormatRequired instead.
+     *  @warning esp_tinyusb formats FatFs drive 0 rather than this medium's own
+     *           drive. Only enable this (or call format_msc_medium()) when no
+     *           other FAT volume is mounted on the device, or it may format that
+     *           volume instead. */
+    bool format_if_unformatted{false};
+    /** Owner right after initialize(). With auto_handover a host that is (or
+     *  becomes) connected takes the medium when it mounts the device. */
+    MscOwner initial_owner{MscOwner::App};
+  };
+
+  /**
+   * @brief MSC (USB mass storage) function: exposes up to two media as USB drives.
+   *
+   * Consumes 1 bulk IN + 1 bulk OUT endpoint. Built on esp_tinyusb's MSC storage
+   * backend, which provides the SCSI handling, so it requires
+   * `CONFIG_TINYUSB_MSC_ENABLED=y`; a flash partition additionally needs
+   * `CONFIG_TINYUSB_MSC_BUFSIZE >= CONFIG_WL_SECTOR_SIZE`. Prefer 4096-byte wear
+   * levelling sectors with a 4096-byte MSC buffer: each host write is then one
+   * flash erase + write, while 512-byte sectors need a read-modify-erase of the
+   * 4 KiB block per sector (slow in the power-safe mode, and
+   * `CONFIG_WL_SECTOR_MODE_PERF` loses the block on a reset mid-erase). SD cards
+   * are written directly, with no wear-levelling layer.
+   *
+   * Ownership: with `auto_handover` (the default) the media move to the host when
+   * the host mounts (configures) the device, and back to the application when the
+   * host ejects a drive or the device is detached. The hand-over is for ALL media
+   * at once: esp_tinyusb ignores which drive was ejected, so ejecting either one
+   * returns both to the application (the other drive disappears from the host too). Turn it off to
+   * decide yourself with set_msc_owner() (e.g. only expose the card while a "USB drive mode" screen
+   * is shown). Either way, never let the application and the host write the same volume at once --
+   * that is what the ownership model prevents.
    */
   struct MscFunction {
-    std::string interface_name{"espp MSC"};
-    // Future: SCSI inquiry strings + read/write/capacity callbacks.
+    std::string interface_name{"espp MSC"}; /**< MSC interface string descriptor. */
+    std::vector<MscMedium> media{};         /**< One or two media (LUN 0, LUN 1). */
+    bool auto_handover{true}; /**< Host takes all media on mount; the app gets all of them
+                                   back on any eject / detach. */
+    msc_event_callback_fn on_event{nullptr}; /**< Optional storage event callback. */
+  };
+
+  /// @brief Size of an MSC medium.
+  struct MscCapacity {
+    uint32_t sector_count{0}; ///< Number of sectors.
+    uint32_t sector_size{0};  ///< Bytes per sector.
+    /// @brief Total size in bytes.
+    uint64_t bytes() const { return static_cast<uint64_t>(sector_count) * sector_size; }
   };
 
   /**
@@ -237,12 +342,16 @@ public:
     uint16_t max_power_ma{100};  /**< bMaxPower in the configuration descriptor, in mA; clamped
                                      to 500 and rounded up to the next 2 mA unit. */
     bool remote_wakeup{true};    /**< Advertise remote wakeup in the configuration attributes. */
+    /** Attach to the bus (enable the D+ pull-up) at the end of initialize(). Set
+     *  false to stay invisible to the host until connect() -- e.g. to finish
+     *  application file I/O on an MSC medium before a host can take it. */
+    bool connect_on_initialize{true};
 
     std::optional<CdcFunction> cdc{};       /**< Enable a CDC-ACM function. */
     std::optional<VendorFunction> vendor{}; /**< Enable a vendor-specific / WebUSB function. */
     std::optional<HidFunction> hid{};       /**< Enable a HID function. */
     std::optional<XInputFunction> xinput{}; /**< Enable an X-Input (Xbox 360) function. */
-    std::optional<MscFunction> msc{};       /**< (Future) enable an MSC function. */
+    std::optional<MscFunction> msc{};       /**< Enable an MSC (mass storage) function. */
 
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Logger verbosity. */
   };
@@ -255,6 +364,9 @@ public:
 
   /**
    * @brief Uninstalls the enabled functions and the TinyUSB driver if initialized.
+   * @note MSC media are released too: an application-owned medium's `base_path`
+   *       is unmounted, flash partitions are unmounted from wear levelling, and
+   *       an SD card is left initialized (the caller owns it) but not mounted.
    */
   ~UsbDevice();
 
@@ -422,6 +534,66 @@ public:
   ///        new input report (no report in flight).
   bool is_xinput_ready() const;
 
+  /**
+   * @brief Hand an MSC medium to the application or the USB host.
+   * @param lun Medium index (position in MscFunction::media).
+   * @param owner New owner. Handing it to the App mounts the FAT volume at the
+   *        medium's `base_path`; handing it to the Host unmounts it there first.
+   * @param[out] ec Set on failure: MSC not enabled / not initialized
+   *        (`not_connected`), bad index (`invalid_argument`), the medium has no
+   *        FAT filesystem (`no_such_device`, see format_msc_medium()), the host
+   *        is attached and still has the medium (`device_or_resource_busy`, see
+   *        below), or the volume could not be mounted / unmounted (`io_error`).
+   * @return true if `owner` now has the medium.
+   * @note Taking a medium from an attached host is refused: esp_tinyusb accepts
+   *       host writes and runs them later, without re-checking ownership, so a
+   *       write already queued could land under the application's mounted FAT
+   *       volume. Have the host eject the drive (auto_handover then returns it),
+   *       or detach / destroy the device, first. Handing a medium to the host is
+   *       always allowed.
+   * @note Blocks for the mount / unmount. Call it from an application task, not
+   *       from a USB callback. With auto_handover, the next host mount / eject /
+   *       detach still moves the medium automatically -- and a host mount or
+   *       eject that happens during this call races it, so turn auto_handover
+   *       off if the application drives ownership itself.
+   */
+  bool set_msc_owner(size_t lun, MscOwner owner, std::error_code &ec);
+
+  /// @brief Convenience overload of set_msc_owner() that ignores errors.
+  bool set_msc_owner(size_t lun, MscOwner owner);
+
+  /// @brief Who currently has an MSC medium (nullopt if MSC is not enabled /
+  ///        initialized or the index is out of range). An unformatted medium
+  ///        waiting for format_msc_medium() reports App, with nothing mounted.
+  std::optional<MscOwner> msc_owner(size_t lun) const;
+
+  /// @brief Size of an MSC medium (nullopt if MSC is not enabled / initialized
+  ///        or the index is out of range).
+  std::optional<MscCapacity> msc_capacity(size_t lun) const;
+
+  /// @brief Number of MSC media (LUNs); 0 if MSC is not enabled / initialized.
+  size_t msc_lun_count() const;
+
+  /**
+   * @brief Create a FAT filesystem on an MSC medium that has none (e.g. after
+   *        MscEvent::FormatRequired), and mount it for the application.
+   * @param lun Medium index.
+   * @param[out] ec Set on failure: MSC not enabled / not initialized, bad index,
+   *        the application does not own the medium (`operation_not_permitted`), a
+   *        filesystem already exists (`file_exists`), every FatFs drive slot is in
+   *        use (`device_or_resource_busy`), or formatting failed (`io_error`).
+   * @return true if the medium was formatted.
+   * @warning See MscMedium::format_if_unformatted: esp_tinyusb formats FatFs
+   *          drive 0, so only use this when no other FAT volume is mounted.
+   * @note With auto_handover, the USB connection is dropped for the duration of
+   *       the format (and restored after) so a host attaching mid-format cannot
+   *       take the medium while esp_tinyusb is formatting it.
+   */
+  bool format_msc_medium(size_t lun, std::error_code &ec);
+
+  /// @brief Set or replace the MSC storage event callback (nullptr to detach).
+  void set_msc_event_callback(const msc_event_callback_fn &cb);
+
   /// @brief Set or replace the CDC receive callback (nullptr to detach).
   void set_cdc_receive_callback(const receive_callback_fn &cb);
 
@@ -447,6 +619,15 @@ public:
 
   /// @brief Whether initialize() has completed successfully.
   bool is_initialized() const;
+
+  /// @brief Attach to the bus (enable the D+ pull-up) so a host can enumerate the
+  ///        device. Only needed after Config::connect_on_initialize = false or a
+  ///        disconnect(). @return false if not initialized.
+  bool connect();
+
+  /// @brief Detach from the bus (disable the D+ pull-up): the host sees the
+  ///        device unplugged. @return false if not initialized.
+  bool disconnect();
 
   /// @brief Whether the CDC function is enabled and a host has asserted DTR.
   bool is_cdc_connected() const;
@@ -509,6 +690,53 @@ protected:
   ///        function is not enabled). Used by the write path / readiness check.
   uint8_t xinput_in_endpoint() const;
 
+  /// @brief Internal: route an esp_tinyusb MSC storage event (from the TinyUSB
+  ///        task or the task calling set_msc_owner()) to the event callback.
+  /// @param storage The esp_tinyusb storage handle the event refers to.
+  /// @param event The translated event.
+  /// @param owner The owner the event refers to.
+  void handle_msc_event(const void *storage, MscEvent event, MscOwner owner);
+
+  /// @brief Internal: hand an MSC medium over and confirm the result against the
+  ///        VFS (esp_tinyusb's setter records the requested owner even when the
+  ///        mount / unmount failed, and not every failure raises an event).
+  bool hand_over_msc(size_t index, MscOwner owner, std::error_code &ec);
+
+  /// @brief Internal: write MscMedium::volume_label to an application-mounted
+  ///        medium if it differs from the current label.
+  void apply_msc_volume_label(size_t index);
+
+  /// @brief Internal: install the MSC driver and create the storage objects for
+  ///        the configured media (before the TinyUSB driver is installed, so a
+  ///        host that is already connected finds them on its first mount).
+  bool init_msc(std::error_code &ec);
+
+  /// @brief Internal: tear down the MSC media (storage objects, wear levelling,
+  ///        MSC driver). Safe to call when none were set up. Call it while no
+  ///        TinyUSB task is running (before the driver is installed, or after
+  ///        quiesce_msc_before_uninstall() + tinyusb_driver_uninstall()). A
+  ///        storage object with host writes still queued cannot be deleted;
+  ///        resources behind it are left in place, not freed.
+  /// @return true if every medium and the MSC driver were released.
+  bool deinit_msc();
+
+  /// @brief Internal: pass barriers through the TinyUSB task until everything
+  ///        queued before the call (unplug / auto-hand-over callbacks, deferred
+  ///        MSC writes and the writes they queue) has run. @return false on
+  ///        timeout (the task did not get through its queue).
+  bool drain_tinyusb_task();
+
+  /// @brief Internal: undo what a failed tinyusb_msc_format_storage() left
+  ///        registered (VFS path, FatFs mount, diskio drive @p pdrv).
+  void clean_up_failed_msc_format(size_t index, uint8_t pdrv);
+
+  /// @brief Internal: detach from the host and wait until the TinyUSB task has
+  ///        run everything already queued (deferred MSC writes, a detach /
+  ///        auto-hand-over callback), so the MSC media can be deleted once the
+  ///        task is stopped. Call before tinyusb_driver_uninstall(). @return false
+  ///        if the task did not get through its queue in time.
+  bool quiesce_msc_before_uninstall();
+
   /// @brief Internal: the singleton instance handling the global USB callbacks.
   static UsbDevice *instance();
 
@@ -527,6 +755,10 @@ private:
 
   Config config_;
   std::atomic<bool> initialized_{false}; // read from the TinyUSB task via the write paths
+  // Whether the application wants the device attached (pull-up on): set by
+  // initialize() / connect() / disconnect(), so internal detaches (formatting)
+  // restore the caller's choice instead of forcing the device visible.
+  std::atomic<bool> attached_{false};
 
   std::mutex cb_mutex_;
   receive_callback_fn on_cdc_receive_;
@@ -535,6 +767,7 @@ private:
   receive_callback_fn on_hid_receive_;
   event_callback_fn on_mount_;
   event_callback_fn on_unmount_;
+  msc_event_callback_fn on_msc_event_;
 
   // Preallocated RX scratch buffers (sized in initialize()) so the TinyUSB-task
   // RX handlers stay allocation-free (no heap churn on the hot path).

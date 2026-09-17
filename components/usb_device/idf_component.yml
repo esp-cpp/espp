@@ -1,6 +1,6 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
-description: "Composable native USB device (esp_tinyusb): CDC-ACM + vendor-specific/WebUSB with configurable VID/PID for ESP-IDF"
+description: "Composable native USB device (esp_tinyusb): CDC-ACM, vendor-specific/WebUSB, HID, X-Input and mass storage (MSC) with configurable VID/PID for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/usb_device"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
@@ -9,6 +9,7 @@ documentation: "https://esp-cpp.github.io/espp/buses/usb_cdc.html"
 examples:
   - path: example
   - path: xinput_example
+  - path: msc_example
 tags:
   - cpp
   - Component
@@ -22,11 +23,17 @@ tags:
   - HID
   - XInput
   - Gamepad
+  - MSC
+  - Mass-Storage
+  - SD-Card
 dependencies:
   idf:
     version: '>=5.0'
   espp/base_component: '>=1.0'
-  espressif/esp_tinyusb: '>=2.0'
+  # >= 2.0.1: MSC storage-operation multitask protection, and delete_storage()
+  # refusing to free a storage with host writes still queued (MSC teardown
+  # relies on both).
+  espressif/esp_tinyusb: '>=2.0.1'
   # The X-Input class driver uses the 5-argument usbd_edpt_xfer(..., is_isr) API
   # (and the usbd_class_driver_t `xfer_isr` member). TinyUSB 0.21 provides that
   # 5-argument form; earlier releases (e.g. 0.19) still have the 4-argument
