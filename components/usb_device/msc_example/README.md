@@ -29,15 +29,62 @@ USB port's PHY with USB-OTG, which the mass storage interface takes over.
 
 The example's `sdkconfig.defaults` enables `CONFIG_TINYUSB_MSC_ENABLED`, uses a
 custom `partitions.csv` with a 1 MiB `storage` FAT partition, and selects
-512-byte wear-levelling sectors (esp_tinyusb requires
-`CONFIG_TINYUSB_MSC_BUFSIZE >= CONFIG_WL_SECTOR_SIZE`) in **Safety** mode.
-Performance mode (`CONFIG_WL_SECTOR_MODE_PERF`, used by ESP-IDF's own `tusb_msc`
-example) loses a whole 4 KiB flash sector if the chip resets while wear levelling
-is erasing it -- easy to hit when a host is writing or you reflash -- which shows
-up as a root directory full of unreadable entries and missing files.
+**4096-byte wear-levelling sectors** with a matching MSC buffer:
 
-If a volume was damaged that way (or by an earlier build in Performance mode),
-erase the storage partition and let the example format it again:
+```
+CONFIG_WL_SECTOR_SIZE_4096=y
+CONFIG_TINYUSB_MSC_BUFSIZE=4096   # esp_tinyusb requires >= CONFIG_WL_SECTOR_SIZE
+```
+
+## Flash write speed and sector size
+
+NOR flash can only be erased in 4 KiB blocks, and esp_tinyusb erases a range
+before writing it. How much work one host write costs depends on the
+wear-levelling sector size:
+
+| `CONFIG_WL_SECTOR_SIZE` | Host sector | Flash work per host write | Reset during an erase |
+|---|---|---|---|
+| **4096** (this example) | 4 KiB | 1 erase + 1 write | loses only the write in progress |
+| 512, `WL_SECTOR_MODE_SAFE` | 512 B | read the 4 KiB block, back it up (erase + write), write a transaction record (erase + write), erase the block, restore the other 7 sectors, clear the record (erase), write -- **4 erases** | safe |
+| 512, `WL_SECTOR_MODE_PERF` | 512 B | read the block into RAM, erase, restore, write -- 1 erase | **loses the whole 4 KiB block** |
+
+A flash erase takes tens of milliseconds, and a host editing even a tiny file
+writes many sectors: the data, the FAT (often two copies), the directory entry
+and timestamps, plus host metadata such as macOS's `._name` AppleDouble files and
+`.fseventsd` logs. With 512-byte Safety-mode sectors that adds up to several
+seconds for a ~100-byte edit; with 4096-byte sectors it is a fraction of that.
+
+Trade-offs of 4096-byte sectors:
+
+- The host sees a drive with **4 KiB logical sectors**. Current macOS, Linux and
+  Windows handle that; some old or embedded hosts only accept 512-byte sectors.
+- FatFs keeps a sector-sized buffer per mounted volume and per open file, so each
+  costs **4 KiB of RAM** instead of 512 B (and the MSC buffer is 4 KiB).
+- A cluster is at least one sector, so every file, however small, occupies at
+  least **4 KiB on the volume**; a small partition fits fewer files.
+- Changing the sector size changes the on-flash layout: **erase the partition**
+  after switching either way (below).
+
+To reduce host metadata writes on macOS, create `.fseventsd/no_log` and
+`.metadata_never_index` on the volume, and run
+`defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true` to stop
+`.DS_Store` files.
+
+### SD cards avoid all of this
+
+An SD card has its own controller that does erase-block management and wear
+levelling internally, so esp_tinyusb writes its 512-byte sectors straight to the
+card (`sdmmc_write_sectors()`): no ESP-side wear-levelling layer, no
+read-modify-erase and no sector-size choice to make. Host writes then run at the
+card's speed (limited mainly by full-speed USB, about 1 MB/s), and an SD card
+holds far more than a flash partition. For storage a PC writes to regularly,
+prefer an SD card (see below) and keep flash media for small, rarely changed data.
+
+### Starting over
+
+A volume written with a different sector size, or damaged by a reset in
+Performance mode (a root directory of unreadable entries, missing files), must be
+erased so the example can format it again:
 
 ```sh
 idf.py erase-flash flash   # or: esptool.py erase_region 0x110000 0x100000

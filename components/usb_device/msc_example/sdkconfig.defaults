@@ -16,13 +16,14 @@ CONFIG_TINYUSB_CDC_ENABLED=n
 CONFIG_TINYUSB_CDC_COUNT=0
 CONFIG_TINYUSB_MSC_ENABLED=y
 
-# Flash FAT volume: 512-byte wear-levelling sectors, so they fit the default
-# 512-byte MSC buffer (esp_tinyusb requires TINYUSB_MSC_BUFSIZE >= WL sector).
-CONFIG_WL_SECTOR_SIZE_512=y
-# SAFE, not PERF: in Performance mode a reset / power loss while wear levelling
-# erases a flash sector loses that whole 4 KiB sector (8 FAT sectors -- e.g. the
-# root directory), which a host writing to the drive or a reflash can easily hit.
-CONFIG_WL_SECTOR_MODE_SAFE=y
+# Flash FAT volume: 4096-byte wear-levelling sectors, the size of one flash erase
+# block, with an MSC buffer to match (esp_tinyusb requires TINYUSB_MSC_BUFSIZE >=
+# the WL sector). Each host write is then one erase + one write, and a reset can
+# only lose the write in progress. 512-byte sectors are much slower: every one
+# needs a read-modify-erase of its 4 KiB block (4 erases in the power-safe mode),
+# so a small file edit from a host takes seconds. See the README for trade-offs.
+CONFIG_WL_SECTOR_SIZE_4096=y
+CONFIG_TINYUSB_MSC_BUFSIZE=4096
 CONFIG_FATFS_LFN_HEAP=y
 # lets MscMedium::volume_label name the drive
 CONFIG_FATFS_USE_LABEL=y

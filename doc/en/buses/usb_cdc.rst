@@ -183,9 +183,16 @@ The MSC function exposes up to **two media** as USB drives: an SD card and/or a
 FAT data partition in flash (accessed through wear levelling). It is built on
 esp_tinyusb's MSC storage backend, which provides the SCSI handling, so it needs
 ``CONFIG_TINYUSB_MSC_ENABLED=y``; flash media additionally need
-``CONFIG_TINYUSB_MSC_BUFSIZE >= CONFIG_WL_SECTOR_SIZE`` (the ``msc_example`` uses
-512-byte wear-levelling sectors). Keep ``CONFIG_WL_SECTOR_MODE_SAFE``: in Performance
-mode a reset while a sector is being erased loses the whole 4 KiB flash sector.
+``CONFIG_TINYUSB_MSC_BUFSIZE >= CONFIG_WL_SECTOR_SIZE``. Prefer 4096-byte
+wear-levelling sectors with a 4096-byte MSC buffer (the ``msc_example`` does): NOR
+flash erases in 4 KiB blocks and esp_tinyusb erases before writing, so a host write
+is then one erase and one write. 512-byte sectors need a read-modify-erase of the
+block per sector (4 erases in Safety mode; Performance mode loses the whole block
+on a reset mid-erase), making small host edits take seconds. 4 KiB sectors cost
+4 KiB of RAM per volume / open file and at least 4 KiB of space per file, and the
+host sees 4 KiB logical sectors. SD cards avoid the trade-off entirely: the card's
+controller manages erase blocks, so sectors are written directly with no ESP-side
+wear levelling.
 
 A medium belongs to one side at a time, so the firmware and a PC never write the
 same FAT volume at once. While the **application** owns it, the volume is mounted

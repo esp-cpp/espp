@@ -238,10 +238,24 @@ in sdkconfig (the [`msc_example`](msc_example/) does):
 
 ```
 CONFIG_TINYUSB_MSC_ENABLED=y
-# flash media: the MSC buffer must hold a wear-levelling sector
-CONFIG_WL_SECTOR_SIZE_512=y          # or raise CONFIG_TINYUSB_MSC_BUFSIZE to 4096
-CONFIG_WL_SECTOR_MODE_SAFE=y         # not PERF: a reset mid-erase loses a 4 KiB sector
+# flash media: 4 KiB wear-levelling sectors (one flash erase block) and an MSC
+# buffer that holds one
+CONFIG_WL_SECTOR_SIZE_4096=y
+CONFIG_TINYUSB_MSC_BUFSIZE=4096
 ```
+
+**Flash media and speed.** esp_tinyusb erases a range before writing it, and NOR
+flash erases in 4 KiB blocks. With 4096-byte wear-levelling sectors a host write
+costs one erase and one write. With 512-byte sectors each one needs a
+read-modify-erase of its block: 4 erases in `CONFIG_WL_SECTOR_MODE_SAFE`, or 1 in
+`CONFIG_WL_SECTOR_MODE_PERF`, which loses the whole block if the chip resets
+mid-erase. A small file edit from a host can then take seconds. 4 KiB sectors cost
+4 KiB of RAM per mounted volume and open file, and every file takes at least 4 KiB
+of space; the host sees 4 KiB logical sectors (fine for current macOS, Linux,
+Windows). **SD cards bypass all of this**: their controller does its own
+erase-block management, so sectors are written directly with no ESP-side wear
+levelling. See the [`msc_example` README](msc_example/README.md#flash-write-speed-and-sector-size)
+for the full comparison.
 
 **Ownership.** A medium belongs to one side at a time, so the firmware and a PC
 never write the same FAT volume at once:
