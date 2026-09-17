@@ -293,7 +293,10 @@ public:
    * Consumes 1 bulk IN + 1 bulk OUT endpoint. Built on esp_tinyusb's MSC storage
    * backend, which provides the SCSI handling, so it requires
    * `CONFIG_TINYUSB_MSC_ENABLED=y`; a flash partition additionally needs
-   * `CONFIG_TINYUSB_MSC_BUFSIZE >= CONFIG_WL_SECTOR_SIZE`.
+   * `CONFIG_TINYUSB_MSC_BUFSIZE >= CONFIG_WL_SECTOR_SIZE`. With 512-byte wear
+   * levelling sectors keep `CONFIG_WL_SECTOR_MODE_SAFE` (the default): in
+   * Performance mode a reset while a flash sector is being erased loses all 4 KiB
+   * of it, which a host write or a reflash can trigger.
    *
    * Ownership: with `auto_handover` (the default) the media move to the host when
    * the host mounts (configures) the device, and back to the application when the

@@ -240,6 +240,7 @@ in sdkconfig (the [`msc_example`](msc_example/) does):
 CONFIG_TINYUSB_MSC_ENABLED=y
 # flash media: the MSC buffer must hold a wear-levelling sector
 CONFIG_WL_SECTOR_SIZE_512=y          # or raise CONFIG_TINYUSB_MSC_BUFSIZE to 4096
+CONFIG_WL_SECTOR_MODE_SAFE=y         # not PERF: a reset mid-erase loses a 4 KiB sector
 ```
 
 **Ownership.** A medium belongs to one side at a time, so the firmware and a PC

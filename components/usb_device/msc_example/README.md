@@ -29,7 +29,18 @@ USB port's PHY with USB-OTG, which the mass storage interface takes over.
 The example's `sdkconfig.defaults` enables `CONFIG_TINYUSB_MSC_ENABLED`, uses a
 custom `partitions.csv` with a 1 MiB `storage` FAT partition, and selects
 512-byte wear-levelling sectors (esp_tinyusb requires
-`CONFIG_TINYUSB_MSC_BUFSIZE >= CONFIG_WL_SECTOR_SIZE`).
+`CONFIG_TINYUSB_MSC_BUFSIZE >= CONFIG_WL_SECTOR_SIZE`) in **Safety** mode.
+Performance mode (`CONFIG_WL_SECTOR_MODE_PERF`, used by ESP-IDF's own `tusb_msc`
+example) loses a whole 4 KiB flash sector if the chip resets while wear levelling
+is erasing it -- easy to hit when a host is writing or you reflash -- which shows
+up as a root directory full of unreadable entries and missing files.
+
+If a volume was damaged that way (or by an earlier build in Performance mode),
+erase the storage partition and let the example format it again:
+
+```sh
+idf.py erase-flash flash   # or: esptool.py erase_region 0x110000 0x100000
+```
 
 ## Using an SD card instead
 

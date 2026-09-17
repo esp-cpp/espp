@@ -30,15 +30,34 @@ static constexpr const char *kBasePath = "/msc";
 
 static void list_files(espp::Logger &logger) {
   std::error_code ec;
+  size_t garbled = 0;
   logger.info("Files on the volume:");
   for (const auto &entry : std::filesystem::directory_iterator(kBasePath, ec)) {
     std::error_code size_ec;
     const auto size = entry.is_regular_file(size_ec) ? entry.file_size(size_ec) : 0;
-    logger.info("  {}{} ({} bytes)", entry.path().filename().string(),
-                entry.is_directory(size_ec) ? "/" : "", size);
+    // A damaged directory (e.g. an erased flash sector) yields names full of 0xFF
+    // bytes: print them safely and count them instead of sending raw bytes to the
+    // console.
+    std::string name = entry.path().filename().string();
+    bool printable = true;
+    for (auto &c : name) {
+      if (static_cast<unsigned char>(c) < 0x20 || static_cast<unsigned char>(c) >= 0x7F) {
+        c = '?';
+        printable = false;
+      }
+    }
+    if (!printable) {
+      ++garbled;
+      continue;
+    }
+    logger.info("  {}{} ({} bytes)", name, entry.is_directory(size_ec) ? "/" : "", size);
   }
   if (ec)
     logger.error("could not list {}: {}", kBasePath, ec.message());
+  if (garbled > 0)
+    logger.warn("{} directory entries are unreadable: the volume is damaged. Erase the storage "
+                "partition (or reformat the drive from the host) to start clean.",
+                garbled);
 }
 
 static void write_boot_files(espp::Logger &logger) {
