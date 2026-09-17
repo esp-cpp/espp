@@ -76,6 +76,7 @@ extern "C" void app_main(void) {
   flash.type = espp::UsbDevice::MscMedium::Type::FlashPartition;
   flash.partition_label = "storage"; // `data, fat` partition in partitions.csv
   flash.base_path = kBasePath;
+  flash.volume_label = "ESPP MSC"; // the name the host shows for the drive
   // Safe here: this is the only FAT volume on the device (see the header docs).
   flash.format_if_unformatted = true;
   flash.initial_owner = MscOwner::App; // write the boot files before a host takes it

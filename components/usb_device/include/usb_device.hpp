@@ -269,6 +269,11 @@ public:
      *  (unmount your own esp_vfs_fat mount of the card first). */
     std::string base_path{"/msc"};
     int max_files{5}; /**< Files the application may keep open at once. */
+    /** FAT volume label: the name the host shows for the drive (up to 11
+     *  characters; FAT stores it upper-case). Written at initialize() and after
+     *  format_msc_medium() when it differs from the medium's current label.
+     *  Empty = leave the label alone. Requires CONFIG_FATFS_USE_LABEL=y. */
+    std::string volume_label{};
     /** Format the medium as FAT when it is handed to the application and has no
      *  filesystem. Off by default: an unformatted medium raises
      *  MscEvent::FormatRequired instead.
@@ -678,6 +683,10 @@ protected:
   ///        VFS (esp_tinyusb's setter records the requested owner even when the
   ///        mount / unmount failed, and not every failure raises an event).
   bool hand_over_msc(size_t index, MscOwner owner, std::error_code &ec);
+
+  /// @brief Internal: write MscMedium::volume_label to an application-mounted
+  ///        medium if it differs from the current label.
+  void apply_msc_volume_label(size_t index);
 
   /// @brief Internal: install the MSC driver and create the storage objects for
   ///        the configured media (before the TinyUSB driver is installed, so a

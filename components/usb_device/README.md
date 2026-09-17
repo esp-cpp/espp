@@ -274,6 +274,7 @@ espp::UsbDevice::MscMedium flash;
 flash.type = espp::UsbDevice::MscMedium::Type::FlashPartition;
 flash.partition_label = "storage"; // a `data, fat` partition
 flash.base_path = "/data";
+flash.volume_label = "MY DATA";   // drive name on the host; needs CONFIG_FATFS_USE_LABEL=y
 
 espp::UsbDevice::MscFunction msc;
 msc.media = {card, flash};         // LUN 0 and LUN 1

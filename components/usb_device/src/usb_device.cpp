@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 
@@ -35,8 +36,11 @@
 // MSC: esp_tinyusb's storage backend (SCSI callbacks, SD card / wear-levelled
 // flash media, VFS hand-over). Compiled in only with CONFIG_TINYUSB_MSC_ENABLED.
 #if (CFG_TUD_MSC > 0)
-#include "diskio_impl.h" // ff_diskio_get_drive: tell "no free FatFs drive" apart when formatting
+#include "diskio_impl.h"  // ff_diskio_get_drive: tell "no free FatFs drive" apart when formatting
+#include "diskio_sdmmc.h" // ff_diskio_get_pdrv_card: the FatFs drive of an SD medium
+#include "diskio_wl.h"    // ff_diskio_get_pdrv_wl: the FatFs drive of a flash medium
 #include "esp_partition.h"
+#include "ff.h" // f_getlabel / f_setlabel
 #include "soc/soc_caps.h"
 #include "tinyusb_msc.h"
 #include "wear_levelling.h"
@@ -819,6 +823,19 @@ bool UsbDevice::initialize(std::error_code &ec) {
         ec = std::make_error_code(std::errc::invalid_argument);
         return false;
       }
+      if (m.volume_label.size() > 11) {
+        logger_.error("MSC medium {}: volume_label '{}' is longer than FAT's 11 characters", i,
+                      m.volume_label);
+        ec = std::make_error_code(std::errc::invalid_argument);
+        return false;
+      }
+#if !FF_USE_LABEL
+      if (!m.volume_label.empty()) {
+        logger_.error("MSC medium {}: volume_label needs CONFIG_FATFS_USE_LABEL=y", i);
+        ec = std::make_error_code(std::errc::function_not_supported);
+        return false;
+      }
+#endif
       if (i > 0 && media[0].base_path == m.base_path) {
         logger_.error("MSC media 0 and 1 share base_path '{}'; each needs its own", m.base_path);
         ec = std::make_error_code(std::errc::invalid_argument);
@@ -2101,6 +2118,42 @@ bool UsbDevice::is_xinput_ready() const {
 // MSC (mass storage).
 // ---------------------------------------------------------------------------
 
+void UsbDevice::apply_msc_volume_label(size_t index) {
+#if (CFG_TUD_MSC > 0) && FF_USE_LABEL
+  const auto &m = config_.msc->media[index];
+  if (m.volume_label.empty())
+    return;
+  const auto &lun = impl_->msc_luns[index];
+  BYTE pdrv = 0xFF;
+  if (m.type == MscMedium::Type::FlashPartition) {
+    pdrv = ff_diskio_get_pdrv_wl(lun.wl);
+  } else {
+#if SOC_SDMMC_HOST_SUPPORTED
+    pdrv = ff_diskio_get_pdrv_card(m.sd_card);
+#endif
+  }
+  if (pdrv == 0xFF) {
+    logger_.warn("MSC medium {}: not mounted; volume label not written", index);
+    return;
+  }
+  const std::string drive = std::to_string(pdrv) + ":";
+  std::string wanted = m.volume_label;
+  for (auto &c : wanted)
+    c = static_cast<char>(std::toupper(static_cast<unsigned char>(c))); // FAT stores it upper-case
+  char current[12] = {};
+  if (f_getlabel(drive.c_str(), current, nullptr) == FR_OK && wanted == current)
+    return; // already labelled
+  const FRESULT res = f_setlabel((drive + wanted).c_str());
+  if (res == FR_OK)
+    logger_.info("MSC medium {}: volume label set to '{}'", index, wanted);
+  else
+    logger_.warn("MSC medium {}: setting volume label '{}' failed (FRESULT {})", index, wanted,
+                 static_cast<int>(res));
+#else
+  (void)index;
+#endif
+}
+
 bool UsbDevice::init_msc(std::error_code &ec) {
 #if (CFG_TUD_MSC > 0)
   tinyusb_msc_driver_config_t driver_cfg{};
@@ -2167,12 +2220,32 @@ bool UsbDevice::init_msc(std::error_code &ec) {
     }
     impl_->msc_lun_count = i + 1;
 
-    if (m.initial_owner == MscOwner::App) {
+    // Mount it for the application when it starts there, or briefly to write the
+    // volume label (safe: the TinyUSB driver is not installed yet, so no host).
+    if (m.initial_owner == MscOwner::App || !m.volume_label.empty()) {
       std::error_code hand_over_ec;
-      if (!hand_over_msc(i, MscOwner::App, hand_over_ec)) {
+      if (hand_over_msc(i, MscOwner::App, hand_over_ec)) {
+        apply_msc_volume_label(i);
+        if (m.initial_owner == MscOwner::Host) {
+          std::error_code back_ec;
+          if (!hand_over_msc(i, MscOwner::Host, back_ec)) {
+            logger_.error("MSC medium {}: could not hand it to the host: {}", i, back_ec.message());
+            deinit_msc();
+            ec = back_ec;
+            return false;
+          }
+        }
+      } else {
         if (hand_over_ec == std::errc::no_such_device) {
-          // No FAT filesystem: not fatal. FormatRequired has been reported and the
-          // medium stays application-owned so format_msc_medium() can run.
+          if (m.initial_owner == MscOwner::Host) {
+            // unformatted, meant for the host: give it back (it can format it)
+            lun.reverting = true;
+            tinyusb_msc_set_storage_mount_point(lun.storage, TINYUSB_MSC_STORAGE_MOUNT_USB);
+            lun.reverting = false;
+            lun.no_filesystem = false;
+          }
+          // No FAT filesystem: not fatal. FormatRequired has been reported and an
+          // app-owned medium stays application-owned so format_msc_medium() can run.
           logger_.warn("MSC medium {}: no FAT filesystem yet; format it to use it", i);
         } else {
           logger_.error("MSC medium {}: could not mount it for the application: {}", i,
@@ -2540,6 +2613,8 @@ bool UsbDevice::format_msc_medium(size_t lun, std::error_code &ec) {
     vTaskDelay(pdMS_TO_TICKS(20)); // let a detach callback already running complete
   }
   const esp_err_t err = tinyusb_msc_format_storage(l.storage);
+  if (err == ESP_OK)
+    apply_msc_volume_label(lun); // before the host can attach and see the drive
   if (pause_usb)
     tud_connect();
   switch (err) {
