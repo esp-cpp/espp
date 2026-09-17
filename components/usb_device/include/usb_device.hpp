@@ -718,6 +718,16 @@ protected:
   /// @return true if every medium and the MSC driver were released.
   bool deinit_msc();
 
+  /// @brief Internal: pass barriers through the TinyUSB task until everything
+  ///        queued before the call (unplug / auto-hand-over callbacks, deferred
+  ///        MSC writes and the writes they queue) has run. @return false on
+  ///        timeout (the task did not get through its queue).
+  bool drain_tinyusb_task();
+
+  /// @brief Internal: undo what a failed tinyusb_msc_format_storage() left
+  ///        registered (VFS path, FatFs mount, diskio drive @p pdrv).
+  void clean_up_failed_msc_format(size_t index, uint8_t pdrv);
+
   /// @brief Internal: detach from the host and wait until the TinyUSB task has
   ///        run everything already queued (deferred MSC writes, a detach /
   ///        auto-hand-over callback), so the MSC media can be deleted once the
@@ -743,6 +753,10 @@ private:
 
   Config config_;
   std::atomic<bool> initialized_{false}; // read from the TinyUSB task via the write paths
+  // Whether the application wants the device attached (pull-up on): set by
+  // initialize() / connect() / disconnect(), so internal detaches (formatting)
+  // restore the caller's choice instead of forcing the device visible.
+  std::atomic<bool> attached_{false};
 
   std::mutex cb_mutex_;
   receive_callback_fn on_cdc_receive_;
