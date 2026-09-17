@@ -337,6 +337,10 @@ public:
     uint16_t max_power_ma{100};  /**< bMaxPower in the configuration descriptor, in mA; clamped
                                      to 500 and rounded up to the next 2 mA unit. */
     bool remote_wakeup{true};    /**< Advertise remote wakeup in the configuration attributes. */
+    /** Attach to the bus (enable the D+ pull-up) at the end of initialize(). Set
+     *  false to stay invisible to the host until connect() -- e.g. to finish
+     *  application file I/O on an MSC medium before a host can take it. */
+    bool connect_on_initialize{true};
 
     std::optional<CdcFunction> cdc{};       /**< Enable a CDC-ACM function. */
     std::optional<VendorFunction> vendor{}; /**< Enable a vendor-specific / WebUSB function. */
@@ -611,6 +615,15 @@ public:
   /// @brief Whether initialize() has completed successfully.
   bool is_initialized() const;
 
+  /// @brief Attach to the bus (enable the D+ pull-up) so a host can enumerate the
+  ///        device. Only needed after Config::connect_on_initialize = false or a
+  ///        disconnect(). @return false if not initialized.
+  bool connect();
+
+  /// @brief Detach from the bus (disable the D+ pull-up): the host sees the
+  ///        device unplugged. @return false if not initialized.
+  bool disconnect();
+
   /// @brief Whether the CDC function is enabled and a host has asserted DTR.
   bool is_cdc_connected() const;
 
@@ -694,19 +707,20 @@ protected:
   bool init_msc(std::error_code &ec);
 
   /// @brief Internal: tear down the MSC media (storage objects, wear levelling,
-  ///        MSC driver). Safe to call when none were set up. A storage object
-  ///        with host writes still queued cannot be deleted; with a non-zero
-  ///        @p drain_timeout the deletion is retried until they have run (the
-  ///        TinyUSB task must still be running for that). Resources behind a
-  ///        storage that could not be deleted are left in place, not freed.
+  ///        MSC driver). Safe to call when none were set up. Call it while no
+  ///        TinyUSB task is running (before the driver is installed, or after
+  ///        quiesce_msc_before_uninstall() + tinyusb_driver_uninstall()). A
+  ///        storage object with host writes still queued cannot be deleted;
+  ///        resources behind it are left in place, not freed.
   /// @return true if every medium and the MSC driver were released.
-  bool deinit_msc(std::chrono::milliseconds drain_timeout = std::chrono::milliseconds(0));
+  bool deinit_msc();
 
-  /// @brief Internal: disconnect the host and release the MSC media while the
-  ///        TinyUSB task still runs (so queued host writes complete). Must run
-  ///        before tinyusb_driver_uninstall(). @return false if a medium is still
-  ///        mapped, in which case the driver must NOT be uninstalled.
-  bool release_msc_before_uninstall();
+  /// @brief Internal: detach from the host and wait until the TinyUSB task has
+  ///        run everything already queued (deferred MSC writes, a detach /
+  ///        auto-hand-over callback), so the MSC media can be deleted once the
+  ///        task is stopped. Call before tinyusb_driver_uninstall(). @return false
+  ///        if the task did not get through its queue in time.
+  bool quiesce_msc_before_uninstall();
 
   /// @brief Internal: the singleton instance handling the global USB callbacks.
   static UsbDevice *instance();

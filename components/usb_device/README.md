@@ -253,7 +253,9 @@ never write the same FAT volume at once:
 
 With `MscFunction::auto_handover` (the default) the host takes the media when it
 mounts the device, and the application gets them back when the host ejects the
-drive or the device is detached. The hand-over covers **all media at once**:
+drive or the device is detached. To finish application I/O before any host can
+take a medium, set `Config::connect_on_initialize = false` and call `connect()`
+when done (the `msc_example` does). The hand-over covers **all media at once**:
 esp_tinyusb ignores which drive was ejected, so ejecting either returns both.
 Taking a medium from an attached host with `set_msc_owner()` is refused
 (`device_or_resource_busy`) because host writes already queued could land under

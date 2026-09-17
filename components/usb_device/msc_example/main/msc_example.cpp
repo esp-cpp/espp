@@ -71,6 +71,10 @@ extern "C" void app_main(void) {
   espp::UsbDevice::Config cfg;
   cfg.product = "espp MSC Example";
   cfg.log_level = espp::Logger::Verbosity::INFO;
+  // Stay invisible to the host until the boot files are written: with
+  // auto_handover a host that enumerates takes the medium immediately, which
+  // would unmount /msc in the middle of the application's writes.
+  cfg.connect_on_initialize = false;
 
   espp::UsbDevice::MscMedium flash;
   flash.type = espp::UsbDevice::MscMedium::Type::FlashPartition;
@@ -112,11 +116,12 @@ extern "C" void app_main(void) {
   // that is not a return from the host, so do not list the files twice.
   app_regained = false;
 
-  // The app owns the medium until a host mounts the device: write to it now.
+  // Still detached, so no host can take the medium: write to it now, then attach.
   if (usb.msc_owner(0) == MscOwner::App) {
     write_boot_files(logger);
     list_files(logger);
   }
+  usb.connect();
 
   logger.info("Ready. Connect the native USB port to a PC; eject the drive to hand it back.");
   while (true) {

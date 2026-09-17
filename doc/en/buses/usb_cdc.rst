@@ -194,7 +194,8 @@ at the medium's ``base_path`` and ordinary file APIs work (``fopen``,
 ``MscFunction::auto_handover`` (the default) the host takes the media when it
 mounts the device and the application gets them back when the host ejects the
 drive or the device is detached (for all media at once: esp_tinyusb ignores
-which drive was ejected); turn it off to decide with ``set_msc_owner()``. Taking a
+which drive was ejected). Set ``Config::connect_on_initialize = false`` and call
+``connect()`` to finish application I/O before any host can take a medium; turn it off to decide with ``set_msc_owner()``. Taking a
 medium from an attached host is refused (``device_or_resource_busy``), since host
 writes already queued could land under the application's volume; eject the drive
 on the host first. ``msc_owner()``, ``msc_capacity()`` and

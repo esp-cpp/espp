@@ -223,6 +223,42 @@ void note_tinyusb_task() {
   s_tinyusb_task.store(xTaskGetCurrentTaskHandle(), std::memory_order_relaxed);
 }
 
+#if (CFG_TUD_MSC > 0)
+// esp_tinyusb raises MSC storage events both on the TinyUSB task (host mount /
+// eject / detach hand-overs) and synchronously in whichever task calls into its
+// storage API (set_msc_owner(), format, create / delete). The task currently
+// inside such a synchronous call is recorded here, so the event trampoline can
+// tell the two apart and note the TinyUSB task before running user code (whose
+// write_cdc() / write_vendor() must then take the non-blocking path).
+std::atomic<TaskHandle_t> s_msc_sync_task{nullptr};
+
+struct MscSyncScope {
+  TaskHandle_t previous;
+  MscSyncScope()
+      : previous(s_msc_sync_task.exchange(xTaskGetCurrentTaskHandle())) {}
+  ~MscSyncScope() { s_msc_sync_task.store(previous); }
+  MscSyncScope(const MscSyncScope &) = delete;
+  MscSyncScope &operator=(const MscSyncScope &) = delete;
+};
+
+// Barrier on the TinyUSB task: returns once everything queued on it before the
+// call has run. The generation counter is static so a barrier that fires after
+// its waiter timed out never touches a dead stack frame.
+std::atomic<uint32_t> s_usb_barrier_done{0};
+
+bool wait_for_tinyusb_task(TickType_t timeout_ticks) {
+  const uint32_t target = s_usb_barrier_done.load() + 1;
+  usbd_defer_func([](void *) { s_usb_barrier_done.fetch_add(1); }, nullptr, false);
+  const TickType_t start = xTaskGetTickCount();
+  while (s_usb_barrier_done.load() < target) {
+    if (xTaskGetTickCount() - start >= timeout_ticks)
+      return false;
+    vTaskDelay(pdMS_TO_TICKS(5));
+  }
+  return true;
+}
+#endif
+
 // [[maybe_unused]]: only the CDC/vendor write-drain paths call this, so it is
 // unused in an X-Input-only build (CFG_TUD_CDC == CFG_TUD_VENDOR == 0).
 [[maybe_unused]] bool on_tinyusb_task() {
@@ -386,6 +422,8 @@ namespace {
 // creation. Loads the teardown-guarded singleton, like the other trampolines.
 // cppcheck-suppress constParameterCallback // signature must match tusb_msc_callback_t
 void msc_event_trampoline(tinyusb_msc_storage_handle_t handle, tinyusb_msc_event_t *event, void *) {
+  if (s_msc_sync_task.load() != xTaskGetCurrentTaskHandle())
+    note_tinyusb_task(); // a host-driven hand-over: user code runs on the TinyUSB task
   auto *dev = s_device.load();
   if (!dev || !event)
     return;
@@ -517,17 +555,23 @@ UsbDevice::~UsbDevice() {
       tinyusb_cdcacm_deinit(kCdcPort);
 #endif
 #if (CFG_TUD_MSC > 0)
-    if (!release_msc_before_uninstall()) {
-      // A storage object is still mapped (its queued writes never completed).
-      // Keep the TinyUSB driver running and deliberately leak impl_: esp_tinyusb
-      // still points at its base_path strings and backing media, and uninstalling
-      // would strand the queued writes. A later UsbDevice cannot initialize.
-      (void)impl_.release();
-      initialized_ = false;
-      return;
-    }
+    // Detach and let the TinyUSB task finish what is queued (deferred writes, a
+    // detach / auto-hand-over callback iterating the media) BEFORE stopping it,
+    // then delete the media with the task gone: nothing can race the deletion.
+    const bool quiesced = quiesce_msc_before_uninstall();
 #endif
     tinyusb_driver_uninstall();
+#if (CFG_TUD_MSC > 0)
+    if (!deinit_msc()) {
+      // A storage object is still mapped (queued writes that never ran, which
+      // only happens if the task was stuck). Leak impl_ rather than free the
+      // base_path strings and media esp_tinyusb still points at; no task is left
+      // to use them. A later UsbDevice cannot install the MSC driver.
+      logger_.error("MSC media could not be released{}; leaking them",
+                    quiesced ? "" : " (the TinyUSB task did not drain its queue)");
+      (void)impl_.release();
+    }
+#endif
     initialized_ = false;
   }
 }
@@ -1478,6 +1522,11 @@ bool UsbDevice::initialize(std::error_code &ec) {
     ec = std::make_error_code(std::errc::io_error);
     return false;
   }
+  if (!config_.connect_on_initialize) {
+    // The driver enabled the pull-up; drop it right away. A host needs >= 100 ms
+    // of attach debounce before it enumerates, so it never sees the device.
+    tud_disconnect();
+  }
 
   // --- Initialize the CDC-ACM function (vendor needs no explicit init) ---
 #if (CFG_TUD_CDC > 0)
@@ -1495,14 +1544,15 @@ bool UsbDevice::initialize(std::error_code &ec) {
       // A host may already have enumerated and queued MSC writes: release the
       // media while the TinyUSB task can still run them, like the destructor.
 #if (CFG_TUD_MSC > 0)
-      if (!release_msc_before_uninstall()) {
-        (void)impl_.release(); // storage still mapped: keep its strings alive
-        impl_ = std::make_unique<Impl>();
-        ec = std::make_error_code(std::errc::io_error);
-        return false;
-      }
+      quiesce_msc_before_uninstall();
 #endif
       tinyusb_driver_uninstall();
+#if (CFG_TUD_MSC > 0)
+      if (!deinit_msc()) {
+        (void)impl_.release(); // storage still mapped: keep its strings alive
+        impl_ = std::make_unique<Impl>();
+      }
+#endif
       ec = std::make_error_code(std::errc::io_error);
       return false;
     }
@@ -1887,6 +1937,18 @@ void UsbDevice::handle_usb_unmount() {
 
 bool UsbDevice::is_initialized() const { return initialized_; }
 
+bool UsbDevice::connect() {
+  if (!initialized_)
+    return false;
+  return tud_connect();
+}
+
+bool UsbDevice::disconnect() {
+  if (!initialized_)
+    return false;
+  return tud_disconnect();
+}
+
 bool UsbDevice::is_cdc_connected() const {
 #if (CFG_TUD_CDC > 0)
   if (!initialized_ || !config_.cdc)
@@ -2156,6 +2218,7 @@ void UsbDevice::apply_msc_volume_label(size_t index) {
 
 bool UsbDevice::init_msc(std::error_code &ec) {
 #if (CFG_TUD_MSC > 0)
+  MscSyncScope sync; // hand-over events raised by this call run in this task
   tinyusb_msc_driver_config_t driver_cfg{};
   driver_cfg.user_flags.auto_mount_off = config_.msc->auto_handover ? 0 : 1;
   driver_cfg.callback = &msc_event_trampoline;
@@ -2272,9 +2335,9 @@ bool UsbDevice::init_msc(std::error_code &ec) {
 #endif
 }
 
-bool UsbDevice::deinit_msc(std::chrono::milliseconds drain_timeout) {
+bool UsbDevice::deinit_msc() {
 #if (CFG_TUD_MSC > 0)
-  const auto deadline = std::chrono::steady_clock::now() + drain_timeout;
+  MscSyncScope sync; // storage deletion raises its events in this task
   bool all_released = true;
   for (size_t i = kMaxMscLuns; i-- > 0;) {
     auto &lun = impl_->msc_luns[i];
@@ -2293,19 +2356,14 @@ bool UsbDevice::deinit_msc(std::chrono::milliseconds drain_timeout) {
         tinyusb_msc_set_storage_mount_point(lun.storage, TINYUSB_MSC_STORAGE_MOUNT_USB);
         lun.reverting = false;
       }
-      esp_err_t err = tinyusb_msc_delete_storage(lun.storage);
-      // ESP_ERR_INVALID_STATE: host writes are still queued on the TinyUSB task
-      while (err == ESP_ERR_INVALID_STATE && std::chrono::steady_clock::now() < deadline) {
-        vTaskDelay(pdMS_TO_TICKS(10));
-        err = tinyusb_msc_delete_storage(lun.storage);
-      }
+      // ESP_ERR_INVALID_STATE: host writes still queued (the task did not drain)
+      const esp_err_t err = tinyusb_msc_delete_storage(lun.storage);
       if (err != ESP_OK) {
         // Keep the handle and the medium behind it: the storage object is still
         // mapped as a LUN, so unmounting its wear levelling here would leave it
         // pointing at an invalid handle.
-        if (drain_timeout.count() > 0 || err != ESP_ERR_INVALID_STATE)
-          logger_.error("MSC medium {}: deleting the storage failed ({}); leaving it in place", i,
-                        esp_err_to_name(err));
+        logger_.error("MSC medium {}: deleting the storage failed ({}); leaving it in place", i,
+                      esp_err_to_name(err));
         all_released = false;
         continue;
       }
@@ -2329,25 +2387,26 @@ bool UsbDevice::deinit_msc(std::chrono::milliseconds drain_timeout) {
   }
   return true;
 #else
-  (void)drain_timeout;
   return true;
 #endif
 }
 
-bool UsbDevice::release_msc_before_uninstall() {
+bool UsbDevice::quiesce_msc_before_uninstall() {
 #if (CFG_TUD_MSC > 0)
   if (!config_.msc)
     return true;
-  // Host writes are queued and run later on the TinyUSB task, and a storage
-  // object with writes still queued cannot be deleted. Stop the host sending
-  // more (drop the pull-up) and delete the media while the task still runs;
-  // stopping it first would lose the queued writes and strand the storage.
+  // Stop host traffic, then pass barriers through the TinyUSB task until
+  // everything already queued has run: the first barrier completes events
+  // queued before it (including a detach callback that walks the media); writes
+  // those events defer are queued behind it and complete by a later barrier.
   tud_disconnect();
-  if (deinit_msc(std::chrono::milliseconds(1000)))
-    return true;
-  logger_.error("MSC media could not be released (host writes still queued); leaving the USB "
-                "driver installed -- no new UsbDevice can be initialized");
-  return false;
+  for (int round = 0; round < 3; ++round) {
+    if (!wait_for_tinyusb_task(pdMS_TO_TICKS(500))) {
+      logger_.error("the TinyUSB task did not process its queue; MSC teardown may lose writes");
+      return false;
+    }
+  }
+  return true;
 #else
   return true;
 #endif
@@ -2410,6 +2469,7 @@ void UsbDevice::handle_msc_event(const void *storage, MscEvent event, MscOwner o
 bool UsbDevice::hand_over_msc(size_t index, MscOwner owner, std::error_code &ec) {
   ec.clear();
 #if (CFG_TUD_MSC > 0)
+  MscSyncScope sync; // hand-over events raised by this call run in this task
   auto &lun = impl_->msc_luns[index];
   const bool to_app = owner == MscOwner::App;
   const auto app_mounted = [&lun]() {
@@ -2612,7 +2672,10 @@ bool UsbDevice::format_msc_medium(size_t lun, std::error_code &ec) {
       vTaskDelay(pdMS_TO_TICKS(10));
     vTaskDelay(pdMS_TO_TICKS(20)); // let a detach callback already running complete
   }
-  const esp_err_t err = tinyusb_msc_format_storage(l.storage);
+  const esp_err_t err = [&] {
+    MscSyncScope sync;
+    return tinyusb_msc_format_storage(l.storage);
+  }();
   if (err == ESP_OK)
     apply_msc_volume_label(lun); // before the host can attach and see the drive
   if (pause_usb)
