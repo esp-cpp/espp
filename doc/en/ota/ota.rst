@@ -32,7 +32,9 @@ component (``detail/ota_stream_protocol.hpp`` re-exports it and layers the OTA
 message types on top); to run OTA alongside other protocols (crash-dump, CAN,
 ...) on one stream, register it as a module with the
 :doc:`../dispatcher/index` — the ``ota`` example does exactly this (OTA is
-module id 0).
+module id 0 by default; ``OtaService::Config::module`` moves an instance, at
+the cost of the stock OTA console / ``espp_ota`` CLI no longer finding it
+until they are told the new id).
 
 Command line: build → OTA
 -------------------------

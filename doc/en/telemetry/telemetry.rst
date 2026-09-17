@@ -25,7 +25,9 @@ Telemetry service
 
 The `Telemetry` class is a small device→host protocol carried on the espp
 :doc:`stream_frame <../stream_frame/stream_frame>` framing (dispatcher module
-id 3), so it can share one USB vendor / CDC stream with other modules via
+id 3 by default — ``Config::module`` moves an instance, e.g. to run two
+emitters on one link, but the hosted plotter looks for 3 until told
+otherwise), so it can share one USB vendor / CDC stream with other modules via
 :doc:`dispatcher <../dispatcher/dispatcher>`. Firmware declares a fixed set of
 named ``float`` channels (the **SCHEMA**) and pushes **SAMPLE** frames — a
 device timestamp plus one float per channel (batchable) — with ``emit(...)``.

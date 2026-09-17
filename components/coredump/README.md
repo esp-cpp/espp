@@ -14,10 +14,13 @@ any transport. Failures are reported via `std::error_code` (no exceptions).
 `stream_frame` codec (magic `"OT"` + flags + module + type + len + payload +
 CRC-32) so the core dump can be inspected over **any byte stream** — the USB
 vendor (WebUSB) interface, a USB CDC (Web Serial) port, a socket, a UART. It
-owns dispatcher **module 4** (requests `0x40..0x4F`, replies `0xC0..0xCF` with
-the frame reply flag set), so the service coexists with other framed protocols
-(OTA on module 0, an app protocol, ...) — and with free-form console text — on
-the same stream, routed by `espp::Dispatcher`.
+uses dispatcher **module 4** by default (requests `0x40..0x4F`, replies
+`0xC0..0xCF` with the frame reply flag set), so the service coexists with other
+framed protocols (OTA on module 0, an app protocol, ...) — and with free-form
+console text — on the same stream, routed by `espp::Dispatcher`. The module id
+is only a routing key: `CoreDumpService::Config::module` moves an instance to
+another id (used for both the requests it accepts and the replies it sends),
+but the hosted console looks for 4 until told otherwise.
 
 The matching browser tool is
 [`web/coredump_console.html`](web/coredump_console.html), hosted at
@@ -47,8 +50,9 @@ the same stream), view the crash summary, download the core dump as
   (partition-backed chunked reads), `erase(ec)`
 - **Stream service**: `espp::CoreDumpService` — transport-agnostic; construct
   with a `send` function, then register it on a dispatcher
-  (`dispatcher.register_module(service)` — it carries its module id 4,
-  `handle(frame)` and discovery `module_info()`), or `feed(bytes)` (internal
+  (`dispatcher.register_module(service)` — it carries its module id
+  (`Config::module`, default 4), `handle(frame)` and discovery
+  `module_info()`), or `feed(bytes)` (internal
   resynchronizing frame parser) / `handle_frame(type, payload)` (bring your own
   parser); GET_SUMMARY / GET_SIZE / READ / ERASE requests, unknown frame types
   ignored

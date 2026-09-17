@@ -71,8 +71,9 @@ rest, with the per-series filter bar:
 - **Binary telemetry over WebUSB.** Connect with **USB** to an espp device
   running `espp::Telemetry`: the app reads the channel schema and plots the
   device-timestamped sample stream (decoded from the `stream_frame` framing,
-  dispatcher module 3) into the same plot. Requests the schema on connect and
-  can pause/resume the device stream.
+  dispatcher module 3 — the `espp::Telemetry` default; `Config::module` can
+  move an instance, but the app looks for 3 until told otherwise) into the same
+  plot. Requests the schema on connect and can pause/resume the device stream.
 
 ## Requirements
 

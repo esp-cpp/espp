@@ -194,9 +194,41 @@ static void test_malformed_reply_payloads() {
   }
 }
 
+// Every builder takes an optional module id (default kModule) so a device that
+// serves OTA on another dispatcher id (OtaService::Config::module) stamps its
+// replies -- and a host driving it its requests -- on that id.
+static void test_builders_take_a_module_id() {
+  std::printf("test_builders_take_a_module_id\n");
+  constexpr uint8_t kOther = 0x20;
+  const uint8_t img[] = {0xE9};
+  const std::vector<uint8_t> frames[] = {
+      ota::make_begin(1u, kOther),
+      ota::make_data(img, kOther),
+      ota::make_finish(kOther),
+      ota::make_abort(kOther),
+      ota::make_get_status(kOther),
+      ota::make_mark_valid(kOther),
+      ota::make_mark_invalid(kOther),
+      ota::make_ok(1u, kOther),
+      ota::make_error(1u, "e", kOther),
+      ota::make_progress(1u, 2u, kOther),
+      ota::make_status(0, "v", "p", kOther),
+  };
+  for (const auto &encoded : frames) {
+    ota::Frame f{};
+    CHECK(parse_one(encoded, f));
+    CHECK(f.module == kOther);
+  }
+  // The default is unchanged (the stock console / CLI expect module 0).
+  ota::Frame d{};
+  CHECK(parse_one(ota::make_ok(1u), d));
+  CHECK(d.module == ota::kModule && ota::kModule == 0);
+}
+
 int main() {
   test_requests_are_module0_requests();
   test_replies_carry_reply_flag();
+  test_builders_take_a_module_id();
   test_status_reply();
   test_malformed_status_payloads();
   test_malformed_reply_payloads();

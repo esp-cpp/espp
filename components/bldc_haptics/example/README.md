@@ -105,6 +105,12 @@ work against this device:
 The **device hub** (`dispatcher_hub.html`) discovers all three modules on this
 one device and links to each console.
 
+The module ids (haptics 2, OTA 0, core dump 4) are only routing keys and are
+each configurable in one place — `kHapticsModule` at the top of
+`bldc_haptics_example.cpp`, and `.module` in the `OtaService` /
+`CoreDumpService` `Config` — but the hosted consoles expect these defaults, so
+change them only together with your own host tooling.
+
 ## Example Behaviors
 
 The detent presets can be switched at runtime from the web console (or by

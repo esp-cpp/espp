@@ -4,11 +4,12 @@
 // handler layered on the espp `stream_frame` codec (magic "OT" + flags u8 +
 // module u8 + type u8 + len u32 + payload + CRC-32, all little-endian; see
 // components/stream_frame/include/stream_frame.hpp for the authoritative
-// framing spec). The core-dump protocol owns dispatcher MODULE 4, so it can
-// share one byte stream with other espp protocols (OTA on module 0, an
-// application protocol, or free-form console text): frames for other modules
-// are simply ignored (route with espp::Dispatcher, or call handle_frame()
-// after routing by module).
+// framing spec). The core-dump protocol occupies dispatcher MODULE 4 by
+// default (CoreDumpService::Config::module can move it), so it can share one
+// byte stream with other espp protocols (OTA on module 0, an application
+// protocol, or free-form console text): frames for other modules are simply
+// ignored (route with espp::Dispatcher, or call handle_frame() after routing
+// by module).
 //
 // Message types & payloads (host -> device), module 4:
 //   0x40 GET_SUMMARY — no payload. Reply: SUMMARY.
@@ -128,9 +129,10 @@ public:
     Error = 0xC4,   ///< u32 informational code + authoritative UTF-8 message
   };
 
-  /// Dispatcher module id owned by the core-dump protocol (the frame `module`
-  /// byte). Reply Msg values keep the high bit set, which build() maps to the
-  /// frame reply flag.
+  /// Default dispatcher module id of the core-dump protocol (the frame
+  /// `module` byte): the id the hosted core-dump console expects. See
+  /// Config::module to serve on a different id. Reply Msg values keep the
+  /// high bit set, which build() maps to the frame reply flag.
   static constexpr uint8_t kModule = 4;
 
   /// Maximum image bytes per READ request / DATA reply (the DATA payload is
@@ -146,6 +148,11 @@ public:
   /// Configuration for the CoreDumpService.
   struct Config {
     send_fn send{nullptr}; ///< Transmits an encoded reply frame (required).
+    /// Dispatcher module id this instance answers on (and stamps on its
+    /// replies). The module id is purely a routing key; the default (kModule,
+    /// 4) is what the stock core-dump console looks for, so change it only if
+    /// your host tooling is told the new id.
+    uint8_t module{kModule};
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Logger verbosity.
   };
 
@@ -158,11 +165,12 @@ public:
   explicit CoreDumpService(CoreDump &core_dump, const Config &config)
       : BaseComponent("CoreDumpService", config.log_level)
       , core_dump_(core_dump)
-      , send_(config.send) {}
+      , send_(config.send)
+      , module_(config.module) {}
 
-  /// @brief The dispatcher module id this service answers on (kModule: the
-  ///        core-dump protocol's fixed id, which the web console expects).
-  uint8_t module_id() const { return kModule; }
+  /// @brief The dispatcher module id this service answers on (Config::module;
+  ///        kModule by default, which the web console expects).
+  uint8_t module_id() const { return module_; }
 
   /// @brief Discovery metadata for registering this service on a Dispatcher.
   Dispatcher::ModuleInfo module_info() const {
@@ -217,7 +225,7 @@ public:
       // Only handle this protocol's REQUESTS: ignore frames for other modules
       // and reply-flagged frames (the service answers requests; a reply-typed
       // frame — e.g. an echo/loopback — is never a host request).
-      if (frame.module != kModule || frame.is_reply())
+      if (frame.module != module_id() || frame.is_reply())
         continue;
       std::vector<uint8_t> reply;
       {
@@ -353,14 +361,15 @@ protected:
     }
   }
 
-  /// Build an encoded frame for a core-dump protocol message type.
-  static std::vector<uint8_t> build(Msg type, std::span<const uint8_t> payload = {}) {
+  /// Build an encoded frame for a core-dump protocol message type, on THIS
+  /// instance's module id (Config::module).
+  std::vector<uint8_t> build(Msg type, std::span<const uint8_t> payload = {}) const {
     namespace stream = espp::stream_frame;
     // Reply message types (Summary/Size/Data/Ok/Error) carry the high bit; map
     // it to the frame reply flag so requests and replies are distinguishable
     // independent of the type value.
     const bool reply = (static_cast<uint8_t>(type) & 0x80) != 0;
-    return stream::build_frame(reply, kModule, static_cast<uint8_t>(type), payload);
+    return stream::build_frame(reply, module_id(), static_cast<uint8_t>(type), payload);
   }
 
   /// Transmit an encoded reply frame via the configured send function. Must
@@ -419,6 +428,7 @@ protected:
 private:
   CoreDump &core_dump_;
   send_fn send_;
+  uint8_t module_{kModule}; // Config::module: routing id for requests + replies
   std::mutex mutex_;
   Stream parser_;
 };

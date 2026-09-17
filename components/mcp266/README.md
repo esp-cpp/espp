@@ -61,8 +61,10 @@ The [MCP266 Console](https://esp-cpp.github.io/espp/apps/mcp266_console.html)
 or Web Serial) with a small high-level protocol — the CANopen/DS402 work stays
 on the device:
 
-- `mcp266_protocol.hpp` — the wire protocol (dispatcher **module 6**,
-  `stream_frame` framing): request/reply types, the payload structs
+- `mcp266_protocol.hpp` — the wire protocol (dispatcher **module 6** by
+  default — `Mcp266Service::Config::module` moves an instance, but the console
+  looks for 6 until told otherwise; `stream_frame` framing): request/reply
+  types, the payload structs
   (`ConfigurePositionLoop`, `MoveToPosition`, `Status`, `DeviceInfo`, ...) with
   `serialize()` / `parse()`. Standard-library only, so it is usable from any
   client (host tests in `test/mcp266_protocol_host_test.cpp`).

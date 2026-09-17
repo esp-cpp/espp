@@ -25,7 +25,9 @@
 
 namespace can_bridge {
 
-/// Dispatcher module id owned by the CAN bridge protocol.
+/// Default dispatcher module id of the CAN bridge protocol: the id the hosted
+/// CAN console expects. The example registers under `kCanBridgeModule`
+/// (can_bridge_example.cpp), which defaults to this.
 static constexpr uint8_t kModuleId = 5;
 
 /// Host -> device (requests, high nibble 5).

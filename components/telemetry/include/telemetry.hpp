@@ -31,9 +31,10 @@ namespace espp {
 /// Web-Serial transport: instead of parsing printed columns, the device sends
 /// typed samples directly.
 ///
-/// ## Wire protocol (dispatcher module id 3)
+/// ## Wire protocol (dispatcher module id 3 by default)
 ///
-/// Every message is a `stream_frame` frame with `module == kModule`. The frame
+/// Every message is a `stream_frame` frame with `module == module_id()` (kModule,
+/// 3, unless Config::module says otherwise). The frame
 /// `type` byte's high bit distinguishes direction: host->device requests are
 /// `0x0X`, device->host frames are `0x8X` (which sets the frame reply flag).
 ///
@@ -69,9 +70,10 @@ namespace espp {
 /// (non-recursive) mutex. Keep `send` to writing the bytes to the transport.
 class Telemetry : public espp::BaseComponent {
 public:
-  /// Dispatcher module id owned by the telemetry protocol (the frame `module`
-  /// byte). Device->host Type values keep the high bit set, which the framing
-  /// maps to the reply flag.
+  /// Default dispatcher module id of the telemetry protocol (the frame
+  /// `module` byte): the id the hosted Serial Plotter expects. See
+  /// Config::module to serve on a different id. Device->host Type values keep
+  /// the high bit set, which the framing maps to the reply flag.
   static constexpr uint8_t kModule = 3;
 
   /// Version byte at the head of a SCHEMA payload, so the wire format can evolve.
@@ -103,8 +105,13 @@ public:
   struct Config {
     std::vector<std::string> channels; ///< Channel names, in sample order (>= 1).
     send_fn send{nullptr};             ///< Transmits an encoded frame (may be set later).
-    bool stream_on_start{true};        ///< Start with streaming enabled.
-    uint16_t period_ms{20};            ///< Default requested sample period (informational).
+    /// Dispatcher module id this instance answers on (and stamps on every
+    /// frame it sends). The module id is purely a routing key; the default
+    /// (kModule, 3) is what the stock Serial Plotter looks for, so change it
+    /// only if your host tooling is told the new id.
+    uint8_t module{kModule};
+    bool stream_on_start{true}; ///< Start with streaming enabled.
+    uint16_t period_ms{20};     ///< Default requested sample period (informational).
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Logger verbosity.
   };
 
@@ -114,6 +121,7 @@ public:
       : BaseComponent("Telemetry", config.log_level)
       , channels_(config.channels)
       , send_(config.send)
+      , module_(config.module)
       , streaming_(config.stream_on_start)
       , period_ms_(config.period_ms) {
     clamp_channels();
@@ -226,9 +234,9 @@ public:
     s(std::span<const uint8_t>(frame)); // send while still holding send_mutex_
   }
 
-  /// @brief The dispatcher module id this service answers on (kModule: the
-  ///        telemetry protocol's fixed id, which the Serial Plotter expects).
-  uint8_t module_id() const { return kModule; }
+  /// @brief The dispatcher module id this service answers on (Config::module;
+  ///        kModule by default, which the Serial Plotter expects).
+  uint8_t module_id() const { return module_; }
 
   /// @brief Discovery metadata for registering this service on a Dispatcher.
   Dispatcher::ModuleInfo module_info() const {
@@ -257,7 +265,7 @@ public:
       frames = parser_.feed(data);
     }
     for (const auto &frame : frames) {
-      if (frame.module != kModule || frame.is_reply())
+      if (frame.module != module_id() || frame.is_reply())
         continue;
       handle_request(frame.type, frame.payload);
     }
@@ -384,11 +392,12 @@ protected:
       s(std::span<const uint8_t>(frame)); // send while still holding send_mutex_
   }
 
-  /// Build an encoded frame for a telemetry message type. Device->host types
-  /// (high bit set) map to the frame reply flag.
-  static std::vector<uint8_t> build(Type type, std::span<const uint8_t> payload = {}) {
+  /// Build an encoded frame for a telemetry message type, on THIS instance's
+  /// module id (Config::module). Device->host types (high bit set) map to the
+  /// frame reply flag.
+  std::vector<uint8_t> build(Type type, std::span<const uint8_t> payload = {}) const {
     const bool reply = (static_cast<uint8_t>(type) & 0x80) != 0;
-    return espp::stream_frame::build_frame(reply, kModule, static_cast<uint8_t>(type), payload);
+    return espp::stream_frame::build_frame(reply, module_id(), static_cast<uint8_t>(type), payload);
   }
 
   /// Append a little-endian IEEE-754 float32 to a byte buffer.
@@ -411,6 +420,7 @@ protected:
                                   ///< send_mutex_ then mutex_)
   std::vector<std::string> channels_;
   send_fn send_;
+  const uint8_t module_; ///< Config::module: routing id for requests + every outbound frame
   std::atomic<bool> streaming_;
   std::atomic<uint16_t> period_ms_;
   espp::stream_frame::StreamParser parser_;

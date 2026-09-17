@@ -49,7 +49,8 @@ namespace espp {
 
 /**
  * @brief Transport-agnostic service exposing an espp::Ota engine over any
- *        framed byte stream (dispatcher module 0).
+ *        framed byte stream (dispatcher module 0 by default; see
+ *        Config::module).
  *
  * See detail/ota_stream_protocol.hpp for the wire protocol. Flow control is
  * one request in flight: the host waits for OK / ERROR before sending the
@@ -88,7 +89,9 @@ public:
   /// The OTA wire protocol (message types, frame builders).
   using MessageType = espp::detail::ota_stream::MessageType;
 
-  /// Dispatcher module id owned by the OTA protocol.
+  /// Default dispatcher module id of the OTA protocol (0): the id the hosted
+  /// OTA console and the `espp_ota` CLI expect. See Config::module to serve on
+  /// a different id.
   static constexpr uint8_t kModule = espp::detail::ota_stream::kModule;
 
   /// Transmits one encoded reply frame to the host.
@@ -99,6 +102,11 @@ public:
   /// Configuration for the OtaService.
   struct Config {
     send_fn send{nullptr}; ///< Transmits an encoded reply frame (required).
+    /// Dispatcher module id this instance answers on (and stamps on its
+    /// replies). The module id is purely a routing key; the default (kModule,
+    /// 0) is what the stock OTA console / `espp_ota` CLI look for, so change it
+    /// only if your host tooling is told the new id.
+    uint8_t module{kModule};
     /// Restart the device after a successful FINISH (after the OK reply).
     bool auto_restart{true};
     /// Delay between the OK reply and the restart, so the reply reaches the host.
@@ -121,9 +129,9 @@ public:
       , ota_(ota)
       , config_(config) {}
 
-  /// @brief The dispatcher module id this service answers on (kModule: the
-  ///        OTA protocol's fixed id, which the OTA console / CLI expect).
-  uint8_t module_id() const { return kModule; }
+  /// @brief The dispatcher module id this service answers on (Config::module;
+  ///        kModule by default, which the OTA console / CLI expect).
+  uint8_t module_id() const { return config_.module; }
 
   /// @brief Discovery metadata for registering this service on a Dispatcher.
   Dispatcher::ModuleInfo module_info() const {
@@ -245,7 +253,7 @@ protected:
       if (ota_.begin(image_size, ec)) {
         owns_session_ = true;
         logger_.info("BEGIN: update session started ({} bytes expected)", image_size);
-        reply = proto::make_ok(0);
+        reply = proto::make_ok(0, module_id());
       } else {
         // busy = another transport's session; ownership stays false
         reply = build_error(ec, "begin failed");
@@ -259,7 +267,7 @@ protected:
         return true;
       }
       if (ota_.write(payload, ec)) {
-        reply = proto::make_ok(static_cast<uint32_t>(ota_.bytes_written()));
+        reply = proto::make_ok(static_cast<uint32_t>(ota_.bytes_written()), module_id());
       } else {
         owns_session_ = false; // write() aborted the session on failure
         reply = build_error(ec, "write failed");
@@ -275,7 +283,7 @@ protected:
       owns_session_ = false; // finish() ends the session in all outcomes
       if (ota_.finish(ec)) {
         logger_.info("FINISH: image validated and activated ({} bytes)", written);
-        reply = proto::make_ok(written);
+        reply = proto::make_ok(written, module_id());
         finished = true;
       } else {
         reply = build_error(ec, "finish (validate/activate) failed");
@@ -292,7 +300,7 @@ protected:
       owns_session_ = false; // session over either way
       if (ota_.abort(ec)) {
         logger_.info("ABORT: session discarded after {} bytes", written);
-        reply = proto::make_ok(written);
+        reply = proto::make_ok(written, module_id());
       } else {
         reply = build_error(ec, "abort failed");
       }
@@ -308,14 +316,14 @@ protected:
         flags |= proto::kStatusPendingVerify;
 #endif
       const auto desc = ota_.running_app_description();
-      reply = proto::make_status(flags, desc.version, desc.project_name);
+      reply = proto::make_status(flags, desc.version, desc.project_name, module_id());
       return true;
     }
     case MessageType::MarkValid:
       // The HOST confirms the running image after its own health checks.
       if (ota_.mark_app_valid(ec)) {
         logger_.info("MARK_VALID: running image confirmed");
-        reply = proto::make_ok(0);
+        reply = proto::make_ok(0, module_id());
       } else {
         reply = build_error(ec, "mark valid failed");
       }
@@ -372,8 +380,8 @@ protected:
       code = (cond.category() == std::generic_category()) ? cond.value()
                                                           : static_cast<int>(std::errc::io_error);
     }
-    return espp::detail::ota_stream::make_error(static_cast<uint32_t>(code),
-                                                std::string(context) + ": " + ec.message());
+    return espp::detail::ota_stream::make_error(
+        static_cast<uint32_t>(code), std::string(context) + ": " + ec.message(), module_id());
   }
 
   std::vector<uint8_t> build_error(std::errc errc, std::string_view context) const {
