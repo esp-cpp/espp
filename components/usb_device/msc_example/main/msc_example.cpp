@@ -108,6 +108,10 @@ extern "C" void app_main(void) {
     logger.info("volume: {} sectors x {} bytes = {} KiB", capacity->sector_count,
                 capacity->sector_size, capacity->bytes() / 1024);
 
+  // initialize() handed the medium to the app, which raised OwnerChanged(App):
+  // that is not a return from the host, so do not list the files twice.
+  app_regained = false;
+
   // The app owns the medium until a host mounts the device: write to it now.
   if (usb.msc_owner(0) == MscOwner::App) {
     write_boot_files(logger);

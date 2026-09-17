@@ -47,3 +47,38 @@ msc.media = {card};            // or {card, flash} for two drives
 
 SD card media need a target with an SDMMC host peripheral (ESP32-S3 / -P4), even
 when the card is wired to SPI.
+
+## Example Output
+
+First boot on an ESP32-S3 (the partition has no filesystem yet, so it is
+formatted), then a macOS host mounts the drive, adds two files, and ejects it:
+
+```console
+I (342) main_task: Calling app_main()
+[MSC/I][0.342]: Starting USB mass storage example
+W (342) tinyusb_msc_storage: Mount failed, trying to format the drive
+[MSC/I][1.142]: medium 0 now owned by the app
+[UsbDevice/I][1.232]: MSC medium 0: volume label set to 'ESPP MSC'
+[UsbDevice/I][1.232]: MSC medium 0: storage (1000 KiB) at '/msc', owned by the application
+I (1402) TinyUSB: TinyUSB Driver installed on port 0
+[UsbDevice/I][1.402]: Initialized native USB device (VID=0x1209 PID=0x0d32) cdc=false vendor=false hid=false xinput=false msc=1
+[MSC/I][1.422]: volume: 2000 sectors x 512 bytes = 1000 KiB
+[MSC/I][2.152]: boot #1 recorded on the volume
+[MSC/I][2.152]: Files on the volume:
+[MSC/I][2.152]:   boots.txt (2 bytes)
+[MSC/I][2.152]:   README.txt (104 bytes)
+[MSC/I][2.152]: Ready. Connect the native USB port to a PC; eject the drive to hand it back.
+[MSC/I][12.732]: medium 0 now owned by the host
+[MSC/I][206.992]: medium 0 now owned by the app
+[MSC/I][207.462]: Files on the volume:
+[MSC/I][207.462]:   boots.txt (2 bytes)
+[MSC/I][207.462]:   README.txt (194 bytes)
+[MSC/I][207.462]:   .fseventsd/ (0 bytes)
+[MSC/I][207.462]:   ._README.txt (4096 bytes)
+[MSC/I][207.472]:   .TemporaryItems/ (0 bytes)
+[MSC/I][207.472]:   test_item_1.md (15 bytes)
+[MSC/I][207.482]:   some_other_thing.txt (30 bytes)
+```
+
+(The dot-files are macOS metadata written by the host. The TinyUSB device
+descriptor summary esp_tinyusb prints at install is omitted.)
