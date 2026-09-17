@@ -71,9 +71,15 @@ static void write_boot_files(espp::Logger &logger) {
   else
     logger.error("could not write {}", counter_path);
 
-  if (std::ofstream readme(std::string(kBasePath) + "/README.txt", std::ios::trunc); readme) {
-    readme << "Written by the espp usb_device msc_example.\n"
-           << "Add files here, eject the drive, and the device lists them.\n";
+  // Create the README only once: rewriting it every boot would discard edits the
+  // host made to it.
+  const std::string readme_path = std::string(kBasePath) + "/README.txt";
+  std::error_code exists_ec;
+  if (!std::filesystem::exists(readme_path, exists_ec)) {
+    if (std::ofstream readme(readme_path); readme) {
+      readme << "Written by the espp usb_device msc_example.\n"
+             << "Add files here, eject the drive, and the device lists them.\n";
+    }
   }
   logger.info("boot #{} recorded on the volume", boots);
 }

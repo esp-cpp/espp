@@ -12,7 +12,8 @@ the firmware and a PC share one volume safely:
 - When the host **ejects** the drive (or the cable is unplugged) the medium goes
   back to the application, with the host's changes.
 
-On boot the example writes `boots.txt` (a boot counter) and `README.txt` to the
+On boot the example updates `boots.txt` (a boot counter) and creates `README.txt`
+(only if it is missing, so host edits survive reboots) on the
 volume and lists its files. Plug the native USB port into a PC: the drive
 appears with those files. Add or edit a file, eject the drive, and the device
 logs the updated directory listing.
