@@ -278,6 +278,8 @@ jobs:
           target: esp32
         - path: 'components/rtsp/example'
           target: esp32
+        - path: 'components/sdcard/example'
+          target: esp32s3
         - path: 'components/runqueue/example'
           target: esp32
         - path: 'components/rx8130ce/example'

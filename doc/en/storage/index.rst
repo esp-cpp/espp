@@ -9,3 +9,4 @@ storage.
 
    file_system
    nvs
+   sdcard
