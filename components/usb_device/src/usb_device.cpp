@@ -2224,9 +2224,12 @@ void UsbDevice::apply_msc_volume_label(size_t index) {
   std::string wanted = m.volume_label;
   for (auto &c : wanted)
     c = static_cast<char>(std::toupper(static_cast<unsigned char>(c))); // FAT stores it upper-case
-  char current[12] = {};
-  if (f_getlabel(drive.c_str(), current, nullptr) == FR_OK && wanted == current)
+  char current[34] = {}; // large enough for any FF_LFN_UNICODE encoding of 11 chars
+  const FRESULT get_res = f_getlabel(drive.c_str(), current, nullptr);
+  if (get_res == FR_OK && wanted == current) {
+    logger_.info("MSC medium {}: volume label is '{}'", index, current);
     return; // already labelled
+  }
   const FRESULT res = f_setlabel((drive + wanted).c_str());
   if (res == FR_OK)
     logger_.info("MSC medium {}: volume label set to '{}'", index, wanted);
