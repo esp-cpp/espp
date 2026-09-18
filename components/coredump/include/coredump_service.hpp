@@ -297,7 +297,8 @@ protected:
       }
       reply =
           build(Msg::Summary,
-                std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(report.data()), count));
+                std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(report.data()), count),
+                module_id());
       return true;
     }
     case Msg::GetSize: {
@@ -310,7 +311,7 @@ protected:
       logger_.info("GET_SIZE -> {} bytes", size);
       std::vector<uint8_t> reply_payload;
       stream::put_u32(reply_payload, size);
-      reply = build(Msg::Size, reply_payload);
+      reply = build(Msg::Size, reply_payload, module_id());
       return true;
     }
     case Msg::Read: {
@@ -337,7 +338,7 @@ protected:
         return true;
       }
       logger_.debug("READ offset {} length {}", offset, length);
-      reply = build(Msg::Data, reply_payload);
+      reply = build(Msg::Data, reply_payload, module_id());
       return true;
     }
     case Msg::Erase: {
@@ -351,7 +352,7 @@ protected:
       logger_.info("ERASE ok");
       std::vector<uint8_t> reply_payload;
       stream::put_u32(reply_payload, 0);
-      reply = build(Msg::Ok, reply_payload);
+      reply = build(Msg::Ok, reply_payload, module_id());
       return true;
     }
     default:
@@ -361,15 +362,20 @@ protected:
     }
   }
 
-  /// Build an encoded frame for a core-dump protocol message type, on THIS
-  /// instance's module id (Config::module).
-  std::vector<uint8_t> build(Msg type, std::span<const uint8_t> payload = {}) const {
+  /// Build an encoded frame for a core-dump protocol message type.
+  /// \param type The message type.
+  /// \param payload The payload bytes.
+  /// \param module The dispatcher module id to stamp (kModule by default; a
+  ///        service instance passes its module_id() so replies follow
+  ///        Config::module).
+  static std::vector<uint8_t> build(Msg type, std::span<const uint8_t> payload = {},
+                                    uint8_t module = kModule) {
     namespace stream = espp::stream_frame;
     // Reply message types (Summary/Size/Data/Ok/Error) carry the high bit; map
     // it to the frame reply flag so requests and replies are distinguishable
     // independent of the type value.
     const bool reply = (static_cast<uint8_t>(type) & 0x80) != 0;
-    return stream::build_frame(reply, module_id(), static_cast<uint8_t>(type), payload);
+    return stream::build_frame(reply, module, static_cast<uint8_t>(type), payload);
   }
 
   /// Transmit an encoded reply frame via the configured send function. Must
@@ -417,7 +423,7 @@ protected:
       --count;
     }
     payload.insert(payload.end(), message.begin(), message.begin() + count);
-    return build(Msg::Error, payload);
+    return build(Msg::Error, payload, module_id());
   }
 
   /// Overload taking a std::errc directly.
@@ -428,7 +434,7 @@ protected:
 private:
   CoreDump &core_dump_;
   send_fn send_;
-  uint8_t module_{kModule}; // Config::module: routing id for requests + replies
+  const uint8_t module_; // Config::module: routing id for requests + replies
   std::mutex mutex_;
   Stream parser_;
 };

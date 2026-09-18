@@ -173,7 +173,7 @@ public:
       espp::stream_frame::put_u32(p, timestamp_us);
       for (float v : values)
         put_f32(p, v);
-      frame = build(Type::Sample, p);
+      frame = build(Type::Sample, p, module_id());
     }
     s(std::span<const uint8_t>(frame)); // send while still holding send_mutex_
   }
@@ -197,7 +197,7 @@ public:
       if (!send_)
         return; // no transport yet; the next GetSchema will carry the new set
       s = send_;
-      frame = build(Type::Schema, build_schema_payload_locked());
+      frame = build(Type::Schema, build_schema_payload_locked(), module_id());
     }
     s(std::span<const uint8_t>(frame)); // send while still holding send_mutex_
   }
@@ -229,7 +229,7 @@ public:
       if (!send_)
         return;
       s = send_;
-      frame = build(Type::Schema, build_schema_payload_locked());
+      frame = build(Type::Schema, build_schema_payload_locked(), module_id());
     }
     s(std::span<const uint8_t>(frame)); // send while still holding send_mutex_
   }
@@ -365,7 +365,7 @@ protected:
 
   void send_ok(uint8_t request_type) const {
     const uint8_t p[] = {request_type};
-    send_frame(build(Type::Ok, p));
+    send_frame(build(Type::Ok, p, module_id()));
   }
 
   void send_error(uint8_t request_type, std::string_view message) const {
@@ -374,7 +374,7 @@ protected:
     p.push_back(request_type);
     espp::stream_frame::put_u32(p, 0); // reserved code
     p.insert(p.end(), message.begin(), message.end());
-    send_frame(build(Type::Error, p));
+    send_frame(build(Type::Error, p, module_id()));
   }
 
   /// Transmit an already-built frame via the configured send function. Takes
@@ -392,12 +392,17 @@ protected:
       s(std::span<const uint8_t>(frame)); // send while still holding send_mutex_
   }
 
-  /// Build an encoded frame for a telemetry message type, on THIS instance's
-  /// module id (Config::module). Device->host types (high bit set) map to the
-  /// frame reply flag.
-  std::vector<uint8_t> build(Type type, std::span<const uint8_t> payload = {}) const {
+  /// Build an encoded frame for a telemetry message type. Device->host types
+  /// (high bit set) map to the frame reply flag.
+  /// \param type The message type.
+  /// \param payload The payload bytes.
+  /// \param module The dispatcher module id to stamp (kModule by default; the
+  ///        emitter passes its module_id() so every outbound frame follows
+  ///        Config::module).
+  static std::vector<uint8_t> build(Type type, std::span<const uint8_t> payload = {},
+                                    uint8_t module = kModule) {
     const bool reply = (static_cast<uint8_t>(type) & 0x80) != 0;
-    return espp::stream_frame::build_frame(reply, module_id(), static_cast<uint8_t>(type), payload);
+    return espp::stream_frame::build_frame(reply, module, static_cast<uint8_t>(type), payload);
   }
 
   /// Append a little-endian IEEE-754 float32 to a byte buffer.
