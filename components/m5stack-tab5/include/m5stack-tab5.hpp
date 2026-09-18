@@ -40,6 +40,7 @@
 #include "led.hpp"
 #include "pi4ioe5v.hpp"
 #include "rx8130ce.hpp"
+#include "sdcard.hpp"
 #include "st7121.hpp"
 #include "st7123.hpp"
 #include "st7123touch.hpp"
@@ -602,15 +603,23 @@ public:
   /// \return True if uSD card was successfully initialized
   bool initialize_sdcard(const SdCardConfig &config);
 
-  /// Check if SD card is present and mounted
-  /// \return True if SD card is available
+  /// Check if the SD card is initialized and its volume is currently mounted
+  /// \return True if the SD card is available (false after
+  ///         sdcard_component()->unmount())
   bool is_sd_card_available() const;
 
   /// Get the uSD card
   /// \return A pointer to the uSD card
-  /// \note The uSD card is only available if it was successfully initialized
-  ///       and the mount point is valid
-  sdmmc_card_t *sdcard() const { return sdcard_; }
+  /// \note nullptr until initialize_sdcard() succeeded. The card stays valid while
+  ///       its volume is unmounted (sdcard_component()->unmount()), e.g. to hand it
+  ///       to a USB host through espp::UsbDevice's MSC function.
+  sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
+
+  /// Get the SD card component: mount() / unmount() (e.g. to hand the card to a
+  /// USB host with the usb_device MSC function), format(), card_info(),
+  /// volume_info(), ...
+  /// \return The component, or nullptr until initialize_sdcard() succeeded
+  espp::SdCard *sdcard_component() const { return sdcard_.get(); }
 
   /// Get SD card info
   /// \param size_mb Pointer to store size in MB
@@ -926,11 +935,9 @@ protected:
   std::shared_ptr<IoExpander> ioexp_0x44_;
 
   // Communication interfaces
-  std::atomic<bool> sd_card_initialized_{false};
 
   // uSD Card
-  sdmmc_card_t *sdcard_{nullptr};
-  void *sd_pwr_ctrl_handle_{nullptr}; // sd_pwr_ctrl_handle_t (on-chip LDO)
+  std::unique_ptr<espp::SdCard> sdcard_;
 
   // RTC
   std::atomic<bool> rtc_initialized_{false};

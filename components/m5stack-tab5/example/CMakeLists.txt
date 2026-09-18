@@ -38,6 +38,7 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/lvgl"
   "../../../components/math"
   "../../../components/rx8130ce"
+  "../../../components/sdcard"
   "../../../components/pi4ioe5v"
   "../../../components/spi"
   "../../../components/st7123touch"

@@ -1,0 +1,9 @@
+# Default pins are the LilyGo T-Dongle-S3's microSD slot (SDMMC, 4-bit); the
+# card interface and pins are set under "SD Card Example Configuration".
+CONFIG_IDF_TARGET="esp32s3"
+
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# Long file names on the heap, and volume labels
+CONFIG_FATFS_LFN_HEAP=y
+CONFIG_FATFS_USE_LABEL=y

@@ -284,7 +284,8 @@ hand-overs, so act on it from your own task.
 ```cpp
 espp::UsbDevice::MscMedium card;
 card.type = espp::UsbDevice::MscMedium::Type::SdCard;
-card.sd_card = sd_card;       // an initialized sdmmc_card_t* (SDMMC or SDSPI host)
+card.sd_card = sdcard.card(); // an initialized, unmounted sdmmc_card_t* (SDMMC or SDSPI host),
+                              // e.g. from espp::SdCard with mount_on_initialize = false
 card.base_path = "/sdcard";   // do NOT also esp_vfs_fat_*_mount() the card yourself
 
 espp::UsbDevice::MscMedium flash;

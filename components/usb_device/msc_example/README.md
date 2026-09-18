@@ -27,6 +27,17 @@ idf.py -p <PORT> flash monitor   # console is on UART0 (USB-UART adapter)
 The console is on **UART0**: on the ESP32-S3 USB-Serial-JTAG shares the native
 USB port's PHY with USB-OTG, which the mass storage interface takes over.
 
+The build works with the IDF component manager on (esp_tinyusb comes from the
+registry) or off, which is how CI builds it and the way to go while a local espp
+component the example uses is not published yet. With the manager off,
+esp_tinyusb and TinyUSB come from the vendored submodules, so initialize them
+first:
+
+```sh
+git submodule update --init external/esp-usb external/tinyusb components/lvgl components/format/detail/fmt
+IDF_COMPONENT_MANAGER=0 idf.py -p <PORT> flash monitor
+```
+
 The example's `sdkconfig.defaults` enables `CONFIG_TINYUSB_MSC_ENABLED`, uses a
 custom `partitions.csv` with a 1 MiB `storage` FAT partition, and selects
 **4096-byte wear-levelling sectors** with a matching MSC buffer:
@@ -92,17 +103,46 @@ idf.py erase-flash flash   # or: esptool.py erase_region 0x110000 0x100000
 
 ## Using an SD card instead
 
-Initialize the card as usual (SDMMC or SDSPI host) but do **not** mount it with
-`esp_vfs_fat_*_mount()` — the MSC function mounts it at `base_path` itself —
-then pass the card pointer:
+`idf.py menuconfig` → **MSC Example Configuration** → *Medium exposed as the USB
+drive* picks what the host sees:
+
+- **FAT partition in flash** (default): the `storage` partition, as above.
+- **SD card via espp::SdCard**: the card is probed on the configured SDMMC pins
+  (defaults: the LilyGo T-Dongle-S3's microSD slot, 4-bit) and handed to the
+  MSC function without being mounted by the app.
+- **SD card of the LilyGo T-Dongle-S3 (BSP)**: `espp::TDongleS3` brings the card
+  up with `initialize_sdcard()` (which mounts it), the example releases the
+  volume with `sdcard_component()->unmount()`, and hands `sdcard()` over. Every
+  espp BSP with a microSD slot exposes the same two accessors, so this is the
+  pattern to copy for other boards.
+
+The example never formats an SD card: a card with no filesystem raises
+`MscEvent::FormatRequired`; format it on the PC. Note that on a board whose only
+USB port is the native one (the T-Dongle-S3), that port becomes the drive, so
+the console is only visible through UART0; the drive showing up on the PC with
+`boots.txt` and `README.txt` is the test.
+
+In code: initialize the card (SDMMC or SDSPI host) but do **not** mount it with
+`esp_vfs_fat_*_mount()` — the MSC function mounts it at `base_path` itself.
+`espp::SdCard` (the `sdcard` component) keeps those two steps apart, and every
+espp BSP with a microSD slot exposes its card through `sdcard()`:
 
 ```cpp
+espp::SdCard::Config sd_config;
+sd_config.interface = espp::SdCard::SdmmcConfig{/* pins */};
+sd_config.mount_on_initialize = false; // probe only; the MSC function mounts it
+espp::SdCard sdcard(sd_config);
+sdcard.initialize();
+
 espp::UsbDevice::MscMedium card;
 card.type = espp::UsbDevice::MscMedium::Type::SdCard;
-card.sd_card = sd_card;        // sdmmc_card_t* from sdmmc_card_init()
+card.sd_card = sdcard.card();
 card.base_path = "/sdcard";
 msc.media = {card};            // or {card, flash} for two drives
 ```
+
+With a BSP, call `initialize_sdcard(...)`, then `sdcard_component()->unmount()`
+before handing `sdcard()` to the MSC function.
 
 SD card media need a target with an SDMMC host peripheral (ESP32-S3 / -P4), even
 when the card is wired to SPI.

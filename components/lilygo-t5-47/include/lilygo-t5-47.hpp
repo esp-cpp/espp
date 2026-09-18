@@ -8,7 +8,6 @@
 
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
-#include <esp_vfs_fat.h>
 #include <sdmmc_cmd.h>
 
 #include "base_component.hpp"
@@ -18,6 +17,7 @@
 #include "i2c.hpp"
 #include "interrupt.hpp"
 #include "pca9535.hpp"
+#include "sdcard.hpp"
 #include "spi.hpp"
 #include "sx126x.hpp"
 #include "task.hpp"
@@ -340,9 +340,18 @@ public:
   ///       initialize_display().
   bool initialize_sdcard(const SdCardConfig &config);
 
-  /// Get the mounted microSD card.
+  /// Get the microSD card.
   /// \return Pointer to the sdmmc_card_t, or nullptr if not initialized
-  sdmmc_card_t *sdcard() const { return sdcard_; }
+  /// \note nullptr until initialize_sdcard() succeeded. The card stays valid while
+  ///       its volume is unmounted (sdcard_component()->unmount()), e.g. to hand it
+  ///       to a USB host through espp::UsbDevice's MSC function.
+  sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
+
+  /// Get the SD card component: mount() / unmount() (e.g. to hand the card to a
+  /// USB host with the usb_device MSC function), format(), card_info(),
+  /// volume_info(), ...
+  /// \return The component, or nullptr until initialize_sdcard() succeeded
+  espp::SdCard *sdcard_component() const { return sdcard_.get(); }
 
   /////////////////////////////////////////////////////////////////////////////
   // LoRa Radio (SX1262)
@@ -491,7 +500,7 @@ private:
   static constexpr int SPI_MAX_TRANSFER_BYTES = 4092;
   static constexpr int spi_queue_size = 6;
   std::unique_ptr<espp::Spi> spi_{nullptr};
-  sdmmc_card_t *sdcard_{nullptr};
+  std::unique_ptr<espp::SdCard> sdcard_;
 
   // LoRa radio (SX1262) on the shared SPI bus. Pins from the T5 4.7" ePaper S3
   // PRO factory firmware.

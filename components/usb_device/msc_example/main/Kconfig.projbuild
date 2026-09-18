@@ -1,0 +1,65 @@
+menu "MSC Example Configuration"
+
+    choice MSC_EXAMPLE_MEDIUM
+        prompt "Medium exposed as the USB drive"
+        default MSC_EXAMPLE_MEDIUM_FLASH
+        help
+            What the mass-storage interface hands to the host.
+
+        config MSC_EXAMPLE_MEDIUM_FLASH
+            bool "FAT partition in flash ('storage' in partitions.csv)"
+        config MSC_EXAMPLE_MEDIUM_SDCARD
+            bool "SD card via espp::SdCard (SDMMC, pins below)"
+            help
+                Probes the card with espp::SdCard (no mount) and hands the raw card
+                to the MSC function. The pin defaults are the LilyGo T-Dongle-S3's
+                microSD slot.
+        config MSC_EXAMPLE_MEDIUM_BSP_T_DONGLE_S3
+            bool "SD card of the LilyGo T-Dongle-S3 (BSP)"
+            help
+                Uses the espp::TDongleS3 board support: initialize_sdcard() mounts
+                the card, the example unmounts it through sdcard_component() and
+                hands sdcard() to the MSC function. This is the pattern for any
+                espp BSP with a microSD slot.
+    endchoice
+
+    if MSC_EXAMPLE_MEDIUM_SDCARD
+        choice MSC_EXAMPLE_SDMMC_BUS_WIDTH
+            prompt "Bus width"
+            default MSC_EXAMPLE_SDMMC_BUS_WIDTH_4
+            config MSC_EXAMPLE_SDMMC_BUS_WIDTH_4
+                bool "4-bit (CLK, CMD, D0-D3)"
+            config MSC_EXAMPLE_SDMMC_BUS_WIDTH_1
+                bool "1-bit (CLK, CMD, D0)"
+        endchoice
+        config MSC_EXAMPLE_SDMMC_CLK
+            int "CLK GPIO"
+            default 12
+        config MSC_EXAMPLE_SDMMC_CMD
+            int "CMD GPIO"
+            default 16
+        config MSC_EXAMPLE_SDMMC_D0
+            int "D0 GPIO"
+            default 14
+        config MSC_EXAMPLE_SDMMC_D1
+            int "D1 GPIO"
+            default 17
+            depends on MSC_EXAMPLE_SDMMC_BUS_WIDTH_4
+        config MSC_EXAMPLE_SDMMC_D2
+            int "D2 GPIO"
+            default 21
+            depends on MSC_EXAMPLE_SDMMC_BUS_WIDTH_4
+        config MSC_EXAMPLE_SDMMC_D3
+            int "D3 GPIO"
+            default 18
+            depends on MSC_EXAMPLE_SDMMC_BUS_WIDTH_4
+        config MSC_EXAMPLE_SDMMC_LDO_CHANNEL
+            int "On-chip LDO channel powering the card (-1 = none)"
+            default 4 if IDF_TARGET_ESP32P4
+            default -1
+            help
+                The ESP32-P4 powers its SD pads from LDO channel 4. Leave -1 on
+                other targets.
+    endif
+
+endmenu

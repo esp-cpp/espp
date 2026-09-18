@@ -41,6 +41,11 @@ jobs:
           #       ahead of its first-time dependents coredump / dispatcher / ota,
           #       so it is uploaded to the registry before they try to resolve it.
           #
+          # Note: sdcard is intentionally listed (out of alphabetical order) ahead
+          #       of the BSPs that depend on espp/sdcard (esp32-p4-*, lilygo-t5-47,
+          #       m5stack-cardputer, m5stack-tab5, ...), so it is uploaded to the
+          #       registry before they try to resolve it.
+          #
           # Note: comments are not allowed in the "components" list, so please
           #       do not add any comments here.
           components: |
@@ -89,6 +94,7 @@ jobs:
             components/drv2605
             components/encoder
             components/esp-box
+            components/sdcard
             components/ethernet
             components/esp32-p4-eth
             components/esp32-p4-function-ev-board
