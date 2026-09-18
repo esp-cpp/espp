@@ -256,8 +256,9 @@ public:
     };
     Type type{Type::FlashPartition}; /**< Which storage backs this LUN. */
     /** For Type::SdCard: a caller-owned card initialized with sdmmc_card_init() on
-     *  an SDMMC or SDSPI host. Must outlive the UsbDevice. Do not pass the card
-     *  from esp_vfs_fat_sdmmc_mount() / esp_vfs_fat_sdspi_mount(): the matching
+     *  an SDMMC or SDSPI host, e.g. espp::SdCard::card() with its volume unmounted.
+     *  Must outlive the UsbDevice. Do not pass the card from
+     *  esp_vfs_fat_sdmmc_mount() / esp_vfs_fat_sdspi_mount(): the matching
      *  esp_vfs_fat_sdcard_unmount() frees it. Requires a target with an SDMMC host
      *  peripheral (e.g. ESP32-S3, ESP32-P4), even when the card is on SPI. */
     sdmmc_card_t *sd_card{nullptr};

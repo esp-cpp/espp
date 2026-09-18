@@ -340,8 +340,11 @@ public:
   ///       initialize_display().
   bool initialize_sdcard(const SdCardConfig &config);
 
-  /// Get the mounted microSD card.
+  /// Get the microSD card.
   /// \return Pointer to the sdmmc_card_t, or nullptr if not initialized
+  /// \note nullptr until initialize_sdcard() succeeded. The card stays valid while
+  ///       its volume is unmounted (sdcard_component()->unmount()), e.g. to hand it
+  ///       to a USB host through espp::UsbDevice's MSC function.
   sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
 
   /// Get the SD card component: mount() / unmount() (e.g. to hand the card to a

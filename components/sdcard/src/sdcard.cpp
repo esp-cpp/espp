@@ -2,6 +2,7 @@
 
 #include <cstring>
 
+#include <esp_heap_caps.h>
 #include <esp_idf_version.h>
 #include <esp_vfs_fat.h>
 #include <sd_protocol_defs.h> // SD_OCR_SDHC_CAP
@@ -429,8 +430,11 @@ bool SdCard::format(std::error_code &ec) {
 bool SdCard::format_locked(std::error_code &ec) {
   // pdrv_ must be registered (not necessarily mounted) when this runs
   const std::string drive = fat_drive_string(pdrv_);
+  // Internal RAM: the SDMMC host DMAs from this buffer. (Not ff_memalloc(): FatFs
+  // only declares it when long file names live on the heap, and it may prefer
+  // PSRAM.)
   constexpr size_t kWorkBufferSize = 4096;
-  void *work = ff_memalloc(kWorkBufferSize);
+  void *work = heap_caps_malloc(kWorkBufferSize, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   if (!work) {
     ec = std::make_error_code(std::errc::not_enough_memory);
     return false;
@@ -442,7 +446,7 @@ bool SdCard::format_locked(std::error_code &ec) {
   opt.au_size = config_.allocation_unit_size;
   logger_.info("Formatting the card (allocation unit {} bytes)", config_.allocation_unit_size);
   const FRESULT res = f_mkfs(drive.c_str(), &opt, work, kWorkBufferSize);
-  ff_memfree(work);
+  heap_caps_free(work);
   if (res != FR_OK) {
     logger_.error("Formatting failed (FatFs result {})", static_cast<int>(res));
     ec = std::make_error_code(std::errc::io_error);
