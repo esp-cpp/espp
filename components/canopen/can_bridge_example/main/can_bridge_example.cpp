@@ -39,6 +39,12 @@ namespace sf = espp::stream_frame;
 static constexpr int kCanTxGpio = 17;
 static constexpr int kCanRxGpio = 16;
 
+// Dispatcher module id the bridge protocol is registered under (and stamped on
+// every reply / CAN_RX frame). It is only a routing key: change this one
+// constant to move the protocol, but the hosted CAN console looks for the
+// default (can_bridge::kModuleId = 5) until it is told otherwise.
+static constexpr uint8_t kCanBridgeModule = can_bridge::kModuleId;
+
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "CAN Bridge", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting USB<->CAN bridge example");
@@ -94,9 +100,9 @@ extern "C" void app_main(void) {
   send_fn stream_send;
   auto build_frame = [](uint8_t type, std::span<const uint8_t> payload = {}) {
     // Reply/event types (kCanRx/kOk/kError/kStatus) carry the high bit; map it
-    // to the frame reply flag. All CAN-bridge frames are module kModuleId.
+    // to the frame reply flag. All CAN-bridge frames are module kCanBridgeModule.
     const bool reply = (type & 0x80) != 0;
-    return sf::build_frame(reply, can_bridge::kModuleId, type, payload);
+    return sf::build_frame(reply, kCanBridgeModule, type, payload);
   };
   auto send_frame = [&](const send_fn &send, uint8_t type, std::span<const uint8_t> payload = {}) {
     send(build_frame(type, payload));
@@ -178,7 +184,7 @@ extern "C" void app_main(void) {
     }
   };
 
-  // --- CAN bridge protocol handler (dispatcher module id 5) ------------------
+  // --- CAN bridge protocol handler (dispatcher module kCanBridgeModule) ------
   // `send` transmits on the transport the frame arrived on (each worker
   // registers the handler with its own sender), so replies never cross streams.
   auto handle_can_frame = [&](const espp::stream_frame::Frame &frame, const send_fn &send) {
@@ -291,7 +297,7 @@ extern "C" void app_main(void) {
                                                   "Raw CAN 2.0 bridge (WebUSB / Web Serial)"};
   for (auto *link : {&vendor_link, &cdc_link}) {
     link->register_module(
-        can_bridge::kModuleId,
+        kCanBridgeModule,
         [&, send = link->sender()](const sf::Frame &f) { handle_can_frame(f, send); }, can_info);
     link->serve_discovery(usb_cfg.product);
   }

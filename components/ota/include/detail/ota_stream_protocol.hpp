@@ -20,7 +20,8 @@
 //   [magic u16 = 0x4F54 ("OT")][flags u8][module u8][type u8][len u32]
 //                                        [payload: len bytes][crc32 u32]
 //
-// OTA occupies module 0. Requests are host->device (flags reply bit = 0);
+// OTA occupies module 0 by default (espp::OtaService::Config::module can move
+// it). Requests are host->device (flags reply bit = 0);
 // replies are device->host (flags reply bit = 1). `type` alone identifies the
 // message.
 //
@@ -82,10 +83,14 @@ using espp::stream_frame::put_u32;
 using espp::stream_frame::Frame;
 using espp::stream_frame::StreamParser;
 
-/// OTA occupies dispatcher module id 0.
+/// Default dispatcher module id of the OTA protocol (0) -- the id the OTA
+/// console / CLI expect. Every frame builder below takes an optional `module`
+/// argument (defaulting to this) so a device that serves OTA on another id
+/// (espp::OtaService::Config::module) builds its replies on that id.
 static constexpr uint8_t kModule = 0;
 
-/// OTA stream protocol message types (the frame `type` field within module 0).
+/// OTA stream protocol message types (the frame `type` field within the OTA
+/// module, kModule by default).
 /// Requests are host->device (frame flag reply=0); replies are device->host
 /// (reply=1). `type` alone identifies the message; the reply flag is the generic
 /// direction hint.
@@ -122,38 +127,50 @@ inline bool is_reply(MessageType type) {
 /// @brief Build an encoded OTA frame (typed overload of stream_frame::build_frame).
 /// @param type OTA message type.
 /// @param payload Payload bytes; must be <= kMaxPayloadSize.
+/// @param module Dispatcher module id to stamp on the frame (default kModule).
 /// @return The encoded frame bytes, or an empty vector if the payload is too large.
-inline std::vector<uint8_t> build_frame(MessageType type, std::span<const uint8_t> payload = {}) {
-  return espp::stream_frame::build_frame(is_reply(type), kModule, static_cast<uint8_t>(type),
+inline std::vector<uint8_t> build_frame(MessageType type, std::span<const uint8_t> payload = {},
+                                        uint8_t module = kModule) {
+  return espp::stream_frame::build_frame(is_reply(type), module, static_cast<uint8_t>(type),
                                          payload);
 }
 
 /// Build a BEGIN frame (image_size in bytes, 0 = unknown / streaming).
-inline std::vector<uint8_t> make_begin(uint32_t image_size) {
+inline std::vector<uint8_t> make_begin(uint32_t image_size, uint8_t module = kModule) {
   std::vector<uint8_t> payload;
   put_u32(payload, image_size);
-  return build_frame(MessageType::Begin, payload);
+  return build_frame(MessageType::Begin, payload, module);
 }
 
 /// Build a DATA frame carrying up to kMaxPayloadSize image bytes.
-inline std::vector<uint8_t> make_data(std::span<const uint8_t> data) {
-  return build_frame(MessageType::Data, data);
+inline std::vector<uint8_t> make_data(std::span<const uint8_t> data, uint8_t module = kModule) {
+  return build_frame(MessageType::Data, data, module);
 }
 
 /// Build a FINISH frame (no payload).
-inline std::vector<uint8_t> make_finish() { return build_frame(MessageType::Finish); }
+inline std::vector<uint8_t> make_finish(uint8_t module = kModule) {
+  return build_frame(MessageType::Finish, {}, module);
+}
 
 /// Build an ABORT frame (no payload).
-inline std::vector<uint8_t> make_abort() { return build_frame(MessageType::Abort); }
+inline std::vector<uint8_t> make_abort(uint8_t module = kModule) {
+  return build_frame(MessageType::Abort, {}, module);
+}
 
 /// Build a GET_STATUS frame (no payload). The device replies with STATUS.
-inline std::vector<uint8_t> make_get_status() { return build_frame(MessageType::GetStatus); }
+inline std::vector<uint8_t> make_get_status(uint8_t module = kModule) {
+  return build_frame(MessageType::GetStatus, {}, module);
+}
 
 /// Build a MARK_VALID frame (no payload). Confirms the running image.
-inline std::vector<uint8_t> make_mark_valid() { return build_frame(MessageType::MarkValid); }
+inline std::vector<uint8_t> make_mark_valid(uint8_t module = kModule) {
+  return build_frame(MessageType::MarkValid, {}, module);
+}
 
 /// Build a MARK_INVALID frame (no payload). Rolls back + reboots the device.
-inline std::vector<uint8_t> make_mark_invalid() { return build_frame(MessageType::MarkInvalid); }
+inline std::vector<uint8_t> make_mark_invalid(uint8_t module = kModule) {
+  return build_frame(MessageType::MarkInvalid, {}, module);
+}
 
 /// Append a length-prefixed (u8 length) UTF-8 string, truncated to 255 bytes.
 inline void put_str(std::vector<uint8_t> &out, std::string_view s) {
@@ -166,38 +183,40 @@ inline void put_str(std::vector<uint8_t> &out, std::string_view s) {
 /// and project name (each a u8-length-prefixed string), so the host can report
 /// what firmware is now running before confirming it.
 inline std::vector<uint8_t> make_status(uint8_t flags, std::string_view version = {},
-                                        std::string_view project = {}) {
+                                        std::string_view project = {}, uint8_t module = kModule) {
   std::vector<uint8_t> p;
   p.push_back(flags);
   put_str(p, version);
   put_str(p, project);
-  return build_frame(MessageType::Status, p);
+  return build_frame(MessageType::Status, p, module);
 }
 
 /// Build an OK reply (bytes_received so far).
-inline std::vector<uint8_t> make_ok(uint32_t bytes_received) {
+inline std::vector<uint8_t> make_ok(uint32_t bytes_received, uint8_t module = kModule) {
   std::vector<uint8_t> payload;
   put_u32(payload, bytes_received);
-  return build_frame(MessageType::Ok, payload);
+  return build_frame(MessageType::Ok, payload, module);
 }
 
 /// Build an ERROR reply (u32 code + UTF-8 message; the message is truncated if
 /// it would overflow the maximum payload size).
-inline std::vector<uint8_t> make_error(uint32_t code, std::string_view message) {
+inline std::vector<uint8_t> make_error(uint32_t code, std::string_view message,
+                                       uint8_t module = kModule) {
   std::vector<uint8_t> payload;
   put_u32(payload, code);
   const size_t max_message = kMaxPayloadSize - payload.size();
   const size_t count = std::min(message.size(), max_message);
   payload.insert(payload.end(), message.begin(), message.begin() + count);
-  return build_frame(MessageType::Error, payload);
+  return build_frame(MessageType::Error, payload, module);
 }
 
 /// Build a PROGRESS reply (bytes written so far, total expected — 0 if unknown).
-inline std::vector<uint8_t> make_progress(uint32_t written, uint32_t total) {
+inline std::vector<uint8_t> make_progress(uint32_t written, uint32_t total,
+                                          uint8_t module = kModule) {
   std::vector<uint8_t> payload;
   put_u32(payload, written);
   put_u32(payload, total);
-  return build_frame(MessageType::Progress, payload);
+  return build_frame(MessageType::Progress, payload, module);
 }
 
 /// Parse the single-u32 payload of a BEGIN (image_size) or OK (bytes_received)

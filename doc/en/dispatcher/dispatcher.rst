@@ -16,7 +16,7 @@ The frame's ``module`` byte (0..255) is the routing key — a full byte, so up t
 256 protocols can coexist on one stream. The message/transaction ``type`` and
 the request/reply direction (``flags``) travel with the frame and are handed to
 the module's handler untouched; the Dispatcher does not interpret them. espp's
-own protocols and examples use, for example:
+own protocols and examples use these ids by default:
 
 =========  ==============================================
 Module id  Protocol
@@ -39,7 +39,13 @@ the module), so both directions route to the one registered handler — use
 ``frame.is_reply()`` to tell them apart. In practice a device only *receives*
 requests (it *sends* the replies), so its handler normally sees requests only.
 Application code may assign any unused module id to its own protocol; nothing is
-hard-wired to a specific service.
+hard-wired to a specific service. The ids in the table are **defaults**: the
+module id is only a routing key, and every espp service takes its id from
+``Config::module`` (used for both the requests it accepts and the replies it
+sends), while each example module keeps its id in one named constant. The
+defaults are what the hosted web consoles and the ``espp_ota`` CLI look for, so
+a device that moves a service off its default must also tell its host tooling
+the new id — see :doc:`custom_modules`.
 
 .. ------------------------------- Example -------------------------------------
 

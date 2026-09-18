@@ -37,8 +37,10 @@ enum class CrashKind : uint8_t { None, NullPointer, Assert, DivideByZero, Hang }
 // Example-specific "trigger a test crash" command: a stream_frame with
 // module = kCrashModule, type = kMsgTriggerCrash, payload = [CrashKind]. Its
 // own dispatcher module keeps it cleanly separate from the core-dump protocol
-// (module 4); the CDC text console keeps working for Web Serial / terminal
-// users too.
+// (module 4 by default -- CoreDumpService::Config::module can move it); the
+// CDC text console keeps working for Web Serial / terminal users too. The
+// module id is only a routing key: this one constant is the place to change
+// it (the hosted coredump console sends the trigger on 1 until told otherwise).
 static constexpr uint8_t kCrashModule = 1;
 static constexpr uint8_t kMsgTriggerCrash = 0x00;
 

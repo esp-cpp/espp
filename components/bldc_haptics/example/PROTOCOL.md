@@ -14,7 +14,7 @@ for the reference host implementation.
 
 Uses the espp `stream_frame` v2 codec
 (`components/stream_frame/include/stream_frame.hpp` is the authoritative spec).
-The whole haptics protocol is dispatcher **module 2**. All multi-byte fields are
+The whole haptics protocol is one dispatcher module, **2 by default** (`kHapticsModule` in `bldc_haptics_example.cpp`; the hosted console expects 2). All multi-byte fields are
 **little-endian**:
 
 ```
@@ -26,7 +26,7 @@ The whole haptics protocol is dispatcher **module 2**. All multi-byte fields are
   reply/event); `bits 4-7` = protocol version = `1`. So a request byte is
   `0x10` and a reply/telemetry byte is `0x11`. Request types (`0x0_`/`0x1_`)
   clear the reply bit; reply/telemetry types (`0x8_`/`0x9_`) set it.
-- `module`: `u8` dispatcher module — **2** for the entire haptics protocol.
+- `module`: `u8` dispatcher module — the haptics module id (**2** by default) for the entire haptics protocol.
 - `type`: message type (tables below).
 - `len`: payload length, capped at **4096** bytes per frame; receivers reject
   and resynchronize past any frame whose length field exceeds the cap.

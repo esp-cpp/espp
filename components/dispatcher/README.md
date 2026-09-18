@@ -18,7 +18,7 @@ The `module` byte (0..255) is the routing key — a full byte, so up to 256
 protocols can coexist on one stream. The message/transaction `type` and the
 request/reply direction (`flags`) travel with the frame and are handed to the
 module's handler untouched; the Dispatcher does not interpret them. espp's own
-protocols and examples use, for example:
+protocols and examples use these ids by default:
 
 | Module    | Protocol                                       |
 |-----------|-------------------------------------------------|
@@ -39,7 +39,13 @@ the module), so both route to the one registered handler — use `frame.is_reply
 to distinguish them. In practice a device only *receives* requests (it *sends*
 the replies), so its handler normally sees requests only. Application code may
 assign any unused module id to its own protocol — nothing is hard-wired to a
-specific service.
+specific service. The ids above are **defaults**: the module id is only a routing
+key, and every espp service takes its id from `Config::module` (used for both
+the requests it accepts and the replies it sends — `kModule` is just the
+default), while each example module keeps its id in one named constant. The
+defaults are what the hosted web consoles and the `espp_ota` CLI look for, so a
+device that moves a service off its default must also tell its host tooling the
+new id.
 
 ## API
 
@@ -54,8 +60,8 @@ specific service.
   `espp::CoreDumpService`, `espp::Telemetry`, `espp::Mcp266Service` satisfy it
   (and `static_assert` so); add `static_assert(espp::DispatcherModuleConcept<MyModule>);`
   to your own module for a precise compile-time check. The id and metadata are
-  read from the *object*, so a module whose id is configured per instance
-  registers under that id.
+  read from the *object* at registration, so a module whose id is configured
+  per instance (every espp service: `Config::module`) registers under that id.
 - `void feed(std::span<const uint8_t> data)` — parse + route.
 - `void dispatch(const stream_frame::Frame&)` — route an already-parsed frame.
 - `void reset()` — drop buffered bytes (reconnect / RX overflow).
@@ -63,8 +69,8 @@ specific service.
 
 ```cpp
 espp::Dispatcher dispatcher;
-dispatcher.register_module(ota_service);      // espp::OtaService, module 0
-dispatcher.register_module(coredump_service); // espp::CoreDumpService, module 4
+dispatcher.register_module(ota_service);      // espp::OtaService, its Config::module (0 by default)
+dispatcher.register_module(coredump_service); // espp::CoreDumpService, its Config::module (4 by default)
 dispatcher.register_module(0x10, [&](const espp::stream_frame::Frame &f) {
   // your own protocol: f.type, f.is_reply(), f.payload
 });

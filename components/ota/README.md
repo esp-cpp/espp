@@ -74,8 +74,8 @@ Key class: `espp::Ota` (header-only, `ota.hpp`)
   `session_active()`, `bytes_written()`, `image_size()`
 
 Service class: `espp::OtaService` (`ota_service.hpp`) — the stream protocol
-below as a drop-in [dispatcher](../dispatcher) module (module 0), so an
-application never implements the OTA state machine itself:
+below as a drop-in [dispatcher](../dispatcher) module (module 0 by default), so
+an application never implements the OTA state machine itself:
 
 ```cpp
 auto send = [&](std::span<const uint8_t> frame) { usb.write_vendor(frame); };
@@ -88,9 +88,13 @@ usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { link.push(d
 ```
 
 - construct with the `Ota` engine and a `send` function; `Config` also has
-  `auto_restart` (default true: reply `OK` to `FINISH`, then restart after
-  `restart_delay`, 750 ms) and `on_update_finished` (run your own logic /
-  `Ota::restart()` when `auto_restart` is off)
+  `module` (the dispatcher module id the instance answers on and stamps on its
+  replies — default `kModule` = 0, which is what the OTA console and the
+  `espp_ota` CLI look for; the id is only a routing key, so move it only if
+  your host tooling is told the new id), `auto_restart` (default true: reply
+  `OK` to `FINISH`, then restart after `restart_delay`, 750 ms) and
+  `on_update_finished` (run your own logic / `Ota::restart()` when
+  `auto_restart` is off)
 - `handle(frame)` — the dispatcher entry point (ignores other modules and
   replies); `feed(bytes)` / `handle_frame(type, payload)` for standalone use;
   `on_rx_overflow()` — abort the transfer and tell the host after the transport
@@ -116,7 +120,9 @@ little-endian:
 
 This is the shared [`stream_frame`](../stream_frame) v2 codec: `flags` bit0 =
 reply (0 = request, 1 = device→host reply) and bits 4-7 = version (1); `module`
-is the routing id (OTA is **module 0**). OTA layers its message types on it.
+is the routing id (OTA is **module 0** by default — every `make_*` builder takes
+an optional module argument, and `OtaService::Config::module` moves the
+service). OTA layers its message types on it.
 
 - `crc32` is the standard zlib CRC-32 (poly `0xEDB88320` reflected, init/final
   xor `0xFFFFFFFF`) over magic..payload; check value `crc32("123456789") ==

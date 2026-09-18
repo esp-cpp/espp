@@ -7,7 +7,8 @@
 // spec and ../PROTOCOL.md next to this example for the full haptics wire
 // protocol).
 //
-// The haptics protocol occupies dispatcher MODULE 2 (haptics commands only).
+// The haptics protocol occupies dispatcher MODULE 2 by default (haptics commands
+// only; kHapticsModule in bldc_haptics_example.cpp picks the id).
 // Firmware update and crash-dump inspection are NOT part of it: the example runs
 // the standard espp OTA protocol on module 0 and the coredump service on module
 // 4 (routed by the same espp::Dispatcher), handled by the ota / coredump web
@@ -35,13 +36,17 @@ namespace haptics_proto {
 // protocol's module + reply flag.
 namespace stream = espp::stream_frame;
 
-/// Dispatcher module id owned by the haptics protocol (the frame `module` byte).
+/// Default dispatcher module id of the haptics protocol (the frame `module`
+/// byte): the id the hosted haptics console expects. The example registers the
+/// protocol under `kHapticsModule` (bldc_haptics_example.cpp), which defaults
+/// to this; build() takes the id to stamp so replies follow whatever the app
+/// registered.
 static constexpr uint8_t kModule = 2;
 
 /// Protocol version reported in the INFO reply.
 static constexpr uint8_t kProtocolVersion = 1;
 
-/// Message types carried in the frame `type` byte (within module 2).
+/// Message types carried in the frame `type` byte (within the haptics module).
 enum class Msg : uint8_t {
   // --- Haptics commands ------------------------------------------------------
   GetInfo = 0x10,      ///< host->dev: no payload -> Info reply
@@ -103,11 +108,13 @@ inline std::optional<float> get_f32_at(std::span<const uint8_t> bytes, size_t of
   return std::bit_cast<float>(get_u32(bytes.subspan(offset)));
 }
 
-/// Build a frame for any haptics-protocol message type (module 2; the reply flag
-/// is set for reply/telemetry types, whose ids have the high bit set).
-inline std::vector<uint8_t> build(Msg type, std::span<const uint8_t> payload = {}) {
+/// Build a frame for any haptics-protocol message type on `module` (kModule, 2,
+/// by default; the reply flag is set for reply/telemetry types, whose ids have
+/// the high bit set).
+inline std::vector<uint8_t> build(Msg type, std::span<const uint8_t> payload = {},
+                                  uint8_t module = kModule) {
   const bool reply = (static_cast<uint8_t>(type) & 0x80) != 0;
-  return espp::stream_frame::build_frame(reply, kModule, static_cast<uint8_t>(type), payload);
+  return espp::stream_frame::build_frame(reply, module, static_cast<uint8_t>(type), payload);
 }
 
 /// Status flag bits (Status + Telemetry `flags` byte).

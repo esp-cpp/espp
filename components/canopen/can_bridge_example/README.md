@@ -9,8 +9,11 @@ connects over the native USB and can
   node is a passive sniffer that never ACKs or transmits.
 
 It bridges the ESP32-S3 TWAI (CAN 2.0) controller to the host over USB using the
-espp `stream_frame` framing and an `espp::Dispatcher` (this example owns
-**module id 5**). The same framed protocol is exposed on both the USB **vendor**
+espp `stream_frame` framing and an `espp::Dispatcher` (this example uses
+**module id 5** by default — `kCanBridgeModule` at the top of
+`can_bridge_example.cpp` is the one place to change it, though the hosted
+console looks for 5 until told otherwise). The same framed protocol is exposed
+on both the USB **vendor**
 interface (WebUSB) and a **CDC** interface (Web Serial), so the web app can use
 either transport. The system console/logs stay on the separate built-in
 USB-Serial-JTAG.

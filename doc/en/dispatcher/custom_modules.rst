@@ -53,12 +53,13 @@ Module ids already in use
 --------------------------
 
 The ``module`` byte is a full byte (0..255), so up to 256 protocols can
-coexist on one stream. espp's own protocols and examples currently claim:
+coexist on one stream. espp's own protocols and examples use these ids **by
+default**:
 
 =========  ========================================================
 Module id  Protocol
 =========  ========================================================
-0          OTA (firmware update)
+0          OTA (firmware update, ``espp::OtaService``)
 1          Core-dump example crash trigger (example only)
 2          BLDC haptics (``components/bldc_haptics``)
 3          Telemetry (``espp::Telemetry``)
@@ -73,6 +74,39 @@ Pick any id **not** in this table (or not already used by other modules in
 your own application) for your protocol. Nothing in `espp::Dispatcher` is
 hard-wired to a specific id — a device only ever registers the modules it
 actually serves, and frames for an unregistered id are silently ignored.
+
+The module id is a **routing key, not an identity**: which protocol a module
+speaks is what its handler does with the frame (and what its
+`ModuleInfo` advertises — see `Discovery + the webapp side`_), and the id only
+says which registered handler receives the frame. So the ids above are
+*defaults*, not fixed properties of the protocols. Every espp service takes
+its id from its `Config` (``Config::module``, defaulting to the service's
+``kModule`` / the protocol header's ``kModuleId``), and each example module
+routes through a single named constant (``kHapticsModule``,
+``kCanBridgeModule``, ``kCrashModule``) at the top of its ``main``. An
+application that needs to, for example, run two `espp::Telemetry` instances
+on one link, or whose own protocol already occupies ``4``, simply moves the
+espp service:
+
+.. code-block:: cpp
+
+   espp::CoreDumpService coredump_service(core_dump, {.send = send, .module = 0x24});
+   espp::Telemetry fast({.channels = {"ax", "ay", "az"}, .send = send});           // module 3
+   espp::Telemetry slow({.channels = {"temp"}, .send = send, .module = 0x13});   // moved
+   link.register_module(coredump_service); // registered under 0x24
+   link.register_module(fast);
+   link.register_module(slow);
+
+A service uses its configured id for **everything** — the frames it accepts
+in `handle()` / `feed()`, and the `module` byte it stamps on every reply and
+notification it sends — so the request and reply sides can never disagree.
+The one thing the id does *not* change is the host: the hosted web consoles
+(``ota_console.html``, ``coredump_console.html``, ``telemetry.html``,
+``mcp266_console.html``, ...) and the ``espp_ota`` Python CLI are written
+against the **default** ids in the table, so a device that moves a service
+off its default will not be found by the stock console until that console
+(or your own host tool) is told the new id. Keep the defaults unless you have
+a reason not to; discovery still lists the actual registered id either way.
 
 Several modules can, and routinely do, share **one** `Dispatcher` over **one**
 USB link. The `bldc_haptics` example registers OTA, the crash-dump service,
@@ -100,10 +134,12 @@ USB link. The `bldc_haptics` example registers OTA, the crash-dump service,
    link.serve_discovery(usb_cfg.product);
 
 The espp *services* (`espp::OtaService`, `espp::CoreDumpService`,
-`espp::Telemetry`) each carry their own module id, discovery metadata and
-handler, so registering one is a single call. Your application module
-registers alongside them the same way — pick an unused id, register a
-handler, and (optionally) attach `ModuleInfo` so it is discoverable (see
+`espp::Telemetry`, `espp::Mcp266Service`) each carry their own module id
+(``Config::module``, defaulting to the protocol's published id), discovery
+metadata and handler, so registering one is a single call. Your application
+module registers alongside them the same way — pick an unused id (the
+haptics example keeps its own in one ``kHapticsModule`` constant), register
+a handler, and (optionally) attach `ModuleInfo` so it is discoverable (see
 `Discovery + the webapp side`_) — or give it the same three members and
 register it with the one-argument overload too.
 
@@ -116,13 +152,15 @@ is a complete, production module: it owns a protocol (module id, message
 types), is transport-agnostic, and is registered on a `Dispatcher` exactly
 like your own module will be. The pattern has six parts:
 
-1. **A module id.**
+1. **A module id** — a published *default*, which each instance can override
+   through its `Config` (part 3):
 
    .. code-block:: cpp
 
-      /// Dispatcher module id owned by the core-dump protocol (the frame `module`
-      /// byte). Reply Msg values keep the high bit set, which build() maps to the
-      /// frame reply flag.
+      /// Default dispatcher module id of the core-dump protocol (the frame
+      /// `module` byte): the id the hosted core-dump console expects. See
+      /// Config::module to serve on a different id. Reply Msg values keep the
+      /// high bit set, which build() maps to the frame reply flag.
       static constexpr uint8_t kModule = 4;
 
 2. **Message types**, as a scoped enum of `uint8_t` values. `CoreDumpService`
@@ -159,10 +197,12 @@ like your own module will be. The pattern has six parts:
    works as long as your `build()` (or equivalent) passes the right `reply`
    bool to `build_frame()`.
 
-3. **A `Config` carrying a `send_fn`.** The module never touches a transport
-   directly — it is handed a callback that transmits one already-encoded
-   frame, so the same module class works unmodified over USB vendor, USB CDC,
-   a socket, or a UART:
+3. **A `Config` carrying a `send_fn` and the module id.** The module never
+   touches a transport directly — it is handed a callback that transmits one
+   already-encoded frame, so the same module class works unmodified over USB
+   vendor, USB CDC, a socket, or a UART. The module id lives here too, so an
+   application can move the module without touching the class (the default
+   is the protocol's published `kModule`, which the stock console expects):
 
    .. code-block:: cpp
 
@@ -170,6 +210,7 @@ like your own module will be. The pattern has six parts:
 
       struct Config {
         send_fn send{nullptr}; ///< Transmits an encoded reply frame (required).
+        uint8_t module{kModule}; ///< Dispatcher module id (routing key; default 4).
         espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
       };
 
@@ -183,14 +224,20 @@ like your own module will be. The pattern has six parts:
                       .log_level = espp::Logger::Verbosity::INFO});
 
 4. **A `build()` helper** that wraps `stream_frame::build_frame()` so every
-   reply in the module goes through one place:
+   reply in the module goes through one place. It is `static` and takes the
+   module id to stamp (defaulting to `kModule`, so a host-side test or a
+   caller without an instance can build frames on the default id); the
+   service's own call sites pass *this instance's* id (`module_id()`, part 6),
+   never the `kModule` constant, so a moved module's replies route back on the
+   same id its requests arrived on:
 
    .. code-block:: cpp
 
-      static std::vector<uint8_t> build(Msg type, std::span<const uint8_t> payload = {}) {
+      static std::vector<uint8_t> build(Msg type, std::span<const uint8_t> payload = {},
+                                        uint8_t module = kModule) {
         namespace stream = espp::stream_frame;
         const bool reply = (static_cast<uint8_t>(type) & 0x80) != 0;
-        return stream::build_frame(reply, kModule, static_cast<uint8_t>(type), payload);
+        return stream::build_frame(reply, module, static_cast<uint8_t>(type), payload);
       }
 
 5. **`feed()` / `handle_frame()` entry points** that parse (or accept an
@@ -234,7 +281,7 @@ like your own module will be. The pattern has six parts:
             static_cast<uint32_t>(std::min<size_t>(raw_size, std::numeric_limits<uint32_t>::max()));
         std::vector<uint8_t> reply_payload;
         stream::put_u32(reply_payload, size);
-        reply = build(Msg::Size, reply_payload);
+        reply = build(Msg::Size, reply_payload, module_id()); // this instance's id
         return true;
       }
 
@@ -254,11 +301,11 @@ like your own module will be. The pattern has six parts:
    one call, metadata included — those overloads are constrained on the
    concept, so a non-conforming type fails to compile at the call with a
    message naming the missing member. The dispatcher reads the id and
-   metadata from the *object*, so a module constructed with a configurable
-   id (see the "hello" module below) registers under that id — `CoreDumpService`
-   simply returns its protocol's fixed `kModule`. Every espp service also
-   `static_assert`s the concept right after its class definition, and so
-   should yours:
+   metadata from the *object* at registration time, so a module registers
+   under whatever id it was constructed with — `CoreDumpService` returns its
+   `Config::module` (`kModule` unless the app changed it), exactly like the
+   "hello" module below. Every espp service also `static_assert`s the concept
+   right after its class definition, and so should yours:
 
    .. code-block:: cpp
 
@@ -268,7 +315,7 @@ like your own module will be. The pattern has six parts:
 
    .. code-block:: cpp
 
-      uint8_t module_id() const { return kModule; }
+      uint8_t module_id() const { return module_; } // Config::module, default kModule
 
       Dispatcher::ModuleInfo module_info() const {
         return {.name = "Core Dump",
@@ -367,7 +414,8 @@ parser, no mutex, because a handler this small can run straight out of the
    private:
      // 4. build(): every reply goes through stream_frame::build_frame(); the
      //    Msg high bit (see the enum above) selects the reply flag, exactly
-     //    like CoreDumpService::build(). Replies carry THIS instance's id.
+     //    like CoreDumpService::build() (static there, taking the module id to
+     //    stamp). Replies carry THIS instance's id.
      std::vector<uint8_t> build(hello_module::Msg type, std::span<const uint8_t> payload) const {
        const bool reply = (static_cast<uint8_t>(type) & 0x80) != 0;
        return espp::stream_frame::build_frame(reply, module_, static_cast<uint8_t>(type), payload);
@@ -471,7 +519,7 @@ keep payloads simple to parse on both the device (C++) and the browser
      espp::stream_frame::put_u32(p, timestamp_us);
      for (float v : values)
        put_f32(p, v);
-     frame = build(Type::Sample, p);
+     frame = build(Type::Sample, p, module_id());
 
   On the browser side the matching read is one `DataView.getFloat32(offset,
   true)` call (the `true` selects little-endian) — no bit-reinterpretation
@@ -732,7 +780,10 @@ Checklist: shipping a new module + webapp
 ============================================
 
 #. **Pick a module id** not already listed in the `Module ids already in use`_
-   table (and not used elsewhere in your own application).
+   table (and not used elsewhere in your own application). Make it a
+   `Config` field with that id as the default (as every espp service does)
+   rather than a bare constant used everywhere, so an application can move
+   it later without editing the module.
 #. **Define your message `type`s** as a small enum; decide (and document) how
    request vs. reply is signalled in your `type` values, remembering the
    *authoritative* signal is always the frame's `flags` reply bit passed to
@@ -774,10 +825,10 @@ Checklist: shipping a new module + webapp
    - :doc:`../coredump/coredump` — the `CoreDumpService` worked example used
      throughout this page.
    - :doc:`../ota/ota` — `OtaService`, the OTA protocol as a drop-in service
-     (module 0).
+     (module 0 by default).
    - :doc:`../telemetry/telemetry` — a module streaming typed float samples
      (the `put_f32` example above).
-   - :doc:`../buses/canopen` — a bridge module (module 5) plus an
+   - :doc:`../buses/canopen` — a bridge module (module 5 by default) plus an
      in-browser CANopen/DS402 client.
    - :doc:`../buses/usb_cdc` — the `espp::UsbDevice` component reference
      (vendor / CDC / HID / X-Input functions, endpoint budgeting).
