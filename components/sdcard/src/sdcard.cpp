@@ -305,31 +305,38 @@ bool SdCard::mount_locked(std::error_code &ec) {
     return false;
   }
 
+  // f_mount() registers `fs` in FatFs's drive table even when the volume
+  // itself fails to mount, so every failure path below must detach the drive
+  // (f_mount(nullptr, ...)) before the VFS frees that FATFS object -- the same
+  // order as ESP-IDF's esp_vfs_fat_sdmmc_mount() cleanup.
+  auto detach = [&]() {
+    f_mount(nullptr, drive.c_str(), 0);
+    esp_vfs_fat_unregister_path(config_.mount_point.c_str());
+    ff_diskio_unregister(pdrv);
+  };
+
   FRESULT res = f_mount(fs, drive.c_str(), 1);
   if (res == FR_NO_FILESYSTEM || res == FR_INT_ERR) {
     if (!config_.format_if_mount_failed) {
       logger_.error("No FAT filesystem on the card (format() it, or set "
                     "format_if_mount_failed)");
-      esp_vfs_fat_unregister_path(config_.mount_point.c_str());
-      ff_diskio_unregister(pdrv);
+      detach();
       ec = std::make_error_code(std::errc::no_such_device);
       return false;
     }
     logger_.warn("No FAT filesystem on the card; formatting it");
     pdrv_ = pdrv;
-    if (!format_locked(ec)) {
-      pdrv_ = kNoDrive;
-      esp_vfs_fat_unregister_path(config_.mount_point.c_str());
-      ff_diskio_unregister(pdrv);
+    const bool formatted = format_locked(ec); // sets ec on failure
+    pdrv_ = kNoDrive;
+    if (!formatted) {
+      detach();
       return false;
     }
-    pdrv_ = kNoDrive;
     res = f_mount(fs, drive.c_str(), 1);
   }
   if (res != FR_OK) {
     logger_.error("Mounting the card failed (FatFs result {})", static_cast<int>(res));
-    esp_vfs_fat_unregister_path(config_.mount_point.c_str());
-    ff_diskio_unregister(pdrv);
+    detach();
     ec = std::make_error_code(std::errc::io_error);
     return false;
   }
