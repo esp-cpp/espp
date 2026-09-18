@@ -2,7 +2,7 @@
 
 Streams synthetic float channels from an ESP32-S3 to the browser **Serial
 Plotter** web app over USB, using `espp::Telemetry` (a binary telemetry emitter
-carried on the `stream_frame` framing, dispatcher module 3).
+carried on the `stream_frame` framing, dispatcher module 3 by default).
 
 The hosted app — <https://esp-cpp.github.io/espp/apps/telemetry.html> —
 connects on the **vendor (WebUSB)** interface, reads the channel **schema**, and
@@ -15,8 +15,9 @@ device-timestamped counterpart to the app's text/CSV Web Serial transport.
 - A producer task emits one sample (a `float` per channel) every ~10 ms (100 Hz),
   timestamped with the device clock.
 - Exposes the stream over the USB **vendor (WebUSB)** interface; a `Dispatcher`
-  routes module-3 frames to the emitter and serves capability discovery so the
-  browser **Device Hub** lists this device and links to `telemetry.html`.
+  routes the emitter's module (`Telemetry::Config::module`, 3 by default — the
+  id the hosted Serial Plotter looks for) to it and serves capability discovery
+  so the browser **Device Hub** lists this device and links to `telemetry.html`.
 - The web app can pause/resume the stream and request a rate (`SET_STREAM`), and
   requests the schema on connect (`GET_SCHEMA`).
 

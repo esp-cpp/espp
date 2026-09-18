@@ -224,16 +224,20 @@ like your own module will be. The pattern has six parts:
                       .log_level = espp::Logger::Verbosity::INFO});
 
 4. **A `build()` helper** that wraps `stream_frame::build_frame()` so every
-   reply in the module goes through one place — and stamps *this instance's*
-   id (`module_id()`, part 6), never the `kModule` constant, so a moved
-   module's replies route back on the same id its requests arrived on:
+   reply in the module goes through one place. It is `static` and takes the
+   module id to stamp (defaulting to `kModule`, so a host-side test or a
+   caller without an instance can build frames on the default id); the
+   service's own call sites pass *this instance's* id (`module_id()`, part 6),
+   never the `kModule` constant, so a moved module's replies route back on the
+   same id its requests arrived on:
 
    .. code-block:: cpp
 
-      std::vector<uint8_t> build(Msg type, std::span<const uint8_t> payload = {}) const {
+      static std::vector<uint8_t> build(Msg type, std::span<const uint8_t> payload = {},
+                                        uint8_t module = kModule) {
         namespace stream = espp::stream_frame;
         const bool reply = (static_cast<uint8_t>(type) & 0x80) != 0;
-        return stream::build_frame(reply, module_id(), static_cast<uint8_t>(type), payload);
+        return stream::build_frame(reply, module, static_cast<uint8_t>(type), payload);
       }
 
 5. **`feed()` / `handle_frame()` entry points** that parse (or accept an
@@ -277,7 +281,7 @@ like your own module will be. The pattern has six parts:
             static_cast<uint32_t>(std::min<size_t>(raw_size, std::numeric_limits<uint32_t>::max()));
         std::vector<uint8_t> reply_payload;
         stream::put_u32(reply_payload, size);
-        reply = build(Msg::Size, reply_payload);
+        reply = build(Msg::Size, reply_payload, module_id()); // this instance's id
         return true;
       }
 
@@ -410,7 +414,8 @@ parser, no mutex, because a handler this small can run straight out of the
    private:
      // 4. build(): every reply goes through stream_frame::build_frame(); the
      //    Msg high bit (see the enum above) selects the reply flag, exactly
-     //    like CoreDumpService::build(). Replies carry THIS instance's id.
+     //    like CoreDumpService::build() (static there, taking the module id to
+     //    stamp). Replies carry THIS instance's id.
      std::vector<uint8_t> build(hello_module::Msg type, std::span<const uint8_t> payload) const {
        const bool reply = (static_cast<uint8_t>(type) & 0x80) != 0;
        return espp::stream_frame::build_frame(reply, module_, static_cast<uint8_t>(type), payload);
@@ -514,7 +519,7 @@ keep payloads simple to parse on both the device (C++) and the browser
      espp::stream_frame::put_u32(p, timestamp_us);
      for (float v : values)
        put_f32(p, v);
-     frame = build(Type::Sample, p);
+     frame = build(Type::Sample, p, module_id());
 
   On the browser side the matching read is one `DataView.getFloat32(offset,
   true)` call (the `true` selects little-endian) — no bit-reinterpretation
