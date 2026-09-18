@@ -92,17 +92,27 @@ idf.py erase-flash flash   # or: esptool.py erase_region 0x110000 0x100000
 
 ## Using an SD card instead
 
-Initialize the card as usual (SDMMC or SDSPI host) but do **not** mount it with
-`esp_vfs_fat_*_mount()` — the MSC function mounts it at `base_path` itself —
-then pass the card pointer:
+Initialize the card (SDMMC or SDSPI host) but do **not** mount it with
+`esp_vfs_fat_*_mount()` — the MSC function mounts it at `base_path` itself.
+`espp::SdCard` (the `sdcard` component) keeps those two steps apart, and every
+espp BSP with a microSD slot exposes its card through `sdcard()`:
 
 ```cpp
+espp::SdCard::Config sd_config;
+sd_config.interface = espp::SdCard::SdmmcConfig{/* pins */};
+sd_config.mount_on_initialize = false; // probe only; the MSC function mounts it
+espp::SdCard sdcard(sd_config);
+sdcard.initialize();
+
 espp::UsbDevice::MscMedium card;
 card.type = espp::UsbDevice::MscMedium::Type::SdCard;
-card.sd_card = sd_card;        // sdmmc_card_t* from sdmmc_card_init()
+card.sd_card = sdcard.card();
 card.base_path = "/sdcard";
 msc.media = {card};            // or {card, flash} for two drives
 ```
+
+With a BSP, call `initialize_sdcard(...)`, then `sdcard_component()->unmount()`
+before handing `sdcard()` to the MSC function.
 
 SD card media need a target with an SDMMC host peripheral (ESP32-S3 / -P4), even
 when the card is wired to SPI.

@@ -156,6 +156,7 @@ jobs:
             components/rtsp
             components/runqueue
             components/rx8130ce
+            components/sdcard
             components/seeed-studio-round-display
             components/serialization
             components/smartpanlee-sc01-plus

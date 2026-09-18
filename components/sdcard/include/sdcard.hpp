@@ -108,9 +108,7 @@ public:
   /// @brief Configuration for the SdCard.
   struct Config {
     /** Which interface the card is on and how it is wired. */
-    std::variant<SpiConfig, SdmmcConfig> interface {
-      SpiConfig {}
-    };
+    std::variant<SpiConfig, SdmmcConfig> interface = SpiConfig{};
     std::string mount_point{"/sdcard"}; /**< VFS path the FAT volume is mounted at. */
     /** Mount the FAT volume at the end of initialize(). Leave false when the card
      *  is first going elsewhere (e.g. to a USB host) and call mount() later. */
@@ -136,15 +134,15 @@ public:
 
   /// @brief What the card reported about itself at initialize().
   struct CardInfo {
-    std::string name;                       ///< Product name from the card's CID register.
-    uint64_t capacity_bytes{0};             ///< Total capacity.
-    uint32_t sector_size{0};                ///< Bytes per sector (512 for every SD card).
-    uint32_t sector_count{0};               ///< Number of sectors.
-    uint32_t frequency_khz{0};              ///< Bus clock actually in use.
-    uint8_t bus_width{1};                   ///< Data lines in use (SDSPI: 1).
-    bool high_capacity{false};              ///< SDHC / SDXC (block addressing).
-    bool is_mmc{false};                     ///< An (e)MMC device rather than an SD card.
-    Interface interface { Interface::Spi }; ///< The interface it is on.
+    std::string name;                     ///< Product name from the card's CID register.
+    uint64_t capacity_bytes{0};           ///< Total capacity.
+    uint32_t sector_size{0};              ///< Bytes per sector (512 for every SD card).
+    uint32_t sector_count{0};             ///< Number of sectors.
+    uint32_t frequency_khz{0};            ///< Bus clock actually in use.
+    uint8_t bus_width{1};                 ///< Data lines in use (SDSPI: 1).
+    bool high_capacity{false};            ///< SDHC / SDXC (block addressing).
+    bool is_mmc{false};                   ///< An (e)MMC device rather than an SD card.
+    Interface interface = Interface::Spi; ///< The interface it is on.
   };
 
   /// @brief Space on the mounted FAT volume.

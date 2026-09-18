@@ -215,12 +215,13 @@ bool SdCard::init_host(std::error_code &ec) {
     logger_.warn("This target routes SDMMC through fixed pins; the configured pins are ignored");
 #endif
   esp_err_t err = host_.init ? host_.init() : ESP_OK; // sdmmc_host_init()
-  if (err == ESP_OK)
+  const bool host_inited = err == ESP_OK;
+  if (host_inited)
     err = sdmmc_host_init_slot(sdmmc.slot, &slot);
   if (err != ESP_OK) {
     logger_.error("Could not initialize SDMMC slot {}: {}", sdmmc.slot, esp_err_to_name(err));
-    if (host_.deinit && err != ESP_ERR_INVALID_STATE)
-      host_.deinit(); // the slot init failed: release the host we just brought up
+    if (host_inited)
+      call_host_deinit(host_); // the slot init failed: release the host we just brought up
 #if ESPP_SDCARD_HAS_LDO_PWR_CTRL
     if (ldo_handle_) {
       sd_pwr_ctrl_del_on_chip_ldo(static_cast<sd_pwr_ctrl_handle_t>(ldo_handle_));
@@ -281,12 +282,13 @@ bool SdCard::mount_locked(std::error_code &ec) {
   FATFS *fs = nullptr;
   esp_err_t err;
   {
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+// Plain-macro version tests (cppcheck cannot evaluate ESP_IDF_VERSION_VAL()).
+#if ESP_IDF_VERSION_MAJOR > 5 || (ESP_IDF_VERSION_MAJOR == 5 && ESP_IDF_VERSION_MINOR >= 3)
     esp_vfs_fat_conf_t conf{};
     conf.base_path = config_.mount_point.c_str();
     conf.fat_drive = drive.c_str();
     conf.max_files = static_cast<size_t>(config_.max_files);
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+#if ESP_IDF_VERSION_MAJOR >= 6
     err = esp_vfs_fat_register(&conf, &fs);
 #else
     err = esp_vfs_fat_register_cfg(&conf, &fs);
