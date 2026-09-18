@@ -69,8 +69,8 @@ new id.
 
 ```cpp
 espp::Dispatcher dispatcher;
-dispatcher.register_module(ota_service);      // espp::OtaService, module 0 (its Config::module)
-dispatcher.register_module(coredump_service); // espp::CoreDumpService, module 4 (ditto)
+dispatcher.register_module(ota_service);      // espp::OtaService, its Config::module (0 by default)
+dispatcher.register_module(coredump_service); // espp::CoreDumpService, its Config::module (4 by default)
 dispatcher.register_module(0x10, [&](const espp::stream_frame::Frame &f) {
   // your own protocol: f.type, f.is_reply(), f.payload
 });

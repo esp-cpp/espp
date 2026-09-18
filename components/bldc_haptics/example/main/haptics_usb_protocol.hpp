@@ -7,7 +7,8 @@
 // spec and ../PROTOCOL.md next to this example for the full haptics wire
 // protocol).
 //
-// The haptics protocol occupies dispatcher MODULE 2 (haptics commands only).
+// The haptics protocol occupies dispatcher MODULE 2 by default (haptics commands
+// only; kHapticsModule in bldc_haptics_example.cpp picks the id).
 // Firmware update and crash-dump inspection are NOT part of it: the example runs
 // the standard espp OTA protocol on module 0 and the coredump service on module
 // 4 (routed by the same espp::Dispatcher), handled by the ota / coredump web
@@ -45,7 +46,7 @@ static constexpr uint8_t kModule = 2;
 /// Protocol version reported in the INFO reply.
 static constexpr uint8_t kProtocolVersion = 1;
 
-/// Message types carried in the frame `type` byte (within module 2).
+/// Message types carried in the frame `type` byte (within the haptics module).
 enum class Msg : uint8_t {
   // --- Haptics commands ------------------------------------------------------
   GetInfo = 0x10,      ///< host->dev: no payload -> Info reply

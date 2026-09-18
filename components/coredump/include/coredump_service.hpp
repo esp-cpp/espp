@@ -11,13 +11,13 @@
 // ignored (route with espp::Dispatcher, or call handle_frame() after routing
 // by module).
 //
-// Message types & payloads (host -> device), module 4:
+// Message types & payloads (host -> device), module 4 by default:
 //   0x40 GET_SUMMARY — no payload. Reply: SUMMARY.
 //   0x41 GET_SIZE    — no payload. Reply: SIZE.
 //   0x42 READ        — payload: u32 offset + u16 length. Reply: DATA / ERROR.
 //   0x43 ERASE       — no payload. Reply: OK / ERROR.
 //
-// Message types & payloads (device -> host), module 4, reply flag set:
+// Message types & payloads (device -> host), same module, reply flag set:
 //   0xC0 SUMMARY — payload: UTF-8 crash report text (espp::CoreDump::
 //                  format_report()); EMPTY payload = clean boot history.
 //   0xC1 SIZE    — payload: u32 total core-dump image size in bytes (0 = no
@@ -113,8 +113,8 @@ public:
   /// Frame-stream parser type (from the shared stream_frame codec).
   using Stream = espp::stream_frame::StreamParser;
 
-  /// Core-dump protocol message types (the stream_frame `type` byte within
-  /// module 4; see the header comment for the payload spec).
+  /// Core-dump protocol message types (the stream_frame `type` byte within the
+  /// service's module, 4 by default; see the header comment for the payload spec).
   enum class Msg : uint8_t {
     // host -> device
     GetSummary = 0x40, ///< request the crash report text

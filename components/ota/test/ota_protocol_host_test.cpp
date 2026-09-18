@@ -196,7 +196,7 @@ static void test_malformed_reply_payloads() {
 
 // Every builder takes an optional module id (default kModule) so a device that
 // serves OTA on another dispatcher id (OtaService::Config::module) stamps its
-// replies -- and a host driving it its requests -- on that id.
+// replies -- and a host driving it stamps its requests -- on that id.
 static void test_builders_take_a_module_id() {
   std::printf("test_builders_take_a_module_id\n");
   constexpr uint8_t kOther = 0x20;

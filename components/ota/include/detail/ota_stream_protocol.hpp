@@ -20,7 +20,8 @@
 //   [magic u16 = 0x4F54 ("OT")][flags u8][module u8][type u8][len u32]
 //                                        [payload: len bytes][crc32 u32]
 //
-// OTA occupies module 0. Requests are host->device (flags reply bit = 0);
+// OTA occupies module 0 by default (espp::OtaService::Config::module can move
+// it). Requests are host->device (flags reply bit = 0);
 // replies are device->host (flags reply bit = 1). `type` alone identifies the
 // message.
 //
@@ -88,7 +89,8 @@ using espp::stream_frame::StreamParser;
 /// (espp::OtaService::Config::module) builds its replies on that id.
 static constexpr uint8_t kModule = 0;
 
-/// OTA stream protocol message types (the frame `type` field within module 0).
+/// OTA stream protocol message types (the frame `type` field within the OTA
+/// module, kModule by default).
 /// Requests are host->device (frame flag reply=0); replies are device->host
 /// (reply=1). `type` alone identifies the message; the reply flag is the generic
 /// direction hint.
