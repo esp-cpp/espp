@@ -59,8 +59,10 @@ public:
   // --- Nintendo Switch Pro USB identity (EMULATION ONLY; see the class note) ---
   static constexpr uint16_t vid = 0x057E;        ///< Nintendo USB VID.
   static constexpr uint16_t pid = 0x2009;        ///< Switch Pro Controller USB PID.
-  static constexpr uint16_t bcd_device = 0x0200; ///< bcdDevice.
+  static constexpr uint16_t bcd_device = 0x0210; ///< bcdDevice: a real Pro Controller reports 2.10.
   static constexpr uint16_t bcd_usb = 0x0200;    ///< bcdUSB (USB 2.0).
+  static constexpr uint16_t max_power_ma = 500;  ///< bMaxPower a real Pro Controller reports.
+  static constexpr bool remote_wakeup = true;    ///< The configuration advertises remote wakeup.
   static constexpr const char *manufacturer_name = "Nintendo Co., Ltd."; ///< iManufacturer.
   static constexpr const char *product_name = "Pro Controller";          ///< iProduct.
 

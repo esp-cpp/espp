@@ -51,6 +51,10 @@ extern "C" void app_main(void) {
   usb_cfg.pid = espp::SwitchPro::pid;
   usb_cfg.manufacturer = espp::SwitchPro::manufacturer_name;
   usb_cfg.product = espp::SwitchPro::product_name;
+  // descriptor details a Switch compares against a real Pro Controller
+  usb_cfg.bcd_device = espp::SwitchPro::bcd_device;
+  usb_cfg.max_power_ma = espp::SwitchPro::max_power_ma;
+  usb_cfg.remote_wakeup = espp::SwitchPro::remote_wakeup;
   usb_cfg.log_level = espp::Logger::Verbosity::WARN;
 
   espp::UsbDevice::HidFunction hid;
