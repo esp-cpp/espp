@@ -92,7 +92,26 @@ idf.py erase-flash flash   # or: esptool.py erase_region 0x110000 0x100000
 
 ## Using an SD card instead
 
-Initialize the card (SDMMC or SDSPI host) but do **not** mount it with
+`idf.py menuconfig` → **MSC Example Configuration** → *Medium exposed as the USB
+drive* picks what the host sees:
+
+- **FAT partition in flash** (default): the `storage` partition, as above.
+- **SD card via espp::SdCard**: the card is probed on the configured SDMMC pins
+  (defaults: the LilyGo T-Dongle-S3's microSD slot, 4-bit) and handed to the
+  MSC function without being mounted by the app.
+- **SD card of the LilyGo T-Dongle-S3 (BSP)**: `espp::TDongleS3` brings the card
+  up with `initialize_sdcard()` (which mounts it), the example releases the
+  volume with `sdcard_component()->unmount()`, and hands `sdcard()` over. Every
+  espp BSP with a microSD slot exposes the same two accessors, so this is the
+  pattern to copy for other boards.
+
+The example never formats an SD card: a card with no filesystem raises
+`MscEvent::FormatRequired`; format it on the PC. Note that on a board whose only
+USB port is the native one (the T-Dongle-S3), that port becomes the drive, so
+the console is only visible through UART0; the drive showing up on the PC with
+`boots.txt` and `README.txt` is the test.
+
+In code: initialize the card (SDMMC or SDSPI host) but do **not** mount it with
 `esp_vfs_fat_*_mount()` — the MSC function mounts it at `base_path` itself.
 `espp::SdCard` (the `sdcard` component) keeps those two steps apart, and every
 espp BSP with a microSD slot exposes its card through `sdcard()`:

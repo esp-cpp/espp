@@ -9,7 +9,23 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/base_component"
   "../../../components/format"
   "../../../components/logger"
+  "../../../components/sdcard"
   "../../../components/usb_device"
+  # The T-Dongle-S3 BSP (menuconfig: MSC_EXAMPLE_MEDIUM_BSP_T_DONGLE_S3) and the
+  # components it requires. The BSP is always compiled so the medium can be
+  # picked in menuconfig; it is only instantiated when selected.
+  "../../../components/t-dongle-s3"
+  "../../../components/cli"
+  "../../../components/color"
+  "../../../components/display"
+  "../../../components/display_drivers"
+  "../../../components/i2c"
+  "../../../components/interrupt"
+  "../../../components/led"
+  "../../../components/led_strip"
+  "../../../components/lvgl"
+  "../../../components/spi"
+  "../../../components/task"
 )
 
 # With the component manager disabled (IDF_COMPONENT_MANAGER=0, e.g. in CI so the
@@ -27,7 +43,7 @@ endif()
 
 set(
   COMPONENTS
-  "main esptool_py base_component format logger usb_device esp_tinyusb fatfs"
+  "main esptool_py base_component format logger sdcard usb_device esp_tinyusb fatfs t-dongle-s3"
   CACHE STRING
   "List of components to include"
   )
