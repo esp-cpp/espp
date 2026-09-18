@@ -36,8 +36,9 @@ set(EXTRA_COMPONENT_DIRS
 # must be discoverable.
 if(DEFINED ENV{IDF_COMPONENT_MANAGER} AND "$ENV{IDF_COMPONENT_MANAGER}" STREQUAL "0")
   list(APPEND EXTRA_COMPONENT_DIRS
+    "../../../components/sdcard"
     "../../../external/esp-usb/device/esp_tinyusb"
-    "../../../external/tinyusb"
+    "../../../external/esp-usb/device/esp_tinyusb"
   )
 endif()
 

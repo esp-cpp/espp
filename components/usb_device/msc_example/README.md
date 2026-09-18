@@ -27,6 +27,17 @@ idf.py -p <PORT> flash monitor   # console is on UART0 (USB-UART adapter)
 The console is on **UART0**: on the ESP32-S3 USB-Serial-JTAG shares the native
 USB port's PHY with USB-OTG, which the mass storage interface takes over.
 
+The build works with the IDF component manager on (esp_tinyusb comes from the
+registry) or off, which is how CI builds it and the way to go while a local espp
+component the example uses is not published yet. With the manager off,
+esp_tinyusb and TinyUSB come from the vendored submodules, so initialize them
+first:
+
+```sh
+git submodule update --init external/esp-usb external/tinyusb components/lvgl components/format/detail/fmt
+IDF_COMPONENT_MANAGER=0 idf.py -p <PORT> flash monitor
+```
+
 The example's `sdkconfig.defaults` enables `CONFIG_TINYUSB_MSC_ENABLED`, uses a
 custom `partitions.csv` with a 1 MiB `storage` FAT partition, and selects
 **4096-byte wear-levelling sectors** with a matching MSC buffer:
