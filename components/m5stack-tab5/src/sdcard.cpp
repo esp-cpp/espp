@@ -42,14 +42,13 @@ bool M5StackTab5::initialize_sdcard(const M5StackTab5::SdCardConfig &config) {
   }
   logger_.info("Filesystem mounted at {}", mount_point);
   sdcard_->print_info(stdout);
-  sd_card_initialized_ = true;
   return true;
 }
 
-bool M5StackTab5::is_sd_card_available() const { return sd_card_initialized_; }
+bool M5StackTab5::is_sd_card_available() const { return sdcard_ && sdcard_->is_mounted(); }
 
 bool M5StackTab5::get_sd_card_info(uint32_t *size_mb, uint32_t *free_mb) const {
-  if (!sd_card_initialized_ || !sdcard_) {
+  if (!sdcard_) {
     return false;
   }
   const auto volume = sdcard_->volume_info();

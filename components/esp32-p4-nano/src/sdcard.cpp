@@ -39,12 +39,11 @@ bool Esp32P4Nano::initialize_sdcard(const SdCardConfig &config) {
   }
   logger_.info("Filesystem mounted at {}", mount_point);
   sdcard_->print_info(stdout);
-  sd_card_initialized_ = true;
   return true;
 }
 
 bool Esp32P4Nano::get_sd_card_info(uint32_t *size_mb, uint32_t *free_mb) const {
-  if (!sd_card_initialized_ || !sdcard_) {
+  if (!sdcard_) {
     return false;
   }
   const auto volume = sdcard_->volume_info();

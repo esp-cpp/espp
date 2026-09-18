@@ -458,8 +458,9 @@ public:
   /// \return True if the card was successfully mounted at \c mount_point.
   bool initialize_sdcard(const SdCardConfig &config);
 
-  /// \return True if the SD card is present and mounted.
-  bool is_sd_card_available() const { return sd_card_initialized_; }
+  /// \return True if the SD card is initialized and its volume is currently
+  ///         mounted (false after sdcard_component()->unmount()).
+  bool is_sd_card_available() const { return sdcard_ && sdcard_->is_mounted(); }
 
   /// \return The SDMMC card handle, or nullptr if not initialized.
   sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
@@ -638,7 +639,6 @@ protected:
   static constexpr gpio_num_t sd_d2_io = GPIO_NUM_41;
   static constexpr gpio_num_t sd_d3_io = GPIO_NUM_42;
 
-  std::atomic<bool> sd_card_initialized_{false};
   std::unique_ptr<espp::SdCard> sdcard_;
 
   /////////////////////////////////////////////////////////////////////////////

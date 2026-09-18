@@ -53,7 +53,11 @@ extern "C" void app_main(void) {
   config.log_level = espp::Logger::Verbosity::INFO;
 #if CONFIG_SDCARD_EXAMPLE_INTERFACE_SDMMC
   espp::SdCard::SdmmcConfig sdmmc;
-  sdmmc.bus_width = CONFIG_SDCARD_EXAMPLE_SDMMC_BUS_WIDTH;
+#ifdef CONFIG_SDCARD_EXAMPLE_SDMMC_BUS_WIDTH_1
+  sdmmc.bus_width = 1;
+#else
+  sdmmc.bus_width = 4;
+#endif
   sdmmc.clk = static_cast<gpio_num_t>(CONFIG_SDCARD_EXAMPLE_SDMMC_CLK);
   sdmmc.cmd = static_cast<gpio_num_t>(CONFIG_SDCARD_EXAMPLE_SDMMC_CMD);
   sdmmc.d0 = static_cast<gpio_num_t>(CONFIG_SDCARD_EXAMPLE_SDMMC_D0);

@@ -344,9 +344,10 @@ public:
   /// \return True if uSD card was successfully initialized
   bool initialize_sdcard(const SdCardConfig &config);
 
-  /// Check if SD card is present and mounted
-  /// \return True if SD card is available
-  bool is_sd_card_available() const { return sd_card_initialized_; }
+  /// Check if the SD card is initialized and its volume is currently mounted
+  /// \return True if the SD card is available (false after
+  ///         sdcard_component()->unmount())
+  bool is_sd_card_available() const { return sdcard_ && sdcard_->is_mounted(); }
 
   /// Get the uSD card handle
   /// \return A pointer to the uSD card, or nullptr if not initialized
@@ -606,7 +607,6 @@ protected:
   std::atomic<float> mic_volume_{70.0f};
 
   // uSD card
-  std::atomic<bool> sd_card_initialized_{false};
   std::unique_ptr<espp::SdCard> sdcard_;
 
 #if CONFIG_ESP_P4_EV_BOARD_ETHERNET

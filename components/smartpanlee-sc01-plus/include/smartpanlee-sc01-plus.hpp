@@ -279,7 +279,8 @@ public:
   /// \return The component, or nullptr until initialize_sdcard() succeeded
   espp::SdCard *sdcard_component() const { return sdcard_.get(); }
 
-  /// Check whether the microSD card is currently mounted.
+  /// Check whether the microSD card is initialized and its volume is currently
+  /// mounted (false after sdcard_component()->unmount()).
   /// \return True if the card is mounted and available.
   bool is_sd_card_available() const;
   /// Query mounted microSD capacity and free space.
@@ -394,7 +395,6 @@ protected:
   i2s_std_config_t audio_std_cfg_{};
   std::vector<uint8_t> audio_tx_buffer_;
 
-  bool sd_card_initialized_{false};
   std::unique_ptr<espp::SdCard> sdcard_;
 };
 } // namespace espp

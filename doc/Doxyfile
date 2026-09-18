@@ -173,10 +173,10 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/rmt/example/main/rmt_example.cpp \
   $(PROJECT_PATH)/components/rtps/example/main/rtps_example.cpp \
   $(PROJECT_PATH)/components/rtsp/example/main/rtsp_example.cpp \
-  $(PROJECT_PATH)/components/sdcard/example/main/sdcard_example.cpp \
   $(PROJECT_PATH)/components/ping/example/main/ping_example.cpp \
   $(PROJECT_PATH)/components/runqueue/example/main/runqueue_example.cpp \
   $(PROJECT_PATH)/components/rx8130ce/example/main/rx8130ce_example.cpp \
+  $(PROJECT_PATH)/components/sdcard/example/main/sdcard_example.cpp \
   $(PROJECT_PATH)/components/serialization/example/main/serialization_example.cpp \
   $(PROJECT_PATH)/components/seeed-studio-round-display/example/main/seeed_studio_round_display_example.cpp \
   $(PROJECT_PATH)/components/smartpanlee-sc01-plus/example/main/smartpanlee_sc01_plus_example.cpp \
@@ -443,9 +443,9 @@ INPUT = \
   $(PROJECT_PATH)/components/rtsp/include/rtsp_client.hpp \
   $(PROJECT_PATH)/components/rtsp/include/rtsp_server.hpp \
   $(PROJECT_PATH)/components/rtsp/include/rtsp_session.hpp \
-  $(PROJECT_PATH)/components/sdcard/include/sdcard.hpp \
   $(PROJECT_PATH)/components/runqueue/include/runqueue.hpp \
   $(PROJECT_PATH)/components/rx8130ce/include/rx8130ce.hpp \
+  $(PROJECT_PATH)/components/sdcard/include/sdcard.hpp \
   $(PROJECT_PATH)/components/serialization/include/serialization.hpp \
   $(PROJECT_PATH)/components/seeed-studio-round-display/include/seeed-studio-round-display.hpp \
   $(PROJECT_PATH)/components/smartpanlee-sc01-plus/include/smartpanlee-sc01-plus.hpp \

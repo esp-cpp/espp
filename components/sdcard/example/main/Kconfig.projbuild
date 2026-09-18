@@ -16,10 +16,14 @@ menu "SD Card Example Configuration"
     endchoice
 
     if SDCARD_EXAMPLE_INTERFACE_SDMMC
-        config SDCARD_EXAMPLE_SDMMC_BUS_WIDTH
-            int "Bus width (1 or 4)"
-            range 1 4
-            default 4
+        choice SDCARD_EXAMPLE_SDMMC_BUS_WIDTH
+            prompt "Bus width"
+            default SDCARD_EXAMPLE_SDMMC_BUS_WIDTH_4
+            config SDCARD_EXAMPLE_SDMMC_BUS_WIDTH_4
+                bool "4-bit (CLK, CMD, D0-D3)"
+            config SDCARD_EXAMPLE_SDMMC_BUS_WIDTH_1
+                bool "1-bit (CLK, CMD, D0)"
+        endchoice
         config SDCARD_EXAMPLE_SDMMC_CLK
             int "CLK GPIO"
             default 12

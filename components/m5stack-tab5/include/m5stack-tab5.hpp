@@ -603,8 +603,9 @@ public:
   /// \return True if uSD card was successfully initialized
   bool initialize_sdcard(const SdCardConfig &config);
 
-  /// Check if SD card is present and mounted
-  /// \return True if SD card is available
+  /// Check if the SD card is initialized and its volume is currently mounted
+  /// \return True if the SD card is available (false after
+  ///         sdcard_component()->unmount())
   bool is_sd_card_available() const;
 
   /// Get the uSD card
@@ -933,7 +934,6 @@ protected:
   std::shared_ptr<IoExpander> ioexp_0x44_;
 
   // Communication interfaces
-  std::atomic<bool> sd_card_initialized_{false};
 
   // uSD Card
   std::unique_ptr<espp::SdCard> sdcard_;
