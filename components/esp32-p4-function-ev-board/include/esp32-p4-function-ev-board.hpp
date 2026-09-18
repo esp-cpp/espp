@@ -38,6 +38,7 @@
 #include "ili9881.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
+#include "sdcard.hpp"
 #include "task.hpp"
 #include "touchpad_input.hpp"
 
@@ -349,7 +350,13 @@ public:
 
   /// Get the uSD card handle
   /// \return A pointer to the uSD card, or nullptr if not initialized
-  sdmmc_card_t *sdcard() const { return sdcard_; }
+  sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
+
+  /// Get the SD card component: mount() / unmount() (e.g. to hand the card to a
+  /// USB host with the usb_device MSC function), format(), card_info(),
+  /// volume_info(), ...
+  /// \return The component, or nullptr until initialize_sdcard() succeeded
+  espp::SdCard *sdcard_component() const { return sdcard_.get(); }
 
   /// Get SD card info
   /// \param size_mb Pointer to store size in MB
@@ -600,8 +607,7 @@ protected:
 
   // uSD card
   std::atomic<bool> sd_card_initialized_{false};
-  sdmmc_card_t *sdcard_{nullptr};
-  void *sd_pwr_ctrl_handle_{nullptr};
+  std::unique_ptr<espp::SdCard> sdcard_;
 
 #if CONFIG_ESP_P4_EV_BOARD_ETHERNET
   // The board's RMII Ethernet is driven by the reusable espp::Ethernet component

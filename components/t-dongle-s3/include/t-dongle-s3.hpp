@@ -19,6 +19,7 @@
 #include "interrupt.hpp"
 #include "led.hpp"
 #include "led_strip.hpp"
+#include "sdcard.hpp"
 #include "spi.hpp"
 #include "st7789.hpp"
 
@@ -231,7 +232,13 @@ public:
   /// \return A pointer to the uSD card
   /// \note The uSD card is only available if it was successfully initialized
   ///       and the mount point is valid
-  sdmmc_card_t *sdcard() const { return sdcard_; }
+  sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
+
+  /// Get the SD card component: mount() / unmount() (e.g. to hand the card to a
+  /// USB host with the usb_device MSC function), format(), card_info(),
+  /// volume_info(), ...
+  /// \return The component, or nullptr until initialize_sdcard() succeeded
+  espp::SdCard *sdcard_component() const { return sdcard_.get(); }
 
 protected:
   TDongleS3();
@@ -281,7 +288,7 @@ protected:
   static constexpr gpio_num_t sdcard_cmd = GPIO_NUM_16;
 
   // sdcard
-  sdmmc_card_t *sdcard_{nullptr};
+  std::unique_ptr<espp::SdCard> sdcard_;
 
   // Interrupts
   espp::Interrupt::PinConfig button_interrupt_pin_{

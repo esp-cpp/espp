@@ -28,6 +28,7 @@
 #include "interrupt.hpp"
 #include "led.hpp"
 #include "pointer_input.hpp"
+#include "sdcard.hpp"
 #include "spi.hpp"
 #include "st7789.hpp"
 #include "sx126x.hpp"
@@ -148,7 +149,13 @@ public:
   /// \return A pointer to the uSD card
   /// \note The uSD card is only available if it was successfully initialized
   ///       and the mount point is valid
-  sdmmc_card_t *sdcard() const { return sdcard_; }
+  sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
+
+  /// Get the SD card component: mount() / unmount() (e.g. to hand the card to a
+  /// USB host with the usb_device MSC function), format(), card_info(),
+  /// volume_info(), ...
+  /// \return The component, or nullptr until initialize_sdcard() succeeded
+  espp::SdCard *sdcard_component() const { return sdcard_.get(); }
 
   /////////////////////////////////////////////////////////////////////////////
   // LoRa Radio (SX1262, HPD16A module)
@@ -714,7 +721,7 @@ protected:
                      .scl_pullup_en = GPIO_PULLUP_ENABLE}};
 
   // sdcard
-  sdmmc_card_t *sdcard_{nullptr};
+  std::unique_ptr<espp::SdCard> sdcard_;
 
   espp::Interrupt::PinConfig touch_interrupt_pin_{
       .gpio_num = touch_interrupt,

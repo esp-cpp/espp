@@ -6,7 +6,6 @@
 #include <memory>
 #include <vector>
 
-#include <esp_vfs_fat.h>
 #include <sdmmc_cmd.h>
 
 #include <driver/gpio.h>
@@ -15,6 +14,7 @@
 #include "base_component.hpp"
 #include "gaussian.hpp"
 #include "led.hpp"
+#include "sdcard.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -121,7 +121,13 @@ public:
   /// Get the mounted microSD card handle.
   /// \return Pointer to the mounted card, or <tt>nullptr</tt> if the card has not been
   ///         initialized successfully.
-  sdmmc_card_t *sdcard() const { return sdcard_; }
+  sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
+
+  /// Get the SD card component: mount() / unmount() (e.g. to hand the card to a
+  /// USB host with the usb_device MSC function), format(), card_info(),
+  /// volume_info(), ...
+  /// \return The component, or nullptr until initialize_sdcard() succeeded
+  espp::SdCard *sdcard_component() const { return sdcard_.get(); }
 
   /////////////////////////////////////////////////////////////////////////////
   // LED
@@ -322,7 +328,7 @@ protected:
       .timer = LEDC_TIMER_1,
       .output_invert = true,
   }};
-  sdmmc_card_t *sdcard_{nullptr};
+  std::unique_ptr<espp::SdCard> sdcard_;
   std::shared_ptr<espp::Led> led_;
   std::unique_ptr<espp::Task> led_task_;
   std::atomic<float> breathing_period_{3.5f};

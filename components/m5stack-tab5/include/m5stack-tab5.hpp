@@ -40,6 +40,7 @@
 #include "led.hpp"
 #include "pi4ioe5v.hpp"
 #include "rx8130ce.hpp"
+#include "sdcard.hpp"
 #include "st7121.hpp"
 #include "st7123.hpp"
 #include "st7123touch.hpp"
@@ -610,7 +611,13 @@ public:
   /// \return A pointer to the uSD card
   /// \note The uSD card is only available if it was successfully initialized
   ///       and the mount point is valid
-  sdmmc_card_t *sdcard() const { return sdcard_; }
+  sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
+
+  /// Get the SD card component: mount() / unmount() (e.g. to hand the card to a
+  /// USB host with the usb_device MSC function), format(), card_info(),
+  /// volume_info(), ...
+  /// \return The component, or nullptr until initialize_sdcard() succeeded
+  espp::SdCard *sdcard_component() const { return sdcard_.get(); }
 
   /// Get SD card info
   /// \param size_mb Pointer to store size in MB
@@ -929,8 +936,7 @@ protected:
   std::atomic<bool> sd_card_initialized_{false};
 
   // uSD Card
-  sdmmc_card_t *sdcard_{nullptr};
-  void *sd_pwr_ctrl_handle_{nullptr}; // sd_pwr_ctrl_handle_t (on-chip LDO)
+  std::unique_ptr<espp::SdCard> sdcard_;
 
   // RTC
   std::atomic<bool> rtc_initialized_{false};

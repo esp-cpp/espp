@@ -12,6 +12,7 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/logger"
   "../../../components/monitor"
   "../../../components/rtsp"
+  "../../../components/sdcard"
   "../../../components/socket"
   "../../../components/task"
   "../../../components/thread_pool"

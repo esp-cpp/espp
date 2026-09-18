@@ -22,6 +22,7 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/interrupt"
   "../../../components/logger"
   "../../../components/lvgl"
+  "../../../components/sdcard"
   "../../../components/spi"
   "../../../components/task"
   "../../../components/touch"

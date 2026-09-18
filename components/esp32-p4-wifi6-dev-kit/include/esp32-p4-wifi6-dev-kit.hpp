@@ -14,7 +14,6 @@
 #include <driver/i2s_std.h>
 #include <driver/sdmmc_host.h>
 #include <esp_netif.h>
-#include <sd_pwr_ctrl.h>
 
 #include <esp_lcd_mipi_dsi.h>
 #include <esp_lcd_panel_io.h>
@@ -34,6 +33,7 @@
 #include "ili9881.hpp"
 #include "interrupt.hpp"
 #include "jd9365.hpp"
+#include "sdcard.hpp"
 #include "task.hpp"
 #include "touchpad_input.hpp"
 
@@ -529,7 +529,13 @@ public:
   bool is_sd_card_available() const { return sd_card_initialized_; }
 
   /// \return The SDMMC card handle, or nullptr if not initialized.
-  sdmmc_card_t *sdcard() const { return sdcard_; }
+  sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
+
+  /// Get the SD card component: mount() / unmount() (e.g. to hand the card to a
+  /// USB host with the usb_device MSC function), format(), card_info(),
+  /// volume_info(), ...
+  /// \return The component, or nullptr until initialize_sdcard() succeeded
+  espp::SdCard *sdcard_component() const { return sdcard_.get(); }
 
   /// Get total/free space of the mounted card.
   /// \param size_mb Optional out: total size in MB.
@@ -718,11 +724,7 @@ protected:
   static constexpr gpio_num_t sd_d3_io = GPIO_NUM_42;
 
   std::atomic<bool> sd_card_initialized_{false};
-  sdmmc_card_t *sdcard_{nullptr};
-  // SD power-control driver (on-chip LDO). Owned by this class: created in
-  // initialize_sdcard() and deleted there (sd_pwr_ctrl_del_on_chip_ldo) if the
-  // mount fails; a successful mount keeps it alive for the life of the card.
-  sd_pwr_ctrl_handle_t sd_pwr_ctrl_handle_{nullptr};
+  std::unique_ptr<espp::SdCard> sdcard_;
 
   /////////////////////////////////////////////////////////////////////////////
   // Interrupts (used by the optional interrupt-driven touch path)

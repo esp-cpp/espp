@@ -14,12 +14,9 @@
 #include <limits>
 
 #include <driver/i2s_std.h>
-#include <driver/sdspi_host.h>
 #include <esp_check.h>
 #include <esp_heap_caps.h>
 #include <esp_lcd_panel_ops.h>
-#include <esp_vfs_fat.h>
-#include <sdmmc_cmd.h>
 
 namespace espp {
 
@@ -438,37 +435,34 @@ bool SmartPanleeSc01Plus::initialize_sdcard(const SmartPanleeSc01Plus::SdCardCon
     return false;
   }
 
-  esp_vfs_fat_sdmmc_mount_config_t mount_config = {};
-  mount_config.format_if_mount_failed = config.format_if_mount_failed;
-  mount_config.max_files = config.max_files;
-  mount_config.allocation_unit_size = config.allocation_unit_size;
-
-  sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-  host.slot = SPI2_HOST;
-  host.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
-
-  spi_bus_config_t bus_config = {};
-  bus_config.mosi_io_num = sd_card_pins().mosi;
-  bus_config.miso_io_num = sd_card_pins().miso;
-  bus_config.sclk_io_num = sd_card_pins().clk;
-  bus_config.quadwp_io_num = GPIO_NUM_NC;
-  bus_config.quadhd_io_num = GPIO_NUM_NC;
-  bus_config.max_transfer_sz = 4 * 1024;
-  auto ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_config, SDSPI_DEFAULT_DMA);
-  if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
-    logger_.error("Failed to initialize SD SPI bus ({})", esp_err_to_name(ret));
+  logger_.info("Initializing SD card");
+  // The card is on its own SPI bus (SPI2): the component initializes the bus
+  // and frees it again when the card is released.
+  const auto pins = sd_card_pins();
+  espp::SdCard::SpiConfig spi;
+  spi.host = SPI2_HOST;
+  spi.cs = pins.cs;
+  spi.initialize_bus = true;
+  spi.mosi = pins.mosi;
+  spi.miso = pins.miso;
+  spi.sclk = pins.clk;
+  spi.max_transfer_size = 4 * 1024;
+  spi.frequency_khz = SDMMC_FREQ_HIGHSPEED;
+  sdcard_ = std::make_unique<espp::SdCard>(espp::SdCard::Config{
+      .interface = spi,
+      .mount_point = mount_point,
+      .format_if_mount_failed = config.format_if_mount_failed,
+      .max_files = config.max_files,
+      .allocation_unit_size = config.allocation_unit_size,
+      .log_level = get_log_level(),
+  });
+  std::error_code ec;
+  if (!sdcard_->initialize(ec)) {
+    logger_.error("Failed to initialize the SD card: {}", ec.message());
+    sdcard_.reset();
     return false;
   }
-
-  sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
-  slot_config.gpio_cs = sd_card_pins().cs;
-  slot_config.host_id = (spi_host_device_t)host.slot;
-
-  ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &sdcard_);
-  if (ret != ESP_OK) {
-    logger_.error("Failed to initialize the card ({})", esp_err_to_name(ret));
-    return false;
-  }
+  logger_.info("Filesystem mounted at {}", mount_point);
 
   sd_card_initialized_ = true;
   return true;
@@ -479,23 +473,19 @@ bool SmartPanleeSc01Plus::initialize_sdcard() { return initialize_sdcard(SdCardC
 bool SmartPanleeSc01Plus::is_sd_card_available() const { return sd_card_initialized_; }
 
 bool SmartPanleeSc01Plus::get_sd_card_info(uint32_t *size_mb, uint32_t *free_mb) const {
-  if (!sd_card_initialized_) {
+  if (!sd_card_initialized_ || !sdcard_) {
     return false;
   }
-
-  uint64_t total_bytes = 0;
-  uint64_t free_bytes = 0;
-  auto ret = esp_vfs_fat_info(mount_point, &total_bytes, &free_bytes);
-  if (ret != ESP_OK) {
-    logger_.error("Failed to get SD card information ({})", esp_err_to_name(ret));
+  const auto volume = sdcard_->volume_info();
+  if (!volume) {
+    logger_.error("Failed to get SD card information (volume not mounted)");
     return false;
   }
-
   if (size_mb) {
-    *size_mb = total_bytes / (1024 * 1024);
+    *size_mb = volume->total_bytes / (1024 * 1024);
   }
   if (free_mb) {
-    *free_mb = free_bytes / (1024 * 1024);
+    *free_mb = volume->free_bytes / (1024 * 1024);
   }
   return true;
 }
