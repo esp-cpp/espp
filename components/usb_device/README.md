@@ -79,6 +79,10 @@ for back-compatibility.
   strings, plus the descriptor details some hosts check: `bcd_device`
   (device release), `max_power_ma` (bMaxPower, clamped to 500 mA and rounded up
   to the next 2 mA unit) and `remote_wakeup`.
+- **Port selection** (`Config::port`): on targets with two USB-OTG
+  controllers (ESP32-P4) pick the full-speed or the high-speed port; boards do
+  not always route the high-speed port to a device-capable connector (the
+  M5Stack Tab5's USB-C carries the full-speed port).
 - **Idiomatic espp**: no exceptions; `initialize()` reports failures via
   `std::error_code`.
 - **Safe marshaling**: the TinyUSB RX callbacks (TinyUSB task context) are drained

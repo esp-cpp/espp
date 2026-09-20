@@ -1496,6 +1496,15 @@ bool UsbDevice::initialize(std::error_code &ec) {
 
   // --- Install the TinyUSB driver with our descriptors ---
   tinyusb_config_t tusb_cfg = TINYUSB_DEFAULT_CONFIG();
+  if (config_.port >= 0) {
+    if (config_.port >= static_cast<int>(TINYUSB_PORT_MAX)) {
+      logger_.error("Invalid USB port {} (this target has {} port(s))", config_.port,
+                    static_cast<int>(TINYUSB_PORT_MAX));
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+    tusb_cfg.port = static_cast<tinyusb_port_t>(config_.port);
+  }
   tusb_cfg.descriptor.device = &impl_->device_desc;
   tusb_cfg.descriptor.string = impl_->strings.data();
   tusb_cfg.descriptor.string_count = static_cast<int>(impl_->strings.size());
