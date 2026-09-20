@@ -347,6 +347,15 @@ public:
      *  false to stay invisible to the host until connect() -- e.g. to finish
      *  application file I/O on an MSC medium before a host can take it. */
     bool connect_on_initialize{true};
+    /** USB peripheral port to use, as esp_tinyusb's `tinyusb_port_t` (0 = the
+     *  USB-OTG 1.1 full-speed port, 1 = the USB-OTG 2.0 high-speed port on
+     *  targets that have one). -1 = TinyUSB's default for the target: the
+     *  high-speed port on the ESP32-P4, the full-speed port elsewhere. Boards
+     *  do not always route the high-speed port to a device-capable connector
+     *  (the M5Stack Tab5 wires it to its USB-A host jack; its USB-C carries the
+     *  full-speed port, shared with the USB-Serial-JTAG console), so this lets
+     *  the application pick the connector. */
+    int port{-1};
 
     std::optional<CdcFunction> cdc{};       /**< Enable a CDC-ACM function. */
     std::optional<VendorFunction> vendor{}; /**< Enable a vendor-specific / WebUSB function. */
