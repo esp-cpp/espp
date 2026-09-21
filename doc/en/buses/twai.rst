@@ -27,6 +27,22 @@ real bus, use ``Mode::NORMAL`` with a 3.3V CAN transceiver (e.g. SN65HVD230)
 wired to the TX/RX GPIOs and at least one other node present to acknowledge
 frames.
 
+Transmit result
+---------------
+
+``transmit(message, ec)`` waits for the controller to finish with the frame and
+reports the outcome through its ``std::error_code`` parameter:
+``std::errc::timed_out`` when nothing on the bus acknowledged the frame within
+the timeout (with the default ``Config::tx_retry_count = -1`` the controller
+keeps retransmitting in the meantime, the standard CAN behaviour), or
+``std::errc::io_error`` when the controller gave up on it -- the retries of a
+bounded ``tx_retry_count`` were exhausted, a bit error, or arbitration lost
+(``Config::on_error`` carries the reason). A frame for which ``transmit()``
+returns ``true`` was acknowledged by another node in ``Mode::NORMAL``
+(``Mode::LOOPBACK`` waives the acknowledgement). ``tx_retry_count = 0`` makes the
+controller try once and drop the frame if that fails, for time-critical data
+that must not arrive late.
+
 .. ------------------------------- Example -------------------------------------
 
 .. toctree::
