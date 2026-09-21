@@ -38,19 +38,20 @@ intentionally keeps to classic CAN for a small, clean surface.
 `transmit(message, ec)` waits for the controller to finish with the frame and
 reports how it went through its `std::error_code` output parameter:
 
-* `std::errc::timed_out` — nothing on the bus acknowledged the frame within the
-  timeout. With the default `Config::tx_retry_count = -1` the controller keeps
-  retransmitting in the meantime (standard CAN behaviour), so this is what a bus
-  with no other node, a missing transceiver or a bit-rate mismatch looks like.
-* `std::errc::io_error` — the controller gave up on the frame: the retries of a
-  bounded `tx_retry_count` were exhausted, a bit error, or arbitration lost
-  (`Config::on_error` carries the reason).
+* `std::errc::io_error` — the controller gave up on the frame: its attempts
+  (`Config::tx_retry_count`, default 0 = a single attempt) were exhausted by a
+  missing acknowledgement, a bit error, or arbitration lost (`Config::on_error`
+  carries the reason). This is what a bus with no other node, a missing
+  transceiver or a bit-rate mismatch looks like.
+* `std::errc::timed_out` — with `tx_retry_count = -1` the controller keeps
+  retransmitting (standard CAN behaviour) and nothing acknowledged the frame
+  within the timeout.
 
 A frame for which `transmit()` returns `true` was acknowledged by another node
 in `Mode::NORMAL` (in `Mode::LOOPBACK` the self-test flag waives the
-acknowledgement, so it only means the frame went out). With `tx_retry_count =
-0` the controller makes a single attempt and drops the frame if that fails,
-which suits time-critical data that must not be delivered late.
+acknowledgement, so it only means the frame went out). The default single
+attempt suits time-critical data that must not be delivered late; set
+`tx_retry_count` to a retry count, or -1, when a frame must get through.
 
 ## Hardware / wiring (NORMAL mode)
 
