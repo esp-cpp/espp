@@ -212,6 +212,12 @@ public:
       ec = std::make_error_code(std::errc::invalid_argument);
       return false;
     }
+    if (config_.tx_retry_count < -1 || config_.tx_retry_count > 15) {
+      logger_.error("tx_retry_count must be -1 (retransmit until acknowledged) or 0..15, got {}",
+                    config_.tx_retry_count);
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
 
     // build the node configuration
     twai_onchip_node_config_t node_cfg = {};
@@ -398,14 +404,21 @@ public:
   ///          call, serializes transmitters, and blocks until the driver
   ///          reports transmission complete.
   /// \param message The message to transmit.
-  /// \param ec The error code, set if the transmission could not be queued or
-  ///        did not complete within the timeout.
+  /// \param ec The error code, set if the message was not transmitted:
+  ///        \c operation_not_permitted (node not initialized / enabled),
+  ///        \c invalid_argument (DLC > 8), \c timed_out (the frame could not be
+  ///        queued, or it was not acknowledged within the timeout while the
+  ///        controller kept retransmitting -- Config::tx_retry_count = -1), or
+  ///        \c io_error (the controller gave up on the frame: the retries of a
+  ///        bounded Config::tx_retry_count were exhausted, a bit error, or
+  ///        arbitration lost; Config::on_error carries the reason).
   /// \param timeout_ms Max time (ms) to wait to queue the frame (-1 = forever
   ///        for the queueing step). The subsequent wait for transmit
   ///        completion is always bounded (by this value when >= 0, else by
   ///        DEFAULT_TX_TIMEOUT_MS) so an unacknowledged frame cannot hang the
   ///        caller.
-  /// \return True if the message was transmitted, false otherwise.
+  /// \return True if the message was transmitted (in Mode::NORMAL: acknowledged
+  ///         by another node), false otherwise.
   bool transmit(const Message &message, std::error_code &ec,
                 int timeout_ms = DEFAULT_TX_TIMEOUT_MS) {
     ec.clear();
