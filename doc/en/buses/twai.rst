@@ -32,9 +32,9 @@ Transmit result
 
 ``transmit(message, ec)`` waits for the controller to finish with the frame and
 reports the outcome through its ``std::error_code`` parameter:
-``std::errc::io_error`` when the controller gave up on it -- its attempts
-(``Config::tx_retry_count``, default 0 = a single attempt) were exhausted by a
-missing acknowledgement, a bit error, or arbitration lost (``Config::on_error``
+``std::errc::io_error`` when the controller gave up on it after the configured
+retry limit (``Config::tx_retry_count``, 0 means one attempt) was exhausted by
+a missing acknowledgement, a bit error, or arbitration lost (``Config::on_error``
 carries the reason) -- or ``std::errc::timed_out`` when, with ``tx_retry_count =
 -1`` (retransmit until acknowledged, the standard CAN behaviour), nothing
 acknowledged the frame within the timeout. A frame for which ``transmit()``
