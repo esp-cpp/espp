@@ -15,8 +15,9 @@ espp `stream_frame` framing and an `espp::Dispatcher` (this example uses
 console looks for 5 until told otherwise). The same framed protocol is exposed
 on both the USB **vendor**
 interface (WebUSB) and a **CDC** interface (Web Serial), so the web app can use
-either transport. The system console/logs stay on the separate built-in
-USB-Serial-JTAG.
+either transport. The system console/logs go to **UART0** (set in
+`sdkconfig.defaults`): on the S3 / P4, USB-Serial-JTAG shares the native USB
+port's PHY with USB-OTG, which TinyUSB takes over.
 
 ## Wiring
 
@@ -75,7 +76,7 @@ The bus starts **stopped**: the host sets baudrate/mode with `SET_CONFIG`, then
 
 ```
 idf.py set-target esp32s3
-idf.py build flash monitor
+idf.py build flash monitor   # console is on UART0 (USB-UART adapter)
 ```
 
 Then open the CAN console web app and Connect (WebUSB or Web Serial).

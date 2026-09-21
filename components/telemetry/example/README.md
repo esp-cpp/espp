@@ -31,12 +31,14 @@ in channel order and call `telemetry.emit(...)`.
 ## Build & run
 
 ```sh
-idf.py -p /dev/ttyACM0 flash monitor   # target esp32s3 (set in sdkconfig.defaults)
+idf.py -p /dev/ttyACM0 flash          # target esp32s3 (set in sdkconfig.defaults)
+idf.py -p /dev/ttyUSB0 monitor        # console is on UART0 (USB-UART adapter)
 ```
 
 Then open the Serial Plotter web app, click **Connect (USB)**, and pick the
-"espp Serial Plotter" device. The system console/logs go to the separate
-built-in USB-Serial-JTAG.
+"espp Serial Plotter" device. The system console/logs go to **UART0**: on the
+S3 / P4, USB-Serial-JTAG shares the native USB port's PHY with USB-OTG, which
+TinyUSB takes over.
 
 ## Notes
 

@@ -16,8 +16,9 @@ and runs CANopen in the browser), this example runs the `espp::Mcp266` driver
 **on the device** and exposes a small high-level protocol (see
 `main/mcp266_protocol.hpp`, dispatcher **module id 6**), so the web app needs no
 CANopen/DS402 knowledge. Both the vendor (WebUSB) and CDC (Web Serial) interfaces
-carry the same protocol; the system console/logs stay on the built-in
-USB-Serial-JTAG.
+carry the same protocol; the system console/logs go to **UART0** (set in
+`sdkconfig.defaults`): on the S3 / P4, USB-Serial-JTAG shares the native USB
+port's PHY with USB-OTG, which TinyUSB takes over.
 
 ## Wiring & configuration
 
@@ -63,7 +64,7 @@ high-nibble 6; replies/events use high-nibble E (reply flag set).
 
 ```
 idf.py set-target esp32s3
-idf.py build flash monitor
+idf.py build flash monitor   # console is on UART0 (USB-UART adapter)
 ```
 
 Then open the MCP266 console web app and Connect (WebUSB or Web Serial). Click
