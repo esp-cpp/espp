@@ -154,11 +154,12 @@ public:
     Mode mode{Mode::NORMAL};   ///< Operating mode of the node.
     size_t tx_queue_depth{5};  ///< Depth of the hardware transmit queue.
     /** Hardware retransmission limit for a frame that fails (no ACK, bit error,
-     *  arbitration lost): -1 = retransmit until it succeeds (standard CAN
-     *  behaviour; transmit() bounds the wait with its timeout), 0 = single shot
-     *  (one attempt, then the frame is dropped and transmit() reports the
-     *  failure), 1..15 = that many retries. */
-    int8_t tx_retry_count{-1};
+     *  arbitration lost): 0 = single shot (the default: one attempt, then the
+     *  frame is dropped and transmit() reports the failure -- the behaviour
+     *  espp::Twai has always had), 1..15 = that many retries, -1 = retransmit
+     *  until it succeeds (standard CAN behaviour; transmit() bounds the wait
+     *  with its timeout). */
+    int8_t tx_retry_count{0};
     std::optional<Filter> filter{};          ///< Optional acceptance filter (default: accept all).
     receive_callback_fn on_receive{nullptr}; ///< Called (in task context) for each received frame.
     error_callback_fn on_error{nullptr};     ///< Optional: called (in task context) on a bus error.
@@ -213,7 +214,7 @@ public:
       return false;
     }
     if (config_.tx_retry_count < -1 || config_.tx_retry_count > 15) {
-      logger_.error("tx_retry_count must be -1 (retransmit until acknowledged) or 0..15, got {}",
+      logger_.error("tx_retry_count must be 0..15 or -1 (retransmit until acknowledged), got {}",
                     config_.tx_retry_count);
       ec = std::make_error_code(std::errc::invalid_argument);
       return false;
@@ -227,9 +228,9 @@ public:
     node_cfg.io_cfg.bus_off_indicator = GPIO_NUM_NC;
     node_cfg.bit_timing.bitrate = config_.baudrate;
     node_cfg.tx_queue_depth = config_.tx_queue_depth;
-    // NOTE: the driver treats every value but -1 as single-shot (one attempt,
-    // then on_tx_done with is_tx_success == false), so a zero-initialized
-    // config silently drops any frame that is not acknowledged first time.
+    // NOTE: the driver treats every value but -1 as a bounded retry count with
+    // the controller's single-shot bit set; a frame that exhausts it arrives in
+    // on_tx_done with is_tx_success == false, which transmit() reports.
     node_cfg.fail_retry_cnt = config_.tx_retry_count;
     switch (config_.mode) {
     case Mode::NORMAL:
