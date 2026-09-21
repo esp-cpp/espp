@@ -170,8 +170,11 @@ extern "C" void app_main(void) {
     cfg.on_receive = on_can_rx;
     cfg.on_error = on_can_err;
     auto node = std::make_unique<espp::Twai>(cfg);
-    if (!node->start(ec))
-      return false; // node destructs, uninstalling the driver
+    // initialize() creates the node + receive task; start() enables it on the
+    // bus (start() on a node that was never initialized fails with
+    // operation_not_permitted, which the host saw as "start failed: Not owner").
+    if (!node->initialize(ec) || !node->start(ec))
+      return false; // node destructs, deleting the driver
     twai = std::move(node);
     return true;
   };
