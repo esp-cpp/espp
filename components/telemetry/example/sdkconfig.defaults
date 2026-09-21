@@ -6,6 +6,17 @@ CONFIG_IDF_TARGET="esp32s3"
 # Common ESP-related
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 
+# Console on UART0. On the ESP32-S3 (and -P4) USB-Serial-JTAG shares the native
+# USB port's PHY with USB-OTG, which TinyUSB takes over for espp::UsbDevice's
+# interfaces: a primary console on USB-Serial-JTAG contends with them for that one
+# port and the device is unusable over USB. UART0 is an independent peripheral, so
+# the console always has a place to go (connect a USB-UART adapter to UART0 for
+# `idf.py monitor`).
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+# USB-Serial-JTAG stays the SECONDARY console so early-boot / bootloader logs are
+# still visible on the native USB port before the app brings up TinyUSB.
+CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y
+
 # Enable the TinyUSB vendor-specific class (THE key enablement for the vendor /
 # WebUSB interface). esp_tinyusb gates CFG_TUD_VENDOR behind
 # CONFIG_TINYUSB_VENDOR_COUNT; setting it > 0 compiles in the vendor class
