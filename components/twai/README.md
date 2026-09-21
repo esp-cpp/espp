@@ -38,11 +38,11 @@ intentionally keeps to classic CAN for a small, clean surface.
 `transmit(message, ec)` waits for the controller to finish with the frame and
 reports how it went through its `std::error_code` output parameter:
 
-* `std::errc::io_error` — the controller gave up on the frame: its attempts
-  (`Config::tx_retry_count`, default 0 = a single attempt) were exhausted by a
-  missing acknowledgement, a bit error, or arbitration lost (`Config::on_error`
-  carries the reason). This is what a bus with no other node, a missing
-  transceiver or a bit-rate mismatch looks like.
+* `std::errc::io_error` — the controller gave up on the frame after the
+  configured retry limit (`Config::tx_retry_count`; 0 means one attempt) was
+  exhausted by a missing acknowledgement, a bit error, or arbitration lost
+  (`Config::on_error` carries the reason). This is what a bus with no other
+  node, a missing transceiver or a bit-rate mismatch looks like.
 * `std::errc::timed_out` — with `tx_retry_count = -1` the controller keeps
   retransmitting (standard CAN behaviour) and nothing acknowledged the frame
   within the timeout.
