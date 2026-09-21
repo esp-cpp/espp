@@ -148,12 +148,18 @@ public:
 
   /// \brief Configuration for the TWAI node.
   struct Config {
-    int tx_gpio{-1};                ///< GPIO number for TWAI TX. Must be set (validated).
-    int rx_gpio{-1};                ///< GPIO number for TWAI RX. Must be set (validated).
-    uint32_t baudrate{500000};      ///< Bus baud rate / bit rate in bits/second (e.g. 500000).
-    Mode mode{Mode::NORMAL};        ///< Operating mode of the node.
-    size_t tx_queue_depth{5};       ///< Depth of the hardware transmit queue.
-    std::optional<Filter> filter{}; ///< Optional acceptance filter (default: accept all).
+    int tx_gpio{-1};           ///< GPIO number for TWAI TX. Must be set (validated).
+    int rx_gpio{-1};           ///< GPIO number for TWAI RX. Must be set (validated).
+    uint32_t baudrate{500000}; ///< Bus baud rate / bit rate in bits/second (e.g. 500000).
+    Mode mode{Mode::NORMAL};   ///< Operating mode of the node.
+    size_t tx_queue_depth{5};  ///< Depth of the hardware transmit queue.
+    /** Hardware retransmission limit for a frame that fails (no ACK, bit error,
+     *  arbitration lost): -1 = retransmit until it succeeds (standard CAN
+     *  behaviour; transmit() bounds the wait with its timeout), 0 = single shot
+     *  (one attempt, then the frame is dropped and transmit() reports the
+     *  failure), 1..15 = that many retries. */
+    int8_t tx_retry_count{-1};
+    std::optional<Filter> filter{};          ///< Optional acceptance filter (default: accept all).
     receive_callback_fn on_receive{nullptr}; ///< Called (in task context) for each received frame.
     error_callback_fn on_error{nullptr};     ///< Optional: called (in task context) on a bus error.
     state_change_callback_fn on_state_change{
@@ -215,6 +221,10 @@ public:
     node_cfg.io_cfg.bus_off_indicator = GPIO_NUM_NC;
     node_cfg.bit_timing.bitrate = config_.baudrate;
     node_cfg.tx_queue_depth = config_.tx_queue_depth;
+    // NOTE: the driver treats every value but -1 as single-shot (one attempt,
+    // then on_tx_done with is_tx_success == false), so a zero-initialized
+    // config silently drops any frame that is not acknowledged first time.
+    node_cfg.fail_retry_cnt = config_.tx_retry_count;
     switch (config_.mode) {
     case Mode::NORMAL:
       break;
@@ -432,6 +442,7 @@ public:
     // drain a stale completion (e.g. from a prior transmit whose frame we
     // aborted below after a timeout) so the wait sees only our own
     xSemaphoreTake(tx_done_sem_, 0);
+    tx_success_.store(false);
     tx_message_ = message;
     tx_frame_ = tx_message_.to_twai_frame();
     esp_err_t err = twai_node_transmit(node, &tx_frame_, timeout_ms);
@@ -479,6 +490,15 @@ public:
       xSemaphoreTake(tx_done_sem_, 0);
       logger_.error("Timed out waiting for transmit completion (no ACK on the bus?)");
       ec = std::make_error_code(std::errc::timed_out);
+      return false;
+    }
+    // The controller finished with the frame, but not necessarily by sending it:
+    // with a bounded tx_retry_count it gives up after the retries (no ACK, bit
+    // error, arbitration lost -- see on_error) and reports the failure here.
+    if (!tx_success_.load()) {
+      logger_.error("Transmit failed: the frame was not acknowledged / could not be sent "
+                    "(check the transceiver, bit rate and that another node is on the bus)");
+      ec = std::make_error_code(std::errc::io_error);
       return false;
     }
     return true;
@@ -642,8 +662,8 @@ protected:
   static bool on_tx_done_cb(twai_node_handle_t handle, const twai_tx_done_event_data_t *edata,
                             void *user_ctx) {
     (void)handle;
-    (void)edata;
     auto *self = static_cast<Twai *>(user_ctx);
+    self->tx_success_.store(edata && edata->is_tx_success);
     // Guard against a lifecycle race: the semaphore may not exist yet (a TX
     // completing during a partial init) or may already be freed (teardown), so
     // never dereference a null handle from ISR context.
@@ -731,6 +751,7 @@ protected:
   // completion from the ISR.
   std::mutex tx_mutex_;
   SemaphoreHandle_t tx_done_sem_{nullptr};
+  std::atomic<bool> tx_success_{false}; // is_tx_success of the last on_tx_done
   Message tx_message_{};
   twai_frame_t tx_frame_{};
 };

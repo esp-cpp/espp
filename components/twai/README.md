@@ -33,6 +33,18 @@ intentionally keeps to classic CAN for a small, clean surface.
   node run with **no transceiver** and **no other node**, which is what the
   example uses.
 
+## Transmit result
+
+`transmit()` waits for the controller to finish with the frame and reports how
+it went: `timed_out` when nothing on the bus acknowledged it within the timeout
+(the controller keeps retransmitting in the meantime, `Config::tx_retry_count =
+-1`, the standard CAN behaviour), or `io_error` when the controller gave up on
+it (a bounded `tx_retry_count`, a bit error, arbitration lost — `on_error`
+carries the reason). A frame that returns `true` was acknowledged by another
+node. With `tx_retry_count = 0` the controller makes a single attempt and drops
+the frame if that fails, which is useful for time-critical data that must not
+be delivered late.
+
 ## Hardware / wiring (NORMAL mode)
 
 To talk to a real CAN bus you need a 3.3V CAN transceiver between the ESP TWAI
