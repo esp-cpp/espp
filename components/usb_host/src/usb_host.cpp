@@ -587,7 +587,8 @@ std::shared_ptr<UsbHost::HidDevice> UsbHost::find_device(hid_host_device_handle_
 bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) {
   uint32_t event_flags = 0;
   // Wake periodically (not only on library events) so a stalled enumeration --
-  // which raises no event at all -- can be noticed below.
+  // which raises no event at all -- can be noticed below. Idle cost: one
+  // usb_host_lib_info() + address-list query every 500 ms.
   usb_host_lib_handle_events(pdMS_TO_TICKS(500), &event_flags);
   if (event_flags)
     logger_.debug("USB host lib event flags {:#x}", event_flags);
@@ -597,11 +598,11 @@ bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) 
   }
   if (event_flags & USB_HOST_LIB_EVENT_FLAGS_ALL_FREE) {
     logger_.debug("all USB devices freed");
-    // Every device is gone. If none was ever opened since the port powered on,
-    // the device vanished during / right after enumeration (a port error on a
-    // device that was attached at power-up); the library recovers the port but
-    // does not detect a still-attached device again, so re-detect it ourselves
-    // with a root-port power cycle (bounded, so an empty port never loops).
+    // Every device is gone. If none was opened since the port powered on, the
+    // device was freed during / right after enumeration (a port error); the
+    // library recovers the port but a device that stayed attached is not
+    // detected again, so re-detect it with a root-port power cycle (bounded,
+    // so an empty port never loops).
     if (expect_all_free_) {
       expect_all_free_ = false; // the device we powered off ourselves
     } else if (opened_since_power_on_.load() == 0 && lib_task_run_.load() &&

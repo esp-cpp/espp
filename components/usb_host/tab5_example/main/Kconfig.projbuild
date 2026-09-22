@@ -6,17 +6,17 @@ menu "USB Host Tab5 Example Configuration"
         default 500
         help
             A device attached at power-up is enumerated as soon as the root port
-            powers on; on a cold boot that can be too soon after the USB PHY came
-            up (the first enumeration stalls on the ESP32-P4's high-speed port,
-            while a warm reboot or a hot-plug works). 0 powers the port at once.
+            powers on; this margin lets the board's supply settle after a cold
+            boot before that first enumeration. 0 powers the port at once.
 
     config USB_HOST_TAB5_CONTROL_USB_A_POWER
         bool "Switch the USB-A jack's 5 V from the example"
         default y
         help
-            Turn the USB-A jack off at start-up and on only once the host is
-            listening, and off/on around a root-port retry, so a device attached
-            at boot sees the same VBUS + host sequence as a hot-plug (the library's
-            own port power-off does not switch the jack's 5 V on the Tab5).
+            The Tab5 switches the jack's 5 V through an IO expander, not the USB
+            controller, so the host library's own root-port power-off does not
+            reach a device on the jack. With this on, the jack is off from
+            start-up until the host is listening, and off/on around an
+            enumeration retry so the retry really resets the device.
 
 endmenu

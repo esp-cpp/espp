@@ -3,10 +3,12 @@
 // and buttons.
 //
 // The Tab5's USB-A jack is on the ESP32-P4's high-speed USB-OTG controller,
-// which is the USB Host Library's default on that target, and the BSP turns the
-// jack's 5 V on with the IO expanders. Plug a SpaceMouse (or any HID device:
+// which is the USB Host Library's default on that target, and the BSP switches
+// the jack's 5 V through an IO expander. Plug a SpaceMouse (or any HID device:
 // mouse, keyboard, gamepad) into it. The console is on the USB-C port
-// (USB-Serial-JTAG, the other controller), so `idf.py monitor` keeps working.
+// (USB-Serial-JTAG, the other controller); note that a serial monitor on that
+// port can disturb hosting on the jack (see the README), so bench with a UART
+// adapter or on battery.
 
 #include <algorithm>
 #include <array>
@@ -48,8 +50,9 @@ extern "C" void app_main(void) {
   }
   tab5.brightness(75.0f);
 #if CONFIG_USB_HOST_TAB5_CONTROL_USB_A_POWER
-  // the jack comes up powered with the IO expanders; keep a boot-attached device
-  // unpowered until the host is listening (see UsbHost::Config::vbus_control)
+  // the jack comes up powered with the IO expanders; keep it off until the host
+  // is listening so a device attached at boot sees VBUS + host together (see
+  // UsbHost::Config::vbus_control)
   tab5.set_usb_a_power(false);
 #endif
 
@@ -132,11 +135,9 @@ extern "C" void app_main(void) {
                               : is_keyboard ? "Type: pressed keys light up on the keyboard."
                                             : "Raw Input reports are shown below.");
 
-          // every Input report (device -> host): decode a SpaceMouse's, count
-          // and show the raw bytes of all of them
-          // Only decode here (USB dispatch task, at the device's report rate);
-          // the screen is refreshed from the main loop at a fixed rate so a
-          // fast device cannot flood LVGL.
+          // Every Input report (device -> host). Only decode here (USB dispatch task, at the
+          // device's report rate); the screen is refreshed from the main loop at a fixed rate so
+          // a fast device cannot flood LVGL.
           device->set_input_callback(
               [&, is_spacemouse, is_keyboard](std::span<const uint8_t> data) {
                 report_count.fetch_add(1);

@@ -227,7 +227,8 @@ public:
     ///        (UTMI) OTG and controller 1 the full-speed one that shares its PHY
     ///        with USB-Serial-JTAG (on the M5Stack Tab5: USB-A jack / USB-C port).
     int port{-1};
-    /// @brief Retry budget for a device whose enumeration fails: one that is
+    /// @brief Retry budget for a device whose enumeration fails (rare: hot-plug
+    ///        and boot-attached devices normally enumerate first time): one that is
     ///        freed again before any client opened it, or one whose enumeration
     ///        STALLS -- counted by the library but never reaching its
     ///        fully-enumerated list for root_port_stall_timeout (the library's
@@ -241,17 +242,18 @@ public:
     std::chrono::milliseconds root_port_stall_timeout{2500}; ///< see root_port_retries
     /// @brief Wait this long between installing the host library (which brings
     ///        up the USB PHY) and powering the root port. A device attached at
-    ///        power-up is enumerated as soon as the port powers on; on a cold boot
-    ///        that can be too soon after the PHY came up (seen on the ESP32-P4's
-    ///        high-speed port: the first enumeration stalls, while a warm reboot
-    ///        or a hot-plug works). 0 = power the port at once.
+    ///        power-up is enumerated as soon as the port powers on; this gives a
+    ///        board whose supply is still settling after a cold boot a margin
+    ///        before that first enumeration. 0 = power the port at once.
     std::chrono::milliseconds root_port_power_on_delay{0};
-    /// @brief Board-level VBUS control for the host jack, when the board (not the
-    ///        USB controller) switches its 5 V: called with true once the host is
-    ///        listening (after the root port powers on) and around every root-port
-    ///        retry (false, then true), so a device attached at boot sees the same
-    ///        VBUS + host sequence as a hot-plug and a retry really resets it.
-    ///        Turn the jack off yourself before initialize() for that to hold.
+    /// @brief Board-level VBUS control for the host jack, for boards where an IO
+    ///        expander or load switch (not the USB controller) switches the jack's
+    ///        5 V: the library's own root-port power-off then does not reach the
+    ///        device, so a retry could not reset it. Called with true once the host
+    ///        is listening (after the root port powers on), false at deinitialize(),
+    ///        and false then true around every root-port retry. Turn the jack off
+    ///        yourself before initialize() if a device attached at boot should see
+    ///        VBUS only once the host is ready.
     std::function<void(bool on)> vbus_control{nullptr};
     size_t task_priority{5};          ///< priority of the internal tasks
     int task_core_id{-1};             ///< core for the internal tasks (-1 = no affinity)

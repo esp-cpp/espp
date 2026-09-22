@@ -17,7 +17,9 @@ CONFIG_FREERTOS_HZ=1000
 
 # The console stays on USB-Serial-JTAG: on the Tab5 that is the USB-C port
 # (the P4's full-speed USB-OTG controller), while the USB-A host jack is on the
-# separate high-speed controller the USB Host Library uses by default.
+# separate high-speed controller the USB Host Library uses by default. (A serial
+# monitor on USB-C can still disturb hosting on the jack electrically; see the
+# README.)
 
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_OFFSET=0x9000

@@ -26,6 +26,8 @@
 /// * six axis bars (Tx Ty Tz / Rx Ry Rz) with numeric readouts, driven by
 ///   the SpaceMouse decoder when a 3Dconnexion device is attached;
 /// * a row of button indicators;
+/// * a virtual keyboard that replaces the axis bars while a boot-protocol
+///   keyboard is attached (pressed keys and modifiers light up);
 /// * a "last report" line with the raw bytes of the most recent Input report
 ///   (every HID device, SpaceMouse or not).
 class Gui {

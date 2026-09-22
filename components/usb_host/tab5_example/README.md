@@ -34,8 +34,8 @@ sends on id 1 is handled too).
 ## Hardware
 
 - M5Stack Tab5. The USB-A jack is on the ESP32-P4's high-speed USB-OTG
-  controller (the USB Host Library's default on the P4) and the BSP enables its
-  5 V through the IO expanders.
+  controller (the USB Host Library's default on the P4) and the BSP switches
+  its 5 V through an IO expander (`set_usb_a_power()`).
 - The console (`idf.py monitor`) stays on the USB-C port: that is the other
   (full-speed) controller, with USB-Serial-JTAG, so both work at once.
 - A wireless SpaceMouse works through its USB receiver.
@@ -45,12 +45,11 @@ sends on id 1 is handled too).
   USB-C controller, so this is most likely electrical (the USB-C port is also
   the Tab5's power input). Monitor over a UART adapter, or run the Tab5 on its
   own power when hosting.
-- A device already attached at power-up: the example keeps the jack's 5 V off
-  until the host is listening and waits 500 ms after the USB PHY comes up before
-  powering the root port (menuconfig: **USB Host Tab5 Example Configuration**),
-  because on a cold boot the ESP32-P4's first enumeration otherwise stalls. If a
-  boot still stalls, `espp::UsbHost` power-cycles the jack and retries (one
-  warning on the console).
+- Devices attached at power-up and hot-plugged devices both enumerate normally.
+  The example keeps the jack's 5 V off until the host is listening and waits
+  500 ms before powering the root port (both in menuconfig: **USB Host Tab5
+  Example Configuration**); if an enumeration ever fails anyway, `espp::UsbHost`
+  power-cycles the jack and retries (one warning on the console).
 
 ## Build & flash
 
@@ -74,5 +73,6 @@ class driver come from the registry, as in the plain `usb_host` example).
   enumerated, none opened as HID"; call `host.print_usb_devices()` (or set the
   `hid-host` log tag to debug with `CONFIG_LOG_MAXIMUM_LEVEL_DEBUG`) to see its
   interfaces.
-- Devices with a VID other than 3Dconnexion's (`0x256F`) or the original
-  Logitech-made SpaceNavigator (`0x046D`) are treated as generic HID.
+- A SpaceMouse is recognised by 3Dconnexion's vendor id (`0x256F`), or by the
+  product ids of the early Logitech-branded SpaceNavigator / SpaceExplorer /
+  SpacePilot (`0x046D:C62x`); every other device is treated as generic HID.
