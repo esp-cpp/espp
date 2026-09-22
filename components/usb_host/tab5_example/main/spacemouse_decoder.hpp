@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <span>
@@ -57,10 +58,8 @@ public:
       return true;
     if (vid != kVendorIdLogitech)
       return false;
-    for (uint16_t p : kLogitechSpaceMousePids)
-      if (p == pid)
-        return true;
-    return false;
+    return std::find(std::begin(kLogitechSpaceMousePids), std::end(kLogitechSpaceMousePids), pid) !=
+           std::end(kLogitechSpaceMousePids);
   }
 
   /// Feed one raw Input report (report id in byte 0). \return true if the
