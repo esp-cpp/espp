@@ -6,9 +6,9 @@
 // which is the USB Host Library's default on that target, and the BSP switches
 // the jack's 5 V through an IO expander. Plug a SpaceMouse (or any HID device:
 // mouse, keyboard, gamepad) into it. The console is on the USB-C port
-// (USB-Serial-JTAG, the other controller); note that a serial monitor on that
-// port can disturb hosting on the jack (see the README), so bench with a UART
-// adapter or on battery.
+// (USB-Serial-JTAG, the other controller). If devices on the jack stall in
+// enumeration only while `idf.py monitor` is attached, see the README's
+// hardware notes.
 
 #include <algorithm>
 #include <array>

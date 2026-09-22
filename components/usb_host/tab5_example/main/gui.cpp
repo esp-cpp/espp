@@ -20,8 +20,9 @@ void Gui::init_ui() {
   // one column filling the screen, sized from the live display so it works in
   // either orientation
   root_ = lv_obj_create(screen);
-  lv_obj_set_size(root_, lv_display_get_horizontal_resolution(nullptr),
-                  lv_display_get_vertical_resolution(nullptr));
+  auto *display = lv_display_get_default();
+  lv_obj_set_size(root_, lv_display_get_horizontal_resolution(display),
+                  lv_display_get_vertical_resolution(display));
   lv_obj_set_style_bg_opa(root_, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(root_, 0, 0);
   lv_obj_set_style_pad_all(root_, kPad, 0);

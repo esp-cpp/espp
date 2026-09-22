@@ -52,15 +52,11 @@ host→device. This mirrors `espp::UsbDevice` exactly, so the two ends of a link
   so a device already attached at boot is enumerated while someone is
   listening (the library only reports devices that enumerate after a client
   registers, and the HID driver never scans existing ones).
-- Enumeration recovery, for the rare device that is freed before any client
-  opened it or that stalls in enumeration (the library's enumeration transfers
-  have no timeout): the library task power-cycles the root port, bounded by
-  `Config::root_port_retries` / `root_port_stall_timeout`. Boards whose jack
-  5 V is switched by an IO expander rather than the USB controller give the
-  host a `Config::vbus_control` hook so the retry really drops VBUS; a
+- Boards whose jack 5 V is switched by an IO expander rather than the USB
+  controller give the host a `Config::vbus_control` hook, so the jack can stay
+  off until the host is listening and is dropped at deinitialize(); a
   `Config::root_port_power_on_delay` adds a margin before the first
-  enumeration after boot. A fully enumerated device that has no HID interface
-  (or is rejected by `should_open`) is never touched.
+  enumeration after boot.
 - Requires **ESP-IDF ≥ 6.0**, where the USB Host library (`usb`, ≥ 1.3.0 for
   `Config::port` / the root-port power control) and `usb_host_hid` come from
   the ESP Component Registry via the IDF component manager. `usb_host_hid`

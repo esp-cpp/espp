@@ -39,17 +39,18 @@ sends on id 1 is handled too).
 - The console (`idf.py monitor`) stays on the USB-C port: that is the other
   (full-speed) controller, with USB-Serial-JTAG, so both work at once.
 - A wireless SpaceMouse works through its USB receiver.
-- **A serial monitor on the USB-C port can break hosting on USB-A**: with
-  `idf.py monitor` attached, a device on the jack may stall in enumeration;
-  with no monitor attached everything works. The firmware never touches the
-  USB-C controller, so this is most likely electrical (the USB-C port is also
-  the Tab5's power input). Monitor over a UART adapter, or run the Tab5 on its
-  own power when hosting.
 - Devices attached at power-up and hot-plugged devices both enumerate normally.
   The example keeps the jack's 5 V off until the host is listening and waits
   500 ms before powering the root port (both in menuconfig: **USB Host Tab5
-  Example Configuration**); if an enumeration ever fails anyway, `espp::UsbHost`
-  power-cycles the jack and retries (one warning on the console).
+  Example Configuration**).
+- Seen during development, cause not established: with `idf.py monitor`
+  attached to the USB-C port, a device on the jack sometimes stalled in
+  enumeration, and never with the monitor detached. The firmware does not touch
+  the USB-C controller, and other Tab5 firmware runs a console on USB-C with a
+  device on USB-A continuously without stalls, so this is more likely the
+  monitor's DTR/RTS handling (which resets the chip and can disturb the
+  USB-Serial-JTAG PHY) than the hardware. If you hit it, try a terminal that
+  leaves DTR/RTS alone, or a UART adapter.
 
 ## Build & flash
 

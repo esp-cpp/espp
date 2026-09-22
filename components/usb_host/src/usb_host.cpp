@@ -380,10 +380,6 @@ bool UsbHost::initialize(std::error_code &ec) {
 
   // Now that the HID client exists, power the root port: an already-attached
   // device enumerates from here and is reported to the driver.
-  opened_since_power_on_.store(0);
-  root_port_retries_left_.store(config_.root_port_retries);
-  gave_up_logged_.store(false);
-  tearing_down_.store(false);
   if (config_.root_port_power_on_delay.count() > 0) {
     logger_.debug("waiting {} ms before powering the root port",
                   config_.root_port_power_on_delay.count());
@@ -416,7 +412,6 @@ bool UsbHost::deinitialize(std::error_code &ec) {
     return true;
   }
   logger_.info("uninstalling USB host");
-  tearing_down_.store(true); // no root-port retries from here on
 
   // 1) Stop the dispatch task first, so no further driver operations or user
   //    callbacks are issued from it (a callback in flight finishes; the HID
@@ -542,19 +537,6 @@ bool UsbHost::print_usb_devices() {
   return err == ESP_OK;
 }
 
-size_t UsbHost::num_enumerating_devices() const {
-  usb_host_lib_info_t info = {};
-  if (usb_host_lib_info(&info) != ESP_OK || info.num_devices <= 0)
-    return 0;
-  // the address list holds only fully-enumerated devices; the difference is
-  // what is still being enumerated
-  uint8_t addresses[16] = {};
-  int enumerated = 0;
-  if (usb_host_device_addr_list_fill(sizeof(addresses), addresses, &enumerated) != ESP_OK)
-    return 0;
-  return info.num_devices > enumerated ? static_cast<size_t>(info.num_devices - enumerated) : 0;
-}
-
 size_t UsbHost::num_usb_devices() const {
   if (!initialized_.load())
     return 0;
@@ -586,10 +568,8 @@ std::shared_ptr<UsbHost::HidDevice> UsbHost::find_device(hid_host_device_handle_
 // ---------------------------------------------------------------------------
 bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) {
   uint32_t event_flags = 0;
-  // Wake periodically (not only on library events) so a stalled enumeration --
-  // which raises no event at all -- can be noticed below. Idle cost: one
-  // usb_host_lib_info() + address-list query every 500 ms.
-  usb_host_lib_handle_events(pdMS_TO_TICKS(500), &event_flags);
+  // Block until the library has an event (stop_lib_task() unblocks it).
+  usb_host_lib_handle_events(portMAX_DELAY, &event_flags);
   if (event_flags)
     logger_.debug("USB host lib event flags {:#x}", event_flags);
   if (event_flags & USB_HOST_LIB_EVENT_FLAGS_NO_CLIENTS) {
@@ -598,65 +578,8 @@ bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) 
   }
   if (event_flags & USB_HOST_LIB_EVENT_FLAGS_ALL_FREE) {
     logger_.debug("all USB devices freed");
-    // Every device is gone. If none was opened since the port powered on, the
-    // device was freed during / right after enumeration (a port error); the
-    // library recovers the port but a device that stayed attached is not
-    // detected again, so re-detect it with a root-port power cycle (bounded,
-    // so an empty port never loops).
-    if (expect_all_free_) {
-      expect_all_free_ = false; // the device we powered off ourselves
-    } else if (opened_since_power_on_.load() == 0 && lib_task_run_.load() &&
-               !tearing_down_.load()) {
-      retry_root_port("vanished before any client opened it");
-    }
-    opened_since_power_on_.store(0);
-    unopened_device_since_.reset();
-  }
-  // A device the library counts but that never reaches its fully-enumerated
-  // list for the whole stall timeout (measured from when it appeared, so a
-  // hot-plug at any uptime gets its full window) is stuck in enumeration: no
-  // event will ever come, so re-detect it. A device that enumerated fully but
-  // was not opened as HID (no HID interface, rejected by should_open) is not
-  // in that set and is never touched.
-  if (lib_task_run_.load() && !tearing_down_.load()) {
-    const size_t enumerating = num_enumerating_devices();
-    const auto now = std::chrono::steady_clock::now();
-    if (enumerating == 0) {
-      unopened_device_since_.reset();
-    } else if (!unopened_device_since_) {
-      unopened_device_since_ = now; // a device just appeared: start its clock
-    } else if (now - *unopened_device_since_ > config_.root_port_stall_timeout) {
-      unopened_device_since_.reset();
-      retry_root_port("is present but its enumeration stalled");
-    }
   }
   return !lib_task_run_.load(); // true = stop the task
-}
-
-bool UsbHost::retry_root_port(const char *why) {
-  if (root_port_retries_left_.load() == 0) {
-    // log once per exhausted budget, not on every wake while the device sits there
-    if (config_.root_port_retries > 0 && !gave_up_logged_.exchange(true))
-      logger_.error("USB device {}; out of root-port retries, giving up (re-plug it)", why);
-    return false;
-  }
-  root_port_retries_left_.fetch_sub(1);
-  const size_t left = root_port_retries_left_.load();
-  logger_.warn("USB device {}; power-cycling the root port ({} retr{} left)", why, left,
-               left == 1 ? "y" : "ies");
-  expect_all_free_ = true; // the ALL_FREE this power-off raises is not a new failure
-  usb_host_lib_set_root_port_power(false);
-  if (config_.vbus_control)
-    config_.vbus_control(false);  // the board switches the jack: really drop VBUS
-  vTaskDelay(pdMS_TO_TICKS(500)); // let VBUS drop so the device really resets
-  opened_since_power_on_.store(0);
-  unopened_device_since_.reset();
-  if (tearing_down_.load() || !lib_task_run_.load())
-    return false; // deinitialize() started meanwhile: leave the port off
-  usb_host_lib_set_root_port_power(true);
-  if (config_.vbus_control)
-    config_.vbus_control(true);
-  return true;
 }
 
 void UsbHost::stop_lib_task() {
@@ -882,9 +805,6 @@ void UsbHost::handle_new_device(hid_host_device_handle_t handle) {
     std::lock_guard<std::mutex> lk(devices_mutex_);
     devices_[handle] = device;
   }
-  opened_since_power_on_.fetch_add(1);
-  root_port_retries_left_.store(config_.root_port_retries); // a good open re-arms the budget
-  gave_up_logged_.store(false);
 
   // Let the application install its input callback *before* reports flow.
   if (config_.on_device_connected) {

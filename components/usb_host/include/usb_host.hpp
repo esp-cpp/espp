@@ -10,7 +10,6 @@
 #include <map>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <span>
 #include <string>
 #include <system_error>
@@ -227,19 +226,6 @@ public:
     ///        (UTMI) OTG and controller 1 the full-speed one that shares its PHY
     ///        with USB-Serial-JTAG (on the M5Stack Tab5: USB-A jack / USB-C port).
     int port{-1};
-    /// @brief Retry budget for a device whose enumeration fails (rare: hot-plug
-    ///        and boot-attached devices normally enumerate first time): one that is
-    ///        freed again before any client opened it, or one whose enumeration
-    ///        STALLS -- counted by the library but never reaching its
-    ///        fully-enumerated list for root_port_stall_timeout (the library's
-    ///        enumeration control transfers have no timeout, so a device that is
-    ///        not ready to answer, typically one attached at power-up, hangs
-    ///        enumeration for good). The root port is then power-cycled so the
-    ///        device is detected afresh; up to this many times in a row. A device
-    ///        that enumerated fully but was not opened (no HID interface, or
-    ///        rejected by should_open) is never touched. 0 disables the retry.
-    size_t root_port_retries{3};
-    std::chrono::milliseconds root_port_stall_timeout{2500}; ///< see root_port_retries
     /// @brief Wait this long between installing the host library (which brings
     ///        up the USB PHY) and powering the root port. A device attached at
     ///        power-up is enumerated as soon as the port powers on; this gives a
@@ -248,10 +234,9 @@ public:
     std::chrono::milliseconds root_port_power_on_delay{0};
     /// @brief Board-level VBUS control for the host jack, for boards where an IO
     ///        expander or load switch (not the USB controller) switches the jack's
-    ///        5 V: the library's own root-port power-off then does not reach the
-    ///        device, so a retry could not reset it. Called with true once the host
-    ///        is listening (after the root port powers on), false at deinitialize(),
-    ///        and false then true around every root-port retry. Turn the jack off
+    ///        5 V, so the library's own root-port power control does not reach the
+    ///        device. Called with true once the host is listening (after the root
+    ///        port powers on) and false at deinitialize(). Turn the jack off
     ///        yourself before initialize() if a device attached at boot should see
     ///        VBUS only once the host is ready.
     std::function<void(bool on)> vbus_control{nullptr};
@@ -381,17 +366,6 @@ private:
 
   // USB Host library task.
   std::atomic<bool> lib_task_run_{false};
-  std::atomic<uint32_t> opened_since_power_on_{0}; ///< HID opens since the root port powered on
-  std::atomic<size_t> root_port_retries_left_{0};  ///< remaining power-cycle retries
-  std::atomic<bool> gave_up_logged_{false};        ///< the out-of-retries error was logged
-  std::atomic<bool> tearing_down_{false};          ///< deinitialize() started: no more retries
-  /// Devices the library counts that are still under enumeration (counted but not
-  /// in its fully-enumerated address list). 0 when the query fails.
-  size_t num_enumerating_devices() const;
-  /// when a counted-but-unopened device was first seen (lib task); nullopt = none
-  std::optional<std::chrono::steady_clock::time_point> unopened_device_since_{};
-  bool retry_root_port(const char *why); ///< lib task: power-cycle if the budget allows
-  bool expect_all_free_{false};          ///< the next ALL_FREE is our own power-off (lib task)
   std::unique_ptr<espp::Task> lib_task_;
 
   // Event queue (driver task -> dispatch task) + dispatch task.

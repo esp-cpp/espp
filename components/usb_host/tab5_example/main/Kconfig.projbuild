@@ -16,7 +16,7 @@ menu "USB Host Tab5 Example Configuration"
             The Tab5 switches the jack's 5 V through an IO expander, not the USB
             controller, so the host library's own root-port power-off does not
             reach a device on the jack. With this on, the jack is off from
-            start-up until the host is listening, and off/on around an
-            enumeration retry so the retry really resets the device.
+            start-up until the host is listening, so a device attached at boot
+            sees VBUS and a listening host together.
 
 endmenu
