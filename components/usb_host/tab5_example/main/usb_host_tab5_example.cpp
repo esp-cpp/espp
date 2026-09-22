@@ -16,6 +16,7 @@
 #include <thread>
 #include <vector>
 
+#include "esp_log.h"
 #include "m5stack-tab5.hpp"
 
 #include "logger.hpp"
@@ -30,6 +31,9 @@ using namespace std::chrono_literals;
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "USB Host Tab5", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting USB HID host (SpaceMouse) example");
+  // the HID class driver only says at debug level which interfaces it found or
+  // skipped; it logs on device events only, so this costs nothing at run time
+  esp_log_level_set("hid-host", ESP_LOG_DEBUG);
 
   // --- board: IO expanders (USB-A 5 V), LCD, LVGL display, touch ---------------
   auto &tab5 = espp::M5StackTab5::get();
@@ -82,13 +86,31 @@ extern "C" void app_main(void) {
               if (!device->set_protocol(HID_REPORT_PROTOCOL_BOOT, proto_ec))
                 logger.warn("keyboard did not accept the boot protocol: {}", proto_ec.message());
             }
+            // A device may expose several HID interfaces (a keyboard usually adds a
+            // mouse / media one): the card and the decoders follow the most
+            // specific interface seen, so a generic sibling never downgrades a
+            // keyboard or SpaceMouse to "raw reports".
+            bool primary = false; // this interface is the one the card shows
             {
               std::lock_guard<std::mutex> lock(state_mutex);
-              decoder.reset();
-              current_is_spacemouse = is_spacemouse;
-              current_is_keyboard = is_keyboard;
-              keyboard_modifiers = 0;
-              keyboard_keys.fill(0);
+              const bool have_specific = current_is_spacemouse || current_is_keyboard;
+              primary = is_spacemouse || is_keyboard || !have_specific;
+              if (primary) {
+                decoder.reset();
+                current_is_spacemouse = is_spacemouse;
+                current_is_keyboard = is_keyboard;
+                keyboard_modifiers = 0;
+                keyboard_keys.fill(0);
+              }
+            }
+            if (!primary) {
+              // count its reports too (raw line), but leave the card alone
+              device->set_input_callback([&](std::span<const uint8_t> data) {
+                report_count.fetch_add(1);
+                std::lock_guard<std::mutex> lock(state_mutex);
+                last_report.assign(data.begin(), data.end());
+              });
+              return;
             }
             gui.set_device({.connected = true,
                             .product = info.product,
@@ -110,21 +132,27 @@ extern "C" void app_main(void) {
             // Only decode here (USB dispatch task, at the device's report rate);
             // the screen is refreshed from the main loop at a fixed rate so a
             // fast device cannot flood LVGL.
-            device->set_input_callback([&](std::span<const uint8_t> data) {
-              report_count.fetch_add(1);
-              std::lock_guard<std::mutex> lock(state_mutex);
-              last_report.assign(data.begin(), data.end());
-              if (current_is_spacemouse) {
-                decoder.decode(data);
-              } else if (current_is_keyboard && data.size() >= 8) {
-                keyboard_modifiers = data[0];
-                std::copy_n(data.begin() + 2, keyboard_keys.size(), keyboard_keys.begin());
-              }
-            });
+            device->set_input_callback(
+                [&, is_spacemouse, is_keyboard](std::span<const uint8_t> data) {
+                  report_count.fetch_add(1);
+                  std::lock_guard<std::mutex> lock(state_mutex);
+                  last_report.assign(data.begin(), data.end());
+                  // decode by THIS interface's kind (captured), not a shared flag
+                  if (is_spacemouse) {
+                    decoder.decode(data);
+                  } else if (is_keyboard && data.size() >= 8) {
+                    keyboard_modifiers = data[0];
+                    std::copy_n(data.begin() + 2, keyboard_keys.size(), keyboard_keys.begin());
+                  }
+                });
           },
       .on_device_disconnected =
           [&](const std::shared_ptr<espp::UsbHost::HidDevice> &device) {
-            logger.info("disconnected: PID={:#06x}", device->info().pid);
+            logger.info("disconnected: PID={:#06x} iface={}", device->info().pid,
+                        device->params().interface_number);
+            // only the last interface of the device clears the screen
+            if (!host.devices().empty())
+              return;
             {
               std::lock_guard<std::mutex> lock(state_mutex);
               current_is_spacemouse = false;
@@ -197,6 +225,13 @@ extern "C" void app_main(void) {
     if (enumerated != last_enumerated) {
       logger.info("USB devices enumerated: {} (HID opened: {})", enumerated, devices.size());
       last_enumerated = enumerated;
+      // a device that enumerated but was not opened as HID: show what it is
+      // (the HID driver is silent when it finds no usable HID interface)
+      if (enumerated > 0 && devices.empty()) {
+        std::this_thread::sleep_for(1s); // give the HID driver time to open it first
+        if (host.devices().empty())
+          host.print_usb_devices();
+      }
     }
     if (devices.empty()) {
       gui.set_status_text(
