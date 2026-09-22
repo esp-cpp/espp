@@ -295,6 +295,14 @@ public:
   /// @return The device count, or 0 when not initialized.
   size_t num_usb_devices() const;
 
+  /// @brief Print the device and configuration descriptors of every enumerated
+  ///        USB device to stdout (the host library's usb_print_* helpers), for
+  ///        diagnosing a device that enumerates but is not opened as HID: it
+  ///        shows each interface's class and endpoints. Registers a short-lived
+  ///        host-library client for the duration of the call.
+  /// @return true if the devices could be listed.
+  bool print_usb_devices();
+
 private:
   friend void espp_usb_host_driver_event_cb(hid_host_device_handle_t, const hid_host_driver_event_t,
                                             void *);

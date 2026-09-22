@@ -11,6 +11,7 @@
 #include "freertos/task.h"
 
 #include "soc/soc_caps.h"
+#include "usb/usb_helpers.h"
 #include "usb/usb_host.h"
 
 using namespace std::chrono_literals;
@@ -476,6 +477,55 @@ bool UsbHost::deinitialize(std::error_code &ec) {
   initialized_.store(false);
   ec.clear();
   return true;
+}
+
+bool UsbHost::print_usb_devices() {
+  if (!initialized_.load())
+    return false;
+  // a throw-away asynchronous client: opening a device needs one, and the HID
+  // driver's is private to it
+  usb_host_client_config_t client_config = {};
+  client_config.is_synchronous = false;
+  client_config.max_num_event_msg = 4;
+  client_config.async.client_event_callback = [](const usb_host_client_event_msg_t *, void *) {};
+  client_config.async.callback_arg = nullptr;
+  usb_host_client_handle_t client = nullptr;
+  esp_err_t err = usb_host_client_register(&client_config, &client);
+  if (err != ESP_OK) {
+    logger_.error("usb_host_client_register failed: {}", esp_err_to_name(err));
+    return false;
+  }
+  uint8_t addresses[8] = {};
+  int count = 0;
+  err = usb_host_device_addr_list_fill(sizeof(addresses), addresses, &count);
+  if (err == ESP_OK) {
+    printf("USB devices enumerated: %d\n", count);
+    for (int i = 0; i < count; ++i) {
+      usb_device_handle_t dev = nullptr;
+      if (usb_host_device_open(client, addresses[i], &dev) != ESP_OK) {
+        printf("  address %d: open failed\n", addresses[i]);
+        continue;
+      }
+      usb_device_info_t info = {};
+      if (usb_host_device_info(dev, &info) == ESP_OK)
+        printf("--- address %d: speed %s, bConfigurationValue %d\n", addresses[i],
+               info.speed == USB_SPEED_LOW    ? "low"
+               : info.speed == USB_SPEED_FULL ? "full"
+                                              : "high",
+               info.bConfigurationValue);
+      const usb_device_desc_t *dev_desc = nullptr;
+      if (usb_host_get_device_descriptor(dev, &dev_desc) == ESP_OK)
+        usb_print_device_descriptor(dev_desc);
+      const usb_config_desc_t *cfg_desc = nullptr;
+      if (usb_host_get_active_config_descriptor(dev, &cfg_desc) == ESP_OK)
+        usb_print_config_descriptor(cfg_desc, nullptr);
+      usb_host_device_close(client, dev);
+    }
+  } else {
+    logger_.error("usb_host_device_addr_list_fill failed: {}", esp_err_to_name(err));
+  }
+  usb_host_client_deregister(client);
+  return err == ESP_OK;
 }
 
 size_t UsbHost::num_usb_devices() const {
