@@ -39,6 +39,12 @@ sends on id 1 is handled too).
 - The console (`idf.py monitor`) stays on the USB-C port: that is the other
   (full-speed) controller, with USB-Serial-JTAG, so both work at once.
 - A wireless SpaceMouse works through its USB receiver.
+- **A serial monitor on the USB-C port can break hosting on USB-A**: with
+  `idf.py monitor` attached, a device on the jack may stall in enumeration;
+  with no monitor attached everything works. The firmware never touches the
+  USB-C controller, so this is most likely electrical (the USB-C port is also
+  the Tab5's power input). Monitor over a UART adapter, or run the Tab5 on its
+  own power when hosting.
 - A device already attached at power-up: the example keeps the jack's 5 V off
   until the host is listening and waits 500 ms after the USB PHY comes up before
   powering the root port (menuconfig: **USB Host Tab5 Example Configuration**),
