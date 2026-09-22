@@ -114,6 +114,10 @@ extern "C" void app_main(void) {
             gui.set_device(Gui::DeviceInfo{});
             gui.set_status_text("Device removed. Plug a device into the USB-A port.");
           },
+      // The Tab5's USB-A jack is on the P4's high-speed OTG controller, which is
+      // peripheral 0 (the library default); say so explicitly so a board wired
+      // the other way only has to change this number.
+      .port = 0,
       .log_level = espp::Logger::Verbosity::INFO,
   });
 
@@ -131,6 +135,7 @@ extern "C" void app_main(void) {
   // The raw-report line is refreshed here (a few times a second) rather than on
   // every report so a fast device does not swamp the LVGL label.
   uint32_t last_count = 0;
+  size_t last_enumerated = 0;
   auto last_time = std::chrono::steady_clock::now();
   while (true) {
     std::this_thread::sleep_for(250ms);
@@ -141,9 +146,21 @@ extern "C" void app_main(void) {
     last_count = count;
     last_time = now;
 
+    // enumeration, HID or not: a device counted here but not opened as HID
+    // (no HID interface / rejected) never reaches the callbacks above
+    const size_t enumerated = host.num_usb_devices();
     const auto devices = host.devices();
-    if (devices.empty())
+    if (enumerated != last_enumerated) {
+      logger.info("USB devices enumerated: {} (HID opened: {})", enumerated, devices.size());
+      last_enumerated = enumerated;
+    }
+    if (devices.empty()) {
+      gui.set_status_text(
+          enumerated == 0
+              ? "Plug a device into the USB-A port."
+              : fmt::format("{} USB device(s) enumerated, none opened as HID", enumerated));
       continue;
+    }
     std::string summary;
     std::vector<uint8_t> report;
     {

@@ -217,7 +217,14 @@ public:
     device_callback_fn on_device_connected{nullptr};    ///< a HID device attached and opened
     device_callback_fn on_device_disconnected{nullptr}; ///< a HID device detached
     open_filter_fn should_open{nullptr}; ///< optional filter (default: open every HID interface)
-    bool auto_start{true};            ///< start receiving Input reports as soon as a device opens
+    bool auto_start{true}; ///< start receiving Input reports as soon as a device opens
+    /// @brief USB-OTG peripheral (root port) to host on, on targets with more
+    ///        than one: -1 = the USB Host Library's default (peripheral 0), n =
+    ///        peripheral n. Which connector each peripheral is wired to is the
+    ///        board's business; the ESP32-P4's controller 0 is its high-speed
+    ///        (UTMI) OTG and controller 1 the full-speed one that shares its PHY
+    ///        with USB-Serial-JTAG (on the M5Stack Tab5: USB-A jack / USB-C port).
+    int port{-1};
     size_t task_priority{5};          ///< priority of the internal tasks
     int task_core_id{-1};             ///< core for the internal tasks (-1 = no affinity)
     size_t lib_task_stack_size{4096}; ///< stack for the USB-host-library event task
@@ -280,6 +287,13 @@ public:
 
   /// @brief Snapshot of the currently connected (opened) HID devices.
   std::vector<std::shared_ptr<HidDevice>> devices() const;
+
+  /// @brief Number of USB devices currently enumerated on the root port(s),
+  ///        HID or not (from the USB Host Library). A device that shows up here
+  ///        but not in devices() enumerated but was not opened as HID (no HID
+  ///        interface, or rejected by the should_open filter).
+  /// @return The device count, or 0 when not initialized.
+  size_t num_usb_devices() const;
 
 private:
   friend void espp_usb_host_driver_event_cb(hid_host_device_handle_t, const hid_host_driver_event_t,

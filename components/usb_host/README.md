@@ -44,6 +44,10 @@ host→device. This mirrors `espp::UsbDevice` exactly, so the two ends of a link
 - On the ESP32-S3 the USB-Serial-JTAG shares the USB-OTG PHY, so when the host
   role is active the **console must run on UART0** (see the example's
   `sdkconfig.defaults`).
+- Targets with two USB-OTG peripherals (ESP32-P4) host on the library's default
+  (peripheral 0) unless `Config::port` picks one; `num_usb_devices()` counts
+  every enumerated device (HID or not), which tells a "nothing is wired to this
+  port" apart from a "device has no HID interface".
 - The USB Host library (`usb`) and `usb_host_hid` come from the ESP Component
   Registry via the IDF component manager. On ESP-IDF ≥ 6.0 `usb_host_hid`
   declares its `usb` dependency only through the manager, so build the example

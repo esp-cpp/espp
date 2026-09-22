@@ -10,6 +10,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "soc/soc_caps.h"
 #include "usb/usb_host.h"
 
 using namespace std::chrono_literals;
@@ -288,6 +289,15 @@ bool UsbHost::initialize(std::error_code &ec) {
   usb_host_config_t host_config = {};
   host_config.skip_phy_setup = false;
   host_config.intr_flags = ESP_INTR_FLAG_LEVEL1;
+  if (config_.port >= 0) {
+    if (config_.port >= static_cast<int>(SOC_USB_OTG_PERIPH_NUM)) {
+      logger_.error("Invalid USB port {} (this target has {} USB-OTG peripheral(s))", config_.port,
+                    static_cast<int>(SOC_USB_OTG_PERIPH_NUM));
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+    host_config.peripheral_map = 1u << config_.port;
+  }
   esp_err_t err = usb_host_install(&host_config);
   if (err != ESP_OK) {
     logger_.error("usb_host_install failed: {}", esp_err_to_name(err));
@@ -363,7 +373,8 @@ bool UsbHost::initialize(std::error_code &ec) {
   }
 
   initialized_.store(true);
-  logger_.info("USB host installed");
+  logger_.info("USB host installed on USB-OTG peripheral {} of {}",
+               config_.port >= 0 ? config_.port : 0, static_cast<int>(SOC_USB_OTG_PERIPH_NUM));
   ec.clear();
   return true;
 }
@@ -448,6 +459,15 @@ bool UsbHost::deinitialize(std::error_code &ec) {
   return true;
 }
 
+size_t UsbHost::num_usb_devices() const {
+  if (!initialized_.load())
+    return 0;
+  usb_host_lib_info_t info = {};
+  if (usb_host_lib_info(&info) != ESP_OK)
+    return 0;
+  return static_cast<size_t>(info.num_devices);
+}
+
 std::vector<std::shared_ptr<UsbHost::HidDevice>> UsbHost::devices() const {
   std::vector<std::shared_ptr<HidDevice>> out;
   std::lock_guard<std::mutex> lk(devices_mutex_);
@@ -471,6 +491,8 @@ std::shared_ptr<UsbHost::HidDevice> UsbHost::find_device(hid_host_device_handle_
 bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) {
   uint32_t event_flags = 0;
   usb_host_lib_handle_events(portMAX_DELAY, &event_flags);
+  if (event_flags)
+    logger_.debug("USB host lib event flags {:#x}", event_flags);
   if (event_flags & USB_HOST_LIB_EVENT_FLAGS_NO_CLIENTS) {
     // No registered clients: it is safe to release the devices.
     usb_host_device_free_all();
