@@ -34,6 +34,11 @@ extern "C" void app_main(void) {
   // the HID class driver only says at debug level which interfaces it found or
   // skipped; it logs on device events only, so this costs nothing at run time
   esp_log_level_set("hid-host", ESP_LOG_DEBUG);
+  // and the host library's device tree / enumeration layers, for a device that
+  // enumerates and disappears again before any client hears of it
+  esp_log_level_set("HUB", ESP_LOG_DEBUG);
+  esp_log_level_set("USBH", ESP_LOG_DEBUG);
+  esp_log_level_set("ENUM", ESP_LOG_DEBUG);
 
   // --- board: IO expanders (USB-A 5 V), LCD, LVGL display, touch ---------------
   auto &tab5 = espp::M5StackTab5::get();
