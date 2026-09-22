@@ -287,6 +287,15 @@ public:
     ///        USB stack is never blocked. Drops are counted and logged at a
     ///        rate-limited cadence.
     size_t max_queued_events{32};
+    /// @brief Run the root port in full/low-speed-only mode (targets whose host
+    ///        controller is high-speed capable, i.e. the ESP32-P4). ESP-IDF's
+    ///        hub support has no transaction translator, so full-speed devices
+    ///        (every HID keyboard / mouse / gamepad) behind a *high-speed* hub
+    ///        cannot be reached ("TT is not supported"). With this set the hub
+    ///        enumerates at full speed and its devices are reached directly;
+    ///        HID never needs more bandwidth than that. No effect on targets
+    ///        with a full-speed-only controller (ESP32-S2 / -S3).
+    bool full_speed_only{false};
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
 
@@ -384,6 +393,7 @@ private:
 
   // The USB Host library event-handling loop (own task).
   bool lib_task_fn(std::mutex &m, std::condition_variable &cv);
+  void apply_full_speed_only();
   void stop_lib_task();
 
   static HidDevice::Info read_info(hid_host_device_handle_t handle);

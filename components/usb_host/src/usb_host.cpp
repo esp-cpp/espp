@@ -1,5 +1,16 @@
 #include "usb_host.hpp"
 
+#include <sdkconfig.h>
+#include <soc/soc_caps.h>
+#if SOC_USB_OTG_SUPPORTED && defined(SOC_USB_UTMI_PHY_NUM) && SOC_USB_UTMI_PHY_NUM > 0
+// a high-speed capable host controller: the full-speed-only mode applies
+#include <hal/usb_dwc_ll.h>
+#include <soc/usb_dwc_struct.h>
+#define ESPP_USB_HOST_HAS_HS_CONTROLLER 1
+#else
+#define ESPP_USB_HOST_HAS_HS_CONTROLLER 0
+#endif
+
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
@@ -322,6 +333,7 @@ bool UsbHost::initialize(std::error_code &ec) {
     ec = make_ec(err);
     return false;
   }
+  apply_full_speed_only();
 
   // 2) Start the USB-host-library event task.
   lib_task_run_.store(true);
@@ -587,10 +599,23 @@ std::shared_ptr<UsbHost::HidDevice> UsbHost::find_device(hid_host_device_handle_
 // ---------------------------------------------------------------------------
 // USB Host library task
 // ---------------------------------------------------------------------------
+void UsbHost::apply_full_speed_only() {
+#if ESPP_USB_HOST_HAS_HS_CONTROLLER
+  if (config_.full_speed_only && !USB_DWC_HS.hcfg_reg.fslssupp) {
+    usb_dwc_ll_hcfg_set_fsls_supp_only(&USB_DWC_HS);
+  }
+#endif
+}
+
 bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) {
   uint32_t event_flags = 0;
-  // Block until the library has an event (stop_lib_task() unblocks it).
-  usb_host_lib_handle_events(portMAX_DELAY, &event_flags);
+  // Block until the library has an event (stop_lib_task() unblocks it); with
+  // full_speed_only the loop wakes periodically to re-assert the mode, since
+  // a root port recovery (after a transfer error / unplug) soft-resets the
+  // controller and clears it.
+  const TickType_t wait = config_.full_speed_only ? pdMS_TO_TICKS(100) : portMAX_DELAY;
+  usb_host_lib_handle_events(wait, &event_flags);
+  apply_full_speed_only();
   if (event_flags)
     logger_.debug("USB host lib event flags {:#x}", event_flags);
   if (event_flags & USB_HOST_LIB_EVENT_FLAGS_NO_CLIENTS) {
