@@ -10,6 +10,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <span>
 #include <string>
 #include <system_error>
@@ -382,6 +383,8 @@ private:
   std::atomic<uint32_t> opened_since_power_on_{0}; ///< HID opens since the root port powered on
   size_t root_port_retries_left_{0};               ///< remaining power-cycle retries (lib task)
   std::chrono::steady_clock::time_point root_port_powered_at_{}; ///< last power-on (lib task)
+  /// when a counted-but-unopened device was first seen (lib task); nullopt = none
+  std::optional<std::chrono::steady_clock::time_point> unopened_device_since_{};
   bool retry_root_port(const char *why); ///< lib task: power-cycle if the budget allows
   bool expect_all_free_{false};          ///< the next ALL_FREE is our own power-off (lib task)
   std::unique_ptr<espp::Task> lib_task_;

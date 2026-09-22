@@ -592,14 +592,24 @@ bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) 
       retry_root_port("vanished before any client opened it");
     }
     opened_since_power_on_.store(0);
+    unopened_device_since_.reset();
   }
-  // A device that is counted but was never opened well after the port powered
-  // on: its enumeration stalled (no event will ever come), so re-detect it.
-  if (lib_task_run_.load() && opened_since_power_on_.load() == 0 &&
-      std::chrono::steady_clock::now() - root_port_powered_at_ > config_.root_port_stall_timeout) {
+  // A device that is counted but never opened for the whole stall timeout,
+  // measured from when the device APPEARED (a hot-plug long after the port
+  // powered on starts its own clock): its enumeration stalled, no event will
+  // ever come, so re-detect it. A device that opened resets the watch.
+  if (lib_task_run_.load()) {
     usb_host_lib_info_t info = {};
-    if (usb_host_lib_info(&info) == ESP_OK && info.num_devices > 0)
+    const int devices = usb_host_lib_info(&info) == ESP_OK ? info.num_devices : 0;
+    const auto now = std::chrono::steady_clock::now();
+    if (devices == 0 || opened_since_power_on_.load() > 0) {
+      unopened_device_since_.reset(); // nothing to watch (or it is open)
+    } else if (!unopened_device_since_) {
+      unopened_device_since_ = now; // a device just appeared: start its clock
+    } else if (now - *unopened_device_since_ > config_.root_port_stall_timeout) {
+      unopened_device_since_.reset();
       retry_root_port("is present but its enumeration stalled");
+    }
   }
   return !lib_task_run_.load(); // true = stop the task
 }
@@ -621,6 +631,7 @@ bool UsbHost::retry_root_port(const char *why) {
     config_.vbus_control(false);  // the board switches the jack: really drop VBUS
   vTaskDelay(pdMS_TO_TICKS(500)); // let VBUS drop so the device really resets
   opened_since_power_on_.store(0);
+  unopened_device_since_.reset();
   root_port_powered_at_ = std::chrono::steady_clock::now();
   usb_host_lib_set_root_port_power(true);
   if (config_.vbus_control)
