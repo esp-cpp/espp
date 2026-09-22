@@ -39,6 +39,12 @@ sends on id 1 is handled too).
 - The console (`idf.py monitor`) stays on the USB-C port: that is the other
   (full-speed) controller, with USB-Serial-JTAG, so both work at once.
 - A wireless SpaceMouse works through its USB receiver.
+- A device already attached at power-up: the example keeps the jack's 5 V off
+  until the host is listening and waits 500 ms after the USB PHY comes up before
+  powering the root port (menuconfig: **USB Host Tab5 Example Configuration**),
+  because on a cold boot the ESP32-P4's first enumeration otherwise stalls. If a
+  boot still stalls, `espp::UsbHost` power-cycles the jack and retries (one
+  warning on the console).
 
 ## Build & flash
 
