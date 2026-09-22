@@ -45,6 +45,7 @@ public:
     uint8_t protocol{0};
     size_t report_descriptor_bytes{0};
     bool is_spacemouse{false};
+    bool is_keyboard{false}; ///< boot-protocol keyboard: the virtual keyboard is shown
   };
 
   explicit Gui(const Config &config)
@@ -65,6 +66,11 @@ public:
   /// Thread-safe.
   void set_spacemouse_state(const SpaceMouseDecoder::State &state);
 
+  /// Update the virtual keyboard from a boot-protocol keyboard report: the
+  /// modifier bit-set (byte 0) and the pressed key usage ids (bytes 2..7).
+  /// Thread-safe.
+  void set_keyboard_state(uint8_t modifiers, std::span<const uint8_t> keys);
+
   /// Show the raw bytes of the latest Input report and the measured report
   /// rate. Thread-safe.
   void set_last_report(std::span<const uint8_t> report, float reports_per_second);
@@ -80,6 +86,7 @@ protected:
   void deinit_ui();
   void init_device_card(lv_obj_t *parent);
   void init_axes(lv_obj_t *parent);
+  void init_keyboard(lv_obj_t *parent);
   void init_buttons(lv_obj_t *parent);
   void init_report_line(lv_obj_t *parent);
 
@@ -89,6 +96,11 @@ protected:
   espp::Logger logger_;
 
   lv_obj_t *root_{nullptr};
+  lv_obj_t *axes_panel_{nullptr};
+  lv_obj_t *keyboard_panel_{nullptr};
+  /// virtual keyboard keys by HID usage id (Keyboard/Keypad page, 0xE0..0xE7 =
+  /// the modifier keys); nullptr for usages not on the layout
+  std::array<lv_obj_t *, 256> keyboard_keys_{};
   lv_obj_t *device_title_{nullptr};
   lv_obj_t *device_detail_{nullptr};
   lv_obj_t *device_state_dot_{nullptr};

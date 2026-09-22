@@ -8,6 +8,8 @@
 // mouse, keyboard, gamepad) into it. The console is on the USB-C port
 // (USB-Serial-JTAG, the other controller), so `idf.py monitor` keeps working.
 
+#include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <mutex>
@@ -53,6 +55,9 @@ extern "C" void app_main(void) {
   std::mutex state_mutex;
   SpaceMouseDecoder decoder;
   bool current_is_spacemouse = false;
+  bool current_is_keyboard = false;
+  uint8_t keyboard_modifiers = 0;
+  std::array<uint8_t, 6> keyboard_keys{};
   std::vector<uint8_t> last_report; // the most recent raw Input report
   std::atomic<uint32_t> report_count{0};
 
@@ -63,14 +68,27 @@ extern "C" void app_main(void) {
             const auto info = device->info();
             const auto params = device->params();
             const bool is_spacemouse = SpaceMouseDecoder::is_spacemouse_vendor(info.vid);
+            // bInterfaceSubClass 1 = boot interface, bInterfaceProtocol 1 = keyboard
+            const bool is_keyboard = params.sub_class == 1 && params.protocol == 1;
             logger.info("connected: '{}' '{}' VID={:#06x} PID={:#06x} iface={} proto={}{}",
                         info.manufacturer, info.product, info.vid, info.pid,
                         params.interface_number, params.protocol,
                         is_spacemouse ? " (SpaceMouse)" : "");
+            // Ask a keyboard for the boot protocol: a fixed 8-byte report
+            // ([modifier bits][reserved][6 key usage ids]) whatever its own
+            // report descriptor says, so no per-keyboard parsing is needed.
+            if (is_keyboard) {
+              std::error_code proto_ec;
+              if (!device->set_protocol(HID_REPORT_PROTOCOL_BOOT, proto_ec))
+                logger.warn("keyboard did not accept the boot protocol: {}", proto_ec.message());
+            }
             {
               std::lock_guard<std::mutex> lock(state_mutex);
               decoder.reset();
               current_is_spacemouse = is_spacemouse;
+              current_is_keyboard = is_keyboard;
+              keyboard_modifiers = 0;
+              keyboard_keys.fill(0);
             }
             gui.set_device({.connected = true,
                             .product = info.product,
@@ -80,9 +98,11 @@ extern "C" void app_main(void) {
                             .interface_number = params.interface_number,
                             .protocol = params.protocol,
                             .report_descriptor_bytes = device->report_descriptor().size(),
-                            .is_spacemouse = is_spacemouse});
+                            .is_spacemouse = is_spacemouse,
+                            .is_keyboard = is_keyboard});
             gui.set_status_text(is_spacemouse ? "Move the cap: translation (blue) and rotation "
                                                 "(orange) axes; press the buttons."
+                                : is_keyboard ? "Type: pressed keys light up on the keyboard."
                                               : "Raw Input reports are shown below.");
 
             // every Input report (device -> host): decode a SpaceMouse's, count
@@ -94,8 +114,12 @@ extern "C" void app_main(void) {
               report_count.fetch_add(1);
               std::lock_guard<std::mutex> lock(state_mutex);
               last_report.assign(data.begin(), data.end());
-              if (current_is_spacemouse)
+              if (current_is_spacemouse) {
                 decoder.decode(data);
+              } else if (current_is_keyboard && data.size() >= 8) {
+                keyboard_modifiers = data[0];
+                std::copy_n(data.begin() + 2, keyboard_keys.size(), keyboard_keys.begin());
+              }
             });
           },
       .on_device_disconnected =
@@ -104,6 +128,7 @@ extern "C" void app_main(void) {
             {
               std::lock_guard<std::mutex> lock(state_mutex);
               current_is_spacemouse = false;
+              current_is_keyboard = false;
             }
             gui.set_device(Gui::DeviceInfo{});
             gui.set_status_text("Device removed. Plug a device into the USB-A port.");
@@ -137,15 +162,23 @@ extern "C" void app_main(void) {
   while (true) {
     std::this_thread::sleep_for(kAxisRefresh);
     bool spacemouse = false;
+    bool keyboard = false;
     SpaceMouseDecoder::State state;
+    uint8_t modifiers = 0;
+    std::array<uint8_t, 6> keys{};
     {
       std::lock_guard<std::mutex> lock(state_mutex);
       spacemouse = current_is_spacemouse;
+      keyboard = current_is_keyboard;
       if (spacemouse)
         state = decoder.state();
+      modifiers = keyboard_modifiers;
+      keys = keyboard_keys;
     }
     if (spacemouse)
       gui.set_spacemouse_state(state);
+    else if (keyboard)
+      gui.set_keyboard_state(modifiers, keys);
     if (++slow_tick < kSlowEvery)
       continue;
     slow_tick = 0;

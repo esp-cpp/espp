@@ -2,8 +2,9 @@
 
 Turns the Tab5 into a USB HID host and shows what the attached device sends,
 on the screen: a 3Dconnexion **SpaceMouse** (SpaceNavigator, SpaceMouse
-Compact / Wireless / Pro, ...) is decoded into its six axes and buttons; any
-other HID device (mouse, keyboard, gamepad) shows its raw Input reports.
+Compact / Wireless / Pro, ...) is decoded into its six axes and buttons, a
+**keyboard** lights up its keys on a virtual keyboard, and any other HID device
+(mouse, gamepad) shows its raw Input reports.
 
 It is a bench tool for `espp::UsbHost` and for evaluating a SpaceMouse as a
 6-DoF input, and a starting point for a Tab5 firmware that takes USB input.
@@ -17,6 +18,11 @@ It is a bench tool for `espp::UsbHost` and for evaluating a SpaceMouse as a
 - **Axes**: six centered bars, `Tx Ty Tz` (translation, blue) and `Rx Ry Rz`
   (rotation, orange), with the raw counts (`-350..350` on a SpaceNavigator).
 - **Buttons**: one indicator per button (green while pressed).
+- **Keyboard**: a boot-protocol keyboard (interface subclass 1, protocol 1)
+  replaces the axes with a virtual US keyboard whose pressed keys light up.
+  The example asks the keyboard for the boot protocol, a fixed 8-byte report
+  (modifier bits, then up to six key usage ids), so no per-keyboard descriptor
+  parsing is needed.
 - **Last report**: the newest Input report's bytes and the report rate, plus
   per-report-id counts for a SpaceMouse.
 
