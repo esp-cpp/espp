@@ -107,6 +107,13 @@ protected:
   std::array<lv_obj_t *, kAxisCount> axis_bars_{};
   std::array<lv_obj_t *, kAxisCount> axis_values_{};
   std::array<lv_obj_t *, kButtonCount> button_leds_{};
+  // last values shown, so an unchanged state does not invalidate anything
+  std::array<int16_t, kAxisCount> shown_axes_{};
+  std::array<bool, kButtonCount> shown_buttons_{};
+  std::array<bool, 256> shown_keys_{};
+  std::string shown_report_hex_;
+  int shown_rate_{-1};
+  std::string shown_status_;
   lv_obj_t *report_label_{nullptr};
   lv_obj_t *rate_label_{nullptr};
   lv_obj_t *status_label_{nullptr};

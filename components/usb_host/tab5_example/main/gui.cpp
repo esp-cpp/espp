@@ -230,6 +230,9 @@ void Gui::set_keyboard_state(uint8_t modifiers, std::span<const uint8_t> keys) {
     if (usage != 0)
       pressed[usage] = true;
   for (size_t usage = 0; usage < keyboard_keys_.size(); ++usage) {
+    if (pressed[usage] == shown_keys_[usage])
+      continue;
+    shown_keys_[usage] = pressed[usage];
     if (auto *key = keyboard_keys_[usage]) {
       lv_obj_set_style_bg_color(
           key, pressed[usage] ? lv_palette_main(LV_PALETTE_GREEN) : lv_color_hex(kKeyColor), 0);
@@ -320,6 +323,12 @@ void Gui::set_device(const DeviceInfo &info) {
   for (auto *key : keyboard_keys_)
     if (key)
       lv_obj_set_style_bg_color(key, lv_color_hex(kKeyColor), 0);
+  // a new device repaints everything once
+  shown_keys_.fill(false);
+  shown_axes_.fill(0);
+  shown_buttons_.fill(false);
+  shown_report_hex_.clear();
+  shown_rate_ = -1;
   if (!info.connected) {
     lv_label_set_text(device_title_, "No USB HID device");
     lv_label_set_text(device_detail_, "Plug a device into the USB-A port.");
@@ -350,12 +359,18 @@ void Gui::set_spacemouse_state(const SpaceMouseDecoder::State &state) {
   const std::array<int16_t, kAxisCount> values = {state.x,  state.y,  state.z,
                                                   state.rx, state.ry, state.rz};
   for (size_t i = 0; i < kAxisCount; ++i) {
+    if (values[i] == shown_axes_[i])
+      continue; // unchanged: don't invalidate the bar
+    shown_axes_[i] = values[i];
     const int v =
         std::clamp<int>(values[i], -SpaceMouseDecoder::kAxisMax, SpaceMouseDecoder::kAxisMax);
     lv_bar_set_value(axis_bars_[i], v, LV_ANIM_OFF);
     lv_label_set_text_fmt(axis_values_[i], "%d", static_cast<int>(values[i]));
   }
   for (size_t i = 0; i < kButtonCount; ++i) {
+    if (state.buttons[i] == shown_buttons_[i])
+      continue;
+    shown_buttons_[i] = state.buttons[i];
     lv_obj_set_style_bg_color(
         button_leds_[i],
         state.buttons[i] ? lv_palette_main(LV_PALETTE_GREEN) : lv_color_hex(0x2a3444), 0);
@@ -373,16 +388,26 @@ void Gui::set_last_report(std::span<const uint8_t> report, float reports_per_sec
     std::snprintf(buf, sizeof(buf), "%02X%s", report[i], i + 1 < report.size() ? " " : "");
     hex += buf;
   }
-  lv_label_set_text(report_label_, hex.c_str());
-  lv_label_set_text_fmt(rate_label_, "Last report: %d bytes   %.0f reports/s",
-                        static_cast<int>(report.size()), static_cast<double>(reports_per_second));
+  if (hex != shown_report_hex_) {
+    shown_report_hex_ = hex;
+    lv_label_set_text(report_label_, hex.c_str());
+  }
+  const int rate = static_cast<int>(reports_per_second + 0.5f);
+  if (rate != shown_rate_) {
+    shown_rate_ = rate;
+    lv_label_set_text_fmt(rate_label_, "Last report: %d bytes   %d reports/s",
+                          static_cast<int>(report.size()), rate);
+  }
 }
 
 void Gui::set_status_text(std::string_view text) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   if (!root_)
     return;
-  lv_label_set_text(status_label_, std::string(text).c_str());
+  if (text == shown_status_)
+    return;
+  shown_status_ = std::string(text);
+  lv_label_set_text(status_label_, shown_status_.c_str());
 }
 
 bool Gui::update(std::mutex &m, std::condition_variable &cv) {

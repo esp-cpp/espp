@@ -47,6 +47,11 @@ extern "C" void app_main(void) {
     return;
   }
   tab5.brightness(75.0f);
+#if CONFIG_USB_HOST_TAB5_CONTROL_USB_A_POWER
+  // the jack comes up powered with the IO expanders; keep a boot-attached device
+  // unpowered until the host is listening (see UsbHost::Config::vbus_control)
+  tab5.set_usb_a_power(false);
+#endif
 
   static Gui gui({.log_level = espp::Logger::Verbosity::INFO});
   gui.set_status_text("USB host starting...");
@@ -63,105 +68,109 @@ extern "C" void app_main(void) {
 
   // --- USB host --------------------------------------------------------------
   espp::UsbHost host({
-      .on_device_connected =
-          [&](const std::shared_ptr<espp::UsbHost::HidDevice> &device) {
-            const auto info = device->info();
-            const auto params = device->params();
-            const bool is_spacemouse = SpaceMouseDecoder::is_spacemouse_vendor(info.vid);
-            // bInterfaceSubClass 1 = boot interface, bInterfaceProtocol 1 = keyboard
-            const bool is_keyboard = params.sub_class == 1 && params.protocol == 1;
-            logger.info("connected: '{}' '{}' VID={:#06x} PID={:#06x} iface={} proto={}{}",
-                        info.manufacturer, info.product, info.vid, info.pid,
-                        params.interface_number, params.protocol,
-                        is_spacemouse ? " (SpaceMouse)" : "");
-            // Ask a keyboard for the boot protocol: a fixed 8-byte report
-            // ([modifier bits][reserved][6 key usage ids]) whatever its own
-            // report descriptor says, so no per-keyboard parsing is needed.
-            if (is_keyboard) {
-              std::error_code proto_ec;
-              if (!device->set_protocol(HID_REPORT_PROTOCOL_BOOT, proto_ec))
-                logger.warn("keyboard did not accept the boot protocol: {}", proto_ec.message());
+    .on_device_connected =
+        [&](const std::shared_ptr<espp::UsbHost::HidDevice> &device) {
+          const auto info = device->info();
+          const auto params = device->params();
+          const bool is_spacemouse = SpaceMouseDecoder::is_spacemouse_vendor(info.vid);
+          // bInterfaceSubClass 1 = boot interface, bInterfaceProtocol 1 = keyboard
+          const bool is_keyboard = params.sub_class == 1 && params.protocol == 1;
+          logger.info("connected: '{}' '{}' VID={:#06x} PID={:#06x} iface={} proto={}{}",
+                      info.manufacturer, info.product, info.vid, info.pid, params.interface_number,
+                      params.protocol, is_spacemouse ? " (SpaceMouse)" : "");
+          // Ask a keyboard for the boot protocol: a fixed 8-byte report
+          // ([modifier bits][reserved][6 key usage ids]) whatever its own
+          // report descriptor says, so no per-keyboard parsing is needed.
+          if (is_keyboard) {
+            std::error_code proto_ec;
+            if (!device->set_protocol(HID_REPORT_PROTOCOL_BOOT, proto_ec))
+              logger.warn("keyboard did not accept the boot protocol: {}", proto_ec.message());
+          }
+          // A device may expose several HID interfaces (a keyboard usually adds a
+          // mouse / media one): the card and the decoders follow the most
+          // specific interface seen, so a generic sibling never downgrades a
+          // keyboard or SpaceMouse to "raw reports".
+          bool primary = false; // this interface is the one the card shows
+          {
+            std::lock_guard<std::mutex> lock(state_mutex);
+            const bool have_specific = current_is_spacemouse || current_is_keyboard;
+            primary = is_spacemouse || is_keyboard || !have_specific;
+            if (primary) {
+              decoder.reset();
+              current_is_spacemouse = is_spacemouse;
+              current_is_keyboard = is_keyboard;
+              keyboard_modifiers = 0;
+              keyboard_keys.fill(0);
             }
-            // A device may expose several HID interfaces (a keyboard usually adds a
-            // mouse / media one): the card and the decoders follow the most
-            // specific interface seen, so a generic sibling never downgrades a
-            // keyboard or SpaceMouse to "raw reports".
-            bool primary = false; // this interface is the one the card shows
-            {
+          }
+          if (!primary) {
+            // count its reports too (raw line), but leave the card alone
+            device->set_input_callback([&](std::span<const uint8_t> data) {
+              report_count.fetch_add(1);
               std::lock_guard<std::mutex> lock(state_mutex);
-              const bool have_specific = current_is_spacemouse || current_is_keyboard;
-              primary = is_spacemouse || is_keyboard || !have_specific;
-              if (primary) {
-                decoder.reset();
-                current_is_spacemouse = is_spacemouse;
-                current_is_keyboard = is_keyboard;
-                keyboard_modifiers = 0;
-                keyboard_keys.fill(0);
-              }
-            }
-            if (!primary) {
-              // count its reports too (raw line), but leave the card alone
-              device->set_input_callback([&](std::span<const uint8_t> data) {
+              last_report.assign(data.begin(), data.end());
+            });
+            return;
+          }
+          gui.set_device({.connected = true,
+                          .product = info.product,
+                          .manufacturer = info.manufacturer,
+                          .vid = info.vid,
+                          .pid = info.pid,
+                          .interface_number = params.interface_number,
+                          .protocol = params.protocol,
+                          .report_descriptor_bytes = device->report_descriptor().size(),
+                          .is_spacemouse = is_spacemouse,
+                          .is_keyboard = is_keyboard});
+          gui.set_status_text(is_spacemouse ? "Move the cap: translation (blue) and rotation "
+                                              "(orange) axes; press the buttons."
+                              : is_keyboard ? "Type: pressed keys light up on the keyboard."
+                                            : "Raw Input reports are shown below.");
+
+          // every Input report (device -> host): decode a SpaceMouse's, count
+          // and show the raw bytes of all of them
+          // Only decode here (USB dispatch task, at the device's report rate);
+          // the screen is refreshed from the main loop at a fixed rate so a
+          // fast device cannot flood LVGL.
+          device->set_input_callback(
+              [&, is_spacemouse, is_keyboard](std::span<const uint8_t> data) {
                 report_count.fetch_add(1);
                 std::lock_guard<std::mutex> lock(state_mutex);
                 last_report.assign(data.begin(), data.end());
+                // decode by THIS interface's kind (captured), not a shared flag
+                if (is_spacemouse) {
+                  decoder.decode(data);
+                } else if (is_keyboard && data.size() >= 8) {
+                  keyboard_modifiers = data[0];
+                  std::copy_n(data.begin() + 2, keyboard_keys.size(), keyboard_keys.begin());
+                }
               });
-              return;
-            }
-            gui.set_device({.connected = true,
-                            .product = info.product,
-                            .manufacturer = info.manufacturer,
-                            .vid = info.vid,
-                            .pid = info.pid,
-                            .interface_number = params.interface_number,
-                            .protocol = params.protocol,
-                            .report_descriptor_bytes = device->report_descriptor().size(),
-                            .is_spacemouse = is_spacemouse,
-                            .is_keyboard = is_keyboard});
-            gui.set_status_text(is_spacemouse ? "Move the cap: translation (blue) and rotation "
-                                                "(orange) axes; press the buttons."
-                                : is_keyboard ? "Type: pressed keys light up on the keyboard."
-                                              : "Raw Input reports are shown below.");
-
-            // every Input report (device -> host): decode a SpaceMouse's, count
-            // and show the raw bytes of all of them
-            // Only decode here (USB dispatch task, at the device's report rate);
-            // the screen is refreshed from the main loop at a fixed rate so a
-            // fast device cannot flood LVGL.
-            device->set_input_callback(
-                [&, is_spacemouse, is_keyboard](std::span<const uint8_t> data) {
-                  report_count.fetch_add(1);
-                  std::lock_guard<std::mutex> lock(state_mutex);
-                  last_report.assign(data.begin(), data.end());
-                  // decode by THIS interface's kind (captured), not a shared flag
-                  if (is_spacemouse) {
-                    decoder.decode(data);
-                  } else if (is_keyboard && data.size() >= 8) {
-                    keyboard_modifiers = data[0];
-                    std::copy_n(data.begin() + 2, keyboard_keys.size(), keyboard_keys.begin());
-                  }
-                });
-          },
-      .on_device_disconnected =
-          [&](const std::shared_ptr<espp::UsbHost::HidDevice> &device) {
-            logger.info("disconnected: PID={:#06x} iface={}", device->info().pid,
-                        device->params().interface_number);
-            // only the last interface of the device clears the screen
-            if (!host.devices().empty())
-              return;
-            {
-              std::lock_guard<std::mutex> lock(state_mutex);
-              current_is_spacemouse = false;
-              current_is_keyboard = false;
-            }
-            gui.set_device(Gui::DeviceInfo{});
-            gui.set_status_text("Device removed. Plug a device into the USB-A port.");
-          },
-      // The Tab5's USB-A jack is on the P4's high-speed OTG controller, which is
-      // peripheral 0 (the library default); say so explicitly so a board wired
-      // the other way only has to change this number.
-      .port = 0,
-      .log_level = espp::Logger::Verbosity::INFO,
+        },
+    .on_device_disconnected =
+        [&](const std::shared_ptr<espp::UsbHost::HidDevice> &device) {
+          logger.info("disconnected: PID={:#06x} iface={}", device->info().pid,
+                      device->params().interface_number);
+          // only the last interface of the device clears the screen
+          if (!host.devices().empty())
+            return;
+          {
+            std::lock_guard<std::mutex> lock(state_mutex);
+            current_is_spacemouse = false;
+            current_is_keyboard = false;
+          }
+          gui.set_device(Gui::DeviceInfo{});
+          gui.set_status_text("Device removed. Plug a device into the USB-A port.");
+        },
+    // The Tab5's USB-A jack is on the P4's high-speed OTG controller, which is
+    // peripheral 0 (the library default); say so explicitly so a board wired
+    // the other way only has to change this number.
+        .port = 0,
+    .root_port_power_on_delay =
+        std::chrono::milliseconds(CONFIG_USB_HOST_TAB5_ROOT_PORT_POWER_ON_DELAY_MS),
+#if CONFIG_USB_HOST_TAB5_CONTROL_USB_A_POWER
+    .vbus_control = [&](bool on) { tab5.set_usb_a_power(on); },
+#endif
+    .log_level = espp::Logger::Verbosity::INFO,
   });
 
   std::error_code ec;

@@ -383,6 +383,11 @@ bool UsbHost::initialize(std::error_code &ec) {
   // device enumerates from here and is reported to the driver.
   opened_since_power_on_.store(0);
   root_port_retries_left_ = config_.root_port_retries;
+  if (config_.root_port_power_on_delay.count() > 0) {
+    logger_.debug("waiting {} ms before powering the root port",
+                  config_.root_port_power_on_delay.count());
+    std::this_thread::sleep_for(config_.root_port_power_on_delay);
+  }
   root_port_powered_at_ = std::chrono::steady_clock::now();
   err = usb_host_lib_set_root_port_power(true);
   if (err != ESP_OK) {
@@ -394,6 +399,9 @@ bool UsbHost::initialize(std::error_code &ec) {
     ec = make_ec(err);
     return false;
   }
+
+  if (config_.vbus_control)
+    config_.vbus_control(true); // the host is listening: now let the jack power the device
 
   initialized_.store(true);
   logger_.info("USB host installed on USB-OTG peripheral {} of {}",
@@ -578,8 +586,11 @@ bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) 
     // device that was attached at power-up); the library recovers the port but
     // does not detect a still-attached device again, so re-detect it ourselves
     // with a root-port power cycle (bounded, so an empty port never loops).
-    if (opened_since_power_on_.load() == 0 && lib_task_run_.load())
+    if (expect_all_free_) {
+      expect_all_free_ = false; // the device we powered off ourselves
+    } else if (opened_since_power_on_.load() == 0 && lib_task_run_.load()) {
       retry_root_port("vanished before any client opened it");
+    }
     opened_since_power_on_.store(0);
   }
   // A device that is counted but was never opened well after the port powered
@@ -604,11 +615,16 @@ bool UsbHost::retry_root_port(const char *why) {
   --root_port_retries_left_;
   logger_.warn("USB device {}; power-cycling the root port ({} retr{} left)", why,
                root_port_retries_left_, root_port_retries_left_ == 1 ? "y" : "ies");
+  expect_all_free_ = true; // the ALL_FREE this power-off raises is not a new failure
   usb_host_lib_set_root_port_power(false);
-  vTaskDelay(pdMS_TO_TICKS(250)); // let VBUS drop so the device really resets
+  if (config_.vbus_control)
+    config_.vbus_control(false);  // the board switches the jack: really drop VBUS
+  vTaskDelay(pdMS_TO_TICKS(500)); // let VBUS drop so the device really resets
   opened_since_power_on_.store(0);
   root_port_powered_at_ = std::chrono::steady_clock::now();
   usb_host_lib_set_root_port_power(true);
+  if (config_.vbus_control)
+    config_.vbus_control(true);
   return true;
 }
 

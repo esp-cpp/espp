@@ -86,6 +86,11 @@ bool M5StackTab5::get_charging_status() {
   return state.value_or(false);
 }
 
+bool M5StackTab5::set_usb_a_power(bool enable) {
+  // USB_5V_EN_PIN is a bit mask; the expander helper takes the bit index
+  return set_io_expander_output(0x44, static_cast<uint8_t>(__builtin_ctz(USB_5V_EN_PIN)), enable);
+}
+
 bool M5StackTab5::set_io_expander_output(uint8_t address, uint8_t bit, bool level) {
   std::error_code ec;
   IoExpander *io = nullptr;

@@ -563,6 +563,14 @@ public:
   /// \return true on success
   bool set_charging_enabled(bool enable);
 
+  /// Switch the 5 V supply of the USB-A host jack (USB_5V_EN on the 0x44 IO
+  /// expander). On by default after initialize_io_expanders(); turn it off and
+  /// back on to power-cycle an attached device (e.g. so a device attached at
+  /// boot sees the same VBUS + host sequence as a hot-plug).
+  /// \param enable True to power the jack.
+  /// \return True on success (requires initialize_io_expanders()).
+  bool set_usb_a_power(bool enable);
+
   /// Read battery charging status (IP2326 CHG_STAT on 0x44 P6)
   /// Returns true if charging is indicated asserted.
   bool get_charging_status();

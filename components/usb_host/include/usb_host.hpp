@@ -239,7 +239,21 @@ public:
     ///        host library's CONFIG_USB_HOST_DEBOUNCE_DELAY_MS.
     size_t root_port_retries{3};
     std::chrono::milliseconds root_port_stall_timeout{2500}; ///< see root_port_retries
-    size_t task_priority{5};                                 ///< priority of the internal tasks
+    /// @brief Wait this long between installing the host library (which brings
+    ///        up the USB PHY) and powering the root port. A device attached at
+    ///        power-up is enumerated as soon as the port powers on; on a cold boot
+    ///        that can be too soon after the PHY came up (seen on the ESP32-P4's
+    ///        high-speed port: the first enumeration stalls, while a warm reboot
+    ///        or a hot-plug works). 0 = power the port at once.
+    std::chrono::milliseconds root_port_power_on_delay{0};
+    /// @brief Board-level VBUS control for the host jack, when the board (not the
+    ///        USB controller) switches its 5 V: called with true once the host is
+    ///        listening (after the root port powers on) and around every root-port
+    ///        retry (false, then true), so a device attached at boot sees the same
+    ///        VBUS + host sequence as a hot-plug and a retry really resets it.
+    ///        Turn the jack off yourself before initialize() for that to hold.
+    std::function<void(bool on)> vbus_control{nullptr};
+    size_t task_priority{5};          ///< priority of the internal tasks
     int task_core_id{-1};             ///< core for the internal tasks (-1 = no affinity)
     size_t lib_task_stack_size{4096}; ///< stack for the USB-host-library event task
     size_t hid_task_stack_size{4096}; ///< stack for the HID class driver's task (it only enqueues)
@@ -369,6 +383,7 @@ private:
   size_t root_port_retries_left_{0};               ///< remaining power-cycle retries (lib task)
   std::chrono::steady_clock::time_point root_port_powered_at_{}; ///< last power-on (lib task)
   bool retry_root_port(const char *why); ///< lib task: power-cycle if the budget allows
+  bool expect_all_free_{false};          ///< the next ALL_FREE is our own power-off (lib task)
   std::unique_ptr<espp::Task> lib_task_;
 
   // Event queue (driver task -> dispatch task) + dispatch task.
