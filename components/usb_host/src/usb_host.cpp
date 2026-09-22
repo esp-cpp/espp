@@ -383,6 +383,7 @@ bool UsbHost::initialize(std::error_code &ec) {
   // device enumerates from here and is reported to the driver.
   opened_since_power_on_.store(0);
   root_port_retries_left_ = config_.root_port_retries;
+  root_port_powered_at_ = std::chrono::steady_clock::now();
   err = usb_host_lib_set_root_port_power(true);
   if (err != ESP_OK) {
     logger_.error("usb_host_lib_set_root_port_power failed: {}", esp_err_to_name(err));
@@ -561,7 +562,9 @@ std::shared_ptr<UsbHost::HidDevice> UsbHost::find_device(hid_host_device_handle_
 // ---------------------------------------------------------------------------
 bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) {
   uint32_t event_flags = 0;
-  usb_host_lib_handle_events(portMAX_DELAY, &event_flags);
+  // Wake periodically (not only on library events) so a stalled enumeration --
+  // which raises no event at all -- can be noticed below.
+  usb_host_lib_handle_events(pdMS_TO_TICKS(500), &event_flags);
   if (event_flags)
     logger_.debug("USB host lib event flags {:#x}", event_flags);
   if (event_flags & USB_HOST_LIB_EVENT_FLAGS_NO_CLIENTS) {
@@ -575,23 +578,38 @@ bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) 
     // device that was attached at power-up); the library recovers the port but
     // does not detect a still-attached device again, so re-detect it ourselves
     // with a root-port power cycle (bounded, so an empty port never loops).
-    if (opened_since_power_on_.load() == 0 && lib_task_run_.load()) {
-      if (root_port_retries_left_ > 0) {
-        --root_port_retries_left_;
-        logger_.warn("USB device vanished before any client opened it; power-cycling the root "
-                     "port ({} retr{} left)",
-                     root_port_retries_left_, root_port_retries_left_ == 1 ? "y" : "ies");
-        usb_host_lib_set_root_port_power(false);
-        vTaskDelay(pdMS_TO_TICKS(250)); // let VBUS drop so the device really resets
-        usb_host_lib_set_root_port_power(true);
-      } else if (config_.root_port_retries > 0) {
-        logger_.error("USB device keeps vanishing before it can be opened; giving up "
-                      "(re-plug it)");
-      }
-    }
+    if (opened_since_power_on_.load() == 0 && lib_task_run_.load())
+      retry_root_port("vanished before any client opened it");
     opened_since_power_on_.store(0);
   }
+  // A device that is counted but was never opened well after the port powered
+  // on: its enumeration stalled (no event will ever come), so re-detect it.
+  if (lib_task_run_.load() && opened_since_power_on_.load() == 0 &&
+      std::chrono::steady_clock::now() - root_port_powered_at_ > config_.root_port_stall_timeout) {
+    usb_host_lib_info_t info = {};
+    if (usb_host_lib_info(&info) == ESP_OK && info.num_devices > 0)
+      retry_root_port("is present but its enumeration stalled");
+  }
   return !lib_task_run_.load(); // true = stop the task
+}
+
+bool UsbHost::retry_root_port(const char *why) {
+  if (root_port_retries_left_ == 0) {
+    if (config_.root_port_retries > 0)
+      logger_.error("USB device {}; out of root-port retries, giving up (re-plug it)", why);
+    // don't log again every wake: pretend the port was just powered
+    root_port_powered_at_ = std::chrono::steady_clock::now();
+    return false;
+  }
+  --root_port_retries_left_;
+  logger_.warn("USB device {}; power-cycling the root port ({} retr{} left)", why,
+               root_port_retries_left_, root_port_retries_left_ == 1 ? "y" : "ies");
+  usb_host_lib_set_root_port_power(false);
+  vTaskDelay(pdMS_TO_TICKS(250)); // let VBUS drop so the device really resets
+  opened_since_power_on_.store(0);
+  root_port_powered_at_ = std::chrono::steady_clock::now();
+  usb_host_lib_set_root_port_power(true);
+  return true;
 }
 
 void UsbHost::stop_lib_task() {

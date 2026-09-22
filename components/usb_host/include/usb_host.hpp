@@ -2,6 +2,7 @@
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <deque>
@@ -225,14 +226,20 @@ public:
     ///        (UTMI) OTG and controller 1 the full-speed one that shares its PHY
     ///        with USB-Serial-JTAG (on the M5Stack Tab5: USB-A jack / USB-C port).
     int port{-1};
-    /// @brief A device that enumerates and is gone again before any client opened
-    ///        it (seen with devices attached at power-up: the first enumeration
-    ///        after the port powers on hits a port error, the library recovers
-    ///        the port, and a device that stayed attached is not detected again)
-    ///        is retried by power-cycling the root port, up to this many times in
-    ///        a row. 0 disables the retry.
+    /// @brief Retry budget for a device that is present but never gets opened:
+    ///        one that enumerates and is freed again before any client opened it,
+    ///        or one whose enumeration stalls (the host library's enumeration
+    ///        control transfers have no timeout, so a device that is not ready
+    ///        to answer yet -- typically one attached at power-up, still booting
+    ///        when the host starts talking to it -- hangs enumeration for good).
+    ///        After root_port_stall_timeout with a device counted and none
+    ///        opened, the root port is power-cycled so the device is detected
+    ///        afresh; up to this many times in a row. 0 disables the retry.
+    ///        Give such a device more time before enumeration starts with the
+    ///        host library's CONFIG_USB_HOST_DEBOUNCE_DELAY_MS.
     size_t root_port_retries{3};
-    size_t task_priority{5};          ///< priority of the internal tasks
+    std::chrono::milliseconds root_port_stall_timeout{2500}; ///< see root_port_retries
+    size_t task_priority{5};                                 ///< priority of the internal tasks
     int task_core_id{-1};             ///< core for the internal tasks (-1 = no affinity)
     size_t lib_task_stack_size{4096}; ///< stack for the USB-host-library event task
     size_t hid_task_stack_size{4096}; ///< stack for the HID class driver's task (it only enqueues)
@@ -360,6 +367,8 @@ private:
   std::atomic<bool> lib_task_run_{false};
   std::atomic<uint32_t> opened_since_power_on_{0}; ///< HID opens since the root port powered on
   size_t root_port_retries_left_{0};               ///< remaining power-cycle retries (lib task)
+  std::chrono::steady_clock::time_point root_port_powered_at_{}; ///< last power-on (lib task)
+  bool retry_root_port(const char *why); ///< lib task: power-cycle if the budget allows
   std::unique_ptr<espp::Task> lib_task_;
 
   // Event queue (driver task -> dispatch task) + dispatch task.
