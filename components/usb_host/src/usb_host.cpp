@@ -289,6 +289,12 @@ bool UsbHost::initialize(std::error_code &ec) {
   usb_host_config_t host_config = {};
   host_config.skip_phy_setup = false;
   host_config.intr_flags = ESP_INTR_FLAG_LEVEL1;
+  // Keep the root port OFF until the HID class driver has registered its client:
+  // the library only tells clients about devices that enumerate AFTER they
+  // register (the HID driver never scans for existing ones), so a device that
+  // is already plugged in at boot would otherwise enumerate before anyone is
+  // listening and never be opened.
+  host_config.root_port_unpowered = true;
   if (config_.port >= 0) {
     if (config_.port >= static_cast<int>(SOC_USB_OTG_PERIPH_NUM)) {
       logger_.error("Invalid USB port {} (this target has {} USB-OTG peripheral(s))", config_.port,
@@ -367,6 +373,19 @@ bool UsbHost::initialize(std::error_code &ec) {
     logger_.error("hid_host_install failed: {}", esp_err_to_name(err));
     stop_dispatch_task();
     stop_lib_task(); // join the lib task before uninstalling the library
+    usb_host_uninstall();
+    ec = make_ec(err);
+    return false;
+  }
+
+  // Now that the HID client exists, power the root port: an already-attached
+  // device enumerates from here and is reported to the driver.
+  err = usb_host_lib_set_root_port_power(true);
+  if (err != ESP_OK) {
+    logger_.error("usb_host_lib_set_root_port_power failed: {}", esp_err_to_name(err));
+    hid_host_uninstall();
+    stop_dispatch_task();
+    stop_lib_task();
     usb_host_uninstall();
     ec = make_ec(err);
     return false;
