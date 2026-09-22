@@ -33,11 +33,13 @@ CONFIG_SPIRAM_XIP_FROM_PSRAM=y
 CONFIG_CACHE_L2_CACHE_256KB=y
 CONFIG_CACHE_L2_CACHE_LINE_128B=y
 
-# LVGL's built-in allocator pool: the virtual keyboard alone is ~130 objects
-# with labels and styles, well past the 64 KB default (an exhausted pool makes
-# lv_malloc return NULL and LVGL's assert handler spin, which the task watchdog
-# then reports on the main task). The P4 has the internal RAM for a bigger pool.
-CONFIG_LV_MEM_SIZE_KILOBYTES=256
+# LVGL allocator: the C library's malloc (the IDF heap) instead of LVGL's
+# built-in 64 KB static pool. The virtual keyboard alone is ~130 objects with
+# labels and styles, past that pool (an exhausted pool makes lv_malloc return
+# NULL and LVGL's assert handler spin, which the task watchdog then reports on
+# the main task), and a bigger static pool does not fit the internal-RAM link
+# region next to the BSP's buffers.
+CONFIG_LV_USE_CLIB_MALLOC=y
 
 # LVGL: dark theme + the fonts the UI uses
 CONFIG_LV_DEF_REFR_PERIOD=16
