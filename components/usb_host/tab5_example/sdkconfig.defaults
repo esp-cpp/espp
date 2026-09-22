@@ -15,10 +15,6 @@ CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
 CONFIG_ESP_TIMER_TASK_STACK_SIZE=6144
 CONFIG_FREERTOS_HZ=1000
 
-# Lets the example raise the HID class driver's tag to DEBUG at run time (it
-# logs on device events only) so an interface it skips is explained.
-CONFIG_LOG_MAXIMUM_LEVEL_DEBUG=y
-
 # The console stays on USB-Serial-JTAG: on the Tab5 that is the USB-C port
 # (the P4's full-speed USB-OTG controller), while the USB-A host jack is on the
 # separate high-speed controller the USB Host Library uses by default.

@@ -16,7 +16,6 @@
 #include <thread>
 #include <vector>
 
-#include "esp_log.h"
 #include "m5stack-tab5.hpp"
 
 #include "logger.hpp"
@@ -31,14 +30,6 @@ using namespace std::chrono_literals;
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "USB Host Tab5", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting USB HID host (SpaceMouse) example");
-  // the HID class driver only says at debug level which interfaces it found or
-  // skipped; it logs on device events only, so this costs nothing at run time
-  esp_log_level_set("hid-host", ESP_LOG_DEBUG);
-  // and the host library's device tree / enumeration layers, for a device that
-  // enumerates and disappears again before any client hears of it
-  esp_log_level_set("HUB", ESP_LOG_DEBUG);
-  esp_log_level_set("USBH", ESP_LOG_DEBUG);
-  esp_log_level_set("ENUM", ESP_LOG_DEBUG);
 
   // --- board: IO expanders (USB-A 5 V), LCD, LVGL display, touch ---------------
   auto &tab5 = espp::M5StackTab5::get();
@@ -230,13 +221,6 @@ extern "C" void app_main(void) {
     if (enumerated != last_enumerated) {
       logger.info("USB devices enumerated: {} (HID opened: {})", enumerated, devices.size());
       last_enumerated = enumerated;
-      // a device that enumerated but was not opened as HID: show what it is
-      // (the HID driver is silent when it finds no usable HID interface)
-      if (enumerated > 0 && devices.empty()) {
-        std::this_thread::sleep_for(1s); // give the HID driver time to open it first
-        if (host.devices().empty())
-          host.print_usb_devices();
-      }
     }
     if (devices.empty()) {
       gui.set_status_text(
