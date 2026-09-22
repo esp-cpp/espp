@@ -165,6 +165,14 @@ public:
                            (Linux / macOS / Windows) the priority is stored but only applied to
                            the OS thread when host_realtime is set - see below. */
     int core_id{-1};    /**< Core ID of the task, -1 means it is not pinned to any core.  */
+    uint32_t stack_alloc_caps{
+        0}; /**< ESP only: heap capabilities (MALLOC_CAP_*) the task's stack is allocated
+               with; 0 (the default) keeps the pthread default (internal RAM). Set
+               `MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT` to put the stack in PSRAM on targets
+               where internal RAM is the scarce resource (ESP32-S3 / -P4); that needs
+               CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY (and the task must not run code
+               that requires an internal-RAM stack, such as flash writes with the cache
+               disabled). Ignored on host platforms. */
     bool host_realtime{
         false}; /**< Opt-in to applying the priority to the OS thread on HOST platforms (ignored
                    on ESP, where the FreeRTOS priority is always applied). When false (the
