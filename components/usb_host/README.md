@@ -61,8 +61,9 @@ host→device. This mirrors `espp::UsbDevice` exactly, so the two ends of a link
   `Config::root_port_power_on_delay` adds a margin before the first
   enumeration after boot. A fully enumerated device that has no HID interface
   (or is rejected by `should_open`) is never touched.
-- The USB Host library (`usb`) and `usb_host_hid` come from the ESP Component
-  Registry via the IDF component manager. On ESP-IDF ≥ 6.0 `usb_host_hid`
+- Requires **ESP-IDF ≥ 6.0**, where the USB Host library (`usb`, ≥ 1.3.0 for
+  `Config::port` / the root-port power control) and `usb_host_hid` come from
+  the ESP Component Registry via the IDF component manager. `usb_host_hid`
   declares its `usb` dependency only through the manager, so build the example
   with the component manager **on** (the default) rather than the manager-off
   flow used by the device-side USB examples.
