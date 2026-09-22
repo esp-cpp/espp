@@ -14,7 +14,6 @@
 #include <thread>
 #include <vector>
 
-#include "esp_log.h"
 #include "m5stack-tab5.hpp"
 
 #include "logger.hpp"
@@ -29,9 +28,6 @@ using namespace std::chrono_literals;
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "USB Host Tab5", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting USB HID host (SpaceMouse) example");
-  // the HID class driver only says at debug level which interfaces it found /
-  // skipped (needs CONFIG_LOG_MAXIMUM_LEVEL_DEBUG, set in sdkconfig.defaults)
-  esp_log_level_set("hid-host", ESP_LOG_DEBUG);
 
   // --- board: IO expanders (USB-A 5 V), LCD, LVGL display, touch ---------------
   auto &tab5 = espp::M5StackTab5::get();
@@ -91,21 +87,15 @@ extern "C" void app_main(void) {
 
             // every Input report (device -> host): decode a SpaceMouse's, count
             // and show the raw bytes of all of them
+            // Only decode here (USB dispatch task, at the device's report rate);
+            // the screen is refreshed from the main loop at a fixed rate so a
+            // fast device cannot flood LVGL.
             device->set_input_callback([&](std::span<const uint8_t> data) {
               report_count.fetch_add(1);
-              bool decoded = false;
-              SpaceMouseDecoder::State state;
-              {
-                std::lock_guard<std::mutex> lock(state_mutex);
-                last_report.assign(data.begin(), data.end());
-                if (current_is_spacemouse) {
-                  decoded = decoder.decode(data);
-                  state = decoder.state();
-                }
-              }
-              if (decoded)
-                gui.set_spacemouse_state(state);
-              logger.debug("input report ({} bytes): {::#04x}", data.size(), data);
+              std::lock_guard<std::mutex> lock(state_mutex);
+              last_report.assign(data.begin(), data.end());
+              if (current_is_spacemouse)
+                decoder.decode(data);
             });
           },
       .on_device_disconnected =
@@ -135,14 +125,31 @@ extern "C" void app_main(void) {
   gui.set_status_text("Plug a device into the USB-A port.");
   //! [usb_host_tab5_example]
 
-  // --- main loop: report rate + the latest raw report for the screen ----------
-  // The raw-report line is refreshed here (a few times a second) rather than on
-  // every report so a fast device does not swamp the LVGL label.
+  // --- main loop: the screen is refreshed here at a fixed rate ----------------
+  // Axes / buttons at ~30 Hz (plenty for the eye), the raw-report line, rate and
+  // status a few times a second, whatever the device's report rate.
+  constexpr auto kAxisRefresh = 33ms;
+  constexpr int kSlowEvery = 8; // ~4 Hz
   uint32_t last_count = 0;
   size_t last_enumerated = 0;
+  int slow_tick = 0;
   auto last_time = std::chrono::steady_clock::now();
   while (true) {
-    std::this_thread::sleep_for(250ms);
+    std::this_thread::sleep_for(kAxisRefresh);
+    bool spacemouse = false;
+    SpaceMouseDecoder::State state;
+    {
+      std::lock_guard<std::mutex> lock(state_mutex);
+      spacemouse = current_is_spacemouse;
+      if (spacemouse)
+        state = decoder.state();
+    }
+    if (spacemouse)
+      gui.set_spacemouse_state(state);
+    if (++slow_tick < kSlowEvery)
+      continue;
+    slow_tick = 0;
+
     const auto now = std::chrono::steady_clock::now();
     const uint32_t count = report_count.load();
     const float seconds = std::chrono::duration<float>(now - last_time).count();
@@ -157,12 +164,6 @@ extern "C" void app_main(void) {
     if (enumerated != last_enumerated) {
       logger.info("USB devices enumerated: {} (HID opened: {})", enumerated, devices.size());
       last_enumerated = enumerated;
-      // a device that enumerated but was not opened as HID: show what it is
-      if (enumerated > 0 && devices.empty()) {
-        std::this_thread::sleep_for(500ms); // let the HID driver finish first
-        if (host.devices().empty())
-          host.print_usb_devices();
-      }
     }
     if (devices.empty()) {
       gui.set_status_text(

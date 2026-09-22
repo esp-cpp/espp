@@ -52,5 +52,9 @@ class driver come from the registry, as in the plain `usb_host` example).
   mapping to a robot frame.
 - A SpaceMouse reports a zeroed translation + rotation pair when released, so
   the bars return to center on their own.
+- A device that enumerates but is not opened as HID shows as "N USB device(s)
+  enumerated, none opened as HID"; call `host.print_usb_devices()` (or set the
+  `hid-host` log tag to debug with `CONFIG_LOG_MAXIMUM_LEVEL_DEBUG`) to see its
+  interfaces.
 - Devices with a VID other than 3Dconnexion's (`0x256F`) or the original
   Logitech-made SpaceNavigator (`0x046D`) are treated as generic HID.
