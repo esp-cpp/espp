@@ -133,6 +133,31 @@ bool UsbHost::HidDevice::start(std::error_code &ec) {
   return !ec;
 }
 
+void UsbHost::HidDevice::set_transfer_error_callback(transfer_error_callback_fn cb) {
+  std::lock_guard<std::mutex> lk(cb_mutex_);
+  on_transfer_error_ = std::move(cb);
+}
+
+void UsbHost::HidDevice::handle_transfer_error(bool restart) {
+  bool restarted = false;
+  if (restart) {
+    std::lock_guard<std::mutex> lk(io_mutex_);
+    if (connected_.load()) {
+      hid_host_device_stop(handle_);
+      restarted = hid_host_device_start(handle_) == ESP_OK;
+      started_.store(restarted);
+    }
+  }
+  transfer_error_callback_fn cb;
+  {
+    std::lock_guard<std::mutex> lk(cb_mutex_);
+    cb = on_transfer_error_;
+  }
+  if (cb) {
+    cb(restarted);
+  }
+}
+
 bool UsbHost::HidDevice::stop(std::error_code &ec) {
   std::lock_guard<std::mutex> lk(io_mutex_);
   if (!connected_.load()) {
@@ -646,12 +671,14 @@ void UsbHost::enqueue(Event &&ev) {
                                  [](const Event &e) { return e.type == Event::Type::Input; });
       if (victim != queue_.end()) {
         queue_.erase(victim);
-      } else if (ev.type == Event::Type::NewDevice) {
+      } else if (ev.type == Event::Type::NewDevice || ev.type == Event::Type::TransferError) {
         // Only lifecycle events are queued and the consumer is overloaded: leave
-        // this device unopened rather than grow without bound. A Disconnected
-        // event is always kept -- it can only follow an opened device, so those
-        // are bounded by the open-device count.
-        logger_.warn("event queue full; not opening newly attached HID device");
+        // this device unopened (or its error unhandled: a re-plug recovers it)
+        // rather than grow without bound. A Disconnected event is always kept
+        // -- it can only follow an opened device, so those are bounded by the
+        // open-device count.
+        logger_.warn("event queue full; dropping a {} event",
+                     ev.type == Event::Type::NewDevice ? "new-device" : "transfer-error");
         return;
       }
     }
@@ -716,7 +743,9 @@ void UsbHost::on_interface_event(hid_host_device_handle_t handle,
     enqueue(Event{.type = Event::Type::Disconnected, .handle = handle});
     break;
   case HID_HOST_INTERFACE_EVENT_TRANSFER_ERROR:
-    logger_.warn("HID transfer error");
+    // Handled on the dispatch task (restart needs driver calls this task must
+    // not make), in order with the device's other events.
+    enqueue(Event{.type = Event::Type::TransferError, .handle = handle});
     break;
   default:
     break;
@@ -754,6 +783,9 @@ bool UsbHost::dispatch_task_fn(std::mutex & /*m*/, std::condition_variable & /*c
       break;
     case Event::Type::Disconnected:
       handle_disconnected(ev.handle);
+      break;
+    case Event::Type::TransferError:
+      handle_transfer_error(ev.handle);
       break;
     }
   }
@@ -844,6 +876,17 @@ void UsbHost::handle_input(hid_host_device_handle_t handle, std::span<const uint
   if (auto dev = find_device(handle)) {
     dev->deliver_input(data);
   }
+}
+
+void UsbHost::handle_transfer_error(hid_host_device_handle_t handle) {
+  auto device = find_device(handle);
+  if (!device) {
+    return;
+  }
+  logger_.warn("HID transfer error (VID={:#06x} PID={:#06x}){}", device->info().vid,
+               device->info().pid,
+               config_.restart_on_transfer_error ? "; restarting the interface" : "");
+  device->handle_transfer_error(config_.restart_on_transfer_error);
 }
 
 void UsbHost::handle_disconnected(hid_host_device_handle_t handle) {

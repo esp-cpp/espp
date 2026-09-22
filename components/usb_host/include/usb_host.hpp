@@ -192,6 +192,16 @@ public:
     /// @brief Whether the device is still connected/usable.
     bool is_connected() const { return connected_.load(); }
 
+    /// @brief Callback invoked after a transfer error on the interface: the
+    ///        device stopped reporting, so any state derived from its last
+    ///        report (a held button) should be dropped. `UsbHost` restarts the
+    ///        interface right after (see Config::restart_on_transfer_error);
+    ///        `restarted` tells whether that succeeded -- if not, the device
+    ///        stays open but silent until it is re-plugged.
+    using transfer_error_callback_fn = std::function<void(bool restarted)>;
+    /// @brief Install the transfer-error callback (see transfer_error_callback_fn).
+    void set_transfer_error_callback(transfer_error_callback_fn cb);
+
     /// @brief The underlying driver handle (for advanced use; only valid while
     ///        is_connected()).
     hid_host_device_handle_t handle() const { return handle_; }
@@ -207,6 +217,9 @@ public:
 
     // Called by UsbHost (on the dispatch task) with a copy of an Input report.
     void deliver_input(std::span<const uint8_t> data);
+    // Called by UsbHost (on the dispatch task) after a transfer error: stop +
+    // start the interface (when configured) and tell the application.
+    void handle_transfer_error(bool restart);
     // Called by UsbHost to retire the device: marks it inert and closes the
     // driver handle, serialized against any in-flight driver call.
     void retire();
@@ -223,6 +236,7 @@ public:
     mutable std::mutex io_mutex_;
     mutable std::mutex cb_mutex_;
     input_callback_fn on_input_{nullptr};
+    transfer_error_callback_fn on_transfer_error_{nullptr};
   };
 
   /// @brief Callback invoked when a HID device is connected / disconnected.
@@ -265,6 +279,10 @@ public:
     ///        yourself before initialize() if a device attached at boot should see
     ///        VBUS only once the host is ready.
     std::function<void(bool on)> vbus_control{nullptr};
+    /// @brief After a transfer error on an interface (the device stops
+    ///        reporting; seen with gamepads on a marginal cable or hub) stop and
+    ///        start it again instead of leaving it silent until re-plugged.
+    bool restart_on_transfer_error{true};
     size_t task_priority{5};          ///< priority of the internal tasks
     int task_core_id{-1};             ///< core for the internal tasks (-1 = no affinity)
     size_t lib_task_stack_size{4096}; ///< stack for the USB-host-library event task
@@ -357,7 +375,7 @@ private:
   // larger Config::max_input_report_size was requested.
   struct Event {
     static constexpr size_t kInlineBytes = 64; // full-speed HID interrupt max packet
-    enum class Type { NewDevice, Input, Disconnected } type;
+    enum class Type { NewDevice, Input, Disconnected, TransferError } type;
     hid_host_device_handle_t handle{nullptr};
     std::array<uint8_t, kInlineBytes> inline_data{};
     std::vector<uint8_t> overflow{}; // used only when max_input_report_size > kInlineBytes
@@ -379,6 +397,7 @@ private:
   void handle_new_device(hid_host_device_handle_t handle);
   void handle_input(hid_host_device_handle_t handle, std::span<const uint8_t> data);
   void handle_disconnected(hid_host_device_handle_t handle);
+  void handle_transfer_error(hid_host_device_handle_t handle);
   std::shared_ptr<HidDevice> find_device(hid_host_device_handle_t handle) const;
   void stop_dispatch_task();
 
