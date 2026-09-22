@@ -227,17 +227,16 @@ public:
     ///        (UTMI) OTG and controller 1 the full-speed one that shares its PHY
     ///        with USB-Serial-JTAG (on the M5Stack Tab5: USB-A jack / USB-C port).
     int port{-1};
-    /// @brief Retry budget for a device that is present but never gets opened:
-    ///        one that enumerates and is freed again before any client opened it,
-    ///        or one whose enumeration stalls (the host library's enumeration
-    ///        control transfers have no timeout, so a device that is not ready
-    ///        to answer yet -- typically one attached at power-up, still booting
-    ///        when the host starts talking to it -- hangs enumeration for good).
-    ///        After root_port_stall_timeout with a device counted and none
-    ///        opened, the root port is power-cycled so the device is detected
-    ///        afresh; up to this many times in a row. 0 disables the retry.
-    ///        Give such a device more time before enumeration starts with the
-    ///        host library's CONFIG_USB_HOST_DEBOUNCE_DELAY_MS.
+    /// @brief Retry budget for a device whose enumeration fails: one that is
+    ///        freed again before any client opened it, or one whose enumeration
+    ///        STALLS -- counted by the library but never reaching its
+    ///        fully-enumerated list for root_port_stall_timeout (the library's
+    ///        enumeration control transfers have no timeout, so a device that is
+    ///        not ready to answer, typically one attached at power-up, hangs
+    ///        enumeration for good). The root port is then power-cycled so the
+    ///        device is detected afresh; up to this many times in a row. A device
+    ///        that enumerated fully but was not opened (no HID interface, or
+    ///        rejected by should_open) is never touched. 0 disables the retry.
     size_t root_port_retries{3};
     std::chrono::milliseconds root_port_stall_timeout{2500}; ///< see root_port_retries
     /// @brief Wait this long between installing the host library (which brings
@@ -383,6 +382,10 @@ private:
   std::atomic<uint32_t> opened_since_power_on_{0}; ///< HID opens since the root port powered on
   std::atomic<size_t> root_port_retries_left_{0};  ///< remaining power-cycle retries
   std::atomic<bool> gave_up_logged_{false};        ///< the out-of-retries error was logged
+  std::atomic<bool> tearing_down_{false};          ///< deinitialize() started: no more retries
+  /// Devices the library counts that are still under enumeration (counted but not
+  /// in its fully-enumerated address list). 0 when the query fails.
+  size_t num_enumerating_devices() const;
   /// when a counted-but-unopened device was first seen (lib task); nullopt = none
   std::optional<std::chrono::steady_clock::time_point> unopened_device_since_{};
   bool retry_root_port(const char *why); ///< lib task: power-cycle if the budget allows

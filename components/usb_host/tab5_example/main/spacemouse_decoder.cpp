@@ -1,7 +1,5 @@
 #include "spacemouse_decoder.hpp"
 
-#include <cstring>
-
 namespace {
 constexpr uint8_t kTranslationReportId = 1;
 constexpr uint8_t kRotationReportId = 2;
@@ -25,7 +23,8 @@ bool SpaceMouseDecoder::decode(std::span<const uint8_t> report) {
   case kTranslationReportId: {
     if (payload.size() < kAxesBytes)
       break;
-    translation_.set_data(std::vector<uint8_t>(payload.begin(), payload.begin() + kAxesBytes));
+    scratch_.assign(payload.begin(), payload.begin() + kAxesBytes);
+    translation_.set_data(scratch_);
     translation_.get_translation(state_.x, state_.y, state_.z);
     ++state_.translation_reports;
     // newer firmware packs rotation into the same report after translation
@@ -40,7 +39,8 @@ bool SpaceMouseDecoder::decode(std::span<const uint8_t> report) {
   case kRotationReportId: {
     if (payload.size() < kAxesBytes)
       break;
-    rotation_.set_data(std::vector<uint8_t>(payload.begin(), payload.begin() + kAxesBytes));
+    scratch_.assign(payload.begin(), payload.begin() + kAxesBytes);
+    rotation_.set_data(scratch_);
     rotation_.get_rotation(state_.rx, state_.ry, state_.rz);
     ++state_.rotation_reports;
     return true;
@@ -48,7 +48,8 @@ bool SpaceMouseDecoder::decode(std::span<const uint8_t> report) {
   case kButtonsReportId: {
     if (payload.empty())
       break;
-    buttons_.set_data(std::vector<uint8_t>(payload.begin(), payload.end()));
+    scratch_.assign(payload.begin(), payload.end());
+    buttons_.set_data(scratch_);
     for (size_t i = 0; i < kButtonCount; ++i)
       state_.buttons[i] = buttons_.get_button(static_cast<int>(i + 1));
     ++state_.button_reports;

@@ -20,9 +20,14 @@
 /// 12-byte report id 1; that layout is recognised too.
 class SpaceMouseDecoder {
 public:
-  /// 3Dconnexion's USB vendor ids (the newer devices use the second one).
+  /// 3Dconnexion's USB vendor id (every current SpaceMouse).
   static constexpr uint16_t kVendorId3Dconnexion = 0x256F;
-  static constexpr uint16_t kVendorIdLogitech = 0x046D; // early SpaceNavigator
+  /// The early SpaceNavigator / SpaceExplorer / SpacePilot were sold under
+  /// Logitech's vendor id, which Logitech keyboards and mice share, so those are
+  /// matched by product id.
+  static constexpr uint16_t kVendorIdLogitech = 0x046D;
+  static constexpr uint16_t kLogitechSpaceMousePids[] = {0xC626, 0xC627, 0xC628, 0xC629,
+                                                         0xC62B, 0xC623, 0xC625, 0xC603};
 
   /// The number of buttons the decoder tracks (enough for a SpaceMouse Pro's
   /// 15 and the two-button Compact / Navigator).
@@ -45,9 +50,17 @@ public:
     uint32_t unknown_reports{0};
   };
 
-  /// Whether a VID looks like a SpaceMouse.
-  static bool is_spacemouse_vendor(uint16_t vid) {
-    return vid == kVendorId3Dconnexion || vid == kVendorIdLogitech;
+  /// Whether a VID:PID is a SpaceMouse: any 3Dconnexion device, or one of the
+  /// Logitech-branded SpaceNavigator / SpaceExplorer / SpacePilot ids.
+  static bool is_spacemouse(uint16_t vid, uint16_t pid) {
+    if (vid == kVendorId3Dconnexion)
+      return true;
+    if (vid != kVendorIdLogitech)
+      return false;
+    for (uint16_t p : kLogitechSpaceMousePids)
+      if (p == pid)
+        return true;
+    return false;
   }
 
   /// Feed one raw Input report (report id in byte 0). \return true if the
@@ -59,6 +72,7 @@ public:
 
 protected:
   State state_;
+  std::vector<uint8_t> scratch_; ///< reused per report (no per-report allocation)
   espp::SpaceMouseTranslationInputReport<> translation_;
   espp::SpaceMouseRotationInputReport<> rotation_;
   espp::SpaceMouseButtonsInputReport<kButtonCount> buttons_;

@@ -338,6 +338,8 @@ void Gui::set_device(const DeviceInfo &info) {
       lv_label_set_text(value, "0");
     for (auto *led : button_leds_)
       lv_obj_set_style_bg_color(led, lv_color_hex(0x2a3444), 0);
+    lv_label_set_text(report_label_, "");
+    lv_label_set_text(rate_label_, "Last report: -");
     return;
   }
   const std::string title = info.product.empty() ? "USB HID device" : info.product;
@@ -365,7 +367,7 @@ void Gui::set_spacemouse_state(const SpaceMouseDecoder::State &state) {
     const int v =
         std::clamp<int>(values[i], -SpaceMouseDecoder::kAxisMax, SpaceMouseDecoder::kAxisMax);
     lv_bar_set_value(axis_bars_[i], v, LV_ANIM_OFF);
-    lv_label_set_text_fmt(axis_values_[i], "%d", static_cast<int>(values[i]));
+    lv_label_set_text_fmt(axis_values_[i], "%d", v); // the value the bar shows
   }
   for (size_t i = 0; i < kButtonCount; ++i) {
     if (state.buttons[i] == shown_buttons_[i])

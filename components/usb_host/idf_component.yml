@@ -8,6 +8,7 @@ maintainers:
 documentation: "https://esp-cpp.github.io/espp/usb_host/usb_host.html"
 examples:
   - path: example
+  - path: tab5_example
 tags:
   - cpp
   - Component

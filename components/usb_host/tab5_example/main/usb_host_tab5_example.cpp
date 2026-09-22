@@ -72,9 +72,9 @@ extern "C" void app_main(void) {
         [&](const std::shared_ptr<espp::UsbHost::HidDevice> &device) {
           const auto info = device->info();
           const auto params = device->params();
-          const bool is_spacemouse = SpaceMouseDecoder::is_spacemouse_vendor(info.vid);
+          const bool is_spacemouse = SpaceMouseDecoder::is_spacemouse(info.vid, info.pid);
           // bInterfaceSubClass 1 = boot interface, bInterfaceProtocol 1 = keyboard
-          const bool is_keyboard = params.sub_class == 1 && params.protocol == 1;
+          bool is_keyboard = params.sub_class == 1 && params.protocol == 1;
           logger.info("connected: '{}' '{}' VID={:#06x} PID={:#06x} iface={} proto={}{}",
                       info.manufacturer, info.product, info.vid, info.pid, params.interface_number,
                       params.protocol, is_spacemouse ? " (SpaceMouse)" : "");
@@ -83,8 +83,13 @@ extern "C" void app_main(void) {
           // report descriptor says, so no per-keyboard parsing is needed.
           if (is_keyboard) {
             std::error_code proto_ec;
-            if (!device->set_protocol(HID_REPORT_PROTOCOL_BOOT, proto_ec))
-              logger.warn("keyboard did not accept the boot protocol: {}", proto_ec.message());
+            if (!device->set_protocol(HID_REPORT_PROTOCOL_BOOT, proto_ec)) {
+              // still in report protocol: its reports are not the boot layout,
+              // so show them raw rather than mis-decode keys
+              logger.warn("keyboard did not accept the boot protocol ({}); showing raw reports",
+                          proto_ec.message());
+              is_keyboard = false;
+            }
           }
           // A device may expose several HID interfaces (a keyboard usually adds a
           // mouse / media one): the card and the decoders follow the most
