@@ -128,6 +128,7 @@ later without changing the host-lifecycle model — the same way
 .. toctree::
 
    usb_host_example.md
+   usb_host_tab5_example.md
 
 .. ---------------------------- API Reference ----------------------------------
 

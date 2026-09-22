@@ -362,6 +362,8 @@ jobs:
           command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/usb_host/example'
           target: esp32s3
+        - path: 'components/usb_host/tab5_example'
+          target: esp32p4
         - path: 'components/vl53l/example'
           target: esp32s3
         - path: 'components/wdi/ble_example'
