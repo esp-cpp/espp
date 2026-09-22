@@ -382,13 +382,13 @@ bool UsbHost::initialize(std::error_code &ec) {
   // Now that the HID client exists, power the root port: an already-attached
   // device enumerates from here and is reported to the driver.
   opened_since_power_on_.store(0);
-  root_port_retries_left_ = config_.root_port_retries;
+  root_port_retries_left_.store(config_.root_port_retries);
+  gave_up_logged_.store(false);
   if (config_.root_port_power_on_delay.count() > 0) {
     logger_.debug("waiting {} ms before powering the root port",
                   config_.root_port_power_on_delay.count());
     std::this_thread::sleep_for(config_.root_port_power_on_delay);
   }
-  root_port_powered_at_ = std::chrono::steady_clock::now();
   err = usb_host_lib_set_root_port_power(true);
   if (err != ESP_OK) {
     logger_.error("usb_host_lib_set_root_port_power failed: {}", esp_err_to_name(err));
@@ -445,6 +445,8 @@ bool UsbHost::deinitialize(std::error_code &ec) {
   //    root port so any attached device is reported gone, then wait (bounded)
   //    for the driver to release it and uninstall to succeed.
   usb_host_lib_set_root_port_power(false);
+  if (config_.vbus_control)
+    config_.vbus_control(false); // and the board's jack, if it switches it
   esp_err_t err = ESP_FAIL;
   for (int i = 0; i < 200; ++i) { // up to ~2 s
     err = hid_host_uninstall();
@@ -615,16 +617,16 @@ bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) 
 }
 
 bool UsbHost::retry_root_port(const char *why) {
-  if (root_port_retries_left_ == 0) {
-    if (config_.root_port_retries > 0)
+  if (root_port_retries_left_.load() == 0) {
+    // log once per exhausted budget, not on every wake while the device sits there
+    if (config_.root_port_retries > 0 && !gave_up_logged_.exchange(true))
       logger_.error("USB device {}; out of root-port retries, giving up (re-plug it)", why);
-    // don't log again every wake: pretend the port was just powered
-    root_port_powered_at_ = std::chrono::steady_clock::now();
     return false;
   }
-  --root_port_retries_left_;
-  logger_.warn("USB device {}; power-cycling the root port ({} retr{} left)", why,
-               root_port_retries_left_, root_port_retries_left_ == 1 ? "y" : "ies");
+  root_port_retries_left_.fetch_sub(1);
+  const size_t left = root_port_retries_left_.load();
+  logger_.warn("USB device {}; power-cycling the root port ({} retr{} left)", why, left,
+               left == 1 ? "y" : "ies");
   expect_all_free_ = true; // the ALL_FREE this power-off raises is not a new failure
   usb_host_lib_set_root_port_power(false);
   if (config_.vbus_control)
@@ -632,7 +634,6 @@ bool UsbHost::retry_root_port(const char *why) {
   vTaskDelay(pdMS_TO_TICKS(500)); // let VBUS drop so the device really resets
   opened_since_power_on_.store(0);
   unopened_device_since_.reset();
-  root_port_powered_at_ = std::chrono::steady_clock::now();
   usb_host_lib_set_root_port_power(true);
   if (config_.vbus_control)
     config_.vbus_control(true);
@@ -863,7 +864,8 @@ void UsbHost::handle_new_device(hid_host_device_handle_t handle) {
     devices_[handle] = device;
   }
   opened_since_power_on_.fetch_add(1);
-  root_port_retries_left_ = config_.root_port_retries; // a good open re-arms the retry budget
+  root_port_retries_left_.store(config_.root_port_retries); // a good open re-arms the budget
+  gave_up_logged_.store(false);
 
   // Let the application install its input callback *before* reports flow.
   if (config_.on_device_connected) {

@@ -381,8 +381,8 @@ private:
   // USB Host library task.
   std::atomic<bool> lib_task_run_{false};
   std::atomic<uint32_t> opened_since_power_on_{0}; ///< HID opens since the root port powered on
-  size_t root_port_retries_left_{0};               ///< remaining power-cycle retries (lib task)
-  std::chrono::steady_clock::time_point root_port_powered_at_{}; ///< last power-on (lib task)
+  std::atomic<size_t> root_port_retries_left_{0};  ///< remaining power-cycle retries
+  std::atomic<bool> gave_up_logged_{false};        ///< the out-of-retries error was logged
   /// when a counted-but-unopened device was first seen (lib task); nullopt = none
   std::optional<std::chrono::steady_clock::time_point> unopened_device_since_{};
   bool retry_root_port(const char *why); ///< lib task: power-cycle if the budget allows

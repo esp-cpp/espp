@@ -1,0 +1,22 @@
+menu "USB Host Tab5 Example Configuration"
+
+    config USB_HOST_TAB5_ROOT_PORT_POWER_ON_DELAY_MS
+        int "Delay between host install and root-port power-on (ms)"
+        range 0 5000
+        default 500
+        help
+            A device attached at power-up is enumerated as soon as the root port
+            powers on; on a cold boot that can be too soon after the USB PHY came
+            up (the first enumeration stalls on the ESP32-P4's high-speed port,
+            while a warm reboot or a hot-plug works). 0 powers the port at once.
+
+    config USB_HOST_TAB5_CONTROL_USB_A_POWER
+        bool "Switch the USB-A jack's 5 V from the example"
+        default y
+        help
+            Turn the USB-A jack off at start-up and on only once the host is
+            listening, and off/on around a root-port retry, so a device attached
+            at boot sees the same VBUS + host sequence as a hot-plug (the library's
+            own port power-off does not switch the jack's 5 V on the Tab5).
+
+endmenu
