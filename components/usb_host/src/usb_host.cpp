@@ -381,6 +381,8 @@ bool UsbHost::initialize(std::error_code &ec) {
 
   // Now that the HID client exists, power the root port: an already-attached
   // device enumerates from here and is reported to the driver.
+  opened_since_power_on_.store(0);
+  root_port_retries_left_ = config_.root_port_retries;
   err = usb_host_lib_set_root_port_power(true);
   if (err != ESP_OK) {
     logger_.error("usb_host_lib_set_root_port_power failed: {}", esp_err_to_name(err));
@@ -568,6 +570,26 @@ bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) 
   }
   if (event_flags & USB_HOST_LIB_EVENT_FLAGS_ALL_FREE) {
     logger_.debug("all USB devices freed");
+    // Every device is gone. If none was ever opened since the port powered on,
+    // the device vanished during / right after enumeration (a port error on a
+    // device that was attached at power-up); the library recovers the port but
+    // does not detect a still-attached device again, so re-detect it ourselves
+    // with a root-port power cycle (bounded, so an empty port never loops).
+    if (opened_since_power_on_.load() == 0 && lib_task_run_.load()) {
+      if (root_port_retries_left_ > 0) {
+        --root_port_retries_left_;
+        logger_.warn("USB device vanished before any client opened it; power-cycling the root "
+                     "port ({} retr{} left)",
+                     root_port_retries_left_, root_port_retries_left_ == 1 ? "y" : "ies");
+        usb_host_lib_set_root_port_power(false);
+        vTaskDelay(pdMS_TO_TICKS(250)); // let VBUS drop so the device really resets
+        usb_host_lib_set_root_port_power(true);
+      } else if (config_.root_port_retries > 0) {
+        logger_.error("USB device keeps vanishing before it can be opened; giving up "
+                      "(re-plug it)");
+      }
+    }
+    opened_since_power_on_.store(0);
   }
   return !lib_task_run_.load(); // true = stop the task
 }
@@ -795,6 +817,8 @@ void UsbHost::handle_new_device(hid_host_device_handle_t handle) {
     std::lock_guard<std::mutex> lk(devices_mutex_);
     devices_[handle] = device;
   }
+  opened_since_power_on_.fetch_add(1);
+  root_port_retries_left_ = config_.root_port_retries; // a good open re-arms the retry budget
 
   // Let the application install its input callback *before* reports flow.
   if (config_.on_device_connected) {

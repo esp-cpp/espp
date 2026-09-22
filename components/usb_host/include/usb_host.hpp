@@ -225,6 +225,13 @@ public:
     ///        (UTMI) OTG and controller 1 the full-speed one that shares its PHY
     ///        with USB-Serial-JTAG (on the M5Stack Tab5: USB-A jack / USB-C port).
     int port{-1};
+    /// @brief A device that enumerates and is gone again before any client opened
+    ///        it (seen with devices attached at power-up: the first enumeration
+    ///        after the port powers on hits a port error, the library recovers
+    ///        the port, and a device that stayed attached is not detected again)
+    ///        is retried by power-cycling the root port, up to this many times in
+    ///        a row. 0 disables the retry.
+    size_t root_port_retries{3};
     size_t task_priority{5};          ///< priority of the internal tasks
     int task_core_id{-1};             ///< core for the internal tasks (-1 = no affinity)
     size_t lib_task_stack_size{4096}; ///< stack for the USB-host-library event task
@@ -351,6 +358,8 @@ private:
 
   // USB Host library task.
   std::atomic<bool> lib_task_run_{false};
+  std::atomic<uint32_t> opened_since_power_on_{0}; ///< HID opens since the root port powered on
+  size_t root_port_retries_left_{0};               ///< remaining power-cycle retries (lib task)
   std::unique_ptr<espp::Task> lib_task_;
 
   // Event queue (driver task -> dispatch task) + dispatch task.
