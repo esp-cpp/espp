@@ -1,0 +1,22 @@
+menu "USB Host Tab5 Example Configuration"
+
+    config USB_HOST_TAB5_ROOT_PORT_POWER_ON_DELAY_MS
+        int "Delay between host install and root-port power-on (ms)"
+        range 0 5000
+        default 500
+        help
+            A device attached at power-up is enumerated as soon as the root port
+            powers on; this margin lets the board's supply settle after a cold
+            boot before that first enumeration. 0 powers the port at once.
+
+    config USB_HOST_TAB5_CONTROL_USB_A_POWER
+        bool "Switch the USB-A jack's 5 V from the example"
+        default y
+        help
+            The Tab5 switches the jack's 5 V through an IO expander, not the USB
+            controller, so the host library's own root-port power-off does not
+            reach a device on the jack. With this on, the jack is off from
+            start-up until the host is listening, so a device attached at boot
+            sees VBUS and a listening host together.
+
+endmenu

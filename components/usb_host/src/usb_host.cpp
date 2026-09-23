@@ -10,6 +10,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "soc/soc_caps.h"
+#include "usb/usb_helpers.h"
 #include "usb/usb_host.h"
 
 using namespace std::chrono_literals;
@@ -288,6 +290,32 @@ bool UsbHost::initialize(std::error_code &ec) {
   usb_host_config_t host_config = {};
   host_config.skip_phy_setup = false;
   host_config.intr_flags = ESP_INTR_FLAG_LEVEL1;
+  // Keep the root port OFF until the HID class driver has registered its client:
+  // the library only tells clients about devices that enumerate AFTER they
+  // register (the HID driver never scans for existing ones), so a device that
+  // is already plugged in at boot would otherwise enumerate before anyone is
+  // listening and never be opened.
+  host_config.root_port_unpowered = true;
+#if ESPP_USB_HOST_HAS_PORT_SELECT
+  if (config_.port < -1 || config_.port >= static_cast<int>(SOC_USB_OTG_PERIPH_NUM)) {
+    logger_.error("Invalid USB port {} (-1 = default, or 0..{})", config_.port,
+                  static_cast<int>(SOC_USB_OTG_PERIPH_NUM) - 1);
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
+  if (config_.port >= 0)
+    host_config.peripheral_map = 1u << config_.port;
+#else
+  // single-controller target, or a USB Host library without peripheral_map
+  // (IDF's built-in one on ESP-IDF 5.x): only the default port exists
+  if (config_.port != -1) {
+    logger_.error("USB port {} requested, but peripheral selection is not available on this "
+                  "target / USB Host library (see ESPP_USB_HOST_HAS_PORT_SELECT); use -1",
+                  config_.port);
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
+#endif
   esp_err_t err = usb_host_install(&host_config);
   if (err != ESP_OK) {
     logger_.error("usb_host_install failed: {}", esp_err_to_name(err));
@@ -362,8 +390,30 @@ bool UsbHost::initialize(std::error_code &ec) {
     return false;
   }
 
+  // Now that the HID client exists, power the root port: an already-attached
+  // device enumerates from here and is reported to the driver.
+  if (config_.root_port_power_on_delay.count() > 0) {
+    logger_.debug("waiting {} ms before powering the root port",
+                  config_.root_port_power_on_delay.count());
+    std::this_thread::sleep_for(config_.root_port_power_on_delay);
+  }
+  err = usb_host_lib_set_root_port_power(true);
+  if (err != ESP_OK) {
+    logger_.error("usb_host_lib_set_root_port_power failed: {}", esp_err_to_name(err));
+    hid_host_uninstall();
+    stop_dispatch_task();
+    stop_lib_task();
+    usb_host_uninstall();
+    ec = make_ec(err);
+    return false;
+  }
+
+  if (config_.vbus_control)
+    config_.vbus_control(true); // the host is listening: now let the jack power the device
+
   initialized_.store(true);
-  logger_.info("USB host installed");
+  logger_.info("USB host installed on USB-OTG peripheral {} of {}",
+               config_.port >= 0 ? config_.port : 0, static_cast<int>(SOC_USB_OTG_PERIPH_NUM));
   ec.clear();
   return true;
 }
@@ -403,6 +453,8 @@ bool UsbHost::deinitialize(std::error_code &ec) {
   //    root port so any attached device is reported gone, then wait (bounded)
   //    for the driver to release it and uninstall to succeed.
   usb_host_lib_set_root_port_power(false);
+  if (config_.vbus_control)
+    config_.vbus_control(false); // and the board's jack, if it switches it
   esp_err_t err = ESP_FAIL;
   for (int i = 0; i < 200; ++i) { // up to ~2 s
     err = hid_host_uninstall();
@@ -448,6 +500,73 @@ bool UsbHost::deinitialize(std::error_code &ec) {
   return true;
 }
 
+bool UsbHost::print_usb_devices() {
+  if (!initialized_.load())
+    return false;
+  // a throw-away asynchronous client: opening a device needs one, and the HID
+  // driver's is private to it
+  usb_host_client_config_t client_config = {};
+  client_config.is_synchronous = false;
+  client_config.max_num_event_msg = 4;
+  client_config.async.client_event_callback = [](const usb_host_client_event_msg_t *, void *) {};
+  client_config.async.callback_arg = nullptr;
+  usb_host_client_handle_t client = nullptr;
+  esp_err_t err = usb_host_client_register(&client_config, &client);
+  if (err != ESP_OK) {
+    logger_.error("usb_host_client_register failed: {}", esp_err_to_name(err));
+    return false;
+  }
+  // Size the list from the library's own count so a hub full of devices is
+  // never silently capped (usb_host_device_addr_list_fill() reports at most
+  // list_len entries and returns ESP_OK either way). That count also includes
+  // devices still being enumerated, which the address list omits, so print
+  // both: the difference is a device stuck in enumeration.
+  usb_host_lib_info_t lib_info = {};
+  const int counted = usb_host_lib_info(&lib_info) == ESP_OK ? lib_info.num_devices : 0;
+  std::vector<uint8_t> addresses(static_cast<size_t>(std::max(counted, 1)), 0);
+  int count = 0;
+  err =
+      usb_host_device_addr_list_fill(static_cast<int>(addresses.size()), addresses.data(), &count);
+  if (err == ESP_OK) {
+    printf("USB devices: %d counted by the library, %d fully enumerated (listed below)\n", counted,
+           count);
+    for (int i = 0; i < count; ++i) {
+      usb_device_handle_t dev = nullptr;
+      if (usb_host_device_open(client, addresses[i], &dev) != ESP_OK) {
+        printf("  address %d: open failed\n", addresses[i]);
+        continue;
+      }
+      usb_device_info_t info = {};
+      if (usb_host_device_info(dev, &info) == ESP_OK)
+        printf("--- address %d: speed %s, bConfigurationValue %d\n", addresses[i],
+               info.speed == USB_SPEED_LOW    ? "low"
+               : info.speed == USB_SPEED_FULL ? "full"
+                                              : "high",
+               info.bConfigurationValue);
+      const usb_device_desc_t *dev_desc = nullptr;
+      if (usb_host_get_device_descriptor(dev, &dev_desc) == ESP_OK)
+        usb_print_device_descriptor(dev_desc);
+      const usb_config_desc_t *cfg_desc = nullptr;
+      if (usb_host_get_active_config_descriptor(dev, &cfg_desc) == ESP_OK)
+        usb_print_config_descriptor(cfg_desc, nullptr);
+      usb_host_device_close(client, dev);
+    }
+  } else {
+    logger_.error("usb_host_device_addr_list_fill failed: {}", esp_err_to_name(err));
+  }
+  usb_host_client_deregister(client);
+  return err == ESP_OK;
+}
+
+size_t UsbHost::num_usb_devices() const {
+  if (!initialized_.load())
+    return 0;
+  usb_host_lib_info_t info = {};
+  if (usb_host_lib_info(&info) != ESP_OK)
+    return 0;
+  return static_cast<size_t>(info.num_devices);
+}
+
 std::vector<std::shared_ptr<UsbHost::HidDevice>> UsbHost::devices() const {
   std::vector<std::shared_ptr<HidDevice>> out;
   std::lock_guard<std::mutex> lk(devices_mutex_);
@@ -470,7 +589,10 @@ std::shared_ptr<UsbHost::HidDevice> UsbHost::find_device(hid_host_device_handle_
 // ---------------------------------------------------------------------------
 bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) {
   uint32_t event_flags = 0;
+  // Block until the library has an event (stop_lib_task() unblocks it).
   usb_host_lib_handle_events(portMAX_DELAY, &event_flags);
+  if (event_flags)
+    logger_.debug("USB host lib event flags {:#x}", event_flags);
   if (event_flags & USB_HOST_LIB_EVENT_FLAGS_NO_CLIENTS) {
     // No registered clients: it is safe to release the devices.
     usb_host_device_free_all();

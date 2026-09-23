@@ -44,11 +44,27 @@ host→device. This mirrors `espp::UsbDevice` exactly, so the two ends of a link
 - On the ESP32-S3 the USB-Serial-JTAG shares the USB-OTG PHY, so when the host
   role is active the **console must run on UART0** (see the example's
   `sdkconfig.defaults`).
-- The USB Host library (`usb`) and `usb_host_hid` come from the ESP Component
-  Registry via the IDF component manager. On ESP-IDF ≥ 6.0 `usb_host_hid`
-  declares its `usb` dependency only through the manager, so build the example
-  with the component manager **on** (the default) rather than the manager-off
-  flow used by the device-side USB examples.
+- Targets with two USB-OTG peripherals (ESP32-P4) host on the library's default
+  (peripheral 0) unless `Config::port` picks one; `num_usb_devices()` counts
+  every enumerated device (HID or not), which tells a "nothing is wired to this
+  port" apart from a "device has no HID interface".
+- The root port is powered only after the HID class driver has registered,
+  so a device already attached at boot is enumerated while someone is
+  listening (the library only reports devices that enumerate after a client
+  registers, and the HID driver never scans existing ones).
+- Boards whose jack 5 V is switched by an IO expander rather than the USB
+  controller give the host a `Config::vbus_control` hook, so the jack can stay
+  off until the host is listening and is dropped at deinitialize(); a
+  `Config::root_port_power_on_delay` adds a margin before the first
+  enumeration after boot.
+- Requires **ESP-IDF ≥ 5.4** (root-port power control in IDF's built-in USB
+  Host library). On **ESP-IDF ≥ 6.0** the USB Host library is the registry
+  `usb` component instead (≥ 1.3.0, whose `peripheral_map` is what
+  `Config::port` needs: `ESPP_USB_HOST_HAS_PORT_SELECT`), and `usb_host_hid`
+  declares that dependency only through the component manager, so build the
+  examples with the manager **on** (the default) rather than the manager-off
+  flow used by the device-side USB examples. On 5.x `Config::port` must stay
+  at its default.
 
 ## Threading model
 

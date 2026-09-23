@@ -2,6 +2,7 @@
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <deque>
@@ -14,10 +15,30 @@
 #include <system_error>
 #include <vector>
 
+#include "esp_idf_version.h"
+#ifndef ESP_IDF_VERSION_VAL
+#define ESP_IDF_VERSION_VAL(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef ESP_IDF_VERSION
+#define ESP_IDF_VERSION ESP_IDF_VERSION_VAL(0, 0, 0)
+#endif
+#include "soc/soc_caps.h"
 #include "usb/hid_host.h" // usb_host_hid managed component (pulls in the usb host library)
 
 #include "base_component.hpp"
 #include "task.hpp"
+
+/// Whether UsbHost::Config::port can select the USB-OTG peripheral: needs a
+/// target with more than one and usb_host_config_t::peripheral_map, which the
+/// esp-usb `usb` component gained in 1.3.0 (the version this component pulls in
+/// on ESP-IDF >= 6.0). IDF's built-in USB Host library (ESP-IDF 5.x) has no
+/// peripheral selection: there, port must stay at its default.
+#if defined(SOC_USB_OTG_PERIPH_NUM) && (SOC_USB_OTG_PERIPH_NUM > 1) &&                             \
+    (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0))
+#define ESPP_USB_HOST_HAS_PORT_SELECT 1
+#else
+#define ESPP_USB_HOST_HAS_PORT_SELECT 0
+#endif
 
 namespace espp {
 
@@ -217,7 +238,33 @@ public:
     device_callback_fn on_device_connected{nullptr};    ///< a HID device attached and opened
     device_callback_fn on_device_disconnected{nullptr}; ///< a HID device detached
     open_filter_fn should_open{nullptr}; ///< optional filter (default: open every HID interface)
-    bool auto_start{true};            ///< start receiving Input reports as soon as a device opens
+    bool auto_start{true}; ///< start receiving Input reports as soon as a device opens
+    /// @brief USB-OTG peripheral (root port) to host on, on targets with more
+    ///        than one: -1 = the USB Host Library's default (peripheral 0), n =
+    ///        peripheral n. On the ESP32-P4, controller 0 is the high-speed OTG
+    ///        2.0 on the UTMI PHY and controller 1 the full-speed OTG 1.1 on its
+    ///        own FSLS PHY (GPIO 26/27 by default); which connector, if any,
+    ///        each reaches is the board's business (the M5Stack Tab5 routes
+    ///        controller 0 to its USB-A jack and neither to its USB-C port, which
+    ///        carries the USB-Serial-JTAG PHY). Only available with
+    ///        ESPP_USB_HOST_HAS_PORT_SELECT (esp-usb `usb` >= 1.3.0, i.e.
+    ///        ESP-IDF >= 6.0, on a multi-controller target); elsewhere
+    ///        initialize() rejects any value but -1.
+    int port{-1};
+    /// @brief Wait this long between installing the host library (which brings
+    ///        up the USB PHY) and powering the root port. A device attached at
+    ///        power-up is enumerated as soon as the port powers on; this gives a
+    ///        board whose supply is still settling after a cold boot a margin
+    ///        before that first enumeration. 0 = power the port at once.
+    std::chrono::milliseconds root_port_power_on_delay{0};
+    /// @brief Board-level VBUS control for the host jack, for boards where an IO
+    ///        expander or load switch (not the USB controller) switches the jack's
+    ///        5 V, so the library's own root-port power control does not reach the
+    ///        device. Called with true once the host is listening (after the root
+    ///        port powers on) and false at deinitialize(). Turn the jack off
+    ///        yourself before initialize() if a device attached at boot should see
+    ///        VBUS only once the host is ready.
+    std::function<void(bool on)> vbus_control{nullptr};
     size_t task_priority{5};          ///< priority of the internal tasks
     int task_core_id{-1};             ///< core for the internal tasks (-1 = no affinity)
     size_t lib_task_stack_size{4096}; ///< stack for the USB-host-library event task
@@ -280,6 +327,24 @@ public:
 
   /// @brief Snapshot of the currently connected (opened) HID devices.
   std::vector<std::shared_ptr<HidDevice>> devices() const;
+
+  /// @brief Number of USB devices currently enumerated on the root port(s),
+  ///        HID or not (from the USB Host Library). A device that shows up here
+  ///        but not in devices() enumerated but was not opened as HID (no HID
+  ///        interface, or rejected by the should_open filter).
+  /// @return The device count, or 0 when not initialized.
+  size_t num_usb_devices() const;
+
+  /// @brief Print the device and configuration descriptors of every enumerated
+  ///        USB device to stdout (the host library's usb_print_* helpers), for
+  ///        diagnosing a device that enumerates but is not opened as HID: it
+  ///        shows each interface's class and endpoints. Registers a short-lived
+  ///        host-library client for the duration of the call. The header line
+  ///        gives both the library's device count (which includes devices still
+  ///        being enumerated) and the number of fully enumerated devices listed,
+  ///        so a device stuck in enumeration shows as the difference.
+  /// @return true if the devices could be listed.
+  bool print_usb_devices();
 
 private:
   friend void espp_usb_host_driver_event_cb(hid_host_device_handle_t, const hid_host_driver_event_t,
