@@ -296,6 +296,7 @@ bool UsbHost::initialize(std::error_code &ec) {
   // is already plugged in at boot would otherwise enumerate before anyone is
   // listening and never be opened.
   host_config.root_port_unpowered = true;
+#if ESPP_USB_HOST_HAS_PORT_SELECT
   if (config_.port < -1 || config_.port >= static_cast<int>(SOC_USB_OTG_PERIPH_NUM)) {
     logger_.error("Invalid USB port {} (-1 = default, or 0..{})", config_.port,
                   static_cast<int>(SOC_USB_OTG_PERIPH_NUM) - 1);
@@ -304,6 +305,17 @@ bool UsbHost::initialize(std::error_code &ec) {
   }
   if (config_.port >= 0)
     host_config.peripheral_map = 1u << config_.port;
+#else
+  // single-controller target, or a USB Host library without peripheral_map
+  // (IDF's built-in one on ESP-IDF 5.x): only the default port exists
+  if (config_.port != -1) {
+    logger_.error("USB port {} requested, but peripheral selection is not available on this "
+                  "target / USB Host library (see ESPP_USB_HOST_HAS_PORT_SELECT); use -1",
+                  config_.port);
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
+#endif
   esp_err_t err = usb_host_install(&host_config);
   if (err != ESP_OK) {
     logger_.error("usb_host_install failed: {}", esp_err_to_name(err));
@@ -504,11 +516,20 @@ bool UsbHost::print_usb_devices() {
     logger_.error("usb_host_client_register failed: {}", esp_err_to_name(err));
     return false;
   }
-  uint8_t addresses[8] = {};
+  // Size the list from the library's own count so a hub full of devices is
+  // never silently capped (usb_host_device_addr_list_fill() reports at most
+  // list_len entries and returns ESP_OK either way). That count also includes
+  // devices still being enumerated, which the address list omits, so print
+  // both: the difference is a device stuck in enumeration.
+  usb_host_lib_info_t lib_info = {};
+  const int counted = usb_host_lib_info(&lib_info) == ESP_OK ? lib_info.num_devices : 0;
+  std::vector<uint8_t> addresses(static_cast<size_t>(std::max(counted, 1)), 0);
   int count = 0;
-  err = usb_host_device_addr_list_fill(sizeof(addresses), addresses, &count);
+  err =
+      usb_host_device_addr_list_fill(static_cast<int>(addresses.size()), addresses.data(), &count);
   if (err == ESP_OK) {
-    printf("USB devices enumerated: %d\n", count);
+    printf("USB devices: %d counted by the library, %d fully enumerated (listed below)\n", counted,
+           count);
     for (int i = 0; i < count; ++i) {
       usb_device_handle_t dev = nullptr;
       if (usb_host_device_open(client, addresses[i], &dev) != ESP_OK) {

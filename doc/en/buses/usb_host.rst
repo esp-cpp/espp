@@ -81,12 +81,14 @@ Requirements and caveats
 - On the ESP32-S3 the USB-Serial-JTAG shares the USB-OTG PHY, so when the host
   role is active the **console must run on UART0** (see the example's
   ``sdkconfig.defaults``).
-- Requires **ESP-IDF ≥ 6.0**, where the USB Host library (``usb``, ≥ 1.3.0 for
-  ``Config::port`` / the root-port power control) and ``usb_host_hid`` come from
-  the ESP Component Registry via the IDF component manager. ``usb_host_hid``
-  declares its ``usb`` dependency only through the manager, so build with the
-  component manager **on** (the default) rather than the manager-off flow used by
-  the device-side USB examples.
+- Requires **ESP-IDF ≥ 5.1** (root-port power control in IDF's built-in USB
+  Host library). On **ESP-IDF ≥ 6.0** the USB Host library is the registry
+  ``usb`` component instead (≥ 1.3.0, whose ``peripheral_map`` is what
+  ``Config::port`` needs: ``ESPP_USB_HOST_HAS_PORT_SELECT``), and ``usb_host_hid``
+  declares that dependency only through the component manager, so build the
+  examples with the manager **on** (the default) rather than the manager-off
+  flow used by the device-side USB examples. On 5.x ``Config::port`` must stay
+  at its default.
 
 Threading model
 ---------------

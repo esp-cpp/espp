@@ -15,10 +15,30 @@
 #include <system_error>
 #include <vector>
 
+#include "esp_idf_version.h"
+#ifndef ESP_IDF_VERSION_VAL
+#define ESP_IDF_VERSION_VAL(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef ESP_IDF_VERSION
+#define ESP_IDF_VERSION ESP_IDF_VERSION_VAL(0, 0, 0)
+#endif
+#include "soc/soc_caps.h"
 #include "usb/hid_host.h" // usb_host_hid managed component (pulls in the usb host library)
 
 #include "base_component.hpp"
 #include "task.hpp"
+
+/// Whether UsbHost::Config::port can select the USB-OTG peripheral: needs a
+/// target with more than one and usb_host_config_t::peripheral_map, which the
+/// esp-usb `usb` component gained in 1.3.0 (the version this component pulls in
+/// on ESP-IDF >= 6.0). IDF's built-in USB Host library (ESP-IDF 5.x) has no
+/// peripheral selection: there, port must stay at its default.
+#if defined(SOC_USB_OTG_PERIPH_NUM) && (SOC_USB_OTG_PERIPH_NUM > 1) &&                             \
+    (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0))
+#define ESPP_USB_HOST_HAS_PORT_SELECT 1
+#else
+#define ESPP_USB_HOST_HAS_PORT_SELECT 0
+#endif
 
 namespace espp {
 
@@ -221,10 +241,15 @@ public:
     bool auto_start{true}; ///< start receiving Input reports as soon as a device opens
     /// @brief USB-OTG peripheral (root port) to host on, on targets with more
     ///        than one: -1 = the USB Host Library's default (peripheral 0), n =
-    ///        peripheral n. Which connector each peripheral is wired to is the
-    ///        board's business; the ESP32-P4's controller 0 is its high-speed
-    ///        (UTMI) OTG and controller 1 the full-speed one that shares its PHY
-    ///        with USB-Serial-JTAG (on the M5Stack Tab5: USB-A jack / USB-C port).
+    ///        peripheral n. On the ESP32-P4, controller 0 is the high-speed OTG
+    ///        2.0 on the UTMI PHY and controller 1 the full-speed OTG 1.1 on its
+    ///        own FSLS PHY (GPIO 26/27 by default); which connector, if any,
+    ///        each reaches is the board's business (the M5Stack Tab5 routes
+    ///        controller 0 to its USB-A jack and neither to its USB-C port, which
+    ///        carries the USB-Serial-JTAG PHY). Only available with
+    ///        ESPP_USB_HOST_HAS_PORT_SELECT (esp-usb `usb` >= 1.3.0, i.e.
+    ///        ESP-IDF >= 6.0, on a multi-controller target); elsewhere
+    ///        initialize() rejects any value but -1.
     int port{-1};
     /// @brief Wait this long between installing the host library (which brings
     ///        up the USB PHY) and powering the root port. A device attached at
@@ -314,7 +339,10 @@ public:
   ///        USB device to stdout (the host library's usb_print_* helpers), for
   ///        diagnosing a device that enumerates but is not opened as HID: it
   ///        shows each interface's class and endpoints. Registers a short-lived
-  ///        host-library client for the duration of the call.
+  ///        host-library client for the duration of the call. The header line
+  ///        gives both the library's device count (which includes devices still
+  ///        being enumerated) and the number of fully enumerated devices listed,
+  ///        so a device stuck in enumeration shows as the difference.
   /// @return true if the devices could be listed.
   bool print_usb_devices();
 
