@@ -439,6 +439,7 @@ private:
   // HID class driver event task.
   std::atomic<bool> hid_task_run_{false};
   std::unique_ptr<espp::Task> hid_task_;
+  uint32_t hid_event_errors_{0}; ///< HID event pump only: rate-limits its error log
   // Devices opened with the driver that it has not yet reported gone.
   std::atomic<int> driver_tracked_{0};
 

@@ -703,6 +703,7 @@ void UsbHost::start_hid_task() {
     return;
   }
   hid_task_run_.store(true);
+  hid_event_errors_ = 0;
   hid_task_ = espp::Task::make_unique({
       .callback = [this](std::mutex &m, std::condition_variable &cv) { return hid_task_fn(m, cv); },
       .task_config =
@@ -729,9 +730,11 @@ bool UsbHost::hid_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) 
   if (err == ESP_FAIL) {
     hid_task_run_.store(false);
   } else if (err != ESP_OK && err != ESP_ERR_TIMEOUT) {
-    static uint32_t errors = 0;
-    if (++errors == 1 || errors % 100 == 0) {
-      logger_.error("hid_host_handle_events: {} ({} so far)", esp_err_to_name(err), errors);
+    // per instance, reset when the pump starts, so the log cadence follows
+    // this host's lifecycle rather than the process's
+    if (++hid_event_errors_ == 1 || hid_event_errors_ % 100 == 0) {
+      logger_.error("hid_host_handle_events: {} ({} so far)", esp_err_to_name(err),
+                    hid_event_errors_);
     }
   }
   return !hid_task_run_.load(); // true = stop the task
