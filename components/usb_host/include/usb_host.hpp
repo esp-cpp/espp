@@ -268,7 +268,8 @@ public:
     size_t task_priority{5};          ///< priority of the internal tasks
     int task_core_id{-1};             ///< core for the internal tasks (-1 = no affinity)
     size_t lib_task_stack_size{4096}; ///< stack for the USB-host-library event task
-    size_t hid_task_stack_size{4096}; ///< stack for the HID class driver's task (it only enqueues)
+    size_t hid_task_stack_size{
+        4096}; ///< stack for the HID class driver's event task (it only enqueues)
     /// @brief Stack for the dispatch task that runs the user callbacks (size it
     ///        for what your callbacks do -- logging with fmt, protocol work, ...).
     size_t dispatch_task_stack_size{6 * 1024};
@@ -313,6 +314,11 @@ public:
     ///        the event wait into a busy loop; initialize() warns when the
     ///        configured value is not positive.
     std::chrono::milliseconds full_speed_reassert_interval{100};
+    /// @brief ESP only: heap capabilities for the internal tasks' stacks (see
+    ///        espp::Task::BaseConfig::stack_alloc_caps); 0 = internal RAM.
+    ///        MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT puts the three stacks (~14 KB)
+    ///        in PSRAM, worth it where internal RAM is scarce (ESP32-P4).
+    uint32_t task_stack_alloc_caps{0};
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
 
@@ -411,6 +417,10 @@ private:
   // The USB Host library event-handling loop (own task).
   bool lib_task_fn(std::mutex &m, std::condition_variable &cv);
   void apply_full_speed_only();
+  // The HID class driver's event pump (own task, see task_stack_alloc_caps).
+  bool hid_task_fn(std::mutex &m, std::condition_variable &cv);
+  void start_hid_task();
+  void stop_hid_task();
   void stop_lib_task();
 
   // Ticks to block in the library event wait when full_speed_only re-asserts,
@@ -427,6 +437,11 @@ private:
   std::atomic<bool> lib_task_run_{false};
   std::unique_ptr<espp::Task> lib_task_;
   uint32_t lib_event_errors_{0}; ///< lib task only: rate-limits its error log
+  // HID class driver event task.
+  std::atomic<bool> hid_task_run_{false};
+  std::unique_ptr<espp::Task> hid_task_;
+  // Devices opened with the driver that it has not yet reported gone.
+  std::atomic<int> driver_tracked_{0};
 
   // Event queue (driver task -> dispatch task) + dispatch task.
   std::mutex queue_mutex_;
