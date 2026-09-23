@@ -349,7 +349,11 @@ public:
   ///        gone), so the host is not usable: the only valid next steps are to
   ///        call deinitialize() again (which waits for the driver again) or to
   ///        destroy the object, which aborts if teardown still fails (see the
-  ///        destructor).
+  ///        destructor). The HID event pump is deliberately left running in
+  ///        that state -- the driver's uninstall only completes while something
+  ///        pumps its events, so stopping it would make every retry fail -- and
+  ///        because the destructor aborts instead of freeing, the driver never
+  ///        holds a pointer to a destroyed host.
   /// @return true on success.
   bool deinitialize(std::error_code &ec);
 
@@ -422,6 +426,12 @@ private:
   void stop_hid_task();
   void stop_lib_task();
 
+  // Count a device out of the set the HID driver still tracks (saturating at
+  // zero) and wake a deinitialize() that is waiting for the set to empty.
+  void release_tracked_device();
+  // Wait (bounded) for the HID driver to report every device we opened gone.
+  // @return true if the driver released them all, false on timeout.
+  bool wait_for_untracked(std::chrono::milliseconds timeout);
   // Ticks to block in the library event wait when full_speed_only re-asserts,
   // clamped to [1, portMAX_DELAY - 1] so the wait is always a real block.
   static TickType_t reassert_wait_ticks(std::chrono::milliseconds interval);
@@ -442,6 +452,10 @@ private:
   uint32_t hid_event_errors_{0}; ///< HID event pump only: rate-limits its error log
   // Devices opened with the driver that it has not yet reported gone.
   std::atomic<int> driver_tracked_{0};
+  // Signalled (from the driver task) when driver_tracked_ reaches zero, so
+  // deinitialize() proceeds as soon as the driver is done rather than polling.
+  std::mutex tracked_mutex_;
+  std::condition_variable tracked_cv_;
 
   // Event queue (driver task -> dispatch task) + dispatch task.
   std::mutex queue_mutex_;

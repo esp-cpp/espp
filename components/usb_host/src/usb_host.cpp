@@ -485,8 +485,9 @@ bool UsbHost::deinitialize(std::error_code &ec) {
   usb_host_lib_set_root_port_power(false);
   if (config_.vbus_control)
     config_.vbus_control(false); // and the board's jack, if it switches it
-  for (int i = 0; i < 200 && driver_tracked_.load() > 0; ++i) { // up to ~2 s
-    std::this_thread::sleep_for(10ms);
+  if (!wait_for_untracked(2s)) {
+    logger_.warn("driver still tracks {} device(s) after 2s; uninstalling anyway",
+                 driver_tracked_.load());
   }
   esp_err_t err = ESP_FAIL;
   for (int i = 0; i < 200; ++i) { // up to ~2 s more for the driver's bookkeeping
@@ -506,6 +507,10 @@ bool UsbHost::deinitialize(std::error_code &ec) {
     // deinitialize() or destroying the object (see the header).
     // ESP_ERR_INVALID_STATE is what the driver returns while it still tracks a
     // device; anything else is reported as-is rather than guessed at.
+    // The HID pump is intentionally NOT stopped here: hid_host_uninstall()
+    // only completes while a task pumps its events, so a retry needs it alive.
+    // The destructor aborts rather than freeing a host the driver still
+    // references, so leaving it running cannot become a use-after-free.
     logger_.error("hid_host_uninstall failed: {}{}; root port left powered off, retry "
                   "deinitialize()",
                   esp_err_to_name(err),
@@ -749,6 +754,30 @@ void UsbHost::stop_hid_task() {
   hid_task_.reset();
 }
 
+void UsbHost::release_tracked_device() {
+  int n = driver_tracked_.load();
+  while (n > 0) {
+    if (driver_tracked_.compare_exchange_weak(n, n - 1)) {
+      if (n - 1 == 0) {
+        // the waiter checks the counter under this mutex, so take it before
+        // notifying or the wake can be missed
+        std::lock_guard<std::mutex> lk(tracked_mutex_);
+        tracked_cv_.notify_all();
+      }
+      return;
+    }
+  }
+  // Not expected: every disconnect we count out was counted in when we opened
+  // the interface. Logged rather than asserted since it costs nothing to
+  // ignore (the count is what gates teardown, and it is already at zero).
+  logger_.debug("disconnect for a device that was not counted as tracked");
+}
+
+bool UsbHost::wait_for_untracked(std::chrono::milliseconds timeout) {
+  std::unique_lock<std::mutex> lk(tracked_mutex_);
+  return tracked_cv_.wait_for(lk, timeout, [this] { return driver_tracked_.load() == 0; });
+}
+
 void UsbHost::stop_lib_task() {
   if (!lib_task_) {
     return;
@@ -866,9 +895,7 @@ void UsbHost::on_interface_event(hid_host_device_handle_t handle,
     // deinitialize() knows when the driver can be uninstalled. Only devices
     // we opened were counted in, and the count never goes below zero.
     if (find_device(handle)) {
-      int n = driver_tracked_.load();
-      while (n > 0 && !driver_tracked_.compare_exchange_weak(n, n - 1)) {
-      }
+      release_tracked_device();
     }
     // The dispatch task retires the device (in order, after any queued inputs).
     enqueue(Event{.type = Event::Type::Disconnected, .handle = handle});
