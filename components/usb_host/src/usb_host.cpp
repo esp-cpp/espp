@@ -487,7 +487,7 @@ bool UsbHost::deinitialize(std::error_code &ec) {
     config_.vbus_control(false); // and the board's jack, if it switches it
   if (!wait_for_untracked(2s)) {
     logger_.warn("driver still tracks {} device(s) after 2s; uninstalling anyway",
-                 driver_tracked_.load());
+                 num_tracked_devices());
   }
   esp_err_t err = ESP_FAIL;
   for (int i = 0; i < 200; ++i) { // up to ~2 s more for the driver's bookkeeping
@@ -754,28 +754,37 @@ void UsbHost::stop_hid_task() {
   hid_task_.reset();
 }
 
-void UsbHost::release_tracked_device() {
-  int n = driver_tracked_.load();
-  while (n > 0) {
-    if (driver_tracked_.compare_exchange_weak(n, n - 1)) {
-      if (n - 1 == 0) {
-        // the waiter checks the counter under this mutex, so take it before
-        // notifying or the wake can be missed
-        std::lock_guard<std::mutex> lk(tracked_mutex_);
-        tracked_cv_.notify_all();
-      }
+void UsbHost::track_opened_device(hid_host_device_handle_t handle) {
+  std::lock_guard<std::mutex> lk(tracked_mutex_);
+  driver_tracked_.insert(handle);
+}
+
+void UsbHost::release_tracked_device(hid_host_device_handle_t handle) {
+  bool empty = false;
+  {
+    std::lock_guard<std::mutex> lk(tracked_mutex_);
+    if (driver_tracked_.erase(handle) == 0) {
+      // A disconnect for an interface we never opened (the filter rejected it,
+      // or the open failed): nothing to release. Not an error, but worth a
+      // line while tracing teardown.
+      logger_.debug("disconnect for an interface this host did not open");
       return;
     }
+    empty = driver_tracked_.empty();
   }
-  // Not expected: every disconnect we count out was counted in when we opened
-  // the interface. Logged rather than asserted since it costs nothing to
-  // ignore (the count is what gates teardown, and it is already at zero).
-  logger_.debug("disconnect for a device that was not counted as tracked");
+  if (empty) {
+    tracked_cv_.notify_all();
+  }
+}
+
+size_t UsbHost::num_tracked_devices() const {
+  std::lock_guard<std::mutex> lk(tracked_mutex_);
+  return driver_tracked_.size();
 }
 
 bool UsbHost::wait_for_untracked(std::chrono::milliseconds timeout) {
   std::unique_lock<std::mutex> lk(tracked_mutex_);
-  return tracked_cv_.wait_for(lk, timeout, [this] { return driver_tracked_.load() == 0; });
+  return tracked_cv_.wait_for(lk, timeout, [this] { return driver_tracked_.empty(); });
 }
 
 void UsbHost::stop_lib_task() {
@@ -890,13 +899,14 @@ void UsbHost::on_interface_event(hid_host_device_handle_t handle,
     break;
   }
   case HID_HOST_INTERFACE_EVENT_DISCONNECTED:
-    // The driver drops the device from its list around this event: it is
-    // counted out here (on the driver task, teardown or not) so
-    // deinitialize() knows when the driver can be uninstalled. Only devices
-    // we opened were counted in, and the count never goes below zero.
-    if (find_device(handle)) {
-      release_tracked_device();
-    }
+    // The driver drops the device from its list around this event: the
+    // interface is taken out of the tracked set here (on the driver task,
+    // teardown or not) so deinitialize() knows when the driver can be
+    // uninstalled. Membership in that set -- not a lookup in devices_ --
+    // decides: deinitialize() clears devices_ before it powers the root port
+    // down, so the disconnects it provokes would otherwise never be counted
+    // out and teardown would wait for a set that can no longer empty.
+    release_tracked_device(handle);
     // The dispatch task retires the device (in order, after any queued inputs).
     enqueue(Event{.type = Event::Type::Disconnected, .handle = handle});
     break;
@@ -979,7 +989,7 @@ void UsbHost::handle_new_device(hid_host_device_handle_t handle) {
   };
   esp_err_t err = hid_host_device_open(handle, &dev_config);
   if (err == ESP_OK) {
-    driver_tracked_.fetch_add(1);
+    track_opened_device(handle);
   }
   if (err != ESP_OK) {
     logger_.error("hid_host_device_open failed: {}", esp_err_to_name(err));

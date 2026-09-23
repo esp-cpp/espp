@@ -10,6 +10,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <span>
 #include <string>
 #include <system_error>
@@ -426,9 +427,13 @@ private:
   void stop_hid_task();
   void stop_lib_task();
 
-  // Count a device out of the set the HID driver still tracks (saturating at
-  // zero) and wake a deinitialize() that is waiting for the set to empty.
-  void release_tracked_device();
+  // Remember that the HID driver has opened this interface for us.
+  void track_opened_device(hid_host_device_handle_t handle);
+  // Take a device out of the set the HID driver still tracks and wake a
+  // deinitialize() that is waiting for the set to empty.
+  void release_tracked_device(hid_host_device_handle_t handle);
+  // How many interfaces the driver still tracks (for logging).
+  size_t num_tracked_devices() const;
   // Wait (bounded) for the HID driver to report every device we opened gone.
   // @return true if the driver released them all, false on timeout.
   bool wait_for_untracked(std::chrono::milliseconds timeout);
@@ -450,11 +455,15 @@ private:
   std::atomic<bool> hid_task_run_{false};
   std::unique_ptr<espp::Task> hid_task_;
   uint32_t hid_event_errors_{0}; ///< HID event pump only: rate-limits its error log
-  // Devices opened with the driver that it has not yet reported gone.
-  std::atomic<int> driver_tracked_{0};
-  // Signalled (from the driver task) when driver_tracked_ reaches zero, so
-  // deinitialize() proceeds as soon as the driver is done rather than polling.
-  std::mutex tracked_mutex_;
+  // Interfaces we opened with the HID driver that it has not yet reported
+  // gone. Membership, not a count, and kept apart from devices_ on purpose:
+  // deinitialize() clears devices_ before it powers the root port down, and the
+  // disconnects that follow still have to be counted out of this set. Guarded
+  // by tracked_mutex_; tracked_cv_ is signalled (from the driver task) when it
+  // empties, so deinitialize() proceeds as soon as the driver is done rather
+  // than polling.
+  std::set<hid_host_device_handle_t> driver_tracked_;
+  mutable std::mutex tracked_mutex_;
   std::condition_variable tracked_cv_;
 
   // Event queue (driver task -> dispatch task) + dispatch task.
