@@ -5,7 +5,6 @@
 #if SOC_USB_OTG_SUPPORTED && defined(SOC_USB_UTMI_PHY_NUM) && SOC_USB_UTMI_PHY_NUM > 0
 // a high-speed capable host controller: the full-speed-only mode applies
 #include <hal/usb_dwc_ll.h>
-#include <soc/usb_dwc_struct.h>
 #define ESPP_USB_HOST_HAS_HS_CONTROLLER 1
 #else
 #define ESPP_USB_HOST_HAS_HS_CONTROLLER 0
@@ -337,6 +336,7 @@ bool UsbHost::initialize(std::error_code &ec) {
 
   // 2) Start the USB-host-library event task.
   lib_task_run_.store(true);
+  lib_event_errors_ = 0;
   lib_task_ = espp::Task::make_unique({
       .callback = [this](std::mutex &m, std::condition_variable &cv) { return lib_task_fn(m, cv); },
       .task_config =
@@ -601,8 +601,12 @@ std::shared_ptr<UsbHost::HidDevice> UsbHost::find_device(hid_host_device_handle_
 // ---------------------------------------------------------------------------
 void UsbHost::apply_full_speed_only() {
 #if ESPP_USB_HOST_HAS_HS_CONTROLLER
-  if (config_.full_speed_only && !USB_DWC_HS.hcfg_reg.fslssupp) {
-    usb_dwc_ll_hcfg_set_fsls_supp_only(&USB_DWC_HS);
+  // The LL setter is idempotent (it writes the bit), and there is no LL
+  // getter, so it is simply re-applied rather than read back through the
+  // register struct: a root port recovery soft-resets the controller and
+  // clears the bit, and no event reports that.
+  if (config_.full_speed_only) {
+    usb_dwc_ll_hcfg_set_fsls_supp_only(USB_DWC_LL_GET_HW(0));
   }
 #endif
 }
@@ -619,10 +623,11 @@ bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) 
   const esp_err_t err = usb_host_lib_handle_events(wait, &event_flags);
   if (err != ESP_OK && err != ESP_ERR_TIMEOUT) {
     // not expected while installed; rate-limited so a persistent failure does
-    // not flood the log from this loop
-    static uint32_t errors = 0;
-    if (++errors == 1 || errors % 100 == 0) {
-      logger_.error("usb_host_lib_handle_events: {} ({} so far)", esp_err_to_name(err), errors);
+    // not flood the log from this loop (per instance, reset when the task
+    // starts, so the cadence follows this host's lifecycle)
+    if (++lib_event_errors_ == 1 || lib_event_errors_ % 100 == 0) {
+      logger_.error("usb_host_lib_handle_events: {} ({} so far)", esp_err_to_name(err),
+                    lib_event_errors_);
     }
   }
   apply_full_speed_only();

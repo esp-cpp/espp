@@ -287,7 +287,9 @@ public:
     ///        USB stack is never blocked. Drops are counted and logged at a
     ///        rate-limited cadence.
     size_t max_queued_events{32};
-    /// @brief Run the root port in full/low-speed-only mode (targets whose host
+    /// @brief Run the root port in full/low-speed-only mode ("full speed" here
+    ///        is the USB speed *class* that includes low speed -- the DWC bit is
+    ///        FSLSSupp -- so a low-speed device still enumerates; targets whose host
     ///        controller is high-speed capable, i.e. the ESP32-P4). ESP-IDF's
     ///        hub support has no transaction translator, so full-speed devices
     ///        (every HID keyboard / mouse / gamepad) behind a *high-speed* hub
@@ -405,6 +407,7 @@ private:
   // USB Host library task.
   std::atomic<bool> lib_task_run_{false};
   std::unique_ptr<espp::Task> lib_task_;
+  uint32_t lib_event_errors_{0}; ///< lib task only: rate-limits its error log
 
   // Event queue (driver task -> dispatch task) + dispatch task.
   std::mutex queue_mutex_;
