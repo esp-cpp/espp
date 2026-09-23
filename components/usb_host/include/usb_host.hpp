@@ -221,8 +221,15 @@ public:
     const Info info_;
     const Params params_;
     const std::vector<uint8_t> report_descriptor_;
+    // Gates *outbound* driver calls (start/stop/get_report/...) only: it goes
+    // false as soon as the interface is closed, since calling into a closed
+    // interface is what has to stop immediately. Input delivery deliberately
+    // does NOT consult it -- reports already queued ahead of the Disconnected
+    // event are still dispatched, so a caller sees the documented
+    // connected -> inputs -> disconnected order.
     std::atomic<bool> connected_{true};
     std::atomic<bool> closed_{false}; ///< hid_host_device_close() succeeded (on either task)
+    bool retired_{false};             ///< retire() ran (guarded by io_mutex_); makes it idempotent
     std::atomic<bool> started_{false};
     // Serializes every driver call made through this object against the close
     // performed on disconnect, so a control transfer in flight on an app task

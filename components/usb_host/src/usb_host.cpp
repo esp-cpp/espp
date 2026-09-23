@@ -224,6 +224,9 @@ bool UsbHost::HidDevice::set_protocol(hid_report_protocol_t protocol, std::error
 }
 
 void UsbHost::HidDevice::deliver_input(std::span<const uint8_t> data) {
+  // Intentionally not gated on connected_: this runs on the dispatch task, and
+  // reports queued before the Disconnected event are delivered even though the
+  // driver task has already marked the device inert for outbound calls.
   input_callback_fn cb;
   {
     std::lock_guard<std::mutex> lk(cb_mutex_);
@@ -262,8 +265,12 @@ void UsbHost::HidDevice::retire() {
   // to finish before the interface is closed (and its resources freed).
   std::lock_guard<std::mutex> lk(io_mutex_);
   connected_.store(false);
+  if (retired_) {
+    return; // idempotent: a second retire() must not re-attempt the close
+  }
+  retired_ = true;
   if (closed_.load()) {
-    return; // already closed (on the driver task, or retired before)
+    return; // already closed on the driver task
   }
   const esp_err_t err = hid_host_device_close(handle_);
   if (err == ESP_OK) {
