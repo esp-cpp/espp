@@ -618,10 +618,12 @@ bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) 
   // periodically to re-assert the mode, since a root port recovery (after a
   // transfer error / unplug) soft-resets the controller and clears it.
   constexpr bool kPeriodic = ESPP_USB_HOST_HAS_HS_CONTROLLER != 0;
-  const bool reassert = kPeriodic && config_.full_speed_only;
+  // (written as one expression: naming the intermediate makes static analysis
+  // report a condition that is always false on a full-speed-only target)
   const TickType_t wait =
-      reassert ? pdMS_TO_TICKS(std::max<int64_t>(1, config_.full_speed_reassert_interval.count()))
-               : portMAX_DELAY;
+      (kPeriodic && config_.full_speed_only)
+          ? pdMS_TO_TICKS(std::max<int64_t>(1, config_.full_speed_reassert_interval.count()))
+          : portMAX_DELAY;
   const esp_err_t err = usb_host_lib_handle_events(wait, &event_flags);
   if (err != ESP_OK) {
     // only ESP_OK writes event_flags; anything else leaves whatever the call
