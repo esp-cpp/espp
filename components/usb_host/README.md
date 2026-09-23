@@ -66,6 +66,12 @@ host→device. This mirrors `espp::UsbDevice` exactly, so the two ends of a link
   re-applied on a timer (`Config::full_speed_reassert_interval`, 100ms by
   default) because a root port recovery clears it without reporting an event; it
   has no effect on the full-speed-only ESP32-S2 / -S3.
+- The host runs three internal tasks (the USB Host library loop, the HID class
+  driver's event pump and the dispatch task). Where internal RAM is scarce,
+  `Config::task_stack_alloc_caps = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT` puts
+  their stacks (~14 KB together) in PSRAM; it needs
+  `CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY` and leaves the stacks in internal
+  RAM at its default of 0.
 - Requires **ESP-IDF ≥ 5.4** (root-port power control in IDF's built-in USB
   Host library). On **ESP-IDF ≥ 6.0** the USB Host library is the registry
   `usb` component instead (≥ 1.3.0, whose `peripheral_map` is what
