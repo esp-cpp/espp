@@ -13,6 +13,7 @@
 // report IDs, long items).
 
 #include <algorithm>
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <map>
@@ -52,12 +53,14 @@ public:
     // throws when exceptions are enabled and is a no-op otherwise.
 #if defined(__cpp_exceptions)
     try {
-      Parser parser(map, ::hid::rdf::descriptor_view(descriptor.data(), descriptor.size()));
+      [[maybe_unused]] Parser parser(
+          map, ::hid::rdf::descriptor_view(descriptor.data(), descriptor.size()));
     } catch (...) {
       return std::nullopt;
     }
 #else
-    Parser parser(map, ::hid::rdf::descriptor_view(descriptor.data(), descriptor.size()));
+    [[maybe_unused]] Parser parser(
+        map, ::hid::rdf::descriptor_view(descriptor.data(), descriptor.size()));
 #endif
     if (map.fields_.empty()) {
       return std::nullopt;
@@ -95,9 +98,9 @@ public:
       raw |= static_cast<uint32_t>((report[bit >> 3] >> (bit & 7)) & 1) << i;
     }
     if (f.logical_min < 0 && f.bit_size < 32 && (raw & (1u << (f.bit_size - 1)))) {
-      return static_cast<int32_t>(raw | (~0u << f.bit_size)); // sign-extend
+      return std::bit_cast<int32_t>(raw | (~0u << f.bit_size)); // sign-extend
     }
-    return static_cast<int32_t>(raw);
+    return std::bit_cast<int32_t>(raw); // a full 32-bit field: two's complement as-is
   }
 
   /// Split a raw report into its ID and payload according to the map.
@@ -156,6 +159,9 @@ private:
       const uint16_t usage_page = static_cast<uint16_t>(global_u(rdf::global::tag::USAGE_PAGE, 0));
       const int32_t logical_min = global_s(rdf::global::tag::LOGICAL_MINIMUM, 0);
       const int32_t logical_max = global_s(rdf::global::tag::LOGICAL_MAXIMUM, 0);
+      if (report_size == 0 || report_count == 0) {
+        return control::CONTINUE; // a field without bits: nothing in the report to map
+      }
       if (report_id != 0) {
         map_.uses_report_ids_ = true;
       }
@@ -164,17 +170,25 @@ private:
       // local items of this main section: a usage list and/or a usage range
       std::vector<uint32_t> usages; // full usage (page << 16 | id)
       uint32_t usage_min = 0, usage_max = 0;
-      bool have_range = false;
+      bool have_min = false, have_max = false;
       for (const auto &it : main_section) {
         if (it.has_tag(rdf::local::tag::USAGE)) {
           usages.push_back(base::get_usage(it, global_state));
         } else if (it.has_tag(rdf::local::tag::USAGE_MINIMUM)) {
           usage_min = base::get_usage(it, global_state);
-          have_range = true;
+          have_min = true;
         } else if (it.has_tag(rdf::local::tag::USAGE_MAXIMUM)) {
           usage_max = base::get_usage(it, global_state);
-          have_range = true;
+          have_max = true;
         }
+      }
+      // a range needs both bounds; infer a missing one from the field count
+      // (usages are consecutive), which is what such descriptors mean
+      const bool have_range = have_min || have_max;
+      if (have_min && !have_max) {
+        usage_max = usage_min + report_count - 1;
+      } else if (have_max && !have_min) {
+        usage_min = usage_max >= report_count - 1 ? usage_max - (report_count - 1) : 0;
       }
 
       if (constant) {
@@ -251,7 +265,7 @@ struct GamepadReport {
   bool up{false}, down{false}, left{false}, right{false}; ///< d-pad / hat / left stick
   int16_t lx{0}, ly{0}, rx{0}, ry{0}; ///< sticks, -32767..32767, y grows downwards
   int32_t hat{-1};                    ///< raw hat value (-1 when absent)
-  uint32_t buttons{0};                ///< raw: bit n = button usage n pressed
+  uint64_t buttons{0};                ///< raw: bit n = button usage n pressed (usages 1..63)
   uint16_t consumer[4]{0, 0, 0, 0};   ///< raw consumer-page usages active
 };
 
@@ -370,12 +384,13 @@ public:
       } else if (f.usage_page == usage::PAGE_GENERIC_DESKTOP) {
         if (f.usage == usage::GD_HAT) {
           r.hat = *v;
-          const int32_t dir = *v - f.logical_min; // 0 = up, clockwise
-          if (*v >= f.logical_min && *v <= f.logical_max && dir < 8) {
+          const int32_t dir =
+              *v - f.logical_min; // 0 = up, clockwise; 8 (or out of range) = centered
+          if (*v >= f.logical_min && *v <= f.logical_max && dir >= 0 && dir < 8) {
             r.up |= dir == 7 || dir == 0 || dir == 1;
             r.right |= dir >= 1 && dir <= 3;
             r.down |= dir >= 3 && dir <= 5;
-            r.left |= dir >= 5 && dir <= 7;
+            r.left |= dir >= 5;
           }
         } else if (f.usage >= usage::GD_DPAD_UP && f.usage <= usage::GD_DPAD_LEFT) {
           const bool pressed = *v != 0;
@@ -538,11 +553,10 @@ public:
   explicit MouseDecoder(ReportMap map)
       : map_(std::move(map)) {}
   bool looks_like_mouse() const {
-    for (const auto &f : map_.fields())
-      if (f.usage_page == usage::PAGE_GENERIC_DESKTOP && f.relative &&
-          (f.usage == usage::GD_X || f.usage == usage::GD_Y))
-        return true;
-    return false;
+    return std::any_of(map_.fields().begin(), map_.fields().end(), [](const ReportField &f) {
+      return f.usage_page == usage::PAGE_GENERIC_DESKTOP && f.relative &&
+             (f.usage == usage::GD_X || f.usage == usage::GD_Y);
+    });
   }
   bool decode(std::span<const uint8_t> raw, MouseReport &out) const {
     const auto [id, report] = map_.split(raw);

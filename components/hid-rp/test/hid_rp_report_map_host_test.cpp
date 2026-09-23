@@ -179,7 +179,48 @@ static void test_report_ids_consumer_dpad() {
   CHECK(!decoder.decode(other, g));
 }
 
+// Review cases: a button range with only a Usage Minimum (max inferred from
+// the count), a 32-bit signed axis, and an Input item with Report Count 0.
+static void test_edge_items() {
+  static const uint8_t
+      desc[] = {0x05, 0x01, 0x09, 0x05, 0xA1, 0x01, // Gamepad
+                0x05, 0x09, 0x19, 0x01, 0x15, 0x00, 0x25, 0x01, 0x75, 0x01,
+                0x95, 0x04, 0x81, 0x02, // 4 buttons, usage min only
+                0x95, 0x04, 0x81, 0x01, // padding
+                0x05, 0x01, 0x09, 0x30, 0x17, 0x00, 0x00, 0x00, 0x80, 0x27,
+                0xFF, 0xFF, 0xFF, 0x7F, 0x75, 0x20, 0x95, 0x01, 0x81, 0x02, // X: 32-bit signed
+                0x09, 0x31, 0x95, 0x00, 0x81, 0x02, // Y with count 0: no field
+                0xC0};
+  auto map = espp::hid_rp::ReportMap::parse(desc);
+  CHECK(map.has_value());
+  if (!map)
+    return;
+  size_t buttons = 0;
+  uint16_t last_button = 0;
+  for (const auto &f : map->fields()) {
+    if (f.usage_page == espp::hid_rp::usage::PAGE_BUTTON) {
+      buttons++;
+      last_button = f.usage;
+    }
+  }
+  CHECK(buttons == 4);
+  CHECK(last_button == 4);          // inferred usage maximum
+  CHECK(map->fields().size() == 5); // 4 buttons + X (the count-0 Y adds nothing)
+  CHECK(map->report_bytes(0) == 5);
+  // button 4 + X = -2 (two's complement)
+  const uint8_t report[5] = {0x08, 0xFE, 0xFF, 0xFF, 0xFF};
+  const auto &x = map->fields().back();
+  auto v = espp::hid_rp::ReportMap::extract(x, 0, report);
+  CHECK(v.has_value() && *v == -2);
+  espp::hid_rp::GamepadDecoder decoder(*map);
+  espp::hid_rp::GamepadReport g;
+  CHECK(decoder.decode(report, g));
+  CHECK(g.north); // button 4 in the Xbox-style layout
+  CHECK((g.buttons & (uint64_t{1} << 4)) != 0);
+}
+
 int main() {
+  test_edge_items();
   test_generated_gamepad();
   test_keyboard();
   test_mouse();
