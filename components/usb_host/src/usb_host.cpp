@@ -333,11 +333,16 @@ bool UsbHost::initialize(std::error_code &ec) {
     return false;
   }
   apply_full_speed_only();
+#if ESPP_USB_HOST_HAS_HS_CONTROLLER
+  // Only meaningful where the periodic re-assert actually runs: on a
+  // full-speed-only controller the interval is never read, so warning about it
+  // would only mislead.
   if (config_.full_speed_only && config_.full_speed_reassert_interval.count() <= 0) {
     logger_.warn("full_speed_reassert_interval must be > 0 ({}ms given); re-asserting once per "
                  "RTOS tick instead",
                  config_.full_speed_reassert_interval.count());
   }
+#endif
 
   // 2) Start the USB-host-library event task.
   lib_task_run_.store(true);
@@ -612,6 +617,13 @@ void UsbHost::apply_full_speed_only() {
   // clears the bit, and no event reports that.
   if (config_.full_speed_only) {
     usb_dwc_ll_hcfg_set_fsls_supp_only(USB_DWC_LL_GET_HW(0));
+  } else {
+    // Clear it explicitly instead of trusting whatever ran before: IDF never
+    // touches this bit, so a host installed earlier in this boot with
+    // full_speed_only set would otherwise leave the port full-speed-only for a
+    // host that did not ask for it. There is no LL clear, so the bitfield is
+    // written the same way usb_dwc_ll_hcfg_set_fsls_supp_only() writes it.
+    USB_DWC_LL_GET_HW(0)->hcfg_reg.fslssupp = 0;
   }
 #endif
 }
@@ -679,8 +691,11 @@ void UsbHost::stop_lib_task() {
     return;
   }
   lib_task_run_.store(false);
-  // The task blocks in usb_host_lib_handle_events(portMAX_DELAY); unblock it so
-  // it observes the stop flag and returns, then join it.
+  // Unblock the task so it observes the stop flag and returns, then join it.
+  // Without full_speed_only it is parked in usb_host_lib_handle_events()
+  // indefinitely and this is the only thing that wakes it; with the periodic
+  // re-assert it would also wake on its own within one
+  // full_speed_reassert_interval, so this only shortens the shutdown.
   usb_host_lib_unblock();
   lib_task_->stop();
   lib_task_.reset();
