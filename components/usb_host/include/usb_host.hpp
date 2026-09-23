@@ -208,8 +208,13 @@ public:
 
     // Called by UsbHost (on the dispatch task) with a copy of an Input report.
     void deliver_input(std::span<const uint8_t> data);
-    // Called by UsbHost to retire the device: marks it inert and closes the
-    // driver handle, serialized against any in-flight driver call.
+    // Called by UsbHost on the driver task, from the DISCONNECTED callback:
+    // marks the device inert and closes the driver handle right there (the
+    // close must not race the driver's own disconnect processing).
+    void close_on_driver_task();
+    // Called by UsbHost (dispatch task) to retire the device: marks it inert
+    // and closes the driver handle if that has not happened yet, serialized
+    // against any in-flight driver call.
     void retire();
 
     hid_host_device_handle_t handle_{nullptr};
@@ -217,6 +222,7 @@ public:
     const Params params_;
     const std::vector<uint8_t> report_descriptor_;
     std::atomic<bool> connected_{true};
+    std::atomic<bool> closed_{false}; ///< the driver handle has been closed
     std::atomic<bool> started_{false};
     // Serializes every driver call made through this object against the close
     // performed on disconnect, so a control transfer in flight on an app task

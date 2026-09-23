@@ -232,12 +232,31 @@ void UsbHost::HidDevice::deliver_input(std::span<const uint8_t> data) {
   }
 }
 
+void UsbHost::HidDevice::close_on_driver_task() {
+  // Runs inside the driver's DISCONNECTED callback, i.e. on the driver task
+  // before it continues its own teardown of the device. Closing here keeps
+  // the interface release ordered with the driver's pipe handling: closing
+  // from another task races the driver's disconnect processing, which
+  // ends in hcd_urb_dequeue asserting on a pipe the close already flushed.
+  // No io_mutex_: an app-task driver call in flight on this device is
+  // completed by this very task, so waiting for it here would deadlock;
+  // the driver rejects a close of a busy interface instead, and retire()
+  // (dispatch task, later) closes it under the mutex in that case.
+  if (!connected_.exchange(false)) {
+    return;
+  }
+  if (hid_host_device_close(handle_) == ESP_OK) {
+    closed_.store(true);
+  }
+}
+
 void UsbHost::HidDevice::retire() {
   // Taking io_mutex_ here waits for any driver call in flight on another task
   // to finish before the interface is closed (and its resources freed).
   std::lock_guard<std::mutex> lk(io_mutex_);
-  if (!connected_.exchange(false)) {
-    return; // already retired
+  connected_.store(false);
+  if (closed_.exchange(true)) {
+    return; // already closed (on the driver task, or retired before)
   }
   hid_host_device_close(handle_);
 }
@@ -977,15 +996,18 @@ void UsbHost::on_interface_event(hid_host_device_handle_t handle,
     break;
   }
   case HID_HOST_INTERFACE_EVENT_DISCONNECTED:
-    // The driver drops the device from its list around this event: the
-    // interface is taken out of the tracked set here (on the driver task,
-    // teardown or not) so deinitialize() knows when the driver can be
-    // uninstalled. Membership in that set -- not a lookup in devices_ --
-    // decides: deinitialize() clears devices_ before it powers the root port
-    // down, so the disconnects it provokes would otherwise never be counted
-    // out and teardown would wait for a set that can no longer empty.
+    // Close the interface now, on the driver task (see close_on_driver_task),
+    // and only then count it out of the tracked set, so "untracked" means the
+    // close has been made and deinitialize() does not race the driver's own
+    // teardown of the interface. Membership in that set -- not a lookup in
+    // devices_ -- decides: deinitialize() clears devices_ before it powers the
+    // root port down, so the disconnects it provokes would otherwise never be
+    // counted out. The dispatch task then retires the device object in order,
+    // after any queued inputs, and tells the application.
+    if (auto device = find_device(handle)) {
+      device->close_on_driver_task();
+    }
     release_tracked_device(handle);
-    // The dispatch task retires the device (in order, after any queued inputs).
     enqueue(Event{.type = Event::Type::Disconnected, .handle = handle});
     break;
   case HID_HOST_INTERFACE_EVENT_TRANSFER_ERROR:
