@@ -222,7 +222,7 @@ public:
     const Params params_;
     const std::vector<uint8_t> report_descriptor_;
     std::atomic<bool> connected_{true};
-    std::atomic<bool> closed_{false}; ///< the driver handle has been closed
+    std::atomic<bool> closed_{false}; ///< hid_host_device_close() succeeded (on either task)
     std::atomic<bool> started_{false};
     // Serializes every driver call made through this object against the close
     // performed on disconnect, so a control transfer in flight on an app task

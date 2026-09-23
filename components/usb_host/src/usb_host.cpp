@@ -10,6 +10,8 @@
 #define ESPP_USB_HOST_HAS_HS_CONTROLLER 0
 #endif
 
+#include <esp_log.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
@@ -245,8 +247,13 @@ void UsbHost::HidDevice::close_on_driver_task() {
   if (!connected_.exchange(false)) {
     return;
   }
-  if (hid_host_device_close(handle_) == ESP_OK) {
+  const esp_err_t err = hid_host_device_close(handle_);
+  if (err == ESP_OK) {
     closed_.store(true);
+  } else if (err != ESP_ERR_INVALID_STATE) {
+    // INVALID_STATE is the driver rejecting a busy interface (an app call in
+    // flight): expected, retire() closes it later. Anything else is not.
+    ESP_LOGW("UsbHost", "hid_host_device_close on disconnect: %s", esp_err_to_name(err));
   }
 }
 
@@ -255,10 +262,17 @@ void UsbHost::HidDevice::retire() {
   // to finish before the interface is closed (and its resources freed).
   std::lock_guard<std::mutex> lk(io_mutex_);
   connected_.store(false);
-  if (closed_.exchange(true)) {
+  if (closed_.load()) {
     return; // already closed (on the driver task, or retired before)
   }
-  hid_host_device_close(handle_);
+  const esp_err_t err = hid_host_device_close(handle_);
+  if (err == ESP_OK) {
+    closed_.store(true);
+  } else {
+    // left open: the driver frees the interface itself once the device is
+    // gone, so nothing leaks, but note it
+    ESP_LOGW("UsbHost", "hid_host_device_close on retire: %s", esp_err_to_name(err));
+  }
 }
 
 // ---------------------------------------------------------------------------
