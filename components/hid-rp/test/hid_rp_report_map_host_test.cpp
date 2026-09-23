@@ -335,7 +335,38 @@ static void test_usage_bounds() {
   CHECK(fields.back().usage == 0xFFFF); // clamped at the top of the page
 }
 
+static void test_unaligned_fields() {
+  // A 12-bit signed axis starting at bit 4 and a 12-bit one behind it: neither
+  // is byte aligned, so extraction must take the bit-by-bit path and still
+  // sign-extend correctly.
+  static const uint8_t desc[] = {
+      0x05, 0x01, 0x09, 0x02, 0xA1, 0x01,                         // Mouse-ish
+      0x05, 0x09, 0x19, 0x01, 0x29, 0x04, 0x15, 0x00, 0x25, 0x01, //
+      0x75, 0x01, 0x95, 0x04, 0x81, 0x02,                         // 4 buttons (bits 0..3)
+      0x05, 0x01, 0x09, 0x30, 0x09, 0x31, 0x16, 0x00, 0xF8, 0x26,
+      0xFF, 0x07, 0x75, 0x0C, 0x95, 0x02, 0x81, 0x06, // X,Y: 12 bits, -2048..2047
+      0xC0};
+  auto map = espp::hid_rp::ReportMap::parse(desc);
+  CHECK(map.has_value());
+  if (!map)
+    return;
+  CHECK(map->report_bytes(0) == 4); // 4 bits + 2 x 12 bits = 28 bits
+  const auto &fields = map->fields();
+  CHECK(fields.size() == 6);
+  if (fields.size() != 6)
+    return;
+  CHECK(fields[4].bit_offset == 4 && fields[4].bit_size == 12);
+  CHECK(fields[5].bit_offset == 16 && fields[5].bit_size == 12);
+  // buttons 1 and 3 set; X = -1 (0xFFF), Y = 1
+  const uint8_t report[4] = {0x05 | 0xF0, 0xFF, 0x01, 0x00};
+  auto x = espp::hid_rp::ReportMap::extract(fields[4], 0, report);
+  auto y = espp::hid_rp::ReportMap::extract(fields[5], 0, report);
+  CHECK(x.has_value() && *x == -1); // sign-extended from 12 bits
+  CHECK(y.has_value() && *y == 1);
+}
+
 int main() {
+  test_unaligned_fields();
   test_usage_bounds();
   test_oversized_field_and_wide_range();
   test_wide_buttons();

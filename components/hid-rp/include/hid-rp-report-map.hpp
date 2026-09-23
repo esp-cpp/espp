@@ -99,9 +99,20 @@ public:
       return std::nullopt;
     }
     uint32_t raw = 0;
-    for (unsigned i = 0; i < f.bit_size && i < 32; i++) {
-      const uint32_t bit = f.bit_offset + i;
-      raw |= static_cast<uint32_t>((report[bit >> 3] >> (bit & 7)) & 1) << i;
+    if ((f.bit_offset & 7) == 0 && (f.bit_size & 7) == 0) {
+      // byte-aligned whole bytes (8 / 16 / 24 / 32 bits: axes, wheels, keycode
+      // array slots -- most of what a report carries besides single bits): take
+      // them a byte at a time instead of a bit at a time. HID reports are
+      // little-endian, which is the order the bit loop below builds as well.
+      const size_t first = f.bit_offset >> 3;
+      for (unsigned i = 0; i < f.bit_size >> 3; i++) {
+        raw |= static_cast<uint32_t>(report[first + i]) << (8 * i);
+      }
+    } else {
+      for (unsigned i = 0; i < f.bit_size && i < 32; i++) {
+        const uint32_t bit = f.bit_offset + i;
+        raw |= static_cast<uint32_t>((report[bit >> 3] >> (bit & 7)) & 1) << i;
+      }
     }
     if (f.logical_min < 0 && f.bit_size < 32 && (raw & (1u << (f.bit_size - 1)))) {
       return std::bit_cast<int32_t>(raw | (~0u << f.bit_size)); // sign-extend
@@ -225,7 +236,12 @@ private:
         if (variable) {
           uint32_t u = 0;
           if (have_range) {
-            u = std::min(usage_min + n, usage_max);
+            // advance the usage ID only: adding n to the combined page << 16
+            // | id would carry into the page near the top of it
+            u = with_usage_id(usage_min, std::min<uint32_t>(usage_id(usage_min) + n, 0xFFFF));
+            if ((u & 0xFFFF0000u) == (usage_max & 0xFFFF0000u)) {
+              u = std::min(u, usage_max); // same page: the maximum still bounds it
+            }
           } else if (!usages.empty()) {
             u = usages[std::min<size_t>(n, usages.size() - 1)];
           }
@@ -405,7 +421,7 @@ public:
       any = true;
       if (f.usage_page == usage::PAGE_BUTTON && !f.array) {
         const bool pressed = *v != 0;
-        if (pressed && f.usage < 64)
+        if (pressed && f.usage >= 1 && f.usage < 64)
           r.buttons |= uint64_t{1} << f.usage;
         if (f.usage == south)
           r.south |= pressed;
