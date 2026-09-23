@@ -610,11 +610,21 @@ void UsbHost::apply_full_speed_only() {
 bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) {
   uint32_t event_flags = 0;
   // Block until the library has an event (stop_lib_task() unblocks it); with
-  // full_speed_only the loop wakes periodically to re-assert the mode, since
-  // a root port recovery (after a transfer error / unplug) soft-resets the
-  // controller and clears it.
-  const TickType_t wait = config_.full_speed_only ? pdMS_TO_TICKS(100) : portMAX_DELAY;
-  usb_host_lib_handle_events(wait, &event_flags);
+  // full_speed_only on a high-speed capable controller the loop wakes
+  // periodically to re-assert the mode, since a root port recovery (after a
+  // transfer error / unplug) soft-resets the controller and clears it.
+  constexpr bool kPeriodic = ESPP_USB_HOST_HAS_HS_CONTROLLER != 0;
+  const TickType_t wait =
+      (kPeriodic && config_.full_speed_only) ? pdMS_TO_TICKS(100) : portMAX_DELAY;
+  const esp_err_t err = usb_host_lib_handle_events(wait, &event_flags);
+  if (err != ESP_OK && err != ESP_ERR_TIMEOUT) {
+    // not expected while installed; rate-limited so a persistent failure does
+    // not flood the log from this loop
+    static uint32_t errors = 0;
+    if (++errors == 1 || errors % 100 == 0) {
+      logger_.error("usb_host_lib_handle_events: {} ({} so far)", esp_err_to_name(err), errors);
+    }
+  }
   apply_full_speed_only();
   if (event_flags)
     logger_.debug("USB host lib event flags {:#x}", event_flags);
