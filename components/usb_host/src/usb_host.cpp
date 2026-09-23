@@ -10,6 +10,7 @@
 #define ESPP_USB_HOST_HAS_HS_CONTROLLER 0
 #endif
 
+#include <esp_err.h> // esp_err_to_name()
 #include <esp_log.h>
 
 #include <algorithm>
@@ -18,7 +19,6 @@
 #include <cstring>
 #include <thread>
 
-#include "esp_err.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
