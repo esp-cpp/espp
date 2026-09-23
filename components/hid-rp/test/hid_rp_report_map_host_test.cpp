@@ -6,9 +6,9 @@
 //       -isystem components/hid-rp/detail/hid-rp/hid-rp \
 //       -isystem components/format/include \
 //       -isystem components/format/detail/fmt/include \
-//       components/hid-rp/test/hid_rp_report_map_host_test.cpp -o
-//       /tmp/hid_rp_report_map_host_test \
-//       && /tmp/hid_rp_report_map_host_test
+//       components/hid-rp/test/hid_rp_report_map_host_test.cpp \
+//       -o /tmp/hid_rp_report_map_host_test \
+//   && /tmp/hid_rp_report_map_host_test
 //
 // No ESP-IDF headers required.
 
@@ -262,7 +262,51 @@ static void test_keyboard_array_logical_min() {
   CHECK(!k.pressed(0x04)); // the sentinel must not read as 'a'
 }
 
+static void test_oversized_field_and_wide_range() {
+  // X is a full 32-bit signed axis (its logical range does not fit in int32_t),
+  // followed by a 64-bit vendor field that cannot be represented and must be
+  // skipped without disturbing the offset of the buttons behind it.
+  static const uint8_t desc[] = {
+      0x05, 0x01, 0x09, 0x05, 0xA1, 0x01,                   // Gamepad
+      0x09, 0x30,                                           // Usage (X)
+      0x17, 0x00, 0x00, 0x00, 0x80,                         // Logical Min -2147483648
+      0x27, 0xFF, 0xFF, 0xFF, 0x7F,                         // Logical Max  2147483647
+      0x75, 0x20, 0x95, 0x01, 0x81, 0x02,                   // 1 x 32 bits
+      0x06, 0x00, 0xFF, 0x09, 0x01, 0x15, 0x00, 0x25, 0x01, // vendor-defined
+      0x75, 0x40, 0x95, 0x01, 0x81, 0x02,                   // 1 x 64 bits (skipped)
+      0x05, 0x09, 0x19, 0x01, 0x29, 0x08, 0x15, 0x00, 0x25,
+      0x01, 0x75, 0x01, 0x95, 0x08, 0x81, 0x02, // 8 buttons
+      0xC0};
+  auto map = espp::hid_rp::ReportMap::parse(desc);
+  CHECK(map.has_value());
+  if (!map)
+    return;
+  CHECK(map->report_bytes(0) == 13); // 4 + 8 + 1, the skipped field still takes its room
+  for (const auto &f : map->fields()) {
+    CHECK(f.bit_size >= 1 && f.bit_size <= 32); // never a truncated 64-bit field
+  }
+  espp::hid_rp::GamepadDecoder decoder(std::move(*map));
+  espp::hid_rp::GamepadReport g;
+  uint8_t report[13] = {};
+  report[0] = 0xFF; // X = 0x7FFFFFFF (logical maximum)
+  report[1] = 0xFF;
+  report[2] = 0xFF;
+  report[3] = 0x7F;
+  report[12] = 0x02; // button 2 (usage 2 -> bit 2 of the mask)
+  CHECK(decoder.decode(report, g));
+  CHECK(g.lx == 32767); // no int32_t overflow in the normalization
+  CHECK((g.buttons & (uint64_t{1} << 2)) != 0);
+  CHECK(g.east);    // usage 2 is East in the DirectInput layout
+  report[0] = 0x00; // X = 0x80000000 (logical minimum)
+  report[1] = 0x00;
+  report[2] = 0x00;
+  report[3] = 0x80;
+  CHECK(decoder.decode(report, g));
+  CHECK(g.lx == -32767);
+}
+
 int main() {
+  test_oversized_field_and_wide_range();
   test_wide_buttons();
   test_keyboard_array_logical_min();
   test_edge_items();

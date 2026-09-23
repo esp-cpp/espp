@@ -31,7 +31,7 @@ namespace hid_rp {
 struct ReportField {
   uint8_t report_id{0};   ///< 0 when the device does not use report IDs
   uint32_t bit_offset{0}; ///< bit position within the report (after the ID byte, if any)
-  uint8_t bit_size{0};    ///< report size in bits (1..32 handled by extract())
+  uint8_t bit_size{0};    ///< report size in bits, always 1..32 (see ReportMap::parse())
   uint16_t usage_page{0}; ///< global usage page
   uint16_t usage{0};      ///< usage ID; for array fields the usage minimum
   uint16_t usage_max{0};  ///< array fields: usage maximum (variable: unused)
@@ -195,11 +195,19 @@ private:
         cursor += report_size * report_count; // padding
         return control::CONTINUE;
       }
+      if (report_size == 0 || report_size > 32) {
+        // extract() returns an int32_t, so a field wider than 32 bits cannot be
+        // represented. Skip it instead of silently reporting its low 32 bits as
+        // the value; the cursor still advances by the full width so every later
+        // field keeps its correct offset. (A 0-bit field carries nothing.)
+        cursor += report_size * report_count;
+        return control::CONTINUE;
+      }
       for (uint32_t n = 0; n < report_count; n++) {
         ReportField f;
         f.report_id = report_id;
         f.bit_offset = cursor;
-        f.bit_size = static_cast<uint8_t>(std::min<uint32_t>(report_size, 32));
+        f.bit_size = static_cast<uint8_t>(report_size); // 1..32, checked above
         f.logical_min = logical_min;
         f.logical_max = logical_max;
         f.relative = relative;
@@ -419,8 +427,9 @@ public:
           }
         } else if (f.usage >= usage::GD_X && f.usage <= usage::GD_RZ && !f.relative &&
                    f.logical_max > f.logical_min) {
-          const int32_t range = f.logical_max - f.logical_min;
-          const int64_t centered = 2 * static_cast<int64_t>(*v - f.logical_min) - range;
+          // 64-bit throughout: a full 32-bit logical range overflows int32_t
+          const int64_t range = static_cast<int64_t>(f.logical_max) - f.logical_min;
+          const int64_t centered = 2 * (static_cast<int64_t>(*v) - f.logical_min) - range;
           int16_t n =
               static_cast<int16_t>(std::clamp<int64_t>(centered * 32767 / range, -32767, 32767));
           const bool vertical =
