@@ -15,13 +15,13 @@
 #include <algorithm>
 #include <bit>
 #include <cstdint>
-#include <cstring>
 #include <map>
 #include <optional>
 #include <span>
 #include <vector>
 
 #include "hid/rdf/descriptor_view.hpp"
+#include "hid/rdf/exception.hpp"
 #include "hid/rdf/parser.hpp"
 
 namespace espp {
@@ -51,11 +51,17 @@ public:
     ReportMap map;
     // hid-rp reports malformed descriptors through HID_RDF_ASSERT, which
     // throws when exceptions are enabled and is a no-op otherwise.
-#if defined(__cpp_exceptions)
+// The throw is hid-rp's (HID_RDF_ASSERT, gated on __EXCEPTIONS), so this has to
+// cover every macro a toolchain may use to say exceptions are on; a try block
+// that nothing throws through costs nothing.
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
     try {
       [[maybe_unused]] Parser parser(
           map, ::hid::rdf::descriptor_view(descriptor.data(), descriptor.size()));
-    } catch (...) {
+    } catch (const ::hid::rdf::exception &) {
+      // Only the descriptor being malformed turns into "no map"; anything else
+      // (std::bad_alloc from the field vector, say) is a real failure and is
+      // left to propagate rather than being reported as an unparsable device.
       return std::nullopt;
     }
 #else
@@ -183,12 +189,17 @@ private:
         }
       }
       // a range needs both bounds; infer a missing one from the field count
-      // (usages are consecutive), which is what such descriptors mean
+      // (usages are consecutive), which is what such descriptors mean. Only the
+      // usage ID moves: a full usage is page << 16 | id, so adding to the
+      // combined value would spill into (or borrow from) the page.
       const bool have_range = have_min || have_max;
+      const uint32_t span = report_count - 1;
       if (have_min && !have_max) {
-        usage_max = usage_min + report_count - 1;
+        usage_max =
+            with_usage_id(usage_min, std::min<uint32_t>(0xFFFF, usage_id(usage_min) + span));
       } else if (have_max && !have_min) {
-        usage_min = usage_max >= report_count - 1 ? usage_max - (report_count - 1) : 0;
+        const uint32_t id = usage_id(usage_max);
+        usage_min = with_usage_id(usage_max, id >= span ? id - span : 0);
       }
 
       if (constant) {
@@ -223,8 +234,25 @@ private:
         } else {
           // array item: each slot holds a usage index into [usage_min, usage_max]
           f.array = true;
-          const uint32_t lo = have_range ? usage_min : (usages.empty() ? 0 : usages.front());
-          const uint32_t hi = have_range ? usage_max : (usages.empty() ? 0 : usages.back());
+          uint32_t lo = 0, hi = 0;
+          if (have_range) {
+            lo = usage_min;
+            hi = usage_max;
+          } else if (!usages.empty()) {
+            // An explicit usage list need not be sorted, so the bounds come from
+            // the whole list rather than its ends. A field carries one usage
+            // page, so a list spanning pages contributes only the entries on the
+            // first usage's page.
+            const uint32_t page = usages.front() & 0xFFFF0000u;
+            lo = hi = usages.front();
+            for (uint32_t u : usages) {
+              if ((u & 0xFFFF0000u) != page) {
+                continue;
+              }
+              lo = std::min(lo, u);
+              hi = std::max(hi, u);
+            }
+          }
           f.usage_page = lo ? static_cast<uint16_t>(lo >> 16) : usage_page;
           f.usage = static_cast<uint16_t>(lo & 0xFFFF);
           f.usage_max = static_cast<uint16_t>(hi & 0xFFFF);
@@ -236,6 +264,13 @@ private:
     }
 
   private:
+    // A "full usage" is page << 16 | id; these keep the two halves apart so
+    // arithmetic on the ID cannot walk into the page.
+    static constexpr uint32_t usage_id(uint32_t full) { return full & 0xFFFFu; }
+    static constexpr uint32_t with_usage_id(uint32_t full, uint32_t id) {
+      return (full & 0xFFFF0000u) | (id & 0xFFFFu);
+    }
+
     ReportMap &map_;
   };
 

@@ -305,7 +305,38 @@ static void test_oversized_field_and_wide_range() {
   CHECK(g.lx == -32767);
 }
 
+static void test_usage_bounds() {
+  // (a) an array item whose explicit usage list is not sorted: the bounds must
+  //     come from the whole list, not from its first / last entry.
+  // (b) a usage range with only a minimum, inferred across a count that would
+  //     carry the usage ID past 0xFFFF: only the ID may move, never the page.
+  static const uint8_t desc[] = {
+      0x05, 0x01, 0x09, 0x05, 0xA1, 0x01,                         // Gamepad
+      0x05, 0x09, 0x09, 0x05, 0x09, 0x02, 0x09, 0x09,             // buttons 5, 2, 9 (unsorted)
+      0x15, 0x00, 0x25, 0x09, 0x75, 0x08, 0x95, 0x01, 0x81, 0x00, // 1 array slot
+      0x05, 0x01, 0x1A, 0xF0, 0xFF,                               // Usage Minimum 0xFFF0
+      0x15, 0x00, 0x25, 0x01, 0x75, 0x01, 0x95, 0x20, 0x81, 0x02, // 32 x 1 bit
+      0xC0};
+  auto map = espp::hid_rp::ReportMap::parse(desc);
+  CHECK(map.has_value());
+  if (!map)
+    return;
+  const auto &fields = map->fields();
+  CHECK(fields.size() == 33); // 1 array slot + 32 variable bits
+  if (fields.size() != 33)
+    return;
+  CHECK(fields[0].array);
+  CHECK(fields[0].usage == 2);     // list minimum, not usages.front()
+  CHECK(fields[0].usage_max == 9); // list maximum, not usages.back()
+  for (size_t i = 1; i < fields.size(); i++) {
+    CHECK(fields[i].usage_page == 0x0001); // never carried into page 2
+  }
+  CHECK(fields[1].usage == 0xFFF0);
+  CHECK(fields.back().usage == 0xFFFF); // clamped at the top of the page
+}
+
 int main() {
+  test_usage_bounds();
   test_oversized_field_and_wide_range();
   test_wide_buttons();
   test_keyboard_array_logical_min();
