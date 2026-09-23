@@ -333,6 +333,11 @@ bool UsbHost::initialize(std::error_code &ec) {
     return false;
   }
   apply_full_speed_only();
+  if (config_.full_speed_only && config_.full_speed_reassert_interval.count() <= 0) {
+    logger_.warn("full_speed_reassert_interval must be > 0 ({}ms given); re-asserting once per "
+                 "RTOS tick instead",
+                 config_.full_speed_reassert_interval.count());
+  }
 
   // 2) Start the USB-host-library event task.
   lib_task_run_.store(true);
@@ -611,6 +616,24 @@ void UsbHost::apply_full_speed_only() {
 #endif
 }
 
+TickType_t UsbHost::reassert_wait_ticks(std::chrono::milliseconds interval) {
+  // Clamped to a real block: pdMS_TO_TICKS() truncates, so an interval shorter
+  // than one tick (the default tick is 10ms) would otherwise round to 0 and
+  // turn usb_host_lib_handle_events() into a non-blocking call, i.e. a busy
+  // loop. The top end is capped just below portMAX_DELAY so a very long
+  // interval cannot wrap into "wait forever" (or into 0).
+  constexpr TickType_t kMaxWait = portMAX_DELAY - 1;
+  const int64_t ms = interval.count();
+  if (ms <= 0) {
+    return 1;
+  }
+  const int64_t ticks = static_cast<int64_t>(pdMS_TO_TICKS(ms));
+  if (ticks <= 0) {
+    return 1;
+  }
+  return ticks >= static_cast<int64_t>(kMaxWait) ? kMaxWait : static_cast<TickType_t>(ticks);
+}
+
 bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) {
   uint32_t event_flags = 0;
   // Block until the library has an event (stop_lib_task() unblocks it); with
@@ -620,10 +643,9 @@ bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) 
   constexpr bool kPeriodic = ESPP_USB_HOST_HAS_HS_CONTROLLER != 0;
   // (written as one expression: naming the intermediate makes static analysis
   // report a condition that is always false on a full-speed-only target)
-  const TickType_t wait =
-      (kPeriodic && config_.full_speed_only)
-          ? pdMS_TO_TICKS(std::max<int64_t>(1, config_.full_speed_reassert_interval.count()))
-          : portMAX_DELAY;
+  const TickType_t wait = (kPeriodic && config_.full_speed_only)
+                              ? reassert_wait_ticks(config_.full_speed_reassert_interval)
+                              : portMAX_DELAY;
   const esp_err_t err = usb_host_lib_handle_events(wait, &event_flags);
   if (err != ESP_OK) {
     // only ESP_OK writes event_flags; anything else leaves whatever the call

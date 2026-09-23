@@ -307,7 +307,11 @@ public:
     ///        Each wake is a single task switch plus one register write. Only
     ///        used when full_speed_only is set on a high-speed capable
     ///        controller; ignored otherwise (the task then blocks indefinitely
-    ///        and wakes only on real events). Must be > 0.
+    ///        and wakes only on real events). Rounded *up* to at least one RTOS
+    ///        tick (the default tick is 10ms), so a shorter interval -- 0 or a
+    ///        negative one included -- wakes once per tick rather than turning
+    ///        the event wait into a busy loop; initialize() warns when the
+    ///        configured value is not positive.
     std::chrono::milliseconds full_speed_reassert_interval{100};
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
@@ -408,6 +412,10 @@ private:
   bool lib_task_fn(std::mutex &m, std::condition_variable &cv);
   void apply_full_speed_only();
   void stop_lib_task();
+
+  // Ticks to block in the library event wait when full_speed_only re-asserts,
+  // clamped to [1, portMAX_DELAY - 1] so the wait is always a real block.
+  static TickType_t reassert_wait_ticks(std::chrono::milliseconds interval);
 
   static HidDevice::Info read_info(hid_host_device_handle_t handle);
   static HidDevice::Params read_params(hid_host_device_handle_t handle);
