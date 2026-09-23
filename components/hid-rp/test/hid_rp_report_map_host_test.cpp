@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <utility>
 #include <vector>
 
 #include "hid-rp-gamepad.hpp"
@@ -219,7 +220,51 @@ static void test_edge_items() {
   CHECK((g.buttons & (uint64_t{1} << 4)) != 0);
 }
 
+// A 40-button pad (raw mask above bit 31) and a centered hat.
+static void test_wide_buttons() {
+  static const uint8_t desc[] = {0x05, 0x01, 0x09, 0x05, 0xA1, 0x01, // Gamepad
+                                 0x05, 0x09, 0x19, 0x01, 0x29, 0x28, 0x15, 0x00,
+                                 0x25, 0x01, 0x75, 0x01, 0x95, 0x28, 0x81, 0x02, // 40 buttons
+                                 0x05, 0x01, 0x09, 0x39, 0x15, 0x00, 0x25, 0x07,
+                                 0x75, 0x08, 0x95, 0x01, 0x81, 0x42, // hat
+                                 0xC0};
+  auto map = espp::hid_rp::ReportMap::parse(desc);
+  CHECK(map.has_value());
+  if (!map)
+    return;
+  CHECK(espp::hid_rp::GamepadDecoder::looks_like_gamepad(*map)); // static classifier
+  espp::hid_rp::GamepadDecoder decoder(std::move(*map));
+  espp::hid_rp::GamepadReport g;
+  // button 40 (bit 40 of the raw mask) pressed, hat centered (8 = out of range)
+  const uint8_t report[6] = {0, 0, 0, 0, 0x80, 0x08};
+  CHECK(decoder.decode(report, g));
+  CHECK((g.buttons & (uint64_t{1} << 40)) != 0);
+  CHECK(!g.up && !g.down && !g.left && !g.right);
+}
+
+// A keyboard array whose "no key" sentinel is its logical minimum (4), not 0.
+static void test_keyboard_array_logical_min() {
+  static const uint8_t desc[] = {0x05, 0x01, 0x09, 0x06, 0xA1, 0x01, // Keyboard
+                                 0x95, 0x02, 0x75, 0x08, 0x15, 0x04,
+                                 0x25, 0x65, 0x05, 0x07, 0x19, 0x04, // logical min 4
+                                 0x29, 0x65, 0x81, 0x00,             // 2 key slots (array)
+                                 0xC0};
+  auto map = espp::hid_rp::ReportMap::parse(desc);
+  CHECK(map.has_value());
+  if (!map)
+    return;
+  CHECK(espp::hid_rp::KeyboardDecoder::looks_like_keyboard(*map));
+  espp::hid_rp::KeyboardDecoder kb(std::move(*map));
+  espp::hid_rp::KeyboardReport k;
+  const uint8_t report[2] = {0x1a, 0x04}; // 'w' pressed, second slot empty (== logical min)
+  CHECK(kb.decode(report, k));
+  CHECK(k.pressed(0x1a));
+  CHECK(!k.pressed(0x04)); // the sentinel must not read as 'a'
+}
+
 int main() {
+  test_wide_buttons();
+  test_keyboard_array_logical_min();
   test_edge_items();
   test_generated_gamepad();
   test_keyboard();

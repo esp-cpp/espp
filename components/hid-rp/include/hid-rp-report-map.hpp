@@ -287,6 +287,9 @@ public:
     bool y_up_positive{false};       ///< stick Y grows upwards (HID convention is downwards)
   };
 
+  /// Takes ownership of the map: pass an rvalue (`std::move(map)`) to hand it
+  /// over, an lvalue to keep your own copy. Use the static looks_like_*()
+  /// to classify a device without constructing a decoder per kind.
   explicit GamepadDecoder(ReportMap map)
       : map_(std::move(map)) {
     size_t buttons = 0;
@@ -302,10 +305,10 @@ public:
     }
   }
 
-  /// Whether the map looks like a gamepad (buttons plus a direction source).
-  bool looks_like_gamepad() const {
+  /// Whether a map looks like a gamepad (buttons plus a direction source).
+  static bool looks_like_gamepad(const ReportMap &map) {
     bool buttons = false, direction = false;
-    for (const auto &f : map_.fields()) {
+    for (const auto &f : map.fields()) {
       if (f.usage_page == usage::PAGE_BUTTON)
         buttons = true;
       if (f.usage_page == usage::PAGE_GENERIC_DESKTOP &&
@@ -315,12 +318,15 @@ public:
     }
     return buttons && direction;
   }
+  /// Whether this decoder's map looks like a gamepad.
+  bool looks_like_gamepad() const { return looks_like_gamepad(map_); }
 
   /// Apply the known per-controller quirks for a vendor / product ID.
   void apply_quirks(uint16_t vid, uint16_t pid) {
     struct Entry {
-      uint16_t vid, pid;
-      Quirks quirks;
+      uint16_t vid{0};
+      uint16_t pid{0};
+      Quirks quirks{};
     };
     static constexpr Entry table[] = {
         {0x054C, 0x05C4, {Layout::DirectInput, false, false}}, // Sony DualShock 4
@@ -328,11 +334,12 @@ public:
         {0x054C, 0x0CE6, {Layout::DirectInput, false, false}}, // Sony DualSense
         {0x358A, 0x0402, {Layout::Xbox, false, true}},         // Backbone Pro (stick Y grows up)
     };
-    for (const auto &e : table) {
-      if (e.vid == vid && e.pid == pid) {
-        quirks_ = e.quirks;
-        return;
-      }
+    const auto *e =
+        std::find_if(std::begin(table), std::end(table), [vid, pid](const Entry &entry) {
+          return entry.vid == vid && entry.pid == pid;
+        });
+    if (e != std::end(table)) {
+      quirks_ = e->quirks;
     }
   }
   const Quirks &quirks() const { return quirks_; }
@@ -355,8 +362,8 @@ public:
       any = true;
       if (f.usage_page == usage::PAGE_BUTTON && !f.array) {
         const bool pressed = *v != 0;
-        if (pressed && f.usage < 32)
-          r.buttons |= 1u << f.usage;
+        if (pressed && f.usage < 64)
+          r.buttons |= uint64_t{1} << f.usage;
         if (f.usage == south)
           r.south |= pressed;
         else if (f.usage == east)
@@ -500,14 +507,18 @@ struct KeyboardReport {
 /// array of key usages) and NKRO bitmaps alike, from the descriptor.
 class KeyboardDecoder {
 public:
+  /// Takes ownership of the map: pass an rvalue (`std::move(map)`) to hand it
+  /// over, an lvalue to keep your own copy. Use the static looks_like_*()
+  /// to classify a device without constructing a decoder per kind.
   explicit KeyboardDecoder(ReportMap map)
       : map_(std::move(map)) {}
-  bool looks_like_keyboard() const {
-    for (const auto &f : map_.fields())
-      if (f.usage_page == usage::PAGE_KEYBOARD)
-        return true;
-    return false;
+  /// Whether a map looks like a keyboard (keyboard-page fields).
+  static bool looks_like_keyboard(const ReportMap &map) {
+    return std::any_of(map.fields().begin(), map.fields().end(),
+                       [](const ReportField &f) { return f.usage_page == usage::PAGE_KEYBOARD; });
   }
+  /// Whether this decoder's map looks like a keyboard.
+  bool looks_like_keyboard() const { return looks_like_keyboard(map_); }
   bool decode(std::span<const uint8_t> raw, KeyboardReport &out) const {
     const auto [id, report] = map_.split(raw);
     KeyboardReport r{};
@@ -520,8 +531,10 @@ public:
         continue;
       any = true;
       if (f.array) {
-        if (*v == 0)
-          continue; // no key in this slot
+        // an unused slot reads as the logical minimum (0 in the usual boot
+        // descriptor, but not every keyboard uses 0)
+        if (*v == f.logical_min)
+          continue;
         const int32_t u = f.usage + (*v - f.logical_min);
         if (u > 0 && u < 256)
           r.keys[u >> 3] |= 1 << (u & 7);
@@ -550,14 +563,20 @@ struct MouseReport {
 /// descriptor.
 class MouseDecoder {
 public:
+  /// Takes ownership of the map: pass an rvalue (`std::move(map)`) to hand it
+  /// over, an lvalue to keep your own copy. Use the static looks_like_*()
+  /// to classify a device without constructing a decoder per kind.
   explicit MouseDecoder(ReportMap map)
       : map_(std::move(map)) {}
-  bool looks_like_mouse() const {
-    return std::any_of(map_.fields().begin(), map_.fields().end(), [](const ReportField &f) {
+  /// Whether a map looks like a mouse (relative pointer axes).
+  static bool looks_like_mouse(const ReportMap &map) {
+    return std::any_of(map.fields().begin(), map.fields().end(), [](const ReportField &f) {
       return f.usage_page == usage::PAGE_GENERIC_DESKTOP && f.relative &&
              (f.usage == usage::GD_X || f.usage == usage::GD_Y);
     });
   }
+  /// Whether this decoder's map looks like a mouse.
+  bool looks_like_mouse() const { return looks_like_mouse(map_); }
   bool decode(std::span<const uint8_t> raw, MouseReport &out) const {
     const auto [id, report] = map_.split(raw);
     MouseReport r{};
