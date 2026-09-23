@@ -268,8 +268,7 @@ public:
     size_t task_priority{5};          ///< priority of the internal tasks
     int task_core_id{-1};             ///< core for the internal tasks (-1 = no affinity)
     size_t lib_task_stack_size{4096}; ///< stack for the USB-host-library event task
-    size_t hid_task_stack_size{
-        4096}; ///< stack for the HID class driver's event task (it only enqueues)
+    size_t hid_task_stack_size{4096}; ///< stack for the HID driver's event task (it only enqueues)
     /// @brief Stack for the dispatch task that runs the user callbacks (size it
     ///        for what your callbacks do -- logging with fmt, protocol work, ...).
     size_t dispatch_task_stack_size{6 * 1024};

@@ -721,9 +721,18 @@ void UsbHost::start_hid_task() {
 bool UsbHost::hid_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) {
   // The driver's event pump; a bounded wait so the stop flag is observed.
   // ESP_FAIL means hid_host_uninstall() is in progress and was waiting for
-  // this return: the pump must not call the driver again.
-  if (hid_host_handle_events(pdMS_TO_TICKS(100)) == ESP_FAIL) {
+  // this return: the pump must not call the driver again. ESP_OK and a
+  // timeout are the normal returns; anything else (e.g. the driver gone:
+  // ESP_ERR_INVALID_STATE) is logged, rate-limited, and the pump keeps
+  // going so a transient error does not silently kill event delivery.
+  const esp_err_t err = hid_host_handle_events(pdMS_TO_TICKS(100));
+  if (err == ESP_FAIL) {
     hid_task_run_.store(false);
+  } else if (err != ESP_OK && err != ESP_ERR_TIMEOUT) {
+    static uint32_t errors = 0;
+    if (++errors == 1 || errors % 100 == 0) {
+      logger_.error("hid_host_handle_events: {} ({} so far)", esp_err_to_name(err), errors);
+    }
   }
   return !hid_task_run_.load(); // true = stop the task
 }
@@ -851,8 +860,13 @@ void UsbHost::on_interface_event(hid_host_device_handle_t handle,
   case HID_HOST_INTERFACE_EVENT_DISCONNECTED:
     // The driver drops the device from its list around this event: it is
     // counted out here (on the driver task, teardown or not) so
-    // deinitialize() knows when the driver can be uninstalled.
-    driver_tracked_.fetch_sub(1);
+    // deinitialize() knows when the driver can be uninstalled. Only devices
+    // we opened were counted in, and the count never goes below zero.
+    if (find_device(handle)) {
+      int n = driver_tracked_.load();
+      while (n > 0 && !driver_tracked_.compare_exchange_weak(n, n - 1)) {
+      }
+    }
     // The dispatch task retires the device (in order, after any queued inputs).
     enqueue(Event{.type = Event::Type::Disconnected, .handle = handle});
     break;
