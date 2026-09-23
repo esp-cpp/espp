@@ -427,16 +427,21 @@ private:
   void stop_hid_task();
   void stop_lib_task();
 
-  // Remember that the HID driver has opened this interface for us.
+  // Count an interface into the tracked set, before the open that can start
+  // delivering its events.
   void track_opened_device(hid_host_device_handle_t handle);
   // Take a device out of the set the HID driver still tracks and wake a
   // deinitialize() that is waiting for the set to empty.
   void release_tracked_device(hid_host_device_handle_t handle);
+  // As release_tracked_device(), but for an interface that was never really
+  // opened (the open failed after it was counted in): no log, no complaint.
+  void drop_tracked_device(hid_host_device_handle_t handle);
   // How many interfaces the driver still tracks (for logging).
   size_t num_tracked_devices() const;
   // Wait (bounded) for the HID driver to report every device we opened gone.
   // @return true if the driver released them all, false on timeout.
   bool wait_for_untracked(std::chrono::milliseconds timeout);
+
   // Ticks to block in the library event wait when full_speed_only re-asserts,
   // clamped to [1, portMAX_DELAY - 1] so the wait is always a real block.
   static TickType_t reassert_wait_ticks(std::chrono::milliseconds interval);

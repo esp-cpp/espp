@@ -396,8 +396,11 @@ bool UsbHost::initialize(std::error_code &ec) {
   accepting_.store(true); // driver callbacks may now enqueue
 
   // 4) Install the HID class driver. Its event loop runs on a task of ours
-  //    (not the driver's own background task) so the stack placement follows
-  //    task_stack_alloc_caps like the other two.
+  //    (create_background_task = false) so the stack placement follows
+  //    task_stack_alloc_caps like the other two. The driver then creates no
+  //    task and ignores the priority / stack / core fields below -- they are
+  //    left at our configured values only so the struct reads consistently;
+  //    start_hid_task() is where those settings actually take effect.
   const hid_host_driver_config_t hid_config = {
       .create_background_task = false,
       .task_priority = config_.task_priority,
@@ -759,6 +762,22 @@ void UsbHost::track_opened_device(hid_host_device_handle_t handle) {
   driver_tracked_.insert(handle);
 }
 
+void UsbHost::drop_tracked_device(hid_host_device_handle_t handle) {
+  // Silent counterpart of release_tracked_device(): used when an open fails, so
+  // there is nothing noteworthy about the interface no longer being tracked.
+  bool empty = false;
+  {
+    std::lock_guard<std::mutex> lk(tracked_mutex_);
+    if (driver_tracked_.erase(handle) == 0) {
+      return; // a disconnect already took it out
+    }
+    empty = driver_tracked_.empty();
+  }
+  if (empty) {
+    tracked_cv_.notify_all();
+  }
+}
+
 void UsbHost::release_tracked_device(hid_host_device_handle_t handle) {
   bool empty = false;
   {
@@ -983,15 +1002,21 @@ void UsbHost::handle_new_device(hid_host_device_handle_t handle) {
   }
 
   // Open the HID interface, routing its events back to us (on the driver task).
+  // The interface is counted as tracked *before* the open, not after: the open
+  // registers the callback below, so a disconnect can be delivered on the
+  // driver task while the open is still returning. Counting it in afterwards
+  // would let that disconnect find nothing to release and leave the interface
+  // in the tracked set forever, which is what gates teardown. An open that
+  // fails takes it back out (and so does a disconnect that beat us to it --
+  // the erase is a no-op then).
   const hid_host_device_config_t dev_config = {
       .callback = &espp_usb_host_interface_event_cb,
       .callback_arg = this,
   };
+  track_opened_device(handle);
   esp_err_t err = hid_host_device_open(handle, &dev_config);
-  if (err == ESP_OK) {
-    track_opened_device(handle);
-  }
   if (err != ESP_OK) {
+    drop_tracked_device(handle);
     logger_.error("hid_host_device_open failed: {}", esp_err_to_name(err));
     return;
   }
