@@ -18,13 +18,14 @@ tags:
   - Transport
   - Gamepad
 dependencies:
-  # ESP-IDF >= 5.1: `root_port_unpowered` / usb_host_lib_set_root_port_power()
-  # in IDF's built-in USB Host library. On ESP-IDF >= 6.0 that library is the
+  # ESP-IDF >= 5.4: `root_port_unpowered` / usb_host_lib_set_root_port_power()
+  # in IDF's built-in USB Host library (absent through v5.3; checked against the
+  # v5.1..v5.5 tags). On ESP-IDF >= 6.0 that library is the
   # esp-usb `usb` component from the registry instead (usb_host_hid declares it
   # only there); >= 1.3.0 adds `peripheral_map`, behind which Config::port
   # (ESP32-P4 dual host) is compiled -- see ESPP_USB_HOST_HAS_PORT_SELECT.
   idf:
-    version: '>=5.1'
+    version: '>=5.4'
   espp/base_component: '>=1.0'
   espp/task: '>=1.0'
   espressif/usb:

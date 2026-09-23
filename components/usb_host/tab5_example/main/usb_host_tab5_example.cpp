@@ -167,10 +167,13 @@ extern "C" void app_main(void) {
           gui.set_device(Gui::DeviceInfo{});
           gui.set_status_text("Device removed. Plug a device into the USB-A port.");
         },
+#if ESPP_USB_HOST_HAS_PORT_SELECT
     // The Tab5's USB-A jack is on the P4's high-speed OTG controller, which is
     // peripheral 0 (the library default); say so explicitly so a board wired
-    // the other way only has to change this number.
+    // the other way only has to change this number. (Without port selection,
+    // ESP-IDF 5.x, only the default -1 is accepted; it is the same controller.)
         .port = 0,
+#endif
     .root_port_power_on_delay =
         std::chrono::milliseconds(CONFIG_USB_HOST_TAB5_ROOT_PORT_POWER_ON_DELAY_MS),
 #if CONFIG_USB_HOST_TAB5_CONTROL_USB_A_POWER
