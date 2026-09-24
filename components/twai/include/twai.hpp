@@ -316,10 +316,16 @@ public:
   /// \param ec The error code, set if the wait failed: \c operation_not_permitted
   ///        (node not initialized, or not enabled while a frame is pending, or
   ///        bus-off), \c timed_out (still pending after \p timeout_ms).
-  /// \param timeout_ms Max time (ms) to wait, -1 = forever.
+  /// \param timeout_ms Max time (ms) to wait, -1 = forever. Serialized with
+  ///        transmit() and abort_pending() (a transmit() in progress finishes
+  ///        or times out first; neither can start until this returns).
   /// \return True once nothing is pending, false otherwise.
   bool flush(std::error_code &ec, int timeout_ms = DEFAULT_TX_TIMEOUT_MS) {
     ec.clear();
+    // tx_mutex_ then mutex_, the order transmit() / teardown() use: holding
+    // tx_mutex_ across the wait keeps abort_pending() from deleting the node
+    // while the driver call below still uses it
+    std::lock_guard<std::mutex> tx_lock(tx_mutex_);
     twai_node_handle_t node = nullptr;
     {
       std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -351,9 +357,9 @@ public:
   ///          configuration, callbacks and filter; the node comes back enabled
   ///          if it was). The receive task and event queue are untouched, so
   ///          nothing already received is lost; frames arriving during the few
-  ///          hundred microseconds the node is gone are. Waits for a
-  ///          transmit() in progress on another task to finish (or time out)
-  ///          first, so it never pulls the node from under one.
+  ///          hundred microseconds the node is gone are lost. Waits for a
+  ///          transmit() or flush() in progress on another task to finish (or
+  ///          time out) first, so it never pulls the node from under one.
   /// \param ec The error code, set if the node could not be re-created (it is
   ///        then gone: transmit() fails with \c operation_not_permitted until
   ///        initialize() is called again, which re-creates just the node) or
