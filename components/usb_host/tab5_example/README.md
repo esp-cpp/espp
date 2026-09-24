@@ -57,9 +57,8 @@ decoders are `hid-rp`'s `espp::hid_rp::ReportMap` and the `KeyboardDecoder` /
   its 5 V through an IO expander (`set_usb_a_power()`).
 - The console (`idf.py monitor`) stays on the USB-C port: that is the other
   (full-speed) controller, with USB-Serial-JTAG, so both work at once.
-- A wireless device works through its USB receiver; a hub works too (the
-  example runs the root port full-speed-only, since ESP-IDF's hub support has
-  no transaction translator).
+- A wireless device works through its USB receiver, and a hub works too (hub
+  support is on in the example's `sdkconfig.defaults`).
 - Devices attached at power-up and hot-plugged devices both enumerate normally.
   The example keeps the jack's 5 V off until the host is listening and waits
   500 ms before powering the root port (both in menuconfig: **USB Host Tab5

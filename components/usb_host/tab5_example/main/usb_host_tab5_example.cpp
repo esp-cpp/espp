@@ -246,11 +246,7 @@ extern "C" void app_main(void) {
 #endif
     // the connect callback above parses the report descriptor, builds the
     // decoder and fills in the device card (LVGL + fmt) on the dispatch task
-        .dispatch_task_stack_size = 16 * 1024,
-    // devices behind a hub: ESP-IDF's hub support has no transaction
-    // translator, so full-speed HID devices are only reachable with the root
-    // port in full-speed-only mode (no effect on a device plugged in directly)
-        .full_speed_only = true, .log_level = espp::Logger::Verbosity::INFO,
+        .dispatch_task_stack_size = 16 * 1024, .log_level = espp::Logger::Verbosity::INFO,
   });
 
   std::error_code ec;

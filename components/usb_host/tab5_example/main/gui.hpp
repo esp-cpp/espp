@@ -126,11 +126,16 @@ protected:
   void init_gamepad(lv_obj_t *parent);
   void init_report_line(lv_obj_t *parent);
   /// A square pad with a dot, for a mouse position or a gamepad stick.
-  lv_obj_t *make_pad(lv_obj_t *parent, int size, lv_obj_t **dot_out);
+  struct Pad {
+    lv_obj_t *obj{nullptr};
+    lv_obj_t *dot{nullptr};
+    int size{0}; ///< the pad's side, which the dot's travel is computed from
+  };
+  Pad make_pad(lv_obj_t *parent, int size);
   /// A labelled indicator square (button LED).
   lv_obj_t *make_led(lv_obj_t *parent, const char *label, int size);
   static void set_led(lv_obj_t *led, bool on);
-  static void move_dot(lv_obj_t *pad, lv_obj_t *dot, int32_t x, int32_t y, int32_t range);
+  static void move_dot(const Pad &pad, int32_t x, int32_t y, int32_t range);
   void reset_panels();
 
   bool update(std::mutex &m, std::condition_variable &cv);
@@ -155,17 +160,14 @@ protected:
   std::array<lv_obj_t *, kAxisCount> axis_values_{};
   std::array<lv_obj_t *, kButtonCount> button_leds_{};
   // mouse panel
-  lv_obj_t *mouse_pad_{nullptr};
-  lv_obj_t *mouse_dot_{nullptr};
+  Pad mouse_pad_;
   lv_obj_t *mouse_wheel_bar_{nullptr};
   lv_obj_t *mouse_wheel_value_{nullptr};
   lv_obj_t *mouse_position_{nullptr};
   std::array<lv_obj_t *, kMouseButtonCount> mouse_leds_{};
   // gamepad panel
-  lv_obj_t *left_pad_{nullptr};
-  lv_obj_t *left_dot_{nullptr};
-  lv_obj_t *right_pad_{nullptr};
-  lv_obj_t *right_dot_{nullptr};
+  Pad left_pad_;
+  Pad right_pad_;
   lv_obj_t *stick_values_{nullptr};
   std::array<lv_obj_t *, 4> dpad_leds_{}; ///< up, down, left, right
   std::array<lv_obj_t *, kGamepadButtonCount> gamepad_leds_{};
@@ -173,6 +175,11 @@ protected:
   std::array<int16_t, kAxisCount> shown_axes_{};
   std::array<bool, kButtonCount> shown_buttons_{};
   std::array<bool, 256> shown_keys_{};
+  // the device the card shows, so an interface being added to the same device
+  // does not reset the panels or the scroll position
+  bool shown_connected_{false};
+  uint16_t shown_vid_{0};
+  uint16_t shown_pid_{0};
   MouseState shown_mouse_{};
   espp::hid_rp::GamepadReport shown_gamepad_{};
   std::array<bool, kGamepadButtonCount> shown_gamepad_buttons_{};

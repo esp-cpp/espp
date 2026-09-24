@@ -173,7 +173,7 @@ lv_obj_t *Gui::init_panel(lv_obj_t *parent, const char *title) {
   return panel;
 }
 
-lv_obj_t *Gui::make_pad(lv_obj_t *parent, int size, lv_obj_t **dot_out) {
+Gui::Pad Gui::make_pad(lv_obj_t *parent, int size) {
   lv_obj_t *pad = lv_obj_create(parent);
   lv_obj_set_size(pad, size, size);
   lv_obj_set_style_bg_color(pad, lv_color_hex(kInactiveColor), 0);
@@ -197,17 +197,18 @@ lv_obj_t *Gui::make_pad(lv_obj_t *parent, int size, lv_obj_t **dot_out) {
   lv_obj_set_style_border_width(dot, 0, 0);
   lv_obj_set_style_bg_color(dot, lv_palette_main(LV_PALETTE_GREEN), 0);
   lv_obj_clear_flag(dot, LV_OBJ_FLAG_SCROLLABLE);
-  move_dot(pad, dot, 0, 0, 1);
-  *dot_out = dot;
-  return pad;
+  Pad result{.obj = pad, .dot = dot, .size = size};
+  move_dot(result, 0, 0, 1);
+  return result;
 }
 
-void Gui::move_dot([[maybe_unused]] lv_obj_t *pad, lv_obj_t *dot, int32_t x, int32_t y,
-                   int32_t range) {
-  const int travel = (kPadSize - kDotSize) / 2; // pixels from center to the edge
+void Gui::move_dot(const Pad &pad, int32_t x, int32_t y, int32_t range) {
+  // pixels from the center to the edge, from the size the pad was made with
+  // (its laid-out width is not valid until LVGL has run a layout pass)
+  const int travel = (pad.size - kDotSize) / 2;
   const int cx = std::clamp<int32_t>(x, -range, range) * travel / range;
   const int cy = std::clamp<int32_t>(y, -range, range) * travel / range;
-  lv_obj_set_pos(dot, travel + cx, travel + cy);
+  lv_obj_set_pos(pad.dot, travel + cx, travel + cy);
 }
 
 lv_obj_t *Gui::make_led(lv_obj_t *parent, const char *label, int size) {
@@ -360,7 +361,7 @@ void Gui::init_mouse(lv_obj_t *parent) {
   lv_obj_t *row = make_row(panel);
   lv_obj_set_style_pad_column(row, kPad * 2, 0);
   lv_obj_set_flex_align(row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
-  mouse_pad_ = make_pad(row, kPadSize, &mouse_dot_);
+  mouse_pad_ = make_pad(row, kPadSize);
 
   lv_obj_t *col = make_column(row);
   mouse_position_ = lv_label_create(col);
@@ -405,7 +406,7 @@ void Gui::init_gamepad(lv_obj_t *parent) {
   lv_obj_set_style_pad_row(row, kPad, 0);
   lv_obj_set_flex_align(row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
 
-  left_pad_ = make_pad(row, kPadSize, &left_dot_);
+  left_pad_ = make_pad(row, kPadSize);
 
   // d-pad and face buttons: 3x3 grids of indicator cells, laid out by position
   auto make_cross = [&](std::array<lv_obj_t *, 4> &leds, const char *const names[4]) {
@@ -426,7 +427,7 @@ void Gui::init_gamepad(lv_obj_t *parent) {
   static constexpr const char *kDpadNames[4] = {"^", "v", "<", ">"};
   make_cross(dpad_leds_, kDpadNames);
 
-  right_pad_ = make_pad(row, kPadSize, &right_dot_);
+  right_pad_ = make_pad(row, kPadSize);
 
   // face buttons: north, south, west, east -> indices 3, 0, 2, 1 of the names
   std::array<lv_obj_t *, 4> face{};
@@ -502,9 +503,9 @@ void Gui::reset_panels() {
     set_led(led, false);
   for (auto *led : gamepad_leds_)
     set_led(led, false);
-  move_dot(mouse_pad_, mouse_dot_, 0, 0, 1);
-  move_dot(left_pad_, left_dot_, 0, 0, 1);
-  move_dot(right_pad_, right_dot_, 0, 0, 1);
+  move_dot(mouse_pad_, 0, 0, 1);
+  move_dot(left_pad_, 0, 0, 1);
+  move_dot(right_pad_, 0, 0, 1);
   lv_bar_set_value(mouse_wheel_bar_, 0, LV_ANIM_OFF);
   lv_label_set_text(mouse_wheel_value_, "0");
   lv_label_set_text(mouse_position_, "x 0   y 0");
@@ -542,9 +543,19 @@ void Gui::set_device(const DeviceInfo &info) {
   show(keyboard_panel_, info.connected && info.has(Kind::Keyboard));
   show(mouse_panel_, info.connected && info.has(Kind::Mouse));
   show(gamepad_panel_, info.connected && info.has(Kind::Gamepad));
-  lv_obj_scroll_to_y(panels_, 0, LV_ANIM_OFF);
-  // a new device repaints everything once
-  reset_panels();
+  // Only a change of device starts over. A composite device opens its
+  // interfaces one at a time, and each one updates the card; wiping the panels
+  // (keys held, motion accumulated) and the scroll position for that would be
+  // wrong, so those survive while the same device is still attached.
+  const bool new_device =
+      info.connected != shown_connected_ || info.vid != shown_vid_ || info.pid != shown_pid_;
+  shown_connected_ = info.connected;
+  shown_vid_ = info.vid;
+  shown_pid_ = info.pid;
+  if (new_device) {
+    lv_obj_scroll_to_y(panels_, 0, LV_ANIM_OFF);
+    reset_panels();
+  }
   if (!info.connected) {
     lv_label_set_text(device_title_, "No USB HID device");
     lv_label_set_text(device_detail_, "Plug a device into the USB-A port.");
@@ -607,7 +618,7 @@ void Gui::set_mouse_state(const MouseState &state) {
   if (!root_)
     return;
   if (state.x != shown_mouse_.x || state.y != shown_mouse_.y) {
-    move_dot(mouse_pad_, mouse_dot_, state.x, state.y, kMouseRange);
+    move_dot(mouse_pad_, state.x, state.y, kMouseRange);
     lv_label_set_text_fmt(mouse_position_, "x %d   y %d", static_cast<int>(state.x),
                           static_cast<int>(state.y));
   }
@@ -631,9 +642,9 @@ void Gui::set_gamepad_state(const espp::hid_rp::GamepadReport &report) {
     return;
   const auto &s = shown_gamepad_;
   if (r.lx != s.lx || r.ly != s.ly)
-    move_dot(left_pad_, left_dot_, r.lx, r.ly, 32767);
+    move_dot(left_pad_, r.lx, r.ly, 32767);
   if (r.rx != s.rx || r.ry != s.ry)
-    move_dot(right_pad_, right_dot_, r.rx, r.ry, 32767);
+    move_dot(right_pad_, r.rx, r.ry, 32767);
   if (r.lx != s.lx || r.ly != s.ly || r.rx != s.rx || r.ry != s.ry || r.hat != s.hat) {
     if (r.hat < 0)
       lv_label_set_text_fmt(stick_values_, "L %d,%d   R %d,%d   hat -", r.lx, r.ly, r.rx, r.ry);
