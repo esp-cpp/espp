@@ -166,9 +166,9 @@ public:
      *  transmission is dropped with abort_pending(), so the controller stops
      *  retransmitting it and the next transmit() proceeds at once. false: the
      *  frame is left with the controller (it may still go out when the bus
-     *  comes back); the next transmit() first flush()es -- waits, up to its
-     *  own timeout, for that frame to finish -- and fails with timed_out while
-     *  it is still pending. Call abort_pending() to drop it explicitly. */
+     *  comes back); the next transmit() first waits, up to its own timeout,
+     *  for that frame to finish (as flush() does) and fails with timed_out
+     *  while it is still pending. Call abort_pending() to drop it explicitly. */
     bool auto_abort_on_timeout{true};
     std::optional<Filter> filter{};          ///< Optional acceptance filter (default: accept all).
     receive_callback_fn on_receive{nullptr}; ///< Called (in task context) for each received frame.
@@ -485,9 +485,7 @@ public:
     if (tx_pending_.load()) {
       const int pending_timeout_ms = timeout_ms < 0 ? DEFAULT_TX_TIMEOUT_MS : timeout_ms;
       if (!flush_node(node, ec, pending_timeout_ms)) {
-        logger_.error(
-            "Cannot transmit: an earlier frame is still pending (abort_pending() drops it)");
-        return false;
+        return false; // flush_node() logged why (and what to do about it)
       }
     }
     // drain a stale completion (e.g. from a prior transmit whose frame we
@@ -707,13 +705,15 @@ protected:
   /// \brief The wait behind flush(): block until the driver reports the node
   ///        idle with an empty TX queue. Clears tx_pending_ on success.
   bool flush_node(twai_node_handle_t node, std::error_code &ec, int timeout_ms) {
-    esp_err_t err = twai_node_transmit_wait_all_done(node, timeout_ms);
+    // the driver takes exactly -1 as "wait forever"; fold any negative into it
+    esp_err_t err = twai_node_transmit_wait_all_done(node, timeout_ms < 0 ? -1 : timeout_ms);
     if (err == ESP_OK) {
       tx_pending_.store(false);
       return true;
     }
     if (err == ESP_ERR_TIMEOUT) {
-      logger_.error("Timed out waiting for the pending transmission(s) to finish");
+      logger_.error("Timed out waiting for the pending transmission(s) to finish "
+                    "(abort_pending() drops them)");
       ec = std::make_error_code(std::errc::timed_out);
     } else if (err == ESP_ERR_INVALID_STATE) {
       logger_.error("Cannot wait for pending transmissions: node is bus-off / disabled");
@@ -747,13 +747,17 @@ protected:
       enabled_ = false;
     }
     esp_err_t err = twai_node_delete(node_);
-    node_ = nullptr;
     if (err != ESP_OK) {
+      // the node still exists: keep its handle, and put it back the way it was
       logger_.error("Failed to delete TWAI node to drop its pending frame: {}",
                     esp_err_to_name(err));
+      if (was_enabled && twai_node_enable(node_) == ESP_OK) {
+        enabled_ = true;
+      }
       ec = std::make_error_code(std::errc::io_error);
       return false;
     }
+    node_ = nullptr;
     // the deleted node's ISR is gone: nothing references tx_frame_ any more
     tx_pending_.store(false);
     if (!create_node(ec)) {
