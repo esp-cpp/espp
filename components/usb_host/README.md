@@ -57,6 +57,15 @@ host→device. This mirrors `espp::UsbDevice` exactly, so the two ends of a link
   off until the host is listening and is dropped at deinitialize(); a
   `Config::root_port_power_on_delay` adds a margin before the first
   enumeration after boot.
+- Devices behind a **hub** need `Config::full_speed_only` on the ESP32-P4:
+  IDF's hub support has no transaction translator, so a full-speed device (every
+  HID keyboard / mouse / gamepad) behind a high-speed hub cannot be reached
+  ("TT is not supported"). With the option set the root port runs in
+  full/low-speed-only mode, the hub enumerates at full speed, and its devices are
+  reachable directly. HID never needs more bandwidth than that. The setting is
+  re-applied on a timer (`Config::full_speed_reassert_interval`, 100ms by
+  default) because a root port recovery clears it without reporting an event; it
+  has no effect on the full-speed-only ESP32-S2 / -S3.
 - Requires **ESP-IDF ≥ 5.4** (root-port power control in IDF's built-in USB
   Host library). On **ESP-IDF ≥ 6.0** the USB Host library is the registry
   `usb` component instead (≥ 1.3.0, whose `peripheral_map` is what

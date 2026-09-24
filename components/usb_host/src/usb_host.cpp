@@ -1,5 +1,15 @@
 #include "usb_host.hpp"
 
+#include <sdkconfig.h>
+#include <soc/soc_caps.h>
+#if SOC_USB_OTG_SUPPORTED && defined(SOC_USB_UTMI_PHY_NUM) && SOC_USB_UTMI_PHY_NUM > 0
+// a high-speed capable host controller: the full-speed-only mode applies
+#include <hal/usb_dwc_ll.h>
+#define ESPP_USB_HOST_HAS_HS_CONTROLLER 1
+#else
+#define ESPP_USB_HOST_HAS_HS_CONTROLLER 0
+#endif
+
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
@@ -322,9 +332,21 @@ bool UsbHost::initialize(std::error_code &ec) {
     ec = make_ec(err);
     return false;
   }
+  apply_full_speed_only();
+#if ESPP_USB_HOST_HAS_HS_CONTROLLER
+  // Only meaningful where the periodic re-assert actually runs: on a
+  // full-speed-only controller the interval is never read, so warning about it
+  // would only mislead.
+  if (config_.full_speed_only && config_.full_speed_reassert_interval.count() <= 0) {
+    logger_.warn("full_speed_reassert_interval must be > 0 ({}ms given); re-asserting once per "
+                 "RTOS tick instead",
+                 config_.full_speed_reassert_interval.count());
+  }
+#endif
 
   // 2) Start the USB-host-library event task.
   lib_task_run_.store(true);
+  lib_event_errors_ = 0;
   lib_task_ = espp::Task::make_unique({
       .callback = [this](std::mutex &m, std::condition_variable &cv) { return lib_task_fn(m, cv); },
       .task_config =
@@ -587,10 +609,71 @@ std::shared_ptr<UsbHost::HidDevice> UsbHost::find_device(hid_host_device_handle_
 // ---------------------------------------------------------------------------
 // USB Host library task
 // ---------------------------------------------------------------------------
+void UsbHost::apply_full_speed_only() {
+#if ESPP_USB_HOST_HAS_HS_CONTROLLER
+  // The LL setter is idempotent (it writes the bit), and there is no LL
+  // getter, so it is simply re-applied rather than read back through the
+  // register struct: a root port recovery soft-resets the controller and
+  // clears the bit, and no event reports that.
+  if (config_.full_speed_only) {
+    usb_dwc_ll_hcfg_set_fsls_supp_only(USB_DWC_LL_GET_HW(0));
+  } else {
+    // Clear it explicitly instead of trusting whatever ran before: IDF never
+    // touches this bit, so a host installed earlier in this boot with
+    // full_speed_only set would otherwise leave the port full-speed-only for a
+    // host that did not ask for it. There is no LL clear, so the bitfield is
+    // written the same way usb_dwc_ll_hcfg_set_fsls_supp_only() writes it.
+    USB_DWC_LL_GET_HW(0)->hcfg_reg.fslssupp = 0;
+  }
+#endif
+}
+
+TickType_t UsbHost::reassert_wait_ticks(std::chrono::milliseconds interval) {
+  // Clamped to a real block: pdMS_TO_TICKS() truncates, so an interval shorter
+  // than one tick (the default tick is 10ms) would otherwise round to 0 and
+  // turn usb_host_lib_handle_events() into a non-blocking call, i.e. a busy
+  // loop. The top end is capped just below portMAX_DELAY so a very long
+  // interval cannot wrap into "wait forever" (or into 0).
+  constexpr TickType_t kMaxWait = portMAX_DELAY - 1;
+  const int64_t ms = interval.count();
+  if (ms <= 0) {
+    return 1;
+  }
+  const int64_t ticks = static_cast<int64_t>(pdMS_TO_TICKS(ms));
+  if (ticks <= 0) {
+    return 1;
+  }
+  return ticks >= static_cast<int64_t>(kMaxWait) ? kMaxWait : static_cast<TickType_t>(ticks);
+}
+
 bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) {
   uint32_t event_flags = 0;
-  // Block until the library has an event (stop_lib_task() unblocks it).
-  usb_host_lib_handle_events(portMAX_DELAY, &event_flags);
+  // Block until the library has an event (stop_lib_task() unblocks it); with
+  // full_speed_only on a high-speed capable controller the loop wakes
+  // periodically to re-assert the mode, since a root port recovery (after a
+  // transfer error / unplug) soft-resets the controller and clears it.
+  constexpr bool kPeriodic = ESPP_USB_HOST_HAS_HS_CONTROLLER != 0;
+  // (written as one expression: naming the intermediate makes static analysis
+  // report a condition that is always false on a full-speed-only target)
+  const TickType_t wait = (kPeriodic && config_.full_speed_only)
+                              ? reassert_wait_ticks(config_.full_speed_reassert_interval)
+                              : portMAX_DELAY;
+  const esp_err_t err = usb_host_lib_handle_events(wait, &event_flags);
+  if (err != ESP_OK) {
+    // only ESP_OK writes event_flags; anything else leaves whatever the call
+    // decided not to report, so do not act on it
+    event_flags = 0;
+  }
+  if (err != ESP_OK && err != ESP_ERR_TIMEOUT) {
+    // not expected while installed; rate-limited so a persistent failure does
+    // not flood the log from this loop (per instance, reset when the task
+    // starts, so the cadence follows this host's lifecycle)
+    if (++lib_event_errors_ == 1 || lib_event_errors_ % 100 == 0) {
+      logger_.error("usb_host_lib_handle_events: {} ({} so far)", esp_err_to_name(err),
+                    lib_event_errors_);
+    }
+  }
+  apply_full_speed_only();
   if (event_flags)
     logger_.debug("USB host lib event flags {:#x}", event_flags);
   if (event_flags & USB_HOST_LIB_EVENT_FLAGS_NO_CLIENTS) {
@@ -608,8 +691,11 @@ void UsbHost::stop_lib_task() {
     return;
   }
   lib_task_run_.store(false);
-  // The task blocks in usb_host_lib_handle_events(portMAX_DELAY); unblock it so
-  // it observes the stop flag and returns, then join it.
+  // Unblock the task so it observes the stop flag and returns, then join it.
+  // Without full_speed_only it is parked in usb_host_lib_handle_events()
+  // indefinitely and this is the only thing that wakes it; with the periodic
+  // re-assert it would also wake on its own within one
+  // full_speed_reassert_interval, so this only shortens the shutdown.
   usb_host_lib_unblock();
   lib_task_->stop();
   lib_task_.reset();

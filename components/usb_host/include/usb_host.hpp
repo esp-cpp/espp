@@ -287,6 +287,32 @@ public:
     ///        USB stack is never blocked. Drops are counted and logged at a
     ///        rate-limited cadence.
     size_t max_queued_events{32};
+    /// @brief Run the root port in full/low-speed-only mode. "Full speed" here
+    ///        names the USB speed *class* that includes low speed (the DWC bit
+    ///        is FSLSSupp), so a low-speed device still enumerates. Only
+    ///        meaningful on targets whose host controller is high-speed
+    ///        capable, i.e. the ESP32-P4. ESP-IDF's
+    ///        hub support has no transaction translator, so full-speed devices
+    ///        (every HID keyboard / mouse / gamepad) behind a *high-speed* hub
+    ///        cannot be reached ("TT is not supported"). With this set the hub
+    ///        enumerates at full speed and its devices are reached directly;
+    ///        HID never needs more bandwidth than that. No effect on targets
+    ///        with a full-speed-only controller (ESP32-S2 / -S3).
+    bool full_speed_only{false};
+    /// @brief How often the library event task wakes to re-assert
+    ///        full_speed_only. The bit is cleared by a root port recovery (after
+    ///        an unplug / transfer error) and no event reports that, so it has to
+    ///        be re-applied on a timer. Shorter = the port spends less time in
+    ///        high-speed-capable mode after a recovery; longer = fewer wakeups.
+    ///        Each wake is a single task switch plus one register write. Only
+    ///        used when full_speed_only is set on a high-speed capable
+    ///        controller; ignored otherwise (the task then blocks indefinitely
+    ///        and wakes only on real events). Rounded *up* to at least one RTOS
+    ///        tick (the default tick is 10ms), so a shorter interval -- 0 or a
+    ///        negative one included -- wakes once per tick rather than turning
+    ///        the event wait into a busy loop; initialize() warns when the
+    ///        configured value is not positive.
+    std::chrono::milliseconds full_speed_reassert_interval{100};
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
 
@@ -384,7 +410,12 @@ private:
 
   // The USB Host library event-handling loop (own task).
   bool lib_task_fn(std::mutex &m, std::condition_variable &cv);
+  void apply_full_speed_only();
   void stop_lib_task();
+
+  // Ticks to block in the library event wait when full_speed_only re-asserts,
+  // clamped to [1, portMAX_DELAY - 1] so the wait is always a real block.
+  static TickType_t reassert_wait_ticks(std::chrono::milliseconds interval);
 
   static HidDevice::Info read_info(hid_host_device_handle_t handle);
   static HidDevice::Params read_params(hid_host_device_handle_t handle);
@@ -395,6 +426,7 @@ private:
   // USB Host library task.
   std::atomic<bool> lib_task_run_{false};
   std::unique_ptr<espp::Task> lib_task_;
+  uint32_t lib_event_errors_{0}; ///< lib task only: rate-limits its error log
 
   // Event queue (driver task -> dispatch task) + dispatch task.
   std::mutex queue_mutex_;
