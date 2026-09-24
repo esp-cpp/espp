@@ -139,7 +139,9 @@ if (auto devs = host.devices(); !devs.empty())
 ```
 
 See `example/` for a full runnable example (esp32s3) that logs every connected
-HID device and hex-dumps its Input reports.
+HID device and hex-dumps its Input reports, and `tab5_example/` for one on the
+M5Stack Tab5 that decodes keyboards, mice, gamepads and a SpaceMouse with the
+`hid-rp` runtime report decoders and shows them on the screen.
 
 ## Roadmap
 
