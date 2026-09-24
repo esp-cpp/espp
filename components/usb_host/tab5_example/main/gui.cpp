@@ -350,6 +350,7 @@ void Gui::init_keyboard(lv_obj_t *parent) {
       lv_label_set_text(label, spec.label);
       lv_obj_center(label);
       keyboard_keys_[spec.usage] = key;
+      layout_usages_.push_back(spec.usage);
     }
   }
 }
@@ -603,8 +604,8 @@ void Gui::set_keyboard_state(const espp::hid_rp::KeyboardReport &report) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   if (!root_)
     return;
-  for (size_t usage = 0; usage < keyboard_keys_.size(); ++usage) {
-    const bool pressed = report.pressed(static_cast<uint8_t>(usage));
+  for (const uint8_t usage : layout_usages_) { // only keys that are on the screen
+    const bool pressed = report.pressed(usage);
     if (pressed == shown_keys_[usage])
       continue;
     shown_keys_[usage] = pressed;

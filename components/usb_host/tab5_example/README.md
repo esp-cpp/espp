@@ -96,6 +96,10 @@ class driver come from the registry, as in the plain `usb_host` example).
 - Gamepad stick values are normalised to `-32767..32767` with Y growing
   downwards (the HID convention); a pad whose Y grows upwards is corrected by
   its VID:PID quirk.
+- One physical device is shown at a time. A hub can carry several; while one
+  device is on the card, the interfaces of any other USB address are not
+  opened (logged as "not opening ... another device is being shown"), so its
+  reports cannot mix into the panels. Re-plug it once the shown device is gone.
 - A device that enumerates but is not opened as HID shows as "N USB device(s)
   enumerated, none opened as HID"; call `host.print_usb_devices()` (or set the
   `hid-host` log tag to debug with `CONFIG_LOG_MAXIMUM_LEVEL_DEBUG`) to see its

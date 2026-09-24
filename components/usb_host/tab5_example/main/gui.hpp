@@ -153,6 +153,8 @@ protected:
   /// virtual keyboard keys by HID usage id (Keyboard/Keypad page, 0xE0..0xE7 =
   /// the modifier keys); nullptr for usages not on the layout
   std::array<lv_obj_t *, 256> keyboard_keys_{};
+  /// the usages that are on the layout, so a refresh visits ~100 keys, not 256
+  std::vector<uint8_t> layout_usages_;
   lv_obj_t *device_title_{nullptr};
   lv_obj_t *device_detail_{nullptr};
   lv_obj_t *device_state_dot_{nullptr};

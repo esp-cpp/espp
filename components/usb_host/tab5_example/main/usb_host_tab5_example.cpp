@@ -45,7 +45,7 @@ struct Interface {
   std::variant<std::monostate, espp::hid_rp::KeyboardDecoder, espp::hid_rp::MouseDecoder,
                espp::hid_rp::GamepadDecoder>
       decoder;
-  espp::hid_rp::KeyboardReport keys;
+  espp::hid_rp::KeyboardReport keys{};
 };
 } // namespace
 
@@ -90,6 +90,7 @@ extern "C" void app_main(void) {
   std::mutex state_mutex;
   std::map<const espp::UsbHost::HidDevice *, Interface> interfaces; // every opened interface
   Gui::DeviceInfo device_card; // product / VID:PID of the attached device
+  uint8_t device_address = 0;  // its USB address: the example shows one device at a time
   SpaceMouseDecoder spacemouse;
   Gui::MouseState mouse; // motion accumulated from the relative reports
   espp::hid_rp::GamepadReport gamepad;
@@ -124,12 +125,22 @@ extern "C" void app_main(void) {
   };
 
   // --- USB host --------------------------------------------------------------
+  // Two of the settings need a word:
+  //  - dispatch_task_stack_size: the connect callback parses the report
+  //    descriptor, builds the decoder and fills in the device card (LVGL +
+  //    fmt) on the dispatch task, so that task gets a larger stack;
+  //  - full_speed_only: with it the root port's link to a hub runs at full
+  //    speed, so the full-speed HID devices behind the hub never need its
+  //    transaction translator (which ESP-IDF's hub driver does not implement);
+  //    without it those devices fail their first descriptor read and the hub
+  //    port is disabled. A device plugged in directly is unaffected in
+  //    practice, since HID needs nothing beyond full speed.
   espp::UsbHost host({
     .on_device_connected =
         [&](const std::shared_ptr<espp::UsbHost::HidDevice> &device) {
           const auto info = device->info();
           const auto params = device->params();
-          Interface iface;
+          Interface iface{};
           iface.card = {.interface_number = params.interface_number,
                         .protocol = params.protocol,
                         .report_descriptor_bytes = device->report_descriptor().size(),
@@ -172,6 +183,7 @@ extern "C" void app_main(void) {
             std::lock_guard<std::mutex> lock(state_mutex);
             if (interfaces.empty()) {
               // the first interface names the device on the card
+              device_address = params.address;
               device_card = Gui::DeviceInfo{};
               device_card.product = info.product;
               device_card.manufacturer = info.manufacturer;
@@ -232,6 +244,21 @@ extern "C" void app_main(void) {
           gui.set_device(Gui::DeviceInfo{});
           gui.set_status_text("Device removed. Plug a device into the USB-A port.");
         },
+    // One physical device at a time (a hub can carry several): while one is
+    // shown, the interfaces of any other USB address are not opened, so its
+    // reports cannot mix into the card and panels. It is picked up when it
+    // is re-plugged after the shown device goes away.
+        .should_open =
+            [&](const espp::UsbHost::HidDevice::Info &info,
+                const espp::UsbHost::HidDevice::Params &params) {
+              std::lock_guard<std::mutex> lock(state_mutex);
+              if (interfaces.empty() || params.address == device_address)
+                return true;
+              logger.info("not opening '{}' VID={:#06x} PID={:#06x} (address {}): another device "
+                          "is being shown",
+                          info.product, info.vid, info.pid, params.address);
+              return false;
+            },
 #if ESPP_USB_HOST_HAS_PORT_SELECT
     // The Tab5's USB-A jack is on the P4's high-speed OTG controller, which is
     // peripheral 0 (the library default); say so explicitly so a board wired
@@ -244,16 +271,8 @@ extern "C" void app_main(void) {
 #if CONFIG_USB_HOST_TAB5_CONTROL_USB_A_POWER
     .vbus_control = [&](bool on) { tab5.set_usb_a_power(on); },
 #endif
-    // the connect callback above parses the report descriptor, builds the
-    // decoder and fills in the device card (LVGL + fmt) on the dispatch task
-        .dispatch_task_stack_size =
-            16 * 1024, // Devices behind a hub: with this the root port's link to the hub runs at
-        // full speed, so the hub's transaction translator (which ESP-IDF's hub
-        // driver does not implement) is never needed for the full-speed HID
-        // devices behind it; without it those devices fail their first descriptor
-        // read and the hub port is disabled. A device plugged in directly is
-        // unaffected in practice, since HID needs nothing beyond full speed.
-        .full_speed_only = true, .log_level = espp::Logger::Verbosity::INFO,
+    .dispatch_task_stack_size = 16 * 1024, .full_speed_only = true,
+    .log_level = espp::Logger::Verbosity::INFO,
   });
 
   std::error_code ec;
@@ -278,10 +297,10 @@ extern "C" void app_main(void) {
   while (true) {
     std::this_thread::sleep_for(kPanelRefresh);
     bool has_spacemouse = false, has_keyboard = false, has_mouse = false, has_gamepad = false;
-    SpaceMouseDecoder::State spacemouse_state;
-    espp::hid_rp::KeyboardReport keys; // the keyboard interfaces' reports, merged
-    Gui::MouseState mouse_state;
-    espp::hid_rp::GamepadReport gamepad_state;
+    SpaceMouseDecoder::State spacemouse_state{};
+    espp::hid_rp::KeyboardReport keys{}; // the keyboard interfaces' reports, merged
+    Gui::MouseState mouse_state{};
+    espp::hid_rp::GamepadReport gamepad_state{};
     {
       std::lock_guard<std::mutex> lock(state_mutex);
       for (const auto &[dev, iface] : interfaces) {
