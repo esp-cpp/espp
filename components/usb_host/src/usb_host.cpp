@@ -237,6 +237,34 @@ void UsbHost::HidDevice::deliver_input(std::span<const uint8_t> data) {
   }
 }
 
+void UsbHost::HidDevice::close_interface(const char *where) {
+  // Exactly one task may be inside hid_host_device_close() for this interface:
+  // the driver task's close on disconnect and a retire() from deinitialize()
+  // can otherwise overlap (the disconnect callback runs while the app task is
+  // retiring the same device), and the second close would be freeing what the
+  // first is still tearing down. The flag is released again afterwards, so a
+  // close the driver refused can still be retried by whoever comes next.
+  bool expected = false;
+  if (!closing_.compare_exchange_strong(expected, true)) {
+    return; // another task owns the close of this interface
+  }
+  if (!closed_.load()) {
+    const esp_err_t err = hid_host_device_close(handle_);
+    if (err == ESP_OK) {
+      closed_.store(true);
+    } else if (err == ESP_ERR_INVALID_STATE) {
+      // The driver refusing a busy interface (a call in flight) or one it has
+      // already let go of. Expected on both paths: whoever closes next gets
+      // it, and failing that the driver frees the interface itself once the
+      // device is gone, so nothing leaks.
+      ESP_LOGD("UsbHost", "hid_host_device_close (%s): interface busy or already gone", where);
+    } else {
+      ESP_LOGW("UsbHost", "hid_host_device_close (%s): %s", where, esp_err_to_name(err));
+    }
+  }
+  closing_.store(false);
+}
+
 void UsbHost::HidDevice::close_on_driver_task() {
   // Runs inside the driver's DISCONNECTED callback, i.e. on the driver task
   // before it continues its own teardown of the device. Closing here keeps
@@ -250,14 +278,7 @@ void UsbHost::HidDevice::close_on_driver_task() {
   if (!connected_.exchange(false)) {
     return;
   }
-  const esp_err_t err = hid_host_device_close(handle_);
-  if (err == ESP_OK) {
-    closed_.store(true);
-  } else if (err != ESP_ERR_INVALID_STATE) {
-    // INVALID_STATE is the driver rejecting a busy interface (an app call in
-    // flight): expected, retire() closes it later. Anything else is not.
-    ESP_LOGW("UsbHost", "hid_host_device_close on disconnect: %s", esp_err_to_name(err));
-  }
+  close_interface("disconnect");
 }
 
 void UsbHost::HidDevice::retire() {
@@ -269,17 +290,7 @@ void UsbHost::HidDevice::retire() {
     return; // idempotent: a second retire() must not re-attempt the close
   }
   retired_ = true;
-  if (closed_.load()) {
-    return; // already closed on the driver task
-  }
-  const esp_err_t err = hid_host_device_close(handle_);
-  if (err == ESP_OK) {
-    closed_.store(true);
-  } else {
-    // left open: the driver frees the interface itself once the device is
-    // gone, so nothing leaks, but note it
-    ESP_LOGW("UsbHost", "hid_host_device_close on retire: %s", esp_err_to_name(err));
-  }
+  close_interface("retire"); // a no-op if the driver task already closed it
 }
 
 // ---------------------------------------------------------------------------

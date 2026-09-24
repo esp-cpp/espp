@@ -216,6 +216,9 @@ public:
     // marks the device inert and closes the driver handle right there (the
     // close must not race the driver's own disconnect processing).
     void close_on_driver_task();
+    // Closes the driver handle if nothing else is closing it, recording the
+    // result; `where` names the caller for the log line.
+    void close_interface(const char *where);
     // Called by UsbHost (dispatch task) to retire the device: marks it inert
     // and closes the driver handle if that has not happened yet, serialized
     // against any in-flight driver call.
@@ -225,16 +228,20 @@ public:
     const Info info_;
     const Params params_;
     const std::vector<uint8_t> report_descriptor_;
-    // Gates *outbound* driver calls (start/stop/get_report/...) only: it goes
+    // Gates *outbound* driver calls (start/stop/get_report/...) only. It goes
     // false when the close is attempted, whether or not the close itself
-    // succeeded, since a disconnected interface must not be called into either
-    // way (closed_ is what records a close that actually went through). Input delivery deliberately
-    // does NOT consult it -- reports already queued ahead of the Disconnected
-    // event are still dispatched, so a caller sees the documented
-    // connected -> inputs -> disconnected order.
+    // succeeded: a disconnected interface must not be called into either way.
+    // (closed_ is what records a close that actually went through.)
+    //
+    // Input delivery deliberately does NOT consult it: reports queued ahead of
+    // the Disconnected event are still dispatched, so a caller sees the
+    // documented connected -> inputs -> disconnected order.
     std::atomic<bool> connected_{true};
     std::atomic<bool> closed_{false}; ///< hid_host_device_close() succeeded (on either task)
-    bool retired_{false};             ///< retire() ran (guarded by io_mutex_); makes it idempotent
+    /// A close is in flight on some task; keeps the driver-task close and a
+    /// concurrent retire() from both calling hid_host_device_close().
+    std::atomic<bool> closing_{false};
+    bool retired_{false}; ///< retire() ran (guarded by io_mutex_); makes it idempotent
     std::atomic<bool> started_{false};
     // Serializes the driver calls made through this object (app or dispatch
     // task) against retire(), so a control transfer in flight cannot race the
