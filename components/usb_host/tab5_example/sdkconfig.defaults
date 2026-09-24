@@ -48,3 +48,10 @@ CONFIG_LV_THEME_DEFAULT_DARK=y
 CONFIG_LV_FONT_MONTSERRAT_20=y
 CONFIG_LV_FONT_MONTSERRAT_28=y
 CONFIG_LV_FONT_UNSCII_16=y
+
+# Hubs: a wireless receiver or a hub on the jack has HID devices behind it; the
+# host library only walks a hub's ports with this on (and the example runs the
+# root port full-speed-only, since IDF's hub support has no transaction
+# translator for full-speed devices behind a high-speed hub).
+CONFIG_USB_HOST_HUBS_SUPPORTED=y
+CONFIG_USB_HOST_HUB_MULTI_LEVEL=y
