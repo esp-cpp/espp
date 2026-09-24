@@ -441,7 +441,9 @@ bool UsbHost::initialize(std::error_code &ec) {
   err = usb_host_lib_set_root_port_power(true);
   if (err != ESP_OK) {
     logger_.error("usb_host_lib_set_root_port_power failed: {}", esp_err_to_name(err));
-    hid_host_uninstall();
+    hid_host_uninstall(); // the pump is running, so this returns once it has seen ESP_FAIL
+    stop_hid_task();      // ... and it must be joined here, or the next initialize() would
+                          // find hid_task_ set and never start a pump
     stop_dispatch_task();
     stop_lib_task();
     usb_host_uninstall();
