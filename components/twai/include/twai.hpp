@@ -320,7 +320,10 @@ public:
   ///        bus-off), \c timed_out (still pending after \p timeout_ms).
   /// \param timeout_ms Max time (ms) to wait, -1 = forever. Serialized with
   ///        transmit() and abort_pending() (a transmit() in progress finishes
-  ///        or times out first; neither can start until this returns).
+  ///        or times out first; neither can start until this returns). Prefer
+  ///        a bound: a frame nothing acknowledges never completes, so a
+  ///        forever wait on such a bus returns only once another node ACKs
+  ///        it, and stop() / the destructor wait behind it too.
   /// \return True once nothing is pending, false otherwise.
   bool flush(std::error_code &ec, int timeout_ms = DEFAULT_TX_TIMEOUT_MS) {
     ec.clear();
@@ -531,9 +534,13 @@ public:
           logger_.error("Timed out waiting for transmit completion (no ACK on the bus?); "
                         "the pending frame was dropped");
         } else {
-          // the node (if it still exists) may well be retransmitting from our
-          // storage: protect it exactly as with auto_abort_on_timeout off
-          tx_pending_.store(true);
+          // a node that still exists may well be retransmitting from our
+          // storage: protect it exactly as with auto_abort_on_timeout off (a
+          // node lost to a failed re-creation references nothing any more)
+          {
+            std::lock_guard<std::recursive_mutex> lock(mutex_);
+            tx_pending_.store(node_ != nullptr);
+          }
           logger_.error("Timed out waiting for transmit completion (no ACK on the bus?), and "
                         "dropping the pending frame failed: {}; the frame stays with the "
                         "controller (flush() waits for it, abort_pending() retries the drop)",
@@ -810,13 +817,13 @@ protected:
       task_->stop();
       task_.reset();
     }
-    // Disable the node first (best-effort, under mutex_). twai_node_delete()
-    // requires a disabled node anyway, and disabling also aborts / unblocks any
-    // in-flight twai_node_transmit() so a concurrent transmit() blocked on a
-    // full queue (timeout_ms < 0) can return and release tx_mutex_ -- otherwise
-    // acquiring tx_mutex_ below could deadlock against it. Done in its own
-    // scope so mutex_ is released before we take tx_mutex_ then mutex_ (keeping
-    // the tx_mutex_ -> mutex_ order that transmit() uses).
+    // Disable the node first (best-effort, under mutex_): twai_node_delete()
+    // requires a disabled node. A concurrent transmit() holding tx_mutex_ is
+    // always bounded (its completion wait has a timeout, and its own abort
+    // re-creates the node, which this then deletes), so taking tx_mutex_ below
+    // cannot deadlock against it. Done in its own scope so mutex_ is released
+    // before we take tx_mutex_ then mutex_ (keeping the tx_mutex_ -> mutex_
+    // order that transmit() / flush() / abort_pending() use).
     {
       std::lock_guard<std::recursive_mutex> lock(mutex_);
       if (node_ && enabled_) {
