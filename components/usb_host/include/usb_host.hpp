@@ -190,7 +190,11 @@ public:
     /// @brief Set the device's HID protocol (boot vs report; HID class Set_Protocol).
     bool set_protocol(hid_report_protocol_t protocol, std::error_code &ec);
 
-    /// @brief Whether the device is still connected/usable.
+    /// @brief Whether the device's interface is still usable, i.e. whether a
+    ///        driver call made through this object can still reach it. It goes
+    ///        false as soon as the interface is closed on disconnect, which
+    ///        happens on the driver task and therefore *before* any input
+    ///        reports already queued for this device are delivered.
     bool is_connected() const { return connected_.load(); }
 
     /// @brief The underlying driver handle (for advanced use; only valid while
@@ -208,19 +212,46 @@ public:
 
     // Called by UsbHost (on the dispatch task) with a copy of an Input report.
     void deliver_input(std::span<const uint8_t> data);
-    // Called by UsbHost to retire the device: marks it inert and closes the
-    // driver handle, serialized against any in-flight driver call.
+    // Called by UsbHost on the driver task, from the DISCONNECTED callback:
+    // marks the device inert and closes the driver handle right there (the
+    // close must not race the driver's own disconnect processing).
+    void close_on_driver_task();
+    // Closes the driver handle if nothing else is closing it, recording the
+    // result; `where` names the caller for the log line.
+    // @return true if this call owned the close attempt, false if another task
+    //         was already inside the driver's close for this interface.
+    bool close_interface(const char *where);
+    // Called by UsbHost (dispatch task) to retire the device: marks it inert
+    // and closes the driver handle if that has not happened yet, serialized
+    // against any in-flight driver call.
     void retire();
 
     hid_host_device_handle_t handle_{nullptr};
     const Info info_;
     const Params params_;
     const std::vector<uint8_t> report_descriptor_;
+    // Gates *outbound* driver calls (start/stop/get_report/...) only. It goes
+    // false when the close is attempted, whether or not the close itself
+    // succeeded: a disconnected interface must not be called into either way.
+    // (closed_ is what records a close that actually went through.)
+    //
+    // Input delivery deliberately does NOT consult it: reports queued ahead of
+    // the Disconnected event are still dispatched, so a caller sees the
+    // documented connected -> inputs -> disconnected order.
     std::atomic<bool> connected_{true};
+    std::atomic<bool> closed_{false}; ///< hid_host_device_close() succeeded (on either task)
+    /// A close is in flight on some task; keeps the driver-task close and a
+    /// concurrent retire() from both calling hid_host_device_close().
+    std::atomic<bool> closing_{false};
+    bool retired_{false}; ///< retire() ran (guarded by io_mutex_); makes it idempotent
     std::atomic<bool> started_{false};
-    // Serializes every driver call made through this object against the close
-    // performed on disconnect, so a control transfer in flight on an app task
-    // can't race the driver freeing the interface.
+    // Serializes the driver calls made through this object (app or dispatch
+    // task) against retire(), so a control transfer in flight cannot race the
+    // interface being closed and freed. close_on_driver_task() is the one path
+    // that does not take it: it runs on the task that would have to complete
+    // that in-flight call, so waiting there would deadlock -- the driver
+    // rejects a close of a busy interface instead (ESP_ERR_INVALID_STATE) and
+    // retire() closes it under this mutex afterwards.
     mutable std::mutex io_mutex_;
     mutable std::mutex cb_mutex_;
     input_callback_fn on_input_{nullptr};

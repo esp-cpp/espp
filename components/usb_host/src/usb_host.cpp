@@ -10,13 +10,15 @@
 #define ESPP_USB_HOST_HAS_HS_CONTROLLER 0
 #endif
 
+#include <esp_err.h> // esp_err_to_name()
+#include <esp_log.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
 #include <thread>
 
-#include "esp_err.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -222,6 +224,9 @@ bool UsbHost::HidDevice::set_protocol(hid_report_protocol_t protocol, std::error
 }
 
 void UsbHost::HidDevice::deliver_input(std::span<const uint8_t> data) {
+  // Intentionally not gated on connected_: this runs on the dispatch task, and
+  // reports queued before the Disconnected event are delivered even though the
+  // driver task has already marked the device inert for outbound calls.
   input_callback_fn cb;
   {
     std::lock_guard<std::mutex> lk(cb_mutex_);
@@ -232,14 +237,81 @@ void UsbHost::HidDevice::deliver_input(std::span<const uint8_t> data) {
   }
 }
 
+bool UsbHost::HidDevice::close_interface(const char *where) {
+  // Exactly one task may be inside hid_host_device_close() for this interface:
+  // the driver task's close on disconnect and a retire() from deinitialize()
+  // can otherwise overlap (the disconnect callback runs while the app task is
+  // retiring the same device), and the second close would be freeing what the
+  // first is still tearing down. The flag is released again afterwards, so a
+  // close the driver refused can still be retried by whoever comes next.
+  bool expected = false;
+  if (!closing_.compare_exchange_strong(expected, true)) {
+    return false; // another task owns the close of this interface
+  }
+  // Released however this returns, so an early exit added later cannot leave
+  // the interface marked as being closed forever.
+  struct ClosingGuard {
+    std::atomic<bool> &flag;
+    ~ClosingGuard() { flag.store(false); }
+  } guard{closing_};
+  if (!closed_.load()) {
+    const esp_err_t err = hid_host_device_close(handle_);
+    if (err == ESP_OK) {
+      closed_.store(true);
+    } else if (err == ESP_ERR_INVALID_STATE) {
+      // The driver refusing a busy interface (a call in flight) or one it has
+      // already let go of. Expected on both paths: whoever closes next gets
+      // it, and failing that the driver frees the interface itself once the
+      // device is gone, so nothing leaks.
+      ESP_LOGD("UsbHost", "hid_host_device_close (%s): interface busy or already gone", where);
+    } else {
+      ESP_LOGW("UsbHost", "hid_host_device_close (%s): %s", where, esp_err_to_name(err));
+    }
+  }
+  return true;
+}
+
+void UsbHost::HidDevice::close_on_driver_task() {
+  // Runs inside the driver's DISCONNECTED callback, i.e. on the driver task
+  // before it continues its own teardown of the device. Closing here keeps
+  // the interface release ordered with the driver's pipe handling: closing
+  // from another task races the driver's disconnect processing, which
+  // ends in hcd_urb_dequeue asserting on a pipe the close already flushed.
+  // No io_mutex_: an app-task driver call in flight on this device is
+  // completed by this very task, so waiting for it here would deadlock;
+  // the driver rejects a close of a busy interface instead, and retire()
+  // (dispatch task, later) closes it under the mutex in that case.
+  // Not gated on connected_: a retire() that ran first (deinitialize()) may
+  // have had its close refused, and this is the one place that can still
+  // close the interface in step with the driver. close_interface() is what
+  // makes a repeat harmless -- it does nothing once the close went through.
+  connected_.store(false);
+  close_interface("disconnect");
+}
+
 void UsbHost::HidDevice::retire() {
   // Taking io_mutex_ here waits for any driver call in flight on another task
   // to finish before the interface is closed (and its resources freed).
   std::lock_guard<std::mutex> lk(io_mutex_);
-  if (!connected_.exchange(false)) {
-    return; // already retired
+  connected_.store(false);
+  if (retired_) {
+    return; // idempotent: a second retire() must not re-attempt the close
   }
-  hid_host_device_close(handle_);
+  // If the driver task is inside the close right now, let it finish before
+  // taking our turn: its close makes no control transfers (endpoint halt /
+  // flush and a free) and returns in well under a millisecond, and nothing it
+  // waits on is held by this task, so a short bounded wait is safe. Should it
+  // have been refused (busy), the attempt below is the "close later under the
+  // mutex" this object promises, and it must not be skipped just because the
+  // two overlapped -- after deinitialize() there is no later retire() to do it.
+  for (int i = 0; i < 100 && closing_.load(); ++i) {
+    std::this_thread::sleep_for(1ms);
+  }
+  // Only counts as retired once a close was actually attempted here (or had
+  // already happened). If the driver task still owns the close after the wait,
+  // close_interface() declines and retired_ stays false, so a later retire()
+  // (a deinitialize() retry) can still do it.
+  retired_ = close_interface("retire") || closed_.load();
 }
 
 // ---------------------------------------------------------------------------
@@ -977,15 +1049,18 @@ void UsbHost::on_interface_event(hid_host_device_handle_t handle,
     break;
   }
   case HID_HOST_INTERFACE_EVENT_DISCONNECTED:
-    // The driver drops the device from its list around this event: the
-    // interface is taken out of the tracked set here (on the driver task,
-    // teardown or not) so deinitialize() knows when the driver can be
-    // uninstalled. Membership in that set -- not a lookup in devices_ --
-    // decides: deinitialize() clears devices_ before it powers the root port
-    // down, so the disconnects it provokes would otherwise never be counted
-    // out and teardown would wait for a set that can no longer empty.
+    // Close the interface now, on the driver task (see close_on_driver_task),
+    // and only then count it out of the tracked set, so "untracked" means the
+    // close has been made and deinitialize() does not race the driver's own
+    // teardown of the interface. Membership in that set -- not a lookup in
+    // devices_ -- decides: deinitialize() clears devices_ before it powers the
+    // root port down, so the disconnects it provokes would otherwise never be
+    // counted out. The dispatch task then retires the device object in order,
+    // after any queued inputs, and tells the application.
+    if (auto device = find_device(handle)) {
+      device->close_on_driver_task();
+    }
     release_tracked_device(handle);
-    // The dispatch task retires the device (in order, after any queued inputs).
     enqueue(Event{.type = Event::Type::Disconnected, .handle = handle});
     break;
   case HID_HOST_INTERFACE_EVENT_TRANSFER_ERROR:
