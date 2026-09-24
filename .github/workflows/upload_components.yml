@@ -180,6 +180,7 @@ jobs:
             components/telemetry
             components/thermistor
             components/thread_pool
+            components/trajectory_planner
             components/timer
             components/touch
             components/tla2528
