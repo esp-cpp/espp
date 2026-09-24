@@ -185,6 +185,7 @@ extern "C" void app_main(void) {
               // the first interface names the device on the card
               device_address = params.address;
               device_card = Gui::DeviceInfo{};
+              last_report.clear(); // or the previous device's bytes show as this one's
               device_card.product = info.product;
               device_card.manufacturer = info.manufacturer;
               device_card.vid = info.vid;

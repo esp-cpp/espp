@@ -62,10 +62,16 @@ decoders are `hid-rp`'s `espp::hid_rp::ReportMap` and the `KeyboardDecoder` /
   root port full-speed-only so the full-speed HID devices behind a hub never
   need the hub's transaction translator, which ESP-IDF's hub driver does not
   implement.
-- Devices attached at power-up and hot-plugged devices both enumerate normally.
-  The example keeps the jack's 5 V off until the host is listening and waits
-  500 ms before powering the root port (both in menuconfig: **USB Host Tab5
-  Example Configuration**).
+- A device plugged straight into the jack enumerates whether it was attached
+  at power-up or hot-plugged. The example keeps the jack's 5 V off until the
+  host is listening and waits 500 ms before powering the root port (both in
+  menuconfig: **USB Host Tab5 Example Configuration**).
+- Known limitation, cause not established: a device that is already behind a
+  hub when the board boots can fail its first descriptor read
+  (`ENUM: CHECK_SHORT_DEV_DESC FAILED`), after which the hub driver disables
+  that hub port (it resets a port once). The same device enumerates when
+  hot-plugged. Longer port power-good and reset-recovery delays did not help.
+  If a device behind a hub is missing after boot, unplug and re-plug it.
 - Seen during development, cause not established: with `idf.py monitor`
   attached to the USB-C port, a device on the jack sometimes stalled in
   enumeration, and never with the monitor detached. The firmware does not touch
