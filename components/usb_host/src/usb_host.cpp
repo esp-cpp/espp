@@ -297,11 +297,20 @@ void UsbHost::HidDevice::retire() {
   if (retired_) {
     return; // idempotent: a second retire() must not re-attempt the close
   }
+  // If the driver task is inside the close right now, let it finish before
+  // taking our turn: its close makes no control transfers (endpoint halt /
+  // flush and a free) and returns in well under a millisecond, and nothing it
+  // waits on is held by this task, so a short bounded wait is safe. Should it
+  // have been refused (busy), the attempt below is the "close later under the
+  // mutex" this object promises, and it must not be skipped just because the
+  // two overlapped -- after deinitialize() there is no later retire() to do it.
+  for (int i = 0; i < 100 && closing_.load(); ++i) {
+    std::this_thread::sleep_for(1ms);
+  }
   // Only counts as retired once a close was actually attempted here (or had
-  // already happened). If the driver task owns the close at this moment,
-  // close_interface() declines, and leaving retired_ false lets a later
-  // retire() -- a deinitialize() retry, or the one the dispatch task runs for
-  // this device -- close an interface that in-flight attempt could not.
+  // already happened). If the driver task still owns the close after the wait,
+  // close_interface() declines and retired_ stays false, so a later retire()
+  // (a deinitialize() retry) can still do it.
   retired_ = close_interface("retire") || closed_.load();
 }
 
