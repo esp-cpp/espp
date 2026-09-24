@@ -160,6 +160,16 @@ public:
      *  until it succeeds (standard CAN behaviour; transmit() bounds the wait
      *  with its timeout). */
     int8_t tx_retry_count{0};
+    /** What transmit() does with a frame the controller has not finished with
+     *  when the completion wait times out (typically: tx_retry_count = -1 and
+     *  nothing on the bus acknowledges). true (the default): the pending
+     *  transmission is dropped with abort_pending(), so the controller stops
+     *  retransmitting it and the next transmit() proceeds at once. false: the
+     *  frame is left with the controller (it may still go out when the bus
+     *  comes back); the next transmit() first waits, up to its own timeout,
+     *  for that frame to finish (as flush() does) and fails with timed_out
+     *  while it is still pending. Call abort_pending() to drop it explicitly. */
+    bool auto_abort_on_timeout{true};
     std::optional<Filter> filter{};          ///< Optional acceptance filter (default: accept all).
     receive_callback_fn on_receive{nullptr}; ///< Called (in task context) for each received frame.
     error_callback_fn on_error{nullptr};     ///< Optional: called (in task context) on a bus error.
@@ -220,96 +230,37 @@ public:
       return false;
     }
 
-    // build the node configuration
-    twai_onchip_node_config_t node_cfg = {};
-    node_cfg.io_cfg.tx = static_cast<gpio_num_t>(config_.tx_gpio);
-    node_cfg.io_cfg.rx = static_cast<gpio_num_t>(config_.rx_gpio);
-    node_cfg.io_cfg.quanta_clk_out = GPIO_NUM_NC;
-    node_cfg.io_cfg.bus_off_indicator = GPIO_NUM_NC;
-    node_cfg.bit_timing.bitrate = config_.baudrate;
-    node_cfg.tx_queue_depth = config_.tx_queue_depth;
-    // NOTE: the driver treats every value but -1 as a bounded retry count with
-    // the controller's single-shot bit set; a frame that exhausts it arrives in
-    // on_tx_done with is_tx_success == false, which transmit() reports.
-    node_cfg.fail_retry_cnt = config_.tx_retry_count;
-    switch (config_.mode) {
-    case Mode::NORMAL:
-      break;
-    case Mode::LISTEN_ONLY:
-      node_cfg.flags.enable_listen_only = 1;
-      break;
-    case Mode::LOOPBACK:
-      // internal loopback + self-test: receive our own frames and don't require
-      // an acknowledgement, so we can run with no transceiver / no other node.
-      node_cfg.flags.enable_loopback = 1;
-      node_cfg.flags.enable_self_test = 1;
-      break;
-    }
-
-    esp_err_t err = twai_new_node_onchip(&node_cfg, &node_);
-    if (err != ESP_OK) {
-      logger_.error("Failed to create TWAI node: {}", esp_err_to_name(err));
-      ec = std::make_error_code(std::errc::io_error);
-      node_ = nullptr;
+    // create the driver node (with its callbacks and filter); it is disabled
+    if (!create_node(ec)) {
       return false;
     }
 
-    // register the ISR event callbacks
-    twai_event_callbacks_t cbs = {};
-    cbs.on_rx_done = &Twai::on_rx_done_cb;
-    cbs.on_tx_done = &Twai::on_tx_done_cb;
-    if (config_.on_state_change) {
-      cbs.on_state_change = &Twai::on_state_change_cb;
-    }
-    if (config_.on_error) {
-      cbs.on_error = &Twai::on_error_cb;
-    }
-    err = twai_node_register_event_callbacks(node_, &cbs, this);
-    if (err != ESP_OK) {
-      logger_.error("Failed to register event callbacks: {}", esp_err_to_name(err));
-      ec = std::make_error_code(std::errc::io_error);
-      twai_node_delete(node_);
-      node_ = nullptr;
-      return false;
-    }
-
-    // apply the acceptance filter if provided (node must be disabled - it is,
-    // since a freshly created node is disabled)
-    if (config_.filter.has_value()) {
-      const auto &f = config_.filter.value();
-      twai_mask_filter_config_t mask_cfg = {};
-      mask_cfg.id = f.id;
-      mask_cfg.mask = f.mask;
-      mask_cfg.is_ext = f.extended ? 1 : 0;
-      mask_cfg.dual_filter = f.dual ? 1 : 0;
-      err = twai_node_config_mask_filter(node_, 0, &mask_cfg);
-      if (err != ESP_OK) {
-        logger_.error("Failed to configure mask filter: {}", esp_err_to_name(err));
-        ec = std::make_error_code(std::errc::invalid_argument);
+    // create the internal ISR->task event queue. It, the task and the semaphore
+    // below survive a failed abort_pending() re-creation, in which case only
+    // the node is missing here; reusing them loses nothing, since config_ is
+    // fixed for the life of the object (the only way to free them is
+    // teardown(), after which initialize() creates everything anew).
+    if (!queue_) {
+      queue_ = xQueueCreate(config_.rx_queue_size, sizeof(EventData));
+      if (!queue_) {
+        logger_.error("Failed to create event queue");
+        ec = std::make_error_code(std::errc::not_enough_memory);
         twai_node_delete(node_);
         node_ = nullptr;
         return false;
       }
     }
 
-    // create the internal ISR->task event queue
-    queue_ = xQueueCreate(config_.rx_queue_size, sizeof(EventData));
-    if (!queue_) {
-      logger_.error("Failed to create event queue");
-      ec = std::make_error_code(std::errc::not_enough_memory);
-      twai_node_delete(node_);
-      node_ = nullptr;
-      return false;
-    }
-
     // create and start the receive task
-    task_ = espp::Task::make_unique({
-        .callback = std::bind(&Twai::task_callback, this, std::placeholders::_1,
-                              std::placeholders::_2, std::placeholders::_3),
-        .task_config = config_.task_config,
-        .log_level = config_.log_level,
-    });
-    task_->start();
+    if (!task_) {
+      task_ = espp::Task::make_unique({
+          .callback = std::bind(&Twai::task_callback, this, std::placeholders::_1,
+                                std::placeholders::_2, std::placeholders::_3),
+          .task_config = config_.task_config,
+          .log_level = config_.log_level,
+      });
+      task_->start();
+    }
 
     // Transmit-completion semaphore (given from the on_tx_done ISR callback).
     // Created here, after every fallible setup step above has succeeded and
@@ -330,7 +281,7 @@ public:
 
     // enable the node if requested
     if (config_.auto_start) {
-      err = twai_node_enable(node_);
+      const esp_err_t err = twai_node_enable(node_);
       if (err != ESP_OK) {
         logger_.error("Failed to enable TWAI node: {}", esp_err_to_name(err));
         ec = std::make_error_code(std::errc::io_error);
@@ -350,6 +301,79 @@ public:
     logger_.info("Initialized TWAI node (tx={}, rx={}, baud={}, mode={})", config_.tx_gpio,
                  config_.rx_gpio, config_.baudrate, static_cast<int>(config_.mode));
     return true;
+  }
+
+  /// \brief Wait until the controller has no pending transmission: its TX
+  ///        queue is empty and the frame in progress (if any) has completed or
+  ///        failed.
+  /// \details transmit() already waits for its own frame, so normally nothing
+  ///          is pending once it returns. What can be pending is a frame whose
+  ///          transmit() timed out with Config::auto_abort_on_timeout off (the
+  ///          controller keeps retransmitting it, tx_retry_count = -1, until
+  ///          something acknowledges); flush() is how a caller waits for such a
+  ///          frame to go out -- e.g. before a stop that must not be followed
+  ///          by anything older. Note the driver offers no way to *drop* a
+  ///          queued frame short of re-creating the node, which is what
+  ///          abort_pending() does.
+  /// \param ec The error code, set if the wait failed: \c operation_not_permitted
+  ///        (node not initialized, or not enabled while a frame is pending, or
+  ///        bus-off), \c timed_out (still pending after \p timeout_ms).
+  /// \param timeout_ms Max time (ms) to wait, -1 = forever. Serialized with
+  ///        transmit() and abort_pending() (a transmit() in progress finishes
+  ///        or times out first; neither can start until this returns). Prefer
+  ///        a bound: a frame nothing acknowledges never completes, so a
+  ///        forever wait on such a bus returns only once another node ACKs
+  ///        it, and stop() / the destructor wait behind it too.
+  /// \return True once nothing is pending, false otherwise.
+  bool flush(std::error_code &ec, int timeout_ms = DEFAULT_TX_TIMEOUT_MS) {
+    ec.clear();
+    // tx_mutex_ then mutex_, the order transmit() / teardown() use: holding
+    // tx_mutex_ across the wait keeps abort_pending() from deleting the node
+    // while the driver call below still uses it
+    std::lock_guard<std::mutex> tx_lock(tx_mutex_);
+    twai_node_handle_t node = nullptr;
+    {
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
+      if (!node_) {
+        ec = std::make_error_code(std::errc::operation_not_permitted);
+        return false;
+      }
+      if (!enabled_) {
+        // a disabled node transmits nothing: a pending frame can only go out
+        // once start() is called, or be dropped with abort_pending()
+        if (tx_pending_.load()) {
+          logger_.error("Cannot flush: node not enabled while a frame is pending");
+          ec = std::make_error_code(std::errc::operation_not_permitted);
+          return false;
+        }
+        return true;
+      }
+      node = node_;
+    }
+    return flush_node(node, ec, timeout_ms);
+  }
+
+  /// \brief Drop every pending transmission: the frame in progress and any
+  ///        queued behind it.
+  /// \details The driver has no abort: disabling the node only pauses the
+  ///          transmission in progress and re-enabling resumes it. The only
+  ///          way to make the controller forget a frame is to delete the node
+  ///          and create it again, which is what this does (same
+  ///          configuration, callbacks and filter; the node comes back enabled
+  ///          if it was). The receive task and event queue are untouched, so
+  ///          nothing already received is lost; frames arriving during the few
+  ///          hundred microseconds the node is gone are lost. Waits for a
+  ///          transmit() or flush() in progress on another task to finish (or
+  ///          time out) first, so it never pulls the node from under one.
+  /// \param ec The error code, set if the node could not be re-created (it is
+  ///        then gone: transmit() fails with \c operation_not_permitted until
+  ///        initialize() is called again, which re-creates just the node) or
+  ///        re-enabled.
+  /// \return True if nothing is pending any more, false otherwise.
+  bool abort_pending(std::error_code &ec) {
+    ec.clear();
+    std::lock_guard<std::mutex> tx_lock(tx_mutex_);
+    return abort_pending_locked(ec);
   }
 
   /// \brief Enable (start) the TWAI node so it participates on the bus.
@@ -409,10 +433,15 @@ public:
   ///        \c operation_not_permitted (node not initialized / enabled),
   ///        \c invalid_argument (DLC > 8), \c timed_out (the frame could not be
   ///        queued, or it was not acknowledged within the timeout while the
-  ///        controller kept retransmitting -- Config::tx_retry_count = -1), or
+  ///        controller kept retransmitting -- Config::tx_retry_count = -1 --,
+  ///        or an earlier frame left pending by such a timeout, with
+  ///        Config::auto_abort_on_timeout off, is still pending), or
   ///        \c io_error (the controller gave up on the frame: the retries of a
   ///        bounded Config::tx_retry_count were exhausted, a bit error, or
-  ///        arbitration lost; Config::on_error carries the reason).
+  ///        arbitration lost; Config::on_error carries the reason). On a
+  ///        completion timeout the pending frame is dropped
+  ///        (Config::auto_abort_on_timeout, the default) or left with the
+  ///        controller; see flush() / abort_pending().
   /// \param timeout_ms Max time (ms) to wait to queue the frame (-1 = forever
   ///        for the queueing step). The subsequent wait for transmit
   ///        completion is always bounded (by this value when >= 0, else by
@@ -453,6 +482,17 @@ public:
       }
       node = node_;
     }
+    // A frame left pending by an earlier completion timeout (with
+    // auto_abort_on_timeout off) still owns tx_frame_ / tx_message_: the driver
+    // reads them from the TX ISR when it finally sends it, so they cannot be
+    // overwritten until it is done. Wait for it, bounded like the completion
+    // wait below.
+    if (tx_pending_.load()) {
+      const int pending_timeout_ms = timeout_ms < 0 ? DEFAULT_TX_TIMEOUT_MS : timeout_ms;
+      if (!flush_node(node, ec, pending_timeout_ms)) {
+        return false; // flush_node() logged why (and what to do about it)
+      }
+    }
     // drain a stale completion (e.g. from a prior transmit whose frame we
     // aborted below after a timeout) so the wait sees only our own
     xSemaphoreTake(tx_done_sem_, 0);
@@ -483,26 +523,34 @@ public:
     if (xSemaphoreTake(tx_done_sem_, wait_ticks) != pdTRUE) {
       // The frame was queued but did not complete (e.g. nothing ACKed it, so
       // the controller keeps retransmitting). The driver still references
-      // tx_frame_ / tx_message_.data, and we are about to release tx_mutex_ and
-      // let a later transmit overwrite them -- so first stop the driver from
-      // referencing that storage by aborting the pending transmission: a
-      // disable/enable cycle flushes the TX queue. Best-effort, under mutex_.
-      {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
-        if (node_ && enabled_) {
-          twai_node_disable(node_);
-          // Keep enabled_ consistent with the hardware: if the re-enable fails
-          // the node is left disabled, so reflect that (later transmit()s will
-          // then reject early instead of calling into a disabled node).
-          if (twai_node_enable(node_) != ESP_OK) {
-            logger_.error("Failed to re-enable TWAI node after aborting a stuck transmit");
-            enabled_ = false;
+      // tx_frame_ / tx_message_.data from its TX ISR. Either drop the pending
+      // transmission now (the only way is to re-create the node: disabling it
+      // merely pauses the transmission and re-enabling resumes it), or leave
+      // the frame with the controller and remember that the storage is taken
+      // until it goes out, which the next transmit() (or flush()) waits for.
+      if (config_.auto_abort_on_timeout) {
+        std::error_code abort_ec;
+        if (abort_pending_locked(abort_ec)) {
+          logger_.error("Timed out waiting for transmit completion (no ACK on the bus?); "
+                        "the pending frame was dropped");
+        } else {
+          // a node that still exists may well be retransmitting from our
+          // storage: protect it exactly as with auto_abort_on_timeout off (a
+          // node lost to a failed re-creation references nothing any more)
+          {
+            std::lock_guard<std::recursive_mutex> lock(mutex_);
+            tx_pending_.store(node_ != nullptr);
           }
+          logger_.error("Timed out waiting for transmit completion (no ACK on the bus?), and "
+                        "dropping the pending frame failed: {}; the frame stays with the "
+                        "controller (flush() waits for it, abort_pending() retries the drop)",
+                        abort_ec.message());
         }
+      } else {
+        tx_pending_.store(true);
+        logger_.error("Timed out waiting for transmit completion (no ACK on the bus?); the frame "
+                      "stays with the controller (flush() waits for it, abort_pending() drops it)");
       }
-      // absorb a completion that may have raced in just before the abort
-      xSemaphoreTake(tx_done_sem_, 0);
-      logger_.error("Timed out waiting for transmit completion (no ACK on the bus?)");
       ec = std::make_error_code(std::errc::timed_out);
       return false;
     }
@@ -589,6 +637,162 @@ public:
 protected:
   enum class EventType { RX, ERROR, STATE_CHANGE, STOP };
 
+  /// \brief Create the driver node from config_ (disabled), register the ISR
+  ///        callbacks and apply the acceptance filter. On failure node_ is left
+  ///        null and ec set. Requires mutex_ (recursive) held or single-threaded
+  ///        use (initialize()).
+  bool create_node(std::error_code &ec) {
+    twai_onchip_node_config_t node_cfg = {};
+    node_cfg.io_cfg.tx = static_cast<gpio_num_t>(config_.tx_gpio);
+    node_cfg.io_cfg.rx = static_cast<gpio_num_t>(config_.rx_gpio);
+    node_cfg.io_cfg.quanta_clk_out = GPIO_NUM_NC;
+    node_cfg.io_cfg.bus_off_indicator = GPIO_NUM_NC;
+    node_cfg.bit_timing.bitrate = config_.baudrate;
+    node_cfg.tx_queue_depth = config_.tx_queue_depth;
+    // NOTE: the driver treats every value but -1 as a bounded retry count with
+    // the controller's single-shot bit set; a frame that exhausts it arrives in
+    // on_tx_done with is_tx_success == false, which transmit() reports.
+    node_cfg.fail_retry_cnt = config_.tx_retry_count;
+    switch (config_.mode) {
+    case Mode::NORMAL:
+      break;
+    case Mode::LISTEN_ONLY:
+      node_cfg.flags.enable_listen_only = 1;
+      break;
+    case Mode::LOOPBACK:
+      // internal loopback + self-test: receive our own frames and don't require
+      // an acknowledgement, so we can run with no transceiver / no other node.
+      node_cfg.flags.enable_loopback = 1;
+      node_cfg.flags.enable_self_test = 1;
+      break;
+    }
+
+    esp_err_t err = twai_new_node_onchip(&node_cfg, &node_);
+    if (err != ESP_OK) {
+      logger_.error("Failed to create TWAI node: {}", esp_err_to_name(err));
+      ec = std::make_error_code(std::errc::io_error);
+      node_ = nullptr;
+      return false;
+    }
+
+    // register the ISR event callbacks
+    twai_event_callbacks_t cbs = {};
+    cbs.on_rx_done = &Twai::on_rx_done_cb;
+    cbs.on_tx_done = &Twai::on_tx_done_cb;
+    if (config_.on_state_change) {
+      cbs.on_state_change = &Twai::on_state_change_cb;
+    }
+    if (config_.on_error) {
+      cbs.on_error = &Twai::on_error_cb;
+    }
+    err = twai_node_register_event_callbacks(node_, &cbs, this);
+    if (err != ESP_OK) {
+      logger_.error("Failed to register event callbacks: {}", esp_err_to_name(err));
+      ec = std::make_error_code(std::errc::io_error);
+      twai_node_delete(node_);
+      node_ = nullptr;
+      return false;
+    }
+
+    // apply the acceptance filter if provided (node must be disabled - it is,
+    // since a freshly created node is disabled)
+    if (config_.filter.has_value()) {
+      const auto &f = config_.filter.value();
+      twai_mask_filter_config_t mask_cfg = {};
+      mask_cfg.id = f.id;
+      mask_cfg.mask = f.mask;
+      mask_cfg.is_ext = f.extended ? 1 : 0;
+      mask_cfg.dual_filter = f.dual ? 1 : 0;
+      err = twai_node_config_mask_filter(node_, 0, &mask_cfg);
+      if (err != ESP_OK) {
+        logger_.error("Failed to configure mask filter: {}", esp_err_to_name(err));
+        ec = std::make_error_code(std::errc::invalid_argument);
+        twai_node_delete(node_);
+        node_ = nullptr;
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// \brief The wait behind flush(): block until the driver reports the node
+  ///        idle with an empty TX queue. Clears tx_pending_ on success.
+  bool flush_node(twai_node_handle_t node, std::error_code &ec, int timeout_ms) {
+    // the driver takes exactly -1 as "wait forever"; fold any negative into it
+    esp_err_t err = twai_node_transmit_wait_all_done(node, timeout_ms < 0 ? -1 : timeout_ms);
+    if (err == ESP_OK) {
+      tx_pending_.store(false);
+      return true;
+    }
+    if (err == ESP_ERR_TIMEOUT) {
+      logger_.error("Timed out waiting for the pending transmission(s) to finish "
+                    "(abort_pending() drops them)");
+      ec = std::make_error_code(std::errc::timed_out);
+    } else if (err == ESP_ERR_INVALID_STATE) {
+      logger_.error("Cannot wait for pending transmissions: node is bus-off / disabled");
+      ec = std::make_error_code(std::errc::operation_not_permitted);
+    } else {
+      logger_.error("Waiting for pending transmissions failed: {}", esp_err_to_name(err));
+      ec = std::make_error_code(std::errc::io_error);
+    }
+    return false;
+  }
+
+  /// \brief abort_pending() with tx_mutex_ already held (transmit()'s timeout
+  ///        path calls it from inside its own critical section).
+  bool abort_pending_locked(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!node_) {
+      ec = std::make_error_code(std::errc::operation_not_permitted);
+      return false;
+    }
+    const bool was_enabled = enabled_;
+    if (enabled_) {
+      // ESP_ERR_INVALID_STATE here means the node is already stopped (bus-off),
+      // which is exactly the state twai_node_delete() needs
+      esp_err_t err = twai_node_disable(node_);
+      if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+        logger_.error("Failed to disable TWAI node to drop its pending frame: {}",
+                      esp_err_to_name(err));
+        ec = std::make_error_code(std::errc::io_error);
+        return false;
+      }
+      enabled_ = false;
+    }
+    esp_err_t err = twai_node_delete(node_);
+    if (err != ESP_OK) {
+      // the node still exists: keep its handle, and put it back the way it was
+      logger_.error("Failed to delete TWAI node to drop its pending frame: {}",
+                    esp_err_to_name(err));
+      if (was_enabled && twai_node_enable(node_) == ESP_OK) {
+        enabled_ = true;
+      }
+      ec = std::make_error_code(std::errc::io_error);
+      return false;
+    }
+    node_ = nullptr;
+    // the deleted node's ISR is gone: nothing references tx_frame_ any more
+    tx_pending_.store(false);
+    if (!create_node(ec)) {
+      logger_.error("TWAI node could not be re-created after dropping its pending frame; it is "
+                    "gone until initialize() is called again");
+      return false;
+    }
+    if (was_enabled) {
+      err = twai_node_enable(node_);
+      if (err != ESP_OK) {
+        logger_.error("Failed to re-enable TWAI node after dropping its pending frame: {}",
+                      esp_err_to_name(err));
+        ec = std::make_error_code(std::errc::io_error);
+        return false;
+      }
+      enabled_ = true;
+    }
+    // absorb a completion that may have raced in just before the node went
+    xSemaphoreTake(tx_done_sem_, 0);
+    return true;
+  }
+
   struct EventData {
     EventType type;
     Message message;              ///< Valid for EventType::RX
@@ -613,13 +817,13 @@ protected:
       task_->stop();
       task_.reset();
     }
-    // Disable the node first (best-effort, under mutex_). twai_node_delete()
-    // requires a disabled node anyway, and disabling also aborts / unblocks any
-    // in-flight twai_node_transmit() so a concurrent transmit() blocked on a
-    // full queue (timeout_ms < 0) can return and release tx_mutex_ -- otherwise
-    // acquiring tx_mutex_ below could deadlock against it. Done in its own
-    // scope so mutex_ is released before we take tx_mutex_ then mutex_ (keeping
-    // the tx_mutex_ -> mutex_ order that transmit() uses).
+    // Disable the node first (best-effort, under mutex_): twai_node_delete()
+    // requires a disabled node. A concurrent transmit() holding tx_mutex_ is
+    // always bounded (its completion wait has a timeout, and its own abort
+    // re-creates the node, which this then deletes), so taking tx_mutex_ below
+    // cannot deadlock against it. Done in its own scope so mutex_ is released
+    // before we take tx_mutex_ then mutex_ (keeping the tx_mutex_ -> mutex_
+    // order that transmit() / flush() / abort_pending() use).
     {
       std::lock_guard<std::recursive_mutex> lock(mutex_);
       if (node_ && enabled_) {
@@ -766,6 +970,9 @@ protected:
   std::mutex tx_mutex_;
   SemaphoreHandle_t tx_done_sem_{nullptr};
   std::atomic<bool> tx_success_{false}; // is_tx_success of the last on_tx_done
+  // a frame left with the controller by a completion timeout (with
+  // auto_abort_on_timeout off) still owns tx_frame_ / tx_message_
+  std::atomic<bool> tx_pending_{false};
   Message tx_message_{};
   twai_frame_t tx_frame_{};
 };
