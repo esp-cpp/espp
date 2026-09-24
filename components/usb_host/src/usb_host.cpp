@@ -418,7 +418,18 @@ bool UsbHost::initialize(std::error_code &ec) {
     ec = make_ec(err);
     return false;
   }
-  start_hid_task();
+  if (!start_hid_task()) {
+    // Without the pump nothing dispatches the driver's events, so the host
+    // would look installed and never report a device. Unwind as for a failed
+    // install (the driver's uninstall needs no pump when it tracks nothing).
+    logger_.error("could not start the HID event pump task");
+    hid_host_uninstall();
+    stop_dispatch_task();
+    stop_lib_task();
+    usb_host_uninstall();
+    ec = std::make_error_code(std::errc::resource_unavailable_try_again);
+    return false;
+  }
 
   // Now that the HID client exists, power the root port: an already-attached
   // device enumerates from here and is reported to the driver.
@@ -488,17 +499,23 @@ bool UsbHost::deinitialize(std::error_code &ec) {
   usb_host_lib_set_root_port_power(false);
   if (config_.vbus_control)
     config_.vbus_control(false); // and the board's jack, if it switches it
-  if (!wait_for_untracked(2s)) {
-    logger_.warn("driver still tracks {} device(s) after 2s; uninstalling anyway",
-                 num_tracked_devices());
+  // How long teardown is willing to wait, in one place so the waits and the
+  // messages about them cannot drift apart.
+  static constexpr auto kUntrackedTimeout = 2s;
+  static constexpr auto kUninstallRetryDelay = 10ms;
+  static constexpr int kUninstallRetries = 200; // kUninstallRetryDelay each
+  if (!wait_for_untracked(kUntrackedTimeout)) {
+    logger_.warn("driver still tracks {} device(s) after {} ms; uninstalling anyway",
+                 num_tracked_devices(),
+                 std::chrono::duration_cast<std::chrono::milliseconds>(kUntrackedTimeout).count());
   }
   esp_err_t err = ESP_FAIL;
-  for (int i = 0; i < 200; ++i) { // up to ~2 s more for the driver's bookkeeping
+  for (int i = 0; i < kUninstallRetries; ++i) { // the driver's own bookkeeping
     err = hid_host_uninstall();
     if (err == ESP_OK) {
       break;
     }
-    std::this_thread::sleep_for(10ms);
+    std::this_thread::sleep_for(kUninstallRetryDelay);
   }
   if (err != ESP_OK) {
     // Tearing down under a driver that still references us would be a
@@ -707,9 +724,9 @@ bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) 
   return !lib_task_run_.load(); // true = stop the task
 }
 
-void UsbHost::start_hid_task() {
+bool UsbHost::start_hid_task() {
   if (hid_task_) {
-    return;
+    return true;
   }
   hid_task_run_.store(true);
   hid_event_errors_ = 0;
@@ -725,7 +742,12 @@ void UsbHost::start_hid_task() {
           },
       .log_level = Logger::Verbosity::WARN,
   });
-  hid_task_->start();
+  if (!hid_task_ || !hid_task_->start()) {
+    hid_task_run_.store(false);
+    hid_task_.reset();
+    return false;
+  }
+  return true;
 }
 
 bool UsbHost::hid_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) {

@@ -423,7 +423,9 @@ private:
   void apply_full_speed_only();
   // The HID class driver's event pump (own task, see task_stack_alloc_caps).
   bool hid_task_fn(std::mutex &m, std::condition_variable &cv);
-  void start_hid_task();
+  // Starts the pump task that runs the HID driver's events.
+  // @return false if the task could not be created (its stack, for example).
+  [[nodiscard]] bool start_hid_task();
   void stop_hid_task();
   void stop_lib_task();
 
