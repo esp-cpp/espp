@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>espp DS402 Drive Panel (WebUSB / Web Serial)</title>
-  <meta name="description" content="Commission a CANopen CiA 402 (DS402) drive over a USB-to-CAN bridge from the browser: SDO object read/write, the DS402 state machine, mode selection, target/actual values, and a generic object-dictionary panel for vendor-specific addresses.">
+  <meta name="description" content="Commission a CANopen CiA 402 (DS402) drive over a USB-to-CAN bridge from the browser: SDO object read/write, the DS402 state machine, mode selection, target/actual values, an object-dictionary browser (the device's stored EDS, an EDS file, or the built-in CiA 301/402 table, scanned over SDO), and a generic read/write panel for vendor-specific addresses.">
   <!--
     espp DS402 Drive Panel
     ======================
@@ -31,6 +31,11 @@
       operation (0x6060/0x6061), target and actual velocity/position/torque, and
       a live poll. Because these run over SDO (not PDOs) this is a commissioning /
       bring-up tool, not a hard-real-time cyclic controller.
+    - An Object Dictionary browser: the object LIST comes from the device's own
+      EDS (object 0x1021 "Store EDS", a DOMAIN read by segmented SDO and parsed
+      here), from an EDS file, or from a built-in CiA 301 / CiA 402 table; a scan
+      then reads every readable entry over SDO and classifies each (present,
+      absent, write-only, abort, no response). Nothing is written by a scan.
     - A generic Object Dictionary panel for reading/writing ANY index:subindex
       with a chosen data type - for vendor-specific objects.
 
@@ -208,6 +213,25 @@
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     hr.sep { border: none; border-top: 1px solid var(--panel-border); margin: 12px 0; }
 
+    /* Object dictionary browser */
+    .table-scroll { overflow-x: auto; overflow-y: auto; max-height: 420px; border: 1px solid var(--panel-border); border-radius: 8px; }
+    table.od { border-collapse: collapse; width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+    table.od th, table.od td { padding: 3px 8px; text-align: left; white-space: nowrap; vertical-align: top; }
+    table.od thead th { position: sticky; top: 0; background: var(--panel-bg); color: var(--text-muted); border-bottom: 1px solid var(--panel-border); z-index: 1; font-weight: 600; }
+    table.od tbody tr:nth-child(even) { background: var(--row-alt); }
+    table.od tbody tr { cursor: pointer; }
+    table.od tbody tr:hover { outline: 1px solid var(--accent); outline-offset: -1px; }
+    table.od tr.od-group td { font-weight: 600; color: var(--text); }
+    table.od tr.od-absent td { color: var(--text-muted); opacity: 0.7; }
+    table.od td.od-name { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; white-space: normal; min-width: 160px; }
+    table.od td.od-value { color: var(--text); max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+    table.od td.od-hex { color: var(--text-muted); max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+    table.od td.od-err { color: var(--danger); }
+    table.od td.od-wo { color: var(--warn); }
+    table.od .od-toggle { display: inline-block; width: 14px; color: var(--text-muted); user-select: none; }
+    .od-empty { color: var(--text-muted); font-size: 12.5px; padding: 18px 8px; text-align: center; }
+    .badge.src { color: var(--accent); border-color: var(--accent); }
+    .badge.busy { color: var(--warn); border-color: var(--warn); }
     .log {
       background: var(--log-bg); color: var(--log-text);
       border-radius: 8px; padding: 10px 12px;
@@ -390,6 +414,56 @@
       </div>
     </div>
 
+    <!-- ==================== Object dictionary (browser) ================= -->
+    <div class="panel">
+      <h2>Object dictionary</h2>
+      <div class="row">
+        <button id="odDeviceEdsBtn" class="small" disabled title="Read the EDS the device stores in object 0x1021 (Store EDS)">Read device EDS (0x1021)</button>
+        <label>
+          <input type="file" id="odEdsFile" accept=".eds,.dcf,.txt,text/plain" style="display:none;">
+          <button id="odEdsFileBtn" class="small">Load EDS file…</button>
+        </label>
+        <button id="odBuiltinBtn" class="small">Use built-in CiA 301/402 table</button>
+        <div class="field">
+          <span>Axis</span>
+          <select id="odAxis" aria-label="DS402 axis (built-in table)">
+            <option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+            <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+          </select>
+        </div>
+        <span class="spacer"></span>
+        <button id="odScanBtn" class="small primary" disabled title="Read every readable entry of the listed objects from the node">Scan</button>
+        <button id="odCancelBtn" class="small danger" disabled>Cancel</button>
+      </div>
+      <div class="statusline" style="margin-top:8px;">
+        <span>Source: <span id="odSourceBadge" class="badge down">none</span></span>
+        <span id="odSourceInfo" class="muted">Load an object list: the device's stored EDS, an EDS file, or the built-in CiA 301 / CiA 402 table; then Scan to read the values.</span>
+      </div>
+      <div class="statusline">
+        <span>Objects: <b id="odCountObjects">0</b></span>
+        <span>Present: <b id="odCountPresent">0</b></span>
+        <span>Absent: <b id="odCountAbsent">0</b></span>
+        <span>Errors: <b id="odCountErrors">0</b></span>
+        <span id="odProgress" class="muted"></span>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <input type="text" id="odFilter" class="short" style="width:220px;" placeholder="filter: index or name" aria-label="Filter the object table">
+        <label><input type="checkbox" id="odShowAbsent"> show absent</label>
+        <button id="odExpandBtn" class="small">Expand all</button>
+        <button id="odCollapseBtn" class="small">Collapse all</button>
+        <span class="spacer"></span>
+        <button id="odExportBtn" class="small" disabled>Export CSV</button>
+      </div>
+      <div class="table-scroll" style="margin-top:8px;">
+        <table class="od">
+          <thead><tr><th>Index</th><th>Sub</th><th>Name</th><th>Type</th><th>Access</th><th>Value</th><th>Raw</th><th></th></tr></thead>
+          <tbody id="odBody"></tbody>
+        </table>
+        <div id="odEmpty" class="od-empty">No object list loaded.</div>
+      </div>
+      <p class="muted" style="margin:8px 0 0;">Click a row to load its address into the manual read/write fields below. A scan only reads; nothing is written.</p>
+    </div>
+
     <!-- ==================== Object dictionary (generic) ================= -->
     <div class="panel">
       <h2>Object dictionary access (vendor-specific)</h2>
@@ -476,6 +550,7 @@
     const DS402_POLL_MS = 400;
     const SDO_TIMEOUT_MS = 800;
     const SDO_MAX_TRANSFER = 64 * 1024;   // bound segmented uploads so a faulty node cannot grow memory unbounded
+    const OD_EDS_MAX_BYTES = 1024 * 1024; // a device's stored EDS (0x1021) may be larger than a normal object
 
     // CANopen COB-IDs (11-bit, function code | node id)
     const COB_NMT = 0x000;
@@ -498,6 +573,10 @@
                       "tgtVel", "tgtVelBtn", "tgtPos", "tgtPosBtn", "tgtTrq", "tgtTrqBtn",
                       "actPos", "actVel", "actTrq",
                       "odIndex", "odSub", "odType", "odValue", "odReadBtn", "odWriteBtn", "odResult",
+                      "odDeviceEdsBtn", "odEdsFile", "odEdsFileBtn", "odBuiltinBtn", "odAxis", "odScanBtn",
+                      "odCancelBtn", "odSourceBadge", "odSourceInfo", "odCountObjects", "odCountPresent",
+                      "odCountAbsent", "odCountErrors", "odProgress", "odFilter", "odShowAbsent",
+                      "odExpandBtn", "odCollapseBtn", "odExportBtn", "odBody", "odEmpty",
                       "clearLogBtn", "logSdo", "logBus", "log", "unsupported"]) {
       els[id] = document.getElementById(id);
     }
@@ -787,11 +866,19 @@
       0x05030000: "toggle bit not alternated",
       0x05040000: "SDO protocol timed out",
       0x05040001: "client/server command specifier invalid",
+      0x05040002: "invalid block size",
+      0x05040003: "invalid sequence number",
+      0x05040004: "CRC error",
+      0x05040005: "out of memory",
       0x06010000: "unsupported access to an object",
       0x06010001: "attempt to read a write-only object",
       0x06010002: "attempt to write a read-only object",
       0x06020000: "object does not exist in the dictionary",
       0x06040041: "object cannot be mapped to the PDO",
+      0x06040042: "number and length of mapped objects would exceed PDO length",
+      0x06040043: "general parameter incompatibility",
+      0x06040047: "general internal incompatibility in the device",
+      0x06060000: "access failed due to a hardware error",
       0x06070010: "data type / length mismatch",
       0x06070012: "data type mismatch, length too high",
       0x06070013: "data type mismatch, length too low",
@@ -799,9 +886,12 @@
       0x06090030: "value range exceeded",
       0x06090031: "value written too high",
       0x06090032: "value written too low",
+      0x06090036: "maximum value is less than minimum value",
       0x08000000: "general error",
       0x08000020: "data cannot be transferred/stored",
+      0x08000021: "data cannot be transferred/stored because of local control",
       0x08000022: "data cannot be transferred/stored in this device state",
+      0x08000023: "object dictionary dynamic generation failed / no object dictionary present",
     };
     function sdoAbortError(resp) {
       const code = (resp[4] | (resp[5] << 8) | (resp[6] << 16) | (resp[7] << 24)) >>> 0;
@@ -915,8 +1005,13 @@
 
     // Upload (read). Returns a Uint8Array of the object's raw bytes. `nodeArg`
     // pins the node for a multi-transaction action; omit it for the field value.
-    async function sdoUpload(index, sub, nodeArg) {
+    async function sdoUpload(index, sub, nodeArg, opts) {
       validateAddress(index, sub);
+      // opts (optional): maxBytes overrides the transfer bound for one known-large
+      // object (a stored EDS); progress(bytesSoFar, total|null) is called as
+      // segments arrive so a long upload can show where it is.
+      const maxBytes = (opts && opts.maxBytes) ? opts.maxBytes : SDO_MAX_TRANSFER;
+      const progress = (opts && opts.progress) ? opts.progress : null;
       return withSdo(async (node) => {
         const mux = { index, sub };
         const req = new Uint8Array(8);
@@ -934,9 +1029,9 @@
         // segmented upload
         const total = sizeIndicated ? ((resp[4] | (resp[5] << 8) | (resp[6] << 16) | (resp[7] << 24)) >>> 0) : null;
         // Refuse a declared oversized total up front (abort the transfer).
-        if (total != null && total > SDO_MAX_TRANSFER) {
+        if (total != null && total > maxBytes) {
           await sendSdoAbort(node, index, sub, 0x05040005);   // "out of memory"
-          throw new Error("SDO upload declined: declared size " + total + " exceeds " + SDO_MAX_TRANSFER + " bytes");
+          throw new Error("SDO upload declined: declared size " + total + " exceeds " + maxBytes + " bytes");
         }
         const chunks = [];
         let toggle = 0;
@@ -951,10 +1046,11 @@
           for (let i = 0; i < segSize; i++) chunks.push(s[1 + i]);
           // Bound an unsized transfer too: a node that never sets the last-segment
           // bit must not keep this transaction alive and grow memory forever.
-          if (chunks.length > SDO_MAX_TRANSFER) {
+          if (chunks.length > maxBytes) {
             await sendSdoAbort(node, index, sub, 0x05040005);   // "out of memory"
-            throw new Error("SDO upload aborted: exceeded " + SDO_MAX_TRANSFER + " bytes (node not terminating)");
+            throw new Error("SDO upload aborted: exceeded " + maxBytes + " bytes (node not terminating)");
           }
+          if (progress && (chunks.length % 700) < 7) progress(chunks.length, total);   // every ~100 segments
           toggle ^= 1;
           if (s[0] & 0x01) break;   // c = last segment
         }
@@ -1313,12 +1409,19 @@
       els.disconnectBtn.disabled = !connected;
       els.anyDevice.disabled = connected;
       for (const id of CONNECTED_CONTROLS) els[id].disabled = !connected;
+      // object dictionary browser: the device-EDS read and the scan need a link
+      // (the scan also needs an object list); a scan in progress is cancelled by
+      // a disconnect, and its per-row Read buttons follow the link too
+      els.odDeviceEdsBtn.disabled = !connected;
+      els.odScanBtn.disabled = !connected || !odObjects.length || odScanInFlight;
       if (!connected) {
         els.devInfo.textContent = "Not connected. WebUSB default filter: any espp device (VID 0x1209); the vendor (0xFF) interface is discovered from the descriptors at runtime.";
         setStatusLine(null);
         setDs402State(null);
         els.livePoll.checked = false;
+        odScanCancel = true;
       }
+      odRender();
     }
 
     // ===================================================================
@@ -1608,6 +1711,737 @@
         logLine("sys", "wrote " + hex(index, 4) + ":" + sub + " = " + els.odValue.value);
       } catch (e) { els.odResult.textContent = "error: " + (e && e.message ? e.message : e); }
     });
+
+    // ===================================================================
+    // Object dictionary browser
+    // ===================================================================
+    // Three sources for the object LIST (what to read), in order of fidelity:
+    //   1. the device's own EDS, stored in object 0x1021 "Store EDS" (a DOMAIN;
+    //      0x1022 "Storage format" 0 = plain ASCII EDS), parsed here;
+    //   2. an EDS file from disk (same parser);
+    //   3. a built-in table of the CiA 301 communication-profile objects and the
+    //      CiA 402 drive-profile objects (names, types and access from the
+    //      standards; the DS402 axis offset 0x800 per axis is applied on request).
+    // "Scan" then reads every readable entry through the SDO queue (one
+    // transaction at a time) and classifies each by outcome; nothing is written.
+    //
+    // The parser, the table, the value decoder and the scan walk are pure (no
+    // DOM), between the OD:BEGIN-PURE / OD:END-PURE markers, so
+    // web/test/ds402_od_test.js can run them under node.
+    // ==== OD:BEGIN-PURE ====
+    const OD_OBJTYPE = { 7: "VAR", 8: "ARRAY", 9: "RECORD", 2: "DOMAIN", 5: "DEFTYPE", 6: "DEFSTRUCT" };
+    // CiA 301 data type codes -> display name and decoder kind
+    const OD_DATATYPE = {
+      0x0001: { name: "BOOLEAN", kind: "u8" },
+      0x0002: { name: "INTEGER8", kind: "i8" },
+      0x0003: { name: "INTEGER16", kind: "i16" },
+      0x0004: { name: "INTEGER32", kind: "i32" },
+      0x0005: { name: "UNSIGNED8", kind: "u8" },
+      0x0006: { name: "UNSIGNED16", kind: "u16" },
+      0x0007: { name: "UNSIGNED32", kind: "u32" },
+      0x0008: { name: "REAL32", kind: "f32" },
+      0x0009: { name: "VISIBLE_STRING", kind: "string" },
+      0x000A: { name: "OCTET_STRING", kind: "hex" },
+      0x000B: { name: "UNICODE_STRING", kind: "string" },
+      0x000F: { name: "DOMAIN", kind: "hex" },
+      0x0010: { name: "INTEGER24", kind: "i24" },
+      0x0011: { name: "REAL64", kind: "f64" },
+      0x0015: { name: "INTEGER64", kind: "i64" },
+      0x0016: { name: "UNSIGNED24", kind: "u24" },
+      0x001B: { name: "UNSIGNED64", kind: "u64" },
+    };
+    const OD_KIND_CODE = { u8: 0x5, i8: 0x2, u16: 0x6, i16: 0x3, u32: 0x7, i32: 0x4, f32: 0x8, string: 0x9, hex: 0xA, domain: 0xF, i8x: 0x2 };
+    const OD_ACCESS = { ro: "ro", wo: "wo", rw: "rw", rww: "rww", rwr: "rwr", const: "const" };
+    const OD_MAX_SUBS = 254;   // sub 0 is the count; 255 is reserved
+
+    function odHex(n, width) { return "0x" + (n >>> 0).toString(16).padStart(width || 0, "0"); }
+    function odHexBytes(bytes) {
+      let s = "";
+      for (let i = 0; i < bytes.length; i++) s += bytes[i].toString(16).padStart(2, "0") + " ";
+      return s.trim();
+    }
+    function odParseNum(s) {
+      if (s == null) return null;
+      const t = String(s).trim();
+      if (/^[-+]?0x[0-9a-f]+$/i.test(t)) return parseInt(t, 16);
+      if (/^[-+]?\d+$/.test(t)) return parseInt(t, 10);
+      return null;
+    }
+    function odTypeName(code) {
+      const t = OD_DATATYPE[code];
+      return t ? t.name : (code != null ? "type " + odHex(code, 4) : "?");
+    }
+
+    // ---- EDS (CiA 306 INI) parser ------------------------------------------
+    // Returns { deviceInfo: {key: value}, objects: [ {index, name, objectType,
+    // dataType, access, subNumber, compact, subs: [{sub, name, dataType, access,
+    // defaultValue, pdoMapping}], defaultValue, pdoMapping} ], warnings: [] }.
+    // Section and key names are matched case-insensitively (real EDS files vary).
+    function parseIni(text) {
+      const sections = new Map();   // lower-case section name -> Map(lower key -> value)
+      const names = new Map();      // lower-case -> original name
+      let cur = null;
+      for (const rawLine of String(text).split(/\r?\n/)) {
+        const line = rawLine.replace(/^﻿/, "").trim();
+        if (!line || line.startsWith(";") || line.startsWith("#")) continue;
+        const m = /^\[([^\]]+)\]/.exec(line);
+        if (m) {
+          const key = m[1].trim().toLowerCase();
+          if (!sections.has(key)) { sections.set(key, new Map()); names.set(key, m[1].trim()); }
+          cur = sections.get(key);
+          continue;
+        }
+        if (!cur) continue;
+        const eq = line.indexOf("=");
+        if (eq < 0) continue;
+        let value = line.slice(eq + 1).trim();
+        const semi = value.indexOf(";");
+        if (semi >= 0 && /\s;/.test(value.slice(semi - 1, semi + 1))) value = value.slice(0, semi).trim();
+        cur.set(line.slice(0, eq).trim().toLowerCase(), value);
+      }
+      return { sections, names };
+    }
+    function parseEds(text) {
+      const { sections } = parseIni(text);
+      const warnings = [];
+      const get = (sec, key) => { const s = sections.get(sec); return s ? s.get(key.toLowerCase()) : undefined; };
+      const deviceInfo = {};
+      const di = sections.get("deviceinfo");
+      if (di) for (const [k, v] of di) deviceInfo[k] = v;
+      // The object list: the three list sections, plus any [XXXX] section that
+      // looks like an object (some files omit the lists).
+      const indices = new Set();
+      for (const list of ["mandatoryobjects", "optionalobjects", "manufacturerobjects"]) {
+        const s = sections.get(list);
+        if (!s) continue;
+        for (const [k, v] of s) {
+          if (k === "supportedobjects") continue;
+          const idx = odParseNum(v);
+          if (idx != null && idx >= 0 && idx <= 0xFFFF) indices.add(idx);
+        }
+      }
+      for (const key of sections.keys()) {
+        if (/^[0-9a-f]{4}$/.test(key)) indices.add(parseInt(key, 16));
+      }
+      const objects = [];
+      for (const index of [...indices].sort((a, b) => a - b)) {
+        const sec = index.toString(16).padStart(4, "0");
+        const s = sections.get(sec);
+        if (!s) { warnings.push("object " + odHex(index, 4) + " is listed but has no section"); continue; }
+        const objectType = odParseNum(s.get("objecttype"));
+        const obj = {
+          index,
+          name: s.get("parametername") || odHex(index, 4),
+          objectType: objectType != null ? objectType : 7,
+          dataType: odParseNum(s.get("datatype")),
+          access: (s.get("accesstype") || "").toLowerCase() || null,
+          defaultValue: s.get("defaultvalue") != null ? s.get("defaultvalue") : null,
+          pdoMapping: odParseNum(s.get("pdomapping")) === 1,
+          subNumber: odParseNum(s.get("subnumber")),
+          compact: odParseNum(s.get("compactsubobj")),
+          subs: [],
+        };
+        if (obj.objectType === 8 || obj.objectType === 9) {
+          if (obj.compact != null && obj.compact > 0) {
+            // CompactSubObj: subs 1..N all share the object's DataType/AccessType;
+            // an optional [XXXXName] section carries per-sub names.
+            const nameSec = sections.get(sec + "name");
+            obj.subs.push({ sub: 0, name: "Number of entries", dataType: 0x5, access: "ro", defaultValue: String(obj.compact), pdoMapping: false });
+            for (let i = 1; i <= Math.min(obj.compact, OD_MAX_SUBS); i++) {
+              const nm = nameSec ? nameSec.get(String(i)) : undefined;
+              obj.subs.push({ sub: i, name: nm || (obj.name + " " + i), dataType: obj.dataType, access: obj.access, defaultValue: obj.defaultValue, pdoMapping: obj.pdoMapping });
+            }
+          } else {
+            const seen = new Set();
+            for (const key of sections.keys()) {
+              const m = new RegExp("^" + sec + "sub([0-9a-f]+)$").exec(key);
+              if (!m) continue;
+              const sub = parseInt(m[1], 16);
+              if (sub > 0xFF || seen.has(sub)) continue;
+              seen.add(sub);
+              const ss = sections.get(key);
+              obj.subs.push({
+                sub,
+                name: ss.get("parametername") || ("sub " + sub),
+                dataType: odParseNum(ss.get("datatype")),
+                access: (ss.get("accesstype") || "").toLowerCase() || null,
+                defaultValue: ss.get("defaultvalue") != null ? ss.get("defaultvalue") : null,
+                pdoMapping: odParseNum(ss.get("pdomapping")) === 1,
+              });
+            }
+            obj.subs.sort((a, b) => a.sub - b.sub);
+            if (!obj.subs.length) warnings.push("object " + odHex(index, 4) + " is an array/record with no sub-objects");
+          }
+        }
+        objects.push(obj);
+      }
+      const version = get("fileinfo", "EDSVersion");
+      return { deviceInfo, objects, warnings, edsVersion: version || null };
+    }
+
+    // ---- built-in CiA 301 / CiA 402 table --------------------------------
+    // [index, name, objectType, dataType, access, subs] where subs is either a
+    // number N (an ARRAY of N entries of the object's type) or an array of
+    // [sub, name, dataType, access] for a RECORD. `dyn` on an ARRAY means the
+    // count comes from sub 0 (capped at N).
+    const OD_BUILTIN_301 = [
+      [0x1000, "Device type", 7, 0x7, "ro"],
+      [0x1001, "Error register", 7, 0x5, "ro"],
+      [0x1002, "Manufacturer status register", 7, 0x7, "ro"],
+      [0x1003, "Pre-defined error field", 8, 0x7, "ro", 254, true],
+      [0x1005, "COB-ID SYNC message", 7, 0x7, "rw"],
+      [0x1006, "Communication cycle period", 7, 0x7, "rw"],
+      [0x1007, "Synchronous window length", 7, 0x7, "rw"],
+      [0x1008, "Manufacturer device name", 7, 0x9, "const"],
+      [0x1009, "Manufacturer hardware version", 7, 0x9, "const"],
+      [0x100A, "Manufacturer software version", 7, 0x9, "const"],
+      [0x100C, "Guard time", 7, 0x6, "rw"],
+      [0x100D, "Life time factor", 7, 0x5, "rw"],
+      [0x1010, "Store parameters", 8, 0x7, "rw", 4, true],
+      [0x1011, "Restore default parameters", 8, 0x7, "rw", 4, true],
+      [0x1014, "COB-ID EMCY", 7, 0x7, "rw"],
+      [0x1015, "Inhibit time EMCY", 7, 0x6, "rw"],
+      [0x1016, "Consumer heartbeat time", 8, 0x7, "rw", 127, true],
+      [0x1017, "Producer heartbeat time", 7, 0x6, "rw"],
+      [0x1018, "Identity object", 9, null, null, [[1, "Vendor-ID", 0x7, "ro"], [2, "Product code", 0x7, "ro"], [3, "Revision number", 0x7, "ro"], [4, "Serial number", 0x7, "ro"]]],
+      [0x1019, "Synchronous counter overflow value", 7, 0x5, "rw"],
+      [0x1020, "Verify configuration", 8, 0x7, "rw", 2, true],
+      [0x1021, "Store EDS", 7, 0xF, "ro"],
+      [0x1022, "Storage format", 7, 0x5, "ro"],
+      [0x1029, "Error behavior", 8, 0x5, "rw", 254, true],
+    ];
+    const OD_RPDO_COMM = [[1, "COB-ID used by RPDO", 0x7, "rw"], [2, "Transmission type", 0x5, "rw"], [3, "Inhibit time", 0x6, "rw"], [4, "Compatibility entry", 0x5, "rw"], [5, "Event timer", 0x6, "rw"]];
+    const OD_TPDO_COMM = [[1, "COB-ID used by TPDO", 0x7, "rw"], [2, "Transmission type", 0x5, "rw"], [3, "Inhibit time", 0x6, "rw"], [4, "Compatibility entry", 0x5, "rw"], [5, "Event timer", 0x6, "rw"], [6, "SYNC start value", 0x5, "rw"]];
+    for (let i = 0; i < 4; i++) {
+      OD_BUILTIN_301.push([0x1400 + i, "RPDO " + (i + 1) + " communication parameter", 9, null, null, OD_RPDO_COMM]);
+      OD_BUILTIN_301.push([0x1600 + i, "RPDO " + (i + 1) + " mapping parameter", 8, 0x7, "rw", 8, true]);
+      OD_BUILTIN_301.push([0x1800 + i, "TPDO " + (i + 1) + " communication parameter", 9, null, null, OD_TPDO_COMM]);
+      OD_BUILTIN_301.push([0x1A00 + i, "TPDO " + (i + 1) + " mapping parameter", 8, 0x7, "rw", 8, true]);
+    }
+    const OD_BUILTIN_402 = [
+      [0x6007, "Abort connection option code", 7, 0x3, "rw"],
+      [0x603F, "Error code", 7, 0x6, "ro"],
+      [0x6040, "Controlword", 7, 0x6, "rw"],
+      [0x6041, "Statusword", 7, 0x6, "ro"],
+      [0x605A, "Quick stop option code", 7, 0x3, "rw"],
+      [0x605B, "Shutdown option code", 7, 0x3, "rw"],
+      [0x605C, "Disable operation option code", 7, 0x3, "rw"],
+      [0x605D, "Halt option code", 7, 0x3, "rw"],
+      [0x605E, "Fault reaction option code", 7, 0x3, "rw"],
+      [0x6060, "Modes of operation", 7, 0x2, "rw"],
+      [0x6061, "Modes of operation display", 7, 0x2, "ro"],
+      [0x6062, "Position demand value", 7, 0x4, "ro"],
+      [0x6063, "Position actual internal value", 7, 0x4, "ro"],
+      [0x6064, "Position actual value", 7, 0x4, "ro"],
+      [0x6065, "Following error window", 7, 0x7, "rw"],
+      [0x6066, "Following error time out", 7, 0x6, "rw"],
+      [0x6067, "Position window", 7, 0x7, "rw"],
+      [0x6068, "Position window time", 7, 0x6, "rw"],
+      [0x6069, "Velocity sensor actual value", 7, 0x4, "ro"],
+      [0x606B, "Velocity demand value", 7, 0x4, "ro"],
+      [0x606C, "Velocity actual value", 7, 0x4, "ro"],
+      [0x606D, "Velocity window", 7, 0x6, "rw"],
+      [0x606E, "Velocity window time", 7, 0x6, "rw"],
+      [0x606F, "Velocity threshold", 7, 0x6, "rw"],
+      [0x6070, "Velocity threshold time", 7, 0x6, "rw"],
+      [0x6071, "Target torque", 7, 0x3, "rw"],
+      [0x6072, "Max torque", 7, 0x6, "rw"],
+      [0x6073, "Max current", 7, 0x6, "rw"],
+      [0x6074, "Torque demand", 7, 0x3, "ro"],
+      [0x6075, "Motor rated current", 7, 0x7, "rw"],
+      [0x6076, "Motor rated torque", 7, 0x7, "rw"],
+      [0x6077, "Torque actual value", 7, 0x3, "ro"],
+      [0x6078, "Current actual value", 7, 0x3, "ro"],
+      [0x6079, "DC link circuit voltage", 7, 0x7, "ro"],
+      [0x607A, "Target position", 7, 0x4, "rw"],
+      [0x607B, "Position range limit", 9, null, null, [[1, "Min position range limit", 0x4, "rw"], [2, "Max position range limit", 0x4, "rw"]]],
+      [0x607C, "Home offset", 7, 0x4, "rw"],
+      [0x607D, "Software position limit", 9, null, null, [[1, "Min position limit", 0x4, "rw"], [2, "Max position limit", 0x4, "rw"]]],
+      [0x607E, "Polarity", 7, 0x5, "rw"],
+      [0x607F, "Max profile velocity", 7, 0x7, "rw"],
+      [0x6080, "Max motor speed", 7, 0x7, "rw"],
+      [0x6081, "Profile velocity", 7, 0x7, "rw"],
+      [0x6082, "End velocity", 7, 0x7, "rw"],
+      [0x6083, "Profile acceleration", 7, 0x7, "rw"],
+      [0x6084, "Profile deceleration", 7, 0x7, "rw"],
+      [0x6085, "Quick stop deceleration", 7, 0x7, "rw"],
+      [0x6086, "Motion profile type", 7, 0x3, "rw"],
+      [0x6087, "Torque slope", 7, 0x7, "rw"],
+      [0x608F, "Position encoder resolution", 9, null, null, [[1, "Encoder increments", 0x7, "rw"], [2, "Motor revolutions", 0x7, "rw"]]],
+      [0x6090, "Velocity encoder resolution", 9, null, null, [[1, "Encoder increments per second", 0x7, "rw"], [2, "Motor revolutions per second", 0x7, "rw"]]],
+      [0x6091, "Gear ratio", 9, null, null, [[1, "Motor revolutions", 0x7, "rw"], [2, "Shaft revolutions", 0x7, "rw"]]],
+      [0x6092, "Feed constant", 9, null, null, [[1, "Feed", 0x7, "rw"], [2, "Shaft revolutions", 0x7, "rw"]]],
+      [0x6098, "Homing method", 7, 0x2, "rw"],
+      [0x6099, "Homing speeds", 9, null, null, [[1, "Speed during search for switch", 0x7, "rw"], [2, "Speed during search for zero", 0x7, "rw"]]],
+      [0x609A, "Homing acceleration", 7, 0x7, "rw"],
+      [0x60B0, "Position offset", 7, 0x4, "rw"],
+      [0x60B1, "Velocity offset", 7, 0x4, "rw"],
+      [0x60B2, "Torque offset", 7, 0x3, "rw"],
+      [0x60C0, "Interpolation sub mode select", 7, 0x3, "rw"],
+      [0x60C1, "Interpolation data record", 8, 0x4, "rw", 2, true],
+      [0x60C2, "Interpolation time period", 9, null, null, [[1, "Interpolation time period value", 0x5, "rw"], [2, "Interpolation time index", 0x2, "rw"]]],
+      [0x60C5, "Max acceleration", 7, 0x7, "rw"],
+      [0x60C6, "Max deceleration", 7, 0x7, "rw"],
+      [0x60F2, "Positioning option code", 7, 0x6, "rw"],
+      [0x60F4, "Following error actual value", 7, 0x4, "ro"],
+      [0x60FA, "Control effort", 7, 0x4, "ro"],
+      [0x60FC, "Position demand internal value", 7, 0x4, "ro"],
+      [0x60FD, "Digital inputs", 7, 0x7, "ro"],
+      [0x60FE, "Digital outputs", 9, null, null, [[1, "Physical outputs", 0x7, "rw"], [2, "Bit mask", 0x7, "rw"]]],
+      [0x60FF, "Target velocity", 7, 0x4, "rw"],
+      [0x6502, "Supported drive modes", 7, 0x7, "ro"],
+    ];
+    // Expand the compact rows into the same object shape parseEds() produces.
+    // `axis` (1..8) applies the CiA 402 multi-axis offset of 0x800 per axis to
+    // the 0x6xxx objects; the communication profile is never offset.
+    function builtinObjects(axis) {
+      const offset = 0x800 * (Math.max(1, Math.min(8, axis || 1)) - 1);
+      const expand = (row, off) => {
+        const [index, name, objectType, dataType, access, subs, dyn] = row;
+        const obj = { index: index + off, name, objectType, dataType, access, defaultValue: null, pdoMapping: false, subNumber: null, compact: null, subs: [], dynamicCount: !!dyn };
+        if (objectType === 8) {
+          obj.subs.push({ sub: 0, name: "Number of entries", dataType: 0x5, access: "ro", defaultValue: null, pdoMapping: false });
+          for (let i = 1; i <= subs; i++) obj.subs.push({ sub: i, name: name + " " + i, dataType, access, defaultValue: null, pdoMapping: false });
+        } else if (objectType === 9) {
+          obj.subs.push({ sub: 0, name: "Number of entries", dataType: 0x5, access: "ro", defaultValue: null, pdoMapping: false });
+          for (const [sub, sname, sdt, sacc] of subs) obj.subs.push({ sub, name: sname, dataType: sdt, access: sacc, defaultValue: null, pdoMapping: false });
+        }
+        return obj;
+      };
+      return OD_BUILTIN_301.map((r) => expand(r, 0)).concat(OD_BUILTIN_402.map((r) => expand(r, offset)));
+    }
+
+    // ---- value decoding ------------------------------------------------------
+    // Decode an uploaded object by its declared data type, or by its length when
+    // the type is unknown / does not fit. Returns { text, hex, kind }.
+    function odIsPrintable(bytes) {
+      if (!bytes.length) return false;
+      for (const b of bytes) { if (b === 0) continue; if (b < 0x20 || b > 0x7E) return false; }
+      return true;
+    }
+    function odDecodeValue(bytes, dataType) {
+      const t = OD_DATATYPE[dataType];
+      const kind = t ? t.kind : null;
+      const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
+      const hexText = odHexBytes(bytes);
+      const fits = (n) => bytes.length >= n;
+      try {
+        switch (kind) {
+          case "u8": if (fits(1)) return { text: String(dv.getUint8(0)), hex: hexText, kind }; break;
+          case "i8": if (fits(1)) return { text: String(dv.getInt8(0)), hex: hexText, kind }; break;
+          case "u16": if (fits(2)) return { text: String(dv.getUint16(0, true)), hex: hexText, kind }; break;
+          case "i16": if (fits(2)) return { text: String(dv.getInt16(0, true)), hex: hexText, kind }; break;
+          case "u32": if (fits(4)) return { text: String(dv.getUint32(0, true)), hex: hexText, kind }; break;
+          case "i32": if (fits(4)) return { text: String(dv.getInt32(0, true)), hex: hexText, kind }; break;
+          case "u24": if (fits(3)) return { text: String(bytes[0] | (bytes[1] << 8) | (bytes[2] << 16)), hex: hexText, kind }; break;
+          case "i24": if (fits(3)) return { text: String(((bytes[0] | (bytes[1] << 8) | (bytes[2] << 16)) << 8) >> 8), hex: hexText, kind }; break;
+          case "f32": if (fits(4)) return { text: String(dv.getFloat32(0, true)), hex: hexText, kind }; break;
+          case "f64": if (fits(8)) return { text: String(dv.getFloat64(0, true)), hex: hexText, kind }; break;
+          case "u64": if (fits(8)) return { text: dv.getBigUint64(0, true).toString(), hex: hexText, kind }; break;
+          case "i64": if (fits(8)) return { text: dv.getBigInt64(0, true).toString(), hex: hexText, kind }; break;
+          case "string": return { text: JSON.stringify(new TextDecoder().decode(bytes).replace(/\0+$/, "")), hex: hexText, kind };
+          case "hex": return { text: bytes.length + " bytes", hex: hexText, kind };
+        }
+      } catch (_) { /* fall through to inference */ }
+      // Unknown type, or the object is narrower than declared: infer from length.
+      if (bytes.length === 1) return { text: dv.getUint8(0) + " / " + dv.getInt8(0), hex: hexText, kind: "u8?" };
+      if (bytes.length === 2) return { text: dv.getUint16(0, true) + " / " + dv.getInt16(0, true), hex: hexText, kind: "u16?" };
+      if (bytes.length === 4) return { text: dv.getUint32(0, true) + " / " + dv.getInt32(0, true), hex: hexText, kind: "u32?" };
+      if (bytes.length > 4 && odIsPrintable(bytes)) return { text: JSON.stringify(new TextDecoder().decode(bytes).replace(/\0+$/, "")), hex: hexText, kind: "string?" };
+      return { text: bytes.length + " bytes", hex: hexText, kind: "hex?" };
+    }
+    // The manual read/write panel's type select, from a data type code.
+    function odKindToSelect(dataType) {
+      const t = OD_DATATYPE[dataType];
+      if (!t) return "hex";
+      if (["u8", "i8", "u16", "i16", "u32", "i32"].includes(t.kind)) return t.kind;
+      if (t.kind === "string") return "string";
+      return "hex";
+    }
+
+    // ---- scan outcome classification ----------------------------------------
+    // The SDO client throws Error("SDO abort 0xXXXXXXXX (name)") for an abort
+    // and Error("SDO timeout ...") for no response; classify those.
+    function odClassifyError(err) {
+      const msg = err && err.message ? err.message : String(err);
+      const m = /SDO abort (0x[0-9a-f]{8})/i.exec(msg);
+      if (m) {
+        const code = parseInt(m[1], 16) >>> 0;
+        if (code === 0x06020000) return { status: "absent", text: "absent" };
+        if (code === 0x06090011) return { status: "no-sub", text: "no such subindex" };
+        if (code === 0x06010001) return { status: "write-only", text: "write-only" };
+        const paren = /\(([^)]*)\)/.exec(msg);
+        return { status: "abort", text: "abort " + m[1] + (paren ? " " + paren[1] : "") };
+      }
+      if (/SDO timeout/i.test(msg)) return { status: "timeout", text: "no response" };
+      if (/not connected|disconnected|link lost|SDO aborted|cancel/i.test(msg)) return { status: "cancelled", text: msg };
+      return { status: "error", text: msg };
+    }
+    function odIsReadable(access) {
+      return access == null || access === "" || access === "ro" || access === "rw" || access === "rwr" || access === "rww" || access === "const";
+    }
+
+    // ---- the scan walk ---------------------------------------------------------
+    // Reads every entry of `objects` through `read(index, sub)` (a function
+    // returning a Promise of Uint8Array, throwing the SDO client's errors) and
+    // returns the rows. For ARRAY/RECORD objects sub 0 (the entry count) is read
+    // first; the subs walked are 1..min(count, listed) - or, when sub 0 cannot be
+    // read, the listed subs. A missing object (abort 0x06020000 on its first
+    // read) is marked absent and its subs are skipped; a missing subindex ends
+    // that object's walk. `hooks.progress(done, total)` and `hooks.cancelled()`
+    // are optional. Rows: { index, sub, name, objectType, dataType, access, group,
+    // status, bytes, value: {text, hex, kind} | null, error }.
+    async function odScan(objects, read, hooks) {
+      const progress = hooks && hooks.progress ? hooks.progress : () => {};
+      const cancelled = hooks && hooks.cancelled ? hooks.cancelled : () => false;
+      const rows = [];
+      let total = 0;
+      for (const o of objects) total += (o.objectType === 8 || o.objectType === 9) ? Math.max(1, o.subs.length) : 1;
+      let done = 0;
+      const readEntry = async (o, s) => {
+        const row = { index: o.index, sub: s.sub, name: s.name, objectType: o.objectType, dataType: s.dataType,
+                      access: s.access, group: o.index, status: "skipped", bytes: null, value: null, error: null };
+        if (!odIsReadable(s.access)) { row.status = "write-only"; row.error = "write-only"; return row; }
+        try {
+          const bytes = await read(o.index, s.sub);
+          row.bytes = bytes;
+          row.value = odDecodeValue(bytes, s.dataType);
+          row.status = "ok";
+        } catch (e) {
+          const c = odClassifyError(e);
+          row.status = c.status;
+          row.error = c.text;
+        }
+        return row;
+      };
+      for (const o of objects) {
+        if (cancelled()) break;
+        if (o.objectType !== 8 && o.objectType !== 9) {
+          const row = await readEntry(o, { sub: 0, name: o.name, dataType: o.dataType, access: o.access });
+          row.group = null;   // a VAR is its own row, not a group
+          rows.push(row);
+          done++; progress(done, total);
+          if (row.status === "cancelled") break;
+          continue;
+        }
+        // ARRAY / RECORD: the count first. The object's share of `total` is
+        // 1 + its listed subs; whatever is skipped (subs above the count, the
+        // rest after a missing subindex) is credited at the end of the object.
+        const listed = o.subs.filter((s) => s.sub > 0);
+        const objectShare = Math.max(1, o.subs.length);
+        const base = done;
+        const sub0 = o.subs.find((s) => s.sub === 0) || { sub: 0, name: "Number of entries", dataType: 0x5, access: "ro" };
+        const head = await readEntry(o, sub0);
+        head.name = o.name;
+        head.isGroup = true;
+        rows.push(head);
+        done++; progress(done, total);
+        if (head.status === "cancelled") break;
+        if (head.status === "absent" || head.status === "timeout") {
+          // the object is missing (or silent): its subs cannot be read either
+          done = base + objectShare; progress(done, total);
+          continue;
+        }
+        let count = null;
+        if (head.status === "ok" && head.bytes && head.bytes.length >= 1) count = head.bytes[0];
+        let subsToRead = listed;
+        if (count != null) {
+          const byNumber = new Map(listed.map((s) => [s.sub, s]));
+          subsToRead = [];
+          const limit = Math.min(count, OD_MAX_SUBS);
+          for (let i = 1; i <= limit; i++) {
+            const s = byNumber.get(i);
+            if (s) subsToRead.push(s);
+            else if (o.dynamicCount || !listed.length) subsToRead.push({ sub: i, name: o.name + " " + i, dataType: o.dataType, access: o.access });
+          }
+          // a record may have gaps above the count (e.g. 0x1018 with count 3):
+          // anything listed above the count is reported as absent without a read
+          for (const s of listed) if (s.sub > limit) rows.push({ index: o.index, sub: s.sub, name: s.name, objectType: o.objectType, dataType: s.dataType, access: s.access, group: o.index, status: "absent", bytes: null, value: null, error: "above entry count " + count });
+        }
+        const extra = Math.max(0, subsToRead.length - listed.length);   // dynamic subs beyond the listed ones
+        total += extra;
+        for (const s of subsToRead) {
+          if (cancelled()) break;
+          const row = await readEntry(o, s);
+          rows.push(row);
+          done++; progress(done, total);
+          if (row.status === "cancelled") return rows;
+          if (row.status === "no-sub") break;   // the object ends here
+        }
+        if (cancelled()) break;
+        done = base + objectShare + extra; progress(done, total);
+      }
+      return rows;
+    }
+    function odCounts(rows) {
+      const c = { present: 0, absent: 0, errors: 0 };
+      for (const r of rows) {
+        if (r.status === "ok" || r.status === "write-only") c.present++;
+        else if (r.status === "absent" || r.status === "no-sub") c.absent++;
+        else c.errors++;
+      }
+      return c;
+    }
+    function odToCsv(rows) {
+      const esc = (s) => { const t = s == null ? "" : String(s); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+      const lines = ["index,sub,name,type,access,status,value,raw"];
+      for (const r of rows) {
+        lines.push([odHex(r.index, 4), r.sub, r.name, odTypeName(r.dataType), r.access || "", r.status,
+                    r.value ? r.value.text : (r.error || ""), r.value ? r.value.hex : ""].map(esc).join(","));
+      }
+      return lines.join("\n") + "\n";
+    }
+    // ==== OD:END-PURE ====
+
+    // ---- UI state -----------------------------------------------------------
+    let odObjects = [];          // the current object list (parsed EDS or built-in)
+    let odSource = null;         // { kind: "device" | "file" | "builtin", label }
+    let odRows = [];             // the last scan's rows
+    let odScanInFlight = false;
+    let odScanCancel = false;
+    const odCollapsed = new Set();   // group indices the user collapsed
+
+    function odSetSource(kind, label, objects, info) {
+      odObjects = objects;
+      odSource = { kind, label };
+      odRows = [];
+      odCollapsed.clear();
+      els.odSourceBadge.textContent = label;
+      els.odSourceBadge.className = "badge " + (kind ? "src" : "down");
+      els.odSourceInfo.textContent = info || "";
+      els.odScanBtn.disabled = !transport || !objects.length || odScanInFlight;
+      els.odExportBtn.disabled = true;
+      odRender();
+    }
+    function odUpdateCounts() {
+      const c = odCounts(odRows);
+      els.odCountObjects.textContent = String(odObjects.length);
+      els.odCountPresent.textContent = String(c.present);
+      els.odCountAbsent.textContent = String(c.absent);
+      els.odCountErrors.textContent = String(c.errors);
+    }
+
+    // Rows to show before a scan: the object list itself (no values yet).
+    function odListRows() {
+      const rows = [];
+      for (const o of odObjects) {
+        if (o.objectType !== 8 && o.objectType !== 9) {
+          rows.push({ index: o.index, sub: 0, name: o.name, objectType: o.objectType, dataType: o.dataType, access: o.access, group: null, status: "unread", value: null, error: null });
+          continue;
+        }
+        rows.push({ index: o.index, sub: 0, name: o.name, objectType: o.objectType, dataType: 0x5, access: "ro", group: o.index, isGroup: true, status: "unread", value: null, error: null });
+        for (const s of o.subs) if (s.sub > 0) rows.push({ index: o.index, sub: s.sub, name: s.name, objectType: o.objectType, dataType: s.dataType, access: s.access, group: o.index, status: "unread", value: null, error: null });
+      }
+      return rows;
+    }
+    function odRender() {
+      const rows = odRows.length ? odRows : odListRows();
+      const filter = els.odFilter.value.trim().toLowerCase();
+      const showAbsent = els.odShowAbsent.checked;
+      const body = els.odBody;
+      body.textContent = "";
+      let shown = 0;
+      // group visibility: a collapsed group hides its sub rows; an absent group
+      // (or a group whose every sub is absent) follows the show-absent toggle
+      for (const r of rows) {
+        const isAbsent = r.status === "absent" || r.status === "no-sub";
+        if (isAbsent && !showAbsent) continue;
+        if (filter) {
+          const hay = (odHex(r.index, 4) + " " + r.index.toString(16) + " " + (r.name || "")).toLowerCase();
+          if (!hay.includes(filter)) continue;
+        }
+        if (r.group != null && !r.isGroup && odCollapsed.has(r.group) && !filter) continue;
+        const tr = document.createElement("tr");
+        tr.dataset.index = String(r.index);
+        tr.dataset.sub = String(r.sub);
+        if (r.isGroup) tr.className = "od-group";
+        if (isAbsent) tr.className += " od-absent";
+        const tdIndex = document.createElement("td");
+        if (r.isGroup) {
+          const tog = document.createElement("span");
+          tog.className = "od-toggle";
+          tog.textContent = odCollapsed.has(r.group) ? "▸" : "▾";
+          tdIndex.appendChild(tog);
+        } else if (r.group != null) {
+          tdIndex.appendChild(document.createTextNode("  "));
+        }
+        tdIndex.appendChild(document.createTextNode(odHex(r.index, 4)));
+        tr.appendChild(tdIndex);
+        const tds = [
+          [String(r.sub), ""],
+          [r.name || "", "od-name"],
+          [(r.isGroup ? OD_OBJTYPE[r.objectType] + " " : "") + odTypeName(r.dataType), ""],
+          [r.access || "", ""],
+        ];
+        for (const [text, cls] of tds) { const td = document.createElement("td"); td.textContent = text; if (cls) td.className = cls; tr.appendChild(td); }
+        const tdVal = document.createElement("td");
+        const tdHex = document.createElement("td");
+        tdHex.className = "od-hex";
+        if (r.status === "ok" && r.value) {
+          tdVal.className = "od-value";
+          tdVal.textContent = r.value.text + (r.value.kind && r.value.kind.endsWith("?") ? "  (" + r.value.kind + ")" : "");
+          tdVal.title = r.value.text;
+          tdHex.textContent = r.value.hex;
+          tdHex.title = r.value.hex;
+        } else if (r.status === "unread") {
+          tdVal.className = "od-hex";
+          tdVal.textContent = "";
+        } else {
+          tdVal.className = (r.status === "write-only") ? "od-wo" : (isAbsent ? "" : "od-err");
+          tdVal.textContent = r.error || r.status;
+        }
+        tr.appendChild(tdVal);
+        tr.appendChild(tdHex);
+        const tdBtn = document.createElement("td");
+        if (!(r.isGroup && r.objectType !== 8 && r.objectType !== 9)) {
+          const b = document.createElement("button");
+          b.className = "small";
+          b.textContent = "Read";
+          b.disabled = !transport || odScanInFlight || r.status === "write-only";
+          b.title = "Read " + odHex(r.index, 4) + ":" + r.sub + " now";
+          b.addEventListener("click", (ev) => { ev.stopPropagation(); odReadOne(r); });
+          tdBtn.appendChild(b);
+        }
+        tr.appendChild(tdBtn);
+        tr.addEventListener("click", () => {
+          if (r.isGroup) { if (odCollapsed.has(r.group)) odCollapsed.delete(r.group); else odCollapsed.add(r.group); odRender(); return; }
+          els.odIndex.value = r.index.toString(16).padStart(4, "0");
+          els.odSub.value = String(r.sub);
+          els.odType.value = odKindToSelect(r.dataType);
+          els.odResult.textContent = "selected " + odHex(r.index, 4) + ":" + r.sub + " (" + (r.name || "") + ")";
+        });
+        body.appendChild(tr);
+        shown++;
+      }
+      els.odEmpty.style.display = shown ? "none" : "";
+      els.odEmpty.textContent = odObjects.length ? (rows.length ? "No rows match the filter." : "Nothing to show.") : "No object list loaded.";
+      odUpdateCounts();
+    }
+    els.odFilter.addEventListener("input", odRender);
+    els.odShowAbsent.addEventListener("change", odRender);
+    els.odExpandBtn.addEventListener("click", () => { odCollapsed.clear(); odRender(); });
+    els.odCollapseBtn.addEventListener("click", () => { for (const o of odObjects) if (o.objectType === 8 || o.objectType === 9) odCollapsed.add(o.index); odRender(); });
+
+    // Re-read one entry (its row is replaced in place).
+    async function odReadOne(row) {
+      if (!transport) return;
+      let node;
+      try { node = currentNode(); } catch (e) { logLine("err", "OD read: " + e.message); return; }
+      const fresh = { ...row };
+      try {
+        const bytes = await sdoUpload(row.index, row.sub, node);
+        fresh.bytes = bytes; fresh.value = odDecodeValue(bytes, row.dataType); fresh.status = "ok"; fresh.error = null;
+      } catch (e) {
+        const c = odClassifyError(e); fresh.status = c.status; fresh.error = c.text; fresh.value = null;
+      }
+      if (!odRows.length) odRows = odListRows();
+      const i = odRows.findIndex((r) => r.index === row.index && r.sub === row.sub);
+      if (i >= 0) { fresh.isGroup = odRows[i].isGroup; odRows[i] = fresh; } else odRows.push(fresh);
+      els.odExportBtn.disabled = false;
+      odRender();
+    }
+
+    // ---- sources ----------------------------------------------------------------
+    function odApplyEds(text, kind, label) {
+      const parsed = parseEds(text);
+      if (!parsed.objects.length) throw new Error("no objects found (is this an EDS file?)");
+      const dn = parsed.deviceInfo.productname || parsed.deviceInfo.vendorname || "";
+      const info = parsed.objects.length + " objects" + (dn ? " · " + dn : "") + (parsed.edsVersion ? " · EDS " + parsed.edsVersion : "") +
+                   (parsed.warnings.length ? " · " + parsed.warnings.length + " warning(s), see log" : "");
+      for (const w of parsed.warnings.slice(0, 20)) logLine("warn", "EDS: " + w);
+      odSetSource(kind, label, parsed.objects, info);
+      logLine("sys", "object dictionary source: " + label + " (" + parsed.objects.length + " objects)");
+    }
+    els.odBuiltinBtn.addEventListener("click", () => {
+      const axis = parseInt(els.odAxis.value, 10) || 1;
+      odSetSource("builtin", "built-in table", builtinObjects(axis),
+                  "CiA 301 communication profile + CiA 402 drive profile" + (axis > 1 ? " (axis " + axis + ", +" + odHex(0x800 * (axis - 1), 4) + ")" : "") + ". Objects a device lacks show as absent after a scan.");
+      logLine("sys", "object dictionary source: built-in CiA 301/402 table (axis " + axis + ")");
+    });
+    els.odAxis.addEventListener("change", () => { if (odSource && odSource.kind === "builtin") els.odBuiltinBtn.click(); });
+    els.odEdsFileBtn.addEventListener("click", () => els.odEdsFile.click());
+    els.odEdsFile.addEventListener("change", async () => {
+      const f = els.odEdsFile.files && els.odEdsFile.files[0];
+      if (!f) return;
+      try { odApplyEds(await f.text(), "file", "EDS file: " + f.name); }
+      catch (e) { logLine("err", "EDS file: " + (e && e.message ? e.message : e)); }
+      els.odEdsFile.value = "";
+    });
+    els.odDeviceEdsBtn.addEventListener("click", async () => {
+      if (!transport) return;
+      let node;
+      try { node = currentNode(); } catch (e) { logLine("err", "device EDS: " + e.message); return; }
+      els.odDeviceEdsBtn.disabled = true;
+      els.odSourceInfo.textContent = "reading 0x1022 (storage format) ...";
+      try {
+        // 0x1022 is optional: absent means "plain EDS" is all it could be
+        let format = 0;
+        try { format = decodeScalar("u8", await sdoUpload(0x1022, 0, node)); }
+        catch (e) { if (odClassifyError(e).status !== "absent") throw e; }
+        if (format !== 0) throw new Error("0x1022 storage format " + format + " (compressed / not ASCII EDS) is not supported here; load the EDS file instead");
+        const started = Date.now();
+        const bytes = await sdoUpload(0x1021, 0, node, {
+          maxBytes: OD_EDS_MAX_BYTES,
+          progress: (n, total) => { els.odSourceInfo.textContent = "reading 0x1021 (Store EDS): " + n + (total ? " / " + total : "") + " bytes ..."; },
+        });
+        const text = new TextDecoder().decode(bytes);
+        odApplyEds(text, "device", "device EDS (0x1021)");
+        els.odSourceInfo.textContent += " · " + bytes.length + " bytes in " + ((Date.now() - started) / 1000).toFixed(1) + " s";
+      } catch (e) {
+        const c = odClassifyError(e);
+        const msg = c.status === "absent" ? "the device stores no EDS (0x1021 absent); load an EDS file or use the built-in table" : (e && e.message ? e.message : String(e));
+        els.odSourceInfo.textContent = msg;
+        logLine(c.status === "absent" ? "warn" : "err", "device EDS: " + msg);
+      } finally { els.odDeviceEdsBtn.disabled = !transport; }
+    });
+
+    // ---- scan ---------------------------------------------------------------------
+    els.odScanBtn.addEventListener("click", async () => {
+      if (odScanInFlight || !transport || !odObjects.length) return;
+      if (sequenceInFlight) { logLine("err", "OD scan: the enable sequence is running"); return; }
+      let node;
+      try { node = currentNode(); } catch (e) { logLine("err", "OD scan: " + e.message); return; }
+      odScanInFlight = true;
+      odScanCancel = false;
+      lockSequenceControls(true);   // no writes / NMT / node edits under a scan
+      els.odScanBtn.disabled = true;
+      els.odCancelBtn.disabled = false;
+      els.odDeviceEdsBtn.disabled = true;
+      els.odProgress.textContent = "scanning ...";
+      logLine("sys", "OD scan: node " + node + ", " + odObjects.length + " objects (" + odSource.label + ")");
+      const started = Date.now();
+      const read = (index, sub) => sdoUpload(index, sub, node);
+      let rows = [];
+      try {
+        rows = await odScan(odObjects, read, {
+          progress: (done, total) => { els.odProgress.textContent = "scanning " + done + " / " + total; },
+          cancelled: () => odScanCancel || !transport,
+        });
+      } catch (e) { logLine("err", "OD scan: " + (e && e.message ? e.message : e)); }
+      odRows = rows;
+      const c = odCounts(rows);
+      const secs = ((Date.now() - started) / 1000).toFixed(1);
+      els.odProgress.textContent = (odScanCancel ? "cancelled after " : "done in ") + secs + " s";
+      logLine("sys", "OD scan: " + c.present + " present, " + c.absent + " absent, " + c.errors + " errors in " + secs + " s" + (odScanCancel ? " (cancelled)" : ""));
+      odScanInFlight = false;
+      lockSequenceControls(false);
+      els.odCancelBtn.disabled = true;
+      els.odScanBtn.disabled = !transport;
+      els.odDeviceEdsBtn.disabled = !transport;
+      els.odExportBtn.disabled = !rows.length;
+      odRender();
+    });
+    els.odCancelBtn.addEventListener("click", () => { odScanCancel = true; els.odProgress.textContent = "cancelling ..."; });
+    els.odExportBtn.addEventListener("click", () => {
+      if (!odRows.length) return;
+      const blob = new Blob([odToCsv(odRows)], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "object_dictionary_node" + (els.nodeId.value || "x") + ".csv";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
+    odRender();
 
     // Initial UI state
     setConnectedUI(false);

@@ -39,6 +39,25 @@ The wire core (`include/detail/canopen_core.hpp`) is host-buildable pure C++20
 with no ESP dependencies, and is covered by golden-frame unit tests in
 `test/canopen_host_test.cpp`.
 
+## Web apps
+
+Two single-file browser apps under [web/](./web) talk to the
+[USB↔CAN bridge example](./can_bridge_example) (WebUSB or Web Serial, espp
+`stream_frame` framing); the firmware stays a raw-CAN pipe and all CANopen logic
+runs in the browser:
+
+* `can_bridge_console.html` - configure the bus, send frames, monitor traffic.
+* `ds402_panel.html` - a CANopen SDO client plus a DS402 control panel: node
+  identity, the power-drive-system state machine with the enable sequence, mode
+  of operation, targets / actuals, and an **object-dictionary browser**. Its
+  object list comes from the device's own EDS (object `0x1021` *Store EDS*,
+  read as a DOMAIN over segmented SDO and parsed in the browser when `0x1022`
+  reports plain ASCII), from an EDS file, or from a built-in CiA 301 / CiA 402
+  table; a scan reads every readable entry (one SDO transaction at a time) and
+  classifies each as present, absent, write-only, aborted or unanswered - it
+  never writes. The parser, table, decoder and scan walk are pure functions
+  covered by `node web/test/ds402_od_test.js`.
+
 ## Example
 
 The [example](./example) uses an `espp::Twai` transport to NMT-start a node,
