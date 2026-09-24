@@ -218,7 +218,9 @@ public:
     void close_on_driver_task();
     // Closes the driver handle if nothing else is closing it, recording the
     // result; `where` names the caller for the log line.
-    void close_interface(const char *where);
+    // @return true if this call owned the close attempt, false if another task
+    //         was already inside the driver's close for this interface.
+    bool close_interface(const char *where);
     // Called by UsbHost (dispatch task) to retire the device: marks it inert
     // and closes the driver handle if that has not happened yet, serialized
     // against any in-flight driver call.

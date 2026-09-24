@@ -237,7 +237,7 @@ void UsbHost::HidDevice::deliver_input(std::span<const uint8_t> data) {
   }
 }
 
-void UsbHost::HidDevice::close_interface(const char *where) {
+bool UsbHost::HidDevice::close_interface(const char *where) {
   // Exactly one task may be inside hid_host_device_close() for this interface:
   // the driver task's close on disconnect and a retire() from deinitialize()
   // can otherwise overlap (the disconnect callback runs while the app task is
@@ -246,8 +246,14 @@ void UsbHost::HidDevice::close_interface(const char *where) {
   // close the driver refused can still be retried by whoever comes next.
   bool expected = false;
   if (!closing_.compare_exchange_strong(expected, true)) {
-    return; // another task owns the close of this interface
+    return false; // another task owns the close of this interface
   }
+  // Released however this returns, so an early exit added later cannot leave
+  // the interface marked as being closed forever.
+  struct ClosingGuard {
+    std::atomic<bool> &flag;
+    ~ClosingGuard() { flag.store(false); }
+  } guard{closing_};
   if (!closed_.load()) {
     const esp_err_t err = hid_host_device_close(handle_);
     if (err == ESP_OK) {
@@ -262,7 +268,7 @@ void UsbHost::HidDevice::close_interface(const char *where) {
       ESP_LOGW("UsbHost", "hid_host_device_close (%s): %s", where, esp_err_to_name(err));
     }
   }
-  closing_.store(false);
+  return true;
 }
 
 void UsbHost::HidDevice::close_on_driver_task() {
@@ -289,8 +295,12 @@ void UsbHost::HidDevice::retire() {
   if (retired_) {
     return; // idempotent: a second retire() must not re-attempt the close
   }
-  retired_ = true;
-  close_interface("retire"); // a no-op if the driver task already closed it
+  // Only counts as retired once a close was actually attempted here (or had
+  // already happened). If the driver task owns the close at this moment,
+  // close_interface() declines, and leaving retired_ false lets a later
+  // retire() -- a deinitialize() retry, or the one the dispatch task runs for
+  // this device -- close an interface that in-flight attempt could not.
+  retired_ = close_interface("retire") || closed_.load();
 }
 
 // ---------------------------------------------------------------------------
