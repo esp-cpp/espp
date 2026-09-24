@@ -521,7 +521,8 @@ bool UsbHost::deinitialize(std::error_code &ec) {
     ec = make_ec(err);
     return false;
   }
-  stop_hid_task(); // exited on its own (ESP_FAIL from the pump); join it
+  stop_hid_task();         // exited on its own (ESP_FAIL from the pump); join it
+  clear_tracked_devices(); // the driver is gone: no disconnect can arrive to do it
 
   // 4) The HID driver is gone. Free any remaining devices so the library can
   //    be uninstalled, then stop + join the lib task and uninstall.
@@ -734,7 +735,12 @@ bool UsbHost::hid_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) 
   // timeout are the normal returns; anything else (e.g. the driver gone:
   // ESP_ERR_INVALID_STATE) is logged, rate-limited, and the pump keeps
   // going so a transient error does not silently kill event delivery.
-  const esp_err_t err = hid_host_handle_events(pdMS_TO_TICKS(100));
+  // How long the pump blocks in the driver before looking at the stop flag.
+  // It is not a poll interval: hid_host_handle_events() returns as soon as the
+  // driver has an event, so this only bounds how quickly stop_hid_task() is
+  // noticed (and the idle wakeup rate), not event latency.
+  static constexpr auto kPumpWait = pdMS_TO_TICKS(100);
+  const esp_err_t err = hid_host_handle_events(kPumpWait);
   if (err == ESP_FAIL) {
     hid_task_run_.store(false);
   } else if (err != ESP_OK && err != ESP_ERR_TIMEOUT) {
@@ -780,20 +786,32 @@ void UsbHost::drop_tracked_device(hid_host_device_handle_t handle) {
 
 void UsbHost::release_tracked_device(hid_host_device_handle_t handle) {
   bool empty = false;
+  bool untracked = false;
   {
     std::lock_guard<std::mutex> lk(tracked_mutex_);
-    if (driver_tracked_.erase(handle) == 0) {
-      // A disconnect for an interface we never opened (the filter rejected it,
-      // or the open failed): nothing to release. Not an error, but worth a
-      // line while tracing teardown.
-      logger_.debug("disconnect for an interface this host did not open");
-      return;
-    }
+    untracked = driver_tracked_.erase(handle) == 0;
     empty = driver_tracked_.empty();
+  }
+  // Both of these are done with the mutex released: the logger takes locks of
+  // its own, and this runs on the driver's callback task.
+  if (untracked) {
+    // A disconnect for an interface we never opened (the filter rejected it,
+    // or the open failed): nothing to release. Not an error, but worth a line
+    // while tracing teardown.
+    logger_.debug("disconnect for an interface this host did not open");
+    return;
   }
   if (empty) {
     tracked_cv_.notify_all();
   }
+}
+
+void UsbHost::clear_tracked_devices() {
+  {
+    std::lock_guard<std::mutex> lk(tracked_mutex_);
+    driver_tracked_.clear();
+  }
+  tracked_cv_.notify_all();
 }
 
 size_t UsbHost::num_tracked_devices() const {

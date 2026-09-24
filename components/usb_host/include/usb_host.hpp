@@ -436,6 +436,9 @@ private:
   // As release_tracked_device(), but for an interface that was never really
   // opened (the open failed after it was counted in): no log, no complaint.
   void drop_tracked_device(hid_host_device_handle_t handle);
+  // Forget every tracked interface, once the driver is uninstalled and no
+  // disconnect can arrive to do it: leaves the next initialize() a clean set.
+  void clear_tracked_devices();
   // How many interfaces the driver still tracks (for logging).
   size_t num_tracked_devices() const;
   // Wait (bounded) for the HID driver to report every device we opened gone.
