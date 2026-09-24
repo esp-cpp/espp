@@ -355,6 +355,7 @@ bool UsbHost::initialize(std::error_code &ec) {
               .stack_size_bytes = config_.lib_task_stack_size,
               .priority = config_.task_priority,
               .core_id = config_.task_core_id,
+              .stack_alloc_caps = config_.task_stack_alloc_caps,
           },
       .log_level = Logger::Verbosity::WARN,
   });
@@ -379,6 +380,7 @@ bool UsbHost::initialize(std::error_code &ec) {
               .stack_size_bytes = config_.dispatch_task_stack_size,
               .priority = config_.task_priority,
               .core_id = config_.task_core_id,
+              .stack_alloc_caps = config_.task_stack_alloc_caps,
           },
       .log_level = Logger::Verbosity::WARN,
   });
@@ -393,9 +395,14 @@ bool UsbHost::initialize(std::error_code &ec) {
   }
   accepting_.store(true); // driver callbacks may now enqueue
 
-  // 4) Install the HID class driver (with its own background task).
+  // 4) Install the HID class driver. Its event loop runs on a task of ours
+  //    (create_background_task = false) so the stack placement follows
+  //    task_stack_alloc_caps like the other two. The driver then creates no
+  //    task and ignores the priority / stack / core fields below -- they are
+  //    left at our configured values only so the struct reads consistently;
+  //    start_hid_task() is where those settings actually take effect.
   const hid_host_driver_config_t hid_config = {
-      .create_background_task = true,
+      .create_background_task = false,
       .task_priority = config_.task_priority,
       .stack_size = config_.hid_task_stack_size,
       .core_id = config_.task_core_id < 0 ? tskNO_AFFINITY : config_.task_core_id,
@@ -411,6 +418,21 @@ bool UsbHost::initialize(std::error_code &ec) {
     ec = make_ec(err);
     return false;
   }
+  if (!start_hid_task()) {
+    // Without the pump nothing dispatches the driver's events, so the host
+    // would look installed and never report a device. Unwind as for a failed
+    // install (the driver's uninstall needs no pump when it tracks nothing).
+    logger_.error("could not start the HID event pump task");
+    accepting_.store(false); // no callback may enqueue into a queue being torn down
+    if (esp_err_t uerr = hid_host_uninstall(); uerr != ESP_OK) {
+      logger_.error("hid_host_uninstall during unwind: {}", esp_err_to_name(uerr));
+    }
+    stop_dispatch_task();
+    stop_lib_task();
+    usb_host_uninstall();
+    ec = std::make_error_code(std::errc::resource_unavailable_try_again);
+    return false;
+  }
 
   // Now that the HID client exists, power the root port: an already-attached
   // device enumerates from here and is reported to the driver.
@@ -422,7 +444,15 @@ bool UsbHost::initialize(std::error_code &ec) {
   err = usb_host_lib_set_root_port_power(true);
   if (err != ESP_OK) {
     logger_.error("usb_host_lib_set_root_port_power failed: {}", esp_err_to_name(err));
-    hid_host_uninstall();
+    accepting_.store(false); // no callback may enqueue into a queue being torn down
+    // With the pump running, a successful uninstall returns only after the pump
+    // has seen ESP_FAIL; a failure here (nothing is tracked yet, so it would be
+    // the driver already mid-uninstall) is logged, and the pump is joined
+    // either way so the next initialize() starts a fresh one.
+    if (esp_err_t uerr = hid_host_uninstall(); uerr != ESP_OK) {
+      logger_.error("hid_host_uninstall during unwind: {}", esp_err_to_name(uerr));
+    }
+    stop_hid_task();
     stop_dispatch_task();
     stop_lib_task();
     usb_host_uninstall();
@@ -472,19 +502,40 @@ bool UsbHost::deinitialize(std::error_code &ec) {
 
   // 3) The HID driver only forgets a device when the USB stack reports it gone,
   //    and it refuses to uninstall while it still tracks one. Power down the
-  //    root port so any attached device is reported gone, then wait (bounded)
-  //    for the driver to release it and uninstall to succeed.
+  //    root port so any attached device is reported gone and let our event
+  //    pump run until the driver has released every device we opened
+  //    (bounded), then uninstall while the pump keeps running: the driver's
+  //    uninstall waits for one more hid_host_handle_events() return, which
+  //    then reports ESP_FAIL and the pump exits by itself (hid_task_fn).
   usb_host_lib_set_root_port_power(false);
   if (config_.vbus_control)
     config_.vbus_control(false); // and the board's jack, if it switches it
+  // One budget for the whole of this step: the wait for the driver to release
+  // the devices and the uninstall retries that follow share it, so a driver
+  // that never releases costs ~kTeardownBudget, not that twice over. The
+  // retries keep a small floor of their own because the driver's bookkeeping
+  // lags its disconnect callbacks by a little even when the wait succeeded
+  // immediately. (In practice, with the gate signalled from the driver task,
+  // this whole step completes in tens of milliseconds.)
+  static constexpr auto kTeardownBudget = 2s;
+  static constexpr auto kUninstallRetryDelay = 10ms;
+  static constexpr auto kUninstallRetryFloor = 200ms;
+  const auto deadline = std::chrono::steady_clock::now() + kTeardownBudget;
+  if (!wait_for_untracked(kTeardownBudget)) {
+    logger_.warn("driver still tracks {} device(s) after {} ms; uninstalling anyway",
+                 num_tracked_devices(),
+                 std::chrono::duration_cast<std::chrono::milliseconds>(kTeardownBudget).count());
+  }
+  const auto retry_until =
+      std::max(deadline, std::chrono::steady_clock::now() + kUninstallRetryFloor);
   esp_err_t err = ESP_FAIL;
-  for (int i = 0; i < 200; ++i) { // up to ~2 s
+  do {
     err = hid_host_uninstall();
     if (err == ESP_OK) {
       break;
     }
-    std::this_thread::sleep_for(10ms);
-  }
+    std::this_thread::sleep_for(kUninstallRetryDelay);
+  } while (std::chrono::steady_clock::now() < retry_until);
   if (err != ESP_OK) {
     // Tearing down under a driver that still references us would be a
     // use-after-free waiting to happen; stay initialized and report it. The
@@ -495,6 +546,10 @@ bool UsbHost::deinitialize(std::error_code &ec) {
     // deinitialize() or destroying the object (see the header).
     // ESP_ERR_INVALID_STATE is what the driver returns while it still tracks a
     // device; anything else is reported as-is rather than guessed at.
+    // The HID pump is intentionally NOT stopped here: hid_host_uninstall()
+    // only completes while a task pumps its events, so a retry needs it alive.
+    // The destructor aborts rather than freeing a host the driver still
+    // references, so leaving it running cannot become a use-after-free.
     logger_.error("hid_host_uninstall failed: {}{}; root port left powered off, retry "
                   "deinitialize()",
                   esp_err_to_name(err),
@@ -502,9 +557,11 @@ bool UsbHost::deinitialize(std::error_code &ec) {
     ec = make_ec(err);
     return false;
   }
+  stop_hid_task();         // exited on its own (ESP_FAIL from the pump); join it
+  clear_tracked_devices(); // the driver is gone: no disconnect can arrive to do it
 
-  // 4) Free any remaining devices so the library can be uninstalled, then stop
-  //    + join the lib task and uninstall.
+  // 4) The HID driver is gone. Free any remaining devices so the library can
+  //    be uninstalled, then stop + join the lib task and uninstall.
   usb_host_device_free_all();
   stop_lib_task();
 
@@ -686,6 +743,128 @@ bool UsbHost::lib_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) 
   return !lib_task_run_.load(); // true = stop the task
 }
 
+bool UsbHost::start_hid_task() {
+  if (hid_task_) {
+    return true;
+  }
+  hid_task_run_.store(true);
+  hid_event_errors_ = 0;
+  hid_task_ = espp::Task::make_unique({
+      .callback = [this](std::mutex &m, std::condition_variable &cv) { return hid_task_fn(m, cv); },
+      .task_config =
+          {
+              .name = "usb_host_hid",
+              .stack_size_bytes = config_.hid_task_stack_size,
+              .priority = config_.task_priority,
+              .core_id = config_.task_core_id,
+              .stack_alloc_caps = config_.task_stack_alloc_caps,
+          },
+      .log_level = Logger::Verbosity::WARN,
+  });
+  if (!hid_task_ || !hid_task_->start()) {
+    hid_task_run_.store(false);
+    hid_task_.reset();
+    return false;
+  }
+  return true;
+}
+
+bool UsbHost::hid_task_fn(std::mutex & /*m*/, std::condition_variable & /*cv*/) {
+  // The driver's event pump; a bounded wait so the stop flag is observed.
+  // ESP_FAIL means hid_host_uninstall() is in progress and was waiting for
+  // this return: the pump must not call the driver again. ESP_OK and a
+  // timeout are the normal returns; anything else (e.g. the driver gone:
+  // ESP_ERR_INVALID_STATE) is logged, rate-limited, and the pump keeps
+  // going so a transient error does not silently kill event delivery.
+  // How long the pump blocks in the driver before looking at the stop flag.
+  // It is not a poll interval: hid_host_handle_events() returns as soon as the
+  // driver has an event, so this only bounds how quickly stop_hid_task() is
+  // noticed (and the idle wakeup rate), not event latency.
+  static constexpr auto kPumpWait = pdMS_TO_TICKS(100);
+  const esp_err_t err = hid_host_handle_events(kPumpWait);
+  if (err == ESP_FAIL) {
+    hid_task_run_.store(false);
+  } else if (err != ESP_OK && err != ESP_ERR_TIMEOUT) {
+    // per instance, reset when the pump starts, so the log cadence follows
+    // this host's lifecycle rather than the process's
+    if (++hid_event_errors_ == 1 || hid_event_errors_ % 100 == 0) {
+      logger_.error("hid_host_handle_events: {} ({} so far)", esp_err_to_name(err),
+                    hid_event_errors_);
+    }
+  }
+  return !hid_task_run_.load(); // true = stop the task
+}
+
+void UsbHost::stop_hid_task() {
+  if (!hid_task_) {
+    return;
+  }
+  hid_task_run_.store(false);
+  hid_task_->stop();
+  hid_task_.reset();
+}
+
+void UsbHost::track_opened_device(hid_host_device_handle_t handle) {
+  std::lock_guard<std::mutex> lk(tracked_mutex_);
+  driver_tracked_.insert(handle);
+}
+
+void UsbHost::drop_tracked_device(hid_host_device_handle_t handle) {
+  // Silent counterpart of release_tracked_device(): used when an open fails, so
+  // there is nothing noteworthy about the interface no longer being tracked.
+  bool empty = false;
+  {
+    std::lock_guard<std::mutex> lk(tracked_mutex_);
+    if (driver_tracked_.erase(handle) == 0) {
+      return; // a disconnect already took it out
+    }
+    empty = driver_tracked_.empty();
+  }
+  if (empty) {
+    tracked_cv_.notify_all();
+  }
+}
+
+void UsbHost::release_tracked_device(hid_host_device_handle_t handle) {
+  bool empty = false;
+  bool untracked = false;
+  {
+    std::lock_guard<std::mutex> lk(tracked_mutex_);
+    untracked = driver_tracked_.erase(handle) == 0;
+    empty = driver_tracked_.empty();
+  }
+  // Both of these are done with the mutex released: the logger takes locks of
+  // its own, and this runs on the driver's callback task.
+  if (untracked) {
+    // A disconnect for an interface we never opened (the filter rejected it,
+    // or the open failed): nothing to release. Not an error, but worth a line
+    // while tracing teardown.
+    logger_.debug("disconnect for an interface this host did not open");
+    return;
+  }
+  if (empty) {
+    tracked_cv_.notify_all();
+  }
+}
+
+void UsbHost::clear_tracked_devices() {
+  {
+    std::lock_guard<std::mutex> lk(tracked_mutex_);
+    driver_tracked_.clear();
+  }
+  tracked_cv_.notify_all();
+}
+
+size_t UsbHost::num_tracked_devices() const {
+  std::lock_guard<std::mutex> lk(tracked_mutex_);
+  return driver_tracked_.size();
+}
+
+bool UsbHost::wait_for_untracked(std::chrono::milliseconds timeout) {
+  std::unique_lock<std::mutex> lk(tracked_mutex_);
+  return tracked_cv_.wait_for(lk, timeout, [this] { return driver_tracked_.empty(); });
+}
+
 void UsbHost::stop_lib_task() {
   if (!lib_task_) {
     return;
@@ -798,6 +977,14 @@ void UsbHost::on_interface_event(hid_host_device_handle_t handle,
     break;
   }
   case HID_HOST_INTERFACE_EVENT_DISCONNECTED:
+    // The driver drops the device from its list around this event: the
+    // interface is taken out of the tracked set here (on the driver task,
+    // teardown or not) so deinitialize() knows when the driver can be
+    // uninstalled. Membership in that set -- not a lookup in devices_ --
+    // decides: deinitialize() clears devices_ before it powers the root port
+    // down, so the disconnects it provokes would otherwise never be counted
+    // out and teardown would wait for a set that can no longer empty.
+    release_tracked_device(handle);
     // The dispatch task retires the device (in order, after any queued inputs).
     enqueue(Event{.type = Event::Type::Disconnected, .handle = handle});
     break;
@@ -874,12 +1061,21 @@ void UsbHost::handle_new_device(hid_host_device_handle_t handle) {
   }
 
   // Open the HID interface, routing its events back to us (on the driver task).
+  // The interface is counted as tracked *before* the open, not after: the open
+  // registers the callback below, so a disconnect can be delivered on the
+  // driver task while the open is still returning. Counting it in afterwards
+  // would let that disconnect find nothing to release and leave the interface
+  // in the tracked set forever, which is what gates teardown. An open that
+  // fails takes it back out (and so does a disconnect that beat us to it --
+  // the erase is a no-op then).
   const hid_host_device_config_t dev_config = {
       .callback = &espp_usb_host_interface_event_cb,
       .callback_arg = this,
   };
+  track_opened_device(handle);
   esp_err_t err = hid_host_device_open(handle, &dev_config);
   if (err != ESP_OK) {
+    drop_tracked_device(handle);
     logger_.error("hid_host_device_open failed: {}", esp_err_to_name(err));
     return;
   }

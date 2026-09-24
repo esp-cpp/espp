@@ -10,6 +10,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <span>
 #include <string>
 #include <system_error>
@@ -268,7 +269,7 @@ public:
     size_t task_priority{5};          ///< priority of the internal tasks
     int task_core_id{-1};             ///< core for the internal tasks (-1 = no affinity)
     size_t lib_task_stack_size{4096}; ///< stack for the USB-host-library event task
-    size_t hid_task_stack_size{4096}; ///< stack for the HID class driver's task (it only enqueues)
+    size_t hid_task_stack_size{4096}; ///< stack for the HID driver's event task (it only enqueues)
     /// @brief Stack for the dispatch task that runs the user callbacks (size it
     ///        for what your callbacks do -- logging with fmt, protocol work, ...).
     size_t dispatch_task_stack_size{6 * 1024};
@@ -313,6 +314,11 @@ public:
     ///        the event wait into a busy loop; initialize() warns when the
     ///        configured value is not positive.
     std::chrono::milliseconds full_speed_reassert_interval{100};
+    /// @brief ESP only: heap capabilities for the internal tasks' stacks (see
+    ///        espp::Task::BaseConfig::stack_alloc_caps); 0 = internal RAM.
+    ///        MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT puts the three stacks (~14 KB)
+    ///        in PSRAM, worth it where internal RAM is scarce (ESP32-P4).
+    uint32_t task_stack_alloc_caps{0};
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
 
@@ -344,7 +350,14 @@ public:
   ///        gone), so the host is not usable: the only valid next steps are to
   ///        call deinitialize() again (which waits for the driver again) or to
   ///        destroy the object, which aborts if teardown still fails (see the
-  ///        destructor).
+  ///        destructor). The HID event pump is deliberately left running in
+  ///        that state -- the driver's uninstall only completes while something
+  ///        pumps its events, so stopping it would make every retry fail -- and
+  ///        because the destructor aborts instead of freeing, the driver never
+  ///        holds a pointer to a destroyed host. Bounded: waiting for the
+  ///        driver to release the devices and retrying its uninstall share one
+  ///        budget of about two seconds (tens of milliseconds in the normal
+  ///        case, since the driver signals the release as it happens).
   /// @return true on success.
   bool deinitialize(std::error_code &ec);
 
@@ -411,7 +424,31 @@ private:
   // The USB Host library event-handling loop (own task).
   bool lib_task_fn(std::mutex &m, std::condition_variable &cv);
   void apply_full_speed_only();
+  // The HID class driver's event pump (own task, see task_stack_alloc_caps).
+  bool hid_task_fn(std::mutex &m, std::condition_variable &cv);
+  // Starts the pump task that runs the HID driver's events.
+  // @return false if the task could not be created (its stack, for example).
+  [[nodiscard]] bool start_hid_task();
+  void stop_hid_task();
   void stop_lib_task();
+
+  // Count an interface into the tracked set, before the open that can start
+  // delivering its events.
+  void track_opened_device(hid_host_device_handle_t handle);
+  // Take a device out of the set the HID driver still tracks and wake a
+  // deinitialize() that is waiting for the set to empty.
+  void release_tracked_device(hid_host_device_handle_t handle);
+  // As release_tracked_device(), but for an interface that was never really
+  // opened (the open failed after it was counted in): no log, no complaint.
+  void drop_tracked_device(hid_host_device_handle_t handle);
+  // Forget every tracked interface, once the driver is uninstalled and no
+  // disconnect can arrive to do it: leaves the next initialize() a clean set.
+  void clear_tracked_devices();
+  // How many interfaces the driver still tracks (for logging).
+  size_t num_tracked_devices() const;
+  // Wait (bounded) for the HID driver to report every device we opened gone.
+  // @return true if the driver released them all, false on timeout.
+  bool wait_for_untracked(std::chrono::milliseconds timeout);
 
   // Ticks to block in the library event wait when full_speed_only re-asserts,
   // clamped to [1, portMAX_DELAY - 1] so the wait is always a real block.
@@ -427,6 +464,20 @@ private:
   std::atomic<bool> lib_task_run_{false};
   std::unique_ptr<espp::Task> lib_task_;
   uint32_t lib_event_errors_{0}; ///< lib task only: rate-limits its error log
+  // HID class driver event task.
+  std::atomic<bool> hid_task_run_{false};
+  std::unique_ptr<espp::Task> hid_task_;
+  uint32_t hid_event_errors_{0}; ///< HID event pump only: rate-limits its error log
+  // Interfaces we opened with the HID driver that it has not yet reported
+  // gone. Membership, not a count, and kept apart from devices_ on purpose:
+  // deinitialize() clears devices_ before it powers the root port down, and the
+  // disconnects that follow still have to be counted out of this set. Guarded
+  // by tracked_mutex_; tracked_cv_ is signalled (from the driver task) when it
+  // empties, so deinitialize() proceeds as soon as the driver is done rather
+  // than polling.
+  std::set<hid_host_device_handle_t> driver_tracked_;
+  mutable std::mutex tracked_mutex_;
+  std::condition_variable tracked_cv_;
 
   // Event queue (driver task -> dispatch task) + dispatch task.
   std::mutex queue_mutex_;
