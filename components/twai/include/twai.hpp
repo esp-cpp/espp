@@ -235,9 +235,11 @@ public:
       return false;
     }
 
-    // create the internal ISR->task event queue (it, the task and the
-    // semaphore below survive a failed abort_pending() re-creation, in which
-    // case only the node is missing here)
+    // create the internal ISR->task event queue. It, the task and the semaphore
+    // below survive a failed abort_pending() re-creation, in which case only
+    // the node is missing here; reusing them loses nothing, since config_ is
+    // fixed for the life of the object (the only way to free them is
+    // teardown(), after which initialize() creates everything anew).
     if (!queue_) {
       queue_ = xQueueCreate(config_.rx_queue_size, sizeof(EventData));
       if (!queue_) {
@@ -529,8 +531,12 @@ public:
           logger_.error("Timed out waiting for transmit completion (no ACK on the bus?); "
                         "the pending frame was dropped");
         } else {
+          // the node (if it still exists) may well be retransmitting from our
+          // storage: protect it exactly as with auto_abort_on_timeout off
+          tx_pending_.store(true);
           logger_.error("Timed out waiting for transmit completion (no ACK on the bus?), and "
-                        "dropping the pending frame failed: {}",
+                        "dropping the pending frame failed: {}; the frame stays with the "
+                        "controller (flush() waits for it, abort_pending() retries the drop)",
                         abort_ec.message());
         }
       } else {
