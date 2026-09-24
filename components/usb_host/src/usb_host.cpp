@@ -281,9 +281,11 @@ void UsbHost::HidDevice::close_on_driver_task() {
   // completed by this very task, so waiting for it here would deadlock;
   // the driver rejects a close of a busy interface instead, and retire()
   // (dispatch task, later) closes it under the mutex in that case.
-  if (!connected_.exchange(false)) {
-    return;
-  }
+  // Not gated on connected_: a retire() that ran first (deinitialize()) may
+  // have had its close refused, and this is the one place that can still
+  // close the interface in step with the driver. close_interface() is what
+  // makes a repeat harmless -- it does nothing once the close went through.
+  connected_.store(false);
   close_interface("disconnect");
 }
 
