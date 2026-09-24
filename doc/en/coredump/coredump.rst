@@ -35,6 +35,20 @@ it doubles as a serial monitor): crash summary, chunked ``core.elf``
 download, client-side nearest-symbol backtrace resolution against your local
 app ELF, and erase.
 
+The ``coredump`` component also ships a ``project_include.cmake`` and a
+pure-Python host tool (``components/coredump/python/espp_coredump``), so any
+project using it can pull the stored core dump off the device over USB and
+decode it against the app ELF it just built, in one step:
+
+.. code-block:: sh
+
+    pip install pyusb esp-coredump   # once
+    idf.py coredump-usb              # builds, then downloads + decodes the core dump
+
+The tool can also be run directly (``python -m espp_coredump summary`` /
+``download`` / ``debug build/<app>.elf [--gdb]`` / ``erase``) -- see
+``components/coredump/python/README.md``.
+
 .. ------------------------------- Example -------------------------------------
 
 .. toctree::

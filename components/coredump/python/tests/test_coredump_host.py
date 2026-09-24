@@ -1,0 +1,204 @@
+"""Host tests for espp_coredump: codec round-trips + a full download against a
+mock device.
+
+Runs with plain ``python3`` (no hardware, no pyusb). Also importable by pytest.
+"""
+
+import os
+import struct
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from espp_coredump import frame as F  # noqa: E402
+from espp_coredump import protocol as P  # noqa: E402
+from espp_coredump.client import CoreDumpClient  # noqa: E402
+from espp_coredump.elf import extract_elf, find_elf_offset  # noqa: E402
+from espp_coredump.protocol import CoreDumpError, MessageType  # noqa: E402
+
+FLASH_HEADER = struct.pack("<III", 0, 2, 0)  # core_dump_header_t: data_len, version, chip_rev
+ELF_BODY = b"\x7fELF" + bytes(bytearray((i * 13) & 0xFF for i in range(2048 * 2 + 77)))
+CHECKSUM = b"\xaa\xbb\xcc\xdd"
+IMAGE = FLASH_HEADER + ELF_BODY + CHECKSUM
+
+
+class MockDevice:
+    """Loopback transport implementing the core-dump device side in memory.
+
+    The host writes request frames; ``read()`` returns the device's replies."""
+
+    def __init__(self, image=IMAGE, summary="Guru Meditation Error: Core 0 panic'ed\n"):
+        self._parser = F.StreamParser()
+        self._out = bytearray()
+        self.image = bytes(image)
+        self.summary = summary
+        self.reads = 0
+        self.erased = False
+        self.corrupt_offset_on_read = None  # the Nth READ answers with a wrong offset
+        self.drop_first_reply = False       # the first request gets no reply (host retries)
+        self.error_on_read = False          # every READ answers ERROR
+
+    def write(self, data, timeout_ms=0):
+        for fr in self._parser.feed(data):
+            self._handle(fr)
+
+    def read(self, max_len, timeout_ms=0):
+        if not self._out:
+            return b""
+        chunk = bytes(self._out[:max_len])
+        del self._out[: len(chunk)]
+        return chunk
+
+    def _reply(self, b):
+        if self.drop_first_reply:
+            self.drop_first_reply = False
+            return
+        self._out += b
+
+    def _handle(self, fr):
+        if fr.module == P.DISCOVERY_MODULE and fr.type == P.DISCOVERY_LIST_MODULES:
+            def s(text):
+                b = text.encode()
+                return bytes([len(b)]) + b
+            payload = (bytes([1, 0]) + s("espp CoreDump") + s("1.2.3") + bytes([2])
+                       + bytes([1]) + s("Crash") + s("") + s("trigger a crash")
+                       + bytes([4]) + s("Core Dump") + s("coredump_console.html")
+                       + s("Inspect the last crash core dump"))
+            self._out += F.build_frame(P.DISCOVERY_MODULE, P.DISCOVERY_LIST_MODULES, payload,
+                                       reply=True)
+            return
+        if fr.module != P.MODULE or fr.is_reply:
+            return
+        t = fr.type
+        if t == MessageType.GET_SUMMARY:
+            self._reply(P._build(MessageType.SUMMARY, self.summary.encode()))
+        elif t == MessageType.GET_SIZE:
+            self._reply(P._build(MessageType.SIZE, struct.pack("<I", len(self.image))))
+        elif t == MessageType.READ:
+            self.reads += 1
+            if self.error_on_read:
+                self._reply(P._build(MessageType.ERROR, struct.pack("<I", 5) + b"READ failed"))
+                return
+            offset, length = struct.unpack("<IH", fr.payload)
+            data = self.image[offset:offset + length]
+            echoed = offset
+            if self.corrupt_offset_on_read == self.reads:
+                echoed = offset + 1
+            self._reply(P._build(MessageType.DATA, struct.pack("<I", echoed) + data))
+        elif t == MessageType.ERASE:
+            self.erased = True
+            self.image = b""
+            self._reply(P._build(MessageType.OK, struct.pack("<I", 0)))
+
+
+def _ok(name, cond):
+    print(("PASS" if cond else "FAIL"), name)
+    if not cond:
+        raise SystemExit(1)
+
+
+def test_frame_golden():
+    _ok("golden crc vector", F.crc32(b"123456789") == 0xCBF43926)
+    _ok("request flags 0x10", F.make_flags(False) == 0x10)
+    # READ(0x1000, 2048): module 4, type 0x42, len 6, payload u32 offset + u16 length
+    req = P.make_read(0x1000, 2048)
+    frames = F.StreamParser().feed(req)
+    _ok("READ round trip", len(frames) == 1 and frames[0].module == 4
+        and frames[0].type == 0x42 and not frames[0].is_reply
+        and frames[0].payload == struct.pack("<IH", 0x1000, 2048))
+    # replies carry the reply flag, derived from the type's high bit
+    rep = F.StreamParser().feed(P._build(MessageType.SIZE, struct.pack("<I", 7)))[0]
+    _ok("reply flag from type high bit", rep.is_reply and P.is_reply_type(rep.type))
+    _ok("discovery request bytes",
+        P.make_discovery_request() == bytes.fromhex("544f10ff000000000097e310ba"))
+
+
+def test_size_and_summary():
+    dev = MockDevice()
+    c = CoreDumpClient(dev)
+    _ok("size", c.size() == len(IMAGE))
+    _ok("summary", c.summary().startswith("Guru Meditation"))
+    empty = MockDevice(image=b"", summary="")
+    _ok("no dump: size 0", CoreDumpClient(empty).size() == 0)
+    _ok("no dump: empty summary", CoreDumpClient(empty).summary() == "")
+    _ok("no dump: read_image is empty", CoreDumpClient(empty).read_image() == b"")
+
+
+def test_chunked_download():
+    dev = MockDevice()
+    seen = []
+    image = CoreDumpClient(dev, progress=lambda r, t: seen.append((r, t))).read_image()
+    _ok("image matches", image == IMAGE)
+    _ok("chunked at 2048 (3 READs)", dev.reads == 3)
+    _ok("progress reaches total", seen and seen[-1] == (len(IMAGE), len(IMAGE)))
+
+
+def test_offset_mismatch_fails():
+    dev = MockDevice()
+    dev.corrupt_offset_on_read = 2
+    try:
+        CoreDumpClient(dev).read_image()
+        _ok("offset mismatch raises", False)
+    except CoreDumpError as exc:
+        _ok("offset mismatch raises", "mismatch" in str(exc))
+
+
+def test_retry_on_timeout():
+    dev = MockDevice()
+    dev.drop_first_reply = True  # the first GET_SIZE gets no reply; the retry does
+    n = CoreDumpClient(dev, timeout_ms=30, retries=1).size()
+    _ok("retried after a timeout", n == len(IMAGE))
+    dev2 = MockDevice()
+    dev2.drop_first_reply = True
+    try:
+        CoreDumpClient(dev2, timeout_ms=30, retries=0).size()
+        _ok("no retries -> timeout raises", False)
+    except CoreDumpError as exc:
+        _ok("no retries -> timeout raises", "timed out" in str(exc))
+
+
+def test_error_reply():
+    dev = MockDevice()
+    dev.error_on_read = True
+    try:
+        CoreDumpClient(dev).read_image()
+        _ok("ERROR reply raises", False)
+    except CoreDumpError as exc:
+        _ok("ERROR reply raises with code + message", exc.code == 5 and "READ failed" in str(exc))
+
+
+def test_erase():
+    dev = MockDevice()
+    CoreDumpClient(dev).erase()
+    _ok("erased", dev.erased and CoreDumpClient(dev).size() == 0)
+
+
+def test_extract_elf():
+    _ok("ELF found behind the 12-byte header", find_elf_offset(IMAGE) == 12)
+    _ok("ELF slice runs to the end (checksum kept)", extract_elf(IMAGE) == ELF_BODY + CHECKSUM)
+    _ok("no ELF -> None", extract_elf(FLASH_HEADER + b"\x00" * 100) is None)
+    _ok("ELF beyond the first KiB is not found",
+        extract_elf(b"\x00" * 1100 + b"\x7fELF" + b"\x00" * 10) is None)
+
+
+def test_discovery():
+    dev = MockDevice()
+    info = CoreDumpClient(dev).discover(timeout_ms=100)
+    _ok("discovery decoded", info is not None and info.device_name == "espp CoreDump"
+        and info.firmware == "1.2.3" and len(info.modules) == 2)
+    _ok("core dump module advertised", info.has_module(4)
+        and info.modules[1].app == "coredump_console.html")
+    _ok("truncated TLV is tolerated", P.parse_discovery(F.Frame(0x11, 0xFF, 0, b"\x01\x00", None)) is None)
+
+
+if __name__ == "__main__":
+    test_frame_golden()
+    test_size_and_summary()
+    test_chunked_download()
+    test_offset_mismatch_fails()
+    test_retry_on_timeout()
+    test_error_reply()
+    test_erase()
+    test_extract_elf()
+    test_discovery()
+    print("all host tests passed")

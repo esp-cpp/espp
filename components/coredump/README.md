@@ -31,6 +31,13 @@ the same stream), view the crash summary, download the core dump as
 `core.elf`, resolve backtrace addresses against your local app `.elf`
 (nearest-symbol, client-side), and erase the stored dump.
 
+The same protocol is also spoken from the terminal by the pure-Python
+[`python/espp_coredump`](python/) tool, and the component's
+`project_include.cmake` wires it to an `idf.py coredump-usb` target: any
+project that requires `coredump` can build, download the stored dump over USB
+and decode it against the freshly built ELF (`esp-coredump info_corefile`, or
+GDB with `--gdb`) in one step. See [`python/README.md`](python/README.md).
+
 ## Features
 
 - **Crash detection**: `has_core_dump()` (`esp_core_dump_image_check`)
