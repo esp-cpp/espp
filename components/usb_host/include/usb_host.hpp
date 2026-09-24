@@ -354,7 +354,10 @@ public:
   ///        that state -- the driver's uninstall only completes while something
   ///        pumps its events, so stopping it would make every retry fail -- and
   ///        because the destructor aborts instead of freeing, the driver never
-  ///        holds a pointer to a destroyed host.
+  ///        holds a pointer to a destroyed host. Bounded: waiting for the
+  ///        driver to release the devices and retrying its uninstall share one
+  ///        budget of about two seconds (tens of milliseconds in the normal
+  ///        case, since the driver signals the release as it happens).
   /// @return true on success.
   bool deinitialize(std::error_code &ec);
 

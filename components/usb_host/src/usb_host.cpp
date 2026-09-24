@@ -423,7 +423,10 @@ bool UsbHost::initialize(std::error_code &ec) {
     // would look installed and never report a device. Unwind as for a failed
     // install (the driver's uninstall needs no pump when it tracks nothing).
     logger_.error("could not start the HID event pump task");
-    hid_host_uninstall();
+    accepting_.store(false); // no callback may enqueue into a queue being torn down
+    if (esp_err_t uerr = hid_host_uninstall(); uerr != ESP_OK) {
+      logger_.error("hid_host_uninstall during unwind: {}", esp_err_to_name(uerr));
+    }
     stop_dispatch_task();
     stop_lib_task();
     usb_host_uninstall();
@@ -441,9 +444,15 @@ bool UsbHost::initialize(std::error_code &ec) {
   err = usb_host_lib_set_root_port_power(true);
   if (err != ESP_OK) {
     logger_.error("usb_host_lib_set_root_port_power failed: {}", esp_err_to_name(err));
-    hid_host_uninstall(); // the pump is running, so this returns once it has seen ESP_FAIL
-    stop_hid_task();      // ... and it must be joined here, or the next initialize() would
-                          // find hid_task_ set and never start a pump
+    accepting_.store(false); // no callback may enqueue into a queue being torn down
+    // With the pump running, a successful uninstall returns only after the pump
+    // has seen ESP_FAIL; a failure here (nothing is tracked yet, so it would be
+    // the driver already mid-uninstall) is logged, and the pump is joined
+    // either way so the next initialize() starts a fresh one.
+    if (esp_err_t uerr = hid_host_uninstall(); uerr != ESP_OK) {
+      logger_.error("hid_host_uninstall during unwind: {}", esp_err_to_name(uerr));
+    }
+    stop_hid_task();
     stop_dispatch_task();
     stop_lib_task();
     usb_host_uninstall();
@@ -501,24 +510,32 @@ bool UsbHost::deinitialize(std::error_code &ec) {
   usb_host_lib_set_root_port_power(false);
   if (config_.vbus_control)
     config_.vbus_control(false); // and the board's jack, if it switches it
-  // How long teardown is willing to wait, in one place so the waits and the
-  // messages about them cannot drift apart.
-  static constexpr auto kUntrackedTimeout = 2s;
+  // One budget for the whole of this step: the wait for the driver to release
+  // the devices and the uninstall retries that follow share it, so a driver
+  // that never releases costs ~kTeardownBudget, not that twice over. The
+  // retries keep a small floor of their own because the driver's bookkeeping
+  // lags its disconnect callbacks by a little even when the wait succeeded
+  // immediately. (In practice, with the gate signalled from the driver task,
+  // this whole step completes in tens of milliseconds.)
+  static constexpr auto kTeardownBudget = 2s;
   static constexpr auto kUninstallRetryDelay = 10ms;
-  static constexpr int kUninstallRetries = 200; // kUninstallRetryDelay each
-  if (!wait_for_untracked(kUntrackedTimeout)) {
+  static constexpr auto kUninstallRetryFloor = 200ms;
+  const auto deadline = std::chrono::steady_clock::now() + kTeardownBudget;
+  if (!wait_for_untracked(kTeardownBudget)) {
     logger_.warn("driver still tracks {} device(s) after {} ms; uninstalling anyway",
                  num_tracked_devices(),
-                 std::chrono::duration_cast<std::chrono::milliseconds>(kUntrackedTimeout).count());
+                 std::chrono::duration_cast<std::chrono::milliseconds>(kTeardownBudget).count());
   }
+  const auto retry_until =
+      std::max(deadline, std::chrono::steady_clock::now() + kUninstallRetryFloor);
   esp_err_t err = ESP_FAIL;
-  for (int i = 0; i < kUninstallRetries; ++i) { // the driver's own bookkeeping
+  do {
     err = hid_host_uninstall();
     if (err == ESP_OK) {
       break;
     }
     std::this_thread::sleep_for(kUninstallRetryDelay);
-  }
+  } while (std::chrono::steady_clock::now() < retry_until);
   if (err != ESP_OK) {
     // Tearing down under a driver that still references us would be a
     // use-after-free waiting to happen; stay initialized and report it. The
