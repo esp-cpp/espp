@@ -53,6 +53,30 @@ acknowledgement, so it only means the frame went out). The default single
 attempt suits time-critical data that must not be delivered late; set
 `tx_retry_count` to a retry count, or -1, when a frame must get through.
 
+## Pending transmissions: `flush()` and `abort_pending()`
+
+`transmit()` is synchronous, so once it returns nothing of yours is normally
+left with the controller. The exception is a frame whose completion wait timed
+out: with `tx_retry_count = -1` and nothing acknowledging, the controller keeps
+retransmitting it, and the driver keeps reading the frame from its TX ISR. The
+ESP-IDF driver offers no abort for that: disabling the node only pauses the
+transmission and re-enabling it resumes it. `espp::Twai` therefore gives you:
+
+* `flush(ec, timeout_ms)` — wait until the controller has no pending
+  transmission (TX queue empty, nothing in progress). Use it before a stop that
+  must not be followed by anything older.
+* `abort_pending(ec)` — drop the pending transmission(s). The only way the
+  driver allows is to delete the node and create it again (same configuration,
+  callbacks and filter; the receive task and everything already received are
+  untouched), which is what it does.
+* `Config::auto_abort_on_timeout` (default `true`) — what a `transmit()` that
+  timed out waiting for completion does with its frame. On, it is dropped with
+  `abort_pending()` so the next `transmit()` proceeds at once. Off, it stays
+  with the controller (it may still go out when the bus comes back) and the
+  next `transmit()` first waits for it, up to its own timeout, failing with
+  `std::errc::timed_out` while it is still pending; `flush()` waits for it
+  explicitly and `abort_pending()` drops it.
+
 ## Hardware / wiring (NORMAL mode)
 
 To talk to a real CAN bus you need a 3.3V CAN transceiver between the ESP TWAI

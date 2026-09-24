@@ -43,6 +43,24 @@ returns ``true`` was acknowledged by another node in ``Mode::NORMAL``
 time-critical data that must not arrive late; set a retry count, or -1, when a
 frame must get through.
 
+Pending transmissions
+---------------------
+
+``transmit()`` is synchronous, so once it returns nothing of yours is normally
+left with the controller. The exception is a frame whose completion wait timed
+out: with ``tx_retry_count = -1`` and nothing acknowledging, the controller keeps
+retransmitting it. The ESP-IDF driver offers no abort for that (disabling the
+node only pauses the transmission; re-enabling resumes it), so ``espp::Twai``
+provides ``flush(ec, timeout_ms)`` -- wait until the controller has no pending
+transmission, e.g. before a stop that must not be followed by anything older --
+and ``abort_pending(ec)`` -- drop the pending transmission(s) by deleting and
+re-creating the node (same configuration, callbacks and filter; the receive task
+and everything already received are untouched). ``Config::auto_abort_on_timeout``
+(default ``true``) makes a ``transmit()`` that timed out drop its frame that way;
+with it off the frame stays with the controller and the next ``transmit()`` first
+waits for it (up to its own timeout, failing with ``std::errc::timed_out`` while
+it is still pending).
+
 .. ------------------------------- Example -------------------------------------
 
 .. toctree::

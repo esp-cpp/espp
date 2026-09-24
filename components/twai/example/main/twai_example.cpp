@@ -66,6 +66,14 @@ extern "C" void app_main(void) {
     std::this_thread::sleep_for(50ms);
   }
 
+  // Make sure the controller has nothing left to send. transmit() waits for
+  // each frame, so this returns at once here; it matters after a transmit()
+  // that timed out with Config::auto_abort_on_timeout off, which leaves the
+  // frame with the controller (abort_pending() drops such a frame instead).
+  if (!twai.flush(ec)) {
+    logger.error("Failed to flush pending transmissions: {}", ec.message());
+  }
+
   // give the RX task a moment to drain the queue
   std::this_thread::sleep_for(200ms);
 
