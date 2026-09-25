@@ -62,7 +62,7 @@ public:
 
   using JOYSTICK_TYPE = std::int16_t;
   static constexpr JOYSTICK_TYPE joystick_min = 0;
-  static constexpr JOYSTICK_TYPE joystick_max = 4096;
+  static constexpr JOYSTICK_TYPE joystick_max = 4095;
   static constexpr JOYSTICK_TYPE joystick_center = (joystick_min + joystick_max) / 2;
   static constexpr size_t joystick_value_range = joystick_max - joystick_min;
   static constexpr JOYSTICK_TYPE joystick_range = joystick_value_range / 2;
