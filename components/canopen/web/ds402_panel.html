@@ -220,7 +220,9 @@
     table.od thead th { position: sticky; top: 0; background: var(--panel-bg); color: var(--text-muted); border-bottom: 1px solid var(--panel-border); z-index: 1; font-weight: 600; }
     table.od tbody tr:nth-child(even) { background: var(--row-alt); }
     table.od tbody tr { cursor: pointer; }
-    table.od tbody tr:hover, table.od tbody tr:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+    table.od tbody tr:hover, table.od tbody tr:focus-within { outline: 1px solid var(--accent); outline-offset: -1px; }
+    table.od button.od-link { background: none; border: 0; padding: 0; margin: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+    table.od button.od-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 3px; }
     table.od tr.od-group td { font-weight: 600; color: var(--text); }
     table.od tr.od-absent td { color: var(--text-muted); opacity: 0.7; }
     table.od td.od-name { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; white-space: normal; min-width: 160px; }
@@ -1926,6 +1928,8 @@
       [0x100D, "Life time factor", 7, 0x5, "rw"],
       [0x1010, "Store parameters", 8, 0x7, "rw", 4, true],
       [0x1011, "Restore default parameters", 8, 0x7, "rw", 4, true],
+      [0x1012, "COB-ID time stamp object", 7, 0x7, "rw"],
+      [0x1013, "High resolution time stamp", 7, 0x7, "rw"],
       [0x1014, "COB-ID EMCY", 7, 0x7, "rw"],
       [0x1015, "Inhibit time EMCY", 7, 0x6, "rw"],
       [0x1016, "Consumer heartbeat time", 8, 0x7, "rw", 127, true],
@@ -1935,7 +1939,16 @@
       [0x1020, "Verify configuration", 8, 0x7, "rw", 2, true],
       [0x1021, "Store EDS", 7, 0xF, "ro"],
       [0x1022, "Storage format", 7, 0x5, "ro"],
+      [0x1023, "OS command", 9, null, null, [[1, "Command", 0xF, "rw"], [2, "Status", 0x5, "ro"], [3, "Reply", 0xF, "ro"]]],
+      [0x1024, "OS command mode", 7, 0x5, "wo"],
+      [0x1025, "OS debugger interface", 9, null, null, [[1, "Command", 0xF, "rw"], [2, "Status", 0x5, "ro"], [3, "Reply", 0xF, "ro"]]],
+      [0x1026, "OS prompt", 8, 0x5, "rw", 3],
+      [0x1027, "Module list", 8, 0x6, "ro", 254, true],
+      [0x1028, "Emergency consumer object", 8, 0x7, "rw", 127, true],
       [0x1029, "Error behavior", 8, 0x5, "rw", 254, true],
+      // the default SDO channel (0x1201.. / 0x1281.. are additional channels)
+      [0x1200, "SDO server parameter 1", 9, null, null, [[1, "COB-ID client -> server (rx)", 0x7, "ro"], [2, "COB-ID server -> client (tx)", 0x7, "ro"], [3, "Node-ID of the SDO client", 0x5, "rw"]]],
+      [0x1280, "SDO client parameter 1", 9, null, null, [[1, "COB-ID client -> server (tx)", 0x7, "rw"], [2, "COB-ID server -> client (rx)", 0x7, "rw"], [3, "Node-ID of the SDO server", 0x5, "rw"]]],
     ];
     const OD_RPDO_COMM = [[1, "COB-ID used by RPDO", 0x7, "rw"], [2, "Transmission type", 0x5, "rw"], [3, "Inhibit time", 0x6, "rw"], [4, "Compatibility entry", 0x5, "rw"], [5, "Event timer", 0x6, "rw"]];
     const OD_TPDO_COMM = [[1, "COB-ID used by TPDO", 0x7, "rw"], [2, "Transmission type", 0x5, "rw"], [3, "Inhibit time", 0x6, "rw"], [4, "Compatibility entry", 0x5, "rw"], [5, "Event timer", 0x6, "rw"], [6, "SYNC start value", 0x5, "rw"]];
@@ -2085,6 +2098,7 @@
     function odKindToSelect(dataType) {
       const t = OD_DATATYPE[dataType];
       if (!t) return "hex";
+      if (dataType === 0x000B) return "hex";   // UNICODE_STRING is UTF-16LE; the manual panel's "string" is UTF-8
       if (["u8", "i8", "u16", "i16", "u32", "i32"].includes(t.kind)) return t.kind;
       if (t.kind === "string") return "string";
       return "hex";
@@ -2133,6 +2147,10 @@
         const row = { index: o.index, sub: s.sub, name: s.name, objectType: o.objectType, dataType: s.dataType,
                       access: s.access, group: o.index, status: "skipped", bytes: null, value: null, error: null };
         if (!odIsReadable(s.access)) { row.status = "write-only"; row.error = "write-only"; return row; }
+        // A DOMAIN (a stored EDS, firmware, an OS command reply) can be hundreds
+        // of KiB at 7 bytes per SDO segment: not something a scan reads. The
+        // row's Read button uploads it on request, with the large-object bound.
+        if (s.dataType === 0xF) { row.error = "domain: not read by a scan (use Read)"; return row; }
         try {
           const bytes = await read(o.index, s.sub);
           row.bytes = bytes;
@@ -2145,14 +2163,19 @@
         }
         return row;
       };
-      for (const o of objects) {
-        if (cancelled()) break;
+      // When the walk stops early (Cancel, or the link went away) the entries
+      // it never reached are still reported, as "skipped" placeholders, so the
+      // table and the counts describe the whole list.
+      let stoppedAt = null;   // index into `objects` of the first object not fully walked
+      for (let oi = 0; oi < objects.length; oi++) {
+        const o = objects[oi];
+        if (cancelled()) { stoppedAt = oi; break; }
         if (o.objectType !== 8 && o.objectType !== 9) {
           const row = await readEntry(o, { sub: 0, name: o.name, dataType: o.dataType, access: o.access });
           row.group = null;   // a VAR is its own row, not a group
           rows.push(row);
           done++; progress(done, total);
-          if (row.status === "cancelled") break;
+          if (row.status === "cancelled") { stoppedAt = oi; break; }
           continue;
         }
         // ARRAY / RECORD: the count first. The object's share of `total` is
@@ -2167,7 +2190,7 @@
         head.isGroup = true;
         rows.push(head);
         done++; progress(done, total);
-        if (head.status === "cancelled") break;
+        if (head.status === "cancelled") { stoppedAt = oi; break; }
         if (head.status === "absent" || head.status === "timeout") {
           // the object is missing (or silent): its subs cannot be read either
           done = base + objectShare; progress(done, total);
@@ -2191,16 +2214,34 @@
         }
         const extra = Math.max(0, subsToRead.length - listed.length);   // dynamic subs beyond the listed ones
         total += extra;
+        let ended = false;   // the object's walk finished on its own (last sub, or no such sub)
         for (const s of subsToRead) {
           if (cancelled()) break;
           const row = await readEntry(o, s);
           rows.push(row);
           done++; progress(done, total);
-          if (row.status === "cancelled") return rows;
-          if (row.status === "no-sub") break;   // the object ends here
+          if (row.status === "cancelled") break;
+          if (row.status === "no-sub") { ended = true; break; }   // the object ends here
         }
-        if (cancelled()) break;
+        if (!ended && cancelled()) { stoppedAt = oi; break; }
         done = base + objectShare + extra; progress(done, total);
+      }
+      if (stoppedAt != null) {
+        // placeholders for what was not reached: the rest of the object the
+        // walk was in, and every object after it
+        const seen = new Set(rows.map((r) => r.index + ":" + r.sub));
+        const place = (o, s) => {
+          if (seen.has(o.index + ":" + s.sub)) return;
+          rows.push({ index: o.index, sub: s.sub, name: s.name, objectType: o.objectType, dataType: s.dataType, access: s.access,
+                      group: (o.objectType === 8 || o.objectType === 9) ? o.index : null, isGroup: s.sub === 0 && (o.objectType === 8 || o.objectType === 9),
+                      status: "skipped", bytes: null, value: null, error: "not scanned (cancelled)" });
+        };
+        for (let oi = stoppedAt; oi < objects.length; oi++) {
+          const o = objects[oi];
+          if (o.objectType !== 8 && o.objectType !== 9) { place(o, { sub: 0, name: o.name, dataType: o.dataType, access: o.access }); continue; }
+          if (!o.subs.some((s) => s.sub === 0)) place(o, { sub: 0, name: o.name, dataType: 0x5, access: "ro" });
+          for (const s of o.subs) place(o, s.sub === 0 ? { ...s, name: o.name } : s);
+        }
       }
       return rows;
     }
@@ -2242,6 +2283,10 @@
     let odScanInFlight = false;
     let odScanCancel = false;
     let odSourceGeneration = 0;  // bumped by odSetSource(): a scan of an older list is discarded
+    // Source loads race each other (a file read or a device-EDS upload may
+    // finish after a later choice): every load takes a token, and only the
+    // latest one may apply its result.
+    let odLoadToken = 0;
     // The controls that replace the object list. Off while a scan runs (the
     // list must not change under it); the device-EDS button also follows the link.
     function odSetSourceControlsEnabled(on) {
@@ -2266,7 +2311,8 @@
       odRender();
     }
     function odUpdateCounts() {
-      const c = odCounts(odRows);
+      // the same rows the table shows: the scan's, or the unread list before one
+      const c = odCounts(odRows.length ? odRows : odListRows());
       els.odCountObjects.textContent = String(odObjects.length);
       els.odCountPresent.textContent = String(c.present);
       els.odCountAbsent.textContent = String(c.absent);
@@ -2309,16 +2355,36 @@
         tr.dataset.sub = String(r.sub);
         if (r.isGroup) tr.className = "od-group";
         if (isAbsent) tr.className += " od-absent";
+        // The index cell holds a real button (keyboard / assistive-technology
+        // access to "expand / collapse" or "select"); the row keeps its native
+        // table semantics, and a click anywhere on it does the same for pointer
+        // users.
+        const activate = () => {
+          if (r.isGroup) { if (odCollapsed.has(r.group)) odCollapsed.delete(r.group); else odCollapsed.add(r.group); odRender(); return; }
+          els.odIndex.value = r.index.toString(16).padStart(4, "0");
+          els.odSub.value = String(r.sub);
+          els.odType.value = odKindToSelect(r.dataType);
+          els.odResult.textContent = "selected " + odHex(r.index, 4) + ":" + r.sub + " (" + (r.name || "") + ")";
+        };
         const tdIndex = document.createElement("td");
+        const link = document.createElement("button");
+        link.type = "button";
+        link.className = "od-link";
         if (r.isGroup) {
           const tog = document.createElement("span");
           tog.className = "od-toggle";
+          tog.setAttribute("aria-hidden", "true");
           tog.textContent = odCollapsed.has(r.group) ? "▸" : "▾";
-          tdIndex.appendChild(tog);
+          link.appendChild(tog);
+          link.setAttribute("aria-expanded", odCollapsed.has(r.group) ? "false" : "true");
         } else if (r.group != null) {
           tdIndex.appendChild(document.createTextNode("  "));
         }
-        tdIndex.appendChild(document.createTextNode(odHex(r.index, 4)));
+        link.appendChild(document.createTextNode(odHex(r.index, 4)));
+        link.setAttribute("aria-label", (r.isGroup ? (odCollapsed.has(r.group) ? "expand " : "collapse ") : "select ") +
+                                        odHex(r.index, 4) + " sub " + r.sub + (r.name ? " " + r.name : ""));
+        link.addEventListener("click", (ev) => { ev.stopPropagation(); activate(); });
+        tdIndex.appendChild(link);
         tr.appendChild(tdIndex);
         const tds = [
           [String(r.sub), ""],
@@ -2356,24 +2422,7 @@
           tdBtn.appendChild(b);
         }
         tr.appendChild(tdBtn);
-        // rows are interactive: focusable and operable with Enter / Space
-        tr.tabIndex = 0;
-        tr.setAttribute("role", "button");
-        if (r.isGroup) tr.setAttribute("aria-expanded", odCollapsed.has(r.group) ? "false" : "true");
-        tr.setAttribute("aria-label", (r.isGroup ? (odCollapsed.has(r.group) ? "expand " : "collapse ") : "select ") +
-                                      odHex(r.index, 4) + " sub " + r.sub + (r.name ? " " + r.name : ""));
-        const activate = () => {
-          if (r.isGroup) { if (odCollapsed.has(r.group)) odCollapsed.delete(r.group); else odCollapsed.add(r.group); odRender(); return; }
-          els.odIndex.value = r.index.toString(16).padStart(4, "0");
-          els.odSub.value = String(r.sub);
-          els.odType.value = odKindToSelect(r.dataType);
-          els.odResult.textContent = "selected " + odHex(r.index, 4) + ":" + r.sub + " (" + (r.name || "") + ")";
-        };
-        tr.addEventListener("click", activate);
-        tr.addEventListener("keydown", (ev) => {
-          if (ev.target !== tr) return; // the Read button handles its own keys
-          if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); activate(); }
-        });
+        tr.addEventListener("click", activate);   // pointer convenience; the index button is the accessible control
         body.appendChild(tr);
         shown++;
       }
@@ -2388,15 +2437,24 @@
 
     // Re-read one entry (its row is replaced in place).
     async function odReadOne(row) {
-      if (!transport) return;
+      if (!transport || odScanInFlight) return;
       let node;
       try { node = currentNode(); } catch (e) { logLine("err", "OD read: " + e.message); return; }
+      const generation = odSourceGeneration;
       const fresh = { ...row };
       try {
-        const bytes = await sdoUpload(row.index, row.sub, node);
+        // a DOMAIN (e.g. the stored EDS) gets the large-object bound
+        const bytes = await sdoUpload(row.index, row.sub, node, row.dataType === 0xF ? { maxBytes: OD_EDS_MAX_BYTES } : undefined);
         fresh.bytes = bytes; fresh.value = odDecodeValue(bytes, row.dataType); fresh.status = "ok"; fresh.error = null;
       } catch (e) {
         const c = odClassifyError(e); fresh.status = c.status; fresh.error = c.text; fresh.value = null;
+      }
+      // the result belongs to the list, node and link the request was made on
+      let nodeNow = null;
+      try { nodeNow = currentNode(); } catch (_) { nodeNow = null; }
+      if (generation !== odSourceGeneration || !transport || odScanInFlight || nodeNow !== node) {
+        logLine("warn", "OD read " + odHex(row.index, 4) + ":" + row.sub + " discarded: the object list, node or link changed meanwhile");
+        return;
       }
       if (!odRows.length) odRows = odListRows();
       const i = odRows.findIndex((r) => r.index === row.index && r.sub === row.sub);
@@ -2417,6 +2475,7 @@
       logLine("sys", "object dictionary source: " + label + " (" + parsed.objects.length + " objects)");
     }
     els.odBuiltinBtn.addEventListener("click", () => {
+      ++odLoadToken;   // supersedes a file / device load still in flight
       const axis = parseInt(els.odAxis.value, 10) || 1;
       odSetSource("builtin", "built-in table", builtinObjects(axis),
                   "CiA 301 communication profile + CiA 402 drive profile" + (axis > 1 ? " (axis " + axis + ", +" + odHex(0x800 * (axis - 1), 4) + ")" : "") + ". Objects a device lacks show as absent after a scan.");
@@ -2427,15 +2486,20 @@
     els.odEdsFile.addEventListener("change", async () => {
       const f = els.odEdsFile.files && els.odEdsFile.files[0];
       if (!f) return;
-      try { odApplyEds(await f.text(), "file", "EDS file: " + f.name); }
-      catch (e) { logLine("err", "EDS file: " + (e && e.message ? e.message : e)); }
-      els.odEdsFile.value = "";
+      const token = ++odLoadToken;
+      try {
+        const text = await f.text();
+        if (token !== odLoadToken) { logLine("warn", "EDS file " + f.name + ": superseded by a later source choice"); return; }
+        odApplyEds(text, "file", "EDS file: " + f.name);
+      } catch (e) { logLine("err", "EDS file: " + (e && e.message ? e.message : e)); }
+      finally { els.odEdsFile.value = ""; }
     });
     els.odDeviceEdsBtn.addEventListener("click", async () => {
       if (!transport) return;
       let node;
       try { node = currentNode(); } catch (e) { logLine("err", "device EDS: " + e.message); return; }
       if (odScanInFlight) { logLine("err", "device EDS: a scan is running; cancel it first"); return; }
+      const token = ++odLoadToken;
       els.odDeviceEdsBtn.disabled = true;
       els.odSourceInfo.textContent = "reading 0x1022 (storage format) ...";
       try {
@@ -2449,10 +2513,12 @@
           maxBytes: OD_EDS_MAX_BYTES,
           progress: (n, total) => { els.odSourceInfo.textContent = "reading 0x1021 (Store EDS): " + n + (total ? " / " + total : "") + " bytes ..."; },
         });
+        if (token !== odLoadToken) { logLine("warn", "device EDS: superseded by a later source choice; discarded"); return; }
         const text = new TextDecoder().decode(bytes);
         odApplyEds(text, "device", "device EDS (0x1021)");
         els.odSourceInfo.textContent += " · " + bytes.length + " bytes in " + ((Date.now() - started) / 1000).toFixed(1) + " s";
       } catch (e) {
+        if (token !== odLoadToken) { logLine("warn", "device EDS: superseded by a later source choice"); return; }
         const c = odClassifyError(e);
         const msg = c.status === "absent" ? "the device stores no EDS (0x1021 absent); load an EDS file or use the built-in table" : (e && e.message ? e.message : String(e));
         els.odSourceInfo.textContent = msg;

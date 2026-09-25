@@ -199,7 +199,13 @@ AccessType=wo
   await test("builtinObjects: table shape and axis offset", () => {
     const t = od.builtinObjects(1);
     const idx = t.map((o) => o.index);
-    for (const must of [0x1000, 0x1018, 0x1021, 0x1400, 0x1A03, 0x6040, 0x6041, 0x607D, 0x60FF, 0x6502]) assert(idx.includes(must), "missing " + must.toString(16));
+    for (const must of [0x1000, 0x1012, 0x1013, 0x1018, 0x1021, 0x1023, 0x1024, 0x1025, 0x1026, 0x1027, 0x1028, 0x1029, 0x1200, 0x1280,
+                        0x1400, 0x1A03, 0x6040, 0x6041, 0x607D, 0x60FF, 0x6502]) assert(idx.includes(must), "missing " + must.toString(16));
+    assert.strictEqual(t.find((o) => o.index === 0x1024).access, "wo");
+    assert.strictEqual(t.find((o) => o.index === 0x1023).subs[1].dataType, 0xF);
+    // the manual panel writes UTF-8 strings: a UNICODE_STRING row maps to hex, not "string"
+    assert.strictEqual(od.odKindToSelect(0x000B), "hex");
+    assert.strictEqual(od.odKindToSelect(0x0009), "string");
     const identity = t.find((o) => o.index === 0x1018);
     assert.strictEqual(identity.objectType, 9);
     assert.strictEqual(identity.subs.length, 5);
@@ -346,15 +352,34 @@ AccessType=wo
     assert.strictEqual(byKey.get("1018:4").status, "absent");
     assert(!log.includes("1018:3"));
     assert.strictEqual(byKey.get("6041:0").status, "absent");
-    // cancellation stops the walk
+    // cancellation stops the walk; what was not reached is reported as skipped placeholders
     const log2 = [];
     let n = 0;
-    const rows2 = await od.odScan(od.builtinObjects(1), mockDevice(log2), { cancelled: () => ++n > 3 });
-    assert(rows2.length <= 4 && log2.length <= 4, "cancelled scan must stop early");
-    // a disconnect surfaces as the SDO client's rejection: the walk returns what it has
-    const rows3 = await od.odScan(od.builtinObjects(1), async () => { throw new Error("SDO aborted"); }, {});
-    assert.strictEqual(rows3.length, 1);
+    const all = od.builtinObjects(1);
+    const rows2 = await od.odScan(all, mockDevice(log2), { cancelled: () => ++n > 3 });
+    assert(log2.length <= 4, "cancelled scan must stop reading early");
+    const visited = rows2.filter((r) => r.status !== "skipped");
+    assert(visited.length <= 4, "only the visited rows carry results");
+    const entries = all.reduce((s, o) => s + ((o.objectType === 8 || o.objectType === 9) ? o.subs.length : 1), 0);
+    assert.strictEqual(rows2.length, entries, "every listed entry has a row after a cancel");
+    assert(rows2.every((r) => r.status !== "skipped" || r.error === "not scanned (cancelled)"));
+    const c2 = od.odCounts(rows2);
+    assert(c2.unread >= entries - 4 && c2.errors === 0, JSON.stringify(c2));
+    // a disconnect surfaces as the SDO client's rejection: the walk stops with what it has
+    const rows3 = await od.odScan(all, async () => { throw new Error("SDO aborted"); }, {});
     assert.strictEqual(rows3[0].status, "cancelled");
+    assert.strictEqual(rows3.filter((r) => r.status !== "skipped").length, 1);
+    // a DOMAIN (0x1021 Store EDS) is never read by a scan, only by the row's Read
+    const log4 = [];
+    const rows4 = await od.odScan(all.filter((o) => o.index === 0x1021 || o.index === 0x1023), async (index, sub) => {
+      log4.push(index.toString(16) + ":" + sub);
+      if (index === 0x1023) return sub === 0 ? Uint8Array.of(3) : Uint8Array.of(0x42);
+      return new Uint8Array(100);
+    }, {});
+    assert(!log4.includes("1021:0"), "scan must not upload a DOMAIN");
+    assert.strictEqual(rows4.find((r) => r.index === 0x1021).status, "skipped");
+    assert(!log4.includes("1023:1") && !log4.includes("1023:3") && log4.includes("1023:2"), "record DOMAIN subs are skipped, scalar subs read: " + log4);
+    assert.strictEqual(rows4.find((r) => r.index === 0x1023 && r.sub === 2).status, "ok");
   });
 
   await test("odScan: record whose sub 0 cannot be read falls back to the listed subs", async () => {
