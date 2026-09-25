@@ -221,7 +221,9 @@ def _cmd_debug(args) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="espp_coredump", description=__doc__.split("\n")[0])
+    # `python -OO` strips docstrings (__doc__ is None): fall back to a fixed line
+    description = (__doc__ or "Read an espp device's core dump over USB.").splitlines()[0]
+    p = argparse.ArgumentParser(prog="espp_coredump", description=description)
     p.add_argument("--version", action="version", version=f"espp_coredump {__version__}")
     sub = p.add_subparsers(dest="command", required=True)
 

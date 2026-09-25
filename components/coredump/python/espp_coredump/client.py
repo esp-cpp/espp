@@ -15,7 +15,7 @@ from typing import Callable, Deque, Optional
 
 from . import frame as _f
 from . import protocol as _p
-from .protocol import CoreDumpError, DiscoveryInfo, MessageType
+from .protocol import CoreDumpError, CoreDumpTimeout, DiscoveryInfo, MessageType
 
 ProgressFn = Callable[[int, int], None]  # (read, total) -> None
 
@@ -50,7 +50,7 @@ class CoreDumpClient:
                 return self._pending.popleft()
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise CoreDumpError("timed out waiting for a device reply")
+                raise CoreDumpTimeout("timed out waiting for a device reply")
             data = self._t.read(_f.MAX_FRAME_SIZE, timeout_ms=max(1, int(remaining * 1000)))
             if data:
                 self._pending.extend(self._parser.feed(data))
@@ -88,8 +88,8 @@ class CoreDumpClient:
         while True:
             try:
                 return self._transact(request, want)
-            except CoreDumpError as exc:
-                if attempt >= self._retries or "timed out" not in str(exc):
+            except CoreDumpTimeout:
+                if attempt >= self._retries:
                     raise
                 attempt += 1
 

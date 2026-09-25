@@ -112,7 +112,14 @@ class UsbVendorTransport:
             )
         self._dev = dev
 
-        cfg = dev.get_active_configuration()
+        # Some backends / hosts expose the device with no configuration selected
+        # yet; select the (only) one then. Never call set_configuration() up
+        # front: on a configured device it re-enumerates.
+        try:
+            cfg = dev.get_active_configuration()
+        except self._core.USBError:
+            dev.set_configuration()
+            cfg = dev.get_active_configuration()
         itf, ep_in, ep_out = self._find_vendor_interface(cfg)
         self._itf_num = itf.bInterfaceNumber
         self._ep_in, self._ep_out = ep_in, ep_out

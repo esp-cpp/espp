@@ -194,3 +194,8 @@ class CoreDumpError(RuntimeError):
     def __init__(self, message: str, code: Optional[int] = None) -> None:
         super().__init__(message if code is None else f"{message} (code {code})")
         self.code = code
+
+
+class CoreDumpTimeout(CoreDumpError):
+    """No reply from the device within the timeout (the only failure the client
+    retries: a device ERROR or a protocol violation is final)."""

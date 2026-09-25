@@ -14,7 +14,7 @@ from espp_coredump import frame as F  # noqa: E402
 from espp_coredump import protocol as P  # noqa: E402
 from espp_coredump.client import CoreDumpClient  # noqa: E402
 from espp_coredump.elf import extract_elf, find_elf_offset  # noqa: E402
-from espp_coredump.protocol import CoreDumpError, MessageType  # noqa: E402
+from espp_coredump.protocol import CoreDumpError, CoreDumpTimeout, MessageType  # noqa: E402
 
 FLASH_HEADER = struct.pack("<III", 0, 2, 0)  # core_dump_header_t: data_len, version, chip_rev
 ELF_BODY = b"\x7fELF" + bytes(bytearray((i * 13) & 0xFF for i in range(2048 * 2 + 77)))
@@ -155,6 +155,15 @@ def test_retry_on_timeout():
         _ok("no retries -> timeout raises", False)
     except CoreDumpError as exc:
         _ok("no retries -> timeout raises", "timed out" in str(exc))
+        _ok("timeout is the CoreDumpTimeout subclass", isinstance(exc, CoreDumpTimeout))
+    # an ERROR reply is final: it must NOT be retried even with retries left
+    dev3 = MockDevice()
+    dev3.error_on_read = True
+    try:
+        CoreDumpClient(dev3, timeout_ms=30, retries=3).read_image()
+        _ok("ERROR reply is not retried", False)
+    except CoreDumpError as exc:
+        _ok("ERROR reply is not retried", not isinstance(exc, CoreDumpTimeout) and dev3.reads == 1)
 
 
 def test_error_reply():
@@ -171,6 +180,14 @@ def test_erase():
     dev = MockDevice()
     CoreDumpClient(dev).erase()
     _ok("erased", dev.erased and CoreDumpClient(dev).size() == 0)
+
+
+def test_suggested_command_quoting():
+    from espp_coredump import decoder
+    cmd = decoder.suggested_command("/tmp/my dumps/core.elf", "build/app.elf")
+    _ok("paths with spaces are quoted", "'/tmp/my dumps/core.elf'" in cmd or '"/tmp/my dumps/core.elf"' in cmd)
+    _ok("sub-command and format present", "info_corefile" in cmd and "--core-format elf" in cmd)
+    _ok("gdb variant", "dbg_corefile" in decoder.suggested_command("c", "a", gdb=True))
 
 
 def test_extract_elf():
@@ -199,6 +216,7 @@ if __name__ == "__main__":
     test_retry_on_timeout()
     test_error_reply()
     test_erase()
+    test_suggested_command_quoting()
     test_extract_elf()
     test_discovery()
     print("all host tests passed")

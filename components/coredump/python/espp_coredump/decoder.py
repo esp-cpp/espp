@@ -14,6 +14,7 @@ Both take the same sub-commands: ``info_corefile`` prints the decoded crash
 from __future__ import annotations
 
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -46,8 +47,12 @@ def decoder_args(core_path: str, app_elf: str, gdb: bool = False,
 
 def suggested_command(core_path: str, app_elf: str, gdb: bool = False,
                       core_format: str = "elf") -> str:
-    """The exact command to run by hand when no decoder is installed."""
-    return " ".join(["esp-coredump"] + decoder_args(core_path, app_elf, gdb, core_format))
+    """The exact command to run by hand when no decoder is installed, quoted
+    for the host's shell (paths with spaces survive a copy-paste)."""
+    argv = ["esp-coredump"] + decoder_args(core_path, app_elf, gdb, core_format)
+    if os.name == "nt":
+        return subprocess.list2cmdline(argv)
+    return shlex.join(argv)
 
 
 def run_decoder(core_path: str, app_elf: str, gdb: bool = False,

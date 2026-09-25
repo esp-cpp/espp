@@ -15,13 +15,17 @@ Typical use::
     from espp_coredump import CoreDumpClient, UsbVendorTransport, extract_elf
     with UsbVendorTransport() as t:
         image = CoreDumpClient(t, progress=lambda r, tot: ...).read_image()
-    open("core.elf", "wb").write(extract_elf(image))
+    elf = extract_elf(image)          # None for a BIN-format dump (no ELF magic)
+    if elf is not None:
+        open("core.elf", "wb").write(elf)
+    else:
+        open("coredump_raw.bin", "wb").write(image)
 """
 
 from .client import CoreDumpClient
 from .elf import extract_elf, find_elf_offset
-from .protocol import (CoreDumpError, DataInfo, DiscoveryInfo, ErrorInfo, MessageType,
-                       ModuleInfo)
+from .protocol import (CoreDumpError, CoreDumpTimeout, DataInfo, DiscoveryInfo, ErrorInfo,
+                       MessageType, ModuleInfo)
 from .transport import DEFAULT_PID, DEFAULT_VID, TransportError, UsbVendorTransport
 
 __all__ = [
@@ -29,6 +33,7 @@ __all__ = [
     "UsbVendorTransport",
     "TransportError",
     "CoreDumpError",
+    "CoreDumpTimeout",
     "MessageType",
     "ErrorInfo",
     "DataInfo",
