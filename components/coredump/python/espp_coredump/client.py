@@ -38,7 +38,9 @@ class CoreDumpClient:
             raise ValueError(f"chunk_size must be 1..{_p.MAX_READ_LENGTH}")
         self._t = transport
         self._chunk = chunk_size
-        self._progress = progress
+        #: Progress callback ``(bytes_read, total)`` for read_image() /
+        #: read_image_to(); may be (re)assigned between operations.
+        self.progress = progress
         self._timeout = timeout_ms
         self._retries = max(0, retries)
         self._parser = _f.StreamParser()
@@ -151,8 +153,8 @@ class CoreDumpClient:
                     f"got {len(info.data)} B @ {info.offset})")
             sink(info.data)
             read += length
-            if self._progress:
-                self._progress(read, total)
+            if self.progress:
+                self.progress(read, total)
         return read
 
     def read_image(self, size: Optional[int] = None) -> bytes:

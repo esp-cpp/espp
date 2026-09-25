@@ -16,11 +16,19 @@ environment already ships).
 ## Seamless: crash → decode with `idf.py`
 
 If your project uses the espp `coredump` component, its `project_include.cmake`
-registers a `coredump-usb` build target — ESP-IDF only includes a component's
-`project_include.cmake` when that component is in the build, so requiring
-`coredump` is all it takes. It builds the app (so the ELF matches what is on
-the device), downloads the stored core dump over USB and decodes it against
-that ELF, the way `idf.py coredump-info` does over the serial bootloader:
+registers a `coredump-usb` build target (ESP-IDF only includes a component's
+`project_include.cmake` when that component is in the build). It builds the app
+(so the ELF matches what is on the device), downloads the stored core dump over
+USB and decodes it against that ELF, the way `idf.py coredump-info` does over
+the serial bootloader.
+
+The target is the host half only. For it to have something to talk to, the
+firmware must (as `components/coredump/example/main/coredump_example.cpp`
+does): store core dumps to flash (`CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y` and a
+`coredump` data partition in the partition table), expose a USB vendor
+(WebUSB) interface with `espp::UsbDevice`, and route that interface's RX bytes
+into an `espp::CoreDumpService` whose `send` goes back out on it -- typically
+through a `DispatcherWorker` so discovery and other modules share the pipe.
 
 ```sh
 pip install pyusb esp-coredump   # once (libusb backend: `brew install libusb`, `apt install libusb-1.0-0`)

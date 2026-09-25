@@ -1,11 +1,14 @@
 # espp `coredump` component — build-system integration for core dumps over USB.
 #
 # ESP-IDF includes a component's project_include.cmake (in project scope) only
-# when that component is part of the build, so simply requiring the `coredump`
-# component gives a project a `coredump-usb` build target: it pulls the stored
-# core dump off the device over its USB vendor (WebUSB) interface and decodes it
-# against the app ELF you just built, the way `idf.py coredump-info` does over the
-# serial bootloader:
+# when that component is part of the build, so requiring the `coredump` component
+# gives a project a `coredump-usb` build target: it pulls the stored core dump
+# off the device over its USB vendor (WebUSB) interface and decodes it against
+# the app ELF you just built, the way `idf.py coredump-info` does over the serial
+# bootloader. That is the HOST half only -- the firmware must store core dumps to
+# flash (CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH + a `coredump` partition) and serve
+# an espp::CoreDumpService on a USB vendor interface, as the component's example
+# (example/main/coredump_example.cpp) does; this file adds no device-side code.
 #
 #     idf.py coredump-usb          # builds the app, then downloads + decodes the dump
 #     idf.py build coredump-usb    # equivalent explicit form (also works pre-CMake 3.19)

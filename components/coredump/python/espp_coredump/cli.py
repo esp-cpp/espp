@@ -92,13 +92,18 @@ def _make_client(args, t, progress=None) -> CoreDumpClient:
 # -- the download itself, shared by `download` and `debug` --------------------
 def _download(args, t) -> bytes:
     """Fetch the stored image with a progress bar; returns b"" when there is none."""
-    size = _make_client(args, t).size()
+    # one client for GET_SIZE and the READs: the size reply establishes that
+    # the device echoes correlation ids (what makes READ retries eligible), and
+    # the client's parser / pending-frame queue carry over
+    client = _make_client(args, t)
+    size = client.size()
     if size == 0:
         return b""
     if not args.quiet:
         CON.info(f"  Core dump: {_human_size(size)}")
     with ui.Progress(size, label="Downloading", quiet=args.quiet) as prog:
-        return _make_client(args, t, progress=prog.update).read_image(size=size)
+        client.progress = prog.update
+        return client.read_image(size=size)
 
 
 def _save_image(image: bytes, out: Optional[str], raw: bool) -> tuple:

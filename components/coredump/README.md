@@ -33,10 +33,14 @@ the same stream), view the crash summary, download the core dump as
 
 The same protocol is also spoken from the terminal by the pure-Python
 [`python/espp_coredump`](python/) tool, and the component's
-`project_include.cmake` wires it to an `idf.py coredump-usb` target: any
-project that requires `coredump` can build, download the stored dump over USB
-and decode it against the freshly built ELF (`esp-coredump info_corefile`, or
-GDB with `--gdb`) in one step. See [`python/README.md`](python/README.md).
+`project_include.cmake` wires it to an `idf.py coredump-usb` target in every
+project that requires `coredump`: build, download the stored dump over USB and
+decode it against the freshly built ELF (`esp-coredump info_corefile`, or GDB
+with `--gdb`) in one step. The target is host-side only: the firmware must
+store core dumps to flash (`CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH` + a `coredump`
+partition) and serve a `CoreDumpService` on a USB vendor interface, as the
+[example](example/main/coredump_example.cpp) does. See
+[`python/README.md`](python/README.md).
 
 ## Features
 

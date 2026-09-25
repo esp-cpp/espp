@@ -36,9 +36,13 @@ download, client-side nearest-symbol backtrace resolution against your local
 app ELF, and erase.
 
 The ``coredump`` component also ships a ``project_include.cmake`` and a
-pure-Python host tool (``components/coredump/python/espp_coredump``), so any
-project using it can pull the stored core dump off the device over USB and
-decode it against the app ELF it just built, in one step:
+pure-Python host tool (``components/coredump/python/espp_coredump``), giving
+every project that uses it an ``idf.py coredump-usb`` target that pulls the
+stored core dump off the device over USB and decodes it against the app ELF it
+just built, in one step. The target is the host half only: the firmware must
+store core dumps to flash (``CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH`` and a
+``coredump`` partition) and serve a ``CoreDumpService`` on a USB vendor
+interface, as the example does:
 
 .. code-block:: sh
 
