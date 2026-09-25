@@ -177,8 +177,8 @@ def _cmd_download(args) -> int:
         CON.success(f"saved raw core-dump image to {path} ({_human_size(len(image))})")
     else:
         CON.warn(f"no ELF magic in the image (binary core-dump format?); saved the raw image to "
-                 f"{path}. Decode it with: esp-coredump info_corefile --core {path} "
-                 f"--core-format raw <app.elf>")
+                 f"{path}. Decode it with: "
+                 + decoder.suggested_command(path, "<app.elf>", core_format="raw"))
     return 0
 
 

@@ -89,6 +89,8 @@ with UsbVendorTransport() as t:                    # default VID/PID 0x1209:0x0d
     client = CoreDumpClient(t, progress=lambda done, total: print(done, "/", total))
     print(client.summary())
     image = client.read_image()                    # b"" when there is no core dump
+    # or stream it, one READ chunk at a time, straight into a file:
+    #   with open("image.bin", "wb") as fh: client.read_image_to(fh.write)
 
 elf = extract_elf(image)                           # None when the image holds no ELF
 if elf:

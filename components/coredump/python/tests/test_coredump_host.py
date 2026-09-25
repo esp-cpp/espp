@@ -107,9 +107,10 @@ class MockDevice:
 
 
 def _ok(name, cond):
+    """Check + report one condition. A failure is an AssertionError (so pytest
+    reports it normally); the standalone runner below turns it into exit 1."""
     print(("PASS" if cond else "FAIL"), name)
-    if not cond:
-        raise SystemExit(1)
+    assert cond, name
 
 
 def test_frame_golden():
@@ -267,16 +268,35 @@ def test_discovery():
     _ok("truncated TLV is tolerated", P.parse_discovery(F.Frame(0x11, 0xFF, 0, b"\x01\x00", None)) is None)
 
 
+def test_streaming_download():
+    dev = MockDevice()
+    chunks = []
+    n = CoreDumpClient(dev).read_image_to(chunks.append)
+    _ok("streamed in READ-sized chunks", n == len(IMAGE) and len(chunks) == dev.reads == 3
+        and b"".join(chunks) == IMAGE)
+    _ok("no dump -> sink never called",
+        CoreDumpClient(MockDevice(image=b"")).read_image_to(chunks.append) == 0 and len(chunks) == 3)
+
+
 if __name__ == "__main__":
-    test_frame_golden()
-    test_size_and_summary()
-    test_chunked_download()
-    test_offset_mismatch_fails()
-    test_retry_on_timeout()
-    test_late_reply_after_retry()
-    test_error_reply()
-    test_erase()
-    test_suggested_command_quoting()
-    test_extract_elf()
-    test_discovery()
+    tests = [
+        test_frame_golden,
+        test_size_and_summary,
+        test_chunked_download,
+        test_streaming_download,
+        test_offset_mismatch_fails,
+        test_retry_on_timeout,
+        test_late_reply_after_retry,
+        test_error_reply,
+        test_erase,
+        test_suggested_command_quoting,
+        test_extract_elf,
+        test_discovery,
+    ]
+    try:
+        for t in tests:
+            t()
+    except AssertionError as exc:
+        print("FAILED:", exc)
+        raise SystemExit(1)
     print("all host tests passed")

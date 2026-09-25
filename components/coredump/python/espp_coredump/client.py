@@ -127,17 +127,16 @@ class CoreDumpClient:
             raise CoreDumpError("unparseable SIZE reply")
         return n
 
-    def read_image(self, size: Optional[int] = None) -> bytes:
-        """Download the whole stored image (the raw partition contents: flash
-        header + ELF + checksum; see :mod:`espp_coredump.elf`) in READ chunks,
-        verifying that every DATA reply echoes the requested offset and length.
+    def read_image_to(self, sink: Callable[[bytes], object], size: Optional[int] = None) -> int:
+        """Stream the stored image (the raw partition contents: flash header +
+        ELF + checksum; see :mod:`espp_coredump.elf`) in READ chunks to
+        ``sink`` -- typically a binary file's ``write`` -- verifying that every
+        DATA reply echoes the requested offset and length, so nothing beyond one
+        chunk is held in memory.
 
-        ``size`` defaults to a GET_SIZE query; an empty image (no core dump)
-        returns ``b""``."""
+        ``size`` defaults to a GET_SIZE query. Returns the number of bytes
+        delivered (0 when there is no core dump; ``sink`` is then never called)."""
         total = self.size() if size is None else size
-        if total == 0:
-            return b""
-        out = bytearray(total)
         read = 0
         while read < total:
             length = min(self._chunk, total - read)
@@ -150,10 +149,19 @@ class CoreDumpClient:
                 raise CoreDumpError(
                     f"DATA reply mismatch (expected {length} B @ {read}, "
                     f"got {len(info.data)} B @ {info.offset})")
-            out[read:read + length] = info.data
+            sink(info.data)
             read += length
             if self._progress:
                 self._progress(read, total)
+        return read
+
+    def read_image(self, size: Optional[int] = None) -> bytes:
+        """Download the whole stored image into memory (see read_image_to() for
+        the streaming form; images are at most the core-dump partition, tens to
+        a few hundred KiB, so this is the convenient default). An empty image
+        (no core dump) returns ``b""``."""
+        out = bytearray()
+        self.read_image_to(out.extend, size)
         return bytes(out)
 
     def erase(self) -> None:
