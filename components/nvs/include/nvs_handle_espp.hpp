@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
+#include <vector>
 
 #include <nvs.h>
 #include <nvs.hpp>
@@ -189,6 +191,49 @@ public:
       return;
     }
     return;
+  }
+
+  /// @brief Reads a binary blob from the NVS
+  /// @param[in] key NVS Key of the blob to read
+  /// @param[out] value Vector resized to the stored blob and filled with its bytes
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @details Use for arbitrary binary data / structs (unlike set/get<string>,
+  ///          embedded null bytes are preserved).
+  void get(const char *key, std::vector<uint8_t> &value, std::error_code &ec) {
+    if (!check_handle_initialized(ec))
+      return;
+
+    if (!check_key(key, ec))
+      return;
+
+    std::size_t len = 0;
+    esp_err_t err = handle_->get_item_size(nvs::ItemType::BLOB, key, len);
+    if (err != ESP_OK) {
+      if (err == ESP_ERR_NVS_NOT_FOUND) {
+        ec = make_error_code(NvsErrc::Key_Not_Found);
+        logger_.error("The value is not initialized in NVS, key = '{}'", key);
+      } else {
+        ec = make_error_code(NvsErrc::Read_NVS_Failed);
+        logger_.error("Error {} reading blob size!", esp_err_to_name(err));
+      }
+      return;
+    }
+    value.resize(len);
+    if (len == 0)
+      return;
+    err = handle_->get_blob(key, value.data(), len);
+    if (err != ESP_OK) {
+      ec = make_error_code(NvsErrc::Read_NVS_Failed);
+      logger_.error("Error {} reading blob from NVS!", esp_err_to_name(err));
+    }
+  }
+
+  /// @brief Reads a binary blob from the NVS
+  /// @param[in] key NVS Key of the blob to read
+  /// @param[out] value Vector resized to the stored blob and filled with its bytes
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void get(std::string_view key, std::vector<uint8_t> &value, std::error_code &ec) {
+    get(key.data(), value, ec);
   }
 
   /// @brief Reads a variable from the NVS
@@ -413,6 +458,34 @@ public:
       return;
     }
     return;
+  }
+
+  /// @brief Save a binary blob in the NVS
+  /// @param[in] key NVS Key of the blob to set
+  /// @param[in] value Bytes to store
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @details Use for arbitrary binary data / structs (unlike set/get<string>,
+  ///          embedded null bytes are preserved). Does not commit.
+  void set(const char *key, const std::vector<uint8_t> &value, std::error_code &ec) {
+    if (!check_handle_initialized(ec))
+      return;
+
+    if (!check_key(key, ec))
+      return;
+
+    esp_err_t err = handle_->set_blob(key, value.data(), value.size());
+    if (err != ESP_OK) {
+      ec = make_error_code(NvsErrc::Write_NVS_Failed);
+      logger_.error("Error {} writing blob to NVS!", esp_err_to_name(err));
+    }
+  }
+
+  /// @brief Save a binary blob in the NVS
+  /// @param[in] key NVS Key of the blob to set
+  /// @param[in] value Bytes to store
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void set(std::string_view key, const std::vector<uint8_t> &value, std::error_code &ec) {
+    set(key.data(), value, ec);
   }
 
   /// @brief Commit changes

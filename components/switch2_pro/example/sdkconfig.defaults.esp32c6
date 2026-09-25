@@ -1,0 +1,18 @@
+# ESP32-C6-specific defaults (applied on top of sdkconfig.defaults when the
+# target is esp32c6; S3-only options in the base file are ignored here).
+#
+# The C6 RISC-V GCC 15.2 toolchain (esp-15.2.0_20251204) fails to compile
+# picolibc's hal/assert.h (__noreturn=[[noreturn]] -Werror=attributes), so use
+# newlib. Xtensa (S3) compiles picolibc fine — this is C6-toolchain-specific.
+CONFIG_LIBC_NEWLIB=y
+
+# The C6 CPU tops out at 160 MHz (240 MHz is an S3-only choice).
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_160=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=160
+
+# The C6 is single-core: the core-pinning options from the base defaults don't
+# exist here (silently ignored). The C6's BLE controller is the OPEN-SOURCE
+# NimBLE controller (libble_app.a) — the same one the known-working zhantss
+# emulator was verified on — patched for 5 ms by the same
+# CONFIG_SWITCH2_PRO_PATCH_NIMBLE_5MS option (different lib/instruction than
+# the S3's closed BTDM controller).
