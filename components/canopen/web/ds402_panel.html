@@ -1755,11 +1755,19 @@
       0x0009: { name: "VISIBLE_STRING", kind: "string" },
       0x000A: { name: "OCTET_STRING", kind: "hex" },
       0x000B: { name: "UNICODE_STRING", kind: "string" },
+      0x000C: { name: "TIME_OF_DAY", kind: "time" },
+      0x000D: { name: "TIME_DIFFERENCE", kind: "time" },
       0x000F: { name: "DOMAIN", kind: "hex" },
       0x0010: { name: "INTEGER24", kind: "i24" },
       0x0011: { name: "REAL64", kind: "f64" },
+      0x0012: { name: "INTEGER40", kind: "i40" },
+      0x0013: { name: "INTEGER48", kind: "i48" },
+      0x0014: { name: "INTEGER56", kind: "i56" },
       0x0015: { name: "INTEGER64", kind: "i64" },
       0x0016: { name: "UNSIGNED24", kind: "u24" },
+      0x0018: { name: "UNSIGNED40", kind: "u40" },
+      0x0019: { name: "UNSIGNED48", kind: "u48" },
+      0x001A: { name: "UNSIGNED56", kind: "u56" },
       0x001B: { name: "UNSIGNED64", kind: "u64" },
     };
     const OD_KIND_CODE = { u8: 0x5, i8: 0x2, u16: 0x6, i16: 0x3, u32: 0x7, i32: 0x4, f32: 0x8, string: 0x9, hex: 0xA, domain: 0xF, i8x: 0x2 };
@@ -1939,11 +1947,12 @@
       [0x1019, "Synchronous counter overflow value", 7, 0x5, "rw"],
       [0x1020, "Verify configuration", 8, 0x7, "rw", 2, true],
       [0x1021, "Store EDS", 7, 0xF, "ro"],
-      [0x1022, "Storage format", 7, 0x5, "ro"],
-      [0x1023, "OS command", 9, null, null, [[1, "Command", 0xF, "rw"], [2, "Status", 0x5, "ro"], [3, "Reply", 0xF, "ro"]]],
+      [0x1022, "Storage format", 7, 0x6, "ro"],
+      [0x1023, "OS command", 9, null, null, [[1, "Command", 0xA, "rw"], [2, "Status", 0x5, "ro"], [3, "Reply", 0xA, "ro"]]],
       [0x1024, "OS command mode", 7, 0x5, "wo"],
-      [0x1025, "OS debugger interface", 9, null, null, [[1, "Command", 0xF, "rw"], [2, "Status", 0x5, "ro"], [3, "Reply", 0xF, "ro"]]],
-      [0x1026, "OS prompt", 8, 0x5, "rw", 3],
+      [0x1025, "OS debugger interface", 9, null, null, [[1, "Command", 0xA, "rw"], [2, "Status", 0x5, "ro"], [3, "Reply", 0xA, "ro"]]],
+      // an ARRAY whose entries differ in access: listed explicitly
+      [0x1026, "OS prompt", 8, 0x5, "rw", [[1, "StdIn", 0x5, "wo"], [2, "StdOut", 0x5, "ro"], [3, "StdErr", 0x5, "ro"]]],
       [0x1027, "Module list", 8, 0x6, "ro", 254, true],
       [0x1028, "Emergency consumer object", 8, 0x7, "rw", 127, true],
       [0x1029, "Error behavior", 8, 0x5, "rw", 254, true],
@@ -2053,7 +2062,12 @@
         const obj = { index: index + off, name, objectType, dataType, access, defaultValue: null, pdoMapping: false, subNumber: null, compact: null, subs: [], dynamicCount: !!dyn };
         if (objectType === 8) {
           obj.subs.push({ sub: 0, name: "Number of entries", dataType: 0x5, access: "ro", defaultValue: null, pdoMapping: false });
-          for (let i = 1; i <= subs; i++) obj.subs.push({ sub: i, name: name + " " + i, dataType, access, defaultValue: null, pdoMapping: false });
+          if (Array.isArray(subs)) {
+            // explicit entries (an ARRAY whose entries differ in name / access)
+            for (const [sub, sname, sdt, sacc] of subs) obj.subs.push({ sub, name: sname, dataType: sdt, access: sacc, defaultValue: null, pdoMapping: false });
+          } else {
+            for (let i = 1; i <= subs; i++) obj.subs.push({ sub: i, name: name + " " + i, dataType, access, defaultValue: null, pdoMapping: false });
+          }
         } else if (objectType === 9) {
           obj.subs.push({ sub: 0, name: "Number of entries", dataType: 0x5, access: "ro", defaultValue: null, pdoMapping: false });
           for (const [sub, sname, sdt, sacc] of subs) obj.subs.push({ sub, name: sname, dataType: sdt, access: sacc, defaultValue: null, pdoMapping: false });
@@ -2091,6 +2105,22 @@
           case "f64": if (fits(8)) return { text: String(dv.getFloat64(0, true)), hex: hexText, kind }; break;
           case "u64": if (fits(8)) return { text: dv.getBigUint64(0, true).toString(), hex: hexText, kind }; break;
           case "i64": if (fits(8)) return { text: dv.getBigInt64(0, true).toString(), hex: hexText, kind }; break;
+          case "u40": case "u48": case "u56": case "i40": case "i48": case "i56": {
+            // 5 / 6 / 7-byte little-endian integers (CiA 301 INTEGER40.. UNSIGNED56)
+            const n = parseInt(kind.slice(1), 10) / 8;
+            if (!fits(n)) break;
+            let v = 0n;
+            for (let i = n - 1; i >= 0; i--) v = (v << 8n) | BigInt(bytes[i]);
+            if (kind[0] === "i" && (v >> BigInt(n * 8 - 1)) & 1n) v -= 1n << BigInt(n * 8);
+            return { text: v.toString(), hex: hexText, kind };
+          }
+          case "time": {
+            // TIME_OF_DAY / TIME_DIFFERENCE: u32 milliseconds (28 bits) + u16 days
+            if (!fits(6)) break;
+            const ms = dv.getUint32(0, true) & 0x0FFFFFFF;
+            const days = dv.getUint16(4, true);
+            return { text: days + " d " + ms + " ms", hex: hexText, kind };
+          }
           case "string": {
             // VISIBLE_STRING is ASCII/UTF-8; UNICODE_STRING (0x000B) is UTF-16LE
             const enc = dataType === 0x000B ? "utf-16le" : "utf-8";
@@ -2134,6 +2164,13 @@
       if (/not connected|disconnected|link lost|SDO aborted|cancel/i.test(msg)) return { status: "cancelled", text: msg };
       return { status: "error", text: msg };
     }
+    // A DOMAIN entry: by data type (0x000F), or by the EDS object code
+    // (ObjectType 2 = DOMAIN), which real files use independently of DataType.
+    function odIsDomain(objectOrRow, sub) {
+      const objectType = objectOrRow ? objectOrRow.objectType : null;
+      const dataType = sub ? sub.dataType : (objectOrRow ? objectOrRow.dataType : null);
+      return dataType === 0xF || objectType === 2;
+    }
     function odIsReadable(access) {
       return access == null || access === "" || access === "ro" || access === "rw" || access === "rwr" || access === "rww" || access === "const";
     }
@@ -2162,7 +2199,7 @@
         // A DOMAIN (a stored EDS, firmware, an OS command reply) can be hundreds
         // of KiB at 7 bytes per SDO segment: not something a scan reads. The
         // row's Read button uploads it on request, with the large-object bound.
-        if (s.dataType === 0xF) { row.error = "domain: not read by a scan (use Read)"; return row; }
+        if (odIsDomain(o, s)) { row.error = "domain: not read by a scan (use Read)"; return row; }
         try {
           const bytes = await read(o.index, s.sub);
           row.bytes = bytes;
@@ -2457,7 +2494,7 @@
       const fresh = { ...row };
       try {
         // a DOMAIN (e.g. the stored EDS) gets the large-object bound
-        const bytes = await sdoUpload(row.index, row.sub, node, row.dataType === 0xF ? { maxBytes: OD_EDS_MAX_BYTES } : undefined);
+        const bytes = await sdoUpload(row.index, row.sub, node, odIsDomain(row) ? { maxBytes: OD_EDS_MAX_BYTES } : undefined);
         fresh.bytes = bytes; fresh.value = odDecodeValue(bytes, row.dataType); fresh.status = "ok"; fresh.error = null;
       } catch (e) {
         const c = odClassifyError(e); fresh.status = c.status; fresh.error = c.text; fresh.value = null;
@@ -2518,7 +2555,8 @@
       try {
         // 0x1022 is optional: absent means "plain EDS" is all it could be
         let format = 0;
-        try { format = decodeScalar("u8", await sdoUpload(0x1022, 0, node)); }
+        // 0x1022 is UNSIGNED16 per CiA 301; accept a device that answers with one byte too
+        try { const fb = await sdoUpload(0x1022, 0, node); format = fb.length >= 2 ? (fb[0] | (fb[1] << 8)) : (fb.length ? fb[0] : 0); }
         catch (e) { if (odClassifyError(e).status !== "absent") throw e; }
         if (format !== 0) throw new Error("0x1022 storage format " + format + " (compressed / not ASCII EDS) is not supported here; load the EDS file instead");
         const started = Date.now();

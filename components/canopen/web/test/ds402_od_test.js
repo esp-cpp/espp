@@ -202,7 +202,10 @@ AccessType=wo
     for (const must of [0x1000, 0x1012, 0x1013, 0x1018, 0x1021, 0x1023, 0x1024, 0x1025, 0x1026, 0x1027, 0x1028, 0x1029, 0x1200, 0x1280,
                         0x1400, 0x1A03, 0x6040, 0x6041, 0x607D, 0x6093, 0x6094, 0x6096, 0x60B8, 0x60BD, 0x60FF, 0x6502]) assert(idx.includes(must), "missing " + must.toString(16));
     assert.strictEqual(t.find((o) => o.index === 0x1024).access, "wo");
-    assert.strictEqual(t.find((o) => o.index === 0x1023).subs[1].dataType, 0xF);
+    assert.strictEqual(t.find((o) => o.index === 0x1023).subs[1].dataType, 0xA);   // OCTET_STRING (CiA 301)
+    assert.strictEqual(t.find((o) => o.index === 0x1022).dataType, 0x6);           // UNSIGNED16
+    const prompt = t.find((o) => o.index === 0x1026);                               // heterogeneous ARRAY
+    assert.deepStrictEqual(prompt.subs.map((s) => [s.sub, s.name, s.access]), [[0, "Number of entries", "ro"], [1, "StdIn", "wo"], [2, "StdOut", "ro"], [3, "StdErr", "ro"]]);
     // the manual panel writes UTF-8 strings: a UNICODE_STRING row maps to hex, not "string"
     assert.strictEqual(od.odKindToSelect(0x000B), "hex");
     assert.strictEqual(od.odKindToSelect(0x0009), "string");
@@ -231,6 +234,12 @@ AccessType=wo
     assert.strictEqual(od.odDecodeValue(b(0x92, 0x01, 0x02, 0x00), 0x7).text, "131474");
     assert.strictEqual(od.odDecodeValue(b(0x00, 0x00, 0x80, 0x3f), 0x8).text, "1"); // REAL32 1.0
     assert.strictEqual(od.odDecodeValue(b(0x53, 0x65, 0x72, 0x76, 0x6f, 0x00), 0x9).text, JSON.stringify("Servo"));
+    // 40 / 48 / 56-bit integers and the time types
+    assert.strictEqual(od.odDecodeValue(b(0xff, 0xff, 0xff, 0xff, 0x7f), 0x18).text, "549755813887");        // UNSIGNED40 max
+    assert.strictEqual(od.odDecodeValue(b(0xff, 0xff, 0xff, 0xff, 0xff), 0x12).text, "-1");                  // INTEGER40
+    assert.strictEqual(od.odDecodeValue(b(0x00, 0x00, 0x00, 0x00, 0x00, 0x80), 0x13).text, "-140737488355328"); // INTEGER48 min
+    assert.strictEqual(od.odDecodeValue(b(1, 0, 0, 0, 0, 0, 0), 0x1A).text, "1");                            // UNSIGNED56
+    assert.strictEqual(od.odDecodeValue(b(0xe8, 0x03, 0x00, 0x00, 0x02, 0x00), 0xC).text, "2 d 1000 ms");   // TIME_OF_DAY
     // UNICODE_STRING (0x000B) is UTF-16LE
     assert.strictEqual(od.odDecodeValue(b(0x48, 0x00, 0x69, 0x00, 0x00, 0x00), 0xB).text, JSON.stringify("Hi"));
     assert.strictEqual(od.odDecodeValue(b(1, 2, 3), 0xF).text, "3 bytes");        // DOMAIN
@@ -381,15 +390,24 @@ AccessType=wo
     assert.strictEqual(rows3.filter((r) => r.status !== "skipped").length, 1);
     // a DOMAIN (0x1021 Store EDS) is never read by a scan, only by the row's Read
     const log4 = [];
-    const rows4 = await od.odScan(all.filter((o) => o.index === 0x1021 || o.index === 0x1023), async (index, sub) => {
+    // a record with a DOMAIN sub by data type, and a VAR that is a DOMAIN by EDS object code only
+    const domRecord = { index: 0x2100, name: "Firmware", objectType: 9, dataType: null, access: null, defaultValue: null, pdoMapping: false, subNumber: 3, compact: null, dynamicCount: false,
+                        subs: [{ sub: 0, name: "Number of entries", dataType: 0x5, access: "ro" }, { sub: 1, name: "Image", dataType: 0xF, access: "rw" }, { sub: 2, name: "Status", dataType: 0x5, access: "ro" }] };
+    const domByCode = { index: 0x2101, name: "Blob", objectType: 2, dataType: null, access: "ro", defaultValue: null, pdoMapping: false, subNumber: null, compact: null, dynamicCount: false, subs: [] };
+    const rows4 = await od.odScan(all.filter((o) => o.index === 0x1021).concat([domRecord, domByCode]), async (index, sub) => {
       log4.push(index.toString(16) + ":" + sub);
-      if (index === 0x1023) return sub === 0 ? Uint8Array.of(3) : Uint8Array.of(0x42);
+      if (index === 0x2100) return sub === 0 ? Uint8Array.of(2) : Uint8Array.of(0x42);
       return new Uint8Array(100);
     }, {});
-    assert(!log4.includes("1021:0"), "scan must not upload a DOMAIN");
+    assert(!log4.includes("1021:0") && !log4.includes("2101:0"), "scan must not upload a DOMAIN (by type or by object code): " + log4);
     assert.strictEqual(rows4.find((r) => r.index === 0x1021).status, "skipped");
-    assert(!log4.includes("1023:1") && !log4.includes("1023:3") && log4.includes("1023:2"), "record DOMAIN subs are skipped, scalar subs read: " + log4);
-    assert.strictEqual(rows4.find((r) => r.index === 0x1023 && r.sub === 2).status, "ok");
+    assert.strictEqual(rows4.find((r) => r.index === 0x2101).status, "skipped");
+    assert(!log4.includes("2100:1") && log4.includes("2100:2"), "record DOMAIN subs are skipped, scalar subs read: " + log4);
+    assert.strictEqual(rows4.find((r) => r.index === 0x2100 && r.sub === 2).status, "ok");
+    // 0x1023's OCTET_STRING command / reply are ordinary entries a scan reads
+    const log6 = [];
+    await od.odScan(all.filter((o) => o.index === 0x1023), async (index, sub) => { log6.push(index.toString(16) + ":" + sub); return sub === 0 ? Uint8Array.of(3) : Uint8Array.of(1, 2); }, {});
+    assert(log6.includes("1023:1") && log6.includes("1023:3"), log6);
   });
 
   await test("odScan: record whose sub 0 cannot be read falls back to the listed subs", async () => {
