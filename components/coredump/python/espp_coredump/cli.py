@@ -118,12 +118,12 @@ def _save_image(image: bytes, out: Optional[str], raw: bool) -> tuple:
 # -- commands -----------------------------------------------------------------
 def _cmd_list(args) -> int:
     pid = None if args.pid is not None and args.pid < 0 else args.pid
-    found = list_devices(vid=args.vid, pid=pid)
+    found = list_devices(vid=args.vid, pid=pid, serial=args.serial)
     if not found:
         CON.warn("no matching USB devices found")
         return 1
-    for vid, pid_, desc in found:
-        print(f"0x{vid:04x}:0x{pid_:04x}  {desc}")
+    for vid, pid_, desc, sn in found:
+        print(f"0x{vid:04x}:0x{pid_:04x}  {desc}" + (f"  serial={sn}" if sn else ""))
     return 0
 
 
@@ -156,10 +156,9 @@ def _cmd_summary(args) -> int:
 def _cmd_size(args) -> int:
     with _make_transport(args) as t:
         n = _make_client(args, t).size()
+    print(n)  # always the number on stdout (0 = no core dump), for scripts
     if n == 0:
-        CON.info("no core dump stored")
-    else:
-        print(n)
+        print("no core dump stored", file=sys.stderr)
     return 0
 
 

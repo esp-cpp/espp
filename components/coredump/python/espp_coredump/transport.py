@@ -5,8 +5,9 @@ one bulk IN + one bulk OUT endpoint) — the same interface ``coredump_console.h
 uses from the browser. Uses `pyusb` (libusb); it is imported lazily so the
 :mod:`espp_coredump.frame` / :mod:`espp_coredump.protocol` layers stay stdlib-only.
 
-Default device id is the espp ``UsbDevice`` default, ``0x1209:0x0d36``; both are
-overridable (a project may set its own VID/PID).
+The default device id, ``0x1209:0x0d36``, is what the ``coredump`` example
+advertises (``components/coredump/example``: espp's VID with the example's own
+PID); a project that sets its own VID/PID passes them explicitly.
 """
 
 from __future__ import annotations
@@ -39,19 +40,27 @@ def _import_usb():
     return core, util
 
 
-def list_devices(vid: int = DEFAULT_VID, pid: Optional[int] = None) -> List[Tuple[int, int, str]]:
-    """Return (vid, pid, description) for candidate devices matching the filter."""
+def list_devices(vid: int = DEFAULT_VID, pid: Optional[int] = None,
+                 serial: Optional[str] = None) -> List[Tuple[int, int, str, str]]:
+    """Return (vid, pid, description, serial) for the devices matching the
+    filter; ``serial`` (when given) must match the device's serial string."""
     core, util = _import_usb()
     kwargs = {"find_all": True, "idVendor": vid}
     if pid is not None:
         kwargs["idProduct"] = pid
-    out: List[Tuple[int, int, str]] = []
+    out: List[Tuple[int, int, str, str]] = []
     for dev in core.find(**kwargs):
         try:
             desc = util.get_string(dev, dev.iProduct) or ""
         except Exception:
             desc = ""
-        out.append((dev.idVendor, dev.idProduct, desc))
+        try:
+            sn = util.get_string(dev, dev.iSerialNumber) or ""
+        except Exception:
+            sn = ""
+        if serial is not None and sn != serial:
+            continue
+        out.append((dev.idVendor, dev.idProduct, desc, sn))
     return out
 
 

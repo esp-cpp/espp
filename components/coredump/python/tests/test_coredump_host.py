@@ -36,6 +36,8 @@ class MockDevice:
         self.erased = False
         self.corrupt_offset_on_read = None  # the Nth READ answers with a wrong offset
         self.drop_first_reply = False       # the first request gets no reply (host retries)
+        self.delay_first_reply = False      # the first reply arrives only after the host's retry
+        self._held = b""
         self.error_on_read = False          # every READ answers ERROR
 
     def write(self, data, timeout_ms=0):
@@ -53,7 +55,14 @@ class MockDevice:
         if self.drop_first_reply:
             self.drop_first_reply = False
             return
-        self._out += b
+        if self.delay_first_reply:
+            # held back: it lands on the wire just ahead of the NEXT reply, i.e.
+            # after the host gave up on it and re-sent the request
+            self.delay_first_reply = False
+            self._held = b
+            return
+        self._out += self._held + b
+        self._held = b""
 
     def _handle(self, fr):
         if fr.module == P.DISCOVERY_MODULE and fr.type == P.DISCOVERY_LIST_MODULES:
@@ -166,6 +175,22 @@ def test_retry_on_timeout():
         _ok("ERROR reply is not retried", not isinstance(exc, CoreDumpTimeout) and dev3.reads == 1)
 
 
+def test_late_reply_after_retry():
+    # The reviewer's scenario: the first READ's DATA arrives just after the host
+    # timed out and re-sent it, so two identical DATA replies come back; the
+    # second must not be taken for the next chunk's reply.
+    dev = MockDevice()
+    dev.delay_first_reply = True  # (size is passed in, so the first request is the READ)
+    image = CoreDumpClient(dev, timeout_ms=30, retries=1).read_image(size=len(IMAGE))
+    _ok("late DATA duplicate is discarded, image intact", image == IMAGE and dev.reads == 4)
+    # same for a non-READ request: a late SIZE must not answer the next GET_SUMMARY
+    dev2 = MockDevice()
+    dev2.delay_first_reply = True
+    c = CoreDumpClient(dev2, timeout_ms=30, retries=1)
+    _ok("late SIZE duplicate is discarded", c.size() == len(IMAGE)
+        and c.summary().startswith("Guru Meditation"))
+
+
 def test_error_reply():
     dev = MockDevice()
     dev.error_on_read = True
@@ -214,6 +239,7 @@ if __name__ == "__main__":
     test_chunked_download()
     test_offset_mismatch_fails()
     test_retry_on_timeout()
+    test_late_reply_after_retry()
     test_error_reply()
     test_erase()
     test_suggested_command_quoting()

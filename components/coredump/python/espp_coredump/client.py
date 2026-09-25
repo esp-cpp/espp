@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import time
 from collections import deque
-from typing import Callable, Deque, Optional
+from typing import Callable, Deque, List, Optional, Tuple
 
 from . import frame as _f
 from . import protocol as _p
@@ -42,6 +42,11 @@ class CoreDumpClient:
         self._retries = max(0, retries)
         self._parser = _f.StreamParser()
         self._pending: Deque[_f.Frame] = deque()
+        # Replies still owed by requests that timed out and were re-sent (the
+        # stream carries no correlation id, so a late reply is told apart from
+        # the retry's by type -- and, for DATA, by its echoed offset): one
+        # (type, key, expiry) per timed-out attempt, dropped once seen or expired.
+        self._stale: List[Tuple[MessageType, Optional[int], float]] = []
 
     # -- reply plumbing -------------------------------------------------------
     def _next_frame(self, deadline: float) -> _f.Frame:
@@ -69,6 +74,8 @@ class CoreDumpClient:
             fr = self._next_frame(deadline)
             if fr.module != _p.MODULE or not fr.is_reply:
                 continue
+            if self._is_stale_reply(fr):
+                continue
             if fr.type == MessageType.ERROR:
                 info = _p.parse_error(fr)
                 if info:
@@ -78,20 +85,48 @@ class CoreDumpClient:
                 return fr
             raise CoreDumpError(f"unexpected reply type 0x{fr.type:02x}")
 
-    def _transact_retry(self, request: bytes, want: MessageType) -> _f.Frame:
+    def _is_stale_reply(self, fr: _f.Frame) -> bool:
+        """Whether ``fr`` is the late reply of a timed-out, re-sent request (see
+        ``_stale``): it is then consumed here and must not answer anything."""
+        if not self._stale:
+            return False
+        now = time.monotonic()
+        self._stale = [s for s in self._stale if s[2] > now]
+        for i, (typ, key, _) in enumerate(self._stale):
+            if fr.type != typ:
+                continue
+            if typ == MessageType.DATA:
+                info = _p.parse_data(fr)
+                if info is None or info.offset != key:
+                    continue
+            del self._stale[i]
+            return True
+        return False
+
+    def _transact_retry(self, request: bytes, want: MessageType,
+                        key: Optional[int] = None) -> _f.Frame:
         """_transact() with retries on a reply timeout only (a device ERROR or a
         protocol violation is final). A retry re-sends the same idempotent
-        request; a reply to the timed-out attempt that arrives late is
-        indistinguishable from the retry's, which is fine for GET_* and for READ
-        (whose DATA echoes the offset the caller verifies)."""
+        request. The stream has no correlation id, so the timed-out attempt's
+        reply, should it still arrive, is identical to the retry's: whichever
+        comes first answers the retry, and one more reply of that type (with
+        ``key`` = the echoed offset for READ) is then expected and discarded
+        by :meth:`_is_stale_reply` -- otherwise it would be taken for the next
+        request's answer (a READ desynchronised by one chunk). A late reply
+        that never shows up expires after two timeouts."""
         attempt = 0
         while True:
             try:
-                return self._transact(request, want)
+                fr = self._transact(request, want)
             except CoreDumpTimeout:
                 if attempt >= self._retries:
                     raise
                 attempt += 1
+                continue
+            if attempt:
+                expiry = time.monotonic() + 2.0 * self._timeout / 1000.0
+                self._stale.extend((want, key, expiry) for _ in range(attempt))
+            return fr
 
     # -- public API -----------------------------------------------------------
     def summary(self) -> str:
@@ -119,7 +154,7 @@ class CoreDumpClient:
         read = 0
         while read < total:
             length = min(self._chunk, total - read)
-            fr = self._transact_retry(_p.make_read(read, length), MessageType.DATA)
+            fr = self._transact_retry(_p.make_read(read, length), MessageType.DATA, key=read)
             info = _p.parse_data(fr)
             if info is None:
                 raise CoreDumpError("malformed DATA reply")
