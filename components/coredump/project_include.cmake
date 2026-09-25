@@ -2,8 +2,8 @@
 #
 # ESP-IDF includes a component's project_include.cmake (in project scope) only
 # when that component is part of the build, so requiring the `coredump` component
-# gives a project a `coredump-usb` build target: it pulls the stored core dump
-# off the device over its USB vendor (WebUSB) interface and decodes it against
+# gives a project `coredump-usb` build targets: they pull the stored core dump
+# off the device over its USB vendor (WebUSB) interface and decode it against
 # the app ELF you just built, the way `idf.py coredump-info` does over the serial
 # bootloader. That is the HOST half only -- the firmware must store core dumps to
 # flash (CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH + a `coredump` partition) and serve
@@ -14,9 +14,13 @@
 #     idf.py coredump-usb-debug    # same, but opens GDB on the core file instead
 #     idf.py build coredump-usb    # equivalent explicit form (also works pre-CMake 3.19)
 #
-# (Mirrors ESP-IDF's own `coredump-info` / `coredump-debug` pair.) idf.py cannot
-# pass options to a custom target, so these take none; device overrides are
-# read from the environment by the tool, e.g.:
+# (Mirrors ESP-IDF's own `coredump-info` / `coredump-debug` pair.) These are the
+# FALLBACK: the component's idf_ext.py registers a real `idf.py coredump-usb`
+# action with options (--gdb, --summary, --out, --vid/--pid/--serial), which
+# idf.py prefers over a CMake target of the same name whenever it loads that
+# extension (trusted component sources, or the espp wheel's entry point). idf.py
+# cannot pass options to a custom target, so these take none; device overrides
+# are read from the environment by the tool, e.g.:
 #     ESPP_COREDUMP_PID=0x1234 idf.py coredump-usb
 #
 # The work is done by the pure-Python `espp_coredump` tool shipped alongside this

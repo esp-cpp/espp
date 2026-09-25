@@ -15,23 +15,27 @@ environment already ships).
 
 ## Seamless: crash → decode with `idf.py`
 
-If your project uses the espp `coredump` component, its `project_include.cmake`
-registers two build targets (ESP-IDF only includes a component's
-`project_include.cmake` when that component is in the build), mirroring
-ESP-IDF's own `coredump-info` / `coredump-debug` pair:
+If your project uses the espp `coredump` component, `idf.py` gains a
+`coredump-usb` action: it builds the app (so the ELF matches what is on the
+device), downloads the stored core dump over USB and decodes it against that
+ELF (`esp-coredump info_corefile`), the way `idf.py coredump-info` does over the
+serial bootloader. It is a real idf.py action (like `flash`), so it takes
+options; `--gdb` opens GDB on the core file instead (`esp-coredump
+dbg_corefile`), like `idf.py coredump-debug`.
 
-- `coredump-usb` builds the app (so the ELF matches what is on the device),
-  downloads the stored core dump over USB and decodes it against that ELF
-  (`esp-coredump info_corefile`), the way `idf.py coredump-info` does over the
-  serial bootloader;
-- `coredump-usb-debug` does the same download, then opens GDB on the core file
-  (`esp-coredump dbg_corefile`).
+The action comes from the component's `idf_ext.py`, which idf.py loads when
+the component is in the build **from a trusted source**: ESP-IDF itself, the
+project's own components, `EXTRA_COMPONENT_DIRS` (how espp is normally used) or
+an `espressif/` registry component. A registry install of `espp/coredump` is
+not in that list, so idf.py prints a warning and skips it unless you set
+`IDF_EXTENSION_ALLOW_UNTRUSTED=1`. Alternatively, install the espp wheel in the
+ESP-IDF Python environment: it declares an `idf_extension` entry point, which
+idf.py loads with no trust check, in every project. For builds where neither
+extension is loaded, `project_include.cmake` still registers two plain CMake
+targets, `coredump-usb` (decode) and `coredump-usb-debug` (GDB), which take no
+options (an idf.py action shadows a CMake target of the same name).
 
-`idf.py` cannot pass options to these targets (`idf.py coredump-usb --gdb` is
-rejected); anything beyond the two forms above is a job for the standalone CLI
-below.
-
-The target is the host half only. For it to have something to talk to, the
+The action is the host half only. For it to have something to talk to, the
 firmware must (as `components/coredump/example/main/coredump_example.cpp`
 does): store core dumps to flash (`CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y` and a
 `coredump` data partition in the partition table), expose a USB vendor
@@ -41,10 +45,12 @@ through a `DispatcherWorker` so discovery and other modules share the pipe.
 
 ```sh
 pip install pyusb esp-coredump   # once (libusb backend: `brew install libusb`, `apt install libusb-1.0-0`)
-idf.py coredump-usb              # builds, then downloads + decodes the core dump
-idf.py coredump-usb-debug        # builds, then downloads + opens GDB on the core dump
-# or, equivalently / on CMake < 3.19:
-idf.py build coredump-usb
+idf.py coredump-usb              # build, download + decode the core dump
+idf.py coredump-usb --gdb        # ... open GDB on the core file instead
+idf.py coredump-usb --summary    # only the crash report the device stores (no download)
+idf.py coredump-usb --out crash.elf --pid 0x1234 --serial ABC123
+idf.py coredump-usb --help       # all options (--vid/--pid/--serial/--interface, --out)
+idf.py build coredump-usb-debug  # the option-less CMake fallback targets
 ```
 
 Override the target device without editing anything (the tool reads these):

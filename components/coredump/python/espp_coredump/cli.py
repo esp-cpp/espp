@@ -11,9 +11,9 @@ Commands:
                    (esp-coredump info_corefile; --gdb opens GDB on it instead).
 
 VID/PID default to the coredump example's ids (0x1209:0x0d36) but can be
-overridden (also via the ESPP_COREDUMP_VID / ESPP_COREDUMP_PID env vars, which
-the CMake ``coredump-usb`` / ``coredump-usb-debug`` targets forward; idf.py
-cannot pass options to those targets, so anything else is done from here).
+overridden (also via the ESPP_COREDUMP_VID / ESPP_COREDUMP_PID env vars). The
+``idf.py coredump-usb`` action (idf_ext.py) drives the ``summary`` / ``debug``
+commands with the project's ELF; the CMake fallback targets forward the env vars.
 """
 
 from __future__ import annotations

@@ -35,25 +35,31 @@ it doubles as a serial monitor): crash summary, chunked ``core.elf``
 download, client-side nearest-symbol backtrace resolution against your local
 app ELF, and erase.
 
-The ``coredump`` component also ships a ``project_include.cmake`` and a
-pure-Python host tool (``components/coredump/python/espp_coredump``), giving
-every project that uses it ``idf.py coredump-usb`` / ``idf.py coredump-usb-debug``
-targets that pull the stored core dump off the device over USB and decode it
-against the app ELF it just built (or open GDB on it), in one step -- the
-counterparts of ESP-IDF's ``coredump-info`` / ``coredump-debug``. The targets
-are the host half only: the firmware must store core dumps to flash
-(``CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH`` and a ``coredump`` partition) and serve
-a ``CoreDumpService`` on a USB vendor interface, as the example does:
+The ``coredump`` component also ships an idf.py extension (``idf_ext.py``) and
+a pure-Python host tool (``components/coredump/python/espp_coredump``), giving
+every project that uses it an ``idf.py coredump-usb`` action that pulls the
+stored core dump off the device over USB and decodes it against the app ELF it
+just built, in one step -- the counterpart of ESP-IDF's ``coredump-info`` /
+``coredump-debug``, with options:
 
 .. code-block:: sh
 
     pip install pyusb esp-coredump   # once
     idf.py coredump-usb              # builds, then downloads + decodes the core dump
-    idf.py coredump-usb-debug        # builds, then downloads + opens GDB on it
+    idf.py coredump-usb --gdb        # ... or opens GDB on the core file
+    idf.py coredump-usb --summary    # just the crash report stored on the device
 
-``idf.py`` cannot pass options to these targets; for anything else the tool
-runs directly (``python -m espp_coredump summary`` / ``download`` /
-``debug build/<app>.elf [--gdb]`` / ``erase``) -- see
+idf.py loads a component's extension only from trusted sources (ESP-IDF, the
+project's components, ``EXTRA_COMPONENT_DIRS``, ``espressif/`` registry
+components); a registry install of ``espp/coredump`` needs
+``IDF_EXTENSION_ALLOW_UNTRUSTED=1``, or the espp wheel installed in the IDF
+Python environment (its ``idf_extension`` entry point is loaded without a trust
+check). Plain ``coredump-usb`` / ``coredump-usb-debug`` CMake targets remain as
+a fallback. All of this is the host half only: the firmware must store core
+dumps to flash (``CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH`` and a ``coredump``
+partition) and serve a ``CoreDumpService`` on a USB vendor interface, as the
+example does. The tool also runs directly (``python -m espp_coredump summary``
+/ ``download`` / ``debug build/<app>.elf [--gdb]`` / ``erase``) -- see
 ``components/coredump/python/README.md``.
 
 .. ------------------------------- Example -------------------------------------

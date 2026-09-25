@@ -278,6 +278,67 @@ def test_streaming_download():
         CoreDumpClient(MockDevice(image=b"")).read_image_to(chunks.append) == 0 and len(chunks) == 3)
 
 
+def test_idf_extension():
+    import json
+    import tempfile
+
+    from espp_coredump import idf_ext as X
+
+    ext = X.action_extensions({}, "/proj")
+    action = ext["actions"][X.ACTION_NAME]
+    names = {n for opt in action["options"] for n in opt["names"]}
+    _ok("idf_ext registers coredump-usb with its options",
+        action["callback"] is not None and action["dependencies"] == ["all"]
+        and {"--gdb", "--summary", "--out", "--vid", "--pid", "--serial", "--interface"} <= names)
+    _ok("idf_ext declares the extension version", "version" in ext)
+    _ok("idf_ext skips a second registration",
+        X.action_extensions({"actions": {X.ACTION_NAME: {}}}, "/proj") == {})
+
+    with tempfile.TemporaryDirectory() as build_dir:
+        try:
+            X.project_elf(build_dir)
+            _ok("idf_ext: unconfigured build dir is a FatalError", False)
+        except X.FatalError:
+            _ok("idf_ext: unconfigured build dir is a FatalError", True)
+        with open(os.path.join(build_dir, "project_description.json"), "w", encoding="utf-8") as f:
+            json.dump({"build_dir": build_dir, "app_elf": "my_app.elf"}, f)
+        elf = os.path.join(build_dir, "my_app.elf")
+        _ok("idf_ext: ELF from project_description.json", X.project_elf(build_dir) == elf)
+        _ok("idf_ext: argv for decode",
+            X.build_tool_argv(build_dir) == ["debug", elf])
+        _ok("idf_ext: argv for gdb + out + device ids",
+            X.build_tool_argv(build_dir, gdb=True, out="c.elf", vid="0x1209", pid="0x1234",
+                              serial="S1", interface="2")
+            == ["--vid", "0x1209", "--pid", "0x1234", "--serial", "S1", "--interface", "2",
+                "debug", elf, "--out", "c.elf", "--gdb"])
+        _ok("idf_ext: argv for summary needs no ELF",
+            X.build_tool_argv(build_dir, summary=True, pid="-1") == ["--pid", "-1", "summary"])
+
+        # the action callback drives the CLI in-process and maps a non-zero exit to FatalError
+        calls = []
+        import espp_coredump.cli as cli
+
+        real_main = cli.main
+        cli.main = lambda argv=None: (calls.append(list(argv)), 0)[1]
+        try:
+            class Args:
+                pass
+
+            args = Args()
+            args.build_dir = build_dir
+            action["callback"]("coredump-usb", None, args, gdb=True)
+            _ok("idf_ext: callback runs the tool with the project ELF",
+                calls == [["debug", elf, "--gdb"]])
+            cli.main = lambda argv=None: 1
+            try:
+                action["callback"]("coredump-usb", None, args)
+                _ok("idf_ext: non-zero tool exit is a FatalError", False)
+            except X.FatalError:
+                _ok("idf_ext: non-zero tool exit is a FatalError", True)
+        finally:
+            cli.main = real_main
+
+
 if __name__ == "__main__":
     tests = [
         test_frame_golden,
@@ -292,6 +353,7 @@ if __name__ == "__main__":
         test_suggested_command_quoting,
         test_extract_elf,
         test_discovery,
+        test_idf_extension,
     ]
     try:
         for t in tests:
