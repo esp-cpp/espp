@@ -160,13 +160,24 @@ def test_offset_mismatch_fails():
 
 def test_retry_on_timeout():
     dev = MockDevice()
-    dev.drop_first_reply = True  # the first GET_SIZE gets no reply; the retry does
-    n = CoreDumpClient(dev, timeout_ms=30, retries=1).size()
+    c = CoreDumpClient(dev, timeout_ms=30, retries=1)
+    # before any reply, correlation support is unknown: a timeout is NOT retried
+    dev.drop_first_reply = True
+    try:
+        c.size()
+        _ok("unknown correlation support -> no retry", False)
+    except CoreDumpTimeout:
+        _ok("unknown correlation support -> no retry", c.correlation_supported is None)
+    _ok("first reply establishes support", c.size() == len(IMAGE) and c.correlation_supported)
+    dev.drop_first_reply = True  # this GET_SIZE gets no reply; the retry does
+    n = c.size()
     _ok("retried after a timeout", n == len(IMAGE))
     dev2 = MockDevice()
+    c2 = CoreDumpClient(dev2, timeout_ms=30, retries=0)
+    c2.size()  # establish correlation support
     dev2.drop_first_reply = True
     try:
-        CoreDumpClient(dev2, timeout_ms=30, retries=0).size()
+        c2.size()
         _ok("no retries -> timeout raises", False)
     except CoreDumpError as exc:
         _ok("no retries -> timeout raises", "timed out" in str(exc))
@@ -186,22 +197,26 @@ def test_late_reply_after_retry():
     # timed out and re-sent it, so two identical DATA replies come back; the
     # second must not be taken for the next chunk's reply.
     dev = MockDevice()
-    dev.delay_first_reply = True  # (size is passed in, so the first request is the READ)
-    image = CoreDumpClient(dev, timeout_ms=30, retries=1).read_image(size=len(IMAGE))
+    c = CoreDumpClient(dev, timeout_ms=30, retries=1)
+    size = c.size()  # establishes correlation support (as the CLI's GET_SIZE does)
+    dev.delay_first_reply = True  # the first READ's DATA arrives after the retry
+    image = c.read_image(size=size)
     _ok("late DATA duplicate is discarded, image intact", image == IMAGE and dev.reads == 4)
     # same for a non-READ request: a late SIZE must not answer the next GET_SUMMARY
     dev2 = MockDevice()
-    dev2.delay_first_reply = True
     c = CoreDumpClient(dev2, timeout_ms=30, retries=1)
+    c.size()
+    dev2.delay_first_reply = True
     _ok("late SIZE duplicate is discarded", c.size() == len(IMAGE)
         and c.summary().startswith("Guru Meditation"))
-    _ok("device echoed correlation ids", not c.legacy_uncorrelated)
+    _ok("device echoed correlation ids", c.correlation_supported is True)
     # a device that never echoes the id still works, but is not retried once
     # that is known (a retry could not be told from a late reply)
     dev3 = MockDevice()
     dev3.legacy_no_correlation = True
     c3 = CoreDumpClient(dev3, timeout_ms=30, retries=2)
-    _ok("legacy device: plain transactions work", c3.read_image() == IMAGE and c3.legacy_uncorrelated)
+    _ok("legacy device: plain transactions work",
+        c3.read_image() == IMAGE and c3.correlation_supported is False)
     dev3.drop_first_reply = True
     try:
         c3.size()

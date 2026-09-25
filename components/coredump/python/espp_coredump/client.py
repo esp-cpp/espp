@@ -44,11 +44,12 @@ class CoreDumpClient:
         self._parser = _f.StreamParser()
         self._pending: Deque[_f.Frame] = deque()
         self._correlation = 0  # last correlation id sent (u16, wraps)
-        #: True once the device answered without echoing a correlation id (a
-        #: CoreDumpService predating correlation support): replies can then not
-        #: be told apart from a timed-out request's late reply, so automatic
-        #: retries are switched off (see _transact_retry()).
-        self.legacy_uncorrelated = False
+        #: Whether the device echoes correlation ids: None until its first reply
+        #: has been seen, then True, or False for a CoreDumpService predating
+        #: correlation support. A request is retried after a timeout ONLY once
+        #: support is established (True): without ids a late reply cannot be
+        #: told from the retry's, and before the first reply nothing is known.
+        self.correlation_supported: Optional[bool] = None
 
     # -- reply plumbing -------------------------------------------------------
     def _next_frame(self, deadline: float) -> _f.Frame:
@@ -82,9 +83,11 @@ class CoreDumpClient:
             if fr.module != _p.MODULE or not fr.is_reply:
                 continue
             if fr.correlation is None:
-                self.legacy_uncorrelated = True
-            elif fr.correlation != corr:
-                continue  # a late reply to an earlier request
+                self.correlation_supported = False
+            else:
+                self.correlation_supported = True
+                if fr.correlation != corr:
+                    continue  # a late reply to an earlier request
             if fr.type == MessageType.ERROR:
                 info = _p.parse_error(fr)
                 if info:
@@ -98,16 +101,17 @@ class CoreDumpClient:
         """_transact() with retries on a reply timeout only (a device ERROR or a
         protocol violation is final). A retry re-sends the same idempotent
         request under a new correlation id, so the timed-out attempt's reply,
-        should it still arrive, is recognised and dropped. A device that does
-        not echo correlation ids (legacy_uncorrelated) is never retried, since
-        its late reply would be taken for the retry's and the reply after that
-        for the next request's."""
+        should it still arrive, is recognised and dropped. That only holds once
+        the device is known to echo ids (correlation_supported is True): a
+        device that does not, and a device that has not answered yet, are not
+        retried, since there a late reply would be taken for the retry's and
+        the reply after that for the next request's."""
         attempt = 0
         while True:
             try:
                 return self._transact(make_request, want)
             except CoreDumpTimeout:
-                if attempt >= self._retries or self.legacy_uncorrelated:
+                if attempt >= self._retries or self.correlation_supported is not True:
                     raise
                 attempt += 1
 

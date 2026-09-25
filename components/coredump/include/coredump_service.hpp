@@ -197,7 +197,7 @@ public:
   void handle(const espp::stream_frame::Frame &frame) {
     if (frame.module != module_id() || frame.is_reply())
       return;
-    handle_frame(frame.type, frame.payload);
+    handle_frame(frame.type, frame.payload, frame.correlation);
   }
 
   /**
