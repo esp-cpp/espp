@@ -62,7 +62,8 @@ connector: `screen /dev/tty.usbmodem*`.)
    [`../python/README.md`](../python/README.md)):
 
    ```
-   idf.py coredump-usb
+   idf.py coredump-usb          # decode with esp-coredump info_corefile
+   idf.py coredump-usb-debug    # or open GDB on the core file
    ```
 
    or download `core.elf` in the web console (or with

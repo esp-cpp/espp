@@ -11,9 +11,12 @@
 # (example/main/coredump_example.cpp) does; this file adds no device-side code.
 #
 #     idf.py coredump-usb          # builds the app, then downloads + decodes the dump
+#     idf.py coredump-usb-debug    # same, but opens GDB on the core file instead
 #     idf.py build coredump-usb    # equivalent explicit form (also works pre-CMake 3.19)
 #
-# Device overrides are read from the environment by the tool, e.g.:
+# (Mirrors ESP-IDF's own `coredump-info` / `coredump-debug` pair.) idf.py cannot
+# pass options to a custom target, so these take none; device overrides are
+# read from the environment by the tool, e.g.:
 #     ESPP_COREDUMP_PID=0x1234 idf.py coredump-usb
 #
 # The work is done by the pure-Python `espp_coredump` tool shipped alongside this
@@ -21,8 +24,8 @@
 # time) and the `esp-coredump` decoder (both ship in the ESP-IDF Python env):
 #     pip install pyusb esp-coredump
 #
-# For full control (a specific serial, saving the core file elsewhere, opening GDB
-# on it, or just the crash summary) run the tool directly:
+# For full control (a specific serial, saving the core file elsewhere, or just
+# the crash summary) run the tool directly:
 #     python -m espp_coredump debug build/<app>.elf --help
 #     python -m espp_coredump summary
 
@@ -49,6 +52,8 @@ if(NOT TARGET coredump-usb)
             "${__espp_coredump_pkg_dir}${__espp_coredump_pathsep}$ENV{PYTHONPATH}")
     endif()
 
+    # `debug` decodes with esp-coredump info_corefile; `debug --gdb` opens GDB on
+    # the core file instead (esp-coredump dbg_corefile).
     add_custom_target(coredump-usb
         COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=${__espp_coredump_pythonpath}"
                 ${python} -m espp_coredump debug "${__espp_coredump_elf}"
@@ -56,18 +61,27 @@ if(NOT TARGET coredump-usb)
         VERBATIM
         USES_TERMINAL
         COMMENT "Downloading the core dump over USB and decoding it against ${__espp_coredump_elf} (espp_coredump)")
+    add_custom_target(coredump-usb-debug
+        COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=${__espp_coredump_pythonpath}"
+                ${python} -m espp_coredump debug "${__espp_coredump_elf}" --gdb
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+        VERBATIM
+        USES_TERMINAL
+        COMMENT "Downloading the core dump over USB and opening GDB on it against ${__espp_coredump_elf} (espp_coredump)")
 
     # The app ELF is produced by the project executable target, which is defined
     # later in project.cmake, so add the build dependency once this directory
     # scope has finished processing. On CMake < 3.19 (no cmake_language(DEFER))
-    # the target still works via the explicit `idf.py build coredump-usb` form.
+    # the targets still work via the explicit `idf.py build coredump-usb` form.
     function(__espp_coredump_link_build_dependency)
         idf_build_get_property(__espp_coredump_exe EXECUTABLE)
-        if(__espp_coredump_exe AND TARGET ${__espp_coredump_exe})
-            add_dependencies(coredump-usb ${__espp_coredump_exe})
-        elseif(TARGET gen_project_binary)
-            add_dependencies(coredump-usb gen_project_binary)
-        endif()
+        foreach(__espp_coredump_target coredump-usb coredump-usb-debug)
+            if(__espp_coredump_exe AND TARGET ${__espp_coredump_exe})
+                add_dependencies(${__espp_coredump_target} ${__espp_coredump_exe})
+            elseif(TARGET gen_project_binary)
+                add_dependencies(${__espp_coredump_target} gen_project_binary)
+            endif()
+        endforeach()
     endfunction()
     if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.19")
         cmake_language(DEFER DIRECTORY "${CMAKE_SOURCE_DIR}"

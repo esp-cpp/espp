@@ -37,20 +37,23 @@ app ELF, and erase.
 
 The ``coredump`` component also ships a ``project_include.cmake`` and a
 pure-Python host tool (``components/coredump/python/espp_coredump``), giving
-every project that uses it an ``idf.py coredump-usb`` target that pulls the
-stored core dump off the device over USB and decodes it against the app ELF it
-just built, in one step. The target is the host half only: the firmware must
-store core dumps to flash (``CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH`` and a
-``coredump`` partition) and serve a ``CoreDumpService`` on a USB vendor
-interface, as the example does:
+every project that uses it ``idf.py coredump-usb`` / ``idf.py coredump-usb-debug``
+targets that pull the stored core dump off the device over USB and decode it
+against the app ELF it just built (or open GDB on it), in one step -- the
+counterparts of ESP-IDF's ``coredump-info`` / ``coredump-debug``. The targets
+are the host half only: the firmware must store core dumps to flash
+(``CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH`` and a ``coredump`` partition) and serve
+a ``CoreDumpService`` on a USB vendor interface, as the example does:
 
 .. code-block:: sh
 
     pip install pyusb esp-coredump   # once
     idf.py coredump-usb              # builds, then downloads + decodes the core dump
+    idf.py coredump-usb-debug        # builds, then downloads + opens GDB on it
 
-The tool can also be run directly (``python -m espp_coredump summary`` /
-``download`` / ``debug build/<app>.elf [--gdb]`` / ``erase``) -- see
+``idf.py`` cannot pass options to these targets; for anything else the tool
+runs directly (``python -m espp_coredump summary`` / ``download`` /
+``debug build/<app>.elf [--gdb]`` / ``erase``) -- see
 ``components/coredump/python/README.md``.
 
 .. ------------------------------- Example -------------------------------------

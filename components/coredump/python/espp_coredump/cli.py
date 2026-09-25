@@ -12,7 +12,8 @@ Commands:
 
 VID/PID default to the coredump example's ids (0x1209:0x0d36) but can be
 overridden (also via the ESPP_COREDUMP_VID / ESPP_COREDUMP_PID env vars, which
-the CMake ``coredump-usb`` target forwards).
+the CMake ``coredump-usb`` / ``coredump-usb-debug`` targets forward; idf.py
+cannot pass options to those targets, so anything else is done from here).
 """
 
 from __future__ import annotations

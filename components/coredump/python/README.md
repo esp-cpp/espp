@@ -16,11 +16,20 @@ environment already ships).
 ## Seamless: crash → decode with `idf.py`
 
 If your project uses the espp `coredump` component, its `project_include.cmake`
-registers a `coredump-usb` build target (ESP-IDF only includes a component's
-`project_include.cmake` when that component is in the build). It builds the app
-(so the ELF matches what is on the device), downloads the stored core dump over
-USB and decodes it against that ELF, the way `idf.py coredump-info` does over
-the serial bootloader.
+registers two build targets (ESP-IDF only includes a component's
+`project_include.cmake` when that component is in the build), mirroring
+ESP-IDF's own `coredump-info` / `coredump-debug` pair:
+
+- `coredump-usb` builds the app (so the ELF matches what is on the device),
+  downloads the stored core dump over USB and decodes it against that ELF
+  (`esp-coredump info_corefile`), the way `idf.py coredump-info` does over the
+  serial bootloader;
+- `coredump-usb-debug` does the same download, then opens GDB on the core file
+  (`esp-coredump dbg_corefile`).
+
+`idf.py` cannot pass options to these targets (`idf.py coredump-usb --gdb` is
+rejected); anything beyond the two forms above is a job for the standalone CLI
+below.
 
 The target is the host half only. For it to have something to talk to, the
 firmware must (as `components/coredump/example/main/coredump_example.cpp`
@@ -33,6 +42,7 @@ through a `DispatcherWorker` so discovery and other modules share the pipe.
 ```sh
 pip install pyusb esp-coredump   # once (libusb backend: `brew install libusb`, `apt install libusb-1.0-0`)
 idf.py coredump-usb              # builds, then downloads + decodes the core dump
+idf.py coredump-usb-debug        # builds, then downloads + opens GDB on the core dump
 # or, equivalently / on CMake < 3.19:
 idf.py build coredump-usb
 ```
