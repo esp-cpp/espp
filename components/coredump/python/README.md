@@ -62,7 +62,11 @@ The VID/PID default to the coredump example's ids (`0x1209:0x0d36`); pass
 ### What `debug` does
 
 1. `GET_SIZE`, then `READ` the image in 2 KiB chunks (each `DATA` reply must echo
-   the requested offset and length; a reply timeout is retried twice).
+   the requested offset and length; a reply timeout is retried twice). Every
+   request carries a correlation id that the device echoes, so a late reply of a
+   timed-out request is recognised and dropped rather than taken for the retry's
+   (or the next request's). A device whose firmware predates that echo still
+   works, but is not retried, since its late replies could not be told apart.
 2. The stored image is the raw partition contents, `[flash header][ELF core
    file][checksum]`; the ELF magic is located in the first KiB and the file
    saved from there as `core.elf` (`--out` to choose). A device built with the

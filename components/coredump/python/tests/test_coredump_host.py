@@ -39,6 +39,7 @@ class MockDevice:
         self.delay_first_reply = False      # the first reply arrives only after the host's retry
         self._held = b""
         self.error_on_read = False          # every READ answers ERROR
+        self.legacy_no_correlation = False  # pre-correlation firmware: never echoes the id
 
     def write(self, data, timeout_ms=0):
         for fr in self._parser.feed(data):
@@ -51,7 +52,12 @@ class MockDevice:
         del self._out[: len(chunk)]
         return chunk
 
-    def _reply(self, b):
+    def _reply(self, b, fr=None):
+        if fr is not None and not self.legacy_no_correlation and fr.correlation is not None:
+            # echo the request's correlation id, as CoreDumpService does
+            parsed = F.StreamParser().feed(b)[0]
+            b = F.build_frame(parsed.module, parsed.type, parsed.payload, reply=True,
+                              correlation=fr.correlation)
         if self.drop_first_reply:
             self.drop_first_reply = False
             return
@@ -80,24 +86,24 @@ class MockDevice:
             return
         t = fr.type
         if t == MessageType.GET_SUMMARY:
-            self._reply(P._build(MessageType.SUMMARY, self.summary.encode()))
+            self._reply(P._build(MessageType.SUMMARY, self.summary.encode()), fr)
         elif t == MessageType.GET_SIZE:
-            self._reply(P._build(MessageType.SIZE, struct.pack("<I", len(self.image))))
+            self._reply(P._build(MessageType.SIZE, struct.pack("<I", len(self.image))), fr)
         elif t == MessageType.READ:
             self.reads += 1
             if self.error_on_read:
-                self._reply(P._build(MessageType.ERROR, struct.pack("<I", 5) + b"READ failed"))
+                self._reply(P._build(MessageType.ERROR, struct.pack("<I", 5) + b"READ failed"), fr)
                 return
             offset, length = struct.unpack("<IH", fr.payload)
             data = self.image[offset:offset + length]
             echoed = offset
             if self.corrupt_offset_on_read == self.reads:
                 echoed = offset + 1
-            self._reply(P._build(MessageType.DATA, struct.pack("<I", echoed) + data))
+            self._reply(P._build(MessageType.DATA, struct.pack("<I", echoed) + data), fr)
         elif t == MessageType.ERASE:
             self.erased = True
             self.image = b""
-            self._reply(P._build(MessageType.OK, struct.pack("<I", 0)))
+            self._reply(P._build(MessageType.OK, struct.pack("<I", 0)), fr)
 
 
 def _ok(name, cond):
@@ -189,6 +195,19 @@ def test_late_reply_after_retry():
     c = CoreDumpClient(dev2, timeout_ms=30, retries=1)
     _ok("late SIZE duplicate is discarded", c.size() == len(IMAGE)
         and c.summary().startswith("Guru Meditation"))
+    _ok("device echoed correlation ids", not c.legacy_uncorrelated)
+    # a device that never echoes the id still works, but is not retried once
+    # that is known (a retry could not be told from a late reply)
+    dev3 = MockDevice()
+    dev3.legacy_no_correlation = True
+    c3 = CoreDumpClient(dev3, timeout_ms=30, retries=2)
+    _ok("legacy device: plain transactions work", c3.read_image() == IMAGE and c3.legacy_uncorrelated)
+    dev3.drop_first_reply = True
+    try:
+        c3.size()
+        _ok("legacy device: no retry after a timeout", False)
+    except CoreDumpTimeout:
+        _ok("legacy device: no retry after a timeout", True)
 
 
 def test_error_reply():

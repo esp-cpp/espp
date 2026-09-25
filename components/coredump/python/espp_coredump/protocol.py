@@ -50,29 +50,33 @@ def is_reply_type(type_: int) -> bool:
     return bool(type_ & 0x80)
 
 
-def _build(type_: MessageType, payload: bytes = b"") -> bytes:
-    return _f.build_frame(MODULE, int(type_), payload, reply=is_reply_type(type_))
+def _build(type_: MessageType, payload: bytes = b"",
+           correlation: Optional[int] = None) -> bytes:
+    return _f.build_frame(MODULE, int(type_), payload, reply=is_reply_type(type_),
+                          correlation=correlation)
 
 
 # ---- request builders (host -> device) --------------------------------------
-def make_get_summary() -> bytes:
-    return _build(MessageType.GET_SUMMARY)
+# ``correlation`` (optional u16) is echoed by the device's reply, which is how
+# the client tells a late reply of a timed-out request from the retry's.
+def make_get_summary(correlation: Optional[int] = None) -> bytes:
+    return _build(MessageType.GET_SUMMARY, correlation=correlation)
 
 
-def make_get_size() -> bytes:
-    return _build(MessageType.GET_SIZE)
+def make_get_size(correlation: Optional[int] = None) -> bytes:
+    return _build(MessageType.GET_SIZE, correlation=correlation)
 
 
-def make_read(offset: int, length: int) -> bytes:
+def make_read(offset: int, length: int, correlation: Optional[int] = None) -> bytes:
     if not (0 <= offset <= 0xFFFFFFFF):
         raise ValueError("offset must fit in u32")
     if not (1 <= length <= MAX_READ_LENGTH):
         raise ValueError(f"length must be 1..{MAX_READ_LENGTH}")
-    return _build(MessageType.READ, struct.pack("<IH", offset, length))
+    return _build(MessageType.READ, struct.pack("<IH", offset, length), correlation=correlation)
 
 
-def make_erase() -> bytes:
-    return _build(MessageType.ERASE)
+def make_erase(correlation: Optional[int] = None) -> bytes:
+    return _build(MessageType.ERASE, correlation=correlation)
 
 
 def make_discovery_request() -> bytes:

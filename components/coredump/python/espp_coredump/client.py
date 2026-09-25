@@ -11,13 +11,14 @@ from __future__ import annotations
 
 import time
 from collections import deque
-from typing import Callable, Deque, List, Optional, Tuple
+from typing import Callable, Deque, Optional
 
 from . import frame as _f
 from . import protocol as _p
 from .protocol import CoreDumpError, CoreDumpTimeout, DiscoveryInfo, MessageType
 
 ProgressFn = Callable[[int, int], None]  # (read, total) -> None
+RequestFn = Callable[[int], bytes]  # correlation id -> encoded request frame
 
 #: READ chunk the browser console uses; well inside the 4092-byte cap and the
 #: example's 4096-byte USB buffers.
@@ -42,11 +43,12 @@ class CoreDumpClient:
         self._retries = max(0, retries)
         self._parser = _f.StreamParser()
         self._pending: Deque[_f.Frame] = deque()
-        # Replies still owed by requests that timed out and were re-sent (the
-        # stream carries no correlation id, so a late reply is told apart from
-        # the retry's by type -- and, for DATA, by its echoed offset): one
-        # (type, key, expiry) per timed-out attempt, dropped once seen or expired.
-        self._stale: List[Tuple[MessageType, Optional[int], float]] = []
+        self._correlation = 0  # last correlation id sent (u16, wraps)
+        #: True once the device answered without echoing a correlation id (a
+        #: CoreDumpService predating correlation support): replies can then not
+        #: be told apart from a timed-out request's late reply, so automatic
+        #: retries are switched off (see _transact_retry()).
+        self.legacy_uncorrelated = False
 
     # -- reply plumbing -------------------------------------------------------
     def _next_frame(self, deadline: float) -> _f.Frame:
@@ -60,22 +62,29 @@ class CoreDumpClient:
             if data:
                 self._pending.extend(self._parser.feed(data))
 
-    def _transact(self, request: bytes, want: MessageType,
+    def _transact(self, make_request: RequestFn, want: MessageType,
                   timeout_ms: Optional[int] = None) -> _f.Frame:
         """Send one request and return the matching reply (module 4).
 
-        Only device->host replies on our module count: other modules' traffic
-        and device-originated requests are skipped (as the browser console also
-        enforces). An ERROR reply raises :class:`CoreDumpError`."""
+        Every request carries a fresh correlation id, which the device echoes:
+        a reply with a different id (the late reply of an earlier, timed-out
+        request) is discarded. Only device->host replies on our module count:
+        other modules' traffic and device-originated requests are skipped (as
+        the browser console also enforces). An ERROR reply raises
+        :class:`CoreDumpError`."""
         to = self._timeout if timeout_ms is None else timeout_ms
-        self._t.write(request, timeout_ms=to)
+        self._correlation = (self._correlation + 1) & 0xFFFF
+        corr = self._correlation
+        self._t.write(make_request(corr), timeout_ms=to)
         deadline = time.monotonic() + to / 1000.0
         while True:
             fr = self._next_frame(deadline)
             if fr.module != _p.MODULE or not fr.is_reply:
                 continue
-            if self._is_stale_reply(fr):
-                continue
+            if fr.correlation is None:
+                self.legacy_uncorrelated = True
+            elif fr.correlation != corr:
+                continue  # a late reply to an earlier request
             if fr.type == MessageType.ERROR:
                 info = _p.parse_error(fr)
                 if info:
@@ -85,57 +94,31 @@ class CoreDumpClient:
                 return fr
             raise CoreDumpError(f"unexpected reply type 0x{fr.type:02x}")
 
-    def _is_stale_reply(self, fr: _f.Frame) -> bool:
-        """Whether ``fr`` is the late reply of a timed-out, re-sent request (see
-        ``_stale``): it is then consumed here and must not answer anything."""
-        if not self._stale:
-            return False
-        now = time.monotonic()
-        self._stale = [s for s in self._stale if s[2] > now]
-        for i, (typ, key, _) in enumerate(self._stale):
-            if fr.type != typ:
-                continue
-            if typ == MessageType.DATA:
-                info = _p.parse_data(fr)
-                if info is None or info.offset != key:
-                    continue
-            del self._stale[i]
-            return True
-        return False
-
-    def _transact_retry(self, request: bytes, want: MessageType,
-                        key: Optional[int] = None) -> _f.Frame:
+    def _transact_retry(self, make_request: RequestFn, want: MessageType) -> _f.Frame:
         """_transact() with retries on a reply timeout only (a device ERROR or a
         protocol violation is final). A retry re-sends the same idempotent
-        request. The stream has no correlation id, so the timed-out attempt's
-        reply, should it still arrive, is identical to the retry's: whichever
-        comes first answers the retry, and one more reply of that type (with
-        ``key`` = the echoed offset for READ) is then expected and discarded
-        by :meth:`_is_stale_reply` -- otherwise it would be taken for the next
-        request's answer (a READ desynchronised by one chunk). A late reply
-        that never shows up expires after two timeouts."""
+        request under a new correlation id, so the timed-out attempt's reply,
+        should it still arrive, is recognised and dropped. A device that does
+        not echo correlation ids (legacy_uncorrelated) is never retried, since
+        its late reply would be taken for the retry's and the reply after that
+        for the next request's."""
         attempt = 0
         while True:
             try:
-                fr = self._transact(request, want)
+                return self._transact(make_request, want)
             except CoreDumpTimeout:
-                if attempt >= self._retries:
+                if attempt >= self._retries or self.legacy_uncorrelated:
                     raise
                 attempt += 1
-                continue
-            if attempt:
-                expiry = time.monotonic() + 2.0 * self._timeout / 1000.0
-                self._stale.extend((want, key, expiry) for _ in range(attempt))
-            return fr
 
     # -- public API -----------------------------------------------------------
     def summary(self) -> str:
         """The device's crash report text; empty when the boot history is clean."""
-        return _p.parse_summary(self._transact_retry(_p.make_get_summary(), MessageType.SUMMARY))
+        return _p.parse_summary(self._transact_retry(_p.make_get_summary, MessageType.SUMMARY))
 
     def size(self) -> int:
         """The stored core-dump image size in bytes; 0 when there is none."""
-        n = _p.parse_u32(self._transact_retry(_p.make_get_size(), MessageType.SIZE))
+        n = _p.parse_u32(self._transact_retry(_p.make_get_size, MessageType.SIZE))
         if n is None:
             raise CoreDumpError("unparseable SIZE reply")
         return n
@@ -154,7 +137,8 @@ class CoreDumpClient:
         read = 0
         while read < total:
             length = min(self._chunk, total - read)
-            fr = self._transact_retry(_p.make_read(read, length), MessageType.DATA, key=read)
+            fr = self._transact_retry(
+                lambda corr, off=read, n=length: _p.make_read(off, n, corr), MessageType.DATA)
             info = _p.parse_data(fr)
             if info is None:
                 raise CoreDumpError("malformed DATA reply")
@@ -170,7 +154,7 @@ class CoreDumpClient:
 
     def erase(self) -> None:
         """Erase the stored core dump (the device answers OK)."""
-        self._transact_retry(_p.make_erase(), MessageType.OK)
+        self._transact_retry(_p.make_erase, MessageType.OK)
 
     def discover(self, timeout_ms: int = 2000) -> Optional[DiscoveryInfo]:
         """Send a dispatcher ListModules request and decode the reply; None on
