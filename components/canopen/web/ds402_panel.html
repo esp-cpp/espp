@@ -1013,6 +1013,10 @@
       // segments arrive so a long upload can show where it is.
       const maxBytes = (opts && opts.maxBytes) ? opts.maxBytes : SDO_MAX_TRANSFER;
       const progress = (opts && opts.progress) ? opts.progress : null;
+      // cancelled(): checked before every segment of a long transfer, so a
+      // Cancel lands within one segment round trip; the transfer is then
+      // aborted on the bus and the promise rejects with "cancelled".
+      const cancelled = (opts && opts.cancelled) ? opts.cancelled : null;
       return withSdo(async (node) => {
         const mux = { index, sub };
         const req = new Uint8Array(8);
@@ -1037,6 +1041,10 @@
         const chunks = [];
         let toggle = 0;
         for (;;) {
+          if (cancelled && cancelled()) {
+            await sendSdoAbort(node, index, sub, 0x08000000);   // general error: transfer cancelled
+            throw new Error("SDO upload cancelled");
+          }
           const seg = new Uint8Array(8);
           seg[0] = 0x60 | (toggle << 4);
           const s = await sdoSendAndWait(seg, node, null);   // segment: no multiplexer
@@ -1829,8 +1837,22 @@
           if (idx != null && idx >= 0 && idx <= 0xFFFF) indices.add(idx);
         }
       }
+      // One pass over the section names: object sections, and sub-object
+      // sections bucketed by their parent index, so per-object lookups below
+      // do not rescan every section (a device EDS may have thousands).
+      // CiA 306: the section name is "<index>sub<subindex>" with both numbers
+      // in hexadecimal (no leading zeros in the subindex), e.g. [1600sub10] is
+      // subindex 16 - the same reading python-canopen's EDS parser uses.
+      const subSections = new Map();   // index -> [{ sub, section }]
       for (const key of sections.keys()) {
-        if (/^[0-9a-f]{4}$/.test(key)) indices.add(parseInt(key, 16));
+        if (/^[0-9a-f]{4}$/.test(key)) { indices.add(parseInt(key, 16)); continue; }
+        const m = /^([0-9a-f]{4})sub([0-9a-f]+)$/.exec(key);
+        if (!m) continue;
+        const sub = parseInt(m[2], 16);
+        if (sub > 0xFF) continue;
+        const parent = parseInt(m[1], 16);
+        if (!subSections.has(parent)) subSections.set(parent, []);
+        subSections.get(parent).push({ sub, section: sections.get(key) });
       }
       const objects = [];
       for (const index of [...indices].sort((a, b) => a - b)) {
@@ -1862,13 +1884,9 @@
             }
           } else {
             const seen = new Set();
-            for (const key of sections.keys()) {
-              const m = new RegExp("^" + sec + "sub([0-9a-f]+)$").exec(key);
-              if (!m) continue;
-              const sub = parseInt(m[1], 16);
-              if (sub > 0xFF || seen.has(sub)) continue;
+            for (const { sub, section: ss } of subSections.get(index) || []) {
+              if (seen.has(sub)) continue;
               seen.add(sub);
-              const ss = sections.get(key);
               obj.subs.push({
                 sub,
                 name: ss.get("parametername") || ("sub " + sub),
@@ -2048,7 +2066,11 @@
           case "f64": if (fits(8)) return { text: String(dv.getFloat64(0, true)), hex: hexText, kind }; break;
           case "u64": if (fits(8)) return { text: dv.getBigUint64(0, true).toString(), hex: hexText, kind }; break;
           case "i64": if (fits(8)) return { text: dv.getBigInt64(0, true).toString(), hex: hexText, kind }; break;
-          case "string": return { text: JSON.stringify(new TextDecoder().decode(bytes).replace(/\0+$/, "")), hex: hexText, kind };
+          case "string": {
+            // VISIBLE_STRING is ASCII/UTF-8; UNICODE_STRING (0x000B) is UTF-16LE
+            const enc = dataType === 0x000B ? "utf-16le" : "utf-8";
+            return { text: JSON.stringify(new TextDecoder(enc).decode(bytes).replace(/\0+$/, "")), hex: hexText, kind };
+          }
           case "hex": return { text: bytes.length + " bytes", hex: hexText, kind };
         }
       } catch (_) { /* fall through to inference */ }
@@ -2196,7 +2218,14 @@
       return c;
     }
     function odToCsv(rows) {
-      const esc = (s) => { const t = s == null ? "" : String(s); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+      // Names / access strings come from the device or a file: a cell starting
+      // with = + - @ (or a tab / CR) would run as a formula in a spreadsheet, so
+      // neutralize it with a leading apostrophe before the CSV quoting.
+      const esc = (s) => {
+        let t = s == null ? "" : String(s);
+        if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+        return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+      };
       const lines = ["index,sub,name,type,access,status,value,raw"];
       for (const r of rows) {
         lines.push([odHex(r.index, 4), r.sub, r.name, odTypeName(r.dataType), r.access || "", r.status,
@@ -2212,11 +2241,21 @@
     let odRows = [];             // the last scan's rows
     let odScanInFlight = false;
     let odScanCancel = false;
+    let odSourceGeneration = 0;  // bumped by odSetSource(): a scan of an older list is discarded
+    // The controls that replace the object list. Off while a scan runs (the
+    // list must not change under it); the device-EDS button also follows the link.
+    function odSetSourceControlsEnabled(on) {
+      els.odDeviceEdsBtn.disabled = !on || !transport;
+      els.odEdsFileBtn.disabled = !on;
+      els.odBuiltinBtn.disabled = !on;
+      els.odAxis.disabled = !on;
+    }
     const odCollapsed = new Set();   // group indices the user collapsed
 
     function odSetSource(kind, label, objects, info) {
       odObjects = objects;
       odSource = { kind, label };
+      odSourceGeneration++;
       odRows = [];
       odCollapsed.clear();
       els.odSourceBadge.textContent = label;
@@ -2396,6 +2435,7 @@
       if (!transport) return;
       let node;
       try { node = currentNode(); } catch (e) { logLine("err", "device EDS: " + e.message); return; }
+      if (odScanInFlight) { logLine("err", "device EDS: a scan is running; cancel it first"); return; }
       els.odDeviceEdsBtn.disabled = true;
       els.odSourceInfo.textContent = "reading 0x1022 (storage format) ...";
       try {
@@ -2417,7 +2457,7 @@
         const msg = c.status === "absent" ? "the device stores no EDS (0x1021 absent); load an EDS file or use the built-in table" : (e && e.message ? e.message : String(e));
         els.odSourceInfo.textContent = msg;
         logLine(c.status === "absent" ? "warn" : "err", "device EDS: " + msg);
-      } finally { els.odDeviceEdsBtn.disabled = !transport; }
+      } finally { els.odDeviceEdsBtn.disabled = !transport || odScanInFlight; }
     });
 
     // ---- scan ---------------------------------------------------------------------
@@ -2431,18 +2471,30 @@
       lockSequenceControls(true);   // no writes / NMT / node edits under a scan
       els.odScanBtn.disabled = true;
       els.odCancelBtn.disabled = false;
-      els.odDeviceEdsBtn.disabled = true;
+      // freeze the object list for the duration: no source may replace it
+      odSetSourceControlsEnabled(false);
       els.odProgress.textContent = "scanning ...";
       logLine("sys", "OD scan: node " + node + ", " + odObjects.length + " objects (" + odSource.label + ")");
       const started = Date.now();
-      const read = (index, sub) => sdoUpload(index, sub, node);
+      const generation = odSourceGeneration;
+      const objects = odObjects;
+      const isCancelled = () => odScanCancel || !transport;
+      // the cancel hook reaches into a segmented upload (a DOMAIN) so Cancel
+      // does not have to wait for the whole transfer
+      const read = (index, sub) => sdoUpload(index, sub, node, { cancelled: isCancelled });
       let rows = [];
       try {
-        rows = await odScan(odObjects, read, {
+        rows = await odScan(objects, read, {
           progress: (done, total) => { els.odProgress.textContent = "scanning " + done + " / " + total; },
-          cancelled: () => odScanCancel || !transport,
+          cancelled: isCancelled,
         });
       } catch (e) { logLine("err", "OD scan: " + (e && e.message ? e.message : e)); }
+      if (generation !== odSourceGeneration) {
+        // a device-EDS read that was already in flight replaced the list
+        // meanwhile: these rows describe the old list, drop them
+        logLine("warn", "OD scan: the object list changed during the scan; results discarded");
+        rows = [];
+      }
       odRows = rows;
       const c = odCounts(rows);
       const secs = ((Date.now() - started) / 1000).toFixed(1);
@@ -2453,7 +2505,7 @@
       lockSequenceControls(false);
       els.odCancelBtn.disabled = true;
       els.odScanBtn.disabled = !transport;
-      els.odDeviceEdsBtn.disabled = !transport;
+      odSetSourceControlsEnabled(true);
       els.odExportBtn.disabled = !rows.length;
       odRender();
     });

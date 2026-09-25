@@ -173,6 +173,28 @@ AccessType=wo
   await test("parseEds: not an EDS", () => {
     assert.strictEqual(od.parseEds("hello world").objects.length, 0);
   });
+  await test("parseEds: sub-section suffix is hexadecimal (CiA 306), many sections stay fast", () => {
+    // [2000sub10] is subindex 16, [2000subA] is 10
+    const eds = "[2000]\nParameterName=Vendor record\nObjectType=0x9\nSubNumber=3\n" +
+                "[2000sub0]\nParameterName=Count\nDataType=0x0005\nAccessType=ro\n" +
+                "[2000subA]\nParameterName=Tenth\nDataType=0x0006\nAccessType=rw\n" +
+                "[2000sub10]\nParameterName=Sixteenth\nDataType=0x0007\nAccessType=ro\n";
+    const o = od.parseEds(eds).objects.find((x) => x.index === 0x2000);
+    assert.deepStrictEqual(o.subs.map((s) => [s.sub, s.name]), [[0, "Count"], [10, "Tenth"], [16, "Sixteenth"]]);
+    // a large dictionary: 3000 records x 4 subs must parse in well under a second
+    let big = "";
+    for (let i = 0; i < 3000; i++) {
+      const idx = (0x2000 + i).toString(16);
+      big += "[" + idx + "]\nParameterName=R" + i + "\nObjectType=0x9\nSubNumber=4\n";
+      for (let s = 0; s < 4; s++) big += "[" + idx + "sub" + s + "]\nParameterName=S" + s + "\nDataType=0x0007\nAccessType=rw\n";
+    }
+    const t0 = Date.now();
+    const parsed = od.parseEds(big);
+    const ms = Date.now() - t0;
+    assert.strictEqual(parsed.objects.length, 3000);
+    assert.strictEqual(parsed.objects[2999].subs.length, 4);
+    assert(ms < 1000, "parse took " + ms + " ms");
+  });
 
   await test("builtinObjects: table shape and axis offset", () => {
     const t = od.builtinObjects(1);
@@ -203,6 +225,8 @@ AccessType=wo
     assert.strictEqual(od.odDecodeValue(b(0x92, 0x01, 0x02, 0x00), 0x7).text, "131474");
     assert.strictEqual(od.odDecodeValue(b(0x00, 0x00, 0x80, 0x3f), 0x8).text, "1"); // REAL32 1.0
     assert.strictEqual(od.odDecodeValue(b(0x53, 0x65, 0x72, 0x76, 0x6f, 0x00), 0x9).text, JSON.stringify("Servo"));
+    // UNICODE_STRING (0x000B) is UTF-16LE
+    assert.strictEqual(od.odDecodeValue(b(0x48, 0x00, 0x69, 0x00, 0x00, 0x00), 0xB).text, JSON.stringify("Hi"));
     assert.strictEqual(od.odDecodeValue(b(1, 2, 3), 0xF).text, "3 bytes");        // DOMAIN
     assert.strictEqual(od.odDecodeValue(b(1, 2, 3), 0xF).hex, "01 02 03");
     // a large DOMAIN: the hex column is capped, the value column keeps the full length
@@ -302,6 +326,10 @@ AccessType=wo
     // an ARRAY's header row is its sub 0 (the UNSIGNED8 entry count)
     assert(csv.includes("0x1600,0,RPDO 1 mapping,UNSIGNED8,ro,absent,absent,"), csv);
     assert(csv.includes('0x6040,0,Controlword,UNSIGNED16,rww,timeout,no response,'));
+    // a name from the device / a file that would run as a spreadsheet formula is neutralized
+    const evil = od.odToCsv([{ index: 0x2000, sub: 0, name: "=HYPERLINK(\"x\")", dataType: 0x7, access: "ro", status: "ok",
+                               value: { text: "1", hex: "01" } }]);
+    assert(evil.includes("\"'=HYPERLINK(\"\"x\"\")\""), evil);
   });
 
   await test("odScan: built-in table, dynamic array count and cancellation", async () => {
