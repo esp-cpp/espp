@@ -421,11 +421,9 @@
       <h2>Object dictionary</h2>
       <div class="row">
         <button id="odDeviceEdsBtn" class="small" disabled title="Read the EDS the device stores in object 0x1021 (Store EDS)">Read device EDS (0x1021)</button>
-        <label>
-          <input type="file" id="odEdsFile" accept=".eds,.dcf,.txt,text/plain" style="display:none;">
-          <button id="odEdsFileBtn" class="small">Load EDS file…</button>
-        </label>
-        <button id="odBuiltinBtn" class="small">Use built-in CiA 301/402 table</button>
+        <input type="file" id="odEdsFile" accept=".eds,.dcf,.txt,text/plain" style="display:none;" aria-hidden="true" tabindex="-1">
+        <button id="odEdsFileBtn" class="small" title="Load a CiA 306 EDS (or DCF) file from disk">Load EDS file…</button>
+        <button id="odBuiltinBtn" class="small" title="The commonly implemented CiA 301 / CiA 402 objects (a subset of the standards)">Use built-in CiA 301/402 table</button>
         <div class="field">
           <span>Axis</span>
           <select id="odAxis" aria-label="DS402 axis (built-in table)">
@@ -434,7 +432,7 @@
           </select>
         </div>
         <span class="spacer"></span>
-        <button id="odScanBtn" class="small primary" disabled title="Read every readable entry of the listed objects from the node">Scan</button>
+        <button id="odScanBtn" class="small primary" disabled title="Read every readable entry of the listed objects from the node (DOMAIN entries are left to their row's Read button)">Scan</button>
         <button id="odCancelBtn" class="small danger" disabled>Cancel</button>
       </div>
       <div class="statusline" style="margin-top:8px;">
@@ -1015,11 +1013,14 @@
       // segments arrive so a long upload can show where it is.
       const maxBytes = (opts && opts.maxBytes) ? opts.maxBytes : SDO_MAX_TRANSFER;
       const progress = (opts && opts.progress) ? opts.progress : null;
-      // cancelled(): checked before every segment of a long transfer, so a
-      // Cancel lands within one segment round trip; the transfer is then
-      // aborted on the bus and the promise rejects with "cancelled".
+      // cancelled(): checked when the queued transaction starts (a job still
+      // waiting in the SDO queue sends nothing once cancelled) and before every
+      // segment of a long transfer, so a Cancel lands within one round trip;
+      // a started transfer is then aborted on the bus. The promise rejects
+      // with "cancelled" either way.
       const cancelled = (opts && opts.cancelled) ? opts.cancelled : null;
       return withSdo(async (node) => {
+        if (cancelled && cancelled()) throw new Error("SDO upload cancelled");
         const mux = { index, sub };
         const req = new Uint8Array(8);
         req[0] = 0x40;
@@ -2011,12 +2012,23 @@
       [0x6090, "Velocity encoder resolution", 9, null, null, [[1, "Encoder increments per second", 0x7, "rw"], [2, "Motor revolutions per second", 0x7, "rw"]]],
       [0x6091, "Gear ratio", 9, null, null, [[1, "Motor revolutions", 0x7, "rw"], [2, "Shaft revolutions", 0x7, "rw"]]],
       [0x6092, "Feed constant", 9, null, null, [[1, "Feed", 0x7, "rw"], [2, "Shaft revolutions", 0x7, "rw"]]],
+      [0x6093, "Position factor", 9, null, null, [[1, "Numerator", 0x7, "rw"], [2, "Divisor", 0x7, "rw"]]],
+      [0x6094, "Velocity encoder factor", 9, null, null, [[1, "Numerator", 0x7, "rw"], [2, "Divisor", 0x7, "rw"]]],
+      [0x6095, "Velocity factor 1", 9, null, null, [[1, "Numerator", 0x7, "rw"], [2, "Divisor", 0x7, "rw"]]],
+      [0x6096, "Velocity factor", 9, null, null, [[1, "Numerator", 0x7, "rw"], [2, "Divisor", 0x7, "rw"]]],
+      [0x6097, "Acceleration factor", 9, null, null, [[1, "Numerator", 0x7, "rw"], [2, "Divisor", 0x7, "rw"]]],
       [0x6098, "Homing method", 7, 0x2, "rw"],
       [0x6099, "Homing speeds", 9, null, null, [[1, "Speed during search for switch", 0x7, "rw"], [2, "Speed during search for zero", 0x7, "rw"]]],
       [0x609A, "Homing acceleration", 7, 0x7, "rw"],
       [0x60B0, "Position offset", 7, 0x4, "rw"],
       [0x60B1, "Velocity offset", 7, 0x4, "rw"],
       [0x60B2, "Torque offset", 7, 0x3, "rw"],
+      [0x60B8, "Touch probe function", 7, 0x6, "rw"],
+      [0x60B9, "Touch probe status", 7, 0x6, "ro"],
+      [0x60BA, "Touch probe 1 positive edge", 7, 0x4, "ro"],
+      [0x60BB, "Touch probe 1 negative edge", 7, 0x4, "ro"],
+      [0x60BC, "Touch probe 2 positive edge", 7, 0x4, "ro"],
+      [0x60BD, "Touch probe 2 negative edge", 7, 0x4, "ro"],
       [0x60C0, "Interpolation sub mode select", 7, 0x3, "rw"],
       [0x60C1, "Interpolation data record", 8, 0x4, "rw", 2, true],
       [0x60C2, "Interpolation time period", 9, null, null, [[1, "Interpolation time period value", 0x5, "rw"], [2, "Interpolation time index", 0x2, "rw"]]],
@@ -2215,15 +2227,16 @@
         const extra = Math.max(0, subsToRead.length - listed.length);   // dynamic subs beyond the listed ones
         total += extra;
         let ended = false;   // the object's walk finished on its own (last sub, or no such sub)
+        let lost = false;    // a sub read came back "cancelled" (link gone / transfer aborted)
         for (const s of subsToRead) {
           if (cancelled()) break;
           const row = await readEntry(o, s);
           rows.push(row);
           done++; progress(done, total);
-          if (row.status === "cancelled") break;
+          if (row.status === "cancelled") { lost = true; break; }
           if (row.status === "no-sub") { ended = true; break; }   // the object ends here
         }
-        if (!ended && cancelled()) { stoppedAt = oi; break; }
+        if (!ended && (lost || cancelled())) { stoppedAt = oi; break; }
         done = base + objectShare + extra; progress(done, total);
       }
       if (stoppedAt != null) {
@@ -2478,7 +2491,7 @@
       ++odLoadToken;   // supersedes a file / device load still in flight
       const axis = parseInt(els.odAxis.value, 10) || 1;
       odSetSource("builtin", "built-in table", builtinObjects(axis),
-                  "CiA 301 communication profile + CiA 402 drive profile" + (axis > 1 ? " (axis " + axis + ", +" + odHex(0x800 * (axis - 1), 4) + ")" : "") + ". Objects a device lacks show as absent after a scan.");
+                  "the commonly implemented CiA 301 communication-profile and CiA 402 drive-profile objects (not every standard entry; a device's own EDS is complete)" + (axis > 1 ? " (axis " + axis + ", +" + odHex(0x800 * (axis - 1), 4) + ")" : "") + ". Objects a device lacks show as absent after a scan.");
       logLine("sys", "object dictionary source: built-in CiA 301/402 table (axis " + axis + ")");
     });
     els.odAxis.addEventListener("change", () => { if (odSource && odSource.kind === "builtin") els.odBuiltinBtn.click(); });
@@ -2509,9 +2522,14 @@
         catch (e) { if (odClassifyError(e).status !== "absent") throw e; }
         if (format !== 0) throw new Error("0x1022 storage format " + format + " (compressed / not ASCII EDS) is not supported here; load the EDS file instead");
         const started = Date.now();
+        // a later source choice (or a lost link) makes this upload pointless:
+        // abort it on the bus rather than let it hold the SDO channel, and
+        // keep its progress off a status line that now belongs to that source
+        const stale = () => token !== odLoadToken || !transport;
         const bytes = await sdoUpload(0x1021, 0, node, {
           maxBytes: OD_EDS_MAX_BYTES,
-          progress: (n, total) => { els.odSourceInfo.textContent = "reading 0x1021 (Store EDS): " + n + (total ? " / " + total : "") + " bytes ..."; },
+          cancelled: stale,
+          progress: (n, total) => { if (!stale()) els.odSourceInfo.textContent = "reading 0x1021 (Store EDS): " + n + (total ? " / " + total : "") + " bytes ..."; },
         });
         if (token !== odLoadToken) { logLine("warn", "device EDS: superseded by a later source choice; discarded"); return; }
         const text = new TextDecoder().decode(bytes);

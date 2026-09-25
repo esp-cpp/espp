@@ -200,7 +200,7 @@ AccessType=wo
     const t = od.builtinObjects(1);
     const idx = t.map((o) => o.index);
     for (const must of [0x1000, 0x1012, 0x1013, 0x1018, 0x1021, 0x1023, 0x1024, 0x1025, 0x1026, 0x1027, 0x1028, 0x1029, 0x1200, 0x1280,
-                        0x1400, 0x1A03, 0x6040, 0x6041, 0x607D, 0x60FF, 0x6502]) assert(idx.includes(must), "missing " + must.toString(16));
+                        0x1400, 0x1A03, 0x6040, 0x6041, 0x607D, 0x6093, 0x6094, 0x6096, 0x60B8, 0x60BD, 0x60FF, 0x6502]) assert(idx.includes(must), "missing " + must.toString(16));
     assert.strictEqual(t.find((o) => o.index === 0x1024).access, "wo");
     assert.strictEqual(t.find((o) => o.index === 0x1023).subs[1].dataType, 0xF);
     // the manual panel writes UTF-8 strings: a UNICODE_STRING row maps to hex, not "string"
@@ -365,6 +365,16 @@ AccessType=wo
     assert(rows2.every((r) => r.status !== "skipped" || r.error === "not scanned (cancelled)"));
     const c2 = od.odCounts(rows2);
     assert(c2.unread >= entries - 4 && c2.errors === 0, JSON.stringify(c2));
+    // a link lost in the middle of a record's subs stops the whole walk, not just that object
+    const log5 = [];
+    let calls = 0;
+    const rows5 = await od.odScan(all.filter((o) => o.index === 0x1018 || o.index === 0x6040 || o.index === 0x6041), async (index, sub) => {
+      log5.push(index.toString(16) + ":" + sub);
+      if (++calls === 3) throw new Error("SDO aborted");   // 0x1018:2 fails as "cancelled"
+      return sub === 0 ? Uint8Array.of(4) : Uint8Array.of(1, 0, 0, 0);
+    }, {});
+    assert(!log5.includes("6040:0") && !log5.includes("6041:0"), "no object after the loss may be read: " + log5);
+    assert.strictEqual(rows5.find((r) => r.index === 0x6040).status, "skipped");
     // a disconnect surfaces as the SDO client's rejection: the walk stops with what it has
     const rows3 = await od.odScan(all, async () => { throw new Error("SDO aborted"); }, {});
     assert.strictEqual(rows3[0].status, "cancelled");

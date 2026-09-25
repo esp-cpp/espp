@@ -53,10 +53,13 @@ runs in the browser:
   object list comes from the device's own EDS (object `0x1021` *Store EDS*,
   read as a DOMAIN over segmented SDO and parsed in the browser when `0x1022`
   reports plain ASCII), from an EDS file, or from a built-in CiA 301 / CiA 402
-  table; a scan reads every readable entry (one SDO transaction at a time) and
-  classifies each as present, absent, write-only, aborted or unanswered - it
-  never writes. The parser, table, decoder and scan walk are pure functions
-  covered by `node web/test/ds402_od_test.js`.
+  table of the commonly implemented objects; a scan reads every readable
+  scalar / string entry (one SDO transaction at a time) and classifies each as
+  present, absent, write-only, aborted or unanswered - it never writes. DOMAIN
+  entries (a stored EDS, an OS command reply) are left unread by a scan and
+  fetched with the row's *Read* button instead, with a 1 MiB bound. The
+  parser, table, decoder and scan walk are pure functions covered by
+  `node web/test/ds402_od_test.js`.
 
 ## Example
 

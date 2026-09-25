@@ -60,12 +60,15 @@ The object-dictionary browser takes its object list from the device itself when
 it stores one - object ``0x1021`` *Store EDS* is read as a DOMAIN over segmented
 SDO and the EDS (CiA 306) file is parsed in the browser, provided ``0x1022``
 reports the plain ASCII format - or from an EDS file chosen from disk, or from a
-built-in table of the CiA 301 communication-profile and CiA 402 drive-profile
-objects (with the multi-axis offset on request). A *scan* then reads every
-readable entry through the SDO client, one transaction at a time, and shows
-each as present (decoded by its declared type, or by length when the type is
-unknown), absent (abort ``0x06020000``), write-only, aborted (by name) or
-unanswered; a scan never writes. Rows can be filtered, refreshed one at a time,
+built-in table of the commonly implemented CiA 301 communication-profile and
+CiA 402 drive-profile objects (a subset of the standards, with the multi-axis
+offset on request). A *scan* then reads every readable scalar / string entry
+through the SDO client, one transaction at a time, and shows each as present
+(decoded by its declared type, or by length when the type is unknown), absent
+(abort ``0x06020000``), write-only, aborted (by name) or unanswered; DOMAIN
+entries (a stored EDS, an OS command reply) are left unread by a scan and
+fetched on request with the row's *Read* button (1 MiB bound); a scan never
+writes. Rows can be filtered, refreshed one at a time,
 exported as CSV, and clicked to load the address into the manual read/write
 fields. Because the panel drives the node over SDO rather than cyclic PDOs it
 is a commissioning / bring-up tool; the bus must be in Normal (not listen-only)
