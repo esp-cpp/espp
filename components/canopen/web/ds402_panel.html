@@ -220,7 +220,7 @@
     table.od thead th { position: sticky; top: 0; background: var(--panel-bg); color: var(--text-muted); border-bottom: 1px solid var(--panel-border); z-index: 1; font-weight: 600; }
     table.od tbody tr:nth-child(even) { background: var(--row-alt); }
     table.od tbody tr { cursor: pointer; }
-    table.od tbody tr:hover { outline: 1px solid var(--accent); outline-offset: -1px; }
+    table.od tbody tr:hover, table.od tbody tr:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
     table.od tr.od-group td { font-weight: 600; color: var(--text); }
     table.od tr.od-absent td { color: var(--text-muted); opacity: 0.7; }
     table.od td.od-name { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; white-space: normal; min-width: 160px; }
@@ -444,6 +444,7 @@
         <span>Present: <b id="odCountPresent">0</b></span>
         <span>Absent: <b id="odCountAbsent">0</b></span>
         <span>Errors: <b id="odCountErrors">0</b></span>
+        <span>Unread: <b id="odCountUnread">0</b></span>
         <span id="odProgress" class="muted"></span>
       </div>
       <div class="row" style="margin-top:8px;">
@@ -575,7 +576,7 @@
                       "odIndex", "odSub", "odType", "odValue", "odReadBtn", "odWriteBtn", "odResult",
                       "odDeviceEdsBtn", "odEdsFile", "odEdsFileBtn", "odBuiltinBtn", "odAxis", "odScanBtn",
                       "odCancelBtn", "odSourceBadge", "odSourceInfo", "odCountObjects", "odCountPresent",
-                      "odCountAbsent", "odCountErrors", "odProgress", "odFilter", "odShowAbsent",
+                      "odCountAbsent", "odCountErrors", "odCountUnread", "odProgress", "odFilter", "odShowAbsent",
                       "odExpandBtn", "odCollapseBtn", "odExportBtn", "odBody", "odEmpty",
                       "clearLogBtn", "logSdo", "logBus", "log", "unsupported"]) {
       els[id] = document.getElementById(id);
@@ -1755,10 +1756,18 @@
     const OD_MAX_SUBS = 254;   // sub 0 is the count; 255 is reserved
 
     function odHex(n, width) { return "0x" + (n >>> 0).toString(16).padStart(width || 0, "0"); }
-    function odHexBytes(bytes) {
+    // Hex text of at most OD_HEX_MAX_BYTES bytes: a DOMAIN (a stored EDS can be
+    // hundreds of KiB) must not become a multi-megabyte string in a table cell;
+    // the value column still reports the full length.
+    const OD_HEX_MAX_BYTES = 64;
+    function odHexBytes(bytes, maxBytes) {
+      const limit = maxBytes == null ? OD_HEX_MAX_BYTES : maxBytes;
+      const n = Math.min(bytes.length, limit);
       let s = "";
-      for (let i = 0; i < bytes.length; i++) s += bytes[i].toString(16).padStart(2, "0") + " ";
-      return s.trim();
+      for (let i = 0; i < n; i++) s += bytes[i].toString(16).padStart(2, "0") + " ";
+      s = s.trim();
+      if (bytes.length > n) s += " … (+" + (bytes.length - n) + " bytes)";
+      return s;
     }
     function odParseNum(s) {
       if (s == null) return null;
@@ -2173,11 +2182,15 @@
       }
       return rows;
     }
+    // Scan outcome counts. Rows not yet read ("unread": the list before a scan)
+    // or deliberately not read ("skipped": listed subs above the entry count,
+    // rows after a cancel) are neither present nor errors.
     function odCounts(rows) {
-      const c = { present: 0, absent: 0, errors: 0 };
+      const c = { present: 0, absent: 0, errors: 0, unread: 0 };
       for (const r of rows) {
         if (r.status === "ok" || r.status === "write-only") c.present++;
         else if (r.status === "absent" || r.status === "no-sub") c.absent++;
+        else if (r.status === "unread" || r.status === "skipped") c.unread++;
         else c.errors++;
       }
       return c;
@@ -2219,6 +2232,7 @@
       els.odCountPresent.textContent = String(c.present);
       els.odCountAbsent.textContent = String(c.absent);
       els.odCountErrors.textContent = String(c.errors);
+      els.odCountUnread.textContent = String(c.unread);
     }
 
     // Rows to show before a scan: the object list itself (no values yet).
@@ -2303,12 +2317,23 @@
           tdBtn.appendChild(b);
         }
         tr.appendChild(tdBtn);
-        tr.addEventListener("click", () => {
+        // rows are interactive: focusable and operable with Enter / Space
+        tr.tabIndex = 0;
+        tr.setAttribute("role", "button");
+        if (r.isGroup) tr.setAttribute("aria-expanded", odCollapsed.has(r.group) ? "false" : "true");
+        tr.setAttribute("aria-label", (r.isGroup ? (odCollapsed.has(r.group) ? "expand " : "collapse ") : "select ") +
+                                      odHex(r.index, 4) + " sub " + r.sub + (r.name ? " " + r.name : ""));
+        const activate = () => {
           if (r.isGroup) { if (odCollapsed.has(r.group)) odCollapsed.delete(r.group); else odCollapsed.add(r.group); odRender(); return; }
           els.odIndex.value = r.index.toString(16).padStart(4, "0");
           els.odSub.value = String(r.sub);
           els.odType.value = odKindToSelect(r.dataType);
           els.odResult.textContent = "selected " + odHex(r.index, 4) + ":" + r.sub + " (" + (r.name || "") + ")";
+        };
+        tr.addEventListener("click", activate);
+        tr.addEventListener("keydown", (ev) => {
+          if (ev.target !== tr) return; // the Read button handles its own keys
+          if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); activate(); }
         });
         body.appendChild(tr);
         shown++;
@@ -2422,7 +2447,8 @@
       const c = odCounts(rows);
       const secs = ((Date.now() - started) / 1000).toFixed(1);
       els.odProgress.textContent = (odScanCancel ? "cancelled after " : "done in ") + secs + " s";
-      logLine("sys", "OD scan: " + c.present + " present, " + c.absent + " absent, " + c.errors + " errors in " + secs + " s" + (odScanCancel ? " (cancelled)" : ""));
+      logLine("sys", "OD scan: " + c.present + " present, " + c.absent + " absent, " + c.errors + " errors" +
+                     (c.unread ? ", " + c.unread + " unread" : "") + " in " + secs + " s" + (odScanCancel ? " (cancelled)" : ""));
       odScanInFlight = false;
       lockSequenceControls(false);
       els.odCancelBtn.disabled = true;

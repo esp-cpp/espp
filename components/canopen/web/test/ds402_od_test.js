@@ -205,6 +205,10 @@ AccessType=wo
     assert.strictEqual(od.odDecodeValue(b(0x53, 0x65, 0x72, 0x76, 0x6f, 0x00), 0x9).text, JSON.stringify("Servo"));
     assert.strictEqual(od.odDecodeValue(b(1, 2, 3), 0xF).text, "3 bytes");        // DOMAIN
     assert.strictEqual(od.odDecodeValue(b(1, 2, 3), 0xF).hex, "01 02 03");
+    // a large DOMAIN: the hex column is capped, the value column keeps the full length
+    const big = od.odDecodeValue(new Uint8Array(100000), 0xF);
+    assert.strictEqual(big.text, "100000 bytes");
+    assert(big.hex.length < 400 && big.hex.endsWith("… (+99936 bytes)"), big.hex);
     assert.strictEqual(od.odDecodeValue(b(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff), 0x15).text, "-1"); // INTEGER64
     assert.strictEqual(od.odDecodeValue(b(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff), 0x1B).text, "18446744073709551615");
     // unknown type: inferred from the length
@@ -286,7 +290,11 @@ AccessType=wo
     assert(!log.includes("2001:0"));
     const c = od.odCounts(rows);
     // present: 1000:0, 1001:0 (write-only counts as present), 1018:0..2, 1003:0..2, 2001:0
-    assert.deepStrictEqual(c, { present: 9, absent: 3, errors: 1 });
+    assert.deepStrictEqual(c, { present: 9, absent: 3, errors: 1, unread: 0 });
+    // rows not read on purpose are neither present nor errors
+    assert.deepStrictEqual(od.odCounts([{ status: "skipped" }]), { present: 0, absent: 0, errors: 0, unread: 1 });
+    // rows before a scan are "unread", never errors
+    assert.deepStrictEqual(od.odCounts([{ status: "unread" }, { status: "unread" }]), { present: 0, absent: 0, errors: 0, unread: 2 });
     assert(progress.length > 0 && progress[progress.length - 1][0] === progress[progress.length - 1][1], "progress ends at total");
     const csv = od.odToCsv(rows);
     assert(csv.startsWith("index,sub,name,type,access,status,value,raw\n"));
