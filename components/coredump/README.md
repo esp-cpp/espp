@@ -31,6 +31,21 @@ the same stream), view the crash summary, download the core dump as
 `core.elf`, resolve backtrace addresses against your local app `.elf`
 (nearest-symbol, client-side), and erase the stored dump.
 
+The same protocol is also spoken from the terminal by the pure-Python
+[`python/espp_coredump`](python/) tool, and the component's
+`idf_ext.py` turns it into an `idf.py coredump-usb` action in every project
+that requires `coredump`: build, download the stored dump over USB and decode
+it against the freshly built ELF in one step, with options (`--gdb` for GDB on
+the core file, `--summary`, `--erase`, `--out`, `--vid`/`--pid`/`--serial`), like
+ESP-IDF's own `coredump-info` / `coredump-debug`. The same action is also
+available through an `idf_extension` entry point of the espp wheel, and
+`project_include.cmake` keeps plain `coredump-usb` / `coredump-usb-debug`
+CMake targets as a fallback. All of it is host-side only: the firmware must
+store core dumps to flash (`CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH` + a `coredump`
+partition) and serve a `CoreDumpService` on a USB vendor interface, as the
+[example](example/main/coredump_example.cpp) does. See
+[`python/README.md`](python/README.md).
+
 ## Features
 
 - **Crash detection**: `has_core_dump()` (`esp_core_dump_image_check`)

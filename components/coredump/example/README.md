@@ -57,7 +57,17 @@ connector: `screen /dev/tty.usbmodem*`.)
    device panics, writes the core dump to flash and reboots.
 3. On reconnect the boot banner (and the web console's *Get summary*) shows
    the crash report with the raw backtrace addresses.
-4. Download `core.elf` in the web console and decode it fully:
+4. Download and decode the core dump in one step from the build directory
+   (needs `pip install pyusb esp-coredump`; see
+   [`../python/README.md`](../python/README.md)):
+
+   ```
+   idf.py coredump-usb          # decode with esp-coredump info_corefile
+   idf.py coredump-usb --gdb    # or open GDB on the core file
+   ```
+
+   or download `core.elf` in the web console (or with
+   `python -m espp_coredump download`) and decode it yourself:
 
    ```
    espcoredump.py info_corefile --core core.elf --core-format elf build/coredump_example.elf
