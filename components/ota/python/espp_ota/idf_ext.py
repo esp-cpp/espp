@@ -87,8 +87,15 @@ def project_bin(build_dir: str) -> str:
         raise FatalError(
             f"{desc_path} not found: configure/build the project first (idf.py build)"
         )
-    with open(desc_path, encoding="utf-8") as f:
-        desc = json.load(f)
+    try:
+        with open(desc_path, encoding="utf-8") as f:
+            desc = json.load(f)
+    except (OSError, ValueError) as exc:  # unreadable, or not JSON (a broken build dir)
+        raise FatalError(
+            f"{desc_path} could not be read ({exc}); reconfigure the project (idf.py reconfigure)"
+        ) from exc
+    if not isinstance(desc, dict):
+        raise FatalError(f"{desc_path} is not a JSON object; reconfigure the project")
     app_bin = desc.get("app_bin")
     if not app_bin:
         raise FatalError(f"{desc_path} names no app binary (app_bin)")
@@ -143,10 +150,20 @@ def build_tool_argv(
 
 
 def run_tool(argv: list[str]) -> None:
-    """Run the espp_ota CLI in-process; a non-zero exit becomes a FatalError."""
+    """Run the espp_ota CLI in-process; anything but a clean exit becomes a
+    FatalError. The CLI returns an int, but argparse exits via SystemExit
+    (e.g. on a usage error), so that is normalized too."""
     from espp_ota.cli import main as tool_main
 
-    rc = tool_main(argv)
+    try:
+        rc = tool_main(argv)
+    except SystemExit as exc:  # argparse --help / usage errors
+        rc = exc.code
+    if rc is None:
+        rc = 0
+    if not isinstance(rc, int):
+        # SystemExit("message") style: the message was printed, treat as failure
+        raise FatalError(f"espp_ota failed: {rc}")
     if rc != 0:
         raise FatalError(f"espp_ota exited with status {rc}")
 

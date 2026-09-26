@@ -246,7 +246,16 @@ def test_idf_extension():
             _ok("idf_ext: unconfigured build dir is a FatalError", False)
         except X.FatalError:
             _ok("idf_ext: unconfigured build dir is a FatalError", True)
-        with open(os.path.join(build_dir, "project_description.json"), "w", encoding="utf-8") as f:
+        desc_path = os.path.join(build_dir, "project_description.json")
+        with open(desc_path, "w", encoding="utf-8") as f:
+            f.write("{not json")
+        try:
+            X.project_bin(build_dir)
+            _ok("idf_ext: a corrupt project description is a FatalError", False)
+        except X.FatalError as exc:
+            _ok("idf_ext: a corrupt project description is a FatalError",
+                "project_description.json" in str(exc))
+        with open(desc_path, "w", encoding="utf-8") as f:
             json.dump({"build_dir": build_dir, "app_bin": "my_app.bin"}, f)
         binary = os.path.join(build_dir, "my_app.bin")
         _ok("idf_ext: .bin from project_description.json", X.project_bin(build_dir) == binary)
@@ -296,6 +305,22 @@ def test_idf_extension():
             except X.FatalError:
                 failed = True  # the tool's non-zero exit is the expected failure
             _ok("idf_ext: non-zero tool exit is a FatalError", failed)
+
+            def _exit(code):
+                raise SystemExit(code)
+
+            cli.main = lambda argv=None: _exit(0)
+            action["callback"]("ota-usb", None, args)
+            _ok("idf_ext: SystemExit(0) from the CLI is a clean run", True)
+            cli.main = lambda argv=None: _exit(2)
+            try:
+                action["callback"]("ota-usb", None, args)
+                _ok("idf_ext: SystemExit(2) from the CLI is a FatalError", False)
+            except X.FatalError as exc:
+                _ok("idf_ext: SystemExit(2) from the CLI is a FatalError", "status 2" in str(exc))
+            cli.main = lambda argv=None: None
+            action["callback"]("ota-usb", None, args)
+            _ok("idf_ext: a None return counts as success", True)
         finally:
             cli.main = real_main
 
