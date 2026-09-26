@@ -115,8 +115,9 @@ def build_tool_argv(
     """The ``espp_coredump`` command line for one ``idf.py coredump-usb``
     invocation. ``--erase`` is passed through to the tool's ``summary`` /
     ``debug`` command, which erases on the same USB connection it read the
-    dump from (never a second device selection, so with several boards
-    attached the dump erased is the one just reported / saved)."""
+    dump from, and only after the report was printed / the decode succeeded
+    (never a second device selection, so with several boards attached the
+    dump erased is the one just reported / decoded)."""
     argv = device_argv(vid, pid, serial, interface)
     if summary:
         argv.append("summary")
@@ -213,8 +214,8 @@ def action_extensions(base_actions: dict[str, Any] | None, project_path: str) ->
                         "is_flag": True,
                         "default": False,
                         "help": "Erase the stored core dump from the device once the report "
-                        "is printed / the core file is saved, on the same USB connection "
-                        "(the flag is the confirmation).",
+                        "is printed / the decode succeeded, on the same USB connection "
+                        "(the flag is the confirmation; a failed decode leaves it in place).",
                     },
                     {
                         "names": ["--out", "-o"],

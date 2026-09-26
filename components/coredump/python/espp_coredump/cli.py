@@ -217,34 +217,36 @@ def _cmd_erase(args) -> int:
 def _cmd_debug(args) -> int:
     if not os.path.isfile(args.app_elf):
         raise FileNotFoundError(f"app ELF not found: {args.app_elf}")
-    path = fmt = None
+    # The transport stays open through the decode so an --erase afterwards goes
+    # to the very device the dump came from (whatever else is plugged in), and
+    # only happens once the decode succeeded: a dump that could not be decoded
+    # (no decoder, or a failure) stays on the device.
     with _make_transport(args) as t:
         if not args.quiet:
             CON.note(f"● Connected to {t.description}")
         image = _download(args, t)
-        if image:
-            path, fmt = _save_image(image, args.out, raw=False)
-            if getattr(args, "erase", False):
-                # only once a copy is safely on disk, and on the same connection
-                # (so it is the device the dump came from, whatever else is
-                # plugged in); the decode below works from the saved file
-                _make_client(args, t).erase()
-                CON.success(f"  Core dump erased from {t.description} (kept: {path})")
-    if not image:
-        CON.warn("no core dump stored on the device (nothing to debug)")
-        return 1
-    if not args.quiet:
-        CON.info(f"  Core file: {path} ({fmt})")
-    # rules around the decoder's output so it is easy to find between the
-    # build output before it and idf.py's post-build hints after it
-    CON.rule(f"core dump: {path} ({len(image)} bytes) decoded against {args.app_elf}")
-    rc = decoder.run_decoder(path, args.app_elf, gdb=args.gdb, core_format=fmt)
-    if rc == -1:
-        CON.warn("no core-dump decoder found (`pip install esp-coredump`, or set IDF_PATH). "
-                 "Run it yourself:")
-        print("  " + decoder.suggested_command(path, args.app_elf, gdb=args.gdb, core_format=fmt))
-        return 1
-    CON.rule("end of core dump")
+        if not image:
+            CON.warn("no core dump stored on the device (nothing to debug)")
+            return 1
+        path, fmt = _save_image(image, args.out, raw=False)
+        if not args.quiet:
+            CON.info(f"  Core file: {path} ({fmt})")
+        # rules around the decoder's output so it is easy to find between the
+        # build output before it and idf.py's post-build hints after it
+        CON.rule(f"core dump: {path} ({len(image)} bytes) decoded against {args.app_elf}")
+        rc = decoder.run_decoder(path, args.app_elf, gdb=args.gdb, core_format=fmt)
+        if rc == -1:
+            CON.warn("no core-dump decoder found (`pip install esp-coredump`, or set IDF_PATH). "
+                     "Run it yourself:")
+            print("  " + decoder.suggested_command(path, args.app_elf, gdb=args.gdb,
+                                                   core_format=fmt))
+            return 1
+        CON.rule("end of core dump")
+        if rc == 0 and getattr(args, "erase", False):
+            _make_client(args, t).erase()
+            CON.success(f"  Core dump erased from {t.description} (kept: {path})")
+        elif rc != 0 and getattr(args, "erase", False):
+            CON.warn(f"  decoder exited with status {rc}: the core dump was NOT erased")
     return rc
 
 
@@ -301,8 +303,9 @@ def build_parser() -> argparse.ArgumentParser:
                      help="open GDB on the core file (dbg_corefile) instead of printing "
                           "the decoded crash (info_corefile)")
     dbg.add_argument("--erase", action="store_true",
-                     help="once the core file is saved, erase the stored core dump from the "
-                          "device (same connection; the flag is the confirmation)")
+                     help="after a successful decode, erase the stored core dump from the "
+                          "device (same connection; the flag is the confirmation; a failed "
+                          "or missing decoder leaves the dump in place)")
     dbg.set_defaults(func=_cmd_debug)
     return p
 

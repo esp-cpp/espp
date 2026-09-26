@@ -86,20 +86,37 @@ def report_line_style(line: str) -> tuple[Optional[str], Optional[str]]:
     return None, None
 
 
-def render_panel_plain(title: str, lines: list, color: bool = False, width: int = 0) -> str:
+def _stream_can_encode(stream, text: str) -> bool:
+    """Whether ``text`` survives ``stream``'s encoding (a cp1252 / ASCII console
+    cannot draw box characters; misconfigured locales report None)."""
+    encoding = getattr(stream, "encoding", None) or "ascii"
+    try:
+        text.encode(encoding)
+        return True
+    except (UnicodeEncodeError, LookupError):
+        return False
+
+
+_BOX_UNICODE = ("╭─ ", "╮", "│ ", " │", "╰", "╯", "─")
+_BOX_ASCII = ("+- ", "+", "| ", " |", "+", "+", "-")
+
+
+def render_panel_plain(title: str, lines: list, color: bool = False, width: int = 0,
+                       ascii_only: bool = False) -> str:
     """A framed, titled block as text (the rich-less fallback). Pure: testable.
 
     ``color`` adds ANSI styling per :func:`report_line_style`; ``width`` caps
     the frame (0 = fit the content). A line longer than the frame is wrapped
     (continuation rows indented), so every row is exactly as wide as the
-    borders."""
+    borders. ``ascii_only`` draws the frame with ``+ - |`` for streams whose
+    encoding cannot represent the box-drawing characters."""
     import textwrap
 
+    tl, tr, left, right, bl, br, h = _BOX_ASCII if ascii_only else _BOX_UNICODE
     inner = max([len(title) + 2] + [len(line) for line in lines]) if lines else len(title) + 2
     if width:
         inner = min(inner, max(width - 4, len(title) + 2))
-    top = "╭─ " + title + " " + "─" * max(0, inner - len(title) - 1) + "╮"
-    out = [top]
+    out = [tl + title + " " + h * max(0, inner - len(title) - 1) + tr]
     for line in lines:
         _, ansi = report_line_style(line) if color else (None, None)
         rows = textwrap.wrap(line, inner, subsequent_indent="  ", break_long_words=True,
@@ -107,8 +124,8 @@ def render_panel_plain(title: str, lines: list, color: bool = False, width: int 
         for row in rows:
             pad = " " * max(0, inner - len(row))
             text = f"\033[{ansi}m{row}\033[0m" if ansi else row
-            out.append("│ " + text + pad + " │")
-    out.append("╰" + "─" * (inner + 2) + "╯")
+            out.append(left + text + pad + right)
+    out.append(bl + h * (inner + 2) + br)
     return "\n".join(out)
 
 
@@ -155,7 +172,8 @@ class Console:
             width = os.get_terminal_size().columns
         except Exception:
             width = 0
-        sys.stdout.write("\n" + render_panel_plain(title, lines, color=_ansi_enabled(), width=width)
+        sys.stdout.write("\n" + render_panel_plain(title, lines, color=_ansi_enabled(), width=width,
+                                                   ascii_only=not _stream_can_encode(sys.stdout, "╭│╯"))
                          + "\n\n")
         sys.stdout.flush()
 
@@ -172,8 +190,9 @@ class Console:
             width = os.get_terminal_size().columns
         except Exception:
             width = 80
-        line = f"── {title} " if title else ""
-        sys.stdout.write(line + "─" * max(0, width - len(line)) + "\n")
+        h = "─" if _stream_can_encode(sys.stdout, "─") else "-"
+        line = f"{h}{h} {title} " if title else ""
+        sys.stdout.write(line + h * max(0, width - len(line)) + "\n")
         sys.stdout.flush()
 
     def _emit(self, text: str, rich_style: Optional[str], ansi: Optional[str]) -> None:

@@ -316,6 +316,19 @@ def test_summary_panel():
     tiny_rows = ui.render_panel_plain("a title", lines, width=5).split("\n")
     _ok("panel: width cap never shrinks below the title",
         len(set(len(r) for r in tiny_rows)) == 1 and "a title" in tiny_rows[0])
+    ascii_rows = ui.render_panel_plain("t", lines, ascii_only=True).split("\n")
+    _ok("panel: ASCII frame for streams that cannot encode box characters",
+        all(ord(c) < 128 for c in "".join(ascii_rows)) and ascii_rows[0].startswith("+- t ")
+        and len(set(len(r) for r in ascii_rows)) == 1)
+
+    class Stream:
+        def __init__(self, encoding):
+            self.encoding = encoding
+
+    _ok("panel: encoding probe", ui._stream_can_encode(Stream("utf-8"), "╭")
+        and not ui._stream_can_encode(Stream("ascii"), "╭")
+        and not ui._stream_can_encode(Stream(None), "╭")
+        and not ui._stream_can_encode(Stream("no-such-codec"), "╭"))
 
 
 class FakeTransport(MockDevice):
@@ -367,8 +380,20 @@ def test_cli_erase_same_connection():
             rc = cli._cmd_debug(_cli_args(app_elf=app_elf, out=core, erase=True))
             with open(core, "rb") as f:
                 saved = f.read()
-            _ok("cli: debug --erase saves the core file, then erases",
+            _ok("cli: debug --erase saves the core file, decodes, then erases",
                 rc == 0 and dev.erased and saved == ELF_BODY + CHECKSUM)
+            # a failed decode, or no decoder at all, leaves the dump on the device
+            decoder.run_decoder = lambda *a, **k: 1
+            dev = FakeTransport()
+            cli._make_transport = lambda args: dev
+            rc = cli._cmd_debug(_cli_args(app_elf=app_elf, out=core, erase=True))
+            _ok("cli: debug --erase does not erase after a failed decode", rc == 1 and not dev.erased)
+            decoder.run_decoder = lambda *a, **k: -1
+            dev = FakeTransport()
+            cli._make_transport = lambda args: dev
+            rc = cli._cmd_debug(_cli_args(app_elf=app_elf, out=core, erase=True))
+            _ok("cli: debug --erase does not erase when no decoder is available",
+                rc == 1 and not dev.erased)
             # no dump stored: nothing saved, nothing erased, exit 1
             dev = FakeTransport(image=b"")
             cli._make_transport = lambda args: dev
