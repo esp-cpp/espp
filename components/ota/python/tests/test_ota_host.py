@@ -222,6 +222,32 @@ def test_begin_busy_recovers():
         and dev.finished)
 
 
+def test_transport_timeout_classification():
+    from espp_ota.transport import UsbVendorTransport
+
+    class USBError(Exception):
+        def __init__(self, errno=None, backend_error_code=None):
+            super().__init__("usb")
+            self.errno = errno
+            self.backend_error_code = backend_error_code
+
+    class USBTimeoutError(USBError):
+        pass
+
+    Core = type("Core", (), {"USBError": USBError, "USBTimeoutError": USBTimeoutError})
+    OldCore = type("OldCore", (), {"USBError": USBError})  # pyusb < 1.1: no USBTimeoutError
+    is_timeout = UsbVendorTransport.is_usb_timeout
+    _ok("transport: pyusb's USBTimeoutError is a timeout", is_timeout(Core, USBTimeoutError()))
+    _ok("transport: ETIMEDOUT on Linux / macOS / Windows is a timeout",
+        all(is_timeout(Core, USBError(errno=e)) for e in (110, 60, 10060)))
+    _ok("transport: libusb LIBUSB_ERROR_TIMEOUT is a timeout",
+        is_timeout(Core, USBError(backend_error_code=-7)))
+    _ok("transport: other errors are not timeouts",
+        not is_timeout(Core, USBError(errno=5)) and not is_timeout(Core, USBError()))
+    _ok("transport: old pyusb without USBTimeoutError still classifies by errno",
+        is_timeout(OldCore, USBError(errno=60)) and not is_timeout(OldCore, USBError(errno=19)))
+
+
 def test_idf_extension():
     import json
     import tempfile
@@ -336,5 +362,6 @@ if __name__ == "__main__":
     test_rollback_reboots_no_reply()
     test_rollback_disconnect_is_success()
     test_rollback_refused_raises()
+    test_transport_timeout_classification()
     test_idf_extension()
     print("all host tests passed")
