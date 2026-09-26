@@ -18,9 +18,9 @@ SEARCH_LIMIT = 1024
 
 
 def find_elf_offset(image: bytes) -> Optional[int]:
-    """The offset of the ELF magic within the first KiB, or None."""
-    window = image[:SEARCH_LIMIT + len(ELF_MAGIC)]
-    pos = window.find(ELF_MAGIC)
+    """The offset of the ELF magic, if it starts within the first KiB
+    (offsets 0..SEARCH_LIMIT-1; the magic itself may end past it), else None."""
+    pos = bytes(image).find(ELF_MAGIC, 0, SEARCH_LIMIT + len(ELF_MAGIC) - 1)
     return pos if pos >= 0 else None
 
 

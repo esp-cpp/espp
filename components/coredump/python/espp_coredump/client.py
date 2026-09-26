@@ -173,7 +173,8 @@ class CoreDumpClient:
     def discover(self, timeout_ms: int = 2000) -> Optional[DiscoveryInfo]:
         """Send a dispatcher ListModules request and decode the reply; None on
         timeout (no Dispatcher serving discovery on this interface)."""
-        self._t.write(_p.make_discovery_request(), timeout_ms=self._timeout)
+        # the caller's timeout bounds the whole probe, the request write included
+        self._t.write(_p.make_discovery_request(), timeout_ms=timeout_ms)
         deadline = time.monotonic() + timeout_ms / 1000.0
         while True:
             try:

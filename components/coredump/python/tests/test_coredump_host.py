@@ -256,11 +256,19 @@ def test_extract_elf():
     _ok("no ELF -> None", extract_elf(FLASH_HEADER + b"\x00" * 100) is None)
     _ok("ELF beyond the first KiB is not found",
         extract_elf(b"\x00" * 1100 + b"\x7fELF" + b"\x00" * 10) is None)
+    _ok("ELF starting at the last offset of the first KiB is found (magic may end past it)",
+        find_elf_offset(b"\x00" * 1023 + b"\x7fELF" + b"\x00" * 10) == 1023)
+    _ok("ELF starting just past the first KiB is not found",
+        find_elf_offset(b"\x00" * 1024 + b"\x7fELF" + b"\x00" * 10) is None)
 
 
 def test_discovery():
     dev = MockDevice()
+    write_timeouts = []
+    real_write = dev.write
+    dev.write = lambda data, timeout_ms=0: (write_timeouts.append(timeout_ms), real_write(data, timeout_ms))[1]
     info = CoreDumpClient(dev).discover(timeout_ms=100)
+    _ok("discovery request is written with the caller's timeout", write_timeouts == [100])
     _ok("discovery decoded", info is not None and info.device_name == "espp CoreDump"
         and info.firmware == "1.2.3" and len(info.modules) == 2)
     _ok("core dump module advertised", info.has_module(4)
@@ -350,14 +358,17 @@ def test_cli_erase_same_connection():
         # debug --erase: the core file is on disk before the erase, on the same connection
         with tempfile.TemporaryDirectory() as d:
             app_elf = os.path.join(d, "app.elf")
-            open(app_elf, "wb").write(b"\x7fELF")
+            with open(app_elf, "wb") as f:
+                f.write(b"\x7fELF")
             core = os.path.join(d, "core.elf")
             decoder.run_decoder = lambda *a, **k: 0
             dev = FakeTransport()
             cli._make_transport = lambda args: dev
             rc = cli._cmd_debug(_cli_args(app_elf=app_elf, out=core, erase=True))
+            with open(core, "rb") as f:
+                saved = f.read()
             _ok("cli: debug --erase saves the core file, then erases",
-                rc == 0 and dev.erased and open(core, "rb").read() == ELF_BODY + CHECKSUM)
+                rc == 0 and dev.erased and saved == ELF_BODY + CHECKSUM)
             # no dump stored: nothing saved, nothing erased, exit 1
             dev = FakeTransport(image=b"")
             cli._make_transport = lambda args: dev
@@ -391,7 +402,16 @@ def test_idf_extension():
             _ok("idf_ext: unconfigured build dir is a FatalError", False)
         except X.FatalError:
             _ok("idf_ext: unconfigured build dir is a FatalError", True)
-        with open(os.path.join(build_dir, "project_description.json"), "w", encoding="utf-8") as f:
+        desc_path = os.path.join(build_dir, "project_description.json")
+        with open(desc_path, "w", encoding="utf-8") as f:
+            f.write("{not json")
+        try:
+            X.project_elf(build_dir)
+            _ok("idf_ext: a corrupt project description is a FatalError", False)
+        except X.FatalError as exc:
+            _ok("idf_ext: a corrupt project description is a FatalError",
+                "project_description.json" in str(exc))
+        with open(desc_path, "w", encoding="utf-8") as f:
             json.dump({"build_dir": build_dir, "app_elf": "my_app.elf"}, f)
         elf = os.path.join(build_dir, "my_app.elf")
         _ok("idf_ext: ELF from project_description.json", X.project_elf(build_dir) == elf)
@@ -435,6 +455,22 @@ def test_idf_extension():
                 _ok("idf_ext: non-zero tool exit is a FatalError", False)
             except X.FatalError:
                 _ok("idf_ext: non-zero tool exit is a FatalError", True)
+
+            def _exit(code):
+                raise SystemExit(code)
+
+            cli.main = lambda argv=None: _exit(0)
+            action["callback"]("coredump-usb", None, args)
+            _ok("idf_ext: SystemExit(0) from the CLI is a clean run", True)
+            cli.main = lambda argv=None: _exit(2)
+            try:
+                action["callback"]("coredump-usb", None, args)
+                _ok("idf_ext: SystemExit(2) from the CLI is a FatalError", False)
+            except X.FatalError as exc:
+                _ok("idf_ext: SystemExit(2) from the CLI is a FatalError", "status 2" in str(exc))
+            cli.main = lambda argv=None: None
+            action["callback"]("coredump-usb", None, args)
+            _ok("idf_ext: a None return counts as success", True)
         finally:
             cli.main = real_main
 
