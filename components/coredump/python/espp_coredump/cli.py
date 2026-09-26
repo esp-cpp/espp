@@ -150,15 +150,23 @@ def _cmd_discover(args) -> int:
 
 
 def _cmd_summary(args) -> int:
+    erased = False
     with _make_transport(args) as t:
         device = t.description
-        text = _make_client(args, t).summary()
+        client = _make_client(args, t)
+        text = client.summary()
+        if text and getattr(args, "erase", False):
+            # same connection, so it is the device the report came from
+            client.erase()
+            erased = True
     if not text:
         CON.success("no crash recorded (clean boot history)")
         return 0
     # framed + colorized so it stands out from the build output around it
     # under `idf.py coredump-usb --summary`
     CON.panel(f"Core dump summary · {device}", text, border="red")
+    if erased:
+        CON.success(f"core dump erased from {device}")
     return 0
 
 
@@ -209,14 +217,22 @@ def _cmd_erase(args) -> int:
 def _cmd_debug(args) -> int:
     if not os.path.isfile(args.app_elf):
         raise FileNotFoundError(f"app ELF not found: {args.app_elf}")
+    path = fmt = None
     with _make_transport(args) as t:
         if not args.quiet:
             CON.note(f"● Connected to {t.description}")
         image = _download(args, t)
+        if image:
+            path, fmt = _save_image(image, args.out, raw=False)
+            if getattr(args, "erase", False):
+                # only once a copy is safely on disk, and on the same connection
+                # (so it is the device the dump came from, whatever else is
+                # plugged in); the decode below works from the saved file
+                _make_client(args, t).erase()
+                CON.success(f"  Core dump erased from {t.description} (kept: {path})")
     if not image:
         CON.warn("no core dump stored on the device (nothing to debug)")
         return 1
-    path, fmt = _save_image(image, args.out, raw=False)
     if not args.quiet:
         CON.info(f"  Core file: {path} ({fmt})")
     # rules around the decoder's output so it is easy to find between the
@@ -250,6 +266,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("summary", help="print the crash report of the stored core dump")
     _add_device_args(s)
+    s.add_argument("--erase", action="store_true",
+                   help="after printing the report, erase the stored core dump from the device "
+                        "(same connection; the flag is the confirmation)")
     s.set_defaults(func=_cmd_summary)
 
     z = sub.add_parser("size", help="print the stored core-dump image size in bytes")
@@ -281,6 +300,9 @@ def build_parser() -> argparse.ArgumentParser:
     dbg.add_argument("--gdb", action="store_true",
                      help="open GDB on the core file (dbg_corefile) instead of printing "
                           "the decoded crash (info_corefile)")
+    dbg.add_argument("--erase", action="store_true",
+                     help="once the core file is saved, erase the stored core dump from the "
+                          "device (same connection; the flag is the confirmation)")
     dbg.set_defaults(func=_cmd_debug)
     return p
 

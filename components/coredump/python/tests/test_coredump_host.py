@@ -310,6 +310,64 @@ def test_summary_panel():
         len(set(len(r) for r in tiny_rows)) == 1 and "a title" in tiny_rows[0])
 
 
+class FakeTransport(MockDevice):
+    """MockDevice as the CLI's transport: context manager + description."""
+
+    description = "mock 0x1209:0x0d36"
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _cli_args(**kw):
+    import argparse
+    base = dict(vid=0x1209, pid=0x0d36, serial=None, interface=None, quiet=True,
+                chunk_size=2048, timeout=5000, out=None, gdb=False, erase=False)
+    base.update(kw)
+    return argparse.Namespace(**base)
+
+
+def test_cli_erase_same_connection():
+    import tempfile
+
+    from espp_coredump import cli, decoder
+
+    real_transport, real_decoder = cli._make_transport, decoder.run_decoder
+    try:
+        # summary --erase: erased on the connection the report came from
+        dev = FakeTransport()
+        cli._make_transport = lambda args: dev
+        rc = cli._cmd_summary(_cli_args(erase=True))
+        _ok("cli: summary --erase erases after the report", rc == 0 and dev.erased)
+        # nothing recorded -> nothing to erase, even with --erase
+        dev = FakeTransport(summary="")
+        cli._make_transport = lambda args: dev
+        rc = cli._cmd_summary(_cli_args(erase=True))
+        _ok("cli: summary --erase on a clean device erases nothing", rc == 0 and not dev.erased)
+        # debug --erase: the core file is on disk before the erase, on the same connection
+        with tempfile.TemporaryDirectory() as d:
+            app_elf = os.path.join(d, "app.elf")
+            open(app_elf, "wb").write(b"\x7fELF")
+            core = os.path.join(d, "core.elf")
+            decoder.run_decoder = lambda *a, **k: 0
+            dev = FakeTransport()
+            cli._make_transport = lambda args: dev
+            rc = cli._cmd_debug(_cli_args(app_elf=app_elf, out=core, erase=True))
+            _ok("cli: debug --erase saves the core file, then erases",
+                rc == 0 and dev.erased and open(core, "rb").read() == ELF_BODY + CHECKSUM)
+            # no dump stored: nothing saved, nothing erased, exit 1
+            dev = FakeTransport(image=b"")
+            cli._make_transport = lambda args: dev
+            rc = cli._cmd_debug(_cli_args(app_elf=app_elf, out=os.path.join(d, "x.elf"),
+                                          erase=True))
+            _ok("cli: debug --erase with no dump erases nothing", rc == 1 and not dev.erased)
+    finally:
+        cli._make_transport, decoder.run_decoder = real_transport, real_decoder
+
+
 def test_idf_extension():
     import json
     import tempfile
@@ -323,8 +381,6 @@ def test_idf_extension():
         action["callback"] is not None and action["dependencies"] == ["all"]
         and {"--gdb", "--summary", "--erase", "--out", "--vid", "--pid", "--serial",
              "--interface"} <= names)
-    _ok("idf_ext: erase argv skips the prompt and carries the device ids",
-        X.erase_argv(pid="-1", serial="S1") == ["--pid", "-1", "--serial", "S1", "erase", "--yes"])
     _ok("idf_ext declares the extension version", "version" in ext)
     _ok("idf_ext skips a second registration",
         X.action_extensions({"actions": {X.ACTION_NAME: {}}}, "/proj") == {})
@@ -367,17 +423,12 @@ def test_idf_extension():
                 calls == [["debug", elf, "--out", core, "--gdb"]])
             calls.clear()
             action["callback"]("coredump-usb", None, args, summary=True, erase=True, pid="0x1234")
-            _ok("idf_ext: --erase runs after the report, with the same device ids",
-                calls == [["--pid", "0x1234", "summary"], ["--pid", "0x1234", "erase", "--yes"]])
+            _ok("idf_ext: --erase is one tool run (same connection), not a second device pick",
+                calls == [["--pid", "0x1234", "summary", "--erase"]])
             calls.clear()
-            cli.main = lambda argv=None: (calls.append(list(argv)), 1)[1]
-            failed = False
-            try:
-                action["callback"]("coredump-usb", None, args, erase=True)
-            except X.FatalError:
-                failed = True  # the decode's non-zero exit is the expected failure
-            _ok("idf_ext: a failed report/decode is reported and never erases",
-                failed and calls == [["debug", elf, "--out", core]])
+            action["callback"]("coredump-usb", None, args, erase=True)
+            _ok("idf_ext: --erase with a decode is passed to `debug`",
+                calls == [["debug", elf, "--out", core, "--erase"]])
             cli.main = lambda argv=None: 1
             try:
                 action["callback"]("coredump-usb", None, args)
@@ -403,6 +454,7 @@ if __name__ == "__main__":
         test_extract_elf,
         test_discovery,
         test_summary_panel,
+        test_cli_erase_same_connection,
         test_idf_extension,
     ]
     try:
