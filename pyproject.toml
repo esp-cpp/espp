@@ -54,17 +54,12 @@ espp-coredump = "espp_coredump.cli:main"
 
 [project.entry-points.idf_extension]
 # idf.py loads `idf_extension` entry points from whatever is installed in its
-# Python environment: with the espp wheel installed, `idf.py coredump-usb`
-# (with --gdb / --summary / --out / --vid ...) exists in every project, without
-# the trusted-source check that applies to a component's own idf_ext.py.
-espp_coredump_ext = "espp_coredump.idf_ext:action_extensions"
-
-[project.entry-points.idf_extension]
-# idf.py loads `idf_extension` entry points from whatever is installed in its
-# Python environment: with the espp wheel installed, `idf.py ota-usb` (with
-# --no-verify / --status / --mark-valid / --rollback / --vid ...) exists in every
+# Python environment: with the espp wheel installed, both `idf.py coredump-usb`
+# (with --gdb / --summary / --out / --vid ...) and `idf.py ota-usb` (with
+# --no-verify / --status / --mark-valid / --rollback / --vid ...) exist in every
 # project, without the trusted-source check that applies to a component's own
 # idf_ext.py.
+espp_coredump_ext = "espp_coredump.idf_ext:action_extensions"
 espp_ota_ext = "espp_ota.idf_ext:action_extensions"
 
 [tool.scikit-build]
