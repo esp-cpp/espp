@@ -90,20 +90,24 @@ def render_panel_plain(title: str, lines: list, color: bool = False, width: int 
     """A framed, titled block as text (the rich-less fallback). Pure: testable.
 
     ``color`` adds ANSI styling per :func:`report_line_style`; ``width`` caps
-    the frame (0 = fit the content)."""
+    the frame (0 = fit the content). A line longer than the frame is wrapped
+    (continuation rows indented), so every row is exactly as wide as the
+    borders."""
+    import textwrap
+
     inner = max([len(title) + 2] + [len(line) for line in lines]) if lines else len(title) + 2
     if width:
         inner = min(inner, max(width - 4, len(title) + 2))
     top = "╭─ " + title + " " + "─" * max(0, inner - len(title) - 1) + "╮"
     out = [top]
     for line in lines:
-        pad = " " * max(0, inner - len(line))
-        text = line
-        if color:
-            _, ansi = report_line_style(line)
-            if ansi:
-                text = f"\033[{ansi}m{line}\033[0m"
-        out.append("│ " + text + pad + " │")
+        _, ansi = report_line_style(line) if color else (None, None)
+        rows = textwrap.wrap(line, inner, subsequent_indent="  ", break_long_words=True,
+                             break_on_hyphens=False) or [""]
+        for row in rows:
+            pad = " " * max(0, inner - len(row))
+            text = f"\033[{ansi}m{row}\033[0m" if ansi else row
+            out.append("│ " + text + pad + " │")
     out.append("╰" + "─" * (inner + 2) + "╯")
     return "\n".join(out)
 

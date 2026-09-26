@@ -299,9 +299,15 @@ def test_summary_panel():
         and all(r.startswith("│ ") and r.endswith(" │") for r in rows[1:-1]))
     colored = ui.render_panel_plain("t", lines, color=True)
     _ok("panel: ANSI styling only when asked", "\033[1;31m" in colored and "\033[" not in plain)
-    narrow = ui.render_panel_plain("t", lines, width=30)
-    _ok("panel: width cap does not shrink below the title",
-        len(narrow.split("\n")[0]) <= max(30, len("t") + 6))
+    narrow_rows = ui.render_panel_plain("t", lines, width=30).split("\n")
+    _ok("panel: a narrow frame wraps long lines and keeps every row the same width",
+        len(set(len(r) for r in narrow_rows)) == 1 and len(narrow_rows[0]) == 30
+        and len(narrow_rows) > len(lines) + 2
+        and all(r.startswith("│ ") and r.endswith(" │") for r in narrow_rows[1:-1])
+        and "".join(narrow_rows[1:-1]).count("PC=0x4202068a") == 1)
+    tiny_rows = ui.render_panel_plain("a title", lines, width=5).split("\n")
+    _ok("panel: width cap never shrinks below the title",
+        len(set(len(r) for r in tiny_rows)) == 1 and "a title" in tiny_rows[0])
 
 
 def test_idf_extension():
