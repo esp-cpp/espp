@@ -12,8 +12,9 @@
 # `idf.py ota-usb` action with options (--binary, --chunk-size, --no-verify,
 # --verify-timeout, --quiet, --status / --mark-valid / --rollback,
 # --vid/--pid/--serial/--interface), which idf.py prefers over a CMake target of
-# the same name whenever it loads that extension (trusted component sources, or
-# the espp wheel's entry point). idf.py cannot pass options to a custom target,
+# the same name whenever it loads that extension (ESP-IDF >= 6.0, from trusted
+# component sources or the espp wheel's entry point; ESP-IDF 5.x loads neither,
+# so there this target is all there is). idf.py cannot pass options to a custom target,
 # so this one takes none; device/port overrides are read from the environment
 # by the tool, e.g.:
 #     ESPP_OTA_PID=0x1234 idf.py ota-usb

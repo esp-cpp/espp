@@ -238,14 +238,22 @@ def test_transport_timeout_classification():
     OldCore = type("OldCore", (), {"USBError": USBError})  # pyusb < 1.1: no USBTimeoutError
     is_timeout = UsbVendorTransport.is_usb_timeout
     _ok("transport: pyusb's USBTimeoutError is a timeout", is_timeout(Core, USBTimeoutError()))
-    _ok("transport: ETIMEDOUT on Linux / macOS / Windows is a timeout",
-        all(is_timeout(Core, USBError(errno=e)) for e in (110, 60, 10060)))
+    import errno as _errno
+    _ok("transport: this platform's ETIMEDOUT is a timeout",
+        is_timeout(Core, USBError(errno=_errno.ETIMEDOUT)))
+    wsa = getattr(_errno, "WSAETIMEDOUT", None)
+    _ok("transport: WSAETIMEDOUT counts only where it exists (Windows)",
+        wsa is None or is_timeout(Core, USBError(errno=wsa)))
+    foreign = [e for e in (110, 60, 10060) if e not in (_errno.ETIMEDOUT, wsa)]
+    _ok("transport: another OS's ETIMEDOUT number is not a timeout here",
+        all(not is_timeout(Core, USBError(errno=e)) for e in foreign))
     _ok("transport: libusb LIBUSB_ERROR_TIMEOUT is a timeout",
         is_timeout(Core, USBError(backend_error_code=-7)))
     _ok("transport: other errors are not timeouts",
         not is_timeout(Core, USBError(errno=5)) and not is_timeout(Core, USBError()))
     _ok("transport: old pyusb without USBTimeoutError still classifies by errno",
-        is_timeout(OldCore, USBError(errno=60)) and not is_timeout(OldCore, USBError(errno=19)))
+        is_timeout(OldCore, USBError(errno=_errno.ETIMEDOUT))
+        and not is_timeout(OldCore, USBError(errno=19)))
 
 
 def test_component_loader():
@@ -323,8 +331,8 @@ def test_idf_extension():
         except X.FatalError as exc:
             _ok("idf_ext: two mode flags are refused", "mutually exclusive" in str(exc))
         # what the action builds must be what the CLI accepts
-        from espp_ota.cli import build_parser
-        parser = build_parser()
+        import espp_ota.cli as cli
+        parser = cli.build_parser()
         ns = parser.parse_args(X.build_tool_argv(build_dir, chunk_size="2048", no_verify=True,
                                                  verify_timeout="5", quiet=True, pid="0x1234",
                                                  serial="S1"))
@@ -336,8 +344,6 @@ def test_idf_extension():
 
         # the action callback drives the CLI in-process and maps a non-zero exit to FatalError
         calls = []
-        import espp_ota.cli as cli
-
         real_main = cli.main
         cli.main = lambda argv=None: (calls.append(list(argv)), 0)[1]
         try:

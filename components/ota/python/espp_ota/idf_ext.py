@@ -11,7 +11,9 @@ so unlike a CMake custom target it can take flags::
     idf.py ota-usb --rollback             # reject it: roll back + reboot
     idf.py ota-usb --pid 0x1234 --serial ABC123 --chunk-size 2048
 
-idf.py loads it two ways:
+idf.py loads it two ways, both new in **ESP-IDF 6.0** (idf.py of 5.x loads
+neither component ``idf_ext.py`` files nor entry points; there, requiring the
+component gives only the option-less CMake target below):
 
 * from ``components/ota/idf_ext.py`` (a thin loader for this module) when the
   ``ota`` component is in the build. idf.py only trusts component extensions
@@ -26,7 +28,8 @@ idf.py loads it two ways:
 Both may be active at once; the second registration is skipped, so there is no
 duplicate-action warning. The CMake target ``ota-usb`` from
 ``project_include.cmake`` stays as the fallback for builds where neither
-extension is loaded (an idf.py action shadows a CMake target of the same name).
+extension is loaded, ESP-IDF 5.x included (an idf.py action shadows a CMake
+target of the same name).
 """
 
 from __future__ import annotations
@@ -113,9 +116,11 @@ def selected_mode(status: bool = False, mark_valid: bool = False, rollback: bool
     Raises FatalError when more than one is given.
     """
     # the flag names and their values live side by side, so adding a mode is
-    # one entry here (and _MODES documents the set)
+    # one entry here (and _MODES documents the set; a mismatch is a bug in this
+    # file, reported even under python -O)
     flags = {"status": status, "mark-valid": mark_valid, "rollback": rollback}
-    assert tuple(flags) == _MODES
+    if tuple(flags) != _MODES:
+        raise RuntimeError(f"mode flags {tuple(flags)} do not match _MODES {_MODES}")
     chosen = [name for name, on in flags.items() if on]
     if len(chosen) > 1:
         raise FatalError("--" + " and --".join(chosen) + " are mutually exclusive")

@@ -34,7 +34,8 @@ the same stream), view the crash summary, download the core dump as
 The same protocol is also spoken from the terminal by the pure-Python
 [`python/espp_coredump`](python/) tool, and the component's
 `idf_ext.py` turns it into an `idf.py coredump-usb` action in every project
-that requires `coredump`: build, download the stored dump over USB and decode
+that requires `coredump` (on ESP-IDF 6.0 or later, whose idf.py loads component
+extensions): build, download the stored dump over USB and decode
 it against the freshly built ELF in one step, with options (`--gdb` for GDB on
 the core file, `--summary`, `--erase`, `--out`, `--vid`/`--pid`/`--serial`), like
 ESP-IDF's own `coredump-info` / `coredump-debug`. The same action is also

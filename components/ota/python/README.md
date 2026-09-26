@@ -31,7 +31,10 @@ idf.py ota-usb --help                 # all options (--vid/--pid/--serial/--inte
 idf.py build ota-usb                  # the option-less CMake fallback target
 ```
 
-The action comes from the component's `idf_ext.py`, which idf.py loads when
+The action needs **ESP-IDF 6.0 or later**: idf.py of 5.x loads neither
+component extensions nor entry points, so there requiring the component gives
+only the option-less CMake target described below. The action comes from the
+component's `idf_ext.py`, which idf.py loads when
 the component is in the build **from a trusted source**: ESP-IDF itself, the
 project's own components, `EXTRA_COMPONENT_DIRS` (how espp is normally used) or
 an `espressif/` registry component. A registry install of `espp/ota` is not in

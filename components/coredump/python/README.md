@@ -27,7 +27,10 @@ have seen it; the flag is the confirmation). The crash report (`--summary`) is
 printed as a framed, colorized block so it stands out from the build output
 around it.
 
-The action comes from the component's `idf_ext.py`, which idf.py loads when
+The action needs **ESP-IDF 6.0 or later**: idf.py of 5.x loads neither
+component extensions nor entry points, so there requiring the component gives
+only the option-less CMake targets described below. The action comes from the
+component's `idf_ext.py`, which idf.py loads when
 the component is in the build **from a trusted source**: ESP-IDF itself, the
 project's own components, `EXTRA_COMPONENT_DIRS` (how espp is normally used) or
 an `espressif/` registry component. A registry install of `espp/coredump` is

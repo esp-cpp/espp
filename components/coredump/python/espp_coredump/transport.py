@@ -200,16 +200,22 @@ class UsbVendorTransport:
         """Whether a pyusb ``USBError`` is a transfer timeout (expected: poll
         again) rather than a real I/O error (must propagate). pyusb >= 1.1
         raises the ``USBTimeoutError`` subclass; older pyusb raises a plain
-        ``USBError`` carrying the platform's ETIMEDOUT (110 on Linux, 60 on
-        macOS / BSD, 10060 on Windows) or the libusb backend code
-        ``LIBUSB_ERROR_TIMEOUT`` (-7). An unknown errno is NOT a timeout: that
-        would silently swallow backend failures."""
+        ``USBError`` carrying THIS platform's ETIMEDOUT (``errno.ETIMEDOUT``:
+        110 on Linux, 60 on macOS / BSD; ``errno.WSAETIMEDOUT`` on Windows) or
+        the libusb backend code ``LIBUSB_ERROR_TIMEOUT`` (-7). Only the current
+        platform's values count -- another OS's number is an unrelated error
+        here -- and an unknown errno is NOT a timeout: that would silently
+        swallow backend failures."""
         import errno
 
         timeout_cls = getattr(core, "USBTimeoutError", None)
         if timeout_cls is not None and isinstance(exc, timeout_cls):
             return True
-        if getattr(exc, "errno", None) in (errno.ETIMEDOUT, 110, 60, 10060):
+        timeout_errnos = {errno.ETIMEDOUT}
+        wsa_timeout = getattr(errno, "WSAETIMEDOUT", None)  # Windows only
+        if wsa_timeout is not None:
+            timeout_errnos.add(wsa_timeout)
+        if getattr(exc, "errno", None) in timeout_errnos:
             return True
         return getattr(exc, "backend_error_code", None) == -7
 

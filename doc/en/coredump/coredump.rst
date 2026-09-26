@@ -50,13 +50,14 @@ just built, in one step -- the counterpart of ESP-IDF's ``coredump-info`` /
     idf.py coredump-usb --summary    # just the crash report stored on the device
     idf.py coredump-usb --erase      # decode (or --summary), then erase the stored dump
 
-idf.py loads a component's extension only from trusted sources (ESP-IDF, the
-project's components, ``EXTRA_COMPONENT_DIRS``, ``espressif/`` registry
-components); a registry install of ``espp/coredump`` needs
-``IDF_EXTENSION_ALLOW_UNTRUSTED=1``, or the espp wheel installed in the IDF
-Python environment (its ``idf_extension`` entry point is loaded without a trust
-check). Plain ``coredump-usb`` / ``coredump-usb-debug`` CMake targets remain as
-a fallback. All of this is the host half only: the firmware must store core
+The action needs ESP-IDF 6.0 or later (idf.py of 5.x loads neither component
+extensions nor entry points). idf.py loads a component's extension only from
+trusted sources (ESP-IDF, the project's components, ``EXTRA_COMPONENT_DIRS``,
+``espressif/`` registry components); a registry install of ``espp/coredump``
+needs ``IDF_EXTENSION_ALLOW_UNTRUSTED=1``, or the espp wheel installed in the
+IDF Python environment (its ``idf_extension`` entry point is loaded without a
+trust check). Plain ``coredump-usb`` / ``coredump-usb-debug`` CMake targets
+remain as a fallback, and are all that ESP-IDF 5.x gets. All of this is the host half only: the firmware must store core
 dumps to flash (``CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH`` and a ``coredump``
 partition) and serve a ``CoreDumpService`` on a USB vendor interface, as the
 example does. The tool also runs directly (``python -m espp_coredump summary``

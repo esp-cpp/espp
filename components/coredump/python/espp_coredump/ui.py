@@ -59,12 +59,21 @@ def _have_rich() -> bool:
         return False
 
 
-def _ansi_enabled() -> bool:
+def _ansi_enabled(stream=None) -> bool:
+    """Whether to emit ANSI styling on ``stream`` (default: stderr). Honours
+    NO_COLOR / CLICOLOR_FORCE / FORCE_COLOR, else the stream must be a tty --
+    the panel on stdout and the status lines on stderr are judged separately,
+    so a redirected report file never gets escape sequences."""
     if os.environ.get("NO_COLOR") is not None:
         return False
     if os.environ.get("CLICOLOR_FORCE") or os.environ.get("FORCE_COLOR"):
         return True
-    return _isatty()
+    if stream is None:
+        return _isatty()
+    try:
+        return bool(stream.isatty())
+    except Exception:
+        return False
 
 
 # How a crash-report line is styled inside a panel, by its "key:" prefix (the
@@ -172,7 +181,8 @@ class Console:
             width = os.get_terminal_size().columns
         except Exception:
             width = 0
-        sys.stdout.write("\n" + render_panel_plain(title, lines, color=_ansi_enabled(), width=width,
+        sys.stdout.write("\n" + render_panel_plain(title, lines, color=_ansi_enabled(sys.stdout),
+                                                   width=width,
                                                    ascii_only=not _stream_can_encode(sys.stdout, "╭│╯"))
                          + "\n\n")
         sys.stdout.flush()

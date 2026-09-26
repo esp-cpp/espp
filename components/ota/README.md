@@ -152,7 +152,8 @@ The [espp OTA Console](https://esp-cpp.github.io/espp/apps/ota_console.html)
 ### Command line: build → OTA
 
 The [`python/espp_ota`](python/) tool speaks the same protocol from a terminal.
-Because this component ships an `idf_ext.py`, any project using it gets an
+Because this component ships an `idf_ext.py`, any project using it (on
+ESP-IDF 6.0 or later, whose idf.py loads component extensions) gets an
 `idf.py ota-usb` action — the OTA counterpart to `idf.py flash`, with options
 (`--no-verify`, `--binary`, `--status` / `--mark-valid` / `--rollback`,
 `--vid`/`--pid`/`--serial`, ...); the same action is also available through an
