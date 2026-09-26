@@ -365,12 +365,13 @@ def test_idf_extension():
                 calls == [["--pid", "0x1234", "summary"], ["--pid", "0x1234", "erase", "--yes"]])
             calls.clear()
             cli.main = lambda argv=None: (calls.append(list(argv)), 1)[1]
+            failed = False
             try:
                 action["callback"]("coredump-usb", None, args, erase=True)
             except X.FatalError:
-                pass
-            _ok("idf_ext: a failed report/decode never erases",
-                calls == [["debug", elf, "--out", core]])
+                failed = True  # the decode's non-zero exit is the expected failure
+            _ok("idf_ext: a failed report/decode is reported and never erases",
+                failed and calls == [["debug", elf, "--out", core]])
             cli.main = lambda argv=None: 1
             try:
                 action["callback"]("coredump-usb", None, args)
