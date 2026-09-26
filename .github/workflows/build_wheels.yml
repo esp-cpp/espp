@@ -11,6 +11,7 @@ on:
       - 'lib/**'
       - 'components/**'
       - 'pyproject.toml'
+      - '**/*.toml'
       - '.github/workflows/build_wheels.yml'
   push:
     branches: [main]
