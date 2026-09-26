@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>espp Serial Plotter</title>
+  <meta name="description" content="Data plotter: auto-parses columnar serial output over Web Serial, or plots binary telemetry (espp::Telemetry) over WebUSB. Efficient high-point-count plots (uPlot), per-series filter, CSV save/load, and optional 2D X-Y / 3D X-Y-Z modes.">
+  <!--
+    Self-contained: no CDN, no build step. Works from file://, http://localhost,
+    or the hosted docs (apps/). Web Serial is Chromium-only and needs a secure
+    context. Plotting is done with uPlot (MIT) vendored as the sibling
+    uPlot.iife.min.js; its small CSS is inlined below because the docs workflow
+    ships only *.html and *.js from components/*/web/.
+  -->
+  <style>
+    /* ---- vendored uPlot v1.6.31 CSS (MIT, https://github.com/leeoniya/uPlot) ---- */
+    .uplot, .uplot *, .uplot *::before, .uplot *::after {box-sizing: border-box;}
+    .uplot {font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;line-height: 1.5;width: min-content;}
+    .u-title {text-align: center;font-size: 18px;font-weight: bold;}
+    .u-wrap {position: relative;user-select: none;}
+    .u-over, .u-under {position: absolute;}
+    .u-under {overflow: hidden;}
+    .uplot canvas {display: block;position: relative;width: 100%;height: 100%;}
+    .u-axis {position: absolute;}
+    .u-legend {font-size: 13px;margin: auto;text-align: center;}
+    .u-inline {display: block;}
+    .u-inline * {display: inline-block;}
+    .u-inline tr {margin-right: 16px;}
+    .u-legend th {font-weight: 600;}
+    .u-legend th > * {vertical-align: middle;display: inline-block;}
+    .u-legend .u-marker {width: 1em;height: 1em;margin-right: 4px;background-clip: padding-box !important;}
+    .u-inline.u-live th::after {content: ":";vertical-align: middle;}
+    .u-inline:not(.u-live) .u-value {display: none;}
+    .u-series > * {padding: 4px;}
+    .u-series th {cursor: pointer;}
+    .u-legend .u-off > * {opacity: 0.3;}
+    .u-select {background: rgba(0,0,0,0.07);position: absolute;pointer-events: none;}
+    .u-cursor-x, .u-cursor-y {position: absolute;left: 0;top: 0;pointer-events: none;will-change: transform;}
+    .u-hz .u-cursor-x, .u-vt .u-cursor-y {height: 100%;border-right: 1px dashed #607D8B;}
+    .u-hz .u-cursor-y, .u-vt .u-cursor-x {width: 100%;border-bottom: 1px dashed #607D8B;}
+    .u-cursor-pt {position: absolute;top: 0;left: 0;border-radius: 50%;border: 0 solid;pointer-events: none;will-change: transform;background-clip: padding-box !important;}
+    .u-axis.u-off, .u-select.u-off, .u-cursor-x.u-off, .u-cursor-y.u-off, .u-cursor-pt.u-off {display: none;}
+
+    /* ---- app theme (shared with the other espp consoles) ---- */
+    :root {
+      --bg: #f4f6f9; --panel-bg: #ffffff; --panel-border: #d9dee6; --text: #1c2330;
+      --text-muted: #5c6675; --accent: #2563eb; --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff; --danger: #dc2626; --ok: #16a34a; --warn: #b45309;
+      --input-bg: #ffffff; --input-border: #c3cbd6; --chip-bg: #eef2f8;
+      --grid: #e5e9f0; --plot-bg: #ffffff;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+        --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+        --accent-contrast: #0b0e14; --danger: #ef4444; --ok: #22c55e; --warn: #f59e0b;
+        --input-bg: #0e1219; --input-border: #2b3341; --chip-bg: #1b2230;
+        --grid: #232b39; --plot-bg: #0e1219;
+        --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    /* the hidden attribute must win over any element's explicit `display` */
+    [hidden] { display: none !important; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      display: flex; flex-direction: column;
+    }
+    header {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 10px 16px; background: var(--panel-bg);
+      border-bottom: 1px solid var(--panel-border); box-shadow: var(--shadow);
+    }
+    header h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: .01em; }
+    header .spacer { flex: 1; }
+    .chip {
+      font-size: 12px; padding: 3px 9px; border-radius: 999px;
+      background: var(--chip-bg); color: var(--text-muted);
+      border: 1px solid var(--panel-border); white-space: nowrap;
+    }
+    .chip.on   { color: var(--ok);     border-color: color-mix(in srgb, var(--ok) 40%, var(--panel-border)); }
+    .chip.err  { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--panel-border)); }
+    .chip.busy { color: var(--warn);   border-color: color-mix(in srgb, var(--warn) 40%, var(--panel-border)); }
+
+    .toolbar {
+      display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap;
+      padding: 10px 16px; background: var(--panel-bg);
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .toolbar .group { display: flex; align-items: center; gap: 6px; }
+    .toolbar .sep { width: 1px; align-self: stretch; background: var(--panel-border); margin: 0 2px; }
+    label.field { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 13px; }
+
+    button, select, input[type=number], input[type=text] {
+      font: inherit; color: var(--text); background: var(--input-bg);
+      border: 1px solid var(--input-border); border-radius: 7px; padding: 6px 10px;
+    }
+    input[type=number] { width: 84px; }
+    button { cursor: pointer; }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button.primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); font-weight: 600; }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.mini { padding: 4px 8px; font-size: 12px; border-radius: 6px; }
+    input[type=checkbox] { accent-color: var(--accent); }
+
+    /* settings popover */
+    #settingsGroup { position: relative; }
+    #settings { padding: 6px 9px; line-height: 1; font-size: 15px; }
+    #settingsPanel {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
+      min-width: 250px; padding: 14px; display: flex; flex-direction: column; gap: 12px;
+      background: var(--panel-bg); border: 1px solid var(--panel-border);
+      border-radius: 10px; box-shadow: var(--shadow);
+    }
+    .settings-title { font-weight: 600; font-size: 13px; color: var(--text); }
+    .settings-row { display: flex; flex-direction: column; gap: 7px; font-size: 13px; }
+    .settings-row > label { color: var(--text-muted); }
+    .settings-slider { display: flex; align-items: center; gap: 10px; }
+    .settings-slider input[type=range] { flex: 1; accent-color: var(--accent); padding: 0; }
+    .settings-slider output { color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 62px; text-align: right; }
+    .settings-hint { color: var(--text-muted); font-size: 11.5px; line-height: 1.35; }
+
+    /* series filter / visibility bar */
+    #seriesBar {
+      display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap;
+      padding: 8px 16px; background: var(--panel-bg);
+      border-bottom: 1px solid var(--panel-border);
+    }
+    #seriesBar .label { color: var(--text-muted); font-size: 13px; white-space: nowrap; }
+    #seriesFilter { min-width: 150px; padding: 5px 9px; }
+    #seriesList { display: flex; align-items: center; gap: 6px 7px; flex-wrap: wrap; }
+    #seriesList:empty::after { content: "no series match"; color: var(--text-muted); font-size: 12px; }
+    .series-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px 3px 6px; border-radius: 999px;
+      border: 1px solid var(--panel-border); background: var(--chip-bg);
+      font-size: 12px; cursor: pointer; user-select: none; line-height: 1.2;
+    }
+    .series-chip .swatch { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+    .series-chip input { margin: 0; }
+    .series-chip.off { opacity: .42; }
+    .series-chip.off .swatch { filter: grayscale(1); }
+
+    #unsupported {
+      display: none; margin: 16px; padding: 12px 16px; border-radius: 10px;
+      background: color-mix(in srgb, var(--danger) 10%, var(--panel-bg));
+      border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--panel-border));
+      color: var(--text);
+    }
+    #unsupported strong { color: var(--danger); }
+
+    main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 12px 16px; gap: 8px; }
+    #plotHost {
+      flex: 1; min-height: 0; position: relative;
+      background: var(--plot-bg); border: 1px solid var(--panel-border);
+      border-radius: 10px; box-shadow: var(--shadow); overflow: hidden;
+    }
+    #plotHost .uplot { width: 100% !important; }
+    .u-legend { color: var(--text); }
+    #plot3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+    #plot3d.drag { cursor: grabbing; }
+    #hint {
+      position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+      text-align: center; color: var(--text-muted); pointer-events: none; padding: 0 24px;
+    }
+    #hint code { background: var(--chip-bg); padding: 1px 6px; border-radius: 5px; }
+
+    .statusbar {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      font-size: 12px; color: var(--text-muted);
+    }
+    .statusbar b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .statusbar .schema { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>espp Serial Plotter</h1>
+    <span id="status" class="chip">Disconnected</span>
+    <span class="spacer"></span>
+    <span class="chip" id="fps" title="plot refresh"></span>
+  </header>
+
+  <div id="unsupported">
+    <strong>Web Serial is not available in this browser.</strong>
+    Use a Chromium-based browser (Chrome, Edge, Opera) over <code>https</code>,
+    <code>http://localhost</code>, or <code>file://</code>. You can still
+    <b>Load CSV</b> to view a saved capture.
+  </div>
+
+  <div class="toolbar">
+    <div class="group">
+      <button id="connect" class="primary" title="Web Serial: text / CSV columns">Connect Serial</button>
+      <button id="usb" class="primary" title="WebUSB: binary telemetry (espp::Telemetry)">Connect WebUSB</button>
+      <label class="field">Baud
+        <select id="baud">
+          <option>9600</option><option>19200</option><option>38400</option>
+          <option>57600</option><option>74880</option>
+          <option selected>115200</option><option>230400</option>
+          <option>460800</option><option>921600</option>
+        </select>
+      </label>
+      <button id="reset" disabled title="Pulse DTR/RTS to reset the device">Reset</button>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="group">
+      <button id="pause" disabled>Pause</button>
+      <button id="clear">Clear</button>
+      <button id="follow" class="primary" title="Auto-scroll to the latest data. To explore the retained data: wheel = zoom X (Shift+wheel = zoom Y), drag = zoom box, Shift+drag = pan, double-click = reset + resume Follow. Any of these drops out of Follow so your view sticks.">Following</button>
+      <label class="field">Window&nbsp;(s)
+        <input type="number" id="window" min="0" step="1" placeholder="all" style="width:64px" title="Follow window in seconds (blank = show all retained data)">
+      </label>
+      <label class="field">Retain&nbsp;(samples)
+        <input type="number" id="retain" min="100" max="2000000" step="1000" value="200000" title="Max samples kept per series">
+      </label>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="group">
+      <label class="field">Mode
+        <select id="mode">
+          <option value="time" selected>Time series</option>
+          <option value="xy">2D&nbsp;X-Y</option>
+          <option value="xyz">3D&nbsp;X-Y-Z</option>
+        </select>
+      </label>
+      <label class="field" id="xModeWrap">X
+        <select id="xMode">
+          <option value="time" selected>Arrival time</option>
+          <option value="elapsed" hidden>Elapsed time</option>
+          <option value="firstcol">First column</option>
+          <option value="index">Sample index</option>
+        </select>
+      </label>
+      <label class="field" id="xColWrap" hidden>X <select id="xCol"></select></label>
+      <label class="field" id="yColWrap" hidden>Y <select id="yCol"></select></label>
+      <label class="field" id="zColWrap" hidden>Z <select id="zCol"></select></label>
+      <label class="field" id="pointsWrap" hidden><input type="checkbox" id="points"> Points</label>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="group">
+      <button id="save">Save CSV</button>
+      <button id="load">Load CSV</button>
+      <input type="file" id="file" accept=".csv,.tsv,.txt,text/*" hidden>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="group" id="settingsGroup">
+      <button id="settings" title="Settings" aria-haspopup="dialog" aria-expanded="false">&#9881;</button>
+      <div id="settingsPanel" hidden role="dialog" aria-label="Settings">
+        <div class="settings-title">Settings</div>
+        <div class="settings-row">
+          <label for="zoomSens">Wheel zoom sensitivity</label>
+          <div class="settings-slider">
+            <input type="range" id="zoomSens" min="2" max="30" step="1" value="10"
+                   title="How much one scroll notch zooms the plot">
+            <output id="zoomSensOut">10% / notch</output>
+          </div>
+          <span class="settings-hint">Amount one mouse-wheel notch zooms. Applies to wheel (X) and Shift+wheel (Y).</span>
+        </div>
+        <button id="settingsReset" class="mini">Reset to default</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="seriesBar" hidden>
+    <span class="label">Series</span>
+    <input type="text" id="seriesFilter" placeholder="filter by name..." autocomplete="off" spellcheck="false">
+    <button id="seriesAll" class="mini">All</button>
+    <button id="seriesNone" class="mini">None</button>
+    <div id="seriesList"></div>
+  </div>
+
+  <main>
+    <div id="plotHost">
+      <canvas id="plot3d" hidden></canvas>
+      <div id="hint">Connect to a serial port, or <b>Load CSV</b>. The plotter
+        auto-detects a header line and plots the numeric rows that follow.</div>
+    </div>
+    <div class="statusbar">
+      <span>rows <b id="stRows">0</b></span>
+      <span>kept <b id="stKept">0</b></span>
+      <span>discarded <b id="stDrop">0</b></span>
+      <span>rate <b id="stRate">0</b>/s</span>
+      <span class="schema" id="stSchema">no schema yet</span>
+    </div>
+  </main>
+
+  <script src="uPlot.iife.min.js"></script>
+  <script>
+  "use strict";
+  (function () {
+    const $ = (id) => document.getElementById(id);
+
+    // ---------------------------------------------------------------- palette
+    const COLORS = [
+      "#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed", "#0891b2",
+      "#db2777", "#65a30d", "#0d9488", "#c026d3", "#2dd4bf", "#f59e0b",
+    ];
+    const cssVar = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
+
+    // ---------------------------------------------------------------- ring buffer
+    // Fixed-capacity per-column ring; toOrdered() copies into a reusable typed
+    // array so uPlot always receives contiguous, oldest->newest data.
+    class Ring {
+      constructor(cap, Type) { this.cap = cap; this.buf = new Type(cap); this.head = 0; this.count = 0; }
+      push(v) { this.buf[this.head] = v; this.head = (this.head + 1) % this.cap; if (this.count < this.cap) this.count++; }
+      clear() { this.head = 0; this.count = 0; }
+      toOrdered(out) {
+        const { buf, cap, head, count } = this;
+        const start = (head - count + cap) % cap;
+        if (start + count <= cap) { out.set(buf.subarray(start, start + count)); }
+        else { const first = cap - start; out.set(buf.subarray(start, cap), 0); out.set(buf.subarray(0, count - first), first); }
+        return out;
+      }
+      // Copy every `step`-th sample (oldest->newest) into out; returns the count
+      // written. Reads only count/step elements - no full-length copy.
+      toOrderedStrided(out, step) {
+        const { buf, cap, head, count } = this;
+        const start = (head - count + cap) % cap;
+        let j = 0;
+        for (let i = 0; i < count; i += step) out[j++] = buf[(start + i) % cap];
+        return j;
+      }
+    }
+
+    // ---------------------------------------------------------------- state
+    let schema = null;              // { labels:[...], ncols, delim }
+    let pendingHeader = null;       // provisional header, binds the next matching data row
+    let tRing = null;               // time ring (Float64 s): device time over WebUSB, else browser arrival
+    let colRings = [];              // one Ring<Float32> per column
+    let cap = 200000;               // retained points per series
+    let t0 = 0;                     // performance.now() at first sample
+    let paused = false;
+    let plot = null;                // uPlot instance (time / xy modes)
+    let mode = "time";
+    let following = true;           // live view auto-scrolls to the latest data
+    let windowSec = 0;              // Follow window length in seconds (0 = show all)
+    let stats = { rows: 0, kept: 0, drop: 0 };
+    let rateWin = [];               // timestamps of recent samples, for rate
+    let seriesVisible = {};         // label -> bool; manual per-series show/hide (persists across rebuilds)
+
+    // scratch arrays reused across draws (resized only when count changes)
+    let scratch = { cap: -1, x: null, ys: [], t: null };   // capacity-sized 2D draw buffers (t = time, for the Follow window)
+    // Decimated, pre-normalized 3D points, rebuilt only when the data/columns
+    // change - so camera rotation/zoom just re-projects the cached set.
+    let sceneCache = { key: "", m: 0, px: null, py: null, pz: null, t: null };
+    const MAX_RETAIN = 2000000;     // hard cap on retained points/series
+    const MAX_COLS = 512;           // reject absurdly wide "schemas" (likely a parse error)
+    const BYTE_BUDGET = 256 * 1024 * 1024;   // total rings+scratch budget; caps points x columns
+    let dataFromFile = false;       // current dataset came from Load CSV (already carries its X)
+
+    // ---------------------------------------------------------------- parsing
+    const isNum = (s) => s !== "" && Number.isFinite(Number(s));
+
+    // ESP-IDF logs ("I (123) tag: msg", optionally ANSI-colored) tokenize as
+    // all-label lines and would otherwise look like a header; reject them up
+    // front so a same-width data row can never confirm one as the schema.
+    const ESP_LOG = /^(?:\x1b\[[0-9;]*m)?[EWIDVN] \(\d+\)/;
+
+    // ANSI/VT100 CSI escape sequences (color codes, cursor moves) — stripped from
+    // every line before parsing so a colored data row still reads as numbers and
+    // a colored header yields clean labels.
+    const ANSI_RE = /\x1b\[[0-9;?]*[ -/]*[@-~]/g;
+    const stripAnsi = (s) => s.replace(ANSI_RE, "");
+    // Turn a raw header token into a display label: drop the '%' field-marker /
+    // delimiter some devices wrap field names in, and trim surrounding space, so
+    // axis labels, the legend, and the series filter read cleanly.
+    const cleanLabel = (s) => s.replace(/%/g, "").trim();
+
+    function detectDelim(line) {
+      if (line.indexOf(",") >= 0) return ",";
+      if (line.indexOf("\t") >= 0) return "\t";
+      if (line.indexOf(";") >= 0) return ";";
+      return " ";                   // whitespace (collapsed)
+    }
+    function splitLine(line, delim) {
+      return delim === " " ? line.trim().split(/\s+/) : line.split(delim).map((s) => s.trim());
+    }
+
+    const sameLabels = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+
+    // Classify a line against / into the schema. Returns "header", "data", or "drop".
+    function classify(tokens) {
+      if (tokens.length < 1 || (tokens.length === 1 && tokens[0] === "")) return "drop";
+      const numeric = tokens.filter(isNum).length;
+      if (numeric === tokens.length && tokens.length >= 1) return "data";   // all numeric
+      if (numeric === 0 && tokens.length >= 1) return "header";             // all labels
+      return "drop";                                                        // mixed -> junk/log
+    }
+
+    // Bound total memory, not just points/series: with many columns the
+    // per-series cap must shrink so points x columns stays within budget.
+    // bytes/point ~= Float64 t + Float32 rings + Float64 scratch (x + ys).
+    function computeCap(ncols) {
+      const want = Math.min(MAX_RETAIN, Math.max(100, parseInt($("retain").value, 10) || 200000));
+      return Math.max(100, Math.min(want, Math.floor(BYTE_BUDGET / (16 + 12 * ncols))));
+    }
+
+    function setSchema(labels, delim) {
+      schema = { labels: labels.slice(), ncols: labels.length, delim };
+      cap = computeCap(labels.length);
+      $("retain").value = cap;      // reflect the effective cap back to the input
+      tRing = new Ring(cap, Float64Array);
+      colRings = labels.map(() => new Ring(cap, Float32Array));
+      // NB: t0 is intentionally NOT reset here - resetting it mid-chunk would
+      // make arrival-time X non-monotonic. clearData() owns the t0 reset, and
+      // buildData() rebases each dataset to its first retained timestamp.
+      stats.kept = 0;
+      scratch.cap = -1; sceneCache.key = "";
+      updateXModeOptions();   // transport may have changed (once, not on the stats tick)
+      rebuildColumnSelects();
+      buildPlot();
+      updateSchemaLabel();
+      setFollowing(true);   // a fresh dataset follows the latest by default
+    }
+
+    function pushSample(nums, tSec) {
+      tRing.push(tSec);
+      for (let i = 0; i < colRings.length; i++) colRings[i].push(nums[i]);
+      stats.kept = tRing.count;
+    }
+
+    // Feed one raw line. Delimiter is detected per line so a header and its
+    // rows can differ (e.g. a whitespace log line vs comma-separated data).
+    function ingestLine(line, arrivalSec) {
+      line = stripAnsi(line);                             // drop color/cursor escapes first
+      if (ESP_LOG.test(line)) { stats.drop++; return; }   // ESP-IDF log line -> discard
+      const delim = detectDelim(line);
+      const tokens = splitLine(line, delim);
+      const kind = classify(tokens);
+
+      if (kind === "header") {
+        // Provisional only: a header takes effect once a data row of the same
+        // width follows, so all-text log lines can't hijack the schema. Clean the
+        // labels (strip the '%' field marker) but keep the token count so a data
+        // row of the same width still confirms it.
+        pendingHeader = { labels: tokens.map(cleanLabel), delim };
+        return;
+      }
+      if (kind !== "data") { stats.drop++; return; }   // mixed line -> junk/log
+
+      stats.rows++;
+      if (tokens.length > MAX_COLS) { stats.drop++; return; }   // absurdly wide -> parse error
+      if (pendingHeader && pendingHeader.labels.length === tokens.length) {
+        // Confirmed header -> (re-)evaluate: different labels/count start fresh.
+        if (!schema || !sameLabels(schema.labels, pendingHeader.labels))
+          setSchema(pendingHeader.labels, delim);
+      } else if (!schema) {
+        setSchema(tokens.map((_, i) => "ch" + i), delim);    // data before any header
+      }
+      pendingHeader = null;                                  // a header binds only the next row
+      if (tokens.length !== schema.ncols) { stats.drop++; return; }  // wrong width
+      const nums = new Array(schema.ncols);
+      for (let i = 0; i < schema.ncols; i++) nums[i] = Number(tokens[i]);
+      pushSample(nums, arrivalSec);
+      rateWin.push(performance.now() / 1000);   // absolute, to match the rate window below
+    }
+
+    // ---------------------------------------------------------------- column selects
+    function fillSelect(sel, keep) {
+      const prev = sel.value;
+      sel.innerHTML = "";
+      (schema ? schema.labels : []).forEach((lbl, i) => {
+        const o = document.createElement("option");
+        o.value = String(i); o.textContent = lbl;
+        sel.appendChild(o);
+      });
+      if (keep && prev !== "" && +prev < (schema ? schema.ncols : 0)) sel.value = prev;
+    }
+    function rebuildColumnSelects() {
+      fillSelect($("xCol"), true);
+      fillSelect($("yCol"), true);
+      fillSelect($("zCol"), true);
+      if (schema && schema.ncols >= 2) {
+        if ($("xCol").value === $("yCol").value) $("yCol").selectedIndex = 1;
+        if (schema.ncols >= 3 && $("zCol").value === $("xCol").value) $("zCol").selectedIndex = 2;
+      }
+    }
+
+    // Which column index is X, and which indices are the Y series, for the
+    // current mode + selectors. Returns {xIdx:-1 means synthetic, ys:[...]}.
+    function axisMap() {
+      if (!schema) return { xIdx: -1, ys: [] };
+      const all = schema.labels.map((_, i) => i);
+      if (mode === "xy") {
+        const xi = +$("xCol").value || 0;
+        return { xIdx: xi, ys: all.filter((i) => i !== xi) };
+      }
+      // time-series
+      const xm = $("xMode").value;
+      if (xm === "firstcol") return { xIdx: 0, ys: all.slice(1) };
+      return { xIdx: -1, ys: all };   // synthetic x (time or index)
+    }
+
+    // ---------------------------------------------------------------- uPlot build
+    // Allocate the draw buffers once at capacity and hand uPlot subarray views;
+    // during live capture `n` grows every frame, so per-frame allocation would
+    // defeat the high-point-count goal.
+    function ensureScratch(nSeries) {
+      if (scratch.cap === cap && scratch.ys.length === nSeries) return;
+      scratch.cap = cap;
+      scratch.x = new Float64Array(cap);
+      scratch.t = new Float64Array(cap);
+      scratch.ys = Array.from({ length: nSeries }, () => new Float64Array(cap));
+    }
+
+    function buildData() {
+      const { xIdx, ys } = axisMap();
+      const n = tRing ? tRing.count : 0;
+      ensureScratch(ys.length);
+      const xv = scratch.x.subarray(0, n);
+      const xm = mode === "time" ? $("xMode").value : "time";
+      // x
+      if (xIdx === -1 && xm === "index") {
+        for (let i = 0; i < n; i++) xv[i] = i;               // sample index
+      } else if (xIdx === -1 && xm === "elapsed") {
+        // Relative time: the device clock rebased to the first retained sample
+        // (starts at 0). Uses the device timestamp — NOT browser arrival, which
+        // is bursty over USB (many samples share one transfer's receive time)
+        // and would bunch points at the same x.
+        tRing.toOrdered(xv);
+        if (n) { const base = xv[0]; for (let i = 0; i < n; i++) xv[i] -= base; }
+      } else if (xIdx === -1) {
+        tRing.toOrdered(xv);                                 // primary time source
+        // Browser arrival time is relative, so rebase to the first retained
+        // sample (start at 0). The WebUSB device timestamp is absolute (device
+        // clock since boot) — keep it as-is so it shows real device time and
+        // stays continuous across reconnects (not reset to 0 each session).
+        if (n && !usbBinary()) { const base = xv[0]; for (let i = 0; i < n; i++) xv[i] -= base; }
+      } else {
+        colRings[xIdx].toOrdered(xv);
+      }
+      // ys
+      const yvs = ys.map((ci, s) => { const yv = scratch.ys[s].subarray(0, n); colRings[ci].toOrdered(yv); return yv; });
+      // X-Y uses uPlot mode 2 ([x,y] per series) so a non-monotonic X is handled
+      // correctly (range, zoom, cursor); time-series uses fast mode 1.
+      if (mode === "xy") return [null, ...yvs.map((yv) => [xv, yv])];
+      return [xv, ...yvs];
+    }
+
+    // WebUSB samples carry a device hardware timestamp (stored as the time axis),
+    // so label the "time" X source accordingly.
+    function usbBinary() { return !!schema && schema.delim === "webusb"; }
+    function xAxisLabel() {
+      if (mode === "xy") return schema.labels[+$("xCol").value || 0];
+      const xm = $("xMode").value;
+      if (xm === "firstcol") return schema.labels[0];
+      if (xm === "index") return "sample";
+      if (xm === "elapsed") return "elapsed (s)";
+      return usbBinary() ? "device time (s)" : "time (s)";
+    }
+
+    // uPlot has no built-in pan (drag = box-zoom, dbl-click = reset). Add the
+    // missing gestures on its overlay so a static / non-Follow plot is navigable:
+    //   • wheel           → zoom the X range about the cursor
+    //   • Shift + wheel    → zoom the Y range about the cursor
+    //   • Shift + drag     → pan (X and Y); plain drag stays uPlot's box-zoom
+    // Any of these drops out of Follow first so the view isn't re-autoscaled the
+    // next frame. Capture-phase mousedown lets Shift+drag pre-empt uPlot's drag.
+    // An in-progress Shift+drag pan: { u, over, px, py, vpx, vpy, x/y min/max }.
+    // Held at module scope so the window-level move/up handlers are installed
+    // once (below), not re-added on every buildPlot() overlay rebuild.
+    let activePan = null;
+    // Wheel-zoom sensitivity: fraction of range zoomed per pixel of wheel travel.
+    // Exposed in the Settings popover as "% per notch" (see setZoomPct); one
+    // mouse notch is ~120px, so rate = -ln(1 - pct/100) / 120.
+    const WHEEL_NOTCH_PX = 120;
+    const DEFAULT_ZOOM_PCT = 10;
+    let WHEEL_ZOOM_RATE = -Math.log(1 - DEFAULT_ZOOM_PCT / 100) / WHEEL_NOTCH_PX;
+    function bindPanZoom(u) {
+      const over = u.over;
+      const zoomAxis = (key, atVal, factor) => {
+        const sc = u.scales[key];
+        if (sc == null || sc.min == null || sc.max == null) return;
+        setFollowing(false);
+        u.setScale(key, { min: atVal + (sc.min - atVal) * factor,
+                          max: atVal + (sc.max - atVal) * factor });
+      };
+      over.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        const rect = over.getBoundingClientRect();
+        // Zoom amount scales with how far the wheel/trackpad moved, so one mouse
+        // notch is a modest step and a trackpad's small deltas stay gentle (a
+        // fixed factor made every scroll a big jump). Normalize the delta across
+        // deltaMode units, then WHEEL_ZOOM_RATE (per pixel) sets the sensitivity —
+        // lower it for finer steps, raise it for faster zoom.
+        let dy = e.deltaY;
+        if (e.deltaMode === 1) dy *= 16;                 // lines → ~px
+        else if (e.deltaMode === 2) dy *= over.clientHeight; // pages → ~px
+        const factor = Math.exp(WHEEL_ZOOM_RATE * dy);  // deltaY<0 (up) ⇒ <1 = zoom in
+        if (e.shiftKey) zoomAxis("y", u.posToVal(e.clientY - rect.top, "y"), factor);
+        else            zoomAxis("x", u.posToVal(e.clientX - rect.left, "x"), factor);
+      }, { passive: false });
+      over.addEventListener("mousedown", (e) => {
+        if (e.button !== 0 || !e.shiftKey) return; // let plain drag box-zoom
+        e.preventDefault();
+        e.stopImmediatePropagation();              // pre-empt uPlot's own drag
+        setFollowing(false);
+        const rect = over.getBoundingClientRect();
+        const sx = u.scales.x, sy = u.scales.y;
+        activePan = {
+          u, over, px: e.clientX, py: e.clientY,
+          vpx: (sx.max - sx.min) / rect.width,
+          vpy: (sy.max - sy.min) / rect.height,
+          xmin: sx.min, xmax: sx.max, ymin: sy.min, ymax: sy.max,
+        };
+        over.style.cursor = "grabbing";
+      }, true);
+    }
+    window.addEventListener("mousemove", (e) => {
+      const p = activePan;
+      if (!p) return;
+      const dx = (e.clientX - p.px) * p.vpx; // content follows the cursor
+      const dy = (e.clientY - p.py) * p.vpy; // screen Y is inverted → +=
+      p.u.batch(() => {
+        p.u.setScale("x", { min: p.xmin - dx, max: p.xmax - dx });
+        p.u.setScale("y", { min: p.ymin + dy, max: p.ymax + dy });
+      });
+    });
+    window.addEventListener("mouseup", () => {
+      if (!activePan) return;
+      activePan.over.style.cursor = "";
+      activePan = null;
+    });
+
+    function buildPlot() {
+      if (plot) { plot.destroy(); plot = null; }
+      // The X source / plot mode may have changed, so the last drawn X value is
+      // now in different units (device seconds vs sample index vs a column) —
+      // forget it so the not-following live-scroll doesn't shift the new scale by
+      // a delta computed across mismatched units.
+      lastLiveX = null;
+      const host = $("plotHost");
+      $("hint").hidden = !!schema;
+      $("plot3d").hidden = true;
+      if (!schema || mode === "xyz") { renderSeriesPanel(); if (mode === "xyz") drawScene(); return; }
+
+      const { ys } = axisMap();
+      const stroke = cssVar("--text-muted") || "#888";
+      const grid = cssVar("--grid") || "#ddd";
+      const xyMode = mode === "xy";
+      const asPoints = xyMode && $("points").checked;
+      const paths = uPlot.paths || {};
+      const linePaths = xyMode && paths.linear ? paths.linear() : undefined;
+      const pointPaths = xyMode && paths.points ? paths.points() : undefined;
+
+      const series = [xyMode ? {} : { label: xAxisLabel() }];
+      ys.forEach((ci, k) => {
+        const color = COLORS[k % COLORS.length];
+        const s = {
+          label: schema.labels[ci],
+          show: isVisible(schema.labels[ci]),
+          stroke: color,
+          width: 1.5,
+          // In X-Y mode the marker/line is drawn by the path builder itself
+          // (mode 2); points.show is left off to avoid a duplicate point layer.
+          points: { show: false, size: 6, fill: color, stroke: color },
+          paths: xyMode ? (asPoints ? pointPaths : linePaths) : undefined,
+        };
+        // uPlot mode 2 needs each series to declare which scale each dim uses.
+        if (xyMode) s.facets = [{ scale: "x", auto: true }, { scale: "y", auto: true }];
+        series.push(s);
+      });
+
+      const opts = {
+        width: host.clientWidth, height: host.clientHeight,
+        padding: [10, 14, 4, 6],
+        cursor: { drag: { x: true, y: true, uni: 20 } },
+        scales: { x: { time: false }, y: {} },
+        legend: { live: true },
+        axes: [
+          { stroke, grid: { stroke: grid, width: 1 }, ticks: { stroke: grid }, label: xAxisLabel(), labelSize: 24 },
+          { stroke, grid: { stroke: grid, width: 1 }, ticks: { stroke: grid } },
+        ],
+        // A user drag-to-zoom drops out of Follow so the zoomed view persists
+        // across live updates (which would otherwise re-autoscale every frame).
+        // ready: wire panning/zoom that uPlot has no built-in for — wheel zooms X
+        // about the cursor, Shift+drag pans (plain drag stays uPlot box-zoom).
+        hooks: {
+          setSelect: [(u) => { if (u.select && u.select.width > 2) setFollowing(false); }],
+          ready: [(u) => bindPanZoom(u)],
+        },
+        series,
+      };
+      if (xyMode) opts.mode = 2;   // [x,y]-per-series: correct for non-monotonic X
+      plot = new uPlot(opts, buildData(), host);
+      renderSeriesPanel();
+    }
+
+    // ---------------------------------------------------------------- series filter / visibility
+    // A series is drawn when its checkbox is on AND (no name filter, or its
+    // label matches the filter). The filter box narrows the plot to specific
+    // columns / tags; the chips give manual per-series control.
+    function isVisible(label) {
+      if (seriesVisible[label] === false) return false;
+      const f = $("seriesFilter").value.trim().toLowerCase();
+      return f === "" || label.toLowerCase().indexOf(f) >= 0;
+    }
+    function applyVisibility() {
+      if (!plot || !schema) return;
+      const { ys } = axisMap();
+      ys.forEach((ci, k) => plot.setSeries(k + 1, { show: isVisible(schema.labels[ci]) }));
+    }
+    function renderSeriesPanel() {
+      const bar = $("seriesBar");
+      const showBar = !!schema && (mode === "time" || mode === "xy");
+      bar.hidden = !showBar;
+      if (!showBar) return;
+      const f = $("seriesFilter").value.trim().toLowerCase();
+      const { ys } = axisMap();
+      const list = $("seriesList");
+      list.innerHTML = "";
+      ys.forEach((ci, k) => {
+        const label = schema.labels[ci];
+        if (f && label.toLowerCase().indexOf(f) < 0) return;   // not in this filter
+        const on = seriesVisible[label] !== false;
+        const chip = document.createElement("label");
+        chip.className = "series-chip" + (on ? "" : " off");
+        chip.title = label;
+        const cb = document.createElement("input");
+        cb.type = "checkbox"; cb.checked = on;
+        cb.addEventListener("change", () => {
+          seriesVisible[label] = cb.checked;
+          chip.classList.toggle("off", !cb.checked);
+          if (plot) plot.setSeries(k + 1, { show: isVisible(label) });
+        });
+        const sw = document.createElement("span");
+        sw.className = "swatch"; sw.style.background = COLORS[k % COLORS.length];
+        const tx = document.createElement("span"); tx.textContent = label;
+        chip.appendChild(cb); chip.appendChild(sw); chip.appendChild(tx);
+        list.appendChild(chip);
+      });
+    }
+    function setAllVisible(v) {
+      if (!schema) return;
+      const f = $("seriesFilter").value.trim().toLowerCase();
+      const { ys } = axisMap();
+      ys.forEach((ci) => {
+        const label = schema.labels[ci];
+        if (f && label.toLowerCase().indexOf(f) < 0) return;   // only the filtered set
+        seriesVisible[label] = v;
+      });
+      applyVisibility();
+      renderSeriesPanel();
+    }
+
+    // rAF-coalesced redraw
+    let drawQueued = false;
+    // Latest X value drawn (in the current X units), so the not-following branch
+    // can tell whether the user's view is still parked at the live edge.
+    let lastLiveX = null;
+    function scheduleDraw() {
+      if (drawQueued) return;
+      drawQueued = true;
+      requestAnimationFrame(() => {
+        drawQueued = false;
+        if (paused || !schema) return;
+        if (mode === "xyz") { drawScene(); return; }
+        if (!plot) return;
+        const data = buildData();
+
+        // Only time-series mode has a single chronological X axis (data[0] is the
+        // X array). In 2D X–Y (uPlot mode 2) data[0] is null and each series is
+        // [x, y], and the Follow window / live-edge scrolling are time concepts
+        // that don't apply — so there we just stream data in and let uPlot
+        // autoscale (following) or keep the user's zoom (not following).
+        if (mode !== "time") {
+          plot.setData(data, following);
+          return;
+        }
+
+        const xs = data[0], n = xs.length;
+        if (following) {
+          // Auto-scroll to the latest data (autoscale), optionally to a rolling
+          // window of the last `windowSec` seconds so recent detail stays legible
+          // even with a large retention.
+          plot.setData(data, true);
+          if (windowSec > 0 && n) {
+            // Window is always in SECONDS regardless of the X source: find the
+            // first sample within the last windowSec seconds by the actual sample
+            // time (tRing), then set the x-range to span those samples in the
+            // current X units (so index / column axes show the same time span).
+            const tv = scratch.t.subarray(0, n);
+            tRing.toOrdered(tv);
+            const minT = tv[n - 1] - windowSec;
+            let lo = 0, hi = n;                        // binary search: first index with tv >= minT
+            while (lo < hi) { const mid = (lo + hi) >> 1; if (tv[mid] < minT) lo = mid + 1; else hi = mid; }
+            plot.setScale("x", { min: xs[Math.min(lo, n - 1)], max: xs[n - 1] });
+          }
+        } else {
+          // Not following: keep the user's zoom WIDTH (don't autoscale). Stream
+          // the new samples in, and if the view is still parked at the live edge,
+          // slide the x-window forward by however far the latest sample advanced
+          // so live data keeps scrolling through at their zoom. If they've panned
+          // back into history (right edge behind the last sample), hold the view
+          // where they left it. Skipped for the non-monotonic first-column X.
+          const sc = plot.scales.x;
+          const curMin = sc.min, curMax = sc.max;
+          plot.setData(data, false);
+          if (n && lastLiveX != null && curMin != null && curMax != null &&
+              $("xMode").value !== "firstcol") {
+            const newMax = xs[n - 1];
+            const shift = newMax - lastLiveX;
+            // "At the edge" = the previous latest point sat at/after the right
+            // edge (within a small slice of the window), not scrolled back.
+            if (shift > 0 && curMax >= lastLiveX - (curMax - curMin) * 0.02)
+              plot.setScale("x", { min: curMin + shift, max: curMax + shift });
+          }
+        }
+        if (n) lastLiveX = xs[n - 1];
+      });
+    }
+
+    // Toggle live auto-scroll. Dragging to zoom drops out of Follow (see the
+    // setSelect hook in buildPlot) so the zoomed view sticks while data streams;
+    // re-enabling snaps back to the latest.
+    function setFollowing(on) {
+      following = on;
+      const b = $("follow");
+      if (b) { b.classList.toggle("primary", on); b.textContent = on ? "Following" : "Follow"; }
+      if (on) scheduleDraw();
+    }
+
+    // ---------------------------------------------------------------- 3D scatter (canvas, dependency-free)
+    const cam = { yaw: 0.6, pitch: 0.5, zoom: 1 };
+    function drawScene() {
+      const cv = $("plot3d");
+      cv.hidden = false;
+      $("hint").hidden = !!schema;
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const W = cv.clientWidth, H = cv.clientHeight;
+      if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+      const g = cv.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.clearRect(0, 0, W, H);               // clear first, so a stale cloud never lingers
+      if (!schema || schema.ncols < 3) return;
+
+      const xi = +$("xCol").value || 0, yi = +$("yCol").value || 0, zi = +$("zCol").value || 0;
+      const n = tRing.count;
+      if (!n) return;
+      // Rebuild the decimated point cache only when the data or column mapping
+      // changes; a camera move (same key) reuses it and just re-projects.
+      const key = xi + "|" + yi + "|" + zi + "|" + n + "|" + cap;
+      if (key !== sceneCache.key) { build3dCache(xi, yi, zi, n); sceneCache.key = key; }
+      const c = sceneCache;
+
+      const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+      const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+      const scale = Math.min(W, H) * 0.34 * cam.zoom;
+      const ox = W / 2, oy = H / 2;
+      const proj = (x, y, z) => {
+        const x1 = x * cy - z * sy, z1 = x * sy + z * cy;
+        const y1 = y * cp - z1 * sp;
+        return [ox + x1 * scale, oy - y1 * scale];
+      };
+
+      // draw axes box (unit cube) faintly
+      g.strokeStyle = cssVar("--grid"); g.lineWidth = 1;
+      const cube = [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+      const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+      g.globalAlpha = 0.5;
+      edges.forEach(([a, b]) => { const p = proj(...cube[a]), q = proj(...cube[b]); g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); g.stroke(); });
+      g.globalAlpha = 1;
+
+      // cached points, colored oldest->newest along the accent hue ramp
+      for (let j = 0; j < c.m; j++) {
+        const [sx, syy] = proj(c.px[j], c.py[j], c.pz[j]);
+        g.fillStyle = `hsl(${210 + c.t[j] * 120}, 70%, 55%)`;
+        g.fillRect(sx - 1.5, syy - 1.5, 3, 3);
+      }
+      // axis labels
+      g.fillStyle = cssVar("--text-muted"); g.font = "12px system-ui";
+      const lp = (x, y, z, txt) => { const [a, b] = proj(x, y, z); g.fillText(txt, a + 4, b); };
+      lp(1.15, -1, -1, schema.labels[xi]);
+      lp(-1, 1.15, -1, schema.labels[yi]);
+      lp(-1, -1, 1.15, schema.labels[zi]);
+    }
+
+    // Read every step-th sample of the X/Y/Z columns (aligned), find extrema over
+    // that decimated set, and store points normalized to the unit cube. Cost is
+    // O(points / step) with no full-length copy, so it scales to the retain cap.
+    function build3dCache(xi, yi, zi, n) {
+      const step = n > 20000 ? Math.ceil(n / 20000) : 1;
+      const m = Math.ceil(n / step);
+      if (!sceneCache.px || sceneCache.px.length < m) {
+        sceneCache.px = new Float32Array(m); sceneCache.py = new Float32Array(m);
+        sceneCache.pz = new Float32Array(m); sceneCache.t = new Float32Array(m);
+      }
+      const px = sceneCache.px, py = sceneCache.py, pz = sceneCache.pz, tt = sceneCache.t;
+      const mm = colRings[xi].toOrderedStrided(px, step);
+      colRings[yi].toOrderedStrided(py, step);
+      colRings[zi].toOrderedStrided(pz, step);
+      const ext = (a) => {
+        let lo = Infinity, hi = -Infinity;
+        for (let j = 0; j < mm; j++) { const v = a[j]; if (v < lo) lo = v; if (v > hi) hi = v; }
+        return { c: (lo + hi) / 2, r: (hi - lo) / 2 || 1 };
+      };
+      const nx = ext(px), ny = ext(py), nz = ext(pz);
+      for (let j = 0; j < mm; j++) {
+        tt[j] = (j * step) / n;
+        px[j] = (px[j] - nx.c) / nx.r;
+        py[j] = (py[j] - ny.c) / ny.r;
+        pz[j] = (pz[j] - nz.c) / nz.r;
+      }
+      sceneCache.m = mm;
+    }
+
+    // 3D orbit / zoom
+    (function bind3d() {
+      const cv = $("plot3d");
+      let dragging = false, lx = 0, ly = 0;
+      cv.addEventListener("pointerdown", (e) => { dragging = true; lx = e.clientX; ly = e.clientY; cv.classList.add("drag"); try { cv.setPointerCapture(e.pointerId); } catch (err) {} });
+      cv.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        cam.yaw += (e.clientX - lx) * 0.01; cam.pitch += (e.clientY - ly) * 0.01;
+        cam.pitch = Math.max(-1.4, Math.min(1.4, cam.pitch));
+        lx = e.clientX; ly = e.clientY; if (mode === "xyz") drawScene();
+      });
+      const end = () => { dragging = false; cv.classList.remove("drag"); };
+      cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+      cv.addEventListener("wheel", (e) => { e.preventDefault(); cam.zoom *= e.deltaY < 0 ? 1.1 : 0.9; cam.zoom = Math.max(0.2, Math.min(8, cam.zoom)); if (mode === "xyz") drawScene(); }, { passive: false });
+    })();
+
+    // ---------------------------------------------------------------- serial transport
+    let port = null, reader = null, keepReading = false, readLoopDone = Promise.resolve();
+    let rxBuf = "";
+
+    function setStatus(cls, text) { const el = $("status"); el.className = "chip " + (cls || ""); el.textContent = text; }
+
+    async function connect() {
+      if (port) return disconnect();
+      try {
+        port = await navigator.serial.requestPort();
+      } catch (e) { return; /* user cancelled */ }
+      const baud = parseInt($("baud").value, 10) || 115200;
+      try { await port.open({ baudRate: baud }); }
+      catch (e) { setStatus("err", "Open failed: " + e.message); port = null; return; }
+      keepReading = true;
+      rxBuf = "";
+      dataFromFile = false;         // live capture from here on
+      readLoopDone = readLoop();
+      setStatus("on", "Connected @ " + baud);
+      $("connect").textContent = "Disconnect Serial";
+      $("pause").disabled = false; $("reset").disabled = false;
+      $("usb").disabled = true;     // one transport at a time
+    }
+
+    function resetConnUI(text, cls) {
+      setStatus(cls || "", text);
+      $("connect").textContent = "Connect Serial";
+      $("pause").disabled = true; $("reset").disabled = true;
+      $("usb").disabled = !hasUsb;   // re-enable WebUSB only if this browser has it
+      paused = false; $("pause").textContent = "Pause";
+    }
+
+    async function disconnect() {
+      keepReading = false;
+      try { if (reader) await reader.cancel(); } catch (e) {}
+      try { await readLoopDone; } catch (e) {}
+      try { if (port) await port.close(); } catch (e) {}
+      port = null; reader = null;
+      resetConnUI("Disconnected");
+    }
+
+    // Unexpected link loss (device unplugged): the read loop ends on its own.
+    // Tear down and reset the controls WITHOUT awaiting readLoopDone (we may be
+    // inside it) so the next Connect actually reconnects.
+    function handleLinkLost() {
+      if (!port) return;
+      keepReading = false;
+      const p = port; port = null; reader = null;
+      p.close().catch(() => {});           // returns a promise; an unplug can reject it
+      resetConnUI("Device disconnected", "err");
+    }
+
+    async function readLoop() {
+      const decoder = new TextDecoder("utf-8", { fatal: false });
+      while (port && port.readable && keepReading) {
+        // Hold a local reference: a platform "disconnect" event can null the
+        // shared `reader` before this finally runs, which would otherwise leave
+        // the real reader locked and block close()/reconnect.
+        const r = reader = port.readable.getReader();
+        try {
+          for (;;) {
+            const { value, done } = await r.read();
+            if (done) break;
+            if (value) feedText(decoder.decode(value, { stream: true }));
+          }
+        } catch (e) {
+          if (keepReading) setStatus("err", "Read error: " + e.message);
+        } finally {
+          try { r.releaseLock(); } catch (e) {}
+        }
+      }
+      if (keepReading) handleLinkLost();   // stream ended but user didn't disconnect
+    }
+
+    // line-buffer decoded text, parse whole lines, keep the trailing partial
+    function feedText(chunk) {
+      if (!t0) t0 = performance.now();
+      rxBuf += chunk;
+      let nl;
+      while ((nl = rxBuf.indexOf("\n")) >= 0) {
+        let line = rxBuf.slice(0, nl);
+        rxBuf = rxBuf.slice(nl + 1);
+        // Keep framing while paused (so resume starts on a clean line boundary),
+        // but don't ingest the paused lines.
+        if (paused) continue;
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.length) ingestLine(line, (performance.now() - t0) / 1000);
+      }
+      if (rxBuf.length > 1 << 20) rxBuf = "";   // runaway line without newline
+      if (!paused) scheduleDraw();
+    }
+
+    async function resetDevice() {
+      if (!port) return;
+      // Normal reset: pulse RTS (EN) while keeping DTR (GPIO0) deasserted, so
+      // the device reboots into the app, not the bootloader. (Matches
+      // board_console's reset; asserting DTR here would enter the ROM loader.)
+      try {
+        await port.setSignals({ dataTerminalReady: false, requestToSend: true });  // EN low (reset)
+        await new Promise((r) => setTimeout(r, 120));
+        await port.setSignals({ dataTerminalReady: false, requestToSend: false }); // EN high (release)
+      } catch (e) { setStatus("err", "Reset failed: " + e.message); }
+    }
+
+    // ---------------------------------------------------------------- WebUSB telemetry transport
+    // Binary counterpart to the text Web-Serial path: an espp device streams a
+    // SCHEMA (channel names) + SAMPLE frames (device timestamp + one f32 per
+    // channel) over the stream_frame framing on dispatcher module 3, which feeds
+    // the SAME plot. See components/telemetry/include/telemetry.hpp.
+    const USB_VID = 0x1209;                 // pid.codes VID shared by espp devices
+    const TM_MODULE = 3;                    // telemetry dispatcher module id
+    const TM_GET_SCHEMA = 0x01, TM_SET_STREAM = 0x02;
+    const TM_SCHEMA = 0x81, TM_SAMPLE = 0x82, TM_ERROR = 0x84;
+    const TM_SCHEMA_VERSION = 1;            // must match kSchemaVersion in the header
+    const TM_CH_F32 = 0;                    // the only channel type the SAMPLE path decodes
+    // stream_frame v2 envelope (see components/stream_frame/include/stream_frame.hpp)
+    const SF_MAGIC0 = 0x54, SF_MAGIC1 = 0x4F, SF_HEADER = 9, SF_CRC = 4, SF_CORR = 2;
+    const SF_MAX_PAYLOAD = 4096, SF_MAX_FRAME = SF_HEADER + SF_CORR + SF_MAX_PAYLOAD + SF_CRC;
+    const SF_REQUEST = (1 << 4), SF_REPLY_BIT = 0x01, SF_CORR_BIT = 0x02;
+    const SF_CRC_TABLE = (() => {
+      const t = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = (c & 1) ? ((c >>> 1) ^ 0xEDB88320) : (c >>> 1); t[i] = c >>> 0; }
+      return t;
+    })();
+    const sfCrc32 = (b) => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = SF_CRC_TABLE[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (~c) >>> 0; };
+
+    // Build a host->device request frame (reply flag clear; no correlation id).
+    function sfBuild(module, type, payload) {
+      payload = payload || new Uint8Array(0);
+      const f = new Uint8Array(SF_HEADER + payload.length + SF_CRC);
+      const v = new DataView(f.buffer);
+      v.setUint16(0, 0x4F54, true); f[2] = SF_REQUEST; f[3] = module; f[4] = type;
+      v.setUint32(5, payload.length, true);
+      f.set(payload, SF_HEADER);
+      v.setUint32(SF_HEADER + payload.length, sfCrc32(f.subarray(0, SF_HEADER + payload.length)), true);
+      return f;
+    }
+
+    // Incremental stream_frame parser: buffers bytes, finds magic, validates the
+    // CRC, yields {module,type,reply,payload}, and resynchronizes past junk.
+    class SfParser {
+      constructor() { this.buf = new Uint8Array(0); }
+      reset() { this.buf = new Uint8Array(0); }
+      feed(chunk) {
+        const m = new Uint8Array(this.buf.length + chunk.length);
+        m.set(this.buf, 0); m.set(chunk, this.buf.length);
+        const out = []; let pos = 0;
+        for (;;) {
+          while (pos < m.length && !(m[pos] === SF_MAGIC0 && (pos + 1 >= m.length || m[pos + 1] === SF_MAGIC1))) pos++;
+          if (m.length - pos < 3) break;
+          const flags = m[pos + 2];
+          const ext = (flags & SF_CORR_BIT) ? SF_CORR : 0;
+          const hs = SF_HEADER + ext;
+          if (m.length - pos < hs) break;
+          const view = new DataView(m.buffer, m.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true);
+          if (len > SF_MAX_PAYLOAD) { pos++; continue; }
+          const total = hs + len + SF_CRC;
+          if (m.length - pos < total) break;
+          const expected = view.getUint32(hs + len, true);
+          if (sfCrc32(m.subarray(pos, pos + hs + len)) !== expected) { pos++; continue; }
+          out.push({ module: m[pos + 3], type: m[pos + 4], reply: (flags & SF_REPLY_BIT) !== 0,
+                     payload: m.slice(pos + hs, pos + hs + len) });
+          pos += total;
+        }
+        this.buf = m.slice(pos);
+        return out;
+      }
+    }
+
+    // Minimal WebUSB transport: claims the vendor-specific (0xFF) interface's
+    // bulk IN/OUT endpoint pair and streams raw bytes.
+    class UsbTransport {
+      constructor() { this.device = null; this.iface = null; this.epIn = null; this.epOut = null; this.reading = false; }
+      async open() {
+        this.device = await navigator.usb.requestDevice({ filters: [{ vendorId: USB_VID }] });
+        await this.device.open();
+        if (this.device.configuration === null) await this.device.selectConfiguration(1);
+        const config = this.device.configuration;
+        if (!config) throw new Error("no active USB configuration");
+        let found = null;
+        for (const itf of config.interfaces) {
+          for (const alt of itf.alternates) {
+            if (alt.interfaceClass !== 0xFF) continue;
+            let inEp = null, outEp = null;
+            for (const ep of alt.endpoints) {
+              if (ep.type !== "bulk") continue;
+              if (ep.direction === "in" && !inEp) inEp = ep; else if (ep.direction === "out" && !outEp) outEp = ep;
+            }
+            if (inEp && outEp) { found = { itf: itf.interfaceNumber, alt: alt.alternateSetting, inEp, outEp }; break; }
+          }
+          if (found) break;
+        }
+        if (!found) throw new Error("no vendor (0xFF) interface with a bulk IN+OUT endpoint pair");
+        await this.device.claimInterface(found.itf);
+        if (found.alt !== 0) await this.device.selectAlternateInterface(found.itf, found.alt);
+        this.iface = found.itf; this.epIn = found.inEp.endpointNumber; this.epOut = found.outEp.endpointNumber;
+      }
+      name() { const d = this.device; return (d.productName || "USB device") + " (" + d.vendorId.toString(16).padStart(4, "0") + ":" + d.productId.toString(16).padStart(4, "0") + ")"; }
+      async send(bytes) {
+        let sent = 0;
+        while (sent < bytes.length) {
+          const out = await this.device.transferOut(this.epOut, sent === 0 ? bytes : bytes.subarray(sent));
+          if (out.status === "stall") { try { await this.device.clearHalt("out", this.epOut); } catch (e) {} throw new Error("OUT endpoint stalled"); }
+          if (out.status !== "ok") throw new Error("OUT transfer: " + out.status);
+          const n = out.bytesWritten || 0; if (n === 0) throw new Error("OUT made no progress"); sent += n;
+        }
+      }
+      async readLoop(onData) {
+        this.reading = true;
+        while (this.reading && this.device) {
+          let r;
+          try { r = await this.device.transferIn(this.epIn, SF_MAX_FRAME); } catch (e) { if (this.reading) throw e; return; }
+          if (!this.reading) return;
+          if (r.status === "stall") { try { await this.device.clearHalt("in", this.epIn); } catch (e) {} continue; }
+          if (r.data && r.data.byteLength) onData(new Uint8Array(r.data.buffer, r.data.byteOffset, r.data.byteLength));
+        }
+      }
+      async close() {
+        this.reading = false;
+        if (this.device) {
+          if (this.iface !== null) { try { await this.device.releaseInterface(this.iface); } catch (e) {} }
+          try { await this.device.close(); } catch (e) {}
+        }
+        this.device = null;
+      }
+    }
+
+    let usb = null, usbReadDone = Promise.resolve(), usbSchemaTimer = null;
+    const usbParser = new SfParser();
+    let usbTimeWrap = 0, usbPrevRaw = 0, usbHaveSchema = false; // device u32-us timestamp unwrap
+
+    async function usbConnect() {
+      if (usb) return usbDisconnect();
+      const t = new UsbTransport();
+      try { await t.open(); }
+      catch (e) {
+        // open() may fail after the device/interface was already opened; close
+        // it so it isn't left claimed and blocking the next attempt.
+        try { await t.close(); } catch (e2) {}
+        if (!e || e.name !== "NotFoundError") setStatus("err", "USB: " + (e && e.message ? e.message : e));
+        return;
+      }
+      usb = t; usbParser.reset(); usbTimeWrap = 0; usbPrevRaw = 0; usbHaveSchema = false;
+      clearData(); dataFromFile = false;
+      usbReadDone = usb.readLoop((chunk) => { for (const f of usbParser.feed(chunk)) onUsbFrame(f); })
+        .catch((e) => { if (usb) { setStatus("err", "USB read: " + (e && e.message ? e.message : e)); usbLinkLost(); } });
+      setStatus("on", "USB: " + usb.name());
+      $("usb").textContent = "Disconnect WebUSB";
+      $("pause").disabled = false;
+      $("connect").disabled = true; $("baud").disabled = true; $("reset").disabled = true;
+      // Ask for the schema, retrying until it arrives: a device that was left
+      // streaming can bury the first reply behind queued samples the read loop
+      // discards (no schema yet). The stream is started (SET_STREAM) only once
+      // the schema lands (see onUsbFrame), so it begins on a clean handshake.
+      requestSchema();
+    }
+
+    function clearSchemaTimer() { if (usbSchemaTimer) { clearTimeout(usbSchemaTimer); usbSchemaTimer = null; } }
+
+    function requestSchema() {
+      clearSchemaTimer();
+      let tries = 0;
+      const ask = () => {
+        usbSchemaTimer = null;
+        if (!usb || usbHaveSchema) return;
+        if (tries++ > 20) { setStatus("err", "USB: no schema (is the telemetry example running?)"); return; }
+        usb.send(sfBuild(TM_MODULE, TM_GET_SCHEMA)).catch(() => {});
+        usbSchemaTimer = setTimeout(ask, 300);
+      };
+      ask();
+    }
+
+    async function usbDisconnect() {
+      clearSchemaTimer();
+      const t = usb; usb = null;
+      if (t) {
+        try { await t.send(sfBuild(TM_MODULE, TM_SET_STREAM, new Uint8Array([0, 0, 0]))); } catch (e) {}
+        try { await t.close(); } catch (e) {}
+      }
+      try { await usbReadDone; } catch (e) {}
+      usbResetUI("Disconnected", "");
+    }
+
+    // Unexpected USB link loss (device unplugged): tear down without awaiting the
+    // read loop (we may be inside it).
+    function usbLinkLost() {
+      clearSchemaTimer();
+      const t = usb; usb = null;
+      if (t) t.close().catch(() => {});
+      usbResetUI("USB disconnected", "err");
+    }
+
+    function usbResetUI(text, cls) {
+      usbHaveSchema = false;          // no live binary schema once the link is down
+      $("usb").textContent = "Connect WebUSB";
+      $("pause").disabled = true; paused = false; $("pause").textContent = "Pause";
+      // Re-enable Web Serial only if this browser has it (don't undo feature detection).
+      $("connect").disabled = !hasSerial; $("baud").disabled = !hasSerial;
+      setStatus(cls, text);
+    }
+
+    // Decode a SCHEMA payload -> channel labels (see telemetry.hpp).
+    // Rejects anything the SAMPLE path can't actually decode: an unknown schema
+    // version, reserved flags that aren't zero, a non-f32 channel type, or
+    // trailing bytes after the last name (a record-width mismatch we'd otherwise
+    // misparse). Returns null on any of these so the handshake keeps retrying
+    // rather than plotting garbage.
+    function decodeSchema(p) {
+      if (p.length < 3) return null;
+      if (p[0] !== TM_SCHEMA_VERSION) return null;   // [version u8]
+      if (p[1] !== 0) return null;                   // [flags u8] (reserved, must be 0)
+      const ncols = p[2];               // [nchannels u8]
+      let i = 3; const labels = []; const dec = new TextDecoder();
+      for (let c = 0; c < ncols; c++) {
+        if (i + 2 > p.length) return null;
+        if (p[i++] !== TM_CH_F32) return null;       // channel type (only f32 supported)
+        const len = p[i++];
+        if (i + len > p.length) return null;
+        labels.push(dec.decode(p.subarray(i, i + len))); i += len;
+      }
+      if (i !== p.length) return null;  // trailing bytes ⇒ schema we don't understand
+      return labels;
+    }
+
+    function onUsbFrame(f) {
+      if (f.module !== TM_MODULE) return; // ignore discovery / other modules
+      if (f.type === TM_SCHEMA) {
+        const labels = decodeSchema(f.payload);
+        // A duplicate reply to a retried GET_SCHEMA must not re-reset the rings.
+        if (usbHaveSchema && schema && labels && sameLabels(schema.labels, labels)) { clearSchemaTimer(); return; }
+        if (labels && labels.length) {
+          $("xMode").value = "time";      // device timestamp is the X axis
+          usbTimeWrap = 0; usbPrevRaw = 0; usbHaveSchema = true;
+          setSchema(labels, "webusb");
+          clearSchemaTimer();             // handshake done; stop re-asking
+          // start (or resume) the device stream now that we can plot it
+          if (usb) usb.send(sfBuild(TM_MODULE, TM_SET_STREAM, new Uint8Array([paused ? 0 : 1, 0, 0]))).catch(() => {});
+        }
+        return;
+      }
+      if (f.type === TM_SAMPLE) {
+        if (!usbHaveSchema || !schema || paused) return;
+        const n = schema.ncols, rec = 4 + 4 * n;
+        const dv = new DataView(f.payload.buffer, f.payload.byteOffset, f.payload.byteLength);
+        let off = 0, got = false;
+        while (off + rec <= f.payload.byteLength) {
+          const raw = dv.getUint32(off, true); off += 4;
+          if (raw < usbPrevRaw) usbTimeWrap += 4294967296; // u32 microsecond wrap
+          usbPrevRaw = raw;
+          const nums = new Array(n);
+          for (let i = 0; i < n; i++) { nums[i] = dv.getFloat32(off, true); off += 4; }
+          pushSample(nums, (usbTimeWrap + raw) / 1e6);
+          stats.rows++;
+          rateWin.push(performance.now() / 1000);
+          got = true;
+        }
+        if (got) scheduleDraw();
+        return;
+      }
+      if (f.type === TM_ERROR) setStatus("err", "device reported an error");
+      // TM_OK: acknowledged, nothing to do
+    }
+
+    // ---------------------------------------------------------------- save / load CSV
+    function saveCSV() {
+      if (!schema || !tRing.count) return;
+      const n = tRing.count;
+      const cols = colRings.map((r) => r.toOrdered(new Float32Array(n)));
+      // Prepend an arrival-time column only for a live capture. A loaded file
+      // already carries its own X column (and its arrival times are all 0), so
+      // re-saving it must write the columns as-is or each cycle grows a column.
+      const prependTime = !dataFromFile;
+      const header = prependTime ? ["time_s", ...schema.labels] : schema.labels.slice();
+      const rows = [header.join(",")];
+      let t = null, base = 0;
+      if (prependTime) { t = tRing.toOrdered(new Float64Array(n)); base = t[0]; }
+      for (let i = 0; i < n; i++) {
+        const cells = prependTime ? [(t[i] - base).toFixed(6)] : [];
+        for (let c = 0; c < cols.length; c++) cells.push(cols[c][i]);
+        rows.push(cells.join(","));
+      }
+      const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "serial_capture_" + new Date().toISOString().replace(/[:.]/g, "-") + ".csv";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }
+
+    function loadCSV(file) {
+      const rd = new FileReader();
+      rd.onload = () => {
+        clearData();
+        // File carries its own X: default to first column so saved captures round-trip.
+        $("xMode").value = "firstcol"; syncModeUI();
+        const lines = String(rd.result).split(/\r?\n/);
+        for (const line of lines) if (line.length) ingestLine(line, 0);
+        dataFromFile = true;        // dataset owns its X column -> save it as-is
+        rateWin = [];               // a bulk file load isn't a live sample rate
+        buildPlot();
+        scheduleDraw();
+        updateStats();
+        setStatus((port || usb) ? "on" : "", "Loaded " + file.name);
+      };
+      rd.readAsText(file);
+    }
+
+    // ---------------------------------------------------------------- controls
+    function clearData() {
+      if (tRing) { tRing.clear(); colRings.forEach((r) => r.clear()); }
+      stats = { rows: 0, kept: 0, drop: 0 };
+      rateWin = []; t0 = 0; scratch.cap = -1; sceneCache.key = ""; pendingHeader = null;
+    }
+
+    // Resize the rings to the new Retain value, keeping the newest samples
+    // instead of discarding the whole capture.
+    function resizeRetain() {
+      if (!schema) {
+        $("retain").value = Math.min(MAX_RETAIN, Math.max(100, parseInt($("retain").value, 10) || 200000));
+        return;
+      }
+      const newCap = computeCap(schema.ncols);
+      $("retain").value = newCap;
+      if (newCap === cap) return;
+      const n = tRing.count, keep = Math.min(n, newCap);
+      const migrate = (ring, Type) => {
+        const nr = new Ring(newCap, Type);
+        if (keep) { const ord = ring.toOrdered(new Type(n)); for (let i = n - keep; i < n; i++) nr.push(ord[i]); }
+        return nr;
+      };
+      tRing = migrate(tRing, Float64Array);
+      colRings = colRings.map((r) => migrate(r, Float32Array));
+      cap = newCap;
+      stats.kept = tRing.count;
+      scratch.cap = -1; sceneCache.key = "";
+      buildPlot();
+      scheduleDraw();
+      updateStats();
+    }
+
+    function syncModeUI() {
+      mode = $("mode").value;
+      $("xModeWrap").hidden = mode !== "time";
+      $("xColWrap").hidden = !(mode === "xy" || mode === "xyz");
+      $("yColWrap").hidden = mode !== "xyz";
+      $("zColWrap").hidden = mode !== "xyz";
+      $("pointsWrap").hidden = mode !== "xy";
+      buildPlot();
+      scheduleDraw();
+    }
+    // Reconcile the X-source dropdown with the current transport. Called ONLY on
+    // a schema/transport change — NOT from the periodic stats tick, since
+    // mutating a native <select> (option text/hidden/value) closes it if it is
+    // open, which would make it unusable while streaming.
+    function updateXModeOptions() {
+      // Over WebUSB the "time" source is the absolute device hardware clock, and
+      // a separate "Elapsed time" source (device clock rebased to the capture
+      // start) is offered; over serial "time" is browser arrival time, so the
+      // extra option is hidden.
+      const sel = $("xMode");
+      const timeOpt = sel.querySelector('option[value="time"]');
+      const elapsedOpt = sel.querySelector('option[value="elapsed"]');
+      if (timeOpt) timeOpt.textContent = usbBinary() ? "Device time" : "Arrival time";
+      if (elapsedOpt) elapsedOpt.hidden = !usbBinary();
+      if (!usbBinary() && sel.value === "elapsed") sel.value = "time"; // elapsed source is USB-only
+    }
+    function updateSchemaLabel() {
+      if (!schema) { $("stSchema").textContent = "no schema yet"; return; }
+      const src = schema.delim === "webusb" ? "binary (WebUSB)"
+                : "delim '" + (schema.delim === " " ? "ws" : schema.delim) + "'";
+      $("stSchema").textContent = `${schema.ncols} cols [${schema.labels.join(", ")}]  ${src}`;
+    }
+    function updateStats() {
+      $("stRows").textContent = stats.rows;
+      $("stKept").textContent = stats.kept;
+      $("stDrop").textContent = stats.drop;
+      updateSchemaLabel();
+    }
+
+    // ---------------------------------------------------------------- wiring
+    $("connect").addEventListener("click", connect);
+    $("usb").addEventListener("click", usbConnect);
+    $("reset").addEventListener("click", resetDevice);
+    $("pause").addEventListener("click", () => {
+      paused = !paused;
+      $("pause").textContent = paused ? "Resume" : "Pause";
+      // Over WebUSB, actually stop/start the device stream (not just local
+      // drawing); text Web Serial keeps the local-only pause.
+      if (usb) usb.send(sfBuild(TM_MODULE, TM_SET_STREAM, new Uint8Array([paused ? 0 : 1, 0, 0]))).catch(() => {});
+      if (!paused) scheduleDraw();
+    });
+    $("clear").addEventListener("click", () => { clearData(); if (plot) plot.setData(buildData()); if (mode === "xyz") drawScene(); updateStats(); });
+    $("follow").addEventListener("click", () => setFollowing(!following));
+    $("window").addEventListener("input", () => { windowSec = Math.max(0, parseFloat($("window").value) || 0); if (following) scheduleDraw(); });
+    // double-click the plot resumes live Follow (in addition to uPlot's own zoom reset)
+    $("plotHost").addEventListener("dblclick", () => { if (mode !== "xyz") setFollowing(true); });
+    $("mode").addEventListener("change", syncModeUI);
+    $("xMode").addEventListener("change", () => { buildPlot(); scheduleDraw(); });
+    ["xCol", "yCol", "zCol"].forEach((id) => $(id).addEventListener("change", () => { buildPlot(); scheduleDraw(); }));
+    $("points").addEventListener("change", () => { buildPlot(); scheduleDraw(); });
+    $("seriesFilter").addEventListener("input", () => { applyVisibility(); renderSeriesPanel(); });
+    $("seriesAll").addEventListener("click", () => setAllVisible(true));
+    $("seriesNone").addEventListener("click", () => setAllVisible(false));
+    $("retain").addEventListener("change", resizeRetain);
+    $("save").addEventListener("click", saveCSV);
+    $("load").addEventListener("click", () => $("file").click());
+    $("file").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      e.target.value = "";            // allow re-selecting the same file
+      if (!file) return;
+      // A still-connected transport would keep feeding live samples into the
+      // loaded dataset — and WebUSB binary frames would be split at the CSV's
+      // column count — corrupting it. Stop the active transport first.
+      if (usb) await usbDisconnect();
+      else if (port) await disconnect();
+      loadCSV(file);
+    });
+
+    // ---------------------------------------------------------------- settings popover
+    // Wheel-zoom sensitivity, shown/edited as "% per notch" and persisted per
+    // browser. Wrapped in try/catch since localStorage can throw (private mode).
+    const ZOOM_PCT_KEY = "sp.wheelZoomPct";
+    function setZoomPct(pct) {
+      pct = Math.min(30, Math.max(2, Math.round(pct)));
+      WHEEL_ZOOM_RATE = -Math.log(1 - pct / 100) / WHEEL_NOTCH_PX;
+      $("zoomSens").value = String(pct);
+      $("zoomSensOut").textContent = pct + "% / notch";
+      try { localStorage.setItem(ZOOM_PCT_KEY, String(pct)); } catch (_) {}
+    }
+    (function initZoomPct() {
+      let pct = DEFAULT_ZOOM_PCT;
+      try { const v = parseInt(localStorage.getItem(ZOOM_PCT_KEY), 10); if (Number.isFinite(v)) pct = v; } catch (_) {}
+      setZoomPct(pct);
+    })();
+    $("zoomSens").addEventListener("input", () => setZoomPct(parseInt($("zoomSens").value, 10)));
+    $("settingsReset").addEventListener("click", () => setZoomPct(DEFAULT_ZOOM_PCT));
+
+    function openSettings(on) {
+      const panel = $("settingsPanel"), btn = $("settings");
+      const show = on == null ? panel.hidden : on;
+      panel.hidden = !show;
+      btn.setAttribute("aria-expanded", show ? "true" : "false");
+    }
+    $("settings").addEventListener("click", (e) => { e.stopPropagation(); openSettings(); });
+    // Click outside or Escape closes it; clicks inside the panel don't.
+    $("settingsPanel").addEventListener("click", (e) => e.stopPropagation());
+    document.addEventListener("click", () => { if (!$("settingsPanel").hidden) openSettings(false); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("settingsPanel").hidden) openSettings(false); });
+
+    // periodic stats + rate + fps (decoupled from the draw loop)
+    setInterval(() => {
+      const now = performance.now() / 1000;
+      rateWin = rateWin.filter((t) => now - t < 1);
+      $("stRate").textContent = rateWin.length;
+      updateStats();
+    }, 500);
+
+    // resize the plot with its host
+    new ResizeObserver(() => {
+      const host = $("plotHost");
+      if (plot) plot.setSize({ width: host.clientWidth, height: host.clientHeight });
+      if (mode === "xyz") drawScene();
+    }).observe($("plotHost"));
+
+    // feature detection: Web Serial (text) and/or WebUSB (binary telemetry)
+    const hasSerial = "serial" in navigator, hasUsb = "usb" in navigator;
+    if (!hasSerial && !hasUsb) $("unsupported").style.display = "block";
+    if (hasSerial) {
+      // catch an unplug that fires the platform disconnect event
+      navigator.serial.addEventListener("disconnect", (e) => {
+        if (port && e.target === port) handleLinkLost();
+      });
+    } else {
+      $("connect").disabled = true; $("baud").disabled = true;
+    }
+    if (hasUsb) {
+      navigator.usb.addEventListener("disconnect", (e) => {
+        if (usb && usb.device === e.device) usbLinkLost();
+      });
+    } else {
+      $("usb").disabled = true;
+    }
+    syncModeUI();
+  })();
+  </script>
+</body>
+</html>

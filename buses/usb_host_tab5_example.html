@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USB HID Host on the M5Stack Tab5 (HID device viewer) - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'buses/usb_host_tab5_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="IO Expander APIs" href="../io_expander/index.html" />
+    <link rel="prev" title="USB Host Example" href="usb_host_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Buses &amp; Low-Level I/O APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spi.html">SPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twai.html">TWAI (CAN 2.0) APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="canopen.html">CANopen (CiA 301) Client APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usb_cdc.html">USB Device Component</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="usb_host.html">USB Host Component</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="usb_host.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_host.html#features">Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_host.html#basic-usage">Basic Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_host.html#requirements-and-caveats">Requirements and caveats</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_host.html#threading-model">Threading model</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="usb_host.html#roadmap">Roadmap</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="usb_host_example.html">USB Host Example</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">USB HID Host on the M5Stack Tab5 (HID device viewer)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="usb_host.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../telemetry/index.html">Telemetry APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wdi/index.html">WDI (Wheelchair Digital Interface) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Buses &amp; Low-Level I/O APIs</a></li>
+          <li class="breadcrumb-item"><a href="usb_host.html">USB Host Component</a></li>
+      <li class="breadcrumb-item active">USB HID Host on the M5Stack Tab5 (HID device viewer)</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/d5a95c22/docs/en/buses/usb_host_tab5_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="usb-hid-host-on-the-m5stack-tab5-hid-device-viewer">
+<h1>USB HID Host on the M5Stack Tab5 (HID device viewer)<a class="headerlink" href="#usb-hid-host-on-the-m5stack-tab5-hid-device-viewer" title="Permalink to this heading"></a></h1>
+<p>Turns the Tab5 into a USB HID host and shows what the attached device sends,
+on the screen. Every HID interface the host opens is decoded from its own
+report descriptor: a <strong>keyboard</strong> lights up its keys on a virtual keyboard, a
+<strong>mouse</strong> moves a dot around a pad (with its wheel and buttons), a <strong>gamepad</strong>
+drives two stick pads, a d-pad and button indicators, and a 3Dconnexion
+<strong>SpaceMouse</strong> (SpaceNavigator, SpaceMouse Compact / Wireless / Pro, …) is
+decoded into its six axes and buttons. Anything else shows its raw Input
+reports.</p>
+<p>It is a bench tool for <code class="docutils literal notranslate"><span class="pre">espp::UsbHost</span></code> and the <code class="docutils literal notranslate"><span class="pre">hid-rp</span></code> runtime report
+decoders, for evaluating a SpaceMouse as a 6-DoF input, and a starting point
+for a Tab5 firmware that takes USB input.</p>
+<section id="what-it-shows">
+<h2>What it shows<a class="headerlink" href="#what-it-shows" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Device card</strong>: connection state (grey = none, green = SpaceMouse, blue =
+keyboard / mouse / gamepad, orange = other HID), product / manufacturer,
+VID:PID, and one line per opened interface with what it was recognised as. A
+composite device (a keyboard with a mouse interface, or a wireless receiver
+carrying a keyboard, a mouse and a gamepad) lists all of them and shows a
+panel for each.</p></li>
+<li><p><strong>SpaceMouse</strong>: six centered bars, <code class="docutils literal notranslate"><span class="pre">Tx</span> <span class="pre">Ty</span> <span class="pre">Tz</span></code> (translation, blue) and
+<code class="docutils literal notranslate"><span class="pre">Rx</span> <span class="pre">Ry</span> <span class="pre">Rz</span></code> (rotation, orange), with the raw counts (<code class="docutils literal notranslate"><span class="pre">-350..350</span></code> on a
+SpaceNavigator), and one indicator per button.</p></li>
+<li><p><strong>Keyboard</strong>: a virtual US keyboard whose pressed keys and modifiers light
+up. The decoder reads the keyboard’s own report layout, so boot-style
+keyboards (modifier byte + six key slots) and NKRO bitmaps both work, with no
+protocol switch.</p></li>
+<li><p><strong>Mouse</strong>: a pad with a dot that follows the accumulated motion (clamped at
+the edges), a wheel bar with its accumulated count, and <code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">R</span> <span class="pre">M</span> <span class="pre">4</span> <span class="pre">5</span></code> button
+indicators.</p></li>
+<li><p><strong>Gamepad</strong>: left and right stick pads with the raw stick values, the d-pad,
+the four face buttons by position (labelled with the Xbox letters for those
+positions: <code class="docutils literal notranslate"><span class="pre">A</span></code> south, <code class="docutils literal notranslate"><span class="pre">B</span></code> east, <code class="docutils literal notranslate"><span class="pre">X</span></code> west, <code class="docutils literal notranslate"><span class="pre">Y</span></code> north, whatever the pad calls
+them), and <code class="docutils literal notranslate"><span class="pre">L1</span> <span class="pre">R1</span> <span class="pre">L2</span> <span class="pre">R2</span> <span class="pre">L3</span> <span class="pre">R3</span> <span class="pre">Select</span> <span class="pre">Start</span> <span class="pre">Home</span></code>. Per-controller layout
+quirks are looked up by VID:PID in <code class="docutils literal notranslate"><span class="pre">hid-rp</span></code>.</p></li>
+<li><p><strong>Last report</strong>: the newest Input report’s bytes (from any interface) and
+the report rate.</p></li>
+</ul>
+<p>The panel column scrolls by touch when more panels are attached than fit the
+screen (a receiver with all three kinds, in landscape).</p>
+<p><code class="docutils literal notranslate"><span class="pre">main/spacemouse_decoder.*</span></code> routes each raw SpaceMouse report by its id byte
+to the matching <code class="docutils literal notranslate"><span class="pre">espp::SpaceMouse*InputReport</span></code> class from <code class="docutils literal notranslate"><span class="pre">hid-rp</span></code> (1 =
+translation, 2 = rotation, 3 = buttons; the 12-byte combined report some
+newer firmware sends on id 1 is handled too). The keyboard, mouse and gamepad
+decoders are <code class="docutils literal notranslate"><span class="pre">hid-rp</span></code>’s <code class="docutils literal notranslate"><span class="pre">espp::hid_rp::ReportMap</span></code> and the <code class="docutils literal notranslate"><span class="pre">KeyboardDecoder</span></code> /
+<code class="docutils literal notranslate"><span class="pre">MouseDecoder</span></code> / <code class="docutils literal notranslate"><span class="pre">GamepadDecoder</span></code> built on it (<code class="docutils literal notranslate"><span class="pre">hid-rp-report-map.hpp</span></code>).</p>
+</section>
+<section id="hardware">
+<h2>Hardware<a class="headerlink" href="#hardware" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>M5Stack Tab5. The USB-A jack is on the ESP32-P4’s high-speed USB-OTG
+controller (the USB Host Library’s default on the P4) and the BSP switches
+its 5 V through an IO expander (<code class="docutils literal notranslate"><span class="pre">set_usb_a_power()</span></code>).</p></li>
+<li><p>The console (<code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">monitor</span></code>) stays on the USB-C port: that is the other
+(full-speed) controller, with USB-Serial-JTAG, so both work at once.</p></li>
+<li><p>A wireless device works through its USB receiver, and a hub works too: hub
+support is on in the example’s <code class="docutils literal notranslate"><span class="pre">sdkconfig.defaults</span></code>, and the example runs the
+root port full-speed-only so the full-speed HID devices behind a hub never
+need the hub’s transaction translator, which ESP-IDF’s hub driver does not
+implement.</p></li>
+<li><p>A device plugged straight into the jack enumerates whether it was attached
+at power-up or hot-plugged. The example keeps the jack’s 5 V off until the
+host is listening and waits 500 ms before powering the root port (both in
+menuconfig: <strong>USB Host Tab5 Example Configuration</strong>).</p></li>
+<li><p>Known limitation, cause not established: a device that is already behind a
+hub when the board boots can fail its first descriptor read
+(<code class="docutils literal notranslate"><span class="pre">ENUM:</span> <span class="pre">CHECK_SHORT_DEV_DESC</span> <span class="pre">FAILED</span></code>), after which the hub driver disables
+that hub port (it resets a port once). The same device enumerates when
+hot-plugged. Longer port power-good and reset-recovery delays did not help.
+If a device behind a hub is missing after boot, unplug and re-plug it.</p></li>
+<li><p>Seen during development, cause not established: with <code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">monitor</span></code>
+attached to the USB-C port, a device on the jack sometimes stalled in
+enumeration, and never with the monitor detached. The firmware does not touch
+the USB-C controller, and other Tab5 firmware runs a console on USB-C with a
+device on USB-A continuously without stalls, so this is more likely the
+monitor’s DTR/RTS handling (which resets the chip and can disturb the
+USB-Serial-JTAG PHY) than the hardware. If you hit it, try a terminal that
+leaves DTR/RTS alone, or a UART adapter.</p></li>
+</ul>
+</section>
+<section id="build-flash">
+<h2>Build &amp; flash<a class="headerlink" href="#build-flash" title="Permalink to this heading"></a></h2>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>idf.py<span class="w"> </span>set-target<span class="w"> </span>esp32p4
+idf.py<span class="w"> </span>-p<span class="w"> </span>&lt;PORT&gt;<span class="w"> </span>flash<span class="w"> </span>monitor
+</pre></div>
+</div>
+<p>Built with the component manager on (the <code class="docutils literal notranslate"><span class="pre">usb</span></code> host library and <code class="docutils literal notranslate"><span class="pre">usb_host_hid</span></code>
+class driver come from the registry, as in the plain <code class="docutils literal notranslate"><span class="pre">usb_host</span></code> example).</p>
+</section>
+<section id="notes">
+<h2>Notes<a class="headerlink" href="#notes" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>SpaceMouse axis signs follow the device: on a SpaceNavigator <code class="docutils literal notranslate"><span class="pre">Tx</span></code> + is
+right, <code class="docutils literal notranslate"><span class="pre">Ty</span></code> + is toward the user, <code class="docutils literal notranslate"><span class="pre">Tz</span></code> + is down (pushing the cap), and the
+rotations follow the right-hand rule about those axes. Check them against
+the bars before mapping to a robot frame. A SpaceMouse reports a zeroed
+translation + rotation pair when released, so the bars return to center on
+their own.</p></li>
+<li><p>Gamepad stick values are normalised to <code class="docutils literal notranslate"><span class="pre">-32767..32767</span></code> with Y growing
+downwards (the HID convention); a pad whose Y grows upwards is corrected by
+its VID:PID quirk.</p></li>
+<li><p>One physical device is shown at a time. A hub can carry several; while one
+device is on the card, the interfaces of any other USB address are not
+opened (logged as “not opening … another device is being shown”), so its
+reports cannot mix into the panels. Re-plug it once the shown device is gone.</p></li>
+<li><p>A device that enumerates but is not opened as HID shows as “N USB device(s)
+enumerated, none opened as HID”; call <code class="docutils literal notranslate"><span class="pre">host.print_usb_devices()</span></code> (or set the
+<code class="docutils literal notranslate"><span class="pre">hid-host</span></code> log tag to debug with <code class="docutils literal notranslate"><span class="pre">CONFIG_LOG_MAXIMUM_LEVEL_DEBUG</span></code>) to see its
+interfaces.</p></li>
+<li><p>A SpaceMouse is recognised by 3Dconnexion’s vendor id (<code class="docutils literal notranslate"><span class="pre">0x256F</span></code>), or by the
+product ids of the early Logitech-branded SpaceNavigator / SpaceExplorer /
+SpacePilot (<code class="docutils literal notranslate"><span class="pre">0x046D:C62x</span></code>), before the descriptor is looked at: its six axes
+and buttons would otherwise pass for a gamepad.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="usb_host_example.html" class="btn btn-neutral float-left" title="USB Host Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../io_expander/index.html" class="btn btn-neutral float-right" title="IO Expander APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,19 @@
+ICM42607 6-Axis IMU
+*******************
+
+The `Icm42607` component provides a driver for the ICM42607 and ICM42670 6-Axis
+Inertial Measurement Units (IMUs).
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   icm42607_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/icm42607.inc
+.. include-build-file:: inc/icm42607_detail.inc

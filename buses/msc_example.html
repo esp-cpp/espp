@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USB Mass Storage (MSC) Example - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'buses/msc_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="USB Host Component" href="usb_host.html" />
+    <link rel="prev" title="X-Input (Xbox 360) controller example" href="xinput_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Buses &amp; Low-Level I/O APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spi.html">SPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twai.html">TWAI (CAN 2.0) APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="canopen.html">CANopen (CiA 301) Client APIs</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="usb_cdc.html">USB Device Component</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#features">Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#basic-usage">Basic Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#enabling-the-vendor-webusb-class">Enabling the vendor / WebUSB class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#enabling-the-hid-class">Enabling the HID class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#enabling-x-input-xbox-360">Enabling X-Input (Xbox 360)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#enabling-mass-storage-msc">Enabling mass storage (MSC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#routing-the-console-over-cdc">Routing the console over CDC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#endpoint-budget-esp32-s3-usb-otg">Endpoint budget (ESP32-S3 USB-OTG)</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="usb_cdc.html#notes">Notes</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="usb_cdc_example.html">ODrive-compatible USB Device Example (CDC + Vendor/WebUSB + HID)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xinput_example.html">X-Input (Xbox 360) controller example</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">USB Mass Storage (MSC) Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="usb_host.html">USB Host Component</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../telemetry/index.html">Telemetry APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wdi/index.html">WDI (Wheelchair Digital Interface) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Buses &amp; Low-Level I/O APIs</a></li>
+          <li class="breadcrumb-item"><a href="usb_cdc.html">USB Device Component</a></li>
+      <li class="breadcrumb-item active">USB Mass Storage (MSC) Example</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/d5a95c22/docs/en/buses/msc_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="usb-mass-storage-msc-example">
+<h1>USB Mass Storage (MSC) Example<a class="headerlink" href="#usb-mass-storage-msc-example" title="Permalink to this heading"></a></h1>
+<p>Exposes a FAT partition in the ESP32-S3’s flash as a <strong>USB drive</strong> using
+<code class="docutils literal notranslate"><span class="pre">espp::UsbDevice</span></code>’s MSC function, and demonstrates the ownership model that lets
+the firmware and a PC share one volume safely:</p>
+<ul class="simple">
+<li><p>While the <strong>application</strong> owns the medium it reads and writes files through the
+VFS at <code class="docutils literal notranslate"><span class="pre">base_path</span></code> (<code class="docutils literal notranslate"><span class="pre">fopen</span></code>, <code class="docutils literal notranslate"><span class="pre">std::fstream</span></code>, <code class="docutils literal notranslate"><span class="pre">std::filesystem</span></code>). A connected
+host sees the drive as “no medium”.</p></li>
+<li><p>When a <strong>host</strong> mounts the device it takes the medium: the application’s
+<code class="docutils literal notranslate"><span class="pre">base_path</span></code> is unmounted and the PC sees the FAT volume.</p></li>
+<li><p>When the host <strong>ejects</strong> the drive (or the cable is unplugged) the medium goes
+back to the application, with the host’s changes.</p></li>
+</ul>
+<p>On boot the example updates <code class="docutils literal notranslate"><span class="pre">boots.txt</span></code> (a boot counter) and creates <code class="docutils literal notranslate"><span class="pre">README.txt</span></code>
+(only if it is missing, so host edits survive reboots) on the
+volume and lists its files. Plug the native USB port into a PC: the drive
+appears with those files. Add or edit a file, eject the drive, and the device
+logs the updated directory listing.</p>
+<section id="build-flash">
+<h2>Build &amp; flash<a class="headerlink" href="#build-flash" title="Permalink to this heading"></a></h2>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>idf.py<span class="w"> </span>-p<span class="w"> </span>&lt;PORT&gt;<span class="w"> </span>flash<span class="w"> </span>monitor<span class="w">   </span><span class="c1"># console is on UART0 (USB-UART adapter)</span>
+</pre></div>
+</div>
+<p>The console is on <strong>UART0</strong>: on the ESP32-S3 USB-Serial-JTAG shares the native
+USB port’s PHY with USB-OTG, which the mass storage interface takes over.</p>
+<p>The build works with the IDF component manager on (esp_tinyusb comes from the
+registry) or off, which is how CI builds it and the way to go while a local espp
+component the example uses is not published yet. With the manager off,
+esp_tinyusb and TinyUSB come from the vendored submodules, so initialize them
+first:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>submodule<span class="w"> </span>update<span class="w"> </span>--init<span class="w"> </span>external/esp-usb<span class="w"> </span>external/tinyusb<span class="w"> </span>components/lvgl<span class="w"> </span>components/format/detail/fmt
+<span class="nv">IDF_COMPONENT_MANAGER</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>idf.py<span class="w"> </span>-p<span class="w"> </span>&lt;PORT&gt;<span class="w"> </span>flash<span class="w"> </span>monitor
+</pre></div>
+</div>
+<p>The example’s <code class="docutils literal notranslate"><span class="pre">sdkconfig.defaults</span></code> enables <code class="docutils literal notranslate"><span class="pre">CONFIG_TINYUSB_MSC_ENABLED</span></code>, uses a
+custom <code class="docutils literal notranslate"><span class="pre">partitions.csv</span></code> with a 1 MiB <code class="docutils literal notranslate"><span class="pre">storage</span></code> FAT partition, and selects
+<strong>4096-byte wear-levelling sectors</strong> with a matching MSC buffer:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CONFIG_WL_SECTOR_SIZE_4096</span><span class="o">=</span><span class="n">y</span>
+<span class="n">CONFIG_TINYUSB_MSC_BUFSIZE</span><span class="o">=</span><span class="mi">4096</span>   <span class="c1"># esp_tinyusb requires &gt;= CONFIG_WL_SECTOR_SIZE</span>
+</pre></div>
+</div>
+</section>
+<section id="flash-write-speed-and-sector-size">
+<h2>Flash write speed and sector size<a class="headerlink" href="#flash-write-speed-and-sector-size" title="Permalink to this heading"></a></h2>
+<p>NOR flash can only be erased in 4 KiB blocks, and esp_tinyusb erases a range
+before writing it. How much work one host write costs depends on the
+wear-levelling sector size:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">CONFIG_WL_SECTOR_SIZE</span></code></p></th>
+<th class="head"><p>Host sector</p></th>
+<th class="head"><p>Flash work per host write</p></th>
+<th class="head"><p>Reset during an erase</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>4096</strong> (this example)</p></td>
+<td><p>4 KiB</p></td>
+<td><p>1 erase + 1 write</p></td>
+<td><p>loses only the write in progress</p></td>
+</tr>
+<tr class="row-odd"><td><p>512, <code class="docutils literal notranslate"><span class="pre">WL_SECTOR_MODE_SAFE</span></code></p></td>
+<td><p>512 B</p></td>
+<td><p>read the 4 KiB block, back it up (erase + write), write a transaction record (erase + write), erase the block, restore the other 7 sectors, clear the record (erase), write – <strong>4 erases</strong></p></td>
+<td><p>safe</p></td>
+</tr>
+<tr class="row-even"><td><p>512, <code class="docutils literal notranslate"><span class="pre">WL_SECTOR_MODE_PERF</span></code></p></td>
+<td><p>512 B</p></td>
+<td><p>read the block into RAM, erase, restore, write – 1 erase</p></td>
+<td><p><strong>loses the whole 4 KiB block</strong></p></td>
+</tr>
+</tbody>
+</table>
+<p>A flash erase takes tens of milliseconds, and a host editing even a tiny file
+writes many sectors: the data, the FAT (often two copies), the directory entry
+and timestamps, plus host metadata such as macOS’s <code class="docutils literal notranslate"><span class="pre">._name</span></code> AppleDouble files and
+<code class="docutils literal notranslate"><span class="pre">.fseventsd</span></code> logs. With 512-byte Safety-mode sectors that adds up to several
+seconds for a ~100-byte edit; with 4096-byte sectors it is a fraction of that.</p>
+<p>Trade-offs of 4096-byte sectors:</p>
+<ul class="simple">
+<li><p>The host sees a drive with <strong>4 KiB logical sectors</strong>. Current macOS, Linux and
+Windows handle that; some old or embedded hosts only accept 512-byte sectors.</p></li>
+<li><p>FatFs keeps a sector-sized buffer per mounted volume and per open file, so each
+costs <strong>4 KiB of RAM</strong> instead of 512 B (and the MSC buffer is 4 KiB).</p></li>
+<li><p>A cluster is at least one sector, so every file, however small, occupies at
+least <strong>4 KiB on the volume</strong>; a small partition fits fewer files.</p></li>
+<li><p>Changing the sector size changes the on-flash layout: <strong>erase the partition</strong>
+after switching either way (below).</p></li>
+</ul>
+<p>To reduce host metadata writes on macOS, create <code class="docutils literal notranslate"><span class="pre">.fseventsd/no_log</span></code> and
+<code class="docutils literal notranslate"><span class="pre">.metadata_never_index</span></code> on the volume, and run
+<code class="docutils literal notranslate"><span class="pre">defaults</span> <span class="pre">write</span> <span class="pre">com.apple.desktopservices</span> <span class="pre">DSDontWriteUSBStores</span> <span class="pre">-bool</span> <span class="pre">true</span></code> to stop
+<code class="docutils literal notranslate"><span class="pre">.DS_Store</span></code> files.</p>
+<section id="sd-cards-avoid-all-of-this">
+<h3>SD cards avoid all of this<a class="headerlink" href="#sd-cards-avoid-all-of-this" title="Permalink to this heading"></a></h3>
+<p>An SD card has its own controller that does erase-block management and wear
+levelling internally, so esp_tinyusb writes its 512-byte sectors straight to the
+card (<code class="docutils literal notranslate"><span class="pre">sdmmc_write_sectors()</span></code>): no ESP-side wear-levelling layer, no
+read-modify-erase and no sector-size choice to make. Host writes then run at the
+card’s speed (limited mainly by full-speed USB, about 1 MB/s), and an SD card
+holds far more than a flash partition. For storage a PC writes to regularly,
+prefer an SD card (see below) and keep flash media for small, rarely changed data.</p>
+</section>
+<section id="starting-over">
+<h3>Starting over<a class="headerlink" href="#starting-over" title="Permalink to this heading"></a></h3>
+<p>A volume written with a different sector size, or damaged by a reset in
+Performance mode (a root directory of unreadable entries, missing files), must be
+erased so the example can format it again:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>idf.py<span class="w"> </span>erase-flash<span class="w"> </span>flash<span class="w">   </span><span class="c1"># or: esptool.py erase_region 0x110000 0x100000</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="using-an-sd-card-instead">
+<h2>Using an SD card instead<a class="headerlink" href="#using-an-sd-card-instead" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">menuconfig</span></code> → <strong>MSC Example Configuration</strong> → <em>Medium exposed as the USB
+drive</em> picks what the host sees:</p>
+<ul class="simple">
+<li><p><strong>FAT partition in flash</strong> (default): the <code class="docutils literal notranslate"><span class="pre">storage</span></code> partition, as above.</p></li>
+<li><p><strong>SD card via espp::SdCard</strong>: the card is probed on the configured SDMMC pins
+(defaults: the LilyGo T-Dongle-S3’s microSD slot, 4-bit) and handed to the
+MSC function without being mounted by the app.</p></li>
+<li><p><strong>SD card of the LilyGo T-Dongle-S3 (BSP)</strong>: <code class="docutils literal notranslate"><span class="pre">espp::TDongleS3</span></code> brings the card
+up with <code class="docutils literal notranslate"><span class="pre">initialize_sdcard()</span></code> (which mounts it), the example releases the
+volume with <code class="docutils literal notranslate"><span class="pre">sdcard_component()-&gt;unmount()</span></code>, and hands <code class="docutils literal notranslate"><span class="pre">sdcard()</span></code> over. Every
+espp BSP with a microSD slot exposes the same two accessors, so this is the
+pattern to copy for other boards.</p></li>
+</ul>
+<p>The example never formats an SD card: a card with no filesystem raises
+<code class="docutils literal notranslate"><span class="pre">MscEvent::FormatRequired</span></code>; format it on the PC. Note that on a board whose only
+USB port is the native one (the T-Dongle-S3), that port becomes the drive, so
+the console is only visible through UART0; the drive showing up on the PC with
+<code class="docutils literal notranslate"><span class="pre">boots.txt</span></code> and <code class="docutils literal notranslate"><span class="pre">README.txt</span></code> is the test.</p>
+<p>In code: initialize the card (SDMMC or SDSPI host) but do <strong>not</strong> mount it with
+<code class="docutils literal notranslate"><span class="pre">esp_vfs_fat_*_mount()</span></code> — the MSC function mounts it at <code class="docutils literal notranslate"><span class="pre">base_path</span></code> itself.
+<code class="docutils literal notranslate"><span class="pre">espp::SdCard</span></code> (the <code class="docutils literal notranslate"><span class="pre">sdcard</span></code> component) keeps those two steps apart, and every
+espp BSP with a microSD slot exposes its card through <code class="docutils literal notranslate"><span class="pre">sdcard()</span></code>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">espp</span><span class="o">::</span><span class="n">SdCard</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="n">sd_config</span><span class="p">;</span>
+<span class="n">sd_config</span><span class="p">.</span><span class="n">interface</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">SdCard</span><span class="o">::</span><span class="n">SdmmcConfig</span><span class="p">{</span><span class="cm">/* pins */</span><span class="p">};</span>
+<span class="n">sd_config</span><span class="p">.</span><span class="n">mount_on_initialize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// probe only; the MSC function mounts it</span>
+<span class="n">espp</span><span class="o">::</span><span class="n">SdCard</span><span class="w"> </span><span class="nf">sdcard</span><span class="p">(</span><span class="n">sd_config</span><span class="p">);</span>
+<span class="n">sdcard</span><span class="p">.</span><span class="n">initialize</span><span class="p">();</span>
+
+<span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="o">::</span><span class="n">MscMedium</span><span class="w"> </span><span class="n">card</span><span class="p">;</span>
+<span class="n">card</span><span class="p">.</span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="o">::</span><span class="n">MscMedium</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">SdCard</span><span class="p">;</span>
+<span class="n">card</span><span class="p">.</span><span class="n">sd_card</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sdcard</span><span class="p">.</span><span class="n">card</span><span class="p">();</span>
+<span class="n">card</span><span class="p">.</span><span class="n">base_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"/sdcard"</span><span class="p">;</span>
+<span class="n">msc</span><span class="p">.</span><span class="n">media</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">card</span><span class="p">};</span><span class="w">            </span><span class="c1">// or {card, flash} for two drives</span>
+</pre></div>
+</div>
+<p>With a BSP, call <code class="docutils literal notranslate"><span class="pre">initialize_sdcard(...)</span></code>, then <code class="docutils literal notranslate"><span class="pre">sdcard_component()-&gt;unmount()</span></code>
+before handing <code class="docutils literal notranslate"><span class="pre">sdcard()</span></code> to the MSC function.</p>
+<p>SD card media need a target with an SDMMC host peripheral (ESP32-S3 / -P4), even
+when the card is wired to SPI.</p>
+</section>
+<section id="example-output">
+<h2>Example Output<a class="headerlink" href="#example-output" title="Permalink to this heading"></a></h2>
+<p>First boot on an ESP32-S3 (the partition has no filesystem yet, so it is
+formatted), then a macOS host mounts the drive, adds two files, and ejects it:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">I (342) main_task: Calling app_main()</span>
+<span class="go">[MSC/I][0.342]: Starting USB mass storage example</span>
+<span class="go">W (342) tinyusb_msc_storage: Mount failed, trying to format the drive</span>
+<span class="go">[MSC/I][1.142]: medium 0 now owned by the app</span>
+<span class="go">[UsbDevice/I][1.232]: MSC medium 0: volume label set to 'ESPP MSC'</span>
+<span class="go">[UsbDevice/I][1.232]: MSC medium 0: storage (1000 KiB) at '/msc', owned by the application</span>
+<span class="go">I (1402) TinyUSB: TinyUSB Driver installed on port 0</span>
+<span class="go">[UsbDevice/I][1.402]: Initialized native USB device (VID=0x1209 PID=0x0d32) cdc=false vendor=false hid=false xinput=false msc=1</span>
+<span class="go">[MSC/I][1.422]: volume: 2000 sectors x 512 bytes = 1000 KiB</span>
+<span class="go">[MSC/I][2.152]: boot #1 recorded on the volume</span>
+<span class="go">[MSC/I][2.152]: Files on the volume:</span>
+<span class="go">[MSC/I][2.152]:   boots.txt (2 bytes)</span>
+<span class="go">[MSC/I][2.152]:   README.txt (104 bytes)</span>
+<span class="go">[MSC/I][2.152]: Ready. Connect the native USB port to a PC; eject the drive to hand it back.</span>
+<span class="go">[MSC/I][12.732]: medium 0 now owned by the host</span>
+<span class="go">[MSC/I][206.992]: medium 0 now owned by the app</span>
+<span class="go">[MSC/I][207.462]: Files on the volume:</span>
+<span class="go">[MSC/I][207.462]:   boots.txt (2 bytes)</span>
+<span class="go">[MSC/I][207.462]:   README.txt (194 bytes)</span>
+<span class="go">[MSC/I][207.462]:   .fseventsd/ (0 bytes)</span>
+<span class="go">[MSC/I][207.462]:   ._README.txt (4096 bytes)</span>
+<span class="go">[MSC/I][207.472]:   .TemporaryItems/ (0 bytes)</span>
+<span class="go">[MSC/I][207.472]:   test_item_1.md (15 bytes)</span>
+<span class="go">[MSC/I][207.482]:   some_other_thing.txt (30 bytes)</span>
+</pre></div>
+</div>
+<p>(The dot-files are macOS metadata written by the host. The TinyUSB device
+descriptor summary esp_tinyusb prints at install is omitted.)</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="xinput_example.html" class="btn btn-neutral float-left" title="X-Input (Xbox 360) controller example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="usb_host.html" class="btn btn-neutral float-right" title="USB Host Component" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
