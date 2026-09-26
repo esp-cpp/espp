@@ -6,6 +6,8 @@ Registers an idf.py *action* (the same mechanism idf.py's own ``flash`` /
     idf.py coredump-usb                 # build, download the core dump, decode it
     idf.py coredump-usb --gdb           # ... open GDB on the core file instead
     idf.py coredump-usb --summary       # just the crash report the device stores
+    idf.py coredump-usb --erase         # decode, then erase the dump from the device
+    idf.py coredump-usb --summary --erase   # report it, then erase it (no download)
     idf.py coredump-usb --out crash.elf --pid 0x1234 --serial ABC123
 
 idf.py loads it two ways:
@@ -46,10 +48,30 @@ ACTION_NAME = "coredump-usb"
 _HELP = (
     "Build, then download the stored core dump over the USB vendor interface and "
     "decode it against the app ELF (esp-coredump info_corefile). --gdb opens GDB on "
-    "the core file instead; --summary prints the device's crash report only. Needs "
-    "pyusb (and esp-coredump for decoding). Device selection defaults to the espp "
-    "coredump example's USB ids; see `python -m espp_coredump --help`."
+    "the core file instead; --summary prints the device's crash report only; --erase "
+    "erases the stored dump from the device afterwards. Needs pyusb (and esp-coredump "
+    "for decoding). Device selection defaults to the espp coredump example's USB ids; "
+    "see `python -m espp_coredump --help`."
 )
+
+
+def device_argv(
+    vid: str | None = None,
+    pid: str | None = None,
+    serial: str | None = None,
+    interface: str | None = None,
+) -> list[str]:
+    """The device-selection part of an ``espp_coredump`` command line."""
+    argv: list[str] = []
+    for name, value in (
+        ("--vid", vid),
+        ("--pid", pid),
+        ("--serial", serial),
+        ("--interface", interface),
+    ):
+        if value is not None and value != "":
+            argv += [name, str(value)]
+    return argv
 
 
 def project_elf(build_dir: str) -> str:
@@ -82,25 +104,31 @@ def build_tool_argv(
     serial: str | None = None,
     interface: str | None = None,
 ) -> list[str]:
-    """The ``espp_coredump`` command line for one ``idf.py coredump-usb`` invocation."""
-    argv: list[str] = []
-    for name, value in (
-        ("--vid", vid),
-        ("--pid", pid),
-        ("--serial", serial),
-        ("--interface", interface),
-    ):
-        if value is not None and value != "":
-            argv += [name, str(value)]
+    """The ``espp_coredump`` command line for the report / decode step of one
+    ``idf.py coredump-usb`` invocation (``--erase`` is a second run, see
+    :func:`erase_argv`)."""
+    argv = device_argv(vid, pid, serial, interface)
     if summary:
         argv.append("summary")
         return argv
     argv += ["debug", project_elf(build_dir)]
-    if out:
-        argv += ["--out", out]
+    # default the core file into the build directory (the tool's own default is
+    # the current directory, which under idf.py is the project source tree)
+    argv += ["--out", out or os.path.join(build_dir, "core.elf")]
     if gdb:
         argv.append("--gdb")
     return argv
+
+
+def erase_argv(
+    vid: str | None = None,
+    pid: str | None = None,
+    serial: str | None = None,
+    interface: str | None = None,
+) -> list[str]:
+    """The ``espp_coredump`` command line that erases the stored dump. The
+    ``--erase`` flag is the consent, so the CLI's own prompt is skipped."""
+    return device_argv(vid, pid, serial, interface) + ["erase", "--yes"]
 
 
 def run_tool(argv: list[str]) -> None:
@@ -125,6 +153,7 @@ def action_extensions(base_actions: dict[str, Any] | None, project_path: str) ->
         args: Any,
         gdb: bool = False,
         summary: bool = False,
+        erase: bool = False,
         out: str | None = None,
         vid: str | None = None,
         pid: str | None = None,
@@ -144,6 +173,10 @@ def action_extensions(base_actions: dict[str, Any] | None, project_path: str) ->
                 interface=interface,
             )
         )
+        if erase:
+            # only after the report / decode succeeded: never erase a dump
+            # nobody has seen
+            run_tool(erase_argv(vid, pid, serial, interface))
 
     return {
         # idf.py requires a truthy "version" on custom extensions
@@ -166,6 +199,13 @@ def action_extensions(base_actions: dict[str, Any] | None, project_path: str) ->
                         "default": False,
                         "help": "Only print the crash report stored on the device; no download, "
                         "no decoding.",
+                    },
+                    {
+                        "names": ["--erase"],
+                        "is_flag": True,
+                        "default": False,
+                        "help": "After the report / decode succeeded, erase the stored core "
+                        "dump from the device (the flag is the confirmation).",
                     },
                     {
                         "names": ["--out", "-o"],

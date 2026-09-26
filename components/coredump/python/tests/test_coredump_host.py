@@ -278,6 +278,32 @@ def test_streaming_download():
         CoreDumpClient(MockDevice(image=b"")).read_image_to(chunks.append) == 0 and len(chunks) == 3)
 
 
+def test_summary_panel():
+    from espp_coredump import ui
+
+    report = ("last reset: POWERON (1)\n"
+              "crashed task: 'main' PC=0x4202068a\n"
+              "backtrace: 0x4202068a 0x42024d0a\n"
+              "decode with: xtensa-esp32s3-elf-addr2line -pfiaC -e build/<app>.elf <addrs>\n")
+    lines = report.rstrip("\n").split("\n")
+    _ok("panel: crash-report lines get distinct styles",
+        ui.report_line_style(lines[1]) == ("bold red", "1;31")
+        and ui.report_line_style(lines[2]) == ("bold yellow", "1;33")
+        and ui.report_line_style("something else") == (None, None))
+    plain = ui.render_panel_plain("Core dump summary", lines)
+    rows = plain.split("\n")
+    _ok("panel: framed with the title, one row per line, equal width",
+        rows[0].startswith("╭─ Core dump summary ") and rows[0].endswith("╮")
+        and rows[-1].startswith("╰") and rows[-1].endswith("╯")
+        and len(rows) == len(lines) + 2 and len(set(len(r) for r in rows)) == 1
+        and all(r.startswith("│ ") and r.endswith(" │") for r in rows[1:-1]))
+    colored = ui.render_panel_plain("t", lines, color=True)
+    _ok("panel: ANSI styling only when asked", "\033[1;31m" in colored and "\033[" not in plain)
+    narrow = ui.render_panel_plain("t", lines, width=30)
+    _ok("panel: width cap does not shrink below the title",
+        len(narrow.split("\n")[0]) <= max(30, len("t") + 6))
+
+
 def test_idf_extension():
     import json
     import tempfile
@@ -289,7 +315,10 @@ def test_idf_extension():
     names = {n for opt in action["options"] for n in opt["names"]}
     _ok("idf_ext registers coredump-usb with its options",
         action["callback"] is not None and action["dependencies"] == ["all"]
-        and {"--gdb", "--summary", "--out", "--vid", "--pid", "--serial", "--interface"} <= names)
+        and {"--gdb", "--summary", "--erase", "--out", "--vid", "--pid", "--serial",
+             "--interface"} <= names)
+    _ok("idf_ext: erase argv skips the prompt and carries the device ids",
+        X.erase_argv(pid="-1", serial="S1") == ["--pid", "-1", "--serial", "S1", "erase", "--yes"])
     _ok("idf_ext declares the extension version", "version" in ext)
     _ok("idf_ext skips a second registration",
         X.action_extensions({"actions": {X.ACTION_NAME: {}}}, "/proj") == {})
@@ -304,8 +333,9 @@ def test_idf_extension():
             json.dump({"build_dir": build_dir, "app_elf": "my_app.elf"}, f)
         elf = os.path.join(build_dir, "my_app.elf")
         _ok("idf_ext: ELF from project_description.json", X.project_elf(build_dir) == elf)
-        _ok("idf_ext: argv for decode",
-            X.build_tool_argv(build_dir) == ["debug", elf])
+        core = os.path.join(build_dir, "core.elf")
+        _ok("idf_ext: argv for decode saves the core file in the build dir",
+            X.build_tool_argv(build_dir) == ["debug", elf, "--out", core])
         _ok("idf_ext: argv for gdb + out + device ids",
             X.build_tool_argv(build_dir, gdb=True, out="c.elf", vid="0x1209", pid="0x1234",
                               serial="S1", interface="2")
@@ -328,7 +358,19 @@ def test_idf_extension():
             args.build_dir = build_dir
             action["callback"]("coredump-usb", None, args, gdb=True)
             _ok("idf_ext: callback runs the tool with the project ELF",
-                calls == [["debug", elf, "--gdb"]])
+                calls == [["debug", elf, "--out", core, "--gdb"]])
+            calls.clear()
+            action["callback"]("coredump-usb", None, args, summary=True, erase=True, pid="0x1234")
+            _ok("idf_ext: --erase runs after the report, with the same device ids",
+                calls == [["--pid", "0x1234", "summary"], ["--pid", "0x1234", "erase", "--yes"]])
+            calls.clear()
+            cli.main = lambda argv=None: (calls.append(list(argv)), 1)[1]
+            try:
+                action["callback"]("coredump-usb", None, args, erase=True)
+            except X.FatalError:
+                pass
+            _ok("idf_ext: a failed report/decode never erases",
+                calls == [["debug", elf, "--out", core]])
             cli.main = lambda argv=None: 1
             try:
                 action["callback"]("coredump-usb", None, args)
@@ -353,6 +395,7 @@ if __name__ == "__main__":
         test_suggested_command_quoting,
         test_extract_elf,
         test_discovery,
+        test_summary_panel,
         test_idf_extension,
     ]
     try:

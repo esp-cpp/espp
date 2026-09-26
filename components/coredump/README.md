@@ -36,7 +36,7 @@ The same protocol is also spoken from the terminal by the pure-Python
 `idf_ext.py` turns it into an `idf.py coredump-usb` action in every project
 that requires `coredump`: build, download the stored dump over USB and decode
 it against the freshly built ELF in one step, with options (`--gdb` for GDB on
-the core file, `--summary`, `--out`, `--vid`/`--pid`/`--serial`), like
+the core file, `--summary`, `--erase`, `--out`, `--vid`/`--pid`/`--serial`), like
 ESP-IDF's own `coredump-info` / `coredump-debug`. The same action is also
 available through an `idf_extension` entry point of the espp wheel, and
 `project_include.cmake` keeps plain `coredump-usb` / `coredump-usb-debug`

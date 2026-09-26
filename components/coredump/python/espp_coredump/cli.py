@@ -151,11 +151,14 @@ def _cmd_discover(args) -> int:
 
 def _cmd_summary(args) -> int:
     with _make_transport(args) as t:
+        device = t.description
         text = _make_client(args, t).summary()
     if not text:
         CON.success("no crash recorded (clean boot history)")
         return 0
-    print(text.rstrip("\n"))
+    # framed + colorized so it stands out from the build output around it
+    # under `idf.py coredump-usb --summary`
+    CON.panel(f"Core dump summary · {device}", text, border="red")
     return 0
 
 
@@ -216,12 +219,16 @@ def _cmd_debug(args) -> int:
     path, fmt = _save_image(image, args.out, raw=False)
     if not args.quiet:
         CON.info(f"  Core file: {path} ({fmt})")
+    # rules around the decoder's output so it is easy to find between the
+    # build output before it and idf.py's post-build hints after it
+    CON.rule(f"core dump: {path} ({len(image)} bytes) decoded against {args.app_elf}")
     rc = decoder.run_decoder(path, args.app_elf, gdb=args.gdb, core_format=fmt)
     if rc == -1:
         CON.warn("no core-dump decoder found (`pip install esp-coredump`, or set IDF_PATH). "
                  "Run it yourself:")
         print("  " + decoder.suggested_command(path, args.app_elf, gdb=args.gdb, core_format=fmt))
         return 1
+    CON.rule("end of core dump")
     return rc
 
 

@@ -48,6 +48,7 @@ just built, in one step -- the counterpart of ESP-IDF's ``coredump-info`` /
     idf.py coredump-usb              # builds, then downloads + decodes the core dump
     idf.py coredump-usb --gdb        # ... or opens GDB on the core file
     idf.py coredump-usb --summary    # just the crash report stored on the device
+    idf.py coredump-usb --erase      # decode (or --summary), then erase the stored dump
 
 idf.py loads a component's extension only from trusted sources (ESP-IDF, the
 project's components, ``EXTRA_COMPONENT_DIRS``, ``espressif/`` registry

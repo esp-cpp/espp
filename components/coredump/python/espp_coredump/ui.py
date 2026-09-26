@@ -67,17 +67,110 @@ def _ansi_enabled() -> bool:
     return _isatty()
 
 
+# How a crash-report line is styled inside a panel, by its "key:" prefix (the
+# device's format_report() layout). (rich style, ANSI SGR code).
+_REPORT_LINE_STYLES = (
+    ("crashed task:", "bold red", "1;31"),
+    ("backtrace:", "bold yellow", "1;33"),
+    ("core dump:", "magenta", "35"),
+    ("last reset:", "cyan", "36"),
+    ("decode with:", "dim", "2"),
+)
+
+
+def report_line_style(line: str) -> tuple[Optional[str], Optional[str]]:
+    """(rich style, ANSI code) for one crash-report line, (None, None) if plain."""
+    for prefix, rich_style, ansi in _REPORT_LINE_STYLES:
+        if line.startswith(prefix):
+            return rich_style, ansi
+    return None, None
+
+
+def render_panel_plain(title: str, lines: list, color: bool = False, width: int = 0) -> str:
+    """A framed, titled block as text (the rich-less fallback). Pure: testable.
+
+    ``color`` adds ANSI styling per :func:`report_line_style`; ``width`` caps
+    the frame (0 = fit the content)."""
+    inner = max([len(title) + 2] + [len(line) for line in lines]) if lines else len(title) + 2
+    if width:
+        inner = min(inner, max(width - 4, len(title) + 2))
+    top = "╭─ " + title + " " + "─" * max(0, inner - len(title) - 1) + "╮"
+    out = [top]
+    for line in lines:
+        pad = " " * max(0, inner - len(line))
+        text = line
+        if color:
+            _, ansi = report_line_style(line)
+            if ansi:
+                text = f"\033[{ansi}m{line}\033[0m"
+        out.append("│ " + text + pad + " │")
+    out.append("╰" + "─" * (inner + 2) + "╯")
+    return "\n".join(out)
+
+
 class Console:
-    """Styled status/error output (stderr). Uses rich when available."""
+    """Styled status/error output (stderr) and framed results (stdout).
+    Uses rich when available."""
 
     def __init__(self) -> None:
         self._rich = None
+        self._rich_out = None
         if _have_rich():
             try:
                 from rich.console import Console as RichConsole
                 self._rich = RichConsole(file=sys.stderr, highlight=False)
+                self._rich_out = RichConsole(file=sys.stdout, highlight=False)
             except Exception:
                 self._rich = None
+                self._rich_out = None
+
+    def panel(self, title: str, body: str, border: str = "cyan") -> None:
+        """Print a command's result as a framed, titled block on STDOUT, with
+        the crash-report lines colorized, so it stands out from the build noise
+        around it under ``idf.py coredump-usb``. Blank lines before and after
+        separate it from ninja's last line and idf.py's post-build hints."""
+        lines = body.rstrip("\n").split("\n") if body.strip() else []
+        if self._rich_out is not None:
+            try:
+                from rich.panel import Panel
+                from rich.text import Text
+                text = Text()
+                for i, line in enumerate(lines):
+                    rich_style, _ = report_line_style(line)
+                    text.append(line, style=rich_style)
+                    if i + 1 < len(lines):
+                        text.append("\n")
+                self._rich_out.print()
+                self._rich_out.print(Panel(text, title=f"[bold]{title}[/bold]", title_align="left",
+                                           border_style=border, expand=False, padding=(0, 1)))
+                self._rich_out.print()
+                return
+            except Exception:
+                pass  # fall through to the plain frame
+        try:
+            width = os.get_terminal_size().columns
+        except Exception:
+            width = 0
+        sys.stdout.write("\n" + render_panel_plain(title, lines, color=_ansi_enabled(), width=width)
+                         + "\n\n")
+        sys.stdout.flush()
+
+    def rule(self, title: str = "") -> None:
+        """A horizontal rule with an optional title on STDOUT (section divider)."""
+        if self._rich_out is not None:
+            try:
+                from rich.rule import Rule
+                self._rich_out.print(Rule(f"[bold]{title}[/bold]" if title else "", style="cyan"))
+                return
+            except Exception:
+                pass
+        try:
+            width = os.get_terminal_size().columns
+        except Exception:
+            width = 80
+        line = f"── {title} " if title else ""
+        sys.stdout.write(line + "─" * max(0, width - len(line)) + "\n")
+        sys.stdout.flush()
 
     def _emit(self, text: str, rich_style: Optional[str], ansi: Optional[str]) -> None:
         if self._rich is not None:

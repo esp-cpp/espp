@@ -21,7 +21,11 @@ device), downloads the stored core dump over USB and decodes it against that
 ELF (`esp-coredump info_corefile`), the way `idf.py coredump-info` does over the
 serial bootloader. It is a real idf.py action (like `flash`), so it takes
 options; `--gdb` opens GDB on the core file instead (`esp-coredump
-dbg_corefile`), like `idf.py coredump-debug`.
+dbg_corefile`), like `idf.py coredump-debug`, and `--erase` erases the stored
+dump from the device once the report / decode has succeeded (never before you
+have seen it; the flag is the confirmation). The crash report (`--summary`) is
+printed as a framed, colorized block so it stands out from the build output
+around it.
 
 The action comes from the component's `idf_ext.py`, which idf.py loads when
 the component is in the build **from a trusted source**: ESP-IDF itself, the
@@ -48,6 +52,8 @@ pip install pyusb esp-coredump   # once (libusb backend: `brew install libusb`, 
 idf.py coredump-usb              # build, download + decode the core dump
 idf.py coredump-usb --gdb        # ... open GDB on the core file instead
 idf.py coredump-usb --summary    # only the crash report the device stores (no download)
+idf.py coredump-usb --erase      # decode, then erase the dump from the device
+idf.py coredump-usb --summary --erase   # report it, then erase it (no download)
 idf.py coredump-usb --out crash.elf --pid 0x1234 --serial ABC123
 idf.py coredump-usb --help       # all options (--vid/--pid/--serial/--interface, --out)
 idf.py build coredump-usb-debug  # the option-less CMake fallback targets
