@@ -12,16 +12,36 @@ imported lazily.
 
 ## Seamless: build → OTA with `idf.py`
 
-If your project uses the espp `ota` component, its `project_include.cmake`
-registers an `ota-usb` build target, so you can build and flash over USB in one
-step (just like `idf.py flash` does over the serial bootloader):
+If your project uses the espp `ota` component, `idf.py` gains an `ota-usb`
+action: it builds the app and OTAs the resulting `.bin` over USB in one step
+(just like `idf.py flash` does over the serial bootloader), then reconnects
+and marks the new image valid. It is a real idf.py action (like `flash`), so it
+takes options:
 
 ```sh
 pip install pyusb            # once (libusb backend: `brew install libusb`, `apt install libusb-1.0-0`)
-idf.py ota-usb              # builds the app, then OTAs it over USB
-# or, equivalently / on CMake < 3.19:
-idf.py build ota-usb
+idf.py ota-usb                        # build, then OTA the app .bin over USB
+idf.py ota-usb --no-verify            # ... without the reconnect + mark-valid afterwards
+idf.py ota-usb --binary other.bin     # OTA some other image instead of the project's
+idf.py ota-usb --status               # is the running image pending verification?
+idf.py ota-usb --mark-valid           # confirm the running image (cancel rollback)
+idf.py ota-usb --rollback             # reject it: roll back + reboot
+idf.py ota-usb --pid 0x1234 --serial ABC123 --chunk-size 2048
+idf.py ota-usb --help                 # all options (--vid/--pid/--serial/--interface, --quiet, ...)
+idf.py build ota-usb                  # the option-less CMake fallback target
 ```
+
+The action comes from the component's `idf_ext.py`, which idf.py loads when
+the component is in the build **from a trusted source**: ESP-IDF itself, the
+project's own components, `EXTRA_COMPONENT_DIRS` (how espp is normally used) or
+an `espressif/` registry component. A registry install of `espp/ota` is not in
+that list, so idf.py prints a warning and skips it unless you set
+`IDF_EXTENSION_ALLOW_UNTRUSTED=1`. Alternatively, install the espp wheel in the
+ESP-IDF Python environment: it declares an `idf_extension` entry point, which
+idf.py loads with no trust check, in every project. For builds where neither
+extension is loaded, `project_include.cmake` still registers the plain `ota-usb`
+CMake target, which takes no options (an idf.py action shadows a CMake target of
+the same name).
 
 Override the target device without editing anything (the tool reads these):
 

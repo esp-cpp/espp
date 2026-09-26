@@ -222,6 +222,164 @@ def test_begin_busy_recovers():
         and dev.finished)
 
 
+def test_transport_timeout_classification():
+    from espp_ota.transport import UsbVendorTransport
+
+    class USBError(Exception):
+        def __init__(self, errno=None, backend_error_code=None):
+            super().__init__("usb")
+            self.errno = errno
+            self.backend_error_code = backend_error_code
+
+    class USBTimeoutError(USBError):
+        pass
+
+    Core = type("Core", (), {"USBError": USBError, "USBTimeoutError": USBTimeoutError})
+    OldCore = type("OldCore", (), {"USBError": USBError})  # pyusb < 1.1: no USBTimeoutError
+    is_timeout = UsbVendorTransport.is_usb_timeout
+    _ok("transport: pyusb's USBTimeoutError is a timeout", is_timeout(Core, USBTimeoutError()))
+    _ok("transport: ETIMEDOUT on Linux / macOS / Windows is a timeout",
+        all(is_timeout(Core, USBError(errno=e)) for e in (110, 60, 10060)))
+    _ok("transport: libusb LIBUSB_ERROR_TIMEOUT is a timeout",
+        is_timeout(Core, USBError(backend_error_code=-7)))
+    _ok("transport: other errors are not timeouts",
+        not is_timeout(Core, USBError(errno=5)) and not is_timeout(Core, USBError()))
+    _ok("transport: old pyusb without USBTimeoutError still classifies by errno",
+        is_timeout(OldCore, USBError(errno=60)) and not is_timeout(OldCore, USBError(errno=19)))
+
+
+def test_component_loader():
+    """components/ota/idf_ext.py (what idf.py imports) loads the package from
+    its path without touching sys.path."""
+    import importlib.util
+
+    loader_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__)))), "idf_ext.py")
+    spec = importlib.util.spec_from_file_location("idf_ext_ota_test", loader_path)
+    loader = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(loader)
+    before = list(sys.path)
+    ext = loader.action_extensions({}, "/proj")
+    _ok("loader: registers ota-usb", "ota-usb" in ext.get("actions", {}))
+    _ok("loader: leaves sys.path alone", sys.path == before)
+    _ok("loader: reuses an already imported package",
+        loader._load_package() is sys.modules["espp_ota"])
+
+
+def test_idf_extension():
+    import json
+    import tempfile
+
+    from espp_ota import idf_ext as X
+
+    ext = X.action_extensions({}, "/proj")
+    action = ext["actions"][X.ACTION_NAME]
+    names = {n for opt in action["options"] for n in opt["names"]}
+    _ok("idf_ext registers ota-usb with its options",
+        action["callback"] is not None and action["dependencies"] == ["all"]
+        and {"--binary", "--chunk-size", "--no-verify", "--verify-timeout", "--quiet",
+             "--status", "--mark-valid", "--rollback", "--vid", "--pid", "--serial",
+             "--interface"} <= names)
+    _ok("idf_ext declares the extension version", "version" in ext)
+    _ok("idf_ext skips a second registration",
+        X.action_extensions({"actions": {X.ACTION_NAME: {}}}, "/proj") == {})
+
+    with tempfile.TemporaryDirectory() as build_dir:
+        try:
+            X.project_bin(build_dir)
+            _ok("idf_ext: unconfigured build dir is a FatalError", False)
+        except X.FatalError:
+            _ok("idf_ext: unconfigured build dir is a FatalError", True)
+        desc_path = os.path.join(build_dir, "project_description.json")
+        with open(desc_path, "w", encoding="utf-8") as f:
+            f.write("{not json")
+        try:
+            X.project_bin(build_dir)
+            _ok("idf_ext: a corrupt project description is a FatalError", False)
+        except X.FatalError as exc:
+            _ok("idf_ext: a corrupt project description is a FatalError",
+                "project_description.json" in str(exc))
+        with open(desc_path, "w", encoding="utf-8") as f:
+            json.dump({"build_dir": build_dir, "app_bin": "my_app.bin"}, f)
+        binary = os.path.join(build_dir, "my_app.bin")
+        _ok("idf_ext: .bin from project_description.json", X.project_bin(build_dir) == binary)
+        _ok("idf_ext: argv for a plain flash",
+            X.build_tool_argv(build_dir) == ["flash", binary])
+        _ok("idf_ext: argv for flash with every option + device ids",
+            X.build_tool_argv(build_dir, binary="o.bin", chunk_size="2048", no_verify=True,
+                              verify_timeout="5", quiet=True, vid="0x1209", pid="0x1234",
+                              serial="S1", interface="2")
+            == ["flash", "o.bin", "--vid", "0x1209", "--pid", "0x1234", "--serial", "S1",
+                "--interface", "2", "--chunk-size", "2048", "--no-verify",
+                "--verify-timeout", "5", "--quiet"])
+        _ok("idf_ext: mode flags run the sub-command instead (no .bin needed)",
+            X.build_tool_argv("/nonexistent", status=True, pid="-1") == ["status", "--pid", "-1"]
+            and X.build_tool_argv("/nonexistent", mark_valid=True) == ["mark-valid"]
+            and X.build_tool_argv("/nonexistent", rollback=True, serial="S1")
+            == ["rollback", "--serial", "S1"])
+        try:
+            X.build_tool_argv(build_dir, status=True, rollback=True)
+            _ok("idf_ext: two mode flags are refused", False)
+        except X.FatalError as exc:
+            _ok("idf_ext: two mode flags are refused", "mutually exclusive" in str(exc))
+        # what the action builds must be what the CLI accepts
+        from espp_ota.cli import build_parser
+        parser = build_parser()
+        ns = parser.parse_args(X.build_tool_argv(build_dir, chunk_size="2048", no_verify=True,
+                                                 verify_timeout="5", quiet=True, pid="0x1234",
+                                                 serial="S1"))
+        _ok("idf_ext: CLI parses the flash argv",
+            ns.binary == binary and ns.chunk_size == 2048 and ns.no_verify and ns.quiet
+            and ns.serial == "S1")
+        ns = parser.parse_args(X.build_tool_argv("/nonexistent", rollback=True, pid="-1"))
+        _ok("idf_ext: CLI parses a mode argv", ns.pid == -1)
+
+        # the action callback drives the CLI in-process and maps a non-zero exit to FatalError
+        calls = []
+        import espp_ota.cli as cli
+
+        real_main = cli.main
+        cli.main = lambda argv=None: (calls.append(list(argv)), 0)[1]
+        try:
+            class Args:
+                pass
+
+            args = Args()
+            args.build_dir = build_dir
+            action["callback"]("ota-usb", None, args, no_verify=True)
+            _ok("idf_ext: callback flashes the project .bin",
+                calls == [["flash", binary, "--no-verify"]])
+            calls.clear()
+            action["callback"]("ota-usb", None, args, mark_valid=True, pid="0x1234")
+            _ok("idf_ext: callback runs a mode sub-command with the device ids",
+                calls == [["mark-valid", "--pid", "0x1234"]])
+            cli.main = lambda argv=None: 1
+            failed = False
+            try:
+                action["callback"]("ota-usb", None, args)
+            except X.FatalError:
+                failed = True  # the tool's non-zero exit is the expected failure
+            _ok("idf_ext: non-zero tool exit is a FatalError", failed)
+
+            def _exit(code):
+                raise SystemExit(code)
+
+            cli.main = lambda argv=None: _exit(0)
+            action["callback"]("ota-usb", None, args)
+            _ok("idf_ext: SystemExit(0) from the CLI is a clean run", True)
+            cli.main = lambda argv=None: _exit(2)
+            try:
+                action["callback"]("ota-usb", None, args)
+                _ok("idf_ext: SystemExit(2) from the CLI is a FatalError", False)
+            except X.FatalError as exc:
+                _ok("idf_ext: SystemExit(2) from the CLI is a FatalError", "status 2" in str(exc))
+            cli.main = lambda argv=None: None
+            action["callback"]("ota-usb", None, args)
+            _ok("idf_ext: a None return counts as success", True)
+        finally:
+            cli.main = real_main
+
+
 if __name__ == "__main__":
     test_frame_golden()
     test_parser_resync()
@@ -233,4 +391,7 @@ if __name__ == "__main__":
     test_rollback_reboots_no_reply()
     test_rollback_disconnect_is_success()
     test_rollback_refused_raises()
+    test_transport_timeout_classification()
+    test_component_loader()
+    test_idf_extension()
     print("all host tests passed")

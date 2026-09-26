@@ -39,12 +39,24 @@ until they are told the new id).
 Command line: build → OTA
 -------------------------
 
-The ``ota`` component ships a ``project_include.cmake`` and a pure-Python host
-tool (``components/ota/python/espp_ota``), so any project using it can build and
-OTA-flash over USB in one step — the OTA counterpart to ``idf.py flash``::
+The ``ota`` component ships an idf.py extension (``idf_ext.py``) and a
+pure-Python host tool (``components/ota/python/espp_ota``), so any project using
+it gets an ``idf.py ota-usb`` action that builds and OTA-flashes over USB in one
+step — the OTA counterpart to ``idf.py flash``, with options::
 
-    pip install pyusb      # once (needs a libusb backend)
-    idf.py ota-usb        # builds the app, then OTAs it over USB
+    pip install pyusb              # once (needs a libusb backend)
+    idf.py ota-usb                 # builds the app, then OTAs it over USB (+ marks it valid)
+    idf.py ota-usb --no-verify     # ... without the reconnect + mark-valid
+    idf.py ota-usb --status        # query the rollback state instead of flashing
+    idf.py ota-usb --mark-valid    # confirm the running image / --rollback to reject it
+    idf.py ota-usb --pid 0x1234 --serial ABC123
+
+idf.py loads a component's extension only from trusted sources (ESP-IDF, the
+project's components, ``EXTRA_COMPONENT_DIRS``, ``espressif/`` registry
+components); a registry install of ``espp/ota`` needs
+``IDF_EXTENSION_ALLOW_UNTRUSTED=1``, or the espp wheel installed in the IDF
+Python environment (its ``idf_extension`` entry point is loaded without a trust
+check). A plain ``ota-usb`` CMake target remains as an option-less fallback.
 
 The tool draws a live progress bar (percent, size, transfer speed, ETA) and
 colorizes its output. Because ``idf.py`` captures the target's output, the bar is
