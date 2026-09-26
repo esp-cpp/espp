@@ -48,6 +48,14 @@ usb-ui = ["pyusb", "rich"]
 # CMake integration wires `idf.py ota-usb` to the same tool for a build->OTA flow.
 espp-ota = "espp_ota.cli:main"
 
+[project.entry-points.idf_extension]
+# idf.py loads `idf_extension` entry points from whatever is installed in its
+# Python environment: with the espp wheel installed, `idf.py ota-usb` (with
+# --no-verify / --status / --mark-valid / --rollback / --vid ...) exists in every
+# project, without the trusted-source check that applies to a component's own
+# idf_ext.py.
+espp_ota_ext = "espp_ota.idf_ext:action_extensions"
+
 [tool.scikit-build]
 # The CMake project for the host (PC) build lives in lib/; the repo root is the
 # project root so the sdist can include the components/ sources it references.

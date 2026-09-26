@@ -152,12 +152,17 @@ The [espp OTA Console](https://esp-cpp.github.io/espp/apps/ota_console.html)
 ### Command line: build → OTA
 
 The [`python/espp_ota`](python/) tool speaks the same protocol from a terminal.
-Because this component ships a `project_include.cmake`, any project using it gets
-a build-and-flash-over-USB target — the OTA counterpart to `idf.py flash`:
+Because this component ships an `idf_ext.py`, any project using it gets an
+`idf.py ota-usb` action — the OTA counterpart to `idf.py flash`, with options
+(`--no-verify`, `--binary`, `--status` / `--mark-valid` / `--rollback`,
+`--vid`/`--pid`/`--serial`, ...); the same action is also available through an
+`idf_extension` entry point of the espp wheel, and `project_include.cmake`
+keeps a plain `ota-usb` CMake target as a fallback:
 
 ```sh
 pip install pyusb          # once (needs a libusb backend)
-idf.py ota-usb            # builds the app, then OTAs it over USB
+idf.py ota-usb            # builds the app, then OTAs it over USB (+ marks it valid)
+idf.py ota-usb --status   # query the rollback state instead of flashing
 ```
 
 Or drive it directly: `python -m espp_ota flash build/<app>.bin` (see

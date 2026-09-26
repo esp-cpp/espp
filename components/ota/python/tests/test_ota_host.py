@@ -222,6 +222,84 @@ def test_begin_busy_recovers():
         and dev.finished)
 
 
+def test_idf_extension():
+    import json
+    import tempfile
+
+    from espp_ota import idf_ext as X
+
+    ext = X.action_extensions({}, "/proj")
+    action = ext["actions"][X.ACTION_NAME]
+    names = {n for opt in action["options"] for n in opt["names"]}
+    _ok("idf_ext registers ota-usb with its options",
+        action["callback"] is not None and action["dependencies"] == ["all"]
+        and {"--binary", "--chunk-size", "--no-verify", "--verify-timeout", "--quiet",
+             "--status", "--mark-valid", "--rollback", "--vid", "--pid", "--serial",
+             "--interface"} <= names)
+    _ok("idf_ext declares the extension version", "version" in ext)
+    _ok("idf_ext skips a second registration",
+        X.action_extensions({"actions": {X.ACTION_NAME: {}}}, "/proj") == {})
+
+    with tempfile.TemporaryDirectory() as build_dir:
+        try:
+            X.project_bin(build_dir)
+            _ok("idf_ext: unconfigured build dir is a FatalError", False)
+        except X.FatalError:
+            _ok("idf_ext: unconfigured build dir is a FatalError", True)
+        with open(os.path.join(build_dir, "project_description.json"), "w", encoding="utf-8") as f:
+            json.dump({"build_dir": build_dir, "app_bin": "my_app.bin"}, f)
+        binary = os.path.join(build_dir, "my_app.bin")
+        _ok("idf_ext: .bin from project_description.json", X.project_bin(build_dir) == binary)
+        _ok("idf_ext: argv for a plain flash",
+            X.build_tool_argv(build_dir) == ["flash", binary])
+        _ok("idf_ext: argv for flash with every option + device ids",
+            X.build_tool_argv(build_dir, binary="o.bin", chunk_size="2048", no_verify=True,
+                              verify_timeout="5", quiet=True, vid="0x1209", pid="0x1234",
+                              serial="S1", interface="2")
+            == ["flash", "o.bin", "--vid", "0x1209", "--pid", "0x1234", "--serial", "S1",
+                "--interface", "2", "--chunk-size", "2048", "--no-verify",
+                "--verify-timeout", "5", "--quiet"])
+        _ok("idf_ext: mode flags run the sub-command instead (no .bin needed)",
+            X.build_tool_argv("/nonexistent", status=True, pid="-1") == ["status", "--pid", "-1"]
+            and X.build_tool_argv("/nonexistent", mark_valid=True) == ["mark-valid"]
+            and X.build_tool_argv("/nonexistent", rollback=True, serial="S1")
+            == ["rollback", "--serial", "S1"])
+        try:
+            X.build_tool_argv(build_dir, status=True, rollback=True)
+            _ok("idf_ext: two mode flags are refused", False)
+        except X.FatalError as exc:
+            _ok("idf_ext: two mode flags are refused", "mutually exclusive" in str(exc))
+
+        # the action callback drives the CLI in-process and maps a non-zero exit to FatalError
+        calls = []
+        import espp_ota.cli as cli
+
+        real_main = cli.main
+        cli.main = lambda argv=None: (calls.append(list(argv)), 0)[1]
+        try:
+            class Args:
+                pass
+
+            args = Args()
+            args.build_dir = build_dir
+            action["callback"]("ota-usb", None, args, no_verify=True)
+            _ok("idf_ext: callback flashes the project .bin",
+                calls == [["flash", binary, "--no-verify"]])
+            calls.clear()
+            action["callback"]("ota-usb", None, args, mark_valid=True, pid="0x1234")
+            _ok("idf_ext: callback runs a mode sub-command with the device ids",
+                calls == [["mark-valid", "--pid", "0x1234"]])
+            cli.main = lambda argv=None: 1
+            failed = False
+            try:
+                action["callback"]("ota-usb", None, args)
+            except X.FatalError:
+                failed = True  # the tool's non-zero exit is the expected failure
+            _ok("idf_ext: non-zero tool exit is a FatalError", failed)
+        finally:
+            cli.main = real_main
+
+
 if __name__ == "__main__":
     test_frame_golden()
     test_parser_resync()
@@ -233,4 +311,5 @@ if __name__ == "__main__":
     test_rollback_reboots_no_reply()
     test_rollback_disconnect_is_success()
     test_rollback_refused_raises()
+    test_idf_extension()
     print("all host tests passed")
