@@ -1729,7 +1729,7 @@
     // ===================================================================
     // Three sources for the object LIST (what to read), in order of fidelity:
     //   1. the device's own EDS, stored in object 0x1021 "Store EDS" (a DOMAIN;
-    //      0x1022 "Storage format" 0 = plain ASCII EDS), parsed here;
+    //      0x1022 "Store format" 0 = ISO 10646 EDS, not compressed), parsed here;
     //   2. an EDS file from disk (same parser);
     //   3. a built-in table of the CiA 301 communication-profile objects and the
     //      CiA 402 drive-profile objects (names, types and access from the
@@ -1947,7 +1947,7 @@
       [0x1019, "Synchronous counter overflow value", 7, 0x5, "rw"],
       [0x1020, "Verify configuration", 8, 0x7, "rw", 2, true],
       [0x1021, "Store EDS", 7, 0xF, "ro"],
-      [0x1022, "Storage format", 7, 0x6, "ro"],
+      [0x1022, "Store format", 7, 0x6, "ro"], // UNSIGNED16 (CiA 301 §7.5.2.25); 0 = ISO 10646 EDS
       [0x1023, "OS command", 9, null, null, [[1, "Command", 0xA, "rw"], [2, "Status", 0x5, "ro"], [3, "Reply", 0xA, "ro"]]],
       [0x1024, "OS command mode", 7, 0x5, "wo"],
       [0x1025, "OS debugger interface", 9, null, null, [[1, "Command", 0xA, "rw"], [2, "Status", 0x5, "ro"], [3, "Reply", 0xA, "ro"]]],
