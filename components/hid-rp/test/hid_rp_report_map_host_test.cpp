@@ -19,6 +19,7 @@
 
 #include "hid-rp-gamepad.hpp"
 #include "hid-rp-report-map.hpp"
+#include "hid-rp-switch-pro.hpp"
 
 static int failures = 0;
 #define CHECK(cond)                                                                                \
@@ -365,7 +366,32 @@ static void test_unaligned_fields() {
   CHECK(y.has_value() && *y == 1);
 }
 
+static void test_switch_pro_full_scale_joystick() {
+  using SwitchPro = espp::SwitchProGamepadInputReport<>;
+  SwitchPro report;
+
+  SwitchPro::JOYSTICK_TYPE lx = 0;
+  SwitchPro::JOYSTICK_TYPE ly = 0;
+  SwitchPro::JOYSTICK_TYPE rx = 0;
+  SwitchPro::JOYSTICK_TYPE ry = 0;
+
+  report.set_left_joystick(1.0f, 1.0f);
+  report.get_left_joystick(lx, ly);
+  CHECK(lx == SwitchPro::joystick_center + SwitchPro::joystick_range);
+  CHECK(ly == SwitchPro::joystick_center + SwitchPro::joystick_range);
+  CHECK(lx == 4094);
+  CHECK(ly == 4094);
+
+  report.set_right_joystick(1.0f, 1.0f);
+  report.get_right_joystick(rx, ry);
+  CHECK(rx == SwitchPro::joystick_center + SwitchPro::joystick_range);
+  CHECK(ry == SwitchPro::joystick_center + SwitchPro::joystick_range);
+  CHECK(rx == 4094);
+  CHECK(ry == 4094);
+}
+
 int main() {
+  test_switch_pro_full_scale_joystick();
   test_unaligned_fields();
   test_usage_bounds();
   test_oversized_field_and_wide_range();
