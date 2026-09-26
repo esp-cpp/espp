@@ -91,12 +91,14 @@ def _make_client(args, t, progress=None) -> CoreDumpClient:
 
 
 # -- the download itself, shared by `download` and `debug` --------------------
-def _download(args, t) -> bytes:
-    """Fetch the stored image with a progress bar; returns b"" when there is none."""
-    # one client for GET_SIZE and the READs: the size reply establishes that
-    # the device echoes correlation ids (what makes READ retries eligible), and
-    # the client's parser / pending-frame queue carry over
-    client = _make_client(args, t)
+def _download(args, t, client: Optional[CoreDumpClient] = None) -> bytes:
+    """Fetch the stored image with a progress bar; returns b"" when there is none.
+
+    Pass the client to keep using it afterwards (e.g. for an erase): one client
+    for GET_SIZE, the READs and whatever follows, so the size reply's finding
+    that the device echoes correlation ids (what makes retries eligible) and
+    the parser / pending-frame queue carry over."""
+    client = client or _make_client(args, t)
     size = client.size()
     if size == 0:
         return b""
@@ -224,7 +226,8 @@ def _cmd_debug(args) -> int:
     with _make_transport(args) as t:
         if not args.quiet:
             CON.note(f"● Connected to {t.description}")
-        image = _download(args, t)
+        client = _make_client(args, t) # shared with the erase below: keeps its retry eligibility
+        image = _download(args, t, client)
         if not image:
             CON.warn("no core dump stored on the device (nothing to debug)")
             return 1
@@ -243,7 +246,7 @@ def _cmd_debug(args) -> int:
             return 1
         CON.rule("end of core dump")
         if rc == 0 and getattr(args, "erase", False):
-            _make_client(args, t).erase()
+            client.erase()
             CON.success(f"  Core dump erased from {t.description} (kept: {path})")
         elif rc != 0 and getattr(args, "erase", False):
             CON.warn(f"  decoder exited with status {rc}: the core dump was NOT erased")

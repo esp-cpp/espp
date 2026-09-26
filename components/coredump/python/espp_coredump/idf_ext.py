@@ -118,6 +118,9 @@ def build_tool_argv(
     dump from, and only after the report was printed / the decode succeeded
     (never a second device selection, so with several boards attached the
     dump erased is the one just reported / decoded)."""
+    if summary and gdb:
+        raise FatalError("--summary and --gdb are mutually exclusive (--summary prints the "
+                         "device's report without downloading; --gdb needs the core file)")
     argv = device_argv(vid, pid, serial, interface)
     if summary:
         argv.append("summary")

@@ -351,6 +351,37 @@ def _cli_args(**kw):
     return argparse.Namespace(**base)
 
 
+def test_transport_timeout_classification():
+    from espp_coredump.transport import UsbVendorTransport
+
+    class USBError(Exception):
+        def __init__(self, errno=None, backend_error_code=None):
+            super().__init__("usb")
+            self.errno = errno
+            self.backend_error_code = backend_error_code
+
+    class USBTimeoutError(USBError):
+        pass
+
+    class Core:  # a pyusb `usb.core` stand-in
+        pass
+
+    Core.USBError = USBError
+    Core.USBTimeoutError = USBTimeoutError
+    is_timeout = UsbVendorTransport.is_usb_timeout
+    _ok("transport: pyusb's USBTimeoutError is a timeout", is_timeout(Core, USBTimeoutError()))
+    _ok("transport: ETIMEDOUT on Linux / macOS / Windows is a timeout",
+        all(is_timeout(Core, USBError(errno=e)) for e in (110, 60, 10060)))
+    _ok("transport: libusb LIBUSB_ERROR_TIMEOUT is a timeout",
+        is_timeout(Core, USBError(backend_error_code=-7)))
+    _ok("transport: other errors are not timeouts",
+        not is_timeout(Core, USBError(errno=5)) and not is_timeout(Core, USBError()))
+
+    OldCore = type("OldCore", (), {"USBError": USBError})  # pyusb < 1.1: no USBTimeoutError
+    _ok("transport: old pyusb without USBTimeoutError still classifies by errno",
+        is_timeout(OldCore, USBError(errno=60)) and not is_timeout(OldCore, USBError(errno=19)))
+
+
 def test_cli_erase_same_connection():
     import tempfile
 
@@ -450,6 +481,11 @@ def test_idf_extension():
                 "debug", elf, "--out", "c.elf", "--gdb"])
         _ok("idf_ext: argv for summary needs no ELF",
             X.build_tool_argv(build_dir, summary=True, pid="-1") == ["--pid", "-1", "summary"])
+        try:
+            X.build_tool_argv(build_dir, summary=True, gdb=True)
+            _ok("idf_ext: --summary with --gdb is refused", False)
+        except X.FatalError as exc:
+            _ok("idf_ext: --summary with --gdb is refused", "mutually exclusive" in str(exc))
 
         # the action callback drives the CLI in-process and maps a non-zero exit to FatalError
         calls = []
@@ -515,6 +551,7 @@ if __name__ == "__main__":
         test_extract_elf,
         test_discovery,
         test_summary_panel,
+        test_transport_timeout_classification,
         test_cli_erase_same_connection,
         test_idf_extension,
     ]

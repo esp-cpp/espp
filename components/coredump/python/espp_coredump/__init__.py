@@ -45,4 +45,15 @@ __all__ = [
     "DEFAULT_PID",
 ]
 
-__version__ = "0.1.0"
+# The version is the espp wheel's (one source of truth: the package metadata
+# setuptools-scm derives from the git tag). Run from the source tree without
+# the wheel installed, there is no metadata, and the version says so.
+try:
+    from importlib.metadata import PackageNotFoundError, version as _dist_version
+
+    try:
+        __version__ = _dist_version("espp")
+    except PackageNotFoundError:
+        __version__ = "0.0.0+source"
+except ImportError:  # pragma: no cover - Python < 3.8
+    __version__ = "0.0.0+source"
