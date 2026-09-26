@@ -35,7 +35,8 @@ connects.
   CAN frames, and watch a live monitor of received traffic for a USB↔CAN bridge.
 - **DS402 Drive Panel** (``ds402_panel.html``) — in-browser CANopen SDO client
   plus a DS402 state machine / control panel for a :doc:`canopen
-  <buses/canopen>` drive.
+  <buses/canopen>` drive, with an object-dictionary browser (the device's
+  stored EDS, an EDS file, or the built-in CiA 301/402 table, scanned over SDO).
 - **MCP266 Console** (``mcp266_console.html``) — status, motor, and configuration
   controls for the :doc:`mcp266 <motor_control/mcp266>` motor controller.
 
