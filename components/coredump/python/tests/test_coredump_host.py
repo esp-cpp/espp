@@ -435,6 +435,24 @@ def test_cli_erase_same_connection():
         cli._make_transport, decoder.run_decoder = real_transport, real_decoder
 
 
+def test_component_loader():
+    """components/coredump/idf_ext.py (what idf.py imports) loads the package
+    from its path without touching sys.path."""
+    import importlib.util
+
+    loader_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__)))), "idf_ext.py")
+    spec = importlib.util.spec_from_file_location("idf_ext_coredump_test", loader_path)
+    loader = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(loader)
+    before = list(sys.path)
+    ext = loader.action_extensions({}, "/proj")
+    _ok("loader: registers coredump-usb", "coredump-usb" in ext.get("actions", {}))
+    _ok("loader: leaves sys.path alone", sys.path == before)
+    _ok("loader: reuses an already imported package",
+        loader._load_package() is sys.modules["espp_coredump"])
+
+
 def test_idf_extension():
     import json
     import tempfile
@@ -474,13 +492,34 @@ def test_idf_extension():
         core = os.path.join(build_dir, "core.elf")
         _ok("idf_ext: argv for decode saves the core file in the build dir",
             X.build_tool_argv(build_dir) == ["debug", elf, "--out", core])
-        _ok("idf_ext: argv for gdb + out + device ids",
+        _ok("idf_ext: argv for gdb + out + device ids (sub-command first)",
             X.build_tool_argv(build_dir, gdb=True, out="c.elf", vid="0x1209", pid="0x1234",
                               serial="S1", interface="2")
-            == ["--vid", "0x1209", "--pid", "0x1234", "--serial", "S1", "--interface", "2",
-                "debug", elf, "--out", "c.elf", "--gdb"])
+            == ["debug", elf, "--vid", "0x1209", "--pid", "0x1234", "--serial", "S1",
+                "--interface", "2", "--out", "c.elf", "--gdb"])
         _ok("idf_ext: argv for summary needs no ELF",
-            X.build_tool_argv(build_dir, summary=True, pid="-1") == ["--pid", "-1", "summary"])
+            X.build_tool_argv(build_dir, summary=True, pid="-1") == ["summary", "--pid", "-1"])
+        # what the action builds must be what the CLI accepts (the device
+        # options live on the sub-parsers, so the sub-command has to come first)
+        from espp_coredump.cli import build_parser
+        parser = build_parser()
+        for argv in (
+            X.build_tool_argv(build_dir),
+            X.build_tool_argv(build_dir, gdb=True, out="c.elf", vid="0x1209", pid="0x1234",
+                              serial="S1", interface="2", erase=True),
+            X.build_tool_argv(build_dir, summary=True, pid="-1", serial="S1", erase=True),
+        ):
+            try:
+                ns = parser.parse_args(argv)
+                _ok("idf_ext: CLI parses " + " ".join(argv[:1]) + " argv", ns.func is not None)
+            except SystemExit:
+                _ok("idf_ext: CLI parses " + " ".join(argv), False)
+        ns = parser.parse_args(X.build_tool_argv(build_dir, summary=True, pid="-1", erase=True))
+        _ok("idf_ext: parsed summary argv carries the device id and --erase",
+            ns.pid == -1 and ns.erase)
+        ns = parser.parse_args(X.build_tool_argv(build_dir, gdb=True, serial="S1"))
+        _ok("idf_ext: parsed debug argv carries the ELF, --out, --gdb and the serial",
+            ns.app_elf == elf and ns.out == core and ns.gdb and ns.serial == "S1")
         try:
             X.build_tool_argv(build_dir, summary=True, gdb=True)
             _ok("idf_ext: --summary with --gdb is refused", False)
@@ -505,7 +544,7 @@ def test_idf_extension():
             calls.clear()
             action["callback"]("coredump-usb", None, args, summary=True, erase=True, pid="0x1234")
             _ok("idf_ext: --erase is one tool run (same connection), not a second device pick",
-                calls == [["--pid", "0x1234", "summary", "--erase"]])
+                calls == [["summary", "--pid", "0x1234", "--erase"]])
             calls.clear()
             action["callback"]("coredump-usb", None, args, erase=True)
             _ok("idf_ext: --erase with a decode is passed to `debug`",
@@ -553,6 +592,7 @@ if __name__ == "__main__":
         test_summary_panel,
         test_transport_timeout_classification,
         test_cli_erase_same_connection,
+        test_component_loader,
         test_idf_extension,
     ]
     try:

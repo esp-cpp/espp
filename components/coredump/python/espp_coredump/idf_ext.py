@@ -97,7 +97,12 @@ def project_elf(build_dir: str) -> str:
     app_elf = desc.get("app_elf")
     if not app_elf:
         raise FatalError(f"{desc_path} names no app ELF (app_elf)")
-    return os.path.join(desc.get("build_dir") or build_dir, app_elf)
+    # idf.py's build_dir is absolute; the description's is normally the same
+    # path, but only trust it when it is absolute too (a relative one would be
+    # resolved against an unrelated current directory)
+    desc_build_dir = desc.get("build_dir") or ""
+    base = desc_build_dir if os.path.isabs(desc_build_dir) else build_dir
+    return os.path.join(base, app_elf)
 
 
 def build_tool_argv(
@@ -121,11 +126,14 @@ def build_tool_argv(
     if summary and gdb:
         raise FatalError("--summary and --gdb are mutually exclusive (--summary prints the "
                          "device's report without downloading; --gdb needs the core file)")
-    argv = device_argv(vid, pid, serial, interface)
+    # the sub-command comes first: the CLI registers the device options (and
+    # --erase / --out / --gdb) on each sub-parser, not on the root parser
     if summary:
-        argv.append("summary")
+        argv = ["summary"]
     else:
-        argv += ["debug", project_elf(build_dir)]
+        argv = ["debug", project_elf(build_dir)]
+    argv += device_argv(vid, pid, serial, interface)
+    if not summary:
         # default the core file into the build directory (the tool's own default
         # is the current directory, which under idf.py is the project source tree)
         argv += ["--out", out or os.path.join(build_dir, "core.elf")]
