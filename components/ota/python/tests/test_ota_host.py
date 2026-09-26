@@ -248,6 +248,24 @@ def test_transport_timeout_classification():
         is_timeout(OldCore, USBError(errno=60)) and not is_timeout(OldCore, USBError(errno=19)))
 
 
+def test_component_loader():
+    """components/ota/idf_ext.py (what idf.py imports) loads the package from
+    its path without touching sys.path."""
+    import importlib.util
+
+    loader_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__)))), "idf_ext.py")
+    spec = importlib.util.spec_from_file_location("idf_ext_ota_test", loader_path)
+    loader = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(loader)
+    before = list(sys.path)
+    ext = loader.action_extensions({}, "/proj")
+    _ok("loader: registers ota-usb", "ota-usb" in ext.get("actions", {}))
+    _ok("loader: leaves sys.path alone", sys.path == before)
+    _ok("loader: reuses an already imported package",
+        loader._load_package() is sys.modules["espp_ota"])
+
+
 def test_idf_extension():
     import json
     import tempfile
@@ -304,6 +322,17 @@ def test_idf_extension():
             _ok("idf_ext: two mode flags are refused", False)
         except X.FatalError as exc:
             _ok("idf_ext: two mode flags are refused", "mutually exclusive" in str(exc))
+        # what the action builds must be what the CLI accepts
+        from espp_ota.cli import build_parser
+        parser = build_parser()
+        ns = parser.parse_args(X.build_tool_argv(build_dir, chunk_size="2048", no_verify=True,
+                                                 verify_timeout="5", quiet=True, pid="0x1234",
+                                                 serial="S1"))
+        _ok("idf_ext: CLI parses the flash argv",
+            ns.binary == binary and ns.chunk_size == 2048 and ns.no_verify and ns.quiet
+            and ns.serial == "S1")
+        ns = parser.parse_args(X.build_tool_argv("/nonexistent", rollback=True, pid="-1"))
+        _ok("idf_ext: CLI parses a mode argv", ns.pid == -1)
 
         # the action callback drives the CLI in-process and maps a non-zero exit to FatalError
         calls = []
@@ -363,5 +392,6 @@ if __name__ == "__main__":
     test_rollback_disconnect_is_success()
     test_rollback_refused_raises()
     test_transport_timeout_classification()
+    test_component_loader()
     test_idf_extension()
     print("all host tests passed")

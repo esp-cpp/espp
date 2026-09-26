@@ -99,7 +99,12 @@ def project_bin(build_dir: str) -> str:
     app_bin = desc.get("app_bin")
     if not app_bin:
         raise FatalError(f"{desc_path} names no app binary (app_bin)")
-    return os.path.join(desc.get("build_dir") or build_dir, app_bin)
+    # idf.py's build_dir is absolute; the description's is normally the same
+    # path, but only trust it when it is absolute too (a relative one would be
+    # resolved against an unrelated current directory)
+    desc_build_dir = desc.get("build_dir") or ""
+    base = desc_build_dir if os.path.isabs(desc_build_dir) else build_dir
+    return os.path.join(base, app_bin)
 
 
 def selected_mode(status: bool = False, mark_valid: bool = False, rollback: bool = False) -> str | None:
@@ -107,7 +112,11 @@ def selected_mode(status: bool = False, mark_valid: bool = False, rollback: bool
 
     Raises FatalError when more than one is given.
     """
-    chosen = [name for name, on in zip(_MODES, (status, mark_valid, rollback)) if on]
+    # the flag names and their values live side by side, so adding a mode is
+    # one entry here (and _MODES documents the set)
+    flags = {"status": status, "mark-valid": mark_valid, "rollback": rollback}
+    assert tuple(flags) == _MODES
+    chosen = [name for name, on in flags.items() if on]
     if len(chosen) > 1:
         raise FatalError("--" + " and --".join(chosen) + " are mutually exclusive")
     return chosen[0] if chosen else None
@@ -222,8 +231,8 @@ def action_extensions(base_actions: dict[str, Any] | None, project_path: str) ->
                     {
                         "names": ["--binary", "-b"],
                         "default": None,
-                        "help": "The .bin to OTA instead of the project's app binary "
-                        "(build/<project>.bin).",
+                        "help": "The .bin to OTA instead of the project's app binary (the "
+                        "`app_bin` named by the build directory's project_description.json).",
                     },
                     {
                         "names": ["--chunk-size"],
