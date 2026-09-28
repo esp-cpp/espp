@@ -5,6 +5,8 @@
 
 #include <driver/i2s_tdm.h>
 
+#include "esp_idf_version.h"
+
 #include "t-deck.hpp"
 
 using namespace espp;
@@ -52,14 +54,20 @@ bool TDeck::initialize_i2s(uint32_t default_audio_rate) {
   logger_.info("initializing i2s driver");
   logger_.debug("Using newer I2S standard");
   i2s_chan_config_t chan_cfg = {
-      .id = i2s_port,
-      .role = I2S_ROLE_MASTER,
-      .dma_desc_num = 16,  // TODO: calculate form audio rate
-      .dma_frame_num = 48, // TODO: calculate from audio rate
-      .auto_clear = true,
-      .auto_clear_before_cb = false,
-      .allow_pd = false,
-      .intr_priority = 0,
+    .id = i2s_port,
+    .role = I2S_ROLE_MASTER,
+    .dma_desc_num = 16,  // TODO: calculate form audio rate
+    .dma_frame_num = 48, // TODO: calculate from audio rate
+    .auto_clear = true,
+    .auto_clear_before_cb = false,
+    .allow_pd = false,
+    .intr_priority = 0,
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 1, 0)
+    // ESP-IDF 6.1 added the data-path selectors (DMA memory vs Bluetooth);
+    // the designated initializer must name them under -Werror
+    .tx_destination = I2S_DESTINATION_DMA,
+    .rx_destination = I2S_DESTINATION_DMA,
+#endif
   };
 
   ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &audio_tx_handle, nullptr));
