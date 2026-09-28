@@ -496,6 +496,20 @@ def test_cli_module_option():
         os.environ["ESPP_COREDUMP_MODULE"] = ""
         _ok("cli: an empty ESPP_COREDUMP_MODULE means unset",
             cli.build_parser().parse_args(["summary"]).module is None)
+        # the option validates the range too (0xFF is the discovery module)
+        for bad in ("255", "0xFF", "-1", "300"):
+            try:
+                with contextlib.redirect_stderr(io.StringIO()) as err:
+                    cli.build_parser().parse_args(["summary", "--module", bad])
+                ranged = False
+            except SystemExit as exc:
+                ranged = exc.code == 2 and "out of range" in err.getvalue()
+            if not ranged:
+                break
+        _ok("cli: --module outside 0..254 is a usage error", ranged)
+        _ok("cli: --module 254 / 0 are accepted",
+            cli.build_parser().parse_args(["summary", "--module", "254"]).module == 254
+            and cli.build_parser().parse_args(["summary", "--module", "0"]).module == 0)
     finally:
         for k in ("ESPP_COREDUMP_MODULE", "ESPP_COREDUMP_VID"):
             os.environ.pop(k, None)

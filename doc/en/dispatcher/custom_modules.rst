@@ -107,8 +107,10 @@ default id. On connect they send a discovery query and talk to whichever
 module advertises *their* protocol id (``kProtocol``, e.g. ``"espp.ota"``,
 carried in the service's `ModuleInfo` — see `Discovery + the webapp side`_);
 for firmware predating protocol ids they match the advertised app filename,
-then the module name; only a device that does not answer discovery at all is
-assumed to use the default. ``?module=N`` on a console URL (what the Device
+then the module name. The published default is the last resort, in two cases:
+a device that does not answer discovery at all (older firmware, silently), and
+a device that answers but advertises nothing matching the protocol, app or
+name (with a warning). ``?module=N`` on a console URL (what the Device
 Hub's links carry) or ``--module N`` on a CLI forces an id. So moving a
 service is safe; the stock hosts find it.
 

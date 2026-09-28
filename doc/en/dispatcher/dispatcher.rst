@@ -48,8 +48,9 @@ a stable protocol id (``kProtocol``, third column, plus a ``kProtocolVersion``)
 through capability discovery, and the hosted web consoles and the ``espp_ota``
 / ``espp_coredump`` CLIs talk to whichever module advertises *their* protocol
 (falling back to the app filename / name for older firmware, and to the default
-id only when the device does not answer discovery), so a device may move a
-service to any id — see :doc:`custom_modules`.
+id as a last resort: when the device does not answer discovery, or when it
+answers but advertises no matching module, which is warned about), so a device
+may move a service to any id — see :doc:`custom_modules`.
 
 .. ------------------------------- Example -------------------------------------
 

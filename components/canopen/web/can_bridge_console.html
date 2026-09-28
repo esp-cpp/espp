@@ -986,7 +986,11 @@
     function moduleOverrideFromQuery(search) {
       const raw = new URLSearchParams(search || "").get("module");
       if (raw == null || raw.trim() === "") return null;
-      const n = Number.parseInt(raw.trim(), raw.trim().toLowerCase().startsWith("0x") ? 16 : 10);
+      // the WHOLE token must be a decimal or 0x-hex integer (parseInt would
+      // accept "9oops" as 9); anything else is invalid and ignored
+      const m = /^(?:0x([0-9a-f]+)|([0-9]+))$/i.exec(raw.trim());
+      if (!m) return null;
+      const n = m[1] !== undefined ? Number.parseInt(m[1], 16) : Number.parseInt(m[2], 10);
       return (Number.isInteger(n) && n >= 0 && n <= 0xFE) ? n : null;
     }
     // One log line saying how a module id was chosen.

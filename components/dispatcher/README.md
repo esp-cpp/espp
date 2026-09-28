@@ -50,9 +50,12 @@ carries a stable **protocol id** (`kProtocol`, e.g. `"espp.ota"`, plus a
 discovery (below). The hosted web consoles and the `espp_ota` / `espp_coredump`
 host tools query discovery on connect and talk to whichever module advertises
 *their* protocol id (then, for firmware predating protocol ids, the module
-advertising their app filename or name), falling back to the default id only
-when the device does not answer discovery at all. So a device is free to move a
-service to any id: discovery tells its hosts where it went. (`?module=N` on a
+advertising their app filename or name). The published default id is used
+only as a last resort, in two cases: the device does not answer discovery at
+all (silently: older firmware without a Dispatcher), or it answers but nothing
+it advertises matches the protocol, app or name (with a warning, since that
+usually means a misadvertised or missing service). So a device is free to move
+a service to any id: discovery tells its hosts where it went. (`?module=N` on a
 console URL, or `--module N` on the CLIs, forces an id; the Device Hub links
 each console that way.)
 

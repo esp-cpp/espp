@@ -185,6 +185,15 @@ const info = (version, mods) => ({ version, device: "d", fw: "1", modules: mods 
   assert.strictEqual(moduleOverrideFromQuery("?module="), null);
   assert.strictEqual(moduleOverrideFromQuery("?module=255"), null);
   assert.strictEqual(moduleOverrideFromQuery("?module=abc"), null);
+  // the whole token must be a number: a numeric prefix is not accepted
+  assert.strictEqual(moduleOverrideFromQuery("?module=9oops"), null);
+  assert.strictEqual(moduleOverrideFromQuery("?module=0x1g"), null);
+  assert.strictEqual(moduleOverrideFromQuery("?module=1.5"), null);
+  assert.strictEqual(moduleOverrideFromQuery("?module=-1"), null);
+  assert.strictEqual(moduleOverrideFromQuery("?module=%2B3"), null); // a literal "+3" (a bare + is a space in a query)
+  assert.strictEqual(moduleOverrideFromQuery("?module=0x"), null);
+  assert.strictEqual(moduleOverrideFromQuery("?module= 7 "), 7);
+  assert.strictEqual(moduleOverrideFromQuery("?module=0XfE"), 0xFE);
   assert.strictEqual(moduleOverrideFromQuery(""), null);
   assert.strictEqual(moduleOverrideFromQuery(undefined), null);
   const two = info(2, [OTA, CD]);

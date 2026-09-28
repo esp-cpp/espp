@@ -45,6 +45,19 @@ def _auto_int(text: str) -> int:
 _auto_int.__name__ = "integer"  # argparse: "invalid integer value: 'abc'"
 
 
+def _module_id(text: str) -> int:
+    """argparse type for a dispatcher module id: an integer 0..254 (0xFF is the
+    reserved discovery module), so an out-of-range --module / environment
+    value is a usage error rather than the client's ValueError."""
+    try:
+        n = int(text, 0)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"invalid module id: {text!r} (an integer 0..254)")
+    if not (0 <= n <= 0xFE):
+        raise argparse.ArgumentTypeError(f"module id {n} out of range (0..254)")
+    return n
+
+
 def _human_size(n: int) -> str:
     size = float(n)
     for unit in ("B", "KiB", "MiB", "GiB"):
@@ -71,7 +84,7 @@ def _add_device_args(p: argparse.ArgumentParser) -> None:
                    help="match a specific device serial number")
     p.add_argument("--interface", type=_auto_int, default=None,
                    help="force a specific vendor interface number")
-    p.add_argument("--module", type=_auto_int, default=_env_default("ESPP_COREDUMP_MODULE"),
+    p.add_argument("--module", type=_module_id, default=_env_default("ESPP_COREDUMP_MODULE"),
                    help="dispatcher module id to talk to (default: the one the device advertises "
                         f"for {PROTOCOL} through discovery, else {MODULE})")
 

@@ -304,6 +304,10 @@
     // waits for it, so nothing can go out on the default id while the discovery
     // probe (up to DISCOVERY_TIMEOUT_MS) is still pending.
     let moduleReady = false;
+    // Bumped by every connect and close: an initializeDevice() still awaiting
+    // (drain timer, discovery probe, GET_INFO) for an earlier connection sees
+    // the change and stops instead of adopting its result into the new one.
+    let connectGeneration = 0;
     // Reserved dispatcher discovery module: a device that runs an espp::Dispatcher
     // answers a ListModules query on 0xFF with the set of modules it serves, which
     // is how the haptics module's id is found before driving it.
@@ -553,6 +557,7 @@
       manualDisconnect = false;
       parser.reset();
       moduleReady = false;
+      const generation = ++connectGeneration;
       setConnectedUI(true); // connect button + device info; the controls wait for discovery
       const name = describeDevice(device);
       setStatus("connected", "Connected");
@@ -563,7 +568,7 @@
         " · EP OUT 0x" + epOut.toString(16).padStart(2, "0");
       logLine("sys", "Connected to " + name + ".");
       rxPump(); // start the perpetual reader
-      await initializeDevice();
+      await initializeDevice(generation);
     }
 
     async function openAndClaim() {
@@ -617,6 +622,8 @@
         try { await device.close(); } catch (_) {}
       }
       device = null; ifaceNumber = null; epIn = epOut = null;
+      moduleReady = false;
+      connectGeneration++; // abandon any initializeDevice() still in flight
       parser.reset();
       setConnectedUI(false);
       setStatus("", "Disconnected");
@@ -855,7 +862,11 @@
     function moduleOverrideFromQuery(search) {
       const raw = new URLSearchParams(search || "").get("module");
       if (raw == null || raw.trim() === "") return null;
-      const n = Number.parseInt(raw.trim(), raw.trim().toLowerCase().startsWith("0x") ? 16 : 10);
+      // the WHOLE token must be a decimal or 0x-hex integer (parseInt would
+      // accept "9oops" as 9); anything else is invalid and ignored
+      const m = /^(?:0x([0-9a-f]+)|([0-9]+))$/i.exec(raw.trim());
+      if (!m) return null;
+      const n = m[1] !== undefined ? Number.parseInt(m[1], 16) : Number.parseInt(m[2], 10);
       return (Number.isInteger(n) && n >= 0 && n <= 0xFE) ? n : null;
     }
     // One log line saying how a module id was chosen.
@@ -882,7 +893,7 @@
     // module's id from the answer (adoptModule). No discovery reply (older
     // firmware) -> the default id; the normal init below still surfaces a
     // genuinely missing module via timeout.
-    async function checkModulePresent() {
+    async function checkModulePresent(generation) {
       const payload = await new Promise((resolve) => {
         let timer = null;
         // settle guards the shared resolver: only clear it if it is still ours,
@@ -893,12 +904,20 @@
         device.transferOut(epOut, buildFrame(T_LIST_MODULES, null, MODULE_DISCOVERY))
           .catch(() => settle(null));
       });
+      // the connection this probe was started for is gone (closed, or replaced
+      // by a newer connect): its answer must not be adopted into the new one
+      if (generation !== connectGeneration) return false;
       let info = null;
       if (payload) { try { info = parseDiscovery(payload); } catch (_) { info = null; } }
       adoptModule(info);
+      return true;
     }
 
-    async function initializeDevice() {
+    // `generation` is the connectGeneration this init belongs to; every await
+    // is followed by a check so a stale init (its device closed / replaced
+    // meanwhile) stops instead of driving the new connection.
+    async function initializeDevice(generation) {
+      const stale = () => generation !== connectGeneration;
       try {
         // Flush any stale frames the device queued for a previous session (its TX
         // FIFO is not cleared on an abrupt tab close) before we send anything, so
@@ -908,12 +927,14 @@
         draining = true;
         parser.reset();
         await new Promise((resolve) => setTimeout(resolve, 150));
+        if (stale()) return;
         draining = false;
         // Resolve the haptics module id from discovery BEFORE the first command
         // (falls back to the default id when the device does not answer).
-        await checkModulePresent();
+        if (!(await checkModulePresent(generation))) return;
         setConnectedUI(true); // module id resolved: only now enable the controls
         const info = await transact(TYPE.GET_INFO, null, [TYPE.INFO], CMD_TIMEOUT_MS);
+        if (stale()) return;
         const r = reader(info.payload);
         const protoVer = rdU8(r);
         const project = rdStr(r), version = rdStr(r), build = rdStr(r), idf = rdStr(r);
@@ -922,14 +943,17 @@
         logLine("sys", "Firmware: " + project + " " + version + " (protocol v" + protoVer + ", built " + build + ")");
 
         const modesReply = await transact(TYPE.GET_MODES, null, [TYPE.MODES], CMD_TIMEOUT_MS);
+        if (stale()) return;
         parseModes(modesReply.payload);
         populateModeSelect();
 
         const status = await transact(TYPE.GET_STATUS, null, [TYPE.STATUS], CMD_TIMEOUT_MS);
+        if (stale()) return;
         applyStatus(status.payload);
 
         if (els.streamToggle.checked) await applyStreaming();
       } catch (e) {
+        if (stale()) return; // the connection went away under us: nothing to report
         logLine("err", "Device initialization failed: " + e.message);
         setStatus("error", "Init failed");
       }
