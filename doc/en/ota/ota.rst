@@ -52,13 +52,14 @@ step — the OTA counterpart to ``idf.py flash``, with options::
     idf.py ota-usb --pid 0x1234 --serial ABC123
 
 The action needs ESP-IDF 6.0 or later (idf.py of 5.x loads neither component
-extensions nor entry points). idf.py loads a component's extension only from
-trusted sources (ESP-IDF, the project's components, ``EXTRA_COMPONENT_DIRS``,
-``espressif/`` registry components); a registry install of ``espp/ota`` needs
-``IDF_EXTENSION_ALLOW_UNTRUSTED=1``, or the espp wheel installed in the IDF
-Python environment (its ``idf_extension`` entry point is loaded without a trust
-check). A plain ``ota-usb`` CMake target remains as an option-less fallback,
-and is all that ESP-IDF 5.x gets.
+extensions nor entry points). ESP-IDF 6.0 and 6.0.1 load every participating
+component's extension; from 6.0.2 on idf.py loads a component's extension only
+from trusted sources (ESP-IDF, the project's components,
+``EXTRA_COMPONENT_DIRS``, ``espressif/`` registry components), so there a
+registry install of ``espp/ota`` needs ``IDF_EXTENSION_ALLOW_UNTRUSTED=1``, or
+the espp wheel installed in the IDF Python environment (its ``idf_extension``
+entry point is loaded without a trust check). A plain ``ota-usb`` CMake target
+remains as an option-less fallback, and is all that ESP-IDF 5.x gets.
 
 The tool draws a live progress bar (percent, size, transfer speed, ETA) and
 colorizes its output. Because ``idf.py`` captures the target's output, the bar is

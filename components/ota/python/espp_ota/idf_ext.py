@@ -16,11 +16,12 @@ neither component ``idf_ext.py`` files nor entry points; there, requiring the
 component gives only the option-less CMake target below):
 
 * from ``components/ota/idf_ext.py`` (a thin loader for this module) when the
-  ``ota`` component is in the build. idf.py only trusts component extensions
-  from ESP-IDF itself, the project's own components, ``EXTRA_COMPONENT_DIRS``
-  and registry components under ``espressif/``; a registry install of
-  ``espp/ota`` therefore needs ``IDF_EXTENSION_ALLOW_UNTRUSTED=1`` (idf.py says
-  so);
+  ``ota`` component is in the build. ESP-IDF 6.0 and 6.0.1 load every
+  participating component's extension; from 6.0.2 on idf.py only trusts
+  component extensions from ESP-IDF itself, the project's own components,
+  ``EXTRA_COMPONENT_DIRS`` and registry components under ``espressif/``, so
+  there a registry install of ``espp/ota`` needs
+  ``IDF_EXTENSION_ALLOW_UNTRUSTED=1`` (idf.py says so);
 * from the ``idf_extension`` Python entry point declared by the ``espp`` wheel,
   whenever that wheel is installed in the ESP-IDF Python environment (no trust
   check applies to entry points).

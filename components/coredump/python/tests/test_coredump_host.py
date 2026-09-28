@@ -552,11 +552,13 @@ def test_idf_extension():
             _ok("idf_ext: --summary with --gdb is refused", False)
         except X.FatalError as exc:
             _ok("idf_ext: --summary with --gdb is refused", "mutually exclusive" in str(exc))
-        try:
-            X.build_tool_argv(build_dir, summary=True, out="x.elf")
-            _ok("idf_ext: --summary with --out is refused", False)
-        except X.FatalError as exc:
-            _ok("idf_ext: --summary with --out is refused", "mutually exclusive" in str(exc))
+        for out_value in ("x.elf", ""):
+            try:
+                X.build_tool_argv(build_dir, summary=True, out=out_value)
+                _ok(f"idf_ext: --summary with --out {out_value!r} is refused", False)
+            except X.FatalError as exc:
+                _ok(f"idf_ext: --summary with --out {out_value!r} is refused",
+                    "mutually exclusive" in str(exc))
 
         # the action callback drives the CLI in-process and maps a non-zero exit to FatalError
         calls = []
