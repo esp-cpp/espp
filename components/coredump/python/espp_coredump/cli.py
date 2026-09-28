@@ -152,23 +152,22 @@ def _cmd_discover(args) -> int:
 
 
 def _cmd_summary(args) -> int:
-    erased = False
     with _make_transport(args) as t:
         device = t.description
         client = _make_client(args, t)
         text = client.summary()
-        if text and getattr(args, "erase", False):
+        if not text:
+            CON.success("no crash recorded (clean boot history)")
+            return 0
+        # framed + colorized so it stands out from the build output around it
+        # under `idf.py coredump-usb --summary`; printed BEFORE any erase, so
+        # the report has been shown (and stdout accepted it) while the device
+        # still holds the dump
+        CON.panel(f"Core dump summary · {device}", text, border="red")
+        if getattr(args, "erase", False):
             # same connection, so it is the device the report came from
             client.erase()
-            erased = True
-    if not text:
-        CON.success("no crash recorded (clean boot history)")
-        return 0
-    # framed + colorized so it stands out from the build output around it
-    # under `idf.py coredump-usb --summary`
-    CON.panel(f"Core dump summary · {device}", text, border="red")
-    if erased:
-        CON.success(f"core dump erased from {device}")
+            CON.success(f"core dump erased from {device}")
     return 0
 
 

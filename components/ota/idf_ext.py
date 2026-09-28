@@ -1,11 +1,15 @@
 """idf.py extension loader for the espp `ota` component.
 
-idf.py picks this file up when the component is part of the build (from a
-trusted source: ESP-IDF, the project's components, EXTRA_COMPONENT_DIRS, or an
-`espressif/` registry component -- otherwise it prints a warning and asks for
-IDF_EXTENSION_ALLOW_UNTRUSTED=1) and gets an `idf.py ota-usb` action with
-options (--binary, --chunk-size, --no-verify, --verify-timeout, --quiet,
---status / --mark-valid / --rollback, --vid/--pid/--serial/--interface). The
+idf.py of ESP-IDF 6.0 and later picks this file up when the component is part
+of the build and gets an `idf.py ota-usb` action with options (--binary,
+--chunk-size, --no-verify, --verify-timeout, --quiet, --status / --mark-valid /
+--rollback, --vid/--pid/--serial/--interface). ESP-IDF 6.0 and 6.0.1 load every
+participating component's idf_ext.py; from 6.0.2 on, only those from a trusted
+source (ESP-IDF, the project's components, EXTRA_COMPONENT_DIRS, or an
+`espressif/` registry component) -- for any other source idf.py prints a
+warning and asks for IDF_EXTENSION_ALLOW_UNTRUSTED=1. ESP-IDF 5.x's idf.py does
+not load component extensions at all; there only the CMake target from
+project_include.cmake exists. The
 implementation lives with the host tool in python/espp_ota/idf_ext.py; this
 file only loads that package.
 

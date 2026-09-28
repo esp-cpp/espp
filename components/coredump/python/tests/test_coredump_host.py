@@ -322,9 +322,20 @@ def test_summary_panel():
         and len(set(len(r) for r in ascii_rows)) == 1)
 
     class Stream:
-        def __init__(self, encoding):
+        def __init__(self, encoding, tty=False):
             self.encoding = encoding
+            self._tty = tty
 
+        def isatty(self):
+            return self._tty
+
+    saved_env = {k: os.environ.pop(k) for k in ("NO_COLOR", "CLICOLOR_FORCE", "FORCE_COLOR")
+                 if k in os.environ}
+    try:
+        _ok("panel: colour follows the destination stream, not stderr",
+            ui._ansi_enabled(Stream("utf-8", tty=True)) and not ui._ansi_enabled(Stream("utf-8")))
+    finally:
+        os.environ.update(saved_env)
     _ok("panel: encoding probe", ui._stream_can_encode(Stream("utf-8"), "╭")
         and not ui._stream_can_encode(Stream("ascii"), "╭")
         and not ui._stream_can_encode(Stream(None), "╭")
@@ -370,8 +381,15 @@ def test_transport_timeout_classification():
     Core.USBTimeoutError = USBTimeoutError
     is_timeout = UsbVendorTransport.is_usb_timeout
     _ok("transport: pyusb's USBTimeoutError is a timeout", is_timeout(Core, USBTimeoutError()))
-    _ok("transport: ETIMEDOUT on Linux / macOS / Windows is a timeout",
-        all(is_timeout(Core, USBError(errno=e)) for e in (110, 60, 10060)))
+    import errno as _errno
+    _ok("transport: this platform's ETIMEDOUT is a timeout",
+        is_timeout(Core, USBError(errno=_errno.ETIMEDOUT)))
+    wsa = getattr(_errno, "WSAETIMEDOUT", None)
+    _ok("transport: WSAETIMEDOUT counts only where it exists (Windows)",
+        wsa is None or is_timeout(Core, USBError(errno=wsa)))
+    foreign = [e for e in (110, 60, 10060) if e not in (_errno.ETIMEDOUT, wsa)]
+    _ok("transport: another OS's ETIMEDOUT number is not a timeout here",
+        all(not is_timeout(Core, USBError(errno=e)) for e in foreign))
     _ok("transport: libusb LIBUSB_ERROR_TIMEOUT is a timeout",
         is_timeout(Core, USBError(backend_error_code=-7)))
     _ok("transport: other errors are not timeouts",
@@ -379,7 +397,8 @@ def test_transport_timeout_classification():
 
     OldCore = type("OldCore", (), {"USBError": USBError})  # pyusb < 1.1: no USBTimeoutError
     _ok("transport: old pyusb without USBTimeoutError still classifies by errno",
-        is_timeout(OldCore, USBError(errno=60)) and not is_timeout(OldCore, USBError(errno=19)))
+        is_timeout(OldCore, USBError(errno=_errno.ETIMEDOUT))
+        and not is_timeout(OldCore, USBError(errno=19)))
 
 
 def test_cli_erase_same_connection():
@@ -389,11 +408,19 @@ def test_cli_erase_same_connection():
 
     real_transport, real_decoder = cli._make_transport, decoder.run_decoder
     try:
-        # summary --erase: erased on the connection the report came from
+        # summary --erase: the report is printed first, then erased on the
+        # connection it came from
         dev = FakeTransport()
         cli._make_transport = lambda args: dev
-        rc = cli._cmd_summary(_cli_args(erase=True))
-        _ok("cli: summary --erase erases after the report", rc == 0 and dev.erased)
+        erased_when_printed = []
+        real_panel = cli.CON.panel
+        cli.CON.panel = lambda *a, **k: (erased_when_printed.append(dev.erased), real_panel(*a, **k))
+        try:
+            rc = cli._cmd_summary(_cli_args(erase=True))
+        finally:
+            cli.CON.panel = real_panel
+        _ok("cli: summary --erase prints the report, then erases",
+            rc == 0 and dev.erased and erased_when_printed == [False])
         # nothing recorded -> nothing to erase, even with --erase
         dev = FakeTransport(summary="")
         cli._make_transport = lambda args: dev
@@ -501,8 +528,8 @@ def test_idf_extension():
             X.build_tool_argv(build_dir, summary=True, pid="-1") == ["summary", "--pid", "-1"])
         # what the action builds must be what the CLI accepts (the device
         # options live on the sub-parsers, so the sub-command has to come first)
-        from espp_coredump.cli import build_parser
-        parser = build_parser()
+        import espp_coredump.cli as cli
+        parser = cli.build_parser()
         for argv in (
             X.build_tool_argv(build_dir),
             X.build_tool_argv(build_dir, gdb=True, out="c.elf", vid="0x1209", pid="0x1234",
@@ -525,11 +552,16 @@ def test_idf_extension():
             _ok("idf_ext: --summary with --gdb is refused", False)
         except X.FatalError as exc:
             _ok("idf_ext: --summary with --gdb is refused", "mutually exclusive" in str(exc))
+        for out_value in ("x.elf", ""):
+            try:
+                X.build_tool_argv(build_dir, summary=True, out=out_value)
+                _ok(f"idf_ext: --summary with --out {out_value!r} is refused", False)
+            except X.FatalError as exc:
+                _ok(f"idf_ext: --summary with --out {out_value!r} is refused",
+                    "mutually exclusive" in str(exc))
 
         # the action callback drives the CLI in-process and maps a non-zero exit to FatalError
         calls = []
-        import espp_coredump.cli as cli
-
         real_main = cli.main
         cli.main = lambda argv=None: (calls.append(list(argv)), 0)[1]
         try:

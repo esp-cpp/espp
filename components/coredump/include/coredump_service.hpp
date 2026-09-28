@@ -238,7 +238,7 @@ public:
       std::vector<uint8_t> reply;
       {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (!handle_frame_locked(frame.type, frame.payload, frame.correlation, reply))
+        if (!handle_frame_locked(frame.type, frame.payload, reply, frame.correlation))
           continue;
       }
       // send outside the lock so a re-entrant transport cannot deadlock
@@ -269,7 +269,7 @@ public:
     bool handled;
     {
       std::lock_guard<std::mutex> lock(mutex_);
-      handled = handle_frame_locked(type, payload, correlation, reply);
+      handled = handle_frame_locked(type, payload, reply, correlation);
     }
     // send outside the lock so a re-entrant transport cannot deadlock
     if (!reply.empty())
@@ -290,8 +290,12 @@ protected:
   /// (feed() / handle_frame()) transmits @p reply after releasing the mutex,
   /// so the user `send` callback never runs under the internal lock. See
   /// handle_frame().
+  /// @param correlation The request's stream_frame correlation id, if any;
+  ///        every reply built here echoes it. Optional and last, so the
+  ///        pre-correlation three-argument form still works for subclasses.
   bool handle_frame_locked(uint8_t type, std::span<const uint8_t> payload,
-                           std::optional<uint16_t> correlation, std::vector<uint8_t> &reply) {
+                           std::vector<uint8_t> &reply,
+                           std::optional<uint16_t> correlation = std::nullopt) {
     namespace stream = espp::stream_frame;
     reply_correlation_ = correlation; // echoed by every reply built below
     switch (static_cast<Msg>(type)) {

@@ -10,13 +10,16 @@ Registers an idf.py *action* (the same mechanism idf.py's own ``flash`` /
     idf.py coredump-usb --summary --erase   # report it, then erase it (no download)
     idf.py coredump-usb --out crash.elf --pid 0x1234 --serial ABC123
 
-idf.py loads it two ways:
+idf.py loads it two ways, both new in **ESP-IDF 6.0** (idf.py of 5.x loads
+neither component ``idf_ext.py`` files nor entry points; there, requiring the
+component gives only the option-less CMake targets below):
 
 * from ``components/coredump/idf_ext.py`` (a thin loader for this module) when
-  the ``coredump`` component is in the build. idf.py only trusts component
-  extensions from ESP-IDF itself, the project's own components,
-  ``EXTRA_COMPONENT_DIRS`` and registry components under ``espressif/``; a
-  registry install of ``espp/coredump`` therefore needs
+  the ``coredump`` component is in the build. ESP-IDF 6.0 and 6.0.1 load every
+  participating component's extension; from 6.0.2 on idf.py only trusts
+  component extensions from ESP-IDF itself, the project's own components,
+  ``EXTRA_COMPONENT_DIRS`` and registry components under ``espressif/``, so
+  there a registry install of ``espp/coredump`` needs
   ``IDF_EXTENSION_ALLOW_UNTRUSTED=1`` (idf.py says so);
 * from the ``idf_extension`` Python entry point declared by the ``espp`` wheel,
   whenever that wheel is installed in the ESP-IDF Python environment (no trust
@@ -25,8 +28,8 @@ idf.py loads it two ways:
 Both may be active at once; the second registration is skipped, so there is no
 duplicate-action warning. The CMake targets ``coredump-usb`` /
 ``coredump-usb-debug`` from ``project_include.cmake`` stay as the fallback for
-builds where neither extension is loaded (an idf.py action shadows a CMake
-target of the same name).
+builds where neither extension is loaded, ESP-IDF 5.x included (an idf.py
+action shadows a CMake target of the same name).
 """
 
 from __future__ import annotations
@@ -126,6 +129,9 @@ def build_tool_argv(
     if summary and gdb:
         raise FatalError("--summary and --gdb are mutually exclusive (--summary prints the "
                          "device's report without downloading; --gdb needs the core file)")
+    if summary and out is not None:  # given at all, even as --out "" (never silently ignored)
+        raise FatalError("--summary and --out are mutually exclusive (--summary downloads no "
+                         "core file, so there is nothing to save to --out)")
     # the sub-command comes first: the CLI registers the device options (and
     # --erase / --out / --gdb) on each sub-parser, not on the root parser
     if summary:

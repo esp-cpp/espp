@@ -18,9 +18,12 @@
 # FALLBACK: the component's idf_ext.py registers a real `idf.py coredump-usb`
 # action with options (--gdb, --summary, --out, --vid/--pid/--serial), which
 # idf.py prefers over a CMake target of the same name whenever it loads that
-# extension (trusted component sources, or the espp wheel's entry point). idf.py
-# cannot pass options to a custom target, so these take none; device overrides
-# are read from the environment by the tool, e.g.:
+# extension (ESP-IDF >= 6.0: 6.0 / 6.0.1 load every participating component's
+# idf_ext.py, 6.0.2+ only trusted component sources unless
+# IDF_EXTENSION_ALLOW_UNTRUSTED=1, plus the espp wheel's entry point; ESP-IDF
+# 5.x loads neither, so there these targets are all there is). idf.py cannot
+# pass options to a custom target, so these take none;
+# device overrides are read from the environment by the tool, e.g.:
 #     ESPP_COREDUMP_PID=0x1234 idf.py coredump-usb
 #
 # The work is done by the pure-Python `espp_coredump` tool shipped alongside this
