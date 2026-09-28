@@ -114,8 +114,10 @@ with UsbVendorTransport() as t:                    # default VID/PID 0x1209:0x0d
 flag set). The module id is only a routing key: before its first request the
 tool sends a dispatcher `ListModules` query and talks to whichever module
 advertises protocol id `espp.ota` (for firmware predating protocol ids: the
-module advertising `ota_console.html`, then the name "OTA"), falling back to 0
-only when the device does not answer discovery. `--module N` (or
+module advertising `ota_console.html`, then the name "OTA"). The published
+default, 0, is the last resort in two cases: the device does not answer
+discovery at all (older firmware, silently), or it answers but advertises
+nothing matching the protocol, app or name (with a warning). `--module N` (or
 `ESPP_OTA_MODULE`) forces an id; `discover` lists what the device advertises
 and which module the tool would use.
 Flow control is one request in flight — each request waits for its OK/ERROR

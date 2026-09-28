@@ -37,9 +37,10 @@ namespace haptics_proto {
 namespace stream = espp::stream_frame;
 
 /// Default dispatcher module id of the haptics protocol (the frame `module`
-/// byte): the id the hosted haptics console expects. The example registers the
-/// protocol under `kHapticsModule` (bldc_haptics_example.cpp), which defaults
-/// to this; build() takes the id to stamp so replies follow whatever the app
+/// byte). Only a routing key: the hosted haptics console finds the id through
+/// discovery (by kProtocol). The example registers the protocol under
+/// `kHapticsModule` (bldc_haptics_example.cpp), which defaults to this;
+/// build() takes the id to stamp so replies follow whatever the app
 /// registered.
 static constexpr uint8_t kModule = 2;
 

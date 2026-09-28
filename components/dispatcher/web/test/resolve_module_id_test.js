@@ -256,6 +256,14 @@ const info = (version, mods) => ({ version, device: "d", fw: "1", modules: mods 
     }
     // every send path is gated on the discovery probe having completed
     assert.ok(/let moduleReady = false;/.test(src) && /moduleReady = true;/.test(src), rel + ": no moduleReady gate");
+    // a probe that outlives its connection must not adopt into the next one:
+    // between the probe's start and its adopt call, the connection it sent on
+    // is compared against the current one (transport / usb / device, or the
+    // haptics connection generation)
+    const probe = /(?:async )?function (?:checkModulePresent|discoverModule)\([^)]*\) \{([\s\S]*?)adoptModules?\(/.exec(src);
+    assert.ok(probe, rel + ": no discovery probe function found");
+    assert.ok(/(t !== (?:transport|usb)|device === d|generation !== connectGeneration)/.test(probe[1]),
+      rel + ": the discovery probe adopts its result without checking its connection is still current");
   }
   console.log("PASS lint: every console builds / matches frames with its resolved module id only");
 }

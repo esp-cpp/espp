@@ -1295,7 +1295,8 @@
     // (older firmware) -> the default id; the normal bus-status poll still
     // surfaces a genuinely missing module.
     async function checkModulePresent() {
-      if (!transport) return;
+      const t = transport;
+      if (!t) return;
       const payload = await new Promise((resolve) => {
         let timer = null;
         // settle guards the shared resolver: only clear it if it is still ours,
@@ -1303,8 +1304,12 @@
         const settle = (p) => { clearTimeout(timer); if (discoveryResolve === settle) discoveryResolve = null; resolve(p); };
         timer = setTimeout(() => settle(null), DISCOVERY_TIMEOUT_MS);
         discoveryResolve = settle;
-        transport.send(buildFrame(MODULE_DISCOVERY, T_LIST_MODULES)).catch(() => settle(null));
+        t.send(buildFrame(MODULE_DISCOVERY, T_LIST_MODULES)).catch(() => settle(null));
       });
+      // this probe belongs to the transport it sent on: if that connection was
+      // closed or replaced while we waited, its result (a reply or, more
+      // likely, the timeout) must not be adopted into the current one
+      if (t !== transport) return;
       let info = null;
       if (payload) { try { info = parseDiscovery(payload); } catch (_) { info = null; } }
       adoptModule(info);

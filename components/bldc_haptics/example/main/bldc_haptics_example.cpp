@@ -570,8 +570,9 @@ extern "C" void app_main(void) {
   //   module 0 -> OTA          (espp::OtaService       -> ota_console)
   //   module 2 -> BLDC haptics (this example's protocol -> haptics_console)
   //   module 4 -> core dump    (espp::CoreDumpService  -> coredump_console)
-  // (the defaults the hosted consoles expect; each id is configurable --
-  // kHapticsModule above, and `.module` in the services' Config)
+  // (the published defaults; each id is configurable -- kHapticsModule above,
+  // and `.module` in the services' Config -- and the hosted consoles find the
+  // ids through discovery, by protocol id, so any choice works)
   // All replies -- and the discovery reply -- go through the same
   // tx_mutex-guarded usb_send as the telemetry frames.
 

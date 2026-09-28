@@ -139,8 +139,10 @@ flag set — the service derives it from the high bit of the type). The module
 id is only a routing key: before its first request the tool sends a dispatcher
 `ListModules` query and talks to whichever module advertises protocol id
 `espp.coredump` (for firmware predating protocol ids: the module advertising
-`coredump_console.html`, then the name "Core Dump"), falling back to 4 only
-when the device does not answer discovery. `--module N` (or
+`coredump_console.html`, then the name "Core Dump"). The published default,
+4, is the last resort in two cases: the device does not answer discovery at
+all (older firmware, silently), or it answers but advertises nothing matching
+the protocol, app or name (with a warning). `--module N` (or
 `ESPP_COREDUMP_MODULE`) forces an id; `discover` lists what the device
 advertises and which module the tool would use. Flow control is one
 request in flight.

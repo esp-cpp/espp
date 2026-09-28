@@ -164,9 +164,10 @@ like your own module will be. The pattern has six parts:
    .. code-block:: cpp
 
       /// Default dispatcher module id of the core-dump protocol (the frame
-      /// `module` byte): the id the hosted core-dump console expects. See
-      /// Config::module to serve on a different id. Reply Msg values keep the
-      /// high bit set, which build() maps to the frame reply flag.
+      /// `module` byte). Only a routing key: Config::module serves on any id, and
+      /// the hosted console / `espp_coredump` CLI find it through discovery (by
+      /// kProtocol). Reply Msg values keep the high bit set, which build() maps
+      /// to the frame reply flag.
       static constexpr uint8_t kModule = 4;
 
 2. **Message types**, as a scoped enum of `uint8_t` values. `CoreDumpService`
@@ -208,7 +209,8 @@ like your own module will be. The pattern has six parts:
    already-encoded frame, so the same module class works unmodified over USB
    vendor, USB CDC, a socket, or a UART. The module id lives here too, so an
    application can move the module without touching the class (the default
-   is the protocol's published `kModule`, which the stock console expects):
+   is the protocol's published `kModule`; the stock console finds whichever
+   id is chosen through discovery):
 
    .. code-block:: cpp
 

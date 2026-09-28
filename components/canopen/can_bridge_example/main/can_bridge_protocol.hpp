@@ -26,8 +26,9 @@
 
 namespace can_bridge {
 
-/// Default dispatcher module id of the CAN bridge protocol: the id the hosted
-/// CAN console expects. The example registers under `kCanBridgeModule`
+/// Default dispatcher module id of the CAN bridge protocol. Only a routing
+/// key: the hosted CAN console / DS402 panel find the id through discovery
+/// (by kProtocol). The example registers under `kCanBridgeModule`
 /// (can_bridge_example.cpp), which defaults to this.
 static constexpr uint8_t kModuleId = 5;
 /// Stable protocol identifier + version advertised through discovery

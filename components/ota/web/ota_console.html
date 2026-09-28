@@ -912,9 +912,14 @@
     function checkModulePresent() {
       return enqueue(async () => {
         if (!device || epOut === null) return;
+        // this probe belongs to the device it sent on: if that connection was
+        // closed or replaced while we waited, its result (a reply or, more
+        // likely, the timeout) must not be adopted into the current one
+        const d = device;
+        const adopt = (info) => { if (device === d) adoptModule(info); };
         try {
           await device.transferOut(epOut, buildFrame(T_LIST_MODULES, null, MODULE_DISCOVERY));
-        } catch (_) { adoptModule(null); return; }
+        } catch (_) { adopt(null); return; }
         const timeoutMs = DISCOVERY_TIMEOUT_MS, deadline = Date.now() + timeoutMs;
         for (;;) {
           let bytes;
@@ -922,17 +927,17 @@
             bytes = await readBytes(timeoutMs, deadline);
           } catch (e) {
             if (e && e.needsRecovery && !manualDisconnect) await recoverLink("module discovery");
-            adoptModule(null); // no discovery support -> the default id
+            adopt(null); // no discovery support -> the default id
             return;
           }
           for (const reply of parser.feed(bytes)) {
             if (reply.module !== MODULE_DISCOVERY || !reply.reply || reply.type !== T_LIST_MODULES) continue;
             let info = null;
             try { info = parseDiscovery(reply.payload); } catch (_) { info = null; }
-            adoptModule(info);
+            adopt(info);
             return;
           }
-          if (Date.now() >= deadline) { adoptModule(null); return; }
+          if (Date.now() >= deadline) { adopt(null); return; }
         }
       });
     }

@@ -1343,6 +1343,10 @@
         discoveryResolve = settle;
         t.send(sfBuild(SF_MODULE_DISCOVERY, SF_T_LIST_MODULES)).catch(() => settle(null));
       });
+      // this probe belongs to the transport it sent on: if that connection was
+      // closed or replaced while we waited, its result (a reply or, more
+      // likely, the timeout) must not be adopted into the current one
+      if (t !== usb) return;
       let info = null;
       if (payload) { try { info = parseDiscovery(payload); } catch (e) { info = null; } }
       adoptModule(info);
