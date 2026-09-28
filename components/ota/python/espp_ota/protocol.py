@@ -24,10 +24,37 @@ from enum import IntEnum
 from typing import Optional
 
 from . import frame as _f
-from .discovery import (  # noqa: F401  (re-exported: the public discovery API)
-    DISCOVERY_LIST_MODULES, DISCOVERY_MODULE, DISCOVERY_VERSION_KNOWN, DiscoveryInfo,
-    ModuleInfo, Resolution, describe_resolution, make_discovery_request, parse_discovery,
-    resolve_module_id)
+from .discovery import (DISCOVERY_LIST_MODULES, DISCOVERY_MODULE, DISCOVERY_VERSION_KNOWN,
+                        DiscoveryInfo, ModuleInfo, Resolution, describe_resolution,
+                        make_discovery_request, parse_discovery, resolve_module_id)
+
+#: The public wire API: this module's own builders / parsers plus the
+#: discovery API re-exported from :mod:`.discovery` (so ``protocol`` is the one
+#: import a host tool needs for everything on the wire).
+__all__ = [
+    "MODULE", "PROTOCOL", "PROTOCOL_VERSION", "MODULE_NAME", "MODULE_APP",
+    "MessageType",
+    "StatusFlags",
+    "make_begin",
+    "make_data",
+    "make_finish",
+    "make_abort",
+    "make_get_status",
+    "make_mark_valid",
+    "make_mark_invalid",
+    "ErrorInfo",
+    "ProgressInfo",
+    "StatusInfo",
+    "parse_u32",
+    "parse_error",
+    "parse_progress",
+    "parse_status",
+    "OtaError",
+    # re-exported discovery API
+    "DISCOVERY_LIST_MODULES", "DISCOVERY_MODULE", "DISCOVERY_VERSION_KNOWN", "DiscoveryInfo",
+    "ModuleInfo", "Resolution", "describe_resolution", "make_discovery_request",
+    "parse_discovery", "resolve_module_id",
+]
 
 #: OtaService's default dispatcher module id (a routing key only).
 MODULE = 0

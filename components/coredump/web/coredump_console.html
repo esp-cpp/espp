@@ -371,8 +371,12 @@
                              app: "coredump_console.html", name: "Core Dump", fallback: DEFAULT_MODULE_COREDUMP, override: null };
     const CRASH_IDENT = { protocol: CRASH_PROTOCOL, protocolVersion: CRASH_PROTOCOL_VERSION,
                           app: "", name: "Crash Trigger", fallback: DEFAULT_MODULE_CRASH, override: null };
-    let MODULE_COREDUMP = DEFAULT_MODULE_COREDUMP; // adopted by adoptModules() before the first request
-    let MODULE_CRASH = DEFAULT_MODULE_CRASH;
+    let moduleCoredump = DEFAULT_MODULE_COREDUMP; // adopted by adoptModules() before the first request
+    let moduleCrash = DEFAULT_MODULE_CRASH;
+    // True once adoptModules() has run for this connection: every send path
+    // waits for it, so nothing can go out on the default id while the discovery
+    // probe (up to DISCOVERY_TIMEOUT_MS) is still pending.
+    let moduleReady = false;
     // Reserved dispatcher discovery module: a device running an espp::Dispatcher
     // answers a ListModules query on 0xFF with the modules it serves, which is
     // how the module ids above are found before driving the device.
@@ -863,6 +867,7 @@
       transport = t;
       parser.reset();
       consoleCarry = "";
+      moduleReady = false; // action buttons stay disabled until discovery resolved the ids
       updateUI();
       setStatus("connected", "Connected");
       els.devInfo.textContent = "Connected: " + t.name;
@@ -870,6 +875,7 @@
       // Resolve the module ids from discovery BEFORE the first request.
       try { await checkModulePresent(); } catch (_) {}
       if (transport !== t) return; // the link dropped while probing
+      updateUI();       // module ids resolved: enable the action buttons
       refreshSummary(); // fetch summary + size right away
     }
 
@@ -884,11 +890,12 @@
       if (navigator.usb) els.usbBtn.disabled = connected && transport.kind !== "usb";
       if (navigator.serial) els.serialBtn.disabled = connected && transport.kind !== "serial";
       els.anyDevice.disabled = connected;
-      els.summaryBtn.disabled = !connected || busy;
-      els.eraseBtn.disabled = !connected || busy;
-      els.downloadElfBtn.disabled = !connected || busy || !dumpSize;
-      els.analyzeBtn.disabled = !connected || busy || !dumpSize;
-      els.downloadRawBtn.disabled = !connected || busy || !dumpSize;
+      const ready = connected && moduleReady; // no requests until discovery resolved the module ids
+      els.summaryBtn.disabled = !ready || busy;
+      els.eraseBtn.disabled = !ready || busy;
+      els.downloadElfBtn.disabled = !ready || busy || !dumpSize;
+      els.analyzeBtn.disabled = !ready || busy || !dumpSize;
+      els.downloadRawBtn.disabled = !ready || busy || !dumpSize;
       const serial = connected && transport.kind === "serial";
       els.consoleInput.disabled = !serial;
       els.consoleSendBtn.disabled = !serial;
@@ -924,7 +931,7 @@
       }
       if (els.logFrames.checked)
         logLine("rx", (TYPE_NAME[frame.type] || ("0x" + frame.type.toString(16))) + " " + hex(frame.payload));
-      if (pendingTxn && frame.module === MODULE_COREDUMP && frame.reply &&
+      if (pendingTxn && frame.module === moduleCoredump && frame.reply &&
           (pendingTxn.expect.has(frame.type) || frame.type === TYPE.ERROR)) {
         clearTimeout(pendingTxn.timer);
         const p = pendingTxn;
@@ -946,7 +953,8 @@
     function transact(type, payload, expectTypes, timeoutMs, retries) {
       const attempt = () => new Promise((resolve, reject) => {
         if (!transport) { reject(new Error("not connected")); return; }
-        const frame = buildFrame(MODULE_COREDUMP, type, payload);
+        if (!moduleReady) { reject(new Error("module id not resolved yet (discovery pending)")); return; }
+        const frame = buildFrame(moduleCoredump, type, payload);
         if (els.logFrames.checked) logLine("tx", TYPE_NAME[type] + " " + hex(frame));
         pendingTxn = {
           expect: new Set(expectTypes),
@@ -995,12 +1003,14 @@
       for (let m = 0; m < count; m++) {
         const rec = { id: u8(), name: str(), app: str(), desc: str(), protocol: "", protocolVersion: 0 };
         // Version 2 records also carry [protocol str][protocol_version u16 LE].
-        // A version newer than DISCOVERY_VERSION_KNOWN is parsed as version 2
-        // (fields we do not understand may follow; resolveModuleId warns).
+        // Records carry no length, so a payload version newer than
+        // DISCOVERY_VERSION_KNOWN is parsed with the exact version-2 record
+        // layout: a future version may only append bytes AFTER the record list
+        // (reported as `trailing`, ignored), never inside a record.
         if (version >= 2) { rec.protocol = str(); rec.protocolVersion = u16(); }
         modules.push(rec);
       }
-      return { version, device, fw, modules };
+      return { version, device, fw, modules, trailing: payload.length - i };
     }
     // ---- module id resolution (identical in every espp console) --------------
     // The dispatcher module byte is a routing key, not the identity of a
@@ -1014,16 +1024,18 @@
     //   identity this console implements; `override` (from ?module=) wins.
     // Returns { id, source: "override"|"protocol"|"app"|"name"|"default",
     //           protocolVersion (advertised by the chosen module, else null),
-    //           warnings: [strings] }.
+    //           warnings: [strings], notes: [informational strings] }.
     function resolveModuleId(info, ident) {
       const norm = (s) => String(s == null ? "" : s).trim().toLowerCase();
       const base = (s) => { const n = norm(s).split("?")[0].split("#")[0]; return n.slice(n.lastIndexOf("/") + 1); };
       const list = (info && Array.isArray(info.modules)) ? info.modules : null;
       const label = (m) => (m.name || m.protocol || "?") + " (#" + m.id + ")";
       const want = String(ident.protocol || "");
-      const warnings = [];
+      const warnings = [], notes = [];
       if (info && info.version > DISCOVERY_VERSION_KNOWN)
-        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed as v" + DISCOVERY_VERSION_KNOWN);
+        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed with the v" + DISCOVERY_VERSION_KNOWN + " record layout");
+      if (info && info.trailing > 0)
+        notes.push("ignoring " + info.trailing + " trailing byte(s) after the module list (discovery v" + info.version + ")");
       // Finish with the chosen module (m may be null when unknown), checking
       // that it speaks the protocol we implement, at a version we support.
       const done = (m, source) => {
@@ -1032,7 +1044,7 @@
           warnings.push("module #" + m.id + " advertises protocol " + m.protocol + ", not " + want);
         else if (v && Number.isInteger(ident.protocolVersion) && v !== ident.protocolVersion)
           warnings.push("device speaks " + (m.protocol || want) + " v" + v + ", this console supports v" + ident.protocolVersion);
-        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings };
+        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings, notes };
       };
       const ov = ident.override;
       if (Number.isInteger(ov) && ov >= 0 && ov <= 0xFE) {
@@ -1052,7 +1064,7 @@
         if (byName) return done(byName, "name");
         warnings.push("the device does not advertise " + (want || ident.name || ident.app) + " (advertised: " + (list.map(label).join(", ") || "none") + "); using the default module #" + ident.fallback);
       }
-      return { id: ident.fallback, source: "default", protocolVersion: null, warnings };
+      return { id: ident.fallback, source: "default", protocolVersion: null, warnings, notes };
     }
     // The ?module=N query parameter (decimal or 0x..) overrides discovery; the
     // Device Hub links each console this way. Null when absent or invalid.
@@ -1078,11 +1090,13 @@
     function adoptModules(info) {
       COREDUMP_IDENT.override = moduleOverrideFromQuery(location.search);
       const r = resolveModuleId(info, COREDUMP_IDENT);
-      MODULE_COREDUMP = r.id;
+      moduleCoredump = r.id;
       logLine("sys", describeModuleChoice("Core dump", r, COREDUMP_IDENT, info));
       for (const w of r.warnings) logLine("warn", w + ".");
+      for (const n of r.notes) logLine("sys", n + ".");
       const c = resolveModuleId(info, CRASH_IDENT);
-      MODULE_CRASH = c.id;
+      moduleCrash = c.id;
+      moduleReady = true;
       if (c.source !== "default")
         logLine("sys", describeModuleChoice("Crash trigger", c, CRASH_IDENT, info));
       // A missing crash trigger is normal (only the coredump example has one):
@@ -1596,7 +1610,8 @@
       logLine("tx", "> trigger crash: " + label);
       try {
         if (transport.kind === "usb") {
-          await transport.send(buildFrame(MODULE_CRASH, TYPE.TRIGGER_CRASH, new Uint8Array([kind])));
+          if (!moduleReady) throw new Error("module id not resolved yet (discovery pending)");
+          await transport.send(buildFrame(moduleCrash, TYPE.TRIGGER_CRASH, new Uint8Array([kind])));
         } else {
           await transport.send(new TextEncoder().encode(textCmd + "\n"));
         }

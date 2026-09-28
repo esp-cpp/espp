@@ -1054,7 +1054,11 @@
     const TM_PROTOCOL = "espp.telemetry", TM_PROTOCOL_VERSION = 1;
     const TM_IDENT = { protocol: TM_PROTOCOL, protocolVersion: TM_PROTOCOL_VERSION,
                        app: "telemetry.html", name: "Serial Plotter", fallback: DEFAULT_TM_MODULE, override: null };
-    let TM_MODULE = DEFAULT_TM_MODULE;      // adopted by adoptModule() before the schema request
+    let tmModule = DEFAULT_TM_MODULE;      // adopted by adoptModule() before the schema request
+    // True once adoptModule() has run for this connection: every send path
+    // waits for it, so nothing can go out on the default id while the discovery
+    // probe (up to DISCOVERY_TIMEOUT_MS) is still pending.
+    let moduleReady = false;
     // Reserved dispatcher discovery module (ListModules on 0xFF): how the
     // telemetry module's id is found before the first request.
     const SF_MODULE_DISCOVERY = 0xFF, SF_T_LIST_MODULES = 0x00, DISCOVERY_TIMEOUT_MS = 800;
@@ -1099,12 +1103,14 @@
       for (let m = 0; m < count; m++) {
         const rec = { id: u8(), name: str(), app: str(), desc: str(), protocol: "", protocolVersion: 0 };
         // Version 2 records also carry [protocol str][protocol_version u16 LE].
-        // A version newer than DISCOVERY_VERSION_KNOWN is parsed as version 2
-        // (fields we do not understand may follow; resolveModuleId warns).
+        // Records carry no length, so a payload version newer than
+        // DISCOVERY_VERSION_KNOWN is parsed with the exact version-2 record
+        // layout: a future version may only append bytes AFTER the record list
+        // (reported as `trailing`, ignored), never inside a record.
         if (version >= 2) { rec.protocol = str(); rec.protocolVersion = u16(); }
         modules.push(rec);
       }
-      return { version, device, fw, modules };
+      return { version, device, fw, modules, trailing: payload.length - i };
     }
     // ---- module id resolution (identical in every espp console) --------------
     // The dispatcher module byte is a routing key, not the identity of a
@@ -1118,16 +1124,18 @@
     //   identity this console implements; `override` (from ?module=) wins.
     // Returns { id, source: "override"|"protocol"|"app"|"name"|"default",
     //           protocolVersion (advertised by the chosen module, else null),
-    //           warnings: [strings] }.
+    //           warnings: [strings], notes: [informational strings] }.
     function resolveModuleId(info, ident) {
       const norm = (s) => String(s == null ? "" : s).trim().toLowerCase();
       const base = (s) => { const n = norm(s).split("?")[0].split("#")[0]; return n.slice(n.lastIndexOf("/") + 1); };
       const list = (info && Array.isArray(info.modules)) ? info.modules : null;
       const label = (m) => (m.name || m.protocol || "?") + " (#" + m.id + ")";
       const want = String(ident.protocol || "");
-      const warnings = [];
+      const warnings = [], notes = [];
       if (info && info.version > DISCOVERY_VERSION_KNOWN)
-        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed as v" + DISCOVERY_VERSION_KNOWN);
+        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed with the v" + DISCOVERY_VERSION_KNOWN + " record layout");
+      if (info && info.trailing > 0)
+        notes.push("ignoring " + info.trailing + " trailing byte(s) after the module list (discovery v" + info.version + ")");
       // Finish with the chosen module (m may be null when unknown), checking
       // that it speaks the protocol we implement, at a version we support.
       const done = (m, source) => {
@@ -1136,7 +1144,7 @@
           warnings.push("module #" + m.id + " advertises protocol " + m.protocol + ", not " + want);
         else if (v && Number.isInteger(ident.protocolVersion) && v !== ident.protocolVersion)
           warnings.push("device speaks " + (m.protocol || want) + " v" + v + ", this console supports v" + ident.protocolVersion);
-        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings };
+        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings, notes };
       };
       const ov = ident.override;
       if (Number.isInteger(ov) && ov >= 0 && ov <= 0xFE) {
@@ -1156,7 +1164,7 @@
         if (byName) return done(byName, "name");
         warnings.push("the device does not advertise " + (want || ident.name || ident.app) + " (advertised: " + (list.map(label).join(", ") || "none") + "); using the default module #" + ident.fallback);
       }
-      return { id: ident.fallback, source: "default", protocolVersion: null, warnings };
+      return { id: ident.fallback, source: "default", protocolVersion: null, warnings, notes };
     }
     // The ?module=N query parameter (decimal or 0x..) overrides discovery; the
     // Device Hub links each console this way. Null when absent or invalid.
@@ -1281,18 +1289,19 @@
         if (!e || e.name !== "NotFoundError") setStatus("err", "USB: " + (e && e.message ? e.message : e));
         return;
       }
-      usb = t; usbParser.reset(); usbTimeWrap = 0; usbPrevRaw = 0; usbHaveSchema = false;
+      usb = t; usbParser.reset(); usbTimeWrap = 0; usbPrevRaw = 0; usbHaveSchema = false; moduleReady = false;
       clearData(); dataFromFile = false;
       usbReadDone = usb.readLoop((chunk) => { for (const f of usbParser.feed(chunk)) onUsbFrame(f); })
         .catch((e) => { if (usb) { setStatus("err", "USB read: " + (e && e.message ? e.message : e)); usbLinkLost(); } });
       setStatus("on", "USB: " + usb.name());
       $("usb").textContent = "Disconnect WebUSB";
-      $("pause").disabled = false;
       $("connect").disabled = true; $("baud").disabled = true; $("reset").disabled = true;
       // Resolve the telemetry module id from discovery BEFORE the first request
-      // (falls back to the default id when the device does not answer).
+      // (falls back to the default id when the device does not answer). Pause
+      // (which sends SET_STREAM) stays disabled until then.
       await discoverModule(t);
       if (usb !== t) return; // disconnected while probing
+      $("pause").disabled = false;
       // Ask for the schema, retrying until it arrives: a device that was left
       // streaming can bury the first reply behind queued samples the read loop
       // discards (no schema yet). The stream is started (SET_STREAM) only once
@@ -1308,9 +1317,11 @@
     function adoptModule(info) {
       TM_IDENT.override = moduleOverrideFromQuery(location.search);
       const r = resolveModuleId(info, TM_IDENT);
-      TM_MODULE = r.id;
+      tmModule = r.id;
+      moduleReady = true;
       console.info("[telemetry] " + describeModuleChoice("Telemetry", r, TM_IDENT, info));
       for (const w of r.warnings) console.warn("[telemetry] " + w);
+      for (const n of r.notes) console.info("[telemetry] " + n);
       if (r.warnings.length) setStatus("busy", "USB: " + (usb ? usb.name() : "") + " · module #" + r.id + " · " + r.warnings[0]);
       else setStatus("on", "USB: " + (usb ? usb.name() : "") + " · module #" + r.id);
     }
@@ -1342,7 +1353,7 @@
         usbSchemaTimer = null;
         if (!usb || usbHaveSchema) return;
         if (tries++ > 20) { setStatus("err", "USB: no schema (is the telemetry example running?)"); return; }
-        usb.send(sfBuild(TM_MODULE, TM_GET_SCHEMA)).catch(() => {});
+        usb.send(sfBuild(tmModule, TM_GET_SCHEMA)).catch(() => {});
         usbSchemaTimer = setTimeout(ask, 300);
       };
       ask();
@@ -1352,7 +1363,7 @@
       clearSchemaTimer();
       const t = usb; usb = null;
       if (t) {
-        try { await t.send(sfBuild(TM_MODULE, TM_SET_STREAM, new Uint8Array([0, 0, 0]))); } catch (e) {}
+        try { await t.send(sfBuild(tmModule, TM_SET_STREAM, new Uint8Array([0, 0, 0]))); } catch (e) {}
         try { await t.close(); } catch (e) {}
       }
       try { await usbReadDone; } catch (e) {}
@@ -1407,7 +1418,7 @@
         if (discoveryResolve) { discoveryResolve(f.payload); discoveryResolve = null; }
         return;
       }
-      if (f.module !== TM_MODULE) return; // ignore other modules
+      if (f.module !== tmModule) return; // ignore other modules
       if (f.type === TM_SCHEMA) {
         const labels = decodeSchema(f.payload);
         // A duplicate reply to a retried GET_SCHEMA must not re-reset the rings.
@@ -1418,7 +1429,7 @@
           setSchema(labels, "webusb");
           clearSchemaTimer();             // handshake done; stop re-asking
           // start (or resume) the device stream now that we can plot it
-          if (usb) usb.send(sfBuild(TM_MODULE, TM_SET_STREAM, new Uint8Array([paused ? 0 : 1, 0, 0]))).catch(() => {});
+          if (usb) usb.send(sfBuild(tmModule, TM_SET_STREAM, new Uint8Array([paused ? 0 : 1, 0, 0]))).catch(() => {});
         }
         return;
       }
@@ -1570,7 +1581,7 @@
       $("pause").textContent = paused ? "Resume" : "Pause";
       // Over WebUSB, actually stop/start the device stream (not just local
       // drawing); text Web Serial keeps the local-only pause.
-      if (usb) usb.send(sfBuild(TM_MODULE, TM_SET_STREAM, new Uint8Array([paused ? 0 : 1, 0, 0]))).catch(() => {});
+      if (usb && moduleReady) usb.send(sfBuild(tmModule, TM_SET_STREAM, new Uint8Array([paused ? 0 : 1, 0, 0]))).catch(() => {});
       if (!paused) scheduleDraw();
     });
     $("clear").addEventListener("click", () => { clearData(); if (plot) plot.setData(buildData()); if (mode === "xyz") drawScene(); updateStats(); });

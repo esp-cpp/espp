@@ -25,10 +25,35 @@ from enum import IntEnum
 from typing import Optional
 
 from . import frame as _f
-from .discovery import (  # noqa: F401  (re-exported: the public discovery API)
-    DISCOVERY_LIST_MODULES, DISCOVERY_MODULE, DISCOVERY_VERSION_KNOWN, DiscoveryInfo,
-    ModuleInfo, Resolution, describe_resolution, make_discovery_request, parse_discovery,
-    resolve_module_id)
+from .discovery import (DISCOVERY_LIST_MODULES, DISCOVERY_MODULE, DISCOVERY_VERSION_KNOWN,
+                        DiscoveryInfo, ModuleInfo, Resolution, describe_resolution,
+                        make_discovery_request, parse_discovery, resolve_module_id)
+
+#: The public wire API: this module's own builders / parsers plus the
+#: discovery API re-exported from :mod:`.discovery` (so ``protocol`` is the one
+#: import a host tool needs for everything on the wire).
+__all__ = [
+    "MODULE", "PROTOCOL", "PROTOCOL_VERSION", "MODULE_NAME", "MODULE_APP",
+    "MAX_READ_LENGTH",
+    "MessageType",
+    "is_reply_type",
+    "make_get_summary",
+    "make_get_size",
+    "make_read",
+    "make_erase",
+    "ErrorInfo",
+    "DataInfo",
+    "parse_u32",
+    "parse_summary",
+    "parse_data",
+    "parse_error",
+    "CoreDumpError",
+    "CoreDumpTimeout",
+    # re-exported discovery API
+    "DISCOVERY_LIST_MODULES", "DISCOVERY_MODULE", "DISCOVERY_VERSION_KNOWN", "DiscoveryInfo",
+    "ModuleInfo", "Resolution", "describe_resolution", "make_discovery_request",
+    "parse_discovery", "resolve_module_id",
+]
 
 #: CoreDumpService's default dispatcher module id (a routing key only).
 MODULE = 4

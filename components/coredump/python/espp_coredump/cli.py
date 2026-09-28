@@ -42,6 +42,9 @@ def _auto_int(text: str) -> int:
     return int(text, 0)  # accepts 0x1209, 4617, etc.
 
 
+_auto_int.__name__ = "integer"  # argparse: "invalid integer value: 'abc'"
+
+
 def _human_size(n: int) -> str:
     size = float(n)
     for unit in ("B", "KiB", "MiB", "GiB"):
@@ -51,28 +54,26 @@ def _human_size(n: int) -> str:
     return f"{n} B"
 
 
-def _env_int(name: str, default: int) -> int:
-    val = os.environ.get(name)
-    return _auto_int(val) if val else default
+def _env_default(name: str, default=None):
+    """An option default taken from environment variable ``name`` (``default``
+    when unset / empty). Returned as the raw string: argparse runs the option's
+    ``type`` on a string default, so a bad value is reported as a normal usage
+    error for that option instead of crashing while the parser is built."""
+    return os.environ.get(name) or default
 
 
 def _add_device_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument("--vid", type=_auto_int, default=_env_int("ESPP_COREDUMP_VID", DEFAULT_VID),
+    p.add_argument("--vid", type=_auto_int, default=_env_default("ESPP_COREDUMP_VID", DEFAULT_VID),
                    help="USB vendor id (default 0x%04x)" % DEFAULT_VID)
-    p.add_argument("--pid", type=_auto_int, default=_env_int("ESPP_COREDUMP_PID", DEFAULT_PID),
+    p.add_argument("--pid", type=_auto_int, default=_env_default("ESPP_COREDUMP_PID", DEFAULT_PID),
                    help="USB product id (default 0x%04x; pass -1 to match any)" % DEFAULT_PID)
     p.add_argument("--serial", default=os.environ.get("ESPP_COREDUMP_SERIAL"),
                    help="match a specific device serial number")
     p.add_argument("--interface", type=_auto_int, default=None,
                    help="force a specific vendor interface number")
-    p.add_argument("--module", type=_auto_int, default=_env_opt_int("ESPP_COREDUMP_MODULE"),
+    p.add_argument("--module", type=_auto_int, default=_env_default("ESPP_COREDUMP_MODULE"),
                    help="dispatcher module id to talk to (default: the one the device advertises "
                         f"for {PROTOCOL} through discovery, else {MODULE})")
-
-
-def _env_opt_int(name: str) -> Optional[int]:
-    val = os.environ.get(name)
-    return _auto_int(val) if val else None
 
 
 def _report_resolution(client: CoreDumpClient, quiet: bool = False) -> None:

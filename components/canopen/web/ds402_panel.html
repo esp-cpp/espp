@@ -466,7 +466,11 @@
     const CAN_PROTOCOL = "espp.can-bridge", CAN_PROTOCOL_VERSION = 1;
     const CAN_IDENT = { protocol: CAN_PROTOCOL, protocolVersion: CAN_PROTOCOL_VERSION,
                         app: "can_bridge_console.html", name: "CAN Bridge", fallback: DEFAULT_MODULE_CAN, override: null };
-    let MODULE_CAN = DEFAULT_MODULE_CAN;      // adopted by adoptModule() before the first request
+    let moduleCan = DEFAULT_MODULE_CAN;      // adopted by adoptModule() before the first request
+    // True once adoptModule() has run for this connection: every send path
+    // waits for it, so nothing can go out on the default id while the discovery
+    // probe (up to DISCOVERY_TIMEOUT_MS) is still pending.
+    let moduleReady = false;
     // Reserved dispatcher discovery module: a device running an espp::Dispatcher
     // answers a ListModules query on 0xFF with the modules it serves, which is
     // how the CAN bridge module's id is found before driving it.
@@ -1101,7 +1105,8 @@
     // ===================================================================
     async function sendCanRaw(cf) {
       if (!transport) throw new Error("not connected");
-      await transport.send(buildFrame(MODULE_CAN, T_CAN_TX, encodeCanFrame(cf)));
+      if (!moduleReady) throw new Error("module id not resolved yet (discovery pending)");
+      await transport.send(buildFrame(moduleCan, T_CAN_TX, encodeCanFrame(cf)));
     }
     async function sendNmt(command) {
       // NMT: COB-ID 0x000, data = [command u8][node u8]. This always targets the
@@ -1126,7 +1131,8 @@
     let statusTimer = null;
     async function sendConfigFrame(type, payload) {
       if (!transport) return;
-      try { await transport.send(buildFrame(MODULE_CAN, type, payload)); }
+      if (!moduleReady) { logLine("warn", "Module id not resolved yet (discovery pending)."); return; }
+      try { await transport.send(buildFrame(moduleCan, type, payload)); }
       catch (e) { logLine("err", "send failed: " + (e && e.message ? e.message : e)); }
     }
     els.applyBtn.addEventListener("click", () => {
@@ -1189,12 +1195,14 @@
       for (let m = 0; m < count; m++) {
         const rec = { id: u8(), name: str(), app: str(), desc: str(), protocol: "", protocolVersion: 0 };
         // Version 2 records also carry [protocol str][protocol_version u16 LE].
-        // A version newer than DISCOVERY_VERSION_KNOWN is parsed as version 2
-        // (fields we do not understand may follow; resolveModuleId warns).
+        // Records carry no length, so a payload version newer than
+        // DISCOVERY_VERSION_KNOWN is parsed with the exact version-2 record
+        // layout: a future version may only append bytes AFTER the record list
+        // (reported as `trailing`, ignored), never inside a record.
         if (version >= 2) { rec.protocol = str(); rec.protocolVersion = u16(); }
         modules.push(rec);
       }
-      return { version, device, fw, modules };
+      return { version, device, fw, modules, trailing: payload.length - i };
     }
     // ---- module id resolution (identical in every espp console) --------------
     // The dispatcher module byte is a routing key, not the identity of a
@@ -1208,16 +1216,18 @@
     //   identity this console implements; `override` (from ?module=) wins.
     // Returns { id, source: "override"|"protocol"|"app"|"name"|"default",
     //           protocolVersion (advertised by the chosen module, else null),
-    //           warnings: [strings] }.
+    //           warnings: [strings], notes: [informational strings] }.
     function resolveModuleId(info, ident) {
       const norm = (s) => String(s == null ? "" : s).trim().toLowerCase();
       const base = (s) => { const n = norm(s).split("?")[0].split("#")[0]; return n.slice(n.lastIndexOf("/") + 1); };
       const list = (info && Array.isArray(info.modules)) ? info.modules : null;
       const label = (m) => (m.name || m.protocol || "?") + " (#" + m.id + ")";
       const want = String(ident.protocol || "");
-      const warnings = [];
+      const warnings = [], notes = [];
       if (info && info.version > DISCOVERY_VERSION_KNOWN)
-        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed as v" + DISCOVERY_VERSION_KNOWN);
+        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed with the v" + DISCOVERY_VERSION_KNOWN + " record layout");
+      if (info && info.trailing > 0)
+        notes.push("ignoring " + info.trailing + " trailing byte(s) after the module list (discovery v" + info.version + ")");
       // Finish with the chosen module (m may be null when unknown), checking
       // that it speaks the protocol we implement, at a version we support.
       const done = (m, source) => {
@@ -1226,7 +1236,7 @@
           warnings.push("module #" + m.id + " advertises protocol " + m.protocol + ", not " + want);
         else if (v && Number.isInteger(ident.protocolVersion) && v !== ident.protocolVersion)
           warnings.push("device speaks " + (m.protocol || want) + " v" + v + ", this console supports v" + ident.protocolVersion);
-        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings };
+        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings, notes };
       };
       const ov = ident.override;
       if (Number.isInteger(ov) && ov >= 0 && ov <= 0xFE) {
@@ -1246,7 +1256,7 @@
         if (byName) return done(byName, "name");
         warnings.push("the device does not advertise " + (want || ident.name || ident.app) + " (advertised: " + (list.map(label).join(", ") || "none") + "); using the default module #" + ident.fallback);
       }
-      return { id: ident.fallback, source: "default", protocolVersion: null, warnings };
+      return { id: ident.fallback, source: "default", protocolVersion: null, warnings, notes };
     }
     // The ?module=N query parameter (decimal or 0x..) overrides discovery; the
     // Device Hub links each console this way. Null when absent or invalid.
@@ -1270,9 +1280,11 @@
     function adoptModule(info) {
       CAN_IDENT.override = moduleOverrideFromQuery(location.search);
       const r = resolveModuleId(info, CAN_IDENT);
-      MODULE_CAN = r.id;
+      moduleCan = r.id;
+      moduleReady = true;
       logLine("sys", describeModuleChoice("CAN bridge", r, CAN_IDENT, info));
       for (const w of r.warnings) logLine("warn", w + ".");
+      for (const n of r.notes) logLine("sys", n + ".");
     }
     // Ask the device which dispatcher modules it serves and adopt the CAN
     // bridge module's id from the answer (adoptModule). No discovery reply
@@ -1308,7 +1320,7 @@
           if (discoveryResolve) { discoveryResolve(f.payload); discoveryResolve = null; }
           continue;
         }
-        if (f.module !== MODULE_CAN) continue;   // ignore interleaved other-module frames
+        if (f.module !== moduleCan) continue;   // ignore interleaved other-module frames
         if (f.type === T_CAN_RX) {
           const cf = decodeCanFrame(f.payload);
           if (!cf) continue;
@@ -1353,7 +1365,7 @@
       }
       transport = t;
       parser.reset();
-      setConnectedUI(true);
+      moduleReady = false;
       const name = t.describe();
       setStatus("connected", "Connected");
       els.devInfo.textContent = name;
@@ -1362,6 +1374,7 @@
       // Resolve the CAN bridge module id from discovery BEFORE the first request.
       try { await checkModulePresent(); } catch (_) {}
       if (transport !== t) return; // the link dropped while probing
+      setConnectedUI(true); // module id resolved: only now enable the controls
       requestStatus();
       statusTimer = setInterval(requestStatus, STATUS_POLL_MS);
       if (els.livePoll.checked) startLivePoll();   // honor a pre-ticked Live poll

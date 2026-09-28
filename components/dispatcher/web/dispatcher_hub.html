@@ -186,10 +186,13 @@
         if (version >= 2) { rec.protocol = str(); rec.protocolVersion = u16(); }
         modules.push(rec);
       }
-      // A payload version we fully understand must be consumed exactly; a newer
-      // one may carry fields we skip (it is parsed as v2, so tolerate the rest).
-      if (version <= DISCOVERY_VERSION_KNOWN && i !== payload.length) throw new Error("trailing bytes in discovery payload");
-      return { version, device, fw, modules };
+      // A payload version we fully understand must be consumed exactly. Records
+      // carry no length, so a newer version is parsed with the exact version-2
+      // record layout and may only append bytes AFTER the record list (reported
+      // as `trailing` and ignored), never inside a record.
+      const trailing = payload.length - i;
+      if (version <= DISCOVERY_VERSION_KNOWN && trailing !== 0) throw new Error("trailing bytes in discovery payload");
+      return { version, device, fw, modules, trailing };
     }
     // Treat a module's `app` as an internal, same-directory page only: a safe
     // filename ending in .html, no scheme/colon, no slash, no "..". This stops a
@@ -280,7 +283,9 @@
       renderTabs(); renderDetail();
       logLine("ok", "discovered " + modules.length + " module(s): " + modules.map(m => m.name).join(", "));
       if (info.version > DISCOVERY_VERSION_KNOWN)
-        logLine("warn", "discovery payload v" + info.version + " is newer than this hub understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed as v" + DISCOVERY_VERSION_KNOWN);
+        logLine("warn", "discovery payload v" + info.version + " is newer than this hub understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed with the v" + DISCOVERY_VERSION_KNOWN + " record layout");
+      if (info.trailing > 0)
+        logLine("t", "ignoring " + info.trailing + " trailing byte(s) after the module list (discovery v" + info.version + ")");
     }
 
     function renderTabs() {

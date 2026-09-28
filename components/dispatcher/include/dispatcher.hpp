@@ -130,8 +130,13 @@ public:
   /// @details 1: per-module records end after the description string.
   ///          2: each record also carries `[protocol str][protocol_version u16
   ///          LE]` (DispatcherModuleInfo::protocol / protocol_version). Peers
-  ///          branch on this byte; a peer seeing a version above what it knows
-  ///          should parse the records it understands and tolerate more fields.
+  ///          branch on this byte. Records carry no length, so a per-record
+  ///          extension cannot be skipped by an older peer: the record layout
+  ///          is FROZEN at the version-2 shape, and a future version may only
+  ///          append data AFTER the whole record list (or bump to a layout with
+  ///          per-record lengths). A peer seeing a version above what it knows
+  ///          therefore parses the records as version 2 and ignores anything
+  ///          that follows them.
   static constexpr uint8_t kDiscoveryVersion = 2;
 
   /// @brief The module id a frame will route to (its `module` byte).

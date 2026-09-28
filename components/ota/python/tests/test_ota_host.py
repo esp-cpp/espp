@@ -3,9 +3,12 @@
 Runs with plain ``python3`` (no hardware, no pyusb). Also importable by pytest.
 """
 
+import contextlib
+import io
 import os
 import struct
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -272,6 +275,33 @@ def test_discovery_and_module_resolution():
         and v1.modules[1].protocol == "" and v1.modules[1].protocol_version == 0)
     _ok("discover: silent device -> None",
         OtaClient(MockDevice(answer_discovery=False)).discover(timeout_ms=50) is None)
+    # forward compatibility: a newer payload version keeps the v2 record
+    # layout (records carry no length, so per-record extensions are not
+    # possible); only bytes AFTER the whole record list may follow, and they
+    # are ignored. Two records + a trailer prove the second record is not
+    # desynchronised.
+    dev_v3 = MockDevice(module=9, discovery_version=3)
+    dev_v3.discovery_payload = (lambda f=dev_v3.discovery_payload:
+                                f() + b"\x07future!" + bytes([0xAA, 0xBB, 0xCC]))
+    v3 = OtaClient(dev_v3).discover(timeout_ms=100)
+    _ok("v3 payload: v2 record layout, trailing bytes after the records ignored",
+        v3 is not None and v3.version == 3 and len(v3.modules) == 2
+        and v3.modules[0].name == "Core Dump" and v3.modules[1].name == "OTA"
+        and v3.modules[1].id == 9 and v3.modules[1].protocol == "espp.ota"
+        and v3.modules[1].protocol_version == 1)
+    # the probe's timeout bounds the whole thing, the request write included
+    slow = MockDevice(answer_discovery=False)
+    real_write = slow.write
+
+    def slow_write(data, timeout_ms=0):
+        time.sleep(0.08)  # the transport takes most of the budget to write
+        real_write(data, timeout_ms)
+    slow.write = slow_write
+    t0 = time.monotonic()
+    silent = OtaClient(slow).discover(timeout_ms=100)
+    elapsed = time.monotonic() - t0
+    _ok("discover: one timeout bounds write + reply wait",
+        silent is None and elapsed < 0.18)
     # the resolution rule (shared with the coredump tool and the consoles)
     ident = dict(protocol="espp.ota", protocol_version=1, app="ota_console.html", name="OTA",
                  fallback=0)
@@ -351,6 +381,34 @@ def test_cli_module_option():
         parser.parse_args(["status", "--module", "0x9"]).module == 9
         and parser.parse_args(["flash", "x.bin", "--module", "3"]).module == 3
         and parser.parse_args(["discover"]).module is None)
+    # environment defaults go through the option's own parser: a valid value
+    # is adopted, an invalid one is a usage error, not a crash building the parser
+    saved = {k: os.environ.pop(k) for k in ("ESPP_OTA_MODULE", "ESPP_OTA_VID")
+             if k in os.environ}
+    try:
+        os.environ["ESPP_OTA_MODULE"] = "0x9"
+        os.environ["ESPP_OTA_VID"] = "0x1234"
+        ns = cli.build_parser().parse_args(["status"])
+        _ok("cli: ESPP_OTA_MODULE / _VID supply defaults", ns.module == 9 and ns.vid == 0x1234)
+        ns = cli.build_parser().parse_args(["status", "--module", "3"])
+        _ok("cli: --module overrides ESPP_OTA_MODULE", ns.module == 3)
+        os.environ["ESPP_OTA_MODULE"] = "nine"
+        try:
+            parser = cli.build_parser()  # must not raise
+            with contextlib.redirect_stderr(io.StringIO()) as err:
+                parser.parse_args(["status"])
+            usage_error = False
+        except SystemExit as exc:
+            usage_error = exc.code == 2 and "--module" in err.getvalue() \
+                and "nine" in err.getvalue()
+        _ok("cli: an invalid ESPP_OTA_MODULE is a usage error naming --module", usage_error)
+        os.environ["ESPP_OTA_MODULE"] = ""
+        _ok("cli: an empty ESPP_OTA_MODULE means unset",
+            cli.build_parser().parse_args(["status"]).module is None)
+    finally:
+        for k in ("ESPP_OTA_MODULE", "ESPP_OTA_VID"):
+            os.environ.pop(k, None)
+        os.environ.update(saved)
 
 
 def test_transport_timeout_classification():

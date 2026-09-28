@@ -223,9 +223,10 @@ class CoreDumpClient:
         """Send a dispatcher ListModules request and decode the reply; None on
         timeout (no Dispatcher serving discovery on this interface). Does not
         change self.module -- resolve_module() does."""
-        # the caller's timeout bounds the whole probe, the request write included
-        self._t.write(_p.make_discovery_request(), timeout_ms=timeout_ms)
+        # one deadline for the whole probe, the request write included: a slow
+        # write eats into the reply wait, it never adds a second timeout_ms
         deadline = time.monotonic() + timeout_ms / 1000.0
+        self._t.write(_p.make_discovery_request(), timeout_ms=timeout_ms)
         while True:
             try:
                 fr = self._next_frame(deadline)

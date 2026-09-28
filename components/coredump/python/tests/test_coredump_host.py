@@ -4,9 +4,12 @@ mock device.
 Runs with plain ``python3`` (no hardware, no pyusb). Also importable by pytest.
 """
 
+import contextlib
+import io
 import os
 import struct
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -311,6 +314,33 @@ def test_discovery():
     _ok("v1 payload decodes with empty protocol fields",
         v1 is not None and v1.version == 1 and len(v1.modules) == 2
         and v1.modules[1].protocol == "" and v1.modules[1].protocol_version == 0)
+    # forward compatibility: a newer payload version keeps the v2 record
+    # layout (records carry no length, so per-record extensions are not
+    # possible); only bytes AFTER the whole record list may follow, and they
+    # are ignored. Two records + a trailer prove the second record is not
+    # desynchronised.
+    dev_v3 = MockDevice(discovery_version=3)
+    dev_v3.discovery_payload = (lambda f=dev_v3.discovery_payload:
+                                f() + b"\x07future!" + bytes([0xAA, 0xBB, 0xCC]))
+    v3 = CoreDumpClient(dev_v3).discover(timeout_ms=100)
+    _ok("v3 payload: v2 record layout, trailing bytes after the records ignored",
+        v3 is not None and v3.version == 3 and len(v3.modules) == 2
+        and v3.modules[0].name == "Crash Trigger" and v3.modules[1].name == "Core Dump"
+        and v3.modules[1].id == 4 and v3.modules[1].protocol == "espp.coredump"
+        and v3.modules[1].protocol_version == 1)
+    # the probe's timeout bounds the whole thing, the request write included
+    slow = MockDevice(answer_discovery=False)
+    real_write = slow.write
+
+    def slow_write(data, timeout_ms=0):
+        time.sleep(0.08)  # the transport takes most of the budget to write
+        real_write(data, timeout_ms)
+    slow.write = slow_write
+    t0 = time.monotonic()
+    silent = CoreDumpClient(slow).discover(timeout_ms=100)
+    elapsed = time.monotonic() - t0
+    _ok("discover: one timeout bounds write + reply wait",
+        silent is None and elapsed < 0.18)
     # u16 protocol_version is little-endian
     dev3 = MockDevice(protocol_version=0x0102)
     v = CoreDumpClient(dev3).discover(timeout_ms=100)
@@ -442,6 +472,34 @@ def test_cli_module_option():
     _ok("cli: --module parses (hex ok)", ns.module == 9)
     ns = parser.parse_args(["download"])
     _ok("cli: --module defaults to None (discover)", ns.module is None)
+    # environment defaults go through the option's own parser: a valid value
+    # is adopted, an invalid one is a usage error, not a crash building the parser
+    saved = {k: os.environ.pop(k) for k in ("ESPP_COREDUMP_MODULE", "ESPP_COREDUMP_VID")
+             if k in os.environ}
+    try:
+        os.environ["ESPP_COREDUMP_MODULE"] = "0x9"
+        os.environ["ESPP_COREDUMP_VID"] = "0x1234"
+        ns = cli.build_parser().parse_args(["summary"])
+        _ok("cli: ESPP_COREDUMP_MODULE / _VID supply defaults", ns.module == 9 and ns.vid == 0x1234)
+        ns = cli.build_parser().parse_args(["summary", "--module", "3"])
+        _ok("cli: --module overrides ESPP_COREDUMP_MODULE", ns.module == 3)
+        os.environ["ESPP_COREDUMP_MODULE"] = "nine"
+        try:
+            parser = cli.build_parser()  # must not raise
+            with contextlib.redirect_stderr(io.StringIO()) as err:
+                parser.parse_args(["summary"])
+            usage_error = False
+        except SystemExit as exc:
+            usage_error = exc.code == 2 and "ESPP_COREDUMP_MODULE" not in err.getvalue() \
+                and "--module" in err.getvalue() and "nine" in err.getvalue()
+        _ok("cli: an invalid ESPP_COREDUMP_MODULE is a usage error naming --module", usage_error)
+        os.environ["ESPP_COREDUMP_MODULE"] = ""
+        _ok("cli: an empty ESPP_COREDUMP_MODULE means unset",
+            cli.build_parser().parse_args(["summary"]).module is None)
+    finally:
+        for k in ("ESPP_COREDUMP_MODULE", "ESPP_COREDUMP_VID"):
+            os.environ.pop(k, None)
+        os.environ.update(saved)
     # the client the CLI builds carries the override and resolves up front
     real_transport = cli._make_transport
     try:

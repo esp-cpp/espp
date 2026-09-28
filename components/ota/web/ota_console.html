@@ -279,6 +279,11 @@
     const OTA_IDENT = { protocol: OTA_PROTOCOL, protocolVersion: OTA_PROTOCOL_VERSION,
                         app: "ota_console.html", name: "OTA", fallback: DEFAULT_MODULE_OTA, override: null };
     let moduleOta = DEFAULT_MODULE_OTA;       // adopted by adoptModule() before the first OTA frame
+    // True once adoptModule() has run for this connection. OTA transactions
+    // are serialized behind the discovery probe by the same queue (enqueue),
+    // so this is a belt-and-braces guard: nothing can go out on the default
+    // id while the probe (up to DISCOVERY_TIMEOUT_MS) is still pending.
+    let moduleReady = false;
     // Reserved dispatcher discovery module: a device running an espp::Dispatcher
     // answers a ListModules query on 0xFF with the modules it serves, which is
     // how the OTA module's id is found before offering to flash.
@@ -526,6 +531,7 @@
       }
       manualDisconnect = false; expectRestart = false;
       parser.reset();
+      moduleReady = false;
       setConnectedUI(true);
       const name = describeDevice(device);
       setStatus("connected", "Connected");
@@ -726,6 +732,7 @@
     function transact(type, payload, timeoutMs) {
       return enqueue(async () => {
         if (!device || epOut === null) throw new Error("not connected");
+        if (!moduleReady) throw new Error("module id not resolved yet (discovery pending)");
         const frame = buildFrame(type, payload);
         if (els.logFrames.checked) logLine("tx", TYPE_NAME[type] + " " + hex(frame));
         let out;
@@ -802,12 +809,14 @@
       for (let m = 0; m < count; m++) {
         const rec = { id: u8(), name: str(), app: str(), desc: str(), protocol: "", protocolVersion: 0 };
         // Version 2 records also carry [protocol str][protocol_version u16 LE].
-        // A version newer than DISCOVERY_VERSION_KNOWN is parsed as version 2
-        // (fields we do not understand may follow; resolveModuleId warns).
+        // Records carry no length, so a payload version newer than
+        // DISCOVERY_VERSION_KNOWN is parsed with the exact version-2 record
+        // layout: a future version may only append bytes AFTER the record list
+        // (reported as `trailing`, ignored), never inside a record.
         if (version >= 2) { rec.protocol = str(); rec.protocolVersion = u16(); }
         modules.push(rec);
       }
-      return { version, device, fw, modules };
+      return { version, device, fw, modules, trailing: payload.length - i };
     }
     // ---- module id resolution (identical in every espp console) --------------
     // The dispatcher module byte is a routing key, not the identity of a
@@ -821,16 +830,18 @@
     //   identity this console implements; `override` (from ?module=) wins.
     // Returns { id, source: "override"|"protocol"|"app"|"name"|"default",
     //           protocolVersion (advertised by the chosen module, else null),
-    //           warnings: [strings] }.
+    //           warnings: [strings], notes: [informational strings] }.
     function resolveModuleId(info, ident) {
       const norm = (s) => String(s == null ? "" : s).trim().toLowerCase();
       const base = (s) => { const n = norm(s).split("?")[0].split("#")[0]; return n.slice(n.lastIndexOf("/") + 1); };
       const list = (info && Array.isArray(info.modules)) ? info.modules : null;
       const label = (m) => (m.name || m.protocol || "?") + " (#" + m.id + ")";
       const want = String(ident.protocol || "");
-      const warnings = [];
+      const warnings = [], notes = [];
       if (info && info.version > DISCOVERY_VERSION_KNOWN)
-        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed as v" + DISCOVERY_VERSION_KNOWN);
+        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed with the v" + DISCOVERY_VERSION_KNOWN + " record layout");
+      if (info && info.trailing > 0)
+        notes.push("ignoring " + info.trailing + " trailing byte(s) after the module list (discovery v" + info.version + ")");
       // Finish with the chosen module (m may be null when unknown), checking
       // that it speaks the protocol we implement, at a version we support.
       const done = (m, source) => {
@@ -839,7 +850,7 @@
           warnings.push("module #" + m.id + " advertises protocol " + m.protocol + ", not " + want);
         else if (v && Number.isInteger(ident.protocolVersion) && v !== ident.protocolVersion)
           warnings.push("device speaks " + (m.protocol || want) + " v" + v + ", this console supports v" + ident.protocolVersion);
-        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings };
+        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings, notes };
       };
       const ov = ident.override;
       if (Number.isInteger(ov) && ov >= 0 && ov <= 0xFE) {
@@ -859,7 +870,7 @@
         if (byName) return done(byName, "name");
         warnings.push("the device does not advertise " + (want || ident.name || ident.app) + " (advertised: " + (list.map(label).join(", ") || "none") + "); using the default module #" + ident.fallback);
       }
-      return { id: ident.fallback, source: "default", protocolVersion: null, warnings };
+      return { id: ident.fallback, source: "default", protocolVersion: null, warnings, notes };
     }
     // The ?module=N query parameter (decimal or 0x..) overrides discovery; the
     // Device Hub links each console this way. Null when absent or invalid.
@@ -884,8 +895,10 @@
       OTA_IDENT.override = moduleOverrideFromQuery(location.search);
       const r = resolveModuleId(info, OTA_IDENT);
       moduleOta = r.id;
+      moduleReady = true;
       logLine("sys", describeModuleChoice("OTA", r, OTA_IDENT, info));
       for (const w of r.warnings) logLine("warn", w + ".");
+      for (const n of r.notes) logLine("sys", n + ".");
     }
     // Ask the device which dispatcher modules it serves and adopt the OTA
     // module's id from the answer (adoptModule). A device / firmware without

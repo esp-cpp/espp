@@ -167,7 +167,11 @@
     const PROTOCOL = "espp.mcp266", PROTOCOL_VERSION = 1;
     const MODULE_IDENT = { protocol: PROTOCOL, protocolVersion: PROTOCOL_VERSION,
                            app: "mcp266_console.html", name: "MCP266", fallback: DEFAULT_MODULE, override: null };
-    let MODULE = DEFAULT_MODULE;             // adopted by adoptModule() before the first MCP266 frame
+    let moduleMcp = DEFAULT_MODULE;             // adopted by adoptModule() before the first MCP266 frame
+    // True once adoptModule() has run for this connection: every send path
+    // waits for it, so nothing can go out on the default id while the discovery
+    // probe (up to DISCOVERY_TIMEOUT_MS) is still pending.
+    let moduleReady = false;
     // Reserved dispatcher discovery module: a device running an espp::Dispatcher
     // answers a ListModules query on 0xFF with the modules it serves, which is
     // how the MCP266 module's id is found before driving it.
@@ -206,7 +210,7 @@
     function crc32(bytes) { let c=0xFFFFFFFF; for (let i=0;i<bytes.length;i++) c=CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8); return (~c)>>>0; }
     if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) throw new Error("CRC-32 self-test failed");
 
-    function buildFrame(type, payload, module = MODULE) {
+    function buildFrame(type, payload, module = moduleMcp) {
       payload = payload || new Uint8Array(0);
       const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
       const view = new DataView(frame.buffer);
@@ -330,7 +334,10 @@
     }
 
     async function tx(bytes) { if (!transport) { logLine("err", "not connected"); return; } try { await transport.send(bytes); } catch(e) { logLine("err", "send failed: " + (e && e.message ? e.message : e)); } }
-    function send(type, payload) { tx(buildFrame(type, payload)); }
+    function send(type, payload) {
+      if (!moduleReady) { logLine("warn", "Module id not resolved yet (discovery pending)."); return; }
+      tx(buildFrame(type, payload));
+    }
 
     // ---- request encoders ----
     function u8(x){ return x & 0xFF; }
@@ -434,12 +441,14 @@
       for (let m = 0; m < count; m++) {
         const rec = { id: u8(), name: str(), app: str(), desc: str(), protocol: "", protocolVersion: 0 };
         // Version 2 records also carry [protocol str][protocol_version u16 LE].
-        // A version newer than DISCOVERY_VERSION_KNOWN is parsed as version 2
-        // (fields we do not understand may follow; resolveModuleId warns).
+        // Records carry no length, so a payload version newer than
+        // DISCOVERY_VERSION_KNOWN is parsed with the exact version-2 record
+        // layout: a future version may only append bytes AFTER the record list
+        // (reported as `trailing`, ignored), never inside a record.
         if (version >= 2) { rec.protocol = str(); rec.protocolVersion = u16(); }
         modules.push(rec);
       }
-      return { version, device, fw, modules };
+      return { version, device, fw, modules, trailing: payload.length - i };
     }
     // ---- module id resolution (identical in every espp console) --------------
     // The dispatcher module byte is a routing key, not the identity of a
@@ -453,16 +462,18 @@
     //   identity this console implements; `override` (from ?module=) wins.
     // Returns { id, source: "override"|"protocol"|"app"|"name"|"default",
     //           protocolVersion (advertised by the chosen module, else null),
-    //           warnings: [strings] }.
+    //           warnings: [strings], notes: [informational strings] }.
     function resolveModuleId(info, ident) {
       const norm = (s) => String(s == null ? "" : s).trim().toLowerCase();
       const base = (s) => { const n = norm(s).split("?")[0].split("#")[0]; return n.slice(n.lastIndexOf("/") + 1); };
       const list = (info && Array.isArray(info.modules)) ? info.modules : null;
       const label = (m) => (m.name || m.protocol || "?") + " (#" + m.id + ")";
       const want = String(ident.protocol || "");
-      const warnings = [];
+      const warnings = [], notes = [];
       if (info && info.version > DISCOVERY_VERSION_KNOWN)
-        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed as v" + DISCOVERY_VERSION_KNOWN);
+        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed with the v" + DISCOVERY_VERSION_KNOWN + " record layout");
+      if (info && info.trailing > 0)
+        notes.push("ignoring " + info.trailing + " trailing byte(s) after the module list (discovery v" + info.version + ")");
       // Finish with the chosen module (m may be null when unknown), checking
       // that it speaks the protocol we implement, at a version we support.
       const done = (m, source) => {
@@ -471,7 +482,7 @@
           warnings.push("module #" + m.id + " advertises protocol " + m.protocol + ", not " + want);
         else if (v && Number.isInteger(ident.protocolVersion) && v !== ident.protocolVersion)
           warnings.push("device speaks " + (m.protocol || want) + " v" + v + ", this console supports v" + ident.protocolVersion);
-        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings };
+        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings, notes };
       };
       const ov = ident.override;
       if (Number.isInteger(ov) && ov >= 0 && ov <= 0xFE) {
@@ -491,7 +502,7 @@
         if (byName) return done(byName, "name");
         warnings.push("the device does not advertise " + (want || ident.name || ident.app) + " (advertised: " + (list.map(label).join(", ") || "none") + "); using the default module #" + ident.fallback);
       }
-      return { id: ident.fallback, source: "default", protocolVersion: null, warnings };
+      return { id: ident.fallback, source: "default", protocolVersion: null, warnings, notes };
     }
     // The ?module=N query parameter (decimal or 0x..) overrides discovery; the
     // Device Hub links each console this way. Null when absent or invalid.
@@ -515,9 +526,11 @@
     function adoptModule(info) {
       MODULE_IDENT.override = moduleOverrideFromQuery(location.search);
       const r = resolveModuleId(info, MODULE_IDENT);
-      MODULE = r.id;
+      moduleMcp = r.id;
+      moduleReady = true;
       logLine("sys", describeModuleChoice("MCP266", r, MODULE_IDENT, info));
       for (const w of r.warnings) logLine("warn", w + ".");
+      for (const n of r.notes) logLine("sys", n + ".");
     }
     // Ask the device which dispatcher modules it serves and adopt the MCP266
     // module's id from the answer (adoptModule). No discovery reply (older
@@ -544,12 +557,12 @@
       let frames; try { frames = parser.feed(chunk); } catch(e) { logLine("err", "parse error: " + (e && e.message ? e.message : e)); return; }
       for (const f of frames) {
         // Discovery reply (reserved module 0xFF): hand the TLV to a pending
-        // module probe before the MODULE match below ignores it.
+        // module probe before the moduleMcp match below ignores it.
         if (f.module === MODULE_DISCOVERY && f.reply && f.type === T_LIST_MODULES) {
           if (discoveryResolve) { discoveryResolve(f.payload); discoveryResolve = null; }
           continue;
         }
-        if (f.module !== MODULE) continue;
+        if (f.module !== moduleMcp) continue;
         const dv = new DataView(f.payload.buffer, f.payload.byteOffset, f.payload.length);
         if (f.type === T_STATUS) {
           if (f.payload.length < 25) continue;
@@ -588,12 +601,13 @@
       const t = kind === "usb" ? new UsbTransport() : new SerialTransport();
       try { if (kind === "usb") await t.open(els.anyDevice.checked); else await t.open(); }
       catch (e) { if (e && e.name === "NotFoundError") logLine("sys", "Device selection cancelled."); else logLine("err", "Connect failed: " + (e && e.message ? e.message : e)); try { await t.close(); } catch(_){} return; }
-      transport = t; parser.reset(); setConnectedUI(true);
+      transport = t; parser.reset(); moduleReady = false;
       const name = t.describe(); setStatus("connected", "Connected"); els.devInfo.textContent = name; logLine("sys", "Connected: " + name);
       t.readLoop(onIncoming).catch((e) => { if (transport === t) { logLine("err", "Read loop error: " + (e && e.message ? e.message : e)); onLinkLost(); } });
       // Resolve the MCP266 module id from discovery BEFORE the first request.
       try { await checkModulePresent(); } catch (_) {}
       if (transport !== t) return; // the link dropped while probing
+      setConnectedUI(true); // module id resolved: only now enable the controls
       send(T_GET_INFO); send(T_GET_STATUS);
       if (els.livePoll.checked) startStream();
     }

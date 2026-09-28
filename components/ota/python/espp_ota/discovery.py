@@ -26,7 +26,14 @@ DISCOVERY_LIST_MODULES = 0x00
 
 #: Latest discovery payload version this parser understands. Version 1 records
 #: end after the description; version 2 records add ``[protocol str]
-#: [protocol_version u16 LE]``. A newer version is parsed as version 2.
+#: [protocol_version u16 LE]``.
+#:
+#: Forward compatibility: records carry no length, so a newer version can NOT
+#: extend the per-record layout (an older parser would read the extra bytes as
+#: the next record's id / name). The record layout is frozen at the version-2
+#: shape; a newer version may only append data after the whole record list.
+#: A payload with a version above this one is therefore parsed as version 2
+#: and whatever follows its last record is ignored.
 DISCOVERY_VERSION_KNOWN = 2
 
 
@@ -73,9 +80,12 @@ def parse_discovery(fr: _f.Frame) -> Optional[DiscoveryInfo]:
         then per module: [id u8][name str][app str][desc str]
                          + (version >= 2) [protocol str][protocol_version u16 LE]
 
-    where ``str`` = ``[len u8][bytes]``. Returns None on a malformed payload
-    (a record truncated mid-way is dropped, the ones before it are kept: the
-    device itself trims records that would not fit the frame)."""
+    where ``str`` = ``[len u8][bytes]``. A version above
+    :data:`DISCOVERY_VERSION_KNOWN` is parsed with the version-2 record layout
+    and any bytes after the last record are ignored (the layout contract, see
+    there). Returns None on a malformed payload (a record truncated mid-way is
+    dropped, the ones before it are kept: the device itself trims records that
+    would not fit the frame)."""
     p = fr.payload
     if len(p) < 3:
         return None
