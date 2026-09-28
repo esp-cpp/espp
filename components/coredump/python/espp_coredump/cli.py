@@ -12,6 +12,8 @@ Commands:
 
 VID/PID default to the coredump example's ids (0x1209:0x0d36) but can be
 overridden (also via the ESPP_COREDUMP_VID / ESPP_COREDUMP_PID env vars). The
+dispatcher module id is discovered from the device (it advertises which module
+speaks "espp.coredump"); --module / ESPP_COREDUMP_MODULE force one. The
 ``idf.py coredump-usb`` action (idf_ext.py) drives the ``summary`` / ``debug``
 commands with the project's ELF; the CMake fallback targets forward the env vars.
 """
@@ -26,7 +28,8 @@ from typing import Optional
 from . import __version__, decoder, ui
 from .client import DEFAULT_CHUNK, CoreDumpClient
 from .elf import extract_elf
-from .protocol import MAX_READ_LENGTH, MODULE, CoreDumpError
+from .protocol import (MAX_READ_LENGTH, MODULE, MODULE_APP, MODULE_NAME, PROTOCOL,
+                       PROTOCOL_VERSION, CoreDumpError, describe_resolution, resolve_module_id)
 from .transport import DEFAULT_PID, DEFAULT_VID, TransportError, UsbVendorTransport, list_devices
 
 CON = ui.Console()
@@ -62,6 +65,26 @@ def _add_device_args(p: argparse.ArgumentParser) -> None:
                    help="match a specific device serial number")
     p.add_argument("--interface", type=_auto_int, default=None,
                    help="force a specific vendor interface number")
+    p.add_argument("--module", type=_auto_int, default=_env_opt_int("ESPP_COREDUMP_MODULE"),
+                   help="dispatcher module id to talk to (default: the one the device advertises "
+                        f"for {PROTOCOL} through discovery, else {MODULE})")
+
+
+def _env_opt_int(name: str) -> Optional[int]:
+    val = os.environ.get(name)
+    return _auto_int(val) if val else None
+
+
+def _report_resolution(client: CoreDumpClient, quiet: bool = False) -> None:
+    """Resolve the module id now (instead of silently on the first request)
+    and say how it was chosen; warnings are always shown."""
+    r = client.resolve_module()
+    if not quiet:
+        CON.info("  " + describe_resolution("Core dump", r, protocol=PROTOCOL, app=MODULE_APP,
+                                            name=MODULE_NAME,
+                                            answered=client.discovered is not None))
+    for w in r.warnings:
+        CON.warn(w)
 
 
 def _add_transfer_args(p: argparse.ArgumentParser) -> None:
@@ -80,14 +103,20 @@ def _make_transport(args) -> UsbVendorTransport:
                               interface=args.interface)
 
 
-def _make_client(args, t, progress=None) -> CoreDumpClient:
-    return CoreDumpClient(
+def _make_client(args, t, progress=None, resolve: bool = True) -> CoreDumpClient:
+    """A client on transport ``t``; with ``resolve`` (the default) the module
+    id is resolved from discovery right away and reported."""
+    client = CoreDumpClient(
         t,
         chunk_size=getattr(args, "chunk_size", DEFAULT_CHUNK),
         progress=progress,
         timeout_ms=getattr(args, "timeout", 5000),
         retries=getattr(args, "retries", 2),
+        module=getattr(args, "module", None),
     )
+    if resolve:
+        _report_resolution(client, quiet=getattr(args, "quiet", False))
+    return client
 
 
 # -- the download itself, shared by `download` and `debug` --------------------
@@ -137,18 +166,26 @@ def _cmd_list(args) -> int:
 
 def _cmd_discover(args) -> int:
     with _make_transport(args) as t:
-        info = _make_client(args, t).discover(timeout_ms=args.discover_timeout)
+        info = _make_client(args, t, resolve=False).discover(timeout_ms=args.discover_timeout)
     if info is None:
         CON.warn("no discovery reply (device may not run a Dispatcher on the vendor interface)")
         return 1
     CON.note(f"● {info.device_name or '(unnamed device)'}"
-             + (f"  firmware {info.firmware}" if info.firmware else ""))
+             + (f"  firmware {info.firmware}" if info.firmware else "")
+             + f"  (discovery v{info.version})")
     for m in info.modules:
-        print(f"  module {m.id:3d}  {m.name:<24} {m.app:<28} {m.description}")
-    if not info.has_module(MODULE):
-        CON.warn(f"the device does not advertise the Core Dump module (id {MODULE})")
-        return 1
-    return 0
+        proto = (m.protocol + (f" v{m.protocol_version}" if m.protocol_version else "")
+                 if m.protocol else "-")
+        print(f"  module {m.id:3d}  {m.name:<20} {proto:<26} {m.app:<24} {m.description}")
+    # which module this tool would talk to (the id is only a routing key)
+    r = resolve_module_id(info, protocol=PROTOCOL, protocol_version=PROTOCOL_VERSION,
+                          app=MODULE_APP, name=MODULE_NAME, fallback=MODULE,
+                          override=args.module)
+    CON.info("  " + describe_resolution("Core dump", r, protocol=PROTOCOL, app=MODULE_APP,
+                                        name=MODULE_NAME, answered=True))
+    for w in r.warnings:
+        CON.warn(w)
+    return 0 if r.source != "default" else 1
 
 
 def _cmd_summary(args) -> int:

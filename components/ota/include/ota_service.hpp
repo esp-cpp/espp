@@ -93,6 +93,11 @@ public:
   /// OTA console and the `espp_ota` CLI expect. See Config::module to serve on
   /// a different id.
   static constexpr uint8_t kModule = espp::detail::ota_stream::kModule;
+  /// Stable protocol identifier + version advertised through discovery
+  /// (Dispatcher::ModuleInfo::protocol); hosts locate the OTA module by this
+  /// rather than by its (configurable) module id.
+  static constexpr const char *kProtocol = "espp.ota";
+  static constexpr uint16_t kProtocolVersion = 1;
 
   /// Transmits one encoded reply frame to the host.
   using send_fn = std::function<void(std::span<const uint8_t> frame)>;
@@ -137,7 +142,9 @@ public:
   Dispatcher::ModuleInfo module_info() const {
     return {.name = "OTA",
             .app = "ota_console.html",
-            .description = "Firmware update over the framed stream"};
+            .description = "Firmware update over the framed stream",
+            .protocol = kProtocol,
+            .protocol_version = kProtocolVersion};
   }
 
   /// @brief Whether an update session begun through THIS service is in progress.

@@ -142,6 +142,11 @@ public:
   /// Config::module to serve on a different id. Reply Msg values keep the
   /// high bit set, which build() maps to the frame reply flag.
   static constexpr uint8_t kModule = 4;
+  /// Stable protocol identifier + version advertised through discovery
+  /// (Dispatcher::ModuleInfo::protocol); hosts locate the core-dump module by
+  /// this rather than by its (configurable) module id.
+  static constexpr const char *kProtocol = "espp.coredump";
+  static constexpr uint16_t kProtocolVersion = 1;
 
   /// Maximum image bytes per READ request / DATA reply (the DATA payload is
   /// a 4-byte offset plus the data, capped by the framing's payload limit).
@@ -184,7 +189,9 @@ public:
   Dispatcher::ModuleInfo module_info() const {
     return {.name = "Core Dump",
             .app = "coredump_console.html",
-            .description = "Inspect the last crash core dump"};
+            .description = "Inspect the last crash core dump",
+            .protocol = kProtocol,
+            .protocol_version = kProtocolVersion};
   }
 
   /**

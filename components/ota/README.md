@@ -89,9 +89,10 @@ usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { link.push(d
 
 - construct with the `Ota` engine and a `send` function; `Config` also has
   `module` (the dispatcher module id the instance answers on and stamps on its
-  replies — default `kModule` = 0, which is what the OTA console and the
-  `espp_ota` CLI look for; the id is only a routing key, so move it only if
-  your host tooling is told the new id), `auto_restart` (default true: reply
+  replies — default `kModule` = 0; the id is only a routing key: the OTA
+  console and the `espp_ota` CLI find it through dispatcher discovery by the
+  service's protocol id `espp.ota` (`kProtocol`), so it can be moved freely),
+  `auto_restart` (default true: reply
   `OK` to `FINISH`, then restart after `restart_delay`, 750 ms) and
   `on_update_finished` (run your own logic / `Ota::restart()` when
   `auto_restart` is off)

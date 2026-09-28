@@ -21,7 +21,8 @@ class MockDevice:
     The host writes request frames; ``read()`` returns the device's replies.
     Set ``fail_after`` to make the device answer a DATA frame with ERROR."""
 
-    def __init__(self, fail_after=None, emit_progress=False):
+    def __init__(self, fail_after=None, emit_progress=False, module=0, discovery_version=2,
+                 protocol=P.PROTOCOL, protocol_version=1, answer_discovery=True):
         self._parser = F.StreamParser()
         self._out = bytearray()
         self.image = bytearray()
@@ -30,6 +31,33 @@ class MockDevice:
         self.finished = False
         self._fail_after = fail_after
         self._emit_progress = emit_progress
+        # the dispatcher module OTA is served on (a routing key: the client is
+        # expected to find it through discovery, not assume 0)
+        self.module = module
+        self.discovery_version = discovery_version  # 1 = pre-protocol-id records
+        self.protocol = protocol
+        self.protocol_version = protocol_version
+        self.answer_discovery = answer_discovery    # False = no Dispatcher discovery at all
+        self.discovery_requests = 0
+        self.request_modules = set()                # every module id a request arrived on
+
+    def discovery_payload(self):
+        """The describe() TLV: a v1 payload (records end after the description)
+        or v2 (records add [protocol str][protocol_version u16 LE])."""
+        def s(text):
+            b = text.encode()
+            return bytes([len(b)]) + b
+
+        def record(mid, name, app, desc, proto, pver):
+            r = bytes([mid]) + s(name) + s(app) + s(desc)
+            if self.discovery_version >= 2:
+                r += s(proto) + struct.pack("<H", pver)
+            return r
+        return (bytes([self.discovery_version, 0]) + s("espp OTA") + s("1.0.0") + bytes([2])
+                + record(4, "Core Dump", "coredump_console.html", "Inspect the last crash",
+                         "espp.coredump", 1)
+                + record(self.module, "OTA", "ota_console.html", "Firmware update",
+                         self.protocol, self.protocol_version))
 
     def write(self, data, timeout_ms=0):
         for fr in self._parser.feed(data):
@@ -48,11 +76,21 @@ class MockDevice:
         return chunk
 
     def _reply(self, b):
-        self._out += b
+        # replies go out on the module OTA is served on (OtaService stamps its
+        # Config::module on every reply)
+        parsed = F.StreamParser().feed(b)[0]
+        self._out += F.build_frame(self.module, parsed.type, parsed.payload, reply=True)
 
     def _handle(self, fr):
-        if fr.module != P.MODULE:
+        if fr.module == P.DISCOVERY_MODULE and fr.type == P.DISCOVERY_LIST_MODULES:
+            self.discovery_requests += 1
+            if self.answer_discovery:
+                self._out += F.build_frame(P.DISCOVERY_MODULE, P.DISCOVERY_LIST_MODULES,
+                                           self.discovery_payload(), reply=True)
             return
+        if fr.module != self.module:
+            return
+        self.request_modules.add(fr.module)
         t = fr.type
         if t == MessageType.BEGIN:
             # Emulate a stale session left by a prior interrupted flash: reject the
@@ -222,6 +260,99 @@ def test_begin_busy_recovers():
         and dev.finished)
 
 
+def test_discovery_and_module_resolution():
+    dev = MockDevice(module=9)
+    info = OtaClient(dev).discover(timeout_ms=100)
+    _ok("discover decodes the v2 TLV", info is not None and info.version == 2
+        and info.device_name == "espp OTA" and len(info.modules) == 2
+        and info.modules[1].protocol == "espp.ota" and info.modules[1].protocol_version == 1
+        and info.modules[0].protocol == "espp.coredump")
+    v1 = OtaClient(MockDevice(discovery_version=1)).discover(timeout_ms=100)
+    _ok("discover decodes a v1 TLV (no protocol fields)", v1 is not None and v1.version == 1
+        and v1.modules[1].protocol == "" and v1.modules[1].protocol_version == 0)
+    _ok("discover: silent device -> None",
+        OtaClient(MockDevice(answer_discovery=False)).discover(timeout_ms=50) is None)
+    # the resolution rule (shared with the coredump tool and the consoles)
+    ident = dict(protocol="espp.ota", protocol_version=1, app="ota_console.html", name="OTA",
+                 fallback=0)
+    R = P.resolve_module_id
+    r = R(info, **ident)
+    _ok("resolve: protocol id -> the served module", r.id == 9 and r.source == "protocol"
+        and not r.warnings)
+    r = R(v1, **ident)
+    _ok("resolve: v1 device found by app filename", r.id == 0 and r.source == "app")
+    r = R(None, **ident)
+    _ok("resolve: no reply -> default silently", r.id == 0 and r.source == "default"
+        and not r.warnings)
+    other = P.DiscoveryInfo(2, "d", "1", [P.ModuleInfo(4, "Core Dump", "coredump_console.html",
+                                                       "", "espp.coredump", 1)])
+    r = R(other, **ident)
+    _ok("resolve: nothing matches -> default + warning", r.id == 0 and r.source == "default"
+        and len(r.warnings) == 1 and "Core Dump (#4)" in r.warnings[0])
+    newer = P.DiscoveryInfo(2, "d", "1", [P.ModuleInfo(0, "OTA", "", "", "espp.ota", 2)])
+    r = R(newer, **ident)
+    _ok("resolve: protocol version mismatch warns", r.id == 0 and r.protocol_version == 2
+        and len(r.warnings) == 1 and "v2" in r.warnings[0] and "v1" in r.warnings[0])
+    r = R(info, override=4, **ident)
+    _ok("resolve: override wins, other protocol warns", r.id == 4 and r.source == "override"
+        and len(r.warnings) == 1 and "espp.coredump" in r.warnings[0])
+    two = P.DiscoveryInfo(2, "d", "1", [P.ModuleInfo(1, "A", "", "", "espp.ota", 1),
+                                       P.ModuleInfo(2, "B", "", "", "espp.ota", 1)])
+    r = R(two, **ident)
+    _ok("resolve: several candidates -> first + warning", r.id == 1 and len(r.warnings) == 1
+        and "A (#1)" in r.warnings[0] and "B (#2)" in r.warnings[0])
+    r = R(P.DiscoveryInfo(3, "d", "1", [P.ModuleInfo(0, "OTA", "", "", "espp.ota", 1)]), **ident)
+    _ok("resolve: newer payload version warns", r.id == 0 and len(r.warnings) == 1
+        and "v3" in r.warnings[0])
+
+
+def test_client_adopts_discovered_module():
+    # the device serves OTA on module 9: the whole session runs on 9
+    dev = MockDevice(module=9)
+    image = bytes(range(256)) * 20
+    client = OtaClient(dev, chunk_size=1024)
+    client.flash(image)
+    _ok("flash on the discovered module", dev.finished and bytes(dev.image) == image
+        and client.module == 9 and client.resolution.source == "protocol"
+        and dev.request_modules == {9} and dev.discovery_requests == 1)
+    st = client.get_status()
+    _ok("later requests reuse the resolved id (no second probe)",
+        st.rollback_supported and dev.discovery_requests == 1)
+    # a v1 device (no protocol id) is found by its app filename
+    dev = MockDevice(module=9, discovery_version=1)
+    client = OtaClient(dev)
+    client.get_status()
+    _ok("v1 device found by app", client.module == 9 and client.resolution.source == "app")
+    # no discovery at all -> the default id after the (short) probe timeout
+    dev = MockDevice(answer_discovery=False)
+    client = OtaClient(dev, discover_timeout_ms=50)
+    client.get_status()
+    _ok("silent device -> default id", client.module == 0
+        and client.resolution.source == "default" and client.discovered is None)
+    # an explicit module skips discovery and is used as given
+    dev = MockDevice(module=9)
+    client = OtaClient(dev, module=9)
+    client.get_status()
+    _ok("explicit module: no discovery", dev.discovery_requests == 0 and client.module == 9)
+    r = client.resolve_module()
+    _ok("explicit module reported as override", r.source == "override" and r.id == 9
+        and not r.warnings and client.module == 9)
+    try:
+        OtaClient(dev, module=0xFF)
+        _ok("module 0xFF refused", False)
+    except ValueError:
+        _ok("module 0xFF refused", True)
+
+
+def test_cli_module_option():
+    import espp_ota.cli as cli
+    parser = cli.build_parser()
+    _ok("cli: --module parses on every sub-command (hex ok)",
+        parser.parse_args(["status", "--module", "0x9"]).module == 9
+        and parser.parse_args(["flash", "x.bin", "--module", "3"]).module == 3
+        and parser.parse_args(["discover"]).module is None)
+
+
 def test_transport_timeout_classification():
     from espp_ota.transport import UsbVendorTransport
 
@@ -287,7 +418,7 @@ def test_idf_extension():
         action["callback"] is not None and action["dependencies"] == ["all"]
         and {"--binary", "--chunk-size", "--no-verify", "--verify-timeout", "--quiet",
              "--status", "--mark-valid", "--rollback", "--vid", "--pid", "--serial",
-             "--interface"} <= names)
+             "--interface", "--module"} <= names)
     _ok("idf_ext declares the extension version", "version" in ext)
     _ok("idf_ext skips a second registration",
         X.action_extensions({"actions": {X.ACTION_NAME: {}}}, "/proj") == {})
@@ -325,6 +456,9 @@ def test_idf_extension():
             and X.build_tool_argv("/nonexistent", mark_valid=True) == ["mark-valid"]
             and X.build_tool_argv("/nonexistent", rollback=True, serial="S1")
             == ["rollback", "--serial", "S1"])
+        _ok("idf_ext: --module is forwarded with the device options",
+            X.build_tool_argv("/nonexistent", status=True, module="9") == ["status", "--module", "9"]
+            and X.build_tool_argv(build_dir, module="0x9") == ["flash", binary, "--module", "0x9"])
         try:
             X.build_tool_argv(build_dir, status=True, rollback=True)
             _ok("idf_ext: two mode flags are refused", False)
@@ -397,6 +531,9 @@ if __name__ == "__main__":
     test_rollback_reboots_no_reply()
     test_rollback_disconnect_is_success()
     test_rollback_refused_raises()
+    test_discovery_and_module_resolution()
+    test_client_adopts_discovered_module()
+    test_cli_module_option()
     test_transport_timeout_classification()
     test_component_loader()
     test_idf_extension()

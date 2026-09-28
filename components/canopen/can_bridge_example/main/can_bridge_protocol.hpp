@@ -30,6 +30,11 @@ namespace can_bridge {
 /// CAN console expects. The example registers under `kCanBridgeModule`
 /// (can_bridge_example.cpp), which defaults to this.
 static constexpr uint8_t kModuleId = 5;
+/// Stable protocol identifier + version advertised through discovery
+/// (Dispatcher::ModuleInfo::protocol); the CAN console and DS402 panel locate
+/// the bridge module by this rather than by its module id.
+static constexpr const char *kProtocol = "espp.can-bridge";
+static constexpr uint16_t kProtocolVersion = 1;
 
 /// Host -> device (requests, high nibble 5).
 enum : uint8_t {

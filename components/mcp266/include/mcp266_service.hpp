@@ -129,7 +129,9 @@ public:
   Dispatcher::ModuleInfo module_info() const {
     return {.name = "MCP266",
             .app = "mcp266_console.html",
-            .description = "Configure & command MCP266 motors"};
+            .description = "Configure & command MCP266 motors",
+            .protocol = mcp266_protocol::kProtocol,
+            .protocol_version = mcp266_protocol::kProtocolVersion};
   }
 
   /// @brief The mutex serializing use of the driver (take it around your own

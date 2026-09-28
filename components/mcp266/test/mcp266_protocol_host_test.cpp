@@ -23,7 +23,10 @@ int main() {
   // ---- direction convention ----
   CHECK(!proto::is_reply(static_cast<uint8_t>(proto::Request::Start)));
   CHECK(proto::is_reply(static_cast<uint8_t>(proto::Reply::Status)));
-  static_assert(proto::kModuleId == 6, "the MCP266 console web app expects module 6");
+  static_assert(proto::kModuleId == 6, "6 is the published default the console falls back to");
+  static_assert(std::string_view(proto::kProtocol) == "espp.mcp266",
+                "the MCP266 console web app locates the module by this protocol id");
+  static_assert(proto::kProtocolVersion == 1);
 
   // ---- axis selector: only 0 / 1 are valid ----
   CHECK(proto::parse_axis(0) == proto::Axis::M1 && proto::parse_axis(1) == proto::Axis::M2);

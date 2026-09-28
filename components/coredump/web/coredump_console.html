@@ -25,7 +25,9 @@
     - 9-byte header. flags u8: bit0 = reply (0 host->device request,
       1 device->host reply); bits 4-7 = protocol version = 1. So a request
       byte = 0x10, a reply = 0x11.
-    - module u8: coredump is module 4; the crash-trigger command is module 1.
+    - module u8: coredump is module 4 and the crash-trigger command module 1 by
+      default (routing keys; the ids actually used are discovered from the
+      device, see resolveModuleId).
     - crc32 = zlib CRC-32 over the 9-byte header + payload; max payload 4096 B.
 
     Core-dump protocol messages (MODULE 4):
@@ -337,7 +339,7 @@
 
     <footer>
       Speaks the espp <code>coredump</code> component's stream service (v2 frames shared with the espp
-      OTA framing: magic "OT" + flags + module + type + len + payload + CRC-32; coredump is module 4,
+      OTA framing: magic "OT" + flags + module + type + len + payload + CRC-32; coredump is module 4 by default (discovered on connect),
       message types 0x40-0x43 / 0xC0-0xC4, one request in flight). Everything runs locally in your browser.
     </footer>
   </div>
@@ -355,11 +357,25 @@
     const HEADER_SIZE = 9, CRC_SIZE = 4;
     const MAX_PAYLOAD = 4096;
     const MAX_FRAME = HEADER_SIZE + MAX_PAYLOAD + CRC_SIZE;
-    const MODULE_COREDUMP = 4;               // coredump protocol lives on module 4
-    const MODULE_CRASH = 1;                  // test-crash trigger command lives on module 1
+    // The dispatcher module byte is only a routing key: the core dump service
+    // is published on module 4 (and the coredump example's test-crash trigger
+    // on module 1) by default, but a device may serve them on any id. The ids
+    // actually used are resolved on connect from the device's discovery reply
+    // (by the advertised protocol id, then app / name), from ?module=N (core
+    // dump only), or fall back to the defaults. The PROTOCOL constants mirror
+    // CoreDumpService::kProtocol(Version) / the example's kCrashProtocol(Version).
+    const DEFAULT_MODULE_COREDUMP = 4, DEFAULT_MODULE_CRASH = 1;
+    const COREDUMP_PROTOCOL = "espp.coredump", COREDUMP_PROTOCOL_VERSION = 1;
+    const CRASH_PROTOCOL = "espp.coredump-crash-trigger", CRASH_PROTOCOL_VERSION = 1;
+    const COREDUMP_IDENT = { protocol: COREDUMP_PROTOCOL, protocolVersion: COREDUMP_PROTOCOL_VERSION,
+                             app: "coredump_console.html", name: "Core Dump", fallback: DEFAULT_MODULE_COREDUMP, override: null };
+    const CRASH_IDENT = { protocol: CRASH_PROTOCOL, protocolVersion: CRASH_PROTOCOL_VERSION,
+                          app: "", name: "Crash Trigger", fallback: DEFAULT_MODULE_CRASH, override: null };
+    let MODULE_COREDUMP = DEFAULT_MODULE_COREDUMP; // adopted by adoptModules() before the first request
+    let MODULE_CRASH = DEFAULT_MODULE_CRASH;
     // Reserved dispatcher discovery module: a device running an espp::Dispatcher
-    // answers a ListModules query on 0xFF with the modules it serves, so we can
-    // confirm the core dump module is present before driving it.
+    // answers a ListModules query on 0xFF with the modules it serves, which is
+    // how the module ids above are found before driving the device.
     const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
     const DISCOVERY_TIMEOUT_MS = 800;        // module-presence probe (0xFF ListModules) timeout
     const FLAGS_VERSION = 1;                 // protocol version lives in flags bits 4-7
@@ -843,7 +859,7 @@
       }
     });
 
-    function onConnected(t) {
+    async function onConnected(t) {
       transport = t;
       parser.reset();
       consoleCarry = "";
@@ -851,7 +867,9 @@
       setStatus("connected", "Connected");
       els.devInfo.textContent = "Connected: " + t.name;
       logLine("sys", "Connected (" + (t.kind === "usb" ? "WebUSB vendor interface" : "Web Serial / CDC") + ").");
-      checkModulePresent().catch(() => {}); // best-effort: warn if this device lacks the core dump module
+      // Resolve the module ids from discovery BEFORE the first request.
+      try { await checkModulePresent(); } catch (_) {}
+      if (transport !== t) return; // the link dropped while probing
       refreshSummary(); // fetch summary + size right away
     }
 
@@ -968,17 +986,112 @@
       let i = 0;
       const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
       const u8 = () => { need(1); return payload[i++]; };
+      const u16 = () => { need(2); const v = payload[i] | (payload[i + 1] << 8); i += 2; return v; };
       const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
       const version = u8(); u8();            // version, reserved
       const device = str(), fw = str();
       const count = u8();
       const modules = [];
-      for (let m = 0; m < count; m++) modules.push({ id: u8(), name: str(), app: str(), desc: str() });
+      for (let m = 0; m < count; m++) {
+        const rec = { id: u8(), name: str(), app: str(), desc: str(), protocol: "", protocolVersion: 0 };
+        // Version 2 records also carry [protocol str][protocol_version u16 LE].
+        // A version newer than DISCOVERY_VERSION_KNOWN is parsed as version 2
+        // (fields we do not understand may follow; resolveModuleId warns).
+        if (version >= 2) { rec.protocol = str(); rec.protocolVersion = u16(); }
+        modules.push(rec);
+      }
       return { version, device, fw, modules };
     }
-    // Ask the device which dispatcher modules it serves and warn (best-effort) if
-    // the core dump module is not among them. No discovery reply (older firmware)
-    // -> stay quiet; the normal summary fetch still surfaces a real missing module.
+    // ---- module id resolution (identical in every espp console) --------------
+    // The dispatcher module byte is a routing key, not the identity of a
+    // service: a device may serve any protocol on any id. Identity is what the
+    // device advertises in its ListModules reply -- the protocol id first
+    // (e.g. "espp.ota"), then the hosted app filename, then the module name.
+    // Latest discovery payload version these helpers understand.
+    const DISCOVERY_VERSION_KNOWN = 2;
+    // info: parseDiscovery() output, or null when the device did not answer.
+    // ident: { protocol, protocolVersion, app, name, fallback, override } -- the
+    //   identity this console implements; `override` (from ?module=) wins.
+    // Returns { id, source: "override"|"protocol"|"app"|"name"|"default",
+    //           protocolVersion (advertised by the chosen module, else null),
+    //           warnings: [strings] }.
+    function resolveModuleId(info, ident) {
+      const norm = (s) => String(s == null ? "" : s).trim().toLowerCase();
+      const base = (s) => { const n = norm(s).split("?")[0].split("#")[0]; return n.slice(n.lastIndexOf("/") + 1); };
+      const list = (info && Array.isArray(info.modules)) ? info.modules : null;
+      const label = (m) => (m.name || m.protocol || "?") + " (#" + m.id + ")";
+      const want = String(ident.protocol || "");
+      const warnings = [];
+      if (info && info.version > DISCOVERY_VERSION_KNOWN)
+        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed as v" + DISCOVERY_VERSION_KNOWN);
+      // Finish with the chosen module (m may be null when unknown), checking
+      // that it speaks the protocol we implement, at a version we support.
+      const done = (m, source) => {
+        const v = (m && Number.isInteger(m.protocolVersion)) ? m.protocolVersion : null;
+        if (m && want && m.protocol && m.protocol !== want)
+          warnings.push("module #" + m.id + " advertises protocol " + m.protocol + ", not " + want);
+        else if (v && Number.isInteger(ident.protocolVersion) && v !== ident.protocolVersion)
+          warnings.push("device speaks " + (m.protocol || want) + " v" + v + ", this console supports v" + ident.protocolVersion);
+        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings };
+      };
+      const ov = ident.override;
+      if (Number.isInteger(ov) && ov >= 0 && ov <= 0xFE) {
+        const m = list ? list.find((x) => x.id === ov) : null;
+        if (list && !m) warnings.push("module #" + ov + " was requested but the device does not advertise it");
+        const r = done(m, "override"); r.id = ov; return r;
+      }
+      if (list) {
+        const byProto = want ? list.filter((m) => m.protocol === want) : [];
+        if (byProto.length > 1)
+          warnings.push("several modules speak " + want + " (" + byProto.map(label).join(", ") + "); using the first -- add ?module=N to the URL to pick another");
+        if (byProto.length) return done(byProto[0], "protocol");
+        const wantApp = base(ident.app), wantName = norm(ident.name);
+        const byApp = wantApp ? list.find((m) => base(m.app) === wantApp) : null;
+        if (byApp) return done(byApp, "app");
+        const byName = wantName ? list.find((m) => norm(m.name) === wantName) : null;
+        if (byName) return done(byName, "name");
+        warnings.push("the device does not advertise " + (want || ident.name || ident.app) + " (advertised: " + (list.map(label).join(", ") || "none") + "); using the default module #" + ident.fallback);
+      }
+      return { id: ident.fallback, source: "default", protocolVersion: null, warnings };
+    }
+    // The ?module=N query parameter (decimal or 0x..) overrides discovery; the
+    // Device Hub links each console this way. Null when absent or invalid.
+    function moduleOverrideFromQuery(search) {
+      const raw = new URLSearchParams(search || "").get("module");
+      if (raw == null || raw.trim() === "") return null;
+      const n = Number.parseInt(raw.trim(), raw.trim().toLowerCase().startsWith("0x") ? 16 : 10);
+      return (Number.isInteger(n) && n >= 0 && n <= 0xFE) ? n : null;
+    }
+    // One log line saying how a module id was chosen.
+    function describeModuleChoice(label, r, ident, info) {
+      const how = r.source === "override" ? "from ?module=" :
+                  r.source === "protocol" ? "advertises " + ident.protocol + (r.protocolVersion ? " v" + r.protocolVersion : "") :
+                  r.source === "app" ? "advertised as app " + ident.app :
+                  r.source === "name" ? "advertised as \"" + ident.name + "\"" :
+                  info ? "default" : "default; the device did not answer discovery";
+      return label + " module: #" + r.id + " (" + how + ")";
+    }
+    // Adopt the core dump + crash trigger module ids from a discovery reply
+    // (null = none) -- every frame built / matched from here on uses them.
+    // ?module=N applies to the core dump module only (the crash trigger is an
+    // example-only extra and is located purely by discovery).
+    function adoptModules(info) {
+      COREDUMP_IDENT.override = moduleOverrideFromQuery(location.search);
+      const r = resolveModuleId(info, COREDUMP_IDENT);
+      MODULE_COREDUMP = r.id;
+      logLine("sys", describeModuleChoice("Core dump", r, COREDUMP_IDENT, info));
+      for (const w of r.warnings) logLine("warn", w + ".");
+      const c = resolveModuleId(info, CRASH_IDENT);
+      MODULE_CRASH = c.id;
+      if (c.source !== "default")
+        logLine("sys", describeModuleChoice("Crash trigger", c, CRASH_IDENT, info));
+      // A missing crash trigger is normal (only the coredump example has one):
+      // stay quiet about it; a stale default only matters when Trigger is pressed.
+    }
+    // Ask the device which dispatcher modules it serves and adopt the module
+    // ids from the answer (adoptModules). No discovery reply (older firmware)
+    // -> the default ids; the normal summary fetch still surfaces a genuinely
+    // missing module.
     async function checkModulePresent() {
       if (!transport) return;
       const payload = await new Promise((resolve) => {
@@ -991,16 +1104,9 @@
         transport.send(buildFrame(MODULE_DISCOVERY, T_LIST_MODULES))
           .catch(() => settle(null));
       });
-      if (!payload) return;
-      let info;
-      try { info = parseDiscovery(payload); } catch (_) { return; }
-      if (info.modules.some((m) => m.id === MODULE_COREDUMP)) {
-        logLine("sys", "Device advertises " + info.modules.length + " module(s); core dump module present.");
-        return;
-      }
-      const names = info.modules.map((m) => m.name + " (#" + m.id + ")").join(", ") || "none";
-      logLine("warn", "This device does not advertise the core dump module. Detected: " + names +
-              ". You may have selected the wrong device, or its firmware lacks core dump support.");
+      let info = null;
+      if (payload) { try { info = parseDiscovery(payload); } catch (_) { info = null; } }
+      adoptModules(info);
     }
 
     // ===================================================================

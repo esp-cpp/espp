@@ -19,9 +19,11 @@
 // serves and ignores everything else (including its own replies echoed back).
 //
 // Capability discovery: a module can be registered with a ModuleInfo (name, web
-// app, description). A connected peer (e.g. a browser hub) can then ask the
-// device WHICH modules it runs — over the reserved discovery module id 0xFF —
-// and render/link each one. describe() serializes the registered modules for
+// app, description, protocol id + version). A connected peer (e.g. a browser
+// hub) can then ask the device WHICH modules it runs — over the reserved
+// discovery module id 0xFF — and render/link each one, or find the module id
+// that speaks the protocol it implements (the id is only a routing key).
+// describe() serializes the registered modules for
 // callers that own their transmit path; serve_discovery() is a one-liner that
 // auto-answers the discovery request. The Dispatcher stays a pure router: it
 // only ever sends when you opt in by giving serve_discovery() a reply function.
@@ -47,10 +49,20 @@ namespace espp {
 ///          advertised by Dispatcher::describe(). Kept short — each string is
 ///          serialized with a one-byte length, so anything past 255 bytes is
 ///          truncated. (Also available as `Dispatcher::ModuleInfo`.)
+///
+///          The module id a peer routes to is only a routing key (a device may
+///          serve any protocol on any id); a peer identifies WHICH protocol a
+///          module speaks by `protocol` (a stable, machine-readable id such as
+///          "espp.ota") and falls back to `app` / `name`. Every espp service
+///          exposes its own `kProtocol` / `kProtocolVersion` constants and
+///          fills these from them.
 struct DispatcherModuleInfo {
   std::string name;        ///< Human-readable module name, e.g. "MCP266 Console".
   std::string app;         ///< Hosted web-app filename, e.g. "mcp266_console.html" (optional).
   std::string description; ///< One-line description (optional).
+  std::string
+      protocol; ///< Stable protocol identifier, e.g. "espp.ota" (optional; machine-matched).
+  uint16_t protocol_version{0}; ///< Version of that protocol the module speaks (0 = unspecified).
 };
 
 /**
@@ -63,7 +75,8 @@ struct DispatcherModuleInfo {
  * - `uint8_t module_id() const` — the dispatcher module id it answers on.
  *   Read from the object so an id configured per instance is honored.
  * - `DispatcherModuleInfo module_info() const` — its discovery metadata
- *   (name / hosted web app / description); an empty name = not advertised.
+ *   (name / hosted web app / description / protocol id + version); an empty
+ *   name = not advertised.
  * - `void handle(const stream_frame::Frame &)` — the entry point for every
  *   frame routed to its id. It should ignore reply-flagged frames (echoes)
  *   and, when it can also be fed standalone, frames for other module ids.
@@ -114,7 +127,12 @@ public:
 
   /// @brief Version byte at the start of a describe() payload, so the wire format
   ///        can evolve without a framing change.
-  static constexpr uint8_t kDiscoveryVersion = 1;
+  /// @details 1: per-module records end after the description string.
+  ///          2: each record also carries `[protocol str][protocol_version u16
+  ///          LE]` (DispatcherModuleInfo::protocol / protocol_version). Peers
+  ///          branch on this byte; a peer seeing a version above what it knows
+  ///          should parse the records it understands and tolerate more fields.
+  static constexpr uint8_t kDiscoveryVersion = 2;
 
   /// @brief The module id a frame will route to (its `module` byte).
   static constexpr uint8_t module_of(const stream_frame::Frame &frame) { return frame.module; }
@@ -186,7 +204,9 @@ public:
   ///
   /// Layout (all lengths are one byte; strings are [len][bytes], truncated at
   /// 255): [version u8][reserved u8][device_name str][device_fw str]
-  /// [module_count u8] then per module [id u8][name str][app str][desc str].
+  /// [module_count u8] then per module [id u8][name str][app str][desc str]
+  /// [protocol str][protocol_version u16 LE] (the last two fields are new in
+  /// version 2 -- see kDiscoveryVersion; an unset protocol encodes as len 0).
   /// The reserved discovery module (0xFF) is never listed. At most 255 modules
   /// are emitted, and trailing modules are dropped if the payload would exceed
   /// stream_frame::kMaxPayloadSize -- module_count always reflects the number
@@ -216,6 +236,9 @@ public:
       append_string(record, e.info.name);
       append_string(record, e.info.app);
       append_string(record, e.info.description);
+      append_string(record, e.info.protocol);
+      record.push_back(static_cast<uint8_t>(e.info.protocol_version & 0xFF));
+      record.push_back(static_cast<uint8_t>(e.info.protocol_version >> 8));
       if (out.size() + record.size() > stream_frame::kMaxPayloadSize)
         break; // adding this record would exceed the frame payload limit
       out.insert(out.end(), record.begin(), record.end());

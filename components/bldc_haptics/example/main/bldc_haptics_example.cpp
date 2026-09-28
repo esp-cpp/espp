@@ -622,7 +622,9 @@ extern "C" void app_main(void) {
                            },
                            {.name = "BLDC Haptics",
                             .app = "haptics_console.html",
-                            .description = "Haptic detent / feedback modes"});
+                            .description = "Haptic detent / feedback modes",
+                            .protocol = haptics_proto::kProtocol,
+                            .protocol_version = haptics_proto::kProtocolVersion});
   usb_link.serve_discovery(usb_cfg.product); // reserved module 0xFF
   usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { usb_link.push(data); });
 

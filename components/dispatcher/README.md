@@ -20,17 +20,17 @@ request/reply direction (`flags`) travel with the frame and are handed to the
 module's handler untouched; the Dispatcher does not interpret them. espp's own
 protocols and examples use these ids by default:
 
-| Module    | Protocol                                       |
-|-----------|-------------------------------------------------|
-| 0         | OTA                                             |
-| 1         | Core-dump example crash trigger (example only)  |
-| 2         | BLDC haptics                                    |
-| 3         | Telemetry                                       |
-| 4         | crash dump                                      |
-| 5         | CAN bridge                                      |
-| 6         | MCP266                                          |
-| 0xF0–0xFE | reserved (meta)                                 |
-| 0xFF      | capability discovery                            |
+| Module    | Protocol                                       | Protocol id (discovery)       |
+|-----------|-------------------------------------------------|-------------------------------|
+| 0         | OTA                                             | `espp.ota` v1                 |
+| 1         | Core-dump example crash trigger (example only)  | `espp.coredump-crash-trigger` v1 |
+| 2         | BLDC haptics                                    | `espp.haptics` v1             |
+| 3         | Telemetry                                       | `espp.telemetry` v1           |
+| 4         | crash dump                                      | `espp.coredump` v1            |
+| 5         | CAN bridge                                      | `espp.can-bridge` v1          |
+| 6         | MCP266                                          | `espp.mcp266` v1              |
+| 0xF0–0xFE | reserved (meta)                                 | —                             |
+| 0xFF      | capability discovery                            | —                             |
 
 A device-side dispatcher registers the modules it serves; frames for an
 unregistered module are silently ignored. A protocol's replies use the **same**
@@ -42,10 +42,19 @@ assign any unused module id to its own protocol — nothing is hard-wired to a
 specific service. The ids above are **defaults**: the module id is only a routing
 key, and every espp service takes its id from `Config::module` (used for both
 the requests it accepts and the replies it sends — `kModule` is just the
-default), while each example module keeps its id in one named constant. The
-defaults are what the hosted web consoles and the `espp_ota` CLI look for, so a
-device that moves a service off its default must also tell its host tooling the
-new id.
+default), while each example module keeps its id in one named constant.
+
+**The id is not how a peer identifies a protocol.** Every espp service also
+carries a stable **protocol id** (`kProtocol`, e.g. `"espp.ota"`, plus a
+`kProtocolVersion`) in the `ModuleInfo` it advertises through capability
+discovery (below). The hosted web consoles and the `espp_ota` / `espp_coredump`
+host tools query discovery on connect and talk to whichever module advertises
+*their* protocol id (then, for firmware predating protocol ids, the module
+advertising their app filename or name), falling back to the default id only
+when the device does not answer discovery at all. So a device is free to move a
+service to any id: discovery tells its hosts where it went. (`?module=N` on a
+console URL, or `--module N` on the CLIs, forces an id; the Device Hub links
+each console that way.)
 
 ## API
 
@@ -111,14 +120,23 @@ usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { link.push(d
 
 ## Capability discovery
 
-A module can be registered with a `ModuleInfo` (name / web app / description) so a
-connected peer can ask the device **which** modules it runs — over the reserved
-discovery module id `0xFF` — and render or link each one. This powers the browser
-**Device Hub** app (`components/dispatcher/web/dispatcher_hub.html`, hosted at
+A module can be registered with a `ModuleInfo` (name / web app / description /
+protocol id + version) so a connected peer can ask the device **which** modules
+it runs — over the reserved discovery module id `0xFF` — and render or link each
+one, or find the module that speaks the protocol the peer implements. This
+powers the browser **Device Hub** app
+(`components/dispatcher/web/dispatcher_hub.html`, hosted at
 `apps/dispatcher_hub.html`): connect over WebUSB / Web Serial, and it lists the
-device's modules as tabs, each linking to that module's own web app.
+device's modules as tabs, each linking to that module's own web app (with the
+module id in the link), and it is how every module console and host tool finds
+its module id on connect.
 
-- `struct ModuleInfo { std::string name, app, description; };`
+- `struct ModuleInfo { std::string name, app, description, protocol; uint16_t protocol_version; };`
+  — `protocol` is a stable machine-matched identifier (`"espp.ota"`, ...; see
+  the table above), `protocol_version` the version of it the module speaks
+  (0 = unspecified). Every espp service fills them from its own
+  `kProtocol` / `kProtocolVersion` constants. Both are optional; a plain
+  `ModuleInfo{.name, .app, .description}` initializer still compiles.
 - `void register_module(uint8_t id, handler_fn handler, ModuleInfo info)` — the
   registration overload that carries metadata (a module with an empty `name` is
   not advertised).
@@ -140,12 +158,27 @@ dispatcher.serve_discovery([&](std::span<const uint8_t> frame) { usb.write_vendo
 
 The discovery reply payload is a compact binary TLV (all lengths one byte;
 strings are `[len][bytes]`): `[version][reserved][device_name][device_fw]
-[module_count]` then per module `[id][name][app][description]`. The reserved
-discovery module (`0xFF`) never lists itself.
+[module_count]` then per module `[id][name][app][description][protocol]
+[protocol_version u16 LE]`. `version` is `Dispatcher::kDiscoveryVersion`
+(currently **2**); version-1 records (firmware predating protocol ids) end
+after `[description]`, so a parser branches on the version byte and treats an
+unknown newer version as 2 (more fields may follow). An unset protocol encodes
+as a zero-length string. The reserved discovery module (`0xFF`) never lists
+itself.
+
+How a peer picks the module to talk to, given the reply (the rule every espp
+console and host tool implements — `resolveModuleId` in the web apps,
+`resolve_module_id` in `espp_ota` / `espp_coredump`): an explicit override
+(`?module=N` / `--module N`) first; else the first module whose `protocol`
+equals the peer's (several → the first, with a warning); else the module whose
+`app` filename matches; else the module whose `name` matches; else the
+protocol's published default id. A `protocol_version` other than the peer's is
+reported as a warning, not refused.
 
 ## Host tests
 
 ```
 c++ -std=c++20 -Werror -I components/dispatcher/include -I components/stream_frame/include \
     components/dispatcher/test/dispatcher_host_test.cpp -o test && ./test
+node components/dispatcher/web/test/resolve_module_id_test.js   # the consoles' shared discovery helpers
 ```

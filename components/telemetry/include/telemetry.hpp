@@ -75,6 +75,11 @@ public:
   /// Config::module to serve on a different id. Device->host Type values keep
   /// the high bit set, which the framing maps to the reply flag.
   static constexpr uint8_t kModule = 3;
+  /// Stable protocol identifier + version advertised through discovery
+  /// (Dispatcher::ModuleInfo::protocol); the Serial Plotter locates the
+  /// telemetry module by this rather than by its (configurable) module id.
+  static constexpr const char *kProtocol = "espp.telemetry";
+  static constexpr uint16_t kProtocolVersion = 1;
 
   /// Version byte at the head of a SCHEMA payload, so the wire format can evolve.
   static constexpr uint8_t kSchemaVersion = 1;
@@ -242,7 +247,9 @@ public:
   Dispatcher::ModuleInfo module_info() const {
     return {.name = "Serial Plotter",
             .app = "telemetry.html",
-            .description = "Live binary telemetry channels"};
+            .description = "Live binary telemetry channels",
+            .protocol = kProtocol,
+            .protocol_version = kProtocolVersion};
   }
 
   /// @brief Dispatcher handler: process one frame addressed to this module.

@@ -2,7 +2,8 @@
 
 A small, pure-Python host tool that pulls the stored core dump off an espp
 device over USB and decodes it, using the espp `stream_frame` framing + core-dump
-stream protocol (dispatcher **module 4**) — the same protocol the on-device
+stream protocol (dispatcher **module 4** by default — the tool discovers the
+id a device actually serves it on, see below) — the same protocol the on-device
 [`coredump` example](../example/) serves and
 [`coredump_console.html`](../web/coredump_console.html) drives from the browser.
 
@@ -133,8 +134,15 @@ if elf:
 
 ## Protocol
 
-`module = 4`; requests are host→device, replies device→host (reply flag set —
-the service derives it from the high bit of the type). Flow control is one
+`module = 4` by default; requests are host→device, replies device→host (reply
+flag set — the service derives it from the high bit of the type). The module
+id is only a routing key: before its first request the tool sends a dispatcher
+`ListModules` query and talks to whichever module advertises protocol id
+`espp.coredump` (for firmware predating protocol ids: the module advertising
+`coredump_console.html`, then the name "Core Dump"), falling back to 4 only
+when the device does not answer discovery. `--module N` (or
+`ESPP_COREDUMP_MODULE`) forces an id; `discover` lists what the device
+advertises and which module the tool would use. Flow control is one
 request in flight.
 
 | type | name | dir | payload |

@@ -1,8 +1,9 @@
 # espp_ota — OTA over USB from the command line
 
 A small, pure-Python host tool that updates an espp device over USB using the
-espp `stream_frame` framing + OTA stream protocol (dispatcher **module 0**) — the
-same protocol the on-device [`ota` example](../example/) serves and
+espp `stream_frame` framing + OTA stream protocol (dispatcher **module 0** by
+default — the tool discovers the id a device actually serves it on, see below)
+— the same protocol the on-device [`ota` example](../example/) serves and
 [`ota_console.html`](../web/ota_console.html) drives from the browser.
 
 It talks to the device's USB **vendor (WebUSB)** interface (`bInterfaceClass
@@ -109,7 +110,14 @@ with UsbVendorTransport() as t:                    # default VID/PID 0x1209:0x0d
 
 ## Protocol
 
-`module = 0`; requests are host→device, replies device→host (reply flag set).
+`module = 0` by default; requests are host→device, replies device→host (reply
+flag set). The module id is only a routing key: before its first request the
+tool sends a dispatcher `ListModules` query and talks to whichever module
+advertises protocol id `espp.ota` (for firmware predating protocol ids: the
+module advertising `ota_console.html`, then the name "OTA"), falling back to 0
+only when the device does not answer discovery. `--module N` (or
+`ESPP_OTA_MODULE`) forces an id; `discover` lists what the device advertises
+and which module the tool would use.
 Flow control is one request in flight — each request waits for its OK/ERROR
 reply before the next is sent.
 

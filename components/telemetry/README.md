@@ -72,7 +72,8 @@ rest, with the per-series filter bar:
   running `espp::Telemetry`: the app reads the channel schema and plots the
   device-timestamped sample stream (decoded from the `stream_frame` framing,
   dispatcher module 3 — the `espp::Telemetry` default; `Config::module` can
-  move an instance, but the app looks for 3 until told otherwise) into the same
+  move an instance, and the app finds it through discovery by its protocol id
+  `espp.telemetry`) into the same
   plot. Requests the schema on connect and can pause/resume the device stream.
 
 ## Requirements

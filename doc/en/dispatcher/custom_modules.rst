@@ -56,19 +56,19 @@ The ``module`` byte is a full byte (0..255), so up to 256 protocols can
 coexist on one stream. espp's own protocols and examples use these ids **by
 default**:
 
-=========  ========================================================
-Module id  Protocol
-=========  ========================================================
-0          OTA (firmware update, ``espp::OtaService``)
-1          Core-dump example crash trigger (example only)
-2          BLDC haptics (``components/bldc_haptics``)
-3          Telemetry (``espp::Telemetry``)
-4          Crash dump (``espp::CoreDumpService``)
-5          CAN bridge (``components/canopen``)
-6          MCP266 motor-controller console (``espp::Mcp266Service``)
+=========  ========================================================  ==================================
+Module id  Protocol                                                  Protocol id (``kProtocol``)
+=========  ========================================================  ==================================
+0          OTA (firmware update, ``espp::OtaService``)               ``espp.ota`` v1
+1          Core-dump example crash trigger (example only)            ``espp.coredump-crash-trigger`` v1
+2          BLDC haptics (``components/bldc_haptics``)                ``espp.haptics`` v1
+3          Telemetry (``espp::Telemetry``)                           ``espp.telemetry`` v1
+4          Crash dump (``espp::CoreDumpService``)                    ``espp.coredump`` v1
+5          CAN bridge (``components/canopen``)                       ``espp.can-bridge`` v1
+6          MCP266 motor-controller console (``espp::Mcp266Service``) ``espp.mcp266`` v1
 0xF0-0xFE  reserved for dispatcher / meta use
 0xFF       capability discovery
-=========  ========================================================
+=========  ========================================================  ==================================
 
 Pick any id **not** in this table (or not already used by other modules in
 your own application) for your protocol. Nothing in `espp::Dispatcher` is
@@ -100,13 +100,17 @@ espp service:
 A service uses its configured id for **everything** — the frames it accepts
 in `handle()` / `feed()`, and the `module` byte it stamps on every reply and
 notification it sends — so the request and reply sides can never disagree.
-The one thing the id does *not* change is the host: the hosted web consoles
-(``ota_console.html``, ``coredump_console.html``, ``telemetry.html``,
-``mcp266_console.html``, ...) and the ``espp_ota`` Python CLI are written
-against the **default** ids in the table, so a device that moves a service
-off its default will not be found by the stock console until that console
-(or your own host tool) is told the new id. Keep the defaults unless you have
-a reason not to; discovery still lists the actual registered id either way.
+The hosts follow: the hosted web consoles (``ota_console.html``,
+``coredump_console.html``, ``telemetry.html``, ``mcp266_console.html``, ...)
+and the ``espp_ota`` / ``espp_coredump`` Python CLIs do **not** assume the
+default id. On connect they send a discovery query and talk to whichever
+module advertises *their* protocol id (``kProtocol``, e.g. ``"espp.ota"``,
+carried in the service's `ModuleInfo` — see `Discovery + the webapp side`_);
+for firmware predating protocol ids they match the advertised app filename,
+then the module name; only a device that does not answer discovery at all is
+assumed to use the default. ``?module=N`` on a console URL (what the Device
+Hub's links carry) or ``--module N`` on a CLI forces an id. So moving a
+service is safe; the stock hosts find it.
 
 Several modules can, and routinely do, share **one** `Dispatcher` over **one**
 USB link. The `bldc_haptics` example registers OTA, the crash-dump service,
@@ -320,7 +324,9 @@ like your own module will be. The pattern has six parts:
       Dispatcher::ModuleInfo module_info() const {
         return {.name = "Core Dump",
                 .app = "coredump_console.html",
-                .description = "Inspect the last crash core dump"};
+                .description = "Inspect the last crash core dump",
+                .protocol = kProtocol,                 // "espp.coredump"
+                .protocol_version = kProtocolVersion}; // 1
       }
 
       void handle(const espp::stream_frame::Frame &frame) {
@@ -385,7 +391,11 @@ parser, no mutex, because a handler this small can run straight out of the
      //    needs.
      uint8_t module_id() const { return module_; }
      espp::Dispatcher::ModuleInfo module_info() const {
-       return {.name = "Hello", .app = "hello_console.html", .description = "PING/PONG demo module"};
+       return {.name = "Hello",
+               .app = "hello_console.html",
+               .description = "PING/PONG demo module",
+               .protocol = "example.hello", // how a host finds this module on any id
+               .protocol_version = 1};
      }
 
      // 5. Entry point: the Dispatcher handler for module_id() (skips the
@@ -711,6 +721,8 @@ Pass a third argument to `register_module()`:
      std::string name;        ///< Human-readable module name, e.g. "MCP266 Console".
      std::string app;         ///< Hosted web-app filename, e.g. "mcp266_console.html" (optional).
      std::string description; ///< One-line description (optional).
+     std::string protocol;    ///< Stable protocol identifier, e.g. "espp.ota" (optional; machine-matched).
+     uint16_t protocol_version{0}; ///< Version of that protocol the module speaks (0 = unspecified).
    };
 
    void register_module(uint8_t module_id, handler_fn handler, ModuleInfo info);
@@ -719,7 +731,13 @@ A module with an empty `name` is not advertised (the plain two-argument
 `register_module()` overload defaults to this — useful for a module you want
 routed but not shown in a hub UI). `app` must be the exact filename of your
 module's hosted web app (see `Hosting your webapp`_ below); the hub treats it
-as a same-directory relative link.
+as a same-directory relative link. `protocol` is how a host *identifies* your
+module regardless of the id it is registered on: give your protocol a stable,
+namespaced id (espp's are ``espp.ota``, ``espp.coredump``, ``espp.telemetry``,
+``espp.mcp266``, ``espp.can-bridge``, ``espp.haptics``,
+``espp.coredump-crash-trigger``) and bump `protocol_version` when the wire
+format changes; a host reports a version other than the one it implements as
+a warning. Both are new in discovery payload version 2 and optional.
 
 Answering discovery
 ----------------------
@@ -738,9 +756,23 @@ does both, using the worker's `send`):
 `Dispatcher::Discovery::ListModules` request with `describe()` — a compact
 binary payload: `[version u8][reserved u8][device_name str][device_fw str]
 [module_count u8]` then, per advertised module, `[id u8][name str][app
-str][desc str]` (each `str` is `[len u8][bytes]`). This is the **only** path
-by which a `Dispatcher` ever transmits on its own — it stays otherwise a pure
-router, and `serve_discovery()` is opt-in.
+str][desc str][protocol str][protocol_version u16 LE]` (each `str` is `[len
+u8][bytes]`; `version` is `Dispatcher::kDiscoveryVersion`, currently 2 —
+version-1 records end after `desc`, and a parser should branch on the byte
+and treat an unknown newer version as 2). This is the **only** path by which
+a `Dispatcher` ever transmits on its own — it stays otherwise a pure router,
+and `serve_discovery()` is opt-in.
+
+On the host side every espp console embeds the same small helper block
+(`parseDiscovery` / `resolveModuleId` / `moduleOverrideFromQuery`; copy it
+from any console — ``node components/dispatcher/web/test/resolve_module_id_test.js``
+checks all copies stay identical) and the Python tools share
+``espp_ota/discovery.py`` == ``espp_coredump/discovery.py``. The rule:
+``?module=N`` / ``--module N`` override first; else the first module whose
+`protocol` equals the host's (several → the first, with a warning); else
+the module whose `app` filename matches; else the one whose `name` matches;
+else the protocol's published default id. Your own console should do the
+same: it then keeps working when an application moves your module.
 
 The Device Hub
 -----------------
@@ -795,9 +827,10 @@ Checklist: shipping a new module + webapp
    parser/locking (the `CoreDumpService` pattern) — always send replies
    **after** releasing any internal lock.
 #. **Register it** with `register_module(module)` (or the three-argument form
-   with an explicit `ModuleInfo{name, app, description}`) so it's
-   discoverable; if you support both vendor and CDC, register it on **both**
-   workers / dispatchers.
+   with an explicit `ModuleInfo{name, app, description, protocol,
+   protocol_version}`) so it's discoverable — and locatable by its protocol
+   id whatever module id it ends up on; if you support both vendor and CDC,
+   register it on **both** workers / dispatchers.
 #. **Call `serve_discovery(name)`** once per `DispatcherWorker` / transport
    (or `set_device_info()` + `serve_discovery(send)` on a bare `Dispatcher`)
    so a hub (or your own console) can find the device and its modules.

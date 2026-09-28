@@ -297,7 +297,9 @@ extern "C" void app_main(void) {
   const espp::Dispatcher::ModuleInfo can_info{.name = "CAN Bridge",
                                               .app = "can_bridge_console.html",
                                               .description =
-                                                  "Raw CAN 2.0 bridge (WebUSB / Web Serial)"};
+                                                  "Raw CAN 2.0 bridge (WebUSB / Web Serial)",
+                                              .protocol = can_bridge::kProtocol,
+                                              .protocol_version = can_bridge::kProtocolVersion};
   for (auto *link : {&vendor_link, &cdc_link}) {
     link->register_module(
         kCanBridgeModule,

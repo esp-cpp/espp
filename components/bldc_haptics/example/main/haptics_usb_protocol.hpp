@@ -43,7 +43,11 @@ namespace stream = espp::stream_frame;
 /// registered.
 static constexpr uint8_t kModule = 2;
 
-/// Protocol version reported in the INFO reply.
+/// Stable protocol identifier advertised through discovery
+/// (Dispatcher::ModuleInfo::protocol); the console locates the haptics module
+/// by this rather than by its module id.
+static constexpr const char *kProtocol = "espp.haptics";
+/// Protocol version reported in the INFO reply and advertised through discovery.
 static constexpr uint8_t kProtocolVersion = 1;
 
 /// Message types carried in the frame `type` byte (within the haptics module).
