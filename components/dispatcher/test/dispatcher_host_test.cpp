@@ -138,11 +138,31 @@ struct TlvReader {
   std::span<const uint8_t> b;
   size_t p = 0;
   uint8_t u8() { return b[p++]; }
+  uint16_t u16() {
+    const uint16_t lo = u8();
+    return static_cast<uint16_t>(lo | (static_cast<uint16_t>(u8()) << 8));
+  }
   std::string str() {
     const uint8_t n = u8();
     std::string s(reinterpret_cast<const char *>(&b[p]), n);
     p += n;
     return s;
+  }
+  // One version-2 module record: [id][name][app][desc][protocol][protocol_version u16].
+  struct Record {
+    uint8_t id;
+    std::string name, app, desc, protocol;
+    uint16_t protocol_version;
+  };
+  Record record() {
+    Record r;
+    r.id = u8();
+    r.name = str();
+    r.app = str();
+    r.desc = str();
+    r.protocol = str();
+    r.protocol_version = u16();
+    return r;
   }
 };
 
@@ -151,8 +171,14 @@ static void test_discovery() {
   using D = espp::Dispatcher;
   espp::Dispatcher d;
   d.set_device_info("espp Hub", "1.2.3");
+  // A v2 record carries the protocol id + version; an initializer that omits
+  // them (the pre-v2 shape) must still compile and encode an empty protocol.
   d.register_module(0, [](const sf::Frame &) {},
-                    {.name = "OTA", .app = "ota_console.html", .description = "Firmware update"});
+                    {.name = "OTA",
+                     .app = "ota_console.html",
+                     .description = "Firmware update",
+                     .protocol = "espp.ota",
+                     .protocol_version = 0x0102});
   d.register_module(6, [](const sf::Frame &) {},
                     {.name = "MCP266", .app = "mcp266_console.html", .description = "Motors"});
   d.register_module(9, [](const sf::Frame &) {}); // no metadata -> not advertised
@@ -160,17 +186,20 @@ static void test_discovery() {
   const auto payload = d.describe();
   TlvReader r{payload};
   CHECK(r.u8() == D::kDiscoveryVersion);
-  CHECK(r.u8() == 0); // reserved
+  CHECK(D::kDiscoveryVersion == 2); // the layout walked below is the v2 layout
+  CHECK(r.u8() == 0);               // reserved
   CHECK(r.str() == "espp Hub");
   CHECK(r.str() == "1.2.3");
   const uint8_t count = r.u8();
   CHECK(count == 2); // module 9 (no name) excluded; discovery module absent
-  const uint8_t id0 = r.u8();
-  const std::string n0 = r.str(), a0 = r.str(), de0 = r.str();
-  CHECK(id0 == 0 && n0 == "OTA" && a0 == "ota_console.html" && de0 == "Firmware update");
-  const uint8_t id1 = r.u8();
-  const std::string n1 = r.str(), a1 = r.str(), de1 = r.str();
-  CHECK(id1 == 6 && n1 == "MCP266" && a1 == "mcp266_console.html" && de1 == "Motors");
+  const auto m0 = r.record();
+  CHECK(m0.id == 0 && m0.name == "OTA" && m0.app == "ota_console.html" &&
+        m0.desc == "Firmware update");
+  CHECK(m0.protocol == "espp.ota" && m0.protocol_version == 0x0102); // u16 little-endian
+  const auto m1 = r.record();
+  CHECK(m1.id == 6 && m1.name == "MCP266" && m1.app == "mcp266_console.html" &&
+        m1.desc == "Motors");
+  CHECK(m1.protocol.empty() && m1.protocol_version == 0); // unset -> len 0, version 0
   CHECK(r.p == payload.size());
 
   // serve_discovery: a ListModules request produces one reply frame carrying the
@@ -201,12 +230,12 @@ static void test_discovery_payload_bound() {
   std::printf("test_discovery_payload_bound\n");
   using D = espp::Dispatcher;
   espp::Dispatcher d;
-  const std::string big(255, 'x'); // max-length metadata (each record ~769 bytes)
+  const std::string big(255, 'x'); // max-length metadata (each record ~1027 bytes)
   for (int i = 0; i < 40; ++i)
     d.register_module(static_cast<uint8_t>(i), [](const sf::Frame &) {},
-                      {.name = big, .app = big, .description = big});
+                      {.name = big, .app = big, .description = big, .protocol = big});
   const auto payload = d.describe();
-  // 40 * ~769 bytes >> kMaxPayloadSize, so describe() must truncate to fit.
+  // 40 * ~1027 bytes >> kMaxPayloadSize, so describe() must truncate to fit.
   CHECK(payload.size() <= sf::kMaxPayloadSize);
   // The count must match the records that actually fit, and the walk must consume
   // exactly the payload (self-consistent: no short/trailing bytes).
@@ -216,12 +245,8 @@ static void test_discovery_payload_bound() {
   r.str();
   r.str(); // device name, fw
   const uint8_t count = r.u8();
-  for (uint8_t m = 0; m < count; ++m) {
-    r.u8();
-    r.str();
-    r.str();
-    r.str();
-  }
+  for (uint8_t m = 0; m < count; ++m)
+    r.record();
   CHECK(r.p == payload.size());
   CHECK(count > 0 && count < 40); // some fit, some were dropped
   // The resulting payload must be encodable as a frame (i.e. within the cap).

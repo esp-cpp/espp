@@ -89,10 +89,15 @@ public:
   /// The OTA wire protocol (message types, frame builders).
   using MessageType = espp::detail::ota_stream::MessageType;
 
-  /// Default dispatcher module id of the OTA protocol (0): the id the hosted
-  /// OTA console and the `espp_ota` CLI expect. See Config::module to serve on
-  /// a different id.
+  /// Default dispatcher module id of the OTA protocol (0). Only a routing
+  /// key: Config::module serves on any id, and the hosted OTA console and the
+  /// `espp_ota` CLI find it there through discovery (by kProtocol).
   static constexpr uint8_t kModule = espp::detail::ota_stream::kModule;
+  /// Stable protocol identifier + version advertised through discovery
+  /// (Dispatcher::ModuleInfo::protocol); hosts locate the OTA module by this
+  /// rather than by its (configurable) module id.
+  static constexpr const char *kProtocol = "espp.ota";
+  static constexpr uint16_t kProtocolVersion = 1;
 
   /// Transmits one encoded reply frame to the host.
   using send_fn = std::function<void(std::span<const uint8_t> frame)>;
@@ -103,9 +108,9 @@ public:
   struct Config {
     send_fn send{nullptr}; ///< Transmits an encoded reply frame (required).
     /// Dispatcher module id this instance answers on (and stamps on its
-    /// replies). The module id is purely a routing key; the default (kModule,
-    /// 0) is what the stock OTA console / `espp_ota` CLI look for, so change it
-    /// only if your host tooling is told the new id.
+    /// replies). The module id is purely a routing key: the stock OTA console
+    /// / `espp_ota` CLI find whichever id is chosen through discovery (by
+    /// kProtocol), so any id 0x00..0xEF is fine (0xF0..0xFF are reserved).
     uint8_t module{kModule};
     /// Restart the device after a successful FINISH (after the OK reply).
     bool auto_restart{true};
@@ -137,7 +142,9 @@ public:
   Dispatcher::ModuleInfo module_info() const {
     return {.name = "OTA",
             .app = "ota_console.html",
-            .description = "Firmware update over the framed stream"};
+            .description = "Firmware update over the framed stream",
+            .protocol = kProtocol,
+            .protocol_version = kProtocolVersion};
   }
 
   /// @brief Whether an update session begun through THIS service is in progress.

@@ -179,19 +179,36 @@ class UsbVendorTransport:
         if n != len(data):
             raise TransportError(f"short write: {n}/{len(data)} bytes")
 
+    @staticmethod
+    def is_usb_timeout(core, exc) -> bool:
+        """Whether a pyusb ``USBError`` is a transfer timeout (expected: poll
+        again) rather than a real I/O error (must propagate). pyusb >= 1.1
+        raises the ``USBTimeoutError`` subclass; older pyusb raises a plain
+        ``USBError`` carrying THIS platform's ETIMEDOUT (``errno.ETIMEDOUT``:
+        110 on Linux, 60 on macOS / BSD; ``errno.WSAETIMEDOUT`` on Windows) or
+        the libusb backend code ``LIBUSB_ERROR_TIMEOUT`` (-7). Only the current
+        platform's values count -- another OS's number is an unrelated error
+        here -- and an unknown errno is NOT a timeout: that would silently
+        swallow backend failures."""
+        import errno
+
+        timeout_cls = getattr(core, "USBTimeoutError", None)
+        if timeout_cls is not None and isinstance(exc, timeout_cls):
+            return True
+        timeout_errnos = {errno.ETIMEDOUT}
+        wsa_timeout = getattr(errno, "WSAETIMEDOUT", None)  # Windows only
+        if wsa_timeout is not None:
+            timeout_errnos.add(wsa_timeout)
+        if getattr(exc, "errno", None) in timeout_errnos:
+            return True
+        return getattr(exc, "backend_error_code", None) == -7
+
     def read(self, max_len: int, timeout_ms: int = 5000) -> bytes:
         """Read up to ``max_len`` bytes; return ``b""`` on timeout (not an error)."""
         try:
             arr = self._ep_in.read(max_len, timeout_ms)
         except self._core.USBError as exc:
-            # A genuine timeout is expected (poll again), but a real I/O error must
-            # propagate. pyusb>=1.1 raises the USBTimeoutError subclass; older pyusb
-            # raises USBError with errno 110 (ETIMEDOUT). Do NOT treat an unknown
-            # errno as a timeout — that would silently swallow backend failures.
-            timeout_cls = getattr(self._core, "USBTimeoutError", None)
-            is_timeout = (timeout_cls is not None and isinstance(exc, timeout_cls)) or (
-                getattr(exc, "errno", None) == 110)
-            if is_timeout:
+            if self.is_usb_timeout(self._core, exc):
                 return b""
             raise
         return bytes(arr)

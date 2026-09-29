@@ -14,7 +14,7 @@ for the reference host implementation.
 
 Uses the espp `stream_frame` v2 codec
 (`components/stream_frame/include/stream_frame.hpp` is the authoritative spec).
-The whole haptics protocol is one dispatcher module, **2 by default** (`kHapticsModule` in `bldc_haptics_example.cpp`; the hosted console expects 2). All multi-byte fields are
+The whole haptics protocol is one dispatcher module, **2 by default** (`kHapticsModule` in `bldc_haptics_example.cpp`; the hosted console finds the id through dispatcher discovery, by the protocol id `espp.haptics`, so it may be moved). All multi-byte fields are
 **little-endian**:
 
 ```

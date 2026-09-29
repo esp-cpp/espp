@@ -40,8 +40,12 @@ enum class CrashKind : uint8_t { None, NullPointer, Assert, DivideByZero, Hang }
 // (module 4 by default -- CoreDumpService::Config::module can move it); the
 // CDC text console keeps working for Web Serial / terminal users too. The
 // module id is only a routing key: this one constant is the place to change
-// it (the hosted coredump console sends the trigger on 1 until told otherwise).
+// it. The module is registered WITH discovery metadata (below) carrying the
+// protocol id kCrashProtocol, so the hosted coredump console finds the trigger
+// on whatever id this is set to (falling back to 1 when discovery is silent).
 static constexpr uint8_t kCrashModule = 1;
+static constexpr const char *kCrashProtocol = "espp.coredump-crash-trigger";
+static constexpr uint16_t kCrashProtocolVersion = 1;
 static constexpr uint8_t kMsgTriggerCrash = 0x00;
 
 [[noreturn]] static void perform_crash(CrashKind kind) {
@@ -235,7 +239,14 @@ extern "C" void app_main(void) {
       break;
     }
   };
-  vendor_link.register_module(kCrashModule, handle_cmd_frame);
+  // Registered with discovery metadata so the console can locate the trigger
+  // module (by protocol id) instead of assuming module 1.
+  vendor_link.register_module(kCrashModule, handle_cmd_frame,
+                              {.name = "Crash Trigger",
+                               .app = "",
+                               .description = "Trigger a test crash (coredump example)",
+                               .protocol = kCrashProtocol,
+                               .protocol_version = kCrashProtocolVersion});
   // Advertise the device and answer discovery on whichever transport asked.
   vendor_link.serve_discovery(usb_cfg.product);
   cdc_link.serve_discovery(usb_cfg.product);

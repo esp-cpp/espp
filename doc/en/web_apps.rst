@@ -17,8 +17,10 @@ Device hub & dispatcher-module consoles
 Devices built on the :doc:`dispatcher <dispatcher/dispatcher>` / ``stream_frame``
 protocol expose one or more *modules* over a single USB vendor (WebUSB)
 interface. Start from the hub, which discovers what a device runs and links to
-the matching console; each console also confirms its module is present when it
-connects.
+the matching console (passing the module id along as ``?module=N``); each
+console also runs discovery itself when it connects and talks to whichever
+module advertises its protocol id (``espp.ota``, ``espp.coredump``, ...), so a
+device may serve a protocol on any dispatcher module id.
 
 - **Device Hub** (``dispatcher_hub.html``) — connect over WebUSB / Web Serial,
   query the device's advertised modules, and open each module's console.

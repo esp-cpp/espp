@@ -3,11 +3,13 @@
 Commands:
   flash <binary>   BEGIN -> stream DATA -> FINISH an image over USB.
   list             List matching USB devices.
-  discover         Probe the device (dispatcher ListModules) and report reply.
+  discover         Probe the device (dispatcher ListModules) and list its modules.
 
 VID/PID default to the espp UsbDevice default (0x1209:0x0d32) but can be
 overridden (also via the ESPP_OTA_VID / ESPP_OTA_PID env vars, which the CMake
-``ota-usb`` target forwards).
+``ota-usb`` target forwards). The dispatcher module id is discovered from the
+device (it advertises which module speaks "espp.ota"); --module /
+ESPP_OTA_MODULE force one.
 """
 
 from __future__ import annotations
@@ -20,7 +22,8 @@ from typing import Optional
 
 from . import __version__, ui
 from .client import OtaClient
-from .protocol import OtaError
+from .protocol import (MODULE, MODULE_APP, MODULE_NAME, PROTOCOL, PROTOCOL_VERSION, OtaError,
+                       describe_resolution, resolve_module_id)
 from .transport import DEFAULT_PID, DEFAULT_VID, TransportError, UsbVendorTransport, list_devices
 
 CON = ui.Console()
@@ -28,6 +31,24 @@ CON = ui.Console()
 
 def _auto_int(text: str) -> int:
     return int(text, 0)  # accepts 0x1209, 4617, etc.
+
+
+_auto_int.__name__ = "integer"  # argparse: "invalid integer value: 'abc'"
+
+
+def _module_id(text: str) -> int:
+    """argparse type for a dispatcher module id: an integer 0..239 (0xF0..0xFF
+    are reserved for dispatcher / meta use, 0xFF being discovery), so an
+    out-of-range --module / environment value is a usage error rather than the
+    client's ValueError."""
+    try:
+        n = int(text, 0)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"invalid module id: {text!r} (an integer 0..239)")
+    if not (0 <= n <= 0xEF):
+        raise argparse.ArgumentTypeError(
+            f"module id {n} out of range (0..239; 0xF0..0xFF are reserved)")
+    return n
 
 
 def _human_size(n: int) -> str:
@@ -39,20 +60,41 @@ def _human_size(n: int) -> str:
     return f"{n} B"
 
 
-def _env_int(name: str, default: int) -> int:
-    val = os.environ.get(name)
-    return _auto_int(val) if val else default
+def _env_default(name: str, default=None):
+    """An option default taken from environment variable ``name`` (``default``
+    when unset / empty). Returned as the raw string: argparse runs the option's
+    ``type`` on a string default, so a bad value is reported as a normal usage
+    error for that option instead of crashing while the parser is built."""
+    return os.environ.get(name) or default
 
 
 def _add_device_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument("--vid", type=_auto_int, default=_env_int("ESPP_OTA_VID", DEFAULT_VID),
+    p.add_argument("--vid", type=_auto_int, default=_env_default("ESPP_OTA_VID", DEFAULT_VID),
                    help="USB vendor id (default 0x%04x)" % DEFAULT_VID)
-    p.add_argument("--pid", type=_auto_int, default=_env_int("ESPP_OTA_PID", DEFAULT_PID),
+    p.add_argument("--pid", type=_auto_int, default=_env_default("ESPP_OTA_PID", DEFAULT_PID),
                    help="USB product id (default 0x%04x; pass -1 to match any)" % DEFAULT_PID)
     p.add_argument("--serial", default=os.environ.get("ESPP_OTA_SERIAL"),
                    help="match a specific device serial number")
     p.add_argument("--interface", type=_auto_int, default=None,
                    help="force a specific vendor interface number")
+    p.add_argument("--module", type=_module_id, default=_env_default("ESPP_OTA_MODULE"),
+                   help="dispatcher module id to talk to (default: the one the device advertises "
+                        f"for {PROTOCOL} through discovery, else {MODULE})")
+
+
+def _make_client(args, t, quiet: bool = False, **kw) -> OtaClient:
+    """A client on transport ``t`` whose module id is resolved from discovery
+    right away (instead of silently on the first request) and reported;
+    warnings are always shown."""
+    client = OtaClient(t, module=getattr(args, "module", None), **kw)
+    r = client.resolve_module()
+    if not quiet:
+        CON.info("  " + describe_resolution("OTA", r, protocol=PROTOCOL, app=MODULE_APP,
+                                            name=MODULE_NAME,
+                                            answered=client.discovered is not None))
+    for w in r.warnings:
+        CON.warn(w)
+    return client
 
 
 def _make_transport(args) -> UsbVendorTransport:
@@ -98,7 +140,8 @@ def _cmd_flash(args) -> int:
     with _make_transport(args) as t:
         if not args.quiet:
             CON.note(f"● Connected to {t.description}")
-        client = OtaClient(t)
+        client = _make_client(args, t, quiet=args.quiet)
+        module = client.module  # resolved once; the flashing client reuses it
         try:
             before = client.get_status()
             if not args.quiet:
@@ -116,6 +159,7 @@ def _cmd_flash(args) -> int:
                 begin_timeout_ms=args.begin_timeout,
                 data_timeout_ms=args.data_timeout,
                 finish_timeout_ms=args.finish_timeout,
+                module=module,
             )
             client.flash(image, image_size=size)
         if not args.quiet:
@@ -147,7 +191,9 @@ def _auto_verify(args, before) -> int:
     # rebooted device reappeared); `with` re-enters open() as a no-op (idempotent)
     # and closes it on exit.
     with t:
-        client = OtaClient(t)
+        # the rebooted device is re-discovered: the new firmware may serve OTA
+        # on another id (an explicit --module still wins)
+        client = _make_client(args, t, quiet=args.quiet)
         try:
             st = client.get_status()
         except OtaError as exc:
@@ -185,20 +231,32 @@ def _cmd_list(args) -> int:
 
 def _cmd_discover(args) -> int:
     with _make_transport(args) as t:
-        frames = OtaClient(t).discover(timeout_ms=args.timeout)
-        if not frames:
-            CON.warn("no discovery reply (device may not run a Dispatcher on the "
-                     "vendor interface)")
-            return 1
-        for fr in frames:
-            CON.info(f"reply module=0x{fr.module:02x} type=0x{fr.type:02x} "
-                     f"reply={fr.is_reply} payload={len(fr.payload)} bytes")
-    return 0
+        info = OtaClient(t).discover(timeout_ms=args.timeout)
+    if info is None:
+        CON.warn("no discovery reply (device may not run a Dispatcher on the "
+                 "vendor interface)")
+        return 1
+    CON.note(f"● {info.device_name or '(unnamed device)'}"
+             + (f"  firmware {info.firmware}" if info.firmware else "")
+             + f"  (discovery v{info.version})")
+    for m in info.modules:
+        proto = (m.protocol + (f" v{m.protocol_version}" if m.protocol_version else "")
+                 if m.protocol else "-")
+        print(f"  module {m.id:3d}  {m.name:<20} {proto:<26} {m.app:<24} {m.description}")
+    # which module this tool would talk to (the id is only a routing key)
+    r = resolve_module_id(info, protocol=PROTOCOL, protocol_version=PROTOCOL_VERSION,
+                          app=MODULE_APP, name=MODULE_NAME, fallback=MODULE,
+                          override=args.module)
+    CON.info("  " + describe_resolution("OTA", r, protocol=PROTOCOL, app=MODULE_APP,
+                                        name=MODULE_NAME, answered=True))
+    for w in r.warnings:
+        CON.warn(w)
+    return 0 if r.source != "default" else 1
 
 
 def _cmd_status(args) -> int:
     with _make_transport(args) as t:
-        st = OtaClient(t).get_status()
+        st = _make_client(args, t).get_status()
     CON.note(f"● Running: {st.firmware_str()}")
     if not st.rollback_supported:
         CON.info("rollback: not supported (CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE off)")
@@ -212,7 +270,7 @@ def _cmd_status(args) -> int:
 
 def _cmd_mark_valid(args) -> int:
     with _make_transport(args) as t:
-        client = OtaClient(t)
+        client = _make_client(args, t)
         try:
             fw = client.get_status().firmware_str()
         except OtaError:
@@ -225,7 +283,7 @@ def _cmd_mark_valid(args) -> int:
 
 def _cmd_rollback(args) -> int:
     with _make_transport(args) as t:
-        OtaClient(t).mark_invalid()
+        _make_client(args, t).mark_invalid()
     CON.success("device rolling back to the previous image and rebooting")
     return 0
 

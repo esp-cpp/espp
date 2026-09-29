@@ -1,8 +1,9 @@
 # espp_ota — OTA over USB from the command line
 
 A small, pure-Python host tool that updates an espp device over USB using the
-espp `stream_frame` framing + OTA stream protocol (dispatcher **module 0**) — the
-same protocol the on-device [`ota` example](../example/) serves and
+espp `stream_frame` framing + OTA stream protocol (dispatcher **module 0** by
+default — the tool discovers the id a device actually serves it on, see below)
+— the same protocol the on-device [`ota` example](../example/) serves and
 [`ota_console.html`](../web/ota_console.html) drives from the browser.
 
 It talks to the device's USB **vendor (WebUSB)** interface (`bInterfaceClass
@@ -12,16 +13,40 @@ imported lazily.
 
 ## Seamless: build → OTA with `idf.py`
 
-If your project uses the espp `ota` component, its `project_include.cmake`
-registers an `ota-usb` build target, so you can build and flash over USB in one
-step (just like `idf.py flash` does over the serial bootloader):
+If your project uses the espp `ota` component, `idf.py` gains an `ota-usb`
+action: it builds the app and OTAs the resulting `.bin` over USB in one step
+(just like `idf.py flash` does over the serial bootloader), then reconnects
+and marks the new image valid. It is a real idf.py action (like `flash`), so it
+takes options:
 
 ```sh
 pip install pyusb            # once (libusb backend: `brew install libusb`, `apt install libusb-1.0-0`)
-idf.py ota-usb              # builds the app, then OTAs it over USB
-# or, equivalently / on CMake < 3.19:
-idf.py build ota-usb
+idf.py ota-usb                        # build, then OTA the app .bin over USB
+idf.py ota-usb --no-verify            # ... without the reconnect + mark-valid afterwards
+idf.py ota-usb --binary other.bin     # OTA some other image instead of the project's
+idf.py ota-usb --status               # is the running image pending verification?
+idf.py ota-usb --mark-valid           # confirm the running image (cancel rollback)
+idf.py ota-usb --rollback             # reject it: roll back + reboot
+idf.py ota-usb --pid 0x1234 --serial ABC123 --chunk-size 2048
+idf.py ota-usb --help                 # all options (--vid/--pid/--serial/--interface, --quiet, ...)
+idf.py build ota-usb                  # the option-less CMake fallback target
 ```
+
+The action needs **ESP-IDF 6.0 or later**: idf.py of 5.x loads neither
+component extensions nor entry points, so on 5.x requiring the component gives
+only the option-less CMake target described below. The action comes from the
+component's `idf_ext.py`, which idf.py loads when the component is in the
+build. ESP-IDF 6.0 and 6.0.1 load every participating component's extension;
+from 6.0.2 on only those **from a trusted source**: ESP-IDF itself, the
+project's own components, `EXTRA_COMPONENT_DIRS` (how espp is normally used) or
+an `espressif/` registry component. A registry install of `espp/ota` is not in
+that list, so there idf.py prints a warning and skips it unless you set
+`IDF_EXTENSION_ALLOW_UNTRUSTED=1`. Alternatively, install the espp wheel in the
+ESP-IDF Python environment: it declares an `idf_extension` entry point, which
+idf.py loads with no trust check, in every project. For builds where neither
+extension is loaded, `project_include.cmake` still registers the plain `ota-usb`
+CMake target, which takes no options (an idf.py action shadows a CMake target of
+the same name).
 
 Override the target device without editing anything (the tool reads these):
 
@@ -85,7 +110,16 @@ with UsbVendorTransport() as t:                    # default VID/PID 0x1209:0x0d
 
 ## Protocol
 
-`module = 0`; requests are host→device, replies device→host (reply flag set).
+`module = 0` by default; requests are host→device, replies device→host (reply
+flag set). The module id is only a routing key: before its first request the
+tool sends a dispatcher `ListModules` query and talks to whichever module
+advertises protocol id `espp.ota` (for firmware predating protocol ids: the
+module advertising `ota_console.html`, then the name "OTA"). The published
+default, 0, is the last resort in two cases: the device does not answer
+discovery at all (older firmware, silently), or it answers but advertises
+nothing matching the protocol, app or name (with a warning). `--module N` (or
+`ESPP_OTA_MODULE`) forces an id; `discover` lists what the device advertises
+and which module the tool would use.
 Flow control is one request in flight — each request waits for its OK/ERROR
 reply before the next is sent.
 

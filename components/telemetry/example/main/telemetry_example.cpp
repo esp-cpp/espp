@@ -3,7 +3,7 @@
 // Streams a few synthetic float channels from an ESP32-S3 to the browser over
 // USB using the espp::Telemetry emitter (a small binary protocol carried on the
 // stream_frame framing, dispatcher module 3 by default -- Config::module moves
-// it, but the hosted web app looks for 3). The hosted `telemetry.html`
+// it to any id; the hosted web app finds it through discovery). The hosted `telemetry.html`
 // web app connects on the vendor (WebUSB) interface, reads the SCHEMA (channel
 // names), and plots the SAMPLE stream live — the binary, higher-rate,
 // device-timestamped counterpart to the app's text/CSV Web Serial transport.

@@ -108,8 +108,10 @@ one device and links to each console.
 The module ids (haptics 2, OTA 0, core dump 4) are only routing keys and are
 each configurable in one place — `kHapticsModule` at the top of
 `bldc_haptics_example.cpp`, and `.module` in the `OtaService` /
-`CoreDumpService` `Config` — but the hosted consoles expect these defaults, so
-change them only together with your own host tooling.
+`CoreDumpService` `Config`. Change them freely: every service advertises its
+protocol id through discovery, and the hosted consoles, the hub and the
+`espp_ota` / `espp_coredump` CLIs look the ids up from that before their first
+request (`?module=N` / `--module N` force one).
 
 ## Example Behaviors
 

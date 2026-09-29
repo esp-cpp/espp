@@ -219,7 +219,8 @@ static void test_builders_take_a_module_id() {
     CHECK(parse_one(encoded, f));
     CHECK(f.module == kOther);
   }
-  // The default is unchanged (the stock console / CLI expect module 0).
+  // The default is unchanged (0 is what the console / CLI fall back to when a
+  // device does not answer discovery; otherwise they locate OTA by protocol id).
   ota::Frame d{};
   CHECK(parse_one(ota::make_ok(1u), d));
   CHECK(d.module == ota::kModule && ota::kModule == 0);

@@ -1,0 +1,7 @@
+# Applied on top of sdkconfig.defaults when the target is esp32p4 (ESP-IDF
+# picks up sdkconfig.defaults.<target> automatically).
+#
+# The ESP-IDF 6.1 esp32p4 bootloader (0x6140 bytes) no longer fits in front of
+# the default partition-table offset 0x8000 (max 0x6000 bytes there); move the
+# table to 0x9000 like the other esp32p4 boards in this repo.
+CONFIG_PARTITION_TABLE_OFFSET=0x9000

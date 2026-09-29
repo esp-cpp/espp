@@ -89,9 +89,10 @@ usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { link.push(d
 
 - construct with the `Ota` engine and a `send` function; `Config` also has
   `module` (the dispatcher module id the instance answers on and stamps on its
-  replies — default `kModule` = 0, which is what the OTA console and the
-  `espp_ota` CLI look for; the id is only a routing key, so move it only if
-  your host tooling is told the new id), `auto_restart` (default true: reply
+  replies — default `kModule` = 0; the id is only a routing key: the OTA
+  console and the `espp_ota` CLI find it through dispatcher discovery by the
+  service's protocol id `espp.ota` (`kProtocol`), so it can be moved freely),
+  `auto_restart` (default true: reply
   `OK` to `FINISH`, then restart after `restart_delay`, 750 ms) and
   `on_update_finished` (run your own logic / `Ota::restart()` when
   `auto_restart` is off)
@@ -152,12 +153,18 @@ The [espp OTA Console](https://esp-cpp.github.io/espp/apps/ota_console.html)
 ### Command line: build → OTA
 
 The [`python/espp_ota`](python/) tool speaks the same protocol from a terminal.
-Because this component ships a `project_include.cmake`, any project using it gets
-a build-and-flash-over-USB target — the OTA counterpart to `idf.py flash`:
+Because this component ships an `idf_ext.py`, any project using it (on
+ESP-IDF 6.0 or later, whose idf.py loads component extensions) gets an
+`idf.py ota-usb` action — the OTA counterpart to `idf.py flash`, with options
+(`--no-verify`, `--binary`, `--status` / `--mark-valid` / `--rollback`,
+`--vid`/`--pid`/`--serial`, ...); the same action is also available through an
+`idf_extension` entry point of the espp wheel, and `project_include.cmake`
+keeps a plain `ota-usb` CMake target as a fallback:
 
 ```sh
 pip install pyusb          # once (needs a libusb backend)
-idf.py ota-usb            # builds the app, then OTAs it over USB
+idf.py ota-usb            # builds the app, then OTAs it over USB (+ marks it valid)
+idf.py ota-usb --status   # query the rollback state instead of flashing
 ```
 
 Or drive it directly: `python -m espp_ota flash build/<app>.bin` (see

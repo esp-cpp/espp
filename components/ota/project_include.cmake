@@ -8,7 +8,17 @@
 #     idf.py ota-usb          # builds the app, then OTAs it over USB
 #     idf.py build ota-usb    # equivalent explicit form (also works pre-CMake 3.19)
 #
-# Device/port overrides are read from the environment by the tool, e.g.:
+# This target is the FALLBACK: the component's idf_ext.py registers a real
+# `idf.py ota-usb` action with options (--binary, --chunk-size, --no-verify,
+# --verify-timeout, --quiet, --status / --mark-valid / --rollback,
+# --vid/--pid/--serial/--interface), which idf.py prefers over a CMake target of
+# the same name whenever it loads that extension (ESP-IDF >= 6.0: 6.0 / 6.0.1
+# load every participating component's idf_ext.py, 6.0.2+ only trusted
+# component sources unless IDF_EXTENSION_ALLOW_UNTRUSTED=1, plus the espp
+# wheel's entry point; ESP-IDF 5.x loads neither, so there this target is all
+# there is). idf.py cannot pass options to a custom target,
+# so this one takes none; device/port overrides are read from the environment
+# by the tool, e.g.:
 #     ESPP_OTA_PID=0x1234 idf.py ota-usb
 #
 # The work is done by the pure-Python `espp_ota` tool shipped alongside this file

@@ -167,18 +167,32 @@
     const parser = new StreamParser();
 
     // ---- decode the describe() TLV payload (see espp::Dispatcher::describe) ----
+    // Latest payload version this hub understands. Version 1 records end after
+    // the description; version 2 records add [protocol str][protocol_version
+    // u16 LE] (the module's stable protocol id, e.g. "espp.ota", + version).
+    const DISCOVERY_VERSION_KNOWN = 2;
     function parseDiscovery(payload) {
       let i = 0;
       const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
       const u8 = () => { need(1); return payload[i++]; };
+      const u16 = () => { need(2); const v = payload[i] | (payload[i + 1] << 8); i += 2; return v; };
       const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
       const version = u8(); u8(); // version, reserved
       const device = str(), fw = str();
       const count = u8();
       const modules = [];
-      for (let m = 0; m < count; m++) modules.push({ id: u8(), name: str(), app: str(), desc: str() });
-      if (i !== payload.length) throw new Error("trailing bytes in discovery payload");
-      return { version, device, fw, modules };
+      for (let m = 0; m < count; m++) {
+        const rec = { id: u8(), name: str(), app: str(), desc: str(), protocol: "", protocolVersion: 0 };
+        if (version >= 2) { rec.protocol = str(); rec.protocolVersion = u16(); }
+        modules.push(rec);
+      }
+      // A payload version we fully understand must be consumed exactly. Records
+      // carry no length, so a newer version is parsed with the exact version-2
+      // record layout and may only append bytes AFTER the record list (reported
+      // as `trailing` and ignored), never inside a record.
+      const trailing = payload.length - i;
+      if (version <= DISCOVERY_VERSION_KNOWN && trailing !== 0) throw new Error("trailing bytes in discovery payload");
+      return { version, device, fw, modules, trailing };
     }
     // Treat a module's `app` as an internal, same-directory page only: a safe
     // filename ending in .html, no scheme/colon, no slash, no "..". This stops a
@@ -268,6 +282,10 @@
       selected = modules.length ? 0 : -1;
       renderTabs(); renderDetail();
       logLine("ok", "discovered " + modules.length + " module(s): " + modules.map(m => m.name).join(", "));
+      if (info.version > DISCOVERY_VERSION_KNOWN)
+        logLine("warn", "discovery payload v" + info.version + " is newer than this hub understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed with the v" + DISCOVERY_VERSION_KNOWN + " record layout");
+      if (info.trailing > 0)
+        logLine("t", "ignoring " + info.trailing + " trailing byte(s) after the module list (discovery v" + info.version + ")");
     }
 
     function renderTabs() {
@@ -289,15 +307,21 @@
       const m = modules[selected];
       d.innerHTML = "";
       const h = document.createElement("h2"); h.textContent = m.name || ("module " + m.id);
-      const sub = document.createElement("div"); sub.className = "sub"; sub.textContent = "module id " + m.id;
+      // The module id is only a routing key; the protocol id (v2 payloads) says
+      // what the module actually speaks.
+      const sub = document.createElement("div"); sub.className = "sub";
+      sub.textContent = "module id " + m.id + (m.protocol ? " · protocol " + m.protocol + (m.protocolVersion ? " v" + m.protocolVersion : "") : "");
       const p = document.createElement("p"); p.className = "desc"; p.textContent = m.desc || "";
       d.appendChild(h); d.appendChild(sub); if (m.desc) d.appendChild(p);
       if (safeAppName(m.app)) {
-        const a = document.createElement("a"); a.className = "open"; a.href = m.app; a.target = "_blank"; a.rel = "noopener noreferrer";
-        a.textContent = "Open " + m.app + " ↗";
+        // Pass the module id along (?module=N) so the app drives exactly this
+        // module even if the device serves the protocol on a non-default id
+        // (the app also re-discovers on connect; the id given here wins).
+        const a = document.createElement("a"); a.className = "open"; a.href = m.app + "?module=" + m.id; a.target = "_blank"; a.rel = "noopener noreferrer";
+        a.textContent = "Open " + m.app + " (module " + m.id + ") ↗";
         d.appendChild(a);
         const note = document.createElement("div"); note.className = "muted"; note.style.marginTop = "12px";
-        note.textContent = "Opens the module's own web app in a new tab (it connects to the device itself).";
+        note.textContent = "Opens the module's own web app in a new tab (it connects to the device itself, on module " + m.id + ").";
         d.appendChild(note);
       } else {
         const n = document.createElement("div"); n.className = "noapp";

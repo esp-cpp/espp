@@ -30,7 +30,10 @@
 //             requests and reads the responses. bit1 = correlation present (see
 //             below); bits 2..3 reserved for future optional header fields;
 //             bits 4..7 = format version (currently 1).
-//   - module: routing/protocol id (0..255). espp::Dispatcher routes on this.
+//   - module: routing key (0..255) selecting the handler a frame goes to;
+//             espp::Dispatcher routes on it. Not a protocol identity: which
+//             protocol a module speaks is advertised through dispatcher
+//             discovery, and 0xF0..0xFF are reserved for dispatcher/meta use.
 //   - type:   the message / transaction type within the module (0..255). See
 //             the Transaction enum for the recommended standard values; a
 //             protocol may otherwise define its own type values, and may carry
@@ -159,7 +162,7 @@ inline uint32_t get_u32(std::span<const uint8_t> bytes) {
 /// @brief A complete, CRC-verified protocol frame.
 struct Frame {
   uint8_t flags{make_flags(false)}; ///< version + reply bit + correlation bit
-  uint8_t module{0};                ///< routing / protocol id
+  uint8_t module{0};                ///< routing key (which handler; 0xF0..0xFF reserved)
   uint8_t type{0};                  ///< message / transaction type within the module
   std::optional<uint16_t>
       correlation{};              ///< optional correlation / sequence id (see kFlagCorrelation)

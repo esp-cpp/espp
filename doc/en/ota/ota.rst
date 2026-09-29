@@ -32,19 +32,34 @@ component (``detail/ota_stream_protocol.hpp`` re-exports it and layers the OTA
 message types on top); to run OTA alongside other protocols (crash-dump, CAN,
 ...) on one stream, register it as a module with the
 :doc:`../dispatcher/index` — the ``ota`` example does exactly this (OTA is
-module id 0 by default; ``OtaService::Config::module`` moves an instance, at
-the cost of the stock OTA console / ``espp_ota`` CLI no longer finding it
-until they are told the new id).
+module id 0 by default; ``OtaService::Config::module`` moves an instance to
+any id, and the stock OTA console / ``espp_ota`` CLI still find it there
+through discovery — see :doc:`../dispatcher/custom_modules`).
 
 Command line: build → OTA
 -------------------------
 
-The ``ota`` component ships a ``project_include.cmake`` and a pure-Python host
-tool (``components/ota/python/espp_ota``), so any project using it can build and
-OTA-flash over USB in one step — the OTA counterpart to ``idf.py flash``::
+The ``ota`` component ships an idf.py extension (``idf_ext.py``) and a
+pure-Python host tool (``components/ota/python/espp_ota``), so any project using
+it gets an ``idf.py ota-usb`` action that builds and OTA-flashes over USB in one
+step — the OTA counterpart to ``idf.py flash``, with options::
 
-    pip install pyusb      # once (needs a libusb backend)
-    idf.py ota-usb        # builds the app, then OTAs it over USB
+    pip install pyusb              # once (needs a libusb backend)
+    idf.py ota-usb                 # builds the app, then OTAs it over USB (+ marks it valid)
+    idf.py ota-usb --no-verify     # ... without the reconnect + mark-valid
+    idf.py ota-usb --status        # query the rollback state instead of flashing
+    idf.py ota-usb --mark-valid    # confirm the running image / --rollback to reject it
+    idf.py ota-usb --pid 0x1234 --serial ABC123
+
+The action needs ESP-IDF 6.0 or later (idf.py of 5.x loads neither component
+extensions nor entry points). ESP-IDF 6.0 and 6.0.1 load every participating
+component's extension; from 6.0.2 on idf.py loads a component's extension only
+from trusted sources (ESP-IDF, the project's components,
+``EXTRA_COMPONENT_DIRS``, ``espressif/`` registry components), so there a
+registry install of ``espp/ota`` needs ``IDF_EXTENSION_ALLOW_UNTRUSTED=1``, or
+the espp wheel installed in the IDF Python environment (its ``idf_extension``
+entry point is loaded without a trust check). A plain ``ota-usb`` CMake target
+remains as an option-less fallback, and is all that ESP-IDF 5.x gets.
 
 The tool draws a live progress bar (percent, size, transfer speed, ETA) and
 colorizes its output. Because ``idf.py`` captures the target's output, the bar is

@@ -59,8 +59,8 @@ static constexpr size_t example_motor_index = 0;
 
 // Dispatcher module id the haptics protocol is registered under (and stamped on
 // every haptics reply / telemetry frame). It is only a routing key: change this
-// one constant to move the protocol, but note the hosted haptics console looks
-// for the default (haptics_proto::kModule = 2) until it is told otherwise. The
+// one constant to move the protocol; the hosted haptics console finds it
+// through discovery (by haptics_proto::kProtocol), whatever id is chosen. The
 // OTA (0) and core-dump (4) services keep their own defaults; pass `.module` in
 // their Config to move those.
 static constexpr uint8_t kHapticsModule = haptics_proto::kModule;
@@ -570,8 +570,9 @@ extern "C" void app_main(void) {
   //   module 0 -> OTA          (espp::OtaService       -> ota_console)
   //   module 2 -> BLDC haptics (this example's protocol -> haptics_console)
   //   module 4 -> core dump    (espp::CoreDumpService  -> coredump_console)
-  // (the defaults the hosted consoles expect; each id is configurable --
-  // kHapticsModule above, and `.module` in the services' Config)
+  // (the published defaults; each id is configurable -- kHapticsModule above,
+  // and `.module` in the services' Config -- and the hosted consoles find the
+  // ids through discovery, by protocol id, so any choice works)
   // All replies -- and the discovery reply -- go through the same
   // tx_mutex-guarded usb_send as the telemetry frames.
 
@@ -622,7 +623,9 @@ extern "C" void app_main(void) {
                            },
                            {.name = "BLDC Haptics",
                             .app = "haptics_console.html",
-                            .description = "Haptic detent / feedback modes"});
+                            .description = "Haptic detent / feedback modes",
+                            .protocol = haptics_proto::kProtocol,
+                            .protocol_version = haptics_proto::kProtocolVersion});
   usb_link.serve_discovery(usb_cfg.product); // reserved module 0xFF
   usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { usb_link.push(data); });
 
