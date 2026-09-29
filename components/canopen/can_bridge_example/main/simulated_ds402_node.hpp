@@ -197,15 +197,22 @@ public:
     const uint16_t hb = heartbeat_ms();
     if (hb) {
       // one frame per elapsed period: a late tick (task scheduling) catches
-      // up instead of dropping periods and drifting
+      // up instead of dropping periods and drifting -- but only up to
+      // kMaxCatchUp frames per tick, since a 1 ms timer and a long stall
+      // (the USB send path blocking on backpressure) must not turn into a
+      // batch of hundreds of frames whose delivery delays the next tick even
+      // more; beyond the cap the backlog is dropped and only the timer phase
+      // is kept
       heartbeat_elapsed_ms_ += ms;
-      for (; heartbeat_elapsed_ms_ >= hb; heartbeat_elapsed_ms_ -= hb) {
+      for (int n = 0; heartbeat_elapsed_ms_ >= hb && n < kMaxCatchUp;
+           heartbeat_elapsed_ms_ -= hb, ++n) {
         CanFrame f{}; // every field value-initialized: the payload is all zeros
         f.id = co::COB_HEARTBEAT_BASE + id;
         f.dlc = 1;
         f.data[0] = static_cast<uint8_t>(nmt_);
         out.push_back(f);
       }
+      heartbeat_elapsed_ms_ %= hb;
     } else {
       heartbeat_elapsed_ms_ = 0;
     }
@@ -213,8 +220,9 @@ public:
     const uint16_t ev = read_u16(0x1800, 5);
     if (nmt_ == NmtState::Operational && ev) {
       tpdo_elapsed_ms_ += ms;
-      for (; tpdo_elapsed_ms_ >= ev; tpdo_elapsed_ms_ -= ev)
+      for (int n = 0; tpdo_elapsed_ms_ >= ev && n < kMaxCatchUp; tpdo_elapsed_ms_ -= ev, ++n)
         out.push_back(make_tpdo1());
+      tpdo_elapsed_ms_ %= ev; // (same cap as the heartbeat)
     } else {
       tpdo_elapsed_ms_ = 0;
     }
@@ -332,6 +340,7 @@ private:
   static constexpr uint32_t kLoadSignature = 0x64616F6C; // "load"
   static constexpr uint16_t kSupportedModes = 0x002D;    // pp, pv, tq, hm (0x6502 bits 0,2,3,5)
   static constexpr uint32_t kHomingDurationMs = 500;
+  static constexpr int kMaxCatchUp = 4; ///< periodic frames emitted per tick at most (per timer)
   static constexpr int8_t kModePp = 1, kModePv = 3, kModeTq = 4, kModeHm = 6;
 
   struct Entry {

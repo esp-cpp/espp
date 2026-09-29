@@ -173,6 +173,16 @@ static void test_boot_and_nmt() {
   out.clear();
   node.tick(3000ms, out);
   CHECK(count_id(out, co::COB_HEARTBEAT_BASE + kNode) == 3);
+  // ... but a stall never produces an unbounded batch: at most 4 per tick,
+  // the rest of the backlog is dropped and the phase kept (next one on time)
+  out.clear();
+  node.tick(30000ms, out);
+  CHECK(count_id(out, co::COB_HEARTBEAT_BASE + kNode) == 4);
+  out.clear();
+  tick(node, 990ms, &out);
+  CHECK(count_id(out, co::COB_HEARTBEAT_BASE + kNode) == 0);
+  tick(node, 20ms, &out);
+  CHECK(count_id(out, co::COB_HEARTBEAT_BASE + kNode) == 1);
   // a heartbeat time change takes effect
   CHECK(write_u(node, 0x1017, 0, 200, 2));
   out.clear();
