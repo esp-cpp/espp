@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <memory>
 #include <system_error>
+#include <utility>
 
 namespace espp {
 /// The data structure for a single touch point.
@@ -153,9 +154,11 @@ struct ITouchDriver {
 
   /// @brief Retrieve every cached touch point.
   ///
-  /// The default builds the state from the primary point (and the reported
-  /// count), for drivers that only expose that; a driver that caches all of
-  /// its points (any ITouchDevice) is forwarded to by TouchDriverAdapter.
+  /// The default is for drivers that only expose the primary point: it holds
+  /// that one point and reports a count of one whenever the driver reports
+  /// any touch, never the driver's own count, so iterating the points cannot
+  /// run past what is filled in. A driver that caches all of its points (any
+  /// ITouchDevice) is forwarded to by TouchDriverAdapter.
   /// @return The cached multi-touch state.
   virtual TouchState touch_state() const {
     TouchState state{};
@@ -198,10 +201,12 @@ template <TouchDriverConcept T> struct TouchDriverAdapter : ITouchDriver {
   bool get_home_button_state() const override { return driver->get_home_button_state(); }
 
   TouchState touch_state() const override {
-    if constexpr (requires {
-                    { driver->touch_state() } -> std::convertible_to<TouchState>;
+    // forwarded only to a const touch_state(): this is a const method, and a
+    // driver whose touch_state() mutates must not be reached through it
+    if constexpr (requires(const T &t) {
+                    { t.touch_state() } -> std::convertible_to<TouchState>;
                   }) {
-      return driver->touch_state(); // every point the driver cached
+      return std::as_const(*driver).touch_state(); // every point the driver cached
     } else {
       return ITouchDriver::touch_state(); // primary point only
     }
