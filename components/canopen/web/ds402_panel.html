@@ -2380,6 +2380,7 @@
         let count = null;
         if (head.status === "ok" && head.bytes && head.bytes.length >= 1) count = head.bytes[0];
         let subsToRead = listed;
+        const aboveCount = [];   // listed subs above the count: absent rows, appended after the reads
         if (count != null) {
           const byNumber = new Map(listed.map((s) => [s.sub, s]));
           subsToRead = [];
@@ -2391,10 +2392,11 @@
           }
           // a record may have gaps above the count (e.g. 0x1018 with count 3):
           // anything listed above the count is reported as absent without a
-          // read. A dynamic array's candidates (1..254) above the count simply
-          // do not exist: no rows for them.
+          // read (appended after the subs below the count are read, so the
+          // rows stay in subindex order). A dynamic array's candidates
+          // (1..254) above the count simply do not exist: no rows for them.
           if (!o.dynamicCount)
-            for (const s of listed) if (s.sub > limit) rows.push({ index: o.index, sub: s.sub, name: s.name, objectType: o.objectType, dataType: s.dataType, access: s.access, group: o.index, status: "absent", bytes: null, value: null, error: "above entry count " + count });
+            for (const s of listed) if (s.sub > limit) aboveCount.push({ index: o.index, sub: s.sub, name: s.name, objectType: o.objectType, dataType: s.dataType, access: s.access, group: o.index, status: "absent", bytes: null, value: null, error: "above entry count " + count });
         }
         // subs beyond the object's share: a dynamic array's actual subs, or
         // subs synthesized up to the count when none were listed
@@ -2410,6 +2412,7 @@
           if (row.status === "cancelled") { lost = true; break; }
           if (row.status === "no-sub") { ended = true; break; }   // the object ends here
         }
+        for (const r of aboveCount) rows.push(r);
         if (!ended && (lost || cancelled())) { stoppedAt = oi; break; }
         done = base + objectShare + extra; progress(done, total);
       }
@@ -2620,7 +2623,8 @@
           const b = document.createElement("button");
           b.className = "small";
           b.textContent = "Read";
-          b.disabled = !transport || odScanInFlight || r.status === "write-only";
+          // not readable by its declared access, or the device said so (0x06010001)
+          b.disabled = !transport || odScanInFlight || !odIsReadable(r.access) || r.status === "write-only";
           b.title = "Read " + odHex(r.index, 4) + ":" + r.sub + " now";
           b.addEventListener("click", (ev) => { ev.stopPropagation(); odReadOne(r); });
           tdBtn.appendChild(b);
@@ -2648,10 +2652,16 @@
       try { node = currentNode(); } catch (e) { logLine("err", "OD read: " + e.message); return; }
       const generation = odSourceGeneration;
       const fresh = { ...row };
+      // the read is obsolete (its result is discarded below) once the object
+      // list, the link or a scan changed: cancel a long segmented transfer
+      // then, rather than holding the SDO channel for up to a whole DOMAIN
+      const stale = () => generation !== odSourceGeneration || !transport || odScanInFlight;
+      const domain = odIsDomain(row);
       try {
         // a DOMAIN (e.g. the stored EDS) gets the large-object bound
-        const bytes = await sdoUpload(row.index, row.sub, node, odIsDomain(row) ? { maxBytes: OD_EDS_MAX_BYTES } : undefined);
-        fresh.bytes = bytes; fresh.value = odDecodeValue(bytes, row.dataType); fresh.status = "ok"; fresh.error = null;
+        const bytes = await sdoUpload(row.index, row.sub, node, { cancelled: stale, maxBytes: domain ? OD_EDS_MAX_BYTES : undefined });
+        // a DOMAIN known only by its EDS object code (no data type) still renders as one
+        fresh.bytes = bytes; fresh.value = odDecodeValue(bytes, domain ? 0xF : row.dataType); fresh.status = "ok"; fresh.error = null;
       } catch (e) {
         const c = odClassifyError(e); fresh.status = c.status; fresh.error = c.text; fresh.value = null;
       }

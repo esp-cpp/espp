@@ -384,6 +384,8 @@ Description=  ;leading blanks then a comment
     assert.strictEqual(byKey.get("1018:3").status, "absent");
     assert.strictEqual(byKey.get("1018:4").status, "absent");
     assert(!log.includes("1018:3"));
+    // ... and the rows stay in subindex order (the absent ones after the reads)
+    assert.deepStrictEqual(rows.filter((r) => r.index === 0x1018).map((r) => r.sub), [0, 1, 2, 3, 4]);
     assert.strictEqual(byKey.get("6041:0").status, "absent");
     // cancellation stops the walk; what was not reached is reported as skipped placeholders
     const log2 = [];
