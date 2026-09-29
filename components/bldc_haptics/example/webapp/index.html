@@ -17,7 +17,8 @@
     - flags u8: bit0 = reply (0 host->device request, 1 device->host
       reply/event); bits 4-7 = protocol version = 1. Request byte = 0x10,
       reply = 0x11.
-    - module u8: the whole haptics protocol is dispatcher module 2.
+    - module u8: the whole haptics protocol is dispatcher module 2 by default (a
+      routing key; the id actually used is discovered, see resolveModuleId).
     - CRC-32 is the standard zlib CRC (poly 0xEDB88320 reflected, init/final
       0xFFFFFFFF) over the 9-byte header + payload; check value
       crc32("123456789") == 0xCBF43926. Payloads are capped at 4096 bytes
@@ -288,10 +289,28 @@
     const HEADER_SIZE = 9, CRC_SIZE = 4;
     const MAX_PAYLOAD = 4096;
     const MAX_FRAME = HEADER_SIZE + MAX_PAYLOAD + CRC_SIZE;
-    const MODULE_HAPTICS = 2;                 // the whole haptics protocol is dispatcher module 2
+    // The dispatcher module byte is only a routing key: the haptics protocol is
+    // published on module 2 by default, but a device may serve it on any id.
+    // The id actually used is resolved on connect from the device's discovery
+    // reply (by the advertised protocol id, then app / name), from ?module=N,
+    // or falls back to the default. HAPTICS_PROTOCOL(_VERSION) mirror
+    // haptics_proto::kProtocol / kProtocolVersion (haptics_usb_protocol.hpp).
+    const DEFAULT_MODULE_HAPTICS = 2;
+    const HAPTICS_PROTOCOL = "espp.haptics", HAPTICS_PROTOCOL_VERSION = 1;
+    const HAPTICS_IDENT = { protocol: HAPTICS_PROTOCOL, protocolVersion: HAPTICS_PROTOCOL_VERSION,
+                            app: "haptics_console.html", name: "BLDC Haptics", fallback: DEFAULT_MODULE_HAPTICS, override: null };
+    let moduleHaptics = DEFAULT_MODULE_HAPTICS;   // adopted by adoptModule() before the first command
+    // True once adoptModule() has run for this connection: every send path
+    // waits for it, so nothing can go out on the default id while the discovery
+    // probe (up to DISCOVERY_TIMEOUT_MS) is still pending.
+    let moduleReady = false;
+    // Bumped by every connect and close: an initializeDevice() still awaiting
+    // (drain timer, discovery probe, GET_INFO) for an earlier connection sees
+    // the change and stops instead of adopting its result into the new one.
+    let connectGeneration = 0;
     // Reserved dispatcher discovery module: a device that runs an espp::Dispatcher
-    // answers a ListModules query on 0xFF with the set of modules it serves, so we
-    // can confirm this device actually has the haptics module before driving it.
+    // answers a ListModules query on 0xFF with the set of modules it serves, which
+    // is how the haptics module's id is found before driving it.
     const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
     const DISCOVERY_TIMEOUT_MS = 800;        // module-presence probe (0xFF ListModules) timeout
     const FLAGS_VERSION = 1;                  // protocol version lives in flags bits 4-7
@@ -373,17 +392,17 @@
     // ===================================================================
     // Frame building & incremental parsing (mirrors stream_frame.hpp)
     // ===================================================================
-    // This app sends haptics requests (module defaults to MODULE_HAPTICS); the
-    // module arg lets us also emit a discovery query on MODULE_DISCOVERY. flags
-    // are always FLAGS_REQUEST (reply bit clear).
-    function buildFrame(type, payload, module = MODULE_HAPTICS) {
+    // This app sends haptics requests (module defaults to the resolved
+    // moduleHaptics); the module arg lets us also emit a discovery query on
+    // MODULE_DISCOVERY. flags are always FLAGS_REQUEST (reply bit clear).
+    function buildFrame(type, payload, module = moduleHaptics) {
       payload = payload || new Uint8Array(0);
       if (payload.length > MAX_PAYLOAD) throw new Error("payload exceeds " + MAX_PAYLOAD + " bytes");
       const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
       const view = new DataView(frame.buffer);
       view.setUint16(0, 0x4F54, true);   // magic 'T''O' on the wire
       frame[2] = FLAGS_REQUEST;          // flags: version 1, request (reply bit 0)
-      frame[3] = module;                 // module: haptics = 2 (discovery = 0xFF)
+      frame[3] = module;                 // module: the resolved haptics id (discovery = 0xFF)
       frame[4] = type;                   // message type
       view.setUint32(5, payload.length, true);
       frame.set(payload, HEADER_SIZE);
@@ -537,7 +556,9 @@
       }
       manualDisconnect = false;
       parser.reset();
-      setConnectedUI(true);
+      moduleReady = false;
+      const generation = ++connectGeneration;
+      setConnectedUI(true); // connect button + device info; the controls wait for discovery
       const name = describeDevice(device);
       setStatus("connected", "Connected");
       // epIn/epOut are WebUSB endpoint *numbers*; the IN endpoint *address*
@@ -547,7 +568,7 @@
         " · EP OUT 0x" + epOut.toString(16).padStart(2, "0");
       logLine("sys", "Connected to " + name + ".");
       rxPump(); // start the perpetual reader
-      await initializeDevice();
+      await initializeDevice(generation);
     }
 
     async function openAndClaim() {
@@ -601,6 +622,8 @@
         try { await device.close(); } catch (_) {}
       }
       device = null; ifaceNumber = null; epIn = epOut = null;
+      moduleReady = false;
+      connectGeneration++; // abandon any initializeDevice() still in flight
       parser.reset();
       setConnectedUI(false);
       setStatus("", "Disconnected");
@@ -656,10 +679,10 @@
         if (discoveryResolve) { discoveryResolve(frame.payload); discoveryResolve = null; }
         return;
       }
-      // Every device->host haptics frame (replies + telemetry) is dispatcher
-      // module 2 with the reply flag set; ignore anything else that shares the
-      // vendor pipe (other modules, or a request-flagged frame echoed back).
-      if (frame.module !== MODULE_HAPTICS || !frame.reply) {
+      // Every device->host haptics frame (replies + telemetry) is on the
+      // resolved haptics module with the reply flag set; ignore anything else
+      // that shares the vendor pipe (other modules, or a request echoed back).
+      if (frame.module !== moduleHaptics || !frame.reply) {
         if (els.logFrames.checked) {
           logLine("err", "Ignoring non-haptics-reply frame (module 0x" + frame.module.toString(16) +
                   ", flags 0x" + frame.flags.toString(16) + ", type 0x" + frame.type.toString(16) + ")");
@@ -710,6 +733,7 @@
     function transact(type, payload, acceptTypes, timeoutMs) {
       return enqueue(async () => {
         if (!device || epOut === null) throw new Error("not connected");
+        if (!moduleReady) throw new Error("module id not resolved yet (discovery pending)");
         const frame = buildFrame(type, payload);
         if (els.logFrames.checked) logLine("tx", TYPE_NAME[type] + " " + hex(frame));
         const replyPromise = new Promise((resolve, reject) => {
@@ -761,19 +785,115 @@
       let i = 0;
       const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
       const u8 = () => { need(1); return payload[i++]; };
+      const u16 = () => { need(2); const v = payload[i] | (payload[i + 1] << 8); i += 2; return v; };
       const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
       const version = u8(); u8();            // version, reserved
       const device = str(), fw = str();
       const count = u8();
       const modules = [];
-      for (let m = 0; m < count; m++) modules.push({ id: u8(), name: str(), app: str(), desc: str() });
-      return { version, device, fw, modules };
+      for (let m = 0; m < count; m++) {
+        const rec = { id: u8(), name: str(), app: str(), desc: str(), protocol: "", protocolVersion: 0 };
+        // Version 2 records also carry [protocol str][protocol_version u16 LE].
+        // Records carry no length, so a payload version newer than
+        // DISCOVERY_VERSION_KNOWN is parsed with the exact version-2 record
+        // layout: a future version may only append bytes AFTER the record list
+        // (reported as `trailing`, ignored), never inside a record.
+        if (version >= 2) { rec.protocol = str(); rec.protocolVersion = u16(); }
+        modules.push(rec);
+      }
+      return { version, device, fw, modules, trailing: payload.length - i };
     }
-    // Ask the device which dispatcher modules it serves and confirm the haptics
-    // module is one of them. Returns true (present), false (device answered but
-    // WITHOUT the haptics module), or undefined (no discovery support -> unknown;
-    // the normal init below still surfaces a genuinely missing module via timeout).
-    async function checkModulePresent() {
+    // ---- module id resolution (identical in every espp console) --------------
+    // The dispatcher module byte is a routing key, not the identity of a
+    // service: a device may serve any protocol on any id. Identity is what the
+    // device advertises in its ListModules reply -- the protocol id first
+    // (e.g. "espp.ota"), then the hosted app filename, then the module name.
+    // Latest discovery payload version these helpers understand.
+    const DISCOVERY_VERSION_KNOWN = 2;
+    // info: parseDiscovery() output, or null when the device did not answer.
+    // ident: { protocol, protocolVersion, app, name, fallback, override } -- the
+    //   identity this console implements; `override` (from ?module=) wins.
+    // Returns { id, source: "override"|"protocol"|"app"|"name"|"default",
+    //           protocolVersion (advertised by the chosen module, else null),
+    //           warnings: [strings], notes: [informational strings] }.
+    function resolveModuleId(info, ident) {
+      const norm = (s) => String(s == null ? "" : s).trim().toLowerCase();
+      const base = (s) => { const n = norm(s).split("?")[0].split("#")[0]; return n.slice(n.lastIndexOf("/") + 1); };
+      const list = (info && Array.isArray(info.modules)) ? info.modules : null;
+      const label = (m) => (m.name || m.protocol || "?") + " (#" + m.id + ")";
+      const want = String(ident.protocol || "");
+      const warnings = [], notes = [];
+      if (info && info.version > DISCOVERY_VERSION_KNOWN)
+        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed with the v" + DISCOVERY_VERSION_KNOWN + " record layout");
+      if (info && info.trailing > 0)
+        notes.push("ignoring " + info.trailing + " trailing byte(s) after the module list (discovery v" + info.version + ")");
+      // Finish with the chosen module (m may be null when unknown), checking
+      // that it speaks the protocol we implement, at a version we support.
+      const done = (m, source) => {
+        const v = (m && Number.isInteger(m.protocolVersion)) ? m.protocolVersion : null;
+        if (m && want && m.protocol && m.protocol !== want)
+          warnings.push("module #" + m.id + " advertises protocol " + m.protocol + ", not " + want);
+        else if (v && Number.isInteger(ident.protocolVersion) && v !== ident.protocolVersion)
+          warnings.push("device speaks " + (m.protocol || want) + " v" + v + ", this console supports v" + ident.protocolVersion);
+        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings, notes };
+      };
+      const ov = ident.override;
+      if (Number.isInteger(ov) && ov >= 0 && ov <= 0xEF) { // 0xF0..0xFF: reserved (dispatcher / meta)
+        const m = list ? list.find((x) => x.id === ov) : null;
+        if (list && !m) warnings.push("module #" + ov + " was requested but the device does not advertise it");
+        const r = done(m, "override"); r.id = ov; return r;
+      }
+      if (list) {
+        const byProto = want ? list.filter((m) => m.protocol === want) : [];
+        if (byProto.length > 1)
+          warnings.push("several modules speak " + want + " (" + byProto.map(label).join(", ") + "); using the first -- add ?module=N to the URL to pick another");
+        if (byProto.length) return done(byProto[0], "protocol");
+        const wantApp = base(ident.app), wantName = norm(ident.name);
+        const byApp = wantApp ? list.find((m) => base(m.app) === wantApp) : null;
+        if (byApp) return done(byApp, "app");
+        const byName = wantName ? list.find((m) => norm(m.name) === wantName) : null;
+        if (byName) return done(byName, "name");
+        warnings.push("the device does not advertise " + (want || ident.name || ident.app) + " (advertised: " + (list.map(label).join(", ") || "none") + "); using the default module #" + ident.fallback);
+      }
+      return { id: ident.fallback, source: "default", protocolVersion: null, warnings, notes };
+    }
+    // The ?module=N query parameter (decimal or 0x..) overrides discovery; the
+    // Device Hub links each console this way. Null when absent or invalid.
+    function moduleOverrideFromQuery(search) {
+      const raw = new URLSearchParams(search || "").get("module");
+      if (raw == null || raw.trim() === "") return null;
+      // the WHOLE token must be a decimal or 0x-hex integer (parseInt would
+      // accept "9oops" as 9); anything else is invalid and ignored
+      const m = /^(?:0x([0-9a-f]+)|([0-9]+))$/i.exec(raw.trim());
+      if (!m) return null;
+      const n = m[1] !== undefined ? Number.parseInt(m[1], 16) : Number.parseInt(m[2], 10);
+      return (Number.isInteger(n) && n >= 0 && n <= 0xEF) ? n : null; // 0xF0..0xFF are reserved
+    }
+    // One log line saying how a module id was chosen.
+    function describeModuleChoice(label, r, ident, info) {
+      const how = r.source === "override" ? "from ?module=" :
+                  r.source === "protocol" ? "advertises " + ident.protocol + (r.protocolVersion ? " v" + r.protocolVersion : "") :
+                  r.source === "app" ? "advertised as app " + ident.app :
+                  r.source === "name" ? "advertised as \"" + ident.name + "\"" :
+                  info ? "default" : "default; the device did not answer discovery";
+      return label + " module: #" + r.id + " (" + how + ")";
+    }
+    // Adopt the haptics module id from a discovery reply (null = none) -- every
+    // haptics frame built / matched from here on uses it.
+    function adoptModule(info) {
+      HAPTICS_IDENT.override = moduleOverrideFromQuery(location.search);
+      const r = resolveModuleId(info, HAPTICS_IDENT);
+      moduleHaptics = r.id;
+      moduleReady = true;
+      logLine("sys", describeModuleChoice("Haptics", r, HAPTICS_IDENT, info));
+      for (const w of r.warnings) logLine("warn", w + ".");
+      for (const n of r.notes) logLine("sys", n + ".");
+    }
+    // Ask the device which dispatcher modules it serves and adopt the haptics
+    // module's id from the answer (adoptModule). No discovery reply (older
+    // firmware) -> the default id; the normal init below still surfaces a
+    // genuinely missing module via timeout.
+    async function checkModulePresent(generation) {
       const payload = await new Promise((resolve) => {
         let timer = null;
         // settle guards the shared resolver: only clear it if it is still ours,
@@ -784,20 +904,20 @@
         device.transferOut(epOut, buildFrame(T_LIST_MODULES, null, MODULE_DISCOVERY))
           .catch(() => settle(null));
       });
-      if (!payload) return undefined;        // no discovery reply -> older firmware
-      let info;
-      try { info = parseDiscovery(payload); } catch (_) { return undefined; }
-      if (info.modules.some((m) => m.id === MODULE_HAPTICS)) {
-        logLine("sys", "Device advertises " + info.modules.length + " module(s); haptics module present.");
-        return true;
-      }
-      const names = info.modules.map((m) => m.name + " (#" + m.id + ")").join(", ") || "none";
-      logLine("warn", "This device does not advertise the haptics module. Detected: " + names +
-              ". You may have selected the wrong device, or its firmware lacks the haptics module.");
-      return false;
+      // the connection this probe was started for is gone (closed, or replaced
+      // by a newer connect): its answer must not be adopted into the new one
+      if (generation !== connectGeneration) return false;
+      let info = null;
+      if (payload) { try { info = parseDiscovery(payload); } catch (_) { info = null; } }
+      adoptModule(info);
+      return true;
     }
 
-    async function initializeDevice() {
+    // `generation` is the connectGeneration this init belongs to; every await
+    // is followed by a check so a stale init (its device closed / replaced
+    // meanwhile) stops instead of driving the new connection.
+    async function initializeDevice(generation) {
+      const stale = () => generation !== connectGeneration;
       try {
         // Flush any stale frames the device queued for a previous session (its TX
         // FIFO is not cleared on an abrupt tab close) before we send anything, so
@@ -807,11 +927,14 @@
         draining = true;
         parser.reset();
         await new Promise((resolve) => setTimeout(resolve, 150));
+        if (stale()) return;
         draining = false;
-        // Confirm this device serves the haptics module (best-effort warning only;
-        // we still attempt init so the user can force it if discovery is stale).
-        await checkModulePresent();
+        // Resolve the haptics module id from discovery BEFORE the first command
+        // (falls back to the default id when the device does not answer).
+        if (!(await checkModulePresent(generation))) return;
+        setConnectedUI(true); // module id resolved: only now enable the controls
         const info = await transact(TYPE.GET_INFO, null, [TYPE.INFO], CMD_TIMEOUT_MS);
+        if (stale()) return;
         const r = reader(info.payload);
         const protoVer = rdU8(r);
         const project = rdStr(r), version = rdStr(r), build = rdStr(r), idf = rdStr(r);
@@ -820,14 +943,17 @@
         logLine("sys", "Firmware: " + project + " " + version + " (protocol v" + protoVer + ", built " + build + ")");
 
         const modesReply = await transact(TYPE.GET_MODES, null, [TYPE.MODES], CMD_TIMEOUT_MS);
+        if (stale()) return;
         parseModes(modesReply.payload);
         populateModeSelect();
 
         const status = await transact(TYPE.GET_STATUS, null, [TYPE.STATUS], CMD_TIMEOUT_MS);
+        if (stale()) return;
         applyStatus(status.payload);
 
         if (els.streamToggle.checked) await applyStreaming();
       } catch (e) {
+        if (stale()) return; // the connection went away under us: nothing to report
         logLine("err", "Device initialization failed: " + e.message);
         setStatus("error", "Init failed");
       }
@@ -1104,9 +1230,11 @@
       els.connectBtn.classList.toggle("danger", connected);
       els.connectBtn.classList.toggle("primary", !connected);
       els.anyDevice.disabled = connected;
+      // The command controls also wait for discovery to resolve the module id
+      // (moduleReady), so a click can never send on the default id.
       for (const el of [els.modeSelect, els.enableBtn, els.posInput, els.posBtn,
                         els.strengthRange, els.hapticBtn, els.streamToggle, els.rateSelect]) {
-        el.disabled = !connected;
+        el.disabled = !(connected && moduleReady);
       }
       if (!connected) {
         telem = null;

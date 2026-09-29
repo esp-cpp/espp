@@ -63,6 +63,7 @@ def device_argv(
     pid: str | None = None,
     serial: str | None = None,
     interface: str | None = None,
+    module: str | None = None,
 ) -> list[str]:
     """The device-selection part of an ``espp_coredump`` command line."""
     argv: list[str] = []
@@ -71,6 +72,7 @@ def device_argv(
         ("--pid", pid),
         ("--serial", serial),
         ("--interface", interface),
+        ("--module", module),
     ):
         if value is not None and value != "":
             argv += [name, str(value)]
@@ -119,6 +121,7 @@ def build_tool_argv(
     pid: str | None = None,
     serial: str | None = None,
     interface: str | None = None,
+    module: str | None = None,
 ) -> list[str]:
     """The ``espp_coredump`` command line for one ``idf.py coredump-usb``
     invocation. ``--erase`` is passed through to the tool's ``summary`` /
@@ -138,7 +141,7 @@ def build_tool_argv(
         argv = ["summary"]
     else:
         argv = ["debug", project_elf(build_dir)]
-    argv += device_argv(vid, pid, serial, interface)
+    argv += device_argv(vid, pid, serial, interface, module)
     if not summary:
         # default the core file into the build directory (the tool's own default
         # is the current directory, which under idf.py is the project source tree)
@@ -188,6 +191,7 @@ def action_extensions(base_actions: dict[str, Any] | None, project_path: str) ->
         pid: str | None = None,
         serial: str | None = None,
         interface: str | None = None,
+        module: str | None = None,
     ) -> None:
         del action, ctx
         run_tool(
@@ -201,6 +205,7 @@ def action_extensions(base_actions: dict[str, Any] | None, project_path: str) ->
                 pid=pid,
                 serial=serial,
                 interface=interface,
+                module=module,
             )
         )
 
@@ -261,6 +266,13 @@ def action_extensions(base_actions: dict[str, Any] | None, project_path: str) ->
                         "default": None,
                         "help": "Force a specific USB interface number instead of the first "
                         "vendor (0xFF) one.",
+                    },
+                    {
+                        "names": ["--module"],
+                        "default": None,
+                        "help": "Dispatcher module id to talk to (default: the one the device "
+                        "advertises for espp.coredump through discovery, else 4; or "
+                        "$ESPP_COREDUMP_MODULE).",
                     },
                 ],
                 # build first, so the ELF the dump is decoded against is the one on the device

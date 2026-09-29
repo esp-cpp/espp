@@ -66,6 +66,7 @@ def device_argv(
     pid: str | None = None,
     serial: str | None = None,
     interface: str | None = None,
+    module: str | None = None,
 ) -> list[str]:
     """The device-selection part of an ``espp_ota`` command line."""
     argv: list[str] = []
@@ -74,6 +75,7 @@ def device_argv(
         ("--pid", pid),
         ("--serial", serial),
         ("--interface", interface),
+        ("--module", module),
     ):
         if value is not None and value != "":
             argv += [name, str(value)]
@@ -143,6 +145,7 @@ def build_tool_argv(
     pid: str | None = None,
     serial: str | None = None,
     interface: str | None = None,
+    module: str | None = None,
 ) -> list[str]:
     """The ``espp_ota`` command line for one ``idf.py ota-usb`` invocation."""
     mode = selected_mode(status, mark_valid, rollback)
@@ -150,9 +153,9 @@ def build_tool_argv(
     if mode is not None:
         # the sub-command comes first; device args follow it (argparse
         # attaches them to the sub-parser)
-        return [mode] + device_argv(vid, pid, serial, interface)
+        return [mode] + device_argv(vid, pid, serial, interface, module)
     argv += ["flash", binary or project_bin(build_dir)]
-    argv += device_argv(vid, pid, serial, interface)
+    argv += device_argv(vid, pid, serial, interface, module)
     if chunk_size is not None and chunk_size != "":
         argv += ["--chunk-size", str(chunk_size)]
     if no_verify:
@@ -206,6 +209,7 @@ def action_extensions(base_actions: dict[str, Any] | None, project_path: str) ->
         pid: str | None = None,
         serial: str | None = None,
         interface: str | None = None,
+        module: str | None = None,
     ) -> None:
         del action, ctx
         run_tool(
@@ -223,6 +227,7 @@ def action_extensions(base_actions: dict[str, Any] | None, project_path: str) ->
                 pid=pid,
                 serial=serial,
                 interface=interface,
+                module=module,
             )
         )
 
@@ -306,6 +311,13 @@ def action_extensions(base_actions: dict[str, Any] | None, project_path: str) ->
                         "default": None,
                         "help": "Force a specific USB interface number instead of the first "
                         "vendor (0xFF) one.",
+                    },
+                    {
+                        "names": ["--module"],
+                        "default": None,
+                        "help": "Dispatcher module id to talk to (default: the one the device "
+                        "advertises for espp.ota through discovery, else 0; or "
+                        "$ESPP_OTA_MODULE).",
                     },
                 ],
                 # build first, so the .bin that goes over is the one just built

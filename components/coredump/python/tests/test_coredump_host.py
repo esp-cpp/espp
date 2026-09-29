@@ -4,9 +4,12 @@ mock device.
 Runs with plain ``python3`` (no hardware, no pyusb). Also importable by pytest.
 """
 
+import contextlib
+import io
 import os
 import struct
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -27,11 +30,22 @@ class MockDevice:
 
     The host writes request frames; ``read()`` returns the device's replies."""
 
-    def __init__(self, image=IMAGE, summary="Guru Meditation Error: Core 0 panic'ed\n"):
+    def __init__(self, image=IMAGE, summary="Guru Meditation Error: Core 0 panic'ed\n",
+                 module=4, discovery_version=2, protocol=P.PROTOCOL, protocol_version=1,
+                 answer_discovery=True):
         self._parser = F.StreamParser()
         self._out = bytearray()
         self.image = bytes(image)
         self.summary = summary
+        # the dispatcher module the service is served on (a routing key: the
+        # client is expected to find it through discovery, not assume 4)
+        self.module = module
+        self.discovery_version = discovery_version  # 1 = pre-protocol-id records
+        self.protocol = protocol
+        self.protocol_version = protocol_version
+        self.answer_discovery = answer_discovery    # False = no Dispatcher discovery at all
+        self.discovery_requests = 0
+        self.request_modules = set()                # every module id a request arrived on
         self.reads = 0
         self.erased = False
         self.corrupt_offset_on_read = None  # the Nth READ answers with a wrong offset
@@ -52,12 +66,33 @@ class MockDevice:
         del self._out[: len(chunk)]
         return chunk
 
+    def discovery_payload(self):
+        """The describe() TLV: a v1 payload (records end after the description)
+        or v2 (records add [protocol str][protocol_version u16 LE])."""
+        def s(text):
+            b = text.encode()
+            return bytes([len(b)]) + b
+
+        def record(mid, name, app, desc, proto, pver):
+            r = bytes([mid]) + s(name) + s(app) + s(desc)
+            if self.discovery_version >= 2:
+                r += s(proto) + struct.pack("<H", pver)
+            return r
+        return (bytes([self.discovery_version, 0]) + s("espp CoreDump") + s("1.2.3") + bytes([2])
+                + record(1, "Crash Trigger", "", "trigger a crash",
+                         "espp.coredump-crash-trigger", 1)
+                + record(self.module, "Core Dump", "coredump_console.html",
+                         "Inspect the last crash core dump", self.protocol,
+                         self.protocol_version))
+
     def _reply(self, b, fr=None):
-        if fr is not None and not self.legacy_no_correlation and fr.correlation is not None:
-            # echo the request's correlation id, as CoreDumpService does
-            parsed = F.StreamParser().feed(b)[0]
-            b = F.build_frame(parsed.module, parsed.type, parsed.payload, reply=True,
-                              correlation=fr.correlation)
+        # replies go out on the module the request came in on (the service
+        # stamps its Config::module), with the correlation id echoed
+        parsed = F.StreamParser().feed(b)[0]
+        b = F.build_frame(fr.module if fr is not None else parsed.module, parsed.type,
+                          parsed.payload, reply=True,
+                          correlation=(fr.correlation if fr is not None
+                                       and not self.legacy_no_correlation else None))
         if self.drop_first_reply:
             self.drop_first_reply = False
             return
@@ -72,17 +107,15 @@ class MockDevice:
 
     def _handle(self, fr):
         if fr.module == P.DISCOVERY_MODULE and fr.type == P.DISCOVERY_LIST_MODULES:
-            def s(text):
-                b = text.encode()
-                return bytes([len(b)]) + b
-            payload = (bytes([1, 0]) + s("espp CoreDump") + s("1.2.3") + bytes([2])
-                       + bytes([1]) + s("Crash") + s("") + s("trigger a crash")
-                       + bytes([4]) + s("Core Dump") + s("coredump_console.html")
-                       + s("Inspect the last crash core dump"))
-            self._out += F.build_frame(P.DISCOVERY_MODULE, P.DISCOVERY_LIST_MODULES, payload,
-                                       reply=True)
+            self.discovery_requests += 1
+            if not self.answer_discovery:
+                return
+            self._out += F.build_frame(P.DISCOVERY_MODULE, P.DISCOVERY_LIST_MODULES,
+                                       self.discovery_payload(), reply=True)
             return
-        if fr.module != P.MODULE or fr.is_reply:
+        if not fr.is_reply:
+            self.request_modules.add(fr.module)
+        if fr.module != self.module or fr.is_reply:
             return
         t = fr.type
         if t == MessageType.GET_SUMMARY:
@@ -270,10 +303,262 @@ def test_discovery():
     info = CoreDumpClient(dev).discover(timeout_ms=100)
     _ok("discovery request is written with the caller's timeout", write_timeouts == [100])
     _ok("discovery decoded", info is not None and info.device_name == "espp CoreDump"
-        and info.firmware == "1.2.3" and len(info.modules) == 2)
+        and info.firmware == "1.2.3" and len(info.modules) == 2 and info.version == 2)
     _ok("core dump module advertised", info.has_module(4)
         and info.modules[1].app == "coredump_console.html")
+    _ok("v2 records carry the protocol id + version",
+        info.modules[1].protocol == "espp.coredump" and info.modules[1].protocol_version == 1
+        and info.modules[0].protocol == "espp.coredump-crash-trigger")
+    # a v1 payload (pre-protocol-id firmware) still decodes, without protocol fields
+    v1 = CoreDumpClient(MockDevice(discovery_version=1)).discover(timeout_ms=100)
+    _ok("v1 payload decodes with empty protocol fields",
+        v1 is not None and v1.version == 1 and len(v1.modules) == 2
+        and v1.modules[1].protocol == "" and v1.modules[1].protocol_version == 0)
+    # forward compatibility: a newer payload version keeps the v2 record
+    # layout (records carry no length, so per-record extensions are not
+    # possible); only bytes AFTER the whole record list may follow, and they
+    # are ignored. Two records + a trailer prove the second record is not
+    # desynchronised.
+    dev_v3 = MockDevice(discovery_version=3)
+    dev_v3.discovery_payload = (lambda f=dev_v3.discovery_payload:
+                                f() + b"\x07future!" + bytes([0xAA, 0xBB, 0xCC]))
+    v3 = CoreDumpClient(dev_v3).discover(timeout_ms=100)
+    _ok("v3 payload: v2 record layout, trailing bytes after the records ignored",
+        v3 is not None and v3.version == 3 and len(v3.modules) == 2
+        and v3.modules[0].name == "Crash Trigger" and v3.modules[1].name == "Core Dump"
+        and v3.modules[1].id == 4 and v3.modules[1].protocol == "espp.coredump"
+        and v3.modules[1].protocol_version == 1)
+    # the probe's timeout bounds the whole thing, the request write included
+    slow = MockDevice(answer_discovery=False)
+    real_write = slow.write
+
+    def slow_write(data, timeout_ms=0):
+        time.sleep(0.08)  # the transport takes most of the budget to write
+        real_write(data, timeout_ms)
+    slow.write = slow_write
+    t0 = time.monotonic()
+    silent = CoreDumpClient(slow).discover(timeout_ms=100)
+    elapsed = time.monotonic() - t0
+    _ok("discover: one timeout bounds write + reply wait",
+        silent is None and elapsed < 0.18)
+    # u16 protocol_version is little-endian
+    dev3 = MockDevice(protocol_version=0x0102)
+    v = CoreDumpClient(dev3).discover(timeout_ms=100)
+    _ok("protocol_version u16 is little-endian", v.modules[1].protocol_version == 0x0102)
     _ok("truncated TLV is tolerated", P.parse_discovery(F.Frame(0x11, 0xFF, 0, b"\x01\x00", None)) is None)
+    # a v2 record truncated inside the protocol fields is dropped, earlier ones kept
+    full = dev.discovery_payload()
+    cut = P.parse_discovery(F.Frame(0x11, 0xFF, 0, full[:-1], None))
+    _ok("record truncated in its protocol fields is dropped", cut is not None
+        and len(cut.modules) == 1 and cut.modules[0].id == 1)
+
+
+def _m(mid, name="", app="", desc="", protocol="", pver=0):
+    return P.ModuleInfo(mid, name, app, desc, protocol, pver)
+
+
+def test_resolve_module_id():
+    ident = dict(protocol="espp.coredump", protocol_version=1, app="coredump_console.html",
+                 name="Core Dump", fallback=4)
+    R = P.resolve_module_id
+    # no discovery reply at all -> the published default, no warning
+    r = R(None, **ident)
+    _ok("resolve: no reply -> default", r.id == 4 and r.source == "default" and not r.warnings)
+    # protocol id wins over app / name / id
+    info = P.DiscoveryInfo(2, "d", "1", [_m(9, "Other", "coredump_console.html", "", "espp.other", 1),
+                                        _m(7, "Core Dump", "x.html", "", "espp.coredump", 1)])
+    r = R(info, **ident)
+    _ok("resolve: protocol id first", r.id == 7 and r.source == "protocol"
+        and r.protocol_version == 1 and not r.warnings)
+    # then the app filename (v1 devices advertise no protocol), then the name
+    info = P.DiscoveryInfo(1, "d", "1", [_m(3, "Telemetry", "telemetry.html"),
+                                        _m(9, "dump", "apps/CoreDump_Console.html?x=1")])
+    r = R(info, **ident)
+    _ok("resolve: app filename (basename, case-insensitive)", r.id == 9 and r.source == "app")
+    info = P.DiscoveryInfo(1, "d", "1", [_m(3, "Telemetry", "telemetry.html"),
+                                        _m(11, "core dump ", "")])
+    r = R(info, **ident)
+    _ok("resolve: module name", r.id == 11 and r.source == "name")
+    # nothing matches -> default + a warning naming what was advertised
+    info = P.DiscoveryInfo(2, "d", "1", [_m(0, "OTA", "ota_console.html", "", "espp.ota", 1)])
+    r = R(info, **ident)
+    _ok("resolve: nothing matches -> default with a warning", r.id == 4 and r.source == "default"
+        and len(r.warnings) == 1 and "OTA (#0)" in r.warnings[0] and "#4" in r.warnings[0])
+    # several modules speak the protocol: the first, with a warning naming all
+    info = P.DiscoveryInfo(2, "d", "1", [_m(5, "A", "", "", "espp.coredump", 1),
+                                        _m(6, "B", "", "", "espp.coredump", 1)])
+    r = R(info, **ident)
+    _ok("resolve: several candidates -> first + warning", r.id == 5 and r.source == "protocol"
+        and len(r.warnings) == 1 and "A (#5)" in r.warnings[0] and "B (#6)" in r.warnings[0])
+    # protocol version mismatch is a warning, not a refusal
+    info = P.DiscoveryInfo(2, "d", "1", [_m(4, "Core Dump", "", "", "espp.coredump", 2)])
+    r = R(info, **ident)
+    _ok("resolve: version mismatch warns", r.id == 4 and r.protocol_version == 2
+        and len(r.warnings) == 1 and "v2" in r.warnings[0] and "v1" in r.warnings[0])
+    # override wins; warned about when unadvertised or speaking another protocol
+    info = P.DiscoveryInfo(2, "d", "1", [_m(4, "Core Dump", "", "", "espp.coredump", 1),
+                                        _m(0, "OTA", "", "", "espp.ota", 1)])
+    r = R(info, override=9, **ident)
+    _ok("resolve: override wins, unadvertised warns", r.id == 9 and r.source == "override"
+        and len(r.warnings) == 1 and "#9" in r.warnings[0])
+    r = R(info, override=0, **ident)
+    _ok("resolve: override speaking another protocol warns", r.id == 0
+        and len(r.warnings) == 1 and "espp.ota" in r.warnings[0])
+    r = R(info, override=4, **ident)
+    _ok("resolve: override matching the advertised module is silent", r.id == 4
+        and r.protocol_version == 1 and not r.warnings)
+    r = R(None, override=4, **ident)
+    _ok("resolve: override without a reply is silent", r.id == 4 and r.source == "override"
+        and not r.warnings)
+    # a newer payload version than understood is parsed as v2 and warned about
+    info = P.DiscoveryInfo(3, "d", "1", [_m(4, "Core Dump", "", "", "espp.coredump", 1)])
+    r = R(info, **ident)
+    _ok("resolve: newer discovery version warns", r.id == 4 and r.source == "protocol"
+        and len(r.warnings) == 1 and "v3" in r.warnings[0])
+    try:
+        R(info, override=0xFF, **ident)
+        _ok("resolve: override 0xFF is refused", False)
+    except ValueError:
+        _ok("resolve: override 0xFF is refused", True)
+
+
+def test_client_adopts_discovered_module():
+    # the device serves the core dump on module 9: the client finds it through
+    # discovery and every request / reply match uses 9
+    dev = MockDevice(module=9)
+    client = CoreDumpClient(dev)
+    _ok("client: default module before discovery", client.module == 4 and client.resolution is None)
+    _ok("client: summary on the discovered module", client.summary() == dev.summary
+        and client.module == 9 and client.resolution.source == "protocol"
+        and dev.discovery_requests == 1)
+    _ok("client: image on the discovered module", client.read_image() == IMAGE
+        and dev.discovery_requests == 1)  # resolved once, not per request
+    # a v1 device (no protocol id) is found by its app filename
+    dev = MockDevice(module=9, discovery_version=1)
+    client = CoreDumpClient(dev)
+    _ok("client: v1 device found by app", client.size() == len(IMAGE) and client.module == 9
+        and client.resolution.source == "app")
+    # no discovery at all -> the default id (after the discovery timeout)
+    dev = MockDevice(answer_discovery=False)
+    client = CoreDumpClient(dev, discover_timeout_ms=50)
+    _ok("client: silent device -> default id", client.size() == len(IMAGE) and client.module == 4
+        and client.resolution.source == "default" and client.discovered is None)
+    # an explicit module skips discovery entirely and is used as given
+    dev = MockDevice(module=9)
+    client = CoreDumpClient(dev, module=9)
+    _ok("client: explicit module, no discovery", client.size() == len(IMAGE)
+        and dev.discovery_requests == 0 and client.module == 9)
+    # ... and resolve_module() on it reports (but does not change) the choice
+    r = client.resolve_module()
+    _ok("client: explicit module reported as override", r.source == "override" and r.id == 9
+        and client.module == 9 and not r.warnings)
+    # explicit module the device serves something else on: warned, still used
+    dev = MockDevice(module=9)
+    client = CoreDumpClient(dev, module=1)
+    r = client.resolve_module()
+    _ok("client: explicit module speaking another protocol warns", r.id == 1
+        and client.module == 1 and any("espp.coredump-crash-trigger" in w for w in r.warnings))
+    try:
+        CoreDumpClient(dev, module=0xFF)
+        _ok("client: module 0xFF refused", False)
+    except ValueError:
+        _ok("client: module 0xFF refused", True)
+
+
+def test_cli_module_option():
+    from espp_coredump import cli
+    parser = cli.build_parser()
+    ns = parser.parse_args(["summary", "--module", "0x9"])
+    _ok("cli: --module parses (hex ok)", ns.module == 9)
+    ns = parser.parse_args(["download"])
+    _ok("cli: --module defaults to None (discover)", ns.module is None)
+    # environment defaults go through the option's own parser: a valid value
+    # is adopted, an invalid one is a usage error, not a crash building the parser
+    saved = {k: os.environ.pop(k) for k in ("ESPP_COREDUMP_MODULE", "ESPP_COREDUMP_VID")
+             if k in os.environ}
+    try:
+        os.environ["ESPP_COREDUMP_MODULE"] = "0x9"
+        os.environ["ESPP_COREDUMP_VID"] = "0x1234"
+        ns = cli.build_parser().parse_args(["summary"])
+        _ok("cli: ESPP_COREDUMP_MODULE / _VID supply defaults", ns.module == 9 and ns.vid == 0x1234)
+        ns = cli.build_parser().parse_args(["summary", "--module", "3"])
+        _ok("cli: --module overrides ESPP_COREDUMP_MODULE", ns.module == 3)
+        os.environ["ESPP_COREDUMP_MODULE"] = "nine"
+        try:
+            parser = cli.build_parser()  # must not raise
+            with contextlib.redirect_stderr(io.StringIO()) as err:
+                parser.parse_args(["summary"])
+            usage_error = False
+        except SystemExit as exc:
+            usage_error = exc.code == 2 and "ESPP_COREDUMP_MODULE" not in err.getvalue() \
+                and "--module" in err.getvalue() and "nine" in err.getvalue()
+        _ok("cli: an invalid ESPP_COREDUMP_MODULE is a usage error naming --module", usage_error)
+        os.environ["ESPP_COREDUMP_MODULE"] = ""
+        _ok("cli: an empty ESPP_COREDUMP_MODULE means unset",
+            cli.build_parser().parse_args(["summary"]).module is None)
+        # the option validates the range too (0xFF is the discovery module)
+        for bad in ("255", "0xFF", "0xF0", "240", "-1", "300"):
+            try:
+                with contextlib.redirect_stderr(io.StringIO()) as err:
+                    cli.build_parser().parse_args(["summary", "--module", bad])
+                ranged = False
+            except SystemExit as exc:
+                ranged = exc.code == 2 and "out of range" in err.getvalue()
+            if not ranged:
+                break
+        _ok("cli: --module outside 0..239 (0xF0..0xFF reserved) is a usage error", ranged)
+        _ok("cli: --module 239 / 0 are accepted",
+            cli.build_parser().parse_args(["summary", "--module", "239"]).module == 239
+            and cli.build_parser().parse_args(["summary", "--module", "0"]).module == 0)
+    finally:
+        for k in ("ESPP_COREDUMP_MODULE", "ESPP_COREDUMP_VID"):
+            os.environ.pop(k, None)
+        os.environ.update(saved)
+    # the client the CLI builds carries the override and resolves up front
+    real_transport = cli._make_transport
+    try:
+        dev = FakeTransport(module=9)
+        cli._make_transport = lambda args: dev
+        rc = cli._cmd_size(_cli_args(module=9))
+        # the CLI still probes once with an explicit id (to warn if the device
+        # advertises something else there) but talks to the id given
+        _ok("cli: size with --module 9 talks to module 9",
+            rc == 0 and dev.discovery_requests == 1)
+        dev = FakeTransport(module=9)
+        cli._make_transport = lambda args: dev
+        try:
+            cli._cmd_size(_cli_args(module=4, timeout=50, retries=0))
+            timed_out = False
+        except CoreDumpTimeout:
+            timed_out = True  # module 4 is used as given; nothing answers there
+        _ok("cli: --module 4 is used as given even though the device serves 9",
+            timed_out and dev.request_modules == {4} and dev.discovery_requests == 1)
+        dev = FakeTransport(module=9)
+        cli._make_transport = lambda args: dev
+        rc = cli._cmd_size(_cli_args())
+        _ok("cli: size without --module discovers module 9",
+            rc == 0 and dev.discovery_requests == 1)
+        dev = FakeTransport(module=9)
+        cli._make_transport = lambda args: dev
+        rc = cli._cmd_discover(_cli_args(discover_timeout=100))
+        _ok("cli: discover reports the module that speaks espp.coredump", rc == 0)
+        # protocol mismatch but the app filename matches: still found (by app), with a warning
+        dev = FakeTransport(module=9, protocol="espp.other")
+        cli._make_transport = lambda args: dev
+        rc = cli._cmd_discover(_cli_args(discover_timeout=100))
+        _ok("cli: discover still finds the module by app when the protocol id differs", rc == 0)
+        # nothing advertises the protocol / app / name -> exit 1
+        dev = FakeTransport(module=9)
+        full = dev.discovery_payload()
+        # cut the payload before the Core Dump record (the parser drops the
+        # truncated record): only the crash trigger is advertised
+        dev.discovery_payload = lambda: full[:full.index(bytes([9]) + b"\x09Core Dump")]
+        cli._make_transport = lambda args: dev
+        rc = cli._cmd_discover(_cli_args(discover_timeout=100))
+        _ok("cli: discover exits 1 when nothing advertises the protocol / app / name",
+            rc == 1)
+    finally:
+        cli._make_transport = real_transport
 
 
 def test_streaming_download():
@@ -356,7 +641,7 @@ class FakeTransport(MockDevice):
 
 def _cli_args(**kw):
     import argparse
-    base = dict(vid=0x1209, pid=0x0d36, serial=None, interface=None, quiet=True,
+    base = dict(vid=0x1209, pid=0x0d36, serial=None, interface=None, module=None, quiet=True,
                 chunk_size=2048, timeout=5000, out=None, gdb=False, erase=False)
     base.update(kw)
     return argparse.Namespace(**base)
@@ -462,6 +747,15 @@ def test_cli_erase_same_connection():
         cli._make_transport, decoder.run_decoder = real_transport, real_decoder
 
 
+def cli_parser():
+    import espp_coredump.cli as cli
+    return cli.build_parser()
+
+
+def parser_module_of(parser, argv):
+    return parser.parse_args(argv).module
+
+
 def test_component_loader():
     """components/coredump/idf_ext.py (what idf.py imports) loads the package
     from its path without touching sys.path."""
@@ -492,7 +786,7 @@ def test_idf_extension():
     _ok("idf_ext registers coredump-usb with its options",
         action["callback"] is not None and action["dependencies"] == ["all"]
         and {"--gdb", "--summary", "--erase", "--out", "--vid", "--pid", "--serial",
-             "--interface"} <= names)
+             "--interface", "--module"} <= names)
     _ok("idf_ext declares the extension version", "version" in ext)
     _ok("idf_ext skips a second registration",
         X.action_extensions({"actions": {X.ACTION_NAME: {}}}, "/proj") == {})
@@ -526,6 +820,9 @@ def test_idf_extension():
                 "--interface", "2", "--out", "c.elf", "--gdb"])
         _ok("idf_ext: argv for summary needs no ELF",
             X.build_tool_argv(build_dir, summary=True, pid="-1") == ["summary", "--pid", "-1"])
+        _ok("idf_ext: --module is forwarded with the device options",
+            X.build_tool_argv(build_dir, summary=True, module="9") == ["summary", "--module", "9"]
+            and parser_module_of(cli_parser(), X.build_tool_argv(build_dir, module="0x9")) == 9)
         # what the action builds must be what the CLI accepts (the device
         # options live on the sub-parsers, so the sub-command has to come first)
         import espp_coredump.cli as cli
@@ -621,6 +918,9 @@ if __name__ == "__main__":
         test_suggested_command_quoting,
         test_extract_elf,
         test_discovery,
+        test_resolve_module_id,
+        test_client_adopts_discovered_module,
+        test_cli_module_option,
         test_summary_panel,
         test_transport_timeout_classification,
         test_cli_erase_same_connection,

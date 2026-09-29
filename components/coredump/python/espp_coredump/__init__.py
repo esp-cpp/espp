@@ -1,7 +1,8 @@
 """espp_coredump — pure-Python host tool to read an espp device's core dump over USB.
 
 Speaks the espp ``stream_frame`` framing + core-dump stream protocol
-(dispatcher module 4) over the device's USB vendor (WebUSB) interface — the
+(dispatcher module 4 by default; the id a device serves it on is discovered)
+over the device's USB vendor (WebUSB) interface — the
 same protocol ``components/coredump/web/coredump_console.html`` implements in
 the browser and the ``coredump`` example serves on-device — and hands the
 downloaded ``core.elf`` to ESP-IDF's ``esp-coredump`` decoder.
@@ -25,7 +26,7 @@ Typical use::
 from .client import CoreDumpClient
 from .elf import extract_elf, find_elf_offset
 from .protocol import (CoreDumpError, CoreDumpTimeout, DataInfo, DiscoveryInfo, ErrorInfo,
-                       MessageType, ModuleInfo)
+                       MessageType, ModuleInfo, Resolution, parse_discovery, resolve_module_id)
 from .transport import DEFAULT_PID, DEFAULT_VID, TransportError, UsbVendorTransport
 
 __all__ = [
@@ -39,6 +40,9 @@ __all__ = [
     "DataInfo",
     "DiscoveryInfo",
     "ModuleInfo",
+    "Resolution",
+    "parse_discovery",
+    "resolve_module_id",
     "extract_elf",
     "find_elf_offset",
     "DEFAULT_VID",

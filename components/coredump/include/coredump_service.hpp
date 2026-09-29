@@ -138,10 +138,16 @@ public:
   };
 
   /// Default dispatcher module id of the core-dump protocol (the frame
-  /// `module` byte): the id the hosted core-dump console expects. See
-  /// Config::module to serve on a different id. Reply Msg values keep the
-  /// high bit set, which build() maps to the frame reply flag.
+  /// `module` byte). Only a routing key: Config::module serves on any id, and
+  /// the hosted console / `espp_coredump` CLI find it through discovery (by
+  /// kProtocol). Reply Msg values keep the high bit set, which build() maps
+  /// to the frame reply flag.
   static constexpr uint8_t kModule = 4;
+  /// Stable protocol identifier + version advertised through discovery
+  /// (Dispatcher::ModuleInfo::protocol); hosts locate the core-dump module by
+  /// this rather than by its (configurable) module id.
+  static constexpr const char *kProtocol = "espp.coredump";
+  static constexpr uint16_t kProtocolVersion = 1;
 
   /// Maximum image bytes per READ request / DATA reply (the DATA payload is
   /// a 4-byte offset plus the data, capped by the framing's payload limit).
@@ -157,9 +163,9 @@ public:
   struct Config {
     send_fn send{nullptr}; ///< Transmits an encoded reply frame (required).
     /// Dispatcher module id this instance answers on (and stamps on its
-    /// replies). The module id is purely a routing key; the default (kModule,
-    /// 4) is what the stock core-dump console looks for, so change it only if
-    /// your host tooling is told the new id.
+    /// replies). The module id is purely a routing key: the stock core-dump
+    /// console / `espp_coredump` CLI find whichever id is chosen through
+    /// discovery (by kProtocol), so any id 0x00..0xEF is fine (0xF0..0xFF are reserved).
     uint8_t module{kModule};
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Logger verbosity.
   };
@@ -177,14 +183,16 @@ public:
       , module_(config.module) {}
 
   /// @brief The dispatcher module id this service answers on (Config::module;
-  ///        kModule by default, which the web console expects).
+  ///        kModule by default; hosts find it through discovery either way).
   uint8_t module_id() const { return module_; }
 
   /// @brief Discovery metadata for registering this service on a Dispatcher.
   Dispatcher::ModuleInfo module_info() const {
     return {.name = "Core Dump",
             .app = "coredump_console.html",
-            .description = "Inspect the last crash core dump"};
+            .description = "Inspect the last crash core dump",
+            .protocol = kProtocol,
+            .protocol_version = kProtocolVersion};
   }
 
   /**

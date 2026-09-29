@@ -1,7 +1,8 @@
 """espp_ota — pure-Python host tool to OTA-update an espp device over USB.
 
 Speaks the espp ``stream_frame`` framing + OTA stream protocol (dispatcher
-module 0) over the device's USB vendor (WebUSB) interface — the same protocol
+module 0 by default; the id a device serves it on is discovered) over the
+device's USB vendor (WebUSB) interface — the same protocol
 ``components/ota/web/ota_console.html`` implements in the browser and the
 ``ota`` example serves on-device.
 
@@ -17,7 +18,8 @@ Typical use::
 """
 
 from .client import OtaClient
-from .protocol import ErrorInfo, MessageType, OtaError, ProgressInfo
+from .protocol import (DiscoveryInfo, ErrorInfo, MessageType, ModuleInfo, OtaError,
+                       ProgressInfo, Resolution, parse_discovery, resolve_module_id)
 from .transport import DEFAULT_PID, DEFAULT_VID, TransportError, UsbVendorTransport
 
 __all__ = [
@@ -28,6 +30,11 @@ __all__ = [
     "MessageType",
     "ErrorInfo",
     "ProgressInfo",
+    "DiscoveryInfo",
+    "ModuleInfo",
+    "Resolution",
+    "parse_discovery",
+    "resolve_module_id",
     "DEFAULT_VID",
     "DEFAULT_PID",
 ]

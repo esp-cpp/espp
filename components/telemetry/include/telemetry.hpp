@@ -71,10 +71,16 @@ namespace espp {
 class Telemetry : public espp::BaseComponent {
 public:
   /// Default dispatcher module id of the telemetry protocol (the frame
-  /// `module` byte): the id the hosted Serial Plotter expects. See
-  /// Config::module to serve on a different id. Device->host Type values keep
-  /// the high bit set, which the framing maps to the reply flag.
+  /// `module` byte). Only a routing key: Config::module serves on any id, and
+  /// the hosted Serial Plotter finds it through discovery (by kProtocol).
+  /// Device->host Type values keep the high bit set, which the framing maps to
+  /// the reply flag.
   static constexpr uint8_t kModule = 3;
+  /// Stable protocol identifier + version advertised through discovery
+  /// (Dispatcher::ModuleInfo::protocol); the Serial Plotter locates the
+  /// telemetry module by this rather than by its (configurable) module id.
+  static constexpr const char *kProtocol = "espp.telemetry";
+  static constexpr uint16_t kProtocolVersion = 1;
 
   /// Version byte at the head of a SCHEMA payload, so the wire format can evolve.
   static constexpr uint8_t kSchemaVersion = 1;
@@ -106,9 +112,9 @@ public:
     std::vector<std::string> channels; ///< Channel names, in sample order (>= 1).
     send_fn send{nullptr};             ///< Transmits an encoded frame (may be set later).
     /// Dispatcher module id this instance answers on (and stamps on every
-    /// frame it sends). The module id is purely a routing key; the default
-    /// (kModule, 3) is what the stock Serial Plotter looks for, so change it
-    /// only if your host tooling is told the new id.
+    /// frame it sends). The module id is purely a routing key: the stock
+    /// Serial Plotter finds whichever id is chosen through discovery (by
+    /// kProtocol), so any id 0x00..0xEF is fine (0xF0..0xFF are reserved).
     uint8_t module{kModule};
     bool stream_on_start{true}; ///< Start with streaming enabled.
     uint16_t period_ms{20};     ///< Default requested sample period (informational).
@@ -242,7 +248,9 @@ public:
   Dispatcher::ModuleInfo module_info() const {
     return {.name = "Serial Plotter",
             .app = "telemetry.html",
-            .description = "Live binary telemetry channels"};
+            .description = "Live binary telemetry channels",
+            .protocol = kProtocol,
+            .protocol_version = kProtocolVersion};
   }
 
   /// @brief Dispatcher handler: process one frame addressed to this module.

@@ -19,8 +19,10 @@ uses dispatcher **module 4** by default (requests `0x40..0x4F`, replies
 framed protocols (OTA on module 0, an app protocol, ...) — and with free-form
 console text — on the same stream, routed by `espp::Dispatcher`. The module id
 is only a routing key: `CoreDumpService::Config::module` moves an instance to
-another id (used for both the requests it accepts and the replies it sends),
-but the hosted console looks for 4 until told otherwise.
+another id (used for both the requests it accepts and the replies it sends);
+the hosted console and the `espp_coredump` CLI find the id through dispatcher
+discovery (the service advertises protocol id `espp.coredump`,
+`CoreDumpService::kProtocol`), so they follow it.
 
 The matching browser tool is
 [`web/coredump_console.html`](web/coredump_console.html), hosted at
