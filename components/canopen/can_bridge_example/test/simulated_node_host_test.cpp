@@ -8,6 +8,7 @@
 // conforming CiA 301 / 402 device.
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <climits>
 #include <cstdint>
@@ -164,6 +165,10 @@ static void test_boot_and_nmt() {
   CHECK(!out.empty() && out[0].data[0] == 0x00);
   CHECK(node.nmt_state() == co::NmtState::PreOperational);
   CHECK(read_u(node, 0x1000, 0, 4) == 0x00020192u);
+  // a late tick catches up: 3 periods elapsed in one tick -> 3 heartbeats
+  out.clear();
+  node.tick(3000ms, out);
+  CHECK(count_id(out, co::COB_HEARTBEAT_BASE + kNode) == 3);
   // a heartbeat time change takes effect
   CHECK(write_u(node, 0x1017, 0, 200, 2));
   out.clear();
@@ -223,16 +228,18 @@ static void test_sdo_aborts() {
   bad.data[0] = 0xE0;
   r = sdo(node, bad);
   CHECK(r.type == co::SdoResponse::Type::Abort && r.abort_code == 0x05040001);
-  // a segment request with no transfer in progress
+  // a segment request with no transfer in progress: the abort names no object
+  // (bytes 1..3 of a segment frame are payload, not a multiplexer)
   r = sdo(node, co::make_sdo_upload_segment_request(kNode, false));
-  CHECK(r.type == co::SdoResponse::Type::Abort);
+  CHECK(r.type == co::SdoResponse::Type::Abort && r.index == 0 && r.subindex == 0);
   // toggle bit not alternated on a segmented upload
   r = sdo(node, co::make_sdo_upload_request(kNode, ds::OBJ_DEVICE_NAME, 0));
   CHECK(r.type == co::SdoResponse::Type::SegmentedUploadInit && r.total_size == 26);
   r = sdo(node, co::make_sdo_upload_segment_request(kNode, false));
   CHECK(r.type == co::SdoResponse::Type::UploadSegment && !r.last);
   r = sdo(node, co::make_sdo_upload_segment_request(kNode, false)); // should be true
-  CHECK(r.type == co::SdoResponse::Type::Abort && r.abort_code == 0x05030000);
+  CHECK(r.type == co::SdoResponse::Type::Abort && r.abort_code == 0x05030000 &&
+        r.index == ds::OBJ_DEVICE_NAME && r.subindex == 0); // the active transfer's object
   // RTR / extended / short frames on the SDO id are ignored, not decoded
   CanFrame rtr = co::make_sdo_upload_request(kNode, 0x1000, 0);
   rtr.rtr = true;
@@ -313,8 +320,10 @@ static void test_state_machine() {
   std::printf("test_state_machine\n");
   auto node = make_node();
   CHECK(state(node) == ds::State::SwitchOnDisabled);
+  CHECK(!(read_u(node, ds::OBJ_STATUSWORD, 0, 2).value_or(0) & 0x0010)); // voltage not enabled
   CHECK(write_u(node, ds::OBJ_CONTROLWORD, 0, ds::CW_SHUTDOWN, 2));
   CHECK(state(node) == ds::State::ReadyToSwitchOn);
+  CHECK(read_u(node, ds::OBJ_STATUSWORD, 0, 2).value_or(0) & 0x0010); // voltage enabled
   CHECK(write_u(node, ds::OBJ_CONTROLWORD, 0, ds::CW_SWITCH_ON, 2));
   CHECK(state(node) == ds::State::SwitchedOn);
   CHECK(write_u(node, ds::OBJ_CONTROLWORD, 0, ds::CW_ENABLE_OPERATION, 2));
@@ -445,11 +454,15 @@ static void test_profile_velocity_and_position() {
   CHECK(node.position() == -100);
   CHECK(write_u(node, 0x607D, 1, static_cast<uint32_t>(-1000000), 4));
   CHECK(write_u(node, 0x607D, 2, 1000000, 4));
-  // torque mode mirrors the target; homing attains after a while
+  // torque mode mirrors the target (negative values decode as two's complement)
   CHECK(write_u(node, ds::OBJ_MODES_OF_OPERATION, 0, 4, 1));
   CHECK(write_u(node, 0x6071, 0, 250, 2));
   tick(node, 20ms);
   CHECK(read_u(node, 0x6077, 0, 2) == 250u);
+  CHECK(write_u(node, 0x6071, 0, 0xFF38, 2)); // -200
+  tick(node, 20ms);
+  CHECK(read_u(node, 0x6077, 0, 2) == 0xFF38u);
+  // homing attains after a while
   CHECK(write_u(node, ds::OBJ_MODES_OF_OPERATION, 0, 6, 1));
   CHECK(
       write_u(node, ds::OBJ_CONTROLWORD, 0, ds::CW_ENABLE_OPERATION | ds::CW_BIT_NEW_SETPOINT, 2));

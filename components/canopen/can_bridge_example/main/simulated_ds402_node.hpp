@@ -33,8 +33,10 @@
 // SimulatedCanBus (simulated_can_bus.hpp) that stands in for espp::Twai.
 
 #include <algorithm>
+#include <bit>
 #include <chrono>
 #include <climits>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -172,7 +174,7 @@ public:
       // RPDO1 mapping (0x1600): controlword u16 [+ modes of operation i8]
       const uint16_t cw = static_cast<uint16_t>(co::get_le(&in.data[0], 2));
       if (in.dlc >= 3)
-        set_mode(static_cast<int8_t>(in.data[2]));
+        set_mode(as_i8(in.data[2]));
       apply_controlword(cw, out);
     } else if (in.id == co::COB_TPDO1_BASE + id && in.rtr) {
       out.push_back(make_tpdo1()); // RTR-triggered TPDO1
@@ -194,9 +196,10 @@ public:
     const uint32_t ms = static_cast<uint32_t>(dt.count());
     const uint16_t hb = heartbeat_ms();
     if (hb) {
+      // one frame per elapsed period: a late tick (task scheduling) catches
+      // up instead of dropping periods and drifting
       heartbeat_elapsed_ms_ += ms;
-      if (heartbeat_elapsed_ms_ >= hb) {
-        heartbeat_elapsed_ms_ = 0;
+      for (; heartbeat_elapsed_ms_ >= hb; heartbeat_elapsed_ms_ -= hb) {
         CanFrame f;
         f.id = co::COB_HEARTBEAT_BASE + id;
         f.dlc = 1;
@@ -210,10 +213,8 @@ public:
     const uint16_t ev = read_u16(0x1800, 5);
     if (nmt_ == NmtState::Operational && ev) {
       tpdo_elapsed_ms_ += ms;
-      if (tpdo_elapsed_ms_ >= ev) {
-        tpdo_elapsed_ms_ = 0;
+      for (; tpdo_elapsed_ms_ >= ev; tpdo_elapsed_ms_ -= ev)
         out.push_back(make_tpdo1());
-      }
     } else {
       tpdo_elapsed_ms_ = 0;
     }
@@ -594,9 +595,13 @@ private:
   uint16_t read_u16(uint16_t index, uint8_t sub) const {
     return static_cast<uint16_t>(read_raw(index, sub, 2));
   }
-  int32_t read_i32(uint16_t index, uint8_t sub) const {
-    return static_cast<int32_t>(read_raw(index, sub, 4));
-  }
+  // The dictionary holds raw two's-complement bytes; reinterpret them as the
+  // signed type bit for bit (well-defined, unlike a narrowing static_cast of
+  // an out-of-range unsigned value).
+  static int8_t as_i8(uint32_t v) { return std::bit_cast<int8_t>(static_cast<uint8_t>(v)); }
+  static int16_t as_i16(uint32_t v) { return std::bit_cast<int16_t>(static_cast<uint16_t>(v)); }
+  static int32_t as_i32(uint32_t v) { return std::bit_cast<int32_t>(v); }
+  int32_t read_i32(uint16_t index, uint8_t sub) const { return as_i32(read_raw(index, sub, 4)); }
   void store(uint16_t index, uint8_t sub, uint32_t v, size_t n) {
     auto it = od_.find(index);
     if (it == od_.end())
@@ -652,20 +657,20 @@ private:
       apply_controlword(static_cast<uint16_t>(v), out);
       return true;
     case 0x6060:
-      if (!set_mode(static_cast<int8_t>(v))) {
+      if (!set_mode(as_i8(v))) {
         abort = kAbortRange;
         return false;
       }
       return true;
     case 0x605A:
-      if (static_cast<int16_t>(v) < 0 || static_cast<int16_t>(v) > 8) {
+      if (as_i16(v) < 0 || as_i16(v) > 8) {
         abort = kAbortRange;
         return false;
       }
       return true;
     case 0x607D: {
       // min must stay below max; the axis is pulled inside the new limits
-      const int32_t nv = static_cast<int32_t>(v);
+      const int32_t nv = as_i32(v);
       const int32_t other = read_i32(0x607D, sub == 1 ? 2 : 1);
       if ((sub == 1 && nv >= other) || (sub == 2 && nv <= other)) {
         abort = kAbortRange;
@@ -724,8 +729,13 @@ private:
     namespace co = espp::detail::canopen;
     const uint8_t cs = in.data[0];
     const uint8_t ccs = cs >> 5;
-    const uint16_t index = static_cast<uint16_t>(co::get_le(&in.data[1], 2));
-    const uint8_t sub = in.data[3];
+    // bytes 1..3 are the multiplexer only in initiate (ccs 1 / 2) and abort
+    // frames; in segment frames they are payload, so an abort raised there
+    // names the active transfer (or 0/0 when there is none)
+    const bool has_mux = ccs == 1 || ccs == 2 || ccs == 4;
+    const uint16_t index = has_mux ? static_cast<uint16_t>(co::get_le(&in.data[1], 2))
+                                   : (sdo_.active ? sdo_.index : 0);
+    const uint8_t sub = has_mux ? in.data[3] : (sdo_.active ? sdo_.sub : 0);
     uint32_t abort = 0;
     switch (ccs) {
     case 1: { // initiate download (write)
@@ -896,7 +906,11 @@ private:
     default:
       break;
     }
-    sw |= 0x0010; // voltage enabled
+    // bit 4 (voltage enabled): high voltage is applied once the drive left
+    // Switch On Disabled (the simulated supply is switched with the enable
+    // voltage command)
+    if (state_ != State::NotReadyToSwitchOn && state_ != State::SwitchOnDisabled)
+      sw |= 0x0010;
     sw |= 0x0200; // remote
     if (target_reached_)
       sw |= 0x0400;
@@ -1047,7 +1061,7 @@ private:
       clamp_position();
       if (velocity_ == 0.0 && quick_stopping_) {
         quick_stopping_ = false;
-        if (static_cast<int16_t>(read_u16(0x605A, 0)) <= 4)
+        if (as_i16(read_u16(0x605A, 0)) <= 4)
           state_ = State::SwitchOnDisabled; // option codes 0..4: transit after the stop
       }
       return;
@@ -1098,7 +1112,7 @@ private:
       break;
     }
     case kModeTq:
-      torque_actual_ = static_cast<int16_t>(read_u16(0x6071, 0));
+      torque_actual_ = as_i16(read_u16(0x6071, 0));
       target_reached_ = true;
       break;
     case kModeHm:
