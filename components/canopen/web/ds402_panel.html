@@ -2311,8 +2311,14 @@
       const progress = hooks && hooks.progress ? hooks.progress : () => {};
       const cancelled = hooks && hooks.cancelled ? hooks.cancelled : () => false;
       const rows = [];
+      // An object's share of the progress total: 1 for a VAR; for an ARRAY /
+      // RECORD the sub-0 read (whether or not sub 0 is listed) plus the listed
+      // subs, except for a dynamic array (built-in table, subs 1..254 listed as
+      // candidates only) whose real subs are added once its count is known.
+      const share = (o) => (o.objectType === 8 || o.objectType === 9)
+        ? 1 + (o.dynamicCount ? 0 : o.subs.filter((s) => s.sub > 0).length) : 1;
       let total = 0;
-      for (const o of objects) total += (o.objectType === 8 || o.objectType === 9) ? Math.max(1, o.subs.length) : 1;
+      for (const o of objects) total += share(o);
       let done = 0;
       const readEntry = async (o, s) => {
         const row = { index: o.index, sub: s.sub, name: s.name, objectType: o.objectType, dataType: s.dataType,
@@ -2350,10 +2356,10 @@
           continue;
         }
         // ARRAY / RECORD: the count first. The object's share of `total` is
-        // 1 + its listed subs; whatever is skipped (subs above the count, the
-        // rest after a missing subindex) is credited at the end of the object.
+        // share(o); whatever is skipped (subs above the count, the rest after a
+        // missing subindex) is credited at the end of the object.
         const listed = o.subs.filter((s) => s.sub > 0);
-        const objectShare = Math.max(1, o.subs.length);
+        const objectShare = share(o);
         const base = done;
         const sub0 = o.subs.find((s) => s.sub === 0) || { sub: 0, name: "Number of entries", dataType: 0x5, access: "ro" };
         const head = await readEntry(o, sub0);
@@ -2380,10 +2386,15 @@
             else if (o.dynamicCount || !listed.length) subsToRead.push({ sub: i, name: o.name + " " + i, dataType: o.dataType, access: o.access });
           }
           // a record may have gaps above the count (e.g. 0x1018 with count 3):
-          // anything listed above the count is reported as absent without a read
-          for (const s of listed) if (s.sub > limit) rows.push({ index: o.index, sub: s.sub, name: s.name, objectType: o.objectType, dataType: s.dataType, access: s.access, group: o.index, status: "absent", bytes: null, value: null, error: "above entry count " + count });
+          // anything listed above the count is reported as absent without a
+          // read. A dynamic array's candidates (1..254) above the count simply
+          // do not exist: no rows for them.
+          if (!o.dynamicCount)
+            for (const s of listed) if (s.sub > limit) rows.push({ index: o.index, sub: s.sub, name: s.name, objectType: o.objectType, dataType: s.dataType, access: s.access, group: o.index, status: "absent", bytes: null, value: null, error: "above entry count " + count });
         }
-        const extra = Math.max(0, subsToRead.length - listed.length);   // dynamic subs beyond the listed ones
+        // subs beyond the object's share: a dynamic array's actual subs, or
+        // subs synthesized up to the count when none were listed
+        const extra = Math.max(0, subsToRead.length - (o.dynamicCount ? 0 : listed.length));
         total += extra;
         let ended = false;   // the object's walk finished on its own (last sub, or no such sub)
         let lost = false;    // a sub read came back "cancelled" (link gone / transfer aborted)
@@ -2414,7 +2425,8 @@
           const o = objects[oi];
           if (o.objectType !== 8 && o.objectType !== 9) { place(o, { sub: 0, name: o.name, dataType: o.dataType, access: o.access }); continue; }
           if (!o.subs.some((s) => s.sub === 0)) place(o, { sub: 0, name: o.name, dataType: 0x5, access: "ro" });
-          for (const s of o.subs) place(o, s.sub === 0 ? { ...s, name: o.name } : s);
+          // (a dynamic array's 1..254 candidates are not entries until its count says so)
+          for (const s of o.subs) if (s.sub === 0 || !o.dynamicCount) place(o, s.sub === 0 ? { ...s, name: o.name } : s);
         }
       }
       return rows;
@@ -2504,6 +2516,9 @@
           continue;
         }
         rows.push({ index: o.index, sub: 0, name: o.name, objectType: o.objectType, dataType: 0x5, access: "ro", group: o.index, isGroup: true, status: "unread", value: null, error: null });
+        // a dynamic array (built-in table) lists 1..254 as candidates only: its
+        // real subs appear once a scan has read the count
+        if (o.dynamicCount) continue;
         for (const s of o.subs) if (s.sub > 0) rows.push({ index: o.index, sub: s.sub, name: s.name, objectType: o.objectType, dataType: s.dataType, access: s.access, group: o.index, status: "unread", value: null, error: null });
       }
       return rows;

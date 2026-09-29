@@ -387,7 +387,8 @@ Description=  ;leading blanks then a comment
     assert(log2.length <= 4, "cancelled scan must stop reading early");
     const visited = rows2.filter((r) => r.status !== "skipped");
     assert(visited.length <= 4, "only the visited rows carry results");
-    const entries = all.reduce((s, o) => s + ((o.objectType === 8 || o.objectType === 9) ? o.subs.length : 1), 0);
+    // (a dynamic array's 1..254 candidates are not entries: only its sub 0 is placed)
+    const entries = all.reduce((s, o) => s + ((o.objectType === 8 || o.objectType === 9) ? (o.dynamicCount ? 1 : o.subs.length) : 1), 0);
     assert.strictEqual(rows2.length, entries, "every listed entry has a row after a cancel");
     assert(rows2.every((r) => r.status !== "skipped" || r.error === "not scanned (cancelled)"));
     // a link loss stops the walk the same way but says so in the placeholders
@@ -407,6 +408,22 @@ Description=  ;leading blanks then a comment
     }, {});
     assert(!log5.includes("6040:0") && !log5.includes("6041:0"), "no object after the loss may be read: " + log5);
     assert.strictEqual(rows5.find((r) => r.index === 0x6040).status, "skipped");
+    // a dynamic array (0x1003, 254 candidates) with a small count yields only
+    // count rows (no "absent" rows for the candidates above the count), and
+    // progress never exceeds its total nor goes backwards, also for a record
+    // whose sub 0 is not listed (sub 0 is still read and counted)
+    const noSub0 = { index: 0x2100, name: "Rec", objectType: 9, dataType: null, access: null, dynamicCount: false,
+                     subs: [{ sub: 1, name: "a", dataType: 0x7, access: "ro" }, { sub: 2, name: "b", dataType: 0x7, access: "ro" }] };
+    const dyn = od.builtinObjects(1).find((o) => o.index === 0x1003);
+    const prog = [];
+    const rows6 = await od.odScan([dyn, noSub0], async (index, sub) => (sub === 0 ? Uint8Array.of(2) : Uint8Array.of(7, 0, 0, 0)),
+                                  { progress: (d, t) => prog.push([d, t]) });
+    assert.strictEqual(rows6.filter((r) => r.index === 0x1003).length, 3, "count + sub 0 only");
+    assert(rows6.filter((r) => r.index === 0x1003).every((r) => r.status === "ok"));
+    assert.strictEqual(rows6.filter((r) => r.index === 0x2100).length, 3, "sub 0 read even when not listed");
+    for (let i = 1; i < prog.length; i++) assert(prog[i][0] >= prog[i - 1][0], "progress goes backwards: " + JSON.stringify(prog));
+    assert(prog.every(([d, t]) => d <= t), "progress exceeds its total: " + JSON.stringify(prog));
+    assert.strictEqual(prog[prog.length - 1][0], prog[prog.length - 1][1], "progress ends at total");
     // a disconnect surfaces as the SDO client's rejection: the walk stops with what it has
     const rows3 = await od.odScan(all, async () => { throw new Error("SDO aborted"); }, {});
     assert.strictEqual(rows3[0].status, "cancelled");
