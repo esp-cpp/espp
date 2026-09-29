@@ -55,7 +55,8 @@ public:
     error_callback_fn on_error{nullptr}; ///< Never called (the simulated bus has no errors).
     bool auto_start{true};               ///< If true, the node runs at the end of initialize().
     uint8_t node_id{1};                  ///< The simulated node's CANopen node id (1..127).
-    std::chrono::milliseconds tick_period{5}; ///< Simulation step (heartbeat / TPDO / motion).
+    std::chrono::milliseconds tick_period{
+        5}; ///< Simulation step (heartbeat / TPDO / motion); >= 1 ms.
   };
 
   explicit SimulatedCanBus(const Config &config)
@@ -70,6 +71,11 @@ public:
   bool initialize(std::error_code &ec) {
     ec.clear();
     if (config_.node_id < 1 || config_.node_id > 127) {
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+    if (config_.tick_period < std::chrono::milliseconds(1)) {
+      // the bus task waits tick_period between steps: 0 would spin
       ec = std::make_error_code(std::errc::invalid_argument);
       return false;
     }

@@ -743,7 +743,17 @@ private:
       const bool sized = (cs & 0x01) != 0;
       sdo_ = {};
       if (expedited) {
-        const size_t n = sized ? 4 - ((cs >> 2) & 0x03) : 4;
+        // no size indicated (s = 0): a fixed-size object takes its own size
+        // from the low-order bytes, as servers commonly do; only a
+        // variable-size object is taken as the full 4 bytes
+        size_t n = 4;
+        if (sized) {
+          n = 4 - ((cs >> 2) & 0x03);
+        } else if (uint32_t probe = 0; const Entry *e = find(index, sub, probe)) {
+          const size_t fixed = fixed_size(e->data_type);
+          if (fixed && fixed < 4)
+            n = fixed;
+        }
         if (!write_object(index, sub, std::span<const uint8_t>(&in.data[4], n), abort, out)) {
           sdo_abort(index, sub, abort, out);
           return;

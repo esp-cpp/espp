@@ -271,6 +271,23 @@ static void test_segmented_download() {
   node.process(seg, out);
   CHECK(!out.empty() && (out[0].data[0] & 0xE0) == 0x20 && (out[0].data[0] & 0x10) == 0);
   CHECK(read_u(node, 0x1017, 0, 2) == 300u);
+  // an expedited download without the size indicated (s = 0) takes a fixed-size
+  // object's own size from the low-order bytes, and a variable-size object 4 bytes
+  CanFrame unsized;
+  unsized.id = co::COB_SDO_RX_BASE + kNode;
+  unsized.dlc = 8;
+  unsized.data[0] = 0x22; // ccs=1, e=1, s=0
+  co::put_le(0x1017, &unsized.data[1], 2);
+  unsized.data[3] = 0;
+  co::put_le(0xAAAA0400, &unsized.data[4], 4); // u16 0x0400 in the low bytes, junk above
+  r = sdo(node, unsized);
+  CHECK(r.type == co::SdoResponse::Type::DownloadOk);
+  CHECK(read_u(node, 0x1017, 0, 2) == 0x0400u);
+  unsized.data[0] = 0x22;
+  co::put_le(0x2000, &unsized.data[1], 2); // u8: only the low byte
+  co::put_le(0x00000000, &unsized.data[4], 4);
+  r = sdo(node, unsized);
+  CHECK(r.type == co::SdoResponse::Type::DownloadOk && read_u(node, 0x2000, 0, 1) == 0u);
   // a wrong declared size is refused at initiate
   co::put_le(4, &init.data[4], 4);
   r = sdo(node, init);
