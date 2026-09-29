@@ -12,6 +12,12 @@
 // so the web app can connect over either transport. The system console/logs go
 // to the separate built-in USB-Serial-JTAG. Wire the TX/RX GPIOs to a CAN
 // transceiver (e.g. SN65HVD230) on a terminated bus.
+//
+// With CONFIG_CAN_BRIDGE_SIMULATED_NODE (menuconfig, or build with
+// sdkconfig.defaults.simulated) the TWAI peripheral is replaced by an
+// in-firmware simulated CANopen CiA 402 drive (simulated_can_bus.hpp /
+// simulated_ds402_node.hpp), so the web apps can be exercised with no CAN
+// hardware at all; the USB side and the bridge protocol are identical.
 
 #include <array>
 #include <atomic>
@@ -24,6 +30,8 @@
 #include <thread>
 #include <vector>
 
+#include "sdkconfig.h"
+
 #include "dispatcher_worker.hpp"
 #include "logger.hpp"
 #include "stream_frame.hpp"
@@ -31,9 +39,20 @@
 #include "usb_device.hpp"
 
 #include "can_bridge_protocol.hpp"
+#if CONFIG_CAN_BRIDGE_SIMULATED_NODE
+#include "simulated_can_bus.hpp"
+#endif
 
 using namespace std::chrono_literals;
 namespace sf = espp::stream_frame;
+
+// The CAN bus the bridge drives: the TWAI peripheral, or (Kconfig) a simulated
+// CANopen DS402 node that exposes the same interface.
+#if CONFIG_CAN_BRIDGE_SIMULATED_NODE
+using CanBus = can_bridge::SimulatedCanBus;
+#else
+using CanBus = espp::Twai;
+#endif
 
 // TWAI GPIOs — change to match your board / transceiver wiring.
 static constexpr int kCanTxGpio = 17;
@@ -48,6 +67,10 @@ static constexpr uint8_t kCanBridgeModule = can_bridge::kModuleId;
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "CAN Bridge", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting USB<->CAN bridge example");
+#if CONFIG_CAN_BRIDGE_SIMULATED_NODE
+  logger.info("SIMULATED bus: a CANopen DS402 node (id {}) answers instead of the TWAI peripheral",
+              CONFIG_CAN_BRIDGE_SIMULATED_NODE_ID);
+#endif
 
   // --- USB: vendor (WebUSB) for the framed protocol + CDC for the console ----
   espp::UsbDevice::Config usb_cfg;
@@ -117,14 +140,14 @@ extern "C" void app_main(void) {
   };
 
   // --- CAN bus state (recreated on START so baudrate/mode can change) ---------
-  std::mutex bus_mutex; // guards twai + config below
-  std::unique_ptr<espp::Twai> twai;
+  std::mutex bus_mutex; // guards bus + config below
+  std::unique_ptr<CanBus> bus;
   uint32_t baudrate = 1000000;
   uint8_t mode = can_bridge::kModeNormal;
   std::atomic<uint32_t> rx_count{0}, tx_count{0}, err_count{0};
 
-  // TWAI receive task context: stream each frame to the host as CAN_RX.
-  auto on_can_rx = [&](const espp::Twai::Message &m) {
+  // Bus receive task context: stream each frame to the host as CAN_RX.
+  auto on_can_rx = [&](const CanBus::Message &m) {
     can_bridge::CanFrame f;
     f.id = m.id;
     f.extended = m.extended;
@@ -145,7 +168,7 @@ extern "C" void app_main(void) {
     std::vector<uint8_t> p;
     {
       std::lock_guard<std::mutex> lock(bus_mutex);
-      const bool running = static_cast<bool>(twai);
+      const bool running = static_cast<bool>(bus);
       sf::put_u32(p, baudrate);
       p.push_back(mode);
       p.push_back(running ? 1 : 0);
@@ -158,32 +181,35 @@ extern "C" void app_main(void) {
 
   auto start_bus = [&](std::error_code &ec) -> bool {
     std::lock_guard<std::mutex> lock(bus_mutex);
-    if (twai)
+    if (bus)
       return true; // already running
-    espp::Twai::Config cfg;
+    CanBus::Config cfg;
     cfg.tx_gpio = kCanTxGpio;
     cfg.rx_gpio = kCanRxGpio;
     cfg.baudrate = baudrate;
-    cfg.mode = (mode == can_bridge::kModeListenOnly) ? espp::Twai::Mode::LISTEN_ONLY
-                                                     : espp::Twai::Mode::NORMAL;
+    cfg.mode =
+        (mode == can_bridge::kModeListenOnly) ? CanBus::Mode::LISTEN_ONLY : CanBus::Mode::NORMAL;
     cfg.auto_start = false; // start() explicitly so we get an error code
     cfg.on_receive = on_can_rx;
     cfg.on_error = on_can_err;
-    auto node = std::make_unique<espp::Twai>(cfg);
+#if CONFIG_CAN_BRIDGE_SIMULATED_NODE
+    cfg.node_id = CONFIG_CAN_BRIDGE_SIMULATED_NODE_ID;
+#endif
+    auto node = std::make_unique<CanBus>(cfg);
     // initialize() creates the node + receive task; start() enables it on the
     // bus (start() on a node that was never initialized fails with
     // operation_not_permitted, which the host saw as "start failed: Not owner").
     if (!node->initialize(ec) || !node->start(ec))
       return false; // node destructs, deleting the driver
-    twai = std::move(node);
+    bus = std::move(node);
     return true;
   };
   auto stop_bus = [&]() {
     std::lock_guard<std::mutex> lock(bus_mutex);
-    if (twai) {
+    if (bus) {
       std::error_code ec;
-      twai->stop(ec);
-      twai.reset();
+      bus->stop(ec);
+      bus.reset();
     }
   };
 
@@ -211,17 +237,17 @@ extern "C" void app_main(void) {
         break;
       }
       std::lock_guard<std::mutex> lock(bus_mutex);
-      if (!twai) {
+      if (!bus) {
         reply_error(send, std::make_error_code(std::errc::not_connected), "bus not started");
         break;
       }
-      espp::Twai::Message m;
+      CanBus::Message m;
       m.id = f.id;
       m.extended = f.extended;
       m.rtr = f.rtr;
       m.dlc = f.dlc;
       m.data = f.data;
-      if (twai->transmit(m, ec)) {
+      if (bus->transmit(m, ec)) {
         tx_count.fetch_add(1);
         send_frame(send, can_bridge::kOk);
       } else {
@@ -242,7 +268,7 @@ extern "C" void app_main(void) {
       }
       {
         std::lock_guard<std::mutex> lock(bus_mutex);
-        if (twai) {
+        if (bus) {
           reply_error(send, std::make_error_code(std::errc::device_or_resource_busy),
                       "stop the bus before reconfiguring");
           break;
@@ -322,7 +348,7 @@ extern "C" void app_main(void) {
     logger.info("Bus starts stopped; the host sets baudrate/mode (SET_CONFIG) then START.");
   }
 
-  // Idle; all work happens in the TWAI receive task and the dispatcher workers.
+  // Idle; all work happens in the bus receive task and the dispatcher workers.
   while (true) {
     std::this_thread::sleep_for(1s);
   }

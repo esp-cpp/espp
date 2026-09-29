@@ -58,6 +58,17 @@ objects) with a chosen data type. Because it drives the node over SDO rather tha
 cyclic PDOs it is a commissioning / bring-up tool; the bus must be in Normal
 (not listen-only) mode so the bridge ACKs the node.
 
+To try either web app without any CAN hardware, build the bridge example with
+its **simulated CANopen node** (``CONFIG_CAN_BRIDGE_SIMULATED_NODE``, off by
+default: ``idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.simulated"
+build``). An in-firmware CiA 402 drive then answers in place of the TWAI
+peripheral: NMT and heartbeat, the SDO server (expedited and segmented, with
+abort codes) over an object dictionary that includes the device's own stored
+EDS (``0x1021``), the DS402 state machine with profile position / velocity /
+torque and homing modes and a simple motion model, a TPDO and EMCY. The USB side
+is unchanged, so the web apps connect and behave exactly as with a real bus; see
+the example's README for what the node implements.
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

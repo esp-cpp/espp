@@ -108,6 +108,11 @@ jobs:
         - path: 'components/canopen/can_bridge_example'
           target: esp32s3
           command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
+        - path: 'components/canopen/can_bridge_example'
+          target: esp32s3
+          command: >-
+            IDF_COMPONENT_MANAGER=0 idf.py
+            -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.simulated" build
         - path: 'components/canopen/example'
           target: esp32
         - path: 'components/chsc6x/example'
