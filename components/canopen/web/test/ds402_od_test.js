@@ -21,7 +21,7 @@ const od = new Function(src + `
 
 // Also make sure the whole inline script parses (a syntax error anywhere in
 // the page would break every panel, not just this one).
-const scriptBody = /<script>([\s\S]*)<\/script>/.exec(html)[1];
+const scriptBody = /<script\b[^>]*>([\s\S]*)<\/script\s*>/i.exec(html)[1];   // the page's one inline script, whatever the tag's case / attributes
 new Function(scriptBody);   // throws SyntaxError on a bad script
 
 let passed = 0;
@@ -390,6 +390,11 @@ Description=  ;leading blanks then a comment
     const entries = all.reduce((s, o) => s + ((o.objectType === 8 || o.objectType === 9) ? o.subs.length : 1), 0);
     assert.strictEqual(rows2.length, entries, "every listed entry has a row after a cancel");
     assert(rows2.every((r) => r.status !== "skipped" || r.error === "not scanned (cancelled)"));
+    // a link loss stops the walk the same way but says so in the placeholders
+    let m = 0;
+    const rows2b = await od.odScan(all, mockDevice([]), { cancelled: () => ++m > 3, stopReason: () => "disconnected" });
+    assert(rows2b.some((r) => r.status === "skipped") &&
+           rows2b.every((r) => r.status !== "skipped" || r.error === "not scanned (disconnected)"));
     const c2 = od.odCounts(rows2);
     assert(c2.unread >= entries - 4 && c2.errors === 0, JSON.stringify(c2));
     // a link lost in the middle of a record's subs stops the whole walk, not just that object

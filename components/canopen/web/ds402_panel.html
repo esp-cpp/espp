@@ -1057,9 +1057,13 @@
         }
         const chunks = [];
         let toggle = 0;
+        let lastProgress = 0;   // chunks.length at the last progress() call
         for (;;) {
           if (cancelled && cancelled()) {
-            await sendSdoAbort(node, index, sub, 0x08000000);   // general error: transfer cancelled
+            // best effort: the link may already be gone (a disconnect is one
+            // way a scan gets cancelled), and the caller must still see a
+            // cancellation, not the transport's error
+            if (transport) { try { await sendSdoAbort(node, index, sub, 0x08000000); } catch (_) {} }   // general error: transfer cancelled
             throw new Error("SDO upload cancelled");
           }
           const seg = new Uint8Array(8);
@@ -1076,7 +1080,7 @@
             await sendSdoAbort(node, index, sub, 0x05040005);   // "out of memory"
             throw new Error("SDO upload aborted: exceeded " + maxBytes + " bytes (node not terminating)");
           }
-          if (progress && (chunks.length % 700) < 7) progress(chunks.length, total);   // every ~100 segments
+          if (progress && chunks.length - lastProgress >= 700) { lastProgress = chunks.length; progress(chunks.length, total); }   // every ~100 segments
           toggle ^= 1;
           if (s[0] & 0x01) break;   // c = last segment
         }
@@ -2299,8 +2303,9 @@
     // first; the subs walked are 1..min(count, listed) - or, when sub 0 cannot be
     // read, the listed subs. A missing object (abort 0x06020000 on its first
     // read) is marked absent and its subs are skipped; a missing subindex ends
-    // that object's walk. `hooks.progress(done, total)` and `hooks.cancelled()`
-    // are optional. Rows: { index, sub, name, objectType, dataType, access, group,
+    // that object's walk. `hooks.progress(done, total)`, `hooks.cancelled()` and
+    // `hooks.stopReason()` (the word in the "not scanned (...)" placeholders,
+    // "cancelled" by default) are optional. Rows: { index, sub, name, objectType, dataType, access, group,
     // status, bytes, value: {text, hex, kind} | null, error }.
     async function odScan(objects, read, hooks) {
       const progress = hooks && hooks.progress ? hooks.progress : () => {};
@@ -2397,11 +2402,13 @@
         // placeholders for what was not reached: the rest of the object the
         // walk was in, and every object after it
         const seen = new Set(rows.map((r) => r.index + ":" + r.sub));
+        // why the walk stopped: a user cancel, or a link loss (hooks.stopReason)
+        const why = "not scanned (" + (hooks && hooks.stopReason ? hooks.stopReason() : "cancelled") + ")";
         const place = (o, s) => {
           if (seen.has(o.index + ":" + s.sub)) return;
           rows.push({ index: o.index, sub: s.sub, name: s.name, objectType: o.objectType, dataType: s.dataType, access: s.access,
                       group: (o.objectType === 8 || o.objectType === 9) ? o.index : null, isGroup: s.sub === 0 && (o.objectType === 8 || o.objectType === 9),
-                      status: "skipped", bytes: null, value: null, error: "not scanned (cancelled)" });
+                      status: "skipped", bytes: null, value: null, error: why });
         };
         for (let oi = stoppedAt; oi < objects.length; oi++) {
           const o = objects[oi];
@@ -2731,6 +2738,7 @@
       const generation = odSourceGeneration;
       const objects = odObjects;
       const isCancelled = () => odScanCancel || !transport;
+      const stopReason = () => (!transport ? "disconnected" : "cancelled");
       // the cancel hook reaches into a segmented upload (a DOMAIN) so Cancel
       // does not have to wait for the whole transfer
       const read = (index, sub) => sdoUpload(index, sub, node, { cancelled: isCancelled });
@@ -2739,6 +2747,7 @@
         rows = await odScan(objects, read, {
           progress: (done, total) => { els.odProgress.textContent = "scanning " + done + " / " + total; },
           cancelled: isCancelled,
+          stopReason,
         });
       } catch (e) { logLine("err", "OD scan: " + (e && e.message ? e.message : e)); }
       if (generation !== odSourceGeneration) {
