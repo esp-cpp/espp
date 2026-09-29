@@ -114,7 +114,7 @@ public:
     /// Dispatcher module id this instance answers on (and stamps on every
     /// frame it sends). The module id is purely a routing key: the stock
     /// Serial Plotter finds whichever id is chosen through discovery (by
-    /// kProtocol), so any id is fine (0xFF is reserved).
+    /// kProtocol), so any id 0x00..0xEF is fine (0xF0..0xFF are reserved).
     uint8_t module{kModule};
     bool stream_on_start{true}; ///< Start with streaming enabled.
     uint16_t period_ms{20};     ///< Default requested sample period (informational).

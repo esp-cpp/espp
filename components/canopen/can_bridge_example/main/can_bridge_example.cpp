@@ -41,8 +41,8 @@ static constexpr int kCanRxGpio = 16;
 
 // Dispatcher module id the bridge protocol is registered under (and stamped on
 // every reply / CAN_RX frame). It is only a routing key: change this one
-// constant to move the protocol, but the hosted CAN console looks for the
-// default (can_bridge::kModuleId = 5) until it is told otherwise.
+// constant to move the protocol; the hosted CAN console / DS402 panel find it
+// through discovery (by can_bridge::kProtocol), whatever id is chosen.
 static constexpr uint8_t kCanBridgeModule = can_bridge::kModuleId;
 
 extern "C" void app_main(void) {

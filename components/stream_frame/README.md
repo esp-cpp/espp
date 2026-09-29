@@ -28,7 +28,10 @@ All multi-byte fields are little-endian:
   a request and awaits a response is an initiator). **bit1 = correlation
   present**; bits 2–3 reserved for future optional header fields; bits 4–7 =
   format version (currently 1).
-- `module` — routing / protocol id (0..255). `espp::Dispatcher` routes on this.
+- `module` — routing key (0..255) selecting which registered handler a frame goes
+  to; `espp::Dispatcher` routes on it. It is not a protocol identity: which
+  protocol a module speaks is advertised through dispatcher discovery
+  (`ModuleInfo::protocol`), and 0xF0..0xFF are reserved for dispatcher / meta use.
 - `type` — message / transaction type within the module (0..255). See the
   `Transaction` enum for recommended standard values (Write/Read/WriteRead/
   Custom); a protocol may otherwise define its own type values and carry a

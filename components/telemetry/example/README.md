@@ -15,9 +15,10 @@ device-timestamped counterpart to the app's text/CSV Web Serial transport.
 - A producer task emits one sample (a `float` per channel) every ~10 ms (100 Hz),
   timestamped with the device clock.
 - Exposes the stream over the USB **vendor (WebUSB)** interface; a `Dispatcher`
-  routes the emitter's module (`Telemetry::Config::module`, 3 by default — the
-  id the hosted Serial Plotter looks for) to it and serves capability discovery
-  so the browser **Device Hub** lists this device and links to `telemetry.html`.
+  routes the emitter's module (`Telemetry::Config::module`, 3 by default; only a
+  routing key, the hosted Serial Plotter finds it through discovery by its
+  protocol id) to it and serves capability discovery so the browser **Device
+  Hub** lists this device and links to `telemetry.html`.
 - The web app can pause/resume the stream and request a rate (`SET_STREAM`), and
   requests the schema on connect (`GET_SCHEMA`).
 

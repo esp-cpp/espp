@@ -19,8 +19,11 @@ Wire format (all multi-byte fields little-endian)::
   (responder→initiator). Which side is the "initiator" depends on the protocol's
   roles. **bit1 = correlation present**; bits 2–3 reserved for future optional
   header fields; bits 4–7 = format version (currently 1).
-- ``module`` — routing / protocol id (0..255). :doc:`../dispatcher/index` routes
-  on this, so up to 256 protocols can share one stream.
+- ``module`` — routing key (0..255) selecting the handler a frame goes to;
+  :doc:`../dispatcher/index` routes on it, so many protocols can share one
+  stream. It is not a protocol identity: which protocol a module speaks is
+  advertised through dispatcher discovery (``ModuleInfo::protocol``), and
+  0xF0..0xFF are reserved for dispatcher / meta use.
 - ``type`` — message / transaction type within the module (0..255). The
   ``Transaction`` enum gives recommended standard values (Write / Read /
   WriteRead / Custom); a protocol may otherwise define its own type values and

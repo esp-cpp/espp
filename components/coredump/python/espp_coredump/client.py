@@ -44,8 +44,8 @@ class CoreDumpClient:
         if the device advertises something else there)."""
         if not (1 <= chunk_size <= _p.MAX_READ_LENGTH):
             raise ValueError(f"chunk_size must be 1..{_p.MAX_READ_LENGTH}")
-        if module is not None and not (0 <= module <= 0xFE):
-            raise ValueError("module must be 0..254")
+        if module is not None and not (0 <= module <= 0xEF):
+            raise ValueError("module must be 0..239 (0xF0..0xFF are reserved)")
         self._t = transport
         self._chunk = chunk_size
         #: The module id requests are stamped with / replies matched on. Starts

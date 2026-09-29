@@ -406,7 +406,7 @@ def test_cli_module_option():
         _ok("cli: an empty ESPP_OTA_MODULE means unset",
             cli.build_parser().parse_args(["status"]).module is None)
         # the option validates the range too (0xFF is the discovery module)
-        for bad in ("255", "0xFF", "-1", "300"):
+        for bad in ("255", "0xFF", "0xF0", "240", "-1", "300"):
             try:
                 with contextlib.redirect_stderr(io.StringIO()) as err:
                     cli.build_parser().parse_args(["status", "--module", bad])
@@ -415,9 +415,9 @@ def test_cli_module_option():
                 ranged = exc.code == 2 and "out of range" in err.getvalue()
             if not ranged:
                 break
-        _ok("cli: --module outside 0..254 is a usage error", ranged)
-        _ok("cli: --module 254 / 0 are accepted",
-            cli.build_parser().parse_args(["status", "--module", "254"]).module == 254
+        _ok("cli: --module outside 0..239 (0xF0..0xFF reserved) is a usage error", ranged)
+        _ok("cli: --module 239 / 0 are accepted",
+            cli.build_parser().parse_args(["status", "--module", "239"]).module == 239
             and cli.build_parser().parse_args(["status", "--module", "0"]).module == 0)
     finally:
         for k in ("ESPP_OTA_MODULE", "ESPP_OTA_VID"):

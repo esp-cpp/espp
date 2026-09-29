@@ -189,8 +189,8 @@ def resolve_module_id(info: Optional[DiscoveryInfo], *, protocol: str, app: str,
                           warnings)
 
     if override is not None:
-        if not (0 <= override <= 0xFE):
-            raise ValueError("module id must be 0..254")
+        if not (0 <= override <= 0xEF):
+            raise ValueError("module id must be 0..239 (0xF0..0xFF are reserved)")
         m = info.find(override) if info is not None else None
         if modules is not None and m is None:
             warnings.append(f"module #{override} was requested but the device does not advertise it")

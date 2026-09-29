@@ -184,6 +184,11 @@ const info = (version, mods) => ({ version, device: "d", fw: "1", modules: mods 
   assert.strictEqual(moduleOverrideFromQuery("?module=0"), 0);
   assert.strictEqual(moduleOverrideFromQuery("?module="), null);
   assert.strictEqual(moduleOverrideFromQuery("?module=255"), null);
+  // 0xF0..0xFF are reserved for dispatcher / meta use: not selectable
+  assert.strictEqual(moduleOverrideFromQuery("?module=0xEF"), 0xEF);
+  assert.strictEqual(moduleOverrideFromQuery("?module=239"), 239);
+  assert.strictEqual(moduleOverrideFromQuery("?module=0xF0"), null);
+  assert.strictEqual(moduleOverrideFromQuery("?module=240"), null);
   assert.strictEqual(moduleOverrideFromQuery("?module=abc"), null);
   // the whole token must be a number: a numeric prefix is not accepted
   assert.strictEqual(moduleOverrideFromQuery("?module=9oops"), null);
@@ -193,7 +198,7 @@ const info = (version, mods) => ({ version, device: "d", fw: "1", modules: mods 
   assert.strictEqual(moduleOverrideFromQuery("?module=%2B3"), null); // a literal "+3" (a bare + is a space in a query)
   assert.strictEqual(moduleOverrideFromQuery("?module=0x"), null);
   assert.strictEqual(moduleOverrideFromQuery("?module= 7 "), 7);
-  assert.strictEqual(moduleOverrideFromQuery("?module=0XfE"), 0xFE);
+  assert.strictEqual(moduleOverrideFromQuery("?module=0XeF"), 0xEF);
   assert.strictEqual(moduleOverrideFromQuery(""), null);
   assert.strictEqual(moduleOverrideFromQuery(undefined), null);
   const two = info(2, [OTA, CD]);

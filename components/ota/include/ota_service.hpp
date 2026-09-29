@@ -110,7 +110,7 @@ public:
     /// Dispatcher module id this instance answers on (and stamps on its
     /// replies). The module id is purely a routing key: the stock OTA console
     /// / `espp_ota` CLI find whichever id is chosen through discovery (by
-    /// kProtocol), so any id is fine (0xFF is reserved).
+    /// kProtocol), so any id 0x00..0xEF is fine (0xF0..0xFF are reserved).
     uint8_t module{kModule};
     /// Restart the device after a successful FINISH (after the OK reply).
     bool auto_restart{true};

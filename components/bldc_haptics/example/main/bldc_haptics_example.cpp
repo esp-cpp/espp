@@ -59,8 +59,8 @@ static constexpr size_t example_motor_index = 0;
 
 // Dispatcher module id the haptics protocol is registered under (and stamped on
 // every haptics reply / telemetry frame). It is only a routing key: change this
-// one constant to move the protocol, but note the hosted haptics console looks
-// for the default (haptics_proto::kModule = 2) until it is told otherwise. The
+// one constant to move the protocol; the hosted haptics console finds it
+// through discovery (by haptics_proto::kProtocol), whatever id is chosen. The
 // OTA (0) and core-dump (4) services keep their own defaults; pass `.module` in
 // their Config to move those.
 static constexpr uint8_t kHapticsModule = haptics_proto::kModule;

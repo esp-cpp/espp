@@ -838,7 +838,7 @@
         return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings, notes };
       };
       const ov = ident.override;
-      if (Number.isInteger(ov) && ov >= 0 && ov <= 0xFE) {
+      if (Number.isInteger(ov) && ov >= 0 && ov <= 0xEF) { // 0xF0..0xFF: reserved (dispatcher / meta)
         const m = list ? list.find((x) => x.id === ov) : null;
         if (list && !m) warnings.push("module #" + ov + " was requested but the device does not advertise it");
         const r = done(m, "override"); r.id = ov; return r;
@@ -867,7 +867,7 @@
       const m = /^(?:0x([0-9a-f]+)|([0-9]+))$/i.exec(raw.trim());
       if (!m) return null;
       const n = m[1] !== undefined ? Number.parseInt(m[1], 16) : Number.parseInt(m[2], 10);
-      return (Number.isInteger(n) && n >= 0 && n <= 0xFE) ? n : null;
+      return (Number.isInteger(n) && n >= 0 && n <= 0xEF) ? n : null; // 0xF0..0xFF are reserved
     }
     // One log line saying how a module id was chosen.
     function describeModuleChoice(label, r, ident, info) {

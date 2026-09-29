@@ -41,8 +41,8 @@ class OtaClient:
         advertises something else there)."""
         if not (1 <= chunk_size <= _f.MAX_PAYLOAD_SIZE):
             raise ValueError(f"chunk_size must be 1..{_f.MAX_PAYLOAD_SIZE}")
-        if module is not None and not (0 <= module <= 0xFE):
-            raise ValueError("module must be 0..254")
+        if module is not None and not (0 <= module <= 0xEF):
+            raise ValueError("module must be 0..239 (0xF0..0xFF are reserved)")
         self._t = transport
         self._chunk = chunk_size
         self._progress = progress
