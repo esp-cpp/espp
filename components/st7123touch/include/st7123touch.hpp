@@ -1,6 +1,6 @@
 #pragma once
 
-#include <atomic>
+#include <algorithm>
 #include <system_error>
 
 #include "base_peripheral.hpp"
@@ -34,7 +34,7 @@ namespace espp {
 ///
 /// \section st7123touch_ex1 Example
 /// \snippet st7123touch_example.cpp st7123touch example
-class St7123Touch : public BasePeripheral<std::uint16_t> {
+class St7123Touch : public BasePeripheral<std::uint16_t>, public ITouchDevice {
 public:
   /// Default I2C address for the ST7123 touch interface
   static constexpr uint8_t DEFAULT_ADDRESS = 0x55;
@@ -72,7 +72,7 @@ public:
   /// @param ec Error code to set if an I2C error occurs
   /// @return True when the read succeeded (regardless of whether a finger is
   ///         actually touching), false on I2C error
-  bool update(std::error_code &ec) {
+  bool update(std::error_code &ec) override {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
 
     // Read advanced info byte: bit 3 (with_coord) indicates coordinate data
@@ -84,9 +84,7 @@ public:
     if (!(adv_info & ADV_INFO_WITH_COORD)) {
       // No coordinate data in this interrupt - clear touch state so LVGL sees
       // the finger as lifted.
-      num_touch_points_ = 0;
-      x_ = 0;
-      y_ = 0;
+      touch_state_ = {};
       return true;
     }
 
@@ -97,9 +95,7 @@ public:
       return false;
 
     if (max_touches == 0) {
-      num_touch_points_ = 0;
-      x_ = 0;
-      y_ = 0;
+      touch_state_ = {};
       return true;
     }
 
@@ -115,10 +111,9 @@ public:
     if (ec)
       return false;
 
-    // Parse reports; record first valid point for single-touch consumers
-    uint8_t count = 0;
-    uint16_t first_x = 0;
-    uint16_t first_y = 0;
+    // Parse the reports, keeping every valid point (up to what TouchState
+    // holds) in report order, so the first one is the primary point
+    TouchState state{};
     for (int i = 0; i < max_touches; i++) {
       const uint8_t *p = &data[i * TOUCH_REPORT_SIZE];
       const bool valid = (p[0] & 0x80) != 0;
@@ -126,23 +121,29 @@ public:
         continue;
       const uint16_t px = static_cast<uint16_t>((p[0] & 0x3F) << 8) | p[1];
       const uint16_t py = static_cast<uint16_t>(p[2] << 8) | p[3];
-      if (count == 0) {
-        first_x = px;
-        first_y = py;
+      if (state.num_touch_points < TouchState::MAX_TOUCH_POINTS) {
+        state.points[state.num_touch_points] = {px, py};
       }
-      count++;
+      state.num_touch_points++;
     }
-
-    num_touch_points_ = count;
-    x_ = first_x;
-    y_ = first_y;
-    logger_.debug("Touch: {} point(s) at ({}, {})", count, first_x, first_y);
+    state.num_touch_points =
+        std::min<uint8_t>(state.num_touch_points, TouchState::MAX_TOUCH_POINTS);
+    touch_state_ = state;
+    logger_.debug("Touch: {} point(s), first at ({}, {})", state.num_touch_points,
+                  state.points[0].x, state.points[0].y);
     return true;
+  }
+
+  /// @brief Get the cached touch state: every active point, in report order.
+  /// @return The cached touch state as of the last update() call.
+  TouchState touch_state() const override {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    return touch_state_;
   }
 
   /// @brief Get the number of active touch points
   /// @return Touch point count as of the last update() call
-  uint8_t get_num_touch_points() const { return num_touch_points_; }
+  uint8_t get_num_touch_points() const { return touch_state().num_touch_points; }
 
   /// @brief Get the primary touch point coordinates
   /// @param num_touch_points Output: number of active touch points
@@ -150,10 +151,11 @@ public:
   /// @param y Output: Y coordinate of the first active touch point
   /// @note The values are cached from the last update() call.
   void get_touch_point(uint8_t *num_touch_points, uint16_t *x, uint16_t *y) const {
-    *num_touch_points = get_num_touch_points();
+    const auto state = touch_state();
+    *num_touch_points = state.num_touch_points;
     if (*num_touch_points != 0) {
-      *x = x_;
-      *y = y_;
+      *x = state.points[0].x;
+      *y = state.points[0].y;
     }
   }
 
@@ -175,8 +177,6 @@ protected:
     REPORT_COORD_0 = 0x0014, ///< First touch coordinate report (7 bytes each)
   };
 
-  std::atomic<uint8_t> num_touch_points_{0};
-  std::atomic<uint16_t> x_{0};
-  std::atomic<uint16_t> y_{0};
-}; // class St7123Touch
+  TouchState touch_state_{}; ///< every cached point; guarded by base_mutex_
+};                           // class St7123Touch
 } // namespace espp

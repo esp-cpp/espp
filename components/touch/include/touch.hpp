@@ -115,6 +115,10 @@ public:
 /// coordinates
 /// - <tt>bool T::get_home_button_state() const</tt> - return home-button state
 ///
+/// Optionally, <tt>TouchState T::touch_state() const</tt> returns every cached
+/// point; TouchDriverAdapter forwards to it when present, so multi-touch
+/// consumers get all points through ITouchDriver::touch_state().
+///
 /// Both <tt>espp::Gt911</tt> and <tt>espp::St7123Touch</tt> satisfy this concept.
 template <typename T>
 concept TouchDriverConcept = requires(T &t, std::error_code &ec, uint8_t *n, uint16_t *x,
@@ -146,6 +150,23 @@ struct ITouchDriver {
 
   /// @brief Return the home-button pressed state.
   virtual bool get_home_button_state() const = 0;
+
+  /// @brief Retrieve every cached touch point.
+  ///
+  /// The default builds the state from the primary point (and the reported
+  /// count), for drivers that only expose that; a driver that caches all of
+  /// its points (any ITouchDevice) is forwarded to by TouchDriverAdapter.
+  /// @return The cached multi-touch state.
+  virtual TouchState touch_state() const {
+    TouchState state{};
+    uint16_t x = 0, y = 0;
+    get_touch_point(&state.num_touch_points, &x, &y);
+    if (state.num_touch_points > 0) {
+      state.points[0] = {x, y};
+    }
+    state.btn_state = get_home_button_state();
+    return state;
+  }
 };
 
 /// @brief Concept-constrained adapter that wraps any concrete touch driver
@@ -171,6 +192,16 @@ template <TouchDriverConcept T> struct TouchDriverAdapter : ITouchDriver {
   }
 
   bool get_home_button_state() const override { return driver->get_home_button_state(); }
+
+  TouchState touch_state() const override {
+    if constexpr (requires {
+                    { driver->touch_state() } -> std::convertible_to<TouchState>;
+                  }) {
+      return driver->touch_state(); // every point the driver cached
+    } else {
+      return ITouchDriver::touch_state(); // primary point only
+    }
+  }
 };
 
 /// @brief Convenience factory: wrap a shared_ptr to a concrete touch driver in

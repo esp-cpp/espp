@@ -132,6 +132,8 @@ public:
   /// variants — both TDDI parts speak the same touch protocol at I2C 0x55)
   using St7123TouchDriver = espp::St7123Touch;
 
+  /// Alias for the multi-touch state (every finger) of the Tab5 touchpad
+  using TouchState = espp::TouchState;
   /// Alias for the touchpad data used by the Tab5 touchpad
   using TouchpadData = espp::TouchpadData;
 
@@ -226,6 +228,22 @@ public:
   /// Get the most recent touchpad data
   /// \return The touchpad data
   TouchpadData touchpad_data() const { return touchpad_data_; }
+
+  /// Get the most recent multi-touch state: every finger the controller
+  /// reported, in raw (native) coordinates, as of the same update that
+  /// produced touchpad_data(). The touch callback may call this to see all
+  /// the fingers behind the primary point it was handed.
+  /// \return The touch state
+  TouchState touch_state() const {
+    std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
+    return touch_state_;
+  }
+
+  /// Convert a multi-touch state from raw readings to display coordinates
+  /// (every point, the way touchpad_convert() converts the primary one)
+  /// \param state The touch state to convert
+  /// \return The converted touch state
+  TouchState touch_state_convert(const TouchState &state) const;
 
   /// Get the touchpad data for LVGL integration
   /// \param num_touch_points The number of touch points
@@ -857,8 +875,9 @@ protected:
   std::shared_ptr<espp::ITouchDriver>
       touch_driver_; ///< Concept-erased touch driver (GT911 or ST7123)
   std::shared_ptr<TouchpadInput> touchpad_input_;
-  std::recursive_mutex touchpad_data_mutex_;
+  mutable std::recursive_mutex touchpad_data_mutex_;
   TouchpadData touchpad_data_;
+  TouchState touch_state_; ///< every finger of the update behind touchpad_data_
   touch_callback_t touch_callback_{nullptr};
 
   std::shared_ptr<I2c::Device<uint8_t>> imu_i2c_device_;

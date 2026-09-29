@@ -122,22 +122,35 @@ bool M5StackTab5::update_touch() {
     logger_.error("could not update touch driver: {}", ec.message());
     std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
     touchpad_data_ = {};
+    touch_state_ = {};
     return false;
   }
   logger_.debug("Touch driver update returned new_data={}", new_data);
   if (!new_data)
     return false;
 
-  TouchpadData temp_data;
-  touch_driver_->get_touch_point(&temp_data.num_touch_points, &temp_data.x, &temp_data.y);
-  temp_data.btn_state = touch_driver_->get_home_button_state();
+  // every finger the controller reported; the single-point view is its primary
+  const TouchState state = touch_driver_->touch_state();
+  const TouchpadData temp_data = state.touchpad_data();
 
   logger_.debug("Touch data: num_touch_points={}, x={}, y={}, btn_state={}",
                 temp_data.num_touch_points, temp_data.x, temp_data.y, temp_data.btn_state);
 
   std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
   touchpad_data_ = temp_data;
+  touch_state_ = state;
   return true;
+}
+
+M5StackTab5::TouchState M5StackTab5::touch_state_convert(const TouchState &state) const {
+  TouchState out = state;
+  for (size_t i = 0; i < out.num_touch_points && i < out.points.size(); i++) {
+    // the same mapping touchpad_convert() applies to the primary point
+    const auto converted = touchpad_convert(
+        TouchpadData{.num_touch_points = 1, .x = out.points[i].x, .y = out.points[i].y});
+    out.points[i] = {converted.x, converted.y};
+  }
+  return out;
 }
 
 void M5StackTab5::touchpad_read(uint8_t *num_touch_points, uint16_t *x, uint16_t *y,
