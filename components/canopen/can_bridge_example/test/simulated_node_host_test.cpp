@@ -7,6 +7,7 @@
 // browser DS402 panel, which speaks the same wire protocol) would see a
 // conforming CiA 301 / 402 device.
 
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -40,11 +41,16 @@ static constexpr uint8_t kNode = 7;
 static co::SdoResponse sdo(SimulatedDs402Node &node, const CanFrame &request) {
   Frames out;
   node.process(request, out);
-  co::SdoResponse r;
-  for (const auto &f : out)
-    if (f.id == co::COB_SDO_TX_BASE + kNode)
-      return co::parse_sdo_response(f);
-  return r; // Unknown: no reply
+  const auto it = std::find_if(out.begin(), out.end(), [](const CanFrame &f) {
+    return f.id == co::COB_SDO_TX_BASE + kNode;
+  });
+  return it != out.end() ? co::parse_sdo_response(*it) : co::SdoResponse{}; // Unknown: no reply
+}
+
+// How many of `frames` carry CAN id `id`.
+static long count_id(const Frames &frames, uint32_t id) {
+  return std::count_if(frames.begin(), frames.end(),
+                       [id](const CanFrame &f) { return f.id == id; });
 }
 
 static std::optional<uint32_t> read_u(SimulatedDs402Node &node, uint16_t index, uint8_t sub,
@@ -156,11 +162,7 @@ static void test_boot_and_nmt() {
   CHECK(write_u(node, 0x1017, 0, 200, 2));
   out.clear();
   tick(node, 1050ms, &out);
-  hb = 0;
-  for (const auto &f : out)
-    if (f.id == co::COB_HEARTBEAT_BASE + kNode)
-      ++hb;
-  CHECK(hb == 5);
+  CHECK(count_id(out, co::COB_HEARTBEAT_BASE + kNode) == 5);
 }
 
 static void test_identity_and_strings() {
@@ -236,7 +238,7 @@ static void test_segmented_download() {
   CanFrame seg;
   seg.id = co::COB_SDO_RX_BASE + kNode;
   seg.dlc = 8;
-  seg.data[0] = static_cast<uint8_t>((0 << 4) | ((7 - 2) << 1) | 1); // t=0, n=5, c=1
+  seg.data[0] = static_cast<uint8_t>(((7 - 2) << 1) | 1); // t=0, n=5, c=1
   co::put_le(300, &seg.data[1], 2);
   Frames out;
   node.process(seg, out);
@@ -422,15 +424,11 @@ static void test_pdos() {
   Frames out;
   // no TPDO in pre-operational; TPDO1 every 100 ms when operational
   tick(node, 500ms, &out);
-  int tpdo = 0;
-  for (const auto &f : out)
-    if (f.id == co::COB_TPDO1_BASE + kNode)
-      ++tpdo;
-  CHECK(tpdo == 0);
+  CHECK(count_id(out, co::COB_TPDO1_BASE + kNode) == 0);
   node.process(co::make_nmt(co::NmtCommand::Start, kNode), out);
   out.clear();
   tick(node, 1000ms, &out);
-  tpdo = 0;
+  int tpdo = 0;
   for (const auto &f : out)
     if (f.id == co::COB_TPDO1_BASE + kNode) {
       ++tpdo;
@@ -461,11 +459,7 @@ static void test_pdos() {
   CHECK(write_u(node, 0x1800, 5, 0, 2));
   out.clear();
   tick(node, 500ms, &out);
-  tpdo = 0;
-  for (const auto &f : out)
-    if (f.id == co::COB_TPDO1_BASE + kNode)
-      ++tpdo;
-  CHECK(tpdo == 0);
+  CHECK(count_id(out, co::COB_TPDO1_BASE + kNode) == 0);
   // reset node restores the defaults (heartbeat / event timer) and the drive state
   CHECK(write_u(node, 0x1017, 0, 50, 2));
   node.process(co::make_nmt(co::NmtCommand::ResetNode, kNode), out);
