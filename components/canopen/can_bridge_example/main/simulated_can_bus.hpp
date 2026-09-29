@@ -22,7 +22,6 @@
 // Frames the host sends are not echoed back (a controller does not receive its
 // own transmissions).
 
-#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
@@ -162,7 +161,10 @@ private:
     }
     const auto now = std::chrono::steady_clock::now();
     const auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_tick_);
-    std::vector<espp::detail::CanFrame> frames;
+    // frames_ is reused across runs (cleared, then swapped with pending_) so
+    // the periodic task does not allocate
+    auto &frames = frames_;
+    frames.clear();
     {
       std::lock_guard<std::mutex> lock(mutex_);
       if (dt >= config_.tick_period) {
@@ -192,7 +194,8 @@ private:
   SimulatedDs402Node node_;
   std::mutex mutex_; // guards node_ + pending_
   std::vector<espp::detail::CanFrame> pending_;
-  std::mutex wake_mutex_; // guards wake_ (transmit() -> bus task wake-up)
+  std::vector<espp::detail::CanFrame> frames_; // bus-task-only delivery buffer (reused)
+  std::mutex wake_mutex_;                      // guards wake_ (transmit() -> bus task wake-up)
   std::condition_variable wake_cv_;
   bool wake_{false};
   bool initialized_{false};

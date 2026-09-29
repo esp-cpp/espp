@@ -8,6 +8,7 @@
 // conforming CiA 301 / 402 device.
 
 #include <algorithm>
+#include <bit>
 #include <cctype>
 #include <chrono>
 #include <climits>
@@ -38,6 +39,9 @@ static int g_failures = 0;
   } while (0)
 
 static constexpr uint8_t kNode = 7;
+
+// A raw 32-bit object value as the signed integer its bytes encode (two's complement, bit for bit).
+static int32_t i32(uint32_t v) { return std::bit_cast<int32_t>(v); }
 
 // One SDO request -> the single response frame on 0x580 + node.
 static co::SdoResponse sdo(SimulatedDs402Node &node, const CanFrame &request) {
@@ -288,6 +292,13 @@ static void test_segmented_download() {
   co::put_le(0x00000000, &unsized.data[4], 4);
   r = sdo(node, unsized);
   CHECK(r.type == co::SdoResponse::Type::DownloadOk && read_u(node, 0x2000, 0, 1) == 0u);
+  // a non-last segment must carry 7 data bytes (n = 0): n != 0 there is refused
+  co::put_le(2, &init.data[4], 4);
+  r = sdo(node, init);
+  CHECK(r.type == co::SdoResponse::Type::DownloadOk);
+  seg.data[0] = static_cast<uint8_t>((7 - 2) << 1); // t=0, n=5, c=0: not last
+  r = sdo(node, seg);
+  CHECK(r.type == co::SdoResponse::Type::Abort && r.abort_code == 0x05040001);
   // a wrong declared size is refused at initiate
   co::put_le(4, &init.data[4], 4);
   r = sdo(node, init);
@@ -403,16 +414,16 @@ static void test_profile_velocity_and_position() {
   CHECK(write_u(node, ds::OBJ_TARGET_VELOCITY, 0, 1000, 4));
   tick(node, 250ms);
   auto v = read_u(node, ds::OBJ_VELOCITY_ACTUAL, 0, 4);
-  CHECK(v && static_cast<int32_t>(*v) > 400 && static_cast<int32_t>(*v) < 600);
+  CHECK(v && i32(*v) > 400 && i32(*v) < 600);
   tick(node, 1000ms);
   CHECK(read_u(node, ds::OBJ_VELOCITY_ACTUAL, 0, 4) == 1000u);
   auto p = read_u(node, ds::OBJ_POSITION_ACTUAL, 0, 4);
-  CHECK(p && static_cast<int32_t>(*p) > 900 && static_cast<int32_t>(*p) < 1100);
+  CHECK(p && i32(*p) > 900 && i32(*p) < 1100);
   CHECK(read_u(node, ds::OBJ_STATUSWORD, 0, 2).value_or(0) & ds::SW_BIT_TARGET_REACHED);
   // reverse
   CHECK(write_u(node, ds::OBJ_TARGET_VELOCITY, 0, static_cast<uint32_t>(-500), 4));
   tick(node, 2000ms);
-  CHECK(static_cast<int32_t>(read_u(node, ds::OBJ_VELOCITY_ACTUAL, 0, 4).value_or(0)) == -500);
+  CHECK(i32(read_u(node, ds::OBJ_VELOCITY_ACTUAL, 0, 4).value_or(0)) == -500);
   CHECK(write_u(node, ds::OBJ_TARGET_VELOCITY, 0, 0, 4));
   tick(node, 1000ms);
   CHECK(node.velocity() == 0);
@@ -464,7 +475,7 @@ static void test_profile_velocity_and_position() {
   CHECK(write_u(node, ds::OBJ_CONTROLWORD, 0, ds::CW_ENABLE_OPERATION, 2));
   tick(node, 10000ms);
   CHECK(node.position() == -5000 &&
-        static_cast<int32_t>(read_u(node, ds::OBJ_POSITION_ACTUAL, 0, 4).value_or(1)) == -5000);
+        i32(read_u(node, ds::OBJ_POSITION_ACTUAL, 0, 4).value_or(1)) == -5000);
   // narrowing the limits pulls the axis inside them
   CHECK(write_u(node, 0x607D, 1, static_cast<uint32_t>(-100), 4));
   tick(node, 20ms);

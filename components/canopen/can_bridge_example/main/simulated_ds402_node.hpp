@@ -187,7 +187,7 @@ public:
     const uint8_t id = config_.node_id;
     if (boot_up_pending_) {
       boot_up_pending_ = false;
-      CanFrame f;
+      CanFrame f{}; // every field value-initialized: the payload is all zeros
       f.id = co::COB_HEARTBEAT_BASE + id;
       f.dlc = 1;
       f.data[0] = static_cast<uint8_t>(NmtState::BootUp);
@@ -200,7 +200,7 @@ public:
       // up instead of dropping periods and drifting
       heartbeat_elapsed_ms_ += ms;
       for (; heartbeat_elapsed_ms_ >= hb; heartbeat_elapsed_ms_ -= hb) {
-        CanFrame f;
+        CanFrame f{}; // every field value-initialized: the payload is all zeros
         f.id = co::COB_HEARTBEAT_BASE + id;
         f.dlc = 1;
         f.data[0] = static_cast<uint8_t>(nmt_);
@@ -710,7 +710,7 @@ private:
 
   // ---- SDO server ---------------------------------------------------------
   CanFrame sdo_frame(uint8_t cs, uint16_t index, uint8_t sub) const {
-    CanFrame f;
+    CanFrame f{}; // every field value-initialized: the payload is all zeros
     f.id = espp::detail::canopen::COB_SDO_TX_BASE + config_.node_id;
     f.dlc = 8;
     f.data[0] = cs;
@@ -801,18 +801,26 @@ private:
         sdo_abort(sdo_.index, sdo_.sub, kAbortToggle, out);
         return;
       }
-      const size_t n = 7 - ((cs >> 1) & 0x07);
+      // n (bytes without data) is only meaningful on the last segment (c = 1);
+      // a non-last segment carries 7 data bytes and must say n = 0
+      const bool last_segment = (cs & 0x01) != 0;
+      const size_t unused = (cs >> 1) & 0x07;
+      if (!last_segment && unused != 0) {
+        sdo_abort(sdo_.index, sdo_.sub, kAbortUnknownCs, out);
+        return;
+      }
+      const size_t n = 7 - (last_segment ? unused : 0);
       sdo_.buf.insert(sdo_.buf.end(), &in.data[1], &in.data[1] + n);
       if (sdo_.buf.size() > kMaxStringBytes) {
         sdo_abort(sdo_.index, sdo_.sub, kAbortLengthHigh, out);
         return;
       }
-      CanFrame f;
+      CanFrame f{}; // every field value-initialized: the payload is all zeros
       f.id = co::COB_SDO_TX_BASE + config_.node_id;
       f.dlc = 8;
       f.data[0] = static_cast<uint8_t>(0x20 | (toggle ? 0x10 : 0x00));
       sdo_.toggle = !sdo_.toggle;
-      if (cs & 0x01) { // last segment: commit
+      if (last_segment) { // commit
         const uint16_t idx = sdo_.index;
         const uint8_t s = sdo_.sub;
         std::vector<uint8_t> data = std::move(sdo_.buf);
@@ -863,7 +871,7 @@ private:
       const size_t remaining = sdo_.buf.size() - sdo_.offset;
       const size_t n = std::min<size_t>(7, remaining);
       const bool last = remaining <= 7;
-      CanFrame f;
+      CanFrame f{}; // every field value-initialized: the payload is all zeros
       f.id = co::COB_SDO_TX_BASE + config_.node_id;
       f.dlc = 8;
       f.data[0] = static_cast<uint8_t>((toggle ? 0x10 : 0x00) | ((7 - n) << 1) | (last ? 1 : 0));
@@ -1027,7 +1035,7 @@ private:
   }
 
   void emit_emcy(uint16_t error_code, Frames &out) const {
-    CanFrame f;
+    CanFrame f{}; // every field value-initialized: the payload is all zeros
     f.id = espp::detail::canopen::COB_EMCY_BASE + config_.node_id;
     f.dlc = 8;
     espp::detail::canopen::put_le(error_code, &f.data[0], 2);
@@ -1036,7 +1044,7 @@ private:
   }
 
   CanFrame make_tpdo1() const {
-    CanFrame f;
+    CanFrame f{}; // every field value-initialized: the payload is all zeros
     f.id = espp::detail::canopen::COB_TPDO1_BASE + config_.node_id;
     f.dlc = 6;
     espp::detail::canopen::put_le(compose_statusword(), &f.data[0], 2);
