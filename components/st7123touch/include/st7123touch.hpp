@@ -4,7 +4,7 @@
 #include <system_error>
 
 #include "base_peripheral.hpp"
-#include "touch.hpp"
+#include "touch.hpp" // ITouchDevice, TouchState
 
 namespace espp {
 
@@ -128,6 +128,10 @@ public:
     }
     state.num_touch_points =
         std::min<uint8_t>(state.num_touch_points, TouchState::MAX_TOUCH_POINTS);
+    // the ST7123 has no home button (get_home_button_state() is a constant
+    // false); taken from there anyway so the cached state always carries
+    // whatever that accessor says
+    state.btn_state = get_home_button_state();
     touch_state_ = state;
     if (state.num_touch_points == 0) {
       logger_.debug("Touch: no points");

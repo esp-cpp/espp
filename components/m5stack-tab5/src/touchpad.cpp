@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <limits>
 
 #include "m5stack-tab5.hpp"
 
@@ -147,7 +148,10 @@ bool M5StackTab5::update_touch() {
 M5StackTab5::TouchState M5StackTab5::touch_state_convert(const TouchState &state) const {
   TouchState out = state;
   // the count never exceeds the points that exist, whatever a driver reported
-  out.num_touch_points = std::min<uint8_t>(out.num_touch_points, out.points.size());
+  // (compared in size_t; the capacity is known to fit the count's type)
+  static_assert(TouchState::MAX_TOUCH_POINTS <= std::numeric_limits<uint8_t>::max());
+  const size_t count = std::min<size_t>(out.num_touch_points, out.points.size());
+  out.num_touch_points = static_cast<uint8_t>(count);
   for (size_t i = 0; i < out.num_touch_points; i++) {
     // the same mapping touchpad_convert() applies to the primary point
     const auto converted = touchpad_convert(
