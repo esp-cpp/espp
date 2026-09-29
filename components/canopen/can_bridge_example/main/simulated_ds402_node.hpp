@@ -34,6 +34,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <climits>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -41,6 +42,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "detail/canopen_core.hpp"
@@ -124,15 +126,21 @@ public:
     torque_actual_ = 0;
     target_reached_ = true;
     setpoint_ack_ = false;
+    halt_ = false;
+    quick_stopping_ = false;
+    homing_active_ = false;
     homing_attained_ = false;
     homing_ms_ = 0;
     prev_controlword_ = 0;
     reset_communication();
   }
 
-  /// Communication reset: SDO/PDO state cleared, boot-up message queued,
-  /// node in Pre-Operational.
+  /// Communication reset (CiA 301 NMT): the communication-profile parameters
+  /// (0x1000..0x1FFF: heartbeat time, PDO parameters, ...) return to their
+  /// power-on defaults, SDO/PDO state is cleared, a boot-up message is queued
+  /// and the node is in Pre-Operational. Application objects keep their values.
   void reset_communication() {
+    restore_defaults(0x1000, 0x1FFF);
     sdo_ = {};
     nmt_ = NmtState::PreOperational;
     boot_up_pending_ = true;
@@ -252,7 +260,10 @@ public:
     // range / state checks and side effects, before the value is stored
     if (!on_write(index, sub, data, abort, out))
       return false;
-    e->value.assign(data.begin(), data.end());
+    // 0x1010 / 0x1011 take a command signature ("save" / "load"), not a new
+    // value: they keep reporting their capability (1)
+    if (index != 0x1010 && index != 0x1011)
+      e->value.assign(data.begin(), data.end());
     return true;
   }
 
@@ -472,8 +483,9 @@ private:
     {
       Object &o = record(0x1400, "RPDO1 communication parameter", kRecord);
       count_sub(o, 2);
-      add_sub(o, 1, "COB-ID used by RPDO", kU32, Access::ReadWrite, le(0x200u + id, 4));
-      add_sub(o, 2, "Transmission type", kU8, Access::ReadWrite, {255});
+      // fixed: the simulation always listens on 0x200 + id with the mapping below
+      add_sub(o, 1, "COB-ID used by RPDO", kU32, Access::ReadOnly, le(0x200u + id, 4));
+      add_sub(o, 2, "Transmission type", kU8, Access::ReadOnly, {255});
       Object &m = record(0x1600, "RPDO1 mapping parameter", kRecord);
       count_sub(m, 2);
       add_sub(m, 1, "Mapping entry 1", kU32, Access::ReadOnly, le(0x60400010, 4));
@@ -482,10 +494,12 @@ private:
     {
       Object &o = record(0x1800, "TPDO1 communication parameter", kRecord);
       count_sub(o, 5);
-      add_sub(o, 1, "COB-ID used by TPDO", kU32, Access::ReadWrite, le(0x180u + id, 4));
-      add_sub(o, 2, "Transmission type", kU8, Access::ReadWrite, {255});
-      add_sub(o, 3, "Inhibit time", kU16, Access::ReadWrite, le(0, 2));
-      add_sub(o, 4, "Reserved", kU8, Access::ReadWrite, {0});
+      // fixed: the simulation always sends on 0x180 + id, event-driven (type 255)
+      // with no inhibit time; only the event timer (sub 5) is acted on
+      add_sub(o, 1, "COB-ID used by TPDO", kU32, Access::ReadOnly, le(0x180u + id, 4));
+      add_sub(o, 2, "Transmission type", kU8, Access::ReadOnly, {255});
+      add_sub(o, 3, "Inhibit time", kU16, Access::ReadOnly, le(0, 2));
+      add_sub(o, 4, "Reserved", kU8, Access::ReadOnly, {0});
       add_sub(o, 5, "Event timer", kU16, Access::ReadWrite, le(config_.tpdo1_event_ms, 2));
       Object &m = record(0x1A00, "TPDO1 mapping parameter", kRecord);
       count_sub(m, 2);
@@ -524,11 +538,35 @@ private:
     var(0x6502, "Supported drive modes", kU32, Access::ReadOnly, le(kSupportedModes, 4));
   }
 
-  void restore_defaults() {
-    for (auto &[index, obj] : od_)
+  void restore_defaults(uint16_t first = 0x0000, uint16_t last = 0xFFFF) {
+    for (auto &[index, obj] : od_) {
+      if (index < first || index > last)
+        continue;
       for (auto &[sub, e] : obj.subs)
         e.value = e.default_value;
+    }
     eds_cache_.clear();
+  }
+
+  /// The software position limits (0x607D), as doubles.
+  std::pair<double, double> position_limits() const {
+    return {static_cast<double>(read_i32(0x607D, 1)), static_cast<double>(read_i32(0x607D, 2))};
+  }
+  /// Keep the axis inside the software position limits (and the int32 range
+  /// every position object is reported in): motion stops at a limit.
+  void clamp_position() {
+    auto [lo, hi] = position_limits();
+    lo = std::max(lo, static_cast<double>(INT32_MIN));
+    hi = std::min(hi, static_cast<double>(INT32_MAX));
+    if (position_ <= lo) {
+      position_ = lo;
+      if (velocity_ < 0)
+        velocity_ = 0.0;
+    } else if (position_ >= hi) {
+      position_ = hi;
+      if (velocity_ > 0)
+        velocity_ = 0.0;
+    }
   }
 
   Entry *find(uint16_t index, uint8_t sub, uint32_t &abort) {
@@ -625,6 +663,17 @@ private:
         return false;
       }
       return true;
+    case 0x607D: {
+      // min must stay below max; the axis is pulled inside the new limits
+      const int32_t nv = static_cast<int32_t>(v);
+      const int32_t other = read_i32(0x607D, sub == 1 ? 2 : 1);
+      if ((sub == 1 && nv >= other) || (sub == 2 && nv <= other)) {
+        abort = kAbortRange;
+        return false;
+      }
+      pending_limit_clamp_ = true;
+      return true;
+    }
     default:
       return true;
     }
@@ -919,7 +968,13 @@ private:
       if (mode_display_ == kModePp) {
         if (new_setpoint_edge) {
           const int32_t target = read_i32(0x607A, 0);
-          target_position_ = (cw & 0x40) ? static_cast<int32_t>(position_) + target : target;
+          // relative: sum in 64 bits, then clamp into the software position
+          // limits (which are themselves inside the int32 range)
+          int64_t t = (cw & 0x40) ? static_cast<int64_t>(static_cast<int32_t>(position_)) + target
+                                  : static_cast<int64_t>(target);
+          const auto [lo, hi] = position_limits();
+          t = std::clamp<int64_t>(t, static_cast<int64_t>(lo), static_cast<int64_t>(hi));
+          target_position_ = static_cast<int32_t>(t);
           target_reached_ = false;
           setpoint_ack_ = true;
         }
@@ -978,6 +1033,10 @@ private:
 
   void step_motion(double dt, Frames & /*out*/) {
     ++tick_count_;
+    if (pending_limit_clamp_) {
+      pending_limit_clamp_ = false;
+      clamp_position();
+    }
     const double vmax = static_cast<double>(read_raw(0x6081, 0, 4));
     const double accel = std::max(1.0, static_cast<double>(read_raw(0x6083, 0, 4)));
     const double decel = std::max(1.0, static_cast<double>(read_raw(0x6084, 0, 4)));
@@ -985,6 +1044,7 @@ private:
     if (state_ == State::QuickStopActive) {
       velocity_ = toward(velocity_, 0.0, qs_decel, dt);
       position_ += velocity_ * dt;
+      clamp_position();
       if (velocity_ == 0.0 && quick_stopping_) {
         quick_stopping_ = false;
         if (static_cast<int16_t>(read_u16(0x605A, 0)) <= 4)
@@ -1003,6 +1063,7 @@ private:
       const double rate = std::abs(target) > std::abs(velocity_) ? accel : decel;
       velocity_ = toward(velocity_, target, rate, dt);
       position_ += velocity_ * dt;
+      clamp_position();
       target_reached_ = velocity_ == target;
       break;
     }
@@ -1031,6 +1092,7 @@ private:
           target_reached_ = true;
         } else {
           position_ += step;
+          clamp_position();
         }
       }
       break;
@@ -1054,6 +1116,7 @@ private:
     default:
       velocity_ = toward(velocity_, 0.0, decel, dt);
       position_ += velocity_ * dt;
+      clamp_position();
       break;
     }
   }
@@ -1083,6 +1146,7 @@ private:
   bool homing_active_{false};
   bool homing_attained_{false};
   uint32_t homing_ms_{0};
+  bool pending_limit_clamp_{false}; // 0x607D changed: re-clamp on the next tick
 };
 
 } // namespace can_bridge

@@ -10,8 +10,10 @@
 //   - transmit() hands the frame to the node as if it had been received on the
 //     bus; the node's responses come back through Config::on_receive from the
 //     bus task (like frames from the TWAI receive task), promptly but never
-//     from inside transmit() itself, so a reply always follows the OK the
-//     bridge sends for the CAN_TX request that caused it.
+//     from inside transmit() itself. As with real hardware, a response and the
+//     OK the bridge sends for the CAN_TX that caused it are not ordered with
+//     respect to each other (the response may reach the host first); the web
+//     apps match responses by COB-ID, not by their position after the OK.
 //   - a bus task ticks the node (heartbeat, TPDO event timer, motion) every
 //     Config::tick_period.
 //   - in LISTEN_ONLY mode transmit() fails as a real listen-only node cannot
@@ -92,7 +94,11 @@ public:
     task_ = std::make_unique<espp::Task>(
         espp::Task::Config{.callback = [this]() { return run(); },
                            .task_config = {.name = "sim_can_bus", .stack_size_bytes = 6 * 1024}});
-    task_->start();
+    if (!task_->start()) {
+      task_.reset(); // no bus task: transmit() must not accept frames nobody delivers
+      ec = std::make_error_code(std::errc::resource_unavailable_try_again);
+      return false;
+    }
     return true;
   }
 
@@ -106,7 +112,7 @@ public:
   }
 
   /// Hand a host frame to the simulated node. Its responses are delivered via
-  /// Config::on_receive from the bus task.
+  /// Config::on_receive from the bus task (possibly before this returns).
   bool transmit(const Message &message, std::error_code &ec) {
     ec.clear();
     if (!task_) {

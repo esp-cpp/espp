@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <climits>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -151,8 +152,13 @@ static void test_boot_and_nmt() {
   // an NMT for another node is ignored
   node.process(co::make_nmt(co::NmtCommand::Start, kNode + 1), out);
   CHECK(node.nmt_state() == co::NmtState::Stopped);
-  // reset communication: boot-up again, pre-operational, SDO back
+  // reset communication: boot-up again, pre-operational, SDO back, and the
+  // communication parameters (0x1000..0x1FFF) back to their defaults
+  node.process(co::make_nmt(co::NmtCommand::PreOperational, kNode), out);
+  CHECK(write_u(node, 0x1017, 0, 333, 2));
+  CHECK(write_u(node, 0x1800, 5, 20, 2));
   node.process(co::make_nmt(co::NmtCommand::ResetCommunication, kNode), out);
+  CHECK(read_u(node, 0x1017, 0, 2) == 1000u && read_u(node, 0x1800, 5, 2) == 100u);
   out.clear();
   node.tick(1ms, out);
   CHECK(!out.empty() && out[0].data[0] == 0x00);
@@ -196,6 +202,20 @@ static void test_sdo_aborts() {
   CHECK(!write_u(node, ds::OBJ_MODES_OF_OPERATION, 0, 2, 1, &abort) && abort == 0x06090030);
   CHECK(!write_u(node, 0x1010, 1, 0x12345678, 4, &abort) && abort == 0x08000020);
   CHECK(write_u(node, 0x1010, 1, 0x65766173, 4)); // "save"
+  // the signature is a command, not a value: the entry keeps reporting its capability
+  CHECK(read_u(node, 0x1010, 1, 4) == 1u);
+  CHECK(write_u(node, 0x1017, 0, 250, 2));
+  CHECK(write_u(node, 0x1011, 1, 0x64616F6C, 4)); // "load": defaults restored
+  CHECK(read_u(node, 0x1011, 1, 4) == 1u && read_u(node, 0x1017, 0, 2) == 1000u);
+  // PDO parameters the simulation does not act on are read-only; the event timer is not
+  CHECK(!write_u(node, 0x1400, 1, 0x201, 4, &abort) && abort == 0x06010002);
+  CHECK(!write_u(node, 0x1800, 1, 0x181, 4, &abort) && abort == 0x06010002);
+  CHECK(!write_u(node, 0x1800, 2, 1, 1, &abort) && abort == 0x06010002);
+  CHECK(write_u(node, 0x1800, 5, 50, 2));
+  // software position limits must stay ordered
+  CHECK(!write_u(node, 0x607D, 1, 2000000, 4, &abort) && abort == 0x06090030);
+  CHECK(!write_u(node, 0x607D, 2, static_cast<uint32_t>(-2000000), 4, &abort) &&
+        abort == 0x06090030);
   // unknown command specifier
   CanFrame bad;
   bad.id = co::COB_SDO_RX_BASE + kNode;
@@ -395,6 +415,36 @@ static void test_profile_velocity_and_position() {
   CHECK(write_u(node, ds::OBJ_CONTROLWORD, 0, ds::CW_ENABLE_OPERATION, 2));
   tick(node, 5000ms);
   CHECK(node.position() == start + 2000);
+  // the axis never leaves the software position limits: a pv move stops at
+  // the limit, a pp target beyond it is clamped, a relative target cannot
+  // overflow, and the reported position stays a valid int32
+  CHECK(write_u(node, ds::OBJ_MODES_OF_OPERATION, 0, 3, 1));
+  CHECK(write_u(node, 0x607D, 1, static_cast<uint32_t>(-5000), 4));
+  CHECK(write_u(node, 0x607D, 2, 5000, 4));
+  CHECK(write_u(node, ds::OBJ_TARGET_VELOCITY, 0, 100000, 4));
+  tick(node, 3000ms);
+  CHECK(node.position() == 5000 && node.velocity() == 0);
+  CHECK(write_u(node, ds::OBJ_TARGET_VELOCITY, 0, 0, 4));
+  CHECK(write_u(node, ds::OBJ_MODES_OF_OPERATION, 0, 1, 1));
+  CHECK(write_u(node, ds::OBJ_TARGET_POSITION, 0, static_cast<uint32_t>(INT32_MAX), 4));
+  CHECK(write_u(node, ds::OBJ_CONTROLWORD, 0,
+                ds::CW_ENABLE_OPERATION | ds::CW_BIT_NEW_SETPOINT | ds::CW_BIT_RELATIVE, 2));
+  CHECK(write_u(node, ds::OBJ_CONTROLWORD, 0, ds::CW_ENABLE_OPERATION, 2));
+  tick(node, 1000ms);
+  CHECK(node.position() == 5000);
+  CHECK(write_u(node, ds::OBJ_TARGET_POSITION, 0, static_cast<uint32_t>(-1000000), 4));
+  CHECK(
+      write_u(node, ds::OBJ_CONTROLWORD, 0, ds::CW_ENABLE_OPERATION | ds::CW_BIT_NEW_SETPOINT, 2));
+  CHECK(write_u(node, ds::OBJ_CONTROLWORD, 0, ds::CW_ENABLE_OPERATION, 2));
+  tick(node, 10000ms);
+  CHECK(node.position() == -5000 &&
+        static_cast<int32_t>(read_u(node, ds::OBJ_POSITION_ACTUAL, 0, 4).value_or(1)) == -5000);
+  // narrowing the limits pulls the axis inside them
+  CHECK(write_u(node, 0x607D, 1, static_cast<uint32_t>(-100), 4));
+  tick(node, 20ms);
+  CHECK(node.position() == -100);
+  CHECK(write_u(node, 0x607D, 1, static_cast<uint32_t>(-1000000), 4));
+  CHECK(write_u(node, 0x607D, 2, 1000000, 4));
   // torque mode mirrors the target; homing attains after a while
   CHECK(write_u(node, ds::OBJ_MODES_OF_OPERATION, 0, 4, 1));
   CHECK(write_u(node, 0x6071, 0, 250, 2));
@@ -467,6 +517,18 @@ static void test_pdos() {
   CHECK(read_u(node, 0x1800, 5, 2) == 100u);
   CHECK(state(node) == ds::State::SwitchOnDisabled);
   CHECK(node.nmt_state() == co::NmtState::PreOperational);
+  // a reset while homing is in progress abandons it: enabling homing mode
+  // again does not report "attained" without a new start edge
+  CHECK(write_u(node, ds::OBJ_MODES_OF_OPERATION, 0, 6, 1));
+  enable(node);
+  CHECK(
+      write_u(node, ds::OBJ_CONTROLWORD, 0, ds::CW_ENABLE_OPERATION | ds::CW_BIT_NEW_SETPOINT, 2));
+  tick(node, 100ms);
+  node.process(co::make_nmt(co::NmtCommand::ResetNode, kNode), out);
+  CHECK(write_u(node, ds::OBJ_MODES_OF_OPERATION, 0, 6, 1));
+  enable(node);
+  tick(node, 1000ms);
+  CHECK(!(read_u(node, ds::OBJ_STATUSWORD, 0, 2).value_or(0) & 0x1000));
 }
 
 int main() {
