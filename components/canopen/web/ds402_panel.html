@@ -1937,8 +1937,11 @@
         const eq = line.indexOf("=");
         if (eq < 0) continue;
         let value = line.slice(eq + 1).trim();
+        // a trailing comment starts at a ';' preceded by whitespace; a value
+        // that is nothing but a comment (";..." right after '=') is empty
         const semi = value.indexOf(";");
-        if (semi >= 0 && /\s;/.test(value.slice(semi - 1, semi + 1))) value = value.slice(0, semi).trim();
+        if (semi === 0) value = "";
+        else if (semi > 0 && /\s/.test(value[semi - 1])) value = value.slice(0, semi).trim();
         cur.set(line.slice(0, eq).trim().toLowerCase(), value);
       }
       return { sections, names };
@@ -2424,11 +2427,12 @@
     }
     function odToCsv(rows) {
       // Names / access strings come from the device or a file: a cell starting
-      // with = + - @ (or a tab / CR) would run as a formula in a spreadsheet, so
-      // neutralize it with a leading apostrophe before the CSV quoting.
+      // with = + - @ (or a tab / CR), even after leading whitespace (which
+      // spreadsheets skip), would run as a formula, so neutralize it with a
+      // leading apostrophe before the CSV quoting.
       const esc = (s) => {
         let t = s == null ? "" : String(s);
-        if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+        if (/^\s*[=+\-@\t\r]/.test(t)) t = "'" + t;
         return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
       };
       const lines = ["index,sub,name,type,access,status,value,raw"];
@@ -2497,12 +2501,22 @@
       }
       return rows;
     }
+    // Re-render at most once per animation frame: the filter box calls this on
+    // every keystroke and a device EDS can have thousands of rows.
+    let odRenderPending = false;
+    function odRenderSoon() {
+      if (odRenderPending) return;
+      odRenderPending = true;
+      requestAnimationFrame(() => { odRenderPending = false; odRender(); });
+    }
     function odRender() {
       const rows = odRows.length ? odRows : odListRows();
       const filter = els.odFilter.value.trim().toLowerCase();
       const showAbsent = els.odShowAbsent.checked;
       const body = els.odBody;
-      body.textContent = "";
+      // build the rows off-document and swap them in with one append, so a
+      // large table causes one reflow rather than one per row
+      const frag = document.createDocumentFragment();
       let shown = 0;
       // group visibility: a collapsed group hides its sub rows; an absent group
       // (or a group whose every sub is absent) follows the show-absent toggle
@@ -2587,15 +2601,17 @@
         }
         tr.appendChild(tdBtn);
         tr.addEventListener("click", activate);   // pointer convenience; the index button is the accessible control
-        body.appendChild(tr);
+        frag.appendChild(tr);
         shown++;
       }
+      body.textContent = "";
+      body.appendChild(frag);
       els.odEmpty.style.display = shown ? "none" : "";
       els.odEmpty.textContent = odObjects.length ? (rows.length ? "No rows match the filter." : "Nothing to show.") : "No object list loaded.";
       odUpdateCounts();
     }
-    els.odFilter.addEventListener("input", odRender);
-    els.odShowAbsent.addEventListener("change", odRender);
+    els.odFilter.addEventListener("input", odRenderSoon);
+    els.odShowAbsent.addEventListener("change", odRenderSoon);
     els.odExpandBtn.addEventListener("click", () => { odCollapsed.clear(); odRender(); });
     els.odCollapseBtn.addEventListener("click", () => { for (const o of odObjects) if (o.objectType === 8 || o.objectType === 9) odCollapsed.add(o.index); odRender(); });
 
@@ -2740,7 +2756,7 @@
       odScanInFlight = false;
       lockSequenceControls(false);
       els.odCancelBtn.disabled = true;
-      els.odScanBtn.disabled = !transport;
+      els.odScanBtn.disabled = !transport || !odObjects.length || odScanInFlight;
       odSetSourceControlsEnabled(true);
       els.odExportBtn.disabled = !rows.length;
       odRender();

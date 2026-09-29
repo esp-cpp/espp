@@ -170,6 +170,20 @@ AccessType=wo
     assert.strictEqual(map.name, "RPDO 1 mapping");               // trailing comment stripped
     assert.strictEqual(map.subs.length, 9);
   });
+  await test("parseEds: trailing comments in values", () => {
+    const eds = od.parseEds(`
+[DeviceInfo]
+VendorName=; nothing but a comment
+ProductName=Servo 9000 ; a trailing comment
+OrderCode=a;b
+Description=  ;leading blanks then a comment
+`);
+    assert.strictEqual(eds.deviceInfo.vendorname, "");
+    assert.strictEqual(eds.deviceInfo.productname, "Servo 9000");
+    assert.strictEqual(eds.deviceInfo.ordercode, "a;b");   // no whitespace before ';': part of the value
+    assert.strictEqual(eds.deviceInfo.description, "");
+  });
+
   await test("parseEds: not an EDS", () => {
     assert.strictEqual(od.parseEds("hello world").objects.length, 0);
   });
@@ -345,6 +359,10 @@ AccessType=wo
     const evil = od.odToCsv([{ index: 0x2000, sub: 0, name: "=HYPERLINK(\"x\")", dataType: 0x7, access: "ro", status: "ok",
                                value: { text: "1", hex: "01" } }]);
     assert(evil.includes("\"'=HYPERLINK(\"\"x\"\")\""), evil);
+    // ... also behind leading whitespace, which spreadsheets skip
+    const sneaky = od.odToCsv([{ index: 0x2000, sub: 0, name: "  =SUM(1)", dataType: 0x7, access: "-@x", status: "ok",
+                                 value: { text: "\t+1", hex: "01" } }]);
+    assert(sneaky.includes("'  =SUM(1)") && sneaky.includes("'-@x") && sneaky.includes("'\t+1"), sneaky);
   });
 
   await test("odScan: built-in table, dynamic array count and cancellation", async () => {
