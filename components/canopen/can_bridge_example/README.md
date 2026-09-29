@@ -81,3 +81,58 @@ idf.py build flash monitor   # console is on UART0 (USB-UART adapter)
 ```
 
 Then open the CAN console web app and Connect (WebUSB or Web Serial).
+
+## Simulated CANopen node (no CAN hardware)
+
+To try the [CAN console](https://esp-cpp.github.io/espp/apps/can_bridge_console.html)
+and the [DS402 panel](https://esp-cpp.github.io/espp/apps/ds402_panel.html)
+without a transceiver, bus or drive, build the bridge with a **simulated
+CANopen CiA 402 node** in place of the TWAI peripheral. It is off by default;
+enable it in `idf.py menuconfig` under *CAN Bridge Example Configuration*, or
+build with the extra defaults file:
+
+```
+idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.simulated" build flash
+```
+
+The USB side and the bridge protocol are unchanged, so the web apps connect and
+work exactly as with real hardware (set a baudrate, START the bus, then talk to
+node id 1 — `CONFIG_CAN_BRIDGE_SIMULATED_NODE_ID`). Frames the host sends are
+answered by the node in firmware (`main/simulated_ds402_node.hpp`) instead of
+going out on a bus, and the node's own traffic streams back as `CAN_RX`:
+
+- **NMT** start / stop / pre-operational / reset node / reset communication,
+  the boot-up message, and the producer heartbeat (`0x1017`, 1 s by default).
+- **SDO** server on `0x600`/`0x580` + id: expedited and segmented upload and
+  download (toggle bit checked) with the CiA 301 abort codes (unknown object /
+  sub-index, read-only, length mismatch, value range, ...).
+- An **object dictionary** with the CiA 301 communication and identity objects
+  (`0x1000`, `0x1001`, `0x1008`–`0x100A`, `0x1010`/`0x1011` with the
+  `save`/`load` signatures, `0x1017`, `0x1018`, `0x1200`, PDO parameters), its
+  own **stored EDS** (`0x1021`, a DOMAIN generated from the dictionary; `0x1022`
+  = 0) so a browser can read the device's object list from the device, the
+  CiA 402 objects of a single-axis drive, and manufacturer objects: write `1`
+  to `0x2000` to inject a fault (an EMCY is sent; clear it with the controlword
+  fault-reset edge).
+- The **DS402 state machine** driven by the controlword (`0x6040`) and reported
+  in the statusword (`0x6041`): the enable sequence, disable / shutdown,
+  quick-stop (transits to Switch On Disabled once stopped, `0x605A` = 2) and
+  fault reset; the supported **modes** (`0x6502`) are profile position (with
+  the new-set-point handshake, absolute / relative, halt), profile velocity
+  (ramping at the profile acceleration / deceleration), profile torque and
+  homing. Position / velocity / torque actual values (`0x6064`, `0x606C`,
+  `0x6077`) follow a simple trapezoidal motion model.
+- **TPDO1** (statusword + position actual) every `0x1800:5` ms (100 by
+  default) while Operational (NMT start), also on an RTR; **RPDO1**
+  (controlword + modes of operation) is applied.
+
+The node is host-buildable and unit-tested against the `canopen` component's
+client-side frame builders / parsers:
+
+```
+cd test && c++ -std=c++20 -I../../include -I../main simulated_node_host_test.cpp -o test && ./test
+```
+
+The simulation has no bit timing, so the baudrate is only reported; in
+listen-only mode the bridge refuses to transmit (as a real listen-only node
+cannot) while the node's heartbeat and boot-up traffic is still observed.

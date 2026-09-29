@@ -21,6 +21,7 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 set(EXTRA_COMPONENT_DIRS
   "../../../components/base_component"
+  "../../../components/canopen"
   "../../../components/dispatcher"
   "../../../components/format"
   "../../../components/logger"
@@ -43,7 +44,7 @@ endif()
 
 set(
   COMPONENTS
-  "main esptool_py base_component dispatcher format logger stream_frame task twai usb_device esp_tinyusb"
+  "main esptool_py base_component canopen dispatcher format logger stream_frame task twai usb_device esp_tinyusb"
   CACHE STRING
   "List of components to include"
   )
