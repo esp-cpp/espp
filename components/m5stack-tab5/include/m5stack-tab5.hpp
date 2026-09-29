@@ -227,7 +227,10 @@ public:
 
   /// Get the most recent touchpad data
   /// \return The touchpad data
-  TouchpadData touchpad_data() const { return touchpad_data_; }
+  TouchpadData touchpad_data() const {
+    std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
+    return touchpad_data_;
+  }
 
   /// Get the most recent multi-touch state: every finger the controller
   /// reported, in raw (native) coordinates, as of the same update that

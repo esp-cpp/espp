@@ -129,8 +129,12 @@ public:
     state.num_touch_points =
         std::min<uint8_t>(state.num_touch_points, TouchState::MAX_TOUCH_POINTS);
     touch_state_ = state;
-    logger_.debug("Touch: {} point(s), first at ({}, {})", state.num_touch_points,
-                  state.points[0].x, state.points[0].y);
+    if (state.num_touch_points == 0) {
+      logger_.debug("Touch: no points");
+    } else {
+      logger_.debug("Touch: {} point(s), first at ({}, {})", state.num_touch_points,
+                    state.points[0].x, state.points[0].y);
+    }
     return true;
   }
 

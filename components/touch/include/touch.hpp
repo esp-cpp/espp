@@ -159,10 +159,14 @@ struct ITouchDriver {
   /// @return The cached multi-touch state.
   virtual TouchState touch_state() const {
     TouchState state{};
+    uint8_t reported = 0;
     uint16_t x = 0, y = 0;
-    get_touch_point(&state.num_touch_points, &x, &y);
-    if (state.num_touch_points > 0) {
+    get_touch_point(&reported, &x, &y);
+    // only the primary point is known here, so the count says so too: a
+    // consumer iterating the points must never be sent past what is filled in
+    if (reported > 0) {
       state.points[0] = {x, y};
+      state.num_touch_points = 1;
     }
     state.btn_state = get_home_button_state();
     return state;
