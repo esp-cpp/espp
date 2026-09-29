@@ -424,6 +424,18 @@ Description=  ;leading blanks then a comment
     for (let i = 1; i < prog.length; i++) assert(prog[i][0] >= prog[i - 1][0], "progress goes backwards: " + JSON.stringify(prog));
     assert(prog.every(([d, t]) => d <= t), "progress exceeds its total: " + JSON.stringify(prog));
     assert.strictEqual(prog[prog.length - 1][0], prog[prog.length - 1][1], "progress ends at total");
+    // a timeout on sub 0 does not hide a record: its listed subs are tried one
+    // by one; a dynamic array without a count is left alone (no candidates read)
+    const log7 = [];
+    const rows7 = await od.odScan(od.builtinObjects(1).filter((o) => o.index === 0x1018 || o.index === 0x1003), async (index, sub) => {
+      log7.push(index.toString(16) + ":" + sub);
+      if (sub === 0) throw timeout();
+      return Uint8Array.of(1, 0, 0, 0);
+    }, {});
+    assert.strictEqual(rows7.find((r) => r.index === 0x1018 && r.sub === 0).status, "timeout");
+    assert.strictEqual(rows7.find((r) => r.index === 0x1018 && r.sub === 1).status, "ok");
+    assert(log7.includes("1018:4") && !log7.includes("1003:1"), log7.join(" "));
+    assert.strictEqual(rows7.filter((r) => r.index === 0x1003).length, 1);
     // a disconnect surfaces as the SDO client's rejection: the walk stops with what it has
     const rows3 = await od.odScan(all, async () => { throw new Error("SDO aborted"); }, {});
     assert.strictEqual(rows3[0].status, "cancelled");

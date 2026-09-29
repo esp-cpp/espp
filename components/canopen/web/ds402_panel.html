@@ -445,7 +445,7 @@
         <span>Absent: <b id="odCountAbsent">0</b></span>
         <span>Errors: <b id="odCountErrors">0</b></span>
         <span>Unread: <b id="odCountUnread">0</b></span>
-        <span id="odProgress" class="muted"></span>
+        <span id="odProgress" class="muted" role="status" aria-live="polite"></span>
       </div>
       <div class="row" style="margin-top:8px;">
         <input type="text" id="odFilter" class="short" style="width:220px;" placeholder="filter: index or name" aria-label="Filter the object table">
@@ -2368,8 +2368,12 @@
         rows.push(head);
         done++; progress(done, total);
         if (head.status === "cancelled") { stoppedAt = oi; break; }
-        if (head.status === "absent" || head.status === "timeout") {
-          // the object is missing (or silent): its subs cannot be read either
+        // A missing object (abort "object does not exist") has no subs to read.
+        // Any other failure on sub 0 (a timeout, another abort, a bad count)
+        // falls back to trying the listed subs individually, so one problematic
+        // sub 0 does not hide a readable record; a dynamic array's candidates
+        // (1..254) are not tried without a count, since each would cost a timeout.
+        if (head.status === "absent" || (head.status !== "ok" && o.dynamicCount)) {
           done = base + objectShare; progress(done, total);
           continue;
         }
@@ -2612,7 +2616,7 @@
         tr.appendChild(tdVal);
         tr.appendChild(tdHex);
         const tdBtn = document.createElement("td");
-        if (!(r.isGroup && r.objectType !== 8 && r.objectType !== 9)) {
+        { // every row gets a Read button; the disable rules below cover what cannot be read
           const b = document.createElement("button");
           b.className = "small";
           b.textContent = "Read";
