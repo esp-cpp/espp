@@ -147,7 +147,10 @@ public:
 
   /// @brief Get the number of active touch points
   /// @return Touch point count as of the last update() call
-  uint8_t get_num_touch_points() const { return touch_state().num_touch_points; }
+  uint8_t get_num_touch_points() const {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    return touch_state_.num_touch_points; // just the count, no copy of the points
+  }
 
   /// @brief Get the primary touch point coordinates
   /// @param num_touch_points Output: number of active touch points
@@ -155,11 +158,11 @@ public:
   /// @param y Output: Y coordinate of the first active touch point
   /// @note The values are cached from the last update() call.
   void get_touch_point(uint8_t *num_touch_points, uint16_t *x, uint16_t *y) const {
-    const auto state = touch_state();
-    *num_touch_points = state.num_touch_points;
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    *num_touch_points = touch_state_.num_touch_points;
     if (*num_touch_points != 0) {
-      *x = state.points[0].x;
-      *y = state.points[0].y;
+      *x = touch_state_.points[0].x;
+      *y = touch_state_.points[0].y;
     }
   }
 

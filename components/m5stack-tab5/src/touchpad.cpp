@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "m5stack-tab5.hpp"
 
 namespace espp {
@@ -144,7 +146,9 @@ bool M5StackTab5::update_touch() {
 
 M5StackTab5::TouchState M5StackTab5::touch_state_convert(const TouchState &state) const {
   TouchState out = state;
-  for (size_t i = 0; i < out.num_touch_points && i < out.points.size(); i++) {
+  // the count never exceeds the points that exist, whatever a driver reported
+  out.num_touch_points = std::min<uint8_t>(out.num_touch_points, out.points.size());
+  for (size_t i = 0; i < out.num_touch_points; i++) {
     // the same mapping touchpad_convert() applies to the primary point
     const auto converted = touchpad_convert(
         TouchpadData{.num_touch_points = 1, .x = out.points[i].x, .y = out.points[i].y});
