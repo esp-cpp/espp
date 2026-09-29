@@ -21,7 +21,13 @@ const od = new Function(src + `
 
 // Also make sure the whole inline script parses (a syntax error anywhere in
 // the page would break every panel, not just this one).
-const scriptBody = /<script\b[^>]*>([\s\S]*)<\/script\s*>/i.exec(html)[1];   // the page's one inline script, whatever the tag's case / attributes
+// (plain string search, not a regexp: this locates the page's one inline
+// script between its first "<script>" and its last "</script>", it does not
+// filter HTML)
+const scriptOpen = html.indexOf("<script>");
+const scriptClose = html.lastIndexOf("</script>");
+assert(scriptOpen >= 0 && scriptClose > scriptOpen, "no inline <script> in the page");
+const scriptBody = html.slice(scriptOpen + "<script>".length, scriptClose);
 new Function(scriptBody);   // throws SyntaxError on a bad script
 
 let passed = 0;
