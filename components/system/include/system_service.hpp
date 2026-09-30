@@ -266,9 +266,11 @@ protected:
   void send_error(uint8_t request_type, std::errc errc, std::string_view message) {
     namespace proto = espp::detail::system_protocol;
     logger_.warn("{} (type 0x{:02x})", message, request_type);
-    send(proto::build_frame(Type::Error,
-                            proto::encode_error(request_type, static_cast<uint32_t>(errc), message),
-                            module_id()));
+    send(proto::build_frame(
+        Type::Error,
+        proto::encode_error(request_type, static_cast<uint32_t>(std::make_error_code(errc).value()),
+                            message),
+        module_id()));
   }
 
 private:

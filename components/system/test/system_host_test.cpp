@@ -137,6 +137,8 @@ static void test_requests_and_replies() {
   CHECK(sp::decode_delay({}) == 0); // empty payload = no delay
   const uint8_t one[] = {1};
   CHECK(!sp::decode_delay(one));
+  const uint8_t three[] = {1, 2, 3}; // too long is malformed too, not "the first two bytes"
+  CHECK(!sp::decode_delay(three));
   CHECK(sp::encode_ok(0x02) == std::vector<uint8_t>{0x02});
   const auto e = sp::encode_error(0x03, 95, "not supported");
   CHECK(e.size() == 5 + 13 && e[0] == 3 && e[1] == 95 && e[2] == 0 && e[5] == 'n');

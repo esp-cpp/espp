@@ -54,7 +54,7 @@ little-endian. See `include/detail/system_protocol.hpp` (host-buildable, with
 | `0x03` REBOOT_TO_BOOTLOADER | H→D | `[delay_ms u16]` — reply OK, restart into download mode |
 | `0x81` INFO | D→H | tagged records `[tag u8][len u8][value]` (unknown tags are skipped) |
 | `0x83` OK | D→H | `[request_type u8]` |
-| `0x84` ERROR | D→H | `[request_type u8][code u32][utf8 message]` |
+| `0x84` ERROR | D→H | `[request_type u8][code u32][utf8 message]` — code is the POSIX errno of the chosen `std::errc` (the message is authoritative) |
 
 INFO tags: 1 chip model (str), 2 chip revision (u16), 3 cores (u8), 4 chip
 features (u32), 5 IDF version, 6 project name, 7 app version, 8 build date, 9

@@ -210,7 +210,9 @@ protected:
       const HeapMonitor::HeapInfo hi = HeapMonitor::get_info(flags);
       if (hi.total_size == 0)
         continue; // e.g. MALLOC_CAP_SPIRAM on a chip without PSRAM
-      regions.push_back({.flags = static_cast<uint32_t>(hi.heap_flags),
+      // the wire carries the QUERY mask (what the region was asked for), so a
+      // host can label it the way it configured the service
+      regions.push_back({.flags = static_cast<uint32_t>(flags),
                          .free_bytes = static_cast<uint32_t>(hi.free_bytes),
                          .min_free_bytes = static_cast<uint32_t>(hi.min_free_bytes),
                          .largest_free_block = static_cast<uint32_t>(hi.largest_free_block),
@@ -307,7 +309,9 @@ protected:
     namespace proto = espp::detail::monitor_protocol;
     logger_.warn("{} (type 0x{:02x})", message, request_type);
     send_frame(proto::build_frame(
-        Type::Error, proto::encode_error(request_type, static_cast<uint32_t>(errc), message),
+        Type::Error,
+        proto::encode_error(request_type, static_cast<uint32_t>(std::make_error_code(errc).value()),
+                            message),
         module_id()));
   }
 

@@ -19,6 +19,8 @@
 //               version bump (see InfoTag for the values).
 //   0x83 OK     [request_type u8]
 //   0x84 ERROR  [request_type u8][code u32][utf8 message]
+//               code = the POSIX errno value of the std::errc the service
+//               chose (informational; the message is authoritative)
 // A reboot request is acknowledged with OK first; the device restarts after
 // the requested delay (clamped to at least Config::min_restart_delay).
 
@@ -309,12 +311,13 @@ inline std::vector<uint8_t> encode_delay(uint16_t delay_ms) {
   return p;
 }
 
-/// Decode a REBOOT / REBOOT_TO_BOOTLOADER payload (an empty payload means 0 ms).
+/// Decode a REBOOT / REBOOT_TO_BOOTLOADER payload: empty = 0 ms, else exactly
+/// [delay_ms u16]; any other size is malformed (nullopt).
 inline std::optional<uint16_t> decode_delay(std::span<const uint8_t> p) {
   if (p.empty())
     return 0;
-  if (p.size() < 2)
-    return std::nullopt;
+  if (p.size() != 2)
+    return std::nullopt; // exactly [delay_ms u16]; anything else is malformed
   return espp::stream_frame::get_u16(p);
 }
 

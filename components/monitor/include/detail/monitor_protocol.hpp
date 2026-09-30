@@ -22,6 +22,8 @@
 //                          [priority u8][core i8]}
 //   0x83 OK     [request_type u8]
 //   0x84 ERROR  [request_type u8][code u32][utf8 message]
+//               code = the POSIX errno value of the std::errc the service
+//               chose (informational; the message is authoritative)
 // HEAP / TASKS answer the matching GET_* request and are also sent
 // unsolicited while streaming is enabled (same encoding, so a host decodes
 // both the same way). A TASKS payload is capped (MonitorService: to fit

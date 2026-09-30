@@ -247,7 +247,7 @@
         <label>delay <input type="number" id="rebootDelay" min="0" max="65535" step="50" value="500" style="width: 80px;"> ms</label>
         <span id="controlNote" class="muted"></span>
       </div>
-      <div id="confirm" class="confirm" role="alertdialog" aria-labelledby="confirmText">
+      <div id="confirm" class="confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirmText">
         <div id="confirmText" style="margin-bottom: 8px;"></div>
         <div class="row">
           <button id="confirmYes" class="danger">Yes, do it</button>
@@ -1189,14 +1189,30 @@
     // Reboot control, with an in-page confirmation step
     // ===================================================================
     let confirmAction = null;
+    let confirmOpener = null; // the button that opened the dialog: focus returns to it
     function openConfirm(text, action) {
       confirmAction = action;
+      confirmOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       els.confirmText.textContent = text;
       els.confirm.classList.add("open");
       els.confirmYes.focus();
     }
-    function closeConfirm() { confirmAction = null; els.confirm.classList.remove("open"); }
+    function closeConfirm() {
+      const wasOpen = els.confirm.classList.contains("open");
+      confirmAction = null;
+      els.confirm.classList.remove("open");
+      if (wasOpen && confirmOpener && confirmOpener.isConnected && !confirmOpener.disabled) confirmOpener.focus();
+      confirmOpener = null;
+    }
     els.confirmNo.addEventListener("click", closeConfirm);
+    // Escape cancels; Tab stays inside the two buttons while the dialog is open
+    els.confirm.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { e.preventDefault(); closeConfirm(); return; }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        (document.activeElement === els.confirmYes ? els.confirmNo : els.confirmYes).focus();
+      }
+    });
     els.confirmYes.addEventListener("click", async () => {
       const action = confirmAction;
       closeConfirm();
