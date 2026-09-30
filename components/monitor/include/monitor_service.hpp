@@ -87,6 +87,12 @@ public:
     std::vector<int> heap_regions{MALLOC_CAP_DEFAULT, MALLOC_CAP_INTERNAL, MALLOC_CAP_SPIRAM};
     /// Shortest streaming period a host may request (SET_STREAM is clamped to it).
     std::chrono::milliseconds min_stream_period{100};
+    /// Largest encoded frame (header + payload + CRC) `send` can carry in one
+    /// write: the TASKS payload is capped so the whole frame fits (tasks that
+    /// do not fit are dropped from the end, logged). 4096 matches the default
+    /// TinyUSB vendor / CDC TX FIFO of the espp examples; the stream_frame
+    /// maximum is kMaxFrameSize (4111).
+    size_t max_frame_bytes{4096};
     /// The streaming task (started on the first SET_STREAM enable).
     Task::BaseConfig task_config{.name = "monitor_stream", .stack_size_bytes = 6 * 1024};
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Logger verbosity.
@@ -231,7 +237,7 @@ protected:
               .core_id = static_cast<int8_t>(t.core_id)};
         });
     size_t encoded = 0;
-    auto payload = proto::encode_tasks(tasks, espp::stream_frame::kMaxPayloadSize, &encoded);
+    auto payload = proto::encode_tasks(tasks, max_tasks_payload(), &encoded);
     if (encoded < tasks.size())
       logger_.warn_rate_limited("TASKS payload full: reporting {} of {} tasks", encoded,
                                 tasks.size());
@@ -241,8 +247,17 @@ protected:
     // report an empty list (and say why, once in a while)
     logger_.warn_rate_limited("task statistics need CONFIG_FREERTOS_USE_TRACE_FACILITY and "
                               "CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS; reporting no tasks");
-    return proto::encode_tasks({}, espp::stream_frame::kMaxPayloadSize, nullptr);
+    return proto::encode_tasks({}, max_tasks_payload(), nullptr);
 #endif
+  }
+
+  /// The TASKS payload cap: Config::max_frame_bytes less the frame overhead
+  /// (a 9-byte header, no correlation id, plus the CRC), never above the codec's
+  /// own payload limit.
+  size_t max_tasks_payload() const {
+    constexpr size_t overhead = espp::stream_frame::kHeaderSize + espp::stream_frame::kCrcSize;
+    const size_t cap = config_.max_frame_bytes > overhead ? config_.max_frame_bytes - overhead : 0;
+    return std::min(cap, espp::stream_frame::kMaxPayloadSize);
   }
 
   void start_stream(std::chrono::milliseconds period, uint8_t what) {

@@ -168,7 +168,12 @@
 
     table.tasks { border-collapse: collapse; width: 100%; font-size: 12.5px; margin-top: 8px; }
     table.tasks th, table.tasks td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--panel-border); white-space: nowrap; font-variant-numeric: tabular-nums; }
-    table.tasks th { color: var(--text-muted); font-weight: 600; cursor: pointer; user-select: none; }
+    table.tasks th { color: var(--text-muted); font-weight: 600; }
+    table.tasks th button.sort { font: inherit; font-weight: 600; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+    table.tasks th button.sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    table.tasks th[aria-sort="ascending"] button.sort::after { content: " \25B4"; }
+    table.tasks th[aria-sort="descending"] button.sort::after { content: " \25BE"; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     table.tasks td.num, table.tasks th.num { text-align: right; padding-right: 14px; }
     table.tasks td.bar { width: 120px; }
     .cpubar { height: 8px; border-radius: 999px; background: var(--chip-bg); border: 1px solid var(--panel-border); overflow: hidden; }
@@ -271,12 +276,12 @@
       <div id="gauges" class="gauges"></div>
       <div class="tasks-wrap"><table id="taskTable" class="tasks" hidden>
         <thead><tr>
-          <th data-key="name">Task</th>
-          <th data-key="cpu" class="num">CPU %</th>
-          <th class="bar"></th>
-          <th data-key="hwm" class="num">Stack free (B)</th>
-          <th data-key="prio" class="num">Prio</th>
-          <th data-key="core" class="num">Core</th>
+          <th scope="col" data-key="name"><button type="button" class="sort">Task</button></th>
+          <th scope="col" data-key="cpu" class="num" aria-sort="descending"><button type="button" class="sort">CPU %</button></th>
+          <th scope="col" class="bar"><span class="sr-only">CPU bar</span></th>
+          <th scope="col" data-key="hwm" class="num"><button type="button" class="sort">Stack free (B)</button></th>
+          <th scope="col" data-key="prio" class="num"><button type="button" class="sort">Prio</button></th>
+          <th scope="col" data-key="core" class="num"><button type="button" class="sort">Core</button></th>
         </tr></thead>
         <tbody></tbody>
       </table></div>
@@ -359,9 +364,12 @@
     const CHIP_FEATURES = [[0x01, "embedded flash"], [0x02, "Wi-Fi 2.4 GHz"], [0x10, "BLE"], [0x20, "BT classic"],
                            [0x40, "IEEE 802.15.4"], [0x80, "embedded PSRAM"]];
     // MALLOC_CAP_* names for the heap gauges (esp_heap_caps.h)
-    const HEAP_CAPS = [[1 << 10, "internal"], [1 << 11, "SPIRAM"], [1 << 12, "invalid"], [1 << 13, "retention"],
-                       [1 << 14, "RTC fast"], [1 << 15, "TCM"], [1 << 16, "SIMD"]];
-    const CAP_INTERNAL = 1 << 10, CAP_SPIRAM = 1 << 11, CAP_DEFAULT = (1 << 3) | (1 << 2) | (1 << 1); // 8BIT | 32BIT | DMA-ish bits of MALLOC_CAP_DEFAULT
+    // (bit values from esp_heap_caps.h; the low bits EXEC / 32BIT / 8BIT / DMA
+    // qualify a region rather than name it and are left out of the label)
+    const HEAP_CAPS = [[1 << 10, "SPIRAM"], [1 << 11, "internal"], [1 << 12, "default"], [1 << 13, "IRAM 8-bit"],
+                       [1 << 14, "retention"], [1 << 15, "RTC RAM"], [1 << 16, "SPM / TCM"], [1 << 17, "AHB DMA desc"],
+                       [1 << 18, "AXI DMA desc"], [1 << 19, "cache-aligned"], [1 << 20, "SIMD"],
+                       [1 << 21, "SPIRAM (no enc)"], [1 << 31, "invalid"]];
 
     // ===================================================================
     // Elements & logging
@@ -789,6 +797,7 @@
       consoleCarry = "";
       moduleReady = false; // action buttons stay disabled until discovery resolved the ids
       monitorPresent = false;
+      resetDeviceState(); // nothing from a previous device may carry over
       updateUI();
       setStatus("connected", "Connected");
       els.devInfo.textContent = "Connected: " + t.name;
@@ -803,6 +812,19 @@
 
     let capabilities = 0;
     let streaming = false;
+    // Forget everything learned from the previous device (capabilities gate
+    // the reboot buttons; info / heap / tasks are its data).
+    function resetDeviceState() {
+      capabilities = 0;
+      els.info.textContent = "";
+      els.infoStatus.textContent = "";
+      els.gauges.textContent = "";
+      els.monitorStatus.textContent = "";
+      lastTasks = [];
+      els.taskTable.querySelector("tbody").textContent = "";
+      els.taskTable.hidden = true;
+      els.taskNote.hidden = true;
+    }
     function updateUI() {
       const connected = !!transport;
       els.usbBtn.textContent = connected && transport.kind === "usb" ? "Disconnect" : "Connect WebUSB";
@@ -1019,11 +1041,21 @@
       return label + " module: #" + r.id + " (" + how + ")";
     }
     // Adopt the system + monitor module ids from a discovery reply (null =
-    // none) -- every frame built / matched from here on uses them. ?module=N
-    // applies to the system module only; the monitor module is optional and is
-    // located purely by discovery (absent -> its panel stays hidden).
+    // none) -- every frame built / matched from here on uses them. Both
+    // services advertise this page as their app, so the Device Hub links it
+    // with either module's id: ?module=N is applied to whichever of the two
+    // idents module N advertises the protocol of (the monitor's if N speaks
+    // espp.monitor, else the system's -- also when the device did not answer
+    // discovery, as in every other console). The monitor module is optional
+    // and counts as present only on a protocol match, never by the app / name
+    // fallback (the app is shared) -- absent, its panel stays hidden.
     function adoptModules(info) {
-      SYSTEM_IDENT.override = moduleOverrideFromQuery(location.search);
+      const override = moduleOverrideFromQuery(location.search);
+      const list = (info && Array.isArray(info.modules)) ? info.modules : [];
+      const overrideIsMonitor = override != null &&
+        list.some((m) => m.id === override && m.protocol === MONITOR_PROTOCOL);
+      SYSTEM_IDENT.override = overrideIsMonitor ? null : override;
+      MONITOR_IDENT.override = overrideIsMonitor ? override : null;
       const r = resolveModuleId(info, SYSTEM_IDENT);
       moduleSystem = r.id;
       logLine("sys", describeModuleChoice("System", r, SYSTEM_IDENT, info));
@@ -1031,7 +1063,7 @@
       for (const n of r.notes) logLine("sys", n + ".");
       const m = resolveModuleId(info, MONITOR_IDENT);
       moduleMonitor = m.id;
-      monitorPresent = m.source !== "default";
+      monitorPresent = m.source === "protocol" || (m.source === "override" && overrideIsMonitor);
       if (monitorPresent) logLine("sys", describeModuleChoice("Monitor", m, MONITOR_IDENT, info));
       else logLine("sys", "Monitor module: not advertised by this device (heap / task panel hidden).");
       moduleReady = true;
@@ -1198,8 +1230,8 @@
     // Monitor: heap gauges + task table, on request or streamed
     // ===================================================================
     function heapName(flags) {
-      const names = HEAP_CAPS.filter(([bit]) => flags & bit).map(([, n]) => n);
-      if (!names.length) names.push((flags & CAP_DEFAULT) ? "default" : "caps 0x" + flags.toString(16));
+      const names = HEAP_CAPS.filter(([bit]) => (flags & bit) !== 0).map(([, n]) => n);
+      if (!names.length) names.push("caps 0x" + (flags >>> 0).toString(16));
       return names.join(" + ");
     }
     function parseHeap(payload) {
@@ -1313,10 +1345,17 @@
       els.taskNote.textContent = lastTasks.length ? "" :
         "No tasks reported: the firmware needs CONFIG_FREERTOS_USE_TRACE_FACILITY and CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS.";
     }
+    function updateSortHeaders() {
+      for (const th of els.taskTable.querySelectorAll("th[data-key]")) {
+        if (th.dataset.key === taskSort.key) th.setAttribute("aria-sort", taskSort.dir > 0 ? "ascending" : "descending");
+        else th.removeAttribute("aria-sort");
+      }
+    }
     for (const th of els.taskTable.querySelectorAll("th[data-key]")) {
-      th.addEventListener("click", () => {
+      th.querySelector("button.sort").addEventListener("click", () => {
         const key = th.dataset.key;
         taskSort = { key, dir: taskSort.key === key ? -taskSort.dir : (key === "name" ? 1 : -1) };
+        updateSortHeaders();
         renderTaskTable();
       });
     }

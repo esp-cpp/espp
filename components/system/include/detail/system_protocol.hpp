@@ -67,16 +67,17 @@ enum class InfoTag : uint8_t {
   ElfSha256 = 10,        ///< 32 raw bytes
   RunningPartition = 11, ///< str (partition label)
   BootPartition = 12,    ///< str (partition label)
-  OtaState = 13,         ///< u8 (esp_ota_img_states_t; 0xFF = undefined / not an OTA partition)
-  ResetReason = 14,      ///< u8 (esp_reset_reason_t)
-  UptimeMs = 15,         ///< u64
-  Mac = 16,              ///< 6 raw bytes (base MAC)
-  FlashSize = 17,        ///< u32 bytes
-  PsramSize = 18,        ///< u32 bytes (0 = none)
-  CpuMhz = 19,           ///< u32
-  FreeHeap = 20,         ///< u32 bytes
-  MinFreeHeap = 21,      ///< u32 bytes
-  Capabilities = 22,     ///< u32 (kCapReboot | kCapBootloader)
+  OtaState = 13,    ///< u8 esp_ota_img_states_t (0 new .. 4 aborted); 0xFE = ESP_OTA_IMG_UNDEFINED,
+                    ///< 0xFF = state unavailable / not an OTA partition (SystemInfo::ota_state())
+  ResetReason = 14, ///< u8 (esp_reset_reason_t)
+  UptimeMs = 15,    ///< u64
+  Mac = 16,         ///< 6 raw bytes (base MAC)
+  FlashSize = 17,   ///< u32 bytes
+  PsramSize = 18,   ///< u32 bytes (0 = none)
+  CpuMhz = 19,      ///< u32
+  FreeHeap = 20,    ///< u32 bytes
+  MinFreeHeap = 21, ///< u32 bytes
+  Capabilities = 22, ///< u32 (kCapReboot | kCapBootloader)
 };
 
 /// Capabilities bits (InfoTag::Capabilities).

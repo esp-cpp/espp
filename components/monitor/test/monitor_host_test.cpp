@@ -88,6 +88,19 @@ static void test_tasks_roundtrip_and_cap() {
   size_t n2 = 0;
   const auto capped = mp::encode_tasks(tasks, 1 + mp::task_entry_size("main") + 3, &n2);
   CHECK(n2 == 1 && capped[0] == 1 && capped.size() == 1 + mp::task_entry_size("main"));
+  // the service caps the payload so the whole frame (9-byte header + CRC)
+  // fits its max_frame_bytes: with the default 4096 that is a 4083-byte payload
+  const size_t service_cap = 4096 - (sf::kHeaderSize + sf::kCrcSize);
+  CHECK(service_cap == 4083);
+  size_t n4 = 0;
+  std::vector<mp::TaskEntry> lots(400, {.name = std::string(16, 'y'),
+                                        .cpu_percent = 1,
+                                        .high_water_mark = 1,
+                                        .priority = 1,
+                                        .core_id = 0});
+  const auto fitted = mp::encode_tasks(lots, service_cap, &n4);
+  CHECK(fitted.size() <= service_cap && n4 == fitted[0] && n4 < 400);
+  CHECK(mp::build_frame(mp::Type::Tasks, fitted).size() <= 4096);
   // a 4096-byte payload never overflows: 500 tasks with long names
   std::vector<mp::TaskEntry> many(500, {.name = std::string(40, 'x'),
                                         .cpu_percent = 1,

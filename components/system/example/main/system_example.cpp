@@ -1,4 +1,5 @@
 #include <chrono>
+#include <mutex>
 #include <span>
 #include <thread>
 
@@ -53,10 +54,20 @@ extern "C" void app_main(void) {
   espp::UsbDevice usb(usb_cfg);
 
   // Replies go back on the stream the request came in on: one send function
-  // per transport. Both services on one transport share it, and each service
-  // serializes its own frames; the USB writes are all-or-nothing per call.
-  auto vendor_send = [&](std::span<const uint8_t> frame) { usb.write_vendor(frame); };
-  auto cdc_send = [&](std::span<const uint8_t> frame) { usb.write_cdc(frame); };
+  // per transport. Both services share each transport and only serialize
+  // their OWN frames (a streamed monitor event and a system reply come from
+  // different tasks), so every device->host write on a transport goes through
+  // one application-level mutex; write_vendor / write_cdc are all-or-nothing
+  // per call, so a frame is never truncated or interleaved.
+  std::mutex vendor_tx_mutex, cdc_tx_mutex;
+  auto vendor_send = [&](std::span<const uint8_t> frame) {
+    std::lock_guard<std::mutex> lock(vendor_tx_mutex);
+    usb.write_vendor(frame);
+  };
+  auto cdc_send = [&](std::span<const uint8_t> frame) {
+    std::lock_guard<std::mutex> lock(cdc_tx_mutex);
+    usb.write_cdc(frame);
+  };
 
   // The application decides whether a reboot may happen right now: this demo
   // permits every request and logs it. A real application would refuse (or

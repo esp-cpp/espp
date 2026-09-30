@@ -24,7 +24,8 @@
 //   0x84 ERROR  [request_type u8][code u32][utf8 message]
 // HEAP / TASKS answer the matching GET_* request and are also sent
 // unsolicited while streaming is enabled (same encoding, so a host decodes
-// both the same way). A TASKS payload is capped at the frame payload limit:
+// both the same way). A TASKS payload is capped (MonitorService: to fit
+// Config::max_frame_bytes with the frame overhead; at most the payload limit):
 // tasks that would not fit are dropped from the END of the list.
 
 #include <cstdint>

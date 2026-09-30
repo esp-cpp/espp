@@ -77,7 +77,9 @@ an instance and hosts find it through discovery by its protocol id).
 have are left out), ``GET_TASKS`` with the ``TaskMonitor`` table (name, CPU %,
 stack high-water mark, priority, core — it needs
 ``CONFIG_FREERTOS_USE_TRACE_FACILITY`` and
-``CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS``, else the list is empty), and
+``CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS``, else the list is empty; the reply
+is capped so the whole frame fits ``Config::max_frame_bytes``, 4096 by
+default, tasks beyond it being dropped from the end), and
 ``SET_STREAM`` starts a task that sends either or both periodically so a host
 can plot them live. The wire codec (``detail/monitor_protocol.hpp``) is
 host-buildable and unit-tested (``test/monitor_host_test.cpp``). The hosted

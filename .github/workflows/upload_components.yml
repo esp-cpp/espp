@@ -172,6 +172,7 @@ jobs:
             components/state_machine
             components/switch_pro
             components/sx126x
+            components/system
             components/t_keyboard
             components/t-deck
             components/t-dongle-s3
