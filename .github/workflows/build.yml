@@ -130,6 +130,9 @@ jobs:
         - path: 'components/coredump/example'
           target: esp32s3
           command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
+        - path: 'components/system/example'
+          target: esp32s3
+          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/cst816/example'
           target: esp32s3
         - path: 'components/csv/example'

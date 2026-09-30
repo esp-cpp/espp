@@ -42,6 +42,11 @@ device may serve a protocol on any dispatcher module id.
   over SDO).
 - **MCP266 Console** (``mcp266_console.html``) — status, motor, and configuration
   controls for the :doc:`mcp266 <motor_control/mcp266>` motor controller.
+- **System Console** (``system_console.html``) — device info (chip, firmware,
+  partitions, reset reason, uptime, memory), reboot and reboot-into-bootloader
+  for the :doc:`system <system/system>` component, plus live heap gauges and a
+  task table when the device serves the :doc:`monitor <core/monitor>`
+  component's ``MonitorService``.
 
 Motor control
 =============

@@ -66,6 +66,8 @@ Module id  Protocol                                                  Protocol id
 4          Crash dump (``espp::CoreDumpService``)                    ``espp.coredump`` v1
 5          CAN bridge (``components/canopen``)                       ``espp.can-bridge`` v1
 6          MCP266 motor-controller console (``espp::Mcp266Service``) ``espp.mcp266`` v1
+7          System info / reboot control (``espp::SystemService``)    ``espp.system`` v1
+8          Heap / task monitor (``espp::MonitorService``)            ``espp.monitor`` v1
 0xF0-0xFE  reserved for dispatcher / meta use
 0xFF       capability discovery
 =========  ========================================================  ==================================
@@ -738,7 +740,7 @@ module's hosted web app (see `Hosting your webapp`_ below); the hub treats it
 as a same-directory relative link. `protocol` is how a host *identifies* your
 module regardless of the id it is registered on: give your protocol a stable,
 namespaced id (espp's are ``espp.ota``, ``espp.coredump``, ``espp.telemetry``,
-``espp.mcp266``, ``espp.can-bridge``, ``espp.haptics``,
+``espp.mcp266``, ``espp.can-bridge``, ``espp.haptics``, ``espp.system``, ``espp.monitor``,
 ``espp.coredump-crash-trigger``) and bump `protocol_version` when the wire
 format changes; a host reports a version other than the one it implements as
 a warning. Both are new in discovery payload version 2 and optional.

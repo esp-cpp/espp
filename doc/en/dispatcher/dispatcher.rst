@@ -28,6 +28,8 @@ Module id  Protocol                                        Protocol id (discover
 4          crash dump                                      ``espp.coredump`` v1
 5          CAN bridge                                      ``espp.can-bridge`` v1
 6          MCP266 console                                  ``espp.mcp266`` v1
+7          System info / reboot                            ``espp.system`` v1
+8          Heap / task monitor                             ``espp.monitor`` v1
 0xF0-0xFE  reserved (meta)
 0xFF       capability discovery
 =========  ==============================================  ===============================

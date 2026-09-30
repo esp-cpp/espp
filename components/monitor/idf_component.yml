@@ -1,6 +1,6 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
-description: "System Monitor component for ESP-IDF"
+description: "System Monitor component for ESP-IDF: heap and task statistics, plus a framed stream service (MonitorService) that serves them over USB / WebUSB / Web Serial"
 url: "https://github.com/esp-cpp/espp/tree/main/components/monitor"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
@@ -14,8 +14,12 @@ tags:
   - Monitor
   - Memory
   - Tasks
+  - WebUSB
+  - WebSerial
 dependencies:
   idf:
     version: '>=5.0'
   espp/base_component: '>=1.0'
   espp/task: '>=1.0'
+  espp/stream_frame: '>=1.0'
+  espp/dispatcher: '>=1.0'
