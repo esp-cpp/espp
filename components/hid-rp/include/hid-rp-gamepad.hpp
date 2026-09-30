@@ -43,6 +43,11 @@ public:
   static constexpr size_t num_consumer_bytes = 1;
   static constexpr size_t num_data_bytes = num_joystick_bytes * 4 + num_trigger_bytes * 2 +
                                            num_hat_bytes + num_button_bytes + num_consumer_bytes;
+  // Where the report data starts inside this object. With a report id the base
+  // class holds that one byte and joystick_axes follows at the next
+  // alignof(JOYSTICK_TYPE) boundary: byte 2 for the default uint16_t axes, byte
+  // 1 for uint8_t axes. Without a report id the data starts at byte 0.
+  static constexpr size_t data_offset = REPORT_ID != 0 ? alignof(JOYSTICK_TYPE) : 0;
 
 protected:
   std::array<JOYSTICK_TYPE, 4> joystick_axes{0};
@@ -297,9 +302,8 @@ public:
   /// \return The input report as a vector of bytes.
   /// \note The report id is not included in the returned vector.
   constexpr auto get_report() const {
-    // the first two bytes are the id and the selector, which we don't want
-    size_t offset = 2;
-    auto report_data = this->data() + offset;
+    // skip the report id and any alignment padding after it
+    auto report_data = this->data() + data_offset;
     auto report_size = num_data_bytes;
     return std::vector<uint8_t>(report_data, report_data + report_size);
   }
@@ -307,10 +311,8 @@ public:
   /// Set the output report data from a vector of bytes
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // the first two bytes are the id and the selector, which we don't want
-    size_t offset = 2;
-    // copy the data into our data array
-    std::copy(data.begin(), data.end(), this->data() + offset);
+    // skip the report id and any alignment padding after it
+    std::copy(data.begin(), data.end(), this->data() + data_offset);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
