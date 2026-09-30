@@ -92,6 +92,12 @@ public:
     uint8_t module{kModule};
     bool allow_reboot{true};     ///< Serve REBOOT (else ERROR "not permitted").
     bool allow_bootloader{true}; ///< Serve REBOOT_TO_BOOTLOADER (else ERROR "not permitted").
+    /// Keep the USB peripheral's state across a REBOOT_TO_BOOTLOADER reset
+    /// (ESP32-S2 / -S3 ROM only; see SystemControl::BootloaderOptions). Off by
+    /// default: the ROM re-enumerates its CDC / DFU device on its own, which is
+    /// right for a TinyUSB (vendor / CDC composite) application; enable only
+    /// when the application's USB device is ROM-CDC/DFU-compatible.
+    bool usb_persist{false};
     /// Optional veto for a specific reboot request; called after the allow_*
     /// checks, outside the lock. nullptr = every permitted request proceeds.
     reboot_request_fn on_reboot_request{nullptr};
@@ -240,7 +246,7 @@ public:
       logger_.info("{} in {} ms", bootloader ? "rebooting into the bootloader" : "rebooting",
                    wait.count());
       if (bootloader)
-        SystemControl::reboot_to_bootloader_after(wait, ec);
+        SystemControl::reboot_to_bootloader_after(wait, ec, {.usb_persist = config_.usb_persist});
       else
         SystemControl::reboot_after(wait);
       return true;

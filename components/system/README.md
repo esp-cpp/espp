@@ -15,9 +15,16 @@ I restart it?" for any espp application:
   sets the chip's *force download boot* flag and restarts, so the device comes
   back in the ROM bootloader's download mode ready for `esptool` / `idf.py
   flash` (what holding the BOOT strap does, without a button). Supported on the
-  ESP32-S2 / -S3 (the ROM's USB CDC / DFU device stays attached), -C2 / -C3 /
-  -C5 / -C6 / -C61 / -H2 / -H21 and -P4 (USB-Serial-JTAG); the classic ESP32
-  has no software path and reports `operation_not_supported`.
+  ESP32-S2 / -S3 (the ROM enumerates its USB CDC / DFU device afresh after the
+  reset), -C2 / -C3 / -C5 / -C6 / -C61 / -H2 / -H21 and -P4 (USB-Serial-JTAG);
+  the classic ESP32 has no software path and reports `operation_not_supported`.
+  On the S2 / S3 the ROM can also keep the USB peripheral's state across the
+  reset (`BootloaderOptions::usb_persist`, `SystemService::Config::usb_persist`)
+  so the host sees no re-plug — **opt-in, off by default**: the ROM only
+  expects that from an application whose USB device is ROM-CDC/DFU-compatible
+  (ESP-IDF's ROM USB console); a TinyUSB vendor + CDC composite like the espp
+  examples has different descriptors, and persisting it can leave the host
+  with a stale enumeration the bootloader cannot serve.
 - `espp::SystemService` — both of the above as a transport-agnostic
   [dispatcher](../dispatcher) module (`espp.system` v1, module 7 by default):
   `GET_INFO` answers with a tagged-record snapshot hosts can extend-proof

@@ -16,12 +16,25 @@ flag in its always-on register and restarts, so the next boot stays in the
 ROM download mode instead of running the app — what holding the BOOT strap
 during a reset does, without a button. The device then re-enumerates as the
 ROM's own flashing interface (the USB CDC / DFU device on the ESP32-S2 / -S3
-native USB port, kept attached across the reset; USB-Serial-JTAG on the
-ESP32-C3 / -C6 / -H2 / -C5 / -C61 / -H21 / -P4), ready for ``esptool`` /
-``idf.py flash``. The classic ESP32 has no software path (only the GPIO0
-strap): ``bootloader_reboot_supported()`` is false there and the call fails
-with ``operation_not_supported``. The ``*_after(delay)`` variants restart from
-a detached thread so a reply can leave the transport first.
+native USB port; USB-Serial-JTAG on the ESP32-C3 / -C6 / -H2 / -C5 / -C61 /
+-H21 / -P4), ready for ``esptool`` / ``idf.py flash``. The classic ESP32 has
+no software path (only the GPIO0 strap): ``bootloader_reboot_supported()`` is
+false there and the call fails with ``operation_not_supported``. The
+``*_after(delay)`` variants restart from a detached thread so a reply can
+leave the transport first.
+
+By default the reset tears the USB connection down and the ROM enumerates its
+device afresh, which works for any application. On the ESP32-S2 / -S3 the ROM
+can instead keep the USB peripheral's state across the reset
+(``SystemControl::BootloaderOptions::usb_persist``, passed through as
+``SystemService::Config::usb_persist``) so the host sees no re-plug. This is
+**opt-in and off by default**: the ROM only expects it from an application
+whose USB device is ROM-CDC/DFU-compatible (ESP-IDF's ROM USB console driver,
+which is what performs the same sequence — ``usb_dc_prepare_persist()`` then
+the persist flag — before its own reboot into the bootloader). A TinyUSB
+composite device such as the espp examples' vendor + CDC has different
+descriptors, and persisting it can leave the host with a stale enumeration
+the bootloader cannot serve; leave the option off there.
 
 The `SystemService` class serves both over **any byte stream** as a
 :doc:`dispatcher <../dispatcher/dispatcher>` module (``espp.system`` v1,
