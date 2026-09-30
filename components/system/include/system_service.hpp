@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -173,7 +174,7 @@ public:
   void handle(const espp::stream_frame::Frame &frame) {
     if (frame.module != module_id() || frame.is_reply())
       return;
-    handle_frame(frame.type, frame.payload);
+    handle_frame(frame.type, frame.payload, frame.correlation);
   }
 
   /// @brief Feed received transport bytes (standalone use, without a Dispatcher).
@@ -199,7 +200,10 @@ public:
    *         sent), false if it was ignored.
    * @note The `send` and veto callbacks run after the internal mutex is released.
    */
-  bool handle_frame(uint8_t type, std::span<const uint8_t> payload) {
+  /// @param correlation The request frame's correlation id, if it carried one;
+  ///        every reply echoes it so the host can pair them.
+  bool handle_frame(uint8_t type, std::span<const uint8_t> payload,
+                    std::optional<uint16_t> correlation = std::nullopt) {
     namespace proto = espp::detail::system_protocol;
     std::error_code ec;
     switch (static_cast<Type>(type)) {
@@ -209,7 +213,7 @@ public:
         std::lock_guard<std::mutex> lock(mutex_);
         info = build_info();
       }
-      send(proto::build_frame(Type::Info, info, module_id()));
+      send(proto::build_frame(Type::Info, info, module_id(), correlation));
       return true;
     }
     case Type::Reboot:
@@ -217,32 +221,35 @@ public:
       const bool bootloader = static_cast<Type>(type) == Type::RebootToBootloader;
       const auto delay = proto::decode_delay(payload);
       if (!delay) {
-        send_error(type, std::errc::invalid_argument, "malformed request (expected u16 delay_ms)");
+        send_error(type, std::errc::invalid_argument, "malformed request (expected u16 delay_ms)",
+                   correlation);
         return true;
       }
       const bool allowed = bootloader ? config_.allow_bootloader : config_.allow_reboot;
       if (!allowed) {
         send_error(type, std::errc::operation_not_permitted,
                    bootloader ? "reboot into bootloader is disabled on this device"
-                              : "reboot is disabled on this device");
+                              : "reboot is disabled on this device",
+                   correlation);
         return true;
       }
       if (bootloader && !SystemControl::bootloader_reboot_supported()) {
         send_error(type, std::errc::operation_not_supported,
-                   "this chip has no software path into download mode (use the BOOT strap)");
+                   "this chip has no software path into download mode (use the BOOT strap)",
+                   correlation);
         return true;
       }
       // the veto runs outside the lock: the application may take its own locks
       if (config_.on_reboot_request &&
           !config_.on_reboot_request(bootloader ? RebootKind::Bootloader : RebootKind::Reboot)) {
         send_error(type, std::errc::operation_canceled,
-                   "refused by the application (try again later)");
+                   "refused by the application (try again later)", correlation);
         return true;
       }
       const auto wait = std::max(std::chrono::milliseconds(*delay), config_.min_restart_delay);
       // reply first, then restart from a detached thread so the reply leaves
       // the transport and the caller's task (the transport worker) is never blocked
-      send(proto::build_frame(Type::Ok, proto::encode_ok(type), module_id()));
+      send(proto::build_frame(Type::Ok, proto::encode_ok(type), module_id(), correlation));
       logger_.info("{} in {} ms", bootloader ? "rebooting into the bootloader" : "rebooting",
                    wait.count());
       if (bootloader)
@@ -269,14 +276,15 @@ protected:
     config_.send(frame);
   }
 
-  void send_error(uint8_t request_type, std::errc errc, std::string_view message) {
+  void send_error(uint8_t request_type, std::errc errc, std::string_view message,
+                  std::optional<uint16_t> correlation = std::nullopt) {
     namespace proto = espp::detail::system_protocol;
     logger_.warn("{} (type 0x{:02x})", message, request_type);
     send(proto::build_frame(
         Type::Error,
         proto::encode_error(request_type, static_cast<uint32_t>(std::make_error_code(errc).value()),
                             message),
-        module_id()));
+        module_id(), correlation));
   }
 
 private:

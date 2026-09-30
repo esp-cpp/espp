@@ -156,6 +156,22 @@ static void test_requests_and_replies() {
   const auto frames = parser.feed(stream);
   CHECK(frames.size() == 2 && !frames[0].is_reply() && frames[0].payload.size() == 2 &&
         frames[1].is_reply() && frames[1].module == 11);
+  // correlation: a request may carry a u16 id; every reply SystemService builds
+  // (INFO, OK, ERROR) passes the request's id through build_frame, so it is
+  // echoed; a request without one gets a reply without one
+  const auto creq = sp::build_frame(sp::Type::GetInfo, {}, 7, 0x1234);
+  const auto cf = sf::StreamParser{}.feed(creq);
+  CHECK(cf.size() == 1 && cf[0].correlation == std::optional<uint16_t>(0x1234) &&
+        (creq[2] & 0x02) != 0 && creq.size() == 11 + 4);
+  for (const auto t : {sp::Type::Info, sp::Type::Ok, sp::Type::Error}) {
+    const auto crep = sp::build_frame(t, sp::encode_ok(1), 7, cf[0].correlation);
+    const auto cr = sf::StreamParser{}.feed(crep);
+    CHECK(cr.size() == 1 && cr[0].is_reply() &&
+          cr[0].correlation == std::optional<uint16_t>(0x1234));
+  }
+  const auto plain =
+      sf::StreamParser{}.feed(sp::build_frame(sp::Type::Ok, sp::encode_ok(1), 7, std::nullopt));
+  CHECK(plain.size() == 1 && !plain[0].has_correlation());
 }
 
 int main() {

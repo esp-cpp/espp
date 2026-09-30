@@ -21,6 +21,8 @@
 //   0x84 ERROR  [request_type u8][code u32][utf8 message]
 //               code = the POSIX errno value of the std::errc the service
 //               chose (informational; the message is authoritative)
+// Every reply echoes the request frame's optional correlation id, so a host
+// that stamps its requests can pair replies with them and drop stale ones.
 // A reboot request is acknowledged with OK first; the device restarts after
 // the requested delay (clamped to at least Config::min_restart_delay).
 
@@ -91,10 +93,13 @@ inline constexpr bool is_reply(Type type) { return (static_cast<uint8_t>(type) &
 
 /// Build an encoded frame for a system message (device->host types map to the
 /// frame reply flag).
+/// @param correlation The stream_frame correlation id to carry: a reply echoes
+///        the request's, so a host can pair a reply with its request.
 inline std::vector<uint8_t> build_frame(Type type, std::span<const uint8_t> payload = {},
-                                        uint8_t module = kModule) {
+                                        uint8_t module = kModule,
+                                        std::optional<uint16_t> correlation = std::nullopt) {
   return espp::stream_frame::build_frame(is_reply(type), module, static_cast<uint8_t>(type),
-                                         payload);
+                                         payload, correlation);
 }
 
 // ---- INFO record encoding ------------------------------------------------------

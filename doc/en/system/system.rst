@@ -41,7 +41,9 @@ The `SystemService` class serves both over **any byte stream** as a
 module id 7 by default; ``Config::module`` moves an instance and hosts find
 it through discovery by its protocol id). ``GET_INFO`` answers with a list of
 tagged records (``[tag u8][len u8][value]``) a host decodes while skipping
-tags it does not know, so fields can be added without a version bump.
+tags it does not know, so fields can be added without a version bump. Every
+reply echoes the request frame's correlation id, so a host that stamps its
+requests can pair replies with them and drop stale ones.
 ``REBOOT`` and ``REBOOT_TO_BOOTLOADER`` reply ``OK`` first and restart after
 the requested delay (clamped to ``Config::min_restart_delay``). Both are
 guarded: ``Config::allow_reboot`` / ``allow_bootloader`` switch them off, the

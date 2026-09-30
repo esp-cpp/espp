@@ -26,10 +26,13 @@
 //               chose (informational; the message is authoritative)
 // HEAP / TASKS answer the matching GET_* request and are also sent
 // unsolicited while streaming is enabled (same encoding, so a host decodes
-// both the same way). A TASKS payload is capped (MonitorService: to fit
-// Config::max_frame_bytes with the frame overhead; at most the payload limit):
-// tasks that would not fit are dropped from the END of the list.
+// both the same way). Replies echo the request frame's correlation id (if it
+// carried one); streamed events carry none. HEAP and TASKS payloads are capped
+// (MonitorService: to fit Config::max_frame_bytes with the frame overhead; at
+// most the payload limit):
+// regions / tasks that would not fit are dropped from the END of the list.
 
+#include <algorithm>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -107,22 +110,35 @@ inline constexpr bool is_reply(Type type) { return (static_cast<uint8_t>(type) &
 
 /// Build an encoded frame for a monitor message (device->host types map to the
 /// frame reply flag).
+/// @param correlation The stream_frame correlation id to carry: a reply echoes
+///        the request's (so a host can pair them), a streamed event carries none.
 inline std::vector<uint8_t> build_frame(Type type, std::span<const uint8_t> payload = {},
-                                        uint8_t module = kModule) {
+                                        uint8_t module = kModule,
+                                        std::optional<uint16_t> correlation = std::nullopt) {
   return espp::stream_frame::build_frame(is_reply(type), module, static_cast<uint8_t>(type),
-                                         payload);
+                                         payload, correlation);
 }
 
 // ---- encoders ---------------------------------------------------------------
 
-/// Encode a HEAP payload. At most 255 regions are encoded.
-inline std::vector<uint8_t> encode_heap(std::span<const HeapRegion> regions) {
+/// Bytes one HeapRegion occupies on the wire.
+inline constexpr size_t kHeapRegionSize = 24;
+
+/// Encode a HEAP payload, keeping it within @p max_bytes (the frame payload
+/// limit by default): regions that would not fit are dropped from the end.
+/// At most 255 regions are encoded.
+/// @param[out] encoded_count Set to the number of regions encoded, if non-null.
+inline std::vector<uint8_t> encode_heap(std::span<const HeapRegion> regions,
+                                        size_t max_bytes = espp::stream_frame::kMaxPayloadSize,
+                                        size_t *encoded_count = nullptr) {
   std::vector<uint8_t> p;
-  const size_t n = regions.size() > 255 ? 255 : regions.size();
-  p.reserve(1 + 24 * n);
+  const size_t fit = max_bytes > 1 ? (max_bytes - 1) / kHeapRegionSize : 0;
+  const size_t n = std::min({regions.size(), size_t{255}, fit});
+  if (encoded_count)
+    *encoded_count = n;
+  p.reserve(1 + kHeapRegionSize * n);
   p.push_back(static_cast<uint8_t>(n));
-  for (size_t i = 0; i < n; ++i) {
-    const auto &r = regions[i];
+  for (const auto &r : regions.first(n)) {
     espp::stream_frame::put_u32(p, r.flags);
     espp::stream_frame::put_u32(p, r.free_bytes);
     espp::stream_frame::put_u32(p, r.min_free_bytes);

@@ -20,6 +20,7 @@
 #include <iterator>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -88,8 +89,8 @@ public:
     /// Shortest streaming period a host may request (SET_STREAM is clamped to it).
     std::chrono::milliseconds min_stream_period{100};
     /// Largest encoded frame (header + payload + CRC) `send` can carry in one
-    /// write: the TASKS payload is capped so the whole frame fits (tasks that
-    /// do not fit are dropped from the end, logged). 4096 matches the default
+    /// write: the HEAP and TASKS payloads are capped so the whole frame fits
+    /// (regions / tasks that do not fit are dropped from the end, logged). 4096 matches the default
     /// TinyUSB vendor / CDC TX FIFO of the espp examples; the stream_frame
     /// maximum is kMaxFrameSize (4111).
     size_t max_frame_bytes{4096};
@@ -141,7 +142,7 @@ public:
   void handle(const espp::stream_frame::Frame &frame) {
     if (frame.module != module_id() || frame.is_reply())
       return;
-    handle_frame(frame.type, frame.payload);
+    handle_frame(frame.type, frame.payload, frame.correlation);
   }
 
   /// @brief Feed received transport bytes (standalone use, without a Dispatcher).
@@ -166,24 +167,29 @@ public:
    * @return true if the type belongs to the monitor protocol (a reply was
    *         sent), false if it was ignored.
    */
-  bool handle_frame(uint8_t type, std::span<const uint8_t> payload) {
+  /// @param correlation The request frame's correlation id, if it carried one;
+  ///        every reply echoes it (streamed events carry none).
+  bool handle_frame(uint8_t type, std::span<const uint8_t> payload,
+                    std::optional<uint16_t> correlation = std::nullopt) {
     namespace proto = espp::detail::monitor_protocol;
     switch (static_cast<Type>(type)) {
     case Type::GetHeap:
-      send_frame(proto::build_frame(Type::Heap, build_heap(), module_id()));
+      send_frame(proto::build_frame(Type::Heap, build_heap(), module_id(), correlation));
       return true;
     case Type::GetTasks:
-      send_frame(proto::build_frame(Type::Tasks, build_tasks(), module_id()));
+      send_frame(proto::build_frame(Type::Tasks, build_tasks(), module_id(), correlation));
       return true;
     case Type::SetStream: {
       const auto req = proto::decode_set_stream(payload);
       if (!req) {
         send_error(type, std::errc::invalid_argument,
-                   "malformed SET_STREAM (expected u8 enable, u16 period_ms, u8 what)");
+                   "malformed SET_STREAM (expected u8 enable, u16 period_ms, u8 what)",
+                   correlation);
         return true;
       }
       if (req->enable && (req->what & (proto::kStreamHeap | proto::kStreamTasks)) == 0) {
-        send_error(type, std::errc::invalid_argument, "SET_STREAM: nothing selected to stream");
+        send_error(type, std::errc::invalid_argument, "SET_STREAM: nothing selected to stream",
+                   correlation);
         return true;
       }
       if (req->enable)
@@ -192,7 +198,7 @@ public:
         stop_stream();
       logger_.debug("SET_STREAM enable={} period_ms={} what=0x{:02x}", req->enable,
                     period_.load().count(), req->what);
-      send_frame(proto::build_frame(Type::Ok, proto::encode_ok(type), module_id()));
+      send_frame(proto::build_frame(Type::Ok, proto::encode_ok(type), module_id(), correlation));
       return true;
     }
     default:
@@ -201,8 +207,9 @@ public:
   }
 
 protected:
-  /// The HEAP payload for the configured regions (regions with no memory left out).
-  std::vector<uint8_t> build_heap() const {
+  /// The HEAP payload for the configured regions (regions with no memory left
+  /// out; capped so the frame fits Config::max_frame_bytes, the overflow logged).
+  std::vector<uint8_t> build_heap() {
     namespace proto = espp::detail::monitor_protocol;
     std::vector<proto::HeapRegion> regions;
     regions.reserve(config_.heap_regions.size());
@@ -219,7 +226,12 @@ protected:
                          .allocated_bytes = static_cast<uint32_t>(hi.allocated_bytes),
                          .total_size = static_cast<uint32_t>(hi.total_size)});
     }
-    return proto::encode_heap(regions);
+    size_t encoded = 0;
+    auto payload = proto::encode_heap(regions, max_payload(), &encoded);
+    if (encoded < regions.size())
+      logger_.warn_rate_limited("HEAP payload full: reporting {} of {} regions", encoded,
+                                regions.size());
+    return payload;
   }
 
   /// The TASKS payload (capped at the frame payload limit).
@@ -239,7 +251,7 @@ protected:
               .core_id = static_cast<int8_t>(t.core_id)};
         });
     size_t encoded = 0;
-    auto payload = proto::encode_tasks(tasks, max_tasks_payload(), &encoded);
+    auto payload = proto::encode_tasks(tasks, max_payload(), &encoded);
     if (encoded < tasks.size())
       logger_.warn_rate_limited("TASKS payload full: reporting {} of {} tasks", encoded,
                                 tasks.size());
@@ -249,15 +261,15 @@ protected:
     // report an empty list (and say why, once in a while)
     logger_.warn_rate_limited("task statistics need CONFIG_FREERTOS_USE_TRACE_FACILITY and "
                               "CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS; reporting no tasks");
-    return proto::encode_tasks({}, max_tasks_payload(), nullptr);
+    return proto::encode_tasks({}, max_payload(), nullptr);
 #endif
   }
 
-  /// The TASKS payload cap: Config::max_frame_bytes less the frame overhead
-  /// (a 9-byte header, no correlation id, plus the CRC), never above the codec's
-  /// own payload limit.
-  size_t max_tasks_payload() const {
-    constexpr size_t overhead = espp::stream_frame::kHeaderSize + espp::stream_frame::kCrcSize;
+  /// The payload cap shared by HEAP and TASKS: Config::max_frame_bytes less the
+  /// frame overhead (the largest header, i.e. with a correlation id echoed,
+  /// plus the CRC), never above the codec's own payload limit.
+  size_t max_payload() const {
+    constexpr size_t overhead = espp::stream_frame::kMaxHeaderSize + espp::stream_frame::kCrcSize;
     const size_t cap = config_.max_frame_bytes > overhead ? config_.max_frame_bytes - overhead : 0;
     return std::min(cap, espp::stream_frame::kMaxPayloadSize);
   }
@@ -270,14 +282,17 @@ protected:
     if (task_)
       return; // already running: the new period / selection apply on its next wake
     task_ = std::make_unique<Task>(
-        Task::Config{.callback = [this](std::mutex &m,
-                                        std::condition_variable &cv) { return stream_step(m, cv); },
+        Task::Config{.callback = [this](std::mutex &m, std::condition_variable &cv,
+                                        bool &notified) { return stream_step(m, cv, notified); },
                      .task_config = config_.task_config});
     task_->start();
   }
 
-  /// One streaming period: send the selected reports, then wait (interruptibly).
-  bool stream_step(std::mutex &m, std::condition_variable &cv) {
+  /// One streaming period: send the selected reports (no correlation id: they
+  /// are events, not replies), then wait one period. The wait uses the Task's
+  /// notified flag as its predicate, so a spurious wake-up does not emit early;
+  /// Task::stop() notifies, which ends the wait and the task.
+  bool stream_step(std::mutex &m, std::condition_variable &cv, bool &notified) {
     namespace proto = espp::detail::monitor_protocol;
     if (streaming_.load()) {
       const uint8_t what = what_.load();
@@ -287,8 +302,9 @@ protected:
         send_frame(proto::build_frame(Type::Tasks, build_tasks(), module_id()));
     }
     std::unique_lock<std::mutex> lock(m);
-    cv.wait_for(lock, period_.load());
-    return false; // keep running until stopped
+    cv.wait_for(lock, period_.load(), [&notified] { return notified; });
+    notified = false; // consumed, under the mutex, per the Task contract
+    return false;     // keep running until stopped
   }
 
   /// Transmit a frame. Serialized on send_mutex_ (held across the callback) so
@@ -305,14 +321,15 @@ protected:
     config_.send(frame);
   }
 
-  void send_error(uint8_t request_type, std::errc errc, std::string_view message) {
+  void send_error(uint8_t request_type, std::errc errc, std::string_view message,
+                  std::optional<uint16_t> correlation = std::nullopt) {
     namespace proto = espp::detail::monitor_protocol;
     logger_.warn("{} (type 0x{:02x})", message, request_type);
     send_frame(proto::build_frame(
         Type::Error,
         proto::encode_error(request_type, static_cast<uint32_t>(std::make_error_code(errc).value()),
                             message),
-        module_id()));
+        module_id(), correlation));
   }
 
 private:

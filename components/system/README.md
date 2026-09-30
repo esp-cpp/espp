@@ -63,6 +63,10 @@ little-endian. See `include/detail/system_protocol.hpp` (host-buildable, with
 | `0x83` OK | D→H | `[request_type u8]` |
 | `0x84` ERROR | D→H | `[request_type u8][code u32][utf8 message]` — code is the POSIX errno of the chosen `std::errc` (the message is authoritative) |
 
+Every reply echoes the request frame's optional `stream_frame` correlation id,
+so a host that stamps its requests can pair replies with them and drop a late
+reply to a request it already timed out (the console does).
+
 INFO tags: 1 chip model (str), 2 chip revision (u16), 3 cores (u8), 4 chip
 features (u32), 5 IDF version, 6 project name, 7 app version, 8 build date, 9
 build time, 10 ELF SHA-256 (32 bytes), 11 running partition, 12 boot partition,

@@ -32,8 +32,10 @@ statistics over any framed byte stream as an `espp::Dispatcher` module
 (`espp.monitor` v1, module 8 by default): `GET_HEAP` (one record per configured
 `MALLOC_CAP_*` region), `GET_TASKS` (the `TaskMonitor` table; needs
 `CONFIG_FREERTOS_USE_TRACE_FACILITY` + `CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS`;
-capped so the whole frame fits `Config::max_frame_bytes`, 4096 by default)
-and `SET_STREAM` (periodic HEAP / TASKS events). The wire codec lives in
+capped, like `GET_HEAP`, so the whole frame fits `Config::max_frame_bytes`, 4096 by default)
+and `SET_STREAM` (periodic HEAP / TASKS events). Replies echo the request
+frame's correlation id, so a host can pair them and drop stale ones; streamed
+events carry none. The wire codec lives in
 `include/detail/monitor_protocol.hpp` (host-buildable, tested by
 `test/monitor_host_test.cpp`). The hosted
 [system console](https://esp-cpp.github.io/espp/apps/system_console.html) web

@@ -448,21 +448,34 @@
     // skipped, non-frame bytes so a console+protocol CDC stream can render
     // its text).
     // ===================================================================
-    function buildFrame(module, type, payload) {
+    // `correlation` (u16, optional): stamped on every service request so the
+    // reply -- which echoes it -- can be paired with its request and a late
+    // reply to a timed-out request is recognised and dropped. It sits after
+    // `type` and sets flags bit1 (the header grows to 11 bytes).
+    function buildFrame(module, type, payload, correlation) {
       payload = payload || new Uint8Array(0);
       if (payload.length > MAX_PAYLOAD) throw new Error("payload exceeds " + MAX_PAYLOAD + " bytes");
-      const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
+      const ext = correlation == null ? 0 : 2;
+      const headerSize = HEADER_SIZE + ext;
+      const frame = new Uint8Array(headerSize + payload.length + CRC_SIZE);
       const view = new DataView(frame.buffer);
       view.setUint16(0, 0x4F54, true);
-      frame[2] = FLAGS_REQUEST;
+      frame[2] = FLAGS_REQUEST | (ext ? FLAG_CORRELATION : 0);
       frame[3] = module;
       frame[4] = type;
-      view.setUint32(5, payload.length, true);
-      frame.set(payload, HEADER_SIZE);
-      view.setUint32(HEADER_SIZE + payload.length,
-                     crc32(frame.subarray(0, HEADER_SIZE + payload.length)), true);
+      if (ext) view.setUint16(5, correlation & 0xFFFF, true);
+      view.setUint32(5 + ext, payload.length, true);
+      frame.set(payload, headerSize);
+      view.setUint32(headerSize + payload.length,
+                     crc32(frame.subarray(0, headerSize + payload.length)), true);
       return frame;
     }
+    let correlationCounter = 0;
+    function nextCorrelation() { correlationCounter = (correlationCounter + 1) & 0xFFFF; return correlationCounter; }
+    // Whether this device has echoed a correlation id yet: once it has, a reply
+    // WITHOUT one can only be stale / foreign and is ignored; before that, an
+    // uncorrelated reply is accepted (older firmware that does not echo ids).
+    let correlationSeen = false;
 
     class StreamParser {
       constructor() { this.buf = new Uint8Array(0); this.lastActivity = 0; }
@@ -688,7 +701,14 @@
         return null;
       }
       await port.open({ baudRate: SERIAL_BAUD });
-      const writer = port.writable.getWriter();
+      let writer;
+      try {
+        writer = port.writable.getWriter();
+      } catch (e) {
+        // the port is open but unusable: do not leave it open behind us
+        try { await port.close(); } catch (_) {}
+        throw e;
+      }
       const t = {
         kind: "serial",
         name: "serial port (CDC console + protocol)",
@@ -699,6 +719,10 @@
         async close() {
           this.closing = true;
           try { if (this.reader) await this.reader.cancel(); } catch (_) {}
+          // finish (or abandon) the writable stream BEFORE releasing the lock:
+          // a pending write would otherwise make releaseLock() throw and leave
+          // the port locked and open
+          try { await writer.close(); } catch (_) { try { await writer.abort(); } catch (_2) {} }
           try { writer.releaseLock(); } catch (_) {}
           try { await port.close(); } catch (_) {}
         },
@@ -797,6 +821,7 @@
       consoleCarry = "";
       moduleReady = false; // action buttons stay disabled until discovery resolved the ids
       monitorPresent = false;
+      correlationSeen = false; // learned per device
       resetDeviceState(); // nothing from a previous device may carry over
       updateUI();
       setStatus("connected", "Connected");
@@ -882,6 +907,17 @@
       const pending = isSys ? pendingSys : isMon ? pendingMon : null;
       const errType = isSys ? SYS.ERROR : MON.ERROR;
       if (pending && (pending.expect.has(frame.type) || frame.type === errType)) {
+        // pair the reply with the in-flight request by correlation id
+        if (frame.correlation !== null) {
+          if (frame.correlation !== pending.corr) {
+            logLine("sys", "Dropping a stale " + (names[frame.type] || "reply") + " (correlation " + frame.correlation + ", expected " + pending.corr + ").");
+            return;
+          }
+          correlationSeen = true;
+        } else if (correlationSeen) {
+          logLine("sys", "Dropping an uncorrelated " + (names[frame.type] || "reply") + " (the device echoes correlation ids).");
+          return;
+        }
         clearTimeout(pending.timer);
         if (isSys) pendingSys = null; else pendingMon = null;
         if (frame.type === errType) {
@@ -908,10 +944,12 @@
         if (!moduleReady) { reject(new Error("module id not resolved yet (discovery pending)")); return; }
         if (which === "mon" && !monitorPresent) { reject(new Error("the device does not advertise the monitor module")); return; }
         const module = which === "sys" ? moduleSystem : moduleMonitor;
-        const frame = buildFrame(module, type, payload);
-        if (els.logFrames.checked) logLine("tx", (which === "sys" ? "system " : "monitor ") + names[type] + " " + hex(frame));
+        const corr = nextCorrelation();
+        const frame = buildFrame(module, type, payload, corr);
+        if (els.logFrames.checked) logLine("tx", (which === "sys" ? "system " : "monitor ") + names[type] + " #" + corr + " " + hex(frame));
         const pending = {
           expect: new Set(expectTypes),
+          corr,
           resolve, reject,
           timer: setTimeout(() => {
             const p = which === "sys" ? pendingSys : pendingMon;
@@ -1101,7 +1139,8 @@
       const rec = new Map();
       let i = 0, unknown = 0;
       const dec = new TextDecoder();
-      while (i + 2 <= payload.length) {
+      while (i < payload.length) {
+        if (i + 2 > payload.length) throw new Error("truncated INFO record header at byte " + i);
         const tag = payload[i], len = payload[i + 1];
         i += 2;
         if (i + len > payload.length) throw new Error("truncated INFO record (tag " + tag + ")");

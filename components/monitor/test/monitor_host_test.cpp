@@ -57,6 +57,14 @@ static void test_heap_roundtrip() {
   // truncated: declared 2 regions, only one present
   CHECK(!mp::decode_heap(std::span<const uint8_t>(p.data(), 1 + 24)));
   CHECK(!mp::decode_heap({}));
+  // the cap drops whole regions from the end (the service passes its
+  // max_payload(); 1 count byte + 24 per region)
+  size_t nh = 0;
+  const auto capped = mp::encode_heap(regions, 1 + 24 + 5, &nh);
+  CHECK(nh == 1 && capped[0] == 1 && capped.size() == 25);
+  CHECK(mp::decode_heap(capped) && mp::decode_heap(capped)->size() == 1);
+  size_t nz = 9;
+  CHECK(mp::encode_heap(regions, 10, &nz).size() == 1 && nz == 0);
   // empty list
   const auto e = mp::encode_heap({});
   CHECK(e.size() == 1 && e[0] == 0);
@@ -148,6 +156,23 @@ static void test_frames() {
   const auto frames = parser.feed(stream);
   CHECK(frames.size() == 2 && !frames[0].is_reply() && frames[1].is_reply() &&
         frames[1].module == 9 && frames[1].payload.size() == 1);
+  // correlation: a request may carry a u16 id; a reply built with the
+  // request's id (what MonitorService::handle_frame does for every reply)
+  // echoes it, a streamed event (built without one) carries none
+  const auto creq = mp::build_frame(mp::Type::GetTasks, {}, 8, 0xBEEF);
+  sf::StreamParser p2;
+  const auto cf = p2.feed(creq);
+  CHECK(cf.size() == 1 && cf[0].has_correlation() && *cf[0].correlation == 0xBEEF &&
+        creq.size() == 9 + 2 + 4 && (creq[2] & 0x02) != 0);
+  const auto crep = mp::build_frame(mp::Type::Tasks, mp::encode_tasks({}), 8, cf[0].correlation);
+  const auto cr = sf::StreamParser{}.feed(crep);
+  CHECK(cr.size() == 1 && cr[0].is_reply() && cr[0].correlation == std::optional<uint16_t>(0xBEEF));
+  const auto ev = mp::build_frame(mp::Type::Heap, mp::encode_heap({}), 8);
+  const auto er = sf::StreamParser{}.feed(ev);
+  CHECK(er.size() == 1 && !er[0].has_correlation());
+  // the largest correlated frame the service may build under the default
+  // 4096-byte cap: max header (11) + payload + crc (4) <= 4096
+  CHECK(sf::kMaxHeaderSize + (4096 - sf::kMaxHeaderSize - sf::kCrcSize) + sf::kCrcSize == 4096);
 }
 
 int main() {
