@@ -217,16 +217,10 @@ protected:
   /// The TASKS payload (capped at the frame payload limit).
   std::vector<uint8_t> build_tasks() {
     namespace proto = espp::detail::monitor_protocol;
+#if CONFIG_FREERTOS_USE_TRACE_FACILITY && CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS
     const auto infos = TaskMonitor::get_latest_info_vector();
-#if !(CONFIG_FREERTOS_USE_TRACE_FACILITY && CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS)
-    logger_.warn_rate_limited("task statistics need CONFIG_FREERTOS_USE_TRACE_FACILITY and "
-                              "CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS; reporting no tasks");
-#endif
     std::vector<proto::TaskEntry> tasks;
     tasks.reserve(infos.size());
-    // (without the FreeRTOS stats Kconfig `infos` is provably empty; the
-    // conversion is still the right code for the configured build)
-    // cppcheck-suppress knownEmptyContainer
     std::transform(
         infos.begin(), infos.end(), std::back_inserter(tasks), [](const TaskMonitor::TaskInfo &t) {
           return proto::TaskEntry{
@@ -238,11 +232,17 @@ protected:
         });
     size_t encoded = 0;
     auto payload = proto::encode_tasks(tasks, espp::stream_frame::kMaxPayloadSize, &encoded);
-    // cppcheck-suppress unsignedLessThanZero
     if (encoded < tasks.size())
       logger_.warn_rate_limited("TASKS payload full: reporting {} of {} tasks", encoded,
                                 tasks.size());
     return payload;
+#else
+    // TaskMonitor cannot collect anything without the FreeRTOS stats Kconfig:
+    // report an empty list (and say why, once in a while)
+    logger_.warn_rate_limited("task statistics need CONFIG_FREERTOS_USE_TRACE_FACILITY and "
+                              "CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS; reporting no tasks");
+    return proto::encode_tasks({}, espp::stream_frame::kMaxPayloadSize, nullptr);
+#endif
   }
 
   void start_stream(std::chrono::milliseconds period, uint8_t what) {
