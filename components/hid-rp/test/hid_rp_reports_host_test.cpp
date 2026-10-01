@@ -230,7 +230,7 @@ static void test_ps4() {
 template <typename Report, size_t Payload> static void check_bounded_set_data() {
   struct Guarded {
     Report r;
-    std::array<uint8_t, 32> guard;
+    std::array<uint8_t, 256> guard; // larger than any intentional overrun below
   } g;
   g.guard.fill(0xC3);
   std::vector<uint8_t> big(Payload + 16, 0x5A);
@@ -238,14 +238,15 @@ template <typename Report, size_t Payload> static void check_bounded_set_data() 
   for (auto b : g.guard)
     CHECK(b == 0xC3); // nothing was written past the report object
   CHECK(sizeof(Report) == Report::data_offset + Payload);
-  const auto report = g.r.get_report();
-  CHECK(report.size() == Payload);
+  const auto after_long = g.r.get_report();
+  CHECK(after_long.size() == Payload);
   for (size_t i = 0; i < Payload; ++i)
-    CHECK(report[i] == 0x5A);
+    CHECK(after_long[i] == 0x5A);
   g.r.set_data({0x11});
-  CHECK(g.r.get_report()[0] == 0x11);
+  const auto after_short = g.r.get_report();
+  CHECK(after_short[0] == 0x11);
   for (size_t i = 1; i < Payload; ++i)
-    CHECK(g.r.get_report()[i] == 0);
+    CHECK(after_short[i] == 0);
   for (auto b : g.guard)
     CHECK(b == 0xC3);
 }
@@ -254,17 +255,20 @@ template <typename Report, size_t Payload> static void check_bounded_set_data() 
 // member (no data_offset): over-long input is clamped, short input zero-filled.
 template <typename Report, size_t Payload, typename Get>
 static void check_bounded_raw_set_data(Get get) {
+  static_assert(Payload >= 2, "the checks below index [1] and [Payload - 1]");
   struct Guarded {
     Report r;
-    std::array<uint8_t, 32> guard;
+    std::array<uint8_t, 256> guard; // larger than any intentional overrun below
   } g;
   g.guard.fill(0xC3);
   g.r.set_data(std::vector<uint8_t>(Payload + 100, 0x7E));
   for (auto b : g.guard)
     CHECK(b == 0xC3);
-  CHECK(get(g.r).size() == Payload && get(g.r)[Payload - 1] == 0x7E);
+  const auto after_long = get(g.r);
+  CHECK(after_long.size() == Payload && after_long[Payload - 1] == 0x7E);
   g.r.set_data({0x11});
-  CHECK(get(g.r)[0] == 0x11 && get(g.r)[1] == 0 && get(g.r)[Payload - 1] == 0);
+  const auto after_short = get(g.r);
+  CHECK(after_short[0] == 0x11 && after_short[1] == 0 && after_short[Payload - 1] == 0);
   for (auto b : g.guard)
     CHECK(b == 0xC3);
 }
