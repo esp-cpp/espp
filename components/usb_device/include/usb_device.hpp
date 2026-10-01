@@ -60,7 +60,7 @@ namespace espp {
  *       short and non-blocking; it is safe to call the matching write() from
  *       within them.
  *
- * \section usb_device_ex1 UsbDevice (composite CDC + Vendor/WebUSB) Example
+ * \section usb_device_ex1 UsbDevice (composite CDC + Vendor/WebUSB + MSC) Example
  * \snippet usb_device_example.cpp usb_device_example
  */
 

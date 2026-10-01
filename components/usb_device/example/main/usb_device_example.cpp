@@ -1,6 +1,6 @@
 #include <atomic>
 #include <chrono>
-#include <fstream>
+#include <cstdio>
 #include <mutex>
 #include <span>
 #include <string>
@@ -53,23 +53,32 @@ static constexpr const char *kMscBasePath = "/usb"; // where the app sees the FA
 // the host takes it), so the drive explains itself when mounted.
 static void write_drive_readme(espp::Logger &logger) {
   const std::string path = std::string(kMscBasePath) + "/README.txt";
-  if (std::ifstream probe(path); probe) {
+  // stdio, not iostreams: keeps the example's binary and heap footprint small
+  if (FILE *probe = std::fopen(path.c_str(), "r"); probe != nullptr) {
+    std::fclose(probe);
     logger.info("drive README already present");
     return;
   }
-  if (std::ofstream readme(path); readme) {
-    readme << "espp USB Device example\n"
-           << "=======================\n"
-           << "This drive is a wear-levelled FAT partition in the ESP32-S3's flash,\n"
-           << "exposed over USB mass storage by espp::UsbDevice.\n"
-           << "The same device also presents a CDC serial port and a vendor/WebUSB\n"
-           << "interface carrying the espp framed protocol: system info / reboot,\n"
-           << "heap + task monitor, OTA update and core-dump download.\n"
-           << "Open https://esp-cpp.github.io/espp/apps/ to use them from a browser.\n";
-    logger.info("wrote {}", path);
-  } else {
+  FILE *readme = std::fopen(path.c_str(), "w");
+  if (readme == nullptr) {
     logger.error("could not write {}", path);
+    return;
   }
+  static constexpr const char *kText =
+      "espp USB Device example\n"
+      "=======================\n"
+      "This drive is a wear-levelled FAT partition in the ESP32-S3's flash,\n"
+      "exposed over USB mass storage by espp::UsbDevice.\n"
+      "The same device also presents a CDC serial port and a vendor/WebUSB\n"
+      "interface carrying the espp framed protocol: system info / reboot,\n"
+      "heap + task monitor, OTA update and core-dump download.\n"
+      "Open https://esp-cpp.github.io/espp/apps/ to use them from a browser.\n";
+  const bool ok = std::fputs(kText, readme) >= 0;
+  std::fclose(readme);
+  if (ok)
+    logger.info("wrote {}", path);
+  else
+    logger.error("could not write {}", path);
 }
 
 extern "C" void app_main(void) {
