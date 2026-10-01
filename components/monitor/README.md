@@ -41,7 +41,9 @@ events carry none. The wire codec lives in
 [system console](https://esp-cpp.github.io/espp/apps/system_console.html) web
 app renders heap gauges and a live task table from it; the
 [system](../system) component's example exposes it over USB together with
-`espp::SystemService`.
+`espp::SystemService`:
+
+<img width="946" alt="espp System Console streaming the task table from MonitorService (name, CPU %, stack high-water mark, priority, core)" src="https://github.com/user-attachments/assets/c2c962bf-debb-44c7-96a7-95527218d953" />
 
 ## Example
 

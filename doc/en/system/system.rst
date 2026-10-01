@@ -60,6 +60,16 @@ it doubles as a serial monitor): a device-info panel, the two restart buttons
 :doc:`monitor <../core/monitor>` component's ``MonitorService`` — heap-region
 gauges and a live, sortable task table with a stream toggle.
 
+.. image:: https://github.com/user-attachments/assets/bc5fa520-f3a0-40de-9b53-889a887c0322
+   :alt: espp System Console: device info, reboot / bootloader controls and heap gauges
+   :width: 100%
+   :target: https://esp-cpp.github.io/espp/apps/system_console.html
+
+.. image:: https://github.com/user-attachments/assets/c2c962bf-debb-44c7-96a7-95527218d953
+   :alt: espp System Console streaming the task table (name, CPU %, stack high-water mark, priority, core)
+   :width: 100%
+   :target: https://esp-cpp.github.io/espp/apps/system_console.html
+
 .. ------------------------------- Example -------------------------------------
 
 .. toctree::

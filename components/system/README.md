@@ -38,6 +38,15 @@ web app (`web/system_console.html`) talks to the service over WebUSB or Web
 Serial, and to the [monitor](../monitor) component's `MonitorService` (heap
 regions + task table, live) when the device advertises it.
 
+The console connected to the example over WebUSB: device info, the two restart
+buttons and the heap gauges
+
+<img width="954" alt="espp System Console: device info, reboot / bootloader controls and heap gauges" src="https://github.com/user-attachments/assets/bc5fa520-f3a0-40de-9b53-889a887c0322" />
+
+and its live task table, streamed by `MonitorService`
+
+<img width="946" alt="espp System Console streaming the task table (name, CPU %, stack high-water mark, priority, core)" src="https://github.com/user-attachments/assets/c2c962bf-debb-44c7-96a7-95527218d953" />
+
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
 

@@ -90,6 +90,11 @@ web app renders the heap gauges and a live task table; see the
 :doc:`system <../system/system>` component's example, which exposes both
 services over USB.
 
+.. image:: https://github.com/user-attachments/assets/c2c962bf-debb-44c7-96a7-95527218d953
+   :alt: espp System Console streaming the task table from MonitorService (name, CPU %, stack high-water mark, priority, core)
+   :width: 100%
+   :target: https://esp-cpp.github.io/espp/apps/system_console.html
+
 Monitor Service API Reference
 -----------------------------
 
