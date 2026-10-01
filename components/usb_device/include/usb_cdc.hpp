@@ -34,7 +34,7 @@ namespace espp {
  *       short and non-blocking; it is safe to call write() from within it.
  *
  * \section usb_cdc_ex1 UsbCdc Example
- * \snippet usb_cdc_example.cpp usb_cdc_example
+ * \snippet usb_device_example.cpp usb_device_example
  */
 class UsbCdc : public BaseComponent {
 public:

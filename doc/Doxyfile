@@ -161,6 +161,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/nvs/example/main/nvs_example.cpp \
   $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp \
   $(PROJECT_PATH)/components/odrive_native/example/main/odrive_native_example.cpp \
+  $(PROJECT_PATH)/components/odrive_native/usb_example/main/odrive_usb_example.cpp \
   $(PROJECT_PATH)/components/ota/example/main/ota_example.cpp \
   $(PROJECT_PATH)/components/pca9535/example/main/pca9535_example.cpp \
   $(PROJECT_PATH)/components/pcf85063/example/main/pcf85063_example.cpp \
@@ -203,7 +204,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/trajectory_planner/example/main/trajectory_planner_example.cpp \
   $(PROJECT_PATH)/components/twai/example/main/twai_example.cpp \
   $(PROJECT_PATH)/components/tt21100/example/main/tt21100_example.cpp \
-  $(PROJECT_PATH)/components/usb_device/example/main/usb_cdc_example.cpp \
+  $(PROJECT_PATH)/components/usb_device/example/main/usb_device_example.cpp \
   $(PROJECT_PATH)/components/usb_device/msc_example/main/msc_example.cpp \
   $(PROJECT_PATH)/components/usb_device/xinput_example/main/xinput_example.cpp \
   $(PROJECT_PATH)/components/usb_host/example/main/usb_host_example.cpp \

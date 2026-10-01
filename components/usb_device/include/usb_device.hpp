@@ -61,7 +61,7 @@ namespace espp {
  *       within them.
  *
  * \section usb_device_ex1 UsbDevice (composite CDC + Vendor/WebUSB) Example
- * \snippet usb_cdc_example.cpp usb_cdc_example
+ * \snippet usb_device_example.cpp usb_device_example
  */
 
 // Forward-declare the extern "C" trampoline (defined in usb_device.cpp, inside

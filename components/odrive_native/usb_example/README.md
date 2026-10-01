@@ -1,8 +1,12 @@
 # ODrive-compatible USB Device Example (CDC + Vendor/WebUSB + HID)
 
-This example demonstrates a **composite** `espp::UsbDevice` that presents an
-ODrive-compatible device with three interfaces, all backed by one simulated motor
-state (matching how a real ODrive splits its protocols across interfaces):
+This is the `odrive_native` component's USB example: a **composite**
+`espp::UsbDevice` that presents an ODrive-compatible device (the ODrive ASCII
+protocol over CDC, the ODrive native / Fibre protocol over the vendor interface,
+and a HID gamepad), all backed by one simulated motor state, matching how a real
+ODrive splits its protocols across interfaces. (It used to live in
+`components/usb_device/example`; that is now the generic USB device example with
+the standard espp USB services.)
 
 - **CDC-ACM serial** → the **ODrive ASCII** protocol (`espp::OdriveAscii`; text,
   for a terminal or the Web Serial console).
@@ -54,7 +58,7 @@ CONFIG_TINYUSB_HID_COUNT=1
 ## Build
 
 ```sh
-cd components/usb_device/example
+cd components/odrive_native/usb_example
 idf.py set-target esp32s3
 idf.py build
 ```

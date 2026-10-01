@@ -30,6 +30,6 @@ set(
   "List of components to include"
   )
 
-project(usb_cdc_example)
+project(odrive_usb_example)
 
 set(CMAKE_CXX_STANDARD 20)
