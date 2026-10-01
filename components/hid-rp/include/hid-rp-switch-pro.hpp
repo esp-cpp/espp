@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <iterator>
 
 #include "gamepad_imu.hpp"
 #include "hid-rp-gamepad.hpp"
@@ -179,9 +180,8 @@ protected:
 
 #pragma pack(pop)
 
-  static constexpr size_t num_data_bytes = 63;
-
 public:
+  static constexpr size_t num_data_bytes = 63;
   /// Where the report data starts inside this object: after the one-byte report
   /// id the base class holds when there is one (the data union is 1-byte
   /// packed, so no padding follows it), or at byte 0 when REPORT_ID == 0 (the
@@ -621,8 +621,8 @@ public:
   /// Set the output report data from a vector of bytes
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array, after the report id (if any)
-    std::copy(data.begin(), data.end(), this->data() + data_offset);
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(this->data() + data_offset, num_data_bytes, data);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -700,8 +700,9 @@ struct SwitchProInputVendorReport : public hid::report::base<hid::report::type::
 
   /// Set the data for the input report
   /// \param data The data to set the input report to.
-  constexpr void set_data(const std::vector<uint8_t> &data) {
-    std::copy(data.begin(), data.end(), this->data);
+  constexpr void set_data(const std::vector<uint8_t> &bytes) {
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(data, std::size(data), bytes);
   }
 
   /// Get the data for the input report
@@ -732,8 +733,9 @@ struct SwitchProOutputVendorReport
 
   /// Set the data for the output report
   /// \param data The data to set the output report to.
-  constexpr void set_data(const std::vector<uint8_t> &data) {
-    std::copy(data.begin(), data.end(), this->data);
+  constexpr void set_data(const std::vector<uint8_t> &bytes) {
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(data, std::size(data), bytes);
   }
 
   /// Get the data for the output report

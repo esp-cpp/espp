@@ -311,8 +311,8 @@ public:
   /// Set the output report data from a vector of bytes
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // skip the report id and any alignment padding after it
-    std::copy(data.begin(), data.end(), this->data() + data_offset);
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(this->data() + data_offset, num_data_bytes, data);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -437,6 +437,8 @@ public:
   static constexpr size_t num_leds = led_count;
   static constexpr size_t num_led_bits = num_bits(led_count);
   static constexpr size_t num_led_bytes = (led_count + 7) / 8;
+  static_assert(LED_COUNT >= 1 && LED_COUNT <= 4,
+                "GamepadLedOutputReport: the LED bitset covers PLAYER_1..PLAYER_4 (1..4 LEDs)");
   /// Where the report data starts inside this object: after the one-byte report
   /// id the base class holds when there is one (the payload is byte-aligned, so
   /// no padding follows it), or at byte 0 when REPORT_ID == 0 (the base class
@@ -491,8 +493,9 @@ public:
   /// \return The output report as a vector of bytes.
   /// \note The report id is not included in the returned vector.
   constexpr auto get_report() {
-    static_assert(sizeof(GamepadLedOutputReport) >= data_offset + num_led_bytes,
-                  "GamepadLedOutputReport: the LED bitset must hold num_led_bytes");
+    static_assert(sizeof(GamepadLedOutputReport) == data_offset + num_led_bytes,
+                  "GamepadLedOutputReport: report id (if any) + LED byte(s) must be contiguous "
+                  "with no padding, i.e. sizeof(report) == data_offset + num_led_bytes");
     // skip the report id (if any); the payload starts at data_offset
     auto report_data = this->data() + data_offset;
     auto report_size = num_led_bytes;
@@ -502,8 +505,8 @@ public:
   /// Set the output report data from a vector of bytes
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array, after the report id (if any)
-    std::copy(data.begin(), data.end(), this->data() + data_offset);
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(this->data() + data_offset, num_led_bytes, data);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor

@@ -241,8 +241,8 @@ public:
   /// Set the output report data from a vector of bytes
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array, after the report id (if any)
-    std::copy(data.begin(), data.end(), this->data() + data_offset);
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(this->data() + data_offset, num_data_bytes, data);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -313,11 +313,11 @@ public:
 protected:
   static constexpr uint8_t battery_min{0};
   static constexpr uint8_t battery_max{255};
-  static constexpr uint8_t num_data_bytes{1};
 
   uint8_t battery_status{0}; ///< The battery status byte
 
 public:
+  static constexpr uint8_t num_data_bytes{1};
   /// Where the report data starts inside this object: after the one-byte report
   /// id the base class holds when there is one (the payload is byte-aligned, so
   /// no padding follows it), or at byte 0 when REPORT_ID == 0 (the base class
@@ -402,9 +402,9 @@ public:
 
   /// Set the input report data from a vector of bytes
   /// \param data The data to set the input report to.
-  constexpr auto set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array, after the report id (if any)
-    std::copy(data.begin(), data.end(), this->data() + data_offset);
+  constexpr void set_data(const std::vector<uint8_t> &data) {
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(this->data() + data_offset, num_data_bytes, data);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor

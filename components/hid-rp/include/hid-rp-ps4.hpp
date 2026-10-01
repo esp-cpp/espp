@@ -280,8 +280,8 @@ public:
   }
 
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    auto n = std::min(data.size(), num_data_bytes);
-    std::copy(data.begin(), data.begin() + n, raw.begin());
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(raw.data(), num_data_bytes, data);
   }
 
   static constexpr auto get_descriptor() {
@@ -562,8 +562,8 @@ public:
   constexpr auto get_report() const { return std::vector<uint8_t>(raw.begin(), raw.end()); }
 
   constexpr void set_data(const std::vector<uint8_t> &data_in) {
-    auto n = std::min(data_in.size(), num_data_bytes);
-    std::copy(data_in.begin(), data_in.begin() + n, raw.begin());
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(raw.data(), num_data_bytes, data_in);
   }
 
   static constexpr auto get_descriptor() {

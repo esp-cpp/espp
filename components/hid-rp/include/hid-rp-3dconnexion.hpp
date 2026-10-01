@@ -172,14 +172,8 @@ public:
   ///       write always produces a well-defined report instead of retaining
   ///       stale axis values from a previous update.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array - skip the first byte, which is the
-    // report id. Clamp the copy length to the report's payload size so an
-    // over-long input cannot write past the backing storage.
-    auto copy_size = std::min(data.size(), num_data_bytes);
-    auto *payload = this->data() + data_offset;
-    std::copy(data.begin(), data.begin() + copy_size, payload);
-    // zero-fill any remaining payload bytes not covered by a short write.
-    std::fill(payload + copy_size, payload + num_data_bytes, uint8_t{0});
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(this->data() + data_offset, num_data_bytes, data);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -338,14 +332,8 @@ public:
   ///       write always produces a well-defined report instead of retaining
   ///       stale axis values from a previous update.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array - skip the first byte, which is the
-    // report id. Clamp the copy length to the report's payload size so an
-    // over-long input cannot write past the backing storage.
-    auto copy_size = std::min(data.size(), num_data_bytes);
-    auto *payload = this->data() + data_offset;
-    std::copy(data.begin(), data.begin() + copy_size, payload);
-    // zero-fill any remaining payload bytes not covered by a short write.
-    std::fill(payload + copy_size, payload + num_data_bytes, uint8_t{0});
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(this->data() + data_offset, num_data_bytes, data);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -480,14 +468,8 @@ public:
   ///       write always produces a well-defined report instead of retaining
   ///       stale button values from a previous update.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array - skip the first byte, which is the
-    // report id. Clamp the copy length to the report's payload size so an
-    // over-long input cannot write past the backing storage.
-    auto copy_size = std::min(data.size(), num_data_bytes);
-    auto *payload = this->data() + data_offset;
-    std::copy(data.begin(), data.begin() + copy_size, payload);
-    // zero-fill any remaining payload bytes not covered by a short write.
-    std::fill(payload + copy_size, payload + num_data_bytes, uint8_t{0});
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(this->data() + data_offset, num_data_bytes, data);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -590,14 +572,8 @@ public:
   ///       write always produces a well-defined report instead of retaining
   ///       a stale LED value from a previous update.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array - skip the first byte, which is the
-    // report id. Clamp the copy length to the report's payload size so an
-    // over-long input cannot write past the backing storage.
-    auto copy_size = std::min(data.size(), num_data_bytes);
-    auto *dest = this->data() + data_offset;
-    std::copy(data.begin(), data.begin() + copy_size, dest);
-    // zero-fill any remaining payload bytes not covered by a short write.
-    std::fill(dest + copy_size, dest + num_data_bytes, uint8_t{0});
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(this->data() + data_offset, num_data_bytes, data);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
