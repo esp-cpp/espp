@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>espp System Console (WebUSB / Web Serial)</title>
+<meta name="description" content="Device info, reboot and reboot-into-bootloader plus live heap and task statistics for an espp device, over WebUSB or Web Serial via the espp system and monitor components.">
+  <!--
+    espp System Console (WebUSB / Web Serial)
+    =========================================
+    A single-file, fully offline, dependency-free browser tool for devices
+    running the espp `system` component's SystemService (and, optionally, the
+    `monitor` component's MonitorService). See
+    components/system/include/detail/system_protocol.hpp and
+    components/monitor/include/detail/monitor_protocol.hpp for the wire specs.
+    It connects over either:
+
+      - WebUSB: the device's vendor-specific (0xFF) interface, or
+      - Web Serial: the device's CDC-ACM port, where the byte stream may
+        interleave the system CONSOLE TEXT with protocol frames; this app
+        scans for the frame magic, feeds frames to the protocol layer and
+        renders everything else in the log pane.
+
+    Wire framing v2 (espp stream_frame; all LITTLE-ENDIAN):
+      [magic u16 = 0x4F54 "OT"][flags u8][module u8][type u8][len u32][payload...][crc32 u32]
+    flags bit0 = reply (0 host->device, 1 device->host); bits 4-7 = version 1.
+
+    System protocol (module 7 by default, `espp.system` v1):
+      host -> device : 0x01 GET_INFO, 0x02 REBOOT(u16 delay_ms),
+                       0x03 REBOOT_TO_BOOTLOADER(u16 delay_ms)
+      device -> host : 0x81 INFO (tagged records [tag u8][len u8][value]),
+                       0x83 OK(u8 request type),
+                       0x84 ERROR(u8 request type, u32 code, utf8 message)
+    Monitor protocol (module 8 by default, `espp.monitor` v1):
+      host -> device : 0x01 GET_HEAP, 0x02 GET_TASKS,
+                       0x03 SET_STREAM(u8 enable, u16 period_ms, u8 what: bit0 heap, bit1 tasks)
+      device -> host : 0x81 HEAP(u8 count, {u32 flags, free, min_free, largest, allocated, total}),
+                       0x82 TASKS(u8 count, {str name, u8 cpu%, u32 high_water, u8 prio, i8 core}),
+                       0x83 OK, 0x84 ERROR
+    The module ids are only routing keys: both are resolved on connect from the
+    device's discovery reply (by protocol id), ?module=N overrides the system
+    module. One request in flight per module.
+
+    No external dependencies, no CDN, no network fetches: everything is inline
+    and works from a file:// URL, http://localhost, or any secure (https)
+    origin in a Chromium browser.
+  -->
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --panel-bg: #ffffff;
+      --panel-border: #d9dee6;
+      --text: #1c2330;
+      --text-muted: #5c6675;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff;
+      --danger: #dc2626;
+      --ok: #16a34a;
+      --warn: #b45309;
+      --log-bg: #0f1420;
+      --log-text: #d6dbe6;
+      --tx-color: #7dd3fc;
+      --rx-color: #86efac;
+      --err-color: #fca5a5;
+      --sys-color: #fcd34d;
+      --time-color: #64748b;
+      --input-bg: #ffffff;
+      --input-border: #c3cbd6;
+      --chip-bg: #eef2f8;
+      --gauge-fill: #2563eb;
+      --gauge-min: #93c5fd;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+        --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+        --accent-contrast: #0b0e14; --danger: #ef4444; --ok: #22c55e; --warn: #f59e0b;
+        --log-bg: #05070c; --log-text: #cdd4e0; --tx-color: #38bdf8; --rx-color: #4ade80;
+        --err-color: #f87171; --sys-color: #fbbf24; --input-bg: #0e1219;
+        --input-border: #2b3341; --chip-bg: #1b2230; --gauge-fill: #3b82f6; --gauge-min: #1e3a8a;
+        --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+      --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+      --accent-contrast: #0b0e14; --danger: #ef4444; --ok: #22c55e; --warn: #f59e0b;
+      --log-bg: #05070c; --log-text: #cdd4e0; --tx-color: #38bdf8; --rx-color: #4ade80;
+      --err-color: #f87171; --sys-color: #fbbf24; --input-bg: #0e1219;
+      --input-border: #2b3341; --chip-bg: #1b2230; --gauge-fill: #3b82f6; --gauge-min: #1e3a8a;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 16px; }
+    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    header h1 { font-size: 18px; margin: 0; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      background: var(--chip-bg); color: var(--text-muted);
+      border: 1px solid var(--panel-border);
+    }
+    .status-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+    .status-pill.connected { color: var(--ok); }
+    .status-pill.connected::before { background: var(--ok); }
+    .status-pill.error { color: var(--danger); }
+    .status-pill.error::before { background: var(--danger); }
+    .status-pill.busy { color: var(--warn); }
+    .status-pill.busy::before { background: var(--warn); }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 10px; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .muted { color: var(--text-muted); font-size: 12.5px; }
+    .warn-text { color: var(--warn); font-size: 12.5px; }
+
+    button {
+      font: inherit; padding: 7px 14px; border-radius: 7px; cursor: pointer;
+      border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text);
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    select, input[type="number"] {
+      font: inherit; color: var(--text); background: var(--input-bg);
+      border: 1px solid var(--input-border); border-radius: 7px; padding: 5px 8px;
+    }
+    label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+
+    dl.info { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; font-size: 13px; }
+    dl.info dt { color: var(--text-muted); }
+    dl.info dd { margin: 0; font-variant-numeric: tabular-nums; word-break: break-all; }
+    dl.info dd.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+
+    .confirm {
+      display: none; margin-top: 10px; padding: 10px 12px; border-radius: 8px;
+      border: 1px solid var(--warn); color: var(--text);
+    }
+    .confirm.open { display: block; }
+
+    .gauges { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+    .gauge { border: 1px solid var(--panel-border); border-radius: 8px; padding: 10px; }
+    .gauge .name { font-weight: 600; font-size: 13px; }
+    .gauge .track { position: relative; height: 12px; border-radius: 999px; overflow: hidden; background: var(--chip-bg); border: 1px solid var(--panel-border); margin: 6px 0; }
+    .gauge .used { position: absolute; left: 0; top: 0; bottom: 0; background: var(--gauge-fill); }
+    .gauge .peak { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--danger); }
+    .gauge .nums { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; display: flex; gap: 10px; flex-wrap: wrap; }
+
+    table.tasks { border-collapse: collapse; width: 100%; font-size: 12.5px; margin-top: 8px; }
+    table.tasks th, table.tasks td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--panel-border); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    table.tasks th { color: var(--text-muted); font-weight: 600; }
+    table.tasks th button.sort { font: inherit; font-weight: 600; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+    table.tasks th button.sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    table.tasks th[aria-sort="ascending"] button.sort::after { content: " \25B4"; }
+    table.tasks th[aria-sort="descending"] button.sort::after { content: " \25BE"; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    table.tasks td.num, table.tasks th.num { text-align: right; padding-right: 14px; }
+    table.tasks td.bar { width: 120px; }
+    .cpubar { height: 8px; border-radius: 999px; background: var(--chip-bg); border: 1px solid var(--panel-border); overflow: hidden; }
+    .cpubar > div { height: 100%; background: var(--gauge-fill); }
+    .tasks-wrap { overflow-x: auto; }
+
+    .log {
+      background: var(--log-bg); color: var(--log-text);
+      border-radius: 8px; padding: 10px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px; line-height: 1.5;
+      height: 220px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+    }
+    .log .t { color: var(--time-color); }
+    .log .tx { color: var(--tx-color); }
+    .log .rx { color: var(--rx-color); }
+    .log .err { color: var(--err-color); }
+    .log .warn { color: #d08770; }
+    .log .sys { color: var(--sys-color); }
+    .log .con { color: var(--log-text); }
+    footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
+    #unsupported {
+      display: none; background: var(--panel-bg); border: 1px solid var(--danger);
+      color: var(--danger); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .gauge .used, .cpubar > div { transition: width 0.2s linear; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>espp System Console <span class="muted">(WebUSB / Web Serial)</span></h1>
+      <span id="status" class="status-pill">Disconnected</span>
+    </header>
+
+    <div id="unsupported">
+      This browser supports neither WebUSB nor Web Serial. Use a Chromium-based
+      browser (Chrome / Edge / Opera) on a secure origin (https, localhost or file://).
+    </div>
+
+    <div class="panel">
+      <h2>Device</h2>
+      <div class="row">
+        <button id="usbBtn" class="primary">Connect WebUSB</button>
+        <button id="serialBtn" class="primary">Connect Web Serial</button>
+        <label><input type="checkbox" id="anyDevice"> show all USB devices (no VID/PID filter)</label>
+      </div>
+      <p id="devInfo" class="muted" style="margin: 8px 0 0;">
+        Not connected. WebUSB talks to the vendor (0xFF) interface (default filter VID 0x1209);
+        Web Serial talks to the CDC port, where the device console and the protocol share one
+        stream — this page renders the console text and speaks the protocol at the same time.
+      </p>
+    </div>
+
+    <div class="panel">
+      <h2>System info</h2>
+      <div class="row" style="margin-bottom: 10px;">
+        <button id="infoBtn" class="primary" disabled>Refresh info</button>
+        <span id="infoStatus" class="muted"></span>
+      </div>
+      <dl id="info" class="info"></dl>
+    </div>
+
+    <div class="panel">
+      <h2>Control</h2>
+      <div class="row">
+        <button id="rebootBtn" disabled>Reboot</button>
+        <button id="bootloaderBtn" disabled title="Restart into the ROM download mode (esptool / idf.py flash)">Reboot into bootloader</button>
+        <label>delay <input type="number" id="rebootDelay" min="0" max="65535" step="50" value="500" style="width: 80px;"> ms</label>
+        <span id="controlNote" class="muted"></span>
+      </div>
+      <div id="confirm" class="confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirmText">
+        <div id="confirmText" style="margin-bottom: 8px;"></div>
+        <div class="row">
+          <button id="confirmYes" class="danger">Yes, do it</button>
+          <button id="confirmNo">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="monitorPanel" class="panel" hidden>
+      <h2>Heap &amp; tasks <span class="muted">(monitor module)</span></h2>
+      <div class="row" style="margin-bottom: 10px;">
+        <button id="heapBtn" disabled>Refresh heap</button>
+        <button id="tasksBtn" disabled>Refresh tasks</button>
+        <label><input type="checkbox" id="streamToggle" disabled> stream every</label>
+        <select id="streamPeriod" disabled>
+          <option value="200">200 ms</option>
+          <option value="500" selected>500 ms</option>
+          <option value="1000">1 s</option>
+          <option value="2000">2 s</option>
+          <option value="5000">5 s</option>
+        </select>
+        <label><input type="checkbox" id="streamHeap" checked disabled> heap</label>
+        <label><input type="checkbox" id="streamTasks" checked disabled> tasks</label>
+        <span id="monitorStatus" class="muted"></span>
+      </div>
+      <div id="gauges" class="gauges"></div>
+      <div class="tasks-wrap"><table id="taskTable" class="tasks" hidden>
+        <thead><tr>
+          <th scope="col" data-key="name"><button type="button" class="sort">Task</button></th>
+          <th scope="col" data-key="cpu" class="num" aria-sort="descending"><button type="button" class="sort">CPU %</button></th>
+          <th scope="col" class="bar"><span class="sr-only">CPU bar</span></th>
+          <th scope="col" data-key="hwm" class="num"><button type="button" class="sort">Stack free (B)</button></th>
+          <th scope="col" data-key="prio" class="num"><button type="button" class="sort">Prio</button></th>
+          <th scope="col" data-key="core" class="num"><button type="button" class="sort">Core</button></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <p id="taskNote" class="muted" style="margin: 8px 0 0;" hidden></p>
+    </div>
+
+    <div class="panel">
+      <h2>Log</h2>
+      <div class="row" style="margin-bottom: 8px;">
+        <label><input type="checkbox" id="logFrames"> log raw frames</label>
+        <button id="clearLogBtn">Clear</button>
+      </div>
+      <div id="log" class="log" aria-live="polite"></div>
+    </div>
+
+    <footer>
+      Speaks the espp <code>system</code> (module 7, <code>espp.system</code>) and <code>monitor</code>
+      (module 8, <code>espp.monitor</code>) services over stream_frame v2 framing (both ids are discovered on
+      connect). Everything runs locally in your browser.
+    </footer>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ===================================================================
+    // Constants (must match system_protocol.hpp / monitor_protocol.hpp)
+    // ===================================================================
+    const DEFAULT_VID = 0x1209;
+    const VENDOR_CLASS = 0xFF;
+    const MAGIC0 = 0x54, MAGIC1 = 0x4F;      // u16 0x4F54 "OT", little-endian on the wire
+    const HEADER_SIZE = 9, CRC_SIZE = 4;
+    const MAX_PAYLOAD = 4096;
+    const MAX_FRAME = HEADER_SIZE + MAX_PAYLOAD + CRC_SIZE;
+    // The dispatcher module byte is only a routing key: the system service is
+    // published on module 7 and the monitor service on module 8 by default, but
+    // a device may serve them on any id. Both are resolved on connect from the
+    // device's discovery reply (by the advertised protocol id, then app / name);
+    // ?module=N overrides the SYSTEM module only. The PROTOCOL constants mirror
+    // SystemService::kProtocol(Version) / MonitorService::kProtocol(Version).
+    const DEFAULT_MODULE_SYSTEM = 7, DEFAULT_MODULE_MONITOR = 8;
+    const SYSTEM_PROTOCOL = "espp.system", SYSTEM_PROTOCOL_VERSION = 1;
+    const MONITOR_PROTOCOL = "espp.monitor", MONITOR_PROTOCOL_VERSION = 1;
+    const SYSTEM_IDENT = { protocol: SYSTEM_PROTOCOL, protocolVersion: SYSTEM_PROTOCOL_VERSION,
+                           app: "system_console.html", name: "System", fallback: DEFAULT_MODULE_SYSTEM, override: null };
+    const MONITOR_IDENT = { protocol: MONITOR_PROTOCOL, protocolVersion: MONITOR_PROTOCOL_VERSION,
+                            app: "system_console.html", name: "Monitor", fallback: DEFAULT_MODULE_MONITOR, override: null };
+    let moduleSystem = DEFAULT_MODULE_SYSTEM;   // adopted by adoptModules() before the first request
+    let moduleMonitor = DEFAULT_MODULE_MONITOR;
+    let monitorPresent = false;                 // the device advertises espp.monitor
+    // True once adoptModules() has run for this connection: every send path
+    // waits for it, so nothing can go out on the default ids while the
+    // discovery probe (up to DISCOVERY_TIMEOUT_MS) is still pending.
+    let moduleReady = false;
+    // Reserved dispatcher discovery module (ListModules on 0xFF).
+    const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
+    const DISCOVERY_TIMEOUT_MS = 800;
+    const FLAGS_VERSION = 1;
+    const FLAGS_REQUEST = (FLAGS_VERSION << 4) | 0;
+    const FLAGS_REPLY_BIT = 0x01;
+    const FLAG_CORRELATION = 0x02;
+    const SYS = { GET_INFO: 0x01, REBOOT: 0x02, REBOOT_TO_BOOTLOADER: 0x03, INFO: 0x81, OK: 0x83, ERROR: 0x84 };
+    const MON = { GET_HEAP: 0x01, GET_TASKS: 0x02, SET_STREAM: 0x03, HEAP: 0x81, TASKS: 0x82, OK: 0x83, ERROR: 0x84 };
+    const SYS_NAME = { 0x01: "GET_INFO", 0x02: "REBOOT", 0x03: "REBOOT_TO_BOOTLOADER", 0x81: "INFO", 0x83: "OK", 0x84: "ERROR" };
+    const MON_NAME = { 0x01: "GET_HEAP", 0x02: "GET_TASKS", 0x03: "SET_STREAM", 0x81: "HEAP", 0x82: "TASKS", 0x83: "OK", 0x84: "ERROR" };
+    const CAP_REBOOT = 0x01, CAP_BOOTLOADER = 0x02;
+    const STREAM_HEAP = 0x01, STREAM_TASKS = 0x02;
+    const CMD_TIMEOUT_MS = 5000;
+    const SERIAL_BAUD = 115200;
+
+    // INFO record tags (system_protocol.hpp InfoTag)
+    const TAG = { CHIP_MODEL: 1, CHIP_REVISION: 2, CORES: 3, CHIP_FEATURES: 4, IDF_VERSION: 5, PROJECT_NAME: 6,
+                  APP_VERSION: 7, BUILD_DATE: 8, BUILD_TIME: 9, ELF_SHA256: 10, RUNNING_PARTITION: 11,
+                  BOOT_PARTITION: 12, OTA_STATE: 13, RESET_REASON: 14, UPTIME_MS: 15, MAC: 16, FLASH_SIZE: 17,
+                  PSRAM_SIZE: 18, CPU_MHZ: 19, FREE_HEAP: 20, MIN_FREE_HEAP: 21, CAPABILITIES: 22 };
+    const RESET_REASON = ["unknown", "power-on", "external pin", "software", "panic", "interrupt watchdog",
+                          "task watchdog", "other watchdog", "deep-sleep wake", "brownout", "SDIO", "USB", "JTAG",
+                          "efuse error", "power glitch", "CPU lockup"];
+    const OTA_STATE = { 0: "new", 1: "pending verify", 2: "valid", 3: "invalid", 4: "aborted", 0xFE: "undefined", 0xFF: "n/a (factory)" };
+    const CHIP_FEATURES = [[0x01, "embedded flash"], [0x02, "Wi-Fi 2.4 GHz"], [0x10, "BLE"], [0x20, "BT classic"],
+                           [0x40, "IEEE 802.15.4"], [0x80, "embedded PSRAM"]];
+    // MALLOC_CAP_* names for the heap gauges (esp_heap_caps.h)
+    // (bit values from esp_heap_caps.h; the low bits EXEC / 32BIT / 8BIT / DMA
+    // qualify a region rather than name it and are left out of the label)
+    const HEAP_CAPS = [[1 << 10, "SPIRAM"], [1 << 11, "internal"], [1 << 12, "default"], [1 << 13, "IRAM 8-bit"],
+                       [1 << 14, "retention"], [1 << 15, "RTC RAM"], [1 << 16, "SPM / TCM"], [1 << 17, "AHB DMA desc"],
+                       [1 << 18, "AXI DMA desc"], [1 << 19, "cache-aligned"], [1 << 20, "SIMD"],
+                       [1 << 21, "SPIRAM (no enc)"], [1 << 31, "invalid"]];
+
+    // ===================================================================
+    // Elements & logging
+    // ===================================================================
+    const els = {};
+    for (const id of ["status", "usbBtn", "serialBtn", "anyDevice", "devInfo",
+                      "infoBtn", "infoStatus", "info",
+                      "rebootBtn", "bootloaderBtn", "rebootDelay", "controlNote",
+                      "confirm", "confirmText", "confirmYes", "confirmNo",
+                      "monitorPanel", "heapBtn", "tasksBtn", "streamToggle", "streamPeriod", "streamHeap", "streamTasks",
+                      "monitorStatus", "gauges", "taskTable", "taskNote",
+                      "logFrames", "clearLogBtn", "log", "unsupported"]) {
+      els[id] = document.getElementById(id);
+    }
+
+    function logLine(cls, text) {
+      const line = document.createElement("div");
+      const time = document.createElement("span");
+      time.className = "t";
+      time.textContent = new Date().toLocaleTimeString() + " ";
+      const body = document.createElement("span");
+      body.className = cls;
+      body.textContent = text;
+      line.appendChild(time); line.appendChild(body);
+      els.log.appendChild(line);
+      while (els.log.childNodes.length > 600) els.log.removeChild(els.log.firstChild);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+    els.clearLogBtn.addEventListener("click", () => { els.log.textContent = ""; });
+
+    function hex(bytes, max) {
+      const n = Math.min(bytes.length, max || 32);
+      let s = "";
+      for (let i = 0; i < n; i++) s += bytes[i].toString(16).padStart(2, "0") + " ";
+      if (bytes.length > n) s += "... (" + bytes.length + " B)";
+      return s.trim();
+    }
+    function setStatus(state, text) {
+      els.status.className = "status-pill" + (state ? " " + state : "");
+      els.status.textContent = text;
+    }
+    function fmtBytes(n) {
+      if (n >= 1024 * 1024) return (n / (1024 * 1024)).toFixed(2) + " MiB";
+      if (n >= 1024) return (n / 1024).toFixed(1) + " KiB";
+      return n + " B";
+    }
+    function fmtDuration(ms) {
+      const s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
+            m = Math.floor((s % 3600) / 60), sec = s % 60;
+      return (d ? d + "d " : "") + String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+    }
+
+    // ===================================================================
+    // CRC-32 (zlib / IEEE 802.3). Golden: crc32("123456789") === 0xCBF43926.
+    // ===================================================================
+    const CRC_TABLE = (() => {
+      const table = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let k = 0; k < 8; k++) c = (c & 1) ? ((c >>> 1) ^ 0xEDB88320) : (c >>> 1);
+        table[i] = c >>> 0;
+      }
+      return table;
+    })();
+    function crc32(bytes) {
+      let c = 0xFFFFFFFF;
+      for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+      return (~c) >>> 0;
+    }
+    if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) {
+      throw new Error("CRC-32 self-test failed");
+    }
+
+    // ===================================================================
+    // Frame building & incremental parsing (the parser also returns the
+    // skipped, non-frame bytes so a console+protocol CDC stream can render
+    // its text).
+    // ===================================================================
+    // `correlation` (u16, optional): stamped on every service request so the
+    // reply -- which echoes it -- can be paired with its request and a late
+    // reply to a timed-out request is recognised and dropped. It sits after
+    // `type` and sets flags bit1 (the header grows to 11 bytes).
+    function buildFrame(module, type, payload, correlation) {
+      payload = payload || new Uint8Array(0);
+      if (payload.length > MAX_PAYLOAD) throw new Error("payload exceeds " + MAX_PAYLOAD + " bytes");
+      const ext = correlation == null ? 0 : 2;
+      const headerSize = HEADER_SIZE + ext;
+      const frame = new Uint8Array(headerSize + payload.length + CRC_SIZE);
+      const view = new DataView(frame.buffer);
+      view.setUint16(0, 0x4F54, true);
+      frame[2] = FLAGS_REQUEST | (ext ? FLAG_CORRELATION : 0);
+      frame[3] = module;
+      frame[4] = type;
+      if (ext) view.setUint16(5, correlation & 0xFFFF, true);
+      view.setUint32(5 + ext, payload.length, true);
+      frame.set(payload, headerSize);
+      view.setUint32(headerSize + payload.length,
+                     crc32(frame.subarray(0, headerSize + payload.length)), true);
+      return frame;
+    }
+    let correlationCounter = 0;
+    function nextCorrelation() { correlationCounter = (correlationCounter + 1) & 0xFFFF; return correlationCounter; }
+    // Whether this device has echoed a correlation id yet: once it has, a reply
+    // WITHOUT one can only be stale / foreign and is ignored; before that, an
+    // uncorrelated reply is accepted (older firmware that does not echo ids).
+    let correlationSeen = false;
+
+    class StreamParser {
+      constructor() { this.buf = new Uint8Array(0); this.lastActivity = 0; }
+      reset() { this.buf = new Uint8Array(0); }
+      feed(chunk) {
+        const merged = new Uint8Array(this.buf.length + chunk.length);
+        merged.set(this.buf, 0); merged.set(chunk, this.buf.length);
+        const frames = [];
+        const textRanges = [];
+        let textLen = 0;
+        const skip = (start, end) => {
+          if (end <= start) return;
+          const last = textRanges[textRanges.length - 1];
+          if (last && last[1] === start) last[1] = end;
+          else textRanges.push([start, end]);
+          textLen += end - start;
+        };
+        let pos = 0;
+        for (;;) {
+          const runStart = pos;
+          while (pos < merged.length &&
+                 !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) {
+            pos++;
+          }
+          skip(runStart, pos);
+          if (merged.length - pos < 3) break;
+          const flags = merged[pos + 2];
+          const ext = (flags & FLAG_CORRELATION) ? 2 : 0;
+          const headerSize = HEADER_SIZE + ext;
+          if (merged.length - pos < headerSize) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true);
+          if (len > MAX_PAYLOAD) { skip(pos, pos + 1); pos++; continue; }
+          const total = headerSize + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(headerSize + len, true);
+          const actual = crc32(merged.subarray(pos, pos + headerSize + len));
+          if (actual !== expected) { skip(pos, pos + 1); pos++; continue; }
+          const correlation = ext ? (merged[pos + 5] | (merged[pos + 6] << 8)) : null;
+          frames.push({ flags,
+                        reply: (flags & FLAGS_REPLY_BIT) !== 0,
+                        correlation,
+                        module: merged[pos + 3],
+                        type: merged[pos + 4],
+                        payload: merged.slice(pos + headerSize, pos + headerSize + len) });
+          pos += total;
+        }
+        this.buf = merged.slice(pos);
+        this.lastActivity = Date.now();
+        const text = new Uint8Array(textLen);
+        let off = 0;
+        for (const [start, end] of textRanges) {
+          text.set(merged.subarray(start, end), off);
+          off += end - start;
+        }
+        return { frames, text };
+      }
+      flushStale(maxAgeMs) {
+        if (this.buf.length === 0 || Date.now() - this.lastActivity < maxAgeMs) return null;
+        const text = this.buf;
+        this.buf = new Uint8Array(0);
+        return text;
+      }
+    }
+
+    function u16(value) {
+      const p = new Uint8Array(2);
+      new DataView(p.buffer).setUint16(0, value & 0xFFFF, true);
+      return p;
+    }
+    function readU16(p, o) { return new DataView(p.buffer, p.byteOffset + o, 2).getUint16(0, true); }
+    function readU32(p, o) { return new DataView(p.buffer, p.byteOffset + o, 4).getUint32(0, true); }
+    function parseErrorReply(payload) {
+      // [request_type u8][code u32][utf8 message]
+      if (payload.length < 5) return { code: 0, message: "(malformed error reply)" };
+      let message = "";
+      try { message = new TextDecoder().decode(payload.subarray(5)); } catch (_) {}
+      return { code: readU32(payload, 1), message };
+    }
+
+    // ===================================================================
+    // Transport abstraction: { name, send(bytes), close() } with a persistent
+    // RX pump that feeds the shared parser.
+    // ===================================================================
+    let transport = null;
+    const parser = new StreamParser();
+    const consoleDecoder = new TextDecoder("utf-8", { fatal: false });
+    let consoleCarry = "";
+
+    function renderConsoleText(bytes) {
+      if (!bytes || bytes.length === 0) return;
+      const text = consoleCarry + consoleDecoder.decode(bytes, { stream: true });
+      const lines = text.split(/\r\n|\r|\n/);
+      consoleCarry = lines.pop();
+      for (const line of lines) if (line.length) logLine("con", line);
+      if (consoleCarry.length > 500) { logLine("con", consoleCarry); consoleCarry = ""; }
+    }
+    function handleRxBytes(bytes) {
+      const { frames, text } = parser.feed(bytes);
+      renderConsoleText(text);
+      for (const frame of frames) dispatchFrame(frame);
+    }
+    setInterval(() => {
+      if (pendingSys || pendingMon) return;
+      const stale = parser.flushStale(750);
+      if (stale) renderConsoleText(stale);
+    }, 300);
+
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
+
+    async function connectUsb() {
+      let device;
+      try {
+        device = await requestUsbDevice(els.anyDevice.checked);
+      } catch (e) {
+        if (e && e.name === "NotFoundError") logLine("sys", "Device selection cancelled.");
+        else logLine("err", "Device selection failed: " + (e && e.message ? e.message : e));
+        return null;
+      }
+      await device.open();
+      try {
+        if (device.configuration === null) await device.selectConfiguration(1);
+        const config = device.configuration;
+        if (!config) throw new Error("device has no active USB configuration");
+        let found = null;
+        for (const itf of config.interfaces) {
+          for (const alt of itf.alternates) {
+            if (alt.interfaceClass !== VENDOR_CLASS) continue;
+            let inEp = null, outEp = null;
+            for (const ep of alt.endpoints) {
+              if (ep.type !== "bulk") continue;
+              if (ep.direction === "in" && inEp === null) inEp = ep;
+              else if (ep.direction === "out" && outEp === null) outEp = ep;
+            }
+            if (inEp && outEp) {
+              found = { interfaceNumber: itf.interfaceNumber, alternateSetting: alt.alternateSetting, inEp, outEp };
+              break;
+            }
+          }
+          if (found) break;
+        }
+        if (!found) throw new Error("no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found");
+        await device.claimInterface(found.interfaceNumber);
+        if (found.alternateSetting !== 0)
+          await device.selectAlternateInterface(found.interfaceNumber, found.alternateSetting);
+        const epIn = found.inEp.endpointNumber, epOut = found.outEp.endpointNumber;
+        const t = {
+          kind: "usb",
+          name: (device.productName || "USB device") + " (" +
+                device.vendorId.toString(16).padStart(4, "0") + ":" +
+                device.productId.toString(16).padStart(4, "0") + ") · vendor iface " + found.interfaceNumber,
+          device,
+          closing: false,
+          async send(bytes) {
+            let remaining = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+            while (remaining.length > 0) {
+              const result = await device.transferOut(epOut, remaining);
+              if (result.status === "stall") {
+                try { await device.clearHalt("out", epOut); } catch (_) {}
+                throw new Error("OUT endpoint stalled");
+              }
+              if (result.status !== "ok") throw new Error("USB write failed: " + result.status);
+              const written = result.bytesWritten || 0;
+              if (written <= 0) throw new Error("USB write made no progress");
+              remaining = remaining.subarray(written);
+            }
+          },
+          async close() {
+            this.closing = true;
+            try { await device.releaseInterface(found.interfaceNumber); } catch (_) {}
+            try { await device.close(); } catch (_) {}
+          },
+        };
+        (async () => {
+          for (;;) {
+            let result;
+            try { result = await device.transferIn(epIn, MAX_FRAME); }
+            catch (e) {
+              if (!t.closing) { logLine("err", "USB read error: " + e.message); onTransportGone(t); }
+              return;
+            }
+            if (t.closing) return;
+            if (result.status === "stall") {
+              try { await device.clearHalt("in", epIn); } catch (_) {}
+              continue;
+            }
+            if (result.data && result.data.byteLength)
+              handleRxBytes(new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength));
+          }
+        })();
+        return t;
+      } catch (e) {
+        try { await device.close(); } catch (_) {}
+        throw e;
+      }
+    }
+    if (navigator.usb && navigator.usb.addEventListener) {
+      navigator.usb.addEventListener("disconnect", (e) => {
+        if (transport && transport.kind === "usb" && e.device === transport.device) {
+          logLine("err", "USB device disconnected.");
+          onTransportGone(transport);
+        }
+      });
+    }
+
+    async function connectSerial() {
+      let port;
+      try {
+        port = await navigator.serial.requestPort();
+      } catch (e) {
+        if (e && e.name === "NotFoundError") logLine("sys", "Port selection cancelled.");
+        else logLine("err", "Port selection failed: " + (e && e.message ? e.message : e));
+        return null;
+      }
+      await port.open({ baudRate: SERIAL_BAUD });
+      let writer;
+      try {
+        writer = port.writable.getWriter();
+      } catch (e) {
+        // the port is open but unusable: do not leave it open behind us
+        try { await port.close(); } catch (_) {}
+        throw e;
+      }
+      const t = {
+        kind: "serial",
+        name: "serial port (CDC console + protocol)",
+        port,
+        closing: false,
+        reader: null,
+        async send(bytes) { await writer.write(bytes); },
+        async close() {
+          this.closing = true;
+          try { if (this.reader) await this.reader.cancel(); } catch (_) {}
+          // finish (or abandon) the writable stream BEFORE releasing the lock:
+          // a pending write would otherwise make releaseLock() throw and leave
+          // the port locked and open
+          try { await writer.close(); } catch (_) { try { await writer.abort(); } catch (_2) {} }
+          try { writer.releaseLock(); } catch (_) {}
+          try { await port.close(); } catch (_) {}
+        },
+      };
+      (async () => {
+        while (port.readable && !t.closing) {
+          const reader = port.readable.getReader();
+          t.reader = reader;
+          try {
+            for (;;) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              if (value && value.length) handleRxBytes(value);
+            }
+          } catch (e) {
+            if (!t.closing) logLine("err", "Serial read error: " + e.message);
+          } finally {
+            try { reader.releaseLock(); } catch (_) {}
+          }
+          if (t.closing) return;
+        }
+        if (!t.closing) { logLine("err", "Serial port closed."); onTransportGone(t); }
+      })();
+      return t;
+    }
+    if (navigator.serial && navigator.serial.addEventListener) {
+      navigator.serial.addEventListener("disconnect", (e) => {
+        const eventPort = e.port ?? e.target;
+        if (transport && transport.kind === "serial" && eventPort === transport.port) {
+          logLine("err", "Serial device disconnected.");
+          onTransportGone(transport);
+        }
+      });
+    }
+
+    if (!navigator.usb) els.usbBtn.disabled = true;
+    if (!navigator.serial) els.serialBtn.disabled = true;
+    if (!navigator.usb && !navigator.serial) els.unsupported.style.display = "block";
+
+    async function disconnect() {
+      if (!transport) return;
+      const t = transport;
+      // best effort: stop the stream so the device does not keep pushing
+      // events at a host that is gone (only once the module id is known)
+      if (moduleReady && monitorPresent && streaming) {
+        try { await t.send(buildFrame(moduleMonitor, MON.SET_STREAM, new Uint8Array([0, 0, 0, 0]))); } catch (_) {}
+      }
+      transport = null;
+      failPending(new Error("disconnected"));
+      await t.close();
+      afterDisconnect();
+      logLine("sys", "Disconnected.");
+    }
+    function onTransportGone(t) {
+      if (transport !== t) return;
+      transport = null;
+      failPending(new Error("transport lost"));
+      Promise.resolve(t.close()).catch(() => {});
+      afterDisconnect();
+    }
+    function afterDisconnect() {
+      parser.reset();
+      consoleCarry = "";
+      streaming = false;
+      els.streamToggle.checked = false;
+      moduleReady = false;
+      closeConfirm();
+      updateUI();
+      setStatus("", "Disconnected");
+    }
+
+    els.usbBtn.addEventListener("click", async () => {
+      if (transport) { await disconnect(); return; }
+      try {
+        const t = await connectUsb();
+        if (t) onConnected(t);
+      } catch (e) {
+        logLine("err", "WebUSB connect failed: " + e.message);
+        setStatus("error", "Connect failed");
+      }
+    });
+    els.serialBtn.addEventListener("click", async () => {
+      if (transport) { await disconnect(); return; }
+      try {
+        const t = await connectSerial();
+        if (t) onConnected(t);
+      } catch (e) {
+        logLine("err", "Web Serial connect failed: " + e.message);
+        setStatus("error", "Connect failed");
+      }
+    });
+
+    async function onConnected(t) {
+      transport = t;
+      parser.reset();
+      consoleCarry = "";
+      moduleReady = false; // action buttons stay disabled until discovery resolved the ids
+      monitorPresent = false;
+      correlationSeen = false; // learned per device
+      resetDeviceState(); // nothing from a previous device may carry over
+      updateUI();
+      setStatus("connected", "Connected");
+      els.devInfo.textContent = "Connected: " + t.name;
+      logLine("sys", "Connected (" + (t.kind === "usb" ? "WebUSB vendor interface" : "Web Serial / CDC") + ").");
+      // Resolve the module ids from discovery BEFORE the first request.
+      try { await checkModulePresent(); } catch (_) {}
+      if (transport !== t) return; // the link dropped while probing
+      updateUI();
+      refreshInfo();
+      if (monitorPresent) refreshHeap();
+    }
+
+    let capabilities = 0;
+    let streaming = false;
+    // Forget everything learned from the previous device (capabilities gate
+    // the reboot buttons; info / heap / tasks are its data).
+    function resetDeviceState() {
+      capabilities = 0;
+      els.info.textContent = "";
+      els.infoStatus.textContent = "";
+      els.gauges.textContent = "";
+      els.monitorStatus.textContent = "";
+      lastTasks = [];
+      els.taskTable.querySelector("tbody").textContent = "";
+      els.taskTable.hidden = true;
+      els.taskNote.hidden = true;
+    }
+    function updateUI() {
+      const connected = !!transport;
+      els.usbBtn.textContent = connected && transport.kind === "usb" ? "Disconnect" : "Connect WebUSB";
+      els.serialBtn.textContent = connected && transport.kind === "serial" ? "Disconnect" : "Connect Web Serial";
+      els.usbBtn.classList.toggle("danger", connected && transport.kind === "usb");
+      els.usbBtn.classList.toggle("primary", !(connected && transport.kind === "usb"));
+      els.serialBtn.classList.toggle("danger", connected && transport.kind === "serial");
+      els.serialBtn.classList.toggle("primary", !(connected && transport.kind === "serial"));
+      if (navigator.usb) els.usbBtn.disabled = connected && transport.kind !== "usb";
+      if (navigator.serial) els.serialBtn.disabled = connected && transport.kind !== "serial";
+      els.anyDevice.disabled = connected;
+      const ready = connected && moduleReady; // no requests until discovery resolved the module ids
+      els.infoBtn.disabled = !ready;
+      els.rebootBtn.disabled = !ready || !(capabilities & CAP_REBOOT);
+      els.bootloaderBtn.disabled = !ready || !(capabilities & CAP_BOOTLOADER);
+      els.controlNote.textContent = !ready ? "" :
+        !(capabilities & CAP_BOOTLOADER) ? "This device does not offer a software path into the bootloader." : "";
+      els.monitorPanel.hidden = !(ready && monitorPresent);
+      const mon = ready && monitorPresent;
+      for (const el of [els.heapBtn, els.tasksBtn, els.streamToggle, els.streamPeriod, els.streamHeap, els.streamTasks])
+        el.disabled = !mon;
+      if (!connected) els.devInfo.textContent = "Not connected.";
+    }
+
+    // ===================================================================
+    // Serialized transactions, one per module: the reply is matched by
+    // module + expected type (ERROR always matches). Unsolicited HEAP / TASKS
+    // events (streaming) are rendered directly.
+    // ===================================================================
+    let pendingSys = null, pendingMon = null; // { expect:Set, resolve, reject, timer }
+    let sysChain = Promise.resolve(), monChain = Promise.resolve();
+
+    function failPending(err) {
+      for (const which of ["sys", "mon"]) {
+        const p = which === "sys" ? pendingSys : pendingMon;
+        if (!p) continue;
+        clearTimeout(p.timer);
+        if (which === "sys") pendingSys = null; else pendingMon = null;
+        p.reject(err);
+      }
+    }
+
+    function dispatchFrame(frame) {
+      // Discovery reply (reserved module 0xFF): hand the TLV to a pending probe.
+      if (frame.module === MODULE_DISCOVERY && frame.reply && frame.type === T_LIST_MODULES) {
+        if (discoveryResolve) { discoveryResolve(frame.payload); discoveryResolve = null; }
+        return;
+      }
+      if (!frame.reply) return; // this app only ever consumes device->host frames
+      const isSys = frame.module === moduleSystem, isMon = monitorPresent && frame.module === moduleMonitor;
+      const names = isSys ? SYS_NAME : MON_NAME;
+      if (els.logFrames.checked)
+        logLine("rx", (isSys ? "system " : isMon ? "monitor " : "module " + frame.module + " ") +
+                (names[frame.type] || ("0x" + frame.type.toString(16))) + " " + hex(frame.payload));
+      const pending = isSys ? pendingSys : isMon ? pendingMon : null;
+      const errType = isSys ? SYS.ERROR : MON.ERROR;
+      if (pending && (pending.expect.has(frame.type) || frame.type === errType)) {
+        // pair the reply with the in-flight request by correlation id
+        if (frame.correlation !== null) {
+          if (frame.correlation !== pending.corr) {
+            logLine("sys", "Dropping a stale " + (names[frame.type] || "reply") + " (correlation " + frame.correlation + ", expected " + pending.corr + ").");
+            return;
+          }
+          correlationSeen = true;
+        } else if (correlationSeen) {
+          logLine("sys", "Dropping an uncorrelated " + (names[frame.type] || "reply") + " (the device echoes correlation ids).");
+          return;
+        }
+        clearTimeout(pending.timer);
+        if (isSys) pendingSys = null; else pendingMon = null;
+        if (frame.type === errType) {
+          const info = parseErrorReply(frame.payload);
+          pending.reject(new Error("device error (code " + info.code + "): " + info.message));
+        } else {
+          pending.resolve(frame);
+        }
+        return;
+      }
+      // unsolicited monitor events: the stream
+      if (isMon && frame.type === MON.HEAP) { renderHeap(frame.payload); return; }
+      if (isMon && frame.type === MON.TASKS) { renderTasks(frame.payload); return; }
+      if (!els.logFrames.checked)
+        logLine("sys", "Unsolicited frame " + (names[frame.type] || ("0x" + frame.type.toString(16))) +
+                " on module " + frame.module + " (" + frame.payload.length + " B payload)");
+    }
+
+    // which: "sys" | "mon"
+    function transact(which, type, payload, expectTypes, timeoutMs) {
+      const names = which === "sys" ? SYS_NAME : MON_NAME;
+      const attempt = () => new Promise((resolve, reject) => {
+        if (!transport) { reject(new Error("not connected")); return; }
+        if (!moduleReady) { reject(new Error("module id not resolved yet (discovery pending)")); return; }
+        if (which === "mon" && !monitorPresent) { reject(new Error("the device does not advertise the monitor module")); return; }
+        const module = which === "sys" ? moduleSystem : moduleMonitor;
+        const corr = nextCorrelation();
+        const frame = buildFrame(module, type, payload, corr);
+        if (els.logFrames.checked) logLine("tx", (which === "sys" ? "system " : "monitor ") + names[type] + " #" + corr + " " + hex(frame));
+        const pending = {
+          expect: new Set(expectTypes),
+          corr,
+          resolve, reject,
+          timer: setTimeout(() => {
+            const p = which === "sys" ? pendingSys : pendingMon;
+            if (p === pending) {
+              if (which === "sys") pendingSys = null; else pendingMon = null;
+              pending.reject(new Error(names[type] + " timed out"));
+            }
+          }, timeoutMs || CMD_TIMEOUT_MS),
+        };
+        if (which === "sys") pendingSys = pending; else pendingMon = pending;
+        transport.send(frame).catch((e) => {
+          const p = which === "sys" ? pendingSys : pendingMon;
+          if (p === pending) {
+            clearTimeout(pending.timer);
+            if (which === "sys") pendingSys = null; else pendingMon = null;
+            pending.reject(new Error("send failed: " + e.message));
+          }
+        });
+      });
+      const run = async () => attempt();
+      const chain = which === "sys" ? sysChain : monChain;
+      const result = chain.then(run, run);
+      const next = result.then(() => {}, () => {});
+      if (which === "sys") sysChain = next; else monChain = next;
+      return result;
+    }
+
+    // ---- discovery-based module presence check --------------------------------
+    // A pending checkModulePresent() parks its resolver here; dispatchFrame calls
+    // it when the 0xFF ListModules reply arrives.
+    let discoveryResolve = null;
+    function parseDiscovery(payload) {
+      let i = 0;
+      const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
+      const u8 = () => { need(1); return payload[i++]; };
+      const u16 = () => { need(2); const v = payload[i] | (payload[i + 1] << 8); i += 2; return v; };
+      const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
+      const version = u8(); u8();            // version, reserved
+      const device = str(), fw = str();
+      const count = u8();
+      const modules = [];
+      for (let m = 0; m < count; m++) {
+        const rec = { id: u8(), name: str(), app: str(), desc: str(), protocol: "", protocolVersion: 0 };
+        // Version 2 records also carry [protocol str][protocol_version u16 LE].
+        // Records carry no length, so a payload version newer than
+        // DISCOVERY_VERSION_KNOWN is parsed with the exact version-2 record
+        // layout: a future version may only append bytes AFTER the record list
+        // (reported as `trailing`, ignored), never inside a record.
+        if (version >= 2) { rec.protocol = str(); rec.protocolVersion = u16(); }
+        modules.push(rec);
+      }
+      return { version, device, fw, modules, trailing: payload.length - i };
+    }
+    // ---- module id resolution (identical in every espp console) --------------
+    // The dispatcher module byte is a routing key, not the identity of a
+    // service: a device may serve any protocol on any id. Identity is what the
+    // device advertises in its ListModules reply -- the protocol id first
+    // (e.g. "espp.ota"), then the hosted app filename, then the module name.
+    // Latest discovery payload version these helpers understand.
+    const DISCOVERY_VERSION_KNOWN = 2;
+    // info: parseDiscovery() output, or null when the device did not answer.
+    // ident: { protocol, protocolVersion, app, name, fallback, override } -- the
+    //   identity this console implements; `override` (from ?module=) wins.
+    // Returns { id, source: "override"|"protocol"|"app"|"name"|"default",
+    //           protocolVersion (advertised by the chosen module, else null),
+    //           warnings: [strings], notes: [informational strings] }.
+    function resolveModuleId(info, ident) {
+      const norm = (s) => String(s == null ? "" : s).trim().toLowerCase();
+      const base = (s) => { const n = norm(s).split("?")[0].split("#")[0]; return n.slice(n.lastIndexOf("/") + 1); };
+      const list = (info && Array.isArray(info.modules)) ? info.modules : null;
+      const label = (m) => (m.name || m.protocol || "?") + " (#" + m.id + ")";
+      const want = String(ident.protocol || "");
+      const warnings = [], notes = [];
+      if (info && info.version > DISCOVERY_VERSION_KNOWN)
+        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed with the v" + DISCOVERY_VERSION_KNOWN + " record layout");
+      if (info && info.trailing > 0)
+        notes.push("ignoring " + info.trailing + " trailing byte(s) after the module list (discovery v" + info.version + ")");
+      // Finish with the chosen module (m may be null when unknown), checking
+      // that it speaks the protocol we implement, at a version we support.
+      const done = (m, source) => {
+        const v = (m && Number.isInteger(m.protocolVersion)) ? m.protocolVersion : null;
+        if (m && want && m.protocol && m.protocol !== want)
+          warnings.push("module #" + m.id + " advertises protocol " + m.protocol + ", not " + want);
+        else if (v && Number.isInteger(ident.protocolVersion) && v !== ident.protocolVersion)
+          warnings.push("device speaks " + (m.protocol || want) + " v" + v + ", this console supports v" + ident.protocolVersion);
+        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings, notes };
+      };
+      const ov = ident.override;
+      if (Number.isInteger(ov) && ov >= 0 && ov <= 0xEF) { // 0xF0..0xFF: reserved (dispatcher / meta)
+        const m = list ? list.find((x) => x.id === ov) : null;
+        if (list && !m) warnings.push("module #" + ov + " was requested but the device does not advertise it");
+        const r = done(m, "override"); r.id = ov; return r;
+      }
+      if (list) {
+        const byProto = want ? list.filter((m) => m.protocol === want) : [];
+        if (byProto.length > 1)
+          warnings.push("several modules speak " + want + " (" + byProto.map(label).join(", ") + "); using the first -- add ?module=N to the URL to pick another");
+        if (byProto.length) return done(byProto[0], "protocol");
+        const wantApp = base(ident.app), wantName = norm(ident.name);
+        const byApp = wantApp ? list.find((m) => base(m.app) === wantApp) : null;
+        if (byApp) return done(byApp, "app");
+        const byName = wantName ? list.find((m) => norm(m.name) === wantName) : null;
+        if (byName) return done(byName, "name");
+        warnings.push("the device does not advertise " + (want || ident.name || ident.app) + " (advertised: " + (list.map(label).join(", ") || "none") + "); using the default module #" + ident.fallback);
+      }
+      return { id: ident.fallback, source: "default", protocolVersion: null, warnings, notes };
+    }
+    // The ?module=N query parameter (decimal or 0x..) overrides discovery; the
+    // Device Hub links each console this way. Null when absent or invalid.
+    function moduleOverrideFromQuery(search) {
+      const raw = new URLSearchParams(search || "").get("module");
+      if (raw == null || raw.trim() === "") return null;
+      // the WHOLE token must be a decimal or 0x-hex integer (parseInt would
+      // accept "9oops" as 9); anything else is invalid and ignored
+      const m = /^(?:0x([0-9a-f]+)|([0-9]+))$/i.exec(raw.trim());
+      if (!m) return null;
+      const n = m[1] !== undefined ? Number.parseInt(m[1], 16) : Number.parseInt(m[2], 10);
+      return (Number.isInteger(n) && n >= 0 && n <= 0xEF) ? n : null; // 0xF0..0xFF are reserved
+    }
+    // One log line saying how a module id was chosen.
+    function describeModuleChoice(label, r, ident, info) {
+      const how = r.source === "override" ? "from ?module=" :
+                  r.source === "protocol" ? "advertises " + ident.protocol + (r.protocolVersion ? " v" + r.protocolVersion : "") :
+                  r.source === "app" ? "advertised as app " + ident.app :
+                  r.source === "name" ? "advertised as \"" + ident.name + "\"" :
+                  info ? "default" : "default; the device did not answer discovery";
+      return label + " module: #" + r.id + " (" + how + ")";
+    }
+    // Adopt the system + monitor module ids from a discovery reply (null =
+    // none) -- every frame built / matched from here on uses them. Both
+    // services advertise this page as their app, so the Device Hub links it
+    // with either module's id: ?module=N is applied to whichever of the two
+    // idents module N advertises the protocol of (the monitor's if N speaks
+    // espp.monitor, else the system's -- also when the device did not answer
+    // discovery, as in every other console). The monitor module is optional
+    // and counts as present only on a protocol match, never by the app / name
+    // fallback (the app is shared) -- absent, its panel stays hidden.
+    function adoptModules(info) {
+      const override = moduleOverrideFromQuery(location.search);
+      const list = (info && Array.isArray(info.modules)) ? info.modules : [];
+      const overrideIsMonitor = override != null &&
+        list.some((m) => m.id === override && m.protocol === MONITOR_PROTOCOL);
+      SYSTEM_IDENT.override = overrideIsMonitor ? null : override;
+      MONITOR_IDENT.override = overrideIsMonitor ? override : null;
+      const r = resolveModuleId(info, SYSTEM_IDENT);
+      moduleSystem = r.id;
+      logLine("sys", describeModuleChoice("System", r, SYSTEM_IDENT, info));
+      for (const w of r.warnings) logLine("warn", w + ".");
+      for (const n of r.notes) logLine("sys", n + ".");
+      const m = resolveModuleId(info, MONITOR_IDENT);
+      moduleMonitor = m.id;
+      monitorPresent = m.source === "protocol" || (m.source === "override" && overrideIsMonitor);
+      if (monitorPresent) logLine("sys", describeModuleChoice("Monitor", m, MONITOR_IDENT, info));
+      else logLine("sys", "Monitor module: not advertised by this device (heap / task panel hidden).");
+      moduleReady = true;
+    }
+    // Ask the device which dispatcher modules it serves and adopt the module
+    // ids from the answer (adoptModules). No discovery reply (older firmware)
+    // -> the default system id, no monitor.
+    async function checkModulePresent() {
+      const t = transport;
+      if (!t) return;
+      const payload = await new Promise((resolve) => {
+        let timer = null;
+        // settle guards the shared resolver: only clear it if it is still ours,
+        // so a prior probe's timeout can't cancel a newer probe's resolver.
+        const settle = (p) => { clearTimeout(timer); if (discoveryResolve === settle) discoveryResolve = null; resolve(p); };
+        timer = setTimeout(() => settle(null), DISCOVERY_TIMEOUT_MS);
+        discoveryResolve = settle;
+        t.send(buildFrame(MODULE_DISCOVERY, T_LIST_MODULES))
+          .catch(() => settle(null));
+      });
+      // this probe belongs to the transport it sent on: if that connection was
+      // closed or replaced while we waited, its result (a reply or, more
+      // likely, the timeout) must not be adopted into the current one
+      if (t !== transport) return;
+      let info = null;
+      if (payload) { try { info = parseDiscovery(payload); } catch (_) { info = null; } }
+      adoptModules(info);
+    }
+
+    // ===================================================================
+    // System info
+    // ===================================================================
+    function parseInfo(payload) {
+      // [tag u8][len u8][value] records; unknown tags are skipped
+      const rec = new Map();
+      let i = 0, unknown = 0;
+      const dec = new TextDecoder();
+      while (i < payload.length) {
+        if (i + 2 > payload.length) throw new Error("truncated INFO record header at byte " + i);
+        const tag = payload[i], len = payload[i + 1];
+        i += 2;
+        if (i + len > payload.length) throw new Error("truncated INFO record (tag " + tag + ")");
+        const v = payload.subarray(i, i + len);
+        i += len;
+        switch (tag) {
+          case TAG.CHIP_MODEL: case TAG.IDF_VERSION: case TAG.PROJECT_NAME: case TAG.APP_VERSION:
+          case TAG.BUILD_DATE: case TAG.BUILD_TIME: case TAG.RUNNING_PARTITION: case TAG.BOOT_PARTITION:
+            rec.set(tag, dec.decode(v)); break;
+          case TAG.CHIP_REVISION:
+            if (len === 2) rec.set(tag, readU16(v, 0)); break;
+          case TAG.CORES: case TAG.OTA_STATE: case TAG.RESET_REASON:
+            if (len === 1) rec.set(tag, v[0]); break;
+          case TAG.CHIP_FEATURES: case TAG.FLASH_SIZE: case TAG.PSRAM_SIZE: case TAG.CPU_MHZ:
+          case TAG.FREE_HEAP: case TAG.MIN_FREE_HEAP: case TAG.CAPABILITIES:
+            if (len === 4) rec.set(tag, readU32(v, 0)); break;
+          case TAG.UPTIME_MS:
+            if (len === 8) rec.set(tag, readU32(v, 0) + readU32(v, 4) * 4294967296); break;
+          case TAG.ELF_SHA256: case TAG.MAC:
+            rec.set(tag, Array.from(v).map((b) => b.toString(16).padStart(2, "0")).join(tag === TAG.MAC ? ":" : "")); break;
+          default:
+            unknown++;
+        }
+      }
+      return { rec, unknown };
+    }
+    function renderInfo(payload) {
+      const { rec, unknown } = parseInfo(payload);
+      const has = (t) => rec.has(t);
+      const rows = [];
+      if (has(TAG.CHIP_MODEL) || has(TAG.CHIP_REVISION) || has(TAG.CORES)) {
+        const rev = has(TAG.CHIP_REVISION) ? " rev " + Math.floor(rec.get(TAG.CHIP_REVISION) / 100) + "." + (rec.get(TAG.CHIP_REVISION) % 100) : "";
+        const cores = has(TAG.CORES) ? " · " + rec.get(TAG.CORES) + " core" + (rec.get(TAG.CORES) === 1 ? "" : "s") : "";
+        rows.push(["Chip", (rec.get(TAG.CHIP_MODEL) || "?") + rev + cores]);
+      }
+      if (has(TAG.CHIP_FEATURES)) {
+        const f = rec.get(TAG.CHIP_FEATURES);
+        rows.push(["Features", CHIP_FEATURES.filter(([bit]) => f & bit).map(([, n]) => n).join(", ") || "-"]);
+      }
+      if (has(TAG.CPU_MHZ)) rows.push(["CPU", rec.get(TAG.CPU_MHZ) + " MHz"]);
+      if (has(TAG.IDF_VERSION)) rows.push(["ESP-IDF", rec.get(TAG.IDF_VERSION)]);
+      if (has(TAG.PROJECT_NAME) || has(TAG.APP_VERSION))
+        rows.push(["Application", (rec.get(TAG.PROJECT_NAME) || "?") + (has(TAG.APP_VERSION) ? " " + rec.get(TAG.APP_VERSION) : "")]);
+      if (has(TAG.BUILD_DATE) || has(TAG.BUILD_TIME))
+        rows.push(["Built", [rec.get(TAG.BUILD_DATE), rec.get(TAG.BUILD_TIME)].filter(Boolean).join(" ")]);
+      if (has(TAG.ELF_SHA256)) rows.push(["ELF SHA-256", rec.get(TAG.ELF_SHA256), "mono"]);
+      if (has(TAG.RUNNING_PARTITION) || has(TAG.BOOT_PARTITION) || has(TAG.OTA_STATE)) {
+        const ota = has(TAG.OTA_STATE) ? " · OTA state: " + (OTA_STATE[rec.get(TAG.OTA_STATE)] || rec.get(TAG.OTA_STATE)) : "";
+        rows.push(["Partitions", "running '" + (rec.get(TAG.RUNNING_PARTITION) || "?") + "', boot '" + (rec.get(TAG.BOOT_PARTITION) || "?") + "'" + ota]);
+      }
+      if (has(TAG.RESET_REASON)) rows.push(["Last reset", RESET_REASON[rec.get(TAG.RESET_REASON)] || ("code " + rec.get(TAG.RESET_REASON))]);
+      if (has(TAG.UPTIME_MS)) rows.push(["Uptime", fmtDuration(rec.get(TAG.UPTIME_MS)) + " (" + rec.get(TAG.UPTIME_MS) + " ms)"]);
+      if (has(TAG.MAC)) rows.push(["MAC", rec.get(TAG.MAC), "mono"]);
+      if (has(TAG.FLASH_SIZE) || has(TAG.PSRAM_SIZE))
+        rows.push(["Memory", "flash " + fmtBytes(rec.get(TAG.FLASH_SIZE) || 0) + " · PSRAM " + (rec.get(TAG.PSRAM_SIZE) ? fmtBytes(rec.get(TAG.PSRAM_SIZE)) : "none")]);
+      if (has(TAG.FREE_HEAP) || has(TAG.MIN_FREE_HEAP))
+        rows.push(["Heap", "free " + fmtBytes(rec.get(TAG.FREE_HEAP) || 0) + " · lowest " + fmtBytes(rec.get(TAG.MIN_FREE_HEAP) || 0)]);
+      if (has(TAG.CAPABILITIES)) {
+        capabilities = rec.get(TAG.CAPABILITIES);
+        rows.push(["Control", [(capabilities & CAP_REBOOT) ? "reboot" : null, (capabilities & CAP_BOOTLOADER) ? "reboot into bootloader" : null].filter(Boolean).join(", ") || "none offered"]);
+      }
+      els.info.textContent = "";
+      for (const [k, v, cls] of rows) {
+        const dt = document.createElement("dt"); dt.textContent = k;
+        const dd = document.createElement("dd"); dd.textContent = v; if (cls) dd.className = cls;
+        els.info.appendChild(dt); els.info.appendChild(dd);
+      }
+      els.infoStatus.textContent = rows.length + " field(s)" + (unknown ? ", " + unknown + " unknown tag(s) skipped" : "");
+      updateUI();
+    }
+    async function refreshInfo() {
+      try {
+        els.infoStatus.textContent = "reading...";
+        const reply = await transact("sys", SYS.GET_INFO, null, [SYS.INFO]);
+        renderInfo(reply.payload);
+        logLine("sys", "System info refreshed.");
+      } catch (e) {
+        els.infoStatus.textContent = "";
+        logLine("err", "GET_INFO failed: " + e.message);
+      }
+    }
+    els.infoBtn.addEventListener("click", refreshInfo);
+
+    // ===================================================================
+    // Reboot control, with an in-page confirmation step
+    // ===================================================================
+    let confirmAction = null;
+    let confirmOpener = null; // the button that opened the dialog: focus returns to it
+    function openConfirm(text, action) {
+      confirmAction = action;
+      confirmOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      els.confirmText.textContent = text;
+      els.confirm.classList.add("open");
+      els.confirmYes.focus();
+    }
+    function closeConfirm() {
+      const wasOpen = els.confirm.classList.contains("open");
+      confirmAction = null;
+      els.confirm.classList.remove("open");
+      if (wasOpen && confirmOpener && confirmOpener.isConnected && !confirmOpener.disabled) confirmOpener.focus();
+      confirmOpener = null;
+    }
+    els.confirmNo.addEventListener("click", closeConfirm);
+    // Escape cancels; Tab stays inside the two buttons while the dialog is open
+    els.confirm.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { e.preventDefault(); closeConfirm(); return; }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        (document.activeElement === els.confirmYes ? els.confirmNo : els.confirmYes).focus();
+      }
+    });
+    els.confirmYes.addEventListener("click", async () => {
+      const action = confirmAction;
+      closeConfirm();
+      if (action) await action();
+    });
+    function rebootDelayMs() {
+      const v = Number.parseInt(els.rebootDelay.value, 10);
+      return Number.isInteger(v) && v >= 0 && v <= 65535 ? v : 500;
+    }
+    async function requestReboot(bootloader) {
+      const delay = rebootDelayMs();
+      const type = bootloader ? SYS.REBOOT_TO_BOOTLOADER : SYS.REBOOT;
+      logLine("tx", "> " + (bootloader ? "reboot into bootloader" : "reboot") + " in " + delay + " ms");
+      try {
+        await transact("sys", type, u16(delay), [SYS.OK]);
+        logLine("sys", "Acknowledged: the device " + (bootloader ?
+                "restarts into the ROM download mode (it re-enumerates as the ROM's USB CDC / DFU or USB-Serial-JTAG port; use esptool / idf.py flash, then reset it)." :
+                "restarts shortly. Reconnect once it is back."));
+      } catch (e) {
+        logLine("err", (bootloader ? "REBOOT_TO_BOOTLOADER" : "REBOOT") + " failed: " + e.message);
+      }
+    }
+    els.rebootBtn.addEventListener("click", () => {
+      openConfirm("Reboot the device now (after " + rebootDelayMs() + " ms)? The connection will drop.", () => requestReboot(false));
+    });
+    els.bootloaderBtn.addEventListener("click", () => {
+      openConfirm("Reboot into the bootloader (download mode)? The device will NOT run its application until it is reset again; use esptool / idf.py flash on the port it re-enumerates as.", () => requestReboot(true));
+    });
+
+    // ===================================================================
+    // Monitor: heap gauges + task table, on request or streamed
+    // ===================================================================
+    function heapName(flags) {
+      const names = HEAP_CAPS.filter(([bit]) => (flags & bit) !== 0).map(([, n]) => n);
+      if (!names.length) names.push("caps 0x" + (flags >>> 0).toString(16));
+      return names.join(" + ");
+    }
+    function parseHeap(payload) {
+      if (payload.length < 1) throw new Error("empty HEAP payload");
+      const n = payload[0];
+      if (payload.length < 1 + 24 * n) throw new Error("truncated HEAP payload");
+      const regions = [];
+      for (let i = 0, o = 1; i < n; i++, o += 24) {
+        regions.push({ flags: readU32(payload, o), free: readU32(payload, o + 4), minFree: readU32(payload, o + 8),
+                       largest: readU32(payload, o + 12), allocated: readU32(payload, o + 16), total: readU32(payload, o + 20) });
+      }
+      return regions;
+    }
+    function renderHeap(payload) {
+      let regions;
+      try { regions = parseHeap(payload); } catch (e) { logLine("err", "HEAP: " + e.message); return; }
+      els.gauges.textContent = "";
+      for (const r of regions) {
+        const total = r.total || (r.free + r.allocated) || 1;
+        const usedPct = Math.min(100, 100 * (total - r.free) / total);
+        const peakPct = Math.min(100, 100 * (total - r.minFree) / total);
+        const g = document.createElement("div"); g.className = "gauge";
+        const name = document.createElement("div"); name.className = "name";
+        name.textContent = heapName(r.flags) + " · " + fmtBytes(total);
+        const track = document.createElement("div"); track.className = "track";
+        track.setAttribute("role", "meter"); track.setAttribute("aria-valuemin", "0"); track.setAttribute("aria-valuemax", "100");
+        track.setAttribute("aria-valuenow", usedPct.toFixed(0)); track.setAttribute("aria-label", heapName(r.flags) + " heap used");
+        const used = document.createElement("div"); used.className = "used"; used.style.width = usedPct.toFixed(1) + "%";
+        const peak = document.createElement("div"); peak.className = "peak"; peak.style.left = "calc(" + peakPct.toFixed(1) + "% - 1px)";
+        peak.title = "peak usage (lowest free: " + fmtBytes(r.minFree) + ")";
+        track.appendChild(used); track.appendChild(peak);
+        const nums = document.createElement("div"); nums.className = "nums";
+        for (const t of ["used " + usedPct.toFixed(0) + "%", "free " + fmtBytes(r.free), "lowest free " + fmtBytes(r.minFree),
+                         "largest block " + fmtBytes(r.largest)]) {
+          const s = document.createElement("span"); s.textContent = t; nums.appendChild(s);
+        }
+        g.appendChild(name); g.appendChild(track); g.appendChild(nums);
+        els.gauges.appendChild(g);
+      }
+      if (!regions.length) {
+        const p = document.createElement("p"); p.className = "muted"; p.textContent = "The device reported no heap regions."; els.gauges.appendChild(p);
+      }
+      els.monitorStatus.textContent = "heap " + new Date().toLocaleTimeString();
+    }
+    async function refreshHeap() {
+      try {
+        const reply = await transact("mon", MON.GET_HEAP, null, [MON.HEAP]);
+        renderHeap(reply.payload);
+      } catch (e) {
+        logLine("err", "GET_HEAP failed: " + e.message);
+      }
+    }
+    els.heapBtn.addEventListener("click", refreshHeap);
+
+    let taskSort = { key: "cpu", dir: -1 };
+    let lastTasks = [];
+    function parseTasks(payload) {
+      if (payload.length < 1) throw new Error("empty TASKS payload");
+      const n = payload[0];
+      const dec = new TextDecoder();
+      const tasks = [];
+      let i = 1;
+      for (let k = 0; k < n; k++) {
+        if (i >= payload.length) throw new Error("truncated TASKS payload");
+        const len = payload[i++];
+        if (i + len + 7 > payload.length) throw new Error("truncated TASKS payload");
+        const name = dec.decode(payload.subarray(i, i + len)); i += len;
+        const cpu = payload[i++];
+        const hwm = readU32(payload, i); i += 4;
+        const prio = payload[i++];
+        const core = (payload[i++] << 24) >> 24; // i8
+        tasks.push({ name, cpu, hwm, prio, core });
+      }
+      return tasks;
+    }
+    function renderTasks(payload) {
+      try { lastTasks = parseTasks(payload); } catch (e) { logLine("err", "TASKS: " + e.message); return; }
+      renderTaskTable();
+      els.monitorStatus.textContent = lastTasks.length + " task(s) " + new Date().toLocaleTimeString();
+    }
+    function renderTaskTable() {
+      const tasks = lastTasks.slice().sort((a, b) => {
+        const av = a[taskSort.key], bv = b[taskSort.key];
+        const c = typeof av === "string" ? av.localeCompare(bv) : av - bv;
+        return c * taskSort.dir || a.name.localeCompare(b.name);
+      });
+      const tbody = els.taskTable.querySelector("tbody");
+      const frag = document.createDocumentFragment();
+      for (const t of tasks) {
+        const tr = document.createElement("tr");
+        const cells = [[t.name, ""], [t.cpu, "num"], [null, "bar"], [t.hwm, "num"], [t.prio, "num"],
+                       [t.core === -1 ? "any" : t.core === -2 ? "?" : String(t.core), "num"]];
+        for (const [v, cls] of cells) {
+          const td = document.createElement("td");
+          if (cls) td.className = cls;
+          if (cls === "bar") {
+            const bar = document.createElement("div"); bar.className = "cpubar";
+            const fill = document.createElement("div"); fill.style.width = Math.min(100, t.cpu) + "%";
+            bar.appendChild(fill); td.appendChild(bar);
+          } else {
+            td.textContent = String(v);
+          }
+          tr.appendChild(td);
+        }
+        frag.appendChild(tr);
+      }
+      tbody.textContent = "";
+      tbody.appendChild(frag);
+      els.taskTable.hidden = false;
+      els.taskNote.hidden = lastTasks.length > 0;
+      els.taskNote.textContent = lastTasks.length ? "" :
+        "No tasks reported: the firmware needs CONFIG_FREERTOS_USE_TRACE_FACILITY and CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS.";
+    }
+    function updateSortHeaders() {
+      for (const th of els.taskTable.querySelectorAll("th[data-key]")) {
+        if (th.dataset.key === taskSort.key) th.setAttribute("aria-sort", taskSort.dir > 0 ? "ascending" : "descending");
+        else th.removeAttribute("aria-sort");
+      }
+    }
+    for (const th of els.taskTable.querySelectorAll("th[data-key]")) {
+      th.querySelector("button.sort").addEventListener("click", () => {
+        const key = th.dataset.key;
+        taskSort = { key, dir: taskSort.key === key ? -taskSort.dir : (key === "name" ? 1 : -1) };
+        updateSortHeaders();
+        renderTaskTable();
+      });
+    }
+    async function refreshTasks() {
+      try {
+        const reply = await transact("mon", MON.GET_TASKS, null, [MON.TASKS]);
+        renderTasks(reply.payload);
+      } catch (e) {
+        logLine("err", "GET_TASKS failed: " + e.message);
+      }
+    }
+    els.tasksBtn.addEventListener("click", refreshTasks);
+
+    async function applyStream() {
+      const enable = els.streamToggle.checked;
+      const period = Number.parseInt(els.streamPeriod.value, 10) || 500;
+      const what = (els.streamHeap.checked ? STREAM_HEAP : 0) | (els.streamTasks.checked ? STREAM_TASKS : 0);
+      if (enable && !what) { logLine("warn", "Select heap and/or tasks to stream."); els.streamToggle.checked = false; return; }
+      const payload = new Uint8Array(4);
+      payload[0] = enable ? 1 : 0;
+      payload.set(u16(period), 1);
+      payload[3] = what;
+      try {
+        await transact("mon", MON.SET_STREAM, payload, [MON.OK]);
+        streaming = enable;
+        logLine("sys", enable ? "Streaming every " + period + " ms." : "Streaming stopped.");
+      } catch (e) {
+        streaming = false;
+        els.streamToggle.checked = false;
+        logLine("err", "SET_STREAM failed: " + e.message);
+      }
+    }
+    els.streamToggle.addEventListener("change", applyStream);
+    for (const el of [els.streamPeriod, els.streamHeap, els.streamTasks])
+      el.addEventListener("change", () => { if (els.streamToggle.checked) applyStream(); });
+
+    updateUI();
+    logLine("sys", "espp System Console ready. Connect a device running the espp system example " +
+            "(WebUSB vendor interface, or Web Serial for the CDC console+protocol stream).");
+  </script>
+</body>
+</html>

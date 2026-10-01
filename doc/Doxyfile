@@ -188,6 +188,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/stream_frame/example/main/stream_frame_example.cpp \
   $(PROJECT_PATH)/components/switch_pro/example/main/switch_pro_example.cpp \
   $(PROJECT_PATH)/components/sx126x/example/main/sx126x_example.cpp \
+  $(PROJECT_PATH)/components/system/example/main/system_example.cpp \
   $(PROJECT_PATH)/components/tabulate/example/main/tabulate_example.cpp \
   $(PROJECT_PATH)/components/t-deck/example/main/t_deck_example.cpp \
   $(PROJECT_PATH)/components/t-dongle-s3/example/main/t_dongle_s3_example.cpp \
@@ -387,6 +388,7 @@ INPUT = \
   $(PROJECT_PATH)/components/matouch-rotary-display/include/matouch-rotary-display.hpp \
   $(PROJECT_PATH)/components/max1704x/include/max1704x.hpp \
   $(PROJECT_PATH)/components/monitor/include/heap_monitor.hpp \
+  $(PROJECT_PATH)/components/monitor/include/monitor_service.hpp \
   $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp \
   $(PROJECT_PATH)/components/motor_controller/include/basicmicro_commands.hpp \
   $(PROJECT_PATH)/components/motor_controller/include/motor_controller.hpp \
@@ -465,6 +467,9 @@ INPUT = \
   $(PROJECT_PATH)/components/stream_frame/include/stream_frame.hpp \
   $(PROJECT_PATH)/components/switch_pro/include/switch_pro.hpp \
   $(PROJECT_PATH)/components/sx126x/include/sx126x.hpp \
+  $(PROJECT_PATH)/components/system/include/system_control.hpp \
+  $(PROJECT_PATH)/components/system/include/system_info.hpp \
+  $(PROJECT_PATH)/components/system/include/system_service.hpp \
   $(PROJECT_PATH)/components/t-deck/include/t-deck.hpp \
   $(PROJECT_PATH)/components/t-dongle-s3/include/t-dongle-s3.hpp \
   $(PROJECT_PATH)/components/t_keyboard/include/t_keyboard.hpp \
