@@ -133,7 +133,12 @@ protected:
 #pragma pack(pop)
 
 public:
-  static constexpr size_t num_data_bytes = sizeof(raw);
+  /// The report payload the descriptor declares: 4 stick bytes, hat + 14
+  /// buttons + 6-bit counter (3 bytes), 2 triggers, 54 vendor bytes = 63
+  /// bytes. The union above starts at the first payload byte (the report id
+  /// lives in the base class, before it), so the payload is raw[0..63).
+  static constexpr size_t num_data_bytes = 63;
+  static_assert(num_data_bytes <= sizeof(raw), "PS4DualShock4GamepadInputReport: raw too small");
   constexpr PS4DualShock4GamepadInputReport() { reset(); }
 
   constexpr void reset() {
@@ -268,11 +273,15 @@ public:
     }
   }
 
-  // Serialization methods
-  constexpr auto get_report() const { return std::vector<uint8_t>(raw.begin() + 1, raw.end()); }
+  // Serialization methods. The payload starts at raw[0] (left_stick_x): the
+  // report id is held by the base class, not by raw, so nothing is skipped.
+  constexpr auto get_report() const {
+    return std::vector<uint8_t>(raw.begin(), raw.begin() + num_data_bytes);
+  }
 
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    std::copy(data.begin(), data.end(), raw.begin() + 1);
+    auto n = std::min(data.size(), num_data_bytes);
+    std::copy(data.begin(), data.begin() + n, raw.begin());
   }
 
   static constexpr auto get_descriptor() {
@@ -509,11 +518,15 @@ public:
     struct {
       std::uint8_t data[31]; ///< Output data (vendor-defined format)
     };
-    std::array<std::uint8_t, 32> raw;
+    std::array<std::uint8_t, 31> raw; ///< The same 31 bytes, as an array
   };
 #pragma pack(pop)
 
+  /// The report payload the descriptor declares (31 vendor bytes). The union
+  /// above starts at the first payload byte (the report id lives in the base
+  /// class, before it), so data[0] is the first byte after the id on the wire.
   static constexpr size_t num_data_bytes = sizeof(raw);
+  static_assert(num_data_bytes == 31, "PS4DualShock4OutputReport payload must be 31 bytes");
 
   constexpr PS4DualShock4OutputReport() { reset(); }
 
@@ -546,10 +559,11 @@ public:
     }
   }
 
-  constexpr auto get_report() const { return std::vector<uint8_t>(raw.begin() + 1, raw.end()); }
+  constexpr auto get_report() const { return std::vector<uint8_t>(raw.begin(), raw.end()); }
 
   constexpr void set_data(const std::vector<uint8_t> &data_in) {
-    std::copy(data_in.begin(), data_in.end(), raw.begin() + 1);
+    auto n = std::min(data_in.size(), num_data_bytes);
+    std::copy(data_in.begin(), data_in.begin() + n, raw.begin());
   }
 
   static constexpr auto get_descriptor() {

@@ -149,7 +149,17 @@ public:
   static constexpr std::uint8_t MAX_DURATION{255};
   static constexpr std::uint8_t MAX_DELAY{255};
   static constexpr std::uint8_t MAX_LOOP_COUNT{255};
-  static constexpr std::size_t num_data_bytes = sizeof(XboxRumbleOutputReport);
+  /// Where the report data starts inside this object: after the one-byte report
+  /// id the base class holds when there is one (the payload is byte-aligned, so
+  /// no padding follows it), or at byte 0 when REPORT_ID == 0 (the base class
+  /// is then empty and holds no id byte).
+  static constexpr std::size_t data_offset = REPORT_ID != 0 ? 1 : 0;
+  /// The report payload: enable nibble + reserved nibble, four magnitudes,
+  /// duration, start delay, loop count (8 bytes, as the descriptor declares).
+  /// Derived from the object size minus the id byte, so it can never include
+  /// the id (sizeof(XboxRumbleOutputReport) did, and get_report() read one
+  /// byte past the object).
+  static constexpr std::size_t num_data_bytes = sizeof(XboxRumbleOutputReport) - data_offset;
 
   /// Construct a new Xbox Rumble Output Report object
   constexpr XboxRumbleOutputReport() { reset(); }
@@ -221,9 +231,9 @@ public:
   /// \return The output report as a vector of bytes.
   /// \note The report id is not included in the returned vector.
   constexpr auto get_report() const {
-    // the first byte is the id, which we don't want...
-    size_t offset = 1;
-    auto report_data = this->data() + offset;
+    static_assert(num_data_bytes == 8, "XboxRumbleOutputReport payload must be 8 bytes");
+    // skip the report id (if any); the payload starts at data_offset
+    auto report_data = this->data() + data_offset;
     auto report_size = num_data_bytes;
     return std::vector<uint8_t>(report_data, report_data + report_size);
   }
@@ -231,9 +241,8 @@ public:
   /// Set the output report data from a vector of bytes
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array - skip the first byte, which is the
-    // report id
-    std::copy(data.begin(), data.end(), this->data() + 1);
+    // copy the data into our data array, after the report id (if any)
+    std::copy(data.begin(), data.end(), this->data() + data_offset);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -309,6 +318,11 @@ protected:
   uint8_t battery_status{0}; ///< The battery status byte
 
 public:
+  /// Where the report data starts inside this object: after the one-byte report
+  /// id the base class holds when there is one (the payload is byte-aligned, so
+  /// no padding follows it), or at byte 0 when REPORT_ID == 0 (the base class
+  /// is then empty and holds no id byte).
+  static constexpr std::size_t data_offset = REPORT_ID != 0 ? 1 : 0;
   /// The possible errors for the battery
   enum class Error {
     NONE,             ///< No error
@@ -380,9 +394,8 @@ public:
   /// \return The input report as a vector of bytes.
   /// \note The report id is not included in the returned vector.
   constexpr auto get_report() const {
-    // the first byte is the id, which we don't want...
-    size_t offset = 1;
-    auto report_data = this->data() + offset;
+    // skip the report id (if any); the payload starts at data_offset
+    auto report_data = this->data() + data_offset;
     auto report_size = num_data_bytes;
     return std::vector<uint8_t>(report_data, report_data + report_size);
   }
@@ -390,9 +403,8 @@ public:
   /// Set the input report data from a vector of bytes
   /// \param data The data to set the input report to.
   constexpr auto set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array - skip the first byte, which is the
-    // report id
-    std::copy(data.begin(), data.end(), this->data() + 1);
+    // copy the data into our data array, after the report id (if any)
+    std::copy(data.begin(), data.end(), this->data() + data_offset);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor

@@ -72,6 +72,11 @@ public:
   /// therefore expresses the physical range in units of 10^-4 cm (0.1 mm).
   static constexpr std::int8_t unit_exponent = -4;
   static constexpr std::size_t num_data_bytes = 3 * sizeof(std::int16_t); ///< X, Y, Z (int16 each)
+  /// Where the report data starts inside this object: after the one-byte report
+  /// id the base class holds when there is one (the class is 1-byte packed, so
+  /// no padding follows it), or at byte 0 when REPORT_ID == 0 (the base class
+  /// is then empty and holds no id byte).
+  static constexpr std::size_t data_offset = REPORT_ID != 0 ? 1 : 0;
 
 protected:
   // The wire format is little-endian signed 16-bit per axis; get_report()/
@@ -91,8 +96,9 @@ protected:
 public:
   /// Construct a new Translation Input Report object
   constexpr SpaceMouseTranslationInputReport() {
-    static_assert(sizeof(SpaceMouseTranslationInputReport) == 1 + num_data_bytes,
-                  "report must be 1 id byte + payload with no padding (see #pragma pack)");
+    static_assert(sizeof(SpaceMouseTranslationInputReport) == data_offset + num_data_bytes,
+                  "report must be the id byte (if any) + payload with no padding (see #pragma "
+                  "pack)");
     reset();
   }
 
@@ -153,9 +159,8 @@ public:
   /// \return The input report as a vector of bytes.
   /// \note The report id is not included in the returned vector.
   constexpr auto get_report() const {
-    // the first byte is the id, which we don't want...
-    size_t offset = 1;
-    auto report_data = this->data() + offset;
+    // skip the report id (if any); the payload starts at data_offset
+    auto report_data = this->data() + data_offset;
     auto report_size = num_data_bytes;
     return std::vector<uint8_t>(report_data, report_data + report_size);
   }
@@ -171,7 +176,7 @@ public:
     // report id. Clamp the copy length to the report's payload size so an
     // over-long input cannot write past the backing storage.
     auto copy_size = std::min(data.size(), num_data_bytes);
-    auto *payload = this->data() + 1;
+    auto *payload = this->data() + data_offset;
     std::copy(data.begin(), data.begin() + copy_size, payload);
     // zero-fill any remaining payload bytes not covered by a short write.
     std::fill(payload + copy_size, payload + num_data_bytes, uint8_t{0});
@@ -239,6 +244,8 @@ public:
   static constexpr std::int8_t unit_exponent = -4; ///< See espp::SpaceMouseTranslationInputReport
   static constexpr std::size_t num_data_bytes =
       3 * sizeof(std::int16_t); ///< Rx, Ry, Rz (int16 each)
+  /// See espp::SpaceMouseTranslationInputReport::data_offset.
+  static constexpr std::size_t data_offset = REPORT_ID != 0 ? 1 : 0;
 
 protected:
   // See espp::SpaceMouseTranslationInputReport for why this assert exists:
@@ -255,8 +262,9 @@ protected:
 public:
   /// Construct a new Rotation Input Report object
   constexpr SpaceMouseRotationInputReport() {
-    static_assert(sizeof(SpaceMouseRotationInputReport) == 1 + num_data_bytes,
-                  "report must be 1 id byte + payload with no padding (see #pragma pack)");
+    static_assert(sizeof(SpaceMouseRotationInputReport) == data_offset + num_data_bytes,
+                  "report must be the id byte (if any) + payload with no padding (see #pragma "
+                  "pack)");
     reset();
   }
 
@@ -317,9 +325,8 @@ public:
   /// \return The input report as a vector of bytes.
   /// \note The report id is not included in the returned vector.
   constexpr auto get_report() const {
-    // the first byte is the id, which we don't want...
-    size_t offset = 1;
-    auto report_data = this->data() + offset;
+    // skip the report id (if any); the payload starts at data_offset
+    auto report_data = this->data() + data_offset;
     auto report_size = num_data_bytes;
     return std::vector<uint8_t>(report_data, report_data + report_size);
   }
@@ -335,7 +342,7 @@ public:
     // report id. Clamp the copy length to the report's payload size so an
     // over-long input cannot write past the backing storage.
     auto copy_size = std::min(data.size(), num_data_bytes);
-    auto *payload = this->data() + 1;
+    auto *payload = this->data() + data_offset;
     std::copy(data.begin(), data.begin() + copy_size, payload);
     // zero-fill any remaining payload bytes not covered by a short write.
     std::fill(payload + copy_size, payload + num_data_bytes, uint8_t{0});
@@ -415,6 +422,8 @@ public:
   static constexpr std::size_t button_count = BUTTON_COUNT;
   static constexpr std::size_t num_button_bytes = (BUTTON_COUNT + 7) / 8;
   static constexpr std::size_t num_data_bytes = num_button_bytes;
+  /// See espp::SpaceMouseTranslationInputReport::data_offset.
+  static constexpr std::size_t data_offset = REPORT_ID != 0 ? 1 : 0;
 
 protected:
   hid::report_bitset<hid::page::button, hid::page::button(1), hid::page::button(BUTTON_COUNT)>
@@ -423,9 +432,9 @@ protected:
 public:
   /// Construct a new Buttons Input Report object
   constexpr SpaceMouseButtonsInputReport() {
-    static_assert(sizeof(SpaceMouseButtonsInputReport) == 1 + num_data_bytes,
-                  "SpaceMouseButtonsInputReport: report id + buttons must be contiguous with no "
-                  "padding, i.e. sizeof(report) == 1 + num_data_bytes");
+    static_assert(sizeof(SpaceMouseButtonsInputReport) == data_offset + num_data_bytes,
+                  "SpaceMouseButtonsInputReport: report id (if any) + buttons must be contiguous "
+                  "with no padding, i.e. sizeof(report) == data_offset + num_data_bytes");
     reset();
   }
 
@@ -458,9 +467,8 @@ public:
   /// \return The input report as a vector of bytes.
   /// \note The report id is not included in the returned vector.
   constexpr auto get_report() const {
-    // the first byte is the id, which we don't want...
-    size_t offset = 1;
-    auto report_data = this->data() + offset;
+    // skip the report id (if any); the payload starts at data_offset
+    auto report_data = this->data() + data_offset;
     auto report_size = num_data_bytes;
     return std::vector<uint8_t>(report_data, report_data + report_size);
   }
@@ -476,7 +484,7 @@ public:
     // report id. Clamp the copy length to the report's payload size so an
     // over-long input cannot write past the backing storage.
     auto copy_size = std::min(data.size(), num_data_bytes);
-    auto *payload = this->data() + 1;
+    auto *payload = this->data() + data_offset;
     std::copy(data.begin(), data.begin() + copy_size, payload);
     // zero-fill any remaining payload bytes not covered by a short write.
     std::fill(payload + copy_size, payload + num_data_bytes, uint8_t{0});
@@ -538,12 +546,14 @@ protected:
 
 public:
   static constexpr std::size_t num_data_bytes = 1;
+  /// See espp::SpaceMouseTranslationInputReport::data_offset.
+  static constexpr std::size_t data_offset = REPORT_ID != 0 ? 1 : 0;
 
   /// Construct a new LED Output Report object
   constexpr SpaceMouseLedOutputReport() {
-    static_assert(sizeof(SpaceMouseLedOutputReport) == 1 + num_data_bytes,
-                  "SpaceMouseLedOutputReport: report id + payload must be contiguous with no "
-                  "padding, i.e. sizeof(report) == 1 + num_data_bytes");
+    static_assert(sizeof(SpaceMouseLedOutputReport) == data_offset + num_data_bytes,
+                  "SpaceMouseLedOutputReport: report id (if any) + payload must be contiguous "
+                  "with no padding, i.e. sizeof(report) == data_offset + num_data_bytes");
     reset();
   }
 
@@ -568,9 +578,8 @@ public:
   /// \return The output report as a vector of bytes.
   /// \note The report id is not included in the returned vector.
   constexpr auto get_report() const {
-    // the first byte is the id, which we don't want...
-    size_t offset = 1;
-    auto report_data = this->data() + offset;
+    // skip the report id (if any); the payload starts at data_offset
+    auto report_data = this->data() + data_offset;
     return std::vector<uint8_t>(report_data, report_data + num_data_bytes);
   }
 
@@ -585,7 +594,7 @@ public:
     // report id. Clamp the copy length to the report's payload size so an
     // over-long input cannot write past the backing storage.
     auto copy_size = std::min(data.size(), num_data_bytes);
-    auto *dest = this->data() + 1;
+    auto *dest = this->data() + data_offset;
     std::copy(data.begin(), data.begin() + copy_size, dest);
     // zero-fill any remaining payload bytes not covered by a short write.
     std::fill(dest + copy_size, dest + num_data_bytes, uint8_t{0});

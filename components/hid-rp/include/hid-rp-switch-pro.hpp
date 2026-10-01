@@ -182,6 +182,11 @@ protected:
   static constexpr size_t num_data_bytes = 63;
 
 public:
+  /// Where the report data starts inside this object: after the one-byte report
+  /// id the base class holds when there is one (the data union is 1-byte
+  /// packed, so no padding follows it), or at byte 0 when REPORT_ID == 0 (the
+  /// base class is then empty and holds no id byte).
+  static constexpr size_t data_offset = REPORT_ID != 0 ? 1 : 0;
   /// Construct a new Gamepad Input Report object
   constexpr SwitchProGamepadInputReport()
       : raw_report{} {
@@ -604,9 +609,11 @@ public:
   /// \return The input report as a vector of bytes.
   /// \note The report id is not included in the returned vector.
   constexpr auto get_report() const {
-    // the first byte is the id, which we don't want
-    size_t offset = 1;
-    auto report_data = this->data() + offset;
+    static_assert(sizeof(SwitchProGamepadInputReport) == data_offset + num_data_bytes,
+                  "SwitchProGamepadInputReport: report id (if any) + data must be contiguous "
+                  "with no padding");
+    // skip the report id (if any); the payload starts at data_offset
+    auto report_data = this->data() + data_offset;
     auto report_size = num_data_bytes;
     return std::vector<uint8_t>(report_data, report_data + report_size);
   }
@@ -614,10 +621,8 @@ public:
   /// Set the output report data from a vector of bytes
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // the first byte is the id, which we don't want
-    size_t offset = 1;
-    // copy the data into our data array
-    std::copy(data.begin(), data.end(), this->data() + offset);
+    // copy the data into our data array, after the report id (if any)
+    std::copy(data.begin(), data.end(), this->data() + data_offset);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor

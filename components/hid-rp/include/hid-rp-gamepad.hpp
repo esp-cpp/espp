@@ -437,6 +437,20 @@ public:
   static constexpr size_t num_leds = led_count;
   static constexpr size_t num_led_bits = num_bits(led_count);
   static constexpr size_t num_led_bytes = (led_count + 7) / 8;
+  /// Where the report data starts inside this object: after the one-byte report
+  /// id the base class holds when there is one (the payload is byte-aligned, so
+  /// no padding follows it), or at byte 0 when REPORT_ID == 0 (the base class
+  /// is then empty and holds no id byte).
+  static constexpr size_t data_offset = REPORT_ID != 0 ? 1 : 0;
+
+  /// The LED usage of player LED \p led_index (1-based): PLAYER_1 + (index - 1).
+  /// The bitset covers exactly PLAYER_1..PLAYER_4, so it must be addressed
+  /// with these usages; the bare index (1..4 = NUM_LOCK..) is out of range
+  /// and would be ignored.
+  static constexpr hid::page::leds led_usage(int led_index) {
+    return static_cast<hid::page::leds>(static_cast<int>(hid::page::leds::PLAYER_1) + led_index -
+                                        1);
+  }
 
   /// Set the LED value
   /// \param led_index The LED for which you want to set the value.
@@ -446,7 +460,7 @@ public:
     if (led_index < 1 || led_index > LED_COUNT) {
       return;
     }
-    leds.set(hid::page::leds(led_index), value);
+    leds.set(led_usage(led_index), value);
   }
 
   /// Get the minimum led usage
@@ -470,16 +484,17 @@ public:
     if (led_index < 1 || led_index > LED_COUNT) {
       return false;
     }
-    return leds.test(hid::page::leds(led_index));
+    return leds.test(led_usage(led_index));
   }
 
   /// Get the output report as a vector of bytes
   /// \return The output report as a vector of bytes.
   /// \note The report id is not included in the returned vector.
   constexpr auto get_report() {
-    // the first byte is the id, which we don't want...
-    size_t offset = 1;
-    auto report_data = this->data() + offset;
+    static_assert(sizeof(GamepadLedOutputReport) >= data_offset + num_led_bytes,
+                  "GamepadLedOutputReport: the LED bitset must hold num_led_bytes");
+    // skip the report id (if any); the payload starts at data_offset
+    auto report_data = this->data() + data_offset;
     auto report_size = num_led_bytes;
     return std::vector<uint8_t>(report_data, report_data + report_size);
   }
@@ -487,9 +502,8 @@ public:
   /// Set the output report data from a vector of bytes
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array - skip the first byte, which is the
-    // report id
-    std::copy(data.begin(), data.end(), this->data() + 1);
+    // copy the data into our data array, after the report id (if any)
+    std::copy(data.begin(), data.end(), this->data() + data_offset);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
