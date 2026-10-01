@@ -589,8 +589,11 @@ public:
   /// Set the output report data from a vector of bytes
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array
-    std::copy(data.begin(), data.end(), raw.begin());
+    // at most the payload (an over-long vector cannot write past raw); the rest
+    // is zeroed so a short payload leaves no stale bytes behind
+    const auto n = std::min(data.size(), num_data_bytes);
+    std::copy(data.begin(), data.begin() + static_cast<std::ptrdiff_t>(n), raw.begin());
+    std::fill(raw.begin() + static_cast<std::ptrdiff_t>(n), raw.end(), uint8_t{0});
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -1198,8 +1201,11 @@ public:
   /// Set the output report data from a vector of bytes
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array
-    std::copy(data.begin(), data.end(), raw.begin());
+    // at most the payload (an over-long vector cannot write past raw); the rest
+    // is zeroed so a short payload leaves no stale bytes behind
+    const auto n = std::min(data.size(), num_data_bytes);
+    std::copy(data.begin(), data.begin() + static_cast<std::ptrdiff_t>(n), raw.begin());
+    std::fill(raw.begin() + static_cast<std::ptrdiff_t>(n), raw.end(), uint8_t{0});
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor

@@ -241,8 +241,13 @@ public:
   /// Set the output report data from a vector of bytes
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array, after the report id (if any)
-    std::copy(data.begin(), data.end(), this->data() + data_offset);
+    // Copy at most num_data_bytes bytes (an over-long vector cannot write past the
+    // payload) and zero-fill the rest, so a short payload leaves no stale bytes
+    // behind and get_report() is deterministic.
+    auto *dest = this->data() + data_offset;
+    const auto n = std::min<std::size_t>(data.size(), num_data_bytes);
+    std::copy(data.begin(), data.begin() + static_cast<std::ptrdiff_t>(n), dest);
+    std::fill(dest + n, dest + num_data_bytes, uint8_t{0});
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -403,8 +408,13 @@ public:
   /// Set the input report data from a vector of bytes
   /// \param data The data to set the input report to.
   constexpr auto set_data(const std::vector<uint8_t> &data) {
-    // copy the data into our data array, after the report id (if any)
-    std::copy(data.begin(), data.end(), this->data() + data_offset);
+    // Copy at most num_data_bytes bytes (an over-long vector cannot write past the
+    // payload) and zero-fill the rest, so a short payload leaves no stale bytes
+    // behind and get_report() is deterministic.
+    auto *dest = this->data() + data_offset;
+    const auto n = std::min<std::size_t>(data.size(), num_data_bytes);
+    std::copy(data.begin(), data.begin() + static_cast<std::ptrdiff_t>(n), dest);
+    std::fill(dest + n, dest + num_data_bytes, uint8_t{0});
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
