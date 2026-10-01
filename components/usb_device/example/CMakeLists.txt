@@ -2,34 +2,49 @@
 # in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.20)
 
-# NOTE: the IDF component manager is intentionally left ENABLED here (unlike most
-# espp examples) so that it can fetch the managed `espressif/esp_tinyusb`
-# dependency declared by the usb_device component's idf_component.yml. To avoid
-# the component manager scanning every espp component manifest (some board
-# components declare target-specific constraints that would fail on esp32s3),
-# EXTRA_COMPONENT_DIRS is narrowed to just the components this example uses; the
-# in-repo espp components there satisfy the `espp/*` dependencies locally (no
-# example manifest / override_path needed).
+set(CMAKE_CXX_STANDARD 20)
+
+# This example needs the managed `espressif/esp_tinyusb` component (required by
+# usb_device). It supports two build modes:
+#
+#  * DEFAULT (component manager ON) - how an end user builds it from the
+#    component registry: the manager fetches esp_tinyusb (and its tinyusb
+#    dependency) and the espp/* dependencies from the registry. EXTRA_COMPONENT_DIRS
+#    is narrowed to just the components this example uses so the manager does not
+#    scan every espp manifest.
+#
+#  * MANAGER OFF (IDF_COMPONENT_MANAGER=0) - used by CI so the build does not need
+#    the espp/* components in the registry: every espp dependency resolves locally
+#    from EXTRA_COMPONENT_DIRS, and esp_tinyusb / tinyusb come from the vendored git
+#    submodules under external/.
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-# add only the component directories that we want to use
 set(EXTRA_COMPONENT_DIRS
   "../../../components/base_component"
+  "../../../components/coredump"
+  "../../../components/dispatcher"
   "../../../components/format"
-  "../../../components/hid-rp"
   "../../../components/logger"
-  "../../../components/odrive_ascii"
-  "../../../components/odrive_native"
+  "../../../components/monitor"
+  "../../../components/ota"
+  "../../../components/stream_frame"
+  "../../../components/system"
+  "../../../components/task"
   "../../../components/usb_device"
 )
 
+if(DEFINED ENV{IDF_COMPONENT_MANAGER} AND "$ENV{IDF_COMPONENT_MANAGER}" STREQUAL "0")
+  list(APPEND EXTRA_COMPONENT_DIRS
+    "../../../external/esp-usb/device/esp_tinyusb"
+    "../../../external/tinyusb"
+  )
+endif()
+
 set(
   COMPONENTS
-  "main esptool_py base_component format hid-rp logger odrive_ascii odrive_native usb_device esp_tinyusb"
+  "main esptool_py base_component dispatcher format logger monitor stream_frame system task usb_device esp_tinyusb esp_psram coredump ota espcoredump fatfs"
   CACHE STRING
   "List of components to include"
   )
 
-project(usb_cdc_example)
-
-set(CMAKE_CXX_STANDARD 20)
+project(usb_device_example)

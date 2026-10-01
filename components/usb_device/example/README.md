@@ -1,119 +1,101 @@
-# ODrive-compatible USB Device Example (CDC + Vendor/WebUSB + HID)
+# USB Device Example (CDC + Vendor/WebUSB + MSC, with the standard espp USB services)
 
-This example demonstrates a **composite** `espp::UsbDevice` that presents an
-ODrive-compatible device with three interfaces, all backed by one simulated motor
-state (matching how a real ODrive splits its protocols across interfaces):
+The reference `espp::UsbDevice` example: **one composite USB device with the
+three interface classes the component provides**, and the standard espp USB
+services on every framed link, so the hosted web consoles, the Device Hub and
+the `espp_ota` / `espp_coredump` command-line tools all work against it.
 
-- **CDC-ACM serial** → the **ODrive ASCII** protocol (`espp::OdriveAscii`; text,
-  for a terminal or the Web Serial console).
-- **vendor-specific (class 0xFF, WebUSB)** → the **ODrive native / Fibre binary**
-  protocol (`espp::OdriveNative`) — the one `odrivetool` / the `fibre` library
-  auto-discover and speak over USB.
-- **HID** → an animated **gamepad** input device (built with the `hid-rp`
-  component; visualize it with the WebHID `hid_visualizer.html`).
+| Interface | What it carries | Talk to it with |
+|-----------|-----------------|-----------------|
+| **CDC-ACM** (a serial port) | the espp framed protocol (`stream_frame`, routed by an `espp::DispatcherWorker`) | the hosted consoles over **Web Serial**; the `espp_ota` / `espp_coredump` CLIs over the serial port |
+| **vendor-specific (class 0xFF, WebUSB)** | the same framed protocol over bulk IN/OUT | the hosted consoles over **WebUSB** (the BOS landing page points at the system console); the CLIs over libusb |
+| **MSC** (a USB drive) | a wear-levelled FAT partition in flash (`storage`, 896K), with a `README.txt` the firmware writes at boot | mount it like any removable drive; eject it to hand it back to the firmware |
 
-The device enumerates with an ODrive-like VID/PID (0x1209 / 0x0d32) on the native
-USB port. The log console is on **UART0** (with USB-Serial-JTAG as an early-boot
-secondary): on the ESP32-S3 the USB-Serial-JTAG controller and USB-OTG share the
-same native USB PHY, so keeping the console on it would contend with the TinyUSB
-interfaces here and reboot-loop the device.
-
-Each protocol server is transport-agnostic: the CDC RX callback feeds bytes to
-`OdriveAscii::process_bytes()`, the vendor RX callback feeds bytes to
-`OdriveNative::process_bytes()`, and each writes its response back out the same
-interface. The HID interface periodically pushes gamepad input reports.
+The device enumerates as VID `0x1209` / PID **`0x0d38`** (manufacturer "espp",
+product "espp USB Device"); the PID is distinct from the other espp examples so a
+host-side filter can be specific. The log console is on **UART0** (USB-Serial-JTAG
+as the early-boot secondary): on the ESP32-S3 the USB-Serial-JTAG controller and
+USB-OTG share the same native USB PHY, so the console cannot stay there once
+TinyUSB owns the port.
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
 
-- [ODrive-compatible USB Device Example (CDC + Vendor/WebUSB + HID)](#odrive-compatible-usb-device-example-cdc--vendorwebusb--hid)
-  - [Requirements](#requirements)
-  - [Build](#build)
-  - [Flash and Monitor](#flash-and-monitor)
-  - [Usage](#usage)
+- [USB Device Example (CDC + Vendor/WebUSB + MSC, with the standard espp USB services)](#usb-device-example-cdc--vendorwebusb--msc-with-the-standard-espp-usb-services)
+  - [Standard USB services](#standard-usb-services)
+  - [The USB drive](#the-usb-drive)
+  - [Partition layout](#partition-layout)
+  - [Build, flash, run](#build-flash-run)
   - [How it works](#how-it-works)
 
 <!-- markdown-toc end -->
 
-## Requirements
+## Standard USB services
 
-- An ESP32-S3 (or -S2 / -P4) with access to the native USB-OTG pins.
-- ESP-IDF installed and available in your shell.
-- The IDF component manager is enabled for this example so it can fetch the
-  managed `espressif/esp_tinyusb` component.
+Both framed links (CDC and vendor) serve the same set, each service registered
+on each link's dispatcher and advertised through capability discovery, so the
+[Device Hub](https://esp-cpp.github.io/espp/apps/dispatcher_hub.html) lists them
+and every console finds its module by protocol id (the module ids below are the
+published defaults; hosts do not depend on them):
 
-The example's `sdkconfig.defaults` enables the CDC, vendor, and HID classes:
+| Service | Protocol id | Module | Console / tool |
+|---------|-------------|--------|----------------|
+| `espp::SystemService` — chip / firmware / partition info, reboot, reboot into the ROM bootloader (download mode) | `espp.system` v1 | 7 | [system console](https://esp-cpp.github.io/espp/apps/system_console.html) |
+| `espp::MonitorService` — heap regions and the task table, on request or streamed | `espp.monitor` v1 | 8 | system console |
+| `espp::OtaService` — firmware update into the other OTA slot, with rollback confirmation | `espp.ota` v1 | 0 | [OTA console](https://esp-cpp.github.io/espp/apps/ota_console.html), `espp_ota` / `idf.py ota-usb` |
+| `espp::CoreDumpService` — last-crash report, core dump download / erase | `espp.coredump` v1 | 4 | [coredump console](https://esp-cpp.github.io/espp/apps/coredump_console.html), `espp_coredump` / `idf.py coredump-usb` |
 
-```
-CONFIG_TINYUSB_CDC_ENABLED=y
-CONFIG_TINYUSB_CDC_COUNT=1
-CONFIG_TINYUSB_VENDOR_COUNT=1
-CONFIG_TINYUSB_HID_COUNT=1
-```
+Reboot requests go through the example's `on_reboot_request` callback, which
+logs and permits them; an application would refuse or defer one while, say, the
+host is writing to the drive.
 
-## Build
+## The USB drive
+
+The MSC function exposes the `storage` partition (a `data, fat` partition in
+`partitions.csv`, accessed through wear levelling) as a removable drive named
+`ESPP USB`. Ownership follows the `usb_device` MSC model: the firmware owns the
+volume first (it formats it if needed and writes `README.txt`), the host takes
+it when it mounts the device, and ejecting the drive on the host gives it back
+to the firmware (logged by the heartbeat). The firmware and the host never
+write the volume at the same time.
+
+## Partition layout
+
+`partitions.csv` (4 MB flash): `nvs`, `otadata`, `phy_init`, two 1536K app slots
+`ota_0` / `ota_1` (`idf.py flash` writes `ota_0`, each OTA update alternates to
+the other slot), a 64K `coredump` partition and the 896K `storage` FAT volume.
+
+## Build, flash, run
 
 ```sh
 cd components/usb_device/example
 idf.py set-target esp32s3
-idf.py build
+idf.py build flash monitor   # console is on UART0 (USB-UART adapter)
 ```
 
-## Flash and Monitor
-
-Flash / monitor over the UART0 console (a USB-UART adapter), which is independent
-of the native USB interfaces this example presents:
-
-```sh
-idf.py flash monitor
-```
-
-The native USB-OTG connector will appear on the host as a new composite device:
-a serial port (CDC), a vendor interface (WebUSB), and a HID gamepad, with
-manufacturer "espp" and product "espp ODrive".
-
-## Usage
-
-**CDC serial (ODrive ASCII):** open the CDC serial port and send ODrive ASCII
-commands, e.g. from Python:
-
-```python
-import serial
-ser = serial.Serial('/dev/tty.usbmodemXXXX', 115200, timeout=0.5)
-ser.write(b'r axis0.encoder.pos_estimate\n'); print(ser.readline())
-ser.write(b'w axis0.controller.input_pos 12.34\n'); print(ser.readline())
-ser.write(b'p 0 1.0 0.5 0.1\n'); print(ser.readline())
-ser.write(b'f 0\n'); print(ser.readline())
-```
-
-(Writes/setpoints are silent by default — ODrive semantics; only `r`/`f` respond.)
-
-**Vendor / WebUSB (ODrive native / Fibre):** the vendor interface (class 0xFF,
-bulk IN + bulk OUT) speaks the ODrive native binary protocol. `odrivetool` / the
-reference `fibre` library discover it over USB and read/write the endpoint tree;
-or, from a Chromium-based browser, open the native-protocol WebUSB control panel
-(`odrive_control_panel.html`) and connect. The BOS/WebUSB descriptors point to a
-configurable landing-page URL. See `HARDWARE_TEST.md` and `odrive_usb_probe.py`.
-
-**HID (gamepad):** the device also enumerates as a HID gamepad whose sticks and
-buttons the firmware animates. Your OS will see a gamepad; to inspect the raw
-input reports in the browser, open the WebHID `hid_visualizer.html` in Chromium
-and connect.
+Then connect the native USB port: the host sees a serial port, a WebUSB
+interface and a drive. Open the
+[system console](https://esp-cpp.github.io/espp/apps/system_console.html) (WebUSB
+or Web Serial) for the device info, the reboot buttons and the live heap / task
+view, the OTA and coredump consoles for updates and crash dumps, and mount the
+drive to read the README the firmware wrote.
 
 ## How it works
 
-- `espp::UsbDevice` installs the TinyUSB driver and builds descriptors for the
-  enabled CDC + vendor + HID functions, allocating interfaces / endpoints
-  sequentially (the S3 USB-OTG endpoint budget fits CDC + vendor + HID).
-- The vendor function advertises WebUSB + MS OS 2.0 descriptors so a browser (and
-  Windows, via WinUSB) can bind it driverlessly.
-- The CDC receive callback feeds bytes to `espp::OdriveAscii::process_bytes()` and
-  writes the response back out via `write_cdc()`; the vendor receive callback feeds
-  bytes to `espp::OdriveNative::process_bytes()` and writes back via
-  `write_vendor()`. Both servers share one simulated motor state.
-- The HID report descriptor is built with the `hid-rp` component
-  (`espp::GamepadInputReport`); the main loop animates the state and pushes reports
-  with `write_hid_report()` when the HID interface is ready.
-- The log console is on UART0, with USB-Serial-JTAG as an early-boot secondary
-  (see `sdkconfig.defaults.esp32s3`) — it cannot stay on USB-Serial-JTAG because
-  that shares the native USB PHY with the USB-OTG interfaces here.
+- `espp::UsbDevice` installs the TinyUSB driver and builds the descriptors for
+  the enabled CDC + vendor + MSC functions, allocating interfaces / endpoints
+  sequentially; the vendor function advertises WebUSB + MS OS 2.0 descriptors
+  so a browser (and Windows, via WinUSB) can bind it driverlessly.
+- Each framed link has its own `espp::DispatcherWorker` (a bounded receive queue
+  + worker task feeding one `espp::Dispatcher`), fed from the TinyUSB receive
+  callbacks; the four services are registered on each worker and
+  `serve_discovery()` answers the hub's query. Every device->host write on a
+  transport goes through one application-level mutex, so a streamed monitor
+  event and a reply from another service never interleave.
+- The OTA and core-dump engines (`espp::Ota`, `espp::CoreDump`) are shared by
+  the per-link services; an RX overflow on a link aborts an OTA transfer that
+  link owned and tells the host.
+- The MSC medium is configured with the application as the initial owner and
+  `connect_on_initialize = false`, so the README is written before the device
+  presents itself to the host; `auto_handover` then moves the drive to the host
+  on mount and back on eject.
