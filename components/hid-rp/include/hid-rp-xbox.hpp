@@ -318,11 +318,11 @@ public:
 protected:
   static constexpr uint8_t battery_min{0};
   static constexpr uint8_t battery_max{255};
-  static constexpr uint8_t num_data_bytes{1};
 
   uint8_t battery_status{0}; ///< The battery status byte
 
 public:
+  static constexpr uint8_t num_data_bytes{1};
   /// Where the report data starts inside this object: after the one-byte report
   /// id the base class holds when there is one (the payload is byte-aligned, so
   /// no padding follows it), or at byte 0 when REPORT_ID == 0 (the base class

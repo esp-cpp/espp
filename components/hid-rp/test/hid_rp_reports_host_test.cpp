@@ -19,6 +19,7 @@
 //
 // No ESP-IDF headers required.
 
+#include <array>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -223,50 +224,72 @@ static void test_ps4() {
 }
 
 // set_data() never writes past the payload and zero-fills what a short payload
-// does not cover, for every report that takes wire bytes
-template <typename Report> static void check_bounded_set_data(size_t payload) {
-  Report r;
-  std::vector<uint8_t> big(payload + 16, 0x5A);
-  r.set_data(big);
-  const auto obj = object_bytes(r);
-  CHECK(obj.size() == Report::data_offset + payload); // nothing was written past the object
-  for (size_t i = 0; i < payload; ++i)
-    CHECK(r.get_report()[i] == 0x5A);
-  r.set_data({0x11});
-  CHECK(r.get_report()[0] == 0x11);
-  for (size_t i = 1; i < payload; ++i)
-    CHECK(r.get_report()[i] == 0);
+// does not cover, for every report that takes wire bytes. The report sits in
+// front of a sentinel-filled guard so an overrun of the OBJECT is caught at
+// run time (the payload size comes from the report's own constant).
+template <typename Report, size_t Payload> static void check_bounded_set_data() {
+  struct Guarded {
+    Report r;
+    std::array<uint8_t, 32> guard;
+  } g;
+  g.guard.fill(0xC3);
+  std::vector<uint8_t> big(Payload + 16, 0x5A);
+  g.r.set_data(big);
+  for (auto b : g.guard)
+    CHECK(b == 0xC3); // nothing was written past the report object
+  CHECK(sizeof(Report) == Report::data_offset + Payload);
+  const auto report = g.r.get_report();
+  CHECK(report.size() == Payload);
+  for (size_t i = 0; i < Payload; ++i)
+    CHECK(report[i] == 0x5A);
+  g.r.set_data({0x11});
+  CHECK(g.r.get_report()[0] == 0x11);
+  for (size_t i = 1; i < Payload; ++i)
+    CHECK(g.r.get_report()[i] == 0);
+  for (auto b : g.guard)
+    CHECK(b == 0xC3);
+}
+
+// The same for reports whose payload lives in their own raw[] / data[]
+// member (no data_offset): over-long input is clamped, short input zero-filled.
+template <typename Report, size_t Payload, typename Get>
+static void check_bounded_raw_set_data(Get get) {
+  struct Guarded {
+    Report r;
+    std::array<uint8_t, 32> guard;
+  } g;
+  g.guard.fill(0xC3);
+  g.r.set_data(std::vector<uint8_t>(Payload + 100, 0x7E));
+  for (auto b : g.guard)
+    CHECK(b == 0xC3);
+  CHECK(get(g.r).size() == Payload && get(g.r)[Payload - 1] == 0x7E);
+  g.r.set_data({0x11});
+  CHECK(get(g.r)[0] == 0x11 && get(g.r)[1] == 0 && get(g.r)[Payload - 1] == 0);
+  for (auto b : g.guard)
+    CHECK(b == 0xC3);
 }
 
 static void test_bounded_set_data() {
   std::printf("test_bounded_set_data\n");
-  check_bounded_set_data<espp::GamepadInputReport<>>(16);
-  check_bounded_set_data<espp::GamepadLedOutputReport<>>(1);
-  check_bounded_set_data<espp::XboxRumbleOutputReport<>>(8);
-  check_bounded_set_data<espp::XboxBatteryInputReport<>>(1);
-  check_bounded_set_data<espp::SwitchProGamepadInputReport<>>(63);
-  // reports that keep their payload in their own raw[] / data[]: over-long
-  // input is clamped, short input zero-filled
-  espp::PS4DualShock4GamepadInputReport<> ps4;
-  ps4.set_data(std::vector<uint8_t>(200, 0x7E));
-  CHECK(ps4.get_report().size() == 63 && ps4.get_report()[62] == 0x7E);
-  ps4.set_data({0x11});
-  CHECK(ps4.get_report()[0] == 0x11 && ps4.get_report()[1] == 0 && ps4.get_report()[62] == 0);
-  espp::PS4DualShock4OutputReport<0x05> out;
-  out.set_data(std::vector<uint8_t>(100, 0x33));
-  CHECK(out.get_report().size() == 31 && out.get_report()[30] == 0x33);
-  out.set_data({0x07});
-  CHECK(out.get_report()[0] == 0x07 && out.get_report()[1] == 0 && out.get_report()[30] == 0);
-  espp::PlaystationDualsenseBLESimpleInputReport<> ds;
-  ds.set_data(std::vector<uint8_t>(50, 0x22));
-  CHECK(ds.get_report().size() == 9 && ds.get_report()[8] == 0x22);
-  ds.set_data({0x01});
-  CHECK(ds.get_report()[0] == 0x01 && ds.get_report()[8] == 0);
-  espp::SwitchProInputVendorReport<0x30, 0x30> vin;
-  vin.set_data(std::vector<uint8_t>(100, 0x44));
-  CHECK(vin.get_data().size() == 63 && vin.get_data()[62] == 0x44);
-  vin.set_data({0x01});
-  CHECK(vin.get_data()[0] == 0x01 && vin.get_data()[62] == 0);
+  using Gamepad = espp::GamepadInputReport<>;
+  using Leds = espp::GamepadLedOutputReport<>;
+  using Rumble = espp::XboxRumbleOutputReport<>;
+  using Battery = espp::XboxBatteryInputReport<>;
+  using SwitchPro = espp::SwitchProGamepadInputReport<>;
+  check_bounded_set_data<Gamepad, Gamepad::num_data_bytes>();
+  check_bounded_set_data<Leds, Leds::num_led_bytes>();
+  check_bounded_set_data<Rumble, Rumble::num_data_bytes>();
+  check_bounded_set_data<Battery, Battery::num_data_bytes>();
+  check_bounded_set_data<SwitchPro, SwitchPro::num_data_bytes>();
+  using Ds4In = espp::PS4DualShock4GamepadInputReport<>;
+  using Ds4Out = espp::PS4DualShock4OutputReport<0x05>;
+  using DualSense = espp::PlaystationDualsenseBLESimpleInputReport<>;
+  using Vendor = espp::SwitchProInputVendorReport<0x30, 0x30>;
+  const auto report = [](const auto &r) { return r.get_report(); };
+  check_bounded_raw_set_data<Ds4In, Ds4In::num_data_bytes>(report);
+  check_bounded_raw_set_data<Ds4Out, Ds4Out::num_data_bytes>(report);
+  check_bounded_raw_set_data<DualSense, DualSense::num_data_bytes>(report);
+  check_bounded_raw_set_data<Vendor, 63>([](const auto &r) { return r.get_data(); });
 }
 
 int main() {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <iterator>
 
 #include "gamepad_imu.hpp"
 #include "hid-rp-gamepad.hpp"
@@ -179,9 +180,8 @@ protected:
 
 #pragma pack(pop)
 
-  static constexpr size_t num_data_bytes = 63;
-
 public:
+  static constexpr size_t num_data_bytes = 63;
   /// Where the report data starts inside this object: after the one-byte report
   /// id the base class holds when there is one (the data union is 1-byte
   /// packed, so no padding follows it), or at byte 0 when REPORT_ID == 0 (the
@@ -707,9 +707,9 @@ struct SwitchProInputVendorReport : public hid::report::base<hid::report::type::
   /// \param data The data to set the input report to.
   constexpr void set_data(const std::vector<uint8_t> &bytes) {
     // at most sizeof(data) bytes; the rest is zeroed so a short payload leaves no stale bytes
-    const auto n = std::min<std::size_t>(bytes.size(), sizeof(data));
-    std::copy(bytes.begin(), bytes.begin() + static_cast<std::ptrdiff_t>(n), data);
-    std::fill(data + n, data + sizeof(data), uint8_t{0});
+    const auto n = std::min<std::size_t>(bytes.size(), std::size(data));
+    std::copy(bytes.begin(), bytes.begin() + static_cast<std::ptrdiff_t>(n), std::begin(data));
+    std::fill(std::begin(data) + static_cast<std::ptrdiff_t>(n), std::end(data), uint8_t{0});
   }
 
   /// Get the data for the input report
@@ -742,9 +742,9 @@ struct SwitchProOutputVendorReport
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &bytes) {
     // at most sizeof(data) bytes; the rest is zeroed so a short payload leaves no stale bytes
-    const auto n = std::min<std::size_t>(bytes.size(), sizeof(data));
-    std::copy(bytes.begin(), bytes.begin() + static_cast<std::ptrdiff_t>(n), data);
-    std::fill(data + n, data + sizeof(data), uint8_t{0});
+    const auto n = std::min<std::size_t>(bytes.size(), std::size(data));
+    std::copy(bytes.begin(), bytes.begin() + static_cast<std::ptrdiff_t>(n), std::begin(data));
+    std::fill(std::begin(data) + static_cast<std::ptrdiff_t>(n), std::end(data), uint8_t{0});
   }
 
   /// Get the data for the output report
