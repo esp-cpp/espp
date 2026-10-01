@@ -82,6 +82,26 @@ idf.py build flash monitor   # console is on UART0 (USB-UART adapter)
 
 Then open the CAN console web app and Connect (WebUSB or Web Serial).
 
+## Standard USB services
+
+Like every espp USB example, this one serves the standard service set on its
+framed USB link(s) next to its own protocol, so the hosted consoles and the
+[Device Hub](https://esp-cpp.github.io/espp/apps/dispatcher_hub.html) (which
+finds each service through discovery, by protocol id) work against it:
+
+| Service | Module (default) | Protocol id | Console |
+|---|---|---|---|
+| `espp::SystemService` -- device info, reboot, reboot into the bootloader | 7 | `espp.system` | [system console](https://esp-cpp.github.io/espp/apps/system_console.html) |
+| `espp::MonitorService` -- heap regions + task table, on request or streamed | 8 | `espp.monitor` | system console |
+| `espp::OtaService` -- firmware update (host-driven rollback confirmation) | 0 | `espp.ota` | [OTA console](https://esp-cpp.github.io/espp/apps/ota_console.html) |
+| `espp::CoreDumpService` -- last-crash report, core dump download / erase | 4 | `espp.coredump` | [coredump console](https://esp-cpp.github.io/espp/apps/coredump_console.html) |
+
+`partitions.csv` therefore carries the OTA layout (`otadata`, `ota_0`, `ota_1`)
+plus a `coredump` partition, and `sdkconfig.defaults` enables core dumps to
+flash, OTA rollback and the FreeRTOS run-time statistics the task monitor
+reads. Every device->host write on a transport goes through one mutex, so the
+services (and any streaming) never interleave frames.
+
 ## Simulated CANopen node (no CAN hardware)
 
 To try the [CAN console](https://esp-cpp.github.io/espp/apps/can_bridge_console.html)

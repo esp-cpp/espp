@@ -24,9 +24,11 @@
 #include "coredump_service.hpp"
 #include "dispatcher_worker.hpp"
 #include "i2c.hpp"
+#include "monitor_service.hpp"
 #include "mt6701.hpp"
 #include "ota.hpp"
 #include "ota_service.hpp"
+#include "system_service.hpp"
 #include "task.hpp"
 #include "usb_device.hpp"
 
@@ -563,13 +565,15 @@ extern "C" void app_main(void) {
   };
 
   // --------------------------------------------------------------------------
-  // The three protocols on the one vendor stream
+  // The protocols on the one vendor stream
   // --------------------------------------------------------------------------
   // Each is on its own dispatcher module and each is advertised for capability
   // discovery so the browser Device Hub lists and links them:
   //   module 0 -> OTA          (espp::OtaService       -> ota_console)
   //   module 2 -> BLDC haptics (this example's protocol -> haptics_console)
   //   module 4 -> core dump    (espp::CoreDumpService  -> coredump_console)
+  //   module 7 -> system       (espp::SystemService    -> system_console)
+  //   module 8 -> monitor      (espp::MonitorService   -> system_console)
   // (the published defaults; each id is configurable -- kHapticsModule above,
   // and `.module` in the services' Config -- and the hosted consoles find the
   // ids through discovery, by protocol id, so any choice works)
@@ -588,6 +592,25 @@ extern "C" void app_main(void) {
   espp::CoreDumpService coredump_service(core_dump,
                                          {.send = [&](std::span<const uint8_t> f) { usb_send(f); },
                                           .log_level = espp::Logger::Verbosity::INFO});
+
+  // --- System (module 7) + monitor (module 8): the rest of the standard service
+  //     set every espp USB example carries (info / reboot / bootloader, heap +
+  //     task table), so the system console and the Device Hub work here too.
+  //     A reboot de-energizes the motor first (BldcHaptics::stop() disables
+  //     the driver) so the knob never reboots under torque.
+  auto reboot_request = [&](espp::SystemService::RebootKind kind) {
+    logger.warn("Host requested a {}; stopping the haptics and allowing it",
+                kind == espp::SystemService::RebootKind::Bootloader ? "reboot into the bootloader"
+                                                                    : "reboot");
+    haptic_motor.stop();
+    enabled = false;
+    return true;
+  };
+  espp::SystemService system_service({.send = [&](std::span<const uint8_t> f) { usb_send(f); },
+                                      .on_reboot_request = reboot_request,
+                                      .log_level = espp::Logger::Verbosity::INFO});
+  espp::MonitorService monitor_service({.send = [&](std::span<const uint8_t> f) { usb_send(f); },
+                                        .log_level = espp::Logger::Verbosity::INFO});
 
   // RX bytes arrive in the TinyUSB task context: DispatcherWorker owns the
   // bounded receive queue + worker task that feeds its Dispatcher, so the
@@ -615,6 +638,8 @@ extern "C" void app_main(void) {
        .task_config = {.name = "haptics_usb", .stack_size_bytes = 8192}});
   usb_link.register_module(ota_service);      // module 0 + its discovery metadata
   usb_link.register_module(coredump_service); // module 4 + its discovery metadata
+  usb_link.register_module(system_service);   // module 7
+  usb_link.register_module(monitor_service);  // module 8
   // The handler gates on !is_reply() so a reply-typed echo cannot re-enter it.
   usb_link.register_module(kHapticsModule,
                            [&](const proto::stream::Frame &frame) {

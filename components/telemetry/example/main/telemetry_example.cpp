@@ -19,10 +19,17 @@
 #include <cstdlib>
 #include <mutex>
 #include <span>
+#include <string>
 #include <thread>
 
+#include "coredump.hpp"
+#include "coredump_service.hpp"
 #include "dispatcher_worker.hpp"
 #include "logger.hpp"
+#include "monitor_service.hpp"
+#include "ota.hpp"
+#include "ota_service.hpp"
+#include "system_service.hpp"
 #include "telemetry.hpp"
 #include "timer.hpp"
 #include "usb_device.hpp"
@@ -32,6 +39,24 @@ using namespace std::chrono_literals;
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "Telemetry", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting USB telemetry (Serial Plotter) example");
+
+  // --- the standard USB services' engines ---------------------------------------
+  // Every espp USB example serves system info + reboot (module 7), the heap /
+  // task monitor (8), OTA (0) and core dump (4) next to its own protocol, so
+  // the hosted system / OTA / coredump consoles and the Device Hub work
+  // against it. A panic core-dumps to the `coredump` partition and is
+  // reported on the next boot; OTA rollback confirmation is host-driven.
+  espp::CoreDump core_dump({.log_level = espp::Logger::Verbosity::INFO});
+  const std::string crash_report = core_dump.format_report();
+  if (crash_report.empty())
+    logger.info("Clean boot history (reset reason: {})",
+                espp::CoreDump::reset_reason_name(espp::CoreDump::reset_reason()));
+  else
+    logger.error("Previous abnormal reset:\n{}", crash_report);
+  espp::Ota ota({.reject_same_version = false, .log_level = espp::Logger::Verbosity::INFO});
+  if (ota.is_pending_verify())
+    logger.warn("This image is PENDING VERIFY (first boot after an OTA update): it rolls back on "
+                "the next reset unless the host confirms it (MARK_VALID from the OTA console)");
 
   // --- the telemetry emitter: one float per named channel, in schema order ---
   espp::Telemetry telemetry({
@@ -81,14 +106,36 @@ extern "C" void app_main(void) {
   };
   telemetry.set_send(send);
 
-  // --- dispatcher worker: route the telemetry module's frames to the service ---
+  // --- the standard services on the same stream (all through `send`) -----------
+  auto reboot_request = [&](espp::SystemService::RebootKind kind) {
+    logger.warn("Host requested a {}; allowing it",
+                kind == espp::SystemService::RebootKind::Bootloader ? "reboot into the bootloader"
+                                                                    : "reboot");
+    return true;
+  };
+  espp::SystemService system_service({.send = send,
+                                      .on_reboot_request = reboot_request,
+                                      .log_level = espp::Logger::Verbosity::INFO});
+  espp::MonitorService monitor_service({.send = send, .log_level = espp::Logger::Verbosity::INFO});
+  espp::OtaService ota_service(ota, {.send = send, .log_level = espp::Logger::Verbosity::INFO});
+  espp::CoreDumpService coredump_service(
+      core_dump, {.send = send, .log_level = espp::Logger::Verbosity::INFO});
+
+  // --- dispatcher worker: route each module's frames to its service -----------
   // RX bytes arrive in the TinyUSB task context; DispatcherWorker queues them
-  // and feeds its Dispatcher (telemetry.module_id() -> telemetry, 0xFF ->
-  // discovery) from
-  // its own task, so all frame parsing happens on one thread.
+  // and feeds its Dispatcher (telemetry.module_id() -> telemetry, the standard
+  // services' modules -> them, 0xFF -> discovery) from its own task, so all
+  // frame parsing happens on one thread. On an RX overflow the OTA service
+  // aborts a transfer it owned and tells the host.
   espp::DispatcherWorker usb_link(
-      {.send = send, .task_config = {.name = "telemetry_rx", .stack_size_bytes = 8192}});
+      {.send = send,
+       .on_overflow = [&]() { ota_service.on_rx_overflow(); },
+       .task_config = {.name = "telemetry_rx", .stack_size_bytes = 8192}});
   usb_link.register_module(telemetry); // its Config::module (3) + discovery metadata
+  usb_link.register_module(system_service);
+  usb_link.register_module(monitor_service);
+  usb_link.register_module(ota_service);
+  usb_link.register_module(coredump_service);
   usb_link.serve_discovery(usb_cfg.product);
   usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { usb_link.push(data); });
 

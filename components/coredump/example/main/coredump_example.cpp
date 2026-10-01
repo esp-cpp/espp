@@ -20,6 +20,10 @@
 #include "coredump_service.hpp"
 #include "dispatcher_worker.hpp"
 #include "logger.hpp"
+#include "monitor_service.hpp"
+#include "ota.hpp"
+#include "ota_service.hpp"
+#include "system_service.hpp"
 #include "usb_device.hpp"
 
 using namespace std::chrono_literals;
@@ -101,6 +105,15 @@ extern "C" void app_main(void) {
 #endif
   }
 
+  // OTA engine for the standard OTA service below (every espp USB example
+  // serves system, monitor, OTA and core dump). Rollback confirmation is
+  // host-driven, as in the ota example: a freshly updated image stays PENDING
+  // VERIFY until the host sends MARK_VALID.
+  espp::Ota ota({.reject_same_version = false, .log_level = espp::Logger::Verbosity::INFO});
+  if (ota.is_pending_verify())
+    logger.warn("This image is PENDING VERIFY (first boot after an OTA update): it rolls back on "
+                "the next reset unless the host confirms it (MARK_VALID from the OTA console)");
+
   // --------------------------------------------------------------------------
   // USB composite device: a vendor/WebUSB function (framed protocol only) and
   // a CDC function carrying the system console PLUS the same framed protocol
@@ -122,9 +135,18 @@ extern "C" void app_main(void) {
   espp::UsbDevice usb(usb_cfg);
 
   // Replies go back on the stream the request came in on: one send function
-  // per transport.
-  auto vendor_send = [&](std::span<const uint8_t> frame) { usb.write_vendor(frame); };
-  auto cdc_send = [&](std::span<const uint8_t> frame) { usb.write_cdc(frame); };
+  // per transport. Several services (and the monitor's stream task) write to
+  // each transport from different tasks, so every write goes through one
+  // mutex per transport; write_vendor / write_cdc are all-or-nothing per call.
+  std::mutex vendor_tx_mutex, cdc_tx_mutex;
+  auto vendor_send = [&](std::span<const uint8_t> frame) {
+    std::lock_guard<std::mutex> lock(vendor_tx_mutex);
+    usb.write_vendor(frame);
+  };
+  auto cdc_send = [&](std::span<const uint8_t> frame) {
+    std::lock_guard<std::mutex> lock(cdc_tx_mutex);
+    usb.write_cdc(frame);
+  };
 
   // One CoreDumpService per byte stream, both sharing the same espp::CoreDump
   // (it serializes its flash access internally). Declared BEFORE the workers
@@ -133,19 +155,55 @@ extern "C" void app_main(void) {
       core_dump, {.send = vendor_send, .log_level = espp::Logger::Verbosity::INFO});
   espp::CoreDumpService cdc_service(core_dump,
                                     {.send = cdc_send, .log_level = espp::Logger::Verbosity::INFO});
+  // The other standard services, one per stream as well: system info + reboot
+  // / bootloader (module 7), heap + task monitor (module 8), OTA (module 0).
+  auto reboot_request = [&](espp::SystemService::RebootKind kind) {
+    logger.warn("Host requested a {}; allowing it",
+                kind == espp::SystemService::RebootKind::Bootloader ? "reboot into the bootloader"
+                                                                    : "reboot");
+    return true;
+  };
+  espp::SystemService vendor_system({.send = vendor_send,
+                                     .on_reboot_request = reboot_request,
+                                     .log_level = espp::Logger::Verbosity::INFO});
+  espp::SystemService cdc_system({.send = cdc_send,
+                                  .on_reboot_request = reboot_request,
+                                  .log_level = espp::Logger::Verbosity::INFO});
+  espp::MonitorService vendor_monitor(
+      {.send = vendor_send,
+       .task_config = {.name = "monitor_v", .stack_size_bytes = 6 * 1024},
+       .log_level = espp::Logger::Verbosity::INFO});
+  espp::MonitorService cdc_monitor(
+      {.send = cdc_send,
+       .task_config = {.name = "monitor_c", .stack_size_bytes = 6 * 1024},
+       .log_level = espp::Logger::Verbosity::INFO});
+  espp::OtaService vendor_ota(ota,
+                              {.send = vendor_send, .log_level = espp::Logger::Verbosity::INFO});
+  espp::OtaService cdc_ota(ota, {.send = cdc_send, .log_level = espp::Logger::Verbosity::INFO});
 
   // One DispatcherWorker per byte stream: each owns the bounded receive queue
   // + worker task that feeds its Dispatcher, so protocol handlers never run
   // on the TinyUSB task (ERASE can block for tens of ms) and every stream
   // parses on exactly one thread. Registering a service routes its module (4)
   // to it and advertises it for discovery.
+  // On an RX overflow the OTA service aborts a transfer it owned and tells the
+  // host (an OTA image with dropped bytes is unusable).
   espp::DispatcherWorker vendor_link(
       {.send = vendor_send,
+       .on_overflow = [&]() { vendor_ota.on_rx_overflow(); },
        .task_config = {.name = "coredump_rx_vendor", .stack_size_bytes = 8192}});
   espp::DispatcherWorker cdc_link(
-      {.send = cdc_send, .task_config = {.name = "coredump_rx_cdc", .stack_size_bytes = 8192}});
+      {.send = cdc_send,
+       .on_overflow = [&]() { cdc_ota.on_rx_overflow(); },
+       .task_config = {.name = "coredump_rx_cdc", .stack_size_bytes = 8192}});
   vendor_link.register_module(vendor_service);
+  vendor_link.register_module(vendor_system);
+  vendor_link.register_module(vendor_monitor);
+  vendor_link.register_module(vendor_ota);
   cdc_link.register_module(cdc_service);
+  cdc_link.register_module(cdc_system);
+  cdc_link.register_module(cdc_monitor);
+  cdc_link.register_module(cdc_ota);
   //! [coredump_example]
 
   // --------------------------------------------------------------------------
