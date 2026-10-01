@@ -34,6 +34,9 @@ namespace espp {
  *       short and non-blocking; it is safe to call write() from within it.
  *
  * \section usb_cdc_ex1 UsbCdc Example
+ * UsbCdc is the CDC-only subset of espp::UsbDevice; the composite USB device
+ * example below shows the CDC interface (a framed-protocol link over Web
+ * Serial) next to the vendor and MSC interfaces.
  * \snippet usb_device_example.cpp usb_device_example
  */
 class UsbCdc : public BaseComponent {
