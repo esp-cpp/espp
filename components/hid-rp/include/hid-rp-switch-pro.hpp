@@ -621,13 +621,8 @@ public:
   /// Set the output report data from a vector of bytes
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // Copy at most num_data_bytes bytes (an over-long vector cannot write past the
-    // payload) and zero-fill the rest, so a short payload leaves no stale bytes
-    // behind and get_report() is deterministic.
-    auto *dest = this->data() + data_offset;
-    const auto n = std::min<std::size_t>(data.size(), num_data_bytes);
-    std::copy(data.begin(), data.begin() + static_cast<std::ptrdiff_t>(n), dest);
-    std::fill(dest + n, dest + num_data_bytes, uint8_t{0});
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(this->data() + data_offset, num_data_bytes, data);
   }
 
   /// Get the report descriptor as a hid::rdf::descriptor
@@ -706,10 +701,8 @@ struct SwitchProInputVendorReport : public hid::report::base<hid::report::type::
   /// Set the data for the input report
   /// \param data The data to set the input report to.
   constexpr void set_data(const std::vector<uint8_t> &bytes) {
-    // at most sizeof(data) bytes; the rest is zeroed so a short payload leaves no stale bytes
-    const auto n = std::min<std::size_t>(bytes.size(), std::size(data));
-    std::copy(bytes.begin(), bytes.begin() + static_cast<std::ptrdiff_t>(n), std::begin(data));
-    std::fill(std::begin(data) + static_cast<std::ptrdiff_t>(n), std::end(data), uint8_t{0});
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(data, std::size(data), bytes);
   }
 
   /// Get the data for the input report
@@ -741,10 +734,8 @@ struct SwitchProOutputVendorReport
   /// Set the data for the output report
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &bytes) {
-    // at most sizeof(data) bytes; the rest is zeroed so a short payload leaves no stale bytes
-    const auto n = std::min<std::size_t>(bytes.size(), std::size(data));
-    std::copy(bytes.begin(), bytes.begin() + static_cast<std::ptrdiff_t>(n), std::begin(data));
-    std::fill(std::begin(data) + static_cast<std::ptrdiff_t>(n), std::end(data), uint8_t{0});
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(data, std::size(data), bytes);
   }
 
   /// Get the data for the output report

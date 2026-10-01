@@ -280,11 +280,8 @@ public:
   }
 
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // at most the payload; the rest is zeroed so a short payload leaves no stale bytes
-    const auto n = std::min(data.size(), num_data_bytes);
-    std::copy(data.begin(), data.begin() + static_cast<std::ptrdiff_t>(n), raw.begin());
-    std::fill(raw.begin() + static_cast<std::ptrdiff_t>(n),
-              raw.begin() + static_cast<std::ptrdiff_t>(num_data_bytes), uint8_t{0});
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(raw.data(), num_data_bytes, data);
   }
 
   static constexpr auto get_descriptor() {
@@ -565,10 +562,8 @@ public:
   constexpr auto get_report() const { return std::vector<uint8_t>(raw.begin(), raw.end()); }
 
   constexpr void set_data(const std::vector<uint8_t> &data_in) {
-    // at most the payload; the rest is zeroed so a short payload leaves no stale bytes
-    const auto n = std::min(data_in.size(), num_data_bytes);
-    std::copy(data_in.begin(), data_in.begin() + static_cast<std::ptrdiff_t>(n), raw.begin());
-    std::fill(raw.begin() + static_cast<std::ptrdiff_t>(n), raw.end(), uint8_t{0});
+    // bounded copy + zero-fill of the payload (espp::detail::copy_report_payload)
+    espp::detail::copy_report_payload(raw.data(), num_data_bytes, data_in);
   }
 
   static constexpr auto get_descriptor() {

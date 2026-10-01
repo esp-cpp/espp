@@ -237,7 +237,8 @@ template <typename Report, size_t Payload> static void check_bounded_set_data() 
   g.r.set_data(big);
   for (auto b : g.guard)
     CHECK(b == 0xC3); // nothing was written past the report object
-  CHECK(sizeof(Report) == Report::data_offset + Payload);
+  static_assert(sizeof(Report) == Report::data_offset + Payload,
+                "report id (if any) + payload must be the whole object");
   const auto after_long = g.r.get_report();
   CHECK(after_long.size() == Payload);
   for (size_t i = 0; i < Payload; ++i)
