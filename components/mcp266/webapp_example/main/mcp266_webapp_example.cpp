@@ -18,13 +18,20 @@
 #include <cstdint>
 #include <mutex>
 #include <span>
+#include <string>
 #include <thread>
 
 #include "canopen_client.hpp"
+#include "coredump.hpp"
+#include "coredump_service.hpp"
 #include "dispatcher_worker.hpp"
 #include "logger.hpp"
 #include "mcp266.hpp"
 #include "mcp266_service.hpp"
+#include "monitor_service.hpp"
+#include "ota.hpp"
+#include "ota_service.hpp"
+#include "system_service.hpp"
 #include "twai.hpp"
 #include "usb_device.hpp"
 
@@ -39,6 +46,24 @@ static constexpr uint8_t kNodeId = 10; // the MCP266's CANopen node id (Motion S
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "MCP266 Console", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting USB<->MCP266 console example (node id {})", kNodeId);
+
+  // --- Standard USB services' engines -----------------------------------------
+  // Every espp USB example serves system info + reboot (module 7), the heap /
+  // task monitor (8), OTA (0) and core dump (4) next to its own protocol, so
+  // the hosted system / OTA / coredump consoles and the Device Hub work
+  // against it. A panic core-dumps to the `coredump` partition and is
+  // reported on the next boot; OTA rollback confirmation is host-driven.
+  espp::CoreDump core_dump({.log_level = espp::Logger::Verbosity::INFO});
+  const std::string crash_report = core_dump.format_report();
+  if (crash_report.empty())
+    logger.info("Clean boot history (reset reason: {})",
+                espp::CoreDump::reset_reason_name(espp::CoreDump::reset_reason()));
+  else
+    logger.error("Previous abnormal reset:\n{}", crash_report);
+  espp::Ota ota({.reject_same_version = false, .log_level = espp::Logger::Verbosity::INFO});
+  if (ota.is_pending_verify())
+    logger.warn("This image is PENDING VERIFY (first boot after an OTA update): it rolls back on "
+                "the next reset unless the host confirms it (MARK_VALID from the OTA console)");
 
   // --- CAN transport + CANopen client + MCP266 driver ------------------------
   // The Twai receive task feeds process_frame(); the MCP266 SDO transactions run
@@ -143,12 +168,57 @@ extern "C" void app_main(void) {
             .status_task_config = {.name = "mcp266_status_c", .stack_size_bytes = 8192},
             .log_level = espp::Logger::Verbosity::INFO});
 
+  // The standard services (system 7 / monitor 8 / OTA 0 / core dump 4), one per
+  // transport through the same mutex-guarded senders. A reboot request is
+  // permitted as is: the MCP266 keeps its own state on the bus.
+  auto reboot_request = [&](espp::SystemService::RebootKind kind) {
+    logger.warn("Host requested a {}; allowing it",
+                kind == espp::SystemService::RebootKind::Bootloader ? "reboot into the bootloader"
+                                                                    : "reboot");
+    return true;
+  };
+  espp::SystemService vendor_system({.send = vendor_send,
+                                     .on_reboot_request = reboot_request,
+                                     .log_level = espp::Logger::Verbosity::INFO});
+  espp::SystemService cdc_system({.send = cdc_send,
+                                  .on_reboot_request = reboot_request,
+                                  .log_level = espp::Logger::Verbosity::INFO});
+  espp::MonitorService vendor_monitor(
+      {.send = vendor_send,
+       .task_config = {.name = "monitor_v", .stack_size_bytes = 6 * 1024},
+       .log_level = espp::Logger::Verbosity::INFO});
+  espp::MonitorService cdc_monitor(
+      {.send = cdc_send,
+       .task_config = {.name = "monitor_c", .stack_size_bytes = 6 * 1024},
+       .log_level = espp::Logger::Verbosity::INFO});
+  espp::OtaService vendor_ota(ota,
+                              {.send = vendor_send, .log_level = espp::Logger::Verbosity::INFO});
+  espp::OtaService cdc_ota(ota, {.send = cdc_send, .log_level = espp::Logger::Verbosity::INFO});
+  espp::CoreDumpService vendor_coredump(
+      core_dump, {.send = vendor_send, .log_level = espp::Logger::Verbosity::INFO});
+  espp::CoreDumpService cdc_coredump(
+      core_dump, {.send = cdc_send, .log_level = espp::Logger::Verbosity::INFO});
+
+  // On an RX overflow the OTA service aborts a transfer it owned and tells the
+  // host (an OTA image with dropped bytes is unusable).
   espp::DispatcherWorker vendor_link(
-      {.send = vendor_send, .task_config = {.name = "mcp266_vendor", .stack_size_bytes = 16384}});
+      {.send = vendor_send,
+       .on_overflow = [&]() { vendor_ota.on_rx_overflow(); },
+       .task_config = {.name = "mcp266_vendor", .stack_size_bytes = 16384}});
   espp::DispatcherWorker cdc_link(
-      {.send = cdc_send, .task_config = {.name = "mcp266_cdc", .stack_size_bytes = 16384}});
+      {.send = cdc_send,
+       .on_overflow = [&]() { cdc_ota.on_rx_overflow(); },
+       .task_config = {.name = "mcp266_cdc", .stack_size_bytes = 16384}});
   vendor_link.register_module(vendor_service); // module 6 + its discovery metadata
   cdc_link.register_module(cdc_service);
+  vendor_link.register_module(vendor_system);
+  vendor_link.register_module(vendor_monitor);
+  vendor_link.register_module(vendor_ota);
+  vendor_link.register_module(vendor_coredump);
+  cdc_link.register_module(cdc_system);
+  cdc_link.register_module(cdc_monitor);
+  cdc_link.register_module(cdc_ota);
+  cdc_link.register_module(cdc_coredump);
   vendor_link.serve_discovery(usb_cfg.product);
   cdc_link.serve_discovery(usb_cfg.product);
 

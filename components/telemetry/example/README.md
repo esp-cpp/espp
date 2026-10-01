@@ -41,6 +41,26 @@ Then open the Serial Plotter web app, click **Connect (USB)**, and pick the
 S3 / P4, USB-Serial-JTAG shares the native USB port's PHY with USB-OTG, which
 TinyUSB takes over.
 
+## Standard USB services
+
+Like every espp USB example, this one serves the standard service set on its
+framed USB link(s) next to its own protocol, so the hosted consoles and the
+[Device Hub](https://esp-cpp.github.io/espp/apps/dispatcher_hub.html) (which
+finds each service through discovery, by protocol id) work against it:
+
+| Service | Module (default) | Protocol id | Console |
+|---|---|---|---|
+| `espp::SystemService` -- device info, reboot, reboot into the bootloader | 7 | `espp.system` | [system console](https://esp-cpp.github.io/espp/apps/system_console.html) |
+| `espp::MonitorService` -- heap regions + task table, on request or streamed | 8 | `espp.monitor` | system console |
+| `espp::OtaService` -- firmware update (host-driven rollback confirmation) | 0 | `espp.ota` | [OTA console](https://esp-cpp.github.io/espp/apps/ota_console.html) |
+| `espp::CoreDumpService` -- last-crash report, core dump download / erase | 4 | `espp.coredump` | [coredump console](https://esp-cpp.github.io/espp/apps/coredump_console.html) |
+
+`partitions.csv` therefore carries the OTA layout (`otadata`, `ota_0`, `ota_1`)
+plus a `coredump` partition, and `sdkconfig.defaults` enables core dumps to
+flash, OTA rollback and the FreeRTOS run-time statistics the task monitor
+reads. Every device->host write on a transport goes through one mutex, so the
+services (and any streaming) never interleave frames.
+
 ## Notes
 
 - Native USB (vendor / WebUSB) needs an ESP32-S3 (also S2 / P4) — not the

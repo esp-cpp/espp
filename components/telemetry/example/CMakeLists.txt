@@ -19,9 +19,13 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 # add only the component directories that we want to use
 set(EXTRA_COMPONENT_DIRS
   "../../../components/base_component"
+  "../../../components/coredump"
   "../../../components/dispatcher"
   "../../../components/format"
   "../../../components/logger"
+  "../../../components/monitor"
+  "../../../components/ota"
+  "../../../components/system"
   "../../../components/telemetry"
   "../../../components/stream_frame"
   "../../../components/task"
@@ -43,7 +47,7 @@ endif()
 
 set(
   COMPONENTS
-  "main esptool_py base_component dispatcher format logger telemetry stream_frame task timer usb_device esp_tinyusb"
+  "main esptool_py base_component dispatcher format logger telemetry stream_frame task timer usb_device esp_tinyusb coredump monitor ota system espcoredump esp_psram"
   CACHE STRING
   "List of components to include"
   )

@@ -32,9 +32,15 @@
 
 #include "sdkconfig.h"
 
+#include "coredump.hpp"
+#include "coredump_service.hpp"
 #include "dispatcher_worker.hpp"
 #include "logger.hpp"
+#include "monitor_service.hpp"
+#include "ota.hpp"
+#include "ota_service.hpp"
 #include "stream_frame.hpp"
+#include "system_service.hpp"
 #include "twai.hpp"
 #include "usb_device.hpp"
 
@@ -310,12 +316,77 @@ extern "C" void app_main(void) {
   // (transmit() can block up to its timeout) never runs in the TinyUSB
   // callback context. On an RX overflow each worker resynchronizes its own
   // parser.
+  // --- Standard USB services' engines -----------------------------------------
+  // Every espp USB example serves system info + reboot (module 7), the heap /
+  // task monitor (8), OTA (0) and core dump (4) next to its own protocol, so
+  // the hosted system / OTA / coredump consoles and the Device Hub work
+  // against it. A panic core-dumps to the `coredump` partition and is
+  // reported on the next boot; OTA rollback confirmation is host-driven.
+  espp::CoreDump core_dump({.log_level = espp::Logger::Verbosity::INFO});
+  const std::string crash_report = core_dump.format_report();
+  if (crash_report.empty())
+    logger.info("Clean boot history (reset reason: {})",
+                espp::CoreDump::reset_reason_name(espp::CoreDump::reset_reason()));
+  else
+    logger.error("Previous abnormal reset:\n{}", crash_report);
+  espp::Ota ota({.reject_same_version = false, .log_level = espp::Logger::Verbosity::INFO});
+  if (ota.is_pending_verify())
+    logger.warn("This image is PENDING VERIFY (first boot after an OTA update): it rolls back on "
+                "the next reset unless the host confirms it (MARK_VALID from the OTA console)");
+
+  // The standard services, one per transport, all sending through send_to (so
+  // they share the tx_mutex with the CAN_RX stream and the bridge replies).
+  // A reboot takes the bus down first so the controller never reboots while
+  // transmitting.
+  auto vendor_send = [&](std::span<const uint8_t> f) { send_to(Transport::Vendor, f); };
+  auto cdc_send = [&](std::span<const uint8_t> f) { send_to(Transport::Cdc, f); };
+  auto reboot_request = [&](espp::SystemService::RebootKind kind) {
+    logger.warn("Host requested a {}; stopping the CAN bus and allowing it",
+                kind == espp::SystemService::RebootKind::Bootloader ? "reboot into the bootloader"
+                                                                    : "reboot");
+    stop_bus();
+    return true;
+  };
+  espp::SystemService vendor_system({.send = vendor_send,
+                                     .on_reboot_request = reboot_request,
+                                     .log_level = espp::Logger::Verbosity::INFO});
+  espp::SystemService cdc_system({.send = cdc_send,
+                                  .on_reboot_request = reboot_request,
+                                  .log_level = espp::Logger::Verbosity::INFO});
+  espp::MonitorService vendor_monitor(
+      {.send = vendor_send,
+       .task_config = {.name = "monitor_v", .stack_size_bytes = 6 * 1024},
+       .log_level = espp::Logger::Verbosity::INFO});
+  espp::MonitorService cdc_monitor(
+      {.send = cdc_send,
+       .task_config = {.name = "monitor_c", .stack_size_bytes = 6 * 1024},
+       .log_level = espp::Logger::Verbosity::INFO});
+  espp::OtaService vendor_ota(ota,
+                              {.send = vendor_send, .log_level = espp::Logger::Verbosity::INFO});
+  espp::OtaService cdc_ota(ota, {.send = cdc_send, .log_level = espp::Logger::Verbosity::INFO});
+  espp::CoreDumpService vendor_coredump(
+      core_dump, {.send = vendor_send, .log_level = espp::Logger::Verbosity::INFO});
+  espp::CoreDumpService cdc_coredump(
+      core_dump, {.send = cdc_send, .log_level = espp::Logger::Verbosity::INFO});
+
+  // On an RX overflow the OTA service aborts a transfer it owned and tells the
+  // host (an OTA image with dropped bytes is unusable).
   espp::DispatcherWorker vendor_link(
-      {.send = [&](std::span<const uint8_t> f) { send_to(Transport::Vendor, f); },
+      {.send = vendor_send,
+       .on_overflow = [&]() { vendor_ota.on_rx_overflow(); },
        .task_config = {.name = "can_bridge_vendor", .stack_size_bytes = 8192}});
   espp::DispatcherWorker cdc_link(
-      {.send = [&](std::span<const uint8_t> f) { send_to(Transport::Cdc, f); },
+      {.send = cdc_send,
+       .on_overflow = [&]() { cdc_ota.on_rx_overflow(); },
        .task_config = {.name = "can_bridge_cdc", .stack_size_bytes = 8192}});
+  vendor_link.register_module(vendor_system);
+  vendor_link.register_module(vendor_monitor);
+  vendor_link.register_module(vendor_ota);
+  vendor_link.register_module(vendor_coredump);
+  cdc_link.register_module(cdc_system);
+  cdc_link.register_module(cdc_monitor);
+  cdc_link.register_module(cdc_ota);
+  cdc_link.register_module(cdc_coredump);
   // Advertise the CAN-bridge module for capability discovery so the browser
   // Device Hub can list and link it. The handler is registered on each worker
   // with THAT worker's sender captured, so replies go back on the stream the

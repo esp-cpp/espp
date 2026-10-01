@@ -23,7 +23,10 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/dispatcher"
   "../../../components/format"
   "../../../components/logger"
+  "../../../components/monitor"
+  "../../../components/ota"
   "../../../components/stream_frame"
+  "../../../components/system"
   "../../../components/task"
   "../../../components/usb_device"
 )
@@ -42,7 +45,7 @@ endif()
 
 set(
   COMPONENTS
-  "main esptool_py base_component coredump dispatcher format logger stream_frame task usb_device esp_tinyusb espcoredump"
+  "main esptool_py base_component coredump dispatcher format logger stream_frame task usb_device esp_tinyusb espcoredump monitor ota system esp_psram"
   CACHE STRING
   "List of components to include"
   )

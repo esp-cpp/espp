@@ -22,12 +22,16 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 set(EXTRA_COMPONENT_DIRS
   "../../../components/base_component"
   "../../../components/canopen"
+  "../../../components/coredump"
   "../../../components/dispatcher"
   "../../../components/format"
   "../../../components/logger"
   "../../../components/mcp266"
+  "../../../components/monitor"
   "../../../components/motor_controller"
+  "../../../components/ota"
   "../../../components/stream_frame"
+  "../../../components/system"
   "../../../components/task"
   "../../../components/twai"
   "../../../components/usb_device"
@@ -46,7 +50,7 @@ endif()
 
 set(
   COMPONENTS
-  "main esptool_py base_component canopen dispatcher format logger mcp266 motor_controller stream_frame task twai usb_device esp_tinyusb"
+  "main esptool_py base_component canopen dispatcher format logger mcp266 motor_controller stream_frame task twai usb_device esp_tinyusb coredump monitor ota system espcoredump esp_psram"
   CACHE STRING
   "List of components to include"
   )

@@ -16,12 +16,15 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 set(EXTRA_COMPONENT_DIRS
   "../../../components/base_component"
   "../../../components/cli"
+  "../../../components/coredump"
   "../../../components/dispatcher"
   "../../../components/format"
   "../../../components/logger"
+  "../../../components/monitor"
   "../../../components/nvs"
   "../../../components/ota"
   "../../../components/stream_frame"
+  "../../../components/system"
   "../../../components/task"
   "../../../components/usb_device"
   "../../../components/wifi"
@@ -41,7 +44,7 @@ endif()
 
 set(
   COMPONENTS
-  "main esptool_py base_component cli dispatcher format logger nvs ota stream_frame task usb_device wifi esp_tinyusb"
+  "main esptool_py base_component cli dispatcher format logger nvs ota stream_frame task usb_device wifi esp_tinyusb coredump monitor system espcoredump esp_psram"
   CACHE STRING
   "List of components to include"
   )
