@@ -274,10 +274,272 @@ const info = (version, mods) => ({ version, device: "d", fw: "1", modules: mods 
   console.log("PASS lint: every console builds / matches frames with its resolved module id only");
 }
 
-// ---- the hub links every app with its module id ------------------------------
+// ---- the hub links every app with its module id + the device identity -------
 {
-  assert.ok(hubSrc.includes('a.href = m.app + "?module=" + m.id;'), "hub must link app?module=<id>");
-  console.log("PASS hub links each console with ?module=<id>");
+  assert.ok(hubSrc.includes('a.href = file + "?" + connectQuery(moduleId, transport ? transport.identity() : null);'),
+    "hub must link app?<connectQuery(module id, device identity)>");
+  assert.ok(hubSrc.includes("const a = appLink(m.app, m.id);") && hubSrc.includes("const a = appLink(e.app.file, e.module.id);"),
+    "every hub app link must go through appLink()");
+  console.log("PASS hub links each console with ?module=<id>&autoconnect=... via appLink()");
 }
 
-console.log("ALL TESTS PASSED");
+// =============================================================================
+// Connection helpers: auto-connect params, permitted-device matching, the
+// reconnect supervisor, hand-off notices. One block, byte-identical in every
+// console AND the hub, delimited by the begin / end marker comments.
+// =============================================================================
+function extractConnectBlock(src, rel) {
+  const start = src.indexOf("    // --- begin connection helpers");
+  assert.ok(start >= 0, rel + ": no connection helper block");
+  const endMarker = "    // --- end connection helpers ---\n";
+  const end = src.indexOf(endMarker, start);
+  assert.ok(end >= 0, rel + ": unterminated connection helper block");
+  return src.slice(start, end + endMarker.length);
+}
+let connectBlock = null;
+for (const rel of [...consoles, hub]) {
+  const b = extractConnectBlock(fs.readFileSync(path.join(root, rel), "utf8"), rel);
+  if (connectBlock === null) connectBlock = b;
+  else assert.strictEqual(b, connectBlock, rel + ": connection helper block differs from " + consoles[0]);
+}
+console.log("PASS every console and the hub carry the identical connection helper block (" + (consoles.length + 1) + " files)");
+
+const conn = new Function(connectBlock + "\n return { parseConnectParams, usbIdentity, serialIdentity, describeIdentity, connectQuery, pickUsbDevice, pickSerialPort, findPermittedUsbDevice, findPermittedSerialPort, loadAutoReconnect, saveAutoReconnect, createReconnectSupervisor, watchDeviceArrivals, openDeviceChannel, postReleased };")();
+
+// ---- parseConnectParams / connectQuery ---------------------------------------
+{
+  const p = conn.parseConnectParams("?module=3&autoconnect=1&transport=USB&vid=0x1209&pid=3378&serial=AB%20C");
+  assert.deepStrictEqual(p, { autoconnect: true, transport: "usb", vid: 0x1209, pid: 3378, serial: "AB C" });
+  assert.deepStrictEqual(conn.parseConnectParams(""), { autoconnect: false, transport: null, vid: null, pid: null, serial: null });
+  assert.deepStrictEqual(conn.parseConnectParams(undefined).autoconnect, false);
+  // flag spellings; anything else is off
+  for (const v of ["1", "true", "YES"]) assert.strictEqual(conn.parseConnectParams("?autoconnect=" + v).autoconnect, true, v);
+  for (const v of ["0", "false", "", "on"]) assert.strictEqual(conn.parseConnectParams("?autoconnect=" + v).autoconnect, false, v);
+  // transport: usb / serial only
+  assert.strictEqual(conn.parseConnectParams("?transport=Serial").transport, "serial");
+  assert.strictEqual(conn.parseConnectParams("?transport=ble").transport, null);
+  // ids: whole-token hex or decimal, 16-bit; garbage -> null (never NaN)
+  assert.strictEqual(conn.parseConnectParams("?vid=0x1209").vid, 0x1209);
+  assert.strictEqual(conn.parseConnectParams("?vid=4617").vid, 4617);
+  assert.strictEqual(conn.parseConnectParams("?vid= 0XFFFF ").vid, 0xFFFF);
+  for (const bad of ["0x10000", "65536", "-1", "1.5", "0x", "12ab", "abc", ""]) assert.strictEqual(conn.parseConnectParams("?vid=" + bad).vid, null, bad);
+  assert.strictEqual(conn.parseConnectParams("?serial=%20%20").serial, null);
+  // connectQuery round-trips through parseConnectParams and keeps ?module=
+  const id = { transport: "usb", vid: 0x1209, pid: 0x0d32, serial: "AB C" };
+  const q = conn.connectQuery(9, id);
+  assert.strictEqual(q, "module=9&autoconnect=1&transport=usb&vid=0x1209&pid=0x0d32&serial=AB+C");
+  assert.strictEqual(moduleOverrideFromQuery("?" + q), 9);
+  assert.deepStrictEqual(conn.parseConnectParams("?" + q), { autoconnect: true, ...id });
+  // no identity -> module only (a plain link, no auto-connect); serial ports carry no serial
+  assert.strictEqual(conn.connectQuery(4, null), "module=4");
+  assert.strictEqual(conn.connectQuery(4, { transport: "serial", vid: 0x1209, pid: 0x0d36, serial: null }), "module=4&autoconnect=1&transport=serial&vid=0x1209&pid=0x0d36");
+  assert.strictEqual(conn.connectQuery(4, { transport: "ble", vid: 1, pid: 2 }), "module=4");
+  // identities
+  assert.deepStrictEqual(conn.usbIdentity({ vendorId: 1, productId: 2, serialNumber: "" }), { transport: "usb", vid: 1, pid: 2, serial: null });
+  assert.deepStrictEqual(conn.serialIdentity({ getInfo: () => ({ usbVendorId: 1, usbProductId: 2 }) }), { transport: "serial", vid: 1, pid: 2, serial: null });
+  assert.deepStrictEqual(conn.serialIdentity({ getInfo: () => ({}) }), { transport: "serial", vid: null, pid: null, serial: null });
+  assert.deepStrictEqual(conn.serialIdentity({}), { transport: "serial", vid: null, pid: null, serial: null });
+  assert.strictEqual(conn.describeIdentity(id), "USB device 0x1209:0x0d32 sn AB C");
+  assert.strictEqual(conn.describeIdentity({ transport: "serial", vid: null, pid: 3 }), "serial port ?:0x0003");
+  assert.strictEqual(conn.describeIdentity(null), "device");
+  console.log("PASS parseConnectParams / connectQuery / identities");
+}
+
+// ---- permitted-device matching ------------------------------------------------
+{
+  const dev = (vid, pid, sn) => ({ vendorId: vid, productId: pid, serialNumber: sn });
+  const A = dev(0x1209, 1, "A"), B = dev(0x1209, 1, "B"), N = dev(0x1209, 1, undefined), O = dev(0x1209, 2, "O"), X = dev(0x2341, 1, "X");
+  // vid + pid + serial: exact serial wins; a different serial is another device
+  assert.strictEqual(conn.pickUsbDevice([A, B, O], { vid: 0x1209, pid: 1, serial: "B" }), B);
+  assert.strictEqual(conn.pickUsbDevice([A, O], { vid: 0x1209, pid: 1, serial: "B" }), null);
+  // wanted serial but the device reports none: only when it is the sole unnamed candidate
+  assert.strictEqual(conn.pickUsbDevice([A, N], { vid: 0x1209, pid: 1, serial: "B" }), N);
+  assert.strictEqual(conn.pickUsbDevice([N, dev(0x1209, 1, null)], { vid: 0x1209, pid: 1, serial: "B" }), null);
+  // no serial wanted: first vid+pid match
+  assert.strictEqual(conn.pickUsbDevice([O, B, A], { vid: 0x1209, pid: 1, serial: null }), B);
+  assert.strictEqual(conn.pickUsbDevice([O, X], { vid: 0x1209, pid: 1 }), null);
+  // pid alone / vid alone filter on what is given
+  assert.strictEqual(conn.pickUsbDevice([X, O], { vid: null, pid: 2 }), O);
+  assert.strictEqual(conn.pickUsbDevice([X, O], { vid: 0x2341, pid: null }), X);
+  // nothing wanted: only a lone permitted device
+  assert.strictEqual(conn.pickUsbDevice([A], null), A);
+  assert.strictEqual(conn.pickUsbDevice([A, B], { vid: null, pid: null, serial: null }), null);
+  assert.strictEqual(conn.pickUsbDevice([], { vid: 0x1209, pid: 1 }), null);
+  assert.strictEqual(conn.pickUsbDevice(null, { vid: 0x1209, pid: 1 }), null);
+  assert.strictEqual(conn.pickUsbDevice([null, A], { vid: 0x1209, pid: 1 }), A);
+  // serial ports: vid + pid from getInfo(); serial numbers are not exposed, so ignored
+  const port = (vid, pid) => ({ getInfo: () => (vid == null ? {} : { usbVendorId: vid, usbProductId: pid }) });
+  const P1 = port(0x1209, 1), P2 = port(0x1209, 2), PN = port(null);
+  assert.strictEqual(conn.pickSerialPort([PN, P2, P1], { vid: 0x1209, pid: 1, serial: "ignored" }), P1);
+  assert.strictEqual(conn.pickSerialPort([PN, P2], { vid: 0x1209, pid: 1 }), null);
+  assert.strictEqual(conn.pickSerialPort([PN], null), PN);
+  assert.strictEqual(conn.pickSerialPort([PN, P1], { vid: null, pid: null }), null);
+  assert.strictEqual(conn.pickSerialPort([{}], { vid: 1, pid: 1 }), null); // no getInfo at all
+  console.log("PASS pickUsbDevice / pickSerialPort matching rules");
+}
+
+// ---- findPermitted* with a fake navigator (missing API, rejecting API) ---------
+(async () => {
+  const saved = global.navigator;
+  const setNav = (v) => Object.defineProperty(global, "navigator", { value: v, configurable: true, writable: true });
+  try {
+    setNav({});
+    assert.strictEqual(await conn.findPermittedUsbDevice({ vid: 1, pid: 1 }), null);
+    assert.strictEqual(await conn.findPermittedSerialPort({ vid: 1, pid: 1 }), null);
+    const D = { vendorId: 1, productId: 1, serialNumber: "s" };
+    setNav({ usb: { getDevices: async () => [D] }, serial: { getPorts: async () => { throw new Error("denied"); } } });
+    assert.strictEqual(await conn.findPermittedUsbDevice({ vid: 1, pid: 1, serial: "s" }), D);
+    assert.strictEqual(await conn.findPermittedSerialPort({ vid: 1, pid: 1 }), null); // a rejecting API is "nothing found"
+    // watchDeviceArrivals wires both platform "connect" events to the supervisor
+    const listeners = {};
+    setNav({ usb: { addEventListener: (n, f) => { listeners["usb:" + n] = f; } }, serial: { addEventListener: (n, f) => { listeners["serial:" + n] = f; } } });
+    let appeared = 0;
+    conn.watchDeviceArrivals({ onDeviceAppeared: () => appeared++ });
+    listeners["usb:connect"](); listeners["serial:connect"]();
+    assert.strictEqual(appeared, 2);
+    console.log("PASS findPermittedUsbDevice / findPermittedSerialPort / watchDeviceArrivals");
+  } finally {
+    if (saved === undefined) delete global.navigator; else setNav(saved);
+  }
+  await supervisorTests();
+  await noticeTests();
+  console.log("ALL TESTS PASSED");
+})().catch((e) => { console.error(e); process.exit(1); });
+
+// ---- the reconnect supervisor -------------------------------------------------
+const tick = (ms) => new Promise((r) => setTimeout(r, ms));
+async function supervisorTests() {
+  const id = { transport: "usb", vid: 1, pid: 2, serial: null };
+  // reconnects after an unexpected loss: retries on the back-off until an attempt succeeds
+  {
+    const log = []; let n = 0;
+    const s = conn.createReconnectSupervisor({ delaysMs: [1, 1, 1, 1], enabled: () => true, log: (c, t) => log.push(c + ":" + t), reconnect: async () => (++n >= 3) });
+    s.onLinkLost(id);
+    assert.ok(s.isActive());
+    await tick(40);
+    assert.strictEqual(n, 3); assert.ok(!s.isActive());
+    assert.ok(log[0].startsWith("sys:Link lost — trying to reconnect to USB device 0x0001:0x0002"), log[0]);
+    assert.strictEqual(log.length, 1); // success logs nothing more
+  }
+  // gives up after the plan is exhausted (and says so); attempt errors are logged, not fatal
+  {
+    const log = []; let n = 0;
+    const s = conn.createReconnectSupervisor({ delaysMs: [1, 1, 1], enabled: () => true, log: (c, t) => log.push(c + ":" + t), reconnect: async () => { n++; throw new Error("busy"); } });
+    s.onLinkLost(id);
+    await tick(40);
+    assert.strictEqual(n, 3); assert.ok(!s.isActive());
+    assert.strictEqual(log.filter((l) => l.startsWith("warn:reconnect attempt")).length, 3);
+    assert.ok(log[log.length - 1].includes("gave up reconnecting after 3 attempts"), log);
+  }
+  // the checkbox: off at the loss -> nothing; turned off mid-way -> stops
+  {
+    let n = 0, on = false;
+    const s = conn.createReconnectSupervisor({ delaysMs: [1, 1, 1], enabled: () => on, reconnect: async () => { n++; return false; } });
+    s.onLinkLost(id); assert.ok(!s.isActive());
+    on = true; s.onLinkLost(id); assert.ok(s.isActive());
+    on = false; await tick(20);
+    assert.strictEqual(n, 0); assert.ok(!s.isActive());
+  }
+  // expectReboot(): the longer plan + a "rebooting" message; connected() clears it
+  {
+    const log = [];
+    const s = conn.createReconnectSupervisor({ delaysMs: [1], rebootDelaysMs: [1, 1, 1, 1, 1], enabled: () => true, log: (c, t) => log.push(t), reconnect: async () => false });
+    s.expectReboot(); s.onLinkLost(id);
+    await tick(40);
+    assert.ok(log[0].startsWith("Device is rebooting — reconnecting to"), log[0]);
+    assert.ok(log[log.length - 1].includes("after 5 attempts"), log);
+    s.expectReboot(); s.connected(); s.onLinkLost(id); await tick(20);
+    assert.ok(log.some((t) => t.startsWith("Link lost")) && log[log.length - 1].includes("after 1 attempts"), log);
+  }
+  // suppress(): a bootloader reboot -> no attempt at all, explained once, then cleared
+  {
+    const log = []; let n = 0;
+    const s = conn.createReconnectSupervisor({ delaysMs: [1], enabled: () => true, log: (c, t) => log.push(t), reconnect: async () => { n++; return true; } });
+    s.suppress(); s.onLinkLost(id);
+    await tick(10);
+    assert.strictEqual(n, 0); assert.ok(!s.isActive());
+    assert.ok(log.length === 1 && /bootloader/.test(log[0]), log);
+    s.onLinkLost(id); await tick(10); // the next loss reconnects normally
+    assert.strictEqual(n, 1);
+  }
+  // onDeviceAppeared(): a platform connect event retries at once (before the long delay)
+  {
+    let n = 0;
+    const s = conn.createReconnectSupervisor({ delaysMs: [10000, 10000], enabled: () => true, reconnect: async () => (++n >= 1) });
+    s.onLinkLost(id); s.onDeviceAppeared();
+    await tick(150);
+    assert.strictEqual(n, 1); assert.ok(!s.isActive());
+    s.onDeviceAppeared(); await tick(150); assert.strictEqual(n, 1); // inert when idle
+  }
+  // stop(): a manual disconnect cancels a pending attempt; an attempt that
+  // completes after stop() / a newer loss is ignored (generation check)
+  {
+    let n = 0, resolveAttempt = null;
+    const s = conn.createReconnectSupervisor({ delaysMs: [1, 1], enabled: () => true, reconnect: () => new Promise((r) => { n++; resolveAttempt = r; }) });
+    s.onLinkLost(id); await tick(10);
+    assert.strictEqual(n, 1); s.stop();
+    assert.ok(!s.isActive()); resolveAttempt(false); await tick(10);
+    assert.strictEqual(n, 1); // no reschedule after stop
+    // no identity -> nothing to reconnect to
+    s.onLinkLost(null); assert.ok(!s.isActive());
+  }
+  console.log("PASS reconnect supervisor: back-off, give-up, checkbox, expectReboot, suppress, device arrival, stop");
+}
+
+// ---- hand-off notices + the checkbox preference ---------------------------------
+async function noticeTests() {
+  const posted = [];
+  conn.postReleased({ postMessage: (m) => posted.push(m) }, { transport: "usb", vid: 1, pid: 2, serial: "s" });
+  assert.strictEqual(posted.length, 1);
+  assert.deepStrictEqual(posted[0], { type: "released", identity: { transport: "usb", vid: 1, pid: 2, serial: "s" }, page: "" });
+  conn.postReleased(null, { transport: "usb" }); conn.postReleased({ postMessage: () => {} }, null);
+  conn.postReleased({ postMessage: () => { throw new Error("closed"); } }, { transport: "usb" }); // best effort
+  assert.strictEqual(posted.length, 1);
+  // no BroadcastChannel / no localStorage in this environment: safe defaults
+  const BC = global.BroadcastChannel; delete global.BroadcastChannel;
+  assert.strictEqual(conn.openDeviceChannel(), null);
+  if (BC) global.BroadcastChannel = BC;
+  assert.strictEqual(conn.loadAutoReconnect(), true); // default on (no storage at all here)
+  conn.saveAutoReconnect(false); // must not throw without localStorage
+  console.log("PASS released notice + auto-reconnect preference defaults");
+}
+
+// ---- lint: every console wires the helpers the same way ---------------------------
+{
+  const must = (src, rel, re, what) => assert.ok(re.test(src), rel + ": " + what);
+  for (const rel of consoles) {
+    const src = fs.readFileSync(path.join(root, rel), "utf8");
+    must(src, rel, /<input type="checkbox" id="autoReconnect" checked>/, "no auto-reconnect checkbox (default on)");
+    must(src, rel, /const connectParams = parseConnectParams\(location\.search\);/, "does not parse the connect params");
+    must(src, rel, /const reconnect = createReconnectSupervisor\(\{/, "no reconnect supervisor");
+    must(src, rel, /watchDeviceArrivals\(reconnect\);/, "does not watch device arrivals");
+    must(src, rel, /loadAutoReconnect\(\)/, "checkbox not initialised from the stored preference");
+    must(src, rel, /saveAutoReconnect\(/, "checkbox change not persisted");
+    must(src, rel, /reconnect\.connected\(\);/, "a successful connect must reset the supervisor");
+    must(src, rel, /reconnect\.onLinkLost\(connIdentity\);/, "an unexpected link loss must arm the supervisor");
+    must(src, rel, /reconnect\.stop\(\);\s*postReleased\(deviceChannel, connIdentity\);\s*connIdentity = null;/, "a manual disconnect must stop the supervisor and post the released notice");
+    must(src, rel, /window\.addEventListener\("pagehide", \(\) => \{ if \([^)]*\) postReleased\(deviceChannel, connIdentity\); \}\);/, "no released notice on pagehide");
+    must(src, rel, /if \(connectParams\.autoconnect\) autoConnect\(\);/, "no auto-connect kick-off");
+    // the chooser-less open paths exist: a preset device / port skips requestDevice / requestPort
+    must(src, rel, /preset \|\| await navigator\.(usb\.requestDevice|serial\.requestPort)|if \(preset\) return preset;/, "no chooser-less (preset) open path");
+    if (src.includes("navigator.serial.requestPort(")) must(src, rel, /preset \|\| await navigator\.serial\.requestPort\(/, "serial open path ignores a preset port");
+  }
+  const sys = fs.readFileSync(path.join(root, "components/system/web/system_console.html"), "utf8");
+  assert.ok(/if \(bootloader\) reconnect\.suppress\(\); else reconnect\.expectReboot\(\);/.test(sys), "system console: REBOOT arms, REBOOT_TO_BOOTLOADER suppresses");
+  const ota = fs.readFileSync(path.join(root, "components/ota/web/ota_console.html"), "utf8");
+  assert.ok((ota.match(/reconnect\.expectReboot\(\);/g) || []).length >= 2, "ota console: FINISH and rollback arm the supervisor");
+  const cd = fs.readFileSync(path.join(root, "components/coredump/web/coredump_console.html"), "utf8");
+  assert.ok(/reconnect\.expectReboot\(\);/.test(cd), "coredump console: a triggered crash arms the supervisor");
+  // the hub: hands off (closes BEFORE opening the app), offers Reconnect, never auto-reconnects
+  const handOff = /async function handOff\([^)]*\) \{([\s\S]*?)\n    \}\n/.exec(hubSrc);
+  assert.ok(handOff, "hub: no handOff()");
+  // (the early return for "not connected" opens the plain link first; the hand-off path closes, then opens)
+  assert.ok(handOff[1].indexOf("await disconnect();") >= 0 && handOff[1].indexOf("await disconnect();") < handOff[1].lastIndexOf("window.open("), "hub: handOff must close the device before opening the app");
+  assert.ok(!/createReconnectSupervisor\(\{/.test(hubSrc.replace(connectBlock, "")), "hub must not auto-reconnect");
+  assert.ok(/els\.reconnectBtn\.addEventListener\("click", reconnectHandedOff\);/.test(hubSrc), "hub: no Reconnect button");
+  assert.ok(/deviceChannel\.onmessage = /.test(hubSrc) && /msg\.type !== "released"/.test(hubSrc), "hub: does not listen for released notices");
+  assert.ok(/const preset = kind === "usb" \? await findPermittedUsbDevice\(want\) : await findPermittedSerialPort\(want\);/.test(hubSrc), "hub: Reconnect must try the permitted device before the chooser");
+  console.log("PASS lint: every console wires auto-connect / auto-reconnect / released notices; the hub hands off and never auto-reconnects");
+}
+
+

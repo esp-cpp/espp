@@ -277,6 +277,7 @@
         <button id="connectSerialBtn">Connect (Web Serial)</button>
         <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
         <label><input type="checkbox" id="anyDevice"> Any device (ignore VID/PID filter)</label>
+        <label title="Reconnect automatically when the device comes back after a reboot or re-plug"><input type="checkbox" id="autoReconnect" checked> auto-reconnect</label>
       </div>
       <p id="devInfo" class="muted" style="margin: 10px 0 0;">Not connected. WebUSB default filter: any espp device (VID 0x1209); the vendor (0xFF) interface is discovered from the descriptors at runtime.</p>
     </div>
@@ -579,8 +580,7 @@
     // Elements & helpers
     // ===================================================================
     const els = {};
-    for (const id of ["status", "connectUsbBtn", "connectSerialBtn", "disconnectBtn", "anyDevice",
-                      "devInfo", "baud", "mode", "nodeId", "applyBtn", "startBtn", "stopBtn",
+    for (const id of ["status", "connectUsbBtn", "connectSerialBtn", "disconnectBtn", "anyDevice", "autoReconnect", "devInfo", "baud", "mode", "nodeId", "applyBtn", "startBtn", "stopBtn",
                       "stRunning", "stBaud", "stMode", "stRx", "stTx", "stErr",
                       "nmtStartBtn", "nmtPreopBtn", "nmtStopBtn", "nmtResetNodeBtn", "nmtResetCommBtn",
                       "readIdentityBtn", "idDeviceType", "idDeviceName", "idVendor", "idProduct",
@@ -773,8 +773,10 @@
     }
     class UsbTransport {
       constructor() { this.device = null; this.iface = null; this.epIn = null; this.epOut = null; this.inSize = 64; this.reading = false; }
-      async open(anyDevice) {
-        this.device = await requestUsbDevice(anyDevice);
+      // `preset`: an already-permitted USBDevice (auto-connect / reconnect) is
+      // opened directly, without the chooser.
+      async open(anyDevice, preset) {
+        this.device = preset || await requestUsbDevice(anyDevice);
         await this.device.open();
         if (this.device.configuration === null) await this.device.selectConfiguration(1);
         const config = this.device.configuration;
@@ -807,6 +809,7 @@
         const pid = d.productId.toString(16).padStart(4, "0");
         return (d.productName || "USB device") + " (" + vid + ":" + pid + ") · iface " + this.iface + " [WebUSB]";
       }
+      identity() { return usbIdentity(this.device); }
       async send(bytes) {
         let sent = 0;
         while (sent < bytes.length) {
@@ -840,8 +843,9 @@
     }
     class SerialTransport {
       constructor() { this.port = null; this.reader = null; this.writer = null; this.reading = false; }
-      async open() {
-        this.port = await navigator.serial.requestPort();
+      // `preset`: an already-permitted SerialPort (auto-connect / reconnect).
+      async open(preset) {
+        this.port = preset || await navigator.serial.requestPort();
         await this.port.open({ baudRate: 115200 });
         this.writer = this.port.writable.getWriter();
       }
@@ -851,6 +855,7 @@
         if (info && info.usbVendorId != null) id = "USB serial (" + info.usbVendorId.toString(16).padStart(4, "0") + ":" + (info.usbProductId || 0).toString(16).padStart(4, "0") + ")";
         return id + " [Web Serial]";
       }
+      identity() { return serialIdentity(this.port); }
       async send(bytes) { await this.writer.write(bytes); }
       async readLoop(onData) {
         this.reading = true;
@@ -1394,6 +1399,172 @@
                   info ? "default" : "default; the device did not answer discovery";
       return label + " module: #" + r.id + " (" + how + ")";
     }
+
+    // --- begin connection helpers (shared; byte-identical in every console + the hub, see web/test/resolve_module_id_test.js) ---
+    // Links may carry, besides ?module=, parameters that make a page connect on
+    // load WITHOUT the browser chooser to a device this origin was already
+    // granted (the Device Hub links its apps this way after releasing the
+    // device):  ?autoconnect=1&transport=usb|serial&vid=0x1209&pid=0x0d32&serial=ABC
+    // vid / pid are hex (0x..) or decimal; `serial` is the USB serial number
+    // (WebUSB only: Web Serial exposes vid / pid alone).
+    function parseConnectParams(search) {
+      const q = new URLSearchParams(search || "");
+      const num = (key) => {
+        const raw = q.get(key);
+        if (raw === null) return null;
+        const s = raw.trim();
+        if (!/^(0x[0-9a-f]+|[0-9]+)$/i.test(s)) return null;
+        const v = Number(s);
+        return Number.isInteger(v) && v >= 0 && v <= 0xFFFF ? v : null;
+      };
+      const transport = (q.get("transport") || "").trim().toLowerCase();
+      const flag = (q.get("autoconnect") || "").trim().toLowerCase();
+      return {
+        autoconnect: flag === "1" || flag === "true" || flag === "yes",
+        transport: transport === "usb" || transport === "serial" ? transport : null,
+        vid: num("vid"),
+        pid: num("pid"),
+        serial: (q.get("serial") || "").trim() || null,
+      };
+    }
+    // The identity of an open connection: enough to find the same device again
+    // (after a reboot it re-enumerates as a NEW USBDevice / SerialPort object
+    // with the same ids) and to build hand-off links.
+    function usbIdentity(device) {
+      return { transport: "usb", vid: device.vendorId, pid: device.productId, serial: device.serialNumber || null };
+    }
+    function serialIdentity(port) {
+      const info = port && typeof port.getInfo === "function" ? (port.getInfo() || {}) : {};
+      return { transport: "serial", vid: info.usbVendorId != null ? info.usbVendorId : null,
+               pid: info.usbProductId != null ? info.usbProductId : null, serial: null };
+    }
+    function describeIdentity(identity) {
+      if (!identity) return "device";
+      const hex = (v) => v == null ? "?" : "0x" + v.toString(16).padStart(4, "0");
+      return (identity.transport === "serial" ? "serial port" : "USB device") + " " + hex(identity.vid) + ":" + hex(identity.pid) +
+             (identity.serial ? " sn " + identity.serial : "");
+    }
+    // Query string (no leading "?") for a link that opens an app on `moduleId`
+    // and auto-connects to `identity` (null -> the module id alone).
+    function connectQuery(moduleId, identity) {
+      const q = new URLSearchParams();
+      q.set("module", String(moduleId));
+      if (identity && (identity.transport === "usb" || identity.transport === "serial")) {
+        q.set("autoconnect", "1");
+        q.set("transport", identity.transport);
+        if (identity.vid != null) q.set("vid", "0x" + identity.vid.toString(16).padStart(4, "0"));
+        if (identity.pid != null) q.set("pid", "0x" + identity.pid.toString(16).padStart(4, "0"));
+        if (identity.serial) q.set("serial", identity.serial);
+      }
+      return q.toString();
+    }
+    // Pick, among the devices this origin may already use (navigator.usb
+    // .getDevices() / navigator.serial.getPorts()), the one `want` names: vid
+    // and pid must match when given; a serial number must match when both sides
+    // report one (a device that reports none is accepted only when it is the
+    // sole candidate). Several candidates without a serial -> the first. With no
+    // ids at all only a lone permitted device is accepted.
+    function pickUsbDevice(devices, want) {
+      const list = Array.isArray(devices) ? devices.filter(Boolean) : [];
+      if (!want || (want.vid == null && want.pid == null && !want.serial)) return list.length === 1 ? list[0] : null;
+      const byIds = list.filter(d => (want.vid == null || d.vendorId === want.vid) && (want.pid == null || d.productId === want.pid));
+      if (want.serial) {
+        const exact = byIds.find(d => d.serialNumber === want.serial);
+        if (exact) return exact;
+        const unnamed = byIds.filter(d => !d.serialNumber);
+        return unnamed.length === 1 ? unnamed[0] : null;
+      }
+      return byIds.length ? byIds[0] : null;
+    }
+    function pickSerialPort(ports, want) {
+      const list = Array.isArray(ports) ? ports.filter(Boolean) : [];
+      if (!want || (want.vid == null && want.pid == null)) return list.length === 1 ? list[0] : null;
+      const byIds = list.filter(p => { const id = serialIdentity(p); return (want.vid == null || id.vid === want.vid) && (want.pid == null || id.pid === want.pid); });
+      return byIds.length ? byIds[0] : null;
+    }
+    async function findPermittedUsbDevice(want) {
+      if (typeof navigator === "undefined" || !navigator.usb || typeof navigator.usb.getDevices !== "function") return null;
+      try { return pickUsbDevice(await navigator.usb.getDevices(), want); } catch (_) { return null; }
+    }
+    async function findPermittedSerialPort(want) {
+      if (typeof navigator === "undefined" || !navigator.serial || typeof navigator.serial.getPorts !== "function") return null;
+      try { return pickSerialPort(await navigator.serial.getPorts(), want); } catch (_) { return null; }
+    }
+    // "Auto-reconnect" checkbox preference, shared by every app on this origin
+    // (localStorage; default on; access may throw in private windows).
+    const AUTO_RECONNECT_KEY = "espp.autoReconnect";
+    function loadAutoReconnect() {
+      try { const v = localStorage.getItem(AUTO_RECONNECT_KEY); return v === null ? true : v === "1"; } catch (_) { return true; }
+    }
+    function saveAutoReconnect(on) { try { localStorage.setItem(AUTO_RECONNECT_KEY, on ? "1" : "0"); } catch (_) {} }
+    // Reconnect supervisor. After an UNEXPECTED link loss (unplug, reboot) it
+    // retries opts.reconnect(identity, attempt) -> bool on a bounded back-off
+    // until an attempt succeeds, the attempts run out, or stop() is called; a
+    // platform `connect` event (onDeviceAppeared) retries at once. opts.enabled()
+    // (the checkbox) is consulted on every attempt. expectReboot() marks a
+    // reboot the page itself requested (longer window, friendlier log);
+    // suppress() cancels reconnecting until the next successful connect (a
+    // bootloader reboot: the device comes back as a DIFFERENT USB device that
+    // this page cannot drive). opts.log(cls, text) receives progress lines.
+    function createReconnectSupervisor(opts) {
+      const delays = opts.delaysMs || [500, 1000, 1500, 2000, 3000, 4000, 5000, 5000, 5000, 5000];
+      const rebootDelays = opts.rebootDelaysMs || delays.concat([5000, 5000, 5000, 5000, 5000, 5000]);
+      const log = typeof opts.log === "function" ? opts.log : () => {};
+      const sup = { active: false, identity: null, attempt: 0, expected: false, suppressed: false, timer: null, generation: 0 };
+      const clearTimer = () => { if (sup.timer) { clearTimeout(sup.timer); sup.timer = null; } };
+      const schedule = (gen, ms) => { clearTimer(); sup.timer = setTimeout(() => { sup.timer = null; attempt(gen); }, ms); };
+      async function attempt(gen) {
+        if (gen !== sup.generation || !sup.active) return;
+        if (!opts.enabled()) { sup.stop("auto-reconnect is off"); return; }
+        const plan = sup.expected ? rebootDelays : delays;
+        sup.attempt++;
+        let ok = false;
+        try { ok = await opts.reconnect(sup.identity, sup.attempt); }
+        catch (e) { log("warn", "reconnect attempt " + sup.attempt + " failed: " + (e && e.message ? e.message : e)); }
+        if (gen !== sup.generation || !sup.active) return;
+        if (ok) { sup.active = false; sup.expected = false; clearTimer(); return; }
+        if (sup.attempt >= plan.length) { sup.stop("gave up reconnecting after " + sup.attempt + " attempts; use Connect"); return; }
+        schedule(gen, plan[sup.attempt]);
+      }
+      // the page lost its connection without asking for it
+      sup.onLinkLost = (identity) => {
+        clearTimer();
+        sup.generation++;
+        if (sup.suppressed) { sup.suppressed = false; sup.active = false; log("sys", "Not reconnecting: the device was asked to reboot into its bootloader (it enumerates as a different USB device; use Connect once it is back in the application)."); return; }
+        if (!opts.enabled() || !identity) { sup.active = false; return; }
+        sup.active = true; sup.identity = identity; sup.attempt = 0;
+        const plan = sup.expected ? rebootDelays : delays;
+        log("sys", (sup.expected ? "Device is rebooting — reconnecting to " : "Link lost — trying to reconnect to ") + describeIdentity(identity) + " (auto-reconnect; uncheck to stop)…");
+        schedule(sup.generation, plan[0]);
+      };
+      // a permitted device re-appeared (navigator.usb / navigator.serial "connect")
+      sup.onDeviceAppeared = () => { if (sup.active) schedule(sup.generation, 100); };
+      sup.expectReboot = () => { sup.expected = true; sup.suppressed = false; };
+      sup.suppress = () => { sup.suppressed = true; sup.expected = false; };
+      // a connection was established (manually or by a successful attempt)
+      sup.connected = () => { clearTimer(); sup.generation++; sup.active = false; sup.expected = false; sup.suppressed = false; sup.attempt = 0; };
+      sup.stop = (reason) => { clearTimer(); sup.generation++; const was = sup.active; sup.active = false; sup.expected = false; if (was && reason) log("sys", "Auto-reconnect stopped: " + reason + "."); };
+      sup.isActive = () => sup.active;
+      return sup;
+    }
+    // Forward the platform "a permitted device was (re)attached" events to the
+    // supervisor so a reboot is caught the moment the device enumerates.
+    function watchDeviceArrivals(sup) {
+      if (typeof navigator === "undefined") return;
+      if (navigator.usb && typeof navigator.usb.addEventListener === "function") navigator.usb.addEventListener("connect", () => sup.onDeviceAppeared());
+      if (navigator.serial && typeof navigator.serial.addEventListener === "function") navigator.serial.addEventListener("connect", () => sup.onDeviceAppeared());
+    }
+    // App -> hub notice that an app released its device (manual disconnect or
+    // page closed), so a hub that handed the device off can offer to reconnect.
+    // Same-origin pages only (BroadcastChannel); best effort everywhere.
+    function openDeviceChannel() {
+      try { return typeof BroadcastChannel === "function" ? new BroadcastChannel("espp-device") : null; } catch (_) { return null; }
+    }
+    function postReleased(channel, identity) {
+      if (!channel || !identity) return;
+      try { channel.postMessage({ type: "released", identity: identity, page: (typeof location !== "undefined" ? location.pathname : "").split("/").pop() }); } catch (_) {}
+    }
+    // --- end connection helpers ---
     // Adopt the CAN bridge module id from a discovery reply (null = none) --
     // every CAN frame built / matched from here on uses it.
     function adoptModule(info) {
@@ -1477,17 +1648,18 @@
     els.connectSerialBtn.addEventListener("click", () => connect("serial"));
     els.disconnectBtn.addEventListener("click", () => disconnect());
 
-    async function connect(kind) {
+    // `preset`: an already-permitted USBDevice / SerialPort (no chooser).
+    async function connect(kind, preset) {
       if (transport) return;
       const t = kind === "usb" ? new UsbTransport() : new SerialTransport();
-      try { if (kind === "usb") await t.open(els.anyDevice.checked); else await t.open(); }
+      try { if (kind === "usb") await t.open(els.anyDevice.checked, preset); else await t.open(preset); }
       catch (e) {
-        if (e && e.name === "NotFoundError") logLine("sys", "Device selection cancelled.");
+        if (e && e.name === "NotFoundError" && !preset) logLine("sys", "Device selection cancelled.");
         else logLine("err", "Connect failed: " + (e && e.message ? e.message : e));
         try { await t.close(); } catch (_) {}
         return;
       }
-      transport = t;
+      transport = t; connIdentity = t.identity(); reconnect.connected();
       parser.reset();
       moduleReady = false;
       const name = t.describe();
@@ -1510,6 +1682,7 @@
       sequenceCancel = true;   // stop any running enable sequence
       abortSdo("disconnected");
       const t = transport; transport = null;
+      reconnect.stop(); postReleased(deviceChannel, connIdentity); connIdentity = null;
       if (statusTimer) { clearInterval(statusTimer); statusTimer = null; }
       try { await t.close(); } catch (_) {}
       setConnectedUI(false);
@@ -1525,10 +1698,18 @@
       t.close().catch(() => {});
       setConnectedUI(false);
       setStatus("error", "Disconnected");
+      reconnect.onLinkLost(connIdentity);
     }
     if (navigator.usb && navigator.usb.addEventListener) {
       navigator.usb.addEventListener("disconnect", (e) => {
         if (transport instanceof UsbTransport && e.device === transport.device) { logLine("err", "Device disconnected."); onLinkLost(); }
+      });
+    }
+
+    if (navigator.serial && navigator.serial.addEventListener) {
+      navigator.serial.addEventListener("disconnect", (e) => {
+        const eventPort = e.port ?? e.target;
+        if (transport instanceof SerialTransport && eventPort === transport.port) { logLine("err", "Serial device disconnected."); onLinkLost(); }
       });
     }
 
@@ -2814,9 +2995,43 @@
     });
     odRender();
 
+
+    // ---- auto-connect (?autoconnect=1&transport=&vid=&pid=&serial=) + auto-reconnect ----
+    const connectParams = parseConnectParams(location.search);
+    let connIdentity = null; // identity of the current (or just lost) device
+    const deviceChannel = openDeviceChannel();
+    els.autoReconnect.checked = loadAutoReconnect();
+    els.autoReconnect.addEventListener("change", () => {
+      saveAutoReconnect(els.autoReconnect.checked);
+      if (!els.autoReconnect.checked) reconnect.stop("auto-reconnect is off");
+    });
+    const reconnect = createReconnectSupervisor({ enabled: () => els.autoReconnect.checked, log: logLine, reconnect: reconnectAttempt });
+    watchDeviceArrivals(reconnect);
+    // One reconnect attempt: the device must be back among the permitted ones.
+    async function reconnectAttempt(identity) {
+      if (transport) return true;
+      const preset = identity.transport === "usb" ? await findPermittedUsbDevice(identity) : await findPermittedSerialPort(identity);
+      if (!preset) return false;
+      await connect(identity.transport, preset);
+      return !!transport;
+    }
+    async function autoConnect() {
+      const want = connectParams;
+      for (const kind of want.transport ? [want.transport] : ["usb", "serial"]) {
+        const preset = kind === "usb" ? await findPermittedUsbDevice(want) : await findPermittedSerialPort(want);
+        if (!preset) continue;
+        logLine("sys", "Auto-connecting to " + describeIdentity(kind === "usb" ? usbIdentity(preset) : serialIdentity(preset)) + "…");
+        await connect(kind, preset);
+        return;
+      }
+      logLine("warn", "Auto-connect: no permitted " + describeIdentity(want) + " found — use Connect (the browser only lists devices this page was already granted).");
+    }
+    window.addEventListener("pagehide", () => { if (transport) postReleased(deviceChannel, connIdentity); });
+
     // Initial UI state
     setConnectedUI(false);
     setDs402State(null);
+    if (connectParams.autoconnect) autoConnect();
   </script>
 </body>
 </html>

@@ -35,6 +35,14 @@ rest, with the per-series filter bar:
 
 ## Features
 
+- **Auto-connect / auto-reconnect.** Opened with
+  `?autoconnect=1&transport=usb|serial&vid=0x1209&pid=...[&serial=...]` (the
+  query the Device Hub's links carry) the page connects on load, without the
+  browser chooser, to a device it was already granted; the **auto-reconnect**
+  checkbox (default on, remembered per origin) reconnects on the same transport
+  after an unexpected link loss (a device reboot or re-plug with the same USB
+  ids). Both only see devices the browser already granted to the page, i.e. a
+  page served over http(s); a `file://` copy loses the grant on reload.
 - **Automatic parsing.** The delimiter (comma / tab / semicolon / whitespace) is
   detected per line. A line of non-numeric labels is treated as a **header**; the
   first numeric row of matching width confirms it and becomes the schema. Rows

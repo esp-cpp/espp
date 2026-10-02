@@ -47,6 +47,17 @@ and its live task table, streamed by `MonitorService`
 
 <img width="946" alt="espp System Console streaming the task table (name, CPU %, stack high-water mark, priority, core)" src="https://github.com/user-attachments/assets/c2c962bf-debb-44c7-96a7-95527218d953" />
 
+Auto-connect / auto-reconnect: opened with
+`?autoconnect=1&transport=usb|serial&vid=0x1209&pid=0x0d3a[&serial=...]` (what
+the Device Hub's links carry) the console connects on load, without the browser
+chooser, to a device the page was already granted. The **auto-reconnect**
+checkbox (default on, remembered per origin) reconnects after an unexpected
+link loss, e.g. the **Reboot** button: the device re-enumerates with the same
+ids and the console picks it up again. **Reboot into bootloader** disables that
+for the next loss (the ROM enumerates as a different USB device). Both paths
+only see devices the browser already granted to this page, i.e. a page served
+over http(s); a `file://` copy loses the grant on reload.
+
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
 

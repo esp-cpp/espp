@@ -31,7 +31,15 @@ connect over **WebUSB** (vendor interface) or **Web Serial** (CDC — the app
 doubles as a serial monitor, rendering console text and protocol frames from
 the same stream), view the crash summary, download the core dump as
 `core.elf`, resolve backtrace addresses against your local app `.elf`
-(nearest-symbol, client-side), and erase the stored dump.
+(nearest-symbol, client-side), and erase the stored dump. Opened with
+`?autoconnect=1&transport=usb|serial&vid=0x1209&pid=0x0d36[&serial=...]` (the
+query the Device Hub's links carry) it connects on load, without the browser
+chooser, to a device the page was already granted; the **auto-reconnect**
+checkbox (default on, remembered per origin) reconnects after an unexpected
+link loss, e.g. one of the test-crash buttons: the device crashes, stores the
+dump, reboots with the same USB ids and the console picks it up and refreshes
+the summary. Both only see devices the browser already granted to this page
+(served over http(s); a `file://` copy loses the grant on reload).
 
 The same protocol is also spoken from the terminal by the pure-Python
 [`python/espp_coredump`](python/) tool, and the component's

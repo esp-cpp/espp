@@ -205,6 +205,16 @@ engine on an ESP32-S3:
 - the **same HTTP server works unchanged over Ethernet** (the espp `ethernet`
   component / any `esp_netif`)
 
+The web console auto-connects when opened with
+`?autoconnect=1&transport=usb&vid=0x1209&pid=0x0d32[&serial=...]` (the query
+the Device Hub's links carry): it connects on load, without the browser
+chooser, to a device the page was already granted. Its **auto-reconnect**
+checkbox (default on, remembered per origin) reconnects after the restart that
+follows a finished update or a rollback (same USB ids), so the post-reboot
+verify / "mark valid" prompt appears without a manual reconnect. Both only see
+devices the browser already granted to the page, i.e. a page served over
+http(s); a `file://` copy loses the grant on reload.
+
 ## Testing
 
 The wire framing is host-tested (no ESP-IDF needed):
