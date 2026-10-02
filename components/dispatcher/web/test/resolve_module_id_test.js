@@ -276,7 +276,11 @@ const info = (version, mods) => ({ version, device: "d", fw: "1", modules: mods 
 
 // ---- the hub links every app with its module id + the device identity -------
 {
-  assert.ok(hubSrc.includes('a.href = file + "?" + connectQuery(moduleId, transport ? transport.identity() : null);'),
+  // the href is the plain ?module=N link (a middle-click / "open in new tab" bypasses the
+  // click handler while the hub still owns the device); the auto-connect URL is built
+  // only by the controlled click, which releases the device first
+  assert.ok(hubSrc.includes('a.href = file + "?" + connectQuery(moduleId, null);'), "hub: the link href must not carry auto-connect parameters");
+  assert.ok(hubSrc.includes('handOff(file + "?" + connectQuery(moduleId, transport.identity()), file, tab);'),
     "hub must link app?<connectQuery(module id, device identity)>");
   assert.ok(hubSrc.includes("const a = appLink(m.app, m.id);") && hubSrc.includes("const a = appLink(e.app.file, e.module.id);"),
     "every hub app link must go through appLink()");

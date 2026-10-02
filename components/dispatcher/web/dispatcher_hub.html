@@ -698,9 +698,15 @@
     // on load without a chooser. The hub does NOT reconnect by itself afterwards
     // (it cannot tell "the app released the device" from "the device rebooted"):
     // it shows a Reconnect button instead.
+    // The href itself never carries the auto-connect parameters: a middle-click
+    // or "open link in new tab" bypasses the click handler, so the browser
+    // would open the app with autoconnect=1 while the hub still owns the
+    // device and the app's open would fail. Those activations get the plain
+    // ?module=N link (the app connects through its own chooser); only the
+    // controlled click builds the auto-connect URL, after the release.
     function appLink(file, moduleId) {
       const a = document.createElement("a");
-      a.href = file + "?" + connectQuery(moduleId, transport ? transport.identity() : null);
+      a.href = file + "?" + connectQuery(moduleId, null);
       a.target = "_blank"; a.rel = "noopener noreferrer";
       a.addEventListener("click", (ev) => {
         if (handingOff) { ev.preventDefault(); return; } // a hand-off is in progress: ignore until it settles
@@ -708,7 +714,7 @@
         ev.preventDefault();
         const tab = reserveTab(file); // synchronously, inside the user gesture
         if (!tab) return;
-        handOff(a.href, file, tab);
+        handOff(file + "?" + connectQuery(moduleId, transport.identity()), file, tab);
       });
       return a;
     }
