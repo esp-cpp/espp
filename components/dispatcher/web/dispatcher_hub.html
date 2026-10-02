@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>espp Device Hub (WebUSB / Web Serial)</title>
   <meta name="description" content="Connect to an espp device over USB (WebUSB / Web Serial) and discover which modules it runs. The device answers a capability query on the reserved dispatcher discovery module (0xFF) with its name, firmware, and the list of modules — each shown as a tab that links to its hosted web app.">
+  <meta name="espp-category" content="device management">
+  <meta name="espp-transports" content="webusb webserial">
   <style>
     :root {
       --bg: #0f1418; --panel: #161d24; --panel2: #1d262f; --line: #2a3540;
@@ -52,6 +54,19 @@
       font-weight: 600; padding: 9px 16px; border-radius: 8px; }
     a.open:hover { filter: brightness(1.08); }
     .noapp { color: var(--muted); font-style: italic; }
+    /* app registry (registry.js beside the hosted apps): device-level + per-module app lists */
+    #deviceApps { display: none; }
+    #deviceApps.show { display: block; }
+    #deviceApps .title { font-weight: 600; margin-bottom: 6px; }
+    .applist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .applist li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+    .applist a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .applist a:hover { text-decoration: underline; }
+    .applist .file { color: var(--muted); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .applist .note { color: var(--muted); font-size: 12px; }
+    .applist .note.warn { color: #d29922; }
+    .also { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .also .title { font-weight: 600; margin-bottom: 6px; }
     #unsupported { display: none; background: #3a1d1d; border: 1px solid var(--err);
       border-radius: 8px; padding: 12px 16px; margin: 18px 0; }
     #log { margin-top: 20px; background: #0b0f13; border: 1px solid var(--line); border-radius: 8px;
@@ -82,6 +97,8 @@
       <div class="muted" id="devSub">Connect to an espp device to discover the modules it runs.</div>
     </div>
 
+    <div class="banner" id="deviceApps"></div>
+
     <div class="layout">
       <div class="tabs" id="tabs"></div>
       <div class="detail" id="detail"><div class="empty">No modules yet — connect a device.</div></div>
@@ -90,6 +107,12 @@
     <div id="log"></div>
   </main>
 
+  <!-- Optional: the app registry generated beside the hosted apps by
+       doc/generate_apps_index.py (window.ESPP_APPS = every app + the protocols it
+       speaks). It lets the hub link every app that can drive a device, not only
+       the one page each module advertises. A missing file (file://, a copy of
+       this page on its own) just leaves window.ESPP_APPS undefined. -->
+  <script src="registry.js"></script>
   <script>
     "use strict";
     // ---- stream_frame v2 constants (see components/stream_frame) ----
@@ -104,7 +127,7 @@
 
     const els = {};
     for (const id of ["status","connectUsbBtn","connectSerialBtn","disconnectBtn","anyDevice",
-      "devName","devSub","tabs","detail","log","unsupported"]) els[id] = document.getElementById(id);
+      "devName","devSub","tabs","detail","log","unsupported","deviceApps"]) els[id] = document.getElementById(id);
 
     function logLine(cls, text) {
       const line = document.createElement("div");
@@ -202,6 +225,83 @@
       return typeof app === "string" && /^[A-Za-z0-9._-]+\.html$/.test(app) && !app.includes("..");
     }
 
+    // ===================== App registry matching =====================
+    // The registry (window.ESPP_APPS from registry.js) lists every hosted app
+    // with the protocols it speaks: [{file, title, description, category,
+    // protocols: [{id, version, optional}], transports}]. Matching is by the
+    // protocol ids a device advertises (discovery v2); a v1 payload carries no
+    // protocols, so nothing matches and only the advertised app is linked.
+    // --- begin app matching (pure; covered by web/test/apps_registry_test.js) ---
+    function registryApps(registry) {
+      if (!registry || !Array.isArray(registry.apps)) return [];
+      return registry.apps.filter(a => a && safeAppName(a.file) && Array.isArray(a.protocols));
+    }
+    // The first advertised module speaking `id` (any version), or null.
+    function moduleForProtocol(modules, id) {
+      return (modules || []).find(m => m && m.protocol === id) || null;
+    }
+    // Notes about how `app` fits the advertised `modules`: a version mismatch
+    // per protocol, and listed protocols the device does not advertise. `warn`
+    // marks notes that mean the app will not fully work.
+    function appNotes(app, modules) {
+      const notes = [];
+      for (const p of app.protocols) {
+        const m = moduleForProtocol(modules, p.id);
+        if (!m) {
+          notes.push(p.optional ? { text: "optional " + p.id + " not advertised", warn: false }
+                                : { text: "needs " + p.id + ", not advertised", warn: true });
+        } else if (m.protocolVersion && m.protocolVersion !== p.version) {
+          // an advertised version 0 means "unspecified" (same rule as the consoles' resolveModuleId)
+          notes.push({ text: "app speaks " + p.id + " v" + p.version + ", device advertises v" + m.protocolVersion, warn: true });
+        }
+      }
+      return notes;
+    }
+    // The module an app's link should carry as `?module=`: a module speaking the
+    // app's first REQUIRED protocol (an app applies ?module to its primary
+    // service only, e.g. the coredump console to espp.coredump, never to the
+    // optional crash trigger), else its first optional one, else null. When
+    // `prefer` (the module whose pane is being rendered) speaks that protocol
+    // it wins, so a device advertising the same protocol on two modules links
+    // each pane to its own module; otherwise the first advertised one is used.
+    function appAnchor(app, modules, prefer) {
+      const required = app.protocols.filter(p => !p.optional);
+      const pick = id => (prefer && prefer.protocol === id) ? prefer : moduleForProtocol(modules, id);
+      return (required.length ? required : app.protocols).map(p => pick(p.id)).find(Boolean) || null;
+    }
+    // Apps that can drive this device: every REQUIRED protocol the app lists is
+    // advertised (apps that list no espp protocol cannot be matched and are left
+    // out). Each entry links the app to its anchor module (appAnchor).
+    function appsForDevice(registry, modules) {
+      const out = [];
+      for (const app of registryApps(registry)) {
+        if (!app.protocols.length) continue;
+        const required = app.protocols.filter(p => !p.optional);
+        if (!required.every(p => moduleForProtocol(modules, p.id))) continue;
+        const anchor = appAnchor(app, modules);
+        if (!anchor) continue;
+        out.push({ app, module: anchor, notes: appNotes(app, modules) });
+      }
+      return out;
+    }
+    // Apps (other than the module's own advertised page) that speak this
+    // module's protocol. Apps whose other required protocols the device lacks
+    // are kept, with a warning note, so the user can see why they are a poor fit.
+    // The link is anchored like appsForDevice (the module speaking the app's
+    // primary protocol), falling back to this module when nothing else fits.
+    function appsForModule(registry, module, modules) {
+      if (!module || !module.protocol) return [];
+      const all = modules || [module];
+      const out = [];
+      for (const app of registryApps(registry)) {
+        if (app.file === module.app) continue;
+        if (!app.protocols.some(p => p.id === module.protocol)) continue;
+        out.push({ app, module: appAnchor(app, all, module) || module, notes: appNotes(app, all) });
+      }
+      return out;
+    }
+    // --- end app matching ---
+
     // ===================== Transports (WebUSB + Web Serial) =====================
     let transport = null;
     class UsbTransport {
@@ -280,7 +380,7 @@
       els.devSub.textContent = (info.fw ? "firmware " + info.fw + " · " : "") + info.modules.length + " module(s) · " + (transport ? transport.describe() : "");
       modules = info.modules;
       selected = modules.length ? 0 : -1;
-      renderTabs(); renderDetail();
+      renderTabs(); renderDetail(); renderDeviceApps();
       logLine("ok", "discovered " + modules.length + " module(s): " + modules.map(m => m.name).join(", "));
       if (info.version > DISCOVERY_VERSION_KNOWN)
         logLine("warn", "discovery payload v" + info.version + " is newer than this hub understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed with the v" + DISCOVERY_VERSION_KNOWN + " record layout");
@@ -329,6 +429,50 @@
                               : "This module advertises no web app.";
         d.appendChild(n);
       }
+      // Other hosted apps that speak this module's protocol (from the registry).
+      const others = appsForModule(window.ESPP_APPS, m, modules);
+      if (others.length) {
+        const box = document.createElement("div"); box.className = "also";
+        const t = document.createElement("div"); t.className = "title";
+        t.textContent = safeAppName(m.app) ? "Also works with" : "Apps that speak " + m.protocol;
+        box.appendChild(t); box.appendChild(appList(others)); d.appendChild(box);
+      }
+    }
+
+    // One <ul> of app links: "Title  file.html  · note · note", each link opening
+    // the app on the matched module (?module=N) in a new tab.
+    function appList(entries) {
+      const ul = document.createElement("ul"); ul.className = "applist";
+      for (const e of entries) {
+        const li = document.createElement("li");
+        const a = document.createElement("a"); a.href = e.app.file + "?module=" + e.module.id; a.target = "_blank"; a.rel = "noopener noreferrer";
+        a.textContent = (e.app.title || e.app.file) + " ↗";
+        const f = document.createElement("span"); f.className = "file"; f.textContent = e.app.file + " (module " + e.module.id + ")";
+        li.appendChild(a); li.appendChild(f);
+        for (const n of e.notes) { const s = document.createElement("span"); s.className = "note" + (n.warn ? " warn" : ""); s.textContent = "· " + n.text; li.appendChild(s); }
+        ul.appendChild(li);
+      }
+      return ul;
+    }
+
+    // "Apps for this device": every registry app whose required protocols the
+    // device advertises. Without registry.js only the advertised apps are linked
+    // (per module, in the detail pane) and a short note says so.
+    function renderDeviceApps() {
+      const box = els.deviceApps; box.innerHTML = ""; box.className = "banner";
+      if (!modules.length) return;
+      const t = document.createElement("div"); t.className = "title"; t.textContent = "Apps for this device";
+      box.appendChild(t);
+      if (!window.ESPP_APPS) {
+        const n = document.createElement("div"); n.className = "muted";
+        n.textContent = "App registry (registry.js) not loaded — only the apps the device advertises are linked. The hosted hub (docs/apps/) lists every app that speaks this device's protocols.";
+        box.appendChild(n);
+      } else {
+        const entries = appsForDevice(window.ESPP_APPS, modules);
+        if (entries.length) box.appendChild(appList(entries));
+        else { const n = document.createElement("div"); n.className = "muted"; n.textContent = "No hosted app matches the protocols this device advertises" + (modules.some(m => m.protocol) ? "." : " (the device sent a v1 discovery payload without protocol ids)."); box.appendChild(n); }
+      }
+      box.classList.add("show");
     }
 
     function queryDiscovery() {
@@ -367,6 +511,7 @@
       els.devSub.textContent = "Connect to an espp device to discover the modules it runs.";
       modules = []; selected = -1; els.tabs.innerHTML = "";
       els.detail.innerHTML = '<div class="empty">No modules yet — connect a device.</div>';
+      renderDeviceApps();
     }
     function setConnected(on) {
       els.connectUsbBtn.disabled = on || !navigator.usb;

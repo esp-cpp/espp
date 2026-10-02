@@ -134,7 +134,14 @@ powers the browser **Device Hub** app
 `apps/dispatcher_hub.html`): connect over WebUSB / Web Serial, and it lists the
 device's modules as tabs, each linking to that module's own web app (with the
 module id in the link), and it is how every module console and host tool finds
-its module id on connect.
+its module id on connect. The hosted hub also loads the generated app registry
+(`registry.js`, written beside the apps by `doc/generate_apps_index.py` from
+each page's `<meta name="espp-protocols">` tag) and links every app that speaks
+a discovered protocol: "Apps for this device" (all apps whose required
+protocols the device advertises, each with the matching module id) and, per
+module, "Also works with" (e.g. the DS402 panel for a CAN bridge module). It
+notes a version the app does not implement and listed protocols the device
+lacks; without the registry (`file://`) only the advertised app is linked.
 
 - `struct ModuleInfo { std::string name, app, description, protocol; uint16_t protocol_version; };`
   — `protocol` is a stable machine-matched identifier (`"espp.ota"`, ...; see
@@ -186,4 +193,8 @@ reported as a warning, not refused.
 c++ -std=c++20 -Werror -I components/dispatcher/include -I components/stream_frame/include \
     components/dispatcher/test/dispatcher_host_test.cpp -o test && ./test
 node components/dispatcher/web/test/resolve_module_id_test.js   # the consoles' shared discovery helpers
+node components/dispatcher/web/test/apps_registry_test.js       # app metadata, registry generator, hub app matching
 ```
+
+(The node tests are not run in CI; run them after touching a console, an app
+page's `<head>`, the generator, or the hub.)

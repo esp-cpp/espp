@@ -73,8 +73,15 @@ jobs:
             echo "No hosted web apps found to copy." >&2
           fi
           shopt -u nullglob
-          # Generate the landing page (docs/apps/index.html) listing every
-          # hosted app by its <title> + <meta name="description">.
+          # Generate, beside the apps, the landing page (docs/apps/index.html:
+          # every hosted app grouped by category, filterable) and the app
+          # registry (registry.js + registry.json: each app's title,
+          # description, category, espp protocols and transports, read from its
+          # <title> / <meta name="description" | "espp-category" |
+          # "espp-protocols" | "espp-transports"> tags; the Device Hub loads
+          # registry.js to link every app that speaks a device's protocols).
+          # Fails the build on a page with a missing/unknown category or a
+          # malformed protocol entry.
           python3 generate_apps_index.py ../docs/apps
 
       - name: Build Documentation (PDF)

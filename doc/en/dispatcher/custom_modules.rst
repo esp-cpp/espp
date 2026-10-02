@@ -802,17 +802,45 @@ itself on connect (every shipped console does) so it can confirm its module
 is actually present on the device it just connected to, independent of
 whether the user arrived via the hub or opened the console directly.
 
+The hosted hub goes one step further than the advertised `app`: it loads the
+generated **app registry** (``registry.js`` beside the apps — every hosted
+app with the protocols it declares, see :ref:`the app registry <app
+registry>` in :doc:`../web_apps`) and matches it against the discovered
+protocol ids. So a module is linked to *every* app that speaks its protocol
+("Also works with" — a CAN bridge advertising ``can_bridge_console.html``
+also gets the DS402 panel, which speaks ``espp.can-bridge`` too), and the
+device gets an "Apps for this device" list of all apps whose required
+protocols it advertises, each linked with the matching module id. Without the
+registry (``file://``) the hub links the advertised app only. Declaring a
+`protocol` on your module is therefore what makes the hub offer your app, and
+other compatible apps, for it.
+
 Hosting your webapp
 -----------------------
 
 Any single self-contained HTML file placed at
 ``components/<your_component>/web/<name>.html`` is hosted automatically by
 the docs build alongside every other espp app (see :doc:`../web_apps`) — no
-registry entry to add. The apps landing page lists it using its `<title>` and
-`<meta name="description">` tags. Keep it dependency-free (no CDN resources,
-inline CSS/JS) so it also works fully offline from a `file://` URL and under
-GitHub Pages' strict hosting. Make sure the filename you host it under is the
-exact string you pass as `ModuleInfo::app`.
+hand-maintained list to add it to. Describe it in its `<head>`: `<title>` and
+`<meta name="description">` for the landing-page card, plus the three espp
+tags the generator and the hub read:
+
+.. code-block:: html
+
+   <meta name="espp-category" content="motor control">
+   <meta name="espp-protocols" content="espp.mcp266:1">
+   <meta name="espp-transports" content="webusb webserial">
+
+`espp-category` (required) is one of ``device management``, ``motor
+control``, ``bus tools``, ``input devices``, ``utilities``; `espp-protocols`
+lists the protocol ids + versions your console implements (``id:version``,
+space-separated, a trailing ``?`` for one it can do without — the exact
+`ModuleInfo::protocol` / `protocol_version` your module advertises); the
+docs build fails loudly on a missing category or malformed entry. Keep the
+page dependency-free (no CDN resources, inline CSS/JS) so it also works fully
+offline from a `file://` URL and under GitHub Pages' strict hosting. Make sure
+the filename you host it under is the exact string you pass as
+`ModuleInfo::app`.
 
 Checklist: shipping a new module + webapp
 ============================================
@@ -848,7 +876,12 @@ Checklist: shipping a new module + webapp
    JS block from `dispatcher_hub.html` (or any module console), add a small
    UI that builds/decodes your payloads, and host it at
    ``components/<your_component>/web/<name>.html`` — the exact string you put
-   in `ModuleInfo::app`.
+   in `ModuleInfo::app`. Give it the `<meta name="espp-category">`,
+   `<meta name="espp-protocols">` (your protocol id + version) and
+   `<meta name="espp-transports">` tags (see `Hosting your webapp`_) so the
+   landing page files it and the hub offers it for every device advertising
+   your protocol; ``node components/dispatcher/web/test/apps_registry_test.js``
+   checks the tags.
 #. **Test on a host** before touching hardware: `Dispatcher` and
    `stream_frame` are header-only and dependency-free, so a module built on
    them can be exercised in a plain host-side C++ test — see
