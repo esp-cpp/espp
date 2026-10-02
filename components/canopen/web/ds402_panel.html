@@ -1495,7 +1495,10 @@
     // Attempts never overlap: one opts.reconnect() call is in flight at a time
     // (two concurrent opens of the same device would race each other); an
     // arrival event during an attempt is remembered and retried right after
-    // the current attempt settles.
+    // the current attempt settles. A loss that happens while an older attempt
+    // is still in flight (the device dropped again during the post-open
+    // discovery probe) starts a new generation; when the stale attempt settles
+    // it hands over by scheduling the current generation's pending retry.
     function createReconnectSupervisor(opts) {
       const delays = opts.delaysMs || [500, 1000, 1500, 2000, 3000, 4000, 5000, 5000, 5000, 5000];
       const rebootDelays = opts.rebootDelaysMs || delays.concat([5000, 5000, 5000, 5000, 5000, 5000]);
@@ -1514,7 +1517,15 @@
         try { ok = await opts.reconnect(sup.identity, sup.attempt); }
         catch (e) { log("warn", "reconnect attempt " + sup.attempt + " failed: " + (e && e.message ? e.message : e)); }
         finally { sup.inFlight = false; }
-        if (gen !== sup.generation || !sup.active) { sup.retryAfter = false; return; }
+        if (gen !== sup.generation) {
+          // stale: a newer loss owns the supervisor now. Its timer may already
+          // have fired into our in-flight attempt (retryAfter) and left no timer
+          // behind, so re-arm it here or auto-reconnect would stall for good.
+          const pending = sup.retryAfter; sup.retryAfter = false;
+          if (sup.active && !sup.timer && pending) schedule(sup.generation, 100);
+          return;
+        }
+        if (!sup.active) { sup.retryAfter = false; return; }
         if (ok) { sup.active = false; sup.expected = false; sup.retryAfter = false; clearTimer(); return; }
         if (sup.attempt >= plan.length) { sup.stop("gave up reconnecting after " + sup.attempt + " attempts; use Connect"); return; }
         if (sup.retryAfter) { sup.retryAfter = false; schedule(gen, 100); return; } // the device showed up meanwhile

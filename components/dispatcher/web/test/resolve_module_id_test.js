@@ -509,6 +509,30 @@ async function supervisorTests() {
     s.onDeviceAppeared(); release(true); await tick(150);
     assert.strictEqual(n, 3); assert.ok(!s.isActive()); assert.strictEqual(maxInFlight, 1);
   }
+  // a second loss while an older attempt is still in flight (the device dropped
+  // again during the post-open probe): the new generation's timer fires into
+  // the in-flight attempt; when that attempt settles the retry must still happen
+  {
+    let n = 0, release = null;
+    const s = conn.createReconnectSupervisor({ delaysMs: [1, 1, 1, 1], enabled: () => true,
+      reconnect: () => new Promise((r) => { n++; release = r; }) });
+    s.onLinkLost(id); await tick(10);
+    assert.strictEqual(n, 1);
+    s.connected();      // the console's connect path opened the device...
+    s.onLinkLost(id);   // ...and it dropped again before attempt 1 returned
+    await tick(20);     // the new generation's timer fires into the in-flight attempt
+    assert.strictEqual(n, 1); assert.ok(s.isActive());
+    release(true);      // stale attempt settles (it even "succeeded")
+    await tick(150);
+    assert.strictEqual(n, 2, "the current generation must retry after the stale attempt settles");
+    release(true); await tick(10);
+    assert.ok(!s.isActive());
+    // same with the stale attempt failing, and without connected() in between
+    n = 0; s.onLinkLost(id); await tick(10); assert.strictEqual(n, 1);
+    s.onLinkLost(id); await tick(20); assert.strictEqual(n, 1);
+    release(false); await tick(150);
+    assert.strictEqual(n, 2); release(true); await tick(10); assert.ok(!s.isActive());
+  }
   // stop(): a manual disconnect cancels a pending attempt; an attempt that
   // completes after stop() / a newer loss is ignored (generation check)
   {
@@ -572,7 +596,17 @@ async function noticeTests() {
   const handOff = /async function handOff\([^)]*\) \{([\s\S]*?)\n    \}\n/.exec(hubSrc);
   assert.ok(handOff, "hub: no handOff()");
   // (the early return for "not connected" opens the plain link first; the hand-off path closes, then opens)
-  assert.ok(handOff[1].indexOf("await disconnect();") >= 0 && handOff[1].indexOf("await disconnect();") < handOff[1].lastIndexOf("window.open("), "hub: handOff must close the device before opening the app");
+  // the tab is reserved synchronously in the click (pop-up blockers need the
+  // gesture) and the app is navigated into it only after the device is closed;
+  // a blocked tab releases nothing
+  assert.ok(!handOff[1].includes("window.open("), "hub: handOff must not open a tab itself (it is reserved in the click handler)");
+  assert.ok(handOff[1].indexOf("await disconnect();") >= 0 && handOff[1].indexOf("await disconnect();") < handOff[1].lastIndexOf("tab.location.href = href;"), "hub: handOff must close the device before navigating the reserved tab");
+  const click = /a\.addEventListener\("click", \(ev\) => \{([\s\S]*?)\n      \}\);/.exec(hubSrc);
+  assert.ok(click && click[1].indexOf("const tab = reserveTab(file);") >= 0 && click[1].indexOf("if (!tab) return;") >= 0 && click[1].indexOf("reserveTab(") < click[1].indexOf("handOff("), "hub: the click handler must reserve the tab before handing off, and stop when blocked");
+  assert.ok(/function reserveTab\(appFile\) \{[\s\S]*?window\.open\("", "_blank"\)/.test(hubSrc), "hub: reserveTab opens a blank tab");
+  // any successful connection (manual or Reconnect) ends a pending hand-off
+  const hubConnect = /async function connect\(kind, preset\) \{([\s\S]*?)\n    \}\n/.exec(hubSrc);
+  assert.ok(hubConnect && /handedOff = null; hideHandoff\(\);/.test(hubConnect[1]), "hub: connect() must clear the hand-off state on success");
   assert.ok(!/createReconnectSupervisor\(\{/.test(hubSrc.replace(connectBlock, "")), "hub must not auto-reconnect");
   assert.ok(/els\.reconnectBtn\.addEventListener\("click", reconnectHandedOff\);/.test(hubSrc), "hub: no Reconnect button");
   assert.ok(/deviceChannel\.onmessage = /.test(hubSrc) && /msg\.type !== "released"/.test(hubSrc), "hub: does not listen for released notices");

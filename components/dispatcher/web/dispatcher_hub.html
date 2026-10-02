@@ -410,7 +410,10 @@
     // Attempts never overlap: one opts.reconnect() call is in flight at a time
     // (two concurrent opens of the same device would race each other); an
     // arrival event during an attempt is remembered and retried right after
-    // the current attempt settles.
+    // the current attempt settles. A loss that happens while an older attempt
+    // is still in flight (the device dropped again during the post-open
+    // discovery probe) starts a new generation; when the stale attempt settles
+    // it hands over by scheduling the current generation's pending retry.
     function createReconnectSupervisor(opts) {
       const delays = opts.delaysMs || [500, 1000, 1500, 2000, 3000, 4000, 5000, 5000, 5000, 5000];
       const rebootDelays = opts.rebootDelaysMs || delays.concat([5000, 5000, 5000, 5000, 5000, 5000]);
@@ -429,7 +432,15 @@
         try { ok = await opts.reconnect(sup.identity, sup.attempt); }
         catch (e) { log("warn", "reconnect attempt " + sup.attempt + " failed: " + (e && e.message ? e.message : e)); }
         finally { sup.inFlight = false; }
-        if (gen !== sup.generation || !sup.active) { sup.retryAfter = false; return; }
+        if (gen !== sup.generation) {
+          // stale: a newer loss owns the supervisor now. Its timer may already
+          // have fired into our in-flight attempt (retryAfter) and left no timer
+          // behind, so re-arm it here or auto-reconnect would stall for good.
+          const pending = sup.retryAfter; sup.retryAfter = false;
+          if (sup.active && !sup.timer && pending) schedule(sup.generation, 100);
+          return;
+        }
+        if (!sup.active) { sup.retryAfter = false; return; }
         if (ok) { sup.active = false; sup.expected = false; sup.retryAfter = false; clearTimer(); return; }
         if (sup.attempt >= plan.length) { sup.stop("gave up reconnecting after " + sup.attempt + " attempts; use Connect"); return; }
         if (sup.retryAfter) { sup.retryAfter = false; schedule(gen, 100); return; } // the device showed up meanwhile
@@ -656,7 +667,9 @@
       a.addEventListener("click", (ev) => {
         if (!transport) return; // nothing to release: a plain link
         ev.preventDefault();
-        handOff(a.href, file);
+        const tab = reserveTab(file); // synchronously, inside the user gesture
+        if (!tab) return;
+        handOff(a.href, file, tab);
       });
       return a;
     }
@@ -713,7 +726,10 @@
         transport = kind === "usb" ? new UsbTransport() : new SerialTransport();
         if (kind === "usb") await transport.open(els.anyDevice.checked, preset);
         else await transport.open(preset);
-        hideHandoff();
+        // any successful connection ends a pending hand-off: a late `released`
+        // notice from the old app must not resurrect a banner whose Reconnect
+        // would target the wrong device
+        handedOff = null; hideHandoff();
         setStatus("ok", "connected");
         logLine("ok", "connected: " + transport.describe());
         transport.readLoop((chunk) => { for (const f of parser.feed(chunk)) onFrame(f); })
@@ -737,18 +753,32 @@
     // { identity, kind, app } of the device the hub released for an app, or null.
     let handedOff = null;
     const deviceChannel = openDeviceChannel();
-    async function handOff(href, appFile) {
-      if (!transport) { window.open(href, "_blank", "noopener,noreferrer"); return; }
+    // `tab`: the new tab, reserved synchronously inside the click (so the
+    // pop-up blocker sees a user gesture) and still blank. The app is navigated
+    // into it only after the device is closed: with WebUSB a second page cannot
+    // claim the vendor interface while this one holds it.
+    async function handOff(href, appFile, tab) {
+      if (!transport) { tab.location.href = href; return; }
       const kind = transport instanceof UsbTransport ? "usb" : "serial";
       handedOff = { identity: transport.identity(), kind, app: appFile };
       logLine("t", "releasing " + describeIdentity(handedOff.identity) + " for " + appFile + "…");
       await disconnect();
       showHandoff(appFile + " was opened on " + describeIdentity(handedOff.identity) + ". The hub released the device so the app can use it; it will not reconnect on its own.");
       try { els.reconnectBtn.focus(); } catch (_) {} // keyboard / screen-reader users land on the next action
-      // Open the app only after the device is closed: with WebUSB a second page
-      // cannot claim the vendor interface while this one holds it.
-      const w = window.open(href, "_blank", "noopener,noreferrer");
-      if (!w) logLine("err", "the browser blocked the new tab (pop-up blocker); open the link again");
+      tab.location.href = href;
+    }
+    // Reserve a blank tab for a hand-off from inside a click handler. Returns
+    // null when the browser blocked it (then nothing is released: the user is
+    // told to allow pop-ups and click again, and the hub stays connected).
+    function reserveTab(appFile) {
+      let tab = null;
+      try { tab = window.open("", "_blank"); } catch (_) { tab = null; }
+      if (!tab) {
+        logLine("err", "the browser blocked the new tab for " + appFile + " (pop-up blocker); the device was NOT released — allow pop-ups for this site and click the link again");
+        return null;
+      }
+      try { tab.opener = null; } catch (_) {} // no window.opener for the app, as with rel=noopener
+      return tab;
     }
     function showHandoff(text) {
       els.handoffTitle.textContent = "Device handed off" + (handedOff ? " to " + handedOff.app : "");
@@ -770,8 +800,7 @@
         return;
       }
       logLine("t", "reconnecting to " + describeIdentity(want) + "…");
-      await connect(kind, preset);
-      if (transport) handedOff = null;
+      await connect(kind, preset); // success clears handedOff
     }
     els.reconnectBtn.addEventListener("click", reconnectHandedOff);
     els.dismissHandoffBtn.addEventListener("click", () => { handedOff = null; hideHandoff(); });
