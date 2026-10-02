@@ -398,6 +398,23 @@
       try { const v = localStorage.getItem(AUTO_RECONNECT_KEY); return v === null ? true : v === "1"; } catch (_) { return true; }
     }
     function saveAutoReconnect(on) { try { localStorage.setItem(AUTO_RECONNECT_KEY, on ? "1" : "0"); } catch (_) {} }
+    // One open at a time per page. Every connect entry point — the Connect
+    // button(s), the ?autoconnect path and the reconnect supervisor — runs
+    // through gate.run(fn); while an open is in progress a second entry is
+    // refused (resolves false) instead of racing the first: the later
+    // completion would otherwise overwrite a live transport without closing it
+    // or orphan a claimed USB device. The supervisor consults isBusy() and
+    // waits rather than counting a refused entry as a failed attempt.
+    function createOpenGate() {
+      const gate = { busy: false };
+      gate.isBusy = () => gate.busy;
+      gate.run = async (fn) => {
+        if (gate.busy) return false;
+        gate.busy = true;
+        try { return await fn(); } finally { gate.busy = false; }
+      };
+      return gate;
+    }
     // Reconnect supervisor. After an UNEXPECTED link loss (unplug, reboot) it
     // retries opts.reconnect(identity, attempt) -> bool on a bounded back-off
     // until an attempt succeeds, the attempts run out, or stop() is called; a
@@ -414,6 +431,8 @@
     // is still in flight (the device dropped again during the post-open
     // discovery probe) starts a new generation; when the stale attempt settles
     // it hands over by scheduling the current generation's pending retry.
+    // opts.gate (createOpenGate) is shared with the page's manual / auto-connect
+    // paths: while one of those holds it the supervisor polls instead of opening.
     function createReconnectSupervisor(opts) {
       const delays = opts.delaysMs || [500, 1000, 1500, 2000, 3000, 4000, 5000, 5000, 5000, 5000];
       const rebootDelays = opts.rebootDelaysMs || delays.concat([5000, 5000, 5000, 5000, 5000, 5000]);
@@ -424,6 +443,7 @@
       async function attempt(gen) {
         if (gen !== sup.generation || !sup.active) return;
         if (sup.inFlight) { sup.retryAfter = true; return; } // serialized: retry once the current attempt settles
+        if (opts.gate && opts.gate.isBusy()) { schedule(gen, 250); return; } // a manual / auto-connect open is in progress: wait, not an attempt
         if (!opts.enabled()) { sup.stop("auto-reconnect is off"); return; }
         const plan = sup.expected ? rebootDelays : delays;
         sup.attempt++;
@@ -665,6 +685,7 @@
       a.href = file + "?" + connectQuery(moduleId, transport ? transport.identity() : null);
       a.target = "_blank"; a.rel = "noopener noreferrer";
       a.addEventListener("click", (ev) => {
+        if (handingOff) { ev.preventDefault(); return; } // a hand-off is in progress: ignore until it settles
         if (!transport) return; // nothing to release: a plain link
         ev.preventDefault();
         const tab = reserveTab(file); // synchronously, inside the user gesture
@@ -719,7 +740,11 @@
 
     // `preset`: an already-permitted USBDevice / SerialPort to open without the
     // chooser (Reconnect after a hand-off).
+    // One open at a time (Connect button(s), auto-connect, reconnect) — see createOpenGate.
     async function connect(kind, preset) {
+      return openGate.run(() => connectLocked(kind, preset));
+    }
+    async function connectLocked(kind, preset) {
       if (transport) return;
       try {
         setStatus("busy", "connecting…");
@@ -752,6 +777,13 @@
     // ===================== Hand-off to an app =====================
     // { identity, kind, app } of the device the hub released for an app, or null.
     let handedOff = null;
+    // The hub only ever opens one connection at a time (Connect buttons and
+    // Reconnect share this gate); a hand-off is atomic too: `handingOff` holds
+    // from the click until the device is closed and the tab navigated, and
+    // app clicks in between are ignored (a second click would otherwise start
+    // a second hand-off on the same transport and navigate a second tab).
+    const openGate = createOpenGate();
+    let handingOff = false;
     const deviceChannel = openDeviceChannel();
     // `tab`: the new tab, reserved synchronously inside the click (so the
     // pop-up blocker sees a user gesture) and still blank. The app is navigated
@@ -759,13 +791,18 @@
     // claim the vendor interface while this one holds it.
     async function handOff(href, appFile, tab) {
       if (!transport) { tab.location.href = href; return; }
-      const kind = transport instanceof UsbTransport ? "usb" : "serial";
-      handedOff = { identity: transport.identity(), kind, app: appFile };
-      logLine("t", "releasing " + describeIdentity(handedOff.identity) + " for " + appFile + "…");
-      await disconnect();
-      showHandoff(appFile + " was opened on " + describeIdentity(handedOff.identity) + ". The hub released the device so the app can use it; it will not reconnect on its own.");
-      try { els.reconnectBtn.focus(); } catch (_) {} // keyboard / screen-reader users land on the next action
-      tab.location.href = href;
+      handingOff = true;
+      try {
+        const kind = transport instanceof UsbTransport ? "usb" : "serial";
+        handedOff = { identity: transport.identity(), kind, app: appFile };
+        logLine("t", "releasing " + describeIdentity(handedOff.identity) + " for " + appFile + "…");
+        await disconnect();
+        showHandoff(appFile + " was opened on " + describeIdentity(handedOff.identity) + ". The hub released the device so the app can use it; it will not reconnect on its own.");
+        try { els.reconnectBtn.focus(); } catch (_) {} // keyboard / screen-reader users land on the next action
+        tab.location.href = href;
+      } finally {
+        handingOff = false;
+      }
     }
     // Reserve a blank tab for a hand-off from inside a click handler. Returns
     // null when the browser blocked it (then nothing is released: the user is

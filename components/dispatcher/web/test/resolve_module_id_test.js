@@ -319,7 +319,7 @@ function extractHubLinkBlock(src) {
 }
 const hubLinkBlock = extractHubLinkBlock(fs.readFileSync(path.join(root, hub), "utf8"));
 assert.ok(!connectBlock.includes("function connectQuery"), "connectQuery is hub-only (unused in the consoles)");
-const conn = new Function(connectBlock + hubLinkBlock + "\n return { parseConnectParams, usbIdentity, serialIdentity, describeIdentity, connectQuery, pickUsbDevice, pickSerialPort, findPermittedUsbDevice, findPermittedSerialPort, loadAutoReconnect, saveAutoReconnect, createReconnectSupervisor, watchDeviceArrivals, openDeviceChannel, postReleased };")();
+const conn = new Function(connectBlock + hubLinkBlock + "\n return { parseConnectParams, usbIdentity, serialIdentity, describeIdentity, connectQuery, pickUsbDevice, pickSerialPort, findPermittedUsbDevice, findPermittedSerialPort, loadAutoReconnect, saveAutoReconnect, createReconnectSupervisor, watchDeviceArrivals, openDeviceChannel, postReleased, createOpenGate };")();
 
 // ---- parseConnectParams / connectQuery ---------------------------------------
 {
@@ -533,6 +533,30 @@ async function supervisorTests() {
     release(false); await tick(150);
     assert.strictEqual(n, 2); release(true); await tick(10); assert.ok(!s.isActive());
   }
+  // the open gate: one open at a time across manual / auto-connect / supervisor.
+  // While a manual open holds the gate (a pending chooser, say) the supervisor
+  // does not open a second connection and does not count it as a failed
+  // attempt; it opens once the gate frees. A refused entry resolves false.
+  {
+    const gate = conn.createOpenGate();
+    let releaseManual = null, manualRuns = 0;
+    const manual = gate.run(() => new Promise((r) => { manualRuns++; releaseManual = r; }));
+    assert.ok(gate.isBusy());
+    assert.strictEqual(await gate.run(async () => "second"), false); // refused while busy
+    let n = 0;
+    const s = conn.createReconnectSupervisor({ gate, delaysMs: [1, 1], enabled: () => true, reconnect: async () => { n++; return true; } });
+    s.onLinkLost(id);
+    await tick(600);             // several poll intervals (250 ms) pass while the manual open is pending
+    assert.strictEqual(n, 0); assert.ok(s.isActive()); assert.strictEqual(manualRuns, 1);
+    releaseManual("manual-done"); // the chooser settled
+    assert.strictEqual(await manual, "manual-done");
+    await tick(400);
+    assert.strictEqual(n, 1); assert.ok(!s.isActive()); assert.ok(!gate.isBusy());
+    // the gate frees after a throwing open as well
+    await assert.rejects(gate.run(async () => { throw new Error("open failed"); }), /open failed/);
+    assert.ok(!gate.isBusy());
+    assert.strictEqual(await gate.run(async () => 7), 7);
+  }
   // stop(): a manual disconnect cancels a pending attempt; an attempt that
   // completes after stop() / a newer loss is ignored (generation check)
   {
@@ -586,6 +610,26 @@ async function noticeTests() {
     must(src, rel, /preset \|\| await navigator\.(usb\.requestDevice|serial\.requestPort)|if \(preset\) return preset;/, "no chooser-less (preset) open path");
     if (src.includes("navigator.serial.requestPort(")) must(src, rel, /preset \|\| await navigator\.serial\.requestPort\(/, "serial open path ignores a preset port");
   }
+  // every connect entry point goes through the page's open gate: each
+  // `<name>Locked` function is called only from its `<name>` wrapper, which is
+  // exactly `return openGate.run(() => <name>Locked(...))`, and the supervisor
+  // shares the gate
+  for (const rel of [...consoles, hub]) {
+    const src = fs.readFileSync(path.join(root, rel), "utf8");
+    must(src, rel, /const openGate = createOpenGate\(\);/, "no open gate");
+    const locked = [...src.matchAll(/async function (\w+)Locked\(([^)]*)\) \{/g)];
+    assert.ok(locked.length >= 1, rel + ": no gated connect entry point");
+    for (const [, name, params] of locked) {
+      const wrapper = "    async function " + name + "(" + params + ") {\n      return openGate.run(() => " + name + "Locked(" + params + "));\n    }\n";
+      assert.ok(src.includes(wrapper), rel + ": " + name + "() is not the gate wrapper for " + name + "Locked()");
+      const calls = [...src.matchAll(new RegExp("(?<!function )\\b" + name + "Locked\\(", "g"))];
+      assert.strictEqual(calls.length, 1, rel + ": " + name + "Locked() must be called only through openGate.run()");
+    }
+    if (rel !== hub) must(src, rel, /createReconnectSupervisor\(\{\s*gate: openGate,/, "the supervisor does not share the open gate");
+    // a page with two transports gates both through the SAME gate
+    if (src.includes("navigator.serial.requestPort(") && src.includes("navigator.usb.requestDevice("))
+      assert.ok(locked.length >= 2 || /async function connectLocked\(kind, preset\)/.test(src), rel + ": both transports must be gated");
+  }
   const sys = fs.readFileSync(path.join(root, "components/system/web/system_console.html"), "utf8");
   assert.ok(/if \(bootloader\) reconnect\.suppress\(\); else reconnect\.expectReboot\(\);/.test(sys), "system console: REBOOT arms, REBOOT_TO_BOOTLOADER suppresses");
   const ota = fs.readFileSync(path.join(root, "components/ota/web/ota_console.html"), "utf8");
@@ -604,8 +648,13 @@ async function noticeTests() {
   const click = /a\.addEventListener\("click", \(ev\) => \{([\s\S]*?)\n      \}\);/.exec(hubSrc);
   assert.ok(click && click[1].indexOf("const tab = reserveTab(file);") >= 0 && click[1].indexOf("if (!tab) return;") >= 0 && click[1].indexOf("reserveTab(") < click[1].indexOf("handOff("), "hub: the click handler must reserve the tab before handing off, and stop when blocked");
   assert.ok(/function reserveTab\(appFile\) \{[\s\S]*?window\.open\("", "_blank"\)/.test(hubSrc), "hub: reserveTab opens a blank tab");
+  // a hand-off is atomic: `handingOff` holds from the click until the tab is
+  // navigated (cleared in finally), and app clicks in between are ignored
+  assert.ok(/let handingOff = false;/.test(hubSrc), "hub: no hand-off guard");
+  assert.ok(handOff[1].indexOf("handingOff = true;") >= 0 && handOff[1].indexOf("handingOff = true;") < handOff[1].indexOf("await disconnect();") && /finally \{\s*handingOff = false;\s*\}/.test(handOff[1]), "hub: handOff must hold the guard from before disconnect() until it settles");
+  assert.ok(click && click[1].indexOf('if (handingOff) { ev.preventDefault(); return; }') >= 0 && click[1].indexOf("if (handingOff)") < click[1].indexOf("reserveTab("), "hub: a click during a hand-off must be ignored before reserving a tab");
   // any successful connection (manual or Reconnect) ends a pending hand-off
-  const hubConnect = /async function connect\(kind, preset\) \{([\s\S]*?)\n    \}\n/.exec(hubSrc);
+  const hubConnect = /async function connectLocked\(kind, preset\) \{([\s\S]*?)\n    \}\n/.exec(hubSrc);
   assert.ok(hubConnect && /handedOff = null; hideHandoff\(\);/.test(hubConnect[1]), "hub: connect() must clear the hand-off state on success");
   assert.ok(!/createReconnectSupervisor\(\{/.test(hubSrc.replace(connectBlock, "")), "hub must not auto-reconnect");
   assert.ok(/els\.reconnectBtn\.addEventListener\("click", reconnectHandedOff\);/.test(hubSrc), "hub: no Reconnect button");
@@ -615,7 +664,7 @@ async function noticeTests() {
   // one-at-a-time guard would refuse every later Connect / Reconnect
   const hubLoss = /function onLinkLost\(\) \{([\s\S]*?)\n    \}\n/.exec(hubSrc);
   assert.ok(hubLoss && /const t = transport; transport = null;/.test(hubLoss[1]), "hub: onLinkLost must clear the stale transport");
-  assert.ok(/async function connect\(kind, preset\) \{\n      if \(transport\) return;/.test(hubSrc), "hub: connect() guards against a second concurrent open");
+  assert.ok(/async function connectLocked\(kind, preset\) \{\n      if \(transport\) return;/.test(hubSrc), "hub: connect() refuses a second open while connected (and the gate serializes pending ones)");
   // every console's unexpected-loss path clears its transport / device too
   for (const rel of consoles) {
     const src = fs.readFileSync(path.join(root, rel), "utf8");

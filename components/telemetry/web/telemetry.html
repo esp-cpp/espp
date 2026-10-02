@@ -945,7 +945,11 @@
     function setStatus(cls, text) { const el = $("status"); el.className = "chip " + (cls || ""); el.textContent = text; }
 
     // `preset`: an already-permitted SerialPort (auto-connect / reconnect): no chooser.
+    // One open at a time (Connect button(s), auto-connect, reconnect) — see createOpenGate.
     async function connect(preset) {
+      return openGate.run(() => connectLocked(preset));
+    }
+    async function connectLocked(preset) {
       if (port) return preset ? undefined : disconnect();
       try {
         port = preset || await navigator.serial.requestPort();
@@ -1279,6 +1283,23 @@
       try { const v = localStorage.getItem(AUTO_RECONNECT_KEY); return v === null ? true : v === "1"; } catch (_) { return true; }
     }
     function saveAutoReconnect(on) { try { localStorage.setItem(AUTO_RECONNECT_KEY, on ? "1" : "0"); } catch (_) {} }
+    // One open at a time per page. Every connect entry point — the Connect
+    // button(s), the ?autoconnect path and the reconnect supervisor — runs
+    // through gate.run(fn); while an open is in progress a second entry is
+    // refused (resolves false) instead of racing the first: the later
+    // completion would otherwise overwrite a live transport without closing it
+    // or orphan a claimed USB device. The supervisor consults isBusy() and
+    // waits rather than counting a refused entry as a failed attempt.
+    function createOpenGate() {
+      const gate = { busy: false };
+      gate.isBusy = () => gate.busy;
+      gate.run = async (fn) => {
+        if (gate.busy) return false;
+        gate.busy = true;
+        try { return await fn(); } finally { gate.busy = false; }
+      };
+      return gate;
+    }
     // Reconnect supervisor. After an UNEXPECTED link loss (unplug, reboot) it
     // retries opts.reconnect(identity, attempt) -> bool on a bounded back-off
     // until an attempt succeeds, the attempts run out, or stop() is called; a
@@ -1295,6 +1316,8 @@
     // is still in flight (the device dropped again during the post-open
     // discovery probe) starts a new generation; when the stale attempt settles
     // it hands over by scheduling the current generation's pending retry.
+    // opts.gate (createOpenGate) is shared with the page's manual / auto-connect
+    // paths: while one of those holds it the supervisor polls instead of opening.
     function createReconnectSupervisor(opts) {
       const delays = opts.delaysMs || [500, 1000, 1500, 2000, 3000, 4000, 5000, 5000, 5000, 5000];
       const rebootDelays = opts.rebootDelaysMs || delays.concat([5000, 5000, 5000, 5000, 5000, 5000]);
@@ -1305,6 +1328,7 @@
       async function attempt(gen) {
         if (gen !== sup.generation || !sup.active) return;
         if (sup.inFlight) { sup.retryAfter = true; return; } // serialized: retry once the current attempt settles
+        if (opts.gate && opts.gate.isBusy()) { schedule(gen, 250); return; } // a manual / auto-connect open is in progress: wait, not an attempt
         if (!opts.enabled()) { sup.stop("auto-reconnect is off"); return; }
         const plan = sup.expected ? rebootDelays : delays;
         sup.attempt++;
@@ -1470,7 +1494,11 @@
     const usbParser = new SfParser();
     let usbTimeWrap = 0, usbPrevRaw = 0, usbHaveSchema = false; // device u32-us timestamp unwrap
 
+    // One open at a time (Connect button(s), auto-connect, reconnect) — see createOpenGate.
     async function usbConnect(preset) {
+      return openGate.run(() => usbConnectLocked(preset));
+    }
+    async function usbConnectLocked(preset) {
       if (usb) return preset ? undefined : usbDisconnect();
       const t = new UsbTransport();
       try { await t.open(preset); }
@@ -1888,7 +1916,9 @@
       saveAutoReconnect($("autoReconnect").checked);
       if (!$("autoReconnect").checked) reconnect.stop("auto-reconnect is off");
     });
+    const openGate = createOpenGate();
     const reconnect = createReconnectSupervisor({
+      gate: openGate,
       enabled: () => $("autoReconnect").checked,
       log: (cls, text) => setStatus(cls === "err" || cls === "warn" ? "err" : "", text),
       reconnect: reconnectAttempt,
