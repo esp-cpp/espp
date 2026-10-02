@@ -139,12 +139,12 @@ def page(apps: list) -> str:
 <style>
   :root {{
     --bg: #ffffff; --fg: #1a1a2e; --muted: #666; --card: #f6f7f9;
-    --border: #d9dce1; --accent: #2563eb; --chip: #e8edf5; --chip-fg: #334;
+    --border: #d9dce1; --accent: #2563eb; --accent-contrast: #ffffff; --chip: #e8edf5; --chip-fg: #334;
   }}
   @media (prefers-color-scheme: dark) {{
     :root {{
       --bg: #14161a; --fg: #e6e6e6; --muted: #9aa0a6; --card: #1d2127;
-      --border: #333842; --accent: #7aa2ff; --chip: #2a313c; --chip-fg: #cfd6e0;
+      --border: #333842; --accent: #7aa2ff; --accent-contrast: #0b1220; --chip: #2a313c; --chip-fg: #cfd6e0;
     }}
   }}
   * {{ box-sizing: border-box; }}
@@ -153,7 +153,7 @@ def page(apps: list) -> str:
   main {{ max-width: 60rem; margin: 0 auto; }}
   .title-row {{ display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }}
   h1 {{ margin: 0 0 .25rem; }}
-  .hub-link {{ display: inline-block; background: var(--accent); color: #fff; font-weight: 600; text-decoration: none;
+  .hub-link {{ display: inline-block; background: var(--accent); color: var(--accent-contrast); font-weight: 600; text-decoration: none;
          padding: .45rem .9rem; border-radius: .5rem; white-space: nowrap; }}
   .hub-link:hover {{ filter: brightness(1.1); }}
   .hub-link:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}

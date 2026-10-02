@@ -227,8 +227,9 @@ Getting around, and handing a device back
 Every app carries two links next to its title: **Device Hub** (the primary
 one, to ``dispatcher_hub.html``) and **All apps** (to ``index.html``); the hub
 has only *All apps*, and the apps page a *Device Hub* button beside its title.
-On the hosted site the three are siblings; a page opened from ``file://``
-inside the repository tree links to the hosted copies instead. In a
+In the hosted apps directory (``…/apps/``) the three are siblings; anywhere
+else — a page opened from ``file://`` inside the repository tree, or a source
+tree served from ``http://localhost`` — the links go to the hosted copies. In a
 dispatcher-module console that is connected, a plain click on *Device Hub*
 hands the device back: the console closes it the way its Disconnect button
 does (stops the reconnect supervisor, closes, then posts the ``released``
