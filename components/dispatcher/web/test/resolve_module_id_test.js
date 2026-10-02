@@ -829,6 +829,15 @@ function extractNavBlock(src, rel) {
   assert.ok(end >= 0, rel + ": unterminated app navigation block");
   return src.slice(start, end + endMarker.length);
 }
+const HOSTED_APPS = "https://esp-cpp.github.io/espp/apps/";
+function extractHandBackBlock(src, rel) {
+  const start = src.indexOf("    // --- begin app hand-back");
+  assert.ok(start >= 0, rel + ": no app hand-back block");
+  const endMarker = "    // --- end app hand-back ---\n";
+  const end = src.indexOf(endMarker, start);
+  assert.ok(end >= 0, rel + ": unterminated app hand-back block");
+  return src.slice(start, end + endMarker.length);
+}
 function navTests() {
   // the hub honours the hand-back query on load (through connect(kind, preset) and the gate)
   assert.ok(/const connectParams = parseConnectParams\(location\.search\);/.test(hubSrc), "hub: does not parse the connect params");
@@ -837,19 +846,31 @@ function navTests() {
   assert.ok(/if \(connectParams\.autoconnect\) autoConnectOnLoad\(\);/.test(hubSrc), "hub: no auto-connect kick-off");
   assert.ok(!/createReconnectSupervisor\(\{/.test(hubSrc.replace(extractConnectBlock(hubSrc, hub), "")), "hub must still never auto-reconnect");
   console.log("PASS hub honours the hand-back auto-connect query on load");
-  let navBlock = null;
+  let navBlock = null, handBackBlock = null;
   const allApps = [...consoles, hub, ...otherApps];
   for (const rel of allApps) {
     const src = fs.readFileSync(path.join(root, rel), "utf8");
     const b = extractNavBlock(src, rel);
     if (navBlock === null) navBlock = b;
     else assert.strictEqual(b, navBlock, rel + ": app navigation block differs from " + consoles[0]);
-    // the links: every app has both (hub primary, apps page), the hub only "All apps"
-    const hubLink = /<a id="navHub" class="hub" href="dispatcher_hub.html"[^>]*>Device Hub<\/a>/.test(src);
-    const appsLink = /<a id="navApps" href="index.html"[^>]*>All apps<\/a>/.test(src);
-    assert.ok(appsLink, rel + ": no \"All apps\" link to index.html");
+    assert.ok(!/installAppHandBack|hubConnectQuery/.test(b), "the navigation block must hold only what every page uses");
+    // the hand-back block: identical in the 8 consoles, absent elsewhere (no unused function in the plain pages)
+    if (consoles.includes(rel)) {
+      const h = extractHandBackBlock(src, rel);
+      if (handBackBlock === null) handBackBlock = h;
+      else assert.strictEqual(h, handBackBlock, rel + ": app hand-back block differs from " + consoles[0]);
+    } else {
+      assert.ok(!src.includes("// --- begin app hand-back") && !/function installAppHandBack|function hubConnectQuery/.test(src), rel + ": must not carry the hand-back block");
+    }
+    // the links: every app has both (hub primary, apps page), the hub only "All
+    // apps"; the STATIC hrefs are the hosted copies (valid even where the
+    // script never runs), rewritten to siblings at runtime inside …/apps/
+    const hubLink = new RegExp('<a id="navHub" class="hub" href="' + HOSTED_APPS + 'dispatcher_hub.html"[^>]*>Device Hub</a>').test(src);
+    const appsLink = new RegExp('<a id="navApps" href="' + HOSTED_APPS + 'index.html"[^>]*>All apps</a>').test(src);
+    assert.ok(appsLink, rel + ": no \"All apps\" link to the hosted index.html");
     if (rel === hub) assert.ok(!hubLink && !src.includes('id="navHub"'), "the hub must not link to itself");
-    else assert.ok(hubLink, rel + ": no primary \"Device Hub\" link to dispatcher_hub.html");
+    else assert.ok(hubLink, rel + ": no primary \"Device Hub\" link to the hosted dispatcher_hub.html");
+    assert.ok(!/href="(dispatcher_hub|index)\.html"/.test(src.replace(b, "")) || rel === hub, rel + ": a static relative nav href would dangle where the script cannot run");
     assert.ok(/<nav class="espp-nav" aria-label="espp web apps">/.test(src), rel + ": no nav strip");
     // installed from real code: consoles hand the device back, the rest navigate plainly
     assert.ok(/^\s*installAppNav\(\);/m.test(src), rel + ": installAppNav() not called");
@@ -865,7 +886,8 @@ function navTests() {
   }
   console.log("PASS every web app carries the identical app navigation block and both links (" + allApps.length + " files)");
   // navHref: siblings when hosted, the hosted copies from file://
-  const nav = new Function(navBlock + "\n return { navHref, inHostedAppsDir, hubConnectQuery, installAppNav, installAppHandBack, ESPP_APPS_BASE };")();
+  const nav = new Function(navBlock + handBackBlock + "\n return { navHref, inHostedAppsDir, hubConnectQuery, installAppNav, installAppHandBack, ESPP_APPS_BASE };")();
+  assert.strictEqual(nav.ESPP_APPS_BASE, HOSTED_APPS);
   const setLoc = (v) => Object.defineProperty(global, "location", { value: v, configurable: true, writable: true });
   const savedLoc = global.location;
   try {

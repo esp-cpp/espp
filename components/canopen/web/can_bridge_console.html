@@ -245,7 +245,7 @@
   <div class="wrap">
     <header>
       <h1>espp CAN Bridge Console <span class="muted">(WebUSB / Web Serial)</span></h1>
-      <nav class="espp-nav" aria-label="espp web apps"><a id="navHub" class="hub" href="dispatcher_hub.html" title="Back to the espp Device Hub (hands a connected device back to it)">Device Hub</a><a id="navApps" href="index.html" title="All espp web apps">All apps</a></nav>
+      <nav class="espp-nav" aria-label="espp web apps"><a id="navHub" class="hub" href="https://esp-cpp.github.io/espp/apps/dispatcher_hub.html" title="Back to the espp Device Hub (hands a connected device back to it)">Device Hub</a><a id="navApps" href="https://esp-cpp.github.io/espp/apps/index.html" title="All espp web apps">All apps</a></nav>
       <span id="status" class="status-pill">Disconnected</span>
     </header>
 
@@ -1280,12 +1280,14 @@
     }
     // --- end connection helpers ---
     // --- begin app navigation (shared; byte-identical in every web app, see web/test/resolve_module_id_test.js) ---
-    // Links back to the Device Hub (primary) and the apps page. In the hosted
-    // apps directory (…/apps/ on the documentation site) both are siblings of
-    // every app; anywhere else — a page opened from file:// inside the
-    // repository tree, a source tree served from http://localhost (the haptics
-    // console lives at example/webapp/index.html there, where index.html IS the
-    // console) — the siblings do not exist, so the links go to the hosted copies.
+    // Links back to the Device Hub (primary) and the apps page. The static hrefs
+    // in the HTML are the hosted copies (always valid, also when this script
+    // never runs — a file:// page whose ES-module import is blocked). In the
+    // hosted apps directory (…/apps/ on the documentation site, or a local
+    // server in docs/apps) hub and apps page are siblings of every app, so the
+    // links are rewritten to the sibling files there; anywhere else — file://,
+    // a source tree served from http://localhost (where the haptics console is
+    // example/webapp/index.html itself) — they stay on the hosted copies.
     const ESPP_APPS_BASE = "https://esp-cpp.github.io/espp/apps/";
     function inHostedAppsDir(loc) {
       if (!loc || !/^https?:$/.test(loc.protocol)) return false;
@@ -1295,6 +1297,16 @@
     function navHref(file) {
       return inHostedAppsDir(typeof location !== "undefined" ? location : null) ? file : ESPP_APPS_BASE + file;
     }
+    // Wire the #navHub / #navApps hrefs (every app). Returns the hub link.
+    function installAppNav() {
+      const hub = typeof document !== "undefined" ? document.getElementById("navHub") : null;
+      const apps = typeof document !== "undefined" ? document.getElementById("navApps") : null;
+      if (apps) apps.href = navHref("index.html");
+      if (hub) hub.href = navHref("dispatcher_hub.html");
+      return hub;
+    }
+    // --- end app navigation ---
+    // --- begin app hand-back (shared; byte-identical in every dispatcher-module console, see web/test/resolve_module_id_test.js) ---
     // The auto-connect query (no module) a hand-back carries so the hub opens the
     // device the app just released, without a chooser.
     function hubConnectQuery(identity) {
@@ -1307,24 +1319,18 @@
       if (identity.serial) q.set("serial", identity.serial);
       return q.toString();
     }
-    // Wire the #navHub / #navApps hrefs (every app). Returns the hub link.
-    function installAppNav() {
-      const hub = typeof document !== "undefined" ? document.getElementById("navHub") : null;
-      const apps = typeof document !== "undefined" ? document.getElementById("navApps") : null;
-      if (apps) apps.href = navHref("index.html");
-      if (hub) hub.href = navHref("dispatcher_hub.html");
-      return hub;
-    }
-    // Dispatcher-module consoles only: a plain left click on "Device Hub" while
-    // connected hands the device back. handover.connected() says whether the
-    // page holds a device; handover.handBack() closes it the way a manual
-    // Disconnect does (stop the supervisor, close, then post the released
-    // notice) and resolves the device's identity; the tab then navigates to the
-    // hub with the auto-connect query. The href stays the plain hub URL, so
-    // middle-click / open-in-new-tab / modified clicks keep working and never
-    // close anything. One hand-back at a time: a second click while the first
-    // is closing is swallowed (the guard is never cleared on success — the page
-    // navigates away — and cleared on failure).
+    // A plain left click on "Device Hub" while connected hands the device back.
+    // handover.connected() says whether the page holds a device;
+    // handover.handBack() closes it the way a manual Disconnect does (stop the
+    // supervisor, close, then post the released notice) and resolves the
+    // device's identity; the tab then navigates to the hub with the auto-connect
+    // query. The href stays the plain hub URL, so middle-click / open-in-new-tab
+    // / modified clicks keep working and never close anything. One hand-back at
+    // a time: a second click while the first is closing is swallowed (the guard
+    // is never cleared on success — the page navigates away — and cleared on
+    // failure). The chooser-less pick-up on the hub needs the same origin (the
+    // device grant is per origin); a console on another origin still lands on
+    // the hub with the identity in the URL, and the hub offers Connect.
     function installAppHandBack(handover) {
       const hub = typeof document !== "undefined" ? document.getElementById("navHub") : null;
       if (!hub) return;
@@ -1341,7 +1347,7 @@
           () => { handingBack = false; location.assign(target); });
       });
     }
-    // --- end app navigation ---
+    // --- end app hand-back ---
     // Adopt the CAN bridge module id from a discovery reply (null = none) --
     // every CAN frame built / matched from here on uses it.
     function adoptModule(info) {

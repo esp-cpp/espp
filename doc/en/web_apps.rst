@@ -235,9 +235,18 @@ hands the device back: the console closes it the way its Disconnect button
 does (stops the reconnect supervisor, closes, then posts the ``released``
 notice) and navigates the same tab to the hub with the device's auto-connect
 query, which the hub honours on load by opening that permitted device without
-a chooser. The link's ``href`` stays the plain hub URL, so a middle-click, a
-modified click or *open in new tab* just opens the hub and closes nothing; an
-unconnected console (or an app that speaks no espp protocol) navigates
-plainly. The hub still never reconnects on its own after handing a device off
-to an app. The navigation helpers are one more byte-identical block in every
-app, covered by the same test.
+a chooser. That chooser-less pick-up needs console and hub to share an
+origin, because a device grant is per origin: from the hosted apps directory
+(or any one local server) it just works, whereas a console opened from
+``file://`` (an opaque origin) hands back to the *hosted* hub, which has no
+grant for the device — it then names the device it was sent, asks for one
+Connect to pick it, and remembers the grant from then on. The link's
+``href`` stays the plain hub URL, so a middle-click, a modified click or
+*open in new tab* just opens the hub and closes nothing; an unconnected
+console (or an app that speaks no espp protocol) navigates plainly. The hub
+still never reconnects on its own after handing a device off to an app. The
+static links in every page point at the hosted copies, so they are valid
+even where a page's script cannot run (a ``file://`` page whose ES-module
+import the browser blocks). The navigation helpers are one more
+byte-identical block in every app, and the hand-back helpers one in every
+console, both covered by the same test.
