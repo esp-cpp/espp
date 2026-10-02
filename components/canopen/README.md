@@ -61,6 +61,16 @@ runs in the browser:
   parser, table, decoder and scan walk are pure functions covered by
   `node web/test/ds402_od_test.js`.
 
+Both apps auto-connect when opened with
+`?autoconnect=1&transport=usb|serial&vid=0x1209&pid=0x0d33[&serial=...]`
+(the query the Device Hub's links carry): the page connects on load, without
+the browser chooser, to a device it was already granted. Their
+**auto-reconnect** checkbox (default on, remembered per origin) reconnects
+after an unexpected link loss (a device reboot or re-plug with the same USB
+ids). Both only see devices the browser already granted to the page, i.e. a
+page served over HTTPS, or HTTP on localhost; a `file://` copy loses the
+grant on reload.
+
 ## Example
 
 The [example](./example) uses an `espp::Twai` transport to NMT-start a node,

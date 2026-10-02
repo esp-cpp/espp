@@ -38,7 +38,9 @@ device may serve a protocol on any dispatcher module id.
   protocols the device advertises ("Apps for this device") and, per module,
   the other apps that speak its protocol ("Also works with") — e.g. a CAN
   bridge advertises the CAN Bridge Console, and the DS402 Drive Panel is
-  offered too.
+  offered too. Opening an app hands the device off: the hub releases it and
+  the app connects to it on load (see `Auto-connect, auto-reconnect and
+  hand-off`_).
 - **OTA Console** (``ota_console.html``) — stream a firmware ``.bin`` to the
   :doc:`ota <ota/ota>` component with live progress and a rollback-aware finish.
 - **Core Dump Console** (``coredump_console.html``) — crash summary, ``core.elf``
@@ -170,3 +172,51 @@ protocol ids) are also linked that way, since nothing can be matched.
 page's metadata, the generator's outputs and failure modes, and the hub's
 matching rules (it is not run in CI — run it after touching an app's
 ``<head>``, the generator, or the hub).
+
+Auto-connect, auto-reconnect and hand-off
+-----------------------------------------
+
+WebUSB and Web Serial remember, per origin and device, which devices a page
+was granted; a page may list them (``navigator.usb.getDevices()`` /
+``navigator.serial.getPorts()``) and open one again without the chooser. The
+dispatcher-module consoles build on that:
+
+- **Auto-connect.** A console opened with
+  ``?autoconnect=1&transport=usb|serial&vid=0x1209&pid=0x0d32[&serial=...]``
+  (besides ``?module=N``) connects on load to the permitted device those ids
+  name — no chooser, no click. Ids are matched on vid + pid and, for WebUSB,
+  the serial number when both sides report one; with no match the console
+  says so and waits for Connect (a page cannot open the chooser without a
+  click).
+- **Hand-off from the hub.** Every app link the hub renders carries those
+  parameters for the connected device. Only one page can hold a device
+  (WebUSB claims the vendor interface, Web Serial opens the port), so clicking
+  a link makes the hub *close its connection first*, then open the app, which
+  auto-connects. The hub then shows a "Device handed off" banner with a
+  **Reconnect** button; it never reconnects by itself, because it cannot tell
+  "the app released the device" from "the device rebooted". When the app
+  disconnects (its Disconnect button, or the tab closes) it posts a
+  ``released`` notice on the same-origin ``BroadcastChannel("espp-device")``
+  and the hub's banner says the device is free again.
+- **Auto-reconnect.** Each console has an **auto-reconnect** checkbox (default
+  on, remembered per origin in ``localStorage``). After an *unexpected* link
+  loss — the device rebooted, was re-plugged, or crashed — the console retries
+  on a bounded back-off (about 40 s, longer after a reboot it requested
+  itself) and the moment the platform reports the device back, opening the
+  same device by its ids. A manual Disconnect never triggers it. The System
+  Console arms it on **Reboot** and disables it for a **Reboot into
+  bootloader** (the ROM enumerates as a different USB device with no espp
+  protocol); the OTA Console arms it after a finished update or a rollback so
+  the post-reboot verify prompt appears by itself; the Core Dump Console arms
+  it on the test-crash buttons.
+
+All of it only works for pages served from a *secure context* — HTTPS (the
+hosted apps), or plain HTTP on ``localhost`` (a local ``python -m
+http.server`` in ``docs/apps``) — because WebUSB and Web Serial exist nowhere
+else; a ``file://`` page is an opaque origin whose grants do not persist, so
+it falls back to the chooser.
+The shared helpers (``parseConnectParams``, the permitted device matchers
+and the reconnect supervisor) are byte-identical in every console and the
+hub; the hub's link builder (``connectQuery``) sits in its own block next to
+them. Both are exercised by
+``node components/dispatcher/web/test/resolve_module_id_test.js``.
