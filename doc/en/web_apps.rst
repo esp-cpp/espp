@@ -11,6 +11,16 @@ alongside this documentation:
 Each app is a single HTML file; it also runs offline straight from its
 ``components/<name>/web/`` directory via a ``file://`` URL.
 
+The landing page groups the apps by category (*device management*, *motor
+control*, *bus tools*, *input devices*, *utilities*), can be filtered by name,
+description, protocol id, transport or category, and sorted by name or
+category. Each card shows the espp dispatcher protocols the app speaks (a
+trailing ``?`` marks an optional one, e.g. the System Console's
+``espp.monitor:1?``) and the browser transports it uses (WebUSB, Web Serial,
+WebHID). The same table is published next to the apps as ``registry.json`` and
+``registry.js`` (``window.ESPP_APPS``) — the `app registry`_ the Device Hub
+uses to link every app that can drive a device.
+
 Device hub & dispatcher-module consoles
 =======================================
 
@@ -23,7 +33,12 @@ module advertises its protocol id (``espp.ota``, ``espp.coredump``, ...), so a
 device may serve a protocol on any dispatcher module id.
 
 - **Device Hub** (``dispatcher_hub.html``) — connect over WebUSB / Web Serial,
-  query the device's advertised modules, and open each module's console.
+  query the device's advertised modules, and open each module's console. With
+  the hosted `app registry`_ beside it, it also lists every app whose
+  protocols the device advertises ("Apps for this device") and, per module,
+  the other apps that speak its protocol ("Also works with") — e.g. a CAN
+  bridge advertises the CAN Bridge Console, and the DS402 Drive Panel is
+  offered too.
 - **OTA Console** (``ota_console.html``) — stream a firmware ``.bin`` to the
   :doc:`ota <ota/ota>` component with live progress and a rollback-aware finish.
 - **Core Dump Console** (``coredump_console.html``) — crash summary, ``core.elf``
@@ -101,8 +116,57 @@ Adding a new app
 
 Any single-file app placed in a component's ``web/`` directory
 (``components/<name>/web/*.html``, plus optional same-origin ``.js`` assets) is
-hosted automatically by the docs workflow, and the `apps landing page
-<https://esp-cpp.github.io/espp/apps/index.html>`_ lists it using the file's
-``<title>`` and ``<meta name="description">`` tags — no registry to maintain.
-Apps must be fully self-contained (no CDN resources) so they work offline and
-under GitHub Pages' strict hosting.
+hosted automatically by the docs workflow and listed on the `apps landing page
+<https://esp-cpp.github.io/espp/apps/index.html>`_ — there is no
+hand-maintained list; the page describes itself with tags in its ``<head>``:
+
+.. code-block:: html
+
+   <title>espp System Console (WebUSB / Web Serial)</title>
+   <meta name="description" content="Device info, reboot, ... for the espp system component.">
+   <meta name="espp-category" content="device management">
+   <meta name="espp-protocols" content="espp.system:1 espp.monitor:1?">
+   <meta name="espp-transports" content="webusb webserial">
+
+- ``<title>`` / ``description`` — the card's title and blurb.
+- ``espp-category`` (**required**) — one of ``device management``,
+  ``motor control``, ``bus tools``, ``input devices``, ``utilities``; the
+  section the card is listed under.
+- ``espp-protocols`` — space-separated ``id:version`` entries naming the
+  espp dispatcher protocols the app speaks (the same ids a device advertises
+  in discovery, see :doc:`dispatcher/custom_modules`); a trailing ``?`` marks
+  a protocol the app can do without. Omit the tag for an app that speaks no
+  espp protocol (a plain serial console, a WebHID tool).
+- ``espp-transports`` — space-separated subset of ``webusb``, ``webserial``,
+  ``webhid``.
+
+The docs build (``doc/generate_apps_index.py``) fails with a clear message on
+a page without a category, an unknown category or transport, or a malformed
+protocol entry. Apps must be fully self-contained (no CDN resources) so they
+work offline and under GitHub Pages' strict hosting.
+
+.. _app registry:
+
+The app registry
+----------------
+
+Besides ``index.html`` the generator writes ``registry.json`` and
+``registry.js`` next to the apps: one record per app —
+``{file, title, description, category, protocols: [{id, version, optional}],
+transports}`` — built from the tags above. ``registry.js`` assigns the object
+to ``window.ESPP_APPS``; the Device Hub loads it as an optional sibling script
+(``<script src="registry.js">``). When it is present the hub links, for a
+discovered device, every app whose *required* protocols the device advertises
+(each link carries the id of the module that speaks the app's protocol, as
+``?module=N``), and per module the other apps that speak its protocol; it
+notes a protocol version the app does not implement (``app speaks v1, device
+advertises v2``) and listed protocols the device lacks (``optional
+espp.monitor not advertised``). Without the registry (``file://``, or a copy of
+the hub on its own) the hub behaves as before and links only the app each
+module advertises. Devices that send a version-1 discovery payload (no
+protocol ids) are also linked that way, since nothing can be matched.
+
+``node components/dispatcher/web/test/apps_registry_test.js`` checks every
+page's metadata, the generator's outputs and failure modes, and the hub's
+matching rules (it is not run in CI — run it after touching an app's
+``<head>``, the generator, or the hub).
