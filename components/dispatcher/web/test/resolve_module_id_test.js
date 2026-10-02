@@ -865,8 +865,10 @@ function navTests() {
     // the links: every app has both (hub primary, apps page), the hub only "All
     // apps"; the STATIC hrefs are the hosted copies (valid even where the
     // script never runs), rewritten to siblings at runtime inside …/apps/
-    const hubLink = new RegExp('<a id="navHub" class="hub" href="' + HOSTED_APPS + 'dispatcher_hub.html"[^>]*>Device Hub</a>').test(src);
-    const appsLink = new RegExp('<a id="navApps" href="' + HOSTED_APPS + 'index.html"[^>]*>All apps</a>').test(src);
+    // the hosted URL is interpolated into a regexp: escape it (its dots must not match any character)
+    const reEscape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const hubLink = new RegExp('<a id="navHub" class="hub" href="' + reEscape(HOSTED_APPS + "dispatcher_hub.html") + '"[^>]*>Device Hub</a>').test(src);
+    const appsLink = new RegExp('<a id="navApps" href="' + reEscape(HOSTED_APPS + "index.html") + '"[^>]*>All apps</a>').test(src);
     assert.ok(appsLink, rel + ": no \"All apps\" link to the hosted index.html");
     if (rel === hub) assert.ok(!hubLink && !src.includes('id="navHub"'), "the hub must not link to itself");
     else assert.ok(hubLink, rel + ": no primary \"Device Hub\" link to the hosted dispatcher_hub.html");
