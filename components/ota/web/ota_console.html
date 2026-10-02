@@ -1296,12 +1296,14 @@
         els.progressFill.className = "progress-fill done";
         els.progressFill.style.width = "100%";
         setStatus("connected", "Update complete");
-        // Arm the post-reboot verification: when the user reconnects, we check the
-        // new image can respond and prompt to confirm it (the app must not confirm
-        // itself). The reboot drops WebUSB, so this needs a manual reconnect.
+        // Arm the post-reboot verification: once the console is connected again
+        // (automatically via the reconnect supervisor armed above, or manually
+        // when auto-reconnect is off) we check the new image responds and prompt
+        // to confirm it (the app must not confirm itself).
         awaitingVerify = { before: beforeFirmware };
-        setNote("Update complete — device is restarting into the new firmware. It "
-                + "boots pending-verify; reconnect to confirm it (it must not confirm itself).");
+        setNote("Update complete — device is restarting into the new firmware. It boots pending-verify; "
+                + (els.autoReconnect.checked ? "the console reconnects and asks you to confirm it" : "reconnect to confirm it")
+                + " (it must not confirm itself).");
         logLine("sys", "Update complete (" + sent.toLocaleString() + " bytes). Device restarting — expect a USB disconnect.");
         logLine("sys", els.autoReconnect.checked ? "Reconnecting automatically to verify + confirm the new image." :
                        "Reconnect with the Connect button to verify + confirm the new image.");
