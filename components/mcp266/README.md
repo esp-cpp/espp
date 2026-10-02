@@ -65,7 +65,8 @@ query the Device Hub's links carry) it connects on load, without the browser
 chooser, to a device the page was already granted; its **auto-reconnect**
 checkbox (default on, remembered per origin) reconnects after an unexpected
 link loss such as a device reboot or re-plug. Both only see devices the browser
-already granted to the page (served over http(s); a `file://` copy loses the
+already granted to the page (served over HTTPS, or HTTP on localhost; a
+`file://` copy loses the
 grant on reload).
 
 - `mcp266_protocol.hpp` — the wire protocol (dispatcher **module 6** by

@@ -210,9 +210,11 @@ dispatcher-module consoles build on that:
   the post-reboot verify prompt appears by itself; the Core Dump Console arms
   it on the test-crash buttons.
 
-All of it only works for pages served over http(s) (the hosted apps, or a
-local ``python -m http.server`` in ``docs/apps``): a ``file://`` page is an
-opaque origin whose grants do not persist, so it falls back to the chooser.
+All of it only works for pages served from a *secure context* — HTTPS (the
+hosted apps), or plain HTTP on ``localhost`` (a local ``python -m
+http.server`` in ``docs/apps``) — because WebUSB and Web Serial exist nowhere
+else; a ``file://`` page is an opaque origin whose grants do not persist, so
+it falls back to the chooser.
 The shared helpers (``parseConnectParams``, ``connectQuery``, the permitted
 device matchers and the reconnect supervisor) are byte-identical in every
 console and the hub and are exercised by

@@ -75,7 +75,8 @@ the same device after an unexpected link loss such as a reboot. The helpers
 (`parseConnectParams`, `connectQuery`, the permitted-device matchers, the
 reconnect supervisor) are a byte-identical block in each console and the hub,
 checked by `web/test/resolve_module_id_test.js`. All of this needs a page
-served over http(s): a `file://` page's device grants do not persist.
+served over HTTPS, or HTTP on localhost (WebUSB / Web Serial need a secure
+context): a `file://` page's device grants do not persist.
 
 ## API
 

@@ -42,7 +42,8 @@ rest, with the per-series filter bar:
   checkbox (default on, remembered per origin) reconnects on the same transport
   after an unexpected link loss (a device reboot or re-plug with the same USB
   ids). Both only see devices the browser already granted to the page, i.e. a
-  page served over http(s); a `file://` copy loses the grant on reload.
+  page served over HTTPS, or HTTP on localhost; a `file://` copy loses the
+  grant on reload.
 - **Automatic parsing.** The delimiter (comma / tab / semicolon / whitespace) is
   detected per line. A line of non-numeric labels is treated as a **header**; the
   first numeric row of matching width confirms it and becomes the schema. Rows

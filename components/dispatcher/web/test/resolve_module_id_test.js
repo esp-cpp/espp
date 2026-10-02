@@ -471,6 +471,29 @@ async function supervisorTests() {
     assert.strictEqual(n, 1); assert.ok(!s.isActive());
     s.onDeviceAppeared(); await tick(150); assert.strictEqual(n, 1); // inert when idle
   }
+  // attempts are serialized: an arrival event during an in-flight attempt does
+  // NOT start a second open; it is remembered and retried once, right after
+  // the current attempt settles (before the plan's long delay)
+  {
+    let inFlight = 0, maxInFlight = 0, n = 0, release = null;
+    const s = conn.createReconnectSupervisor({ delaysMs: [1, 10000, 10000], enabled: () => true,
+      reconnect: () => new Promise((r) => { n++; inFlight++; maxInFlight = Math.max(maxInFlight, inFlight); release = (ok) => { inFlight--; r(ok); }; }) });
+    s.onLinkLost(id);
+    await tick(10);
+    assert.strictEqual(n, 1);
+    s.onDeviceAppeared(); s.onDeviceAppeared(); // arrivals while attempt 1 is still open
+    await tick(150);
+    assert.strictEqual(n, 1); // nothing overlapped
+    release(false);          // attempt 1 fails -> one immediate retry instead of the 10 s wait
+    await tick(150);
+    assert.strictEqual(n, 2); assert.strictEqual(maxInFlight, 1);
+    release(true); await tick(10);
+    assert.ok(!s.isActive());
+    // a success with a pending arrival does not retry
+    s.onLinkLost(id); await tick(10); assert.strictEqual(n, 3);
+    s.onDeviceAppeared(); release(true); await tick(150);
+    assert.strictEqual(n, 3); assert.ok(!s.isActive()); assert.strictEqual(maxInFlight, 1);
+  }
   // stop(): a manual disconnect cancels a pending attempt; an attempt that
   // completes after stop() / a newer loss is ignored (generation check)
   {
@@ -539,6 +562,18 @@ async function noticeTests() {
   assert.ok(/els\.reconnectBtn\.addEventListener\("click", reconnectHandedOff\);/.test(hubSrc), "hub: no Reconnect button");
   assert.ok(/deviceChannel\.onmessage = /.test(hubSrc) && /msg\.type !== "released"/.test(hubSrc), "hub: does not listen for released notices");
   assert.ok(/const preset = kind === "usb" \? await findPermittedUsbDevice\(want\) : await findPermittedSerialPort\(want\);/.test(hubSrc), "hub: Reconnect must try the permitted device before the chooser");
+  // the hub's unexpected-loss path must drop the stale transport, or connect()'s
+  // one-at-a-time guard would refuse every later Connect / Reconnect
+  const hubLoss = /function onLinkLost\(\) \{([\s\S]*?)\n    \}\n/.exec(hubSrc);
+  assert.ok(hubLoss && /const t = transport; transport = null;/.test(hubLoss[1]), "hub: onLinkLost must clear the stale transport");
+  assert.ok(/async function connect\(kind, preset\) \{\n      if \(transport\) return;/.test(hubSrc), "hub: connect() guards against a second concurrent open");
+  // every console's unexpected-loss path clears its transport / device too
+  for (const rel of consoles) {
+    const src = fs.readFileSync(path.join(root, rel), "utf8");
+    const loss = /function (?:onLinkLost|onTransportGone|usbLinkLost|handleLinkLost)\([^)]*\) \{([\s\S]*?)\n    \}\n/.exec(src);
+    if (loss) assert.ok(/(transport|port|usb) = null/.test(loss[1]), rel + ": the loss path keeps the stale transport");
+    else assert.ok(/safeClose\(\)/.test(src), rel + ": no loss path found");
+  }
   console.log("PASS lint: every console wires auto-connect / auto-reconnect / released notices; the hub hands off and never auto-reconnects");
 }
 

@@ -56,7 +56,7 @@ link loss, e.g. the **Reboot** button: the device re-enumerates with the same
 ids and the console picks it up again. **Reboot into bootloader** disables that
 for the next loss (the ROM enumerates as a different USB device). Both paths
 only see devices the browser already granted to this page, i.e. a page served
-over http(s); a `file://` copy loses the grant on reload.
+over HTTPS, or HTTP on localhost; a `file://` copy loses the grant on reload.
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**

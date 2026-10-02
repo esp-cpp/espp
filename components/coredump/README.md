@@ -39,7 +39,8 @@ checkbox (default on, remembered per origin) reconnects after an unexpected
 link loss, e.g. one of the test-crash buttons: the device crashes, stores the
 dump, reboots with the same USB ids and the console picks it up and refreshes
 the summary. Both only see devices the browser already granted to this page
-(served over http(s); a `file://` copy loses the grant on reload).
+(served over HTTPS, or HTTP on localhost; a `file://` copy loses the grant on
+reload).
 
 The same protocol is also spoken from the terminal by the pure-Python
 [`python/espp_coredump`](python/) tool, and the component's

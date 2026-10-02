@@ -68,7 +68,8 @@ the browser chooser, to a device it was already granted. Their
 **auto-reconnect** checkbox (default on, remembered per origin) reconnects
 after an unexpected link loss (a device reboot or re-plug with the same USB
 ids). Both only see devices the browser already granted to the page, i.e. a
-page served over http(s); a `file://` copy loses the grant on reload.
+page served over HTTPS, or HTTP on localhost; a `file://` copy loses the
+grant on reload.
 
 ## Example
 
