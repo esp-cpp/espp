@@ -288,13 +288,17 @@ const info = (version, mods) => ({ version, device: "d", fw: "1", modules: mods 
 // reconnect supervisor, hand-off notices. One block, byte-identical in every
 // console AND the hub, delimited by the begin / end marker comments.
 // =============================================================================
+// The markers are located without assuming their indentation or the line
+// ending: the block runs from the start of the begin-marker line to the end of
+// the end-marker line (LF or CRLF).
 function extractConnectBlock(src, rel) {
-  const start = src.indexOf("    // --- begin connection helpers");
-  assert.ok(start >= 0, rel + ": no connection helper block");
-  const endMarker = "    // --- end connection helpers ---\n";
-  const end = src.indexOf(endMarker, start);
-  assert.ok(end >= 0, rel + ": unterminated connection helper block");
-  return src.slice(start, end + endMarker.length);
+  const beginAt = src.indexOf("// --- begin connection helpers");
+  assert.ok(beginAt >= 0, rel + ": no connection helper block");
+  const start = src.lastIndexOf("\n", beginAt) + 1;
+  const endAt = src.indexOf("// --- end connection helpers ---", beginAt);
+  assert.ok(endAt >= 0, rel + ": unterminated connection helper block");
+  const nl = src.indexOf("\n", endAt);
+  return src.slice(start, nl >= 0 ? nl + 1 : src.length);
 }
 let connectBlock = null;
 for (const rel of [...consoles, hub]) {

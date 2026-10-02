@@ -1362,7 +1362,15 @@
     // page closed), so a hub that handed the device off can offer to reconnect.
     // Same-origin pages only (BroadcastChannel); best effort everywhere.
     function openDeviceChannel() {
-      try { return typeof BroadcastChannel === "function" ? new BroadcastChannel("espp-device") : null; } catch (_) { return null; }
+      let channel = null;
+      try { channel = typeof BroadcastChannel === "function" ? new BroadcastChannel("espp-device") : null; } catch (_) { return null; }
+      // Close the channel when the page goes away (no late deliveries to a page
+      // that is unloading, no leaked channel across rapid reloads). The listener
+      // is registered on a later task so it runs AFTER the page's own pagehide
+      // handler, which still needs the channel to post its released notice.
+      if (channel && typeof window !== "undefined" && typeof window.addEventListener === "function")
+        setTimeout(() => window.addEventListener("pagehide", () => { try { channel.close(); } catch (_) {} }, { once: true }), 0);
+      return channel;
     }
     function postReleased(channel, identity) {
       if (!channel || !identity) return;
