@@ -71,7 +71,11 @@ cannot tell "the app released the device" from "the device rebooted"); an app
 that disconnects posts a `released` notice on the same-origin
 `BroadcastChannel("espp-device")` so the banner says the device is free again.
 Every console has an **auto-reconnect** checkbox (default on) that re-opens
-the same device after an unexpected link loss such as a reboot. The helpers
+the same device after an unexpected link loss such as a reboot. Every app
+also links back to the hub (**Device Hub**, primary) and the apps page (**All
+apps**); a connected console's Device Hub link hands the device back — close,
+`released` notice, then navigate the same tab to the hub with the device's
+auto-connect query, which the hub honours on load. The helpers
 (`parseConnectParams`, the permitted-device matchers, the reconnect
 supervisor) are a byte-identical block in each console and the hub, and the
 hub's link builder `connectQuery` sits in its own block next to it; both are

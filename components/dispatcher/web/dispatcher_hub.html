@@ -77,11 +77,19 @@
     #log .t { color: var(--muted); }
     #log .err { color: var(--err); }
     #log .ok { color: var(--ok); }
+    /* espp web-app navigation: back to the Device Hub (primary) and the apps page */
+    .espp-nav { display: inline-flex; gap: 6px; align-items: center; margin-left: 12px; font-size: 12px; font-weight: 600; vertical-align: middle; }
+    .espp-nav a { text-decoration: none; white-space: nowrap; padding: 4px 10px; border-radius: 6px;
+      border: 1px solid var(--accent, #4aa8ff); color: var(--accent, #4aa8ff); }
+    .espp-nav a.hub { background: var(--accent, #4aa8ff); color: var(--accent-contrast, #06121f); }
+    .espp-nav a:hover { filter: brightness(1.1); }
+    .espp-nav a:focus-visible { outline: 2px solid var(--accent, #4aa8ff); outline-offset: 2px; }
   </style>
 </head>
 <body>
   <header>
     <h1>espp Device Hub <span class="muted">(WebUSB / Web Serial)</span></h1>
+    <nav class="espp-nav" aria-label="espp web apps"><a id="navApps" href="https://esp-cpp.github.io/espp/apps/index.html" title="All espp web apps">All apps</a></nav>
     <div class="spacer"></div>
     <label class="muted" style="font-size:12px;"><input type="checkbox" id="anyDevice" /> any device</label>
     <button id="connectUsbBtn" class="primary">Connect (WebUSB)</button>
@@ -560,6 +568,33 @@
       try { channel.postMessage({ type: "released", identity: identity, page: (typeof location !== "undefined" ? location.pathname : "").split("/").pop() }); } catch (_) {}
     }
     // --- end connection helpers ---
+    // --- begin app navigation (shared; byte-identical in every web app, see web/test/resolve_module_id_test.js) ---
+    // Links back to the Device Hub (primary) and the apps page. The static hrefs
+    // in the HTML are the hosted copies (always valid, also when this script
+    // never runs — a file:// page whose ES-module import is blocked). In the
+    // hosted apps directory (…/apps/ on the documentation site, or a local
+    // server in docs/apps) hub and apps page are siblings of every app, so the
+    // links are rewritten to the sibling files there; anywhere else — file://,
+    // a source tree served from http://localhost (where the haptics console is
+    // example/webapp/index.html itself) — they stay on the hosted copies.
+    const ESPP_APPS_BASE = "https://esp-cpp.github.io/espp/apps/";
+    function inHostedAppsDir(loc) {
+      if (!loc || !/^https?:$/.test(loc.protocol)) return false;
+      const dir = String(loc.pathname || "").replace(/[^/]*$/, "");
+      return /\/apps\/$/.test(dir);
+    }
+    function navHref(file) {
+      return inHostedAppsDir(typeof location !== "undefined" ? location : null) ? file : ESPP_APPS_BASE + file;
+    }
+    // Wire the #navHub / #navApps hrefs (every app). Returns the hub link.
+    function installAppNav() {
+      const hub = typeof document !== "undefined" ? document.getElementById("navHub") : null;
+      const apps = typeof document !== "undefined" ? document.getElementById("navApps") : null;
+      if (apps) apps.href = navHref("index.html");
+      if (hub) hub.href = navHref("dispatcher_hub.html");
+      return hub;
+    }
+    // --- end app navigation ---
     // --- begin hub link helpers (hub only; covered by the same test) ---
     // Query string (no leading "?") for a link that opens an app on `moduleId`
     // and auto-connects to `identity` (null -> the module id alone).
@@ -936,6 +971,29 @@
     if (!navigator.usb && !navigator.serial) els.unsupported.style.display = "block";
     if (navigator.usb && navigator.usb.addEventListener)
       navigator.usb.addEventListener("disconnect", (e) => { if (transport instanceof UsbTransport && e.device === transport.device) { logLine("err", "device disconnected"); onLinkLost(); } });
+
+    // ?autoconnect=1&transport=&vid=&pid=&serial=: an app handing its device back
+    // (a navigation the user started from the app's "Device Hub" link) — connect
+    // to that permitted device without a chooser, through the gate. This is
+    // unrelated to the hand-off banner: after handing a device to an app the hub
+    // still never reconnects on its own.
+    const connectParams = parseConnectParams(location.search);
+    async function autoConnectOnLoad() {
+      const want = connectParams;
+      for (const kind of want.transport ? [want.transport] : ["usb", "serial"]) {
+        const preset = kind === "usb" ? await findPermittedUsbDevice(want) : await findPermittedSerialPort(want);
+        if (!preset) continue;
+        logLine("t", "an app handed back " + describeIdentity(kind === "usb" ? usbIdentity(preset) : serialIdentity(preset)) + " — connecting…");
+        await connect(kind, preset);
+        return;
+      }
+      // not plugged in, or granted to another origin (a console opened from
+      // file:// hands back to the hosted hub: the grant does not carry over)
+      logLine("warn", "An app handed back " + describeIdentity(want) + ", but this page may not open it yet (not plugged in, or granted to the app on another origin) — click Connect and pick it once; it stays permitted here afterwards.");
+      setStatus("", "pick the device");
+    }
+    installAppNav(); // "All apps" link
+    if (connectParams.autoconnect) autoConnectOnLoad();
   </script>
 </body>
 </html>
