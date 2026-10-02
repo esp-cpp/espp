@@ -557,6 +557,47 @@ async function supervisorTests() {
     assert.ok(!gate.isBusy());
     assert.strictEqual(await gate.run(async () => 7), 7);
   }
+  // cancellation of an attempt already blocked inside opts.reconnect(): the
+  // checkbox is unticked (stop()) while the open is pending; when it settles
+  // the page's connected() call is ignored and opts.discard() closes the open
+  {
+    let release = null, discarded = 0, tokens = [];
+    const s = conn.createReconnectSupervisor({ delaysMs: [1, 1, 1], enabled: () => true,
+      reconnect: (identity, n, token) => new Promise((r) => { tokens.push(token); release = (ok) => { if (ok) s.connected(); r(ok); }; }),
+      discard: async () => { discarded++; } });
+    s.onLinkLost(id); await tick(10);
+    assert.strictEqual(tokens.length, 1); assert.ok(!tokens[0].cancelled());
+    s.stop("auto-reconnect is off");           // unticked while the open is pending
+    assert.ok(tokens[0].cancelled());
+    release(true);                              // the open finished anyway and the page called connected()
+    await tick(20);
+    assert.strictEqual(discarded, 1, "a cancelled attempt's open must be discarded");
+    assert.ok(!s.isActive());
+    // connected() was ignored: a real connected() clears suppress() (stop()
+    // does not), so a surviving suppression is observable through the next
+    // loss, which must refuse to reconnect
+    const log = []; let n2 = 0;
+    const s2 = conn.createReconnectSupervisor({ delaysMs: [1, 1], enabled: () => true, log: (c, m) => log.push(m),
+      reconnect: (identity, n, token) => new Promise((r) => { n2++; release = (ok) => { if (ok) s2.connected(); r(ok); }; }), discard: async () => { discarded++; } });
+    s2.onLinkLost(id); await tick(10);
+    s2.suppress(); s2.stop(); release(true); await tick(20);
+    assert.strictEqual(discarded, 2); assert.strictEqual(n2, 1);
+    s2.onLinkLost(id); await tick(20);
+    assert.ok(!s2.isActive() && /bootloader/.test(log[log.length - 1]) && n2 === 1, "connected() from a cancelled attempt must not reset the supervisor");
+    // a newer loss cancels the older in-flight attempt too (its open is discarded),
+    // and the current generation still retries
+    discarded = 0; n2 = 0;
+    const s3 = conn.createReconnectSupervisor({ delaysMs: [1, 1, 1], enabled: () => true,
+      reconnect: (identity, n, token) => new Promise((r) => { n2++; release = (ok) => r(ok); }), discard: async () => { discarded++; } });
+    s3.onLinkLost(id); await tick(10); assert.strictEqual(n2, 1);
+    const first = release; s3.onLinkLost(id); await tick(20);
+    first(true); await tick(150);
+    assert.strictEqual(discarded, 1); assert.strictEqual(n2, 2);
+    release(true); await tick(10); assert.ok(!s3.isActive());
+    // without a discard callback a cancelled attempt is simply dropped (no throw)
+    const s4 = conn.createReconnectSupervisor({ delaysMs: [1], enabled: () => true, reconnect: () => new Promise((r) => { release = r; }) });
+    s4.onLinkLost(id); await tick(10); s4.stop(); release(true); await tick(10); assert.ok(!s4.isActive());
+  }
   // stop(): a manual disconnect cancels a pending attempt; an attempt that
   // completes after stop() / a newer loss is ignored (generation check)
   {
@@ -603,7 +644,20 @@ async function noticeTests() {
     must(src, rel, /saveAutoReconnect\(/, "checkbox change not persisted");
     must(src, rel, /reconnect\.connected\(\);/, "a successful connect must reset the supervisor");
     must(src, rel, /reconnect\.onLinkLost\(connIdentity\);/, "an unexpected link loss must arm the supervisor");
-    must(src, rel, /reconnect\.stop\(\);\s*postReleased\(deviceChannel, connIdentity\);\s*connIdentity = null;/, "a manual disconnect must stop the supervisor and post the released notice");
+    // a manual disconnect stops the supervisor, keeps the identity aside, CLOSES
+    // the device, and only then posts the released notice (postMessage is
+    // synchronous; posting first would let the hub reopen a device this page
+    // still holds). pagehide is the documented exception.
+    must(src, rel, /reconnect\.stop\(\); const released = connIdentity; connIdentity = null;/, "a manual disconnect must stop the supervisor and keep the identity for the notice");
+    const holds = [...src.matchAll(/reconnect\.stop\(\); const released = connIdentity; connIdentity = null;/g)];
+    for (const h of holds) {
+      const post = src.indexOf("postReleased(deviceChannel, released);", h.index);
+      assert.ok(post > 0, rel + ": a manual disconnect never posts the released notice");
+      const between = src.slice(h.index, post);
+      assert.ok(/await (?:t\.close\(\)|safeClose\(\)|port\.close\(\)|usbReadDone)/.test(between) && !/function /.test(between), rel + ": the released notice must be posted after the transport is closed");
+    }
+    assert.strictEqual((src.match(/postReleased\(deviceChannel, connIdentity\)/g) || []).length, 1, rel + ": only the pagehide path may post before closing");
+    must(src, rel, /createReconnectSupervisor\(\{\s*gate: openGate,\s*discard: \(\) => /, "the supervisor has no discard path for a cancelled attempt's open");
     must(src, rel, /window\.addEventListener\("pagehide", \(\) => \{ if \([^)]*\) postReleased\(deviceChannel, connIdentity\); \}\);/, "no released notice on pagehide");
     must(src, rel, /if \(connectParams\.autoconnect\) autoConnect\(\);/, "no auto-connect kick-off");
     // the chooser-less open paths exist: a preset device / port skips requestDevice / requestPort

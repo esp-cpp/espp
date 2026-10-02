@@ -977,13 +977,14 @@
     }
 
     async function disconnect() {
-      reconnect.stop(); postReleased(deviceChannel, connIdentity); connIdentity = null;
+      reconnect.stop(); const released = connIdentity; connIdentity = null;
       keepReading = false;
       try { if (reader) await reader.cancel(); } catch (e) {}
       try { await readLoopDone; } catch (e) {}
       try { if (port) await port.close(); } catch (e) {}
       port = null; reader = null;
       resetConnUI("Disconnected");
+      postReleased(deviceChannel, released); // only once the device is closed: the hub may reopen it on this notice
     }
 
     // Unexpected link loss (device unplugged): the read loop ends on its own.
@@ -1318,11 +1319,20 @@
     // it hands over by scheduling the current generation's pending retry.
     // opts.gate (createOpenGate) is shared with the page's manual / auto-connect
     // paths: while one of those holds it the supervisor polls instead of opening.
+    // Cancellation: stop() (the checkbox unticked, a manual disconnect) and a
+    // newer loss cancel the attempt in flight. opts.reconnect(identity, n,
+    // token) may consult token.cancelled(); when a cancelled attempt settles
+    // the supervisor ignores the page's connected() call made while it was
+    // open and runs opts.discard() (the page's close path), so an open that
+    // finished after the user said "stop" is closed instead of adopted.
     function createReconnectSupervisor(opts) {
       const delays = opts.delaysMs || [500, 1000, 1500, 2000, 3000, 4000, 5000, 5000, 5000, 5000];
       const rebootDelays = opts.rebootDelaysMs || delays.concat([5000, 5000, 5000, 5000, 5000, 5000]);
       const log = typeof opts.log === "function" ? opts.log : () => {};
-      const sup = { active: false, identity: null, attempt: 0, expected: false, suppressed: false, timer: null, generation: 0, inFlight: false, retryAfter: false };
+      // generations <= cancelBefore are cancelled; inFlightGen is the generation of the attempt in flight
+      const sup = { active: false, identity: null, attempt: 0, expected: false, suppressed: false, timer: null, generation: 0, inFlight: false, retryAfter: false, cancelBefore: 0, inFlightGen: 0 };
+      const cancelled = (gen) => gen <= sup.cancelBefore;
+      const cancelCurrent = () => { sup.cancelBefore = sup.generation; };
       const clearTimer = () => { if (sup.timer) { clearTimeout(sup.timer); sup.timer = null; } };
       const schedule = (gen, ms) => { clearTimer(); sup.timer = setTimeout(() => { sup.timer = null; attempt(gen); }, ms); };
       async function attempt(gen) {
@@ -1333,10 +1343,16 @@
         const plan = sup.expected ? rebootDelays : delays;
         sup.attempt++;
         let ok = false;
-        sup.inFlight = true; sup.retryAfter = false;
-        try { ok = await opts.reconnect(sup.identity, sup.attempt); }
-        catch (e) { log("warn", "reconnect attempt " + sup.attempt + " failed: " + (e && e.message ? e.message : e)); }
+        sup.inFlight = true; sup.inFlightGen = gen; sup.retryAfter = false;
+        const token = { cancelled: () => cancelled(gen) };
+        try { ok = await opts.reconnect(sup.identity, sup.attempt, token); }
+        catch (e) { if (!cancelled(gen)) log("warn", "reconnect attempt " + sup.attempt + " failed: " + (e && e.message ? e.message : e)); }
         finally { sup.inFlight = false; }
+        if (cancelled(gen)) {
+          // stop() / a newer loss happened while the open was pending: whatever
+          // it opened must not stay adopted (the page's connected() was ignored)
+          if (typeof opts.discard === "function") { try { await opts.discard(); } catch (_) {} }
+        }
         if (gen !== sup.generation) {
           // stale: a newer loss owns the supervisor now. Its timer may already
           // have fired into our in-flight attempt (retryAfter) and left no timer
@@ -1354,6 +1370,7 @@
       // the page lost its connection without asking for it
       sup.onLinkLost = (identity) => {
         clearTimer();
+        cancelCurrent();
         sup.generation++;
         if (sup.suppressed) { sup.suppressed = false; sup.active = false; log("sys", "Not reconnecting: the device was asked to reboot into its bootloader (it enumerates as a different USB device; use Connect once it is back in the application)."); return; }
         if (!opts.enabled() || !identity) { sup.active = false; return; }
@@ -1367,8 +1384,10 @@
       sup.expectReboot = () => { sup.expected = true; sup.suppressed = false; };
       sup.suppress = () => { sup.suppressed = true; sup.expected = false; };
       // a connection was established (manually or by a successful attempt)
-      sup.connected = () => { clearTimer(); sup.generation++; sup.active = false; sup.expected = false; sup.suppressed = false; sup.attempt = 0; sup.retryAfter = false; };
-      sup.stop = (reason) => { clearTimer(); sup.generation++; const was = sup.active; sup.active = false; sup.expected = false; sup.retryAfter = false; if (was && reason) log("sys", "Auto-reconnect stopped: " + reason + "."); };
+      sup.connected = () => {
+        if (sup.inFlight && cancelled(sup.inFlightGen)) return; // a cancelled attempt's open: it is about to be discarded
+        clearTimer(); sup.generation++; sup.active = false; sup.expected = false; sup.suppressed = false; sup.attempt = 0; sup.retryAfter = false; };
+      sup.stop = (reason) => { clearTimer(); cancelCurrent(); sup.generation++; const was = sup.active; sup.active = false; sup.expected = false; sup.retryAfter = false; if (was && reason) log("sys", "Auto-reconnect stopped: " + reason + "."); };
       sup.isActive = () => sup.active;
       return sup;
     }
@@ -1584,7 +1603,7 @@
     }
 
     async function usbDisconnect() {
-      reconnect.stop(); postReleased(deviceChannel, connIdentity); connIdentity = null;
+      reconnect.stop(); const released = connIdentity; connIdentity = null;
       clearSchemaTimer();
       const t = usb; usb = null;
       if (t) {
@@ -1598,6 +1617,7 @@
       }
       try { await usbReadDone; } catch (e) {}
       usbResetUI("Disconnected", "");
+      postReleased(deviceChannel, released); // only once the device is closed: the hub may reopen it on this notice
     }
 
     // Unexpected USB link loss (device unplugged): tear down without awaiting the
@@ -1919,6 +1939,7 @@
     const openGate = createOpenGate();
     const reconnect = createReconnectSupervisor({
       gate: openGate,
+      discard: () => (usb ? usbDisconnect() : disconnect()),
       enabled: () => $("autoReconnect").checked,
       log: (cls, text) => setStatus(cls === "err" || cls === "warn" ? "err" : "", text),
       reconnect: reconnectAttempt,
@@ -1959,6 +1980,7 @@
       }
       setStatus("err", "Auto-connect: no permitted " + describeIdentity(want) + " — use Connect");
     }
+    // pagehide: the browser tears the handle down itself and an await cannot finish here, so the notice goes out before the close (best effort)
     window.addEventListener("pagehide", () => { if (port || usb) postReleased(deviceChannel, connIdentity); });
     syncModeUI();
     if (connectParams.autoconnect) autoConnect();
