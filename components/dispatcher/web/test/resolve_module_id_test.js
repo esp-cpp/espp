@@ -323,7 +323,7 @@ function extractHubLinkBlock(src) {
 }
 const hubLinkBlock = extractHubLinkBlock(fs.readFileSync(path.join(root, hub), "utf8"));
 assert.ok(!connectBlock.includes("function connectQuery"), "connectQuery is hub-only (unused in the consoles)");
-const conn = new Function(connectBlock + hubLinkBlock + "\n return { parseConnectParams, usbIdentity, serialIdentity, describeIdentity, connectQuery, pickUsbDevice, pickSerialPort, findPermittedUsbDevice, findPermittedSerialPort, loadAutoReconnect, saveAutoReconnect, createReconnectSupervisor, watchDeviceArrivals, openDeviceChannel, postReleased, createOpenGate };")();
+const conn = new Function(connectBlock + hubLinkBlock + "\n return { parseConnectParams, usbIdentity, serialIdentity, describeIdentity, connectQuery, pickUsbDevice, pickSerialPort, findPermittedUsbDevice, findPermittedSerialPort, loadAutoReconnect, saveAutoReconnect, createReconnectSupervisor, watchDeviceArrivals, openDeviceChannel, postReleased, createOpenGate, identityMatches };")();
 
 // ---- parseConnectParams / connectQuery ---------------------------------------
 {
@@ -412,10 +412,15 @@ const conn = new Function(connectBlock + hubLinkBlock + "\n return { parseConnec
     // watchDeviceArrivals wires both platform "connect" events to the supervisor
     const listeners = {};
     setNav({ usb: { addEventListener: (n, f) => { listeners["usb:" + n] = f; } }, serial: { addEventListener: (n, f) => { listeners["serial:" + n] = f; } } });
-    let appeared = 0;
-    conn.watchDeviceArrivals({ onDeviceAppeared: () => appeared++ });
-    listeners["usb:connect"](); listeners["serial:connect"]();
-    assert.strictEqual(appeared, 2);
+    const appeared = [];
+    conn.watchDeviceArrivals({ onDeviceAppeared: (identity) => appeared.push(identity) });
+    listeners["usb:connect"]({ device: { vendorId: 1, productId: 2, serialNumber: "s" } });
+    listeners["serial:connect"]({ port: { getInfo: () => ({ usbVendorId: 3, usbProductId: 4 }) } });
+    listeners["serial:connect"]({ target: { getInfo: () => ({ usbVendorId: 5, usbProductId: 6 }) } }); // SerialPort as the event target
+    listeners["usb:connect"]({}); listeners["serial:connect"]({ target: {} }); // no usable identity -> null, never a match
+    assert.deepStrictEqual(appeared, [
+      { transport: "usb", vid: 1, pid: 2, serial: "s" }, { transport: "serial", vid: 3, pid: 4, serial: null },
+      { transport: "serial", vid: 5, pid: 6, serial: null }, null, { transport: "serial", vid: null, pid: null, serial: null }]);
     console.log("PASS findPermittedUsbDevice / findPermittedSerialPort / watchDeviceArrivals");
   } finally {
     if (saved === undefined) delete global.navigator; else setNav(saved);
@@ -481,14 +486,42 @@ async function supervisorTests() {
     s.onLinkLost(id); await tick(10); // the next loss reconnects normally
     assert.strictEqual(n, 1);
   }
-  // onDeviceAppeared(): a platform connect event retries at once (before the long delay)
+  // onDeviceAppeared(identity): a platform connect event for THE device being
+  // recovered retries at once (before the long delay); unrelated arrivals
+  // neither wake the supervisor nor consume a retry
   {
     let n = 0;
     const s = conn.createReconnectSupervisor({ delaysMs: [10000, 10000], enabled: () => true, reconnect: async () => (++n >= 1) });
-    s.onLinkLost(id); s.onDeviceAppeared();
+    s.onLinkLost(id); s.onDeviceAppeared({ transport: "usb", vid: 1, pid: 2, serial: null });
     await tick(150);
     assert.strictEqual(n, 1); assert.ok(!s.isActive());
-    s.onDeviceAppeared(); await tick(150); assert.strictEqual(n, 1); // inert when idle
+    s.onDeviceAppeared(id); await tick(150); assert.strictEqual(n, 1); // inert when idle
+  }
+  {
+    let n = 0;
+    const wantSn = { transport: "usb", vid: 1, pid: 2, serial: "SN1" };
+    const s = conn.createReconnectSupervisor({ delaysMs: [10000, 10000, 10000], enabled: () => true, reconnect: async () => { n++; return false; } });
+    s.onLinkLost(wantSn);
+    for (const other of [
+      { transport: "usb", vid: 1, pid: 3, serial: null },       // another pid
+      { transport: "usb", vid: 9, pid: 2, serial: null },       // another vid
+      { transport: "usb", vid: 1, pid: 2, serial: "SN2" },      // same ids, another serial number
+      { transport: "usb", vid: null, pid: null, serial: null }, // no usable ids
+      null, undefined,
+    ]) s.onDeviceAppeared(other);
+    await tick(200);
+    assert.strictEqual(n, 0, "unrelated arrivals must not wake the supervisor"); assert.ok(s.isActive());
+    // the device itself (same serial), or a serial-port arrival for it (no serial number) -> immediate retry
+    s.onDeviceAppeared({ transport: "serial", vid: 1, pid: 2, serial: null }); await tick(150);
+    assert.strictEqual(n, 1);
+    s.onDeviceAppeared(wantSn); await tick(150);
+    assert.strictEqual(n, 2); assert.ok(s.isActive());
+    // and the arrival that matches during an in-flight attempt is still only remembered
+    s.stop();
+    assert.ok(conn.identityMatches({ vid: 1, pid: 2, serial: null }, { vid: 1, pid: 2, serial: "any" }));
+    assert.ok(!conn.identityMatches({ vid: 1, pid: 2 }, { vid: 1, pid: null }));
+    assert.ok(!conn.identityMatches(null, { vid: 1, pid: 2 }));
+    assert.ok(conn.identityMatches({ vid: null, pid: null, serial: null }, { vid: 1, pid: 2 })); // nothing wanted beyond "some device"
   }
   // attempts are serialized: an arrival event during an in-flight attempt does
   // NOT start a second open; it is remembered and retried once, right after
@@ -500,7 +533,7 @@ async function supervisorTests() {
     s.onLinkLost(id);
     await tick(10);
     assert.strictEqual(n, 1);
-    s.onDeviceAppeared(); s.onDeviceAppeared(); // arrivals while attempt 1 is still open
+    s.onDeviceAppeared(id); s.onDeviceAppeared(id); // arrivals while attempt 1 is still open
     await tick(150);
     assert.strictEqual(n, 1); // nothing overlapped
     release(false);          // attempt 1 fails -> one immediate retry instead of the 10 s wait
@@ -510,7 +543,7 @@ async function supervisorTests() {
     assert.ok(!s.isActive());
     // a success with a pending arrival does not retry
     s.onLinkLost(id); await tick(10); assert.strictEqual(n, 3);
-    s.onDeviceAppeared(); release(true); await tick(150);
+    s.onDeviceAppeared(id); release(true); await tick(150);
     assert.strictEqual(n, 3); assert.ok(!s.isActive()); assert.strictEqual(maxInFlight, 1);
   }
   // a second loss while an older attempt is still in flight (the device dropped

@@ -572,6 +572,17 @@
       return { transport: "serial", vid: info.usbVendorId != null ? info.usbVendorId : null,
                pid: info.usbProductId != null ? info.usbProductId : null, serial: null };
     }
+    // Is `got` (the identity of a device that just appeared) the device `want`
+    // names? vid + pid must match; the serial number only when both sides
+    // report one (a serial-port arrival never has one). An arrival with no
+    // usable ids is never a match.
+    function identityMatches(want, got) {
+      if (!want || !got || got.vid == null || got.pid == null) return false;
+      if (want.vid != null && want.vid !== got.vid) return false;
+      if (want.pid != null && want.pid !== got.pid) return false;
+      if (want.serial && got.serial && want.serial !== got.serial) return false;
+      return true;
+    }
     function describeIdentity(identity) {
       if (!identity) return "device";
       const hex = (v) => v == null ? "?" : "0x" + v.toString(16).padStart(4, "0");
@@ -712,8 +723,13 @@
         log("sys", (sup.expected ? "Device is rebooting — reconnecting to " : "Link lost — trying to reconnect to ") + describeIdentity(identity) + " (auto-reconnect; uncheck to stop)…");
         schedule(sup.generation, plan[0]);
       };
-      // a permitted device re-appeared (navigator.usb / navigator.serial "connect")
-      sup.onDeviceAppeared = () => { if (!sup.active) return; if (sup.inFlight) sup.retryAfter = true; else schedule(sup.generation, 100); };
+      // a permitted device re-appeared (navigator.usb / navigator.serial
+      // "connect"): only the device being recovered wakes the supervisor — an
+      // unrelated arrival would otherwise burn one of the bounded retries
+      sup.onDeviceAppeared = (identity) => {
+        if (!sup.active || !identityMatches(sup.identity, identity)) return;
+        if (sup.inFlight) sup.retryAfter = true; else schedule(sup.generation, 100);
+      };
       sup.expectReboot = () => { sup.expected = true; sup.suppressed = false; };
       sup.suppress = () => { sup.suppressed = true; sup.expected = false; };
       // a connection was established (manually or by a successful attempt)
@@ -725,11 +741,14 @@
       return sup;
     }
     // Forward the platform "a permitted device was (re)attached" events to the
-    // supervisor so a reboot is caught the moment the device enumerates.
+    // supervisor, with the arriving device's identity, so a reboot is caught
+    // the moment the device enumerates (and other devices are ignored).
     function watchDeviceArrivals(sup) {
       if (typeof navigator === "undefined") return;
-      if (navigator.usb && typeof navigator.usb.addEventListener === "function") navigator.usb.addEventListener("connect", () => sup.onDeviceAppeared());
-      if (navigator.serial && typeof navigator.serial.addEventListener === "function") navigator.serial.addEventListener("connect", () => sup.onDeviceAppeared());
+      if (navigator.usb && typeof navigator.usb.addEventListener === "function")
+        navigator.usb.addEventListener("connect", (ev) => sup.onDeviceAppeared(ev && ev.device ? usbIdentity(ev.device) : null));
+      if (navigator.serial && typeof navigator.serial.addEventListener === "function")
+        navigator.serial.addEventListener("connect", (ev) => { const port = ev && (ev.port || ev.target); sup.onDeviceAppeared(port ? serialIdentity(port) : null); });
     }
     // App -> hub notice that an app released its device (manual disconnect or
     // page closed), so a hub that handed the device off can offer to reconnect.
