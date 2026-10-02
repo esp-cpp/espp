@@ -830,6 +830,13 @@ function extractNavBlock(src, rel) {
   return src.slice(start, end + endMarker.length);
 }
 function navTests() {
+  // the hub honours the hand-back query on load (through connect(kind, preset) and the gate)
+  assert.ok(/const connectParams = parseConnectParams\(location\.search\);/.test(hubSrc), "hub: does not parse the connect params");
+  const load = /async function autoConnectOnLoad\(\) \{([\s\S]*?)\n    \}\n/.exec(hubSrc);
+  assert.ok(load && /await findPermittedUsbDevice\(want\)/.test(load[1]) && /await findPermittedSerialPort\(want\)/.test(load[1]) && /await connect\(kind, preset\);/.test(load[1]), "hub: autoConnectOnLoad must open the permitted device through connect(kind, preset)");
+  assert.ok(/if \(connectParams\.autoconnect\) autoConnectOnLoad\(\);/.test(hubSrc), "hub: no auto-connect kick-off");
+  assert.ok(!/createReconnectSupervisor\(\{/.test(hubSrc.replace(extractConnectBlock(hubSrc, hub), "")), "hub must still never auto-reconnect");
+  console.log("PASS hub honours the hand-back auto-connect query on load");
   let navBlock = null;
   const allApps = [...consoles, hub, ...otherApps];
   for (const rel of allApps) {
@@ -849,7 +856,7 @@ function navTests() {
       const call = /installAppNav\(\{ connected: \(\) => (!!\w+|!!\(port \|\| usb\)), handBack: async \(\) => \{ const id = connIdentity; await (?:disconnect\(\)|\(usb \? usbDisconnect\(\) : disconnect\(\)\)); return id; \} \}\);/.exec(src);
       assert.ok(call, rel + ": installAppNav must get the page's connected() and a handBack that runs the manual disconnect and resolves the identity");
     } else {
-      assert.ok(/^\s*installAppNav\(\);/m.test(src), rel + ": installAppNav() not called");
+      assert.ok(/^\s*installAppNav\(null\);/m.test(src), rel + ": installAppNav(null) not called (plain navigation)");
     }
   }
   console.log("PASS every web app carries the identical app navigation block and both links (" + allApps.length + " files)");
@@ -902,18 +909,13 @@ function navTests() {
       nav.installAppNav({ connected: () => true, handBack: async () => { throw new Error("close failed"); } });
       e = ev({}); hub2.handlers.click(e); await tick(10);
       assert.strictEqual(assigned[1], "dispatcher_hub.html");
-      // no links on the page: nothing to do
-      setDoc({ getElementById: () => null }); nav.installAppNav();
+      // no links on the page: nothing to do; a plain-navigation page (null opts)
+      // wires the hrefs and nothing else
+      setDoc({ getElementById: () => null }); nav.installAppNav(null); nav.installAppNav();
+      const hub3 = mkLink(); setDoc({ getElementById: (id) => (id === "navHub" ? hub3 : null) });
+      nav.installAppNav(null);
+      assert.strictEqual(hub3.href, "dispatcher_hub.html"); assert.ok(!hub3.handlers.click, "a plain page must not intercept clicks");
       console.log("PASS app navigation: hosted vs file:// hrefs, hand-back query, click hands the device back before navigating");
     })().finally(() => { if (savedDoc === undefined) delete global.document; else setDoc(savedDoc); if (savedLoc === undefined) delete global.location; else setLoc(savedLoc); });
   } catch (e) { if (savedDoc === undefined) delete global.document; else setDoc(savedDoc); throw e; }
-}
-// the hub honours the hand-back query on load (through connect(kind, preset) and the gate)
-{
-  assert.ok(/const connectParams = parseConnectParams\(location\.search\);/.test(hubSrc), "hub: does not parse the connect params");
-  const load = /async function autoConnectOnLoad\(\) \{([\s\S]*?)\n    \}\n/.exec(hubSrc);
-  assert.ok(load && /await findPermittedUsbDevice\(want\)/.test(load[1]) && /await findPermittedSerialPort\(want\)/.test(load[1]) && /await connect\(kind, preset\);/.test(load[1]), "hub: autoConnectOnLoad must open the permitted device through connect(kind, preset)");
-  assert.ok(/if \(connectParams\.autoconnect\) autoConnectOnLoad\(\);/.test(hubSrc), "hub: no auto-connect kick-off");
-  assert.ok(!/createReconnectSupervisor\(\{/.test(hubSrc.replace(extractConnectBlock(hubSrc, hub), "")), "hub must still never auto-reconnect");
-  console.log("PASS hub honours the hand-back auto-connect query on load");
 }

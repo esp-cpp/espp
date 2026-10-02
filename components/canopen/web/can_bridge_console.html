@@ -1300,7 +1300,8 @@
       if (identity.serial) q.set("serial", identity.serial);
       return q.toString();
     }
-    // Wire the #navHub / #navApps links. opts (dispatcher-module consoles only):
+    // Wire the #navHub / #navApps links. `opts` is null for an app that just
+    // navigates; a dispatcher-module console passes { connected, handBack }:
     // connected() says whether the page holds a device; handBack() closes it the
     // way a manual Disconnect does (stop the supervisor, close, then post the
     // released notice) and resolves the device's identity. A plain left click on
@@ -1309,17 +1310,19 @@
     // stays the plain hub URL, so middle-click / open-in-new-tab / modified
     // clicks keep working and never close anything.
     function installAppNav(opts) {
+      const handover = opts !== null && typeof opts === "object" && typeof opts.connected === "function" && typeof opts.handBack === "function" ? opts : null;
       const hub = typeof document !== "undefined" ? document.getElementById("navHub") : null;
       const apps = typeof document !== "undefined" ? document.getElementById("navApps") : null;
       if (apps) apps.href = navHref("index.html");
       if (!hub) return;
       hub.href = navHref("dispatcher_hub.html");
+      if (handover === null) return; // plain navigation only
       hub.addEventListener("click", (ev) => {
         if (ev.defaultPrevented || ev.button !== 0 || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
-        if (!opts || typeof opts.connected !== "function" || typeof opts.handBack !== "function" || !opts.connected()) return;
+        if (!handover.connected()) return;
         ev.preventDefault();
         const target = hub.href;
-        Promise.resolve().then(() => opts.handBack()).then(
+        Promise.resolve().then(() => handover.handBack()).then(
           (identity) => { const q = hubConnectQuery(identity); location.assign(target + (q ? "?" + q : "")); },
           () => location.assign(target));
       });

@@ -107,7 +107,8 @@ for (const a of registryJson.apps) {
   // the description is taken whole: an apostrophe inside the double-quoted value does not end it
   assert.strictEqual(a.description, meta(fs.readFileSync(path.join(apps, a.file), "utf8"), "description"), a.file + ": description differs from the page's meta tag");
   // listed exactly once on the landing page, inside the right section
-  const cards = indexHtml.split('class="card" href="' + a.file + '"').length - 1; // the title's Device Hub button is not a card
+  // anchors carrying both class="card" and this file's href, in any attribute order (the title's Device Hub button is not a card)
+  const cards = (indexHtml.match(/<a [^>]*>/g) || []).filter((tag) => /\sclass="card"/.test(tag) && tag.includes('href="' + a.file + '"')).length;
   assert.strictEqual(cards, 1, a.file + " card count " + cards);
   const sec = new RegExp('<section class="group" data-category="' + a.category + '">[\\s\\S]*?</section>').exec(indexHtml);
   assert.ok(sec && sec[0].includes('href="' + a.file + '"'), a.file + " not in its category section");

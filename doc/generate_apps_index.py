@@ -156,6 +156,7 @@ def page(apps: list) -> str:
   .hub-link {{ display: inline-block; background: var(--accent); color: #fff; font-weight: 600; text-decoration: none;
          padding: .45rem .9rem; border-radius: .5rem; white-space: nowrap; }}
   .hub-link:hover {{ filter: brightness(1.1); }}
+  .hub-link:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
   .sub {{ color: var(--muted); margin: 0 0 1.25rem; }}
   .controls {{ display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin: 0 0 1.5rem; }}
   .controls label {{ color: var(--muted); font-size: .92rem; display: flex; gap: .4rem; align-items: center; }}
