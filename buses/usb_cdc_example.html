@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USB Device Example (CDC + Vendor/WebUSB + MSC, with the standard espp USB services) - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'buses/usb_cdc_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="X-Input (Xbox 360) controller example" href="xinput_example.html" />
+    <link rel="prev" title="USB Device Component" href="usb_cdc.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../system/index.html">System APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Buses &amp; Low-Level I/O APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spi.html">SPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twai.html">TWAI (CAN 2.0) APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="canopen.html">CANopen (CiA 301) Client APIs</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="usb_cdc.html">USB Device Component</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#features">Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#basic-usage">Basic Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#enabling-the-vendor-webusb-class">Enabling the vendor / WebUSB class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#enabling-the-hid-class">Enabling the HID class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#enabling-x-input-xbox-360">Enabling X-Input (Xbox 360)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#enabling-mass-storage-msc">Enabling mass storage (MSC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#routing-the-console-over-cdc">Routing the console over CDC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#endpoint-budget-esp32-s3-usb-otg">Endpoint budget (ESP32-S3 USB-OTG)</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="usb_cdc.html#notes">Notes</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">USB Device Example (CDC + Vendor/WebUSB + MSC, with the standard espp USB services)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xinput_example.html">X-Input (Xbox 360) controller example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="msc_example.html">USB Mass Storage (MSC) Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="usb_cdc.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="usb_host.html">USB Host Component</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../telemetry/index.html">Telemetry APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wdi/index.html">WDI (Wheelchair Digital Interface) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Buses &amp; Low-Level I/O APIs</a></li>
+          <li class="breadcrumb-item"><a href="usb_cdc.html">USB Device Component</a></li>
+      <li class="breadcrumb-item active">USB Device Example (CDC + Vendor/WebUSB + MSC, with the standard espp USB services)</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/d0887914/docs/en/buses/usb_cdc_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="usb-device-example-cdc-vendor-webusb-msc-with-the-standard-espp-usb-services">
+<h1>USB Device Example (CDC + Vendor/WebUSB + MSC, with the standard espp USB services)<a class="headerlink" href="#usb-device-example-cdc-vendor-webusb-msc-with-the-standard-espp-usb-services" title="Permalink to this heading"></a></h1>
+<p>The reference <code class="docutils literal notranslate"><span class="pre">espp::UsbDevice</span></code> example: <strong>one composite USB device with the
+three interface classes the component provides</strong>, and the standard espp USB
+services on every framed link, so the hosted web consoles, the Device Hub and
+the <code class="docutils literal notranslate"><span class="pre">espp_ota</span></code> / <code class="docutils literal notranslate"><span class="pre">espp_coredump</span></code> command-line tools all work against it.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Interface</p></th>
+<th class="head"><p>What it carries</p></th>
+<th class="head"><p>Talk to it with</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>CDC-ACM</strong> (a serial port)</p></td>
+<td><p>the espp framed protocol (<code class="docutils literal notranslate"><span class="pre">stream_frame</span></code>, routed by an <code class="docutils literal notranslate"><span class="pre">espp::DispatcherWorker</span></code>)</p></td>
+<td><p>the hosted consoles over <strong>Web Serial</strong>; the <code class="docutils literal notranslate"><span class="pre">espp_ota</span></code> / <code class="docutils literal notranslate"><span class="pre">espp_coredump</span></code> CLIs over the serial port</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>vendor-specific (class 0xFF, WebUSB)</strong></p></td>
+<td><p>the same framed protocol over bulk IN/OUT</p></td>
+<td><p>the hosted consoles over <strong>WebUSB</strong> (the BOS landing page points at the system console); the CLIs over libusb</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>MSC</strong> (a USB drive)</p></td>
+<td><p>a wear-levelled FAT partition in flash (<code class="docutils literal notranslate"><span class="pre">storage</span></code>, 896K), with a <code class="docutils literal notranslate"><span class="pre">README.txt</span></code> the firmware writes at boot</p></td>
+<td><p>mount it like any removable drive; eject it to hand it back to the firmware</p></td>
+</tr>
+</tbody>
+</table>
+<p>The device enumerates as VID <code class="docutils literal notranslate"><span class="pre">0x1209</span></code> / PID <strong><code class="docutils literal notranslate"><span class="pre">0x0d38</span></code></strong> (manufacturer “espp”,
+product “espp USB Device”); the PID is distinct from the other espp examples so a
+host-side filter can be specific. The log console is on <strong>UART0</strong> (USB-Serial-JTAG
+as the early-boot secondary): on the ESP32-S3 the USB-Serial-JTAG controller and
+USB-OTG share the same native USB PHY, so the console cannot stay there once
+TinyUSB owns the port.</p>
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+<p><strong>Table of Contents</strong></p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#usb-device-example-cdc--vendorwebusb--msc-with-the-standard-espp-usb-services"><span class="xref myst">USB Device Example (CDC + Vendor/WebUSB + MSC, with the standard espp USB services)</span></a></p>
+<ul>
+<li><p><a class="reference internal" href="#standard-usb-services"><span class="xref myst">Standard USB services</span></a></p></li>
+<li><p><a class="reference internal" href="#the-usb-drive"><span class="xref myst">The USB drive</span></a></p></li>
+<li><p><a class="reference internal" href="#partition-layout"><span class="xref myst">Partition layout</span></a></p></li>
+<li><p><a class="reference internal" href="#build-flash-run"><span class="xref myst">Build, flash, run</span></a></p></li>
+<li><p><a class="reference internal" href="#how-it-works"><span class="xref myst">How it works</span></a></p></li>
+</ul>
+</li>
+</ul>
+<!-- markdown-toc end -->
+<section id="standard-usb-services">
+<h2>Standard USB services<a class="headerlink" href="#standard-usb-services" title="Permalink to this heading"></a></h2>
+<p>Both framed links (CDC and vendor) serve the same set, each service registered
+on each link’s dispatcher and advertised through capability discovery, so the
+<a class="reference external" href="https://esp-cpp.github.io/espp/apps/dispatcher_hub.html">Device Hub</a> lists them
+and every console finds its module by protocol id (the module ids below are the
+published defaults; hosts do not depend on them):</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Service</p></th>
+<th class="head"><p>Protocol id</p></th>
+<th class="head"><p>Module</p></th>
+<th class="head"><p>Console / tool</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">espp::SystemService</span></code> — chip / firmware / partition info, reboot, reboot into the ROM bootloader (download mode)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">espp.system</span></code> v1</p></td>
+<td><p>7</p></td>
+<td><p><a class="reference external" href="https://esp-cpp.github.io/espp/apps/system_console.html">system console</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">espp::MonitorService</span></code> — heap regions and the task table, on request or streamed</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">espp.monitor</span></code> v1</p></td>
+<td><p>8</p></td>
+<td><p>system console</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">espp::OtaService</span></code> — firmware update into the other OTA slot, with rollback confirmation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">espp.ota</span></code> v1</p></td>
+<td><p>0</p></td>
+<td><p><a class="reference external" href="https://esp-cpp.github.io/espp/apps/ota_console.html">OTA console</a>, <code class="docutils literal notranslate"><span class="pre">espp_ota</span></code> / <code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">ota-usb</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">espp::CoreDumpService</span></code> — last-crash report, core dump download / erase</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">espp.coredump</span></code> v1</p></td>
+<td><p>4</p></td>
+<td><p><a class="reference external" href="https://esp-cpp.github.io/espp/apps/coredump_console.html">coredump console</a>, <code class="docutils literal notranslate"><span class="pre">espp_coredump</span></code> / <code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">coredump-usb</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>Reboot requests go through the example’s <code class="docutils literal notranslate"><span class="pre">on_reboot_request</span></code> callback, which
+logs and permits them; an application would refuse or defer one while, say, the
+host is writing to the drive.</p>
+</section>
+<section id="the-usb-drive">
+<h2>The USB drive<a class="headerlink" href="#the-usb-drive" title="Permalink to this heading"></a></h2>
+<p>The MSC function exposes the <code class="docutils literal notranslate"><span class="pre">storage</span></code> partition (a <code class="docutils literal notranslate"><span class="pre">data,</span> <span class="pre">fat</span></code> partition in
+<code class="docutils literal notranslate"><span class="pre">partitions.csv</span></code>, accessed through wear levelling) as a removable drive named
+<code class="docutils literal notranslate"><span class="pre">ESPP</span> <span class="pre">USB</span></code>. Ownership follows the <code class="docutils literal notranslate"><span class="pre">usb_device</span></code> MSC model: the firmware owns the
+volume first (it formats it if needed and writes <code class="docutils literal notranslate"><span class="pre">README.txt</span></code>), the host takes
+it when it mounts the device, and ejecting the drive on the host gives it back
+to the firmware (logged by the heartbeat). The firmware and the host never
+write the volume at the same time.</p>
+</section>
+<section id="partition-layout">
+<h2>Partition layout<a class="headerlink" href="#partition-layout" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">partitions.csv</span></code> (4 MB flash): <code class="docutils literal notranslate"><span class="pre">nvs</span></code>, <code class="docutils literal notranslate"><span class="pre">otadata</span></code>, <code class="docutils literal notranslate"><span class="pre">phy_init</span></code>, two 1536K app slots
+<code class="docutils literal notranslate"><span class="pre">ota_0</span></code> / <code class="docutils literal notranslate"><span class="pre">ota_1</span></code> (<code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">flash</span></code> writes <code class="docutils literal notranslate"><span class="pre">ota_0</span></code>, each OTA update alternates to
+the other slot), a 64K <code class="docutils literal notranslate"><span class="pre">coredump</span></code> partition and the 896K <code class="docutils literal notranslate"><span class="pre">storage</span></code> FAT volume.</p>
+</section>
+<section id="build-flash-run">
+<h2>Build, flash, run<a class="headerlink" href="#build-flash-run" title="Permalink to this heading"></a></h2>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>components/usb_device/example
+idf.py<span class="w"> </span>set-target<span class="w"> </span>esp32s3
+idf.py<span class="w"> </span>build<span class="w"> </span>flash<span class="w"> </span>monitor<span class="w">   </span><span class="c1"># console is on UART0 (USB-UART adapter)</span>
+</pre></div>
+</div>
+<p>Then connect the native USB port: the host sees a serial port, a WebUSB
+interface and a drive. Open the
+<a class="reference external" href="https://esp-cpp.github.io/espp/apps/system_console.html">system console</a> (WebUSB
+or Web Serial) for the device info, the reboot buttons and the live heap / task
+view, the OTA and coredump consoles for updates and crash dumps, and mount the
+drive to read the README the firmware wrote.</p>
+</section>
+<section id="how-it-works">
+<h2>How it works<a class="headerlink" href="#how-it-works" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::UsbDevice</span></code> installs the TinyUSB driver and builds the descriptors for
+the enabled CDC + vendor + MSC functions, allocating interfaces / endpoints
+sequentially; the vendor function advertises WebUSB + MS OS 2.0 descriptors
+so a browser (and Windows, via WinUSB) can bind it driverlessly.</p></li>
+<li><p>Each framed link has its own <code class="docutils literal notranslate"><span class="pre">espp::DispatcherWorker</span></code> (a bounded receive queue</p>
+<ul>
+<li><p>worker task feeding one <code class="docutils literal notranslate"><span class="pre">espp::Dispatcher</span></code>), fed from the TinyUSB receive
+callbacks; the four services are registered on each worker and
+<code class="docutils literal notranslate"><span class="pre">serve_discovery()</span></code> answers the hub’s query. Every device-&gt;host write on a
+transport goes through one application-level mutex, so a streamed monitor
+event and a reply from another service never interleave.</p></li>
+</ul>
+</li>
+<li><p>The OTA and core-dump engines (<code class="docutils literal notranslate"><span class="pre">espp::Ota</span></code>, <code class="docutils literal notranslate"><span class="pre">espp::CoreDump</span></code>) are shared by
+the per-link services; an RX overflow on a link aborts an OTA transfer that
+link owned and tells the host.</p></li>
+<li><p>The MSC medium is configured with the application as the initial owner and
+<code class="docutils literal notranslate"><span class="pre">connect_on_initialize</span> <span class="pre">=</span> <span class="pre">false</span></code>, so the README is written before the device
+presents itself to the host; <code class="docutils literal notranslate"><span class="pre">auto_handover</span></code> then moves the drive to the host
+on mount and back on eject.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="usb_cdc.html" class="btn btn-neutral float-left" title="USB Device Component" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="xinput_example.html" class="btn btn-neutral float-right" title="X-Input (Xbox 360) controller example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
