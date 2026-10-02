@@ -167,6 +167,7 @@ def page(apps: list) -> str:
   body.flat .group-title {{ display: none; }}
   body.flat .group {{ margin: 0; }}
   body.flat .grid {{ display: contents; }}
+  body.flat .group {{ display: none; }} /* the cards moved out; an empty wrapper must not take a grid slot */
   body.flat #all {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; }}
   .card {{ display: block; padding: 1rem 1.25rem; background: var(--card);
           border: 1px solid var(--border); border-radius: .6rem;
@@ -232,16 +233,11 @@ def page(apps: list) -> str:
           c.hidden = !hit;
           if (hit) visible++;
         }}
-        for (const g of groups) {{
-          const n = g.querySelectorAll(".card:not([hidden])").length;
-          g.hidden = n === 0;
-          const count = g.querySelector(".count");
-          count.textContent = n === Number(count.dataset.total) ? String(n) : n + " / " + count.dataset.total;
-        }}
-        shown.textContent = visible === total ? total + " apps" : visible + " of " + total + " apps";
-        empty.hidden = visible !== 0;
-        // name order: one flat alphabetical list; the card elements are moved,
-        // not copied, so their hidden state follows them
+        // Place the cards first, count the groups after: in name order the
+        // cards sit directly under #all as one flat alphabetical list and every
+        // group wrapper is hidden (an emptied wrapper would otherwise take a
+        // grid slot); in category order they go back into their group's grid.
+        // The card elements are moved, not copied, so their hidden state follows.
         const flat = sort.value === "name";
         document.body.classList.toggle("flat", flat);
         if (flat) {{
@@ -256,6 +252,14 @@ def page(apps: list) -> str:
             all.appendChild(g);
           }}
         }}
+        for (const g of groups) {{
+          const n = g.querySelectorAll(".card:not([hidden])").length;
+          g.hidden = flat || n === 0;
+          const count = g.querySelector(".count");
+          count.textContent = n === Number(count.dataset.total) ? String(n) : n + " / " + count.dataset.total;
+        }}
+        shown.textContent = visible === total ? total + " apps" : visible + " of " + total + " apps";
+        empty.hidden = visible !== 0;
         try {{
           localStorage.setItem("espp.apps.filter", filter.value);
           localStorage.setItem("espp.apps.sort", sort.value);
