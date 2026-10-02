@@ -61,7 +61,8 @@ for (const p of pages) {
   for (const id of idsInScript) assert.ok(protocols.some((p) => p.id === id), rel + ": script defines protocol " + id + " not declared in espp-protocols");
   // and the version it implements
   for (const pr of protocols) {
-    const vm = new RegExp('_PROTOCOL\\s*=\\s*"' + pr.id.replace(/\./g, "\\.") + '"[\\s\\S]{0,200}?_PROTOCOL_VERSION\\s*=\\s*(\\d+)').exec(src);
+    const escaped = pr.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // every regexp metacharacter, backslash included
+    const vm = new RegExp('_PROTOCOL\\s*=\\s*"' + escaped + '"[\\s\\S]{0,200}?_PROTOCOL_VERSION\\s*=\\s*(\\d+)').exec(src);
     if (vm) assert.strictEqual(Number(vm[1]), pr.version, rel + ": " + pr.id + " version differs between the meta tag and the script");
   }
   declared[path.basename(p)] = { category: cat, protocols, transports };
@@ -109,9 +110,12 @@ const order = [...indexHtml.matchAll(/<section class="group" data-category="([^"
 assert.deepStrictEqual(order, CATEGORIES.filter((c) => registryJson.apps.some((a) => a.category === c)));
 assert.ok(indexHtml.includes('<meta name="espp-category"') === false, "index.html must not advertise itself as an app");
 // the landing page's inline script is valid JS (no external resources)
-const scripts = [...indexHtml.matchAll(/<script>([\s\S]*?)<\/script>/g)];
-assert.strictEqual(scripts.length, 1);
-new Function(scripts[0][1]);
+// (plain string search, not a regexp: this locates the one inline script, it does not filter HTML)
+const scriptOpen = indexHtml.indexOf("<script>");
+const scriptClose = indexHtml.lastIndexOf("</script>");
+assert.ok(scriptOpen >= 0 && scriptClose > scriptOpen, "index.html has no inline script");
+assert.strictEqual(indexHtml.toLowerCase().split("<script").length - 1, 1, "index.html must have exactly one script");
+new Function(indexHtml.slice(scriptOpen + "<script>".length, scriptClose));
 assert.ok(!/<(script|link)[^>]+(src|href)=["']https?:/.test(indexHtml), "index.html references an external resource");
 console.log("PASS generator: index.html + registry.js + registry.json for " + registryJson.apps.length + " apps");
 
