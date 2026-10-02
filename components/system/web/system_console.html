@@ -1307,9 +1307,12 @@
         try { ok = await opts.reconnect(sup.identity, sup.attempt, token); }
         catch (e) { if (!cancelled(gen)) log("warn", "reconnect attempt " + sup.attempt + " failed: " + (e && e.message ? e.message : e)); }
         finally { sup.inFlight = false; }
-        if (cancelled(gen)) {
-          // stop() / a newer loss happened while the open was pending: whatever
-          // it opened must not stay adopted (the page's connected() was ignored)
+        if (cancelled(gen) && ok) {
+          // stop() / a newer loss happened while the open was pending and the
+          // open succeeded anyway: it must not stay adopted (the page's
+          // connected() was ignored). An attempt that opened nothing (lookup
+          // failed, returned false) has nothing to discard; running the page's
+          // disconnect then would drop a manual connection made meanwhile.
           if (typeof opts.discard === "function") { try { await opts.discard(); } catch (_) {} }
         }
         if (gen !== sup.generation) {

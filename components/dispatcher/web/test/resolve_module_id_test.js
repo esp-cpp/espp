@@ -631,6 +631,20 @@ async function supervisorTests() {
     first(true); await tick(150);
     assert.strictEqual(discarded, 1); assert.strictEqual(n2, 2);
     release(true); await tick(10); assert.ok(!s3.isActive());
+    // stop -> the user connects manually while the cancelled attempt's lookup is
+    // still pending -> that lookup fails (returned false, opened nothing): the
+    // page's discard (= its disconnect) must NOT run, or it would drop the new
+    // manual connection
+    discarded = 0;
+    const s5 = conn.createReconnectSupervisor({ delaysMs: [1, 1], enabled: () => true,
+      reconnect: () => new Promise((r) => { release = r; }), discard: async () => { discarded++; } });
+    s5.onLinkLost(id); await tick(10); s5.stop("auto-reconnect is off");
+    s5.connected();                              // the manual connection
+    release(false); await tick(20);              // the stale lookup settles without an open
+    assert.strictEqual(discarded, 0, "a cancelled attempt that opened nothing must not discard the manual connection");
+    // ...whereas a cancelled attempt that DID open something still discards it
+    s5.onLinkLost(id); await tick(10); s5.stop(); release(true); await tick(20);
+    assert.strictEqual(discarded, 1);
     // without a discard callback a cancelled attempt is simply dropped (no throw)
     const s4 = conn.createReconnectSupervisor({ delaysMs: [1], enabled: () => true, reconnect: () => new Promise((r) => { release = r; }) });
     s4.onLinkLost(id); await tick(10); s4.stop(); release(true); await tick(10); assert.ok(!s4.isActive());
