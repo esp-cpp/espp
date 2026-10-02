@@ -91,7 +91,7 @@
   </header>
 
   <!-- hand-off: the hub released its device so the app it opened can take it -->
-  <div class="banner handoff" id="handoff" hidden>
+  <div class="banner handoff" id="handoff" role="status" aria-live="polite" hidden>
     <div class="dev" id="handoffTitle">Device handed off</div>
     <div class="muted" id="handoffSub"></div>
     <div class="handoff-actions">
@@ -359,20 +359,6 @@
       return (identity.transport === "serial" ? "serial port" : "USB device") + " " + hex(identity.vid) + ":" + hex(identity.pid) +
              (identity.serial ? " sn " + identity.serial : "");
     }
-    // Query string (no leading "?") for a link that opens an app on `moduleId`
-    // and auto-connects to `identity` (null -> the module id alone).
-    function connectQuery(moduleId, identity) {
-      const q = new URLSearchParams();
-      q.set("module", String(moduleId));
-      if (identity && (identity.transport === "usb" || identity.transport === "serial")) {
-        q.set("autoconnect", "1");
-        q.set("transport", identity.transport);
-        if (identity.vid != null) q.set("vid", "0x" + identity.vid.toString(16).padStart(4, "0"));
-        if (identity.pid != null) q.set("pid", "0x" + identity.pid.toString(16).padStart(4, "0"));
-        if (identity.serial) q.set("serial", identity.serial);
-      }
-      return q.toString();
-    }
     // Pick, among the devices this origin may already use (navigator.usb
     // .getDevices() / navigator.serial.getPorts()), the one `want` names: vid
     // and pid must match when given; a serial number must match when both sides
@@ -496,6 +482,22 @@
       try { channel.postMessage({ type: "released", identity: identity, page: (typeof location !== "undefined" ? location.pathname : "").split("/").pop() }); } catch (_) {}
     }
     // --- end connection helpers ---
+    // --- begin hub link helpers (hub only; covered by the same test) ---
+    // Query string (no leading "?") for a link that opens an app on `moduleId`
+    // and auto-connects to `identity` (null -> the module id alone).
+    function connectQuery(moduleId, identity) {
+      const q = new URLSearchParams();
+      q.set("module", String(moduleId));
+      if (identity && (identity.transport === "usb" || identity.transport === "serial")) {
+        q.set("autoconnect", "1");
+        q.set("transport", identity.transport);
+        if (identity.vid != null) q.set("vid", "0x" + identity.vid.toString(16).padStart(4, "0"));
+        if (identity.pid != null) q.set("pid", "0x" + identity.pid.toString(16).padStart(4, "0"));
+        if (identity.serial) q.set("serial", identity.serial);
+      }
+      return q.toString();
+    }
+    // --- end hub link helpers ---
 
     // ===================== Transports (WebUSB + Web Serial) =====================
     let transport = null;
@@ -742,6 +744,7 @@
       logLine("t", "releasing " + describeIdentity(handedOff.identity) + " for " + appFile + "…");
       await disconnect();
       showHandoff(appFile + " was opened on " + describeIdentity(handedOff.identity) + ". The hub released the device so the app can use it; it will not reconnect on its own.");
+      try { els.reconnectBtn.focus(); } catch (_) {} // keyboard / screen-reader users land on the next action
       // Open the app only after the device is closed: with WebUSB a second page
       // cannot claim the vendor interface while this one holds it.
       const w = window.open(href, "_blank", "noopener,noreferrer");

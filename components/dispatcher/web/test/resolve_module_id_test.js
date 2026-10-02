@@ -308,7 +308,18 @@ for (const rel of [...consoles, hub]) {
 }
 console.log("PASS every console and the hub carry the identical connection helper block (" + (consoles.length + 1) + " files)");
 
-const conn = new Function(connectBlock + "\n return { parseConnectParams, usbIdentity, serialIdentity, describeIdentity, connectQuery, pickUsbDevice, pickSerialPort, findPermittedUsbDevice, findPermittedSerialPort, loadAutoReconnect, saveAutoReconnect, createReconnectSupervisor, watchDeviceArrivals, openDeviceChannel, postReleased };")();
+// the hub-only link helper lives in its own marked block right after the shared one
+function extractHubLinkBlock(src) {
+  const beginAt = src.indexOf("// --- begin hub link helpers");
+  assert.ok(beginAt >= 0, "hub: no hub link helper block");
+  const endAt = src.indexOf("// --- end hub link helpers ---", beginAt);
+  assert.ok(endAt >= 0, "hub: unterminated hub link helper block");
+  const nl = src.indexOf("\n", endAt);
+  return src.slice(src.lastIndexOf("\n", beginAt) + 1, nl >= 0 ? nl + 1 : src.length);
+}
+const hubLinkBlock = extractHubLinkBlock(fs.readFileSync(path.join(root, hub), "utf8"));
+assert.ok(!connectBlock.includes("function connectQuery"), "connectQuery is hub-only (unused in the consoles)");
+const conn = new Function(connectBlock + hubLinkBlock + "\n return { parseConnectParams, usbIdentity, serialIdentity, describeIdentity, connectQuery, pickUsbDevice, pickSerialPort, findPermittedUsbDevice, findPermittedSerialPort, loadAutoReconnect, saveAutoReconnect, createReconnectSupervisor, watchDeviceArrivals, openDeviceChannel, postReleased };")();
 
 // ---- parseConnectParams / connectQuery ---------------------------------------
 {
@@ -411,7 +422,7 @@ const conn = new Function(connectBlock + "\n return { parseConnectParams, usbIde
 })().catch((e) => { console.error(e); process.exit(1); });
 
 // ---- the reconnect supervisor -------------------------------------------------
-const tick = (ms) => new Promise((r) => setTimeout(r, ms));
+function tick(ms) { return new Promise((r) => setTimeout(r, ms)); }
 async function supervisorTests() {
   const id = { transport: "usb", vid: 1, pid: 2, serial: null };
   // reconnects after an unexpected loss: retries on the back-off until an attempt succeeds

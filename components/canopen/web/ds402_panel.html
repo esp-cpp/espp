@@ -1444,20 +1444,6 @@
       return (identity.transport === "serial" ? "serial port" : "USB device") + " " + hex(identity.vid) + ":" + hex(identity.pid) +
              (identity.serial ? " sn " + identity.serial : "");
     }
-    // Query string (no leading "?") for a link that opens an app on `moduleId`
-    // and auto-connects to `identity` (null -> the module id alone).
-    function connectQuery(moduleId, identity) {
-      const q = new URLSearchParams();
-      q.set("module", String(moduleId));
-      if (identity && (identity.transport === "usb" || identity.transport === "serial")) {
-        q.set("autoconnect", "1");
-        q.set("transport", identity.transport);
-        if (identity.vid != null) q.set("vid", "0x" + identity.vid.toString(16).padStart(4, "0"));
-        if (identity.pid != null) q.set("pid", "0x" + identity.pid.toString(16).padStart(4, "0"));
-        if (identity.serial) q.set("serial", identity.serial);
-      }
-      return q.toString();
-    }
     // Pick, among the devices this origin may already use (navigator.usb
     // .getDevices() / navigator.serial.getPorts()), the one `want` names: vid
     // and pid must match when given; a serial number must match when both sides
