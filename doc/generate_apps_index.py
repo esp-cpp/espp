@@ -55,10 +55,12 @@ class AppError(Exception):
 
 
 def meta(text: str, name: str):
+    # each attribute value ends at the SAME quote character it opened with, so an
+    # apostrophe inside a double-quoted description does not end it
     m = re.search(
-        r'<meta\s+name=["\']' + re.escape(name) + r'["\']\s+content=["\'](.*?)["\']', text,
+        r'<meta\s+name=(["\'])' + re.escape(name) + r'\1\s+content=(["\'])(.*?)\2', text,
         re.S | re.I)
-    return html.unescape(m.group(1).strip()) if m else None
+    return html.unescape(m.group(3).strip()) if m else None
 
 
 def parse_protocols(spec: str, where: str):

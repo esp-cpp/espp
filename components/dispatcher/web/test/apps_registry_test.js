@@ -22,8 +22,9 @@ const CATEGORIES = ["device management", "motor control", "bus tools", "input de
 const TRANSPORTS = ["webusb", "webserial", "webhid"];
 
 function meta(src, name) {
-  const m = new RegExp('<meta\\s+name=["\']' + name + '["\']\\s+content=["\']([^"\']*)["\']', "i").exec(src);
-  return m ? m[1].trim() : null;
+  // each attribute value ends at the quote it opened with (an apostrophe inside a double-quoted value is content)
+  const m = new RegExp('<meta\\s+name=(["\'])' + name + '\\1\\s+content=(["\'])([\\s\\S]*?)\\2', "i").exec(src);
+  return m ? m[3].trim() : null;
 }
 function parseProtocols(spec) {
   return spec.split(/\s+/).filter(Boolean).map((t) => {
@@ -103,11 +104,17 @@ for (const a of registryJson.apps) {
   assert.deepStrictEqual(a.protocols, d.protocols);
   assert.deepStrictEqual(a.transports, d.transports);
   assert.ok(a.title && a.description, a.file + ": title/description missing from the registry");
+  // the description is taken whole: an apostrophe inside the double-quoted value does not end it
+  assert.strictEqual(a.description, meta(fs.readFileSync(path.join(apps, a.file), "utf8"), "description"), a.file + ": description differs from the page's meta tag");
   // listed exactly once on the landing page, inside the right section
   const cards = indexHtml.split('href="' + a.file + '"').length - 1;
   assert.strictEqual(cards, 1, a.file + " card count " + cards);
   const sec = new RegExp('<section class="group" data-category="' + a.category + '">[\\s\\S]*?</section>').exec(indexHtml);
   assert.ok(sec && sec[0].includes('href="' + a.file + '"'), a.file + " not in its category section");
+}
+{
+  const ota = registryJson.apps.find((a) => a.file === "ota_console.html");
+  assert.ok(ota.description.includes("component's") && ota.description.endsWith("rollback-aware finish."), "ota_console.html description truncated at the apostrophe: " + ota.description);
 }
 // sections in the fixed category order, with counts
 const order = [...indexHtml.matchAll(/<section class="group" data-category="([^"]+)">/g)].map((m) => m[1]);
@@ -170,6 +177,14 @@ dev = hub.appsForDevice(reg, modules);
 assert.deepStrictEqual(files(dev).sort(), ["coredump_console.html", "ota_console.html", "system_console.html"]);
 for (const e of dev) assert.deepStrictEqual(e.notes, [], e.app.file + " unexpected notes");
 assert.strictEqual(dev.find((e) => e.app.file === "system_console.html").module.id, 7, "linked with the required protocol's module");
+// the same protocol on two modules: each pane links its own module (?module=N
+// disambiguates), while the global list keeps the first advertised one
+modules = [mod(5, "espp.can-bridge", 1, "can_bridge_console.html"), mod(6, "espp.can-bridge", 1, "can_bridge_console.html")];
+assert.strictEqual(hub.appsForModule(reg, modules[0], modules)[0].module.id, 5);
+assert.strictEqual(hub.appsForModule(reg, modules[1], modules)[0].module.id, 6);
+assert.ok(hub.appsForDevice(reg, modules).every((e) => e.module.id === 5));
+modules = [mod(0, "espp.ota", 1, "ota_console.html"), mod(4, "espp.coredump", 1, "coredump_console.html"),
+  mod(1, "espp.coredump-crash-trigger", 1), mod(7, "espp.system", 1, "system_console.html"), mod(8, "espp.monitor", 1)];
 // the crash trigger module advertises no app; its only matching app is the coredump
 // console, and the link is anchored to the coredump module (the console applies
 // ?module to espp.coredump only), not to the crash trigger

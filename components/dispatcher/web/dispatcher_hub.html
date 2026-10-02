@@ -257,14 +257,17 @@
       }
       return notes;
     }
-    // The module an app's link should carry as `?module=`: the first advertised
-    // module speaking the app's first REQUIRED protocol (an app applies ?module
-    // to its primary service only, e.g. the coredump console to espp.coredump,
-    // never to the optional crash trigger), else its first optional one, else
-    // null.
-    function appAnchor(app, modules) {
+    // The module an app's link should carry as `?module=`: a module speaking the
+    // app's first REQUIRED protocol (an app applies ?module to its primary
+    // service only, e.g. the coredump console to espp.coredump, never to the
+    // optional crash trigger), else its first optional one, else null. When
+    // `prefer` (the module whose pane is being rendered) speaks that protocol
+    // it wins, so a device advertising the same protocol on two modules links
+    // each pane to its own module; otherwise the first advertised one is used.
+    function appAnchor(app, modules, prefer) {
       const required = app.protocols.filter(p => !p.optional);
-      return (required.length ? required : app.protocols).map(p => moduleForProtocol(modules, p.id)).find(Boolean) || null;
+      const pick = id => (prefer && prefer.protocol === id) ? prefer : moduleForProtocol(modules, id);
+      return (required.length ? required : app.protocols).map(p => pick(p.id)).find(Boolean) || null;
     }
     // Apps that can drive this device: every REQUIRED protocol the app lists is
     // advertised (apps that list no espp protocol cannot be matched and are left
@@ -293,7 +296,7 @@
       for (const app of registryApps(registry)) {
         if (app.file === module.app) continue;
         if (!app.protocols.some(p => p.id === module.protocol)) continue;
-        out.push({ app, module: appAnchor(app, all) || module, notes: appNotes(app, all) });
+        out.push({ app, module: appAnchor(app, all, module) || module, notes: appNotes(app, all) });
       }
       return out;
     }
