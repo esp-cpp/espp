@@ -215,7 +215,8 @@ hosted apps), or plain HTTP on ``localhost`` (a local ``python -m
 http.server`` in ``docs/apps``) — because WebUSB and Web Serial exist nowhere
 else; a ``file://`` page is an opaque origin whose grants do not persist, so
 it falls back to the chooser.
-The shared helpers (``parseConnectParams``, ``connectQuery``, the permitted
-device matchers and the reconnect supervisor) are byte-identical in every
-console and the hub and are exercised by
+The shared helpers (``parseConnectParams``, the permitted device matchers
+and the reconnect supervisor) are byte-identical in every console and the
+hub; the hub's link builder (``connectQuery``) sits in its own block next to
+them. Both are exercised by
 ``node components/dispatcher/web/test/resolve_module_id_test.js``.

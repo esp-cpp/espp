@@ -72,8 +72,9 @@ that disconnects posts a `released` notice on the same-origin
 `BroadcastChannel("espp-device")` so the banner says the device is free again.
 Every console has an **auto-reconnect** checkbox (default on) that re-opens
 the same device after an unexpected link loss such as a reboot. The helpers
-(`parseConnectParams`, `connectQuery`, the permitted-device matchers, the
-reconnect supervisor) are a byte-identical block in each console and the hub,
+(`parseConnectParams`, the permitted-device matchers, the reconnect
+supervisor) are a byte-identical block in each console and the hub, and the
+hub's link builder `connectQuery` sits in its own block next to it; both are
 checked by `web/test/resolve_module_id_test.js`. All of this needs a page
 served over HTTPS, or HTTP on localhost (WebUSB / Web Serial need a secure
 context): a `file://` page's device grants do not persist.
