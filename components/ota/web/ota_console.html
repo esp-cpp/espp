@@ -1351,7 +1351,7 @@
       } catch (e) {
         // (only while the link is still alive: after a loss the reconnect armed by
         // onTransportGone() must survive)
-        if (transport && e && (e.deviceError || e.stalled || e.sendFailed)) {
+        if (device && e && (e.deviceError || e.stalled || e.sendFailed)) {
           expectRestart = false; reconnect.connected();
           logLine("err", "Rollback failed: " + e.message);
         } else {
