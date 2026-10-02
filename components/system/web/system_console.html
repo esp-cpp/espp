@@ -1562,7 +1562,10 @@
                 "restarts into the ROM download mode (it re-enumerates as the ROM's USB CDC / DFU or USB-Serial-JTAG port; use esptool / idf.py flash, then reset it)." :
                 (els.autoReconnect.checked ? "restarts shortly; reconnecting automatically once it is back." : "restarts shortly. Reconnect once it is back.")));
       } catch (e) {
-        reconnect.connected(); // the device did not accept the request: nothing to expect
+        // The device did not accept the request: nothing to expect, unless the
+        // link itself dropped while the request was pending; then
+        // onTransportGone() already armed auto-reconnect and must keep it.
+        if (transport) reconnect.connected();
         logLine("err", (bootloader ? "REBOOT_TO_BOOTLOADER" : "REBOOT") + " failed: " + e.message);
       }
     }
