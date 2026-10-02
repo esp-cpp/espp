@@ -151,7 +151,11 @@ def page(apps: list) -> str:
   body {{ margin: 0; padding: 2rem 1rem; background: var(--bg); color: var(--fg);
          font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }}
   main {{ max-width: 60rem; margin: 0 auto; }}
+  .title-row {{ display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }}
   h1 {{ margin: 0 0 .25rem; }}
+  .hub-link {{ display: inline-block; background: var(--accent); color: #fff; font-weight: 600; text-decoration: none;
+         padding: .45rem .9rem; border-radius: .5rem; white-space: nowrap; }}
+  .hub-link:hover {{ filter: brightness(1.1); }}
   .sub {{ color: var(--muted); margin: 0 0 1.25rem; }}
   .controls {{ display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin: 0 0 1.5rem; }}
   .controls label {{ color: var(--muted); font-size: .92rem; display: flex; gap: .4rem; align-items: center; }}
@@ -191,7 +195,10 @@ def page(apps: list) -> str:
 </head>
 <body>
   <main>
-    <h1>espp Web Apps</h1>
+    <div class="title-row">
+      <h1>espp Web Apps</h1>
+      <a class="hub-link" href="dispatcher_hub.html" title="Connect a device and see which of these apps it can use">Device Hub &rarr;</a>
+    </div>
     <p class="sub">{count} self-contained browser tools hosted with the espp
     documentation. They use the Web&nbsp;Serial / WebUSB / WebHID APIs
     (Chromium-based browsers) and talk directly to your hardware &mdash; nothing

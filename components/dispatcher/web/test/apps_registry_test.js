@@ -107,7 +107,7 @@ for (const a of registryJson.apps) {
   // the description is taken whole: an apostrophe inside the double-quoted value does not end it
   assert.strictEqual(a.description, meta(fs.readFileSync(path.join(apps, a.file), "utf8"), "description"), a.file + ": description differs from the page's meta tag");
   // listed exactly once on the landing page, inside the right section
-  const cards = indexHtml.split('href="' + a.file + '"').length - 1;
+  const cards = indexHtml.split('class="card" href="' + a.file + '"').length - 1; // the title's Device Hub button is not a card
   assert.strictEqual(cards, 1, a.file + " card count " + cards);
   const sec = new RegExp('<section class="group" data-category="' + a.category + '">[\\s\\S]*?</section>').exec(indexHtml);
   assert.ok(sec && sec[0].includes('href="' + a.file + '"'), a.file + " not in its category section");
@@ -120,6 +120,7 @@ for (const a of registryJson.apps) {
 const order = [...indexHtml.matchAll(/<section class="group" data-category="([^"]+)">/g)].map((m) => m[1]);
 assert.deepStrictEqual(order, CATEGORIES.filter((c) => registryJson.apps.some((a) => a.category === c)));
 assert.ok(indexHtml.includes('<meta name="espp-category"') === false, "index.html must not advertise itself as an app");
+assert.ok(/<a class="hub-link" href="dispatcher_hub.html"[^>]*>Device Hub/.test(indexHtml), "index.html must link to the Device Hub near its title");
 // the landing page's inline script is valid JS (no external resources)
 // (plain string search, not a regexp: this locates the one inline script, it does not filter HTML)
 const scriptOpen = indexHtml.indexOf("<script>");

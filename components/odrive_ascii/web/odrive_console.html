@@ -302,11 +302,19 @@
       padding: 8px 18px 22px;
     }
     a { color: var(--accent); }
+    /* espp web-app navigation: back to the Device Hub (primary) and the apps page */
+    .espp-nav { display: inline-flex; gap: 6px; align-items: center; margin-left: 12px; font-size: 12px; font-weight: 600; vertical-align: middle; }
+    .espp-nav a { text-decoration: none; white-space: nowrap; padding: 4px 10px; border-radius: 6px;
+      border: 1px solid var(--accent, #4aa8ff); color: var(--accent, #4aa8ff); }
+    .espp-nav a.hub { background: var(--accent, #4aa8ff); color: var(--accent-contrast, #06121f); }
+    .espp-nav a:hover { filter: brightness(1.1); }
+    .espp-nav a:focus-visible { outline: 2px solid var(--accent, #4aa8ff); outline-offset: 2px; }
   </style>
 </head>
 <body>
   <header>
     <h1>ODrive ASCII &mdash; Web Serial Console</h1>
+    <nav class="espp-nav" aria-label="espp web apps"><a id="navHub" class="hub" href="dispatcher_hub.html" title="Back to the espp Device Hub (hands a connected device back to it)">Device Hub</a><a id="navApps" href="index.html" title="All espp web apps">All apps</a></nav>
     <div class="spacer"></div>
     <label for="baud" style="margin:0; align-self:center;">Baud</label>
     <select id="baud" style="width:auto;" title="Baud rate (largely ignored for USB-CDC, but kept for real UART bridges)">
@@ -502,6 +510,52 @@
   <script>
   "use strict";
   (function () {
+    // --- begin app navigation (shared; byte-identical in every web app, see web/test/resolve_module_id_test.js) ---
+    // Links back to the Device Hub (primary) and the apps page. On the hosted
+    // site (docs/apps/) both are siblings of every app; a page opened from
+    // file:// inside the repository tree has no such siblings, so it links to
+    // the hosted copies instead.
+    const ESPP_APPS_BASE = "https://esp-cpp.github.io/espp/apps/";
+    function navHref(file) {
+      return (typeof location !== "undefined" && location.protocol === "file:") ? ESPP_APPS_BASE + file : file;
+    }
+    // The auto-connect query (no module) a hand-back carries so the hub opens the
+    // device the app just released, without a chooser.
+    function hubConnectQuery(identity) {
+      const q = new URLSearchParams();
+      if (!identity || (identity.transport !== "usb" && identity.transport !== "serial")) return "";
+      q.set("autoconnect", "1");
+      q.set("transport", identity.transport);
+      if (identity.vid != null) q.set("vid", "0x" + identity.vid.toString(16).padStart(4, "0"));
+      if (identity.pid != null) q.set("pid", "0x" + identity.pid.toString(16).padStart(4, "0"));
+      if (identity.serial) q.set("serial", identity.serial);
+      return q.toString();
+    }
+    // Wire the #navHub / #navApps links. opts (dispatcher-module consoles only):
+    // connected() says whether the page holds a device; handBack() closes it the
+    // way a manual Disconnect does (stop the supervisor, close, then post the
+    // released notice) and resolves the device's identity. A plain left click on
+    // "Device Hub" while connected then hands the device back: close first, then
+    // navigate THIS tab to the hub with the auto-connect query. The href itself
+    // stays the plain hub URL, so middle-click / open-in-new-tab / modified
+    // clicks keep working and never close anything.
+    function installAppNav(opts) {
+      const hub = typeof document !== "undefined" ? document.getElementById("navHub") : null;
+      const apps = typeof document !== "undefined" ? document.getElementById("navApps") : null;
+      if (apps) apps.href = navHref("index.html");
+      if (!hub) return;
+      hub.href = navHref("dispatcher_hub.html");
+      hub.addEventListener("click", (ev) => {
+        if (ev.defaultPrevented || ev.button !== 0 || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+        if (!opts || typeof opts.connected !== "function" || typeof opts.handBack !== "function" || !opts.connected()) return;
+        ev.preventDefault();
+        const target = hub.href;
+        Promise.resolve().then(() => opts.handBack()).then(
+          (identity) => { const q = hubConnectQuery(identity); location.assign(target + (q ? "?" + q : "")); },
+          () => location.assign(target));
+      });
+    }
+    // --- end app navigation ---
     // ===================================================================
     // Element references
     // ===================================================================
@@ -1084,6 +1138,7 @@
     }
 
     init();
+    installAppNav(); // Device Hub / All apps links (plain navigation: this page speaks no espp protocol)
   })();
   </script>
 </body>

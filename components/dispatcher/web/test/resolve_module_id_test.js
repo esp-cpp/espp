@@ -427,6 +427,7 @@ const conn = new Function(connectBlock + hubLinkBlock + "\n return { parseConnec
   }
   await supervisorTests();
   await noticeTests();
+  await navTests();
   console.log("ALL TESTS PASSED");
 })().catch((e) => { console.error(e); process.exit(1); });
 
@@ -805,3 +806,114 @@ async function noticeTests() {
 }
 
 
+
+// =============================================================================
+// App navigation: every web app (the 8 dispatcher-module consoles, the hub and
+// the 7 other apps) links back to the Device Hub (primary) and the apps page;
+// a connected console hands its device back to the hub on a plain click.
+// =============================================================================
+const otherApps = [
+  "components/basicmicro/web/mcp_console.html",
+  "components/odrive_ascii/web/hid_visualizer.html",
+  "components/odrive_ascii/web/odrive_console.html",
+  "components/odrive_ascii/web/odrive_control_panel.html",
+  "components/odrive_ascii/web/odrive_webusb_console.html",
+  "components/twai/web/can_console.html",
+  "components/usb_device/web/board_console.html",
+];
+function extractNavBlock(src, rel) {
+  const start = src.indexOf("    // --- begin app navigation");
+  assert.ok(start >= 0, rel + ": no app navigation block");
+  const endMarker = "    // --- end app navigation ---\n";
+  const end = src.indexOf(endMarker, start);
+  assert.ok(end >= 0, rel + ": unterminated app navigation block");
+  return src.slice(start, end + endMarker.length);
+}
+function navTests() {
+  let navBlock = null;
+  const allApps = [...consoles, hub, ...otherApps];
+  for (const rel of allApps) {
+    const src = fs.readFileSync(path.join(root, rel), "utf8");
+    const b = extractNavBlock(src, rel);
+    if (navBlock === null) navBlock = b;
+    else assert.strictEqual(b, navBlock, rel + ": app navigation block differs from " + consoles[0]);
+    // the links: every app has both (hub primary, apps page), the hub only "All apps"
+    const hubLink = /<a id="navHub" class="hub" href="dispatcher_hub.html"[^>]*>Device Hub<\/a>/.test(src);
+    const appsLink = /<a id="navApps" href="index.html"[^>]*>All apps<\/a>/.test(src);
+    assert.ok(appsLink, rel + ": no \"All apps\" link to index.html");
+    if (rel === hub) assert.ok(!hubLink && !src.includes('id="navHub"'), "the hub must not link to itself");
+    else assert.ok(hubLink, rel + ": no primary \"Device Hub\" link to dispatcher_hub.html");
+    assert.ok(/<nav class="espp-nav" aria-label="espp web apps">/.test(src), rel + ": no nav strip");
+    // installed from real code: consoles hand the device back, the rest navigate plainly
+    if (consoles.includes(rel)) {
+      const call = /installAppNav\(\{ connected: \(\) => (!!\w+|!!\(port \|\| usb\)), handBack: async \(\) => \{ const id = connIdentity; await (?:disconnect\(\)|\(usb \? usbDisconnect\(\) : disconnect\(\)\)); return id; \} \}\);/.exec(src);
+      assert.ok(call, rel + ": installAppNav must get the page's connected() and a handBack that runs the manual disconnect and resolves the identity");
+    } else {
+      assert.ok(/^\s*installAppNav\(\);/m.test(src), rel + ": installAppNav() not called");
+    }
+  }
+  console.log("PASS every web app carries the identical app navigation block and both links (" + allApps.length + " files)");
+  // navHref: siblings when hosted, the hosted copies from file://
+  const nav = new Function(navBlock + "\n return { navHref, hubConnectQuery, installAppNav, ESPP_APPS_BASE };")();
+  const setLoc = (v) => Object.defineProperty(global, "location", { value: v, configurable: true, writable: true });
+  const savedLoc = global.location;
+  try {
+    setLoc({ protocol: "https:" });
+    assert.strictEqual(nav.navHref("dispatcher_hub.html"), "dispatcher_hub.html");
+    setLoc({ protocol: "http:" });
+    assert.strictEqual(nav.navHref("index.html"), "index.html");
+    setLoc({ protocol: "file:" });
+    assert.strictEqual(nav.navHref("dispatcher_hub.html"), "https://esp-cpp.github.io/espp/apps/dispatcher_hub.html");
+    assert.strictEqual(nav.navHref("index.html"), nav.ESPP_APPS_BASE + "index.html");
+  } finally { if (savedLoc === undefined) delete global.location; else setLoc(savedLoc); }
+  // the hand-back query: the device identity, no module; the hub parses it back
+  const q = nav.hubConnectQuery({ transport: "usb", vid: 0x1209, pid: 0x0d32, serial: "AB C" });
+  assert.strictEqual(q, "autoconnect=1&transport=usb&vid=0x1209&pid=0x0d32&serial=AB+C");
+  assert.deepStrictEqual(conn.parseConnectParams("?" + q), { autoconnect: true, transport: "usb", vid: 0x1209, pid: 0x0d32, serial: "AB C" });
+  assert.strictEqual(moduleOverrideFromQuery("?" + q), null);
+  assert.strictEqual(nav.hubConnectQuery({ transport: "serial", vid: 1, pid: 2, serial: null }), "autoconnect=1&transport=serial&vid=0x0001&pid=0x0002");
+  assert.strictEqual(nav.hubConnectQuery(null), "");
+  assert.strictEqual(nav.hubConnectQuery({ transport: "ble", vid: 1, pid: 2 }), "");
+  // installAppNav with a fake DOM: a plain click while connected closes FIRST
+  // (handBack), then navigates this tab with the query; modified / middle
+  // clicks, or an unconnected page, leave the plain link alone
+  const savedDoc = global.document;
+  const setDoc = (v) => Object.defineProperty(global, "document", { value: v, configurable: true, writable: true });
+  try {
+    const assigned = [];
+    setLoc({ protocol: "https:", assign: (u) => assigned.push(u) });
+    const mkLink = () => { const handlers = {}; return { href: "", addEventListener: (n, f) => { handlers[n] = f; }, handlers }; };
+    const hub = mkLink(), apps = mkLink();
+    setDoc({ getElementById: (id) => (id === "navHub" ? hub : id === "navApps" ? apps : null) });
+    const order = []; let connected = true;
+    nav.installAppNav({ connected: () => connected, handBack: async () => { order.push("closed"); return { transport: "usb", vid: 1, pid: 2, serial: "S" }; } });
+    assert.strictEqual(hub.href, "dispatcher_hub.html"); assert.strictEqual(apps.href, "index.html");
+    const ev = (over) => ({ button: 0, defaultPrevented: false, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, preventDefault() { this.defaultPrevented = true; order.push("prevented"); }, ...over });
+    return (async () => {
+      let e = ev({}); hub.handlers.click(e); await tick(10);
+      assert.deepStrictEqual(order, ["prevented", "closed"]);
+      assert.deepStrictEqual(assigned, ["dispatcher_hub.html?autoconnect=1&transport=usb&vid=0x0001&pid=0x0002&serial=S"]);
+      for (const mod of [{ button: 1 }, { metaKey: true }, { ctrlKey: true }, { shiftKey: true }, { altKey: true }]) { e = ev(mod); hub.handlers.click(e); assert.ok(!e.defaultPrevented, JSON.stringify(mod)); }
+      connected = false; e = ev({}); hub.handlers.click(e); await tick(10);
+      assert.ok(!e.defaultPrevented); assert.strictEqual(assigned.length, 1);
+      // a failing handBack still navigates (plain hub URL)
+      connected = true;
+      const hub2 = mkLink(); setDoc({ getElementById: (id) => (id === "navHub" ? hub2 : null) });
+      nav.installAppNav({ connected: () => true, handBack: async () => { throw new Error("close failed"); } });
+      e = ev({}); hub2.handlers.click(e); await tick(10);
+      assert.strictEqual(assigned[1], "dispatcher_hub.html");
+      // no links on the page: nothing to do
+      setDoc({ getElementById: () => null }); nav.installAppNav();
+      console.log("PASS app navigation: hosted vs file:// hrefs, hand-back query, click hands the device back before navigating");
+    })().finally(() => { if (savedDoc === undefined) delete global.document; else setDoc(savedDoc); if (savedLoc === undefined) delete global.location; else setLoc(savedLoc); });
+  } catch (e) { if (savedDoc === undefined) delete global.document; else setDoc(savedDoc); throw e; }
+}
+// the hub honours the hand-back query on load (through connect(kind, preset) and the gate)
+{
+  assert.ok(/const connectParams = parseConnectParams\(location\.search\);/.test(hubSrc), "hub: does not parse the connect params");
+  const load = /async function autoConnectOnLoad\(\) \{([\s\S]*?)\n    \}\n/.exec(hubSrc);
+  assert.ok(load && /await findPermittedUsbDevice\(want\)/.test(load[1]) && /await findPermittedSerialPort\(want\)/.test(load[1]) && /await connect\(kind, preset\);/.test(load[1]), "hub: autoConnectOnLoad must open the permitted device through connect(kind, preset)");
+  assert.ok(/if \(connectParams\.autoconnect\) autoConnectOnLoad\(\);/.test(hubSrc), "hub: no auto-connect kick-off");
+  assert.ok(!/createReconnectSupervisor\(\{/.test(hubSrc.replace(extractConnectBlock(hubSrc, hub), "")), "hub must still never auto-reconnect");
+  console.log("PASS hub honours the hand-back auto-connect query on load");
+}

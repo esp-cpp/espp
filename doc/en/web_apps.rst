@@ -220,3 +220,23 @@ and the reconnect supervisor) are byte-identical in every console and the
 hub; the hub's link builder (``connectQuery``) sits in its own block next to
 them. Both are exercised by
 ``node components/dispatcher/web/test/resolve_module_id_test.js``.
+
+Getting around, and handing a device back
+-----------------------------------------
+
+Every app carries two links next to its title: **Device Hub** (the primary
+one, to ``dispatcher_hub.html``) and **All apps** (to ``index.html``); the hub
+has only *All apps*, and the apps page a *Device Hub* button beside its title.
+On the hosted site the three are siblings; a page opened from ``file://``
+inside the repository tree links to the hosted copies instead. In a
+dispatcher-module console that is connected, a plain click on *Device Hub*
+hands the device back: the console closes it the way its Disconnect button
+does (stops the reconnect supervisor, closes, then posts the ``released``
+notice) and navigates the same tab to the hub with the device's auto-connect
+query, which the hub honours on load by opening that permitted device without
+a chooser. The link's ``href`` stays the plain hub URL, so a middle-click, a
+modified click or *open in new tab* just opens the hub and closes nothing; an
+unconnected console (or an app that speaks no espp protocol) navigates
+plainly. The hub still never reconnects on its own after handing a device off
+to an app. The navigation helpers are one more byte-identical block in every
+app, covered by the same test.
