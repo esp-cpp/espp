@@ -416,11 +416,18 @@
     // completion would otherwise overwrite a live transport without closing it
     // or orphan a claimed USB device. The supervisor consults isBusy() and
     // waits rather than counting a refused entry as a failed attempt.
-    function createOpenGate() {
+    // opts.connected() is the page's "already holds a device" predicate: the
+    // gate serializes opens but does not know about an adopted connection, so
+    // run() also refuses (opens nothing) while the page is connected — a
+    // reconnect callback whose permitted-device lookup outlived a manual
+    // connect must not open the same device a second time.
+    function createOpenGate(opts) {
+      const connected = opts && typeof opts.connected === "function" ? opts.connected : () => false;
       const gate = { busy: false };
       gate.isBusy = () => gate.busy;
+      gate.isConnected = () => !!connected();
       gate.run = async (fn) => {
-        if (gate.busy) return false;
+        if (gate.busy || connected()) return false;
         gate.busy = true;
         try { return await fn(); } finally { gate.busy = false; }
       };
@@ -828,7 +835,7 @@
     // from the click until the device is closed and the tab navigated, and
     // app clicks in between are ignored (a second click would otherwise start
     // a second hand-off on the same transport and navigate a second tab).
-    const openGate = createOpenGate();
+    const openGate = createOpenGate({ connected: () => !!transport });
     let handingOff = false;
     const deviceChannel = openDeviceChannel();
     // `tab`: the new tab, reserved synchronously inside the click (so the

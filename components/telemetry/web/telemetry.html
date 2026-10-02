@@ -950,7 +950,7 @@
       return openGate.run(() => connectLocked(preset));
     }
     async function connectLocked(preset) {
-      if (port) return preset ? undefined : disconnect();
+      if (port || usb) return; // one transport at a time (the gate refuses while connected too)
       try {
         port = preset || await navigator.serial.requestPort();
       } catch (e) { return; /* user cancelled */ }
@@ -1302,11 +1302,18 @@
     // completion would otherwise overwrite a live transport without closing it
     // or orphan a claimed USB device. The supervisor consults isBusy() and
     // waits rather than counting a refused entry as a failed attempt.
-    function createOpenGate() {
+    // opts.connected() is the page's "already holds a device" predicate: the
+    // gate serializes opens but does not know about an adopted connection, so
+    // run() also refuses (opens nothing) while the page is connected — a
+    // reconnect callback whose permitted-device lookup outlived a manual
+    // connect must not open the same device a second time.
+    function createOpenGate(opts) {
+      const connected = opts && typeof opts.connected === "function" ? opts.connected : () => false;
       const gate = { busy: false };
       gate.isBusy = () => gate.busy;
+      gate.isConnected = () => !!connected();
       gate.run = async (fn) => {
-        if (gate.busy) return false;
+        if (gate.busy || connected()) return false;
         gate.busy = true;
         try { return await fn(); } finally { gate.busy = false; }
       };
@@ -1540,7 +1547,7 @@
       return openGate.run(() => usbConnectLocked(preset));
     }
     async function usbConnectLocked(preset) {
-      if (usb) return preset ? undefined : usbDisconnect();
+      if (port || usb) return; // one transport at a time (the gate refuses while connected too)
       const t = new UsbTransport();
       try { await t.open(preset); }
       catch (e) {
@@ -1846,8 +1853,8 @@
     }
 
     // ---------------------------------------------------------------- wiring
-    $("connect").addEventListener("click", () => connect());
-    $("usb").addEventListener("click", () => usbConnect());
+    $("connect").addEventListener("click", () => (port ? disconnect() : connect()));
+    $("usb").addEventListener("click", () => (usb ? usbDisconnect() : usbConnect()));
     $("reset").addEventListener("click", resetDevice);
     $("pause").addEventListener("click", () => {
       paused = !paused;
@@ -1958,7 +1965,7 @@
       saveAutoReconnect($("autoReconnect").checked);
       if (!$("autoReconnect").checked) reconnect.stop("auto-reconnect is off");
     });
-    const openGate = createOpenGate();
+    const openGate = createOpenGate({ connected: () => !!(port || usb) });
     const reconnect = createReconnectSupervisor({
       gate: openGate,
       discard: () => (usb ? usbDisconnect() : disconnect()),
@@ -1967,16 +1974,20 @@
       reconnect: reconnectAttempt,
     });
     watchDeviceArrivals(reconnect);
-    // One reconnect attempt, on the transport the page had: the device must be
-    // back among the permitted ones.
-    async function reconnectAttempt(identity) {
+    // One reconnect attempt, on the transport the page had: the device must be back among the permitted ones.
+    // The lookup runs outside the open gate, so re-check afterwards that the
+    // attempt was not cancelled (checkbox unticked) and that no manual connect
+    // completed meanwhile — the gate refuses while connected as well.
+    async function reconnectAttempt(identity, attempt, token) {
       if (port || usb) return true;
       if (identity.transport === "usb") {
         const d = await findPermittedUsbDevice(identity);
+        if (token.cancelled() || port || usb) return false; // a manual Serial (or USB) connect completed meanwhile
         if (!d) return false;
         await usbConnect(d);
       } else {
         const p = await findPermittedSerialPort(identity);
+        if (token.cancelled() || port || usb) return false;
         if (!p) return false;
         await connect(p);
       }

@@ -589,6 +589,19 @@ async function supervisorTests() {
     assert.strictEqual(await manual, "manual-done");
     await tick(400);
     assert.strictEqual(n, 1); assert.ok(!s.isActive()); assert.ok(!gate.isBusy());
+    // a gate built with the page's connected() predicate refuses (opens nothing)
+    // while the page already holds a device, and is not left busy by that
+    {
+      let isConnected = false, opened = 0;
+      const g = conn.createOpenGate({ connected: () => isConnected });
+      assert.strictEqual(await g.run(async () => { opened++; return "ok"; }), "ok");
+      isConnected = true;
+      assert.strictEqual(await g.run(async () => { opened++; return "ok"; }), false);
+      assert.strictEqual(opened, 1); assert.ok(!g.isBusy()); assert.ok(g.isConnected());
+      isConnected = false;
+      assert.strictEqual(await g.run(async () => { opened++; return "again"; }), "again");
+      assert.strictEqual(opened, 2);
+    }
     // the gate frees after a throwing open as well
     await assert.rejects(gate.run(async () => { throw new Error("open failed"); }), /open failed/);
     assert.ok(!gate.isBusy());
@@ -721,7 +734,18 @@ async function noticeTests() {
   // shares the gate
   for (const rel of [...consoles, hub]) {
     const src = fs.readFileSync(path.join(root, rel), "utf8");
-    must(src, rel, /const openGate = createOpenGate\(\);/, "no open gate");
+    must(src, rel, /const openGate = createOpenGate\(\{ connected: \(\) => !!/, "the open gate must be built with the page's connected() predicate");
+    if (rel !== hub) {
+      // the reconnect callback: a lookup outside the gate, then — before opening —
+      // a re-check that the attempt was not cancelled and no manual connect completed
+      const cb = /async function reconnectAttempt\(identity, attempt, token\) \{([\s\S]*?)\n    \}\n/.exec(src);
+      assert.ok(cb, rel + ": reconnectAttempt must take (identity, attempt, token)");
+      const lookups = cb[1].split("\n").filter((l) => /await findPermitted(?:UsbDevice|SerialPort)\(/.test(l)).length; // lookup LINES (a ternary holds two calls)
+      const rechecks = (cb[1].match(/if \(token\.cancelled\(\) \|\| (?:device|transport|port \|\| usb)\) return false;/g) || []).length;
+      assert.ok(lookups >= 1 && rechecks === lookups, rel + ": every permitted-device lookup in reconnectAttempt must be followed by `if (token.cancelled() || <connected>) return false;` (" + lookups + " lookups, " + rechecks + " re-checks)");
+      for (const m of cb[1].matchAll(/await findPermitted(?:UsbDevice|SerialPort)\([^\n]*\n([^\n]*)/g))
+        assert.ok(/if \(token\.cancelled\(\) \|\|/.test(m[1]), rel + ": the re-check must directly follow the lookup: " + m[1].trim());
+    }
     const locked = [...src.matchAll(/async function (\w+)Locked\(([^)]*)\) \{/g)];
     assert.ok(locked.length >= 1, rel + ": no gated connect entry point");
     for (const [, name, params] of locked) {

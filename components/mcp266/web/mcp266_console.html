@@ -635,11 +635,18 @@
     // completion would otherwise overwrite a live transport without closing it
     // or orphan a claimed USB device. The supervisor consults isBusy() and
     // waits rather than counting a refused entry as a failed attempt.
-    function createOpenGate() {
+    // opts.connected() is the page's "already holds a device" predicate: the
+    // gate serializes opens but does not know about an adopted connection, so
+    // run() also refuses (opens nothing) while the page is connected — a
+    // reconnect callback whose permitted-device lookup outlived a manual
+    // connect must not open the same device a second time.
+    function createOpenGate(opts) {
+      const connected = opts && typeof opts.connected === "function" ? opts.connected : () => false;
       const gate = { busy: false };
       gate.isBusy = () => gate.busy;
+      gate.isConnected = () => !!connected();
       gate.run = async (fn) => {
-        if (gate.busy) return false;
+        if (gate.busy || connected()) return false;
         gate.busy = true;
         try { return await fn(); } finally { gate.busy = false; }
       };
@@ -929,13 +936,17 @@
       saveAutoReconnect(els.autoReconnect.checked);
       if (!els.autoReconnect.checked) reconnect.stop("auto-reconnect is off");
     });
-    const openGate = createOpenGate();
+    const openGate = createOpenGate({ connected: () => !!transport });
     const reconnect = createReconnectSupervisor({ gate: openGate, discard: () => disconnect(), enabled: () => els.autoReconnect.checked, log: logLine, reconnect: reconnectAttempt });
     watchDeviceArrivals(reconnect);
     // One reconnect attempt: the device must be back among the permitted ones.
-    async function reconnectAttempt(identity) {
+    // The lookup runs outside the open gate, so re-check afterwards that the
+    // attempt was not cancelled (checkbox unticked) and that no manual connect
+    // completed meanwhile — the gate refuses while connected as well.
+    async function reconnectAttempt(identity, attempt, token) {
       if (transport) return true;
       const preset = identity.transport === "usb" ? await findPermittedUsbDevice(identity) : await findPermittedSerialPort(identity);
+      if (token.cancelled() || transport) return false;
       if (!preset) return false;
       await connect(identity.transport, preset);
       return !!transport;
