@@ -250,23 +250,32 @@
         if (!m) {
           notes.push(p.optional ? { text: "optional " + p.id + " not advertised", warn: false }
                                 : { text: "needs " + p.id + ", not advertised", warn: true });
-        } else if (m.protocolVersion !== p.version) {
+        } else if (m.protocolVersion && m.protocolVersion !== p.version) {
+          // an advertised version 0 means "unspecified" (same rule as the consoles' resolveModuleId)
           notes.push({ text: "app speaks " + p.id + " v" + p.version + ", device advertises v" + m.protocolVersion, warn: true });
         }
       }
       return notes;
     }
+    // The module an app's link should carry as `?module=`: the first advertised
+    // module speaking the app's first REQUIRED protocol (an app applies ?module
+    // to its primary service only, e.g. the coredump console to espp.coredump,
+    // never to the optional crash trigger), else its first optional one, else
+    // null.
+    function appAnchor(app, modules) {
+      const required = app.protocols.filter(p => !p.optional);
+      return (required.length ? required : app.protocols).map(p => moduleForProtocol(modules, p.id)).find(Boolean) || null;
+    }
     // Apps that can drive this device: every REQUIRED protocol the app lists is
     // advertised (apps that list no espp protocol cannot be matched and are left
-    // out). Each entry links the app to the first module speaking its first
-    // required protocol (or its first optional one when all are optional).
+    // out). Each entry links the app to its anchor module (appAnchor).
     function appsForDevice(registry, modules) {
       const out = [];
       for (const app of registryApps(registry)) {
         if (!app.protocols.length) continue;
         const required = app.protocols.filter(p => !p.optional);
         if (!required.every(p => moduleForProtocol(modules, p.id))) continue;
-        const anchor = (required.length ? required : app.protocols).map(p => moduleForProtocol(modules, p.id)).find(Boolean);
+        const anchor = appAnchor(app, modules);
         if (!anchor) continue;
         out.push({ app, module: anchor, notes: appNotes(app, modules) });
       }
@@ -275,13 +284,16 @@
     // Apps (other than the module's own advertised page) that speak this
     // module's protocol. Apps whose other required protocols the device lacks
     // are kept, with a warning note, so the user can see why they are a poor fit.
+    // The link is anchored like appsForDevice (the module speaking the app's
+    // primary protocol), falling back to this module when nothing else fits.
     function appsForModule(registry, module, modules) {
       if (!module || !module.protocol) return [];
+      const all = modules || [module];
       const out = [];
       for (const app of registryApps(registry)) {
         if (app.file === module.app) continue;
         if (!app.protocols.some(p => p.id === module.protocol)) continue;
-        out.push({ app, module, notes: appNotes(app, modules || [module]) });
+        out.push({ app, module: appAnchor(app, all) || module, notes: appNotes(app, all) });
       }
       return out;
     }

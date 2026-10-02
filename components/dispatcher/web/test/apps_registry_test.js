@@ -57,13 +57,17 @@ for (const p of pages) {
   // (its own PROTOCOL constant) — and vice versa for the known id constants
   for (const pr of protocols) assert.ok(src.includes('"' + pr.id + '"'), rel + ": declares " + pr.id + " but its script never mentions it");
   const idsInScript = new Set();
-  for (const m of src.matchAll(/_PROTOCOL\s*=\s*"(espp\.[a-z0-9.-]+)"/g)) idsInScript.add(m[1]);
+  // constants are declared as `<PREFIX_>PROTOCOL = "id", <PREFIX_>PROTOCOL_VERSION = n`
+  // with the same (possibly empty) prefix, e.g. OTA_PROTOCOL / OTA_PROTOCOL_VERSION
+  // or the bare PROTOCOL / PROTOCOL_VERSION pair
+  for (const m of src.matchAll(/\b[A-Z0-9_]*PROTOCOL\s*=\s*"(espp\.[a-z0-9.-]+)"/g)) idsInScript.add(m[1]);
   for (const id of idsInScript) assert.ok(protocols.some((p) => p.id === id), rel + ": script defines protocol " + id + " not declared in espp-protocols");
-  // and the version it implements
+  // and the version it implements: every declared protocol must have its pair
   for (const pr of protocols) {
     const escaped = pr.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // every regexp metacharacter, backslash included
-    const vm = new RegExp('_PROTOCOL\\s*=\\s*"' + escaped + '"[\\s\\S]{0,200}?_PROTOCOL_VERSION\\s*=\\s*(\\d+)').exec(src);
-    if (vm) assert.strictEqual(Number(vm[1]), pr.version, rel + ": " + pr.id + " version differs between the meta tag and the script");
+    const vm = new RegExp('\\b([A-Z0-9_]*)PROTOCOL\\s*=\\s*"' + escaped + '"[\\s\\S]{0,200}?\\b\\1PROTOCOL_VERSION\\s*=\\s*(\\d+)').exec(src);
+    assert.ok(vm, rel + ": no <PREFIX_>PROTOCOL / <PREFIX_>PROTOCOL_VERSION constant pair found for " + pr.id);
+    assert.strictEqual(Number(vm[2]), pr.version, rel + ": " + pr.id + " version differs between the meta tag and the script");
   }
   declared[path.basename(p)] = { category: cat, protocols, transports };
 }
@@ -144,7 +148,7 @@ assert.ok(safe, "hub: no safeAppName");
 const begin = hubSrc.indexOf("    // --- begin app matching");
 const end = hubSrc.indexOf("    // --- end app matching ---");
 assert.ok(begin >= 0 && end > begin, "hub: app matching block markers missing");
-const hub = new Function(safe[0] + hubSrc.slice(begin, end) + "\n return { registryApps, moduleForProtocol, appNotes, appsForDevice, appsForModule };")();
+const hub = new Function(safe[0] + hubSrc.slice(begin, end) + "\n return { registryApps, moduleForProtocol, appNotes, appAnchor, appsForDevice, appsForModule };")();
 const reg = registryJson;
 const mod = (id, protocol, protocolVersion, app) => ({ id, name: protocol || "m" + id, app: app || "", desc: "", protocol: protocol || "", protocolVersion: protocolVersion || 0 });
 const files = (entries) => entries.map((e) => e.app.file);
@@ -166,9 +170,17 @@ dev = hub.appsForDevice(reg, modules);
 assert.deepStrictEqual(files(dev).sort(), ["coredump_console.html", "ota_console.html", "system_console.html"]);
 for (const e of dev) assert.deepStrictEqual(e.notes, [], e.app.file + " unexpected notes");
 assert.strictEqual(dev.find((e) => e.app.file === "system_console.html").module.id, 7, "linked with the required protocol's module");
-// the crash trigger module advertises no app; its only matching app is the coredump console
+// the crash trigger module advertises no app; its only matching app is the coredump
+// console, and the link is anchored to the coredump module (the console applies
+// ?module to espp.coredump only), not to the crash trigger
 also = hub.appsForModule(reg, modules[2], modules);
 assert.deepStrictEqual(files(also), ["coredump_console.html"]);
+assert.strictEqual(also[0].module.id, 4, "anchored to the module speaking the app's required protocol");
+assert.strictEqual(hub.appAnchor(reg.apps.find((a) => a.file === "coredump_console.html"), modules).id, 4);
+// without a coredump module the crash trigger alone still lists the console, anchored to itself, with a warning
+also = hub.appsForModule(reg, modules[2], [modules[2]]);
+assert.deepStrictEqual(also.map((e) => [e.app.file, e.module.id, e.notes]),
+  [["coredump_console.html", 1, [{ text: "needs espp.coredump, not advertised", warn: true }]]]);
 // no module advertises "espp.monitor" here: system console still listed (monitor optional), with a note
 modules = [mod(7, "espp.system", 1, "system_console.html")];
 dev = hub.appsForDevice(reg, modules);
@@ -185,6 +197,9 @@ modules = [mod(5, "espp.can-bridge", 2, "can_bridge_console.html")];
 dev = hub.appsForDevice(reg, modules);
 assert.deepStrictEqual(files(dev).sort(), ["can_bridge_console.html", "ds402_panel.html"]);
 for (const e of dev) assert.deepStrictEqual(e.notes, [{ text: "app speaks espp.can-bridge v1, device advertises v2", warn: true }]);
+// an advertised version 0 means "unspecified": no mismatch note
+modules = [mod(5, "espp.can-bridge", 0, "can_bridge_console.html")];
+for (const e of hub.appsForDevice(reg, modules)) assert.deepStrictEqual(e.notes, [], e.app.file + ": v0 must not warn");
 
 // unknown protocol / v1 payload (no protocol ids): nothing matches, the advertised app alone is linked by the hub
 modules = [mod(9, "acme.widget", 1, "widget.html")];
