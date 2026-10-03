@@ -33,6 +33,8 @@
 
 # build folder for ESP-IDF
 build/
+# alternate/per-target ESP-IDF build dirs (e.g. build_s3, build_c6)
+build_*/
 
 
 # we only version sdkconfig.defaults
