@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <functional>
+#include <iterator>
 #include <map>
 #include <optional>
 #include <string>
@@ -135,7 +136,7 @@ public:
   }
 
   void close(uint16_t win, dp::WindowCloseReason reason) {
-    WindowDirt *d = window(win);
+    const WindowDirt *d = window(win);
     if (d && d->open) {
       // never reached the host: it vanishes silently
       erase(win);
@@ -182,11 +183,12 @@ public:
       return props.back().value.size();
     }
     if (prop.is(dp::PropTag::TextAppend)) {
-      for (auto &p : props)
-        if (p.is(dp::PropTag::TextAppend)) {
-          p.value.insert(p.value.end(), prop.value.begin(), prop.value.end());
-          return p.value.size();
-        }
+      auto it = std::find_if(props.begin(), props.end(),
+                             [](const dp::Prop &p) { return p.is(dp::PropTag::TextAppend); });
+      if (it != props.end()) {
+        it->value.insert(it->value.end(), prop.value.begin(), prop.value.end());
+        return it->value.size();
+      }
       props.push_back(std::move(prop));
       return props.back().value.size();
     }
@@ -201,11 +203,12 @@ public:
       props.push_back(std::move(prop));
       return 0;
     }
-    for (auto &p : props)
-      if (p.tag == prop.tag) {
-        p.value = std::move(prop.value);
-        return 0;
-      }
+    auto same = std::find_if(props.begin(), props.end(),
+                             [&prop](const dp::Prop &p) { return p.tag == prop.tag; });
+    if (same != props.end()) {
+      same->value = std::move(prop.value);
+      return 0;
+    }
     props.push_back(std::move(prop));
     return 0;
   }
@@ -402,17 +405,15 @@ struct WindowState {
   std::function<void()> on_close{nullptr};
   std::function<void(const dp::WindowEvent &)> on_event{nullptr};
 
-  WidgetState *widget(uint16_t id) {
-    for (auto &w : widgets)
-      if (w.id == id)
-        return &w;
-    return nullptr;
+  WidgetState *widget(uint16_t widget_id) {
+    const auto it = std::find_if(widgets.begin(), widgets.end(),
+                                 [widget_id](const WidgetState &w) { return w.id == widget_id; });
+    return it != widgets.end() ? &*it : nullptr;
   }
-  const WidgetState *widget(uint16_t id) const {
-    for (const auto &w : widgets)
-      if (w.id == id)
-        return &w;
-    return nullptr;
+  const WidgetState *widget(uint16_t widget_id) const {
+    const auto it = std::find_if(widgets.begin(), widgets.end(),
+                                 [widget_id](const WidgetState &w) { return w.id == widget_id; });
+    return it != widgets.end() ? &*it : nullptr;
   }
 
   dp::WindowOpen to_open(bool snapshot) const {
@@ -453,12 +454,13 @@ public:
   // ---- apps ----
 
   void register_app(dp::AppRec app) {
-    for (auto &a : apps_)
-      if (a.id == app.id) {
-        a = std::move(app);
-        dirty.desktop_changed = true;
-        return;
-      }
+    auto it = std::find_if(apps_.begin(), apps_.end(),
+                           [&app](const dp::AppRec &a) { return a.id == app.id; });
+    if (it != apps_.end()) {
+      *it = std::move(app);
+      dirty.desktop_changed = true;
+      return;
+    }
     apps_.push_back(std::move(app));
     std::sort(apps_.begin(), apps_.end(),
               [](const dp::AppRec &a, const dp::AppRec &b) { return a.id < b.id; });
@@ -475,10 +477,9 @@ public:
   }
 
   const dp::AppRec *app(uint8_t id) const {
-    for (const auto &a : apps_)
-      if (a.id == id)
-        return &a;
-    return nullptr;
+    const auto it =
+        std::find_if(apps_.begin(), apps_.end(), [id](const dp::AppRec &a) { return a.id == id; });
+    return it != apps_.end() ? &*it : nullptr;
   }
   const std::vector<dp::AppRec> &apps() const { return apps_; }
 
@@ -527,24 +528,22 @@ public:
   }
 
   WindowState *window(uint16_t id) {
-    for (auto &w : windows_)
-      if (w.id == id)
-        return &w;
-    return nullptr;
+    const auto it = std::find_if(windows_.begin(), windows_.end(),
+                                 [id](const WindowState &w) { return w.id == id; });
+    return it != windows_.end() ? &*it : nullptr;
   }
   const WindowState *window(uint16_t id) const {
-    for (const auto &w : windows_)
-      if (w.id == id)
-        return &w;
-    return nullptr;
+    const auto it = std::find_if(windows_.begin(), windows_.end(),
+                                 [id](const WindowState &w) { return w.id == id; });
+    return it != windows_.end() ? &*it : nullptr;
   }
   const std::vector<WindowState> &windows() const { return windows_; }
 
   /// Ids of the open windows of an app (0 = every window).
-  std::vector<uint16_t> windows_of(uint8_t app) const {
+  std::vector<uint16_t> windows_of(uint8_t app_id) const {
     std::vector<uint16_t> ids{};
     for (const auto &w : windows_)
-      if (app == 0 || w.app == app)
+      if (app_id == 0 || w.app == app_id)
         ids.push_back(w.id);
     return ids;
   }
@@ -648,7 +647,7 @@ public:
 
   /// Remove every widget of a window.
   void clear_window(uint16_t win) {
-    WindowState *w = window(win);
+    const WindowState *w = window(win);
     if (!w)
       return;
     std::vector<uint16_t> roots{};
@@ -661,12 +660,12 @@ public:
 
   /// Apply a property to the model (widget 0 = the window) and record it.
   /// Returns false when the target is unknown or the prop malformed.
-  bool set_prop(uint16_t win, uint16_t widget, dp::Prop prop) {
+  bool set_prop(uint16_t win, uint16_t widget_id, dp::Prop prop) {
     WindowState *w = window(win);
     if (!w || !prop.valid())
       return false;
     using dp::PropTag;
-    if (widget == 0) {
+    if (widget_id == 0) {
       switch (prop.type()) {
       case PropTag::Title:
         w->title = std::string(prop.as_text());
@@ -694,7 +693,7 @@ public:
       dirty.set(win, 0, std::move(prop));
       return true;
     }
-    WidgetState *s = w->widget(widget);
+    WidgetState *s = w->widget(widget_id);
     if (!s)
       return false;
     switch (prop.type()) {
@@ -704,7 +703,7 @@ public:
         bound_text(*s);
       break;
     case PropTag::TextAppend:
-      return append_text(win, widget, prop.as_text());
+      return append_text(win, widget_id, prop.as_text());
     case PropTag::Value:
       s->value = *prop.as_i32();
       break;
@@ -770,22 +769,22 @@ public:
     case PropTag::Geometry:
       return false;
     }
-    dirty.set(win, widget, std::move(prop));
+    dirty.set(win, widget_id, std::move(prop));
     return true;
   }
 
   /// Append to a widget's text (TextArea: bounded by max_lines / max_text_bytes).
-  bool append_text(uint16_t win, uint16_t widget, std::string_view text) {
-    WidgetState *s = this->widget(win, widget);
+  bool append_text(uint16_t win, uint16_t widget_id, std::string_view text) {
+    WidgetState *s = this->widget(win, widget_id);
     if (!s)
       return false;
     s->text += text;
     if (s->type == dp::WidgetType::TextArea)
       bound_text(*s);
-    const size_t pending = dirty.set(win, widget, dp::Prop::text(dp::PropTag::TextAppend, text));
+    const size_t pending = dirty.set(win, widget_id, dp::Prop::text(dp::PropTag::TextAppend, text));
     if (pending > max_text_bytes) {
       // the host would receive more than it keeps: replace with the bounded text
-      dirty.set(win, widget, dp::Prop::text(dp::PropTag::Text, s->text));
+      dirty.set(win, widget_id, dp::Prop::text(dp::PropTag::Text, s->text));
     }
     return true;
   }
@@ -803,10 +802,9 @@ public:
   }
 
   DialogState *dialog(uint16_t id) {
-    for (auto &d : dialogs_)
-      if (d.dialog.id == id)
-        return &d;
-    return nullptr;
+    const auto it = std::find_if(dialogs_.begin(), dialogs_.end(),
+                                 [id](const DialogState &d) { return d.dialog.id == id; });
+    return it != dialogs_.end() ? &*it : nullptr;
   }
   const std::vector<DialogState> &dialogs() const { return dialogs_; }
 
@@ -899,40 +897,42 @@ public:
       if (!w)
         continue;
       if (d.open) {
-        for (auto &x : w->widgets)
-          x.insert_before = 0;
-        for (auto &m : dp::encode_window_open(w->to_open(false), max_payload, dropped))
-          out.push_back(std::move(m));
+        std::for_each(w->widgets.begin(), w->widgets.end(),
+                      [](WidgetState &x) { x.insert_before = 0; });
+        append_messages(out, dp::encode_window_open(w->to_open(false), max_payload, dropped));
         continue;
       }
       if (!d.added.empty()) {
         dp::WidgetAdd add{.window = win_id};
-        for (const uint16_t id : d.added)
+        std::for_each(d.added.begin(), d.added.end(), [&](uint16_t id) {
           if (WidgetState *s = w->widget(id)) {
             add.widgets.push_back(s->to_rec(true));
             s->insert_before = 0;
           }
-        for (auto &m : dp::encode_widget_add(add, max_payload, dropped))
-          out.push_back(std::move(m));
+        });
+        append_messages(out, dp::encode_widget_add(add, max_payload, dropped));
       }
-      if (!d.sets.empty()) {
-        for (auto &p : dp::encode_widget_set({.window = win_id, .entries = std::move(d.sets)},
-                                             max_payload, dropped))
-          out.push_back({Type::WidgetSet, std::move(p)});
-      }
-      if (!d.removed.empty()) {
-        for (auto &p :
-             dp::encode_widget_remove({.window = win_id, .widgets = d.removed}, max_payload))
-          out.push_back({Type::WidgetRemove, std::move(p)});
-      }
+      if (!d.sets.empty())
+        append_payloads(out, Type::WidgetSet,
+                        dp::encode_widget_set({.window = win_id, .entries = std::move(d.sets)},
+                                              max_payload, dropped));
+      if (!d.removed.empty())
+        append_payloads(
+            out, Type::WidgetRemove,
+            dp::encode_widget_remove({.window = win_id, .widgets = d.removed}, max_payload));
     }
-    for (const uint16_t id : dirty.dialogs_opened)
+    std::for_each(dirty.dialogs_opened.begin(), dirty.dialogs_opened.end(), [&](uint16_t id) {
       if (const DialogState *d = dialog(id))
         out.push_back({Type::Dialog, dp::encode_dialog(d->dialog, max_payload)});
-    for (const uint16_t id : dirty.dialogs_closed)
-      out.push_back({Type::DialogClose, dp::encode_dialog_close({.id = id})});
-    for (const auto &n : dirty.notifications)
-      out.push_back({Type::Notify, dp::encode_notify(n, max_payload)});
+    });
+    std::transform(dirty.dialogs_closed.begin(), dirty.dialogs_closed.end(),
+                   std::back_inserter(out), [](uint16_t id) {
+                     return dp::Message{Type::DialogClose, dp::encode_dialog_close({.id = id})};
+                   });
+    std::transform(dirty.notifications.begin(), dirty.notifications.end(), std::back_inserter(out),
+                   [this](const dp::Notify &n) {
+                     return dp::Message{Type::Notify, dp::encode_notify(n, max_payload)};
+                   });
     if (dirty.desktop_changed)
       out.push_back({Type::Desktop, dp::encode_desktop(desktop_info(false))});
     dirty.clear();
@@ -944,12 +944,28 @@ public:
   /// see desktop_info(true)).
   std::vector<dp::Message> snapshot(size_t *dropped = nullptr) const {
     std::vector<dp::Message> out{};
-    for (const auto &w : windows_)
-      for (auto &m : dp::encode_window_open(w.to_open(true), max_payload, dropped))
-        out.push_back(std::move(m));
-    for (const auto &d : dialogs_)
-      out.push_back({dp::Type::Dialog, dp::encode_dialog(d.dialog, max_payload)});
+    std::for_each(windows_.begin(), windows_.end(), [&](const WindowState &w) {
+      append_messages(out, dp::encode_window_open(w.to_open(true), max_payload, dropped));
+    });
+    std::transform(dialogs_.begin(), dialogs_.end(), std::back_inserter(out),
+                   [this](const DialogState &d) {
+                     return dp::Message{dp::Type::Dialog, dp::encode_dialog(d.dialog, max_payload)};
+                   });
     return out;
+  }
+
+  /// Move encoded messages onto the end of `out`.
+  static void append_messages(std::vector<dp::Message> &out, std::vector<dp::Message> msgs) {
+    std::move(msgs.begin(), msgs.end(), std::back_inserter(out));
+  }
+
+  /// Append payloads as messages of one type.
+  static void append_payloads(std::vector<dp::Message> &out, dp::Type type,
+                              std::vector<std::vector<uint8_t>> payloads) {
+    std::transform(payloads.begin(), payloads.end(), std::back_inserter(out),
+                   [type](std::vector<uint8_t> &p) {
+                     return dp::Message{type, std::move(p)};
+                   });
   }
 
   static bool is_container(dp::WidgetType t) {

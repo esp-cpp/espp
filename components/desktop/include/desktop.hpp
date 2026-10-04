@@ -35,6 +35,7 @@
 #include <condition_variable>
 #include <deque>
 #include <functional>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -365,10 +366,10 @@ public:
     /// common ones). Returns an invalid handle on failure (unknown parent,
     /// parent not a container, window gone).
     Widget add(WidgetConfig cfg) {
-      const WidgetId id = desktop_ ? desktop_->add_widget(id_, std::move(cfg)) : 0;
-      return id ? Widget(desktop_, id_, id) : Widget();
+      const WidgetId wid = desktop_ ? desktop_->add_widget(id_, std::move(cfg)) : 0;
+      return wid ? Widget(desktop_, id_, wid) : Widget();
     }
-    Widget widget(WidgetId id) const { return Widget(desktop_, id_, id); }
+    Widget widget(WidgetId widget_id) const { return Widget(desktop_, id_, widget_id); }
 
     // ---- containers (parent 0 = the window's root column) ----
     Widget column(WidgetId parent = 0, uint8_t weight = 0, uint8_t layout = 0) {
@@ -649,9 +650,11 @@ public:
   /// @brief The open windows (of one app, or every app when id == 0).
   std::vector<Window> windows(AppId app = 0) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+    const auto ids = model_.windows_of(app);
     std::vector<Window> out{};
-    for (const WindowId id : model_.windows_of(app))
-      out.emplace_back(this, id);
+    out.reserve(ids.size());
+    std::transform(ids.begin(), ids.end(), std::back_inserter(out),
+                   [this](WindowId id) { return Window(this, id); });
     return out;
   }
 
@@ -800,12 +803,12 @@ public:
     std::shared_ptr<Sink> gone;
     {
       std::lock_guard<std::recursive_mutex> lock(mutex_);
-      for (auto it = sinks_.begin(); it != sinks_.end(); ++it)
-        if ((*it)->id == id) {
-          gone = *it;
-          sinks_.erase(it);
-          break;
-        }
+      const auto it = std::find_if(sinks_.begin(), sinks_.end(),
+                                   [id](const std::shared_ptr<Sink> &s) { return s->id == id; });
+      if (it != sinks_.end()) {
+        gone = *it;
+        sinks_.erase(it);
+      }
     }
     if (gone) {
       // wait for a send in flight on it, then drop the callback
@@ -816,6 +819,8 @@ public:
 
   /// @brief Start / stop broadcasting events to a sink (a disconnected
   ///        transport should be deactivated; the next GET_DESKTOP reactivates it).
+  // cppcheck-suppress functionConst // mutates the sink (through its shared_ptr): not a const
+  // operation
   void set_sink_active(SinkId id, bool active) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (auto s = find_sink(id))
@@ -940,11 +945,15 @@ protected:
     std::optional<uint16_t> correlation{}; ///< replies echo the request's
   };
 
+  /// A model message as an outgoing (event) message; the payload is moved out.
+  static OutMsg to_out_msg(detail::dp::Message &m) {
+    return {.type = m.type, .payload = std::move(m.payload)};
+  }
+
   std::shared_ptr<Sink> find_sink(SinkId id) const {
-    for (const auto &s : sinks_)
-      if (s->id == id)
-        return s;
-    return nullptr;
+    const auto it = std::find_if(sinks_.begin(), sinks_.end(),
+                                 [id](const std::shared_ptr<Sink> &s) { return s->id == id; });
+    return it != sinks_.end() ? *it : nullptr;
   }
 
   /// Wake the desktop task (with mutex_ held or not).
@@ -981,8 +990,12 @@ protected:
       std::lock_guard<std::recursive_mutex> lock(mutex_);
       if (!commands_.empty() || !posted_.empty())
         next = std::chrono::steady_clock::now();
-      for (const auto &t : timers_)
-        next = std::min(next, t.due);
+      if (!timers_.empty())
+        next = std::min(next, std::min_element(timers_.begin(), timers_.end(),
+                                               [](const TimerEntry &a, const TimerEntry &b) {
+                                                 return a.due < b.due;
+                                               })
+                                  ->due);
       if (model_.dirty.any())
         next = std::min(next, last_flush_ + config_.flush_period);
     }
@@ -1048,8 +1061,8 @@ protected:
                      .payload = detail::dp::encode_desktop(model_.desktop_info(has_snapshot)),
                      .correlation = cmd.correlation});
       size_t dropped = 0;
-      for (auto &msg : model_.snapshot(&dropped))
-        out.push_back({.type = msg.type, .payload = std::move(msg.payload)});
+      auto msgs = model_.snapshot(&dropped);
+      std::transform(msgs.begin(), msgs.end(), std::back_inserter(out), to_out_msg);
       if (dropped)
         logger_.warn("snapshot: {} oversized properties dropped", dropped);
     }
@@ -1058,7 +1071,7 @@ protected:
   }
 
   void handle(const Command &cmd, const detail::dp::LaunchApp &req) {
-    std::function<void(Desktop &, AppId)> launch{};
+    std::function<void(Desktop &, AppId)> launch_fn{};
     {
       std::lock_guard<std::recursive_mutex> lock(mutex_);
       const auto *app = model_.app(req.app);
@@ -1078,11 +1091,11 @@ protected:
       }
       const auto it = launchers_.find(req.app);
       if (it != launchers_.end())
-        launch = it->second;
+        launch_fn = it->second;
     }
     reply_ok(cmd, detail::dp::Type::LaunchApp);
-    if (launch)
-      launch(*this, req.app);
+    if (launch_fn)
+      launch_fn(*this, req.app);
     else
       logger_.warn("app {} has no launch function", req.app);
   }
@@ -1216,15 +1229,14 @@ protected:
       if (!model_.dirty.any())
         return;
       size_t dropped = 0;
-      for (auto &msg : model_.flush(&dropped))
-        out.push_back({.type = msg.type, .payload = std::move(msg.payload)});
+      auto msgs = model_.flush(&dropped);
+      std::transform(msgs.begin(), msgs.end(), std::back_inserter(out), to_out_msg);
       if (dropped)
         logger_.warn("flush: {} oversized properties dropped (max payload {})", dropped,
                      max_payload());
       last_flush_ = std::chrono::steady_clock::now();
-      for (const auto &s : sinks_)
-        if (s->active)
-          targets.push_back(s);
+      std::copy_if(sinks_.begin(), sinks_.end(), std::back_inserter(targets),
+                   [](const std::shared_ptr<Sink> &s) { return s->active; });
     }
     if (out.empty())
       return;

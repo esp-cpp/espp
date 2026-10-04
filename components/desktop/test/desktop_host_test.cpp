@@ -17,6 +17,7 @@
 #include <fstream>
 #include <functional>
 #include <map>
+#include <numeric>
 #include <optional>
 #include <span>
 #include <sstream>
@@ -172,8 +173,8 @@ struct Json {
 
 struct Vector {
   std::string name;
-  bool d2h;
-  dp::Type type;
+  bool d2h{false};
+  dp::Type type{dp::Type::Ok};
   std::vector<uint8_t> payload;
   std::string json;
   std::function<bool(std::span<const uint8_t>)> roundtrip; // decode == value
@@ -748,8 +749,9 @@ static void test_widget_set_splitting() {
     const auto d = decode_widget_set(f);
     CHECK(d);
     if (d)
-      for (const auto &e : d->entries)
-        props_seen += e.props.size();
+      props_seen =
+          std::accumulate(d->entries.begin(), d->entries.end(), props_seen,
+                          [](size_t n, const dp::WidgetSetEntry &e) { return n + e.props.size(); });
   }
   CHECK(props_seen == 300);
 }
@@ -1177,7 +1179,8 @@ static void test_model_flush() {
   const auto d = decode_desktop(out[0].payload);
   CHECK(d && d->apps.size() == 2 && d->apps[1].flags == kAppHidden && d->windows.size() == 1 &&
         d->windows[0].id == win);
-  CHECK(m.unregister_app(2) && !m.unregister_app(2));
+  CHECK(m.unregister_app(2));
+  CHECK(!m.unregister_app(2)); // already gone
   // dialogs + notify
   const uint16_t dlg =
       m.open_dialog({.owner = win, .kind = DialogKind::Input, .title = "T", .buttons = {"OK"}});

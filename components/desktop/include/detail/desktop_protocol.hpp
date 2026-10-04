@@ -60,6 +60,8 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
+#include <numeric>
 #include <optional>
 #include <span>
 #include <string>
@@ -497,11 +499,11 @@ struct Prop {
     put_u32(p.value, v);
     return p;
   }
-  static Prop items(uint16_t start, std::span<const std::string> items) {
+  static Prop items(uint16_t start, std::span<const std::string> list) {
     Prop p{.tag = static_cast<uint8_t>(PropTag::Items)};
     put_u16(p.value, start);
-    put_u16(p.value, static_cast<uint16_t>(items.size()));
-    for (const auto &s : items)
+    put_u16(p.value, static_cast<uint16_t>(list.size()));
+    for (const auto &s : list)
       put_str16(p.value, s);
     return p;
   }
@@ -665,10 +667,8 @@ struct WidgetRec {
   /// Encoded size of the base (without props) and of the whole record.
   static constexpr size_t kBaseSize = 8;
   size_t encoded_size() const {
-    size_t n = kBaseSize;
-    for (const auto &p : props)
-      n += p.encoded_size();
-    return n;
+    return std::accumulate(props.begin(), props.end(), kBaseSize,
+                           [](size_t n, const Prop &p) { return n + p.encoded_size(); });
   }
 };
 
@@ -1100,14 +1100,12 @@ public:
   }
 
   void add(const WidgetRec &w) {
-    size_t room = cap_ > frame_.size() ? cap_ - frame_.size() : 0;
     // every widget record needs its base; make sure at least the base fits
     // (and, if there are props, the smallest useful rec with it)
     const size_t need = WidgetRec::kBaseSize + (w.props.empty() ? 0 : 4);
-    if (room < need && count_ > 0) {
+    if (count_ > 0 && (cap_ > frame_.size() ? cap_ - frame_.size() : 0) < need) {
       end_frame();
       begin_frame(false);
-      room = cap_ - frame_.size();
     }
     // a frame can never be so small that a bare widget base does not fit
     // (max_payload >= 64 by contract); props that do not fit go to leftovers
@@ -1121,7 +1119,7 @@ public:
     uint8_t nprops = 0;
     bool full = false;
     for (const auto &p : w.props) {
-      room = cap_ > frame_.size() ? cap_ - frame_.size() : 0;
+      const size_t room = cap_ > frame_.size() ? cap_ - frame_.size() : 0;
       if (!full && nprops < 255 && p.encoded_size() <= room) {
         p.encode(frame_);
         ++nprops;
@@ -1199,6 +1197,25 @@ private:
   bool is_open_{false};
 };
 
+/// The props that did not fit their widget records, as WIDGET_SET messages
+/// appended after the add frames.
+inline void append_leftovers(std::vector<Message> &out, uint16_t window,
+                             const std::vector<std::pair<uint16_t, Prop>> &leftovers,
+                             size_t max_payload, size_t *dropped) {
+  if (leftovers.empty())
+    return;
+  WidgetSetWriter s(window, max_payload);
+  for (const auto &[id, p] : leftovers)
+    s.add(id, p);
+  auto payloads = s.finish();
+  std::transform(payloads.begin(), payloads.end(), std::back_inserter(out),
+                 [](std::vector<uint8_t> &p) {
+                   return Message{Type::WidgetSet, std::move(p)};
+                 });
+  if (dropped)
+    *dropped += s.dropped();
+}
+
 /// WINDOW_OPEN (+ WIDGET_ADD continuations + WIDGET_SET leftovers) for a whole
 /// window, split at `max_payload`. `open.widgets` is the full tree in
 /// parent-before-child order; `open.total` is set from it.
@@ -1211,15 +1228,7 @@ inline std::vector<Message> encode_window_open(const WindowOpen &open, size_t ma
   for (const auto &rec : open.widgets)
     w.add(rec);
   auto out = w.finish();
-  if (!w.leftovers.empty()) {
-    WidgetSetWriter s(open.id, max_payload);
-    for (const auto &[id, p] : w.leftovers)
-      s.add(id, p);
-    for (auto &payload : s.finish())
-      out.push_back({Type::WidgetSet, std::move(payload)});
-    if (dropped)
-      *dropped += s.dropped();
-  }
+  append_leftovers(out, open.id, w.leftovers, max_payload, dropped);
   return out;
 }
 
@@ -1232,15 +1241,7 @@ inline std::vector<Message> encode_widget_add(const WidgetAdd &add, size_t max_p
   for (const auto &rec : add.widgets)
     w.add(rec);
   auto out = w.finish();
-  if (!w.leftovers.empty()) {
-    WidgetSetWriter s(add.window, max_payload);
-    for (const auto &[id, p] : w.leftovers)
-      s.add(id, p);
-    for (auto &payload : s.finish())
-      out.push_back({Type::WidgetSet, std::move(payload)});
-    if (dropped)
-      *dropped += s.dropped();
-  }
+  append_leftovers(out, add.window, w.leftovers, max_payload, dropped);
   return out;
 }
 
