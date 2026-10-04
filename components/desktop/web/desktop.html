@@ -194,7 +194,11 @@
     .dicon .glyph { font-size: 30px; line-height: 1; height: 36px; display: flex; align-items: center; }
     .dicon .glyph svg { width: 32px; height: 32px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     .dicon .name { font-size: 12px; line-height: 1.2; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    #windows { position: absolute; inset: 0; }
+    /* the window layer covers the whole desktop (it comes after #icons in the
+       DOM, so it would otherwise swallow every click on the icons): only the
+       windows themselves take pointer events */
+    #windows { position: absolute; inset: 0; pointer-events: none; }
+    #windows > .window { pointer-events: auto; }
     /* z bands: plain windows 10.., the modal backdrop at 19999, modal windows at MODAL_Z_BAND (20000) + their order, the chrome (taskbar / menu / toasts) above */
     #modal { position: absolute; inset: 0; z-index: 19999; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; }
     #modal[hidden] { display: none; }
@@ -3582,6 +3586,13 @@
       const complete = Uint8Array.from(truncated); complete[1] = DESKTOP_WINDOW_LIST_COMPLETE;
       handleRxBytes(buildReplyFrame(moduleDesktop, DT.DESKTOP, complete));
       assert(!windows.has(1), "a complete empty window list drops the window");
+      { // with no window (and no dialog) open, a real pointer hit on a desktop icon must reach the
+        // icon: the full-size #windows layer must not swallow it (it did, until pointer-events: none)
+        assert(els.modal.hidden, "no modal backdrop while probing the icons");
+        const ib = els.icons.querySelector("button"); const r = ib.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        assert(hit && (hit === ib || ib.contains(hit)), "desktop icon receives pointer hits: " + (hit ? hit.id || hit.className || hit.tagName : "nothing"));
+      }
       feed("window_open");
       assert(windows.size === 1, "window reopened for the link-loss step");
       await txQueue; await tick(0); // the old session's writes drain (a real reconnect gets a NEW device handle; the fake is reused)
