@@ -57,10 +57,14 @@ public:
   explicit TextAssembler(size_t max_bytes)
       : max_bytes_(max_bytes) {}
 
+  /// @param truncated If not null: set when the text was longer than the
+  ///        bound and only its tail (the last max_bytes) is in `out`.
   Result feed(uint32_t sink, uint16_t window, uint16_t widget, const dp::WidgetEvent &chunk,
-              std::string &out) {
+              std::string &out, bool *truncated = nullptr) {
     const uint64_t key = key_of(sink, window, widget);
-    if (chunk.text_total > max_bytes_ || chunk.text_offset > chunk.text_total ||
+    if (truncated)
+      *truncated = false;
+    if (chunk.text_offset > chunk.text_total ||
         chunk.text.size() > chunk.text_total - chunk.text_offset) {
       bufs_.erase(key);
       return Result::Rejected;
@@ -69,23 +73,29 @@ public:
     if (chunk.text_offset == 0) {
       if (it != bufs_.end())
         bufs_.erase(it);
-      if (chunk.text.size() == chunk.text_total) {
-        out = chunk.text;
-        return Result::Complete;
-      }
-      bufs_[key] = Buf{.total = chunk.text_total, .data = chunk.text};
-      return Result::Partial;
-    }
-    if (it == bufs_.end() || it->second.total != chunk.text_total ||
-        it->second.data.size() != chunk.text_offset) {
+      it = bufs_.emplace(key, Buf{.total = chunk.text_total}).first;
+    } else if (it == bufs_.end() || it->second.total != chunk.text_total ||
+               it->second.received != chunk.text_offset) {
       if (it != bufs_.end())
         bufs_.erase(it);
       return Result::Rejected;
     }
-    it->second.data += chunk.text;
-    if (it->second.data.size() < it->second.total)
+    Buf &b = it->second;
+    b.received += chunk.text.size();
+    // bounded streaming: keep only the tail, so an oversized edit is bounded
+    // (and echoed back by the model) rather than silently discarded
+    if (chunk.text.size() >= max_bytes_) {
+      b.data.assign(chunk.text.end() - static_cast<std::ptrdiff_t>(max_bytes_), chunk.text.end());
+    } else {
+      b.data += chunk.text;
+      if (b.data.size() > max_bytes_)
+        b.data.erase(0, b.data.size() - max_bytes_);
+    }
+    if (b.received < b.total)
       return Result::Partial;
-    out = std::move(it->second.data);
+    if (truncated)
+      *truncated = b.total > max_bytes_;
+    out = std::move(b.data);
     bufs_.erase(it);
     return Result::Complete;
   }
@@ -113,6 +123,7 @@ private:
   }
   struct Buf {
     uint32_t total{0};
+    uint32_t received{0}; ///< bytes seen (data holds at most the last max_bytes_)
     std::string data{};
   };
   size_t max_bytes_;
@@ -532,7 +543,9 @@ public:
         Prop::text(static_cast<dp::PropTag>(T::Theme), theme),
         Prop::u32(static_cast<dp::PropTag>(T::Accent), accent),
         Prop::u16(static_cast<dp::PropTag>(T::MaxPayload), static_cast<uint16_t>(max_payload)),
-        Prop::u16(static_cast<dp::PropTag>(T::FlushPeriodMs), flush_period_ms)};
+        Prop::u16(static_cast<dp::PropTag>(T::FlushPeriodMs), flush_period_ms),
+        Prop::u32(static_cast<dp::PropTag>(T::MaxTextBytes),
+                  static_cast<uint32_t>(max_text_bytes))};
     d.apps = apps_;
     for (const auto &w : windows_)
       d.windows.push_back({.id = w.id, .app = w.app});
@@ -929,9 +942,10 @@ public:
 
   /// @note For WidgetEventKind::Text pass the reassembled text in `e.text`. A
   /// TextArea's bounds (max_lines / max_text_bytes) apply to a host edit too;
-  /// when they shorten it, the bounded Text is marked dirty so the next flush
+  /// when they shorten it -- or when the assembler already kept only the tail
+  /// (`text_truncated`) -- the bounded Text is marked dirty so the next flush
   /// sends it back and the browser's editable value resynchronises.
-  bool apply_widget_event(const dp::WidgetEvent &e) {
+  bool apply_widget_event(const dp::WidgetEvent &e, bool text_truncated = false) {
     WidgetState *s = widget(e.window, e.widget);
     if (!s)
       return false;
@@ -946,8 +960,20 @@ public:
       s->text = e.text;
       if (s->type == dp::WidgetType::TextArea) {
         const size_t unbounded = s->text.size();
+        if (text_truncated) // a kept tail may start inside a UTF-8 sequence
+          s->text.erase(0, std::min(s->text.find_first_not_of("\x80\x81\x82\x83\x84\x85\x86"
+                                                              "\x87\x88\x89\x8a\x8b\x8c\x8d"
+                                                              "\x8e\x8f\x90\x91\x92\x93\x94"
+                                                              "\x95\x96\x97\x98\x99\x9a\x9b"
+                                                              "\x9c\x9d\x9e\x9f\xa0\xa1\xa2"
+                                                              "\xa3\xa4\xa5\xa6\xa7\xa8\xa9"
+                                                              "\xaa\xab\xac\xad\xae\xaf\xb0"
+                                                              "\xb1\xb2\xb3\xb4\xb5\xb6\xb7"
+                                                              "\xb8\xb9\xba\xbb\xbc\xbd\xbe"
+                                                              "\xbf"),
+                                    s->text.size()));
         bound_text(*s);
-        if (s->text.size() != unbounded)
+        if (text_truncated || s->text.size() != unbounded)
           dirty.set(e.window, e.widget, dp::Prop::text(dp::PropTag::Text, s->text));
       }
       break;

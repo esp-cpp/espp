@@ -203,6 +203,7 @@ static std::vector<Vector> catalogue() {
                  Prop::u32(static_cast<PropTag>(DesktopTag::Accent), 0x3b82f6),
                  Prop::u16(static_cast<PropTag>(DesktopTag::MaxPayload), 4081),
                  Prop::u16(static_cast<PropTag>(DesktopTag::FlushPeriodMs), 50),
+                 Prop::u32(static_cast<PropTag>(DesktopTag::MaxTextBytes), 16384),
                  Prop{.tag = 200, .value = {0xAA, 0xBB}}};
     d.apps = {{.id = 1,
                .flags = kAppSingleInstance,
@@ -948,7 +949,8 @@ static void test_dialog_notify_limits() {
       Prop::text(static_cast<PropTag>(DesktopTag::Theme), "light"),
       Prop::u32(static_cast<PropTag>(DesktopTag::Accent), 0),
       Prop::u16(static_cast<PropTag>(DesktopTag::MaxPayload), 4081),
-      Prop::u16(static_cast<PropTag>(DesktopTag::FlushPeriodMs), 50)};
+      Prop::u16(static_cast<PropTag>(DesktopTag::FlushPeriodMs), 50),
+      Prop::u32(static_cast<PropTag>(DesktopTag::MaxTextBytes), 16384)};
   for (size_t i = 1; i <= kMaxApps; ++i)
     maxed.apps.push_back({.id = static_cast<uint8_t>(i),
                           .name = std::string(kMaxAppNameBytes, 'n'),
@@ -1182,9 +1184,24 @@ static void test_text_assembler() {
   CHECK(ta.feed(0, 1, 4, {.text = "cd", .text_offset = 2, .text_total = 4}, out) ==
             dm::TextAssembler::Result::Complete &&
         out == "abcd");
-  // over the byte bound: rejected
-  CHECK(ta.feed(0, 1, 4, {.text = "0123456789", .text_offset = 0, .text_total = 40}, out) ==
-        dm::TextAssembler::Result::Rejected);
+  // over the byte bound (32): the tail is kept, not rejected, and flagged
+  bool truncated = false;
+  CHECK(ta.feed(0, 1, 4, {.text = "0123456789", .text_offset = 0, .text_total = 40}, out,
+                &truncated) == dm::TextAssembler::Result::Partial);
+  CHECK(ta.feed(0, 1, 4,
+                {.text = "abcdefghijklmnopqrstuvwxyzABCD", .text_offset = 10, .text_total = 40},
+                out, &truncated) == dm::TextAssembler::Result::Complete);
+  CHECK(truncated && out.size() == 32 && out == "89abcdefghijklmnopqrstuvwxyzABCD");
+  // a single chunk larger than the bound keeps its last max bytes
+  CHECK(
+      ta.feed(
+          0, 1, 4,
+          {.text = std::string(64, 'x') + std::string(8, 'y'), .text_offset = 0, .text_total = 72},
+          out, &truncated) == dm::TextAssembler::Result::Complete);
+  CHECK(truncated && out == std::string(24, 'x') + std::string(8, 'y'));
+  CHECK(ta.feed(0, 1, 4, {.text = "small", .text_offset = 0, .text_total = 5}, out, &truncated) ==
+            dm::TextAssembler::Result::Complete &&
+        !truncated && out == "small");
   // chunks for different widgets do not mix; a closed window drops its buffers
   CHECK(ta.feed(0, 1, 4, {.text = "ab", .text_offset = 0, .text_total = 4}, out) ==
         dm::TextAssembler::Result::Partial);
@@ -1421,8 +1438,21 @@ static void test_model_flush() {
     CHECK(es && es->entries.size() == 1 && es->entries[0].widget == ed &&
           es->entries[0].props.size() == 1 && es->entries[0].props[0].is(PropTag::Text) &&
           es->entries[0].props[0].as_text() == "l3\nl4\nl5");
-    // the byte bound too
+    // an edit the assembler already cut to its tail is echoed back even when
+    // the tail is exactly the bound (nothing left to trim); a leading
+    // continuation byte of a cut UTF-8 sequence is dropped
     m.max_text_bytes = 8;
+    m.apply_widget_event({.window = win,
+                          .widget = ed,
+                          .kind = WidgetEventKind::Text,
+                          .text = "\xa9"
+                                  "bcdefgh"},
+                         true);
+    CHECK(m.widget(win, ed)->text == "bcdefgh");
+    echo = m.flush();
+    es = echo.size() == 1 ? decode_widget_set(echo[0].payload) : std::nullopt;
+    CHECK(es && es->entries[0].props[0].as_text() == "bcdefgh");
+    // the byte bound too
     m.apply_widget_event(
         {.window = win, .widget = ed, .kind = WidgetEventKind::Text, .text = "abcdefghijkl"});
     CHECK(m.widget(win, ed)->text.size() <= 8);
@@ -1553,6 +1583,19 @@ static void test_console_ring() {
   uint64_t pc = 0;
   plain.read_since(&pc, out, 100, &dropped);
   CHECK(out == "I okB\x1bZ" && dropped == 0);
+  // clear() forgets a pending ESC / CSI prefix: the bytes after it are kept
+  putp("\x1b");
+  plain.clear();
+  putp("[31mX");
+  out.clear();
+  plain.read_since(&pc, out, 100, &dropped);
+  CHECK(out == "[31mX");
+  putp("\x1b[");
+  plain.clear();
+  putp("0mY");
+  out.clear();
+  plain.read_since(&pc, out, 100, &dropped);
+  CHECK(out == "0mY");
 }
 
 int main(int argc, char **argv) {

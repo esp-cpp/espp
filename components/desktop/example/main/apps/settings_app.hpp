@@ -90,10 +90,16 @@ inline void register_settings_app(espp::Desktop &desktop, std::string_view defau
               // applies at once and is remembered (restored by apply_saved_settings)
               win.checkbox(
                   "Tee captured logs to the UART console", espp::ConsoleCapture::tee_to_console(),
-                  [nvs](bool on) {
+                  [nvs, &d](bool on) {
                     std::error_code ec2;
                     espp::ConsoleCapture::set_tee_to_console(on);
-                    nvs->set("log_tee", on, ec2);
+                    nvs->set("log_tee", on, ec2); // set() only stages ...
+                    if (!ec2)
+                      nvs->commit(ec2); // ... commit() writes it
+                    if (ec2)
+                      d.notify({.title = "Settings",
+                                .text = "could not save the log tee setting",
+                                .level = D::NotifyLevel::Error});
                   },
                   logs.id());
             } else {
@@ -108,10 +114,14 @@ inline void register_settings_app(espp::Desktop &desktop, std::string_view defau
                   std::error_code ec2;
                   const std::string name = name_box.text();
                   nvs->set("nickname", name, ec2);
-                  nvs->set("theme", theme_at(theme_sel.selected()), ec2);
+                  if (!ec2)
+                    nvs->set("theme", theme_at(theme_sel.selected()), ec2);
                   const int32_t rgb = static_cast<int32_t>(
                       std::strtoul(accent_box.text().c_str(), nullptr, 16) & 0xFFFFFF);
-                  nvs->set("accent", rgb, ec2);
+                  if (!ec2)
+                    nvs->set("accent", rgb, ec2);
+                  if (!ec2)
+                    nvs->commit(ec2); // set() only stages; commit() writes
                   d.set_device_name(name.empty() ? default_name : name);
                   d.set_accent(static_cast<uint32_t>(rgb));
                   d.notify({.title = "Settings",

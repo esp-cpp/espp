@@ -1376,9 +1376,10 @@ protected:
       auto *w = model_.widget(e.window, e.widget);
       if (!w)
         return;
+      bool text_cut = false;
       if (e.kind == WidgetEventKind::Text) {
         std::string full{};
-        switch (text_.feed(cmd.sink, e.window, e.widget, e, full)) {
+        switch (text_.feed(cmd.sink, e.window, e.widget, e, full, &text_cut)) {
         case detail::desktop_model::TextAssembler::Result::Partial:
           return;
         case detail::desktop_model::TextAssembler::Result::Rejected:
@@ -1391,7 +1392,7 @@ protected:
           break;
         }
       }
-      model_.apply_widget_event(ev);
+      model_.apply_widget_event(ev, text_cut);
       fn = w->on_event;
     }
     if (fn)

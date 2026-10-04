@@ -90,7 +90,12 @@ public:
   }
 
   /// Hide everything written so far from readers (they resume at total()).
-  void clear() { cleared_at_ = total_; }
+  /// A visible boundary: a pending ESC / CSI prefix is forgotten too, so the
+  /// first bytes after the clear are never swallowed by it.
+  void clear() {
+    cleared_at_ = total_;
+    ansi_state_ = 0;
+  }
 
 private:
   /// The oldest byte a reader may still get.

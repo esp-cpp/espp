@@ -27,8 +27,11 @@ inline void register_counter_app(espp::Desktop &desktop) {
             auto row = win.row(); // a horizontal container for the buttons
             auto bump = [=](int32_t delta) mutable {
               *count += delta;
-              nvs->set("count", *count, ec); // any task may mutate; this one is the desktop task
-              label.set_text("Count: {}", *count);
+              // set() only stages: commit() writes it to flash
+              nvs->set("count", *count, ec);
+              if (!ec)
+                nvs->commit(ec);
+              label.set_text("Count: {}{}", *count, ec ? " (not saved)" : "");
             };
             win.button(
                 "-1", [=]() mutable { bump(-1); }, row.id());

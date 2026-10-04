@@ -97,8 +97,8 @@ inline constexpr uint8_t kDesktopProto = 1;
 /// Registry limits that keep DESKTOP a single frame (enforced by
 /// Desktop::register_app / Desktop::Config, documented in the README): 24
 /// apps of maximal size (2 + 3 + 32 + 16 + 64 = 117 bytes each = 2808), the
-/// records (<= 64 + 64 + 8 + 4 + 2 + 2 + 6 * 3 = 162) and the counts leave a
-/// 4081-byte payload room for ~360 open windows (3 bytes each).
+/// records (<= 64 + 64 + 5 + 4 + 2 + 2 + 4 + 7 * 3 = 166) and the counts leave
+/// a 4081-byte payload room for ~360 open windows (3 bytes each).
 inline constexpr size_t kMaxApps = 24;
 inline constexpr size_t kMaxAppNameBytes = 32;
 inline constexpr size_t kMaxAppIconBytes = 16;
@@ -115,10 +115,10 @@ inline constexpr size_t kMaxStr16Bytes = 65535;
 /// bounded like a str8 so they always fit a frame next to their siblings.
 inline constexpr size_t kMaxShortTextBytes = 255;
 /// The DESKTOP record set at its largest (every record at its limit, no apps,
-/// no windows): 3-byte head + 6 recs with 3-byte headers + the two counts.
+/// no windows): 3-byte head + 7 recs with 3-byte headers + the two counts.
 inline constexpr size_t kDesktopRecordsMaxBytes = 3 + (3 + kMaxDeviceNameBytes) +
                                                   (3 + kMaxFirmwareBytes) + (3 + kMaxThemeBytes) +
-                                                  (3 + 4) + (3 + 2) + (3 + 2) + 1 + 1;
+                                                  (3 + 4) + (3 + 2) + (3 + 2) + (3 + 4) + 1 + 1;
 /// The largest payloads the API lets through that cannot be split, each of
 /// which must fit the smallest cap on its own:
 ///  - a WINDOW_OPEN head with a kMaxStr8Bytes title and no widgets
@@ -193,6 +193,8 @@ enum class DesktopTag : uint8_t {
   Accent = 4,        ///< u32 RGB (0xRRGGBB)
   MaxPayload = 5,    ///< u16: largest payload the device sends / accepts
   FlushPeriodMs = 6, ///< u16: how often the device coalesces + flushes changes
+  MaxTextBytes = 7,  ///< u32: the most text a TextArea holds / a host may send for one
+                     ///< widget (a longer host edit keeps its tail and is echoed back)
 };
 
 /// App record flags.
