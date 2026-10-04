@@ -152,6 +152,17 @@ inline void register_i2c_scanner_app(espp::Desktop &desktop) {
                 return;
               st->scan.reset();
               scan_btn.set_enabled(false);
+              // the old rows and their address mapping go BEFORE the worker
+              // starts (it publishes the new mapping before the new rows) and
+              // the table stays disabled for the whole scan, so a selection
+              // can never map an old row to a new address
+              {
+                std::lock_guard<std::mutex> lock(st->mutex);
+                st->found.clear();
+              }
+              table.set_items({});
+              table.set_selected(D::kNoSelection);
+              table.set_enabled(false);
               status.set_text("Scanning\xE2\x80\xA6");
               // the bus outlives the task: on_close joins the scan first
               auto *bus = st->bus.get();
@@ -173,6 +184,7 @@ inline void register_i2c_scanner_app(espp::Desktop &desktop) {
                           session->found = found;
                         }
                         table.set_items(rows);
+                        table.set_enabled(true);
                         status.set_text("{} device{} found", rows.size(),
                                         rows.size() == 1 ? "" : "s");
                         scan_btn.set_enabled(true);
@@ -183,6 +195,7 @@ inline void register_i2c_scanner_app(espp::Desktop &desktop) {
                 // no task will ever re-enable the button: restore the window
                 st->scan.reset();
                 scan_btn.set_enabled(true);
+                table.set_enabled(true);
                 status.set_text("Could not start the scan task.");
                 d.notify({.title = "I2C",
                           .text = "could not start the scan task (out of memory?)",

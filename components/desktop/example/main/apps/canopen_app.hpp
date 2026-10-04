@@ -153,10 +153,22 @@ struct CanopenSession {
     bus = std::make_unique<CanBus>(cfg);
     if (!bus->initialize(ec)) {
       bus.reset();
+      clear_status("no bus"); // nothing polls now: do not leave the old node's values up
       return false;
     }
     nmt_label.set_text("NMT state: (nothing heard from node {} yet)", id);
     return true;
+  }
+
+  /// Reset every status widget (the previous node's values must not stay
+  /// shown once nothing is talking to it).
+  void clear_status(std::string_view why) {
+    nmt_label.set_text("NMT state: - ({})", why);
+    state_label.set_text("State: - ({})", why);
+    status_label.set_text("Statusword: -");
+    mode_label.set_text("Mode (0x6061): -");
+    pos_label.set_text("Position: -");
+    vel_label.set_text("Velocity: -");
   }
 
   /// Queue a bus transaction for the drive task; refused (with a toast) when

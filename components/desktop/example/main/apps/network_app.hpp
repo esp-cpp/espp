@@ -58,6 +58,12 @@ struct NetworkState {
   /// scan suppresses the station while it wants to be connected and restores
   /// it afterwards, whatever the transient association state.
   std::atomic<bool> want_connected{false};
+  /// An association is in progress (connect() was issued and neither an IP
+  /// nor "retries exhausted" arrived yet): the only state, besides being
+  /// connected, in which WifiSta::disconnect() is safe to call -- on an idle
+  /// station it sets its private `disconnecting_` and no DISCONNECTED event
+  /// ever clears it, so the next Connect would lose its retries.
+  std::atomic<bool> associating{false};
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI
   std::unique_ptr<espp::WifiSta> wifi;
   std::unique_ptr<espp::Task> scan_task; // after wifi: joined before it goes away
@@ -104,12 +110,14 @@ struct NetworkState {
             .on_connected = [this]() { set_status("connected, waiting for an IP"); },
             .on_disconnected =
                 [this]() { // retries exhausted, or reconfigure()'s own disconnect
+                  associating = false;
                   set_status(want_connected ? "disconnected (retries exhausted; Connect or a "
                                               "scan retries)"
                                             : "disconnected");
                 },
             .on_got_ip =
                 [this](ip_event_got_ip_t *e) {
+                  associating = false;
                   set_status("connected", fmt::format("{}.{}.{}.{}", IP2STR(&e->ip_info.ip)));
                 },
             .log_level = espp::Logger::Verbosity::INFO};
@@ -157,8 +165,15 @@ struct NetworkState {
   /// the flag goes stale and the next Connect loses its retries on the
   /// first failure.
   void stop_station() {
-    const bool was_wanted = want_connected.exchange(false);
-    if (wifi->is_connected() || was_wanted)
+    want_connected = false;
+    disconnect_if_active();
+  }
+
+  /// WifiSta::disconnect() only when it will produce a DISCONNECTED event
+  /// (connected, or an association in progress); see `associating`.
+  void disconnect_if_active() {
+    const bool was_associating = associating.exchange(false);
+    if (wifi->is_connected() || was_associating)
       wifi->disconnect();
   }
 
@@ -209,6 +224,7 @@ struct NetworkState {
     auto cfg = wifi_config(ssid, pass);
     cfg.auto_connect = !ssid.empty();
     want_connected = cfg.auto_connect;
+    associating = cfg.auto_connect; // WifiSta connects from its STA_START event
     set_status(ssid.empty() ? "idle (no saved network)" : "connecting");
     wifi = std::make_unique<espp::WifiSta>(cfg);
     wifi_mac = wifi->get_mac();
@@ -416,15 +432,16 @@ inline void register_network_app(espp::Desktop &desktop) {
                         // retries), give the event time to land, then scan and
                         // restore it (connect again) afterwards.
                         const bool intent = state->want_connected || state->wifi->is_connected();
-                        if (intent) {
-                          state->wifi->disconnect();
+                        if (state->wifi->is_connected() || state->associating) {
+                          state->disconnect_if_active();
                           std::this_thread::sleep_for(std::chrono::milliseconds(200));
                         }
                         state->set_status("scanning");
                         const auto aps = state->wifi->scan(20);
                         if (intent) {
                           state->set_status("reconnecting");
-                          state->wifi->connect();
+                          if (state->wifi->connect())
+                            state->associating = true;
                         } else {
                           state->set_status("disconnected");
                         }
@@ -495,10 +512,15 @@ inline void register_network_app(espp::Desktop &desktop) {
               net->set_status(fmt::format("connecting to {}", ssid));
               const bool was_connected = net->wifi->is_connected();
               net->want_connected = true;
-              // reconfigure() reconnects when it was connected; else connect()
+              // reconfigure() reconnects when it was connected; else connect().
+              // `associating` is set only once the association was issued:
+              // reconfigure()'s own disconnect fires on_disconnected first,
+              // which would clear it again.
               bool ok = net->wifi->reconfigure(net->wifi_config(ssid, pass));
               if (ok && !was_connected)
                 ok = net->wifi->connect();
+              if (ok)
+                net->associating = true;
               if (!ok) {
                 net->set_status("connect failed (Connect or a scan retries)");
                 d.notify({.title = "Wi-Fi",
