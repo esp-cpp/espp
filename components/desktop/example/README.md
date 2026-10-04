@@ -92,12 +92,22 @@ edit `rmii_config()` in `main/apps/network_app.hpp`).
 | `DESKTOP_EXAMPLE_ENABLE_ETHERNET` | n | The Network app's RMII Ethernet group (`SOC_EMAC_SUPPORTED`: ESP32 / -P4) |
 | `DESKTOP_EXAMPLE_ETHERNET_BOARD` | per target | RMII wiring: `ETHERNET_KIT` (ESP32-Ethernet-Kit) or `P4_FUNCTION_EV` (ESP32-P4-Function-EV-Board, with its routable data pins) |
 
-The hardware components (`canopen`, `twai`, `i2c`, `wifi`, `ethernet`, `cli`)
-are always part of the build (`REQUIRES` cannot depend on Kconfig); the
-options only decide which apps are registered. The simulated CAN bus /
-DS402 node headers are included from the CAN bridge example
-(`components/canopen/can_bridge_example/main`); promoting them into the
-`canopen` component is a follow-up.
+The hardware components (`i2c`, `wifi`, `ethernet`, `cli`) are always part
+of the build (`REQUIRES` cannot depend on Kconfig); the options only decide
+which apps are registered.
+
+**Minimum IDF.** The example itself builds on IDF 5.5 (the `desktop`,
+`usb_device`, `ethernet` (>= 5.4), `wifi`, `i2c` and `canopen` components
+all support it). The CANopen app is the exception: it is built on the `twai`
+component (the simulated bus is a `Twai` drop-in), which needs the IDF >= 6.0
+`esp_driver_twai` node API. The CMakeLists therefore adds `canopen` + `twai`
+and compiles the app only on IDF >= 6.0, controlled by the CMake option
+`DESKTOP_EXAMPLE_CANOPEN` (default ON on IDF >= 6, OFF below; override with
+`idf.py -DDESKTOP_EXAMPLE_CANOPEN=OFF build`). On an older IDF
+`CONFIG_DESKTOP_EXAMPLE_ENABLE_CANOPEN` has no effect and `app_main` logs a
+warning. The simulated CAN bus / DS402 node headers are included from the CAN
+bridge example (`components/canopen/can_bridge_example/main`); promoting them
+into the `canopen` component is a follow-up.
 
 ### Build and Flash
 

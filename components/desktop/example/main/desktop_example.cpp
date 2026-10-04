@@ -29,9 +29,14 @@
 #include "settings_app.hpp"
 #include "system_monitor_app.hpp"
 #include "task_manager_app.hpp"
-// hardware apps, each behind its Kconfig option (Desktop Example Configuration)
-#if CONFIG_DESKTOP_EXAMPLE_ENABLE_CANOPEN
+// hardware apps, each behind its Kconfig option (Desktop Example Configuration).
+// The CANopen app additionally needs the canopen / twai components, which the
+// CMakeLists only add on IDF >= 6.0 (DESKTOP_EXAMPLE_CANOPEN_AVAILABLE).
+#if CONFIG_DESKTOP_EXAMPLE_ENABLE_CANOPEN && defined(DESKTOP_EXAMPLE_CANOPEN_AVAILABLE)
+#define DESKTOP_EXAMPLE_CANOPEN_APP 1
 #include "canopen_app.hpp"
+#else
+#define DESKTOP_EXAMPLE_CANOPEN_APP 0
 #endif
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_I2C
 #include "i2c_scanner_app.hpp"
@@ -116,8 +121,11 @@ extern "C" void app_main(void) {
   register_task_manager_app(desktop);
   register_log_viewer_app(desktop);
   register_files_app(desktop);
-#if CONFIG_DESKTOP_EXAMPLE_ENABLE_CANOPEN
+#if DESKTOP_EXAMPLE_CANOPEN_APP
   register_canopen_app(desktop);
+#elif CONFIG_DESKTOP_EXAMPLE_ENABLE_CANOPEN
+  logger.warn("CONFIG_DESKTOP_EXAMPLE_ENABLE_CANOPEN is set but the CANopen app was not built: "
+              "it needs IDF >= 6.0 (twai) and the CMake option DESKTOP_EXAMPLE_CANOPEN=ON");
 #endif
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_I2C
   register_i2c_scanner_app(desktop);

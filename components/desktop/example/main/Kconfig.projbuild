@@ -26,6 +26,12 @@ menu "Desktop Example Configuration"
             (espp::CanopenClient) and a CiA 402 drive panel (espp::Ds402Drive)
             on the bus selected below.
 
+            The app is built on espp's twai component (the simulated bus is a
+            Twai drop-in), which needs IDF >= 6.0; the example's CMakeLists
+            therefore only compiles it on IDF >= 6 (or with
+            -DDESKTOP_EXAMPLE_CANOPEN=ON/OFF on the idf.py command line). On an
+            older IDF this option has no effect and app_main logs a warning.
+
     choice DESKTOP_EXAMPLE_CANOPEN_BUS
         prompt "CAN bus for the CANopen app"
         depends on DESKTOP_EXAMPLE_ENABLE_CANOPEN

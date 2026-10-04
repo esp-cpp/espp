@@ -334,6 +334,12 @@ inline void register_network_app(espp::Desktop &desktop) {
             auto win = d.create_window({.title = "Network", .app = app, .w = 520, .h = 0});
             std::vector<std::function<void()>> refreshers;
 
+    // Ethernet FIRST: espp::Ethernet::initialize() treats
+    // esp_netif_init()'s ESP_ERR_INVALID_STATE (already initialized by
+    // the Wi-Fi stack) as fatal, while Wifi::init() tolerates it.
+#if CONFIG_DESKTOP_EXAMPLE_ENABLE_ETHERNET
+            net->ensure_ethernet();
+#endif
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI
             net->ensure_wifi();
             auto wifi = win.group("Wi-Fi station");
@@ -551,7 +557,7 @@ inline void register_network_app(espp::Desktop &desktop) {
 #endif
 
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_ETHERNET
-            net->ensure_ethernet();
+            // (the link was brought up above, before the Wi-Fi stack)
             auto eth = win.group("Ethernet (RMII)");
             auto link = win.label("Link: -", eth.id(), D::kLabelBold);
             auto eth_ip = win.label("IP: -", eth.id(), D::kLabelMonospace);
