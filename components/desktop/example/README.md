@@ -24,7 +24,9 @@ Apps (`main/apps/*.hpp`, one `register_<name>_app()` each):
   delete through dialogs; open a file in the **Editor** (a text area saved
   with `std::ofstream`).
 - **Settings** — nickname, theme and accent (applied to the browser at once)
-  and the log-capture tee, kept in NVS.
+  and the log-capture tee (whether captured logs still go to the UART
+  console; the capture itself is the compile-time
+  `CONFIG_DESKTOP_EXAMPLE_LOG_CAPTURE`), all kept in NVS and restored at boot.
 
 ## How to use example
 

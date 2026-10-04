@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 
+#include "detail/console_ring.hpp"
 #include "detail/desktop_model.hpp"
 #include "detail/desktop_protocol.hpp"
 
@@ -1424,6 +1425,71 @@ static void test_model_flush() {
         out[1].type == Type::DialogClose);
 }
 
+static void test_console_ring() {
+  std::printf("test_console_ring\n");
+  espp::detail::ConsoleRing ring(8);
+  auto put = [&](std::string_view t, bool strip = false) {
+    ring.write(reinterpret_cast<const uint8_t *>(t.data()), t.size(), strip);
+  };
+  std::string out;
+  size_t dropped = 99;
+  uint64_t cur = 0;
+  CHECK(ring.capacity() == 8 && ring.total() == 0 && ring.available() == 0);
+  CHECK(ring.read_since(&cur, out, 100, &dropped) == 0 && dropped == 0 && cur == 0);
+  put("abc");
+  CHECK(ring.read_since(&cur, out, 100, &dropped) == 3 && out == "abc" && dropped == 0 && cur == 3);
+  // capacity eviction IS a loss for a reader that fell behind
+  put("0123456789"); // total 13, keeps the last 8: "23456789"
+  out.clear();
+  CHECK(ring.read_since(&cur, out, 100, &dropped) == 8 && out == "23456789" && dropped == 2 &&
+        cur == 13);
+  // a bounded read advances the cursor by what it returned
+  put("xy");
+  out.clear();
+  CHECK(ring.read_since(&cur, out, 1, &dropped) == 1 && out == "x" && dropped == 0 && cur == 14);
+  out.clear();
+  CHECK(ring.read_since(&cur, out, 100, &dropped) == 1 && out == "y" && cur == 15);
+  // clear() hides older bytes from every reader WITHOUT counting them as lost
+  // (a cursor at 10 is behind the clear but nothing it missed was evicted:
+  // total 15, capacity 8 -> evicted 7)
+  uint64_t behind = 10;
+  ring.clear();
+  CHECK(ring.available() == 0 && ring.total() == 15);
+  out.clear();
+  CHECK(ring.read_since(&behind, out, 100, &dropped) == 0 && dropped == 0 && behind == 15);
+  put("new");
+  out.clear();
+  CHECK(ring.read_since(&behind, out, 100, &dropped) == 3 && out == "new" && dropped == 0);
+  out.clear();
+  CHECK(ring.read_since(&cur, out, 100, &dropped) == 3 && out == "new" && dropped == 0 &&
+        cur == 18);
+  // ... but what the ring evicted by capacity before the clear still counts
+  // for a reader that was behind it: evicted = total - capacity
+  uint64_t stale = 0;
+  put("ABCDEFGHIJ"); // total 28, evicted 20, cleared_at 15 -> oldest is the eviction edge
+  out.clear();
+  stale = 12;
+  CHECK(ring.read_since(&stale, out, 100, &dropped) == 8 && out == "CDEFGHIJ" && dropped == 8 &&
+        stale == 28);
+  // a cursor of 0 starts at the oldest readable byte, nothing reported dropped
+  uint64_t fresh = 0;
+  out.clear();
+  CHECK(ring.read_since(&fresh, out, 100, &dropped) == 8 && dropped == 0 && fresh == 28);
+  // ANSI stripping: CSI sequences go, a lone ESC stays
+  espp::detail::ConsoleRing plain(64);
+  auto putp = [&](std::string_view t) {
+    plain.write(reinterpret_cast<const uint8_t *>(t.data()), t.size(), true);
+  };
+  putp("\x1b[32mI\x1b[0m ok");
+  putp("\x1b"); // split across writes: ESC then '[' in the next chunk
+  putp("[1mB\x1b[0m");
+  putp("\x1bZ"); // not a CSI: the ESC is kept
+  out.clear();
+  uint64_t pc = 0;
+  plain.read_since(&pc, out, 100, &dropped);
+  CHECK(out == "I okB\x1bZ" && dropped == 0);
+}
+
 int main(int argc, char **argv) {
   std::string path = "desktop_vectors.txt";
   bool gen = false;
@@ -1447,6 +1513,7 @@ int main(int argc, char **argv) {
   test_text_assembler();
   test_dirty_tracker();
   test_model_flush();
+  test_console_ring();
   if (g_failures) {
     std::printf("%d FAILURE(S)\n", g_failures);
     return 1;

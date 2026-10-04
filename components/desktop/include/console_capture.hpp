@@ -33,6 +33,8 @@
 #include "esp_vfs.h"
 #include "sdkconfig.h"
 
+#include "detail/console_ring.hpp"
+
 namespace espp {
 
 /**
@@ -85,9 +87,7 @@ public:
       reconcile_tee(s, config.tee_to_console);
       return true;
     }
-    s.ring.assign(config.capacity_bytes ? config.capacity_bytes : 1, 0);
-    s.total = 0;
-    s.cleared_at = 0;
+    s.ring = detail::ConsoleRing(config.capacity_bytes);
     s.tee.store(config.tee_to_console);
     s.strip_ansi.store(config.strip_ansi);
     std::fflush(stdout);
@@ -149,66 +149,47 @@ public:
   static size_t capacity() {
     State &s = state();
     std::lock_guard<std::mutex> lock(s.mutex);
-    return s.ring.size();
+    return s.ring.capacity();
   }
 
   /// @brief Bytes captured since boot (monotonic; a cursor value).
   static uint64_t total_bytes() {
     State &s = state();
     std::lock_guard<std::mutex> lock(s.mutex);
-    return s.total;
+    return s.ring.total();
   }
 
   /// @brief Bytes currently kept in the ring (readable).
   static size_t available() {
     State &s = state();
     std::lock_guard<std::mutex> lock(s.mutex);
-    return kept(s);
+    return s.ring.available();
   }
 
   /**
    * @brief Copy the bytes captured after `*cursor` (at most max_bytes) and
    *        advance the cursor.
-   * @param cursor In: where the reader is (0 = from the oldest kept byte,
-   *        nothing reported dropped); out: the position after the bytes returned.
+   * @param cursor In: where the reader is (0 = from the oldest readable byte);
+   *        out: the position after the bytes returned.
    * @param out Appended with the bytes.
    * @param max_bytes Upper bound on the bytes appended in this call.
-   * @param dropped If not null, set to the number of bytes the ring overwrote
-   *        before the reader got to them (0 when none); the cursor skips them.
+   * @param dropped If not null, set to the number of bytes the ring EVICTED
+   *        (capacity overwrite) before the reader got to them (0 when none);
+   *        bytes hidden by clear() are skipped without being counted.
    * @return The number of bytes appended.
    */
   static size_t read_since(uint64_t *cursor, std::string &out, size_t max_bytes,
                            size_t *dropped = nullptr) {
     State &s = state();
     std::lock_guard<std::mutex> lock(s.mutex);
-    const uint64_t oldest = s.total - kept(s);
-    uint64_t pos = (cursor && *cursor) ? *cursor : oldest; // 0 = start at the oldest kept byte
-    size_t lost = 0;
-    if (pos < oldest) {
-      lost = static_cast<size_t>(oldest - pos);
-      pos = oldest;
-    }
-    if (pos > s.total)
-      pos = s.total;
-    if (dropped)
-      *dropped = lost;
-    size_t n = static_cast<size_t>(s.total - pos);
-    if (n > max_bytes)
-      n = max_bytes;
-    const size_t cap = s.ring.size();
-    out.reserve(out.size() + n);
-    for (size_t i = 0; i < n; ++i)
-      out.push_back(static_cast<char>(s.ring[static_cast<size_t>((pos + i) % cap)]));
-    if (cursor)
-      *cursor = pos + n;
-    return n;
+    return s.ring.read_since(cursor, out, max_bytes, dropped);
   }
 
   /// @brief Forget everything captured so far (readers resume at total_bytes()).
   static void clear() {
     State &s = state();
     std::lock_guard<std::mutex> lock(s.mutex);
-    s.cleared_at = s.total;
+    s.ring.clear();
   }
 
   /// @brief Switch the tee to the original console on / off.
@@ -223,27 +204,18 @@ public:
 
 private:
   struct State {
-    std::mutex mutex;
-    std::vector<uint8_t> ring;
-    uint64_t total{0};      ///< bytes ever captured
-    uint64_t cleared_at{0}; ///< total at the last clear()
+    std::mutex mutex; ///< guards the ring
+    detail::ConsoleRing ring{1};
     bool installed{false};
     std::atomic<bool> tee{true};
     std::atomic<bool> strip_ansi{false};
     std::mutex tee_mutex; ///< holds tee_fd open across a write (reconcile closes under it)
     int tee_fd{-1};
-    uint8_t ansi_state{0}; ///< 0 text, 1 after ESC, 2 inside CSI
   };
 
   static State &state() {
     static State s;
     return s;
-  }
-
-  static size_t kept(const State &s) {
-    const uint64_t since_clear = s.total - s.cleared_at;
-    const size_t cap = s.ring.size();
-    return since_clear < cap ? static_cast<size_t>(since_clear) : cap;
   }
 
   /// The device the console was on before install(): /dev/console (primary +
@@ -298,38 +270,8 @@ private:
       if (s.tee_fd >= 0)
         ::write(s.tee_fd, data, size);
     }
-    const auto *bytes = static_cast<const uint8_t *>(data);
     std::lock_guard<std::mutex> lock(s.mutex);
-    if (s.ring.empty())
-      return static_cast<ssize_t>(size);
-    const bool strip = s.strip_ansi.load();
-    const size_t cap = s.ring.size();
-    for (size_t i = 0; i < size; ++i) {
-      const uint8_t c = bytes[i];
-      if (strip) {
-        // drop ESC [ ... <final 0x40..0x7E> (colors, cursor moves); keep the
-        // rest, including a lone ESC that turns out not to start a CSI
-        if (s.ansi_state == 1) {
-          if (c == '[') {
-            s.ansi_state = 2;
-            continue;
-          }
-          s.ansi_state = 0;
-          s.ring[static_cast<size_t>(s.total % cap)] = 0x1B; // the pending ESC was not a CSI
-          ++s.total;
-        } else if (s.ansi_state == 2) {
-          if (c >= 0x40 && c <= 0x7E)
-            s.ansi_state = 0;
-          continue;
-        }
-        if (c == 0x1B) {
-          s.ansi_state = 1;
-          continue;
-        }
-      }
-      s.ring[static_cast<size_t>(s.total % cap)] = c;
-      ++s.total;
-    }
+    s.ring.write(static_cast<const uint8_t *>(data), size, s.strip_ansi.load());
     return static_cast<ssize_t>(size);
   }
 };

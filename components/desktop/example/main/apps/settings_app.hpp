@@ -1,8 +1,11 @@
 #pragma once
 
 // Settings: a small form kept in NVS (namespace "desktop"): device nickname,
-// theme, accent color and the log capture tee. Theme / accent apply to the
-// browser immediately through Desktop::set_theme / set_accent.
+// theme, accent color and the log-capture tee (whether captured logs still go
+// to the UART console; the capture itself is compile-time,
+// CONFIG_DESKTOP_EXAMPLE_LOG_CAPTURE). Theme / accent apply to the browser
+// immediately through Desktop::set_theme / set_accent; the tee applies to
+// ConsoleCapture at once and is restored at boot by apply_saved_settings().
 
 #include <algorithm>
 #include <cstdlib>
@@ -34,6 +37,11 @@ inline void apply_saved_settings(espp::Desktop &desktop) {
   nvs.get("accent", accent, int32_t{-1}, ec);
   if (accent >= 0)
     desktop.set_accent(static_cast<uint32_t>(accent));
+  if (espp::ConsoleCapture::installed()) {
+    bool tee = true;
+    nvs.get("log_tee", tee, true, ec);
+    espp::ConsoleCapture::set_tee_to_console(tee);
+  }
 }
 
 } // namespace desktop_example
@@ -78,9 +86,20 @@ inline void register_settings_app(espp::Desktop &desktop, std::string_view defau
                 win.textbox(fmt::format("{:06x}", accent), nullptr, field("Accent").id(), "rrggbb");
             win.label("Accent takes effect on Save.", form.id());
             auto logs = win.group("Logging");
-            win.checkbox(
-                "Tee captured logs to the UART console", espp::ConsoleCapture::tee_to_console(),
-                [](bool on) { espp::ConsoleCapture::set_tee_to_console(on); }, logs.id());
+            if (espp::ConsoleCapture::installed()) {
+              // applies at once and is remembered (restored by apply_saved_settings)
+              win.checkbox(
+                  "Tee captured logs to the UART console", espp::ConsoleCapture::tee_to_console(),
+                  [nvs](bool on) {
+                    std::error_code ec2;
+                    espp::ConsoleCapture::set_tee_to_console(on);
+                    nvs->set("log_tee", on, ec2);
+                  },
+                  logs.id());
+            } else {
+              win.label("Log capture is compiled out (CONFIG_DESKTOP_EXAMPLE_LOG_CAPTURE).",
+                        logs.id(), D::kLabelWrap);
+            }
             auto bar = win.row();
             win.spacer(bar.id());
             win.button(

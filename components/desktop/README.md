@@ -175,7 +175,9 @@ stdout / stderr on it; its `write()` forwards to the original console
 (`/dev/console`, falling back to the UART / USB-Serial-JTAG device) and
 appends to the ring. `read_since(&cursor, out, max)` pages through it from any
 task without blocking the writers and reports bytes the ring overwrote
-before the reader got to them. Mutually exclusive with
+before the reader got to them (a `clear()` hides older bytes without counting
+them as lost). The ring itself (`detail/console_ring.hpp`) is host-buildable
+and covered by the host test. Mutually exclusive with
 `UsbDevice::route_console_to_cdc()`.
 
 ## Example
