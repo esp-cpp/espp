@@ -72,6 +72,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <initializer_list>
 #include <iterator>
 #include <numeric>
 #include <optional>
@@ -118,11 +119,30 @@ inline constexpr size_t kMaxShortTextBytes = 255;
 inline constexpr size_t kDesktopRecordsMaxBytes = 3 + (3 + kMaxDeviceNameBytes) +
                                                   (3 + kMaxFirmwareBytes) + (3 + kMaxThemeBytes) +
                                                   (3 + 4) + (3 + 2) + (3 + 2) + 1 + 1;
+/// The largest payloads the API lets through that cannot be split, each of
+/// which must fit the smallest cap on its own:
+///  - a WINDOW_OPEN head with a kMaxStr8Bytes title and no widgets
+///    (13 fixed bytes + str8 + total + count),
+///  - a WIDGET_ADD frame holding one widget record whose single property is a
+///    kMaxShortTextBytes Placeholder / Tooltip (frame head + base + rec),
+///  - a WIDGET_SET frame holding one such property (frame head + entry head + rec),
+///  - the maximal DESKTOP record set.
+/// (Columns / Items entries are bounded against the selected cap by the model;
+/// DIALOG / NOTIFY are checked against the selected cap at the API.)
+inline constexpr size_t kWindowOpenHeadMaxBytes = 13 + 1 + kMaxStr8Bytes + 2 + 2;
+inline constexpr size_t kWidgetAddMaxUnsplittableBytes = 4 + 8 + 3 + kMaxShortTextBytes;
+inline constexpr size_t kWidgetSetMaxUnsplittableBytes = 3 + 3 + 3 + kMaxShortTextBytes;
 /// Smallest payload cap a Desktop accepts (Desktop::kMinFrameBytes derives from
-/// it): the maximal record set plus room for a few apps / a widget record.
-inline constexpr size_t kMinPayloadBytes = 256;
+/// it): the largest of the unsplittable payloads above.
+inline constexpr size_t kMinPayloadBytes =
+    std::max({kWindowOpenHeadMaxBytes, kWidgetAddMaxUnsplittableBytes,
+              kWidgetSetMaxUnsplittableBytes, kDesktopRecordsMaxBytes});
 static_assert(kDesktopRecordsMaxBytes <= kMinPayloadBytes,
               "the DESKTOP record set must always fit the smallest payload cap");
+static_assert(kWindowOpenHeadMaxBytes <= kMinPayloadBytes &&
+                  kWidgetAddMaxUnsplittableBytes <= kMinPayloadBytes &&
+                  kWidgetSetMaxUnsplittableBytes <= kMinPayloadBytes,
+              "every unsplittable payload the API accepts must fit the smallest cap");
 
 /// Frame `type` values within the desktop module.
 enum class Type : uint8_t {
@@ -1171,12 +1191,15 @@ public:
     // every widget record needs its base; make sure at least the base fits
     // (and, if there are props, the smallest useful rec with it)
     const size_t need = WidgetRec::kBaseSize + (w.props.empty() ? 0 : 4);
-    if (count_ > 0 && (cap_ > frame_.size() ? cap_ - frame_.size() : 0) < need) {
+    // roll over when the base does not fit: also behind a WINDOW_OPEN head
+    // that already filled the frame (a long title) -- that frame then
+    // carries zero widgets and the tree continues in WIDGET_ADD
+    if ((count_ > 0 || is_open_) && (cap_ > frame_.size() ? cap_ - frame_.size() : 0) < need) {
       end_frame();
       begin_frame(false);
     }
-    // a frame can never be so small that a bare widget base does not fit
-    // (max_payload >= 64 by contract); props that do not fit go to leftovers
+    // an empty WIDGET_ADD frame always holds a widget base plus one small rec
+    // (max_payload >= kMinPayloadBytes); props that do not fit go to leftovers
     const size_t base_at = frame_.size();
     put_u16(frame_, w.id);
     put_u16(frame_, w.parent);

@@ -955,6 +955,68 @@ static void test_dialog_notify_limits() {
   for (uint16_t w = 1; w <= 255; ++w)
     maxed.windows.push_back({.id = w, .app = 1});
   CHECK(encode_desktop(maxed, 4081, &trimmed).size() <= 4081 && !trimmed);
+  // every unsplittable payload the API accepts encodes at the smallest cap
+  // without a drop: a 255-byte title fills the WINDOW_OPEN head exactly
+  // (zero widgets, the tree continues in WIDGET_ADD), a 255-byte placeholder
+  // + tooltip each travel in their own frame, Columns at the room limit fit
+  {
+    CHECK(kMinPayloadBytes == 273 && kWindowOpenHeadMaxBytes == 273);
+    WindowOpen o{.id = 7, .app = 1, .title = std::string(kMaxStr8Bytes, 't')};
+    o.widgets = {{.id = 1, .type = WidgetType::Column},
+                 {.id = 2,
+                  .parent = 1,
+                  .type = WidgetType::TextBox,
+                  .props = {Prop::text(PropTag::Placeholder, std::string(255, 'p')),
+                            Prop::text(PropTag::Tooltip, std::string(255, 'q'))}}};
+    size_t dropped = 0;
+    const auto msgs = encode_window_open(o, kMinPayloadBytes, &dropped);
+    CHECK(dropped == 0 && msgs.size() >= 3 && msgs[0].type == Type::WindowOpen);
+    const auto head = decode_window_open(msgs[0].payload);
+    CHECK(head && msgs[0].payload.size() == kMinPayloadBytes && head->widgets.empty() &&
+          head->total == 2 && head->title.size() == 255);
+    size_t widgets = 0, placeholder = 0, tooltip = 0;
+    for (const auto &msg : msgs) {
+      CHECK(msg.payload.size() <= kMinPayloadBytes);
+      if (msg.type == Type::WidgetAdd) {
+        const auto a = decode_widget_add(msg.payload);
+        CHECK(a);
+        if (a)
+          for (const auto &w : a->widgets) {
+            ++widgets;
+            for (const auto &p : w.props) {
+              placeholder += p.is(PropTag::Placeholder) ? p.value.size() : 0;
+              tooltip += p.is(PropTag::Tooltip) ? p.value.size() : 0;
+            }
+          }
+      } else if (msg.type == Type::WidgetSet) {
+        const auto st = decode_widget_set(msg.payload);
+        CHECK(st);
+        if (st)
+          for (const auto &e : st->entries)
+            for (const auto &p : e.props) {
+              placeholder += p.is(PropTag::Placeholder) ? p.value.size() : 0;
+              tooltip += p.is(PropTag::Tooltip) ? p.value.size() : 0;
+            }
+      }
+    }
+    CHECK(widgets == 2 && placeholder == 255 && tooltip == 255);
+    // the same two props through WIDGET_SET: one per frame, nothing dropped
+    dropped = 0;
+    const auto sets =
+        encode_widget_set({.window = 7, .entries = {{.widget = 2, .props = o.widgets[1].props}}},
+                          kMinPayloadBytes, &dropped);
+    CHECK(dropped == 0 && sets.size() == 2 && sets[0].size() <= kMinPayloadBytes &&
+          sets[0].size() == kWidgetSetMaxUnsplittableBytes);
+    // a Columns record at the model's room limit (cap - 24) rides along a
+    // widget base in an empty WIDGET_ADD frame
+    std::vector<std::string> cols(2, std::string(122, 'c')); // 1 + 2 * 123 = 247 <= 249
+    const auto adds = encode_widget_add(
+        {.window = 7,
+         .widgets = {{.id = 3, .type = WidgetType::Table, .props = {Prop::columns(cols)}}}},
+        kMinPayloadBytes, &dropped);
+    CHECK(dropped == 0 && adds.size() == 1 && adds[0].type == Type::WidgetAdd &&
+          adds[0].payload.size() <= kMinPayloadBytes);
+  }
   // the maximal mandatory record set alone always fits the smallest cap
   DesktopInfo records_only;
   records_only.records = maxed.records;
@@ -997,10 +1059,10 @@ static void test_dialog_notify_limits() {
   CHECK(lim.add_widget(lw, {.type = WidgetType::Table, .columns = {std::string(256, 'c')}}) == 0);
   CHECK(lim.add_widget(lw, {.type = WidgetType::List, .items = {std::string(5000, 'i')}}) == 0);
   // a small cap bounds Columns / Items entries accordingly
-  lim.max_payload = kMinPayloadBytes;
+  lim.max_payload = kMinPayloadBytes; // rec room = 273 - 24 = 249
   CHECK(!lim.set_prop(lw, lbl, Prop::columns(std::vector<std::string>(3, std::string(100, 'c')))));
   CHECK(lim.set_prop(lw, lbl, Prop::columns(std::vector<std::string>(2, std::string(100, 'c')))));
-  CHECK(!lim.set_prop(lw, lbl, Prop::items(0, std::vector<std::string>{std::string(240, 'i')})));
+  CHECK(!lim.set_prop(lw, lbl, Prop::items(0, std::vector<std::string>{std::string(250, 'i')})));
   CHECK(lim.set_prop(
       lw, lbl,
       Prop::items(0, std::vector<std::string>{std::string(200, 'i'), std::string(200, 'j')})));

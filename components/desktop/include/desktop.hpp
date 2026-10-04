@@ -136,8 +136,10 @@ public:
   /// A list / table / select selection meaning "nothing".
   static constexpr int32_t kNoSelection = -1;
   /// Smallest Config::max_frame_bytes: the largest frame header + CRC + the
-  /// smallest payload cap (detail::desktop_protocol::kMinPayloadBytes, which
-  /// the maximal DESKTOP record set always fits).
+  /// smallest payload cap (detail::desktop_protocol::kMinPayloadBytes: the
+  /// largest payload the API accepts that cannot be split -- a WINDOW_OPEN
+  /// head with a 255-byte title, a widget with a 255-byte placeholder /
+  /// tooltip, the maximal DESKTOP record set -- always fits it).
   static constexpr size_t kMinFrameBytes = espp::stream_frame::kMaxHeaderSize +
                                            espp::stream_frame::kCrcSize +
                                            detail::dp::kMinPayloadBytes;
@@ -165,9 +167,10 @@ public:
     /// Largest encoded frame (header + payload + CRC) a sink can carry in one
     /// write; every widget payload is split to fit (4096 = the TinyUSB FIFOs of
     /// the espp examples; the stream_frame maximum is kMaxFrameSize). At least
-    /// kMinFrameBytes (a 256-byte payload); a smaller value is clamped with a
-    /// warning. Dialogs, notifications and the DESKTOP record set are single
-    /// frames, so a small cap limits them (see the k* limits in the protocol).
+    /// kMinFrameBytes (a kMinPayloadBytes payload, the largest unsplittable
+    /// payload the API accepts); a smaller value is clamped with a warning. Dialogs, notifications
+    /// and the DESKTOP record set are single frames, so a small cap limits them (see the k* limits
+    /// in the protocol).
     size_t max_frame_bytes{4096};
     /// Bound on host commands queued for the desktop task (at least 1). When
     /// it is full a request (GET_DESKTOP / LAUNCH_APP / CLOSE_WINDOW) is

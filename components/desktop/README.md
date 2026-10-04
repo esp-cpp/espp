@@ -137,7 +137,10 @@ Label: bit0 Bold bit1 Monospace bit2 Wrap; Button: bit0 Primary bit1 Danger.
 Replies (DESKTOP / OK / ERROR) echo the request's correlation id; events carry
 none. Every payload is at most the negotiated MaxPayload (`max_frame_bytes`
 less the frame overhead, 4081 for 4096; `max_frame_bytes` is at least
-`kMinFrameBytes`, a 256-byte payload): the widget encoders split (Text +
+`kMinFrameBytes`, a `kMinPayloadBytes` = 273-byte payload: the largest
+unsplittable payload the API accepts -- a WINDOW_OPEN head with a 255-byte
+title, a widget with a 255-byte placeholder / tooltip, the maximal DESKTOP
+record set -- always fits it): the widget encoders split (Text +
 TextAppend pieces, Items ranges, WIDGET_ADD continuations) and never truncate.
 Values the wire cannot split are bounded at the API instead of cut: a window
 title, a Placeholder or a Tooltip at most 255 bytes, Columns at most 255 names
