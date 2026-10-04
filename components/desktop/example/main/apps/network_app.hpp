@@ -78,21 +78,53 @@ struct NetworkState {
   /// the driver callbacks. A scan stops the station and restores it afterwards
   /// when this is set, whatever the transient phase.
   std::atomic<bool> want_connected{false};
-  /// Connection-attempt GENERATION, a belt-and-braces check only: the driver
-  /// events are asynchronous and WifiSta fetches `config_.on_disconnected`
-  /// at DELIVERY time, so the installed callback cannot tell which attempt an
-  /// event belongs to. Ownership is therefore never inferred from the
-  /// callback: before a new attempt the worker actually WAITS for the
-  /// DISCONNECTED event of the stopped station (stop_and_wait, bounded). The
-  /// generation only filters the residue (an event that still arrives after
-  /// the wait timed out).
-  std::atomic<uint32_t> attempt{0};
+  /// Correlating the asynchronous DISCONNECTED events with the worker's
+  /// requests. WifiSta fetches its callbacks at DELIVERY time, so "which
+  /// callback is installed" can never identify an event: the three callbacks
+  /// are therefore installed ONCE (ensure_wifi) and never replaced -- every
+  /// reconfigure() passes the same long-lived std::function objects -- and
+  /// they consult this state under `mutex`:
+  ///   - `disconnected_events` counts the deliveries stop_and_wait() waits on;
+  ///   - `stale_disconnects` is the number of disconnects the worker requested
+  ///     but never saw confirmed (the wait timed out): the next DISCONNECTED
+  ///     deliveries consume those credits and are ignored, which DRAINS the
+  ///     late event whenever it arrives instead of letting it satisfy a later
+  ///     wait or move a later attempt to Idle.
   std::condition_variable disconnected_cv; // with `mutex`: a DISCONNECTED event arrived
-  uint32_t disconnected_events{0};         // under `mutex`; any generation
+  uint32_t disconnected_events{0};         // under `mutex`
+  uint32_t stale_disconnects{0};           // under `mutex`
   std::string cur_ssid, cur_pass;          // the credentials of the current attempt (under `mutex`)
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI
   std::unique_ptr<espp::WifiSta> wifi;
   std::unique_ptr<espp::Task> worker; // after wifi: joined before it goes away
+  // the long-lived callbacks (see above); they run on the event-loop task
+  espp::WifiSta::connect_callback on_connected_fn = [this]() {
+    set_status("connected, waiting for an IP");
+  };
+  espp::WifiSta::disconnect_callback on_disconnected_fn = [this]() {
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      if (stale_disconnects > 0) {
+        // the late confirmation of a disconnect whose wait timed out
+        --stale_disconnects;
+        logger.info("drained a stale DISCONNECTED ({} left)", stale_disconnects);
+        return;
+      }
+      ++disconnected_events; // a confirmation stop_and_wait() may be waiting on
+    }
+    disconnected_cv.notify_all();
+    if (phase == Phase::Stopping)
+      return;            // the worker owns this transition
+    phase = Phase::Idle; // retries exhausted
+    set_status(want_connected ? "disconnected (retries exhausted; Connect or a scan retries)"
+                              : "disconnected");
+  };
+  espp::WifiSta::ip_callback on_got_ip_fn = [this](ip_event_got_ip_t *e) {
+    if (phase == Phase::Stopping)
+      return; // being stopped: the DISCONNECTED that follows settles it
+    phase = Phase::Connected;
+    set_status("connected", fmt::format("{}.{}.{}.{}", IP2STR(&e->ip_info.ip)));
+  };
 #endif
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_ETHERNET
   std::unique_ptr<espp::Ethernet> eth;
@@ -130,10 +162,11 @@ struct NetworkState {
     }
   }
 
-  /// The station config for `ssid` / `password` of attempt `gen`: the
-  /// callbacks drive the phase (they run on the event-loop task) and ignore
-  /// the residue of an older generation (see `attempt`).
-  espp::WifiSta::Config wifi_config(std::string ssid, std::string password, uint32_t gen) {
+  /// The station config for `ssid` / `password`: only the credentials change
+  /// between attempts, the callbacks are always the same long-lived objects
+  /// (WifiSta::reconfigure() replaces its whole config, so they are passed
+  /// again each time).
+  espp::WifiSta::Config wifi_config(std::string ssid, std::string password) {
     {
       std::lock_guard<std::mutex> lock(mutex);
       cur_ssid = ssid;
@@ -143,42 +176,11 @@ struct NetworkState {
             .password = std::move(password),
             .num_connect_retries = 3,
             .auto_connect = true,
-            .on_connected =
-                [this, gen]() {
-                  if (gen == attempt)
-                    set_status("connected, waiting for an IP");
-                },
-            .on_disconnected =
-                [this, gen]() {
-                  // every DISCONNECTED (intentional or retries exhausted) wakes
-                  // a stop_and_wait() in progress, whatever its generation
-                  {
-                    std::lock_guard<std::mutex> lock(mutex);
-                    ++disconnected_events;
-                  }
-                  disconnected_cv.notify_all();
-                  if (gen != attempt)
-                    return; // residue of a previous attempt
-                  if (phase == Phase::Stopping)
-                    return;            // the worker owns this transition
-                  phase = Phase::Idle; // retries exhausted
-                  set_status(want_connected ? "disconnected (retries exhausted; Connect or a "
-                                              "scan retries)"
-                                            : "disconnected");
-                },
-            .on_got_ip =
-                [this, gen](ip_event_got_ip_t *e) {
-                  if (gen != attempt)
-                    return;
-                  phase = Phase::Connected;
-                  set_status("connected", fmt::format("{}.{}.{}.{}", IP2STR(&e->ip_info.ip)));
-                },
+            .on_connected = on_connected_fn,
+            .on_disconnected = on_disconnected_fn,
+            .on_got_ip = on_got_ip_fn,
             .log_level = espp::Logger::Verbosity::INFO};
   }
-
-  /// Start a new attempt generation: the residue of the previous one is
-  /// ignored from here on.
-  uint32_t new_attempt() { return ++attempt; }
 
   /// Whether a string key exists in the app's namespace: ESP_OK (it does),
   /// ESP_ERR_NVS_NOT_FOUND (it does not) or another error (a genuine NVS
@@ -274,7 +276,7 @@ struct NetworkState {
     auto &stack = espp::Wifi::get();
     if (stack.init())
       stack.set_storage(WIFI_STORAGE_RAM);
-    auto cfg = wifi_config(ssid, pass, new_attempt());
+    auto cfg = wifi_config(ssid, pass);
     cfg.auto_connect = !ssid.empty();
     want_connected = cfg.auto_connect;
     // WifiSta connects from its STA_START event: that is an association
@@ -322,9 +324,12 @@ struct NetworkState {
   /// transition (phase Failed, a toast, false returned) -- the caller must
   /// not reconfigure, because continuing would re-open the stale-event race
   /// this wait exists to close. The station is left as it is and the user
-  /// retries. From Failed, a later event has usually resolved the phase
+  /// retries. A timed-out wait leaves a `stale_disconnects` credit, so the
+  /// confirmation that never came is drained by the callback whenever it
+  /// arrives (never counted for a later wait, never applied to a later
+  /// attempt). From Failed, a later event has usually resolved the phase
   /// (Idle / Connected); if none came and the driver reports no association,
-  /// the station is taken as idle.
+  /// the station is taken as idle (its credit stays until the event comes).
   /// Returns true once the station is idle.
   bool stop_and_wait(std::chrono::milliseconds timeout = std::chrono::milliseconds(1000)) {
     Phase p = phase.load();
@@ -333,7 +338,7 @@ struct NetworkState {
       if (esp_wifi_sta_get_ap_info(&ap) == ESP_OK)
         p = Phase::Connected; // still associated: stop it like a connected station
       else
-        return true; // nothing associated: idle
+        return true; // nothing associated: idle (the timed-out credit remains)
     }
     if (p != Phase::Connected && p != Phase::Associating)
       return true;
@@ -345,8 +350,8 @@ struct NetworkState {
       seen = disconnected_events;
     }
     if (!wifi->disconnect()) {
-      // the driver rejected it (WifiSta rolls its flags back): a failed
-      // transition, not an idle station
+      // the driver rejected it (WifiSta rolls its flag back; nothing was
+      // initiated, so no credit): a failed transition, not an idle station
       phase = Phase::Failed;
       set_status("stopping failed: try again");
       toast("the station could not be stopped; try again", D::NotifyLevel::Error);
@@ -356,6 +361,8 @@ struct NetworkState {
     {
       std::unique_lock<std::mutex> lock(mutex);
       got = disconnected_cv.wait_for(lock, timeout, [&] { return disconnected_events != seen; });
+      if (!got)
+        ++stale_disconnects; // requested, never confirmed: drain it when it comes
     }
     if (!got) {
       logger.warn("no DISCONNECTED event within {} ms; aborting the transition", timeout.count());
@@ -373,10 +380,10 @@ struct NetworkState {
   bool start_attempt(const std::string &ssid, const std::string &pass, const char *what) {
     phase = Phase::Configuring;
     set_status(fmt::format("configuring {}", ssid));
-    const uint32_t gen = new_attempt();
-    // after stop_and_wait() WifiSta's connected_ is false, so reconfigure()
-    // does not connect by itself: connect() explicitly
-    if (!wifi->reconfigure(wifi_config(ssid, pass, gen))) {
+    // after stop_and_wait() the DISCONNECTED event has cleared WifiSta's
+    // connected_, so reconfigure() does not connect by itself: connect()
+    // explicitly
+    if (!wifi->reconfigure(wifi_config(ssid, pass))) {
       phase = Phase::Idle;
       set_status(fmt::format("{} failed: use Connect", what));
       toast(fmt::format("could not configure the {} to {}", what, ssid), D::NotifyLevel::Error);
@@ -478,7 +485,7 @@ struct NetworkState {
     wifi_config_t empty{};
     const bool cleared = esp_wifi_set_config(WIFI_IF_STA, &empty) == ESP_OK;
     // empty ssid: reconfigure() adopts the (now empty) driver config
-    auto cfg = wifi_config("", "", new_attempt());
+    auto cfg = wifi_config("", "");
     cfg.auto_connect = false;
     const bool station_reset = wifi->reconfigure(cfg) && cleared;
     phase = Phase::Idle;

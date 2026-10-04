@@ -602,18 +602,19 @@ public:
    * @return true if the disconnection was initiated successfully, false otherwise.
    */
   bool disconnect() {
-    const bool was_connected = connected_.exchange(false);
+    // Only INITIATES the disconnect: connected_ is cleared by the event
+    // handler when the DISCONNECTED event reports it done (touching it here
+    // would race the event loop), so is_connected() stays true until then.
     attempts_ = 0;
     disconnecting_ = true;
     esp_err_t err = esp_wifi_disconnect();
     if (err != ESP_OK) {
       logger_.error("Could not disconnect from WiFi: {}", esp_err_to_name(err));
       // Nothing was initiated, so no DISCONNECTED event will arrive to consume
-      // the intentional-disconnect flag: leave the state as it was, otherwise
-      // the next (unintentional) disconnect would be taken for this one and
-      // skip its retries.
+      // the intentional-disconnect flag; clear it, otherwise the next
+      // (unintentional) disconnect would be taken for this one and skip its
+      // retries.
       disconnecting_ = false;
-      connected_ = was_connected;
       return false;
     }
     return true;
