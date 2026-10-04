@@ -42,16 +42,40 @@ inline bool write_file(const std::filesystem::path &path, std::string_view body,
   return !f.fail() && !f.bad();
 }
 
-/// Read at most `limit` bytes of a file; `size` gets the whole file's size.
-inline std::string read_head(const std::filesystem::path &path, size_t limit, size_t &size) {
+/// The outcome of reading (the head of) a file: on failure `error` says why
+/// and the editor must not offer the (partial / empty) contents for saving.
+struct ReadResult {
+  std::string contents{}; ///< at most `limit` bytes
+  size_t size{0};         ///< the whole file's size
+  std::string error{};    ///< empty = ok
+  bool ok() const { return error.empty(); }
+};
+
+/// Read at most `limit` bytes of a file, checking every step (size, open,
+/// the number of bytes actually read).
+inline ReadResult read_head(const std::filesystem::path &path, size_t limit) {
+  ReadResult r;
   std::error_code ec;
   const auto n = std::filesystem::file_size(path, ec);
-  size = ec ? 0 : static_cast<size_t>(n);
-  std::string contents(std::min(size, limit), '\0');
+  if (ec) {
+    r.error = fmt::format("size: {}", ec.message());
+    return r;
+  }
+  r.size = static_cast<size_t>(n);
   std::ifstream f(path, std::ios::binary);
-  f.read(contents.data(), static_cast<std::streamsize>(contents.size()));
-  contents.resize(static_cast<size_t>(std::max<std::streamsize>(f.gcount(), 0)));
-  return contents;
+  if (!f.is_open()) {
+    r.error = "open failed";
+    return r;
+  }
+  const size_t want = std::min(r.size, limit);
+  r.contents.assign(want, '\0');
+  f.read(r.contents.data(), static_cast<std::streamsize>(want));
+  const size_t got = static_cast<size_t>(std::max<std::streamsize>(f.gcount(), 0));
+  if (f.bad() || got != want) {
+    r.error = fmt::format("read {} of {} bytes", got, want);
+    r.contents.resize(got);
+  }
+  return r;
 }
 
 inline void open_editor(espp::Desktop &d, espp::Desktop::AppId app,
@@ -60,36 +84,53 @@ inline void open_editor(espp::Desktop &d, espp::Desktop::AppId app,
   // The desktop retains at most max_text_bytes of a TextArea (and the browser
   // mirrors that bound through the Text replacement it receives), so a larger
   // file could only be edited as a truncated tail -- and Save would then
-  // overwrite the file with that tail. Open such a file read-only instead.
+  // overwrite the file with that tail. Open such a file read-only instead,
+  // and likewise one that could not be read completely.
   const size_t limit = d.max_text_bytes();
-  size_t file_size = 0;
-  const std::string contents = read_head(path, limit, file_size);
-  const bool too_big = file_size > limit;
+  const ReadResult r = read_head(path, limit);
+  const bool too_big = r.size > limit;
   auto win =
       d.create_window({.title = fmt::format("Editor \xE2\x80\x94 {}", path.filename().string()),
                        .app = app,
                        .w = 560,
                        .h = 400});
   auto bar = win.row();
-  auto status = win.label(fmt::format("{} bytes", file_size), bar.id(), D::kLabelMonospace);
-  if (too_big) {
-    win.label(fmt::format("Read-only: {} bytes is more than the editor holds ({} bytes); "
-                          "showing the first {}.",
-                          file_size, limit, contents.size()),
+  auto status = win.label(fmt::format("{} bytes", r.size), bar.id(), D::kLabelMonospace);
+  if (!r.ok() || too_big) {
+    win.label(!r.ok() ? fmt::format("Read-only: read failed ({}); showing the {} bytes that "
+                                    "were read.",
+                                    r.error, r.contents.size())
+                      : fmt::format("Read-only: {} bytes is more than the editor holds ({} "
+                                    "bytes); showing the first {}.",
+                                    r.size, limit, r.contents.size()),
               0, D::kLabelWrap);
-    win.textarea(contents, 0, D::kTextAreaMonospace | D::kTextAreaReadOnly, 1, 0);
+    win.textarea(r.contents, 0, D::kTextAreaMonospace | D::kTextAreaReadOnly, 1, 0);
     return;
   }
-  auto text = win.textarea(contents, 0, D::kTextAreaMonospace, 1, 0);
+  auto text = win.textarea(r.contents, 0, D::kTextAreaMonospace, 1, 0);
+  // once a reload fails (or finds the file grown past the bound) the window
+  // becomes read-only for good: Save / Reload must never write a partial view
+  auto read_only = std::make_shared<bool>(false);
+  auto make_read_only = [=](std::string why) mutable {
+    *read_only = true;
+    text.set_flags(D::kTextAreaMonospace | D::kTextAreaReadOnly);
+    status.set_text("read-only: {}", why);
+  };
   // the browser sends the edited text (chunked) when the field loses focus or
   // on Ctrl+S; the model keeps the latest, so Save just writes text.text()
   text.on_event([=](const D::WidgetEvent &e) mutable {
-    if (e.kind == D::WidgetEventKind::Text)
+    if (e.kind == D::WidgetEventKind::Text && !*read_only)
       status.set_text("{} bytes (unsaved)", e.text.size());
   });
   win.button(
       "Save",
       [=, &d]() mutable {
+        if (*read_only) {
+          d.notify({.title = path.filename().string(),
+                    .text = "read-only: not saved",
+                    .level = D::NotifyLevel::Warn});
+          return;
+        }
         const std::string body = text.text();
         const bool ok = write_file(path, body, std::ios::trunc);
         status.set_text("{} bytes{}", body.size(), ok ? "" : " (write FAILED)");
@@ -101,17 +142,21 @@ inline void open_editor(espp::Desktop &d, espp::Desktop::AppId app,
   win.button(
       "Reload",
       [=]() mutable {
-        size_t size = 0;
-        const std::string body = read_head(path, limit, size);
-        if (size > limit) {
-          // it grew past the bound since it was opened: never offer a
-          // truncated tail for saving
-          text.set_flags(D::kTextAreaMonospace | D::kTextAreaReadOnly);
-          status.set_text("{} bytes (now read-only: larger than the editor holds)", size);
+        if (*read_only)
+          return;
+        const ReadResult again = read_head(path, limit);
+        if (!again.ok()) {
+          make_read_only(fmt::format("read failed ({})", again.error));
           return;
         }
-        text.set_text(body);
-        status.set_text("{} bytes", size);
+        if (again.size > limit) {
+          // it grew past the bound since it was opened: never offer a
+          // truncated tail for saving
+          make_read_only(fmt::format("{} bytes is larger than the editor holds", again.size));
+          return;
+        }
+        text.set_text(again.contents);
+        status.set_text("{} bytes", again.size);
       },
       bar.id());
 }
