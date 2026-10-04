@@ -26,22 +26,29 @@ dump() { # url -> DOM on stdout
     --window-size=1280,900 --virtual-time-budget=5000 --dump-dom "$1" 2>/dev/null
 }
 fail=0
+dom="$(mktemp)"
+trap 'rm -f "$dom"' EXIT
 for q in "" "?autoconnect=1"; do
-  if dump "file://$page$q" | grep -q "espp Desktop ready"; then
+  # the DOM is captured to a file first (a grep -q closing Chrome's pipe early
+  # would abort the dump under pipefail), then the RENDERED state is checked:
+  # the script's last statement stamps data-ready on <body>, which a throw
+  # anywhere before it leaves out (the script's own literals are no proof)
+  dump "file://$page$q" > "$dom" || true
+  if grep -q '<body data-ready="desktop"' "$dom"; then
     echo "PASS page runs to the end of its script (file://desktop.html$q)"
   else
-    echo "FAIL page did not reach its ready line (file://desktop.html$q)"; fail=1
+    echo "FAIL page did not run to the end of its script (file://desktop.html$q)"; fail=1
   fi
 done
 # the vectors travel in the URL hash (fetch() of a file:// sibling is blocked)
 v="$(base64 < "$vectors" | tr -d '\n' | tr '+/' '-_' | tr -d '=')"
-dom="$(dump "file://$page?selftest=1#v=$v")"
-title="$(printf '%s' "$dom" | sed -n 's/.*<title>\([^<]*\)<\/title>.*/\1/p' | head -1)"
+dump "file://$page?selftest=1#v=$v" > "$dom" || true
+title="$(sed -n 's/.*<title>\([^<]*\)<\/title>.*/\1/p' "$dom" | head -1)"
 if [ "$title" = "SELFTEST PASS" ]; then
   echo "PASS selftest: $title"
 else
   echo "FAIL selftest: ${title:-no title}"
-  printf '%s' "$dom" | grep -o 'SELFTEST FAIL[^<]*' | head -3 || true
+  sed '/<script>/,$d' "$dom" | grep -o 'SELFTEST FAIL[^<]*' | head -3 || true  # rendered log only, not the script literals
   fail=1
 fi
 exit $fail

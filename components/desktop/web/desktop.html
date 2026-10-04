@@ -1069,7 +1069,8 @@
     // Per app name + window title geometry memory on an injectable storage
     // ({ getItem, setItem }); at most `limit` entries, least recently SET
     // evicted first.
-    function geometryKey(app, title) { return String(app || "") + " " + String(title || ""); }
+    // (an unambiguous encoding: app "a b" + title "c" must not collide with app "a" + title "b c")
+    function geometryKey(app, title) { return JSON.stringify([String(app || ""), String(title || "")]); }
     function createGeometryStore(storage, opts) {
       const key = (opts && opts.key) || "espp.desktop.geometry";
       const limit = (opts && opts.limit) || 200;
@@ -3517,6 +3518,8 @@
     installAppNav();
     installAppHandBack({ connected: () => !!transport, handBack: async () => { const id = connIdentity; await disconnect(); return id; } });
     if (connectParams.autoconnect) autoConnect();
+    // the script ran to its end (web/test/smoke.sh checks this attribute in the rendered DOM)
+    document.body.dataset.ready = "desktop";
   </script>
 </body>
 </html>
