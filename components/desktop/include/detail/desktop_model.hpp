@@ -469,18 +469,31 @@ public:
 
   // ---- apps ----
 
-  void register_app(dp::AppRec app) {
+  /// Register (or replace, by id) an app. False (nothing changed) when the
+  /// records plus the full app list -- descriptions emptied, no windows, the
+  /// floor the encoder can never trim below -- would no longer fit
+  /// max_payload: apps are never trimmed on the wire, so they must always fit.
+  bool register_app(dp::AppRec app) {
+    dp::DesktopInfo floor = desktop_info(false);
+    floor.windows.clear();
+    std::erase_if(floor.apps, [&app](const dp::AppRec &a) { return a.id == app.id; });
+    floor.apps.push_back(app);
+    for (auto &a : floor.apps)
+      a.description.clear();
+    if (dp::encode_desktop(floor).size() > max_payload)
+      return false;
     auto it = std::find_if(apps_.begin(), apps_.end(),
                            [&app](const dp::AppRec &a) { return a.id == app.id; });
     if (it != apps_.end()) {
       *it = std::move(app);
       dirty.desktop_changed = true;
-      return;
+      return true;
     }
     apps_.push_back(std::move(app));
     std::sort(apps_.begin(), apps_.end(),
               [](const dp::AppRec &a, const dp::AppRec &b) { return a.id < b.id; });
     dirty.desktop_changed = true;
+    return true;
   }
 
   bool unregister_app(uint8_t id) {

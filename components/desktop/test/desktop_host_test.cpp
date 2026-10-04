@@ -235,24 +235,21 @@ static std::vector<Vector> catalogue() {
                        ",\"apps\":" + apps_json(d) + ",\"windows\":[{\"id\":1,\"app\":1}]}";
     v.push_back({"desktop", true, Type::Desktop, encode_desktop(d), json, rt(d, decode_desktop)});
     // the same desktop encoded under a cap that forces the encoder to trim:
-    // descriptions go first, then apps, then the window list -- and once the
-    // window list is cut, flags bit1 (WindowListComplete) is clear so the host
-    // does not close windows missing from it
+    // the window list goes first (flags bit1 WindowListComplete is then clear
+    // so the host does not close windows missing from it), apps never
     DesktopInfo three = d;
     three.windows = {{.id = 1, .app = 1}, {.id = 2, .app = 3}, {.id = 3, .app = 1}};
-    // records (3 + 15 + 22 + 7 + 7 + 5 + 5 + 5 = 69) + 1 app count + 1 win count
-    // = 71; a cap of 71 + 3 * 2 = 77 leaves room for exactly two windows and
-    // no apps
+    const size_t full = encode_desktop(three).size();
+    // a cap three bytes short of the full payload drops exactly one window
     bool was_trimmed = false;
-    const auto payload = encode_desktop(three, 77, &was_trimmed);
-    CHECK(was_trimmed && payload.size() == 77);
+    const auto payload = encode_desktop(three, full - 3, &was_trimmed);
+    CHECK(was_trimmed && payload.size() == full - 3);
     DesktopInfo expect = three;
     expect.flags = kDesktopHasSnapshot; // bit1 clear
-    expect.apps.clear();
     expect.windows = {{.id = 1, .app = 1}, {.id = 2, .app = 3}};
     v.push_back({"desktop_window_list_trimmed", true, Type::Desktop, payload,
-                 "{\"proto\":1,\"flags\":1,\"records\":" + Json::props(d.records) +
-                     ",\"apps\":[],\"windows\":[{\"id\":1,\"app\":1},{\"id\":2,\"app\":3}]}",
+                 "{\"proto\":1,\"flags\":1,\"records\":" + Json::props(d.records) + ",\"apps\":" +
+                     apps_json(d) + ",\"windows\":[{\"id\":1,\"app\":1},{\"id\":2,\"app\":3}]}",
                  rt(expect, decode_desktop)});
   }
   // WINDOW_OPEN: all flags, -1 geometry, 4 widgets incl. a Row child, a long
@@ -925,16 +922,20 @@ static void test_dialog_notify_limits() {
   bool trimmed = false;
   CHECK(encode_desktop(big, 4081, &trimmed).size() == 3 + 1 + 3 * (2 + 4 + 2 + 41) + 1 + 60 &&
         !trimmed);
-  // descriptions go first (the window list stays complete: bit1 set) ...
+  // the window list goes first (bit1 cleared, descriptions intact) ...
   auto t = decode_desktop(encode_desktop(big, 160, &trimmed));
-  CHECK(trimmed && t && t->apps.size() == 3 && t->windows.size() == 20 &&
-        t->apps[0].description.empty() && (t->flags & kDesktopWindowListComplete));
-  // ... then apps, and the window list only last (bit1 cleared)
+  CHECK(trimmed && t && t->apps.size() == 3 && t->windows.size() == 2 &&
+        t->apps[0].description.size() == 40 && !(t->flags & kDesktopWindowListComplete));
+  // ... then the descriptions; apps are never trimmed
   t = decode_desktop(encode_desktop(big, 60, &trimmed));
-  CHECK(trimmed && t && t->apps.empty() && t->windows.size() == 18 &&
-        !(t->flags & kDesktopWindowListComplete));
-  t = decode_desktop(encode_desktop(big, 20, &trimmed));
-  CHECK(trimmed && t && t->apps.empty() && t->windows.size() == 5);
+  CHECK(trimmed && t && t->apps.size() == 3 && t->windows.empty() &&
+        t->apps[0].description.empty() && !(t->flags & kDesktopWindowListComplete));
+  // below the floor (records + apps) the encoder keeps the apps and returns
+  // the over-cap payload rather than drop one (register_app keeps this from
+  // ever happening)
+  const auto over = encode_desktop(big, 20, &trimmed);
+  t = decode_desktop(over);
+  CHECK(trimmed && t && t->apps.size() == 3 && over.size() == 3 + 1 + 3 * 9 + 1);
   // a full window list always carries bit1, whatever the caller put in flags
   t = decode_desktop(encode_desktop(big, 4081));
   CHECK(t && (t->flags & kDesktopWindowListComplete) && t->windows.size() == 20);
@@ -1083,6 +1084,41 @@ static void test_dialog_notify_limits() {
         !lim.replace_items(lw, 999, std::vector<std::string>{"x"}) && !lim.dirty.any());
   CHECK(lim.add_widget(
             lw, {.type = WidgetType::List, .items = std::vector<std::string>(65536, "i")}) == 0);
+  // the invariant by construction: at the minimum cap, apps register until
+  // the records + full app list (descriptions emptied) would not fit; from
+  // then on even 255 open windows only trim the window list (flag clear) and
+  // the descriptions, never an app
+  dm::Model reg;
+  reg.max_payload = kMinPayloadBytes;
+  reg.device_name = std::string(kMaxDeviceNameBytes, 'n');
+  reg.firmware = std::string(kMaxFirmwareBytes, 'f');
+  reg.theme = "light";
+  size_t registered = 0;
+  for (size_t i = 1; i <= kMaxApps; ++i) {
+    if (!reg.register_app({.id = static_cast<uint8_t>(i),
+                           .name = "app",
+                           .icon = "i",
+                           .description = std::string(kMaxAppDescriptionBytes, 'd')}))
+      break;
+    ++registered;
+  }
+  CHECK(registered > 0 && registered < kMaxApps); // 273 - 164 = 109 bytes of apps: 10 of 10 B
+  CHECK(registered == (kMinPayloadBytes - kDesktopRecordsMaxBytes) / (kAppRecMinBytes + 3 + 1));
+  CHECK(!reg.register_app({.id = 200, .name = "", .icon = ""})); // even an empty one
+  for (int w = 0; w < 255; ++w)
+    CHECK(reg.create_window({.title = "w", .app = 1}) != 0);
+  bool reg_trimmed = false;
+  const auto reg_payload = encode_desktop(reg.desktop_info(true), kMinPayloadBytes, &reg_trimmed);
+  const auto reg_info = decode_desktop(reg_payload);
+  CHECK(reg_trimmed && reg_payload.size() <= kMinPayloadBytes && reg_info &&
+        reg_info->apps.size() == registered && reg_info->windows.size() < 255 &&
+        !(reg_info->flags & kDesktopWindowListComplete) && reg_info->apps[0].description.empty());
+  // the flush path uses the same cap
+  reg.dirty.clear();
+  reg.mark_desktop_changed();
+  const auto reg_out = reg.flush();
+  CHECK(reg_out.size() == 1 && reg_out[0].type == Type::Desktop &&
+        reg_out[0].payload.size() <= kMinPayloadBytes);
   // app ids are monotonic and never reused while a window still references one
   CHECK(lim.allocate_app_id() == 1);
   lim.register_app({.id = 1, .name = "a"});

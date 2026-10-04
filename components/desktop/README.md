@@ -154,11 +154,13 @@ names ≤ 32, icons ≤ 16, descriptions ≤ 64 bytes (`register_app` truncates
 longer ones and refuses an app that would overflow), device name / firmware
 ≤ 64 bytes, theme one of `auto` / `light` / `dark` -- so the maximal record set
 always fits the minimum cap and the default payload holds hundreds of open
-windows; should a smaller cap still overflow, the encoder trims the app
-descriptions, then apps, then the window list from the end (logged) rather
-than send a bad frame, and clears flags bit1 `WindowListComplete` when the
-window list was trimmed (the browser reconciles its windows against the list
-only when the bit is set). Unregistering an app closes its windows
+windows. Invariant: the records plus the **full** app list (descriptions
+emptied) always fit the configured cap -- `register_app` refuses an app that
+would break it -- so apps are never trimmed on the wire (the browser replaces
+its registry on every DESKTOP frame); should a frame still overflow, the
+encoder trims the window list first (and clears flags bit1
+`WindowListComplete`, so the browser does not reconcile its windows against
+it), then the descriptions (logged). Unregistering an app closes its windows
 (WINDOW_CLOSE reason 2) and its id is not reused while a window references it.
 
 Flow control: a `DesktopService::Config::send` returns whether the frame was

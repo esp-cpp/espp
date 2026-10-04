@@ -636,9 +636,12 @@ public:
   // ---- apps ----
 
   /// @brief Register an app; returns its id, or 0 (logged) when kMaxApps are
-  ///        registered already or the DESKTOP record set would no longer fit
-  ///        one frame. Name / icon / description longer than kMaxAppNameBytes
-  ///        / kMaxAppIconBytes / kMaxAppDescriptionBytes are truncated (logged).
+  ///        registered already or the DESKTOP records + full app list (with
+  ///        empty descriptions) would no longer fit one frame of
+  ///        Config::max_frame_bytes (apps are never trimmed on the wire, only
+  ///        the window list and the descriptions are). Name / icon /
+  ///        description longer than kMaxAppNameBytes / kMaxAppIconBytes /
+  ///        kMaxAppDescriptionBytes are truncated (logged).
   AppId register_app(App app) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (model_.apps().size() >= kMaxApps) {
@@ -657,15 +660,13 @@ public:
         .name = truncated("app name", app.name, kMaxAppNameBytes),
         .icon = truncated("app icon", app.icon, kMaxAppIconBytes),
         .description = truncated("app description", app.description, kMaxAppDescriptionBytes)};
-    // the record set must stay one frame (with the windows open right now)
-    detail::dp::DesktopInfo probe = model_.desktop_info(false);
-    probe.apps.push_back(rec);
-    if (detail::dp::encode_desktop(probe).size() > max_payload()) {
-      logger_.error("cannot register '{}': the DESKTOP record set would exceed {} bytes", app.name,
-                    max_payload());
+    // invariant: the records + the full app list (descriptions emptied) must
+    // always fit one frame, since apps are never trimmed on the wire
+    if (!model_.register_app(std::move(rec))) {
+      logger_.error("cannot register '{}': the DESKTOP records + app list would exceed {} bytes",
+                    app.name, max_payload());
       return 0;
     }
-    model_.register_app(std::move(rec));
     launchers_[id] = std::move(app.launch);
     wake();
     return id;

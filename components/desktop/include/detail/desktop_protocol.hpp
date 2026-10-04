@@ -57,17 +57,17 @@
 // (a long Text becomes Text + TextAppend pieces, an Items range becomes
 // several ranges, a tree continues in WIDGET_ADD) and never truncate. DIALOG
 // and NOTIFY are single frames: the Desktop API refuses one that would not
-// fit. DESKTOP is a single frame too: the app registry is bounded (kMaxApps,
-// kMaxApp*Bytes, kMaxDeviceNameBytes) and the payload cap is at least
-// kMinPayloadBytes (the maximal record set always fits), so it fits the
-// default 4081-byte payload with hundreds of open windows. Should a smaller
-// cap still overflow, encode_desktop() trims rather than overflow: the app
-// descriptions first, then apps from the end, and the window list LAST (the
-// host reconciles its windows against the list only when flags bit1
-// WindowListComplete is set; a trimmed list is advisory). Unsplittable
-// widget properties (Title / Placeholder / Tooltip str8-sized, Columns, a
-// single Items entry) are bounded at the Desktop API so the model never
-// holds a value the wire cannot carry.
+// fit. DESKTOP is a single frame too, with one invariant: the records and the
+// FULL app list always fit the selected cap (the registry is bounded --
+// kMaxApps, kMaxApp*Bytes, kMaxDeviceNameBytes -- and Desktop::register_app
+// refuses an app that would break the fit even with every description
+// empty); the only elastic parts are the window list (trimmed first, and
+// then flags bit1 WindowListComplete is clear so the host does not reconcile
+// against it) and the app descriptions. Apps are NEVER trimmed: a host
+// replaces its app registry on every DESKTOP frame. Unsplittable widget
+// properties (Title / Placeholder / Tooltip str8-sized, Columns, a single
+// Items entry) are bounded at the Desktop API so the model never holds a
+// value the wire cannot carry.
 
 #include <algorithm>
 #include <cstdint>
@@ -139,6 +139,18 @@ inline constexpr size_t kMinPayloadBytes =
               kWidgetSetMaxUnsplittableBytes, kDesktopRecordsMaxBytes});
 static_assert(kDesktopRecordsMaxBytes <= kMinPayloadBytes,
               "the DESKTOP record set must always fit the smallest payload cap");
+/// The smallest app record (empty name / icon / description): id, flags and
+/// three str8 lengths. At least one such app always registers at the minimum
+/// cap; a maximal registry (kMaxApps apps at every limit) plus 255 windows
+/// fits the default 4096-byte frame.
+inline constexpr size_t kAppRecMinBytes = 2 + 3;
+inline constexpr size_t kAppRecMaxBytes =
+    2 + 3 + kMaxAppNameBytes + kMaxAppIconBytes + kMaxAppDescriptionBytes;
+static_assert(kDesktopRecordsMaxBytes + kAppRecMinBytes <= kMinPayloadBytes,
+              "at least one app must register at the smallest payload cap");
+static_assert(kDesktopRecordsMaxBytes + kMaxApps * kAppRecMaxBytes + 255 * 3 <=
+                  4096 - espp::stream_frame::kMaxHeaderSize - espp::stream_frame::kCrcSize,
+              "a maximal registry with 255 open windows must fit the default frame");
 static_assert(kWindowOpenHeadMaxBytes <= kMinPayloadBytes &&
                   kWidgetAddMaxUnsplittableBytes <= kMinPayloadBytes &&
                   kWidgetSetMaxUnsplittableBytes <= kMinPayloadBytes,
@@ -882,14 +894,15 @@ struct Message {
 
 // ---- device -> host encoders -----------------------------------------------------------
 
-/// DESKTOP, a single frame. With the registry limits (kMaxApps, kMaxApp*Bytes,
-/// kMaxDeviceNameBytes / kMaxFirmwareBytes) and a cap of at least
-/// kMinPayloadBytes the records always fit and the default cap holds hundreds
-/// of windows; should it not fit `max_payload` (a small cap), it is trimmed in
-/// this order rather than overflow: the app descriptions, then apps from the
-/// end, then the window list from the end. The flags byte carries
-/// kDesktopWindowListComplete unless the window list was trimmed (the host
-/// reconciles its windows against the list only then).
+/// DESKTOP, a single frame. Invariant (kept by Desktop::register_app): the
+/// records plus the FULL app list, descriptions emptied, always fit
+/// `max_payload`. Should the whole thing not fit (many windows, long
+/// descriptions), it is trimmed in this order rather than overflow: the
+/// window list from the end (then flags bit1 WindowListComplete is clear:
+/// the host must not reconcile its windows against it), then the app
+/// descriptions. Apps are never dropped (a host replaces its registry on
+/// every DESKTOP frame); if the invariant were broken the payload would
+/// simply exceed the cap (the frame builder then refuses it).
 /// @param trimmed Set when something was left out.
 inline std::vector<uint8_t> encode_desktop(const DesktopInfo &d,
                                            size_t max_payload = espp::stream_frame::kMaxPayloadSize,
@@ -925,14 +938,12 @@ inline std::vector<uint8_t> encode_desktop(const DesktopInfo &d,
   std::vector<uint8_t> p = encode(napps, with_desc, nwin);
   bool cut = napps < d.apps.size() || nwin < d.windows.size();
   while (p.size() > max_payload) {
-    if (with_desc)
-      with_desc = false;
-    else if (napps > 0)
-      --napps;
-    else if (nwin > 0)
+    if (nwin > 0)
       --nwin;
+    else if (with_desc)
+      with_desc = false;
     else
-      break; // the records alone exceed the cap: nothing more to trim
+      break; // records + apps exceed the cap: never trim apps (see the invariant)
     cut = true;
     p = encode(napps, with_desc, nwin);
   }
