@@ -660,7 +660,7 @@
                       0x87: "DIALOG", 0x88: "NOTIFY", 0x89: "DIALOG_CLOSE", 0x8E: "OK", 0x8F: "ERROR" };
     const DESKTOP_PROTO = 1;                 // the `proto` byte at the head of every DESKTOP payload
     const DESKTOP_HAS_SNAPSHOT = 0x01;
-    const DESKTOP_WINDOWS_TRUNCATED = 0x02;  // the window list did not fit: incomplete, never authoritative
+    const DESKTOP_WINDOW_LIST_COMPLETE = 0x02;  // set when the window list is intact; a trimmed list is advisory, never authoritative
     const DESKTOP_MAX_PAYLOAD_CAP = 4081;    // stream_frame limit for a 4096-byte frame with a correlation id
     const DREC = { DEVICE_NAME: 1, FIRMWARE: 2, THEME: 3, ACCENT: 4, MAX_PAYLOAD: 5, FLUSH_PERIOD_MS: 6 };
     const APP_FLAG = { SINGLE_INSTANCE: 0x01, HIDDEN: 0x02 };
@@ -3169,10 +3169,10 @@
       for (const a of info.apps) apps.set(a.id, a);
       renderApps();
       for (const w of windows.values()) { w.appName = appName(w.app); }
-      // a COMPLETE open-window list is authoritative: drop what the device no
-      // longer has; a truncated one (bit1) says nothing about unlisted windows
-      if (info.flags & DESKTOP_WINDOWS_TRUNCATED) {
-        logLine("sys", "DESKTOP window list is truncated (" + info.windows.length + " listed); keeping the local windows.");
+      // a COMPLETE open-window list (bit1 set) is authoritative: drop what the
+      // device no longer has; a trimmed one says nothing about unlisted windows
+      if (!(info.flags & DESKTOP_WINDOW_LIST_COMPLETE)) {
+        logLine("sys", "DESKTOP window list is incomplete (" + info.windows.length + " listed); keeping the local windows.");
       } else {
         const live = new Set(info.windows.map((x) => x.id));
         for (const w of [...windows.values()]) if (!live.has(w.id)) removeWindow(w, true);
@@ -3437,12 +3437,12 @@
       assert(hexOf((await settled(DT.WIDGET_EVENT)).payload) === "0900010001", "click delivered to the modal window");
       feedHex(DT.WINDOW_CLOSE, "090000");
       assert(!windows.has(9), "modal window closed"); // (the backdrop stays for window 1, Modal by its vector flags)
-      // 13. an unsolicited DESKTOP with a TRUNCATED (bit1) empty window list keeps
-      // the local window; a complete empty one drops it
-      const truncated = Uint8Array.from([...vectors.desktop.payload.subarray(0, vectors.desktop.payload.length - 4), 0]); truncated[1] = 0x02; // ...[nwin = 0]
+      // 13. an unsolicited DESKTOP whose empty window list is NOT flagged complete
+      // (bit1 clear) keeps the local window; a complete empty one drops it
+      const truncated = Uint8Array.from([...vectors.desktop.payload.subarray(0, vectors.desktop.payload.length - 4), 0]); truncated[1] = 0x00; // ...[nwin = 0]
       handleRxBytes(buildReplyFrame(moduleDesktop, DT.DESKTOP, truncated));
       assert(windows.has(1) && apps.size === 3, "truncated window list left the window alone");
-      const complete = Uint8Array.from(truncated); complete[1] = 0x00;
+      const complete = Uint8Array.from(truncated); complete[1] = DESKTOP_WINDOW_LIST_COMPLETE;
       handleRxBytes(buildReplyFrame(moduleDesktop, DT.DESKTOP, complete));
       assert(!windows.has(1), "a complete empty window list drops the window");
       feed("window_open");
