@@ -62,13 +62,22 @@ struct NetworkState {
   /// The station state machine, driven by the jobs below on the worker task
   /// and by the driver callbacks (got-ip -> Connected, retries exhausted ->
   /// Idle). `Stopping` is the explicit wait for the DISCONNECTED event.
-  /// `Failed` is the recoverable error state a transition aborts into when
-  /// the station could not be stopped (the disconnect was rejected, or its
-  /// DISCONNECTED event did not arrive in time): nothing is reconfigured, the
-  /// station is left as it is, the user retries. A later event resolves it
-  /// (the callbacks still own the phase), and the next job starts with a
-  /// fresh stop_and_wait().
-  enum class Phase : uint8_t { Idle, Stopping, Configuring, Associating, Connected, Failed };
+  /// `Recovering` is the deterministic stop / start of the whole station
+  /// (recover()) after a DISCONNECTED wait timed out. `Failed` is the
+  /// recoverable error state a transition aborts into when the station could
+  /// not be stopped (the disconnect was rejected, or the recovery itself
+  /// failed): nothing is reconfigured, the station is left as it is, the user
+  /// retries. A later event resolves it (the callbacks still own the phase),
+  /// and the next job starts with a fresh stop_and_wait().
+  enum class Phase : uint8_t {
+    Idle,
+    Stopping,
+    Recovering,
+    Configuring,
+    Associating,
+    Connected,
+    Failed
+  };
   std::atomic<Phase> phase{Phase::Idle};
   /// A job (scan / connect / disconnect / forget) is running on the worker:
   /// every station control is disabled, and another job is refused.
@@ -83,20 +92,23 @@ struct NetworkState {
   /// callback is installed" can never identify an event: the three callbacks
   /// are therefore installed ONCE (ensure_wifi) and never replaced -- every
   /// reconfigure() passes the same long-lived std::function objects -- and
-  /// they consult this state under `mutex`:
-  ///   - `disconnected_events` counts the deliveries stop_and_wait() waits on;
-  ///   - `stale_disconnects` is the number of disconnects the worker requested
-  ///     but never saw confirmed (the wait timed out): the next DISCONNECTED
-  ///     deliveries consume those credits and are ignored, which DRAINS the
-  ///     late event whenever it arrives instead of letting it satisfy a later
-  ///     wait or move a later attempt to Idle.
+  /// they consult this state under `mutex`. `disconnected_events` counts the
+  /// deliveries stop_and_wait() waits on. When that wait times out the
+  /// station is RECOVERED deterministically (recover(): esp_wifi_stop(),
+  /// wait for WIFI_EVENT_STA_STOP, esp_wifi_start()) -- the stop tears down
+  /// any in-flight association, every event of the old session is delivered
+  /// before STA_STOP, and nothing trails after it -- so the worker never
+  /// resumes with an unconfirmed disconnect outstanding and no credit /
+  /// drain bookkeeping is needed.
   std::condition_variable disconnected_cv; // with `mutex`: a DISCONNECTED event arrived
   uint32_t disconnected_events{0};         // under `mutex`
-  uint32_t stale_disconnects{0};           // under `mutex`
+  std::condition_variable stopped_cv;      // with `mutex`: WIFI_EVENT_STA_STOP arrived
+  uint32_t stopped_events{0};              // under `mutex`
   std::string cur_ssid, cur_pass;          // the credentials of the current attempt (under `mutex`)
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI
   std::unique_ptr<espp::WifiSta> wifi;
-  std::unique_ptr<espp::Task> worker; // after wifi: joined before it goes away
+  std::unique_ptr<espp::Task> worker;                     // after wifi: joined before it goes away
+  esp_event_handler_instance_t sta_stop_handler{nullptr}; // WIFI_EVENT_STA_STOP -> stopped_cv
   // the long-lived callbacks (see above); they run on the event-loop task
   espp::WifiSta::connect_callback on_connected_fn = [this]() {
     set_status("connected, waiting for an IP");
@@ -104,27 +116,32 @@ struct NetworkState {
   espp::WifiSta::disconnect_callback on_disconnected_fn = [this]() {
     {
       std::lock_guard<std::mutex> lock(mutex);
-      if (stale_disconnects > 0) {
-        // the late confirmation of a disconnect whose wait timed out
-        --stale_disconnects;
-        logger.info("drained a stale DISCONNECTED ({} left)", stale_disconnects);
-        return;
-      }
       ++disconnected_events; // a confirmation stop_and_wait() may be waiting on
     }
     disconnected_cv.notify_all();
-    if (phase == Phase::Stopping)
+    const Phase p = phase.load();
+    if (p == Phase::Stopping || p == Phase::Recovering)
       return;            // the worker owns this transition
     phase = Phase::Idle; // retries exhausted
     set_status(want_connected ? "disconnected (retries exhausted; Connect or a scan retries)"
                               : "disconnected");
   };
   espp::WifiSta::ip_callback on_got_ip_fn = [this](ip_event_got_ip_t *e) {
-    if (phase == Phase::Stopping)
-      return; // being stopped: the DISCONNECTED that follows settles it
+    const Phase p = phase.load();
+    if (p == Phase::Stopping || p == Phase::Recovering)
+      return; // being stopped: the DISCONNECTED / STA_STOP that follows settles it
     phase = Phase::Connected;
     set_status("connected", fmt::format("{}.{}.{}.{}", IP2STR(&e->ip_info.ip)));
   };
+  /// WIFI_EVENT_STA_STOP (event-loop task): wakes recover().
+  static void on_sta_stop(void *arg, esp_event_base_t, int32_t, void *) {
+    auto *self = static_cast<NetworkState *>(arg);
+    {
+      std::lock_guard<std::mutex> lock(self->mutex);
+      ++self->stopped_events;
+    }
+    self->stopped_cv.notify_all();
+  }
 #endif
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_ETHERNET
   std::unique_ptr<espp::Ethernet> eth;
@@ -175,7 +192,10 @@ struct NetworkState {
     return {.ssid = std::move(ssid),
             .password = std::move(password),
             .num_connect_retries = 3,
-            .auto_connect = true,
+            // never auto-connect from STA_START: every association is issued
+            // explicitly by the worker (and once at start-up), so a recovery's
+            // esp_wifi_start() cannot connect to stale credentials by itself
+            .auto_connect = false,
             .on_connected = on_connected_fn,
             .on_disconnected = on_disconnected_fn,
             .on_got_ip = on_got_ip_fn,
@@ -276,14 +296,25 @@ struct NetworkState {
     auto &stack = espp::Wifi::get();
     if (stack.init())
       stack.set_storage(WIFI_STORAGE_RAM);
-    auto cfg = wifi_config(ssid, pass);
-    cfg.auto_connect = !ssid.empty();
-    want_connected = cfg.auto_connect;
-    // WifiSta connects from its STA_START event: that is an association
-    phase = cfg.auto_connect ? Phase::Associating : Phase::Idle;
-    set_status(ssid.empty() ? "idle (no saved network)" : "connecting");
-    wifi = std::make_unique<espp::WifiSta>(cfg);
+    wifi = std::make_unique<espp::WifiSta>(wifi_config(ssid, pass));
     wifi_mac = wifi->get_mac();
+    // recover() waits for the station's STOP event, which WifiSta does not
+    // expose: observe it directly
+    esp_event_handler_instance_register(WIFI_EVENT, WIFI_EVENT_STA_STOP, &on_sta_stop, this,
+                                        &sta_stop_handler);
+    // the start-up association is issued explicitly (auto_connect is off)
+    want_connected = !ssid.empty();
+    if (ssid.empty()) {
+      phase = Phase::Idle;
+      set_status("idle (no saved network)");
+    } else {
+      phase = Phase::Associating;
+      set_status(fmt::format("connecting to {}", ssid));
+      if (!wifi->connect()) {
+        phase = Phase::Idle;
+        set_status("connect failed: use Connect");
+      }
+    }
   }
 
   // ---- the worker: one job at a time, every station control disabled ----
@@ -320,16 +351,16 @@ struct NetworkState {
   /// called at all: no event would come and its private `disconnecting_`
   /// would stay set, costing the next attempt its retries. Worker task.
   ///
-  /// The rule on failure: a rejected disconnect or a missing event ABORTS the
-  /// transition (phase Failed, a toast, false returned) -- the caller must
-  /// not reconfigure, because continuing would re-open the stale-event race
-  /// this wait exists to close. The station is left as it is and the user
-  /// retries. A timed-out wait leaves a `stale_disconnects` credit, so the
-  /// confirmation that never came is drained by the callback whenever it
-  /// arrives (never counted for a later wait, never applied to a later
-  /// attempt). From Failed, a later event has usually resolved the phase
-  /// (Idle / Connected); if none came and the driver reports no association,
-  /// the station is taken as idle (its credit stays until the event comes).
+  /// The rule on failure: a rejected disconnect ABORTS the transition (phase
+  /// Failed, a toast, false returned) -- the caller must not reconfigure. A
+  /// missing DISCONNECTED (the wait timed out) is never resumed from with the
+  /// confirmation outstanding -- it may never come, and resuming would re-open
+  /// the stale-event race this wait exists to close: the station is RECOVERED
+  /// (recover(): stop the whole station, wait for STA_STOP, start it again),
+  /// after which it is known idle and the transition continues; only a failed
+  /// recovery aborts into Failed. From Failed, a later event has usually
+  /// resolved the phase (Idle / Connected); if none came and the driver
+  /// reports no association, the station is taken as idle.
   /// Returns true once the station is idle.
   bool stop_and_wait(std::chrono::milliseconds timeout = std::chrono::milliseconds(1000)) {
     Phase p = phase.load();
@@ -338,7 +369,7 @@ struct NetworkState {
       if (esp_wifi_sta_get_ap_info(&ap) == ESP_OK)
         p = Phase::Connected; // still associated: stop it like a connected station
       else
-        return true; // nothing associated: idle (the timed-out credit remains)
+        return true; // nothing associated: idle
     }
     if (p != Phase::Connected && p != Phase::Associating)
       return true;
@@ -351,7 +382,7 @@ struct NetworkState {
     }
     if (!wifi->disconnect()) {
       // the driver rejected it (WifiSta rolls its flag back; nothing was
-      // initiated, so no credit): a failed transition, not an idle station
+      // initiated): a failed transition, not an idle station
       phase = Phase::Failed;
       set_status("stopping failed: try again");
       toast("the station could not be stopped; try again", D::NotifyLevel::Error);
@@ -361,14 +392,46 @@ struct NetworkState {
     {
       std::unique_lock<std::mutex> lock(mutex);
       got = disconnected_cv.wait_for(lock, timeout, [&] { return disconnected_events != seen; });
-      if (!got)
-        ++stale_disconnects; // requested, never confirmed: drain it when it comes
     }
     if (!got) {
-      logger.warn("no DISCONNECTED event within {} ms; aborting the transition", timeout.count());
+      logger.warn("no DISCONNECTED event within {} ms; recovering the station", timeout.count());
+      return recover();
+    }
+    phase = Phase::Idle;
+    return true;
+  }
+
+  /// Recovering: stop the whole station (esp_wifi_stop() tears down any
+  /// in-flight association; every event of the old session -- a DISCONNECTED
+  /// included -- is delivered before WIFI_EVENT_STA_STOP and nothing trails
+  /// after it), wait for STA_STOP (bounded), then start it again. With
+  /// auto_connect off nothing associates by itself, so the station is known
+  /// idle afterwards and the interrupted transition continues from there.
+  /// espp::Wifi::stop() only serves the registry's active interface (this
+  /// station is standalone), hence the driver calls. Worker task.
+  bool recover(std::chrono::milliseconds timeout = std::chrono::milliseconds(2000)) {
+    phase = Phase::Recovering;
+    set_status("recovering the station");
+    uint32_t seen = 0;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      seen = stopped_events;
+    }
+    const esp_err_t stop_err = esp_wifi_stop();
+    bool stopped = stop_err == ESP_OK;
+    if (stopped) {
+      std::unique_lock<std::mutex> lock(mutex);
+      stopped = stopped_cv.wait_for(lock, timeout, [&] { return stopped_events != seen; });
+    }
+    // start again even after a failed stop (the station may already be
+    // stopped); WifiSta::start() is esp_wifi_start() with its logging
+    const bool started = wifi->start();
+    if (!stopped || !started) {
+      logger.error("station recovery failed (stop: {}, STA_STOP: {}, start: {})",
+                   esp_err_to_name(stop_err), stopped ? "seen" : "missing", started);
       phase = Phase::Failed;
-      set_status("stopping timed out: try again");
-      toast("the station did not report its disconnect in time; try again", D::NotifyLevel::Error);
+      set_status("recovery failed: try again");
+      toast("the station could not be recovered; try again", D::NotifyLevel::Error);
       return false;
     }
     phase = Phase::Idle;
