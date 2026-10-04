@@ -176,10 +176,13 @@ struct CanopenSession {
     return true;
   }
 
-  /// `what` failed with `ec`: a toast (level error).
-  void fail(std::string_view what, const std::error_code &ec) {
+  /// `what` failed with `ec`: a toast (level error). `sdo` says the failing
+  /// call was an SDO transaction, the only case in which the client's
+  /// last_abort_code() describes THIS failure (NMT sends and bus init never
+  /// touch it, so appending it there would show a stale, unrelated abort).
+  void fail(std::string_view what, const std::error_code &ec, bool sdo = false) {
     std::string text = fmt::format("{}: {}", what, ec.message());
-    if (client && client->last_abort_code())
+    if (sdo && client && client->last_abort_code())
       text += fmt::format(" (SDO abort 0x{:08X}: {})", client->last_abort_code(),
                           espp::CanopenClient::abort_code_to_string(client->last_abort_code()));
     desktop.notify({.title = "CANopen", .text = text, .level = D::NotifyLevel::Error});
@@ -367,7 +370,7 @@ inline void register_canopen_app(espp::Desktop &desktop) {
                   st->run([=]() {
                     std::error_code ec;
                     if (!st->drive || !st->drive->set_mode(m, ec))
-                      st->fail("set mode", ec);
+                      st->fail("set mode", ec, /*sdo=*/true);
                   });
                 },
                 mode_row.id());
@@ -380,7 +383,7 @@ inline void register_canopen_app(espp::Desktop &desktop) {
                     st->run([=]() {
                       std::error_code ec;
                       if (!st->drive || !((*st->drive).*fn)(ec))
-                        st->fail(text, ec);
+                        st->fail(text, ec, /*sdo=*/true); // controlword / statusword SDOs
                       else
                         st->desktop.notify({.title = "CANopen",
                                             .text = fmt::format("{}: ok", text),
@@ -401,7 +404,7 @@ inline void register_canopen_app(espp::Desktop &desktop) {
                   st->run([=]() { // manufacturer object 0x2000 of the simulated node
                     std::error_code ec;
                     if (!st->client || !st->client->write_u8(0x2000, 0, 1, ec))
-                      st->fail("inject fault", ec);
+                      st->fail("inject fault", ec, /*sdo=*/true);
                   });
                 },
                 ctl.id());
@@ -422,7 +425,7 @@ inline void register_canopen_app(espp::Desktop &desktop) {
                   st->run([=]() {
                     std::error_code ec;
                     if (!st->drive || !st->drive->set_target_velocity(v, ec))
-                      st->fail("target velocity", ec);
+                      st->fail("target velocity", ec, /*sdo=*/true);
                   });
                 },
                 vel_row.id(), D::kButtonPrimary);
@@ -469,7 +472,7 @@ inline void register_canopen_app(espp::Desktop &desktop) {
                     if (!n) {
                       st->sdo_result.set_text("read 0x{:04X}:{:02X} failed: {}", index, sub,
                                               ec.message());
-                      st->fail("SDO read", ec);
+                      st->fail("SDO read", ec, /*sdo=*/true);
                       return;
                     }
                     const uint32_t v = espp::detail::canopen::get_le(buf.data(), n);
@@ -512,7 +515,7 @@ inline void register_canopen_app(espp::Desktop &desktop) {
                     else {
                       st->sdo_result.set_text("write 0x{:04X}:{:02X} failed: {}", index, sub,
                                               ec.message());
-                      st->fail("SDO write", ec);
+                      st->fail("SDO write", ec, /*sdo=*/true);
                     }
                   });
                 },

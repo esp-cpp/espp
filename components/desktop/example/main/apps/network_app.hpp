@@ -197,10 +197,16 @@ struct NetworkState {
     wifi_mac = wifi->get_mac();
   }
 
+  /// What forget() managed to do (each part is reported separately).
+  struct ForgetResult {
+    bool erased{false};        ///< the NVS keys are gone (erased + committed, or never stored)
+    bool station_reset{false}; ///< the driver + WifiSta configs are empty
+  };
+
   /// Drop the saved credentials everywhere: the app's NVS keys, the driver's
   /// station config and WifiSta's stored config (reconfigured with empty
   /// credentials and auto-connect off, so nothing reconnects).
-  bool forget() {
+  ForgetResult forget() {
     std::error_code ec;
     espp::NvsHandle nvs("desktop", ec);
     bool erased = !ec;
@@ -219,9 +225,12 @@ struct NetworkState {
     auto cfg =
         wifi_config("", ""); // empty ssid: reconfigure() adopts the (now empty) driver config
     cfg.auto_connect = false;
-    const bool ok = wifi->reconfigure(cfg) && cleared && erased;
-    set_status("idle (no saved network)");
-    return ok;
+    const bool station_reset = wifi->reconfigure(cfg) && cleared;
+    // the persistent status must not claim the credentials are gone when the
+    // NVS erase / commit failed
+    set_status(erased ? "idle (no saved network)"
+                      : "Forget failed: the credentials may still be saved");
+    return {.erased = erased, .station_reset = station_reset};
   }
 
   /// Save the credentials (committed, so they survive a reboot).
@@ -452,11 +461,16 @@ inline void register_network_app(espp::Desktop &desktop) {
             forget_btn.on_event([=, &d](const D::WidgetEvent &e) mutable {
               if (e.kind != D::WidgetEventKind::Click || refuse_if_scanning())
                 return;
-              const bool ok = net->forget();
+              const auto r = net->forget();
               d.notify({.title = "Wi-Fi",
-                        .text = ok ? "saved network forgotten"
-                                   : "credentials erased, but the station could not be reset",
-                        .level = ok ? D::NotifyLevel::Ok : D::NotifyLevel::Warn});
+                        .text = !r.erased ? "Forget failed: the credentials may still be saved "
+                                            "in NVS"
+                                : !r.station_reset
+                                    ? "credentials erased, but the station could not be reset"
+                                    : "saved network forgotten",
+                        .level = !r.erased          ? D::NotifyLevel::Error
+                                 : !r.station_reset ? D::NotifyLevel::Warn
+                                                    : D::NotifyLevel::Ok});
             });
 #endif
 
