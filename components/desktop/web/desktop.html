@@ -392,7 +392,7 @@
         <button id="usbBtn" class="primary">Connect WebUSB</button>
         <button id="serialBtn" class="primary">Connect Web Serial</button>
         <label><input type="checkbox" id="anyDevice"> show all USB devices (no VID/PID filter)</label>
-        <label title="Reconnect automatically when the device comes back after a reboot or re-plug (not after a reboot into the bootloader)"><input type="checkbox" id="autoReconnect" checked> auto-reconnect</label>
+        <label title="Automatic connects: to the one previously granted espp device on load and when it is plugged in, and back to the same device after a reboot or re-plug (not after a reboot into the bootloader). Uncheck to connect only by hand."><input type="checkbox" id="autoReconnect" checked> auto-reconnect</label>
         <span id="devInfo" class="muted">Not connected. WebUSB talks to the vendor (0xFF) interface (default filter VID 0x1209); Web Serial to the CDC port, where the device console and the protocol share one stream.</span>
       </div>
       <div id="unsupported">
@@ -1233,6 +1233,18 @@
       const cell = (i) => { const c = String(items[i] == null ? "" : items[i]).split("\t"); return c[col] == null ? "" : c[col]; };
       return order.sort((x, y) => { const c = compareCells(cell(x), cell(y)); return c !== 0 ? c * dir : x - y; });
     }
+    // Automatic connect without a hand-off link: among the devices this origin
+    // was already granted, the ONE espp USB device (vendor id `vid`), else the
+    // one espp serial port; several candidates -> never guess (`several`).
+    function pickAutoConnectCandidate(usbDevices, serialPorts, vid) {
+      const usb = (usbDevices || []).filter((d) => d && d.vendorId === vid);
+      if (usb.length === 1) return { kind: "usb", device: usb[0] };
+      if (usb.length > 1) return { kind: "usb", several: usb.length };
+      const ports = (serialPorts || []).filter((p) => { try { const i = p && typeof p.getInfo === "function" ? p.getInfo() : p; return !!i && i.usbVendorId === vid; } catch (_) { return false; } });
+      if (ports.length === 1) return { kind: "serial", port: ports[0] };
+      if (ports.length > 1) return { kind: "serial", several: ports.length };
+      return null;
+    }
     // ==== DESKTOP:END-PURE ====
 
     // ===================================================================
@@ -1523,6 +1535,34 @@
       }
       logLine("warn", "Auto-connect: no permitted " + describeIdentity(want) + " found — use Connect (the browser only lists devices this page was already granted).");
     }
+    // Without a hand-off link (a plain open or a reload): connect to the single
+    // previously granted espp device on load, and when one is plugged in while
+    // the page is idle. Gated by the auto-reconnect checkbox (the opt-out for
+    // every automatic open); never guesses between several candidates; a
+    // recovery in progress belongs to the supervisor.
+    async function autoConnectPermitted(why) {
+      const idle = () => !transport && els.autoReconnect.checked && !openGate.isBusy() && !reconnect.isActive();
+      if (!idle()) return;
+      let usb = [], ports = [];
+      try { if (navigator.usb && typeof navigator.usb.getDevices === "function") usb = await navigator.usb.getDevices(); } catch (_) {}
+      try { if (navigator.serial && typeof navigator.serial.getPorts === "function") ports = await navigator.serial.getPorts(); } catch (_) {}
+      if (!idle()) return;
+      const pick = pickAutoConnectCandidate(usb, ports, DEFAULT_VID);
+      if (!pick) return;
+      if (pick.several) { logLine("sys", pick.several + " permitted espp " + (pick.kind === "usb" ? "USB devices" : "serial ports") + " are attached — use Connect to pick one."); return; }
+      const identity = pick.kind === "usb" ? usbIdentity(pick.device) : serialIdentity(pick.port);
+      logLine("sys", why + ": connecting to the permitted " + describeIdentity(identity) + " (uncheck auto-reconnect to stop automatic connects)…");
+      try {
+        const t = pick.kind === "usb" ? await connectUsb(pick.device) : await connectSerial(pick.port);
+        if (t) onConnected(t);
+      } catch (e) {
+        logLine("err", "Automatic connect failed: " + (e && e.message ? e.message : e) + " — use Connect.");
+      }
+    }
+    if (navigator.usb && typeof navigator.usb.addEventListener === "function")
+      navigator.usb.addEventListener("connect", (e) => { if (e.device && e.device.vendorId === DEFAULT_VID) setTimeout(() => autoConnectPermitted("Device plugged in"), 600); }); // let the OS finish enumerating
+    if (navigator.serial && typeof navigator.serial.addEventListener === "function")
+      navigator.serial.addEventListener("connect", () => setTimeout(() => autoConnectPermitted("Serial port attached"), 600));
     // pagehide: the browser tears the handle down itself and an await cannot finish here, so the notice goes out before the close (best effort)
     window.addEventListener("pagehide", () => { if (transport) postReleased(deviceChannel, connIdentity); });
     // ... but the close is still STARTED (second listener, runs after the notice): releasing the USB interface /
@@ -3703,6 +3743,7 @@
     installAppNav();
     installAppHandBack({ connected: () => !!transport, handBack: async () => { const id = connIdentity; await disconnect(); return id; } });
     if (connectParams.autoconnect) autoConnect();
+    if (!connectParams.autoconnect) autoConnectPermitted("On load");
     // the script ran to its end (web/test/smoke.sh checks this attribute in the rendered DOM)
     document.body.dataset.ready = "desktop";
   </script>

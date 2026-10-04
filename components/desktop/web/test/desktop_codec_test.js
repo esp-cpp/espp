@@ -22,7 +22,7 @@ const end = html.indexOf("// ==== DESKTOP:END-PURE ====");
 assert(begin > 0 && end > begin, "pure-block markers not found in desktop.html");
 const pure = html.slice(begin, end);
 const P = new Function(pure + `
-  return { sortedOrder, compareCells, cellSortKey, DT, DT_NAME, PROP, WT, WIN, WEV, WGEV, KEY, MOD, LAYOUT, TA_FLAG, MIN_WINDOW, DESKTOP_MAX_PAYLOAD_CAP, COLOR_DEFAULT, DESKTOP_HAS_SNAPSHOT, DESKTOP_WINDOW_LIST_COMPLETE, MAX_TEXT_BYTES_DEFAULT, SUBMIT_EVENT_HEADER, DIALOG_RESULT_HEADER, utf8ByteLength, truncateUtf8,
+  return { pickAutoConnectCandidate, sortedOrder, compareCells, cellSortKey, DT, DT_NAME, PROP, WT, WIN, WEV, WGEV, KEY, MOD, LAYOUT, TA_FLAG, MIN_WINDOW, DESKTOP_MAX_PAYLOAD_CAP, COLOR_DEFAULT, DESKTOP_HAS_SNAPSHOT, DESKTOP_WINDOW_LIST_COMPLETE, MAX_TEXT_BYTES_DEFAULT, SUBMIT_EVENT_HEADER, DIALOG_RESULT_HEADER, utf8ByteLength, truncateUtf8,
            ByteReader, ByteWriter, hexOf, bytesOfHex, propKind, readRec, decodeProp, propBytes, desktopSettings,
            decodeMessage, encodeMessage, decodeWidgetSet, decodeDesktop, chunkText, keyCodeFor,
            clampGeometry, geometryEquals, resizeGeometry, placeWindow, createGeometryStore, geometryKey,
@@ -320,6 +320,17 @@ test("registry metadata and wiring constants", () => {
     assert.deepStrictEqual(P.sortedOrder(rows, 7, 1), [0, 1, 2, 3, 4], "a missing column compares equal: firmware order");
     assert.ok(P.compareCells("file2", "file10") < 0 && P.compareCells("B", "a") > 0, "locale compare is numeric-aware and case-insensitive");
     assert.strictEqual(P.cellSortKey(" -3.5 %"), -3.5); assert.strictEqual(P.cellSortKey("any"), null);
+  }
+  // automatic connect candidate: the one granted espp USB device, else the one espp serial port, never a guess
+  {
+    const espp = { vendorId: 0x1209, productId: 0x0d38 }, other = { vendorId: 0x2341, productId: 1 };
+    const port = (v) => ({ getInfo: () => ({ usbVendorId: v }) });
+    assert.deepStrictEqual(P.pickAutoConnectCandidate([espp, other], [], 0x1209), { kind: "usb", device: espp });
+    assert.deepStrictEqual(P.pickAutoConnectCandidate([espp, espp], [port(0x1209)], 0x1209), { kind: "usb", several: 2 });
+    assert.strictEqual(P.pickAutoConnectCandidate([other], [port(0x1209)], 0x1209).kind, "serial");
+    assert.deepStrictEqual(P.pickAutoConnectCandidate([], [port(0x1209), port(0x1209)], 0x1209), { kind: "serial", several: 2 });
+    assert.strictEqual(P.pickAutoConnectCandidate([other], [port(0x2341), { getInfo: () => { throw new Error("x"); } }], 0x1209), null);
+    assert.strictEqual(P.pickAutoConnectCandidate(null, undefined, 0x1209), null);
   }
   assert.strictEqual(P.MIN_WINDOW.w, 160);
 });

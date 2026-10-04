@@ -22,7 +22,11 @@ user's actions back, over WebUSB / Web Serial (or any framed byte stream).
 
 The hosted [desktop](https://esp-cpp.github.io/espp/apps/desktop.html) web app
 (`web/desktop.html`) renders it: desktop icons and a start menu, draggable /
-resizable windows with a taskbar, modal dialogs, toasts and a frame log.
+resizable windows with a taskbar, modal dialogs, toasts and a frame log. Without a hand-off link the page connects by itself to the one
+espp device this origin was already granted (on load and when it is plugged
+in), reconnects to the same device after a reboot or re-plug, and never
+guesses between several candidates; the **auto-reconnect** checkbox turns all
+automatic connects off.
 
 *Screenshots: to be added after hardware testing.*
 
