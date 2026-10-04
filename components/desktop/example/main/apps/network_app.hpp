@@ -427,7 +427,7 @@ inline void register_network_app(espp::Desktop &desktop) {
               auto *state = net.get(); // outlives the task (joined by its destructor)
               net->scan_task = std::make_unique<espp::Task>(espp::Task::Config{
                   .callback =
-                      [=]() mutable {
+                      [=, &d]() mutable { // d (the Desktop) outlives every task
                         // WifiSta::scan() drops the link with a bare
                         // esp_wifi_disconnect(), which WifiSta's DISCONNECTED
                         // handler treats as unintentional and answers with a
@@ -446,8 +446,16 @@ inline void register_network_app(espp::Desktop &desktop) {
                         const auto aps = state->wifi->scan(20);
                         if (intent) {
                           state->set_status("reconnecting");
-                          if (state->wifi->connect())
+                          if (state->wifi->connect()) {
                             state->associating = true;
+                          } else {
+                            // never leave "reconnecting" up: say what to do
+                            state->associating = false;
+                            state->set_status("reconnect failed: use Connect");
+                            d.notify({.title = "Wi-Fi",
+                                      .text = "could not reconnect after the scan; use Connect",
+                                      .level = D::NotifyLevel::Error});
+                          }
                         } else {
                           state->set_status("disconnected");
                         }

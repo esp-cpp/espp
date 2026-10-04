@@ -266,6 +266,8 @@ struct CanopenSession {
     std::error_code ec;
     const uint16_t sw = drive->get_statusword(ec);
     if (ec) {
+      // the dependent fields are stale too: clear them next to the message
+      clear_status("no response");
       state_label.set_text("State: no response from node {} ({})", node_id, ec.message());
       return;
     }
