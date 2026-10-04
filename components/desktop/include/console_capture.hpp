@@ -80,19 +80,27 @@ public:
   static bool install(const Config &config, std::error_code &ec) {
     ec.clear();
     State &s = state();
-    std::lock_guard<std::mutex> lock(s.mutex);
-    if (s.installed) {
-      s.tee.store(config.tee_to_console);
-      s.strip_ansi.store(config.strip_ansi);
-      reconcile_tee(s, config.tee_to_console);
-      return true;
+    // Lock order rule (see State): s.mutex and tee_mutex are never held
+    // together -- the ring state is set under s.mutex and released BEFORE the
+    // tee is reconciled under tee_mutex.
+    {
+      std::lock_guard<std::mutex> lock(s.mutex);
+      if (s.installed) {
+        s.tee.store(config.tee_to_console);
+        s.strip_ansi.store(config.strip_ansi);
+        s.pending_install = false;
+      } else {
+        s.ring = detail::ConsoleRing(config.capacity_bytes);
+        s.tee.store(config.tee_to_console);
+        s.strip_ansi.store(config.strip_ansi);
+        s.pending_install = true;
+      }
     }
-    s.ring = detail::ConsoleRing(config.capacity_bytes);
-    s.tee.store(config.tee_to_console);
-    s.strip_ansi.store(config.strip_ansi);
+    reconcile_tee(s, config.tee_to_console);
+    if (!s.pending_install)
+      return true; // was installed already: the tee / strip flags are updated
     std::fflush(stdout);
     std::fflush(stderr);
-    reconcile_tee(s, config.tee_to_console);
     esp_vfs_t vfs = {};
     vfs.flags = ESP_VFS_FLAG_DEFAULT;
     // The classic (context-pointer-less) esp_vfs_t members are deprecated in
@@ -110,12 +118,12 @@ public:
       ec = std::make_error_code(std::errc::io_error);
       return false;
     }
-    s.installed = true; // published before freopen: the write callback is live
     // freopen closes the stream's previous target even when opening the new
     // one fails, so on any failure restore both streams to the original
-    // console (best effort), undo the VFS + tee, and report.
+    // console (best effort), undo the VFS + tee, and report. (The write
+    // callback is live from the register on: it only touches the ring, which
+    // is ready, so nothing is lost if a log line arrives in between.)
     auto rollback = [&]() {
-      s.installed = false;
       // cppcheck-suppress ignoredReturnValue
       std::freopen(original_console_path(), "w", stdout);
       // cppcheck-suppress ignoredReturnValue
@@ -135,6 +143,9 @@ public:
     // write, so a reader never sees a torn line for ordinary logging
     std::setvbuf(stdout, nullptr, _IOLBF, 256);
     std::setvbuf(stderr, nullptr, _IONBF, 0);
+    std::lock_guard<std::mutex> lock(s.mutex);
+    s.installed = true;
+    s.pending_install = false;
     return true;
   }
 
@@ -195,21 +206,28 @@ public:
   /// @brief Switch the tee to the original console on / off.
   static void set_tee_to_console(bool enable) {
     State &s = state();
-    std::lock_guard<std::mutex> lock(s.mutex);
-    s.tee.store(enable);
-    reconcile_tee(s, enable);
+    s.tee.store(enable);      // atomic: no s.mutex needed ...
+    reconcile_tee(s, enable); // ... so tee_mutex is taken with nothing else held
   }
 
   static bool tee_to_console() { return state().tee.load(); }
 
 private:
+  // LOCK ORDER: `mutex` (the ring) and `tee_mutex` (the console fd) are NEVER
+  // held at the same time, by anyone. vfs_write takes tee_mutex, releases it,
+  // then takes mutex; install() sets the ring state under mutex, releases it,
+  // then reconciles the tee under tee_mutex; set_tee_to_console() touches only
+  // the atomic flag and tee_mutex. Keep it that way: a console write blocked
+  // on a slow UART must never hold up the ring, and no path may nest them.
   struct State {
-    std::mutex mutex; ///< guards the ring
+    std::mutex mutex; ///< guards the ring and the install flags (never nested with tee_mutex)
     detail::ConsoleRing ring{1};
-    bool installed{false};
+    bool installed{false};       ///< install() completed
+    bool pending_install{false}; ///< install() in progress (ring ready, streams not yet)
     std::atomic<bool> tee{true};
     std::atomic<bool> strip_ansi{false};
-    std::mutex tee_mutex; ///< holds tee_fd open across a write (reconcile closes under it)
+    std::mutex tee_mutex; ///< holds tee_fd open across a write (reconcile closes under it);
+                          ///< never nested with `mutex`
     int tee_fd{-1};
   };
 
@@ -241,7 +259,8 @@ private:
   }
 
   /// Open / close the tee fd to match `want`. Serialized with the writers on
-  /// tee_mutex so an fd is never closed under a write() in flight.
+  /// tee_mutex so an fd is never closed under a write() in flight. Must be
+  /// called WITHOUT s.mutex held (see the lock order rule on State).
   static void reconcile_tee(State &s, bool want) {
     std::lock_guard<std::mutex> lock(s.tee_mutex);
     if (want && s.tee_fd < 0) {
@@ -260,7 +279,8 @@ private:
     return 0;
   }
 
-  /// Runs on whichever task writes to stdout / stderr: tee, then ring.
+  /// Runs on whichever task writes to stdout / stderr: tee, then ring. The
+  /// two mutexes are taken one AFTER the other, never nested (lock order rule).
   static ssize_t vfs_write(int, const void *data, size_t size) {
     State &s = state();
     if (s.tee.load()) {
@@ -269,7 +289,7 @@ private:
       std::lock_guard<std::mutex> tee_lock(s.tee_mutex);
       if (s.tee_fd >= 0)
         ::write(s.tee_fd, data, size);
-    }
+    } // tee_mutex released here, before the ring's mutex is taken
     std::lock_guard<std::mutex> lock(s.mutex);
     s.ring.write(static_cast<const uint8_t *>(data), size, s.strip_ansi.load());
     return static_cast<ssize_t>(size);
