@@ -26,9 +26,11 @@ struct I2cSession {
   std::vector<uint8_t> found;       // addresses in table order (scan task writes, handlers read)
   std::unique_ptr<espp::Task> scan; // one-shot; joined before the bus goes away
 
-  /// Parse "0x3C", "3c" or "60" (hex unless prefixed) into a byte list of
-  /// space / comma separated values.
-  static std::vector<uint8_t> parse_bytes(const std::string &text) {
+  /// Parse a space / comma separated list of hex bytes ("01 ff, 0x10") into
+  /// a byte list; nullopt when any token is malformed or above 0xFF (the
+  /// whole field is rejected, nothing is truncated). An empty field is an
+  /// empty list.
+  static std::optional<std::vector<uint8_t>> parse_bytes(const std::string &text) {
     std::vector<uint8_t> out;
     const char *p = text.c_str();
     while (*p) {
@@ -38,9 +40,9 @@ struct I2cSession {
         break;
       char *end = nullptr;
       const unsigned long v = std::strtoul(p, &end, 16);
-      if (end == p)
-        break;
-      out.push_back(static_cast<uint8_t>(v & 0xFF));
+      if (end == p || v > 0xFF || (*end && *end != ' ' && *end != ','))
+        return std::nullopt;
+      out.push_back(static_cast<uint8_t>(v));
       p = end;
     }
     return out;
@@ -227,9 +229,13 @@ inline void register_i2c_scanner_app(espp::Desktop &desktop) {
                                           : "register must be a hex value in 0x00..0xFF");
                     return;
                   }
-                  std::vector<uint8_t> data{*reg};
                   const auto bytes = S::parse_bytes(val_box.text());
-                  data.insert(data.end(), bytes.begin(), bytes.end());
+                  if (!bytes) {
+                    result.set_text("bytes must be hex values 00..FF, space / comma separated");
+                    return;
+                  }
+                  std::vector<uint8_t> data{*reg};
+                  data.insert(data.end(), bytes->begin(), bytes->end());
                   if (st->bus->write(*addr, data.data(), data.size()))
                     result.set_text("0x{:02X} <- {}ok", *addr, S::hex_dump(data));
                   else

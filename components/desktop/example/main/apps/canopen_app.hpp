@@ -10,6 +10,7 @@
 // task may call the mutators).
 
 #include <array>
+#include <cerrno>
 #include <chrono>
 #include <condition_variable>
 #include <cstdlib>
@@ -17,6 +18,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -66,6 +68,28 @@ struct CanopenSession {
   std::deque<std::function<void()>> queue;
   bool stopping{false};
   std::unique_ptr<espp::Task> task;
+
+  /// One unsigned number taking the whole field (blanks around it allowed;
+  /// `base` 0 = "0x.." hex or decimal); nullopt when the field is empty,
+  /// malformed (trailing junk, a sign), overflows or exceeds `max`, so a bad
+  /// entry is never narrowed into a different object or value.
+  static std::optional<uint32_t> parse_field(const std::string &text, int base, uint32_t max) {
+    const char *p = text.c_str();
+    while (*p == ' ')
+      ++p;
+    if (!*p || *p == '-' || *p == '+')
+      return std::nullopt;
+    char *end = nullptr;
+    errno = 0;
+    const unsigned long v = std::strtoul(p, &end, base);
+    if (end == p || errno == ERANGE)
+      return std::nullopt;
+    while (*end == ' ')
+      ++end;
+    if (*end || v > max)
+      return std::nullopt;
+    return static_cast<uint32_t>(v);
+  }
 
   static const char *nmt_name(NmtState s) {
     switch (s) {
@@ -231,9 +255,7 @@ inline void register_canopen_app(espp::Desktop &desktop) {
                 {.title = "CANopen / DS402", .app = app, .w = 560, .h = 0, .on_close = [st]() {
                    st->shutdown();
                  }});
-            auto parse = [](const std::string &s, int base) {
-              return static_cast<uint32_t>(std::strtoul(s.c_str(), nullptr, base));
-            };
+            using S = desktop_example::CanopenSession;
 
             // ---- bus / node ----
             auto top = win.row();
@@ -244,16 +266,17 @@ inline void register_canopen_app(espp::Desktop &desktop) {
             win.button(
                 "Apply",
                 [=]() mutable {
-                  const uint32_t id = parse(node_box.text(), 10);
-                  if (id < 1 || id > 127) {
+                  const auto parsed = S::parse_field(node_box.text(), 10, 127);
+                  if (!parsed || *parsed < 1) {
                     st->desktop.notify({.title = "CANopen",
-                                        .text = "node id must be 1..127",
+                                        .text = "node id must be a decimal number 1..127",
                                         .level = D::NotifyLevel::Error});
                     return;
                   }
+                  const uint8_t id = static_cast<uint8_t>(*parsed);
                   st->run([=]() {
                     std::error_code ec;
-                    if (!st->open(static_cast<uint8_t>(id), ec))
+                    if (!st->open(id, ec))
                       st->fail("bus init", ec);
                     else
                       st->desktop.notify({.title = "CANopen",
@@ -390,11 +413,27 @@ inline void register_canopen_app(espp::Desktop &desktop) {
             auto val_box = win.textbox("0", nullptr, sdo_row.id(), "value (0x.. or decimal)");
             val_box.set_size(110, 0);
             st->sdo_result = win.label("", sdo.id(), D::kLabelMonospace | D::kLabelWrap);
+            // index / sub-index from the text boxes, or nullopt (with the
+            // reason in the result label) when either field is not a whole
+            // hex number within its width
+            auto object = [=]() mutable -> std::optional<std::pair<uint16_t, uint8_t>> {
+              const auto index = S::parse_field(idx_box.text(), 16, 0xFFFF);
+              const auto sub = S::parse_field(sub_box.text(), 16, 0xFF);
+              if (!index || !sub) {
+                st->sdo_result.set_text(!index ? "index must be a hex value 0000..FFFF"
+                                               : "sub-index must be a hex value 00..FF");
+                return std::nullopt;
+              }
+              return std::pair<uint16_t, uint8_t>{static_cast<uint16_t>(*index),
+                                                  static_cast<uint8_t>(*sub)};
+            };
             win.button(
                 "Read",
-                [=]() {
-                  const uint16_t index = static_cast<uint16_t>(parse(idx_box.text(), 16));
-                  const uint8_t sub = static_cast<uint8_t>(parse(sub_box.text(), 16));
+                [=]() mutable {
+                  const auto obj = object();
+                  if (!obj)
+                    return;
+                  const auto [index, sub] = *obj;
                   st->run([=]() {
                     std::error_code ec;
                     std::array<uint8_t, 4> buf{};
@@ -413,11 +452,22 @@ inline void register_canopen_app(espp::Desktop &desktop) {
                 sdo_row.id());
             win.button(
                 "Write",
-                [=]() {
-                  const uint16_t index = static_cast<uint16_t>(parse(idx_box.text(), 16));
-                  const uint8_t sub = static_cast<uint8_t>(parse(sub_box.text(), 16));
-                  const uint32_t value = parse(val_box.text(), 0);
+                [=]() mutable {
+                  const auto obj = object();
+                  if (!obj)
+                    return;
+                  const auto [index, sub] = *obj;
                   const int32_t w = width.selected();
+                  const uint32_t max = w == 0 ? 0xFF : w == 1 ? 0xFFFF : 0xFFFFFFFFu;
+                  const auto parsed = S::parse_field(val_box.text(), 0, max);
+                  if (!parsed) {
+                    st->sdo_result.set_text("value must be a decimal or 0x.. number within {}",
+                                            w == 0   ? "u8 (0..255)"
+                                            : w == 1 ? "u16 (0..65535)"
+                                                     : "u32 (0..4294967295)");
+                    return;
+                  }
+                  const uint32_t value = *parsed;
                   st->run([=]() {
                     std::error_code ec;
                     bool ok = false;

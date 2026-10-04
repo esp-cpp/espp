@@ -97,6 +97,20 @@ struct NetworkState {
             .log_level = espp::Logger::Verbosity::INFO};
   }
 
+  /// A string from NVS ("" when unset). NvsHandle::get() sizes the string to
+  /// the stored length INCLUDING the terminating NUL, so strip trailing NULs
+  /// (a 32-byte SSID would otherwise come back as 33 bytes).
+  static std::string nvs_string(espp::NvsHandle &nvs, const char *key) {
+    std::error_code ec;
+    std::string s;
+    nvs.get(key, s, std::string(""), ec);
+    if (ec)
+      return "";
+    while (!s.empty() && s.back() == '\0')
+      s.pop_back();
+    return s;
+  }
+
   /// Bring the station up once, with the saved credentials (none = idle).
   void ensure_wifi() {
     if (wifi)
@@ -105,8 +119,14 @@ struct NetworkState {
     espp::NvsHandle nvs("desktop", ec);
     std::string ssid, pass;
     if (!ec) {
-      nvs.get("wifi_ssid", ssid, std::string(""), ec);
-      nvs.get("wifi_pass", pass, std::string(""), ec);
+      ssid = nvs_string(nvs, "wifi_ssid");
+      pass = nvs_string(nvs, "wifi_pass");
+    }
+    // the same bounds Connect enforces before saving (the driver fields are
+    // 32 / 64 bytes); anything else in flash is treated as no credentials
+    if (ssid.size() > 32 || pass.size() > 63) {
+      ssid.clear();
+      pass.clear();
     }
     // The app's NVS keys are the only persisted credentials: keep the
     // driver's own copy in RAM so esp_wifi_set_config() does not write a
