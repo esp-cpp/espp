@@ -71,8 +71,9 @@ The hardware apps need nothing extra by default: the CANopen app talks to a
 simulated node, the I2C scanner just reports an empty bus and the Network app
 scans for Wi-Fi. For a real CAN bus select the TWAI peripheral and wire a
 transceiver (SN65HVD230 or similar) to the configured TX / RX GPIOs; for the
-Ethernet group an ESP32-Ethernet-Kit-style RMII PHY (the pins are in
-`main/apps/network_app.hpp`).
+Ethernet group an ESP32-Ethernet-Kit or an ESP32-P4-Function-EV-Board (the
+RMII wiring is selected by `DESKTOP_EXAMPLE_ETHERNET_BOARD`; other boards:
+edit `rmii_config()` in `main/apps/network_app.hpp`).
 
 ### Configuration
 
@@ -89,6 +90,7 @@ Ethernet group an ESP32-Ethernet-Kit-style RMII PHY (the pins are in
 | `DESKTOP_EXAMPLE_I2C_PORT` / `_SDA_GPIO` / `_SCL_GPIO` / `_FREQ_HZ` | 0 / 8 / 9 / 400000 | The I2C bus it scans |
 | `DESKTOP_EXAMPLE_ENABLE_WIFI` | y | The Network app's Wi-Fi station group (`SOC_WIFI_SUPPORTED`) |
 | `DESKTOP_EXAMPLE_ENABLE_ETHERNET` | n | The Network app's RMII Ethernet group (`SOC_EMAC_SUPPORTED`: ESP32 / -P4) |
+| `DESKTOP_EXAMPLE_ETHERNET_BOARD` | per target | RMII wiring: `ETHERNET_KIT` (ESP32-Ethernet-Kit) or `P4_FUNCTION_EV` (ESP32-P4-Function-EV-Board, with its routable data pins) |
 
 The hardware components (`canopen`, `twai`, `i2c`, `wifi`, `ethernet`, `cli`)
 are always part of the build (`REQUIRES` cannot depend on Kconfig); the

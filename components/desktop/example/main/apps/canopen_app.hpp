@@ -19,6 +19,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -465,10 +466,17 @@ inline void register_canopen_app(espp::Desktop &desktop) {
                   if (!obj)
                     return;
                   const auto [index, sub] = *obj;
+                  // the width selector sizes the upload buffer: when an
+                  // expedited response omits its size, sdo_upload() returns
+                  // the caller's width, so a 4-byte span would show an
+                  // un-sized u8 / u16 object as 4 bytes
+                  const int32_t w = width.selected();
+                  const size_t want = w == 0 ? 1 : w == 1 ? 2 : 4;
                   st->run([=]() {
                     std::error_code ec;
                     std::array<uint8_t, 4> buf{};
-                    const size_t n = st->client ? st->client->sdo_upload(index, sub, buf, ec) : 0;
+                    const std::span<uint8_t> out(buf.data(), want);
+                    const size_t n = st->client ? st->client->sdo_upload(index, sub, out, ec) : 0;
                     if (!n) {
                       st->sdo_result.set_text("read 0x{:04X}:{:02X} failed: {}", index, sub,
                                               ec.message());

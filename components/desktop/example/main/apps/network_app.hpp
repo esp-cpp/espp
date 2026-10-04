@@ -50,9 +50,13 @@ struct NetworkState {
   /// A scan is in flight on the scan task: it disconnects and drives the
   /// station, so every other station action is refused until it is done.
   std::atomic<bool> scanning{false};
-  /// The station is associating (Connect / auto-connect at start) but has no
-  /// IP yet: the intent a scan must suppress and restore like a connection.
-  std::atomic<bool> connecting{false};
+  /// DESIRED connectivity: set by Connect and by the saved-credentials
+  /// auto-connect at start, cleared only by Disconnect / Forget -- never by
+  /// the driver callbacks (on_disconnected also fires for the intentional
+  /// disconnect inside WifiSta::reconfigure(), e.g. when switching APs). A
+  /// scan suppresses the station while it wants to be connected and restores
+  /// it afterwards, whatever the transient association state.
+  std::atomic<bool> want_connected{false};
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI
   std::unique_ptr<espp::WifiSta> wifi;
   std::unique_ptr<espp::Task> scan_task; // after wifi: joined before it goes away
@@ -98,13 +102,13 @@ struct NetworkState {
             .auto_connect = true,
             .on_connected = [this]() { set_status("connected, waiting for an IP"); },
             .on_disconnected =
-                [this]() { // the retries are exhausted: the intent is over
-                  connecting = false;
-                  set_status("disconnected");
+                [this]() { // retries exhausted, or reconfigure()'s own disconnect
+                  set_status(want_connected ? "disconnected (retries exhausted; Connect or a "
+                                              "scan retries)"
+                                            : "disconnected");
                 },
             .on_got_ip =
                 [this](ip_event_got_ip_t *e) {
-                  connecting = false;
                   set_status("connected", fmt::format("{}.{}.{}.{}", IP2STR(&e->ip_info.ip)));
                 },
             .log_level = espp::Logger::Verbosity::INFO};
@@ -191,7 +195,7 @@ struct NetworkState {
       stack.set_storage(WIFI_STORAGE_RAM);
     auto cfg = wifi_config(ssid, pass);
     cfg.auto_connect = !ssid.empty();
-    connecting = cfg.auto_connect;
+    want_connected = cfg.auto_connect;
     set_status(ssid.empty() ? "idle (no saved network)" : "connecting");
     wifi = std::make_unique<espp::WifiSta>(cfg);
     wifi_mac = wifi->get_mac();
@@ -218,7 +222,7 @@ struct NetworkState {
       nvs.commit(ec); // erase_item() only stages the change
       erased = erased && !ec;
     }
-    connecting = false;
+    want_connected = false;
     wifi->disconnect();
     wifi_config_t empty{};
     const bool cleared = esp_wifi_set_config(WIFI_IF_STA, &empty) == ESP_OK;
@@ -249,18 +253,36 @@ struct NetworkState {
 #endif
 
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_ETHERNET
-  /// Bring the RMII link up once (ESP32-Ethernet-Kit pins: IP101 PHY, 50 MHz
-  /// reference clock in on GPIO0; adjust for your board).
+  /// The RMII wiring of the board Kconfig selects (IP101 PHY at address 1,
+  /// 50 MHz reference clock in). The ESP32's EMAC data pins are fixed by the
+  /// IO_MUX; the ESP32-P4's are routable and must be given (the pins of the
+  /// ESP32-P4-Function-EV-Board, as in components/esp32-p4-function-ev-board).
+  static espp::Ethernet::RmiiConfig rmii_config() {
+#if CONFIG_DESKTOP_EXAMPLE_ETHERNET_BOARD_P4_FUNCTION_EV
+    return {.mdc_gpio = 31,
+            .mdio_gpio = 52,
+            .phy_addr = 1,
+            .phy_reset_gpio = 51,
+            .clock_ext_in = true,
+            .clock_gpio = 50,
+            .data_pins = espp::Ethernet::RmiiConfig::DataPins{
+                .tx_en = 49, .txd0 = 34, .txd1 = 35, .crs_dv = 28, .rxd0 = 29, .rxd1 = 30}};
+#else // ESP32-Ethernet-Kit
+    return {.mdc_gpio = 23,
+            .mdio_gpio = 18,
+            .phy_addr = 1,
+            .phy_reset_gpio = 5,
+            .clock_ext_in = true,
+            .clock_gpio = 0};
+#endif
+  }
+
+  /// Bring the RMII link up once.
   void ensure_ethernet() {
     if (eth)
       return;
     eth = std::make_unique<espp::Ethernet>(
-        espp::Ethernet::Config{.interface = espp::Ethernet::RmiiConfig{.mdc_gpio = 23,
-                                                                       .mdio_gpio = 18,
-                                                                       .phy_addr = 1,
-                                                                       .phy_reset_gpio = 5,
-                                                                       .clock_ext_in = true,
-                                                                       .clock_gpio = 0},
+        espp::Ethernet::Config{.interface = rmii_config(),
                                .hostname = "espp-desktop",
                                .log_level = espp::Logger::Verbosity::INFO});
     std::error_code ec;
@@ -347,7 +369,7 @@ inline void register_network_app(espp::Desktop &desktop) {
                 rssi_label.set_text("RSSI: -");
             });
 
-            scan_btn.on_event([=](const D::WidgetEvent &e) mutable {
+            scan_btn.on_event([=, &d](const D::WidgetEvent &e) mutable {
               if (e.kind != D::WidgetEventKind::Click || refuse_if_scanning())
                 return;
               net->scanning = true;
@@ -363,13 +385,12 @@ inline void register_network_app(espp::Desktop &desktop) {
                         // handler treats as unintentional and answers with a
                         // reconnect attempt (num_connect_retries > 0) while the
                         // scan is starting -- whether the station was connected
-                        // or still associating (`connecting`). Disconnect
-                        // intentionally first (that suppresses the retries),
-                        // give the event time to land, then scan and restore
-                        // the intent (connect again) afterwards.
-                        const bool intent = state->wifi->is_connected() || state->connecting;
+                        // or still associating. The DESIRED state decides:
+                        // disconnect intentionally first (that suppresses the
+                        // retries), give the event time to land, then scan and
+                        // restore it (connect again) afterwards.
+                        const bool intent = state->want_connected || state->wifi->is_connected();
                         if (intent) {
-                          state->connecting = false;
                           state->wifi->disconnect();
                           std::this_thread::sleep_for(std::chrono::milliseconds(200));
                         }
@@ -377,7 +398,6 @@ inline void register_network_app(espp::Desktop &desktop) {
                         const auto aps = state->wifi->scan(20);
                         if (intent) {
                           state->set_status("reconnecting");
-                          state->connecting = true;
                           state->wifi->connect();
                         } else {
                           state->set_status("disconnected");
@@ -403,7 +423,16 @@ inline void register_network_app(espp::Desktop &desktop) {
                         return true; // one shot
                       },
                   .task_config = {.name = "wifi_scan", .stack_size_bytes = 6 * 1024}});
-              net->scan_task->start();
+              if (!net->scan_task->start()) {
+                // no task will ever release the busy state: restore the window
+                net->scan_task.reset();
+                net->scanning = false;
+                set_busy(false);
+                scan_label.set_text("could not start the scan task");
+                d.notify({.title = "Wi-Fi",
+                          .text = "could not start the scan task (out of memory?)",
+                          .level = D::NotifyLevel::Error});
+              }
             });
 
             connect_btn.on_event([=, &d](const D::WidgetEvent &e) mutable {
@@ -438,14 +467,13 @@ inline void register_network_app(espp::Desktop &desktop) {
                           .level = D::NotifyLevel::Warn});
               net->set_status(fmt::format("connecting to {}", ssid));
               const bool was_connected = net->wifi->is_connected();
-              net->connecting = true;
+              net->want_connected = true;
               // reconfigure() reconnects when it was connected; else connect()
               bool ok = net->wifi->reconfigure(net->wifi_config(ssid, pass));
               if (ok && !was_connected)
                 ok = net->wifi->connect();
               if (!ok) {
-                net->connecting = false;
-                net->set_status("connect failed");
+                net->set_status("connect failed (Connect or a scan retries)");
                 d.notify({.title = "Wi-Fi",
                           .text = fmt::format("could not start connecting to {}", ssid),
                           .level = D::NotifyLevel::Error});
@@ -454,7 +482,7 @@ inline void register_network_app(espp::Desktop &desktop) {
             disconnect_btn.on_event([=](const D::WidgetEvent &e) mutable {
               if (e.kind != D::WidgetEventKind::Click || refuse_if_scanning())
                 return;
-              net->connecting = false;
+              net->want_connected = false;
               net->wifi->disconnect();
               net->set_status("disconnected");
             });

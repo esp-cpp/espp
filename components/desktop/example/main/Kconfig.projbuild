@@ -109,7 +109,28 @@ menu "Desktop Example Configuration"
         default n
         help
             Register the Network app's Ethernet group: link / IP / MAC / speed
-            of the internal EMAC over RMII (espp::Ethernet, ESP32-Ethernet-Kit
-            pins in network_app.hpp).
+            of the internal EMAC over RMII (espp::Ethernet) with the wiring of
+            the board selected below.
+
+    choice DESKTOP_EXAMPLE_ETHERNET_BOARD
+        prompt "RMII board wiring"
+        depends on DESKTOP_EXAMPLE_ENABLE_ETHERNET
+        default DESKTOP_EXAMPLE_ETHERNET_BOARD_ETHERNET_KIT if IDF_TARGET_ESP32
+        default DESKTOP_EXAMPLE_ETHERNET_BOARD_P4_FUNCTION_EV if IDF_TARGET_ESP32P4
+        help
+            Which board's RMII pins network_app.hpp uses: the ESP32-Ethernet-Kit
+            (IP101 PHY, MDC 23 / MDIO 18 / reset 5, 50 MHz clock in on GPIO 0;
+            the ESP32's data pins are fixed) or the ESP32-P4-Function-EV-Board
+            (IP101 PHY, MDC 31 / MDIO 52 / reset 51, clock in on GPIO 50, and
+            the routable data pins TX_EN 49 / TXD0 34 / TXD1 35 / CRS_DV 28 /
+            RXD0 29 / RXD1 30). Other boards: edit rmii_config().
+
+        config DESKTOP_EXAMPLE_ETHERNET_BOARD_ETHERNET_KIT
+            bool "ESP32-Ethernet-Kit"
+            depends on IDF_TARGET_ESP32
+        config DESKTOP_EXAMPLE_ETHERNET_BOARD_P4_FUNCTION_EV
+            bool "ESP32-P4-Function-EV-Board"
+            depends on IDF_TARGET_ESP32P4
+    endchoice
 
 endmenu
