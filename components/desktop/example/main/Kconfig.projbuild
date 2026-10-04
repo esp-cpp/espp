@@ -18,4 +18,125 @@ menu "Desktop Example Configuration"
             How many of the newest console bytes are kept for the Log Viewer
             (and shown when it opens).
 
+    config DESKTOP_EXAMPLE_ENABLE_CANOPEN
+        bool "CANopen / DS402 app"
+        default y
+        help
+            Register the CANopen / DS402 app: an NMT master + SDO client
+            (espp::CanopenClient) and a CiA 402 drive panel (espp::Ds402Drive)
+            on the bus selected below.
+
+            The app is built on espp's twai component (the simulated bus is a
+            Twai drop-in), which needs IDF >= 6.0; the example's CMakeLists
+            therefore only compiles it on IDF >= 6 (or with
+            -DDESKTOP_EXAMPLE_CANOPEN=ON/OFF on the idf.py command line). On an
+            older IDF this option has no effect and app_main logs a warning.
+
+    choice DESKTOP_EXAMPLE_CANOPEN_BUS
+        prompt "CAN bus for the CANopen app"
+        depends on DESKTOP_EXAMPLE_ENABLE_CANOPEN
+        default DESKTOP_EXAMPLE_CANOPEN_BUS_SIMULATED
+        help
+            Where the CANopen app's frames go: an in-firmware simulated DS402
+            node (no hardware needed; the CI default) or the TWAI peripheral
+            wired to a CAN transceiver.
+
+        config DESKTOP_EXAMPLE_CANOPEN_BUS_SIMULATED
+            bool "Simulated DS402 node (no CAN hardware)"
+        config DESKTOP_EXAMPLE_CANOPEN_BUS_TWAI
+            bool "TWAI peripheral (CAN transceiver on the GPIOs below)"
+    endchoice
+
+    config DESKTOP_EXAMPLE_CANOPEN_NODE_ID
+        int "CANopen node id"
+        depends on DESKTOP_EXAMPLE_ENABLE_CANOPEN
+        default 1
+        range 1 127
+        help
+            The server node id the app talks to at launch (changeable in the
+            window). With the simulated bus this is also the simulated node's id.
+
+    config DESKTOP_EXAMPLE_CAN_TX_GPIO
+        int "TWAI TX GPIO"
+        depends on DESKTOP_EXAMPLE_CANOPEN_BUS_TWAI
+        default 17
+
+    config DESKTOP_EXAMPLE_CAN_RX_GPIO
+        int "TWAI RX GPIO"
+        depends on DESKTOP_EXAMPLE_CANOPEN_BUS_TWAI
+        default 16
+
+    config DESKTOP_EXAMPLE_CAN_BAUDRATE
+        int "CAN bit rate (bit/s)"
+        depends on DESKTOP_EXAMPLE_CANOPEN_BUS_TWAI
+        default 500000
+        range 10000 1000000
+
+    config DESKTOP_EXAMPLE_ENABLE_I2C
+        bool "I2C scanner app"
+        default y
+        help
+            Register the I2C scanner app: probe every 7-bit address on the
+            bus below, and read / write device registers.
+
+    config DESKTOP_EXAMPLE_I2C_PORT
+        int "I2C port"
+        depends on DESKTOP_EXAMPLE_ENABLE_I2C
+        default 0
+        range 0 1
+
+    config DESKTOP_EXAMPLE_I2C_SDA_GPIO
+        int "I2C SDA GPIO"
+        depends on DESKTOP_EXAMPLE_ENABLE_I2C
+        default 8
+
+    config DESKTOP_EXAMPLE_I2C_SCL_GPIO
+        int "I2C SCL GPIO"
+        depends on DESKTOP_EXAMPLE_ENABLE_I2C
+        default 9
+
+    config DESKTOP_EXAMPLE_I2C_FREQ_HZ
+        int "I2C clock (Hz)"
+        depends on DESKTOP_EXAMPLE_ENABLE_I2C
+        default 400000
+        range 1000 1000000
+
+    config DESKTOP_EXAMPLE_ENABLE_WIFI
+        bool "Network app: Wi-Fi station"
+        depends on SOC_WIFI_SUPPORTED
+        default y
+        help
+            Register the Network app's Wi-Fi group: status, scan, connect /
+            disconnect with the credentials kept in NVS (espp::WifiSta).
+
+    config DESKTOP_EXAMPLE_ENABLE_ETHERNET
+        bool "Network app: Ethernet (RMII)"
+        depends on SOC_EMAC_SUPPORTED
+        default n
+        help
+            Register the Network app's Ethernet group: link / IP / MAC / speed
+            of the internal EMAC over RMII (espp::Ethernet) with the wiring of
+            the board selected below.
+
+    choice DESKTOP_EXAMPLE_ETHERNET_BOARD
+        prompt "RMII board wiring"
+        depends on DESKTOP_EXAMPLE_ENABLE_ETHERNET
+        default DESKTOP_EXAMPLE_ETHERNET_BOARD_ETHERNET_KIT if IDF_TARGET_ESP32
+        default DESKTOP_EXAMPLE_ETHERNET_BOARD_P4_FUNCTION_EV if IDF_TARGET_ESP32P4
+        help
+            Which board's RMII pins network_app.hpp uses: the ESP32-Ethernet-Kit
+            (IP101 PHY, MDC 23 / MDIO 18 / reset 5, 50 MHz clock in on GPIO 0;
+            the ESP32's data pins are fixed) or the ESP32-P4-Function-EV-Board
+            (IP101 PHY, MDC 31 / MDIO 52 / reset 51, clock in on GPIO 50, and
+            the routable data pins TX_EN 49 / TXD0 34 / TXD1 35 / CRS_DV 28 /
+            RXD0 29 / RXD1 30). Other boards: edit rmii_config().
+
+        config DESKTOP_EXAMPLE_ETHERNET_BOARD_ETHERNET_KIT
+            bool "ESP32-Ethernet-Kit"
+            depends on IDF_TARGET_ESP32
+        config DESKTOP_EXAMPLE_ETHERNET_BOARD_P4_FUNCTION_EV
+            bool "ESP32-P4-Function-EV-Board"
+            depends on IDF_TARGET_ESP32P4
+    endchoice
+
 endmenu
