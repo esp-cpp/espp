@@ -18,6 +18,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <string>
 #include <thread>
 #include <vector>
@@ -48,6 +49,42 @@ struct NetworkState {
 
   explicit NetworkState(D &desktop)
       : desktop(desktop) {}
+  NetworkState(const NetworkState &) = delete;
+  NetworkState &operator=(const NetworkState &) = delete;
+
+  /// In practice never reached: the state is owned by the app's launch
+  /// callback and lives as long as the desktop. Still correct: the worker is
+  /// joined first (nothing drives the station any more), the STA_STOP
+  /// handler is withdrawn (registry entry, then the esp_event registration)
+  /// before the station is destroyed -- ~WifiSta stops the station, which
+  /// queues a STA_STOP that must not reach a freed `this` -- and the handler
+  /// itself only touches instances still in the registry.
+  ~NetworkState() {
+#if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI
+    worker.reset();
+    {
+      std::lock_guard<std::mutex> lock(registry_mutex());
+      live_instances().erase(this);
+    }
+    if (sta_stop_handler) {
+      esp_event_handler_instance_unregister(WIFI_EVENT, WIFI_EVENT_STA_STOP, sta_stop_handler);
+      sta_stop_handler = nullptr;
+    }
+    wifi.reset();
+#endif
+  }
+
+  /// The live instances a WIFI_EVENT_STA_STOP delivery may touch (a late
+  /// delivery after an instance withdrew is dropped, whatever the event
+  /// loop's unregister ordering).
+  static std::mutex &registry_mutex() {
+    static std::mutex m;
+    return m;
+  }
+  static std::set<NetworkState *> &live_instances() {
+    static std::set<NetworkState *> s;
+    return s;
+  }
 
   D &desktop; ///< outlives every task (toasts from the worker)
   espp::Logger logger{{.tag = "Network app", .level = espp::Logger::Verbosity::INFO}};
@@ -133,9 +170,14 @@ struct NetworkState {
     phase = Phase::Connected;
     set_status("connected", fmt::format("{}.{}.{}.{}", IP2STR(&e->ip_info.ip)));
   };
-  /// WIFI_EVENT_STA_STOP (event-loop task): wakes recover().
+  /// WIFI_EVENT_STA_STOP (event-loop task): wakes recover(). `arg` is only
+  /// dereferenced while it is a live instance (see the registry): a delivery
+  /// that outlives its NetworkState is dropped.
   static void on_sta_stop(void *arg, esp_event_base_t, int32_t, void *) {
     auto *self = static_cast<NetworkState *>(arg);
+    std::lock_guard<std::mutex> registry(registry_mutex());
+    if (!live_instances().count(self))
+      return; // stale: the instance withdrew (or is being destroyed)
     {
       std::lock_guard<std::mutex> lock(self->mutex);
       ++self->stopped_events;
@@ -300,8 +342,18 @@ struct NetworkState {
     wifi_mac = wifi->get_mac();
     // recover() waits for the station's STOP event, which WifiSta does not
     // expose: observe it directly
-    esp_event_handler_instance_register(WIFI_EVENT, WIFI_EVENT_STA_STOP, &on_sta_stop, this,
-                                        &sta_stop_handler);
+    {
+      std::lock_guard<std::mutex> lock(registry_mutex());
+      live_instances().insert(this);
+    }
+    const esp_err_t reg = esp_event_handler_instance_register(
+        WIFI_EVENT, WIFI_EVENT_STA_STOP, &on_sta_stop, this, &sta_stop_handler);
+    if (reg != ESP_OK) {
+      // recover() then cannot observe STA_STOP (its wait times out -> Failed)
+      sta_stop_handler = nullptr;
+      logger.error("could not register the STA_STOP handler: {}; station recovery will not work",
+                   esp_err_to_name(reg));
+    }
     // the start-up association is issued explicitly (auto_connect is off)
     want_connected = !ssid.empty();
     if (ssid.empty()) {
