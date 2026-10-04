@@ -65,8 +65,9 @@ struct CanopenSession {
   std::unique_ptr<CanBus> bus;
   std::mutex mutex;
   std::condition_variable cv;
-  std::deque<std::function<void()>> queue;
+  std::deque<std::function<void()>> queue; // bounded by kMaxQueued (see run())
   bool stopping{false};
+  bool running{false}; // the drive task consumes `queue` (guarded by `mutex`)
   std::unique_ptr<espp::Task> task;
 
   /// One unsigned number taking the whole field (blanks around it allowed;
@@ -153,13 +154,26 @@ struct CanopenSession {
     return true;
   }
 
-  /// Queue a bus transaction for the drive task.
-  void run(std::function<void()> fn) {
+  /// Queue a bus transaction for the drive task; refused (with a toast) when
+  /// the task is not running or too many commands are already waiting.
+  static constexpr size_t kMaxQueued = 64;
+  bool run(std::function<void()> fn) {
+    const char *refused = nullptr;
     {
       std::lock_guard<std::mutex> lock(mutex);
-      queue.push_back(std::move(fn));
+      if (!running)
+        refused = "the drive task is not running";
+      else if (queue.size() >= kMaxQueued)
+        refused = "too many commands pending; wait for the bus";
+      else
+        queue.push_back(std::move(fn));
+    }
+    if (refused) {
+      desktop.notify({.title = "CANopen", .text = refused, .level = D::NotifyLevel::Error});
+      return false;
     }
     cv.notify_all();
+    return true;
   }
 
   /// `what` failed with `ec`: a toast (level error).
@@ -171,17 +185,31 @@ struct CanopenSession {
     desktop.notify({.title = "CANopen", .text = text, .level = D::NotifyLevel::Error});
   }
 
-  void start() {
+  /// Start the drive task; false (with a toast) when it could not be started,
+  /// in which case run() refuses every command.
+  bool start() {
     task = std::make_unique<espp::Task>(
         espp::Task::Config{.callback = [this]() { return step(); },
                            .task_config = {.name = "canopen_ui", .stack_size_bytes = 6 * 1024}});
-    task->start();
+    const bool started = task->start();
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      running = started;
+    }
+    if (!started) {
+      task.reset();
+      desktop.notify({.title = "CANopen",
+                      .text = "could not start the drive task; the window is inert",
+                      .level = D::NotifyLevel::Error});
+    }
+    return started;
   }
 
   void shutdown() {
     {
       std::lock_guard<std::mutex> lock(mutex);
       stopping = true;
+      running = false;
       queue.clear(); // queued commands hold a reference to this session
     }
     cv.notify_all();
@@ -498,7 +526,8 @@ inline void register_canopen_app(espp::Desktop &desktop) {
                                        ec.message());
               st->fail("bus init", ec);
             }
-            st->start();
+            if (!st->start())
+              st->state_label.set_text("State: the drive task could not be started");
           },
   });
 }

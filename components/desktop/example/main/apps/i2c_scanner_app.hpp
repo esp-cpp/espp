@@ -145,7 +145,7 @@ inline void register_i2c_scanner_app(espp::Desktop &desktop) {
             auto status = win.label("Press Scan to probe addresses 0x01..0x7F.", bar.id());
             auto table = win.table({"Address", "Decimal", "Note"}, {}, nullptr);
             auto scan_btn = win.button("Scan", nullptr, bar.id(), D::kButtonPrimary);
-            scan_btn.on_event([=](const D::WidgetEvent &e) mutable {
+            scan_btn.on_event([=, &d](const D::WidgetEvent &e) mutable {
               if (e.kind != D::WidgetEventKind::Click)
                 return;
               if (st->scan && st->scan->is_running())
@@ -179,7 +179,15 @@ inline void register_i2c_scanner_app(espp::Desktop &desktop) {
                         return true; // one shot
                       },
                   .task_config = {.name = "i2c_scan", .stack_size_bytes = 4 * 1024}});
-              st->scan->start();
+              if (!st->scan->start()) {
+                // no task will ever re-enable the button: restore the window
+                st->scan.reset();
+                scan_btn.set_enabled(true);
+                status.set_text("Could not start the scan task.");
+                d.notify({.title = "I2C",
+                          .text = "could not start the scan task (out of memory?)",
+                          .level = D::NotifyLevel::Error});
+              }
             });
 
             // ---- register access ----

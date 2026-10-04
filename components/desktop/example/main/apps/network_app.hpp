@@ -13,13 +13,17 @@
 #include <cstring>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 #include <vector>
 
 #include "sdkconfig.h"
 
+#include "nvs.h"
+
 #include "desktop.hpp"
+#include "logger.hpp"
 #include "nvs_handle_espp.hpp"
 #include "task.hpp"
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI
@@ -36,6 +40,7 @@ namespace desktop_example {
 
 /// The interfaces, shared by every Network window (created on first launch).
 struct NetworkState {
+  espp::Logger logger{{.tag = "Network app", .level = espp::Logger::Verbosity::INFO}};
   std::mutex mutex;
   std::string wifi_status{"idle"};
   std::string wifi_ip;
@@ -105,29 +110,50 @@ struct NetworkState {
             .log_level = espp::Logger::Verbosity::INFO};
   }
 
-  /// A string from NVS ("" when unset). NvsHandle::get() sizes the string to
-  /// the stored length INCLUDING the terminating NUL, so strip trailing NULs
-  /// (a 32-byte SSID would otherwise come back as 33 bytes).
-  static std::string nvs_string(espp::NvsHandle &nvs, const char *key) {
+  /// Whether a string key exists in the app's namespace: ESP_OK (it does),
+  /// ESP_ERR_NVS_NOT_FOUND (it does not) or another error (a genuine NVS
+  /// failure). NvsHandle maps every string read failure to one error code,
+  /// so the raw nvs_get_str() size query is used to tell the two apart.
+  static esp_err_t probe_key(const char *key) {
+    nvs_handle_t h = 0;
+    esp_err_t err = nvs_open("desktop", NVS_READONLY, &h);
+    if (err != ESP_OK)
+      return err; // ESP_ERR_NVS_NOT_FOUND when the namespace was never written
+    size_t len = 0;
+    err = nvs_get_str(h, key, nullptr, &len);
+    nvs_close(h);
+    return err;
+  }
+
+  /// A string from NVS: "" when the key is not stored, nullopt on a genuine
+  /// NVS failure. NvsHandle::get() sizes the string to the stored length
+  /// INCLUDING the terminating NUL, so trailing NULs are stripped (a 32-byte
+  /// SSID would otherwise come back as 33 bytes).
+  static std::optional<std::string> nvs_string(espp::NvsHandle &nvs, const char *key) {
+    const esp_err_t probed = probe_key(key);
+    if (probed == ESP_ERR_NVS_NOT_FOUND)
+      return std::string{};
+    if (probed != ESP_OK)
+      return std::nullopt;
     std::error_code ec;
     std::string s;
-    nvs.get(key, s, std::string(""), ec);
+    nvs.get(key, s, ec); // no default: never writes
     if (ec)
-      return "";
+      return std::nullopt;
     while (!s.empty() && s.back() == '\0')
       s.pop_back();
     return s;
   }
 
   /// Erase one key; true when it is gone (it was erased, or was never
-  /// stored -- NvsHandle::erase() reports a missing key as a failure, so the
-  /// key is probed first), false on any other failure.
+  /// stored), false on a genuine NVS failure (probe or erase).
   static bool erase_key(espp::NvsHandle &nvs, const char *key) {
-    std::error_code ec;
-    std::string probe;
-    nvs.get(key, probe, ec); // no default: fails when the key is not stored
-    if (ec)
+    const esp_err_t probed = probe_key(key);
+    if (probed == ESP_ERR_NVS_NOT_FOUND)
       return true;
+    if (probed != ESP_OK)
+      return false;
+    std::error_code ec;
     return nvs.erase(key, ec);
   }
 
@@ -139,8 +165,17 @@ struct NetworkState {
     espp::NvsHandle nvs("desktop", ec);
     std::string ssid, pass;
     if (!ec) {
-      ssid = nvs_string(nvs, "wifi_ssid");
-      pass = nvs_string(nvs, "wifi_pass");
+      const auto saved_ssid = nvs_string(nvs, "wifi_ssid");
+      const auto saved_pass = nvs_string(nvs, "wifi_pass");
+      if (saved_ssid && saved_pass) {
+        ssid = *saved_ssid;
+        pass = *saved_pass;
+      } else {
+        // a genuine NVS failure (not "nothing saved"): start idle, say why
+        logger.error("could not read the saved Wi-Fi credentials from NVS; starting idle");
+      }
+    } else {
+      logger.error("could not open the NVS namespace: {}", ec.message());
     }
     // the same bounds Connect enforces before saving (the driver fields are
     // 32 / 64 bytes); anything else in flash is treated as no credentials
