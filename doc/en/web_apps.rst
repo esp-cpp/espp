@@ -68,6 +68,12 @@ device may serve a protocol on any dispatcher module id.
   for the :doc:`system <system/system>` component, plus live heap gauges and a
   task table when the device serves the :doc:`monitor <core/monitor>`
   component's ``MonitorService``.
+- **Desktop** (``desktop.html``) — a windowed desktop for a device running the
+  :doc:`desktop <desktop/desktop>` component: the firmware describes apps,
+  windows and widgets, the browser renders them (icons, start menu, taskbar,
+  drag / resize / minimise / maximise, dialogs, notifications) and streams
+  clicks, edits, selections and key presses back; window placement is
+  remembered per app and title.
 
 Motor control
 =============
