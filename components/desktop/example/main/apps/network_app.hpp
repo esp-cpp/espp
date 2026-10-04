@@ -62,7 +62,13 @@ struct NetworkState {
   /// The station state machine, driven by the jobs below on the worker task
   /// and by the driver callbacks (got-ip -> Connected, retries exhausted ->
   /// Idle). `Stopping` is the explicit wait for the DISCONNECTED event.
-  enum class Phase : uint8_t { Idle, Stopping, Configuring, Associating, Connected };
+  /// `Failed` is the recoverable error state a transition aborts into when
+  /// the station could not be stopped (the disconnect was rejected, or its
+  /// DISCONNECTED event did not arrive in time): nothing is reconfigured, the
+  /// station is left as it is, the user retries. A later event resolves it
+  /// (the callbacks still own the phase), and the next job starts with a
+  /// fresh stop_and_wait().
+  enum class Phase : uint8_t { Idle, Stopping, Configuring, Associating, Connected, Failed };
   std::atomic<Phase> phase{Phase::Idle};
   /// A job (scan / connect / disconnect / forget) is running on the worker:
   /// every station control is disabled, and another job is refused.
@@ -311,9 +317,24 @@ struct NetworkState {
   /// with the stopped one. On an idle station WifiSta::disconnect() is not
   /// called at all: no event would come and its private `disconnecting_`
   /// would stay set, costing the next attempt its retries. Worker task.
+  ///
+  /// The rule on failure: a rejected disconnect or a missing event ABORTS the
+  /// transition (phase Failed, a toast, false returned) -- the caller must
+  /// not reconfigure, because continuing would re-open the stale-event race
+  /// this wait exists to close. The station is left as it is and the user
+  /// retries. From Failed, a later event has usually resolved the phase
+  /// (Idle / Connected); if none came and the driver reports no association,
+  /// the station is taken as idle.
   /// Returns true once the station is idle.
   bool stop_and_wait(std::chrono::milliseconds timeout = std::chrono::milliseconds(1000)) {
-    const Phase p = phase.load();
+    Phase p = phase.load();
+    if (p == Phase::Failed) {
+      wifi_ap_record_t ap{};
+      if (esp_wifi_sta_get_ap_info(&ap) == ESP_OK)
+        p = Phase::Connected; // still associated: stop it like a connected station
+      else
+        return true; // nothing associated: idle
+    }
     if (p != Phase::Connected && p != Phase::Associating)
       return true;
     phase = Phase::Stopping;
@@ -324,21 +345,27 @@ struct NetworkState {
       seen = disconnected_events;
     }
     if (!wifi->disconnect()) {
-      // the driver rejected it (nothing was associated): no event will come
-      phase = Phase::Idle;
-      return true;
+      // the driver rejected it (WifiSta rolls its flags back): a failed
+      // transition, not an idle station
+      phase = Phase::Failed;
+      set_status("stopping failed: try again");
+      toast("the station could not be stopped; try again", D::NotifyLevel::Error);
+      return false;
     }
     bool got = false;
     {
       std::unique_lock<std::mutex> lock(mutex);
       got = disconnected_cv.wait_for(lock, timeout, [&] { return disconnected_events != seen; });
     }
-    if (!got)
-      logger.warn("no DISCONNECTED event within {} ms; continuing (the generation check drops "
-                  "it if it still arrives)",
-                  timeout.count());
+    if (!got) {
+      logger.warn("no DISCONNECTED event within {} ms; aborting the transition", timeout.count());
+      phase = Phase::Failed;
+      set_status("stopping timed out: try again");
+      toast("the station did not report its disconnect in time; try again", D::NotifyLevel::Error);
+      return false;
+    }
     phase = Phase::Idle;
-    return got;
+    return true;
   }
 
   /// Configuring -> Associating: a new attempt with `ssid` / `pass` (the
@@ -375,15 +402,16 @@ struct NetworkState {
   /// Connect: stop whatever is active (waiting for its event), then attempt.
   void connect_job(const std::string &ssid, const std::string &pass) {
     want_connected = true;
-    stop_and_wait();
+    if (!stop_and_wait())
+      return; // aborted (Failed): nothing is reconfigured, the user retries
     start_attempt(ssid, pass, "connection");
   }
 
   /// Disconnect: give up the desired state and stop the station.
   void disconnect_job() {
     want_connected = false;
-    stop_and_wait();
-    set_status("disconnected");
+    if (stop_and_wait())
+      set_status("disconnected");
   }
 
   /// Scan: stop the station first (WifiSta::scan() would otherwise drop the
@@ -392,7 +420,8 @@ struct NetworkState {
   /// every window, then restore the desired state with a fresh attempt.
   void scan_job() {
     const bool intent = want_connected;
-    stop_and_wait();
+    if (!stop_and_wait())
+      return; // aborted: scan() would drop the link with a bare disconnect
     set_status("scanning");
     const auto aps = wifi->scan(20);
     std::vector<std::string> rows, ssids;
@@ -438,7 +467,14 @@ struct NetworkState {
       erased = erased && !ec;
     }
     want_connected = false;
-    stop_and_wait();
+    if (!stop_and_wait()) {
+      // the credentials are gone (or not: say so), the station is not reset
+      toast(erased ? "credentials erased, but the station could not be stopped; Forget again "
+                     "to reset it"
+                   : "Forget failed: the credentials may still be saved in NVS",
+            D::NotifyLevel::Error);
+      return;
+    }
     wifi_config_t empty{};
     const bool cleared = esp_wifi_set_config(WIFI_IF_STA, &empty) == ESP_OK;
     // empty ssid: reconfigure() adopts the (now empty) driver config
