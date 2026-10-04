@@ -229,7 +229,13 @@ test("geometry store: keyed by app + title, injectable storage, LRU 200", () => 
   for (let i = 0; i < 205; i++) dflt.set("app", "t" + i, { x: i, y: 0, w: 200, h: 100 });
   assert.strictEqual(dflt.count(), 200);
   assert.strictEqual(dflt.get("app", "t4"), null); assert.strictEqual(dflt.get("app", "t204").x, 204);
-  assert.strictEqual(P.geometryKey("a", "b"), "a b");
+  assert.strictEqual(P.geometryKey("a", "b"), JSON.stringify(["a", "b"]));
+  // app + title are encoded unambiguously: "a b" / "c" and "a" / "b c" are different windows
+  assert.notStrictEqual(P.geometryKey("a b", "c"), P.geometryKey("a", "b c"));
+  const col = P.createGeometryStore(storage, { key: "collision" });
+  col.set("a b", "c", { x: 1, y: 1, w: 200, h: 100 });
+  assert.strictEqual(col.get("a", "b c"), null, "a different app / title split must not read the other entry");
+  assert.deepStrictEqual(col.get("a b", "c"), { x: 1, y: 1, w: 200, h: 100, max: false });
 });
 
 // ---- layout / items / ansi ------------------------------------------------------------
