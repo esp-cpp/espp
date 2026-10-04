@@ -130,7 +130,9 @@ Prop tags: 1 Text 2 TextAppend 3 Value i32 4 Min 5 Max 6 Step 7 Enabled u8
 21 InsertBefore u16 22 Title 23 WindowFlags u16 24 Geometry `[x i16][y i16][w u16][h u16]`.
 Window flags: bit0 Movable bit1 Resizable bit2 Closable bit3 Modal
 bit4 Minimizable bit5 Maximizable bit6 Snapshot bit7 Centered bit8 Pinned
-bit9 WantsGeometry. Widget flags — TextArea: bit0 ReadOnly bit1 Monospace
+bit9 WantsGeometry. Widget flags — Table: bit0 Sortable (the browser sorts by
+a clicked column header, ascending / descending / off; Select and Activate
+still report the firmware's row index); TextArea: bit0 ReadOnly bit1 Monospace
 bit2 WantKeys bit3 AutoScroll bit4 Ansi; TextBox: bit0 Password bit1 ReadOnly;
 Label: bit0 Bold bit1 Monospace bit2 Wrap; Button: bit0 Primary bit1 Danger.
 

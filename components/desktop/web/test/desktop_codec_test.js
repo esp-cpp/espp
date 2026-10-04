@@ -22,7 +22,7 @@ const end = html.indexOf("// ==== DESKTOP:END-PURE ====");
 assert(begin > 0 && end > begin, "pure-block markers not found in desktop.html");
 const pure = html.slice(begin, end);
 const P = new Function(pure + `
-  return { DT, DT_NAME, PROP, WT, WIN, WEV, WGEV, KEY, MOD, LAYOUT, TA_FLAG, MIN_WINDOW, DESKTOP_MAX_PAYLOAD_CAP, COLOR_DEFAULT, DESKTOP_HAS_SNAPSHOT, DESKTOP_WINDOW_LIST_COMPLETE, MAX_TEXT_BYTES_DEFAULT, SUBMIT_EVENT_HEADER, DIALOG_RESULT_HEADER, utf8ByteLength, truncateUtf8,
+  return { sortedOrder, compareCells, cellSortKey, DT, DT_NAME, PROP, WT, WIN, WEV, WGEV, KEY, MOD, LAYOUT, TA_FLAG, MIN_WINDOW, DESKTOP_MAX_PAYLOAD_CAP, COLOR_DEFAULT, DESKTOP_HAS_SNAPSHOT, DESKTOP_WINDOW_LIST_COMPLETE, MAX_TEXT_BYTES_DEFAULT, SUBMIT_EVENT_HEADER, DIALOG_RESULT_HEADER, utf8ByteLength, truncateUtf8,
            ByteReader, ByteWriter, hexOf, bytesOfHex, propKind, readRec, decodeProp, propBytes, desktopSettings,
            decodeMessage, encodeMessage, decodeWidgetSet, decodeDesktop, chunkText, keyCodeFor,
            clampGeometry, geometryEquals, resizeGeometry, placeWindow, createGeometryStore, geometryKey,
@@ -310,6 +310,17 @@ test("registry metadata and wiring constants", () => {
   // the trimmed vector does not
   assert.strictEqual(P.decodeMessage(P.DT.DESKTOP, P.bytesOfHex(d2h.find((v) => v.name === "desktop").hex)).flags & P.DESKTOP_WINDOW_LIST_COMPLETE, 2);
   assert.strictEqual(P.decodeMessage(P.DT.DESKTOP, P.bytesOfHex(d2h.find((v) => v.name === "desktop_window_list_trimmed").hex)).flags & P.DESKTOP_WINDOW_LIST_COMPLETE, 0);
+  // table sorting: numeric-aware, numbers before text, stable, dir 0 = firmware order
+  {
+    const rows = ["b\t10\t0", "a\t9\t1", "c\t100\t0", "d\tany\tx", "e\t9\t2"];
+    assert.deepStrictEqual(P.sortedOrder(rows, 1, 0), [0, 1, 2, 3, 4]);
+    assert.deepStrictEqual(P.sortedOrder(rows, 1, 1), [1, 4, 0, 2, 3], "ascending: 9, 9 (stable), 10, 100, text last");
+    assert.deepStrictEqual(P.sortedOrder(rows, 1, -1), [3, 2, 0, 1, 4], "descending: text first, then 100, 10, 9, 9 (stable)");
+    assert.deepStrictEqual(P.sortedOrder(rows, 0, 1), [1, 0, 2, 3, 4], "text column sorts by locale");
+    assert.deepStrictEqual(P.sortedOrder(rows, 7, 1), [0, 1, 2, 3, 4], "a missing column compares equal: firmware order");
+    assert.ok(P.compareCells("file2", "file10") < 0 && P.compareCells("B", "a") > 0, "locale compare is numeric-aware and case-insensitive");
+    assert.strictEqual(P.cellSortKey(" -3.5 %"), -3.5); assert.strictEqual(P.cellSortKey("any"), null);
+  }
   assert.strictEqual(P.MIN_WINDOW.w, 160);
 });
 test("the pure block touches no DOM, window, storage or timers", () => {

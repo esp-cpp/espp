@@ -268,6 +268,10 @@ inline constexpr uint16_t kLabelMonospace = 0x02;
 inline constexpr uint16_t kLabelWrap = 0x04;
 inline constexpr uint16_t kButtonPrimary = 0x01;
 inline constexpr uint16_t kButtonDanger = 0x02;
+/// Table: the browser offers click-to-sort column headers (ascending, again
+/// for descending, again to clear; numeric-aware). Sorting is purely a view:
+/// Select / Activate events still carry the firmware's row index.
+inline constexpr uint16_t kTableSortable = 0x01;
 
 /// Window flags (WINDOW_OPEN flags / PropTag::WindowFlags).
 inline constexpr uint16_t kWinMovable = 1u << 0;

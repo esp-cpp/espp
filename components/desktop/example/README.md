@@ -17,7 +17,9 @@ Apps (`main/apps/*.hpp`, one `register_<name>_app()` each):
 - **System Monitor** — uptime and per-region heap gauges (`HeapMonitor`),
   refreshed by a 1 s window timer.
 - **Task Manager** — the FreeRTOS task table (`TaskMonitor`: CPU %, stack
-  high-water mark, priority, core) with a refresh-period selector.
+  high-water mark, priority, core) with a refresh-period selector. Filter by task name (substring,
+  case-insensitive) and core; click a column header to sort (again for
+  descending, again to clear).
 - **Log Viewer** — the captured console (`ConsoleCapture`) streamed live into
   a read-only, ANSI-aware console text area; pause and clear.
 - **Files** — browse the LittleFS partition (`FileSystem`), create / rename /

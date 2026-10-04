@@ -133,6 +133,7 @@ public:
   static constexpr uint16_t kLabelWrap = detail::dp::kLabelWrap;
   static constexpr uint16_t kButtonPrimary = detail::dp::kButtonPrimary;
   static constexpr uint16_t kButtonDanger = detail::dp::kButtonDanger;
+  static constexpr uint16_t kTableSortable = detail::dp::kTableSortable;
   /// A list / table / select selection meaning "nothing".
   static constexpr int32_t kNoSelection = -1;
   /// Smallest Config::max_frame_bytes: the largest frame header + CRC + the
