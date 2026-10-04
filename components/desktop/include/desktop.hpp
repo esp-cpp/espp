@@ -598,8 +598,11 @@ public:
   /// @brief Construct the desktop and start its task.
   explicit Desktop(const Config &config)
       : BaseComponent("Desktop", config.log_level)
-      , config_(config)
-      , text_(config.max_text_bytes) {
+      , config_(normalized(config))
+      , text_(config_.max_text_bytes) {
+    if (config.max_text_bytes == 0)
+      logger_.warn("max_text_bytes must be at least 1; using 1 (the browser treats an "
+                   "advertised 0 as its own default, so 0 would make every edit vanish)");
     if (config_.max_frame_bytes < kMinFrameBytes) {
       logger_.warn("max_frame_bytes {} is below the minimum {}; using the minimum",
                    config_.max_frame_bytes, kMinFrameBytes);
@@ -618,7 +621,7 @@ public:
     model_.flush_period_ms =
         static_cast<uint16_t>(std::min<int64_t>(config.flush_period.count(), 65535));
     model_.max_payload = max_payload();
-    model_.max_text_bytes = config.max_text_bytes;
+    model_.max_text_bytes = config_.max_text_bytes;
     last_flush_ = std::chrono::steady_clock::now();
     task_ = std::make_unique<Task>(
         Task::Config{.callback = [this](std::mutex &m, std::condition_variable &cv,
@@ -985,9 +988,20 @@ public:
     return s && s->needs_resync;
   }
 
-  /// @brief The bound on a TextArea's retained text (Config::max_text_bytes).
+  /// @brief The bound on a TextArea's retained text (Config::max_text_bytes,
+  /// normalized to at least 1).
   size_t max_text_bytes() const { return config_.max_text_bytes; }
 
+protected:
+  /// Config with the limits every consumer (assembler, model, advertised
+  /// record, accessor) must agree on already normalized.
+  static Config normalized(Config c) {
+    if (c.max_text_bytes == 0)
+      c.max_text_bytes = 1;
+    return c;
+  }
+
+public:
   /// @brief The largest payload sent / accepted (Config::max_frame_bytes less
   ///        the frame overhead, at most the codec's limit).
   size_t max_payload() const { return detail::dp::max_payload_for(config_.max_frame_bytes); }

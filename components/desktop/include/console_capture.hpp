@@ -124,10 +124,8 @@ public:
     // callback is live from the register on: it only touches the ring, which
     // is ready, so nothing is lost if a log line arrives in between.)
     auto rollback = [&]() {
-      // cppcheck-suppress ignoredReturnValue
-      std::freopen(original_console_path(), "w", stdout);
-      // cppcheck-suppress ignoredReturnValue
-      std::freopen(original_console_path(), "w", stderr);
+      restore_stream(stdout);
+      restore_stream(stderr);
       esp_vfs_unregister(kVfsPath);
       reconcile_tee(s, false);
       ec = std::make_error_code(std::errc::io_error);
@@ -239,6 +237,28 @@ private:
   /// The device the console was on before install(): /dev/console (primary +
   /// secondary) when the SDK provides it, else the raw device.
   static const char *original_console_path() { return "/dev/console"; }
+
+  /// Re-open `stream` on the original console, trying the same candidate
+  /// devices as open_original_console() (the SDK's /dev/console, else the
+  /// console UART, else USB-Serial-JTAG) so a rollback never leaves the
+  /// stream closed on a system without /dev/console. Returns the path used,
+  /// or nullptr when none could be opened.
+  static const char *restore_stream(FILE *stream) {
+    if (std::freopen(original_console_path(), "w", stream) != nullptr)
+      return original_console_path();
+#if defined(CONFIG_ESP_CONSOLE_UART_NUM)
+    static char uart_path[16];
+    std::snprintf(uart_path, sizeof(uart_path), "/dev/uart/%d", CONFIG_ESP_CONSOLE_UART_NUM);
+    if (std::freopen(uart_path, "w", stream) != nullptr)
+      return uart_path;
+#endif
+#if defined(CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG) ||                                                 \
+    defined(CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG)
+    if (std::freopen("/dev/usbserjtag", "w", stream) != nullptr)
+      return "/dev/usbserjtag";
+#endif
+    return nullptr;
+  }
 
   static int open_original_console() {
     int fd = ::open(original_console_path(), O_WRONLY);

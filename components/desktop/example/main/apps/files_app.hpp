@@ -317,8 +317,25 @@ inline void register_files_app(espp::Desktop &desktop) {
                                              .level = D::NotifyLevel::Error});
                                    return;
                                  }
+                                 const fs::path dest = p->parent_path() / *name;
                                  std::error_code ec;
-                                 fs::rename(*p, p->parent_path() / *name, ec);
+                                 // rename() replaces an existing destination on POSIX /
+                                 // LittleFS: never overwrite silently
+                                 if (fs::exists(dest, ec) || ec) {
+                                   d.notify({.title = "Rename",
+                                             .text = ec ? fmt::format("cannot check {}: {}", *name,
+                                                                      ec.message())
+                                                        : fmt::format("{} already exists", *name),
+                                             .level = D::NotifyLevel::Error});
+                                   return;
+                                 }
+                                 fs::rename(*p, dest, ec);
+                                 if (ec) {
+                                   d.notify({.title = "Rename",
+                                             .text = fmt::format("rename failed: {}", ec.message()),
+                                             .level = D::NotifyLevel::Error});
+                                   return;
+                                 }
                                  refresh();
                                }});
                 },

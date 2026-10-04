@@ -3,6 +3,7 @@
 // System Monitor: uptime / heap gauges refreshed by a 1 s window timer.
 
 #include <chrono>
+#include <cstdint>
 
 #include "esp_heap_caps.h"
 
@@ -50,8 +51,8 @@ inline void register_system_monitor_app(espp::Desktop &desktop) {
                 g.label.set_text("{} / {} KiB used, min free {} KiB, largest block {} KiB",
                                  used / 1024, hi.total_size / 1024, hi.min_free_bytes / 1024,
                                  hi.largest_free_block / 1024);
-                g.bar.set_value(
-                    static_cast<int32_t>(hi.total_size ? used * 1000 / hi.total_size : 0));
+                g.bar.set_value(static_cast<int32_t>(
+                    hi.total_size ? static_cast<uint64_t>(used) * 1000 / hi.total_size : 0));
               }
             };
             refresh();
