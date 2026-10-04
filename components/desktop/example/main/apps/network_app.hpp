@@ -187,6 +187,7 @@ struct NetworkState {
 #endif
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_ETHERNET
   std::unique_ptr<espp::Ethernet> eth;
+  std::string eth_init_error{}; ///< why initialize() failed (empty = ok / not attempted)
 #endif
 
   void set_status(std::string_view status, std::string_view ip = "") {
@@ -651,7 +652,12 @@ struct NetworkState {
                                .hostname = "espp-desktop",
                                .log_level = espp::Logger::Verbosity::INFO});
     std::error_code ec;
-    eth->initialize(ec);
+    if (!eth->initialize(ec)) {
+      eth_init_error = ec ? ec.message() : "initialize failed";
+      toast("RMII Ethernet init failed: " + eth_init_error +
+                " (check the PHY wiring / board choice)",
+            D::NotifyLevel::Error);
+    }
   }
 #endif
 };
@@ -823,9 +829,13 @@ inline void register_network_app(espp::Desktop &desktop) {
             auto speed = win.label("Speed: -", eth.id(), D::kLabelMonospace);
             refreshers.push_back([=]() mutable {
               const bool up = net->eth->link_up();
-              link.set_text("Link: {}", !net->eth->is_initialized() ? "not initialized"
-                                        : up                        ? "up"
-                                                                    : "down");
+              if (!net->eth->is_initialized())
+                link.set_text("Link: not initialized{}",
+                              net->eth_init_error.empty()
+                                  ? ""
+                                  : " (init failed: " + net->eth_init_error + ")");
+              else
+                link.set_text("Link: {}", up ? "up" : "down");
               eth_ip.set_text("IP: {}",
                               net->eth->is_connected() ? net->eth->get_ip_address() : "-");
               if (const auto sd = net->eth->link_speed_duplex(); sd)

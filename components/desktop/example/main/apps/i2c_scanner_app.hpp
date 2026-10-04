@@ -144,9 +144,21 @@ inline void register_i2c_scanner_app(espp::Desktop &desktop) {
 
             // ---- widgets ----
             auto bar = win.row();
-            auto status = win.label("Press Scan to probe addresses 0x01..0x7F.", bar.id());
+            auto status = win.label("Press Scan to probe addresses 0x08..0x77.", bar.id());
             auto table = win.table({"Address", "Decimal", "Note"}, {}, nullptr);
             auto scan_btn = win.button("Scan", nullptr, bar.id(), D::kButtonPrimary);
+            // the reserved 7-bit ranges (0x00..0x07 general call / CBUS / hs-mode
+            // master codes, 0x78..0x7F 10-bit addressing / device id) are left out
+            // of a scan unless asked for: traffic there can have side effects
+            auto include_reserved = std::make_shared<bool>(false);
+            win.checkbox(
+                "include reserved addresses (0x01..0x07, 0x78..0x7F)", false,
+                [=](bool on) mutable {
+                  *include_reserved = on;
+                  status.set_text("Press Scan to probe addresses {}.",
+                                  on ? "0x01..0x7F" : "0x08..0x77");
+                },
+                bar.id());
             auto tools = win.group("Register access");
             auto fields = win.row(tools.id());
             auto addr_box = win.textbox("", nullptr, fields.id(), "addr (hex)");
@@ -170,7 +182,7 @@ inline void register_i2c_scanner_app(espp::Desktop &desktop) {
 
             // ---- the worker ----
             // Every bus transaction (a scan, a register read or write) runs on
-            // one one-shot worker task, never on the desktop task (a scan is up
+            // a single one-shot worker task, never on the desktop task (a scan is up
             // to ~1.3 s, a 64-byte write at 100 kHz ~6 ms); the three buttons
             // are disabled until it is done and the result is posted back
             // through the widget mutators. The bus outlives the task: on_close
@@ -226,10 +238,12 @@ inline void register_i2c_scanner_app(espp::Desktop &desktop) {
               status.set_text("Scanning\xE2\x80\xA6");
               auto *bus = st->bus.get();
               auto *session = st.get();
+              const uint8_t first = *include_reserved ? 0x01 : 0x08;
+              const uint8_t last = *include_reserved ? 0x7F : 0x77;
               run_worker([=]() mutable {
                 std::vector<std::string> rows;
                 std::vector<uint8_t> found;
-                for (uint8_t addr = 0x01; addr <= 0x7F; ++addr) {
+                for (uint8_t addr = first; addr <= last; ++addr) {
                   if (!bus->probe_device(addr))
                     continue;
                   found.push_back(addr);
