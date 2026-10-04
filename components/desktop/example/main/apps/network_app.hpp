@@ -5,12 +5,16 @@
 // gate, the RMII Ethernet link (espp::Ethernet). The interfaces are brought
 // up on the first launch and kept across windows (closing the window does not
 // disconnect); the window's 1 s timer renders the state the driver callbacks
-// record. A Wi-Fi scan blocks (and disconnects first), so it runs on its own
-// task.
+// record. Every station transition (scan, connect, disconnect, forget) runs
+// on one worker task as a small explicit state machine (Idle -> Stopping ->
+// Configuring -> Associating -> Connected), never on the desktop task, with
+// the controls disabled until it is done.
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <cstring>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -40,6 +44,12 @@ namespace desktop_example {
 
 /// The interfaces, shared by every Network window (created on first launch).
 struct NetworkState {
+  using D = espp::Desktop;
+
+  explicit NetworkState(D &desktop)
+      : desktop(desktop) {}
+
+  D &desktop; ///< outlives every task (toasts from the worker)
   espp::Logger logger{{.tag = "Network app", .level = espp::Logger::Verbosity::INFO}};
   std::mutex mutex;
   std::string wifi_status{"idle"};
@@ -48,40 +58,35 @@ struct NetworkState {
   std::vector<std::string> scan_ssids; // in AP list order
   std::vector<std::string> scan_rows;  // the AP list's items (shown again by a new window)
   uint32_t scan_generation{0};         // bumped per completed scan (windows re-sync on change)
-  /// A scan is in flight on the scan task: it disconnects and drives the
-  /// station, so every other station action is refused until it is done.
-  std::atomic<bool> scanning{false};
+
+  /// The station state machine, driven by the jobs below on the worker task
+  /// and by the driver callbacks (got-ip -> Connected, retries exhausted ->
+  /// Idle). `Stopping` is the explicit wait for the DISCONNECTED event.
+  enum class Phase : uint8_t { Idle, Stopping, Configuring, Associating, Connected };
+  std::atomic<Phase> phase{Phase::Idle};
+  /// A job (scan / connect / disconnect / forget) is running on the worker:
+  /// every station control is disabled, and another job is refused.
+  std::atomic<bool> busy{false};
   /// DESIRED connectivity: set by Connect and by the saved-credentials
   /// auto-connect at start, cleared only by Disconnect / Forget -- never by
-  /// the driver callbacks (on_disconnected also fires for the intentional
-  /// disconnect inside WifiSta::reconfigure(), e.g. when switching APs). A
-  /// scan suppresses the station while it wants to be connected and restores
-  /// it afterwards, whatever the transient association state.
+  /// the driver callbacks. A scan stops the station and restores it afterwards
+  /// when this is set, whatever the transient phase.
   std::atomic<bool> want_connected{false};
-  /// An association is in progress (connect() was issued and neither an IP
-  /// nor "retries exhausted" arrived yet): the only state, besides being
-  /// connected, in which WifiSta::disconnect() is safe to call -- on an idle
-  /// station it sets its private `disconnecting_` and no DISCONNECTED event
-  /// ever clears it, so the next Connect would lose its retries.
-  std::atomic<bool> associating{false};
-  /// Connection-attempt GENERATION. The driver events are asynchronous:
-  /// WifiSta::disconnect() clears its `connected_` at once but the
-  /// DISCONNECTED event lands later, and reconfigure() only disconnects a
-  /// station whose `connected_` is set (not one still associating). So every
-  /// attempt (start-up auto-connect, Connect, the reconnect after a scan,
-  /// Forget's reset) bumps this counter and installs callbacks that captured
-  /// the new value; an event whose captured generation is older than the
-  /// current one belongs to a previous attempt and is ignored. The rule for
-  /// a new Connect: refused while an attempt of the current generation is
-  /// still associating (Disconnect first); a connected station is stopped
-  /// explicitly (disconnect_if_active) under the new generation before the
-  /// new configuration is applied, so its late DISCONNECTED cannot clear the
-  /// new attempt's state.
+  /// Connection-attempt GENERATION, a belt-and-braces check only: the driver
+  /// events are asynchronous and WifiSta fetches `config_.on_disconnected`
+  /// at DELIVERY time, so the installed callback cannot tell which attempt an
+  /// event belongs to. Ownership is therefore never inferred from the
+  /// callback: before a new attempt the worker actually WAITS for the
+  /// DISCONNECTED event of the stopped station (stop_and_wait, bounded). The
+  /// generation only filters the residue (an event that still arrives after
+  /// the wait timed out).
   std::atomic<uint32_t> attempt{0};
-  std::string cur_ssid, cur_pass; // the credentials of the current attempt (under `mutex`)
+  std::condition_variable disconnected_cv; // with `mutex`: a DISCONNECTED event arrived
+  uint32_t disconnected_events{0};         // under `mutex`; any generation
+  std::string cur_ssid, cur_pass;          // the credentials of the current attempt (under `mutex`)
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI
   std::unique_ptr<espp::WifiSta> wifi;
-  std::unique_ptr<espp::Task> scan_task; // after wifi: joined before it goes away
+  std::unique_ptr<espp::Task> worker; // after wifi: joined before it goes away
 #endif
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_ETHERNET
   std::unique_ptr<espp::Ethernet> eth;
@@ -91,6 +96,10 @@ struct NetworkState {
     std::lock_guard<std::mutex> lock(mutex);
     wifi_status = std::string(status);
     wifi_ip = std::string(ip);
+  }
+
+  void toast(std::string text, D::NotifyLevel level) {
+    desktop.notify({.title = "Wi-Fi", .text = std::move(text), .level = level});
   }
 
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI
@@ -116,8 +125,8 @@ struct NetworkState {
   }
 
   /// The station config for `ssid` / `password` of attempt `gen`: the
-  /// callbacks record the state this struct holds (they run on the event-loop
-  /// task) and ignore events of an older generation (see `attempt`).
+  /// callbacks drive the phase (they run on the event-loop task) and ignore
+  /// the residue of an older generation (see `attempt`).
   espp::WifiSta::Config wifi_config(std::string ssid, std::string password, uint32_t gen) {
     {
       std::lock_guard<std::mutex> lock(mutex);
@@ -134,10 +143,19 @@ struct NetworkState {
                     set_status("connected, waiting for an IP");
                 },
             .on_disconnected =
-                [this, gen]() { // retries exhausted, or reconfigure()'s own disconnect
+                [this, gen]() {
+                  // every DISCONNECTED (intentional or retries exhausted) wakes
+                  // a stop_and_wait() in progress, whatever its generation
+                  {
+                    std::lock_guard<std::mutex> lock(mutex);
+                    ++disconnected_events;
+                  }
+                  disconnected_cv.notify_all();
                   if (gen != attempt)
-                    return; // a previous attempt's late event
-                  associating = false;
+                    return; // residue of a previous attempt
+                  if (phase == Phase::Stopping)
+                    return;            // the worker owns this transition
+                  phase = Phase::Idle; // retries exhausted
                   set_status(want_connected ? "disconnected (retries exhausted; Connect or a "
                                               "scan retries)"
                                             : "disconnected");
@@ -146,13 +164,13 @@ struct NetworkState {
                 [this, gen](ip_event_got_ip_t *e) {
                   if (gen != attempt)
                     return;
-                  associating = false;
+                  phase = Phase::Connected;
                   set_status("connected", fmt::format("{}.{}.{}.{}", IP2STR(&e->ip_info.ip)));
                 },
             .log_level = espp::Logger::Verbosity::INFO};
   }
 
-  /// Start a new attempt generation: later events of the previous one are
+  /// Start a new attempt generation: the residue of the previous one is
   /// ignored from here on.
   uint32_t new_attempt() { return ++attempt; }
 
@@ -191,25 +209,6 @@ struct NetworkState {
     return s;
   }
 
-  /// Give up the desired connectivity and disconnect -- but only when the
-  /// station is connected or a Connect was issued (an association may be in
-  /// flight). WifiSta::disconnect() sets its private `disconnecting_`, which
-  /// only the DISCONNECTED event clears: on an idle station no event comes,
-  /// the flag goes stale and the next Connect loses its retries on the
-  /// first failure.
-  void stop_station() {
-    want_connected = false;
-    disconnect_if_active();
-  }
-
-  /// WifiSta::disconnect() only when it will produce a DISCONNECTED event
-  /// (connected, or an association in progress); see `associating`.
-  void disconnect_if_active() {
-    const bool was_associating = associating.exchange(false);
-    if (wifi->is_connected() || was_associating)
-      wifi->disconnect();
-  }
-
   /// Erase one key; true when it is gone (it was erased, or was never
   /// stored), false on a genuine NVS failure (probe or erase).
   static bool erase_key(espp::NvsHandle &nvs, const char *key) {
@@ -222,7 +221,22 @@ struct NetworkState {
     return nvs.erase(key, ec);
   }
 
+  /// Save the credentials (committed, so they survive a reboot).
+  bool save_credentials(const std::string &ssid, const std::string &pass) {
+    std::error_code ec;
+    espp::NvsHandle nvs("desktop", ec);
+    if (ec)
+      return false;
+    nvs.set("wifi_ssid", ssid, ec);
+    if (!ec)
+      nvs.set("wifi_pass", pass, ec);
+    if (!ec)
+      nvs.commit(ec);
+    return !ec;
+  }
+
   /// Bring the station up once, with the saved credentials (none = idle).
+  /// Desktop task, first launch.
   void ensure_wifi() {
     if (wifi)
       return;
@@ -257,22 +271,150 @@ struct NetworkState {
     auto cfg = wifi_config(ssid, pass, new_attempt());
     cfg.auto_connect = !ssid.empty();
     want_connected = cfg.auto_connect;
-    associating = cfg.auto_connect; // WifiSta connects from its STA_START event
+    // WifiSta connects from its STA_START event: that is an association
+    phase = cfg.auto_connect ? Phase::Associating : Phase::Idle;
     set_status(ssid.empty() ? "idle (no saved network)" : "connecting");
     wifi = std::make_unique<espp::WifiSta>(cfg);
     wifi_mac = wifi->get_mac();
   }
 
-  /// What forget() managed to do (each part is reported separately).
-  struct ForgetResult {
-    bool erased{false};        ///< the NVS keys are gone (erased + committed, or never stored)
-    bool station_reset{false}; ///< the driver + WifiSta configs are empty
-  };
+  // ---- the worker: one job at a time, every station control disabled ----
 
-  /// Drop the saved credentials everywhere: the app's NVS keys, the driver's
-  /// station config and WifiSta's stored config (reconfigured with empty
-  /// credentials and auto-connect off, so nothing reconnects).
-  ForgetResult forget() {
+  /// Run `job` on the worker task; refused (with a toast) while another job
+  /// runs or when the task cannot be started. Desktop task.
+  bool run_job(const char *name, std::function<void()> job) {
+    if (busy.exchange(true)) {
+      toast("the station is busy; try again when it is done", D::NotifyLevel::Warn);
+      return false;
+    }
+    worker.reset(); // the previous (finished) job
+    worker = std::make_unique<espp::Task>(
+        espp::Task::Config{.callback =
+                               [this, job = std::move(job)]() {
+                                 job();
+                                 busy = false;
+                                 return true; // one shot
+                               },
+                           .task_config = {.name = name, .stack_size_bytes = 6 * 1024}});
+    if (!worker->start()) {
+      worker.reset();
+      busy = false;
+      toast("could not start the Wi-Fi worker task (out of memory?)", D::NotifyLevel::Error);
+      return false;
+    }
+    return true;
+  }
+
+  /// Stopping: if the station is connected or associating, disconnect
+  /// intentionally (that suppresses WifiSta's retries) and WAIT for its
+  /// DISCONNECTED event (bounded), so a later attempt can never be confused
+  /// with the stopped one. On an idle station WifiSta::disconnect() is not
+  /// called at all: no event would come and its private `disconnecting_`
+  /// would stay set, costing the next attempt its retries. Worker task.
+  /// Returns true once the station is idle.
+  bool stop_and_wait(std::chrono::milliseconds timeout = std::chrono::milliseconds(1000)) {
+    const Phase p = phase.load();
+    if (p != Phase::Connected && p != Phase::Associating)
+      return true;
+    phase = Phase::Stopping;
+    set_status("stopping");
+    uint32_t seen = 0;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      seen = disconnected_events;
+    }
+    if (!wifi->disconnect()) {
+      // the driver rejected it (nothing was associated): no event will come
+      phase = Phase::Idle;
+      return true;
+    }
+    bool got = false;
+    {
+      std::unique_lock<std::mutex> lock(mutex);
+      got = disconnected_cv.wait_for(lock, timeout, [&] { return disconnected_events != seen; });
+    }
+    if (!got)
+      logger.warn("no DISCONNECTED event within {} ms; continuing (the generation check drops "
+                  "it if it still arrives)",
+                  timeout.count());
+    phase = Phase::Idle;
+    return got;
+  }
+
+  /// Configuring -> Associating: a new attempt with `ssid` / `pass` (the
+  /// station must be idle: call stop_and_wait() first). Worker task.
+  bool start_attempt(const std::string &ssid, const std::string &pass, const char *what) {
+    phase = Phase::Configuring;
+    set_status(fmt::format("configuring {}", ssid));
+    const uint32_t gen = new_attempt();
+    // after stop_and_wait() WifiSta's connected_ is false, so reconfigure()
+    // does not connect by itself: connect() explicitly
+    const bool ok = wifi->reconfigure(wifi_config(ssid, pass, gen)) && wifi->connect();
+    if (!ok) {
+      phase = Phase::Idle;
+      set_status(fmt::format("{} failed: use Connect", what));
+      toast(fmt::format("could not start the {} to {}", what, ssid), D::NotifyLevel::Error);
+      return false;
+    }
+    phase = Phase::Associating;
+    set_status(fmt::format("connecting to {}", ssid));
+    return true;
+  }
+
+  /// Connect: stop whatever is active (waiting for its event), then attempt.
+  void connect_job(const std::string &ssid, const std::string &pass) {
+    want_connected = true;
+    stop_and_wait();
+    start_attempt(ssid, pass, "connection");
+  }
+
+  /// Disconnect: give up the desired state and stop the station.
+  void disconnect_job() {
+    want_connected = false;
+    stop_and_wait();
+    set_status("disconnected");
+  }
+
+  /// Scan: stop the station first (WifiSta::scan() would otherwise drop the
+  /// link with a bare esp_wifi_disconnect() that its DISCONNECTED handler
+  /// answers with a retry while the scan starts), scan, publish the rows for
+  /// every window, then restore the desired state with a fresh attempt.
+  void scan_job() {
+    const bool intent = want_connected;
+    stop_and_wait();
+    set_status("scanning");
+    const auto aps = wifi->scan(20);
+    std::vector<std::string> rows, ssids;
+    for (const auto &ap : aps) {
+      const std::string ssid(reinterpret_cast<const char *>(ap.ssid));
+      ssids.push_back(ssid);
+      rows.push_back(fmt::format("{}  ({} dBm, {}, ch {})", ssid.empty() ? "<hidden>" : ssid,
+                                 static_cast<int>(ap.rssi), auth_name(ap.authmode),
+                                 static_cast<int>(ap.primary)));
+    }
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      scan_ssids = ssids;
+      scan_rows = rows;
+      ++scan_generation;
+    }
+    if (intent) {
+      std::string ssid, pass;
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        ssid = cur_ssid;
+        pass = cur_pass;
+      }
+      start_attempt(ssid, pass, "reconnect after the scan");
+    } else {
+      set_status("disconnected");
+    }
+  }
+
+  /// Forget: drop the saved credentials everywhere -- the app's NVS keys,
+  /// the driver's station config and WifiSta's stored config (reconfigured
+  /// with empty credentials and auto-connect off, so nothing reconnects).
+  void forget_job() {
     std::error_code ec;
     espp::NvsHandle nvs("desktop", ec);
     bool erased = !ec;
@@ -284,33 +426,25 @@ struct NetworkState {
       nvs.commit(ec); // erase_item() only stages the change
       erased = erased && !ec;
     }
-    stop_station();
+    want_connected = false;
+    stop_and_wait();
     wifi_config_t empty{};
     const bool cleared = esp_wifi_set_config(WIFI_IF_STA, &empty) == ESP_OK;
-    // empty ssid: reconfigure() adopts the (now empty) driver config; a new
-    // generation so the stopped link's late events are ignored
+    // empty ssid: reconfigure() adopts the (now empty) driver config
     auto cfg = wifi_config("", "", new_attempt());
     cfg.auto_connect = false;
     const bool station_reset = wifi->reconfigure(cfg) && cleared;
+    phase = Phase::Idle;
     // the persistent status must not claim the credentials are gone when the
     // NVS erase / commit failed
     set_status(erased ? "idle (no saved network)"
                       : "Forget failed: the credentials may still be saved");
-    return {.erased = erased, .station_reset = station_reset};
-  }
-
-  /// Save the credentials (committed, so they survive a reboot).
-  bool save_credentials(const std::string &ssid, const std::string &pass) {
-    std::error_code ec;
-    espp::NvsHandle nvs("desktop", ec);
-    if (ec)
-      return false;
-    nvs.set("wifi_ssid", ssid, ec);
-    if (!ec)
-      nvs.set("wifi_pass", pass, ec);
-    if (!ec)
-      nvs.commit(ec);
-    return !ec;
+    if (!erased)
+      toast("Forget failed: the credentials may still be saved in NVS", D::NotifyLevel::Error);
+    else if (!station_reset)
+      toast("credentials erased, but the station could not be reset", D::NotifyLevel::Warn);
+    else
+      toast("saved network forgotten", D::NotifyLevel::Ok);
   }
 #endif
 
@@ -356,7 +490,7 @@ struct NetworkState {
 } // namespace desktop_example
 
 inline void register_network_app(espp::Desktop &desktop) {
-  auto net = std::make_shared<desktop_example::NetworkState>();
+  auto net = std::make_shared<desktop_example::NetworkState>(desktop);
   desktop.register_app({
       .name = "Network",
       .icon = "\xF0\x9F\x93\xA1", // satellite antenna
@@ -376,6 +510,7 @@ inline void register_network_app(espp::Desktop &desktop) {
 #endif
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI
             net->ensure_wifi();
+            auto *state = net.get(); // outlives every window and task
             auto wifi = win.group("Wi-Fi station");
             auto status = win.label("Status: -", wifi.id(), D::kLabelBold);
             auto ssid_label = win.label("SSID: -", wifi.id(), D::kLabelMonospace);
@@ -385,15 +520,23 @@ inline void register_network_app(espp::Desktop &desktop) {
             auto scan_bar = win.row(wifi.id());
             auto scan_btn = win.button("Scan", nullptr, scan_bar.id());
             auto scan_label = win.label("", scan_bar.id());
-            std::vector<std::string> rows_now;
+            // THIS window's AP list and the SSIDs behind its rows: snapshotted
+            // together whenever the rows are replaced, so a selection always
+            // maps to the SSID of the row the user sees (another window's scan
+            // may replace the shared rows at any time)
+            auto ssids = std::make_shared<std::vector<std::string>>();
             auto seen_generation = std::make_shared<uint32_t>(0);
+            std::vector<std::string> rows_now;
             {
               std::lock_guard<std::mutex> lock(net->mutex);
               rows_now = net->scan_rows; // the last scan, if any
+              *ssids = net->scan_ssids;
               *seen_generation = net->scan_generation;
             }
             auto ap_list = win.list(rows_now, nullptr, wifi.id());
             ap_list.set_size(0, 140);
+            if (!rows_now.empty())
+              scan_label.set_text("{} networks", rows_now.size());
             auto pass_row = win.row(wifi.id());
             win.label("Password", pass_row.id());
             auto pass_box = win.textbox("", nullptr, pass_row.id(),
@@ -402,23 +545,15 @@ inline void register_network_app(espp::Desktop &desktop) {
             auto connect_btn = win.button("Connect", nullptr, actions.id(), D::kButtonPrimary);
             auto disconnect_btn = win.button("Disconnect", nullptr, actions.id());
             auto forget_btn = win.button("Forget", nullptr, actions.id(), D::kButtonDanger);
-            // every station action is disabled while a scan drives the
-            // station from the scan task (and refused if clicked anyway)
+            // every station control is disabled while a job runs on the
+            // worker (and a click is refused by run_job() anyway)
             auto set_busy = [=](bool busy) mutable {
               scan_btn.set_enabled(!busy);
               connect_btn.set_enabled(!busy);
               disconnect_btn.set_enabled(!busy);
               forget_btn.set_enabled(!busy);
             };
-            auto refuse_if_scanning = [=, &d]() {
-              if (!net->scanning)
-                return false;
-              d.notify({.title = "Wi-Fi",
-                        .text = "a scan is in progress; try again when it is done",
-                        .level = D::NotifyLevel::Warn});
-              return true;
-            };
-            set_busy(net->scanning);
+            set_busy(net->busy);
 
             refreshers.push_back([=]() mutable {
               std::string st, ip;
@@ -427,20 +562,22 @@ inline void register_network_app(espp::Desktop &desktop) {
                 std::lock_guard<std::mutex> lock(net->mutex);
                 st = net->wifi_status;
                 ip = net->wifi_ip;
-                // a scan that completed since this window opened (the scan
-                // task outlives windows and only updates the one it started
-                // from): re-sync the list from the shared rows
+                // a scan completed since this window last synced (from any
+                // window): replace the rows AND the SSIDs behind them together,
+                // and drop the selection, which pointed at the old rows
                 if (net->scan_generation != *seen_generation) {
                   *seen_generation = net->scan_generation;
                   new_rows = net->scan_rows;
+                  *ssids = net->scan_ssids;
                 }
               }
               if (new_rows) {
                 ap_list.set_items(*new_rows);
+                ap_list.set_selected(D::kNoSelection);
                 scan_label.set_text("{} networks", new_rows->size());
               }
-              // also re-syncs a window opened while a scan started elsewhere
-              set_busy(net->scanning);
+              // also re-syncs a window opened while a job started elsewhere
+              set_busy(net->busy);
               const bool connected = net->wifi->is_connected();
               status.set_text("Status: {}", st);
               ssid_label.set_text("SSID: {}", connected ? net->wifi->get_ssid() : "-");
@@ -451,102 +588,22 @@ inline void register_network_app(espp::Desktop &desktop) {
                 rssi_label.set_text("RSSI: -");
             });
 
-            scan_btn.on_event([=, &d](const D::WidgetEvent &e) mutable {
-              if (e.kind != D::WidgetEventKind::Click || refuse_if_scanning())
+            scan_btn.on_event([=](const D::WidgetEvent &e) mutable {
+              if (e.kind != D::WidgetEventKind::Click)
                 return;
-              net->scanning = true;
-              net->scan_task.reset(); // the previous (finished) scan
-              set_busy(true);
-              scan_label.set_text("scanning\xE2\x80\xA6 (disconnects first)");
-              auto *state = net.get(); // outlives the task (joined by its destructor)
-              net->scan_task = std::make_unique<espp::Task>(espp::Task::Config{
-                  .callback =
-                      [=, &d]() mutable { // d (the Desktop) outlives every task
-                        // WifiSta::scan() drops the link with a bare
-                        // esp_wifi_disconnect(), which WifiSta's DISCONNECTED
-                        // handler treats as unintentional and answers with a
-                        // reconnect attempt (num_connect_retries > 0) while the
-                        // scan is starting -- whether the station was connected
-                        // or still associating. The DESIRED state decides:
-                        // disconnect intentionally first (that suppresses the
-                        // retries), give the event time to land, then scan and
-                        // restore it (connect again) afterwards.
-                        const bool intent = state->want_connected || state->wifi->is_connected();
-                        if (state->wifi->is_connected() || state->associating) {
-                          state->disconnect_if_active();
-                          std::this_thread::sleep_for(std::chrono::milliseconds(200));
-                        }
-                        state->set_status("scanning");
-                        const auto aps = state->wifi->scan(20);
-                        if (intent) {
-                          state->set_status("reconnecting");
-                          // a new attempt generation with fresh callbacks, so the
-                          // scan's own disconnect events cannot clear its state
-                          std::string ssid, pass;
-                          {
-                            std::lock_guard<std::mutex> lock(state->mutex);
-                            ssid = state->cur_ssid;
-                            pass = state->cur_pass;
-                          }
-                          const uint32_t gen = state->new_attempt();
-                          if (state->wifi->reconfigure(state->wifi_config(ssid, pass, gen)) &&
-                              state->wifi->connect()) {
-                            state->associating = true;
-                          } else {
-                            // never leave "reconnecting" up: say what to do
-                            state->associating = false;
-                            state->set_status("reconnect failed: use Connect");
-                            d.notify({.title = "Wi-Fi",
-                                      .text = "could not reconnect after the scan; use Connect",
-                                      .level = D::NotifyLevel::Error});
-                          }
-                        } else {
-                          state->set_status("disconnected");
-                        }
-                        std::vector<std::string> rows, ssids;
-                        for (const auto &ap : aps) {
-                          const std::string ssid(reinterpret_cast<const char *>(ap.ssid));
-                          ssids.push_back(ssid);
-                          rows.push_back(fmt::format(
-                              "{}  ({} dBm, {}, ch {})", ssid.empty() ? "<hidden>" : ssid,
-                              static_cast<int>(ap.rssi), state->auth_name(ap.authmode),
-                              static_cast<int>(ap.primary)));
-                        }
-                        {
-                          std::lock_guard<std::mutex> lock(state->mutex);
-                          state->scan_ssids = ssids;
-                          state->scan_rows = rows;
-                          ++state->scan_generation;
-                        }
-                        ap_list.set_items(rows);
-                        scan_label.set_text("{} networks", rows.size());
-                        state->scanning = false;
-                        set_busy(false);
-                        return true; // one shot
-                      },
-                  .task_config = {.name = "wifi_scan", .stack_size_bytes = 6 * 1024}});
-              if (!net->scan_task->start()) {
-                // no task will ever release the busy state: restore the window
-                net->scan_task.reset();
-                net->scanning = false;
-                set_busy(false);
-                scan_label.set_text("could not start the scan task");
-                d.notify({.title = "Wi-Fi",
-                          .text = "could not start the scan task (out of memory?)",
-                          .level = D::NotifyLevel::Error});
+              if (net->run_job("wifi_scan", [state]() { state->scan_job(); })) {
+                set_busy(true);
+                scan_label.set_text("scanning\xE2\x80\xA6 (stops the station first)");
               }
             });
 
             connect_btn.on_event([=, &d](const D::WidgetEvent &e) mutable {
-              if (e.kind != D::WidgetEventKind::Click || refuse_if_scanning())
+              if (e.kind != D::WidgetEventKind::Click)
                 return;
               std::string ssid;
-              {
-                std::lock_guard<std::mutex> lock(net->mutex);
-                const int32_t i = ap_list.selected();
-                if (i >= 0 && static_cast<size_t>(i) < net->scan_ssids.size())
-                  ssid = net->scan_ssids[static_cast<size_t>(i)];
-              }
+              const int32_t i = ap_list.selected();
+              if (i >= 0 && static_cast<size_t>(i) < ssids->size())
+                ssid = (*ssids)[static_cast<size_t>(i)];
               if (ssid.empty()) {
                 d.notify({.title = "Wi-Fi",
                           .text = "scan, then select a network",
@@ -567,51 +624,21 @@ inline void register_network_app(espp::Desktop &desktop) {
                 d.notify({.title = "Wi-Fi",
                           .text = "could not save the credentials to NVS (connecting anyway)",
                           .level = D::NotifyLevel::Warn});
-              net->set_status(fmt::format("connecting to {}", ssid));
-              // The rule (see NetworkState::attempt): an attempt still
-              // associating is not replaced -- Disconnect first; a connected
-              // station is stopped explicitly under the new generation, so
-              // its late DISCONNECTED is ignored, before the new config.
-              if (net->associating) {
-                d.notify({.title = "Wi-Fi",
-                          .text = "a connection attempt is in progress; Disconnect first",
-                          .level = D::NotifyLevel::Warn});
-                return;
-              }
-              const uint32_t gen = net->new_attempt();
-              net->disconnect_if_active();
-              net->want_connected = true;
-              bool ok = net->wifi->reconfigure(net->wifi_config(ssid, pass, gen));
-              if (ok)
-                ok = net->wifi->connect();
-              if (ok)
-                net->associating = true;
-              if (!ok) {
-                net->set_status("connect failed (Connect or a scan retries)");
-                d.notify({.title = "Wi-Fi",
-                          .text = fmt::format("could not start connecting to {}", ssid),
-                          .level = D::NotifyLevel::Error});
-              }
+              if (net->run_job("wifi_connect",
+                               [state, ssid, pass]() { state->connect_job(ssid, pass); }))
+                set_busy(true);
             });
             disconnect_btn.on_event([=](const D::WidgetEvent &e) mutable {
-              if (e.kind != D::WidgetEventKind::Click || refuse_if_scanning())
+              if (e.kind != D::WidgetEventKind::Click)
                 return;
-              net->stop_station();
-              net->set_status("disconnected");
+              if (net->run_job("wifi_disconnect", [state]() { state->disconnect_job(); }))
+                set_busy(true);
             });
-            forget_btn.on_event([=, &d](const D::WidgetEvent &e) mutable {
-              if (e.kind != D::WidgetEventKind::Click || refuse_if_scanning())
+            forget_btn.on_event([=](const D::WidgetEvent &e) mutable {
+              if (e.kind != D::WidgetEventKind::Click)
                 return;
-              const auto r = net->forget();
-              d.notify({.title = "Wi-Fi",
-                        .text = !r.erased ? "Forget failed: the credentials may still be saved "
-                                            "in NVS"
-                                : !r.station_reset
-                                    ? "credentials erased, but the station could not be reset"
-                                    : "saved network forgotten",
-                        .level = !r.erased          ? D::NotifyLevel::Error
-                                 : !r.station_reset ? D::NotifyLevel::Warn
-                                                    : D::NotifyLevel::Ok});
+              if (net->run_job("wifi_forget", [state]() { state->forget_job(); }))
+                set_busy(true);
             });
 #endif
 
