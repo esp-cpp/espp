@@ -449,7 +449,7 @@ inline constexpr PropKind prop_kind(uint8_t tag) {
 /// A decoded Items value: a range of the widget's item list.
 struct ItemsValue {
   uint16_t start{0};
-  std::vector<std::string> items;
+  std::vector<std::string> items{};
   bool operator==(const ItemsValue &) const = default;
 };
 
@@ -468,7 +468,7 @@ struct Geometry {
 /// carried raw so a host can round-trip them.
 struct Prop {
   uint8_t tag{0};
-  std::vector<uint8_t> value;
+  std::vector<uint8_t> value{};
 
   bool operator==(const Prop &) const = default;
 
@@ -562,7 +562,7 @@ struct Prop {
   }
   std::optional<std::vector<std::string>> as_columns() const {
     Reader r(value);
-    std::vector<std::string> cols;
+    std::vector<std::string> cols{};
     const uint8_t n = r.u8();
     for (uint8_t i = 0; i < n && r.ok(); ++i)
       cols.push_back(r.str8());
@@ -574,7 +574,7 @@ struct Prop {
     if (value.size() != 8)
       return std::nullopt;
     Reader r(value);
-    Geometry g;
+    Geometry g{};
     g.x = r.i16();
     g.y = r.i16();
     g.w = r.u16();
@@ -630,9 +630,9 @@ inline bool read_props(Reader &r, size_t count, std::vector<Prop> &props) {
 struct AppRec {
   uint8_t id{0};
   uint8_t flags{0}; ///< kAppSingleInstance | kAppHidden
-  std::string name;
-  std::string icon; ///< emoji / short text, or "svg:<name>" from the built-in set
-  std::string description;
+  std::string name{};
+  std::string icon{}; ///< emoji / short text, or "svg:<name>" from the built-in set
+  std::string description{};
   bool operator==(const AppRec &) const = default;
 };
 
@@ -646,10 +646,10 @@ struct WindowRef {
 /// DESKTOP payload.
 struct DesktopInfo {
   uint8_t proto{kDesktopProto};
-  uint8_t flags{0};          ///< kDesktopHasSnapshot
-  std::vector<Prop> records; ///< DesktopTag recs (unknown tags kept raw)
-  std::vector<AppRec> apps;
-  std::vector<WindowRef> windows;
+  uint8_t flags{0};            ///< kDesktopHasSnapshot
+  std::vector<Prop> records{}; ///< DesktopTag recs (unknown tags kept raw)
+  std::vector<AppRec> apps{};
+  std::vector<WindowRef> windows{};
   bool operator==(const DesktopInfo &) const = default;
 };
 
@@ -660,7 +660,7 @@ struct WidgetRec {
   WidgetType type{WidgetType::Label};
   uint8_t weight{0}; ///< flex-grow along the parent's axis (0 = natural size)
   uint8_t layout{0}; ///< kLayout* bits
-  std::vector<Prop> props;
+  std::vector<Prop> props{};
   bool operator==(const WidgetRec &) const = default;
   /// Encoded size of the base (without props) and of the whole record.
   static constexpr size_t kBaseSize = 8;
@@ -678,9 +678,9 @@ struct WindowOpen {
   uint8_t app{0};
   uint16_t flags{kWinDefaultFlags};
   Geometry geometry{};
-  std::string title;
+  std::string title{};
   uint16_t total{0}; ///< widgets in the whole tree (the rest arrive in WIDGET_ADD)
-  std::vector<WidgetRec> widgets;
+  std::vector<WidgetRec> widgets{};
   bool operator==(const WindowOpen &) const = default;
 };
 
@@ -694,28 +694,28 @@ struct WindowClose {
 /// One WIDGET_SET entry.
 struct WidgetSetEntry {
   uint16_t widget{0}; ///< 0 = the window
-  std::vector<Prop> props;
+  std::vector<Prop> props{};
   bool operator==(const WidgetSetEntry &) const = default;
 };
 
 /// WIDGET_SET payload.
 struct WidgetSet {
   uint16_t window{0};
-  std::vector<WidgetSetEntry> entries;
+  std::vector<WidgetSetEntry> entries{};
   bool operator==(const WidgetSet &) const = default;
 };
 
 /// WIDGET_ADD payload.
 struct WidgetAdd {
   uint16_t window{0};
-  std::vector<WidgetRec> widgets;
+  std::vector<WidgetRec> widgets{};
   bool operator==(const WidgetAdd &) const = default;
 };
 
 /// WIDGET_REMOVE payload.
 struct WidgetRemove {
   uint16_t window{0};
-  std::vector<uint16_t> widgets;
+  std::vector<uint16_t> widgets{};
   bool operator==(const WidgetRemove &) const = default;
 };
 
@@ -725,10 +725,10 @@ struct Dialog {
   uint16_t owner{0}; ///< owning window (0 = modal to the desktop)
   DialogKind kind{DialogKind::Message};
   uint8_t icon{0}; ///< DialogIcon
-  std::string title;
-  std::string text;
-  std::string default_text;         ///< Input kind: initial field contents
-  std::vector<std::string> buttons; ///< button 0 is the default
+  std::string title{};
+  std::string text{};
+  std::string default_text{};         ///< Input kind: initial field contents
+  std::vector<std::string> buttons{}; ///< button 0 is the default
   bool operator==(const Dialog &) const = default;
 };
 
@@ -736,8 +736,8 @@ struct Dialog {
 struct Notify {
   NotifyLevel level{NotifyLevel::Info};
   uint16_t timeout_ms{0}; ///< 0 = sticky
-  std::string title;
-  std::string text;
+  std::string title{};
+  std::string text{};
   bool operator==(const Notify &) const = default;
 };
 
@@ -757,7 +757,7 @@ struct Ok {
 struct Error {
   uint8_t request_type{0};
   uint32_t code{0};
-  std::string message;
+  std::string message{};
   bool operator==(const Error &) const = default;
 };
 
@@ -790,7 +790,7 @@ struct WidgetEvent {
   uint16_t widget{0};
   WidgetEventKind kind{WidgetEventKind::Click};
   int32_t value{0};        ///< Change / Select / Activate / Scroll
-  std::string text;        ///< Submit (whole), Text (this chunk)
+  std::string text{};      ///< Submit (whole), Text (this chunk)
   uint32_t text_offset{0}; ///< Text: byte offset of this chunk
   uint32_t text_total{0};  ///< Text: total byte length
   uint16_t key{0};         ///< Key
@@ -803,14 +803,14 @@ struct WidgetEvent {
 struct DialogResult {
   uint16_t dialog{0};
   uint8_t button{kDialogDismissed};
-  std::string text; ///< Input kind: the field contents
+  std::string text{}; ///< Input kind: the field contents
   bool operator==(const DialogResult &) const = default;
 };
 
 /// A message ready for build_frame (the splitting encoders return several).
 struct Message {
   Type type{Type::Ok};
-  std::vector<uint8_t> payload;
+  std::vector<uint8_t> payload{};
   bool operator==(const Message &) const = default;
 };
 
@@ -819,7 +819,7 @@ struct Message {
 /// DESKTOP. Must fit one frame (the app list is small by construction: at most
 /// 255 short records).
 inline std::vector<uint8_t> encode_desktop(const DesktopInfo &d) {
-  std::vector<uint8_t> p;
+  std::vector<uint8_t> p{};
   put_u8(p, d.proto);
   put_u8(p, d.flags);
   put_u8(p, static_cast<uint8_t>(std::min<size_t>(d.records.size(), 255)));
@@ -843,7 +843,7 @@ inline std::vector<uint8_t> encode_desktop(const DesktopInfo &d) {
 }
 
 inline std::vector<uint8_t> encode_window_close(const WindowClose &c) {
-  std::vector<uint8_t> p;
+  std::vector<uint8_t> p{};
   put_u16(p, c.id);
   put_u8(p, static_cast<uint8_t>(c.reason));
   return p;
@@ -853,7 +853,7 @@ inline std::vector<uint8_t> encode_window_close(const WindowClose &c) {
 /// that order, from the end) so the payload fits; a dialog is one frame.
 inline std::vector<uint8_t> encode_dialog(const Dialog &d, size_t max_payload = 4081) {
   auto encode = [&](std::string_view text, std::string_view def) {
-    std::vector<uint8_t> p;
+    std::vector<uint8_t> p{};
     put_u16(p, d.id);
     put_u16(p, d.owner);
     put_u8(p, static_cast<uint8_t>(d.kind));
@@ -880,7 +880,7 @@ inline std::vector<uint8_t> encode_dialog(const Dialog &d, size_t max_payload = 
 
 /// NOTIFY, capped at `max_payload` (the text is shortened to fit).
 inline std::vector<uint8_t> encode_notify(const Notify &n, size_t max_payload = 4081) {
-  std::vector<uint8_t> p;
+  std::vector<uint8_t> p{};
   put_u8(p, static_cast<uint8_t>(n.level));
   put_u16(p, n.timeout_ms);
   put_str8(p, n.title);
@@ -890,7 +890,7 @@ inline std::vector<uint8_t> encode_notify(const Notify &n, size_t max_payload = 
 }
 
 inline std::vector<uint8_t> encode_dialog_close(const DialogClose &c) {
-  std::vector<uint8_t> p;
+  std::vector<uint8_t> p{};
   put_u16(p, c.id);
   return p;
 }
@@ -901,7 +901,7 @@ inline std::vector<uint8_t> encode_ok(uint8_t request_type) { return {request_ty
 /// Encode an ERROR payload.
 inline std::vector<uint8_t> encode_error(uint8_t request_type, uint32_t code,
                                          std::string_view message) {
-  std::vector<uint8_t> p;
+  std::vector<uint8_t> p{};
   p.push_back(request_type);
   put_u32(p, code);
   p.insert(p.end(), message.begin(), message.end());
@@ -984,7 +984,7 @@ public:
         return;
       }
       Prop first;
-      std::optional<Prop> rest;
+      std::optional<Prop> rest{};
       if (split_prop(prop, room, first, rest)) {
         first.encode(frame_);
         ++entry_props_;
@@ -1070,8 +1070,8 @@ private:
 
   uint16_t window_;
   size_t cap_;
-  std::vector<uint8_t> frame_;
-  std::vector<std::vector<uint8_t>> frames_;
+  std::vector<uint8_t> frame_{};
+  std::vector<std::vector<uint8_t>> frames_{};
   size_t entries_{0};
   size_t entry_start_{0};
   bool in_entry_{false};
@@ -1128,7 +1128,7 @@ public:
         continue;
       }
       Prop first;
-      std::optional<Prop> rest;
+      std::optional<Prop> rest{};
       if (!full && nprops < 255 && split_prop(p, room, first, rest)) {
         first.encode(frame_);
         ++nprops;
@@ -1156,7 +1156,7 @@ public:
 
   /// Props that did not fit their widget record: send as WIDGET_SET after the
   /// last message (in this order).
-  std::vector<std::pair<uint16_t, Prop>> leftovers;
+  std::vector<std::pair<uint16_t, Prop>> leftovers{};
 
 private:
   void begin_frame(bool as_open) {
@@ -1189,10 +1189,10 @@ private:
 
   uint16_t window_;
   size_t cap_;
-  std::optional<WindowOpen> open_;
+  std::optional<WindowOpen> open_{};
   uint16_t total_;
-  std::vector<uint8_t> frame_;
-  std::vector<Message> frames_;
+  std::vector<uint8_t> frame_{};
+  std::vector<Message> frames_{};
   size_t count_at_{0};
   size_t count_{0};
   size_t added_{0};
@@ -1259,11 +1259,11 @@ inline std::vector<std::vector<uint8_t>> encode_widget_set(const WidgetSet &set,
 /// WIDGET_REMOVE, split at `max_payload`.
 inline std::vector<std::vector<uint8_t>> encode_widget_remove(const WidgetRemove &rm,
                                                               size_t max_payload) {
-  std::vector<std::vector<uint8_t>> out;
+  std::vector<std::vector<uint8_t>> out{};
   const size_t per_frame = std::max<size_t>(1, (max_payload > 4 ? max_payload - 4 : 0) / 2);
   for (size_t i = 0; i < rm.widgets.size(); i += per_frame) {
     const size_t n = std::min(per_frame, rm.widgets.size() - i);
-    std::vector<uint8_t> p;
+    std::vector<uint8_t> p{};
     put_u16(p, rm.window);
     put_u16(p, static_cast<uint16_t>(n));
     for (size_t k = 0; k < n; ++k)
@@ -1278,13 +1278,13 @@ inline std::vector<std::vector<uint8_t>> encode_widget_remove(const WidgetRemove
 inline std::vector<uint8_t> encode_launch_app(const LaunchApp &l) { return {l.app}; }
 
 inline std::vector<uint8_t> encode_close_window(const CloseWindow &c) {
-  std::vector<uint8_t> p;
+  std::vector<uint8_t> p{};
   put_u16(p, c.window);
   return p;
 }
 
 inline std::vector<uint8_t> encode_window_event(const WindowEvent &e) {
-  std::vector<uint8_t> p;
+  std::vector<uint8_t> p{};
   put_u16(p, e.window);
   put_u8(p, static_cast<uint8_t>(e.kind));
   put_i16(p, e.x);
@@ -1295,7 +1295,7 @@ inline std::vector<uint8_t> encode_window_event(const WindowEvent &e) {
 }
 
 inline std::vector<uint8_t> encode_widget_event(const WidgetEvent &e) {
-  std::vector<uint8_t> p;
+  std::vector<uint8_t> p{};
   put_u16(p, e.window);
   put_u16(p, e.widget);
   put_u8(p, static_cast<uint8_t>(e.kind));
@@ -1326,7 +1326,7 @@ inline std::vector<uint8_t> encode_widget_event(const WidgetEvent &e) {
 }
 
 inline std::vector<uint8_t> encode_dialog_result(const DialogResult &r) {
-  std::vector<uint8_t> p;
+  std::vector<uint8_t> p{};
   put_u16(p, r.dialog);
   put_u8(p, r.button);
   put_bytes(p, r.text);

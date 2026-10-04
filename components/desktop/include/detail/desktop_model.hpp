@@ -96,10 +96,10 @@ public:
 private:
   struct Buf {
     uint32_t total{0};
-    std::string data;
+    std::string data{};
   };
   size_t max_bytes_;
-  std::map<uint32_t, Buf> bufs_;
+  std::map<uint32_t, Buf> bufs_{};
 };
 
 /// Pending changes of one window.
@@ -107,9 +107,9 @@ struct WindowDirt {
   bool open{false};  ///< send WINDOW_OPEN with the full tree
   bool close{false}; ///< send WINDOW_CLOSE
   dp::WindowCloseReason close_reason{dp::WindowCloseReason::App};
-  std::vector<uint16_t> added;          ///< WIDGET_ADD, in order
-  std::vector<dp::WidgetSetEntry> sets; ///< WIDGET_SET, coalesced
-  std::vector<uint16_t> removed;        ///< WIDGET_REMOVE
+  std::vector<uint16_t> added{};          ///< WIDGET_ADD, in order
+  std::vector<dp::WidgetSetEntry> sets{}; ///< WIDGET_SET, coalesced
+  std::vector<uint16_t> removed{};        ///< WIDGET_REMOVE
 };
 
 /// Coalesces changes between flushes (see the rules at the top).
@@ -248,10 +248,10 @@ public:
     desktop_changed = false;
   }
 
-  std::vector<std::pair<uint16_t, WindowDirt>> windows; ///< in first-dirtied order
-  std::vector<uint16_t> dialogs_opened;
-  std::vector<uint16_t> dialogs_closed;
-  std::vector<dp::Notify> notifications;
+  std::vector<std::pair<uint16_t, WindowDirt>> windows{}; ///< in first-dirtied order
+  std::vector<uint16_t> dialogs_opened{};
+  std::vector<uint16_t> dialogs_closed{};
+  std::vector<dp::Notify> notifications{};
   bool desktop_changed{false};
 
 private:
@@ -274,7 +274,7 @@ struct WidgetState {
   dp::WidgetType type{dp::WidgetType::Label};
   uint8_t weight{0};
   uint8_t layout{0};
-  std::string text;
+  std::string text{};
   int32_t value{0};
   int32_t min{0};
   int32_t max{100};
@@ -283,10 +283,10 @@ struct WidgetState {
   bool visible{true};
   uint32_t color{0xFFFFFFFF};
   uint32_t background{0xFFFFFFFF};
-  std::vector<std::string> items;
-  std::vector<std::string> columns;
-  std::string placeholder;
-  std::string tooltip;
+  std::vector<std::string> items{};
+  std::vector<std::string> columns{};
+  std::string placeholder{};
+  std::string tooltip{};
   uint16_t flags{0};
   uint16_t max_lines{500};
   uint16_t width{0};
@@ -353,15 +353,15 @@ struct WidgetState {
 struct WidgetConfig {
   dp::WidgetType type{dp::WidgetType::Label};
   uint16_t parent{0}; ///< container widget id (0 = the window's root column)
-  std::string text;
+  std::string text{};
   int32_t value{0};
   int32_t min{0};
   int32_t max{100};
   int32_t step{1};
-  std::vector<std::string> items;
-  std::vector<std::string> columns;
-  std::string placeholder;
-  std::string tooltip;
+  std::vector<std::string> items{};
+  std::vector<std::string> columns{};
+  std::string placeholder{};
+  std::string tooltip{};
   uint16_t flags{0};
   uint8_t weight{0};
   uint8_t layout{0};
@@ -376,7 +376,7 @@ struct WidgetConfig {
 
 /// What an application gives to open a window.
 struct WindowConfig {
-  std::string title;
+  std::string title{};
   uint8_t app{0}; ///< the app it belongs to (listed by DESKTOP; 0 = none)
   int16_t x{-1};  ///< -1 = the browser decides (remembered per app + title, else cascade)
   int16_t y{-1};
@@ -391,13 +391,13 @@ struct WindowConfig {
 struct WindowState {
   uint16_t id{0};
   uint8_t app{0};
-  std::string title;
+  std::string title{};
   uint16_t flags{dp::kWinDefaultFlags};
   dp::Geometry geometry{};
   bool minimized{false};
   bool maximized{false};
   bool focused{false};
-  std::vector<WidgetState> widgets; ///< parent before child, siblings in display order
+  std::vector<WidgetState> widgets{}; ///< parent before child, siblings in display order
   uint16_t next_widget{1};
   std::function<void()> on_close{nullptr};
   std::function<void(const dp::WindowEvent &)> on_event{nullptr};
@@ -430,7 +430,7 @@ struct WindowState {
 
 /// An open dialog.
 struct DialogState {
-  dp::Dialog dialog;
+  dp::Dialog dialog{};
   std::function<void(const dp::DialogResult &)> on_result{nullptr};
   uint16_t owner() const { return dialog.owner; }
 };
@@ -440,8 +440,8 @@ struct DialogState {
 class Model {
 public:
   // ---- desktop-level settings (DESKTOP records) ----
-  std::string device_name;
-  std::string firmware;
+  std::string device_name{};
+  std::string firmware{};
   std::string theme{"auto"};
   uint32_t accent{0x3b82f6};
   uint16_t flush_period_ms{50};
@@ -532,11 +532,17 @@ public:
         return &w;
     return nullptr;
   }
+  const WindowState *window(uint16_t id) const {
+    for (const auto &w : windows_)
+      if (w.id == id)
+        return &w;
+    return nullptr;
+  }
   const std::vector<WindowState> &windows() const { return windows_; }
 
   /// Ids of the open windows of an app (0 = every window).
   std::vector<uint16_t> windows_of(uint8_t app) const {
-    std::vector<uint16_t> ids;
+    std::vector<uint16_t> ids{};
     for (const auto &w : windows_)
       if (app == 0 || w.app == app)
         ids.push_back(w.id);
@@ -564,6 +570,10 @@ public:
 
   WidgetState *widget(uint16_t win, uint16_t id) {
     WindowState *w = window(win);
+    return w ? w->widget(id) : nullptr;
+  }
+  const WidgetState *widget(uint16_t win, uint16_t id) const {
+    const WindowState *w = window(win);
     return w ? w->widget(id) : nullptr;
   }
 
@@ -641,7 +651,7 @@ public:
     WindowState *w = window(win);
     if (!w)
       return;
-    std::vector<uint16_t> roots;
+    std::vector<uint16_t> roots{};
     for (const auto &x : w->widgets)
       if (x.parent == 0)
         roots.push_back(x.id);
@@ -801,13 +811,19 @@ public:
   const std::vector<DialogState> &dialogs() const { return dialogs_; }
 
   /// Remove a dialog; returns its on_result callback (to run with the result).
-  std::optional<std::function<void(const dp::DialogResult &)>> close_dialog(uint16_t id) {
+  /// @param on_wire false when the host already closed it (DIALOG_RESULT):
+  ///        no DIALOG_CLOSE is sent.
+  std::optional<std::function<void(const dp::DialogResult &)>> close_dialog(uint16_t id,
+                                                                            bool on_wire = true) {
     DialogState *d = dialog(id);
     if (!d)
       return std::nullopt;
     auto fn = std::move(d->on_result);
     std::erase_if(dialogs_, [id](const DialogState &x) { return x.dialog.id == id; });
-    dirty.dialog_close(id);
+    if (on_wire)
+      dirty.dialog_close(id);
+    else
+      std::erase(dirty.dialogs_opened, id); // never shown: nothing to close either
     return fn;
   }
 
@@ -874,7 +890,7 @@ public:
   /// Everything pending, as messages in flush order; clears the tracker.
   std::vector<dp::Message> flush(size_t *dropped = nullptr) {
     using dp::Type;
-    std::vector<dp::Message> out;
+    std::vector<dp::Message> out{};
     for (auto &[win_id, d] : dirty.windows) {
       if (d.close)
         out.push_back(
@@ -927,7 +943,7 @@ public:
   /// window and DIALOG per open dialog (the DESKTOP reply precedes them;
   /// see desktop_info(true)).
   std::vector<dp::Message> snapshot(size_t *dropped = nullptr) const {
-    std::vector<dp::Message> out;
+    std::vector<dp::Message> out{};
     for (const auto &w : windows_)
       for (auto &m : dp::encode_window_open(w.to_open(true), max_payload, dropped))
         out.push_back(std::move(m));
@@ -978,9 +994,9 @@ private:
     }
   }
 
-  std::vector<dp::AppRec> apps_;
-  std::vector<WindowState> windows_;
-  std::vector<DialogState> dialogs_;
+  std::vector<dp::AppRec> apps_{};
+  std::vector<WindowState> windows_{};
+  std::vector<DialogState> dialogs_{};
   uint16_t next_window_{1};
   uint16_t next_dialog_{1};
 };
