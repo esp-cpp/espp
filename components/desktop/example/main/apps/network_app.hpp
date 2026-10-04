@@ -14,6 +14,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "sdkconfig.h"
@@ -126,9 +127,14 @@ struct NetworkState {
   bool forget() {
     std::error_code ec;
     espp::NvsHandle nvs("desktop", ec);
-    if (!ec) {
-      nvs.erase("wifi_ssid", ec);
-      nvs.erase("wifi_pass", ec);
+    bool erased = !ec;
+    if (erased) {
+      // a missing key is fine (nothing was saved); any other failure is not
+      std::error_code e1, e2;
+      nvs.erase("wifi_ssid", e1);
+      nvs.erase("wifi_pass", e2);
+      nvs.commit(ec); // erase_item() only stages the change
+      erased = !ec;
     }
     wifi->disconnect();
     wifi_config_t empty{};
@@ -136,9 +142,23 @@ struct NetworkState {
     auto cfg =
         wifi_config("", ""); // empty ssid: reconfigure() adopts the (now empty) driver config
     cfg.auto_connect = false;
-    const bool ok = wifi->reconfigure(cfg) && cleared;
+    const bool ok = wifi->reconfigure(cfg) && cleared && erased;
     set_status("idle (no saved network)");
     return ok;
+  }
+
+  /// Save the credentials (committed, so they survive a reboot).
+  bool save_credentials(const std::string &ssid, const std::string &pass) {
+    std::error_code ec;
+    espp::NvsHandle nvs("desktop", ec);
+    if (ec)
+      return false;
+    nvs.set("wifi_ssid", ssid, ec);
+    if (!ec)
+      nvs.set("wifi_pass", pass, ec);
+    if (!ec)
+      nvs.commit(ec);
+    return !ec;
   }
 #endif
 
@@ -252,7 +272,26 @@ inline void register_network_app(espp::Desktop &desktop) {
               net->scan_task = std::make_unique<espp::Task>(espp::Task::Config{
                   .callback =
                       [=]() mutable {
+                        // WifiSta::scan() drops the link with a bare
+                        // esp_wifi_disconnect(), which WifiSta's DISCONNECTED
+                        // handler treats as unintentional and answers with a
+                        // reconnect attempt (num_connect_retries > 0) while the
+                        // scan is starting. Disconnect intentionally first (that
+                        // suppresses the retries), give the event time to land,
+                        // then scan and reconnect ourselves afterwards.
+                        const bool was_connected = state->wifi->is_connected();
+                        if (was_connected) {
+                          state->wifi->disconnect();
+                          std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                        }
+                        state->set_status("scanning");
                         const auto aps = state->wifi->scan(20);
+                        if (was_connected) {
+                          state->set_status("reconnecting");
+                          state->wifi->connect();
+                        } else {
+                          state->set_status("disconnected");
+                        }
                         std::vector<std::string> rows, ssids;
                         for (const auto &ap : aps) {
                           const std::string ssid(reinterpret_cast<const char *>(ap.ssid));
@@ -303,12 +342,10 @@ inline void register_network_app(espp::Desktop &desktop) {
                           .level = D::NotifyLevel::Error});
                 return;
               }
-              std::error_code ec;
-              espp::NvsHandle nvs("desktop", ec);
-              if (!ec) {
-                nvs.set("wifi_ssid", ssid, ec);
-                nvs.set("wifi_pass", pass, ec);
-              }
+              if (!net->save_credentials(ssid, pass))
+                d.notify({.title = "Wi-Fi",
+                          .text = "could not save the credentials to NVS (connecting anyway)",
+                          .level = D::NotifyLevel::Warn});
               net->set_status(fmt::format("connecting to {}", ssid));
               const bool was_connected = net->wifi->is_connected();
               // reconfigure() reconnects when it was connected; else connect()

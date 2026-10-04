@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -44,13 +45,39 @@ struct I2cSession {
     }
     return out;
   }
-  /// A 7-bit device address ("3C" / "0x3C").
-  static uint8_t parse_addr(const std::string &text) {
-    return static_cast<uint8_t>(std::strtoul(text.c_str(), nullptr, 16) & 0x7F);
+  /// One hex number ("3C" / "0x3C") taking the whole field (blanks around it
+  /// allowed); nullopt when the field is empty, malformed or above `max`, so
+  /// a bad entry never becomes a real target (an empty address masked to 0x00
+  /// would be the general-call broadcast).
+  static std::optional<unsigned long> parse_field(const std::string &text, unsigned long max) {
+    const char *p = text.c_str();
+    while (*p == ' ')
+      ++p;
+    if (!*p)
+      return std::nullopt;
+    char *end = nullptr;
+    const unsigned long v = std::strtoul(p, &end, 16);
+    if (end == p)
+      return std::nullopt;
+    while (*end == ' ')
+      ++end;
+    if (*end || v > max)
+      return std::nullopt;
+    return v;
   }
-  /// A full 8-bit register value ("80" / "0xFF").
-  static uint8_t parse_byte(const std::string &text) {
-    return static_cast<uint8_t>(std::strtoul(text.c_str(), nullptr, 16) & 0xFF);
+  /// A 7-bit device address in the addressable range 0x01..0x7F.
+  static std::optional<uint8_t> parse_addr(const std::string &text) {
+    const auto v = parse_field(text, 0x7F);
+    if (!v || *v == 0)
+      return std::nullopt;
+    return static_cast<uint8_t>(*v);
+  }
+  /// A full 8-bit register value (0x00..0xFF).
+  static std::optional<uint8_t> parse_byte(const std::string &text) {
+    const auto v = parse_field(text, 0xFF);
+    if (!v)
+      return std::nullopt;
+    return static_cast<uint8_t>(*v);
   }
   static std::string hex_dump(const std::vector<uint8_t> &bytes) {
     std::string s;
@@ -174,28 +201,39 @@ inline void register_i2c_scanner_app(espp::Desktop &desktop) {
             win.button(
                 "Read",
                 [=]() mutable {
-                  const uint8_t addr = S::parse_addr(addr_box.text());
-                  const uint8_t reg = S::parse_byte(reg_box.text());
+                  const auto addr = S::parse_addr(addr_box.text());
+                  const auto reg = S::parse_byte(reg_box.text());
+                  if (!addr || !reg) {
+                    result.set_text(!addr ? "address must be a hex value in 0x01..0x7F"
+                                          : "register must be a hex value in 0x00..0xFF");
+                    return;
+                  }
                   const size_t len =
                       std::clamp<size_t>(std::strtoul(len_box.text().c_str(), nullptr, 10), 1, 64);
                   std::vector<uint8_t> data(len);
-                  if (st->bus->read_at_register(addr, reg, data.data(), data.size()))
-                    result.set_text("0x{:02X} reg 0x{:02X}: {}", addr, reg, S::hex_dump(data));
+                  if (st->bus->read_at_register(*addr, *reg, data.data(), data.size()))
+                    result.set_text("0x{:02X} reg 0x{:02X}: {}", *addr, *reg, S::hex_dump(data));
                   else
-                    result.set_text("0x{:02X} reg 0x{:02X}: read failed (no ACK?)", addr, reg);
+                    result.set_text("0x{:02X} reg 0x{:02X}: read failed (no ACK?)", *addr, *reg);
                 },
                 actions.id(), D::kButtonPrimary);
             win.button(
                 "Write",
                 [=]() mutable {
-                  const uint8_t addr = S::parse_addr(addr_box.text());
-                  std::vector<uint8_t> data{S::parse_byte(reg_box.text())};
+                  const auto addr = S::parse_addr(addr_box.text());
+                  const auto reg = S::parse_byte(reg_box.text());
+                  if (!addr || !reg) {
+                    result.set_text(!addr ? "address must be a hex value in 0x01..0x7F"
+                                          : "register must be a hex value in 0x00..0xFF");
+                    return;
+                  }
+                  std::vector<uint8_t> data{*reg};
                   const auto bytes = S::parse_bytes(val_box.text());
                   data.insert(data.end(), bytes.begin(), bytes.end());
-                  if (st->bus->write(addr, data.data(), data.size()))
-                    result.set_text("0x{:02X} <- {}ok", addr, S::hex_dump(data));
+                  if (st->bus->write(*addr, data.data(), data.size()))
+                    result.set_text("0x{:02X} <- {}ok", *addr, S::hex_dump(data));
                   else
-                    result.set_text("0x{:02X} <- {}failed (no ACK?)", addr, S::hex_dump(data));
+                    result.set_text("0x{:02X} <- {}failed (no ACK?)", *addr, S::hex_dump(data));
                 },
                 actions.id());
           },
