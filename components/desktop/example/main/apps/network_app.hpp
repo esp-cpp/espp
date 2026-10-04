@@ -349,15 +349,26 @@ struct NetworkState {
     const uint32_t gen = new_attempt();
     // after stop_and_wait() WifiSta's connected_ is false, so reconfigure()
     // does not connect by itself: connect() explicitly
-    const bool ok = wifi->reconfigure(wifi_config(ssid, pass, gen)) && wifi->connect();
-    if (!ok) {
+    if (!wifi->reconfigure(wifi_config(ssid, pass, gen))) {
       phase = Phase::Idle;
+      set_status(fmt::format("{} failed: use Connect", what));
+      toast(fmt::format("could not configure the {} to {}", what, ssid), D::NotifyLevel::Error);
+      return false;
+    }
+    // Associating is entered BEFORE connect(): GOT_IP can fire on the
+    // event-loop task before connect() returns, and the callbacks own the
+    // phase from here on (Connected / Idle). Nothing below writes the phase
+    // unconditionally.
+    phase = Phase::Associating;
+    set_status(fmt::format("connecting to {}", ssid));
+    if (!wifi->connect()) {
+      // only back to Idle if no callback moved the phase on meanwhile
+      Phase expected = Phase::Associating;
+      phase.compare_exchange_strong(expected, Phase::Idle);
       set_status(fmt::format("{} failed: use Connect", what));
       toast(fmt::format("could not start the {} to {}", what, ssid), D::NotifyLevel::Error);
       return false;
     }
-    phase = Phase::Associating;
-    set_status(fmt::format("connecting to {}", ssid));
     return true;
   }
 
@@ -620,12 +631,14 @@ inline void register_network_app(espp::Desktop &desktop) {
                           .level = D::NotifyLevel::Error});
                 return;
               }
-              if (!net->save_credentials(ssid, pass))
-                d.notify({.title = "Wi-Fi",
-                          .text = "could not save the credentials to NVS (connecting anyway)",
-                          .level = D::NotifyLevel::Warn});
-              if (net->run_job("wifi_connect",
-                               [state, ssid, pass]() { state->connect_job(ssid, pass); }))
+              // the credentials are saved by the ACCEPTED job (after the busy
+              // check and a started worker): a refused Connect leaves NVS alone
+              if (net->run_job("wifi_connect", [state, ssid, pass]() {
+                    if (!state->save_credentials(ssid, pass))
+                      state->toast("could not save the credentials to NVS (connecting anyway)",
+                                   D::NotifyLevel::Warn);
+                    state->connect_job(ssid, pass);
+                  }))
                 set_busy(true);
             });
             disconnect_btn.on_event([=](const D::WidgetEvent &e) mutable {
