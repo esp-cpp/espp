@@ -29,6 +29,16 @@
 #include "settings_app.hpp"
 #include "system_monitor_app.hpp"
 #include "task_manager_app.hpp"
+// hardware apps, each behind its Kconfig option (Desktop Example Configuration)
+#if CONFIG_DESKTOP_EXAMPLE_ENABLE_CANOPEN
+#include "canopen_app.hpp"
+#endif
+#if CONFIG_DESKTOP_EXAMPLE_ENABLE_I2C
+#include "i2c_scanner_app.hpp"
+#endif
+#if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI || CONFIG_DESKTOP_EXAMPLE_ENABLE_ETHERNET
+#include "network_app.hpp"
+#endif
 
 using namespace std::chrono_literals;
 
@@ -45,7 +55,9 @@ using namespace std::chrono_literals;
 //   - espp::OtaService      (module 0, `espp.ota`):      firmware update
 //   - espp::CoreDumpService (module 4, `espp.coredump`): last-crash report
 // Apps: Counter, About, System Monitor, Task Manager, Log Viewer, Files (+
-// Editor), Settings (main/apps/*.hpp; Counter is the API reference).
+// Editor), Settings (main/apps/*.hpp; Counter is the API reference), plus the
+// Kconfig-gated hardware apps CANopen / DS402 (simulated node or TWAI), I2C
+// scanner and Network (Wi-Fi station, Ethernet).
 
 extern "C" void app_main(void) {
   //! [console_capture]
@@ -104,6 +116,15 @@ extern "C" void app_main(void) {
   register_task_manager_app(desktop);
   register_log_viewer_app(desktop);
   register_files_app(desktop);
+#if CONFIG_DESKTOP_EXAMPLE_ENABLE_CANOPEN
+  register_canopen_app(desktop);
+#endif
+#if CONFIG_DESKTOP_EXAMPLE_ENABLE_I2C
+  register_i2c_scanner_app(desktop);
+#endif
+#if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI || CONFIG_DESKTOP_EXAMPLE_ENABLE_ETHERNET
+  register_network_app(desktop);
+#endif
   register_settings_app(desktop, "espp Desktop");
   desktop_example::apply_saved_settings(desktop);
 

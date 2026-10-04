@@ -193,4 +193,6 @@ and covered by the host test. Mutually exclusive with
 The [example](./example) serves the desktop with the Counter, About, System
 Monitor, Task Manager, Log Viewer, Files + Editor and Settings apps on the
 native USB port of an ESP32-S3 (WebUSB + Web Serial), next to the standard
-System / Monitor / OTA / CoreDump services.
+System / Monitor / OTA / CoreDump services, plus three Kconfig-gated hardware
+apps: CANopen / DS402 (a simulated node or the TWAI peripheral), an I2C
+scanner and Network (Wi-Fi station, Ethernet).

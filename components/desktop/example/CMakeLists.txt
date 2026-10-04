@@ -21,11 +21,15 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 set(EXTRA_COMPONENT_DIRS
   "../../../components/base_component"
+  "../../../components/canopen"
+  "../../../components/cli"
   "../../../components/coredump"
   "../../../components/desktop"
   "../../../components/dispatcher"
+  "../../../components/ethernet"
   "../../../components/file_system"
   "../../../components/format"
+  "../../../components/i2c"
   "../../../components/logger"
   "../../../components/monitor"
   "../../../components/nvs"
@@ -33,7 +37,9 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/stream_frame"
   "../../../components/system"
   "../../../components/task"
+  "../../../components/twai"
   "../../../components/usb_device"
+  "../../../components/wifi"
 )
 
 if(DEFINED ENV{IDF_COMPONENT_MANAGER} AND "$ENV{IDF_COMPONENT_MANAGER}" STREQUAL "0")
@@ -46,7 +52,7 @@ endif()
 
 set(
   COMPONENTS
-  "main esptool_py base_component desktop dispatcher file_system format logger monitor nvs stream_frame system task usb_device esp_tinyusb esp_psram coredump ota espcoredump littlefs"
+  "main esptool_py base_component desktop dispatcher file_system format logger monitor nvs stream_frame system task usb_device esp_tinyusb esp_psram coredump ota espcoredump littlefs canopen twai i2c wifi ethernet cli"
   CACHE STRING
   "List of components to include"
   )

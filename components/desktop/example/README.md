@@ -30,6 +30,31 @@ Apps (`main/apps/*.hpp`, one `register_<name>_app()` each):
   console; the capture itself is the compile-time
   `CONFIG_DESKTOP_EXAMPLE_LOG_CAPTURE`), all kept in NVS and restored at boot.
 
+Hardware apps, each behind a Kconfig option (all on by default, so the CI
+build compiles every one of them; see [Configuration](#configuration)):
+
+- **CANopen / DS402** — a CiA 301 NMT master + SDO client
+  (`espp::CanopenClient`) and a CiA 402 drive panel (`espp::Ds402Drive`):
+  node id, NMT Start / Stop / Pre-operational / Reset, NMT + drive state and
+  statusword, mode of operation, Enable / Disable / Quick stop / Fault reset,
+  a target-velocity slider, position / velocity, and a raw SDO read / write
+  row. The bus is either the in-firmware **simulated DS402 node** (the CAN
+  bridge example's `SimulatedCanBus`, no hardware needed, with an "Inject
+  fault" button) or the **TWAI peripheral** wired to a CAN transceiver. Every
+  bus transaction runs on the app's own task (SDO calls block); the window
+  only queues commands and the task updates the widgets.
+- **I2C scanner** — probe every 7-bit address on the configured bus
+  (`espp::I2c`) from a short task and list what answers; read / write a
+  device register from the window. A bus that fails to initialize shows a
+  hint instead.
+- **Network** — the Wi-Fi station (`espp::WifiSta`): status / SSID / IP /
+  RSSI / MAC, Scan (on its own task; a scan disconnects first), the AP list,
+  password field and Connect / Disconnect / Forget with the credentials kept
+  in NVS (`desktop` namespace, `wifi_ssid` / `wifi_pass`); and, on SoCs with an
+  EMAC, the RMII Ethernet link (`espp::Ethernet`): link / IP / MAC / speed.
+  The interfaces come up on the first launch and stay up when the window is
+  closed.
+
 ## How to use example
 
 ### Hardware Required
@@ -38,6 +63,36 @@ An ESP32-S3 (or -S2 / -P4) board with the native USB port wired to a host. The
 console / logs go to UART0 (see `sdkconfig.defaults`); with
 `CONFIG_DESKTOP_EXAMPLE_LOG_CAPTURE` (default on) they are also captured for
 the Log Viewer.
+
+The hardware apps need nothing extra by default: the CANopen app talks to a
+simulated node, the I2C scanner just reports an empty bus and the Network app
+scans for Wi-Fi. For a real CAN bus select the TWAI peripheral and wire a
+transceiver (SN65HVD230 or similar) to the configured TX / RX GPIOs; for the
+Ethernet group an ESP32-Ethernet-Kit-style RMII PHY (the pins are in
+`main/apps/network_app.hpp`).
+
+### Configuration
+
+`idf.py menuconfig` -> *Desktop Example Configuration*:
+
+| Option | Default | Meaning |
+|---|---|---|
+| `DESKTOP_EXAMPLE_LOG_CAPTURE` (+ `_BYTES`) | y (16384) | Tee the console into a ring for the Log Viewer |
+| `DESKTOP_EXAMPLE_ENABLE_CANOPEN` | y | Register the CANopen / DS402 app |
+| `DESKTOP_EXAMPLE_CANOPEN_BUS` | `SIMULATED` | `SIMULATED` (in-firmware DS402 node) or `TWAI` (the peripheral) |
+| `DESKTOP_EXAMPLE_CANOPEN_NODE_ID` | 1 | Server node id (1..127; also the simulated node's id) |
+| `DESKTOP_EXAMPLE_CAN_TX_GPIO` / `_RX_GPIO` / `_BAUDRATE` | 17 / 16 / 500000 | TWAI wiring and bit rate (TWAI bus only) |
+| `DESKTOP_EXAMPLE_ENABLE_I2C` | y | Register the I2C scanner app |
+| `DESKTOP_EXAMPLE_I2C_PORT` / `_SDA_GPIO` / `_SCL_GPIO` / `_FREQ_HZ` | 0 / 8 / 9 / 400000 | The I2C bus it scans |
+| `DESKTOP_EXAMPLE_ENABLE_WIFI` | y | The Network app's Wi-Fi station group (`SOC_WIFI_SUPPORTED`) |
+| `DESKTOP_EXAMPLE_ENABLE_ETHERNET` | n | The Network app's RMII Ethernet group (`SOC_EMAC_SUPPORTED`: ESP32 / -P4) |
+
+The hardware components (`canopen`, `twai`, `i2c`, `wifi`, `ethernet`, `cli`)
+are always part of the build (`REQUIRES` cannot depend on Kconfig); the
+options only decide which apps are registered. The simulated CAN bus /
+DS402 node headers are included from the CAN bridge example
+(`components/canopen/can_bridge_example/main`); promoting them into the
+`canopen` component is a follow-up.
 
 ### Build and Flash
 
