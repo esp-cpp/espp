@@ -256,14 +256,17 @@ struct CanopenSession {
     state_label.set_text("State: {}",
                          espp::Ds402Drive::to_string(espp::Ds402Drive::state_from_statusword(sw)));
     status_label.set_text("Statusword: 0x{:04X}", sw);
-    const int8_t mode = drive->get_mode_display(ec);
-    if (!ec)
+    // one error code per field: the client only sets ec on failure (never
+    // clears it), so a shared one would hide every field after a failed read
+    std::error_code mode_ec, pos_ec, vel_ec;
+    const int8_t mode = drive->get_mode_display(mode_ec);
+    if (!mode_ec)
       mode_label.set_text("Mode (0x6061): {}", mode);
-    const int32_t pos = drive->get_position_actual(ec);
-    if (!ec)
+    const int32_t pos = drive->get_position_actual(pos_ec);
+    if (!pos_ec)
       pos_label.set_text("Position: {}", pos);
-    const int32_t vel = drive->get_velocity_actual(ec);
-    if (!ec)
+    const int32_t vel = drive->get_velocity_actual(vel_ec);
+    if (!vel_ec)
       vel_label.set_text("Velocity: {}", vel);
   }
 };

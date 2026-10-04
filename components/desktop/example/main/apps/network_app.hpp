@@ -47,6 +47,7 @@ struct NetworkState {
   std::string wifi_mac;
   std::vector<std::string> scan_ssids; // in AP list order
   std::vector<std::string> scan_rows;  // the AP list's items (shown again by a new window)
+  uint32_t scan_generation{0};         // bumped per completed scan (windows re-sync on change)
   /// A scan is in flight on the scan task: it disconnects and drives the
   /// station, so every other station action is refused until it is done.
   std::atomic<bool> scanning{false};
@@ -149,6 +150,18 @@ struct NetworkState {
     return s;
   }
 
+  /// Give up the desired connectivity and disconnect -- but only when the
+  /// station is connected or a Connect was issued (an association may be in
+  /// flight). WifiSta::disconnect() sets its private `disconnecting_`, which
+  /// only the DISCONNECTED event clears: on an idle station no event comes,
+  /// the flag goes stale and the next Connect loses its retries on the
+  /// first failure.
+  void stop_station() {
+    const bool was_wanted = want_connected.exchange(false);
+    if (wifi->is_connected() || was_wanted)
+      wifi->disconnect();
+  }
+
   /// Erase one key; true when it is gone (it was erased, or was never
   /// stored), false on a genuine NVS failure (probe or erase).
   static bool erase_key(espp::NvsHandle &nvs, const char *key) {
@@ -222,8 +235,7 @@ struct NetworkState {
       nvs.commit(ec); // erase_item() only stages the change
       erased = erased && !ec;
     }
-    want_connected = false;
-    wifi->disconnect();
+    stop_station();
     wifi_config_t empty{};
     const bool cleared = esp_wifi_set_config(WIFI_IF_STA, &empty) == ESP_OK;
     auto cfg =
@@ -318,9 +330,11 @@ inline void register_network_app(espp::Desktop &desktop) {
             auto scan_btn = win.button("Scan", nullptr, scan_bar.id());
             auto scan_label = win.label("", scan_bar.id());
             std::vector<std::string> rows_now;
+            auto seen_generation = std::make_shared<uint32_t>(0);
             {
               std::lock_guard<std::mutex> lock(net->mutex);
               rows_now = net->scan_rows; // the last scan, if any
+              *seen_generation = net->scan_generation;
             }
             auto ap_list = win.list(rows_now, nullptr, wifi.id());
             ap_list.set_size(0, 140);
@@ -352,10 +366,22 @@ inline void register_network_app(espp::Desktop &desktop) {
 
             refreshers.push_back([=]() mutable {
               std::string st, ip;
+              std::optional<std::vector<std::string>> new_rows;
               {
                 std::lock_guard<std::mutex> lock(net->mutex);
                 st = net->wifi_status;
                 ip = net->wifi_ip;
+                // a scan that completed since this window opened (the scan
+                // task outlives windows and only updates the one it started
+                // from): re-sync the list from the shared rows
+                if (net->scan_generation != *seen_generation) {
+                  *seen_generation = net->scan_generation;
+                  new_rows = net->scan_rows;
+                }
+              }
+              if (new_rows) {
+                ap_list.set_items(*new_rows);
+                scan_label.set_text("{} networks", new_rows->size());
               }
               // also re-syncs a window opened while a scan started elsewhere
               set_busy(net->scanning);
@@ -415,6 +441,7 @@ inline void register_network_app(espp::Desktop &desktop) {
                           std::lock_guard<std::mutex> lock(state->mutex);
                           state->scan_ssids = ssids;
                           state->scan_rows = rows;
+                          ++state->scan_generation;
                         }
                         ap_list.set_items(rows);
                         scan_label.set_text("{} networks", rows.size());
@@ -482,8 +509,7 @@ inline void register_network_app(espp::Desktop &desktop) {
             disconnect_btn.on_event([=](const D::WidgetEvent &e) mutable {
               if (e.kind != D::WidgetEventKind::Click || refuse_if_scanning())
                 return;
-              net->want_connected = false;
-              net->wifi->disconnect();
+              net->stop_station();
               net->set_status("disconnected");
             });
             forget_btn.on_event([=, &d](const D::WidgetEvent &e) mutable {
