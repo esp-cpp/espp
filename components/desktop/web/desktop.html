@@ -1481,6 +1481,7 @@
       parser.reset();
       consoleCarry = "";
       moduleReady = false;
+      resetWriteQueue(); // a write stuck on the dead transport must not block the next session
       // the desktop stays as a dimmed, stale snapshot until the next connect
       // (which clears it and resyncs)
       els.shell.classList.toggle("offline", windows.size > 0 || dialogs.size > 0);
@@ -1569,16 +1570,39 @@
     // expected type (ERROR always matches). Everything else from the desktop
     // module is an unsolicited event handed to the window manager.
     // ===================================================================
-    let pending = null; // { expect:Set, resolve, reject, timer, corr }
-    let chain = Promise.resolve();
-    let txChain = Promise.resolve(); // fire-and-forget events, in order
+    let pending = null;       // { expect:Set, resolve, reject, timer, corr, onReply }
+    const requestQueue = [];  // transact() attempts waiting for the single request slot
+    // ONE outbound write queue for EVERY transport write (requests, events, the
+    // discovery probe): a transport's send() may retry a partial transferOut,
+    // so two concurrent sends could interleave their chunks and corrupt the
+    // byte stream. Writes are issued strictly one after the other, in issue
+    // order; a write queued for a transport that is no longer current is
+    // dropped, and the queue is reset per session (afterDisconnect) so a
+    // write stuck on a dead transport cannot block the next connection.
+    let txQueue = Promise.resolve();
+    const TRANSPORT_REPLACED = "transport replaced";
+    function queueWrite(t, frame) {
+      const run = () => (t === transport ? t.send(frame) : Promise.reject(new Error(TRANSPORT_REPLACED)));
+      const result = txQueue.then(run, run);
+      txQueue = result.then(() => {}, () => {});
+      return result;
+    }
+    function resetWriteQueue() { txQueue = Promise.resolve(); }
 
+    // Settle the pending request `p` with `outcome` and start the next waiting one.
+    function settlePending(p, outcome) {
+      if (pending === p) { clearTimeout(p.timer); pending = null; }
+      outcome();
+      nextRequest();
+    }
+    function nextRequest() {
+      if (pending || !requestQueue.length) return;
+      requestQueue.shift().run();
+    }
     function failPending(err) {
       const p = pending;
-      if (!p) return;
-      clearTimeout(p.timer);
-      pending = null;
-      p.reject(err);
+      if (p) { clearTimeout(p.timer); pending = null; p.reject(err); }
+      for (const entry of requestQueue.splice(0)) entry.cancel(err);
     }
 
     function dispatchFrame(frame) {
@@ -1606,22 +1630,22 @@
           logLine("sys", "Dropping an uncorrelated " + name + " (the device echoes correlation ids).");
           return;
         }
-        clearTimeout(pending.timer);
         const p = pending;
-        pending = null;
-        if (frame.type === DT.ERROR) {
-          const info = parseErrorReply(frame.payload);
-          p.reject(new Error("device error (code " + info.code + "): " + info.message));
-          return;
-        }
-        // A reply's state is applied HERE, synchronously, before the frames that
-        // follow it in the same byte batch are dispatched: the snapshot
-        // WINDOW_OPENs right behind a DESKTOP reply must see its app list (the
-        // promise resolution below only runs as a microtask, after the batch).
-        if (p.onReply) {
-          try { p.onReply(frame); } catch (e) { p.reject(e); return; }
-        }
-        p.resolve(frame);
+        settlePending(p, () => {
+          if (frame.type === DT.ERROR) {
+            const info = parseErrorReply(frame.payload);
+            p.reject(new Error("device error (code " + info.code + "): " + info.message));
+            return;
+          }
+          // A reply's state is applied HERE, synchronously, before the frames that
+          // follow it in the same byte batch are dispatched: the snapshot
+          // WINDOW_OPENs right behind a DESKTOP reply must see its app list (the
+          // promise resolution below only runs as a microtask, after the batch).
+          if (p.onReply) {
+            try { p.onReply(frame); } catch (e) { p.reject(e); return; }
+          }
+          p.resolve(frame);
+        });
         return;
       }
       try {
@@ -1631,12 +1655,15 @@
       }
     }
 
+    // One request in flight: a request issued while another is pending waits
+    // for its reply; an idle slot sends at once (synchronously queued, so a
+    // request and an event issued in the same tick go out in issue order).
     // `onReply(frame)`: applied synchronously in dispatchFrame when the matching
     // reply arrives (see there); a throw rejects the transaction.
     function transact(type, payload, expectTypes, timeoutMs, onReply) {
-      const attempt = () => new Promise((resolve, reject) => {
-        if (!transport) { reject(new Error("not connected")); return; }
-        if (!moduleReady) { reject(new Error("module id not resolved yet (discovery pending)")); return; }
+      const attempt = (resolve, reject) => {
+        if (!transport) { reject(new Error("not connected")); nextRequest(); return; }
+        if (!moduleReady) { reject(new Error("module id not resolved yet (discovery pending)")); nextRequest(); return; }
         const corr = nextCorrelation();
         const frame = buildFrame(moduleDesktop, type, payload, corr);
         if (els.logFrames.checked) logLine("tx", "desktop " + DT_NAME[type] + " #" + corr + " " + hex(frame));
@@ -1646,33 +1673,27 @@
           onReply: typeof onReply === "function" ? onReply : null,
           resolve, reject,
           timer: setTimeout(() => {
-            if (pending === p) {
-              pending = null;
-              p.reject(new Error(DT_NAME[type] + " timed out"));
-            }
+            if (pending === p) settlePending(p, () => p.reject(new Error(DT_NAME[type] + " timed out")));
           }, timeoutMs || CMD_TIMEOUT_MS),
         };
         pending = p;
-        transport.send(frame).catch((e) => {
-          if (pending === p) {
-            clearTimeout(p.timer);
-            pending = null;
-            p.reject(new Error("send failed: " + e.message));
-          }
+        queueWrite(transport, frame).catch((e) => {
+          if (pending === p) settlePending(p, () => p.reject(new Error("send failed: " + e.message)));
         });
+      };
+      return new Promise((resolve, reject) => {
+        const entry = { run: () => attempt(resolve, reject), cancel: reject };
+        if (!pending && !requestQueue.length) entry.run(); else requestQueue.push(entry);
       });
-      const run = async () => attempt();
-      const result = chain.then(run, run);
-      chain = result.then(() => {}, () => {});
-      return result;
     }
-    // Fire-and-forget (events carry no correlation and get no ack), in order.
+    // Fire-and-forget (events carry no correlation and get no ack), in order,
+    // through the same write queue as the requests.
     function sendEvent(type, payload) {
       if (!transport || !moduleReady) return;
-      const t = transport;
       const frame = buildFrame(moduleDesktop, type, payload);
       if (els.logFrames.checked) logLine("tx", "desktop " + DT_NAME[type] + " " + hex(frame));
-      txChain = txChain.then(() => (t === transport ? t.send(frame) : undefined)).catch((e) => {
+      queueWrite(transport, frame).catch((e) => {
+        if (e && e.message === TRANSPORT_REPLACED) return; // the session ended before the write: nothing to report
         logLine("err", DT_NAME[type] + " send failed: " + (e && e.message ? e.message : e));
       });
     }
@@ -2117,7 +2138,7 @@
         const settle = (p) => { clearTimeout(timer); if (discoveryResolve === settle) discoveryResolve = null; resolve(p); };
         timer = setTimeout(() => settle(null), DISCOVERY_TIMEOUT_MS);
         discoveryResolve = settle;
-        t.send(buildFrame(MODULE_DISCOVERY, T_LIST_MODULES))
+        queueWrite(t, buildFrame(MODULE_DISCOVERY, T_LIST_MODULES))
           .catch(() => settle(null));
       });
       // this probe belongs to the transport it sent on: if that connection was
@@ -3278,12 +3299,22 @@
         return f;
       }
       const sent = [];
+      const sendCalls = [];              // the frame types of every transport write, per call
+      let sendInFlight = 0, sendOverlap = false;
       const rxParser = new StreamParser();
       const deliver = (frame) => setTimeout(() => handleRxBytes(frame), 0);
       const fake = {
         kind: "usb", name: "fake device", device: { vendorId: 0x1209, productId: 0x0d38, serialNumber: "SELFTEST" }, closing: false,
         async send(bytes) {
-          for (const f of rxParser.feed(bytes).frames) {
+          // asynchronous like a real transferOut: a second send() arriving
+          // while this one is pending would be an interleaving write
+          if (sendInFlight) sendOverlap = true;
+          sendInFlight++;
+          await tick(0);
+          sendInFlight--;
+          const frames = rxParser.feed(bytes).frames;
+          sendCalls.push(frames.map((f) => f.type));
+          for (const f of frames) {
             if (f.module === MODULE_DISCOVERY) {
               const w = new ByteWriter().u8(2).u8(0).str8("espp Desktop").str8("selftest 1.0").u8(1)
                 .u8(9).str8("Desktop").str8("desktop.html").str8("A windowed desktop").str8(DESKTOP_PROTOCOL).u16(DESKTOP_PROTOCOL_VERSION);
@@ -3312,7 +3343,7 @@
       const feed = (name) => handleRxBytes(buildReplyFrame(moduleDesktop, vectors[name].type, vectors[name].payload));
       const feedHex = (type, h) => handleRxBytes(buildReplyFrame(moduleDesktop, type, bytesOfHex(h)));
       const lastSent = (type) => { for (let i = sent.length - 1; i >= 0; i--) if (sent[i].type === type) return sent[i]; return null; };
-      const settled = async (type) => { await tick(0); await tick(0); return lastSent(type); }; // events go out on the tx promise chain
+      const settled = async (type) => { await txQueue; await tick(0); return lastSent(type); }; // wait for the outbound write queue to drain
       const pointer = (target, type, x, y) => target.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1, isPrimary: true, button: 0, buttons: type === "pointerup" ? 0 : 1 }));
       const center = (el) => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
       const drag = (el, dx, dy) => { const [x, y] = center(el); pointer(el, "pointerdown", x, y); pointer(window, "pointermove", x + dx / 2, y + dy / 2); pointer(window, "pointermove", x + dx, y + dy); pointer(window, "pointerup", x + dx, y + dy); };
@@ -3412,7 +3443,20 @@
       assert(hexOf((await settled(DT.WIDGET_EVENT)).payload) === "010007000501000000", "Select event");
       list.el.children[1].dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
       assert(hexOf((await settled(DT.WIDGET_EVENT)).payload) === "010007000601000000", "Activate event");
-      // 10. launch + close round trips
+      // 10. a request and an event issued in the same tick reach the transport
+      // as two complete frames, in issue order, never concurrently
+      sent.length = 0; sendCalls.length = 0;
+      const req = transact(DT.LAUNCH_APP, encodeLaunchApp({ app: 2 }), [DT.OK]);
+      sendWindowEvent(w, WEV.FOCUS);
+      await req; await txQueue; await tick(0);
+      assert(sendCalls.length === 2 && sendCalls[0].length === 1 && sendCalls[0][0] === DT.LAUNCH_APP && sendCalls[1].length === 1 && sendCalls[1][0] === DT.WINDOW_EVENT,
+             "request + event: one complete frame per write, in issue order: " + JSON.stringify(sendCalls));
+      // ... and a request queued behind a pending one waits for its reply
+      const r1 = transact(DT.LAUNCH_APP, encodeLaunchApp({ app: 1 }), [DT.OK]), r2 = transact(DT.LAUNCH_APP, encodeLaunchApp({ app: 2 }), [DT.OK]);
+      assert(pending && requestQueue.length === 1, "second request waits for the slot");
+      await r1; await r2;
+      assert(!pending && requestQueue.length === 0, "request slot drained");
+      // 10b. launch + close round trips
       els.icons.querySelector("button").click();
       await waitFor(() => lastSent(DT.LAUNCH_APP), "LAUNCH_APP");
       assert(hexOf((await settled(DT.LAUNCH_APP)).payload) === "01", "LAUNCH_APP app 1");
@@ -3447,6 +3491,7 @@
       assert(!windows.has(1), "a complete empty window list drops the window");
       feed("window_open");
       assert(windows.size === 1, "window reopened for the link-loss step");
+      await txQueue; await tick(0); // the old session's writes drain (a real reconnect gets a NEW device handle; the fake is reused)
       onTransportGone(fake);
       assert(els.shell.classList.contains("offline") && windows.size === 1, "offline keeps the stale desktop");
       reconnect.stop();
@@ -3455,6 +3500,8 @@
       assert(!els.shell.classList.contains("offline"), "online again");
       await disconnect();
       assert(!transport && els.shell.classList.contains("offline"), "disconnected");
+      assert(!sendOverlap, "transport writes never overlapped");
+      assert(sendCalls.every((c) => c.length === 1), "every transport write carried exactly one frame: " + JSON.stringify(sendCalls.filter((c) => c.length !== 1)));
     }
     if (new URLSearchParams(location.search).get("selftest") === "1") {
       runSelfTest().then(() => { document.title = "SELFTEST PASS"; logLine("sys", "SELFTEST PASS"); },
