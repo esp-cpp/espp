@@ -44,8 +44,13 @@ struct I2cSession {
     }
     return out;
   }
-  static uint8_t parse_hex(const std::string &text) {
+  /// A 7-bit device address ("3C" / "0x3C").
+  static uint8_t parse_addr(const std::string &text) {
     return static_cast<uint8_t>(std::strtoul(text.c_str(), nullptr, 16) & 0x7F);
+  }
+  /// A full 8-bit register value ("80" / "0xFF").
+  static uint8_t parse_byte(const std::string &text) {
+    return static_cast<uint8_t>(std::strtoul(text.c_str(), nullptr, 16) & 0xFF);
   }
   static std::string hex_dump(const std::vector<uint8_t> &bytes) {
     std::string s;
@@ -169,8 +174,8 @@ inline void register_i2c_scanner_app(espp::Desktop &desktop) {
             win.button(
                 "Read",
                 [=]() mutable {
-                  const uint8_t addr = S::parse_hex(addr_box.text());
-                  const uint8_t reg = S::parse_hex(reg_box.text());
+                  const uint8_t addr = S::parse_addr(addr_box.text());
+                  const uint8_t reg = S::parse_byte(reg_box.text());
                   const size_t len =
                       std::clamp<size_t>(std::strtoul(len_box.text().c_str(), nullptr, 10), 1, 64);
                   std::vector<uint8_t> data(len);
@@ -183,8 +188,8 @@ inline void register_i2c_scanner_app(espp::Desktop &desktop) {
             win.button(
                 "Write",
                 [=]() mutable {
-                  const uint8_t addr = S::parse_hex(addr_box.text());
-                  std::vector<uint8_t> data{S::parse_hex(reg_box.text())};
+                  const uint8_t addr = S::parse_addr(addr_box.text());
+                  std::vector<uint8_t> data{S::parse_byte(reg_box.text())};
                   const auto bytes = S::parse_bytes(val_box.text());
                   data.insert(data.end(), bytes.begin(), bytes.end());
                   if (st->bus->write(addr, data.data(), data.size()))

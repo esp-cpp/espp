@@ -305,7 +305,10 @@ inline void register_canopen_app(espp::Desktop &desktop) {
             const std::vector<Mode> modes = {Mode::ProfilePosition, Mode::ProfileVelocity,
                                              Mode::ProfileTorque, Mode::Homing};
             win.select(
-                {"Profile position", "Profile velocity", "Profile torque", "Homing"}, 1,
+                // no selection until the user picks one: 0x6060 is only
+                // written on a change (the label shows the drive's 0x6061)
+                {"Profile position", "Profile velocity", "Profile torque", "Homing"},
+                D::kNoSelection,
                 [=](int32_t i) {
                   if (i < 0 || static_cast<size_t>(i) >= modes.size())
                     return;

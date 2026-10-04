@@ -22,6 +22,8 @@
 #include "nvs_handle_espp.hpp"
 #include "task.hpp"
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI
+#include "esp_wifi.h"
+#include "wifi.hpp"
 #include "wifi_sta.hpp"
 #endif
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_ETHERNET
@@ -38,6 +40,9 @@ struct NetworkState {
   std::string wifi_ip;
   std::string wifi_mac;
   std::vector<std::string> scan_ssids; // in AP list order
+  std::vector<std::string> scan_rows;  // the AP list's items (shown again by a new window)
+  /// A scan is in flight on the scan task: it disconnects and drives the
+  /// station, so every other station action is refused until it is done.
   std::atomic<bool> scanning{false};
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI
   std::unique_ptr<espp::WifiSta> wifi;
@@ -102,11 +107,38 @@ struct NetworkState {
       nvs.get("wifi_ssid", ssid, std::string(""), ec);
       nvs.get("wifi_pass", pass, std::string(""), ec);
     }
+    // The app's NVS keys are the only persisted credentials: keep the
+    // driver's own copy in RAM so esp_wifi_set_config() does not write a
+    // second one to flash (which Forget could not clear).
+    auto &stack = espp::Wifi::get();
+    if (stack.init())
+      stack.set_storage(WIFI_STORAGE_RAM);
     auto cfg = wifi_config(ssid, pass);
     cfg.auto_connect = !ssid.empty();
     set_status(ssid.empty() ? "idle (no saved network)" : "connecting");
     wifi = std::make_unique<espp::WifiSta>(cfg);
     wifi_mac = wifi->get_mac();
+  }
+
+  /// Drop the saved credentials everywhere: the app's NVS keys, the driver's
+  /// station config and WifiSta's stored config (reconfigured with empty
+  /// credentials and auto-connect off, so nothing reconnects).
+  bool forget() {
+    std::error_code ec;
+    espp::NvsHandle nvs("desktop", ec);
+    if (!ec) {
+      nvs.erase("wifi_ssid", ec);
+      nvs.erase("wifi_pass", ec);
+    }
+    wifi->disconnect();
+    wifi_config_t empty{};
+    const bool cleared = esp_wifi_set_config(WIFI_IF_STA, &empty) == ESP_OK;
+    auto cfg =
+        wifi_config("", ""); // empty ssid: reconfigure() adopts the (now empty) driver config
+    cfg.auto_connect = false;
+    const bool ok = wifi->reconfigure(cfg) && cleared;
+    set_status("idle (no saved network)");
+    return ok;
   }
 #endif
 
@@ -157,13 +189,38 @@ inline void register_network_app(espp::Desktop &desktop) {
             auto scan_bar = win.row(wifi.id());
             auto scan_btn = win.button("Scan", nullptr, scan_bar.id());
             auto scan_label = win.label("", scan_bar.id());
-            auto ap_list = win.list({}, nullptr, wifi.id());
+            std::vector<std::string> rows_now;
+            {
+              std::lock_guard<std::mutex> lock(net->mutex);
+              rows_now = net->scan_rows; // the last scan, if any
+            }
+            auto ap_list = win.list(rows_now, nullptr, wifi.id());
             ap_list.set_size(0, 140);
             auto pass_row = win.row(wifi.id());
             win.label("Password", pass_row.id());
             auto pass_box = win.textbox("", nullptr, pass_row.id(),
                                         "leave empty for an open network", D::kTextBoxPassword);
             auto actions = win.row(wifi.id());
+            auto connect_btn = win.button("Connect", nullptr, actions.id(), D::kButtonPrimary);
+            auto disconnect_btn = win.button("Disconnect", nullptr, actions.id());
+            auto forget_btn = win.button("Forget", nullptr, actions.id(), D::kButtonDanger);
+            // every station action is disabled while a scan drives the
+            // station from the scan task (and refused if clicked anyway)
+            auto set_busy = [=](bool busy) mutable {
+              scan_btn.set_enabled(!busy);
+              connect_btn.set_enabled(!busy);
+              disconnect_btn.set_enabled(!busy);
+              forget_btn.set_enabled(!busy);
+            };
+            auto refuse_if_scanning = [=, &d]() {
+              if (!net->scanning)
+                return false;
+              d.notify({.title = "Wi-Fi",
+                        .text = "a scan is in progress; try again when it is done",
+                        .level = D::NotifyLevel::Warn});
+              return true;
+            };
+            set_busy(net->scanning);
 
             refreshers.push_back([=]() mutable {
               std::string st, ip;
@@ -172,6 +229,8 @@ inline void register_network_app(espp::Desktop &desktop) {
                 st = net->wifi_status;
                 ip = net->wifi_ip;
               }
+              // also re-syncs a window opened while a scan started elsewhere
+              set_busy(net->scanning);
               const bool connected = net->wifi->is_connected();
               status.set_text("Status: {}", st);
               ssid_label.set_text("SSID: {}", connected ? net->wifi->get_ssid() : "-");
@@ -183,11 +242,11 @@ inline void register_network_app(espp::Desktop &desktop) {
             });
 
             scan_btn.on_event([=](const D::WidgetEvent &e) mutable {
-              if (e.kind != D::WidgetEventKind::Click || net->scanning)
+              if (e.kind != D::WidgetEventKind::Click || refuse_if_scanning())
                 return;
               net->scanning = true;
               net->scan_task.reset(); // the previous (finished) scan
-              scan_btn.set_enabled(false);
+              set_busy(true);
               scan_label.set_text("scanning\xE2\x80\xA6 (disconnects first)");
               auto *state = net.get(); // outlives the task (joined by its destructor)
               net->scan_task = std::make_unique<espp::Task>(espp::Task::Config{
@@ -206,75 +265,78 @@ inline void register_network_app(espp::Desktop &desktop) {
                         {
                           std::lock_guard<std::mutex> lock(state->mutex);
                           state->scan_ssids = ssids;
+                          state->scan_rows = rows;
                         }
                         ap_list.set_items(rows);
                         scan_label.set_text("{} networks", rows.size());
-                        scan_btn.set_enabled(true);
                         state->scanning = false;
+                        set_busy(false);
                         return true; // one shot
                       },
                   .task_config = {.name = "wifi_scan", .stack_size_bytes = 6 * 1024}});
               net->scan_task->start();
             });
 
-            win.button(
-                "Connect",
-                [=, &d]() mutable {
-                  std::string ssid;
-                  {
-                    std::lock_guard<std::mutex> lock(net->mutex);
-                    const int32_t i = ap_list.selected();
-                    if (i >= 0 && static_cast<size_t>(i) < net->scan_ssids.size())
-                      ssid = net->scan_ssids[static_cast<size_t>(i)];
-                  }
-                  if (ssid.empty()) {
-                    d.notify({.title = "Wi-Fi",
-                              .text = "scan, then select a network",
-                              .level = D::NotifyLevel::Warn});
-                    return;
-                  }
-                  const std::string pass = pass_box.text();
-                  std::error_code ec;
-                  espp::NvsHandle nvs("desktop", ec);
-                  if (!ec) {
-                    nvs.set("wifi_ssid", ssid, ec);
-                    nvs.set("wifi_pass", pass, ec);
-                  }
-                  net->set_status(fmt::format("connecting to {}", ssid));
-                  const bool was_connected = net->wifi->is_connected();
-                  // reconfigure() reconnects when it was connected; else connect()
-                  bool ok = net->wifi->reconfigure(net->wifi_config(ssid, pass));
-                  if (ok && !was_connected)
-                    ok = net->wifi->connect();
-                  if (!ok) {
-                    net->set_status("connect failed");
-                    d.notify({.title = "Wi-Fi",
-                              .text = fmt::format("could not start connecting to {}", ssid),
-                              .level = D::NotifyLevel::Error});
-                  }
-                },
-                actions.id(), D::kButtonPrimary);
-            win.button(
-                "Disconnect",
-                [=]() mutable {
-                  net->wifi->disconnect();
-                  net->set_status("disconnected");
-                },
-                actions.id());
-            win.button(
-                "Forget",
-                [=, &d]() mutable {
-                  std::error_code ec;
-                  espp::NvsHandle nvs("desktop", ec);
-                  if (!ec) {
-                    nvs.erase("wifi_ssid", ec);
-                    nvs.erase("wifi_pass", ec);
-                  }
-                  net->wifi->disconnect();
-                  net->set_status("idle (no saved network)");
-                  d.notify({.title = "Wi-Fi", .text = "saved network forgotten"});
-                },
-                actions.id(), D::kButtonDanger);
+            connect_btn.on_event([=, &d](const D::WidgetEvent &e) mutable {
+              if (e.kind != D::WidgetEventKind::Click || refuse_if_scanning())
+                return;
+              std::string ssid;
+              {
+                std::lock_guard<std::mutex> lock(net->mutex);
+                const int32_t i = ap_list.selected();
+                if (i >= 0 && static_cast<size_t>(i) < net->scan_ssids.size())
+                  ssid = net->scan_ssids[static_cast<size_t>(i)];
+              }
+              if (ssid.empty()) {
+                d.notify({.title = "Wi-Fi",
+                          .text = "scan, then select a network",
+                          .level = D::NotifyLevel::Warn});
+                return;
+              }
+              const std::string pass = pass_box.text();
+              // the driver fields are 32 / 64 bytes (WifiSta::reconfigure
+              // copies the strings as given); the text boxes are unbounded
+              if (ssid.size() > 32 || pass.size() > 63) {
+                d.notify({.title = "Wi-Fi",
+                          .text = "SSID must be at most 32 bytes and the password at "
+                                  "most 63 bytes",
+                          .level = D::NotifyLevel::Error});
+                return;
+              }
+              std::error_code ec;
+              espp::NvsHandle nvs("desktop", ec);
+              if (!ec) {
+                nvs.set("wifi_ssid", ssid, ec);
+                nvs.set("wifi_pass", pass, ec);
+              }
+              net->set_status(fmt::format("connecting to {}", ssid));
+              const bool was_connected = net->wifi->is_connected();
+              // reconfigure() reconnects when it was connected; else connect()
+              bool ok = net->wifi->reconfigure(net->wifi_config(ssid, pass));
+              if (ok && !was_connected)
+                ok = net->wifi->connect();
+              if (!ok) {
+                net->set_status("connect failed");
+                d.notify({.title = "Wi-Fi",
+                          .text = fmt::format("could not start connecting to {}", ssid),
+                          .level = D::NotifyLevel::Error});
+              }
+            });
+            disconnect_btn.on_event([=](const D::WidgetEvent &e) mutable {
+              if (e.kind != D::WidgetEventKind::Click || refuse_if_scanning())
+                return;
+              net->wifi->disconnect();
+              net->set_status("disconnected");
+            });
+            forget_btn.on_event([=, &d](const D::WidgetEvent &e) mutable {
+              if (e.kind != D::WidgetEventKind::Click || refuse_if_scanning())
+                return;
+              const bool ok = net->forget();
+              d.notify({.title = "Wi-Fi",
+                        .text = ok ? "saved network forgotten"
+                                   : "credentials erased, but the station could not be reset",
+                        .level = ok ? D::NotifyLevel::Ok : D::NotifyLevel::Warn});
+            });
 #endif
 
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_ETHERNET

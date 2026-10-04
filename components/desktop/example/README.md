@@ -30,8 +30,11 @@ Apps (`main/apps/*.hpp`, one `register_<name>_app()` each):
   console; the capture itself is the compile-time
   `CONFIG_DESKTOP_EXAMPLE_LOG_CAPTURE`), all kept in NVS and restored at boot.
 
-Hardware apps, each behind a Kconfig option (all on by default, so the CI
-build compiles every one of them; see [Configuration](#configuration)):
+Hardware apps, each behind a Kconfig option (see
+[Configuration](#configuration)). CANopen (on the simulated node), the I2C
+scanner and the Wi-Fi group are on by default, so the CI build compiles them;
+the Ethernet group defaults off and is only selectable on SoCs with an EMAC
+(ESP32 / ESP32-P4, not the S3):
 
 - **CANopen / DS402** — a CiA 301 NMT master + SDO client
   (`espp::CanopenClient`) and a CiA 402 drive panel (`espp::Ds402Drive`):
