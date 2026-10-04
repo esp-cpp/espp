@@ -81,6 +81,10 @@ struct CanopenSession {
       ++p;
     if (!*p || *p == '-' || *p == '+')
       return std::nullopt;
+    // base 0 would also treat a leading zero as octal ("010" -> 8); the UI
+    // documents decimal with an optional 0x prefix, so choose the base here
+    if (base == 0)
+      base = (p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) ? 16 : 10;
     char *end = nullptr;
     errno = 0;
     const unsigned long v = std::strtoul(p, &end, base);
