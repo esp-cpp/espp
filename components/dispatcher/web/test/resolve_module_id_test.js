@@ -25,6 +25,7 @@ const consoles = [
   "components/bldc_haptics/web/haptics_console.html",
   "components/telemetry/web/telemetry.html",
   "components/system/web/system_console.html",
+  "components/desktop/web/desktop.html",
 ];
 const hub = "components/dispatcher/web/dispatcher_hub.html";
 

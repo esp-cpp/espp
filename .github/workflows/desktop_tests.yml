@@ -1,0 +1,78 @@
+name: Desktop host + web tests
+
+# The desktop component's host-side checks: the C++ codec / model test
+# (components/desktop/test, built with g++ -std=c++20), the web app's node
+# codec test against the same golden vectors, the dispatcher web-app lints
+# (module-id resolution, app registry) and the headless-Chrome smoke test of
+# desktop.html (file:// load with / without ?autoconnect and the ?selftest=1
+# hook). Runs whenever the desktop component, the shared stream_frame codec
+# or the dispatcher web tests change.
+
+# Minimal token scope: build + run tests, never writes.
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - "components/desktop/**"
+      - "components/stream_frame/include/**"
+      - "components/dispatcher/web/**"
+      - ".github/workflows/desktop_tests.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "components/desktop/**"
+      - "components/stream_frame/include/**"
+      - "components/dispatcher/web/**"
+      - ".github/workflows/desktop_tests.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host-test:
+    name: C++ host test (codec, model, dirty tracker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build and run desktop_host_test
+        working-directory: components/desktop/test
+        run: |
+          g++ --version | head -1
+          g++ -std=c++20 -Wall -Wextra -I../include -I../../stream_frame/include \
+            desktop_host_test.cpp -o desktop_host_test
+          ./desktop_host_test desktop_vectors.txt
+
+  web-tests:
+    name: Node codec test + dispatcher web lints
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Desktop codec test (same vectors as the C++ test)
+        run: node components/desktop/web/test/desktop_codec_test.js
+      - name: Dispatcher web-app lints
+        run: |
+          node components/dispatcher/web/test/resolve_module_id_test.js
+          node components/dispatcher/web/test/apps_registry_test.js
+
+  smoke:
+    name: Headless-Chrome smoke test (desktop.html)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run smoke.sh with the runner's Google Chrome
+        env:
+          CHROME: google-chrome
+        run: |
+          google-chrome --version
+          bash components/desktop/web/test/smoke.sh

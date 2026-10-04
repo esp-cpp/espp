@@ -87,6 +87,7 @@ jobs:
             components/coredump
             components/cst816
             components/csv
+            components/desktop
             components/dispatcher
             components/display
             components/display_drivers

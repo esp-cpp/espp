@@ -1,0 +1,21 @@
+menu "Desktop Example Configuration"
+
+    config DESKTOP_EXAMPLE_LOG_CAPTURE
+        bool "Capture the console log for the Log Viewer app"
+        default y
+        help
+            Install espp::ConsoleCapture first thing in app_main(): stdout /
+            stderr are teed into a byte ring the Log Viewer app streams to the
+            browser. The UART console keeps working. Disable to leave stdio
+            untouched (the Log Viewer then only shows a hint).
+
+    config DESKTOP_EXAMPLE_LOG_CAPTURE_BYTES
+        int "Log capture ring size (bytes)"
+        depends on DESKTOP_EXAMPLE_LOG_CAPTURE
+        default 16384
+        range 1024 262144
+        help
+            How many of the newest console bytes are kept for the Log Viewer
+            (and shown when it opens).
+
+endmenu
