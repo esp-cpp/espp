@@ -45,6 +45,9 @@ struct NetworkState {
   /// A scan is in flight on the scan task: it disconnects and drives the
   /// station, so every other station action is refused until it is done.
   std::atomic<bool> scanning{false};
+  /// The station is associating (Connect / auto-connect at start) but has no
+  /// IP yet: the intent a scan must suppress and restore like a connection.
+  std::atomic<bool> connecting{false};
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI
   std::unique_ptr<espp::WifiSta> wifi;
   std::unique_ptr<espp::Task> scan_task; // after wifi: joined before it goes away
@@ -89,9 +92,14 @@ struct NetworkState {
             .num_connect_retries = 3,
             .auto_connect = true,
             .on_connected = [this]() { set_status("connected, waiting for an IP"); },
-            .on_disconnected = [this]() { set_status("disconnected"); },
+            .on_disconnected =
+                [this]() { // the retries are exhausted: the intent is over
+                  connecting = false;
+                  set_status("disconnected");
+                },
             .on_got_ip =
                 [this](ip_event_got_ip_t *e) {
+                  connecting = false;
                   set_status("connected", fmt::format("{}.{}.{}.{}", IP2STR(&e->ip_info.ip)));
                 },
             .log_level = espp::Logger::Verbosity::INFO};
@@ -109,6 +117,18 @@ struct NetworkState {
     while (!s.empty() && s.back() == '\0')
       s.pop_back();
     return s;
+  }
+
+  /// Erase one key; true when it is gone (it was erased, or was never
+  /// stored -- NvsHandle::erase() reports a missing key as a failure, so the
+  /// key is probed first), false on any other failure.
+  static bool erase_key(espp::NvsHandle &nvs, const char *key) {
+    std::error_code ec;
+    std::string probe;
+    nvs.get(key, probe, ec); // no default: fails when the key is not stored
+    if (ec)
+      return true;
+    return nvs.erase(key, ec);
   }
 
   /// Bring the station up once, with the saved credentials (none = idle).
@@ -136,6 +156,7 @@ struct NetworkState {
       stack.set_storage(WIFI_STORAGE_RAM);
     auto cfg = wifi_config(ssid, pass);
     cfg.auto_connect = !ssid.empty();
+    connecting = cfg.auto_connect;
     set_status(ssid.empty() ? "idle (no saved network)" : "connecting");
     wifi = std::make_unique<espp::WifiSta>(cfg);
     wifi_mac = wifi->get_mac();
@@ -149,13 +170,14 @@ struct NetworkState {
     espp::NvsHandle nvs("desktop", ec);
     bool erased = !ec;
     if (erased) {
-      // a missing key is fine (nothing was saved); any other failure is not
-      std::error_code e1, e2;
-      nvs.erase("wifi_ssid", e1);
-      nvs.erase("wifi_pass", e2);
+      // both erasures must succeed (a key that was never stored counts as
+      // already forgotten), and the staged change must be committed
+      erased = erase_key(nvs, "wifi_ssid");
+      erased = erase_key(nvs, "wifi_pass") && erased;
       nvs.commit(ec); // erase_item() only stages the change
-      erased = !ec;
+      erased = erased && !ec;
     }
+    connecting = false;
     wifi->disconnect();
     wifi_config_t empty{};
     const bool cleared = esp_wifi_set_config(WIFI_IF_STA, &empty) == ESP_OK;
@@ -296,18 +318,22 @@ inline void register_network_app(espp::Desktop &desktop) {
                         // esp_wifi_disconnect(), which WifiSta's DISCONNECTED
                         // handler treats as unintentional and answers with a
                         // reconnect attempt (num_connect_retries > 0) while the
-                        // scan is starting. Disconnect intentionally first (that
-                        // suppresses the retries), give the event time to land,
-                        // then scan and reconnect ourselves afterwards.
-                        const bool was_connected = state->wifi->is_connected();
-                        if (was_connected) {
+                        // scan is starting -- whether the station was connected
+                        // or still associating (`connecting`). Disconnect
+                        // intentionally first (that suppresses the retries),
+                        // give the event time to land, then scan and restore
+                        // the intent (connect again) afterwards.
+                        const bool intent = state->wifi->is_connected() || state->connecting;
+                        if (intent) {
+                          state->connecting = false;
                           state->wifi->disconnect();
                           std::this_thread::sleep_for(std::chrono::milliseconds(200));
                         }
                         state->set_status("scanning");
                         const auto aps = state->wifi->scan(20);
-                        if (was_connected) {
+                        if (intent) {
                           state->set_status("reconnecting");
+                          state->connecting = true;
                           state->wifi->connect();
                         } else {
                           state->set_status("disconnected");
@@ -368,11 +394,13 @@ inline void register_network_app(espp::Desktop &desktop) {
                           .level = D::NotifyLevel::Warn});
               net->set_status(fmt::format("connecting to {}", ssid));
               const bool was_connected = net->wifi->is_connected();
+              net->connecting = true;
               // reconfigure() reconnects when it was connected; else connect()
               bool ok = net->wifi->reconfigure(net->wifi_config(ssid, pass));
               if (ok && !was_connected)
                 ok = net->wifi->connect();
               if (!ok) {
+                net->connecting = false;
                 net->set_status("connect failed");
                 d.notify({.title = "Wi-Fi",
                           .text = fmt::format("could not start connecting to {}", ssid),
@@ -382,6 +410,7 @@ inline void register_network_app(espp::Desktop &desktop) {
             disconnect_btn.on_event([=](const D::WidgetEvent &e) mutable {
               if (e.kind != D::WidgetEventKind::Click || refuse_if_scanning())
                 return;
+              net->connecting = false;
               net->wifi->disconnect();
               net->set_status("disconnected");
             });

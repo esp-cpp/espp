@@ -4,7 +4,6 @@
 // a short task and list what answers; read / write device registers from the
 // window. A bus that fails to initialize shows a hint instead of the tools.
 
-#include <algorithm>
 #include <cstdlib>
 #include <memory>
 #include <mutex>
@@ -47,36 +46,38 @@ struct I2cSession {
     }
     return out;
   }
-  /// One hex number ("3C" / "0x3C") taking the whole field (blanks around it
-  /// allowed); nullopt when the field is empty, malformed or above `max`, so
-  /// a bad entry never becomes a real target (an empty address masked to 0x00
-  /// would be the general-call broadcast).
-  static std::optional<unsigned long> parse_field(const std::string &text, unsigned long max) {
+  /// One unsigned number in `base` taking the whole field (blanks around it
+  /// allowed); nullopt when the field is empty, malformed (trailing junk, a
+  /// sign) or outside `min`..`max`, so a bad entry never becomes a real
+  /// target (an empty address masked to 0x00 would be the general-call
+  /// broadcast) or a wrong transfer length.
+  static std::optional<unsigned long> parse_field(const std::string &text, int base,
+                                                  unsigned long min, unsigned long max) {
     const char *p = text.c_str();
     while (*p == ' ')
       ++p;
-    if (!*p)
+    if (!*p || *p == '-' || *p == '+')
       return std::nullopt;
     char *end = nullptr;
-    const unsigned long v = std::strtoul(p, &end, 16);
+    const unsigned long v = std::strtoul(p, &end, base);
     if (end == p)
       return std::nullopt;
     while (*end == ' ')
       ++end;
-    if (*end || v > max)
+    if (*end || v < min || v > max)
       return std::nullopt;
     return v;
   }
-  /// A 7-bit device address in the addressable range 0x01..0x7F.
+  /// A 7-bit device address in the addressable range 0x01..0x7F (hex).
   static std::optional<uint8_t> parse_addr(const std::string &text) {
-    const auto v = parse_field(text, 0x7F);
-    if (!v || *v == 0)
+    const auto v = parse_field(text, 16, 0x01, 0x7F);
+    if (!v)
       return std::nullopt;
     return static_cast<uint8_t>(*v);
   }
-  /// A full 8-bit register value (0x00..0xFF).
+  /// A full 8-bit register value (0x00..0xFF, hex).
   static std::optional<uint8_t> parse_byte(const std::string &text) {
-    const auto v = parse_field(text, 0xFF);
+    const auto v = parse_field(text, 16, 0x00, 0xFF);
     if (!v)
       return std::nullopt;
     return static_cast<uint8_t>(*v);
@@ -210,9 +211,12 @@ inline void register_i2c_scanner_app(espp::Desktop &desktop) {
                                           : "register must be a hex value in 0x00..0xFF");
                     return;
                   }
-                  const size_t len =
-                      std::clamp<size_t>(std::strtoul(len_box.text().c_str(), nullptr, 10), 1, 64);
-                  std::vector<uint8_t> data(len);
+                  const auto len = S::parse_field(len_box.text(), 10, 1, 64); // decimal
+                  if (!len) {
+                    result.set_text("length must be a decimal number 1..64");
+                    return;
+                  }
+                  std::vector<uint8_t> data(static_cast<size_t>(*len));
                   if (st->bus->read_at_register(*addr, *reg, data.data(), data.size()))
                     result.set_text("0x{:02X} reg 0x{:02X}: {}", *addr, *reg, S::hex_dump(data));
                   else
