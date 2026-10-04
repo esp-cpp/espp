@@ -925,8 +925,6 @@ public:
 
   /// @brief Start / stop broadcasting events to a sink (a disconnected
   ///        transport should be deactivated; the next GET_DESKTOP reactivates it).
-  // cppcheck-suppress functionConst // mutates the sink (through its shared_ptr): not a const
-  // operation
   void set_sink_active(SinkId id, bool active) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (auto s = find_sink(id))
