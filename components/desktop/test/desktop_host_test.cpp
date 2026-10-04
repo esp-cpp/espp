@@ -633,11 +633,18 @@ static void test_truncation_and_unknown() {
   CHECK(!decode_widget_event(p));
   p = {1, 0, 2, 0, 3}; // Submit with empty text is fine
   CHECK(decode_widget_event(p) && decode_widget_event(p)->text.empty());
-  // WINDOW_EVENT is exactly 11 bytes
+  // WINDOW_EVENT is exactly 11 bytes, and only the known kinds 1..7 decode
   p = encode_window_event({.window = 1, .kind = WindowEventKind::Focus});
   CHECK(p.size() == 11 && decode_window_event(p));
   p.push_back(0);
   CHECK(!decode_window_event(p));
+  p.pop_back();
+  p[2] = 0;
+  CHECK(!decode_window_event(p));
+  p[2] = 8;
+  CHECK(!decode_window_event(p));
+  p[2] = 7;
+  CHECK(decode_window_event(p) && decode_window_event(p)->kind == WindowEventKind::Resized);
   // DIALOG_RESULT needs at least 3 bytes
   p = {1, 0};
   CHECK(!decode_dialog_result(p));
@@ -997,6 +1004,22 @@ static void test_dialog_notify_limits() {
   CHECK(lim.set_prop(
       lw, lbl,
       Prop::items(0, std::vector<std::string>{std::string(200, 'i'), std::string(200, 'j')})));
+  // an Items range must fit the u16 index space, and replace_items validates
+  // BEFORE touching ItemCount (a refusal leaves the model unchanged)
+  lim.max_payload = 4081;
+  lim.flush();
+  CHECK(lim.replace_items(lw, lbl, std::vector<std::string>{"a", "b"}) &&
+        lim.widget(lw, lbl)->items.size() == 2);
+  CHECK(!lim.set_items(lw, lbl, 65535, std::vector<std::string>{"x"}));
+  CHECK(!lim.set_items(lw, lbl, 65534, std::vector<std::string>{"x", "y"}));
+  CHECK(lim.set_items(lw, lbl, 65533, std::vector<std::string>{"x", "y"}));
+  lim.flush();
+  CHECK(!lim.replace_items(lw, lbl, std::vector<std::string>(65536, "z")));
+  CHECK(lim.widget(lw, lbl)->items.size() == 65535 && !lim.dirty.any());
+  CHECK(!lim.set_items(lw, 999, 0, std::vector<std::string>{"x"}) &&
+        !lim.replace_items(lw, 999, std::vector<std::string>{"x"}) && !lim.dirty.any());
+  CHECK(lim.add_widget(
+            lw, {.type = WidgetType::List, .items = std::vector<std::string>(65536, "i")}) == 0);
   // app ids are monotonic and never reused while a window still references one
   CHECK(lim.allocate_app_id() == 1);
   lim.register_app({.id = 1, .name = "a"});
@@ -1037,40 +1060,61 @@ static void test_text_assembler() {
   dm::TextAssembler ta(32);
   std::string out;
   // two chunks in order complete the text
-  CHECK(ta.feed(1, 4, {.text = "hello ", .text_offset = 0, .text_total = 10}, out) ==
+  CHECK(ta.feed(0, 1, 4, {.text = "hello ", .text_offset = 0, .text_total = 10}, out) ==
         dm::TextAssembler::Result::Partial);
-  CHECK(ta.feed(1, 4, {.text = "wrld", .text_offset = 6, .text_total = 10}, out) ==
+  CHECK(ta.feed(0, 1, 4, {.text = "wrld", .text_offset = 6, .text_total = 10}, out) ==
         dm::TextAssembler::Result::Complete);
   CHECK(out == "hello wrld");
   // a single full chunk completes at once
-  CHECK(ta.feed(1, 4, {.text = "x", .text_offset = 0, .text_total = 1}, out) ==
+  CHECK(ta.feed(0, 1, 4, {.text = "x", .text_offset = 0, .text_total = 1}, out) ==
             dm::TextAssembler::Result::Complete &&
         out == "x");
   // an empty text completes at once
-  CHECK(ta.feed(1, 4, {.text = "", .text_offset = 0, .text_total = 0}, out) ==
+  CHECK(ta.feed(0, 1, 4, {.text = "", .text_offset = 0, .text_total = 0}, out) ==
             dm::TextAssembler::Result::Complete &&
         out.empty());
   // an out-of-order chunk resets the buffer (rejected)
-  CHECK(ta.feed(1, 4, {.text = "ab", .text_offset = 0, .text_total = 4}, out) ==
+  CHECK(ta.feed(0, 1, 4, {.text = "ab", .text_offset = 0, .text_total = 4}, out) ==
         dm::TextAssembler::Result::Partial);
-  CHECK(ta.feed(1, 4, {.text = "cd", .text_offset = 3, .text_total = 4}, out) ==
+  CHECK(ta.feed(0, 1, 4, {.text = "cd", .text_offset = 3, .text_total = 4}, out) ==
         dm::TextAssembler::Result::Rejected);
-  CHECK(ta.feed(1, 4, {.text = "ab", .text_offset = 0, .text_total = 4}, out) ==
+  CHECK(ta.feed(0, 1, 4, {.text = "ab", .text_offset = 0, .text_total = 4}, out) ==
         dm::TextAssembler::Result::Partial);
-  CHECK(ta.feed(1, 4, {.text = "cd", .text_offset = 2, .text_total = 4}, out) ==
+  CHECK(ta.feed(0, 1, 4, {.text = "cd", .text_offset = 2, .text_total = 4}, out) ==
             dm::TextAssembler::Result::Complete &&
         out == "abcd");
   // over the byte bound: rejected
-  CHECK(ta.feed(1, 4, {.text = "0123456789", .text_offset = 0, .text_total = 40}, out) ==
+  CHECK(ta.feed(0, 1, 4, {.text = "0123456789", .text_offset = 0, .text_total = 40}, out) ==
         dm::TextAssembler::Result::Rejected);
   // chunks for different widgets do not mix; a closed window drops its buffers
-  CHECK(ta.feed(1, 4, {.text = "ab", .text_offset = 0, .text_total = 4}, out) ==
+  CHECK(ta.feed(0, 1, 4, {.text = "ab", .text_offset = 0, .text_total = 4}, out) ==
         dm::TextAssembler::Result::Partial);
-  CHECK(ta.feed(1, 5, {.text = "zz", .text_offset = 0, .text_total = 2}, out) ==
+  CHECK(ta.feed(0, 1, 5, {.text = "zz", .text_offset = 0, .text_total = 2}, out) ==
             dm::TextAssembler::Result::Complete &&
         out == "zz");
   ta.forget_window(1);
-  CHECK(ta.feed(1, 4, {.text = "cd", .text_offset = 2, .text_total = 4}, out) ==
+  CHECK(ta.feed(0, 1, 4, {.text = "cd", .text_offset = 2, .text_total = 4}, out) ==
+        dm::TextAssembler::Result::Rejected);
+  // two sinks (vendor + CDC) editing the same widget never interleave: each
+  // has its own buffer, and detaching a sink drops only its partial assembly
+  CHECK(ta.feed(1, 1, 4, {.text = "AB", .text_offset = 0, .text_total = 4}, out) ==
+        dm::TextAssembler::Result::Partial);
+  CHECK(ta.feed(2, 1, 4, {.text = "ab", .text_offset = 0, .text_total = 4}, out) ==
+        dm::TextAssembler::Result::Partial);
+  CHECK(ta.pending() == 2);
+  CHECK(ta.feed(2, 1, 4, {.text = "cd", .text_offset = 2, .text_total = 4}, out) ==
+            dm::TextAssembler::Result::Complete &&
+        out == "abcd");
+  ta.forget_sink(2); // nothing of sink 1's is touched
+  CHECK(ta.pending() == 1);
+  CHECK(ta.feed(1, 1, 4, {.text = "CD", .text_offset = 2, .text_total = 4}, out) ==
+            dm::TextAssembler::Result::Complete &&
+        out == "ABCD");
+  CHECK(ta.feed(1, 1, 4, {.text = "AB", .text_offset = 0, .text_total = 4}, out) ==
+        dm::TextAssembler::Result::Partial);
+  ta.forget_sink(1);
+  CHECK(ta.pending() == 0);
+  CHECK(ta.feed(1, 1, 4, {.text = "CD", .text_offset = 2, .text_total = 4}, out) ==
         dm::TextAssembler::Result::Rejected);
 }
 

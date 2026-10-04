@@ -185,9 +185,23 @@ extern "C" void app_main(void) {
   // When the host unplugs, stop streaming to it: the next GET_DESKTOP re-attaches.
   usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { vendor_link.push(data); });
   usb.set_cdc_receive_callback([&](std::span<const uint8_t> data) { cdc_link.push(data); });
+  // Both run on the TinyUSB task: detach() only flips a flag, *_write_clear
+  // touches only the TX FIFOs, and request_reset() defers the queue + parser
+  // reset to each worker (so a half frame of the old session can never eat
+  // the first bytes of the next one).
   usb.set_unmount_callback([&]() {
     vendor_desktop.detach();
     cdc_desktop.detach();
+    usb.vendor_write_clear();
+    usb.cdc_write_clear();
+    vendor_link.request_reset();
+    cdc_link.request_reset();
+  });
+  usb.set_mount_callback([&]() {
+    usb.vendor_write_clear();
+    usb.cdc_write_clear();
+    vendor_link.request_reset();
+    cdc_link.request_reset();
   });
 
   std::error_code usb_ec;

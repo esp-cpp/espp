@@ -914,6 +914,7 @@ public:
         gone = *it;
         sinks_.erase(it);
       }
+      text_.forget_sink(id);
     }
     if (gone) {
       // wait for a send in flight on it, then drop the callback
@@ -930,6 +931,8 @@ public:
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (auto s = find_sink(id))
       s->active = active;
+    if (!active)
+      text_.forget_sink(id); // a half-received text of the old session is garbage
   }
 
   bool sink_active(SinkId id) const {
@@ -1052,28 +1055,20 @@ public:
   }
 
   /// Replace a range of items (`replace_all` first sets the count to the
-  /// range's size); false (logged) when an entry is too large for a frame.
+  /// range's size). Validated before anything changes: false (logged, model
+  /// untouched) when the target is unknown, an entry is too large for a frame,
+  /// or the range does not fit the wire's u16 index space.
   bool set_items(WindowId win, WidgetId widget, uint16_t start,
                  const std::vector<std::string> &items, bool replace_all) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if (!model_.items_representable(items)) {
-      logger_.warn_rate_limited("set_items: window {} widget {}: an entry is too large for a "
-                                "frame; ignored",
-                                win, widget);
-      return false;
-    }
-    bool ok = true;
-    if (replace_all)
-      ok = model_.set_prop(win, widget,
-                           detail::dp::Prop::u16(detail::dp::PropTag::ItemCount,
-                                                 static_cast<uint16_t>(items.size())));
-    if (ok && !items.empty())
-      ok = model_.set_items(win, widget, start, items);
+    const bool ok = replace_all ? model_.replace_items(win, widget, items)
+                                : model_.set_items(win, widget, start, items);
     if (ok)
       wake();
     else
-      logger_.warn_rate_limited("set_items: window {} widget {}: unknown target; ignored", win,
-                                widget);
+      logger_.warn_rate_limited("set_items: window {} widget {}: unknown target, an entry too "
+                                "large for a frame, or a range beyond 65535 items; ignored",
+                                win, widget);
     return ok;
   }
 
@@ -1371,7 +1366,7 @@ protected:
       fn(e);
   }
 
-  void handle(const Command &, const detail::dp::WidgetEvent &e) {
+  void handle(const Command &cmd, const detail::dp::WidgetEvent &e) {
     widget_event_fn fn;
     WidgetEvent ev = e;
     {
@@ -1381,7 +1376,7 @@ protected:
         return;
       if (e.kind == WidgetEventKind::Text) {
         std::string full{};
-        switch (text_.feed(e.window, e.widget, e, full)) {
+        switch (text_.feed(cmd.sink, e.window, e.widget, e, full)) {
         case detail::desktop_model::TextAssembler::Result::Partial:
           return;
         case detail::desktop_model::TextAssembler::Result::Rejected:

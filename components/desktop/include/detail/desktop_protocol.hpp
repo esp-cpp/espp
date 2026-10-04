@@ -1592,13 +1592,18 @@ inline std::optional<CloseWindow> decode_close_window(std::span<const uint8_t> p
   return CloseWindow{.window = espp::stream_frame::get_u16(p)};
 }
 
+/// nullopt also for an unknown event kind (so a handler never sees one).
 inline std::optional<WindowEvent> decode_window_event(std::span<const uint8_t> p) {
   if (p.size() != 11)
     return std::nullopt;
   Reader r(p);
   WindowEvent e;
   e.window = r.u16();
-  e.kind = static_cast<WindowEventKind>(r.u8());
+  const uint8_t kind = r.u8();
+  if (kind < static_cast<uint8_t>(WindowEventKind::Focus) ||
+      kind > static_cast<uint8_t>(WindowEventKind::Resized))
+    return std::nullopt;
+  e.kind = static_cast<WindowEventKind>(kind);
   e.x = r.i16();
   e.y = r.i16();
   e.w = r.u16();

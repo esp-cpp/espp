@@ -44,7 +44,8 @@ namespace espp::detail::desktop_model {
 namespace dp = espp::detail::desktop_protocol;
 
 /// Reassembles chunked WIDGET_EVENT Text values (offset / total / bytes) per
-/// (window, widget), bounded in size.
+/// (sink, window, widget) -- two attached hosts never interleave into one
+/// buffer -- bounded in size.
 class TextAssembler {
 public:
   enum class Result {
@@ -56,8 +57,9 @@ public:
   explicit TextAssembler(size_t max_bytes)
       : max_bytes_(max_bytes) {}
 
-  Result feed(uint16_t window, uint16_t widget, const dp::WidgetEvent &chunk, std::string &out) {
-    const uint32_t key = (static_cast<uint32_t>(window) << 16) | widget;
+  Result feed(uint32_t sink, uint16_t window, uint16_t widget, const dp::WidgetEvent &chunk,
+              std::string &out) {
+    const uint64_t key = key_of(sink, window, widget);
     if (chunk.text_total > max_bytes_ || chunk.text_offset > chunk.text_total ||
         chunk.text.size() > chunk.text_total - chunk.text_offset) {
       bufs_.erase(key);
@@ -88,21 +90,33 @@ public:
     return Result::Complete;
   }
 
-  /// Drop the buffers of every widget of a window (it closed).
+  /// Drop the buffers of every widget of a window (it closed), on every sink.
   void forget_window(uint16_t window) {
-    const uint32_t lo = static_cast<uint32_t>(window) << 16;
-    bufs_.erase(bufs_.lower_bound(lo), bufs_.lower_bound(lo + 0x10000u));
+    std::erase_if(bufs_, [window](const auto &kv) {
+      return static_cast<uint16_t>((kv.first >> 16) & 0xFFFF) == window;
+    });
+  }
+
+  /// Drop every partial assembly a sink had (it detached).
+  void forget_sink(uint32_t sink) {
+    const uint64_t lo = static_cast<uint64_t>(sink) << 32;
+    bufs_.erase(bufs_.lower_bound(lo), bufs_.lower_bound(lo + (1ull << 32)));
   }
 
   void clear() { bufs_.clear(); }
 
+  size_t pending() const { return bufs_.size(); }
+
 private:
+  static uint64_t key_of(uint32_t sink, uint16_t window, uint16_t widget) {
+    return (static_cast<uint64_t>(sink) << 32) | (static_cast<uint64_t>(window) << 16) | widget;
+  }
   struct Buf {
     uint32_t total{0};
     std::string data{};
   };
   size_t max_bytes_;
-  std::map<uint32_t, Buf> bufs_{};
+  std::map<uint64_t, Buf> bufs_{};
 };
 
 /// Pending changes of one window.
@@ -590,7 +604,7 @@ public:
       return 0;
     if (cfg.placeholder.size() > dp::kMaxShortTextBytes ||
         cfg.tooltip.size() > dp::kMaxShortTextBytes || !columns_representable(cfg.columns) ||
-        !items_representable(cfg.items))
+        !items_representable(cfg.items, 0))
       return 0;
     if (cfg.parent) {
       const WidgetState *p = w->widget(cfg.parent);
@@ -1025,8 +1039,12 @@ public:
   }
 
   /// Items: every entry small enough for a frame of its own (ranges split, an
-  /// entry does not) and at most kMaxStr16Bytes.
-  bool items_representable(std::span<const std::string> items) const {
+  /// entry does not) and at most kMaxStr16Bytes; the range `start .. start +
+  /// size` must fit the u16 index space (the wire carries u16 start / count /
+  /// ItemCount).
+  bool items_representable(std::span<const std::string> items, size_t start = 0) const {
+    if (items.size() > 0xFFFF || start > 0xFFFF || start + items.size() > 0xFFFF)
+      return false;
     return std::all_of(items.begin(), items.end(), [this](const std::string &i) {
       return i.size() <= dp::kMaxStr16Bytes && i.size() + 2 + 4 <= rec_room();
     });
@@ -1037,10 +1055,22 @@ public:
     return columns_representable(cols) && set_prop(win, widget_id, dp::Prop::columns(cols));
   }
 
-  /// Replace a range of items (validated on the strings; false = refused).
+  /// Replace a range of items (validated on the strings and the range; false =
+  /// refused, nothing changed).
   bool set_items(uint16_t win, uint16_t widget_id, uint16_t start,
                  std::span<const std::string> items) {
-    return items_representable(items) && set_prop(win, widget_id, dp::Prop::items(start, items));
+    return items_representable(items, start) && widget(win, widget_id) != nullptr &&
+           set_prop(win, widget_id, dp::Prop::items(start, items));
+  }
+
+  /// Replace every item (ItemCount + the full range). Validated BEFORE anything
+  /// is mutated: false = refused, the model is unchanged.
+  bool replace_items(uint16_t win, uint16_t widget_id, std::span<const std::string> items) {
+    if (!items_representable(items, 0) || widget(win, widget_id) == nullptr)
+      return false;
+    set_prop(win, widget_id,
+             dp::Prop::u16(dp::PropTag::ItemCount, static_cast<uint16_t>(items.size())));
+    return items.empty() || set_prop(win, widget_id, dp::Prop::items(0, items));
   }
 
   /// Whether a property's value can be carried on the wire within this
