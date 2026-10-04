@@ -1611,9 +1611,16 @@
         if (frame.type === DT.ERROR) {
           const info = parseErrorReply(frame.payload);
           p.reject(new Error("device error (code " + info.code + "): " + info.message));
-        } else {
-          p.resolve(frame);
+          return;
         }
+        // A reply's state is applied HERE, synchronously, before the frames that
+        // follow it in the same byte batch are dispatched: the snapshot
+        // WINDOW_OPENs right behind a DESKTOP reply must see its app list (the
+        // promise resolution below only runs as a microtask, after the batch).
+        if (p.onReply) {
+          try { p.onReply(frame); } catch (e) { p.reject(e); return; }
+        }
+        p.resolve(frame);
         return;
       }
       try {
@@ -1623,7 +1630,9 @@
       }
     }
 
-    function transact(type, payload, expectTypes, timeoutMs) {
+    // `onReply(frame)`: applied synchronously in dispatchFrame when the matching
+    // reply arrives (see there); a throw rejects the transaction.
+    function transact(type, payload, expectTypes, timeoutMs, onReply) {
       const attempt = () => new Promise((resolve, reject) => {
         if (!transport) { reject(new Error("not connected")); return; }
         if (!moduleReady) { reject(new Error("module id not resolved yet (discovery pending)")); return; }
@@ -1633,6 +1642,7 @@
         const p = {
           expect: new Set(expectTypes),
           corr,
+          onReply: typeof onReply === "function" ? onReply : null,
           resolve, reject,
           timer: setTimeout(() => {
             if (pending === p) {
@@ -3161,8 +3171,9 @@
     async function refreshDesktop() {
       try {
         setStatus("busy", "Syncing…");
-        const reply = await transact(DT.GET_DESKTOP, encodeGetDesktop(), [DT.DESKTOP]);
-        applyDesktop(decodeDesktop(reply.payload), true);
+        // applied inside dispatchFrame (synchronously, before any snapshot
+        // WINDOW_OPEN that shares the reply's byte batch is opened)
+        await transact(DT.GET_DESKTOP, encodeGetDesktop(), [DT.DESKTOP], null, (reply) => applyDesktop(decodeDesktop(reply.payload), true));
         if (transport) setStatus("connected", "Connected");
       } catch (e) {
         if (transport) setStatus("error", "Sync failed");
@@ -3269,8 +3280,12 @@
             if (f.module !== moduleDesktop) continue;
             sent.push({ type: f.type, payload: f.payload, correlation: f.correlation });
             if (f.type === DT.GET_DESKTOP) {
-              deliver(buildReplyFrame(moduleDesktop, DT.DESKTOP, vectors.desktop.payload, f.correlation));
-              deliver(buildReplyFrame(moduleDesktop, DT.WINDOW_OPEN, vectors.window_open.payload));
+              // the reply and the snapshot WINDOW_OPEN in ONE byte batch, as a
+              // device flushing both in one write would deliver them
+              const a = buildReplyFrame(moduleDesktop, DT.DESKTOP, vectors.desktop.payload, f.correlation);
+              const b = buildReplyFrame(moduleDesktop, DT.WINDOW_OPEN, vectors.window_open.payload);
+              const both = new Uint8Array(a.length + b.length); both.set(a, 0); both.set(b, a.length);
+              deliver(both);
             } else if (f.type === DT.LAUNCH_APP) {
               deliver(buildReplyFrame(moduleDesktop, DT.OK, new Uint8Array([DT.LAUNCH_APP]), f.correlation));
             } else if (f.type === DT.CLOSE_WINDOW) {
@@ -3289,12 +3304,17 @@
       const center = (el) => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
       const drag = (el, dx, dy) => { const [x, y] = center(el); pointer(el, "pointerdown", x, y); pointer(window, "pointermove", x + dx / 2, y + dy / 2); pointer(window, "pointermove", x + dx, y + dy); pointer(window, "pointerup", x + dx, y + dy); };
 
-      // 1. connect -> discovery -> GET_DESKTOP -> snapshot window
+      // 1. connect -> discovery -> GET_DESKTOP -> snapshot window (its stored
+      // geometry, keyed by the REAL app name, must be restored even though the
+      // DESKTOP reply and the WINDOW_OPEN arrive in the same batch)
+      geomStore.set("Counter", "Counter", { x: 200, y: 150, w: 420, h: 260 });
       await onConnected(fake);
       assert(moduleReady && moduleDesktop === 9, "module not adopted from discovery");
       await waitFor(() => windows.has(1) && windows.get(1).placed, "window 1");
       const w = windows.get(1);
       assert(w.title === "Counter" && w.appName === "Counter", "window title / app");
+      assert(geometryEquals(w.geom, { x: 200, y: 150, w: 420, h: 260 }), "stored geometry restored for the snapshot window: " + JSON.stringify(w.geom));
+      assert(apps.size === 3, "apps applied before the snapshot window was opened");
       assert(els.trayDevice.textContent.includes("espp Desktop"), "device chip");
       assert(settings.maxPayload === 4081 && settings.theme === "auto" && settings.accent === 0x3B82F6, "settings " + JSON.stringify(settings));
       assert(els.icons.querySelectorAll("button").length === 2, "two visible app icons (About is hidden)");
