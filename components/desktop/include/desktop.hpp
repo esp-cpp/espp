@@ -135,10 +135,12 @@ public:
   static constexpr uint16_t kButtonDanger = detail::dp::kButtonDanger;
   /// A list / table / select selection meaning "nothing".
   static constexpr int32_t kNoSelection = -1;
-  /// Smallest Config::max_frame_bytes: the largest frame header + CRC + a
-  /// 64-byte payload (enough for every fixed-layout message and a widget base).
-  static constexpr size_t kMinFrameBytes =
-      espp::stream_frame::kMaxHeaderSize + espp::stream_frame::kCrcSize + 64;
+  /// Smallest Config::max_frame_bytes: the largest frame header + CRC + the
+  /// smallest payload cap (detail::desktop_protocol::kMinPayloadBytes, which
+  /// the maximal DESKTOP record set always fits).
+  static constexpr size_t kMinFrameBytes = espp::stream_frame::kMaxHeaderSize +
+                                           espp::stream_frame::kCrcSize +
+                                           detail::dp::kMinPayloadBytes;
   // Registry limits (DESKTOP is one frame; see detail/desktop_protocol.hpp).
   static constexpr size_t kMaxApps = detail::dp::kMaxApps;
   static constexpr size_t kMaxAppNameBytes = detail::dp::kMaxAppNameBytes;
@@ -153,7 +155,9 @@ public:
     std::string device_name{"espp"};
     /// e.g. project name + version (DESKTOP record; at most kMaxFirmwareBytes).
     std::string firmware{};
-    std::string theme{"auto"}; ///< "auto" | "light" | "dark" (the browser's initial theme).
+    /// "auto" | "light" | "dark" (the browser's initial theme; anything else
+    /// is logged and replaced by "auto").
+    std::string theme{"auto"};
     uint32_t accent{0x3b82f6}; ///< Accent color, 0xRRGGBB.
     /// How often pending changes are coalesced and sent (the latency of a
     /// set_text, and the period that bounds the frame rate of a busy app).
@@ -161,7 +165,7 @@ public:
     /// Largest encoded frame (header + payload + CRC) a sink can carry in one
     /// write; every widget payload is split to fit (4096 = the TinyUSB FIFOs of
     /// the espp examples; the stream_frame maximum is kMaxFrameSize). At least
-    /// kMinFrameBytes (a 64-byte payload); a smaller value is clamped with a
+    /// kMinFrameBytes (a 256-byte payload); a smaller value is clamped with a
     /// warning. Dialogs, notifications and the DESKTOP record set are single
     /// frames, so a small cap limits them (see the k* limits in the protocol).
     size_t max_frame_bytes{4096};
@@ -283,28 +287,31 @@ public:
     }
     /// Replace every item (table rows: cells '\t'-separated).
     void set_items(const std::vector<std::string> &items) {
-      set(detail::dp::Prop::u16(detail::dp::PropTag::ItemCount,
-                                static_cast<uint16_t>(items.size())));
-      if (!items.empty())
-        set(detail::dp::Prop::items(0, items));
+      if (desktop_)
+        desktop_->set_items(window_, id_, 0, items, true);
     }
     /// Replace one item (the list grows to fit).
     void set_item(uint16_t index, std::string_view item) {
       const std::vector<std::string> one{std::string(item)};
-      set(detail::dp::Prop::items(index, one));
+      if (desktop_)
+        desktop_->set_items(window_, id_, index, one, false);
     }
-    /// Replace a range of items starting at `start`.
+    /// Replace a range of items starting at `start`. Refused (logged, nothing
+    /// changes) when an entry is too large for a frame.
     void set_items(uint16_t start, const std::vector<std::string> &items) {
-      if (!items.empty())
-        set(detail::dp::Prop::items(start, items));
+      if (desktop_)
+        desktop_->set_items(window_, id_, start, items, false);
     }
     void set_item_count(uint16_t count) {
       set(detail::dp::Prop::u16(detail::dp::PropTag::ItemCount, count));
     }
     /// Select an item (kNoSelection = none).
     void set_selected(int32_t index) { set_value(index); }
+    /// Refused (logged) with more than 255 names, a name over 255 bytes, or a
+    /// set that does not fit a frame.
     void set_columns(const std::vector<std::string> &columns) {
-      set(detail::dp::Prop::columns(columns));
+      if (desktop_)
+        desktop_->set_columns(window_, id_, columns);
     }
     void set_flags(uint16_t flags) {
       set(detail::dp::Prop::u16(detail::dp::PropTag::Flags, flags));
@@ -601,7 +608,9 @@ public:
     }
     model_.device_name = truncated("device_name", config.device_name, kMaxDeviceNameBytes);
     model_.firmware = truncated("firmware", config.firmware, kMaxFirmwareBytes);
-    model_.theme = config.theme;
+    model_.theme = valid_theme(config.theme) ? config.theme : "auto";
+    if (!valid_theme(config.theme))
+      logger_.warn("unknown theme '{}'; using \"auto\"", config.theme);
     model_.accent = config.accent;
     model_.flush_period_ms =
         static_cast<uint16_t>(std::min<int64_t>(config.flush_period.count(), 65535));
@@ -659,13 +668,23 @@ public:
     return id;
   }
 
+  /// @brief Unregister an app: its open windows are closed (reason Shutdown,
+  ///        their on_close callbacks run on the desktop task) and its id is
+  ///        not handed out again while anything still references it.
   bool unregister_app(AppId id) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     launchers_.erase(id);
     const bool ok = model_.unregister_app(id);
-    if (ok)
-      wake();
-    return ok;
+    if (!ok)
+      return false;
+    for (const WindowId win : model_.windows_of(id)) {
+      auto on_close = model_.close_window(win, WindowCloseReason::Shutdown);
+      forget_window(win);
+      if (on_close && *on_close)
+        posted_.push_back(std::move(*on_close));
+    }
+    wake();
+    return true;
   }
 
   /// @brief Launch an app from the firmware (its launch callback runs on the
@@ -675,11 +694,19 @@ public:
   // ---- windows ----
 
   /// @brief Open a window (sent at the next flush).
+  /// @brief Open a window (sent at the next flush); an invalid handle (logged)
+  ///        when the title is longer than kMaxStr8Bytes.
   Window create_window(WindowConfig cfg) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+    const std::string title = cfg.title;
     const WindowId id = model_.create_window(std::move(cfg));
+    if (!id) {
+      logger_.error("create_window: title '{}' is longer than {} bytes; not created",
+                    title.substr(0, 32), detail::dp::kMaxStr8Bytes);
+      return Window();
+    }
     wake();
-    return id ? Window(this, id) : Window();
+    return Window(this, id);
   }
 
   /// @brief Close a window; its on_close runs on the desktop task.
@@ -833,7 +860,12 @@ public:
 
   // ---- desktop settings ----
 
+  /// @brief "auto" | "light" | "dark" (anything else is logged and ignored).
   void set_theme(std::string_view theme) {
+    if (!valid_theme(theme)) {
+      logger_.warn("unknown theme '{}'; ignored", theme);
+      return;
+    }
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     model_.theme = std::string(theme);
     model_.mark_desktop_changed();
@@ -986,7 +1018,9 @@ public:
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     const WidgetId id = model_.add_widget(win, std::move(cfg));
     if (!id)
-      logger_.warn("add_widget: unknown window {} / parent (or parent not a container)", win);
+      logger_.warn("add_widget: window {}: unknown window / parent, parent not a container, or "
+                   "a value too long for the wire (placeholder / tooltip > {} B, columns, items)",
+                   win, detail::dp::kMaxShortTextBytes);
     else
       wake();
     return id;
@@ -1003,11 +1037,59 @@ public:
     model_.clear_window(win);
     wake();
   }
+  /// Replace the column names; false (logged) when they are not representable.
+  bool set_columns(WindowId win, WidgetId widget, const std::vector<std::string> &columns) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    const bool ok = model_.set_columns(win, widget, columns);
+    if (ok)
+      wake();
+    else
+      logger_.warn_rate_limited("set_columns: window {} widget {}: unknown target, more than "
+                                "255 names, a name over {} bytes, or too large for a frame; "
+                                "ignored",
+                                win, widget, detail::dp::kMaxStr8Bytes);
+    return ok;
+  }
+
+  /// Replace a range of items (`replace_all` first sets the count to the
+  /// range's size); false (logged) when an entry is too large for a frame.
+  bool set_items(WindowId win, WidgetId widget, uint16_t start,
+                 const std::vector<std::string> &items, bool replace_all) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!model_.items_representable(items)) {
+      logger_.warn_rate_limited("set_items: window {} widget {}: an entry is too large for a "
+                                "frame; ignored",
+                                win, widget);
+      return false;
+    }
+    bool ok = true;
+    if (replace_all)
+      ok = model_.set_prop(win, widget,
+                           detail::dp::Prop::u16(detail::dp::PropTag::ItemCount,
+                                                 static_cast<uint16_t>(items.size())));
+    if (ok && !items.empty())
+      ok = model_.set_items(win, widget, start, items);
+    if (ok)
+      wake();
+    else
+      logger_.warn_rate_limited("set_items: window {} widget {}: unknown target; ignored", win,
+                                widget);
+    return ok;
+  }
+
+  /// False (logged) when the target is unknown or the value cannot be carried
+  /// on the wire (Title / Placeholder / Tooltip > kMaxShortTextBytes, Columns
+  /// or an Items entry too large for a frame).
   bool set_prop(WindowId win, WidgetId widget, detail::dp::Prop prop) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+    const uint8_t tag = prop.tag;
     const bool ok = model_.set_prop(win, widget, std::move(prop));
     if (ok)
       wake();
+    else
+      logger_.warn_rate_limited("set_prop: window {} widget {} tag {}: unknown target or value "
+                                "not representable on the wire; ignored",
+                                win, widget, tag);
     return ok;
   }
   bool append_text(WindowId win, WidgetId widget, std::string_view text) {
@@ -1058,6 +1140,10 @@ protected:
   }
   /// Events are not acknowledged (and may be dropped); requests are answered.
   static bool is_event(const Command &cmd) { return cmd.request.index() >= 3; }
+
+  static bool valid_theme(std::string_view theme) {
+    return theme == "auto" || theme == "light" || theme == "dark";
+  }
 
   /// `s` cut to `limit` bytes on a UTF-8 boundary (logged when it was longer).
   std::string truncated(std::string_view what, std::string_view s, size_t limit) {

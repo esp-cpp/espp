@@ -315,6 +315,8 @@ private:
             continue;
           }
           s.ansi_state = 0;
+          s.ring[static_cast<size_t>(s.total % cap)] = 0x1B; // the pending ESC was not a CSI
+          ++s.total;
         } else if (s.ansi_state == 2) {
           if (c >= 0x40 && c <= 0x7E)
             s.ansi_state = 0;

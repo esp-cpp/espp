@@ -23,10 +23,9 @@ namespace desktop_example {
 inline bool valid_leaf_name(const std::string &name) {
   if (name.empty() || name.size() > 64 || name == "." || name == "..")
     return false;
-  for (const unsigned char c : name)
-    if (c == '/' || c == '\\' || c < 0x20 || c == 0x7F)
-      return false;
-  return true;
+  return std::none_of(name.begin(), name.end(), [](const unsigned char c) {
+    return c == '/' || c == '\\' || c < 0x20 || c == 0x7F;
+  });
 }
 
 /// Read at most `limit` bytes of a file; `size` gets the whole file's size.

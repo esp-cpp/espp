@@ -195,7 +195,7 @@ static std::vector<Vector> catalogue() {
   // DESKTOP: 3 apps, every record tag + an unknown one, one open window
   {
     DesktopInfo d;
-    d.flags = kDesktopHasSnapshot;
+    d.flags = kDesktopHasSnapshot | kDesktopWindowListComplete; // the encoder sets bit1
     d.records = {Prop::text(static_cast<PropTag>(DesktopTag::DeviceName), "espp Desktop"),
                  Prop::text(static_cast<PropTag>(DesktopTag::Firmware), "desktop_example 1.0"),
                  Prop::text(static_cast<PropTag>(DesktopTag::Theme), "auto"),
@@ -219,17 +219,40 @@ static std::vector<Vector> catalogue() {
                .icon = "\xF0\x9F\x93\x9D",
                .description = "Edit a file"}};
     d.windows = {{.id = 1, .app = 1}};
-    std::string json =
-        "{\"proto\":1,\"flags\":1,\"records\":" + Json::props(d.records) + ",\"apps\":[";
-    for (size_t i = 0; i < d.apps.size(); ++i) {
-      const auto &a = d.apps[i];
-      json += std::string(i ? "," : "") + "{\"id\":" + Json::num(+a.id) +
-              ",\"flags\":" + Json::num(+a.flags) + ",\"name\":" + Json::str(a.name) +
-              ",\"icon\":" + Json::str(a.icon) + ",\"description\":" + Json::str(a.description) +
-              "}";
-    }
-    json += "],\"windows\":[{\"id\":1,\"app\":1}]}";
+    auto apps_json = [](const DesktopInfo &info) {
+      std::string json = "[";
+      for (size_t i = 0; i < info.apps.size(); ++i) {
+        const auto &a = info.apps[i];
+        json += std::string(i ? "," : "") + "{\"id\":" + Json::num(+a.id) +
+                ",\"flags\":" + Json::num(+a.flags) + ",\"name\":" + Json::str(a.name) +
+                ",\"icon\":" + Json::str(a.icon) + ",\"description\":" + Json::str(a.description) +
+                "}";
+      }
+      return json + "]";
+    };
+    std::string json = "{\"proto\":1,\"flags\":3,\"records\":" + Json::props(d.records) +
+                       ",\"apps\":" + apps_json(d) + ",\"windows\":[{\"id\":1,\"app\":1}]}";
     v.push_back({"desktop", true, Type::Desktop, encode_desktop(d), json, rt(d, decode_desktop)});
+    // the same desktop encoded under a cap that forces the encoder to trim:
+    // descriptions go first, then apps, then the window list -- and once the
+    // window list is cut, flags bit1 (WindowListComplete) is clear so the host
+    // does not close windows missing from it
+    DesktopInfo three = d;
+    three.windows = {{.id = 1, .app = 1}, {.id = 2, .app = 3}, {.id = 3, .app = 1}};
+    // records (3 + 15 + 22 + 7 + 7 + 5 + 5 + 5 = 69) + 1 app count + 1 win count
+    // = 71; a cap of 71 + 3 * 2 = 77 leaves room for exactly two windows and
+    // no apps
+    bool was_trimmed = false;
+    const auto payload = encode_desktop(three, 77, &was_trimmed);
+    CHECK(was_trimmed && payload.size() == 77);
+    DesktopInfo expect = three;
+    expect.flags = kDesktopHasSnapshot; // bit1 clear
+    expect.apps.clear();
+    expect.windows = {{.id = 1, .app = 1}, {.id = 2, .app = 3}};
+    v.push_back({"desktop_window_list_trimmed", true, Type::Desktop, payload,
+                 "{\"proto\":1,\"flags\":1,\"records\":" + Json::props(d.records) +
+                     ",\"apps\":[],\"windows\":[{\"id\":1,\"app\":1},{\"id\":2,\"app\":3}]}",
+                 rt(expect, decode_desktop)});
   }
   // WINDOW_OPEN: all flags, -1 geometry, 4 widgets incl. a Row child, a long
   // Text (> 255 bytes) and an unknown prop tag
@@ -894,14 +917,19 @@ static void test_dialog_notify_limits() {
   bool trimmed = false;
   CHECK(encode_desktop(big, 4081, &trimmed).size() == 3 + 1 + 3 * (2 + 4 + 2 + 41) + 1 + 60 &&
         !trimmed);
+  // descriptions go first (the window list stays complete: bit1 set) ...
   auto t = decode_desktop(encode_desktop(big, 160, &trimmed));
-  CHECK(trimmed && t && t->apps.size() == 3 && t->windows.size() < 20 &&
-        t->apps[0].description.size() == 40);
+  CHECK(trimmed && t && t->apps.size() == 3 && t->windows.size() == 20 &&
+        t->apps[0].description.empty() && (t->flags & kDesktopWindowListComplete));
+  // ... then apps, and the window list only last (bit1 cleared)
   t = decode_desktop(encode_desktop(big, 60, &trimmed));
-  CHECK(trimmed && t && t->windows.empty() && t->apps.size() == 3 &&
-        t->apps[0].description.empty());
+  CHECK(trimmed && t && t->apps.empty() && t->windows.size() == 18 &&
+        !(t->flags & kDesktopWindowListComplete));
   t = decode_desktop(encode_desktop(big, 20, &trimmed));
-  CHECK(trimmed && t && t->apps.size() == 1);
+  CHECK(trimmed && t && t->apps.empty() && t->windows.size() == 5);
+  // a full window list always carries bit1, whatever the caller put in flags
+  t = decode_desktop(encode_desktop(big, 4081));
+  CHECK(t && (t->flags & kDesktopWindowListComplete) && t->windows.size() == 20);
   // the registry limits keep a maximal registry within the default cap
   DesktopInfo maxed;
   maxed.records = {
@@ -920,6 +948,63 @@ static void test_dialog_notify_limits() {
   for (uint16_t w = 1; w <= 255; ++w)
     maxed.windows.push_back({.id = w, .app = 1});
   CHECK(encode_desktop(maxed, 4081, &trimmed).size() <= 4081 && !trimmed);
+  // the maximal mandatory record set alone always fits the smallest cap
+  DesktopInfo records_only;
+  records_only.records = maxed.records;
+  CHECK(records_only.records[2].value.size() == kMaxThemeBytes);
+  const auto minimal = encode_desktop(records_only, kMinPayloadBytes, &trimmed);
+  CHECK(!trimmed && minimal.size() == kDesktopRecordsMaxBytes &&
+        minimal.size() <= kMinPayloadBytes);
+  // representability is checked before anything is cut into a str8 / str16
+  dm::Model lim;
+  CHECK(lim.open_dialog({.title = std::string(256, 't')}) == 0);
+  CHECK(lim.open_dialog({.title = "ok", .buttons = {"fine", std::string(256, 'b')}}) == 0);
+  CHECK(lim.open_dialog({.title = "ok", .buttons = std::vector<std::string>(256, "b")}) == 0);
+  CHECK(lim.open_dialog({.title = "ok", .text = std::string(65536, 'x')}) == 0);
+  CHECK(lim.open_dialog({.title = std::string(255, 't'), .buttons = {std::string(255, 'b')}}) != 0);
+  CHECK(!lim.notify({.title = std::string(256, 'n')}));
+  CHECK(!lim.notify({.title = "n", .text = std::string(65536, 'x')}));
+  CHECK(lim.notify({.title = std::string(255, 'n')}));
+  // unsplittable widget values are refused at the model, never cut
+  const uint16_t lw = lim.create_window({.title = "w"});
+  CHECK(lim.create_window({.title = std::string(256, 'w')}) == 0 &&
+        lim.create_window({.title = std::string(255, 'w')}) != 0);
+  const uint16_t lbl = lim.add_widget(lw, {.type = WidgetType::Label, .text = "x"});
+  CHECK(lbl != 0);
+  CHECK(!lim.set_prop(lw, 0, Prop::text(PropTag::Title, std::string(256, 't'))));
+  CHECK(lim.set_prop(lw, 0, Prop::text(PropTag::Title, std::string(255, 't'))));
+  CHECK(!lim.set_prop(lw, lbl, Prop::text(PropTag::Placeholder, std::string(256, 'p'))));
+  CHECK(!lim.set_prop(lw, lbl, Prop::text(PropTag::Tooltip, std::string(256, 'p'))));
+  CHECK(lim.set_prop(lw, lbl, Prop::text(PropTag::Text, std::string(5000, 'x')))); // splits
+  // (Prop::columns would cut a 256th name / a 256-byte name to str8 limits,
+  // so the string-level set_columns is the gate; the Prop-level check still
+  // bounds the record)
+  CHECK(!lim.set_columns(lw, lbl, std::vector<std::string>(256, "c")));
+  CHECK(!lim.set_columns(lw, lbl, {std::string(256, 'c')}));
+  CHECK(lim.set_columns(lw, lbl, {std::string(255, 'c')}));
+  CHECK(lim.set_prop(lw, lbl, Prop::columns(std::vector<std::string>{std::string(255, 'c')})));
+  CHECK(!lim.set_prop(lw, lbl, Prop::items(0, std::vector<std::string>{std::string(5000, 'i')})));
+  CHECK(lim.set_prop(lw, lbl, Prop::items(0, std::vector<std::string>{std::string(4000, 'i')})));
+  CHECK(lim.add_widget(lw, {.type = WidgetType::TextBox, .placeholder = std::string(256, 'p')}) ==
+        0);
+  CHECK(lim.add_widget(lw, {.type = WidgetType::Table, .columns = {std::string(256, 'c')}}) == 0);
+  CHECK(lim.add_widget(lw, {.type = WidgetType::List, .items = {std::string(5000, 'i')}}) == 0);
+  // a small cap bounds Columns / Items entries accordingly
+  lim.max_payload = kMinPayloadBytes;
+  CHECK(!lim.set_prop(lw, lbl, Prop::columns(std::vector<std::string>(3, std::string(100, 'c')))));
+  CHECK(lim.set_prop(lw, lbl, Prop::columns(std::vector<std::string>(2, std::string(100, 'c')))));
+  CHECK(!lim.set_prop(lw, lbl, Prop::items(0, std::vector<std::string>{std::string(240, 'i')})));
+  CHECK(lim.set_prop(
+      lw, lbl,
+      Prop::items(0, std::vector<std::string>{std::string(200, 'i'), std::string(200, 'j')})));
+  // app ids are monotonic and never reused while a window still references one
+  CHECK(lim.allocate_app_id() == 1);
+  lim.register_app({.id = 1, .name = "a"});
+  const uint16_t aw = lim.create_window({.title = "of app 1", .app = 1});
+  CHECK(aw != 0 && lim.unregister_app(1));
+  CHECK(lim.allocate_app_id() == 2); // 1 is still referenced by the window
+  lim.close_window(aw, WindowCloseReason::App);
+  CHECK(lim.allocate_app_id() == 3); // monotonic: 1 comes back only after a wrap
 }
 
 static void test_frames_and_correlation() {

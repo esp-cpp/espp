@@ -107,7 +107,7 @@ fields are little-endian; `str8` = `[len u8][utf8]`, `str16` = `[len u16][utf8]`
 | `0x04` WINDOW_EVENT | H→D | `[win u16][ev u8][x i16][y i16][w u16][h u16]` ev: 1 Focus 2 Blur 3 Minimize 4 Restore 5 Maximize 6 Moved 7 Resized (no ack) |
 | `0x05` WIDGET_EVENT | H→D | `[win u16][widget u16][ev u8][value]` ev: 1 Click · 2 Change `[i32]` · 3 Submit `[utf8]` · 4 Text `[offset u32][total u32][bytes]` (chunked) · 5 Select `[i32]` · 6 Activate `[i32]` · 7 Key `[key u16][mods u8][codepoint u32]` · 8 Scroll `[i32]` (no ack) |
 | `0x06` DIALOG_RESULT | H→D | `[dialog u16][button u8 (0xFF dismissed)][text utf8 rest]` (no ack) |
-| `0x81` DESKTOP | D→H | `[proto u8=1][flags u8 bit0 HasSnapshot][rec count u8]{rec}[app count u8]{[id u8][flags u8 bit0 SingleInstance bit1 Hidden][name str8][icon str8][desc str8]}[win count u8]{[win u16][app u8]}`; recs: 1 DeviceName 2 Firmware 3 Theme 4 Accent u32 5 MaxPayload u16 6 FlushPeriodMs u16. Also sent when apps / settings change |
+| `0x81` DESKTOP | D→H | `[proto u8=1][flags u8 bit0 HasSnapshot bit1 WindowListComplete][rec count u8]{rec}[app count u8]{[id u8][flags u8 bit0 SingleInstance bit1 Hidden][name str8][icon str8][desc str8]}[win count u8]{[win u16][app u8]}`; recs: 1 DeviceName 2 Firmware 3 Theme 4 Accent u32 5 MaxPayload u16 6 FlushPeriodMs u16. Also sent when apps / settings change |
 | `0x82` WINDOW_OPEN | D→H | `[win u16][app u8][flags u16][x i16][y i16][w u16][h u16][title str8][widget total u16][count u16]{widget rec}`; the rest of the tree follows in WIDGET_ADD |
 | `0x83` WINDOW_CLOSE | D→H | `[win u16][reason u8: 0 app 1 host 2 shutdown]` |
 | `0x84` WIDGET_SET | D→H | `[win u16][entries u8]{[widget u16][props u8]{rec}}`; widget 0 = the window (Title / WindowFlags / Geometry / Focus) |
@@ -137,16 +137,26 @@ Label: bit0 Bold bit1 Monospace bit2 Wrap; Button: bit0 Primary bit1 Danger.
 Replies (DESKTOP / OK / ERROR) echo the request's correlation id; events carry
 none. Every payload is at most the negotiated MaxPayload (`max_frame_bytes`
 less the frame overhead, 4081 for 4096; `max_frame_bytes` is at least
-`kMinFrameBytes`, a 64-byte payload): the widget encoders split (Text +
+`kMinFrameBytes`, a 256-byte payload): the widget encoders split (Text +
 TextAppend pieces, Items ranges, WIDGET_ADD continuations) and never truncate.
-DIALOG and NOTIFY are single frames: `message_box` / `input_box` return 0 and
-`notify` returns false (logged) for one that would not fit. DESKTOP is a
-single frame too: the registry is bounded -- at most `kMaxApps` (24) apps,
+Values the wire cannot split are bounded at the API instead of cut: a window
+title, a Placeholder or a Tooltip at most 255 bytes, Columns at most 255 names
+of ≤ 255 bytes whose record fits a frame, every Items entry small enough for a
+frame of its own (`set_prop` / `add_widget` / `create_window` refuse and log).
+DIALOG and NOTIFY are single frames: title and buttons ≤ 255 bytes, text and
+default ≤ 65535, and the whole frame within MaxPayload; `message_box` /
+`input_box` return 0 and `notify` returns false (logged) otherwise. DESKTOP is
+a single frame too: the registry is bounded -- at most `kMaxApps` (24) apps,
 names ≤ 32, icons ≤ 16, descriptions ≤ 64 bytes (`register_app` truncates
 longer ones and refuses an app that would overflow), device name / firmware
-≤ 64 bytes -- which leaves the default payload room for hundreds of open
-windows; should a smaller cap still overflow, the encoder trims the window
-list, then the descriptions, then apps (logged) rather than send a bad frame.
+≤ 64 bytes, theme one of `auto` / `light` / `dark` -- so the maximal record set
+always fits the minimum cap and the default payload holds hundreds of open
+windows; should a smaller cap still overflow, the encoder trims the app
+descriptions, then apps, then the window list from the end (logged) rather
+than send a bad frame, and clears flags bit1 `WindowListComplete` when the
+window list was trimmed (the browser reconciles its windows against the list
+only when the bit is set). Unregistering an app closes its windows
+(WINDOW_CLOSE reason 2) and its id is not reused while a window references it.
 
 Flow control: a `DesktopService::Config::send` returns whether the frame was
 queued (all-or-nothing); when it was not, the desktop logs and flags that

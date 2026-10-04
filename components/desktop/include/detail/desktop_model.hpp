@@ -28,8 +28,10 @@
 #include <cstdint>
 #include <functional>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -483,12 +485,11 @@ public:
   }
   const std::vector<dp::AppRec> &apps() const { return apps_; }
 
-  /// A free app id (0 = none left).
-  uint8_t allocate_app_id() const {
-    for (int id = 1; id < 256; ++id)
-      if (!app(static_cast<uint8_t>(id)))
-        return static_cast<uint8_t>(id);
-    return 0;
+  /// A free app id (0 = none left): monotonic, wrapping, never one that an
+  /// app or a still-open window references.
+  uint8_t allocate_app_id() {
+    return next_id(next_app_,
+                   [this](uint8_t id) { return app(id) != nullptr || !windows_of(id).empty(); });
   }
 
   void mark_desktop_changed() { dirty.desktop_changed = true; }
@@ -513,7 +514,11 @@ public:
 
   // ---- windows ----
 
+  /// Returns 0 (nothing created) when the title is not representable (a
+  /// str8 on the wire: at most kMaxStr8Bytes).
   uint16_t create_window(WindowConfig cfg) {
+    if (cfg.title.size() > dp::kMaxStr8Bytes)
+      return 0;
     WindowState w;
     w.id = next_id(next_window_, [this](uint16_t id) { return window(id) != nullptr; });
     w.app = cfg.app;
@@ -577,10 +582,15 @@ public:
   }
 
   /// Add a widget; returns its id, or 0 when the window / parent / sibling is
-  /// unknown or the parent is not a container.
+  /// unknown, the parent is not a container, or a value is not representable
+  /// (see representable()).
   uint16_t add_widget(uint16_t win, WidgetConfig cfg) {
     WindowState *w = window(win);
     if (!w)
+      return 0;
+    if (cfg.placeholder.size() > dp::kMaxShortTextBytes ||
+        cfg.tooltip.size() > dp::kMaxShortTextBytes || !columns_representable(cfg.columns) ||
+        !items_representable(cfg.items))
       return 0;
     if (cfg.parent) {
       const WidgetState *p = w->widget(cfg.parent);
@@ -664,7 +674,7 @@ public:
   /// so the host (which applies only the line bound) keeps the same value.
   bool set_prop(uint16_t win, uint16_t widget_id, dp::Prop prop) {
     WindowState *w = window(win);
-    if (!w || !prop.valid())
+    if (!w || !prop.valid() || !representable(prop))
       return false;
     using dp::PropTag;
     if (widget_id == 0) {
@@ -798,12 +808,19 @@ public:
 
   // ---- dialogs / notifications ----
 
-  /// Returns 0 (nothing opened) when the dialog would not fit one frame
+  /// Returns 0 (nothing opened) when the dialog is not representable (title
+  /// and each button at most kMaxStr8Bytes, at most 255 buttons, text and
+  /// default at most kMaxStr16Bytes) or would not fit one frame
   /// (max_payload): a dialog is never truncated.
   uint16_t open_dialog(dp::Dialog dialog,
                        std::function<void(const dp::DialogResult &)> on_result = nullptr) {
     if (dialog.buttons.empty())
       dialog.buttons.push_back("OK");
+    if (dialog.title.size() > dp::kMaxStr8Bytes || dialog.text.size() > dp::kMaxStr16Bytes ||
+        dialog.default_text.size() > dp::kMaxStr16Bytes || dialog.buttons.size() > 255 ||
+        std::any_of(dialog.buttons.begin(), dialog.buttons.end(),
+                    [](const std::string &b) { return b.size() > dp::kMaxStr8Bytes; }))
+      return 0;
     if (dp::encode_dialog(dialog).size() > max_payload)
       return 0;
     dialog.id = next_id(next_dialog_, [this](uint16_t id) { return this->dialog(id) != nullptr; });
@@ -836,8 +853,12 @@ public:
     return fn;
   }
 
-  /// False (nothing queued) when the notification would not fit one frame.
+  /// False (nothing queued) when the notification is not representable
+  /// (title at most kMaxStr8Bytes, text at most kMaxStr16Bytes) or would not
+  /// fit one frame.
   bool notify(dp::Notify n) {
+    if (n.title.size() > dp::kMaxStr8Bytes || n.text.size() > dp::kMaxStr16Bytes)
+      return false;
     if (dp::encode_notify(n).size() > max_payload)
       return false;
     dirty.notify(std::move(n));
@@ -985,16 +1006,78 @@ public:
                    });
   }
 
+  /// Room in a frame for one property record beside the WIDGET_SET /
+  /// WIDGET_ADD headers, a widget base and the record's own header.
+  size_t rec_room() const { return max_payload > 24 ? max_payload - 24 : 0; }
+
+  /// Columns: at most 255 names of at most kMaxStr8Bytes, whose record fits a
+  /// frame (checked on the strings, BEFORE Prop::columns could cut them).
+  bool columns_representable(const std::vector<std::string> &cols) const {
+    if (cols.size() > 255)
+      return false;
+    size_t encoded = 1;
+    for (const auto &c : cols) {
+      if (c.size() > dp::kMaxStr8Bytes)
+        return false;
+      encoded += 1 + c.size();
+    }
+    return encoded <= rec_room();
+  }
+
+  /// Items: every entry small enough for a frame of its own (ranges split, an
+  /// entry does not) and at most kMaxStr16Bytes.
+  bool items_representable(std::span<const std::string> items) const {
+    return std::all_of(items.begin(), items.end(), [this](const std::string &i) {
+      return i.size() <= dp::kMaxStr16Bytes && i.size() + 2 + 4 <= rec_room();
+    });
+  }
+
+  /// Replace the column names (validated on the strings; false = refused).
+  bool set_columns(uint16_t win, uint16_t widget_id, const std::vector<std::string> &cols) {
+    return columns_representable(cols) && set_prop(win, widget_id, dp::Prop::columns(cols));
+  }
+
+  /// Replace a range of items (validated on the strings; false = refused).
+  bool set_items(uint16_t win, uint16_t widget_id, uint16_t start,
+                 std::span<const std::string> items) {
+    return items_representable(items) && set_prop(win, widget_id, dp::Prop::items(start, items));
+  }
+
+  /// Whether a property's value can be carried on the wire within this
+  /// model's payload cap: Title / Placeholder / Tooltip at most
+  /// kMaxShortTextBytes (they are not splittable), Columns / Items as above
+  /// (on the already-built record). Text / TextAppend split: any length.
+  bool representable(const dp::Prop &prop) const {
+    using dp::PropTag;
+    switch (prop.type()) {
+    case PropTag::Title:
+    case PropTag::Placeholder:
+    case PropTag::Tooltip:
+      return prop.value.size() <= dp::kMaxShortTextBytes;
+    case PropTag::Columns: {
+      const auto cols = prop.as_columns();
+      return cols && columns_representable(*cols);
+    }
+    case PropTag::Items: {
+      const auto items = prop.as_items();
+      return items && items_representable(items->items);
+    }
+    default:
+      return true;
+    }
+  }
+
   static bool is_container(dp::WidgetType t) {
     return t == dp::WidgetType::Column || t == dp::WidgetType::Row || t == dp::WidgetType::Group;
   }
 
 private:
   /// Monotonic u16 ids, 0 reserved; skips ids still in use after a wrap.
-  template <typename InUse> static uint16_t next_id(uint16_t &counter, InUse in_use) {
-    for (int i = 0; i < 65535; ++i) {
-      const uint16_t id = counter;
-      counter = static_cast<uint16_t>(counter == 0xFFFF ? 1 : counter + 1);
+  template <typename Id, typename InUse> static Id next_id(Id &counter, InUse in_use) {
+    constexpr Id last = std::numeric_limits<Id>::max();
+    for (size_t i = 0; i < static_cast<size_t>(last); ++i) {
+      const Id id = counter;
+      counter = static_cast<Id>(counter == last ? 1 : counter + 1);
       if (id != 0 && !in_use(id))
         return id;
     }
@@ -1036,6 +1119,7 @@ private:
   std::vector<DialogState> dialogs_{};
   uint16_t next_window_{1};
   uint16_t next_dialog_{1};
+  uint8_t next_app_{1};
 };
 
 } // namespace espp::detail::desktop_model

@@ -43,8 +43,9 @@ resyncs in one request) and marks the transport active; ``LAUNCH_APP`` /
 text becomes Text + TextAppend pieces, a long list several ranges, a big
 window tree WINDOW_OPEN + WIDGET_ADD continuations), never truncated; dialogs,
 notifications and the app registry are single frames whose limits the API
-enforces (an oversized dialog / toast is refused and logged, the registry is
-bounded in app count and string lengths). The transport's ``send`` reports
+enforces (an oversized dialog / toast / title / placeholder / tooltip /
+column set is refused and logged, the registry is bounded in app count and
+string lengths). The transport's ``send`` reports
 whether a frame was queued, and a transport that dropped one is flagged as
 needing a resync until the host's next ``GET_DESKTOP``; the wire format
 is documented in ``include/detail/desktop_protocol.hpp`` and checked by a
