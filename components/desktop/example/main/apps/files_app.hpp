@@ -28,6 +28,20 @@ inline bool valid_leaf_name(const std::string &name) {
   });
 }
 
+/// Write (or create) a file and report whether EVERYTHING reached it: the
+/// open must succeed and the stream must still be good after close() -- a
+/// buffered write only hits the medium on the final flush, so good() before
+/// close() would call a failed write "saved".
+inline bool write_file(const std::filesystem::path &path, std::string_view body,
+                       std::ios::openmode mode) {
+  std::ofstream f(path, std::ios::binary | mode);
+  if (!f.is_open())
+    return false;
+  f.write(body.data(), static_cast<std::streamsize>(body.size()));
+  f.close();
+  return !f.fail() && !f.bad();
+}
+
 /// Read at most `limit` bytes of a file; `size` gets the whole file's size.
 inline std::string read_head(const std::filesystem::path &path, size_t limit, size_t &size) {
   std::error_code ec;
@@ -77,9 +91,7 @@ inline void open_editor(espp::Desktop &d, espp::Desktop::AppId app,
       "Save",
       [=, &d]() mutable {
         const std::string body = text.text();
-        std::ofstream f(path, std::ios::binary | std::ios::trunc);
-        f << body;
-        const bool ok = f.good();
+        const bool ok = write_file(path, body, std::ios::trunc);
         status.set_text("{} bytes{}", body.size(), ok ? "" : " (write FAILED)");
         d.notify({.title = path.filename().string(),
                   .text = ok ? fmt::format("saved {} bytes", body.size()) : "write failed",
@@ -195,23 +207,27 @@ inline void register_files_app(espp::Desktop &desktop) {
             win.button(
                 "New file",
                 [=, &d]() mutable {
-                  d.input_box({.owner = win.id(),
-                               .title = "New file",
-                               .text = "File name:",
-                               .default_text = "notes.txt",
-                               .on_result = [=, &d](std::optional<std::string> name) mutable {
-                                 if (!name)
-                                   return;
-                                 if (!desktop_example::valid_leaf_name(*name)) {
-                                   d.notify({.title = "New file",
-                                             .text = "invalid name: one path component, no "
-                                                     "slashes",
-                                             .level = D::NotifyLevel::Error});
-                                   return;
-                                 }
-                                 std::ofstream f(st->cwd / *name, std::ios::binary | std::ios::app);
-                                 refresh();
-                               }});
+                  d.input_box(
+                      {.owner = win.id(),
+                       .title = "New file",
+                       .text = "File name:",
+                       .default_text = "notes.txt",
+                       .on_result = [=, &d](std::optional<std::string> name) mutable {
+                         if (!name)
+                           return;
+                         if (!desktop_example::valid_leaf_name(*name)) {
+                           d.notify({.title = "New file",
+                                     .text = "invalid name: one path component, no "
+                                             "slashes",
+                                     .level = D::NotifyLevel::Error});
+                           return;
+                         }
+                         if (!desktop_example::write_file(st->cwd / *name, "", std::ios::app))
+                           d.notify({.title = "New file",
+                                     .text = fmt::format("could not create {}", *name),
+                                     .level = D::NotifyLevel::Error});
+                         refresh();
+                       }});
                 },
                 actions.id());
             win.button(

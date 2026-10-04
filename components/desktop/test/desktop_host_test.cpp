@@ -1404,6 +1404,35 @@ static void test_model_flush() {
   m.apply_widget_event({.window = win, .widget = sl, .kind = WidgetEventKind::Change, .value = 3});
   CHECK(m.widget(win, sl)->value == 3);
   CHECK(m.flush().empty()); // host-originated changes are not echoed back
+  // ... unless a TextArea's bounds shortened a host edit: then the bounded
+  // Text goes back so the browser's editable value resynchronises
+  {
+    const uint16_t ed =
+        m.add_widget(win, {.type = WidgetType::TextArea, .parent = col, .max_lines = 3});
+    m.flush();
+    m.apply_widget_event(
+        {.window = win, .widget = ed, .kind = WidgetEventKind::Text, .text = "l1\nl2\nl3"});
+    CHECK(m.widget(win, ed)->text == "l1\nl2\nl3" && m.flush().empty()); // within the bound
+    m.apply_widget_event(
+        {.window = win, .widget = ed, .kind = WidgetEventKind::Text, .text = "l1\nl2\nl3\nl4\nl5"});
+    CHECK(m.widget(win, ed)->text == "l3\nl4\nl5"); // the last max_lines lines
+    auto echo = m.flush();
+    auto es = echo.size() == 1 ? decode_widget_set(echo[0].payload) : std::nullopt;
+    CHECK(es && es->entries.size() == 1 && es->entries[0].widget == ed &&
+          es->entries[0].props.size() == 1 && es->entries[0].props[0].is(PropTag::Text) &&
+          es->entries[0].props[0].as_text() == "l3\nl4\nl5");
+    // the byte bound too
+    m.max_text_bytes = 8;
+    m.apply_widget_event(
+        {.window = win, .widget = ed, .kind = WidgetEventKind::Text, .text = "abcdefghijkl"});
+    CHECK(m.widget(win, ed)->text.size() <= 8);
+    echo = m.flush();
+    es = echo.size() == 1 ? decode_widget_set(echo[0].payload) : std::nullopt;
+    CHECK(es && es->entries[0].props[0].as_text() == m.widget(win, ed)->text);
+    m.max_text_bytes = 64;
+    m.remove_widget(win, ed);
+    m.flush();
+  }
   // TextArea append bounded by max_lines and max_text_bytes
   m.max_text_bytes = 64;
   const uint16_t ta =

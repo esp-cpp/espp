@@ -927,7 +927,10 @@ public:
     return true;
   }
 
-  /// @note For WidgetEventKind::Text pass the reassembled text in `e.text`.
+  /// @note For WidgetEventKind::Text pass the reassembled text in `e.text`. A
+  /// TextArea's bounds (max_lines / max_text_bytes) apply to a host edit too;
+  /// when they shorten it, the bounded Text is marked dirty so the next flush
+  /// sends it back and the browser's editable value resynchronises.
   bool apply_widget_event(const dp::WidgetEvent &e) {
     WidgetState *s = widget(e.window, e.widget);
     if (!s)
@@ -941,6 +944,12 @@ public:
     case K::Submit:
     case K::Text:
       s->text = e.text;
+      if (s->type == dp::WidgetType::TextArea) {
+        const size_t unbounded = s->text.size();
+        bound_text(*s);
+        if (s->text.size() != unbounded)
+          dirty.set(e.window, e.widget, dp::Prop::text(dp::PropTag::Text, s->text));
+      }
       break;
     default:
       break;
