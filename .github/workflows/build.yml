@@ -134,6 +134,9 @@ jobs:
           target: esp32s3
         - path: 'components/csv/example'
           target: esp32
+        - path: 'components/desktop/example'
+          target: esp32s3
+          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/dispatcher/example'
           target: esp32
         - path: 'components/display_drivers/example'
