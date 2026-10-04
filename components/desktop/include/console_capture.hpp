@@ -111,21 +111,26 @@ public:
       return false;
     }
     s.installed = true; // published before freopen: the write callback is live
-    if (std::freopen(kVfsPath, "w", stdout) == nullptr) {
-      // freopen closes stdout's previous target even when opening the new one
-      // fails: restore a usable console, then report.
+    // freopen closes the stream's previous target even when opening the new
+    // one fails, so on any failure restore both streams to the original
+    // console (best effort), undo the VFS + tee, and report.
+    auto rollback = [&]() {
       s.installed = false;
-      esp_vfs_unregister(kVfsPath);
-      reconcile_tee(s, false);
       // cppcheck-suppress ignoredReturnValue
       std::freopen(original_console_path(), "w", stdout);
+      // cppcheck-suppress ignoredReturnValue
+      std::freopen(original_console_path(), "w", stderr);
+      esp_vfs_unregister(kVfsPath);
+      reconcile_tee(s, false);
       ec = std::make_error_code(std::errc::io_error);
       return false;
-    }
+    };
+    if (std::freopen(kVfsPath, "w", stdout) == nullptr)
+      return rollback();
     // stderr too (ESP-IDF's panic / abort paths bypass stdio and are not
     // captured; everything that goes through stdio is).
-    // cppcheck-suppress ignoredReturnValue
-    std::freopen(kVfsPath, "w", stderr);
+    if (std::freopen(kVfsPath, "w", stderr) == nullptr)
+      return rollback();
     // line-buffered: each log line reaches the ring (and the console) as one
     // write, so a reader never sees a torn line for ordinary logging
     std::setvbuf(stdout, nullptr, _IOLBF, 256);
@@ -225,7 +230,8 @@ private:
     bool installed{false};
     std::atomic<bool> tee{true};
     std::atomic<bool> strip_ansi{false};
-    std::atomic<int> tee_fd{-1};
+    std::mutex tee_mutex; ///< holds tee_fd open across a write (reconcile closes under it)
+    int tee_fd{-1};
     uint8_t ansi_state{0}; ///< 0 text, 1 after ESC, 2 inside CSI
   };
 
@@ -262,14 +268,15 @@ private:
     return fd;
   }
 
-  /// Open / close the tee fd to match `want` (called with the mutex held).
+  /// Open / close the tee fd to match `want`. Serialized with the writers on
+  /// tee_mutex so an fd is never closed under a write() in flight.
   static void reconcile_tee(State &s, bool want) {
-    const int cur = s.tee_fd.load();
-    if (want && cur < 0) {
-      s.tee_fd.store(open_original_console());
-    } else if (!want && cur >= 0) {
-      s.tee_fd.store(-1);
-      ::close(cur);
+    std::lock_guard<std::mutex> lock(s.tee_mutex);
+    if (want && s.tee_fd < 0) {
+      s.tee_fd = open_original_console();
+    } else if (!want && s.tee_fd >= 0) {
+      ::close(s.tee_fd);
+      s.tee_fd = -1;
     }
   }
 
@@ -284,9 +291,13 @@ private:
   /// Runs on whichever task writes to stdout / stderr: tee, then ring.
   static ssize_t vfs_write(int, const void *data, size_t size) {
     State &s = state();
-    const int tee = s.tee_fd.load();
-    if (tee >= 0 && s.tee.load())
-      ::write(tee, data, size);
+    if (s.tee.load()) {
+      // the console write (possibly blocking on the UART) is serialized on
+      // its own mutex, kept apart from the ring's so readers never wait on it
+      std::lock_guard<std::mutex> tee_lock(s.tee_mutex);
+      if (s.tee_fd >= 0)
+        ::write(s.tee_fd, data, size);
+    }
     const auto *bytes = static_cast<const uint8_t *>(data);
     std::lock_guard<std::mutex> lock(s.mutex);
     if (s.ring.empty())

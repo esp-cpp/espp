@@ -5,10 +5,10 @@
 // the same app: a TextArea whose edits come back as Text events, saved with
 // std::ofstream).
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -17,23 +17,56 @@
 
 namespace desktop_example {
 
+/// Names typed into a dialog come from the host: accept only a single path
+/// component (no separators, not "." / "..", printable, short enough for
+/// LittleFS) so it cannot escape the directory it is joined with.
+inline bool valid_leaf_name(const std::string &name) {
+  if (name.empty() || name.size() > 64 || name == "." || name == "..")
+    return false;
+  for (const unsigned char c : name)
+    if (c == '/' || c == '\\' || c < 0x20 || c == 0x7F)
+      return false;
+  return true;
+}
+
+/// Read at most `limit` bytes of a file; `size` gets the whole file's size.
+inline std::string read_head(const std::filesystem::path &path, size_t limit, size_t &size) {
+  std::error_code ec;
+  const auto n = std::filesystem::file_size(path, ec);
+  size = ec ? 0 : static_cast<size_t>(n);
+  std::string contents(std::min(size, limit), '\0');
+  std::ifstream f(path, std::ios::binary);
+  f.read(contents.data(), static_cast<std::streamsize>(contents.size()));
+  contents.resize(static_cast<size_t>(std::max<std::streamsize>(f.gcount(), 0)));
+  return contents;
+}
+
 inline void open_editor(espp::Desktop &d, espp::Desktop::AppId app,
                         const std::filesystem::path &path) {
   using D = espp::Desktop;
-  std::string contents;
-  {
-    std::ifstream f(path, std::ios::binary);
-    std::stringstream ss;
-    ss << f.rdbuf();
-    contents = ss.str();
-  }
+  // The desktop retains at most max_text_bytes of a TextArea (and the browser
+  // mirrors that bound through the Text replacement it receives), so a larger
+  // file could only be edited as a truncated tail -- and Save would then
+  // overwrite the file with that tail. Open such a file read-only instead.
+  const size_t limit = d.max_text_bytes();
+  size_t file_size = 0;
+  const std::string contents = read_head(path, limit, file_size);
+  const bool too_big = file_size > limit;
   auto win =
       d.create_window({.title = fmt::format("Editor \xE2\x80\x94 {}", path.filename().string()),
                        .app = app,
                        .w = 560,
                        .h = 400});
   auto bar = win.row();
-  auto status = win.label(fmt::format("{} bytes", contents.size()), bar.id(), D::kLabelMonospace);
+  auto status = win.label(fmt::format("{} bytes", file_size), bar.id(), D::kLabelMonospace);
+  if (too_big) {
+    win.label(fmt::format("Read-only: {} bytes is more than the editor holds ({} bytes); "
+                          "showing the first {}.",
+                          file_size, limit, contents.size()),
+              0, D::kLabelWrap);
+    win.textarea(contents, 0, D::kTextAreaMonospace | D::kTextAreaReadOnly, 1, 0);
+    return;
+  }
   auto text = win.textarea(contents, 0, D::kTextAreaMonospace, 1, 0);
   // the browser sends the edited text (chunked) when the field loses focus or
   // on Ctrl+S; the model keeps the latest, so Save just writes text.text()
@@ -57,11 +90,17 @@ inline void open_editor(espp::Desktop &d, espp::Desktop::AppId app,
   win.button(
       "Reload",
       [=]() mutable {
-        std::ifstream f(path, std::ios::binary);
-        std::stringstream ss;
-        ss << f.rdbuf();
-        text.set_text(ss.str());
-        status.set_text("{} bytes", ss.str().size());
+        size_t size = 0;
+        const std::string body = read_head(path, limit, size);
+        if (size > limit) {
+          // it grew past the bound since it was opened: never offer a
+          // truncated tail for saving
+          text.set_flags(D::kTextAreaMonospace | D::kTextAreaReadOnly);
+          status.set_text("{} bytes (now read-only: larger than the editor holds)", size);
+          return;
+        }
+        text.set_text(body);
+        status.set_text("{} bytes", size);
       },
       bar.id());
 }
@@ -161,9 +200,16 @@ inline void register_files_app(espp::Desktop &desktop) {
                                .title = "New file",
                                .text = "File name:",
                                .default_text = "notes.txt",
-                               .on_result = [=](std::optional<std::string> name) mutable {
-                                 if (!name || name->empty())
+                               .on_result = [=, &d](std::optional<std::string> name) mutable {
+                                 if (!name)
                                    return;
+                                 if (!desktop_example::valid_leaf_name(*name)) {
+                                   d.notify({.title = "New file",
+                                             .text = "invalid name: one path component, no "
+                                                     "slashes",
+                                             .level = D::NotifyLevel::Error});
+                                   return;
+                                 }
                                  std::ofstream f(st->cwd / *name, std::ios::binary | std::ios::app);
                                  refresh();
                                }});
@@ -175,9 +221,16 @@ inline void register_files_app(espp::Desktop &desktop) {
                   d.input_box({.owner = win.id(),
                                .title = "New folder",
                                .text = "Folder name:",
-                               .on_result = [=](std::optional<std::string> name) mutable {
-                                 if (!name || name->empty())
+                               .on_result = [=, &d](std::optional<std::string> name) mutable {
+                                 if (!name)
                                    return;
+                                 if (!desktop_example::valid_leaf_name(*name)) {
+                                   d.notify({.title = "New folder",
+                                             .text = "invalid name: one path component, no "
+                                                     "slashes",
+                                             .level = D::NotifyLevel::Error});
+                                   return;
+                                 }
                                  std::error_code ec;
                                  fs::create_directory(st->cwd / *name, ec);
                                  refresh();
@@ -194,9 +247,16 @@ inline void register_files_app(espp::Desktop &desktop) {
                                .title = "Rename",
                                .text = "New name:",
                                .default_text = p->filename().string(),
-                               .on_result = [=](std::optional<std::string> name) mutable {
-                                 if (!name || name->empty())
+                               .on_result = [=, &d](std::optional<std::string> name) mutable {
+                                 if (!name)
                                    return;
+                                 if (!desktop_example::valid_leaf_name(*name)) {
+                                   d.notify({.title = "Rename",
+                                             .text = "invalid name: one path component, no "
+                                                     "slashes",
+                                             .level = D::NotifyLevel::Error});
+                                   return;
+                                 }
                                  std::error_code ec;
                                  fs::rename(*p, p->parent_path() / *name, ec);
                                  refresh();

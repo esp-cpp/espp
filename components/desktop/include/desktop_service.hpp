@@ -66,12 +66,17 @@ public:
   static constexpr const char *kProtocol = espp::detail::desktop_protocol::kProtocol;
   static constexpr uint16_t kProtocolVersion = espp::detail::desktop_protocol::kProtocolVersion;
 
-  /// Transmits one encoded frame to the host.
-  using send_fn = std::function<void(std::span<const uint8_t> frame)>;
+  /// Transmits one encoded frame to the host, all-or-nothing, and returns
+  /// whether it was queued (unlike the other espp services' `send`, which is
+  /// void: the desktop streams state, so a dropped frame must be known -- the
+  /// Desktop then flags this transport as needing a resync, see
+  /// needs_resync()). UsbDevice::write_vendor / write_cdc have exactly this
+  /// contract (bounded wait for FIFO room, never a partial frame).
+  using send_fn = std::function<bool(std::span<const uint8_t> frame)>;
 
   /// Configuration for the DesktopService.
   struct Config {
-    send_fn send{nullptr}; ///< Transmits an encoded frame (required).
+    send_fn send{nullptr}; ///< Transmits an encoded frame, all-or-nothing (required).
     /// Dispatcher module id this instance answers on (and stamps on every
     /// frame it sends). A routing key only (0x00..0xEF).
     uint8_t module{kModule};
@@ -83,7 +88,7 @@ public:
       : BaseComponent("DesktopService", config.log_level)
       , desktop_(desktop)
       , config_(config) {
-    sink_ = desktop_.add_sink([this](std::span<const uint8_t> frame) { send_raw(frame); },
+    sink_ = desktop_.add_sink([this](std::span<const uint8_t> frame) { return send_raw(frame); },
                               config.module);
   }
 
@@ -111,6 +116,11 @@ public:
   /// @brief Whether a host asked for the desktop on this transport (and it
   ///        was not detached since).
   bool attached() const { return desktop_.sink_active(sink_); }
+
+  /// @brief Whether a frame to this transport was dropped (send returned
+  ///        false) since the host's last GET_DESKTOP: its mirror of the
+  ///        desktop is incomplete until it resyncs.
+  bool needs_resync() const { return desktop_.sink_needs_resync(sink_); }
 
   /**
    * @brief Dispatcher entry point: handle one routed frame. Frames for other
@@ -218,17 +228,17 @@ public:
 
 protected:
   /// Transmit a frame the Desktop built (its sink callback). Serialized with
-  /// the service's own ERROR frames on send_mutex_.
-  void send_raw(std::span<const uint8_t> frame) {
+  /// the service's own ERROR frames on send_mutex_. Returns whether it was queued.
+  bool send_raw(std::span<const uint8_t> frame) {
     if (frame.empty())
-      return;
+      return true;
     std::lock_guard<std::mutex> send_lock(send_mutex_);
     if (!config_.send) {
       logger_.warn_rate_limited("no send function configured; dropping a {}-byte frame",
                                 frame.size());
-      return;
+      return false;
     }
-    config_.send(frame);
+    return config_.send(frame);
   }
 
   void send_error(uint8_t request_type, std::string_view message,

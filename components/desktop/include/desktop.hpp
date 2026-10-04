@@ -97,7 +97,12 @@ public:
   using widget_event_fn = std::function<void(const WidgetEvent &)>;
   using window_event_fn = std::function<void(const WindowEvent &)>;
   /// Transmits one encoded frame to a host (one per transport; see add_sink).
-  using send_fn = std::function<void(std::span<const uint8_t> frame)>;
+  /// Returns false when the frame could NOT be queued (the transport is
+  /// gone, or its FIFO did not drain in time): the desktop then flags the
+  /// sink as needing a resync (sink_needs_resync) and logs, since the host's
+  /// mirror of the desktop is now incomplete until its next GET_DESKTOP. A
+  /// transport must never queue a partial frame (write a frame all-or-nothing).
+  using send_fn = std::function<bool(std::span<const uint8_t> frame)>;
 
   // Window flags (WindowConfig::flags / Window::set_flags).
   static constexpr uint16_t kWinMovable = detail::dp::kWinMovable;
@@ -130,22 +135,40 @@ public:
   static constexpr uint16_t kButtonDanger = detail::dp::kButtonDanger;
   /// A list / table / select selection meaning "nothing".
   static constexpr int32_t kNoSelection = -1;
+  /// Smallest Config::max_frame_bytes: the largest frame header + CRC + a
+  /// 64-byte payload (enough for every fixed-layout message and a widget base).
+  static constexpr size_t kMinFrameBytes =
+      espp::stream_frame::kMaxHeaderSize + espp::stream_frame::kCrcSize + 64;
+  // Registry limits (DESKTOP is one frame; see detail/desktop_protocol.hpp).
+  static constexpr size_t kMaxApps = detail::dp::kMaxApps;
+  static constexpr size_t kMaxAppNameBytes = detail::dp::kMaxAppNameBytes;
+  static constexpr size_t kMaxAppIconBytes = detail::dp::kMaxAppIconBytes;
+  static constexpr size_t kMaxAppDescriptionBytes = detail::dp::kMaxAppDescriptionBytes;
+  static constexpr size_t kMaxDeviceNameBytes = detail::dp::kMaxDeviceNameBytes;
+  static constexpr size_t kMaxFirmwareBytes = detail::dp::kMaxFirmwareBytes;
 
   /// Configuration for the Desktop.
   struct Config {
-    std::string device_name{"espp"}; ///< Shown in the browser's tray / title.
-    std::string firmware{};          ///< e.g. project name + version (DESKTOP record).
-    std::string theme{"auto"};       ///< "auto" | "light" | "dark" (the browser's initial theme).
-    uint32_t accent{0x3b82f6};       ///< Accent color, 0xRRGGBB.
+    /// Shown in the browser's tray / title (at most kMaxDeviceNameBytes, else truncated).
+    std::string device_name{"espp"};
+    /// e.g. project name + version (DESKTOP record; at most kMaxFirmwareBytes).
+    std::string firmware{};
+    std::string theme{"auto"}; ///< "auto" | "light" | "dark" (the browser's initial theme).
+    uint32_t accent{0x3b82f6}; ///< Accent color, 0xRRGGBB.
     /// How often pending changes are coalesced and sent (the latency of a
     /// set_text, and the period that bounds the frame rate of a busy app).
     std::chrono::milliseconds flush_period{50};
     /// Largest encoded frame (header + payload + CRC) a sink can carry in one
-    /// write; every payload is split to fit (4096 = the TinyUSB FIFOs of the
-    /// espp examples; the stream_frame maximum is kMaxFrameSize).
+    /// write; every widget payload is split to fit (4096 = the TinyUSB FIFOs of
+    /// the espp examples; the stream_frame maximum is kMaxFrameSize). At least
+    /// kMinFrameBytes (a 64-byte payload); a smaller value is clamped with a
+    /// warning. Dialogs, notifications and the DESKTOP record set are single
+    /// frames, so a small cap limits them (see the k* limits in the protocol).
     size_t max_frame_bytes{4096};
-    /// Bound on host commands queued for the desktop task (older ones are
-    /// dropped with a warning when it is exceeded).
+    /// Bound on host commands queued for the desktop task (at least 1). When
+    /// it is full a request (GET_DESKTOP / LAUNCH_APP / CLOSE_WINDOW) is
+    /// refused with ERROR(EAGAIN) and an event is dropped (logged, rate-limited);
+    /// queued commands are never evicted.
     size_t max_queued_commands{64};
     /// Bound on a TextArea's retained text and on a text the host sends for
     /// one widget (Text events are reassembled up to this size).
@@ -567,8 +590,17 @@ public:
       : BaseComponent("Desktop", config.log_level)
       , config_(config)
       , text_(config.max_text_bytes) {
-    model_.device_name = config.device_name;
-    model_.firmware = config.firmware;
+    if (config_.max_frame_bytes < kMinFrameBytes) {
+      logger_.warn("max_frame_bytes {} is below the minimum {}; using the minimum",
+                   config_.max_frame_bytes, kMinFrameBytes);
+      config_.max_frame_bytes = kMinFrameBytes;
+    }
+    if (config_.max_queued_commands == 0) {
+      logger_.warn("max_queued_commands must be at least 1; using 1");
+      config_.max_queued_commands = 1;
+    }
+    model_.device_name = truncated("device_name", config.device_name, kMaxDeviceNameBytes);
+    model_.firmware = truncated("firmware", config.firmware, kMaxFirmwareBytes);
     model_.theme = config.theme;
     model_.accent = config.accent;
     model_.flush_period_ms =
@@ -591,21 +623,37 @@ public:
 
   // ---- apps ----
 
-  /// @brief Register an app; returns its id (0 when none is free).
+  /// @brief Register an app; returns its id, or 0 (logged) when kMaxApps are
+  ///        registered already or the DESKTOP record set would no longer fit
+  ///        one frame. Name / icon / description longer than kMaxAppNameBytes
+  ///        / kMaxAppIconBytes / kMaxAppDescriptionBytes are truncated (logged).
   AppId register_app(App app) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (model_.apps().size() >= kMaxApps) {
+      logger_.error("cannot register '{}': {} apps already (kMaxApps)", app.name, kMaxApps);
+      return 0;
+    }
     const AppId id = model_.allocate_app_id();
     if (!id) {
       logger_.error("no free app id for '{}'", app.name);
       return 0;
     }
-    model_.register_app(
-        {.id = id,
-         .flags = static_cast<uint8_t>((app.single_instance ? detail::dp::kAppSingleInstance : 0) |
-                                       (app.hidden ? detail::dp::kAppHidden : 0)),
-         .name = app.name,
-         .icon = app.icon,
-         .description = app.description});
+    detail::dp::AppRec rec{
+        .id = id,
+        .flags = static_cast<uint8_t>((app.single_instance ? detail::dp::kAppSingleInstance : 0) |
+                                      (app.hidden ? detail::dp::kAppHidden : 0)),
+        .name = truncated("app name", app.name, kMaxAppNameBytes),
+        .icon = truncated("app icon", app.icon, kMaxAppIconBytes),
+        .description = truncated("app description", app.description, kMaxAppDescriptionBytes)};
+    // the record set must stay one frame (with the windows open right now)
+    detail::dp::DesktopInfo probe = model_.desktop_info(false);
+    probe.apps.push_back(rec);
+    if (detail::dp::encode_desktop(probe).size() > max_payload()) {
+      logger_.error("cannot register '{}': the DESKTOP record set would exceed {} bytes", app.name,
+                    max_payload());
+      return 0;
+    }
+    model_.register_app(std::move(rec));
     launchers_[id] = std::move(app.launch);
     wake();
     return id;
@@ -662,9 +710,12 @@ public:
 
   // ---- dialogs / notifications ----
 
+  /// @brief Open a message box; returns its id, or 0 (logged) when it would
+  ///        not fit one frame (max_payload(): title / text / buttons too long).
   DialogId message_box(MessageBoxConfig cfg) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto fn = std::move(cfg.on_result);
+    const std::string title = cfg.title;
     const DialogId id = model_.open_dialog(
         {.owner = cfg.owner,
          .kind = DialogKind::Message,
@@ -676,13 +727,21 @@ public:
           if (fn)
             fn(r.button == detail::dp::kDialogDismissed ? -1 : static_cast<int>(r.button));
         });
+    if (!id) {
+      logger_.error("message box '{}' does not fit one frame ({} bytes); not shown", title,
+                    max_payload());
+      return 0;
+    }
     wake();
     return id;
   }
 
+  /// @brief Open an input box; returns its id, or 0 (logged) when it would
+  ///        not fit one frame (max_payload()).
   DialogId input_box(InputBoxConfig cfg) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto fn = std::move(cfg.on_result);
+    const std::string title = cfg.title;
     const DialogId id = model_.open_dialog({.owner = cfg.owner,
                                             .kind = DialogKind::Input,
                                             .icon = static_cast<uint8_t>(cfg.icon),
@@ -698,6 +757,11 @@ public:
                                              else
                                                fn(std::nullopt);
                                            });
+    if (!id) {
+      logger_.error("input box '{}' does not fit one frame ({} bytes); not shown", title,
+                    max_payload());
+      return 0;
+    }
     wake();
     return id;
   }
@@ -711,14 +775,22 @@ public:
     return ok;
   }
 
-  void notify(NotifyConfig cfg) {
+  /// @brief Show a toast; false (logged) when it would not fit one frame.
+  bool notify(NotifyConfig cfg) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    model_.notify(
+    const std::string title = cfg.title;
+    const bool ok = model_.notify(
         {.level = cfg.level,
          .timeout_ms = static_cast<uint16_t>(std::min<int64_t>(cfg.timeout.count(), 65535)),
          .title = std::move(cfg.title),
          .text = std::move(cfg.text)});
+    if (!ok) {
+      logger_.error("notification '{}' does not fit one frame ({} bytes); not shown", title,
+                    max_payload());
+      return false;
+    }
     wake();
+    return true;
   }
 
   // ---- scheduling ----
@@ -773,9 +845,10 @@ public:
     model_.mark_desktop_changed();
     wake();
   }
+  /// @brief Rename the device (at most kMaxDeviceNameBytes, else truncated).
   void set_device_name(std::string_view name) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    model_.device_name = std::string(name);
+    model_.device_name = truncated("device_name", name, kMaxDeviceNameBytes);
     model_.mark_desktop_changed();
     wake();
   }
@@ -833,16 +906,50 @@ public:
     return s && s->active;
   }
 
-  /// @brief Queue a decoded host request for the desktop task.
+  /// @brief Queue a decoded host request for the desktop task. When the queue
+  ///        is full (Config::max_queued_commands) a request is refused with
+  ///        ERROR(EAGAIN) on its sink and an event is dropped (logged); what
+  ///        is already queued is never evicted.
   void submit(Command cmd) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if (commands_.size() >= config_.max_queued_commands) {
-      logger_.warn_rate_limited("command queue full ({}); dropping the oldest", commands_.size());
-      commands_.pop_front();
+    std::shared_ptr<Sink> reject_sink;
+    {
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
+      if (commands_.size() < config_.max_queued_commands) {
+        commands_.push_back(std::move(cmd));
+        wake();
+        return;
+      }
+      if (is_event(cmd)) {
+        logger_.warn_rate_limited("command queue full ({}); dropping an event", commands_.size());
+        return;
+      }
+      reject_sink = find_sink(cmd.sink);
     }
-    commands_.push_back(std::move(cmd));
-    wake();
+    logger_.warn_rate_limited("command queue full ({}); refusing a request (type 0x{:02x})",
+                              config_.max_queued_commands, static_cast<uint8_t>(request_type(cmd)));
+    if (!reject_sink)
+      return;
+    std::vector<OutMsg> out;
+    out.push_back({.type = detail::dp::Type::Error,
+                   .payload = detail::dp::encode_error(
+                       static_cast<uint8_t>(request_type(cmd)),
+                       static_cast<uint32_t>(
+                           std::make_error_code(std::errc::resource_unavailable_try_again).value()),
+                       "desktop command queue full; try again"),
+                   .correlation = cmd.correlation});
+    send(reject_sink, out);
   }
+
+  /// @brief Whether a frame to this sink was dropped since its last
+  ///        GET_DESKTOP (the host's mirror is incomplete until it resyncs).
+  bool sink_needs_resync(SinkId id) const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    auto s = find_sink(id);
+    return s && s->needs_resync;
+  }
+
+  /// @brief The bound on a TextArea's retained text (Config::max_text_bytes).
+  size_t max_text_bytes() const { return config_.max_text_bytes; }
 
   /// @brief The largest payload sent / accepted (Config::max_frame_bytes less
   ///        the frame overhead, at most the codec's limit).
@@ -928,7 +1035,40 @@ protected:
     send_fn send{nullptr};
     std::mutex mutex; ///< held across `send` so this sink's frames never interleave
     bool active{false};
+    std::atomic<bool> needs_resync{false}; ///< a frame was dropped since the last GET_DESKTOP
   };
+
+  /// The wire type of a command's request (for an ERROR reply).
+  static detail::dp::Type request_type(const Command &cmd) {
+    using T = detail::dp::Type;
+    switch (cmd.request.index()) {
+    case 0:
+      return T::GetDesktop;
+    case 1:
+      return T::LaunchApp;
+    case 2:
+      return T::CloseWindow;
+    case 3:
+      return T::WindowEvent;
+    case 4:
+      return T::WidgetEvent;
+    default:
+      return T::DialogResult;
+    }
+  }
+  /// Events are not acknowledged (and may be dropped); requests are answered.
+  static bool is_event(const Command &cmd) { return cmd.request.index() >= 3; }
+
+  /// `s` cut to `limit` bytes on a UTF-8 boundary (logged when it was longer).
+  std::string truncated(std::string_view what, std::string_view s, size_t limit) {
+    if (s.size() <= limit)
+      return std::string(s);
+    size_t n = limit;
+    while (n > 0 && (static_cast<uint8_t>(s[n]) & 0xC0) == 0x80)
+      --n;
+    logger_.warn("{} longer than {} bytes; truncated", what, limit);
+    return std::string(s.substr(0, n));
+  }
 
   struct TimerEntry {
     TimerId id{0};
@@ -1056,10 +1196,15 @@ protected:
       if (!sink)
         return;
       sink->active = true;
+      sink->needs_resync.store(false); // this reply is the resync
       const bool has_snapshot = !model_.windows().empty() || !model_.dialogs().empty();
+      bool trimmed = false;
       out.push_back({.type = detail::dp::Type::Desktop,
-                     .payload = detail::dp::encode_desktop(model_.desktop_info(has_snapshot)),
+                     .payload = detail::dp::encode_desktop(model_.desktop_info(has_snapshot),
+                                                           max_payload(), &trimmed),
                      .correlation = cmd.correlation});
+      if (trimmed)
+        logger_.warn("DESKTOP record set trimmed to fit {} bytes", max_payload());
       size_t dropped = 0;
       auto msgs = model_.snapshot(&dropped);
       std::transform(msgs.begin(), msgs.end(), std::back_inserter(out), to_out_msg);
@@ -1071,29 +1216,35 @@ protected:
   }
 
   void handle(const Command &cmd, const detail::dp::LaunchApp &req) {
+    // decide under the lock, send after it (send never runs with mutex_ held)
     std::function<void(Desktop &, AppId)> launch_fn{};
+    bool found = false, focused = false;
     {
       std::lock_guard<std::recursive_mutex> lock(mutex_);
       const auto *app = model_.app(req.app);
-      if (!app) {
-        reply_error(cmd, detail::dp::Type::LaunchApp, std::errc::no_such_file_or_directory,
-                    "no such app");
-        return;
-      }
-      if (app->flags & detail::dp::kAppSingleInstance) {
+      found = app != nullptr;
+      if (found && (app->flags & detail::dp::kAppSingleInstance)) {
         const auto open = model_.windows_of(req.app);
         if (!open.empty()) {
           model_.set_prop(open.front(), 0, detail::dp::Prop::u8(detail::dp::PropTag::Focus, 1));
           wake();
-          reply_ok(cmd, detail::dp::Type::LaunchApp);
-          return;
+          focused = true;
         }
       }
-      const auto it = launchers_.find(req.app);
-      if (it != launchers_.end())
-        launch_fn = it->second;
+      if (found && !focused) {
+        const auto it = launchers_.find(req.app);
+        if (it != launchers_.end())
+          launch_fn = it->second;
+      }
+    }
+    if (!found) {
+      reply_error(cmd, detail::dp::Type::LaunchApp, std::errc::no_such_file_or_directory,
+                  "no such app");
+      return;
     }
     reply_ok(cmd, detail::dp::Type::LaunchApp);
+    if (focused)
+      return;
     if (launch_fn)
       launch_fn(*this, req.app);
     else
@@ -1102,16 +1253,20 @@ protected:
 
   void handle(const Command &cmd, const detail::dp::CloseWindow &req) {
     std::function<void()> on_close{};
+    bool found = false;
     {
       std::lock_guard<std::recursive_mutex> lock(mutex_);
       auto fn = model_.close_window(req.window, WindowCloseReason::Host);
-      if (!fn) {
-        reply_error(cmd, detail::dp::Type::CloseWindow, std::errc::no_such_file_or_directory,
-                    "no such window");
-        return;
+      found = fn.has_value();
+      if (found) {
+        forget_window(req.window);
+        on_close = std::move(*fn);
       }
-      forget_window(req.window);
-      on_close = std::move(*fn);
+    }
+    if (!found) {
+      reply_error(cmd, detail::dp::Type::CloseWindow, std::errc::no_such_file_or_directory,
+                  "no such window");
+      return;
     }
     reply_ok(cmd, detail::dp::Type::CloseWindow);
     if (on_close)
@@ -1260,7 +1415,10 @@ protected:
                                   m.payload.size());
         continue;
       }
-      sink->send(frame);
+      if (!sink->send(frame) && !sink->needs_resync.exchange(true))
+        logger_.warn("sink {} could not take a {}-byte frame; the host must resync "
+                     "(GET_DESKTOP)",
+                     sink->id, frame.size());
     }
   }
 

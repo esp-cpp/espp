@@ -864,33 +864,62 @@ static void test_window_open_splitting() {
     CHECK(f.size() <= 24 && decode_widget_remove(f));
 }
 
-static void test_dialog_notify_capping() {
-  std::printf("test_dialog_notify_capping\n");
+static void test_dialog_notify_limits() {
+  std::printf("test_dialog_notify_limits\n");
   using namespace dp;
+  // dialogs and notifications are single frames: the encoders never cut
+  // anything, the model refuses one that would not fit its max_payload
   Dialog d{.id = 1,
            .title = "T",
            .text = std::string(100, 't'),
            .default_text = std::string(50, 'd'),
            .buttons = {"OK"}};
-  const auto full = encode_dialog(d, 4081);
-  CHECK(decode_dialog(full) == d);
-  // cap below the full size: the default is cut first, then the text
-  const auto capped = encode_dialog(d, 120);
-  CHECK(capped.size() <= 120);
-  const auto cd = decode_dialog(capped);
-  CHECK(cd && cd->title == "T" && cd->buttons == d.buttons && cd->default_text.size() < 50 &&
-        cd->text.size() == 100);
-  const auto tiny = encode_dialog(d, 40);
-  CHECK(tiny.size() <= 40);
-  const auto td = decode_dialog(tiny);
-  CHECK(td && td->default_text.empty() && td->text.size() < 100);
+  CHECK(decode_dialog(encode_dialog(d)) == d);
   Notify n{
       .level = NotifyLevel::Error, .timeout_ms = 0, .title = "Oops", .text = std::string(500, 'n')};
-  CHECK(decode_notify(encode_notify(n, 4081)) == n);
-  const auto nc = encode_notify(n, 64);
-  CHECK(nc.size() <= 64);
-  const auto nd = decode_notify(nc);
-  CHECK(nd && nd->title == "Oops" && nd->text.size() < 500 && nd->level == NotifyLevel::Error);
+  CHECK(decode_notify(encode_notify(n)) == n);
+  dm::Model m;
+  m.max_payload = 120;
+  CHECK(m.open_dialog({.title = "fits", .text = "short"}) != 0);
+  CHECK(m.open_dialog(d) == 0); // 166 bytes > 120: refused, nothing queued
+  CHECK(m.dirty.dialogs_opened.size() == 1);
+  CHECK(m.notify({.title = "n", .text = "ok"}) && !m.notify(n));
+  CHECK(m.dirty.notifications.size() == 1);
+  // DESKTOP trims (windows, then descriptions, then apps) rather than overflow
+  DesktopInfo big;
+  for (uint8_t i = 1; i <= 3; ++i)
+    big.apps.push_back({.id = i, .name = "app", .icon = "i", .description = std::string(40, 'd')});
+  for (uint16_t w = 1; w <= 20; ++w)
+    big.windows.push_back({.id = w, .app = 1});
+  bool trimmed = false;
+  CHECK(encode_desktop(big, 4081, &trimmed).size() == 3 + 1 + 3 * (2 + 4 + 2 + 41) + 1 + 60 &&
+        !trimmed);
+  auto t = decode_desktop(encode_desktop(big, 160, &trimmed));
+  CHECK(trimmed && t && t->apps.size() == 3 && t->windows.size() < 20 &&
+        t->apps[0].description.size() == 40);
+  t = decode_desktop(encode_desktop(big, 60, &trimmed));
+  CHECK(trimmed && t && t->windows.empty() && t->apps.size() == 3 &&
+        t->apps[0].description.empty());
+  t = decode_desktop(encode_desktop(big, 20, &trimmed));
+  CHECK(trimmed && t && t->apps.size() == 1);
+  // the registry limits keep a maximal registry within the default cap
+  DesktopInfo maxed;
+  maxed.records = {
+      Prop::text(static_cast<PropTag>(DesktopTag::DeviceName),
+                 std::string(kMaxDeviceNameBytes, 'n')),
+      Prop::text(static_cast<PropTag>(DesktopTag::Firmware), std::string(kMaxFirmwareBytes, 'f')),
+      Prop::text(static_cast<PropTag>(DesktopTag::Theme), "light"),
+      Prop::u32(static_cast<PropTag>(DesktopTag::Accent), 0),
+      Prop::u16(static_cast<PropTag>(DesktopTag::MaxPayload), 4081),
+      Prop::u16(static_cast<PropTag>(DesktopTag::FlushPeriodMs), 50)};
+  for (size_t i = 1; i <= kMaxApps; ++i)
+    maxed.apps.push_back({.id = static_cast<uint8_t>(i),
+                          .name = std::string(kMaxAppNameBytes, 'n'),
+                          .icon = std::string(kMaxAppIconBytes, 'i'),
+                          .description = std::string(kMaxAppDescriptionBytes, 'd')});
+  for (uint16_t w = 1; w <= 255; ++w)
+    maxed.windows.push_back({.id = w, .app = 1});
+  CHECK(encode_desktop(maxed, 4081, &trimmed).size() <= 4081 && !trimmed);
 }
 
 static void test_frames_and_correlation() {
@@ -1154,7 +1183,9 @@ static void test_model_flush() {
   m.flush();
   for (int i = 0; i < 5; ++i)
     m.append_text(win, ta, "line" + std::to_string(i) + "\n");
-  CHECK(m.widget(win, ta)->text == "line2\nline3\nline4\n");
+  // the line bound counts the (empty) text after the last newline as a line,
+  // exactly like the browser's ring, so three lines = "line3\nline4\n" + ""
+  CHECK(m.widget(win, ta)->text == "line3\nline4\n");
   out = m.flush();
   CHECK(out.size() == 1);
   s = decode_widget_set(out[0].payload);
@@ -1220,7 +1251,7 @@ int main(int argc, char **argv) {
   test_truncation_and_unknown();
   test_widget_set_splitting();
   test_window_open_splitting();
-  test_dialog_notify_capping();
+  test_dialog_notify_limits();
   test_frames_and_correlation();
   test_text_assembler();
   test_dirty_tracker();

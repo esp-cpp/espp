@@ -659,7 +659,9 @@ public:
   }
 
   /// Apply a property to the model (widget 0 = the window) and record it.
-  /// Returns false when the target is unknown or the prop malformed.
+  /// Returns false when the target is unknown or the prop malformed. A Text
+  /// the byte bound (max_text_bytes) trims is recorded as the trimmed text,
+  /// so the host (which applies only the line bound) keeps the same value.
   bool set_prop(uint16_t win, uint16_t widget_id, dp::Prop prop) {
     WindowState *w = window(win);
     if (!w || !prop.valid())
@@ -699,8 +701,8 @@ public:
     switch (prop.type()) {
     case PropTag::Text:
       s->text = std::string(prop.as_text());
-      if (s->type == dp::WidgetType::TextArea)
-        bound_text(*s);
+      if (s->type == dp::WidgetType::TextArea && bound_text(*s))
+        prop = dp::Prop::text(PropTag::Text, s->text);
       break;
     case PropTag::TextAppend:
       return append_text(win, widget_id, prop.as_text());
@@ -752,8 +754,8 @@ public:
       break;
     case PropTag::MaxLines:
       s->max_lines = *prop.as_u16();
-      if (s->type == dp::WidgetType::TextArea)
-        bound_text(*s);
+      if (s->type == dp::WidgetType::TextArea && bound_text(*s))
+        dirty.set(win, widget_id, dp::Prop::text(PropTag::Text, s->text));
       break;
     case PropTag::Focus:
       break;
@@ -773,14 +775,19 @@ public:
     return true;
   }
 
-  /// Append to a widget's text (TextArea: bounded by max_lines / max_text_bytes).
+  /// Append to a widget's text (TextArea: bounded by max_lines, which the host
+  /// applies identically, and max_text_bytes, which only the device applies:
+  /// when the latter trims, the host gets a full Text replacement instead of
+  /// the append so the two never diverge).
   bool append_text(uint16_t win, uint16_t widget_id, std::string_view text) {
     WidgetState *s = this->widget(win, widget_id);
     if (!s)
       return false;
     s->text += text;
-    if (s->type == dp::WidgetType::TextArea)
-      bound_text(*s);
+    if (s->type == dp::WidgetType::TextArea && bound_text(*s)) {
+      dirty.set(win, widget_id, dp::Prop::text(dp::PropTag::Text, s->text));
+      return true;
+    }
     const size_t pending = dirty.set(win, widget_id, dp::Prop::text(dp::PropTag::TextAppend, text));
     if (pending > max_text_bytes) {
       // the host would receive more than it keeps: replace with the bounded text
@@ -791,11 +798,15 @@ public:
 
   // ---- dialogs / notifications ----
 
+  /// Returns 0 (nothing opened) when the dialog would not fit one frame
+  /// (max_payload): a dialog is never truncated.
   uint16_t open_dialog(dp::Dialog dialog,
                        std::function<void(const dp::DialogResult &)> on_result = nullptr) {
-    dialog.id = next_id(next_dialog_, [this](uint16_t id) { return this->dialog(id) != nullptr; });
     if (dialog.buttons.empty())
       dialog.buttons.push_back("OK");
+    if (dp::encode_dialog(dialog).size() > max_payload)
+      return 0;
+    dialog.id = next_id(next_dialog_, [this](uint16_t id) { return this->dialog(id) != nullptr; });
     dialogs_.push_back({.dialog = std::move(dialog), .on_result = std::move(on_result)});
     dirty.dialog_open(dialogs_.back().dialog.id);
     return dialogs_.back().dialog.id;
@@ -825,7 +836,13 @@ public:
     return fn;
   }
 
-  void notify(dp::Notify n) { dirty.notify(std::move(n)); }
+  /// False (nothing queued) when the notification would not fit one frame.
+  bool notify(dp::Notify n) {
+    if (dp::encode_notify(n).size() > max_payload)
+      return false;
+    dirty.notify(std::move(n));
+    return true;
+  }
 
   // ---- host events (update the model without echoing) ----
 
@@ -923,18 +940,18 @@ public:
     }
     std::for_each(dirty.dialogs_opened.begin(), dirty.dialogs_opened.end(), [&](uint16_t id) {
       if (const DialogState *d = dialog(id))
-        out.push_back({Type::Dialog, dp::encode_dialog(d->dialog, max_payload)});
+        out.push_back({Type::Dialog, dp::encode_dialog(d->dialog)});
     });
     std::transform(dirty.dialogs_closed.begin(), dirty.dialogs_closed.end(),
                    std::back_inserter(out), [](uint16_t id) {
                      return dp::Message{Type::DialogClose, dp::encode_dialog_close({.id = id})};
                    });
     std::transform(dirty.notifications.begin(), dirty.notifications.end(), std::back_inserter(out),
-                   [this](const dp::Notify &n) {
-                     return dp::Message{Type::Notify, dp::encode_notify(n, max_payload)};
+                   [](const dp::Notify &n) {
+                     return dp::Message{Type::Notify, dp::encode_notify(n)};
                    });
     if (dirty.desktop_changed)
-      out.push_back({Type::Desktop, dp::encode_desktop(desktop_info(false))});
+      out.push_back({Type::Desktop, dp::encode_desktop(desktop_info(false), max_payload)});
     dirty.clear();
     return out;
   }
@@ -948,8 +965,8 @@ public:
       append_messages(out, dp::encode_window_open(w.to_open(true), max_payload, dropped));
     });
     std::transform(dialogs_.begin(), dialogs_.end(), std::back_inserter(out),
-                   [this](const DialogState &d) {
-                     return dp::Message{dp::Type::Dialog, dp::encode_dialog(d.dialog, max_payload)};
+                   [](const DialogState &d) {
+                     return dp::Message{dp::Type::Dialog, dp::encode_dialog(d.dialog)};
                    });
     return out;
   }
@@ -984,10 +1001,13 @@ private:
     return 0;
   }
 
-  /// Keep a TextArea's text to its last max_lines lines and max_text_bytes bytes.
-  void bound_text(WidgetState &s) const {
+  /// Keep a TextArea's text to its last max_lines lines (the same rule as the
+  /// browser's ring: the text after the last newline counts as a line, so
+  /// "a\nb\n" is three lines) and to max_text_bytes bytes. Returns true when
+  /// the BYTE bound cut something (the host does not apply it).
+  bool bound_text(WidgetState &s) const {
     if (s.max_lines) {
-      size_t lines = static_cast<size_t>(std::count(s.text.begin(), s.text.end(), '\n'));
+      const size_t lines = static_cast<size_t>(std::count(s.text.begin(), s.text.end(), '\n')) + 1;
       if (lines > s.max_lines) {
         size_t drop = lines - s.max_lines;
         size_t pos = 0;
@@ -998,16 +1018,17 @@ private:
         s.text.erase(0, pos);
       }
     }
-    if (s.text.size() > max_text_bytes) {
-      size_t cut = s.text.size() - max_text_bytes;
-      // keep whole lines / UTF-8 sequences
-      const size_t nl = s.text.find('\n', cut);
-      if (nl != std::string::npos && nl + 1 < s.text.size())
-        cut = nl + 1;
-      while (cut < s.text.size() && (static_cast<uint8_t>(s.text[cut]) & 0xC0) == 0x80)
-        ++cut;
-      s.text.erase(0, cut);
-    }
+    if (s.text.size() <= max_text_bytes)
+      return false;
+    size_t cut = s.text.size() - max_text_bytes;
+    // keep whole lines / UTF-8 sequences
+    const size_t nl = s.text.find('\n', cut);
+    if (nl != std::string::npos && nl + 1 < s.text.size())
+      cut = nl + 1;
+    while (cut < s.text.size() && (static_cast<uint8_t>(s.text[cut]) & 0xC0) == 0x80)
+      ++cut;
+    s.text.erase(0, cut);
+    return true;
   }
 
   std::vector<dp::AppRec> apps_{};

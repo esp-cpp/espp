@@ -53,9 +53,14 @@
 //                [layout u8][props u8]{rec}
 // Replies (DESKTOP, OK, ERROR) echo the request frame's correlation id; events
 // carry none. Every payload is at most the negotiated max payload (DESKTOP
-// record MaxPayload, <= 4081): the encoders below SPLIT across frames (a long
-// Text becomes Text + TextAppend pieces, an Items range becomes several
-// ranges, a tree continues in WIDGET_ADD) and never truncate.
+// record MaxPayload, <= 4081): the widget encoders below SPLIT across frames
+// (a long Text becomes Text + TextAppend pieces, an Items range becomes
+// several ranges, a tree continues in WIDGET_ADD) and never truncate. DIALOG
+// and NOTIFY are single frames: the Desktop API refuses one that would not
+// fit. DESKTOP is a single frame too: the app registry is bounded (kMaxApps,
+// kMaxApp*Bytes, kMaxDeviceNameBytes) so it fits the default 4081-byte payload
+// with hundreds of open windows, and encode_desktop() trims (window list, then
+// descriptions, then apps from the end) rather than overflow a smaller cap.
 
 #include <algorithm>
 #include <cstdint>
@@ -80,6 +85,18 @@ inline constexpr const char *kProtocol = "espp.desktop";
 inline constexpr uint16_t kProtocolVersion = 1;
 /// The `proto` byte at the head of every DESKTOP payload.
 inline constexpr uint8_t kDesktopProto = 1;
+
+/// Registry limits that keep DESKTOP a single frame (enforced by
+/// Desktop::register_app / Desktop::Config, documented in the README): 24
+/// apps of maximal size (2 + 3 + 32 + 16 + 64 = 117 bytes each = 2808), the
+/// records (<= 64 + 64 + 8 + 4 + 2 + 2 + 6 * 3 = 162) and the counts leave a
+/// 4081-byte payload room for ~360 open windows (3 bytes each).
+inline constexpr size_t kMaxApps = 24;
+inline constexpr size_t kMaxAppNameBytes = 32;
+inline constexpr size_t kMaxAppIconBytes = 16;
+inline constexpr size_t kMaxAppDescriptionBytes = 64;
+inline constexpr size_t kMaxDeviceNameBytes = 64;
+inline constexpr size_t kMaxFirmwareBytes = 64;
 
 /// Frame `type` values within the desktop module.
 enum class Type : uint8_t {
@@ -816,29 +833,58 @@ struct Message {
 
 // ---- device -> host encoders -----------------------------------------------------------
 
-/// DESKTOP. Must fit one frame (the app list is small by construction: at most
-/// 255 short records).
-inline std::vector<uint8_t> encode_desktop(const DesktopInfo &d) {
-  std::vector<uint8_t> p{};
-  put_u8(p, d.proto);
-  put_u8(p, d.flags);
-  put_u8(p, static_cast<uint8_t>(std::min<size_t>(d.records.size(), 255)));
-  for (size_t i = 0; i < d.records.size() && i < 255; ++i)
-    d.records[i].encode(p);
-  put_u8(p, static_cast<uint8_t>(std::min<size_t>(d.apps.size(), 255)));
-  for (size_t i = 0; i < d.apps.size() && i < 255; ++i) {
-    const auto &a = d.apps[i];
-    put_u8(p, a.id);
-    put_u8(p, a.flags);
-    put_str8(p, a.name);
-    put_str8(p, a.icon);
-    put_str8(p, a.description);
+/// DESKTOP, a single frame. With the registry limits (kMaxApps, kMaxApp*Bytes,
+/// kMaxDeviceNameBytes / kMaxFirmwareBytes) it always fits the default cap;
+/// should it not fit `max_payload` (a small cap, many windows), it is trimmed
+/// in this order rather than overflow: the window list from the end, then the
+/// app descriptions, then apps from the end (a host still learns the apps and
+/// resyncs windows through their WINDOW_OPEN frames).
+/// @param trimmed Set when something was left out.
+inline std::vector<uint8_t> encode_desktop(const DesktopInfo &d,
+                                           size_t max_payload = espp::stream_frame::kMaxPayloadSize,
+                                           bool *trimmed = nullptr) {
+  auto encode = [&](size_t napps, bool with_desc, size_t nwin) {
+    std::vector<uint8_t> p{};
+    put_u8(p, d.proto);
+    put_u8(p, d.flags);
+    put_u8(p, static_cast<uint8_t>(std::min<size_t>(d.records.size(), 255)));
+    for (size_t i = 0; i < d.records.size() && i < 255; ++i)
+      d.records[i].encode(p);
+    put_u8(p, static_cast<uint8_t>(napps));
+    for (size_t i = 0; i < napps; ++i) {
+      const auto &a = d.apps[i];
+      put_u8(p, a.id);
+      put_u8(p, a.flags);
+      put_str8(p, a.name);
+      put_str8(p, a.icon);
+      put_str8(p, with_desc ? std::string_view(a.description) : std::string_view());
+    }
+    put_u8(p, static_cast<uint8_t>(nwin));
+    for (size_t i = 0; i < nwin; ++i) {
+      put_u16(p, d.windows[i].id);
+      put_u8(p, d.windows[i].app);
+    }
+    return p;
+  };
+  size_t napps = std::min<size_t>(d.apps.size(), 255);
+  size_t nwin = std::min<size_t>(d.windows.size(), 255);
+  bool with_desc = true;
+  std::vector<uint8_t> p = encode(napps, with_desc, nwin);
+  bool cut = napps < d.apps.size() || nwin < d.windows.size();
+  while (p.size() > max_payload) {
+    if (nwin > 0)
+      --nwin;
+    else if (with_desc)
+      with_desc = false;
+    else if (napps > 0)
+      --napps;
+    else
+      break; // the records alone exceed the cap: nothing more to trim
+    cut = true;
+    p = encode(napps, with_desc, nwin);
   }
-  put_u8(p, static_cast<uint8_t>(std::min<size_t>(d.windows.size(), 255)));
-  for (size_t i = 0; i < d.windows.size() && i < 255; ++i) {
-    put_u16(p, d.windows[i].id);
-    put_u8(p, d.windows[i].app);
-  }
+  if (trimmed)
+    *trimmed = cut;
   return p;
 }
 
@@ -849,43 +895,32 @@ inline std::vector<uint8_t> encode_window_close(const WindowClose &c) {
   return p;
 }
 
-/// DIALOG, capped at `max_payload`: the text and default are shortened (in
-/// that order, from the end) so the payload fits; a dialog is one frame.
-inline std::vector<uint8_t> encode_dialog(const Dialog &d, size_t max_payload = 4081) {
-  auto encode = [&](std::string_view text, std::string_view def) {
-    std::vector<uint8_t> p{};
-    put_u16(p, d.id);
-    put_u16(p, d.owner);
-    put_u8(p, static_cast<uint8_t>(d.kind));
-    put_u8(p, d.icon);
-    put_str8(p, d.title);
-    put_str16(p, text);
-    put_str16(p, def);
-    const size_t n = d.buttons.size() > 255 ? 255 : d.buttons.size();
-    put_u8(p, static_cast<uint8_t>(n));
-    for (size_t i = 0; i < n; ++i)
-      put_str8(p, d.buttons[i]);
-    return p;
-  };
-  std::vector<uint8_t> p = encode(d.text, d.default_text);
-  if (p.size() <= max_payload)
-    return p;
-  size_t over = p.size() - max_payload;
-  const size_t cut_def = std::min(over, d.default_text.size());
-  over -= cut_def;
-  const size_t cut_text = std::min(over, d.text.size());
-  return encode(std::string_view(d.text).substr(0, d.text.size() - cut_text),
-                std::string_view(d.default_text).substr(0, d.default_text.size() - cut_def));
+/// DIALOG: a single frame. The caller (Desktop::message_box / input_box)
+/// refuses a dialog whose encoding exceeds the payload cap.
+inline std::vector<uint8_t> encode_dialog(const Dialog &d) {
+  std::vector<uint8_t> p{};
+  put_u16(p, d.id);
+  put_u16(p, d.owner);
+  put_u8(p, static_cast<uint8_t>(d.kind));
+  put_u8(p, d.icon);
+  put_str8(p, d.title);
+  put_str16(p, d.text);
+  put_str16(p, d.default_text);
+  const size_t n = d.buttons.size() > 255 ? 255 : d.buttons.size();
+  put_u8(p, static_cast<uint8_t>(n));
+  for (size_t i = 0; i < n; ++i)
+    put_str8(p, d.buttons[i]);
+  return p;
 }
 
-/// NOTIFY, capped at `max_payload` (the text is shortened to fit).
-inline std::vector<uint8_t> encode_notify(const Notify &n, size_t max_payload = 4081) {
+/// NOTIFY: a single frame. The caller (Desktop::notify) refuses one whose
+/// encoding exceeds the payload cap.
+inline std::vector<uint8_t> encode_notify(const Notify &n) {
   std::vector<uint8_t> p{};
   put_u8(p, static_cast<uint8_t>(n.level));
   put_u16(p, n.timeout_ms);
   put_str8(p, n.title);
-  const size_t room = max_payload > p.size() + 2 ? max_payload - p.size() - 2 : 0;
-  put_str16(p, std::string_view(n.text).substr(0, std::min(n.text.size(), room)));
+  put_str16(p, n.text);
   return p;
 }
 

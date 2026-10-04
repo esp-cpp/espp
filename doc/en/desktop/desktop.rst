@@ -39,9 +39,14 @@ the desktop task. ``GET_DESKTOP`` returns the app list and settings followed
 by the full tree of every open window and dialog (so a reconnecting browser
 resyncs in one request) and marks the transport active; ``LAUNCH_APP`` /
 ``CLOSE_WINDOW`` are acknowledged; ``WINDOW_EVENT`` / ``WIDGET_EVENT`` /
-``DIALOG_RESULT`` are not. Payloads are split across frames (a long text
-becomes Text + TextAppend pieces, a long list several ranges, a big window
-tree WINDOW_OPEN + WIDGET_ADD continuations), never truncated; the wire format
+``DIALOG_RESULT`` are not. Widget payloads are split across frames (a long
+text becomes Text + TextAppend pieces, a long list several ranges, a big
+window tree WINDOW_OPEN + WIDGET_ADD continuations), never truncated; dialogs,
+notifications and the app registry are single frames whose limits the API
+enforces (an oversized dialog / toast is refused and logged, the registry is
+bounded in app count and string lengths). The transport's ``send`` reports
+whether a frame was queued, and a transport that dropped one is flagged as
+needing a resync until the host's next ``GET_DESKTOP``; the wire format
 is documented in ``include/detail/desktop_protocol.hpp`` and checked by a
 host test against the fixture ``test/desktop_vectors.txt``, which the web
 app's test reads too.

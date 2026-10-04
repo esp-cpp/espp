@@ -103,10 +103,10 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/color/example/main/color_example.cpp \
   $(PROJECT_PATH)/components/controller/example/main/controller_example.cpp \
   $(PROJECT_PATH)/components/coredump/example/main/coredump_example.cpp \
-  $(PROJECT_PATH)/components/desktop/example/main/desktop_example.cpp \
-  $(PROJECT_PATH)/components/desktop/example/main/apps/counter_app.hpp \
   $(PROJECT_PATH)/components/cst816/example/main/cst816_example.cpp \
   $(PROJECT_PATH)/components/csv/example/main/csv_example.cpp \
+  $(PROJECT_PATH)/components/desktop/example/main/desktop_example.cpp \
+  $(PROJECT_PATH)/components/desktop/example/main/apps/counter_app.hpp \
   $(PROJECT_PATH)/components/dispatcher/example/main/dispatcher_example.cpp \
   $(PROJECT_PATH)/components/display_drivers/example/main/display_drivers_example.cpp \
   $(PROJECT_PATH)/components/dns_server/example/main/dns_server_example.cpp \
@@ -288,11 +288,11 @@ INPUT = \
   $(PROJECT_PATH)/components/controller/include/controller.hpp \
   $(PROJECT_PATH)/components/coredump/include/coredump.hpp \
   $(PROJECT_PATH)/components/coredump/include/coredump_service.hpp \
+  $(PROJECT_PATH)/components/cst816/include/cst816.hpp \
+  $(PROJECT_PATH)/components/csv/include/csv.hpp \
   $(PROJECT_PATH)/components/desktop/include/console_capture.hpp \
   $(PROJECT_PATH)/components/desktop/include/desktop.hpp \
   $(PROJECT_PATH)/components/desktop/include/desktop_service.hpp \
-  $(PROJECT_PATH)/components/cst816/include/cst816.hpp \
-  $(PROJECT_PATH)/components/csv/include/csv.hpp \
   $(PROJECT_PATH)/components/dispatcher/include/dispatcher.hpp \
   $(PROJECT_PATH)/components/dispatcher/include/dispatcher_worker.hpp \
   $(PROJECT_PATH)/components/display/include/display.hpp \

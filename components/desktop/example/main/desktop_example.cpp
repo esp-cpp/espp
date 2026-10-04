@@ -125,19 +125,20 @@ extern "C" void app_main(void) {
   espp::UsbDevice usb(usb_cfg);
 
   // One send function per transport, serialized by one mutex each, so the
-  // services' frames never interleave. The desktop streams every change, so
-  // its frames are dropped (not blocked on) when the host is not draining
-  // the FIFO -- the browser resyncs with GET_DESKTOP on its next connect.
+  // services' frames never interleave. write_vendor / write_cdc are
+  // all-or-nothing: they wait (bounded, 250 ms) for FIFO room for the WHOLE
+  // frame and never queue a partial one, and return false when the host did
+  // not drain in time (unplugged, or the page is not reading) -- the desktop
+  // then flags that transport as needing a resync, and the browser resyncs
+  // with GET_DESKTOP when it reconnects.
   std::mutex vendor_tx_mutex, cdc_tx_mutex;
   auto vendor_send = [&](std::span<const uint8_t> frame) {
     std::lock_guard<std::mutex> lock(vendor_tx_mutex);
-    if (usb.vendor_write_available() >= frame.size())
-      usb.write_vendor(frame);
+    return usb.write_vendor(frame);
   };
   auto cdc_send = [&](std::span<const uint8_t> frame) {
     std::lock_guard<std::mutex> lock(cdc_tx_mutex);
-    if (usb.cdc_write_available() >= frame.size())
-      usb.write_cdc(frame);
+    return usb.write_cdc(frame);
   };
 
   // One service instance per transport (they are cheap; each replies on its

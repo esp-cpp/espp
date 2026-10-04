@@ -67,8 +67,12 @@ inline void register_settings_app(espp::Desktop &desktop, std::string_view defau
               return row;
             };
             auto name_box = win.textbox(nickname, nullptr, field("Nickname").id(), default_name);
+            // a Select index comes from the host: bounds-check it
+            auto theme_at = [themes](int32_t i) {
+              return (i >= 0 && static_cast<size_t>(i) < themes.size()) ? themes[i] : themes[0];
+            };
             auto theme_sel = win.select(
-                themes, theme_index, [=, &d](int32_t i) { d.set_theme(themes[i < 0 ? 0 : i]); },
+                themes, theme_index, [=, &d](int32_t i) { d.set_theme(theme_at(i)); },
                 field("Theme").id());
             auto accent_box =
                 win.textbox(fmt::format("{:06x}", accent), nullptr, field("Accent").id(), "rrggbb");
@@ -85,9 +89,7 @@ inline void register_settings_app(espp::Desktop &desktop, std::string_view defau
                   std::error_code ec2;
                   const std::string name = name_box.text();
                   nvs->set("nickname", name, ec2);
-                  nvs->set("theme",
-                           themes[static_cast<size_t>(std::max<int32_t>(0, theme_sel.selected()))],
-                           ec2);
+                  nvs->set("theme", theme_at(theme_sel.selected()), ec2);
                   const int32_t rgb = static_cast<int32_t>(
                       std::strtoul(accent_box.text().c_str(), nullptr, 16) & 0xFFFFFF);
                   nvs->set("accent", rgb, ec2);

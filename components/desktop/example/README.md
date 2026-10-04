@@ -73,8 +73,10 @@ a `coredump` partition and a `littlefs` partition for the Files app, and
 `sdkconfig.defaults` enables core dumps to flash, OTA rollback and the FreeRTOS
 run-time statistics the task monitor reads. Every device->host write on a
 transport goes through one mutex, so the services never interleave frames;
-the desktop's frames are dropped rather than blocked on when the host is not
-draining the USB FIFO (the browser resyncs on its next connect).
+`write_vendor` / `write_cdc` wait (bounded, 250 ms) for FIFO room for a whole
+frame and never queue a partial one, and when the host is not draining the
+FIFO the frame is dropped and the desktop flags that transport as needing a
+resync (the browser resyncs with GET_DESKTOP on its next connect).
 
 ## Example Output
 

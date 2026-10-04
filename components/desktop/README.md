@@ -81,7 +81,10 @@ once.
   property, `TextAppend` pieces concatenate, a `Text` cancels earlier appends,
   `Items` ranges accumulate (an `ItemCount` / full `set_items` discards earlier
   ranges), a removed widget cancels its pending changes, a window opened and
-  closed between flushes sends nothing. Per-window order: WINDOW_CLOSE ->
+  closed between flushes sends nothing. A TextArea keeps its last `max_lines`
+  lines (the browser applies the same rule) and at most `max_text_bytes`; when
+  the byte bound trims, the host gets a full `Text` replacement so both sides
+  hold the same text. Per-window order: WINDOW_CLOSE ->
   WINDOW_OPEN (full tree) -> WIDGET_ADD -> WIDGET_SET -> WIDGET_REMOVE; then
   DIALOG / DIALOG_CLOSE -> NOTIFY -> DESKTOP (when apps or settings changed).
 - The only frame sent from another context is `DesktopService`'s ERROR for a
@@ -133,8 +136,23 @@ Label: bit0 Bold bit1 Monospace bit2 Wrap; Button: bit0 Primary bit1 Danger.
 
 Replies (DESKTOP / OK / ERROR) echo the request's correlation id; events carry
 none. Every payload is at most the negotiated MaxPayload (`max_frame_bytes`
-less the frame overhead, 4081 for 4096): the encoders split (Text + TextAppend
-pieces, Items ranges, WIDGET_ADD continuations) and never truncate.
+less the frame overhead, 4081 for 4096; `max_frame_bytes` is at least
+`kMinFrameBytes`, a 64-byte payload): the widget encoders split (Text +
+TextAppend pieces, Items ranges, WIDGET_ADD continuations) and never truncate.
+DIALOG and NOTIFY are single frames: `message_box` / `input_box` return 0 and
+`notify` returns false (logged) for one that would not fit. DESKTOP is a
+single frame too: the registry is bounded -- at most `kMaxApps` (24) apps,
+names ≤ 32, icons ≤ 16, descriptions ≤ 64 bytes (`register_app` truncates
+longer ones and refuses an app that would overflow), device name / firmware
+≤ 64 bytes -- which leaves the default payload room for hundreds of open
+windows; should a smaller cap still overflow, the encoder trims the window
+list, then the descriptions, then apps (logged) rather than send a bad frame.
+
+Flow control: a `DesktopService::Config::send` returns whether the frame was
+queued (all-or-nothing); when it was not, the desktop logs and flags that
+transport (`needs_resync()`) until the host's next GET_DESKTOP. A full
+command queue (`Config::max_queued_commands`) refuses a request with
+ERROR(EAGAIN) and drops an event; nothing queued is evicted.
 
 ## Log capture
 
