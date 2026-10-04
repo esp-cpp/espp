@@ -302,6 +302,10 @@
     .dialog .dlg-icon { font-size: 18px; }
     .dialog .dlg-text { white-space: pre-wrap; word-break: break-word; margin-bottom: 10px; max-height: 50vh; overflow: auto; }
     .dialog input[type="text"] { width: 100%; margin-bottom: 10px; }
+    .dialog input[aria-invalid="true"] { border-color: var(--danger); }
+    .dialog .dlg-error { color: var(--danger); font-size: 12.5px; margin: -6px 0 10px; }
+    .dialog .dlg-error[hidden] { display: none; }
+    .w-textbox.overflow, .w-textarea textarea.overflow { border-color: var(--warn); }
     .dialog .dlg-buttons { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 
     /* ---- taskbar ---- */
@@ -662,7 +666,11 @@
     const DESKTOP_HAS_SNAPSHOT = 0x01;
     const DESKTOP_WINDOW_LIST_COMPLETE = 0x02;  // set when the window list is intact; a trimmed list is advisory, never authoritative
     const DESKTOP_MAX_PAYLOAD_CAP = 4081;    // stream_frame limit for a 4096-byte frame with a correlation id
-    const DREC = { DEVICE_NAME: 1, FIRMWARE: 2, THEME: 3, ACCENT: 4, MAX_PAYLOAD: 5, FLUSH_PERIOD_MS: 6 };
+    const DREC = { DEVICE_NAME: 1, FIRMWARE: 2, THEME: 3, ACCENT: 4, MAX_PAYLOAD: 5, FLUSH_PERIOD_MS: 6, MAX_TEXT_BYTES: 7 };
+    const MAX_TEXT_BYTES_DEFAULT = 16384;     // DESKTOP record 7 absent: the largest reassembled host Text the device keeps
+    // Single-frame events: the payload bytes before the text they carry.
+    const SUBMIT_EVENT_HEADER = 5;            // [win u16][widget u16][ev u8]
+    const DIALOG_RESULT_HEADER = 3;           // [dialog u16][button u8]
     const APP_FLAG = { SINGLE_INSTANCE: 0x01, HIDDEN: 0x02 };
     const WT = { COLUMN: 1, ROW: 2, GROUP: 3, LABEL: 4, BUTTON: 5, CHECKBOX: 6, TEXTBOX: 7, TEXTAREA: 8, LIST: 9, TABLE: 10,
                  SELECT: 11, PROGRESS: 12, SLIDER: 13, SEPARATOR: 14, SPACER: 15 };
@@ -825,7 +833,7 @@
     // The DESKTOP records, interpreted by DesktopTag (the generic prop decode
     // types them by widget-prop tag, which is what the fixture JSON shows).
     function desktopSettings(records) {
-      const s = { deviceName: "", firmware: "", theme: "auto", accent: null, maxPayload: DESKTOP_MAX_PAYLOAD_CAP, flushPeriodMs: null };
+      const s = { deviceName: "", firmware: "", theme: "auto", accent: null, maxPayload: DESKTOP_MAX_PAYLOAD_CAP, flushPeriodMs: null, maxTextBytes: MAX_TEXT_BYTES_DEFAULT };
       for (const p of records || []) {
         const b = propBytes(p);
         try {
@@ -836,6 +844,7 @@
             case DREC.ACCENT: if (b.length === 4) s.accent = new ByteReader(b).u32() & 0xFFFFFF; break;
             case DREC.MAX_PAYLOAD: if (b.length === 2) s.maxPayload = Math.max(64, Math.min(DESKTOP_MAX_PAYLOAD_CAP, new ByteReader(b).u16())); break;
             case DREC.FLUSH_PERIOD_MS: if (b.length === 2) s.flushPeriodMs = new ByteReader(b).u16(); break;
+            case DREC.MAX_TEXT_BYTES: if (b.length === 4) { const v = new ByteReader(b).u32(); if (v > 0) s.maxTextBytes = v; } break;
             default: break;
           }
         } catch (_) {}
@@ -980,6 +989,17 @@
         case DT.DIALOG_RESULT: return encodeDialogResult(m);
         default: throw new Error("unknown request type 0x" + type.toString(16));
       }
+    }
+    // UTF-8 byte length of a string, and a cut to at most `maxBytes` on a code
+    // point boundary (the host-side bounds: MaxTextBytes for an edit, the single
+    // frame for SUBMIT / DIALOG_RESULT).
+    function utf8ByteLength(s) { return utf8Encoder.encode(String(s == null ? "" : s)).length; }
+    function truncateUtf8(s, maxBytes) {
+      const b = utf8Encoder.encode(String(s == null ? "" : s));
+      if (b.length <= maxBytes) return String(s == null ? "" : s);
+      let n = Math.max(0, maxBytes);
+      while (n > 0 && (b[n] & 0xC0) === 0x80) n--;
+      return utf8Decoder.decode(b.subarray(0, n));
     }
     // Split UTF-8 text into Text-event chunks that fit `maxPayload` (never
     // cutting a UTF-8 sequence in half); an empty text is one empty chunk.
@@ -2743,8 +2763,22 @@
     function sendWidgetEvent(wd, event, extra) {
       sendEvent(DT.WIDGET_EVENT, encodeWidgetEvent(Object.assign({ window: wd.win.id, widget: wd.id, event }, extra || {})));
     }
+    // Host edits never exceed the device's MaxTextBytes (DESKTOP record 7): an
+    // oversized value is cut on a code point boundary and the user is told once.
+    function editLimit() { return settings.maxTextBytes; }
+    // A TextBox value must also fit one SUBMIT frame (Enter).
+    function textBoxLimit() { return Math.min(editLimit(), maxPayload - SUBMIT_EVENT_HEADER); }
+    function limitInput(el, limit, what) {
+      if (utf8ByteLength(el.value) <= limit) { el.classList.remove("overflow"); return false; }
+      el.value = truncateUtf8(el.value, limit);
+      el.classList.add("overflow");
+      el.title = what + " is limited to " + limit + " bytes (UTF-8) by the device";
+      if (!el.dataset.warned) { el.dataset.warned = "1"; toast(2, "Text limit", what + " was cut to " + limit + " bytes: the device keeps no more than that.", 6000); }
+      return true;
+    }
     function sendText(wd, text) {
-      for (const c of chunkText(enc.encode(text), maxPayload)) sendWidgetEvent(wd, WGEV.TEXT, { offset: c.offset, total: c.total, text: c.bytes });
+      const bytes = enc.encode(truncateUtf8(text, editLimit()));
+      for (const c of chunkText(bytes, maxPayload)) sendWidgetEvent(wd, WGEV.TEXT, { offset: c.offset, total: c.total, text: c.bytes });
     }
     function sendKey(wd, e) {
       const k = keyCodeFor(e);
@@ -2860,8 +2894,18 @@
         create(wd) {
           const el = document.createElement("input"); el.type = "text"; el.className = "w-textbox";
           wd.st.dirty = false;
-          el.addEventListener("input", () => { wd.st.dirty = true; });
-          el.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); wd.st.dirty = false; sendWidgetEvent(wd, WGEV.SUBMIT, { text: el.value }); } });
+          el.addEventListener("input", () => { wd.st.dirty = true; limitInput(el, textBoxLimit(), "This field"); });
+          el.addEventListener("keydown", (e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            // SUBMIT is one unsplittable frame: a value (set by the firmware, or
+            // before a smaller MaxPayload arrived) that does not fit stays in
+            // the field and is reported instead of making buildFrame throw
+            const limit = maxPayload - SUBMIT_EVENT_HEADER, n = utf8ByteLength(el.value);
+            if (n > limit) { toast(3, "Input too long", "This field holds " + n + " bytes; one SUBMIT carries at most " + limit + ". Shorten it.", 6000); return; }
+            wd.st.dirty = false;
+            sendWidgetEvent(wd, WGEV.SUBMIT, { text: el.value });
+          });
           el.addEventListener("blur", () => { if (wd.st.dirty) { wd.st.dirty = false; sendText(wd, el.value); } });
           return el;
         },
@@ -2886,7 +2930,7 @@
             wd.st.mode = mode;
             if (mode === "edit") {
               const ta = document.createElement("textarea");
-              ta.addEventListener("input", () => { wd.st.dirty = true; idle(); });
+              ta.addEventListener("input", () => { wd.st.dirty = true; limitInput(ta, editLimit(), "This text"); idle(); });
               ta.addEventListener("blur", () => idle.flush());
               ta.addEventListener("keydown", (e) => {
                 if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "s" || e.key === "S")) { e.preventDefault(); wd.st.dirty = true; idle.flush(); return; }
@@ -3137,11 +3181,26 @@
       head.appendChild(title);
       const text = document.createElement("div"); text.className = "dlg-text"; text.id = "dlg-" + d.id + "-text"; text.textContent = msg.text;
       el.appendChild(head); el.appendChild(text);
-      const answer = (button) => { sendEvent(DT.DIALOG_RESULT, encodeDialogResult({ dialog: d.id, button, text: button !== DIALOG_DISMISSED && d.input ? d.input.value : "" })); closeDialogLocal(d.id); };
+      // DIALOG_RESULT is one unsplittable frame: an answer that does not fit
+      // keeps the dialog open with an inline message instead of being lost
+      const answer = (button) => {
+        const text = button !== DIALOG_DISMISSED && d.input ? d.input.value : "";
+        const limit = maxPayload - DIALOG_RESULT_HEADER, n = utf8ByteLength(text);
+        if (n > limit) {
+          d.error.textContent = "Too long: " + n + " bytes, the device accepts at most " + limit + " (UTF-8).";
+          d.error.hidden = false; d.input.setAttribute("aria-invalid", "true"); d.input.focus();
+          return;
+        }
+        sendEvent(DT.DIALOG_RESULT, encodeDialogResult({ dialog: d.id, button, text }));
+        closeDialogLocal(d.id);
+      };
       if (msg.kind === DIALOG_KIND.INPUT) {
         const input = document.createElement("input"); input.type = "text"; input.value = msg.default; input.setAttribute("aria-label", msg.text || msg.title);
+        input.setAttribute("aria-describedby", "dlg-" + d.id + "-error");
+        const error = document.createElement("div"); error.className = "dlg-error"; error.id = "dlg-" + d.id + "-error"; error.setAttribute("role", "alert"); error.hidden = true;
         input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); answer(0); } });
-        el.appendChild(input); d.input = input;
+        input.addEventListener("input", () => { error.hidden = true; input.removeAttribute("aria-invalid"); });
+        el.appendChild(input); el.appendChild(error); d.input = input; d.error = error;
       }
       const buttons = document.createElement("div"); buttons.className = "dlg-buttons";
       const labels = msg.buttons.length ? msg.buttons : ["OK"];
@@ -3400,6 +3459,18 @@
       assert(hexOf((await settled(DT.DIALOG_RESULT)).payload) === hexOf(vectors.dialog_result_dismissed.payload), "Escape dismisses");
       feed("dialog"); feed("dialog_close");
       assert(!dialogs.has(2), "DIALOG_CLOSE");
+      // 4b. DIALOG_RESULT is one frame: an oversized answer stays in the dialog
+      // with an inline message; one at the bound is sent
+      feed("dialog");
+      const dlgLimit = maxPayload - DIALOG_RESULT_HEADER;
+      dialogs.get(2).input.value = "x".repeat(dlgLimit + 1);
+      sent.length = 0;
+      dialogs.get(2).el.querySelector(".dlg-buttons button").click();
+      await txQueue; await tick(0);
+      assert(dialogs.has(2) && !dialogs.get(2).error.hidden && /Too long/.test(dialogs.get(2).error.textContent) && !lastSent(DT.DIALOG_RESULT), "oversized dialog answer kept, not sent");
+      dialogs.get(2).input.value = "é".repeat(Math.floor(dlgLimit / 2)) + "x".repeat(dlgLimit % 2); // dlgLimit bytes exactly (é = 2 bytes)
+      dialogs.get(2).el.querySelector(".dlg-buttons button").click();
+      assert((await settled(DT.DIALOG_RESULT)).payload.length === maxPayload && !dialogs.has(2), "dialog answer at the bound sent in one frame");
       // 5. notify, unknown window close, unsolicited OK / ERROR
       feed("notify");
       assert([...els.toasts.children].some((t) => t.textContent.includes("Saved")), "toast shown");
@@ -3436,6 +3507,27 @@
       assert(ta.tagName === "TEXTAREA", "editable textarea");
       ta.value = "hello wrld"; ta.dispatchEvent(new Event("input", { bubbles: true })); ta.dispatchEvent(new Event("blur"));
       assert(hexOf((await settled(DT.WIDGET_EVENT)).payload) === "0100040004" + "00000000" + "0a000000" + "68656c6c6f2077726c64", "Text event on blur");
+      // 8b. a TextBox: SUBMIT is one frame (oversized -> toast, kept; at the
+      // bound -> sent); typing is capped at the effective byte bound; an
+      // editable TextArea is capped at MaxTextBytes
+      feedHex(DT.WIDGET_ADD, "0100" + "0100" + "0800" + "0100" + "07" + "00" + "00" + "00");
+      const tb = w.widgets.get(8).el;
+      const submitLimit = maxPayload - SUBMIT_EVENT_HEADER;
+      tb.value = "y".repeat(submitLimit + 1);
+      sent.length = 0;
+      tb.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      await txQueue; await tick(0);
+      assert(!lastSent(DT.WIDGET_EVENT) && tb.value.length === submitLimit + 1 && [...els.toasts.children].some((t) => /too long/i.test(t.textContent)), "oversized SUBMIT kept + toast");
+      tb.value = "y".repeat(submitLimit);
+      tb.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      const sub = await settled(DT.WIDGET_EVENT);
+      assert(sub.payload.length === maxPayload && sub.payload[4] === WGEV.SUBMIT, "SUBMIT at the bound sent in one frame");
+      tb.value = "é".repeat(20000); tb.dispatchEvent(new Event("input", { bubbles: true }));
+      assert(utf8ByteLength(tb.value) === textBoxLimit() && utf8ByteLength(tb.value) % 2 === 0 && tb.classList.contains("overflow"), "TextBox input capped on a code point boundary at " + textBoxLimit() + ": " + utf8ByteLength(tb.value));
+      assert(settings.maxTextBytes === MAX_TEXT_BYTES_DEFAULT, "MaxTextBytes default without record 7");
+      ta.value = "z".repeat(settings.maxTextBytes + 10); ta.dispatchEvent(new Event("input", { bubbles: true }));
+      assert(ta.value.length === settings.maxTextBytes && ta.classList.contains("overflow"), "TextArea edit capped at MaxTextBytes");
+      w.widgets.get(4).idle.flush(); await txQueue; await tick(0); // drain the capped edit's Text chunks
       // 9. a List added on the fly: Select / Activate
       feedHex(DT.WIDGET_ADD, "0100" + "0100" + "0700" + "0100" + "09" + "00" + "00" + "01" + "0c" + "0a00" + "0000" + "0200" + "0100" + "61" + "0100" + "62");
       const list = w.widgets.get(7);

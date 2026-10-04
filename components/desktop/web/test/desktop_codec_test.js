@@ -22,7 +22,7 @@ const end = html.indexOf("// ==== DESKTOP:END-PURE ====");
 assert(begin > 0 && end > begin, "pure-block markers not found in desktop.html");
 const pure = html.slice(begin, end);
 const P = new Function(pure + `
-  return { DT, DT_NAME, PROP, WT, WIN, WEV, WGEV, KEY, MOD, LAYOUT, TA_FLAG, MIN_WINDOW, DESKTOP_MAX_PAYLOAD_CAP, COLOR_DEFAULT, DESKTOP_HAS_SNAPSHOT, DESKTOP_WINDOW_LIST_COMPLETE,
+  return { DT, DT_NAME, PROP, WT, WIN, WEV, WGEV, KEY, MOD, LAYOUT, TA_FLAG, MIN_WINDOW, DESKTOP_MAX_PAYLOAD_CAP, COLOR_DEFAULT, DESKTOP_HAS_SNAPSHOT, DESKTOP_WINDOW_LIST_COMPLETE, MAX_TEXT_BYTES_DEFAULT, SUBMIT_EVENT_HEADER, DIALOG_RESULT_HEADER, utf8ByteLength, truncateUtf8,
            ByteReader, ByteWriter, hexOf, bytesOfHex, propKind, readRec, decodeProp, propBytes, desktopSettings,
            decodeMessage, encodeMessage, decodeWidgetSet, decodeDesktop, chunkText, keyCodeFor,
            clampGeometry, geometryEquals, resizeGeometry, placeWindow, createGeometryStore, geometryKey,
@@ -101,7 +101,23 @@ test("unknown and malformed tags decode raw and are skippable", () => {
 test("DESKTOP records interpreted by DesktopTag (theme / accent / max payload)", () => {
   const d = P.decodeDesktop(P.bytesOfHex(d2h.find((v) => v.name === "desktop").hex));
   const s = P.desktopSettings(d.records);
-  assert.deepStrictEqual(s, { deviceName: "espp Desktop", firmware: "desktop_example 1.0", theme: "auto", accent: 0x3B82F6, maxPayload: 4081, flushPeriodMs: 50 });
+  // record 7 (MaxTextBytes u32) may or may not be in the fixture: either way it must be read
+  const tag7 = d.records.find((p) => p.tag === 7);
+  const expectMaxText = tag7 && tag7.raw && tag7.raw.length === 8 ? new P.ByteReader(P.bytesOfHex(tag7.raw)).u32() : P.MAX_TEXT_BYTES_DEFAULT;
+  assert.deepStrictEqual(s, { deviceName: "espp Desktop", firmware: "desktop_example 1.0", theme: "auto", accent: 0x3B82F6, maxPayload: 4081, flushPeriodMs: 50, maxTextBytes: expectMaxText });
+  assert.strictEqual(P.MAX_TEXT_BYTES_DEFAULT, 16384);
+  assert.strictEqual(P.desktopSettings([]).maxTextBytes, 16384, "absent record 7 -> 16384");
+  assert.strictEqual(P.desktopSettings([{ tag: 7, raw: "00100000" }]).maxTextBytes, 4096, "record 7 decodes raw (tag 7 is a u8 widget prop) and reads as u32 LE");
+  assert.strictEqual(P.desktopSettings([{ tag: 7, raw: "00000000" }]).maxTextBytes, 16384, "a zero MaxTextBytes keeps the default");
+  assert.strictEqual(P.desktopSettings([{ tag: 7, value: 1 }]).maxTextBytes, 16384, "a 1-byte record 7 is ignored");
+  // the single-frame bounds and the UTF-8 helpers behind them
+  assert.strictEqual(P.SUBMIT_EVENT_HEADER, 5); assert.strictEqual(P.DIALOG_RESULT_HEADER, 3);
+  assert.strictEqual(P.utf8ByteLength("héllo"), 6); assert.strictEqual(P.utf8ByteLength(""), 0); assert.strictEqual(P.utf8ByteLength(null), 0);
+  assert.strictEqual(P.truncateUtf8("héllo", 2), "h", "never cuts inside a sequence");
+  assert.strictEqual(P.truncateUtf8("héllo", 3), "hé"); assert.strictEqual(P.truncateUtf8("héllo", 100), "héllo"); assert.strictEqual(P.truncateUtf8("😀😀", 5), "😀");
+  assert.strictEqual(P.truncateUtf8("abc", 0), "");
+  assert.strictEqual(P.encodeMessage(P.DT.WIDGET_EVENT, { window: 1, widget: 8, event: P.WGEV.SUBMIT, text: "y".repeat(4081 - 5) }).length, 4081);
+  assert.strictEqual(P.encodeMessage(P.DT.DIALOG_RESULT, { dialog: 2, button: 0, text: "y".repeat(4081 - 3) }).length, 4081);
   // a 5-byte theme ("light") decodes raw through the generic path and still resolves
   const light = P.desktopSettings([{ tag: 3, raw: P.hexOf(Buffer.from("light")) }, { tag: 5, raw: "ffff" }, { tag: 5, raw: "0100" }]);
   assert.strictEqual(light.theme, "light");
