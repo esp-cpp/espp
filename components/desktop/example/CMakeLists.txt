@@ -79,12 +79,19 @@ if(DEFINED ENV{IDF_COMPONENT_MANAGER} AND "$ENV{IDF_COMPONENT_MANAGER}" STREQUAL
   )
 endif()
 
-set(
-  COMPONENTS
-  "main esptool_py base_component desktop dispatcher file_system format logger monitor nvs stream_frame system task usb_device esp_tinyusb esp_psram coredump ota espcoredump littlefs i2c wifi ethernet cli ${DESKTOP_EXAMPLE_CANOPEN_COMPONENTS}"
-  CACHE STRING
-  "List of components to include"
-  FORCE
-  )
+# The component list is a cache entry like in the other examples, so a caller's
+# -DCOMPONENTS=... wins; the CANopen-dependent default is only computed when
+# the caller did not supply one. (main's REQUIRES still resolve canopen / twai
+# from EXTRA_COMPONENT_DIRS whenever DESKTOP_EXAMPLE_CANOPEN is ON, whatever
+# the list says: that decision travels as a build property, not through
+# COMPONENTS.)
+if(NOT DEFINED COMPONENTS)
+  set(
+    COMPONENTS
+    "main esptool_py base_component desktop dispatcher file_system format logger monitor nvs stream_frame system task usb_device esp_tinyusb esp_psram coredump ota espcoredump littlefs i2c wifi ethernet cli ${DESKTOP_EXAMPLE_CANOPEN_COMPONENTS}"
+    CACHE STRING
+    "List of components to include"
+    )
+endif()
 
 project(desktop_example)

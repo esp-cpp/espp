@@ -64,6 +64,21 @@ struct NetworkState {
   /// station it sets its private `disconnecting_` and no DISCONNECTED event
   /// ever clears it, so the next Connect would lose its retries.
   std::atomic<bool> associating{false};
+  /// Connection-attempt GENERATION. The driver events are asynchronous:
+  /// WifiSta::disconnect() clears its `connected_` at once but the
+  /// DISCONNECTED event lands later, and reconfigure() only disconnects a
+  /// station whose `connected_` is set (not one still associating). So every
+  /// attempt (start-up auto-connect, Connect, the reconnect after a scan,
+  /// Forget's reset) bumps this counter and installs callbacks that captured
+  /// the new value; an event whose captured generation is older than the
+  /// current one belongs to a previous attempt and is ignored. The rule for
+  /// a new Connect: refused while an attempt of the current generation is
+  /// still associating (Disconnect first); a connected station is stopped
+  /// explicitly (disconnect_if_active) under the new generation before the
+  /// new configuration is applied, so its late DISCONNECTED cannot clear the
+  /// new attempt's state.
+  std::atomic<uint32_t> attempt{0};
+  std::string cur_ssid, cur_pass; // the credentials of the current attempt (under `mutex`)
 #if CONFIG_DESKTOP_EXAMPLE_ENABLE_WIFI
   std::unique_ptr<espp::WifiSta> wifi;
   std::unique_ptr<espp::Task> scan_task; // after wifi: joined before it goes away
@@ -100,28 +115,46 @@ struct NetworkState {
     }
   }
 
-  /// The station config for `ssid` / `password`: the callbacks record the
-  /// state this struct holds (they run on the event-loop task).
-  espp::WifiSta::Config wifi_config(std::string ssid, std::string password) {
+  /// The station config for `ssid` / `password` of attempt `gen`: the
+  /// callbacks record the state this struct holds (they run on the event-loop
+  /// task) and ignore events of an older generation (see `attempt`).
+  espp::WifiSta::Config wifi_config(std::string ssid, std::string password, uint32_t gen) {
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      cur_ssid = ssid;
+      cur_pass = password;
+    }
     return {.ssid = std::move(ssid),
             .password = std::move(password),
             .num_connect_retries = 3,
             .auto_connect = true,
-            .on_connected = [this]() { set_status("connected, waiting for an IP"); },
+            .on_connected =
+                [this, gen]() {
+                  if (gen == attempt)
+                    set_status("connected, waiting for an IP");
+                },
             .on_disconnected =
-                [this]() { // retries exhausted, or reconfigure()'s own disconnect
+                [this, gen]() { // retries exhausted, or reconfigure()'s own disconnect
+                  if (gen != attempt)
+                    return; // a previous attempt's late event
                   associating = false;
                   set_status(want_connected ? "disconnected (retries exhausted; Connect or a "
                                               "scan retries)"
                                             : "disconnected");
                 },
             .on_got_ip =
-                [this](ip_event_got_ip_t *e) {
+                [this, gen](ip_event_got_ip_t *e) {
+                  if (gen != attempt)
+                    return;
                   associating = false;
                   set_status("connected", fmt::format("{}.{}.{}.{}", IP2STR(&e->ip_info.ip)));
                 },
             .log_level = espp::Logger::Verbosity::INFO};
   }
+
+  /// Start a new attempt generation: later events of the previous one are
+  /// ignored from here on.
+  uint32_t new_attempt() { return ++attempt; }
 
   /// Whether a string key exists in the app's namespace: ESP_OK (it does),
   /// ESP_ERR_NVS_NOT_FOUND (it does not) or another error (a genuine NVS
@@ -221,7 +254,7 @@ struct NetworkState {
     auto &stack = espp::Wifi::get();
     if (stack.init())
       stack.set_storage(WIFI_STORAGE_RAM);
-    auto cfg = wifi_config(ssid, pass);
+    auto cfg = wifi_config(ssid, pass, new_attempt());
     cfg.auto_connect = !ssid.empty();
     want_connected = cfg.auto_connect;
     associating = cfg.auto_connect; // WifiSta connects from its STA_START event
@@ -254,8 +287,9 @@ struct NetworkState {
     stop_station();
     wifi_config_t empty{};
     const bool cleared = esp_wifi_set_config(WIFI_IF_STA, &empty) == ESP_OK;
-    auto cfg =
-        wifi_config("", ""); // empty ssid: reconfigure() adopts the (now empty) driver config
+    // empty ssid: reconfigure() adopts the (now empty) driver config; a new
+    // generation so the stopped link's late events are ignored
+    auto cfg = wifi_config("", "", new_attempt());
     cfg.auto_connect = false;
     const bool station_reset = wifi->reconfigure(cfg) && cleared;
     // the persistent status must not claim the credentials are gone when the
@@ -446,7 +480,17 @@ inline void register_network_app(espp::Desktop &desktop) {
                         const auto aps = state->wifi->scan(20);
                         if (intent) {
                           state->set_status("reconnecting");
-                          if (state->wifi->connect()) {
+                          // a new attempt generation with fresh callbacks, so the
+                          // scan's own disconnect events cannot clear its state
+                          std::string ssid, pass;
+                          {
+                            std::lock_guard<std::mutex> lock(state->mutex);
+                            ssid = state->cur_ssid;
+                            pass = state->cur_pass;
+                          }
+                          const uint32_t gen = state->new_attempt();
+                          if (state->wifi->reconfigure(state->wifi_config(ssid, pass, gen)) &&
+                              state->wifi->connect()) {
                             state->associating = true;
                           } else {
                             // never leave "reconnecting" up: say what to do
@@ -524,14 +568,21 @@ inline void register_network_app(espp::Desktop &desktop) {
                           .text = "could not save the credentials to NVS (connecting anyway)",
                           .level = D::NotifyLevel::Warn});
               net->set_status(fmt::format("connecting to {}", ssid));
-              const bool was_connected = net->wifi->is_connected();
+              // The rule (see NetworkState::attempt): an attempt still
+              // associating is not replaced -- Disconnect first; a connected
+              // station is stopped explicitly under the new generation, so
+              // its late DISCONNECTED is ignored, before the new config.
+              if (net->associating) {
+                d.notify({.title = "Wi-Fi",
+                          .text = "a connection attempt is in progress; Disconnect first",
+                          .level = D::NotifyLevel::Warn});
+                return;
+              }
+              const uint32_t gen = net->new_attempt();
+              net->disconnect_if_active();
               net->want_connected = true;
-              // reconfigure() reconnects when it was connected; else connect().
-              // `associating` is set only once the association was issued:
-              // reconfigure()'s own disconnect fires on_disconnected first,
-              // which would clear it again.
-              bool ok = net->wifi->reconfigure(net->wifi_config(ssid, pass));
-              if (ok && !was_connected)
+              bool ok = net->wifi->reconfigure(net->wifi_config(ssid, pass, gen));
+              if (ok)
                 ok = net->wifi->connect();
               if (ok)
                 net->associating = true;
