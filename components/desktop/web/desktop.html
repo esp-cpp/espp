@@ -183,7 +183,7 @@
       background-size: 22px 22px;
     }
     #shell.offline #desktop { filter: grayscale(0.7); opacity: 0.6; }
-    #offlineNote { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 20000;
+    #offlineNote { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 33000;
       background: var(--panel-bg); border: 1px solid var(--warn); color: var(--warn); border-radius: 999px; padding: 4px 14px; font-size: 12.5px; }
     #icons { position: absolute; left: 10px; top: 10px; display: grid; grid-auto-flow: column; grid-template-rows: repeat(auto-fill, 86px); gap: 6px; max-height: calc(100% - 20px); }
     .dicon {
@@ -195,8 +195,8 @@
     .dicon .glyph svg { width: 32px; height: 32px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     .dicon .name { font-size: 12px; line-height: 1.2; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #windows { position: absolute; inset: 0; }
-    #windows:empty + #modal { }
-    #modal { position: absolute; inset: 0; z-index: 10000; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; }
+    /* z bands: plain windows 10.., the modal backdrop at 19999, modal windows at MODAL_Z_BAND (20000) + their order, the chrome (taskbar / menu / toasts) above */
+    #modal { position: absolute; inset: 0; z-index: 19999; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; }
     #modal[hidden] { display: none; }
 
     /* ---- windows ---- */
@@ -210,7 +210,7 @@
     .window.minimized, .window.unplaced { visibility: hidden; }
     .window.maximized { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; border-radius: 0; }
     .window.closing { opacity: 0.6; }
-    .window.modal { z-index: 10001; }
+    .window.modal { z-index: 20001; } /* fallback only: the inline value (MODAL_Z_BAND + order) wins */
     .window:focus { outline: none; }
     .window:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
     .titlebar {
@@ -305,12 +305,12 @@
     .dialog .dlg-buttons { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 
     /* ---- taskbar ---- */
-    #taskbar { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: var(--panel-bg); border-top: 1px solid var(--panel-border); position: relative; z-index: 11000; }
+    #taskbar { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: var(--panel-bg); border-top: 1px solid var(--panel-border); position: relative; z-index: 30000; }
     #startBtn { font-weight: 600; padding: 5px 12px; }
     #startBtn[aria-expanded="true"] { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
     .start { position: relative; }
     #startMenu { position: absolute; left: 0; bottom: calc(100% + 6px); min-width: 240px; background: var(--panel-bg); border: 1px solid var(--panel-border);
-      border-radius: 10px; box-shadow: var(--win-shadow-focus); padding: 6px; display: flex; flex-direction: column; gap: 2px; z-index: 12000; }
+      border-radius: 10px; box-shadow: var(--win-shadow-focus); padding: 6px; display: flex; flex-direction: column; gap: 2px; z-index: 31000; }
     #startMenu[hidden] { display: none; }
     #startMenu hr { border: 0; border-top: 1px solid var(--panel-border); margin: 4px 0; }
     #startMenu .menu-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: transparent; border-color: transparent; padding: 6px 10px; color: var(--text); }
@@ -351,7 +351,7 @@
     .log .con { color: var(--log-text); }
 
     /* ---- toasts ---- */
-    #toasts { position: fixed; right: 12px; bottom: 48px; display: flex; flex-direction: column; gap: 8px; z-index: 13000; max-width: min(360px, 90vw); }
+    #toasts { position: fixed; right: 12px; bottom: 48px; display: flex; flex-direction: column; gap: 8px; z-index: 32000; max-width: min(360px, 90vw); }
     .toast { background: var(--panel-bg); color: var(--text); border: 1px solid var(--panel-border); border-left: 4px solid var(--accent); border-radius: 8px; box-shadow: var(--win-shadow); padding: 8px 10px; display: flex; gap: 8px; align-items: flex-start; }
     .toast.ok { border-left-color: var(--ok); } .toast.warn { border-left-color: var(--warn); } .toast.err { border-left-color: var(--danger); }
     .toast .body { flex: 1 1 auto; min-width: 0; }
@@ -660,6 +660,7 @@
                       0x87: "DIALOG", 0x88: "NOTIFY", 0x89: "DIALOG_CLOSE", 0x8E: "OK", 0x8F: "ERROR" };
     const DESKTOP_PROTO = 1;                 // the `proto` byte at the head of every DESKTOP payload
     const DESKTOP_HAS_SNAPSHOT = 0x01;
+    const DESKTOP_WINDOWS_TRUNCATED = 0x02;  // the window list did not fit: incomplete, never authoritative
     const DESKTOP_MAX_PAYLOAD_CAP = 4081;    // stream_frame limit for a 4096-byte frame with a correlation id
     const DREC = { DEVICE_NAME: 1, FIRMWARE: 2, THEME: 3, ACCENT: 4, MAX_PAYLOAD: 5, FLUSH_PERIOD_MS: 6 };
     const APP_FLAG = { SINGLE_INSTANCE: 0x01, HIDDEN: 0x02 };
@@ -2325,6 +2326,12 @@
     // ===================================================================
     const windows = new Map();       // window id -> W
     let focusedWin = null, zTop = 10, cascadeIndex = 0;
+    // Modal windows live in their own z band above the #modal backdrop
+    // (z-index 19999): a kWinModal window keeps its stacking order but sits at
+    // MODAL_Z_BAND + order, so it is never rendered behind the backdrop.
+    const MODAL_Z_BAND = 20000;
+    function applyZ(w) { w.el.style.zIndex = String(w.z + ((w.flags & WIN.MODAL) ? MODAL_Z_BAND : 0)); }
+    function raiseWindow(w) { w.z = ++zTop; applyZ(w); }
     function desktopArea() { return { w: els.windows.clientWidth || 800, h: els.windows.clientHeight || 500 }; }
     function currentGeometry(w) { return w.state === "max" ? { x: 0, y: 0, w: desktopArea().w, h: desktopArea().h } : w.geom; }
     function sendWindowEvent(w, kind) {
@@ -2343,6 +2350,7 @@
       w.el.classList.toggle("movable", !!(flags & WIN.MOVABLE));
       w.el.classList.toggle("resizable", !!(flags & WIN.RESIZABLE));
       w.el.classList.toggle("modal", !!(flags & WIN.MODAL));
+      if (w.z) applyZ(w);
       if (flags & WIN.MODAL) w.el.setAttribute("aria-modal", "true"); else w.el.removeAttribute("aria-modal");
       w.btnMin.hidden = !(flags & WIN.MINIMIZABLE);
       w.btnMax.hidden = !(flags & WIN.MAXIMIZABLE);
@@ -2357,7 +2365,7 @@
 
     function createWindowShell(msg) {
       const w = { id: msg.window, app: msg.app, appName: appName(msg.app), flags: 0, title: msg.title, openTitle: msg.title,
-                  state: "normal", geom: { x: 0, y: 0, w: 0, h: 0 }, restoreGeom: null, placed: false, placeTimer: null,
+                  state: "normal", geom: { x: 0, y: 0, w: 0, h: 0 }, z: 0, restoreGeom: null, placed: false, placeTimer: null,
                   widgets: new Map(), orphans: new Map(), total: 0, received: 0, closing: null, tbBtn: null };
       const el = document.createElement("section");
       el.className = "window unplaced";
@@ -2422,7 +2430,7 @@
         w.el.classList.add("focused"); w.tbBtn.setAttribute("aria-pressed", "true");
         if (!(opts && opts.silent)) sendWindowEvent(w, WEV.FOCUS);
       }
-      if (!(opts && opts.noRaise)) w.el.style.zIndex = String(++zTop);
+      if (!(opts && opts.noRaise)) raiseWindow(w);
     }
     function blurWindow(w) {
       if (focusedWin !== w) return;
@@ -2530,7 +2538,7 @@
         windows.set(w.id, w);
         els.windows.appendChild(w.el);
         w.requested = { x: msg.x, y: msg.y, w: msg.w, h: msg.h };
-        w.el.style.zIndex = String(++zTop);
+        w.z = ++zTop; // applyFlags() below stamps the z-index (band by Modal)
       }
       applyFlags(w, msg.flags & ~WIN.SNAPSHOT);
       w.total = msg.total; w.received = 0;
@@ -3161,9 +3169,14 @@
       for (const a of info.apps) apps.set(a.id, a);
       renderApps();
       for (const w of windows.values()) { w.appName = appName(w.app); }
-      // the open-window list is authoritative: drop what the device no longer has
-      const live = new Set(info.windows.map((x) => x.id));
-      for (const w of [...windows.values()]) if (!live.has(w.id)) removeWindow(w, true);
+      // a COMPLETE open-window list is authoritative: drop what the device no
+      // longer has; a truncated one (bit1) says nothing about unlisted windows
+      if (info.flags & DESKTOP_WINDOWS_TRUNCATED) {
+        logLine("sys", "DESKTOP window list is truncated (" + info.windows.length + " listed); keeping the local windows.");
+      } else {
+        const live = new Set(info.windows.map((x) => x.id));
+        for (const w of [...windows.values()]) if (!live.has(w.id)) removeWindow(w, true);
+      }
       if (fromRequest && !(info.flags & DESKTOP_HAS_SNAPSHOT) && info.windows.length)
         logLine("warn", "The device lists " + info.windows.length + " window(s) but sent no snapshot flag.");
       logLine("sys", "Desktop: " + (settings.deviceName || "device") + (settings.firmware ? " (" + settings.firmware + ")" : "") + ", " + info.apps.length + " app(s), " + info.windows.length + " window(s)" + (fromRequest ? "" : " (unsolicited update)") + ".");
@@ -3410,6 +3423,30 @@
       // 11. replace-in-place + link loss + resync
       feed("window_open"); feed("window_open");
       assert(windows.size === 1 && windows.get(1).widgets.size === 4, "WINDOW_OPEN replaced in place");
+      // 12. a kWinModal window sits above the backdrop (its own z band) and is clickable
+      feedHex(DT.WINDOW_OPEN, "0900" + "01" + "0d00" + "3200" + "3200" + "2c01" + "9600" + "054d6f64616c" + "0100" + "0100" + "0100" + "0000" + "05" + "00" + "00" + "01" + "01" + "0200" + "4f4b");
+      const mw = windows.get(9);
+      assert(mw && mw.el.classList.contains("modal") && !els.modal.hidden, "modal window opened with the backdrop");
+      assert(Number(getComputedStyle(mw.el).zIndex) > Number(getComputedStyle(els.modal).zIndex), "modal window above the backdrop: " + getComputedStyle(mw.el).zIndex + " vs " + getComputedStyle(els.modal).zIndex);
+      // (the vector's window 1 carries every flag, Modal included: it is in the band too, below the newer one)
+      assert(Number(getComputedStyle(mw.el).zIndex) > Number(getComputedStyle(windows.get(1).el).zIndex), "the newer modal window is on top");
+      const [bx, by] = center(mw.widgets.get(1).el);
+      const hit = document.elementFromPoint(bx, by);
+      assert(hit === mw.widgets.get(1).el, "the modal window's button is the hit target, not the backdrop");
+      hit.click();
+      assert(hexOf((await settled(DT.WIDGET_EVENT)).payload) === "0900010001", "click delivered to the modal window");
+      feedHex(DT.WINDOW_CLOSE, "090000");
+      assert(!windows.has(9), "modal window closed"); // (the backdrop stays for window 1, Modal by its vector flags)
+      // 13. an unsolicited DESKTOP with a TRUNCATED (bit1) empty window list keeps
+      // the local window; a complete empty one drops it
+      const truncated = Uint8Array.from([...vectors.desktop.payload.subarray(0, vectors.desktop.payload.length - 4), 0]); truncated[1] = 0x02; // ...[nwin = 0]
+      handleRxBytes(buildReplyFrame(moduleDesktop, DT.DESKTOP, truncated));
+      assert(windows.has(1) && apps.size === 3, "truncated window list left the window alone");
+      const complete = Uint8Array.from(truncated); complete[1] = 0x00;
+      handleRxBytes(buildReplyFrame(moduleDesktop, DT.DESKTOP, complete));
+      assert(!windows.has(1), "a complete empty window list drops the window");
+      feed("window_open");
+      assert(windows.size === 1, "window reopened for the link-loss step");
       onTransportGone(fake);
       assert(els.shell.classList.contains("offline") && windows.size === 1, "offline keeps the stale desktop");
       reconnect.stop();

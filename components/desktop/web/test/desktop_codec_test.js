@@ -22,7 +22,7 @@ const end = html.indexOf("// ==== DESKTOP:END-PURE ====");
 assert(begin > 0 && end > begin, "pure-block markers not found in desktop.html");
 const pure = html.slice(begin, end);
 const P = new Function(pure + `
-  return { DT, DT_NAME, PROP, WT, WIN, WEV, WGEV, KEY, MOD, LAYOUT, TA_FLAG, MIN_WINDOW, DESKTOP_MAX_PAYLOAD_CAP, COLOR_DEFAULT,
+  return { DT, DT_NAME, PROP, WT, WIN, WEV, WGEV, KEY, MOD, LAYOUT, TA_FLAG, MIN_WINDOW, DESKTOP_MAX_PAYLOAD_CAP, COLOR_DEFAULT, DESKTOP_HAS_SNAPSHOT, DESKTOP_WINDOWS_TRUNCATED,
            ByteReader, ByteWriter, hexOf, bytesOfHex, propKind, readRec, decodeProp, propBytes, desktopSettings,
            decodeMessage, encodeMessage, decodeWidgetSet, decodeDesktop, chunkText, keyCodeFor,
            clampGeometry, geometryEquals, resizeGeometry, placeWindow, createGeometryStore, geometryKey,
@@ -283,6 +283,10 @@ test("registry metadata and wiring constants", () => {
   assert(html.includes('const DESKTOP_PROTOCOL = "espp.desktop", DESKTOP_PROTOCOL_VERSION = 1;'));
   assert(html.includes('let moduleDesktop = DEFAULT_MODULE_DESKTOP;'));
   assert.strictEqual(P.DESKTOP_MAX_PAYLOAD_CAP, 4081);
+  assert.strictEqual(P.DESKTOP_HAS_SNAPSHOT, 0x01); assert.strictEqual(P.DESKTOP_WINDOWS_TRUNCATED, 0x02);
+  // the DESKTOP flags byte decodes as-is (bit1 = window list truncated)
+  const trunc = P.bytesOfHex(d2h.find((v) => v.name === "desktop").hex); trunc[1] = 0x02;
+  assert.strictEqual(P.decodeMessage(P.DT.DESKTOP, trunc).flags & P.DESKTOP_WINDOWS_TRUNCATED, 2);
   assert.strictEqual(P.MIN_WINDOW.w, 160);
 });
 test("the pure block touches no DOM, window, storage or timers", () => {
