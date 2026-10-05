@@ -1388,9 +1388,13 @@ protected:
 
   /// A sink's transport dropped a frame: stop streaming to it and schedule the
   /// device-initiated resync (see send_fn). Called by send() after it released
-  /// the sink's mutex (this takes mutex_; the two are never held together).
-  void on_send_failed(const std::shared_ptr<Sink> &sink, size_t frame_bytes) {
+  /// the sink's mutex (this takes mutex_; the two are never held together) with
+  /// the generation send() captured before the callback: a detach, a new
+  /// attach or another failure in the meantime makes this one stale.
+  void on_send_failed(const std::shared_ptr<Sink> &sink, size_t frame_bytes, uint32_t gen) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (sink->generation != gen)
+      return; // stale: the sink detached, re-attached or already failed while this send ran
     sink->active = false;
     ++sink->generation;
     if (!sink->needs_resync.exchange(true)) {
@@ -1598,6 +1602,11 @@ protected:
   bool send(const std::shared_ptr<Sink> &sink, const std::vector<OutMsg> &out) {
     if (!sink)
       return false;
+    uint32_t gen = 0;
+    {
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
+      gen = sink->generation; // a failure below applies only to THIS state of the sink
+    }
     size_t failed_bytes = 0;
     {
       std::lock_guard<std::mutex> lock(sink->mutex);
@@ -1617,7 +1626,7 @@ protected:
       }
     }
     if (failed_bytes)
-      on_send_failed(sink, failed_bytes);
+      on_send_failed(sink, failed_bytes, gen);
     return failed_bytes == 0;
   }
 
