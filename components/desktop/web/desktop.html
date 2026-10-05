@@ -1009,6 +1009,21 @@
       while (n > 0 && (b[n] & 0xC0) === 0x80) n--;
       return utf8Decoder.decode(b.subarray(0, n));
     }
+    // The device's byte bound on a TextArea (DESKTOP record MaxTextBytes), with
+    // the firmware's exact rule so both copies stay identical: when the UTF-8
+    // size exceeds `maxBytes`, cut = size - maxBytes, moved to the start of the
+    // next line when a newline follows the cut (and is not the last byte), then
+    // past any UTF-8 continuation bytes. Returns the (possibly unchanged) text.
+    function boundTextBytes(text, maxBytes) {
+      const str = String(text == null ? "" : text);
+      const b = utf8Encoder.encode(str);
+      if (!(maxBytes > 0) || b.length <= maxBytes) return str;
+      let cut = b.length - maxBytes;
+      const nl = b.indexOf(0x0A, cut);
+      if (nl !== -1 && nl + 1 < b.length) cut = nl + 1;
+      while (cut < b.length && (b[cut] & 0xC0) === 0x80) cut++;
+      return utf8Decoder.decode(b.subarray(cut));
+    }
     // Split UTF-8 text into Text-event chunks that fit `maxPayload` (never
     // cutting a UTF-8 sequence in half); an empty text is one empty chunk.
     function chunkText(bytes, maxPayload) {
@@ -3054,10 +3069,22 @@
           };
           wd.trim = () => {
             const max = wd.st.maxLines;
-            if (!max) return;
-            while (wd.st.lines.length > max) {
-              wd.st.lines.shift();
-              if (wd.st.mode === "console" && wd.inner.firstChild) wd.inner.removeChild(wd.inner.firstChild);
+            if (max) {
+              while (wd.st.lines.length > max) {
+                wd.st.lines.shift();
+                if (wd.st.mode === "console" && wd.inner.firstChild) wd.inner.removeChild(wd.inner.firstChild);
+              }
+            }
+            // the device keeps at most MaxTextBytes and applies this same rule
+            // to ITS copy on every append, so appends stay appends on the wire
+            const raw = wd.st.lines.map((l) => l.raw).join("\n");
+            const bounded = boundTextBytes(raw, settings.maxTextBytes);
+            if (bounded !== raw) {
+              const kept = bounded.split("\n");
+              const drop = wd.st.lines.length - kept.length;
+              for (let i = 0; i < drop; i++) { wd.st.lines.shift(); if (wd.st.mode === "console" && wd.inner.firstChild) wd.inner.removeChild(wd.inner.firstChild); }
+              if (wd.st.lines.length && wd.st.lines[0].raw !== kept[0]) { wd.st.lines[0].raw = kept[0]; if (wd.st.mode === "console") wd.renderLine(0); }
+              if (wd.st.mode === "edit" && wd.inner.value !== bounded) wd.inner.value = bounded;
             }
             if (wd.st.lines.length) wd.st.lines[0].startState = null;
           };
@@ -3073,15 +3100,15 @@
               wd.st.lines.push({ raw: parts[i], startState });
               if (wd.st.mode === "console") { const node = document.createElement("div"); node.className = "line"; wd.inner.appendChild(node); wd.renderLine(wd.st.lines.length - 1); }
             }
-            wd.trim();
             if (wd.st.mode === "edit") { wd.inner.value += text; wd.st.dirty = false; }
-            else if (stick) wd.inner.scrollTop = wd.inner.scrollHeight;
+            wd.trim(); // the line bound, then the device's byte bound (edit mode: inner.value follows)
+            if (wd.st.mode === "console" && stick) wd.inner.scrollTop = wd.inner.scrollHeight;
           };
           wd.setText = (text) => {
             wd.st.lines = String(text).split("\n").map((raw) => ({ raw, startState: null }));
-            wd.trim();
-            if (wd.st.mode === "edit") { wd.inner.value = text; wd.st.dirty = false; }
-            else wd.renderAll();
+            if (wd.st.mode === "edit") { wd.inner.value = String(text); wd.st.dirty = false; }
+            wd.trim(); // line bound, then the device's byte bound (edit mode: inner.value follows)
+            if (wd.st.mode === "console") wd.renderAll();
           };
           wd.dispose = () => idle.cancel();
           wd.setMode("edit");
@@ -3626,6 +3653,25 @@
       ta.value = "z".repeat(settings.maxTextBytes + 10); ta.dispatchEvent(new Event("input", { bubbles: true }));
       assert(ta.value.length === settings.maxTextBytes && ta.classList.contains("overflow"), "TextArea edit capped at MaxTextBytes");
       w.widgets.get(4).idle.flush(); await txQueue; await tick(0); // drain the capped edit's Text chunks
+      // 8b. a console TextArea applies the device's byte bound (MaxTextBytes) on
+      // appends with the firmware's cut rule, so appends can stay appends
+      {
+        feedHex(DT.WIDGET_ADD, "0100" + "0100" + "6000" + "0000" + "08" + "01" + "01" + "02" + "10" + "0200" + "0100" + "11" + "0200" + "0000"); // ReadOnly console, MaxLines 0
+        const cw = w.widgets.get(0x60);
+        assert(cw && cw.st.mode === "console", "console textarea added");
+        const saved = settings.maxTextBytes; settings.maxTextBytes = 24;
+        const app = (str) => { const b = utf8Encoder.encode(str); feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "02" + hexOf(new Uint8Array([b.length & 0xFF, b.length >> 8])) + hexOf(b)); };
+        app("0123456789\n"); app("abcdefghij\n"); app("KLMNO\n");
+        const rawOf = () => cw.st.lines.map((l) => l.raw).join("\n");
+        assert(rawOf() === "abcdefghij\nKLMNO\n" && cw.inner.children.length === 3, "byte bound cut at the next line start: " + JSON.stringify(rawOf()));
+        app("\u00e9\u00e9\u00e9\u00e9\u00e9"); // 10 B, pushes to 27 B: cut moves to the next line start again
+        assert(rawOf() === "KLMNO\n\u00e9\u00e9\u00e9\u00e9\u00e9" && cw.inner.children.length === 2, "byte bound keeps the device's exact tail: " + JSON.stringify(rawOf()));
+        app("abcdefghijklmnopqrstuvwxyz"); // 26 B on the last line: no newline after the cut, so it lands mid-line
+        assert(rawOf() === "cdefghijklmnopqrstuvwxyz" && cw.inner.children.length === 1, "mid-line cut drops the earlier lines and shortens the first: " + JSON.stringify(rawOf()));
+        assert(cw.inner.children[0].textContent === "cdefghijklmnopqrstuvwxyz", "first line re-rendered after a mid-line cut");
+        settings.maxTextBytes = saved;
+        feedHex(DT.WIDGET_REMOVE, "0100" + "0100" + "6000");
+      }
       // 9. a List added on the fly: Select / Activate
       feedHex(DT.WIDGET_ADD, "0100" + "0100" + "0700" + "0100" + "09" + "00" + "00" + "01" + "0c" + "0a00" + "0000" + "0200" + "0100" + "61" + "0100" + "62");
       const list = w.widgets.get(7);

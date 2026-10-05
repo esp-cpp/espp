@@ -86,9 +86,11 @@ once.
   `Items` ranges accumulate (an `ItemCount` / full `set_items` discards earlier
   ranges), a removed widget cancels its pending changes, a window opened and
   closed between flushes sends nothing. A TextArea keeps its last `max_lines`
-  lines (the browser applies the same rule) and at most `max_text_bytes`; when
-  the byte bound trims, the host gets a full `Text` replacement so both sides
-  hold the same text. Per-window order: WINDOW_CLOSE ->
+  lines and at most `max_text_bytes` (advertised as `MaxTextBytes`); the
+  browser applies both bounds with the same rules to its copy, so an append
+  stays a `TextAppend` on the wire even when it trims (a log that has filled
+  its bound costs one append per flush, not the whole text). Per-window
+  order: WINDOW_CLOSE ->
   WINDOW_OPEN (full tree) -> WIDGET_ADD -> WIDGET_SET -> WIDGET_REMOVE; then
   DIALOG / DIALOG_CLOSE -> NOTIFY -> DESKTOP (when apps or settings changed).
 - The only frame sent from another context is `DesktopService`'s ERROR for a

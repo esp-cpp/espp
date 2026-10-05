@@ -22,7 +22,7 @@ const end = html.indexOf("// ==== DESKTOP:END-PURE ====");
 assert(begin > 0 && end > begin, "pure-block markers not found in desktop.html");
 const pure = html.slice(begin, end);
 const P = new Function(pure + `
-  return { pickAutoConnectCandidate, sortedOrder, compareCells, cellSortKey, DT, DT_NAME, PROP, WT, WIN, WEV, WGEV, KEY, MOD, LAYOUT, TA_FLAG, MIN_WINDOW, DESKTOP_MAX_PAYLOAD_CAP, COLOR_DEFAULT, DESKTOP_HAS_SNAPSHOT, DESKTOP_WINDOW_LIST_COMPLETE, MAX_TEXT_BYTES_DEFAULT, SUBMIT_EVENT_HEADER, DIALOG_RESULT_HEADER, utf8ByteLength, truncateUtf8,
+  return { boundTextBytes, pickAutoConnectCandidate, sortedOrder, compareCells, cellSortKey, DT, DT_NAME, PROP, WT, WIN, WEV, WGEV, KEY, MOD, LAYOUT, TA_FLAG, MIN_WINDOW, DESKTOP_MAX_PAYLOAD_CAP, COLOR_DEFAULT, DESKTOP_HAS_SNAPSHOT, DESKTOP_WINDOW_LIST_COMPLETE, MAX_TEXT_BYTES_DEFAULT, SUBMIT_EVENT_HEADER, DIALOG_RESULT_HEADER, utf8ByteLength, truncateUtf8,
            ByteReader, ByteWriter, hexOf, bytesOfHex, propKind, readRec, decodeProp, propBytes, desktopSettings,
            decodeMessage, encodeMessage, decodeWidgetSet, decodeDesktop, chunkText, keyCodeFor,
            clampGeometry, geometryEquals, resizeGeometry, placeWindow, createGeometryStore, geometryKey,
@@ -331,6 +331,15 @@ test("registry metadata and wiring constants", () => {
     assert.deepStrictEqual(P.pickAutoConnectCandidate([], [port(0x1209), port(0x1209)], 0x1209), { kind: "serial", several: 2 });
     assert.strictEqual(P.pickAutoConnectCandidate([other], [port(0x2341), { getInfo: () => { throw new Error("x"); } }], 0x1209), null);
     assert.strictEqual(P.pickAutoConnectCandidate(null, undefined, 0x1209), null);
+  }
+  // the device's byte bound on a TextArea: the firmware's exact cut rule (desktop_model.hpp bound_text)
+  {
+    assert.strictEqual(P.boundTextBytes("abc", 24), "abc");
+    assert.strictEqual(P.boundTextBytes("0123456789\nabcdefghij\nKLMNO\n", 24), "abcdefghij\nKLMNO\n", "cut moves to the next line start");
+    assert.strictEqual(P.boundTextBytes("ab\u00e9cdefghijklmnopqrstuvwxyz", 24), "cdefghijklmnopqrstuvwxyz", "no newline: mid-line cut past the UTF-8 continuation byte");
+    assert.strictEqual(P.boundTextBytes("0123456789\n", 4), "789\n", "a newline that is the LAST byte does not move the cut");
+    assert.strictEqual(P.boundTextBytes("abc", 0), "abc", "a zero bound is ignored");
+    assert.strictEqual(P.boundTextBytes(null, 8), "");
   }
   assert.strictEqual(P.MIN_WINDOW.w, 160);
 });

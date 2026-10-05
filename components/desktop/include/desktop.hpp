@@ -179,7 +179,8 @@ public:
     /// queued commands are never evicted.
     size_t max_queued_commands{64};
     /// Bound on a TextArea's retained text and on a text the host sends for
-    /// one widget (Text events are reassembled up to this size).
+    /// one widget (Text events are reassembled up to this size). Advertised to
+    /// the host (DESKTOP record MaxTextBytes), which applies the same bound.
     size_t max_text_bytes{16 * 1024};
     /// The desktop task: every app callback runs on it, so size the stack for
     /// the apps (file I/O and fmt formatting comfortably fit 8 KiB).

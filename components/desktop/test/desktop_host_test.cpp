@@ -1479,10 +1479,41 @@ static void test_model_flush() {
   CHECK(s && s->entries.size() == 1 && s->entries[0].props.size() == 1 &&
         s->entries[0].props[0].is(PropTag::TextAppend) &&
         s->entries[0].props[0].as_text() == "line0\nline1\nline2\nline3\nline4\n");
+  // an append that pushes the stored text past the BYTE bound stays an append
+  // on the wire (the host applies the same bound to its copy); the retained
+  // text is cut at the start of the line that straddles the bound
+  {
+    m.max_text_bytes = 24;
+    m.set_prop(win, ta, Prop::text(PropTag::Text, "0123456789\nabcdefghij\n")); // 22 B
+    m.flush();
+    m.append_text(win, ta, "KLMNO\n"); // 28 B > 24: cut to the next line start
+    CHECK(m.widget(win, ta)->text == "abcdefghij\nKLMNO\n");
+    out = m.flush();
+    s = out.size() == 1 ? decode_widget_set(out[0].payload) : std::nullopt;
+    CHECK(s && s->entries.size() == 1 && s->entries[0].props.size() == 1 &&
+          s->entries[0].props[0].is(PropTag::TextAppend) &&
+          s->entries[0].props[0].as_text() == "KLMNO\n");
+    // a cut with no newline after it lands mid-line, past a UTF-8 continuation byte
+    m.set_prop(win, ta,
+               Prop::text(PropTag::Text, "a\xc3\xa9"
+                                         "bcdefghijklmnopqrs")); // 21 B
+    m.flush();
+    m.append_text(win, ta, "uvwxy"); // 26 B: cut = 2 is the continuation byte of U+00E9
+    CHECK(m.widget(win, ta)->text == "bcdefghijklmnopqrsuvwxy" &&
+          m.widget(win, ta)->text.size() == 23);
+    out = m.flush();
+    s = out.size() == 1 ? decode_widget_set(out[0].payload) : std::nullopt;
+    CHECK(s && s->entries.size() == 1 && s->entries[0].props.size() == 1 &&
+          s->entries[0].props[0].is(PropTag::TextAppend) &&
+          s->entries[0].props[0].as_text() == "uvwxy");
+    m.max_text_bytes = 64;
+    m.set_prop(win, ta, Prop::text(PropTag::Text, ""));
+    m.flush();
+  }
   m.append_text(win, ta, std::string(100, 'x'));
   CHECK(m.widget(win, ta)->text.size() <= 64);
-  // the pending append grew past max_text_bytes: it became a Text (replace)
-  // of the bounded text, cancelling the append
+  // a pending append LARGER than max_text_bytes is replaced by a Text of the
+  // bounded text (never more than max_text_bytes on the wire), cancelling the append
   out = m.flush();
   s = out.size() == 1 ? decode_widget_set(out[0].payload) : std::nullopt;
   CHECK(s && s->entries.size() == 1 && s->entries[0].props.size() == 1 &&

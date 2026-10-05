@@ -825,19 +825,20 @@ public:
     return true;
   }
 
-  /// Append to a widget's text (TextArea: bounded by max_lines, which the host
-  /// applies identically, and max_text_bytes, which only the device applies:
-  /// when the latter trims, the host gets a full Text replacement instead of
-  /// the append so the two never diverge).
+  /// Append to a widget's text. A TextArea is bounded by max_lines and by
+  /// max_text_bytes (advertised as the DESKTOP record MaxTextBytes); the host
+  /// applies BOTH bounds with the same rules to its own copy, so an append
+  /// stays an append on the wire even when it trims (sending the whole bounded
+  /// text on every append past the bound would multiply the traffic by the
+  /// bound / append ratio and stall the link). Only a pending append larger
+  /// than the whole bound becomes a Text replacement (cheaper than the append).
   bool append_text(uint16_t win, uint16_t widget_id, std::string_view text) {
     WidgetState *s = this->widget(win, widget_id);
     if (!s)
       return false;
     s->text += text;
-    if (s->type == dp::WidgetType::TextArea && bound_text(*s)) {
-      dirty.set(win, widget_id, dp::Prop::text(dp::PropTag::Text, s->text));
-      return true;
-    }
+    if (s->type == dp::WidgetType::TextArea)
+      bound_text(*s);
     const size_t pending = dirty.set(win, widget_id, dp::Prop::text(dp::PropTag::TextAppend, text));
     if (pending > max_text_bytes) {
       // the host would receive more than it keeps: replace with the bounded text
@@ -1164,8 +1165,10 @@ private:
 
   /// Keep a TextArea's text to its last max_lines lines (the same rule as the
   /// browser's ring: the text after the last newline counts as a line, so
-  /// "a\nb\n" is three lines) and to max_text_bytes bytes. Returns true when
-  /// the BYTE bound cut something (the host does not apply it).
+  /// "a\nb\n" is three lines) and to max_text_bytes bytes (the browser applies
+  /// this exact byte rule too: cut = size - max, moved to the start of the next
+  /// line when one follows, then past any UTF-8 continuation bytes). Returns
+  /// true when the BYTE bound cut something.
   bool bound_text(WidgetState &s) const {
     if (s.max_lines) {
       const size_t lines = static_cast<size_t>(std::count(s.text.begin(), s.text.end(), '\n')) + 1;
