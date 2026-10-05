@@ -11,6 +11,7 @@
 #include <array>
 #include <cstdint>
 #include <cstdio>
+#include <limits>
 
 #include "detail/mcp266_core.hpp"
 
@@ -37,9 +38,14 @@ static void test_command_object() {
   CHECK(command_object(24) == 0x2018);  // read main battery
   CHECK(command_object(82) == 0x2052);  // read temperature
   CHECK(command_object(200) == 0x20C8); // e-stop reset
+  CHECK(command_object(20) == 0x2014);  // reset encoders
+  CHECK(command_object(22) == 0x2016);  // set M1 encoder
+  CHECK(command_object(23) == 0x2017);  // set M2 encoder
   CHECK(kMainBatteryObject == 0x2018);
   CHECK(kTemperatureObject == 0x2052);
   CHECK(kEStopResetObject == 0x20C8);
+  CHECK(kResetEncodersObject == 0x2014);
+  CHECK(kPositionGainScale == 1024);
 }
 
 static void test_axis_objects() {
@@ -54,10 +60,12 @@ static void test_axis_objects() {
   CHECK(m1.position_pid_get == 0x203F);
   CHECK(m1.drive_duty == 0x2020);
   CHECK(m1.drive_speed == 0x2023);
+  CHECK(m1.encoder_set == 0x2016);
   CHECK(m2.position_pid_set == 0x203E);
   CHECK(m2.position_pid_get == 0x2040);
   CHECK(m2.drive_duty == 0x2021);
   CHECK(m2.drive_speed == 0x2024);
+  CHECK(m2.encoder_set == 0x2017);
   // the CiA 402 offset applied to a device-profile object selects the axis
   CHECK(static_cast<uint16_t>(0x6040 + m2.object_offset) == 0x6840); // controlword
   CHECK(static_cast<uint16_t>(0x607A + m2.object_offset) == 0x687A); // target position
@@ -81,10 +89,30 @@ static void test_position_pid_remap() {
   static_assert(position_pid_readback_to_setter({7, 8, 9, 0, 0, 0, 0})[1] == 7);
 }
 
+static void test_scale_position_gain() {
+  std::printf("test_scale_position_gain\n");
+  // round-to-nearest (not truncate) and clamp to the non-negative i32 range,
+  // matching espp::Basicmicro's scale_pid_gain()
+  CHECK(scale_position_gain(4.0f) == 4096);
+  CHECK(scale_position_gain(1.5f) == 1536);
+  // 102.5 / 1024 scales back to exactly 102.5 -> rounds up to 103 (truncation: 102)
+  CHECK(scale_position_gain(102.5f / 1024.0f) == 103);
+  CHECK(scale_position_gain(15491.0f / 1024.0f) == 15491); // the default fallback P round-trips
+  CHECK(scale_position_gain(0.0f) == 0);
+  CHECK(scale_position_gain(-1.0f) == 0); // negatives clamp to 0
+  CHECK(scale_position_gain(std::numeric_limits<float>::quiet_NaN()) == 0);
+  CHECK(scale_position_gain(std::numeric_limits<float>::infinity()) == INT32_MAX);
+  CHECK(scale_position_gain(1.0e12f) == INT32_MAX); // >> 2^31, saturates
+  // constexpr-evaluable
+  static_assert(scale_position_gain(2.0f) == 2048);
+  static_assert(scale_position_gain(-2.0f) == 0);
+}
+
 int main() {
   test_command_object();
   test_axis_objects();
   test_position_pid_remap();
+  test_scale_position_gain();
   if (g_failures) {
     std::printf("%d FAILURES\n", g_failures);
     return 1;

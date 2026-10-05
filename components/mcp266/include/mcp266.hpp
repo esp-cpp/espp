@@ -30,9 +30,10 @@ namespace espp {
 ///          control-loop parameters are NOT standard CiA 402 objects: the MCP
 ///          mirrors its packet-serial command set into the manufacturer region
 ///          at object index 0x2000 + command number, which this class uses to
-///          configure the position PID (commands 61-64), issue the
-///          manufacturer speed/duty commands (32/33, 35/36), and read
-///          telemetry (24, 82). See detail/mcp266_core.hpp.
+///          configure and read back the position PID (commands 61-64), set or
+///          zero the encoder counts (22/23, 20), issue the manufacturer
+///          speed/duty commands (32/33, 35/36), and read telemetry (24, 82).
+///          See detail/mcp266_core.hpp.
 ///
 ///          \b Important: two device quirks must be handled, both done by
 ///          configure_position_loop():
@@ -157,13 +158,8 @@ public:
       return false;
     AxisState &a = axis_state(axis);
     std::array<int32_t, 7> readback{};
-    for (uint8_t sub = 1; sub <= 7; ++sub) {
-      readback[sub - 1] = client_.read_i32(a.objects.position_pid_get, sub, ec);
-      if (ec) {
-        logger_.error("{}: position PID read 0x{:04X}:{} failed: {}", a.name,
-                      a.objects.position_pid_get, sub, ec.message());
-        return false;
-      }
+    if (!read_position_pid_raw(a, readback, ec)) {
+      return false;
     }
     // readback order is [P, I, D, MaxI, Deadzone, MinPos, MaxPos]
     if (readback[0] == 0) {
@@ -174,18 +170,14 @@ public:
     }
     readback[5] = min_pos;
     readback[6] = max_pos;
-    const auto setter = detail::mcp266::position_pid_readback_to_setter(readback);
-    for (uint8_t sub = 1; sub <= 7; ++sub) {
-      if (!client_.write_i32(a.objects.position_pid_set, sub, setter[sub - 1], ec)) {
-        logger_.error("{}: position PID write 0x{:04X}:{} rejected: {}", a.name,
-                      a.objects.position_pid_set, sub, ec.message());
-        return false;
-      }
+    if (!write_position_pid_raw(a, detail::mcp266::position_pid_readback_to_setter(readback), ec)) {
+      return false;
     }
     // verify via the readback's field order (min/max are subs 6/7 there too)
-    const int32_t got_min = client_.read_i32(a.objects.position_pid_get, 6, ec);
-    const int32_t got_max = client_.read_i32(a.objects.position_pid_get, 7, ec);
-    if (ec || got_min != min_pos || got_max != max_pos) {
+    int32_t got_min = 0;
+    int32_t got_max = 0;
+    if (!read_position_limits(axis, got_min, got_max, ec) || got_min != min_pos ||
+        got_max != max_pos) {
       logger_.error("{}: position clamp did not take (read [{}, {}], wanted [{}, {}])", a.name,
                     got_min, got_max, min_pos, max_pos);
       ec = std::make_error_code(std::errc::protocol_error);
@@ -200,6 +192,109 @@ public:
   ///        P gain (see the fallback_p overload). Convenience for the common case.
   bool configure_position_loop(Axis axis, int32_t min_pos, int32_t max_pos, std::error_code &ec) {
     return configure_position_loop(axis, min_pos, max_pos, kDefaultPositionP, ec);
+  }
+
+  /// \brief Read an axis's position PID record (mirrored command 63/64). Gains
+  ///        are converted to floats (the record stores them x1024), matching
+  ///        espp::Basicmicro::read_position_pid().
+  /// \param axis The motor channel.
+  /// \param p Out: proportional gain.
+  /// \param i Out: integral gain.
+  /// \param d Out: derivative gain.
+  /// \param max_i Out: maximum integral windup.
+  /// \param deadzone Out: deadzone in encoder counts.
+  /// \param min_pos Out: minimum commandable position (the clamp).
+  /// \param max_pos Out: maximum commandable position (the clamp).
+  /// \param ec Set on failure.
+  /// \return True on success.
+  bool read_position_pid(Axis axis, float &p, float &i, float &d, uint32_t &max_i,
+                         uint32_t &deadzone, int32_t &min_pos, int32_t &max_pos,
+                         std::error_code &ec) {
+    ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
+    std::array<int32_t, 7> readback{};
+    if (!read_position_pid_raw(axis_state(axis), readback, ec)) {
+      return false;
+    }
+    constexpr float scale = static_cast<float>(detail::mcp266::kPositionGainScale);
+    p = static_cast<float>(readback[0]) / scale;
+    i = static_cast<float>(readback[1]) / scale;
+    d = static_cast<float>(readback[2]) / scale;
+    max_i = static_cast<uint32_t>(readback[3]);
+    deadzone = static_cast<uint32_t>(readback[4]);
+    min_pos = readback[5];
+    max_pos = readback[6];
+    return true;
+  }
+
+  /// \brief Write an axis's whole position PID record (mirrored command
+  ///        61/62), taking care of the setter's D, P, I field order. Gains are
+  ///        floats, stored x1024 (rounded to nearest and clamped non-negative,
+  ///        as espp::Basicmicro::set_position_pid() does). Prefer
+  ///        configure_position_loop() when only the clamp needs setting; this
+  ///        is for installing tuned gains.
+  /// \param axis The motor channel.
+  /// \param p Proportional gain.
+  /// \param i Integral gain.
+  /// \param d Derivative gain.
+  /// \param max_i Maximum integral windup.
+  /// \param deadzone Deadzone in encoder counts.
+  /// \param min_pos Minimum commandable position (the clamp).
+  /// \param max_pos Maximum commandable position (the clamp).
+  /// \param ec Set on failure.
+  /// \return True on success.
+  bool set_position_pid(Axis axis, float p, float i, float d, uint32_t max_i, uint32_t deadzone,
+                        int32_t min_pos, int32_t max_pos, std::error_code &ec) {
+    ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
+    if (min_pos > max_pos) {
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+    const AxisState &a = axis_state(axis);
+    const std::array<int32_t, 7> readback_order{detail::mcp266::scale_position_gain(p),
+                                                detail::mcp266::scale_position_gain(i),
+                                                detail::mcp266::scale_position_gain(d),
+                                                static_cast<int32_t>(max_i),
+                                                static_cast<int32_t>(deadzone),
+                                                min_pos,
+                                                max_pos};
+    if (!write_position_pid_raw(a, detail::mcp266::position_pid_readback_to_setter(readback_order),
+                                ec)) {
+      return false;
+    }
+    logger_.info("{}: position PID written (P={}, I={}, D={}, clamp=[{}, {}])", a.name,
+                 readback_order[0], readback_order[1], readback_order[2], min_pos, max_pos);
+    return true;
+  }
+
+  /// \brief Read just the MinPos/MaxPos clamp of an axis's position PID record
+  ///        (two SDOs instead of the seven of read_position_pid()). Useful as a
+  ///        cheap check that the controller still holds the configuration it
+  ///        was given: it reverts to its EEPROM (factory clamp [0, 0]) on a
+  ///        power cycle.
+  /// \param axis The motor channel.
+  /// \param min_pos Out: minimum commandable position.
+  /// \param max_pos Out: maximum commandable position.
+  /// \param ec Set on failure.
+  /// \return True on success.
+  bool read_position_limits(Axis axis, int32_t &min_pos, int32_t &max_pos, std::error_code &ec) {
+    ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
+    const AxisState &a = axis_state(axis);
+    min_pos = client_.read_i32(a.objects.position_pid_get, 6, ec);
+    if (!ec) {
+      max_pos = client_.read_i32(a.objects.position_pid_get, 7, ec);
+    }
+    if (ec) {
+      logger_.error("{}: position limits read 0x{:04X} failed: {}", a.name,
+                    a.objects.position_pid_get, ec.message());
+      return false;
+    }
+    return true;
   }
 
   /// \brief Set the CiA 402 software position limits (object 0x607D:1/:2) for an
@@ -299,6 +394,44 @@ public:
       return false;
     count = axis_state(axis).drive.get_position_actual(ec);
     return !ec;
+  }
+  /// \brief Set an axis's encoder count (mirrored packet-serial command 22/23).
+  ///        For a quadrature encoder this defines the count at the current
+  ///        position, e.g. to home against a limit switch or to restore a
+  ///        remembered position after power-up. Takes effect at once; the
+  ///        position loop then sees the new count.
+  /// \param axis Channel.
+  /// \param count The count to install.
+  /// \param ec Set on failure.
+  /// \return True on success.
+  bool set_encoder(Axis axis, int32_t count, std::error_code &ec) {
+    ec.clear();
+    if (!check_axis(axis, ec))
+      return false;
+    const AxisState &a = axis_state(axis);
+    if (!client_.write_i32(a.objects.encoder_set, 0, count, ec)) {
+      logger_.error("{}: set encoder 0x{:04X} rejected: {}", a.name, a.objects.encoder_set,
+                    ec.message());
+      return false;
+    }
+    logger_.info("{}: encoder count set to {}", a.name, count);
+    return true;
+  }
+  /// \brief Zero both encoder counters (mirrored packet-serial command 20),
+  ///        matching espp::Basicmicro::reset_encoders().
+  /// \param ec Set on failure.
+  /// \return True on success.
+  bool reset_encoders(std::error_code &ec) {
+    ec.clear();
+    // Command 20 has no payload, so the SDO scalar width is unknown; try the
+    // common ones (as reset_estop() does).
+    bool ok = client_.write_u8(detail::mcp266::kResetEncodersObject, 0, 1, ec);
+    if (!ok) {
+      ec.clear();
+      ok = client_.write_u32(detail::mcp266::kResetEncodersObject, 0, 1, ec);
+    }
+    logger_.info("encoder reset {}", ok ? "accepted" : "rejected");
+    return ok;
   }
   /// \brief Read the actual velocity (0x606C / 0x686C).
   /// \param axis Channel.
@@ -440,6 +573,35 @@ private:
   }
 
   AxisState &axis_state(Axis axis) { return axis == Axis::M1 ? m1_ : m2_; }
+
+  /// Read the seven-field position PID record in the readback's order
+  /// [P, I, D, MaxI, Deadzone, MinPos, MaxPos] (subindices 1..7 of command 63/64).
+  bool read_position_pid_raw(const AxisState &a, std::array<int32_t, 7> &readback,
+                             std::error_code &ec) {
+    for (uint8_t sub = 1; sub <= 7; ++sub) {
+      readback[sub - 1] = client_.read_i32(a.objects.position_pid_get, sub, ec);
+      if (ec) {
+        logger_.error("{}: position PID read 0x{:04X}:{} failed: {}", a.name,
+                      a.objects.position_pid_get, sub, ec.message());
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// Write the seven-field record already in the setter's order
+  /// [D, P, I, MaxI, Deadzone, MinPos, MaxPos] (subindices 1..7 of command 61/62).
+  bool write_position_pid_raw(const AxisState &a, const std::array<int32_t, 7> &setter,
+                              std::error_code &ec) {
+    for (uint8_t sub = 1; sub <= 7; ++sub) {
+      if (!client_.write_i32(a.objects.position_pid_set, sub, setter[sub - 1], ec)) {
+        logger_.error("{}: position PID write 0x{:04X}:{} rejected: {}", a.name,
+                      a.objects.position_pid_set, sub, ec.message());
+        return false;
+      }
+    }
+    return true;
+  }
 
   /// Write the axis mode of operation directly (the MCP does not echo the
   /// requested mode in 0x6061, so Ds402Drive::set_mode() -- which verifies the

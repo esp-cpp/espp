@@ -56,7 +56,33 @@ inline constexpr uint16_t kTemperatureObject =
     command_object(BasicmicroCommand::ReadTemperature); ///< tenths of a degree C (u16)
 inline constexpr uint16_t kEStopResetObject =
     command_object(BasicmicroCommand::EStopReset); ///< write-only
+inline constexpr uint16_t kResetEncodersObject =
+    command_object(BasicmicroCommand::ResetEncoders); ///< write-only, zeros both counters
 /// @}
+
+/// \brief Scale of the position PID gains in the record: the controller stores
+///        P, I and D as fixed point x1024 (same as the packet-serial driver).
+inline constexpr int32_t kPositionGainScale = 1024;
+
+/// \brief Convert a floating-point position PID gain to the record's fixed-point
+///        representation (x kPositionGainScale), as written through the i32 SDO.
+/// \details Mirrors espp::Basicmicro's scale_pid_gain(): rounds to nearest rather
+///          than truncating (truncation biases every gain downward by up to one
+///          LSB) and clamps to [0, INT32_MAX]. Gains are non-negative on these
+///          controllers, and a raw cast of a negative or non-finite product to
+///          an integer is either silently wrong or undefined.
+/// \param gain The gain as a float.
+/// \return The fixed-point gain, clamped to the non-negative int32_t range.
+inline constexpr int32_t scale_position_gain(float gain) {
+  if (!(gain > 0.0f)) { // false for <= 0 and for NaN
+    return 0;
+  }
+  const double scaled = static_cast<double>(gain) * static_cast<double>(kPositionGainScale);
+  if (!(scaled < 2147483647.5)) { // also false for +inf; saturate instead of overflowing
+    return INT32_MAX;
+  }
+  return static_cast<int32_t>(scaled + 0.5); // scaled > 0, so this rounds to nearest
+}
 
 /// \brief The manufacturer command objects and CiA 402 offset for one axis.
 struct AxisObjects {
@@ -65,21 +91,26 @@ struct AxisObjects {
   uint16_t position_pid_get; ///< Position PID readback (command 63/64).
   uint16_t drive_duty;       ///< Signed-duty command (32/33).
   uint16_t drive_speed;      ///< Signed-speed command (35/36).
+  uint16_t encoder_set;      ///< Encoder count setter (command 22/23), write-only.
 };
 
 /// \brief Objects for motor 1 (the standard axis).
 inline constexpr AxisObjects axis_m1() {
-  return {kAxisOffsetM1, command_object(BasicmicroCommand::SetPositionPidM1),
+  return {kAxisOffsetM1,
+          command_object(BasicmicroCommand::SetPositionPidM1),
           command_object(BasicmicroCommand::ReadPositionPidM1),
           command_object(BasicmicroCommand::DriveM1SignedDuty),
-          command_object(BasicmicroCommand::DriveM1SignedSpeed)};
+          command_object(BasicmicroCommand::DriveM1SignedSpeed),
+          command_object(BasicmicroCommand::SetEncoderM1)};
 }
 /// \brief Objects for motor 2 (mirrored at +0x800 / command n+1).
 inline constexpr AxisObjects axis_m2() {
-  return {kAxisOffsetM2, command_object(BasicmicroCommand::SetPositionPidM2),
+  return {kAxisOffsetM2,
+          command_object(BasicmicroCommand::SetPositionPidM2),
           command_object(BasicmicroCommand::ReadPositionPidM2),
           command_object(BasicmicroCommand::DriveM2SignedDuty),
-          command_object(BasicmicroCommand::DriveM2SignedSpeed)};
+          command_object(BasicmicroCommand::DriveM2SignedSpeed),
+          command_object(BasicmicroCommand::SetEncoderM2)};
 }
 
 /// \brief Remap a position-PID record from the readback order to the setter
