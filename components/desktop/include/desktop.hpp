@@ -1145,9 +1145,13 @@ protected:
     uint8_t module{detail::dp::kModule};
     send_fn send{nullptr};
     std::mutex mutex; ///< held across `send` so this sink's frames never interleave
+    /// Attached: a host asked for the desktop on this transport (GET_DESKTOP)
+    /// and it was not detached since (set_sink_active). Only attached sinks
+    /// receive broadcasts; a refused frame does NOT clear this (see needs_resync).
     bool active{false};
-    /// A frame was dropped and no snapshot got through since: the sink is
-    /// inactive and resync_if_due() re-sends the snapshot at `resync_due`.
+    /// A frame was refused and no snapshot got through since: streaming to the
+    /// (still attached) sink is paused and resync_if_due() re-sends the
+    /// snapshot at `resync_due`.
     std::atomic<bool> needs_resync{false};
     std::chrono::steady_clock::time_point resync_due{}; ///< guarded by mutex_
     std::chrono::milliseconds resync_retry{0};          ///< current back-off, guarded by mutex_
@@ -1263,7 +1267,7 @@ protected:
       if (model_.dirty.any())
         next = std::min(next, last_flush_ + config_.flush_period);
       for (const auto &s : sinks_)
-        if (s->needs_resync.load() && !s->active)
+        if (s->active && s->needs_resync.load())
           next = std::min(next, s->resync_due);
     }
     std::unique_lock<std::mutex> lock(m);
@@ -1355,11 +1359,11 @@ protected:
     return send(sink, out);
   }
 
-  /// Device-initiated resync: a sink that dropped a frame (inactive since) is
-  /// sent the full snapshot again once its retry time comes. While the
-  /// transport still refuses frames each attempt costs one failed write and
-  /// the retry backs off; once the whole snapshot is taken the sink is active
-  /// again and the following flushes stream deltas to it. The browser treats
+  /// Device-initiated resync: an attached sink whose streaming is paused
+  /// (needs_resync) is sent the full snapshot again once its retry time comes.
+  /// While the transport still refuses frames each attempt costs one failed
+  /// write and the retry backs off; once the whole snapshot is taken streaming
+  /// resumes and the following flushes send deltas to it. The browser treats
   /// an unsolicited DESKTOP (complete window list) + snapshot WINDOW_OPENs as
   /// authoritative, so this heals its mirror without a request.
   void resync_if_due() {
@@ -1368,7 +1372,7 @@ protected:
       std::lock_guard<std::recursive_mutex> lock(mutex_);
       const auto now = std::chrono::steady_clock::now();
       for (const auto &s : sinks_)
-        if (s->needs_resync.load() && !s->active && now >= s->resync_due)
+        if (s->active && s->needs_resync.load() && now >= s->resync_due)
           due.emplace_back(s, s->generation);
     }
     for (const auto &[sink, gen] : due) {
@@ -1379,8 +1383,9 @@ protected:
       if (sink->generation != gen)
         continue; // changed while the snapshot was in flight (a concurrent send was
                   // refused, or the transport detached / re-attached): that state wins
-      sink->needs_resync.store(false);
-      sink->active = true;
+      if (!sink->active)
+        continue;                      // (cannot happen with an unchanged generation; defensive)
+      sink->needs_resync.store(false); // paused no more (it stayed attached throughout)
       ++sink->generation;
       logger_.info("sink {} took the snapshot again; streaming to it resumed", sink->id);
     }
@@ -1395,8 +1400,7 @@ protected:
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (sink->generation != gen)
       return; // stale: the sink detached, re-attached or already failed while this send ran
-    sink->active = false;
-    ++sink->generation;
+    ++sink->generation; // the sink stays attached (attached()); streaming is paused by needs_resync
     if (!sink->needs_resync.exchange(true)) {
       sink->resync_retry = kResyncRetryMin;
       logger_.warn("sink {} could not take a {}-byte frame; streaming to it is paused until it "
@@ -1567,9 +1571,10 @@ protected:
     flush_now();
   }
 
-  /// Encode everything pending (under the lock) and send it to every active
-  /// sink (outside it). With no active sink the changes are simply dropped:
-  /// the next GET_DESKTOP replays the full state anyway.
+  /// Encode everything pending (under the lock) and send it to every attached
+  /// sink whose streaming is not paused (outside it). With no such sink the
+  /// changes are simply dropped: the next snapshot (GET_DESKTOP or the
+  /// automatic resync) replays the full state anyway.
   void flush_now() {
     std::vector<OutMsg> out{};
     std::vector<std::shared_ptr<Sink>> targets{};
@@ -1584,8 +1589,9 @@ protected:
         logger_.warn("flush: {} oversized properties dropped (max payload {})", dropped,
                      max_payload());
       last_flush_ = std::chrono::steady_clock::now();
-      std::copy_if(sinks_.begin(), sinks_.end(), std::back_inserter(targets),
-                   [](const std::shared_ptr<Sink> &s) { return s->active; });
+      std::copy_if(
+          sinks_.begin(), sinks_.end(), std::back_inserter(targets),
+          [](const std::shared_ptr<Sink> &s) { return s->active && !s->needs_resync.load(); });
     }
     if (out.empty())
       return;

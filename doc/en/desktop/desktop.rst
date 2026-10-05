@@ -46,8 +46,11 @@ notifications and the app registry are single frames whose limits the API
 enforces (an oversized dialog / toast / title / placeholder / tooltip /
 column set is refused and logged, the registry is bounded in app count and
 string lengths). The transport's ``send`` reports
-whether a frame was queued, and a transport that dropped one is flagged as
-needing a resync until the host's next ``GET_DESKTOP``; the wire format
+whether a frame was queued; when one is refused (the host went away or
+stopped reading) the desktop pauses streaming to that transport
+(``needs_resync()``, it stays attached) and re-sends the full snapshot by
+itself once frames go through again, retrying every second with back-off
+to eight seconds, or at the host's next ``GET_DESKTOP``; the wire format
 is documented in ``include/detail/desktop_protocol.hpp`` and checked by a
 host test against the fixture ``test/desktop_vectors.txt``, which the web
 app's test reads too.
