@@ -1319,16 +1319,16 @@ protected:
       sink->active = true;
       sink->needs_resync.store(false); // this reply is the resync
     }
-    const size_t frames = send_snapshot(sink, cmd.correlation);
-    logger_.debug("GET_DESKTOP from sink {}: {} frames", cmd.sink, frames);
+    const bool ok = send_snapshot(sink, cmd.correlation);
+    logger_.debug("GET_DESKTOP from sink {}: snapshot {}", cmd.sink, ok ? "sent" : "NOT taken");
   }
 
   /// Encode the full state (DESKTOP, then one WINDOW_OPEN snapshot per window
   /// and the open dialogs) under the lock and send it to one sink outside it:
   /// the GET_DESKTOP reply (`correlation` echoed on the DESKTOP frame) or a
-  /// device-initiated resync (no correlation). Returns the number of frames
-  /// built (whether they were all taken is tracked by send()).
-  size_t send_snapshot(const std::shared_ptr<Sink> &sink, std::optional<uint16_t> correlation) {
+  /// device-initiated resync (no correlation). Returns whether the sink took
+  /// every frame (a refused one pauses the sink, see send()).
+  bool send_snapshot(const std::shared_ptr<Sink> &sink, std::optional<uint16_t> correlation) {
     std::vector<OutMsg> out{};
     {
       std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -1346,8 +1346,7 @@ protected:
       if (dropped)
         logger_.warn("snapshot: {} oversized properties dropped", dropped);
     }
-    send(sink, out);
-    return out.size();
+    return send(sink, out);
   }
 
   /// Device-initiated resync: a sink that dropped a frame (inactive since) is
@@ -1368,10 +1367,13 @@ protected:
                    });
     }
     for (const auto &sink : due) {
-      send_snapshot(sink, std::nullopt);
+      const bool ok = send_snapshot(sink, std::nullopt);
       std::lock_guard<std::recursive_mutex> lock(mutex_);
-      if (sink->needs_resync.load())
-        continue; // a frame failed again: on_send_failed() re-armed the retry
+      if (!ok)
+        continue; // a frame was refused again: on_send_failed() re-armed the retry
+      if (!sink->needs_resync.load())
+        continue; // detached meanwhile (set_sink_active(false) cleared the flag): stay inactive
+      sink->needs_resync.store(false);
       sink->active = true;
       logger_.info("sink {} took the snapshot again; streaming to it resumed", sink->id);
     }

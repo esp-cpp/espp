@@ -1392,7 +1392,11 @@
               return;
             }
             if (t.closing) return;
-            if (result.status === "stall") {
+            if (result.status === "stall" || result.status === "babble") {
+              // babble = the device offered more than the buffer took (cannot
+              // happen with packet-aligned reads, see USB_READ_BYTES); recover
+              // like the OTA / ODrive consoles do instead of dying
+              if (result.status === "babble") logLine("warn", "USB IN babble; clearing the endpoint and continuing.");
               try { await device.clearHalt("in", epIn); } catch (_) {}
               continue;
             }
