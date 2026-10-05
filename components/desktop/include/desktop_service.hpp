@@ -69,9 +69,10 @@ public:
   /// Transmits one encoded frame to the host, all-or-nothing, and returns
   /// whether it was queued (unlike the other espp services' `send`, which is
   /// void: the desktop streams state, so a dropped frame must be known -- the
-  /// Desktop then flags this transport as needing a resync, see
-  /// needs_resync()). UsbDevice::write_vendor / write_cdc have exactly this
-  /// contract (bounded wait for FIFO room, never a partial frame).
+  /// Desktop then pauses streaming to this transport and re-sends the full
+  /// snapshot by itself once frames go through again, see needs_resync()).
+  /// UsbDevice::write_vendor / write_cdc have exactly this contract (bounded
+  /// wait for FIFO room, never a partial frame).
   using send_fn = std::function<bool(std::span<const uint8_t> frame)>;
 
   /// Configuration for the DesktopService.
@@ -118,8 +119,9 @@ public:
   bool attached() const { return desktop_.sink_active(sink_); }
 
   /// @brief Whether a frame to this transport was dropped (send returned
-  ///        false) since the host's last GET_DESKTOP: its mirror of the
-  ///        desktop is incomplete until it resyncs.
+  ///        false) and the host's mirror is still incomplete: streaming is
+  ///        paused until the desktop's own snapshot gets through (retried
+  ///        with back-off) or the host sends GET_DESKTOP.
   bool needs_resync() const { return desktop_.sink_needs_resync(sink_); }
 
   /**

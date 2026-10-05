@@ -457,6 +457,15 @@
     const HEADER_SIZE = 9, CRC_SIZE = 4;
     const MAX_PAYLOAD = 4096;
     const MAX_FRAME = HEADER_SIZE + MAX_PAYLOAD + CRC_SIZE;
+    // Bytes requested per bulk IN transfer. A bulk transfer ends on a short
+    // packet OR when the buffer is full, so when the device streams several
+    // max-size frames back-to-back (a 16 KiB log snapshot, a busy Log Viewer)
+    // every packet is full: the request length MUST then be a multiple of the
+    // endpoint's packet size, or the packet that straddles the buffer's end
+    // overruns it ("babble"/overflow) and the pipe errors out. Asking for the
+    // frame size (4111 B) did exactly that once the console held > 4 KiB.
+    // 16 KiB is a multiple of every bulk packet size (64 FS / 512 HS / 1024 SS).
+    const USB_READ_BYTES = 16384;
     // The dispatcher module byte is only a routing key: the desktop service is
     // published on module 9 by default, but a device may serve it on any id.
     // It is resolved on connect from the device's discovery reply (by the
@@ -1345,6 +1354,8 @@
         if (found.alternateSetting !== 0)
           await device.selectAlternateInterface(found.interfaceNumber, found.alternateSetting);
         const epIn = found.inEp.endpointNumber, epOut = found.outEp.endpointNumber;
+        const inPacket = found.inEp.packetSize > 0 ? found.inEp.packetSize : 64;
+        const readLen = Math.max(1, Math.ceil(USB_READ_BYTES / inPacket)) * inPacket; // see USB_READ_BYTES
         const t = {
           kind: "usb",
           name: (device.productName || "USB device") + " (" +
@@ -1375,7 +1386,7 @@
         (async () => {
           for (;;) {
             let result;
-            try { result = await device.transferIn(epIn, MAX_FRAME); }
+            try { result = await device.transferIn(epIn, readLen); }
             catch (e) {
               if (!t.closing) { logLine("err", "USB read error: " + e.message); onTransportGone(t); }
               return;

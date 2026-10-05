@@ -98,10 +98,14 @@ public:
   using window_event_fn = std::function<void(const WindowEvent &)>;
   /// Transmits one encoded frame to a host (one per transport; see add_sink).
   /// Returns false when the frame could NOT be queued (the transport is
-  /// gone, or its FIFO did not drain in time): the desktop then flags the
-  /// sink as needing a resync (sink_needs_resync) and logs, since the host's
-  /// mirror of the desktop is now incomplete until its next GET_DESKTOP. A
-  /// transport must never queue a partial frame (write a frame all-or-nothing).
+  /// gone, or its FIFO did not drain in time). The desktop then stops
+  /// streaming to that sink (its host's mirror is incomplete, and every
+  /// further write would block the desktop task for the transport's drain
+  /// timeout), flags it (sink_needs_resync) and re-sends the full snapshot by
+  /// itself once the transport takes frames again (retried with back-off,
+  /// kResyncRetryMin..kResyncRetryMax) -- or at the host's next GET_DESKTOP,
+  /// whichever comes first. A transport must never queue a partial frame
+  /// (write a frame all-or-nothing).
   using send_fn = std::function<bool(std::span<const uint8_t> frame)>;
 
   // Window flags (WindowConfig::flags / Window::set_flags).
@@ -153,6 +157,12 @@ public:
   static constexpr size_t kMaxFirmwareBytes = detail::dp::kMaxFirmwareBytes;
 
   /// Configuration for the Desktop.
+  /// Retry period of the device-initiated resync after a dropped frame (see
+  /// send_fn): starts at the minimum and doubles up to the maximum while the
+  /// transport keeps refusing frames (each attempt costs one failed write).
+  static constexpr std::chrono::milliseconds kResyncRetryMin{1000};
+  static constexpr std::chrono::milliseconds kResyncRetryMax{8000};
+
   struct Config {
     /// Shown in the browser's tray / title (at most kMaxDeviceNameBytes, else truncated).
     std::string device_name{"espp"};
@@ -936,8 +946,12 @@ public:
   ///        transport should be deactivated; the next GET_DESKTOP reactivates it).
   void set_sink_active(SinkId id, bool active) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if (auto s = find_sink(id))
+    if (auto s = find_sink(id)) {
       s->active = active;
+      if (!active)
+        s->needs_resync.store(
+            false); // detached: no host to resync (the next GET_DESKTOP re-attaches)
+    }
     if (!active)
       text_.forget_sink(id); // a half-received text of the old session is garbage
   }
@@ -982,8 +996,9 @@ public:
     send(reject_sink, out);
   }
 
-  /// @brief Whether a frame to this sink was dropped since its last
-  ///        GET_DESKTOP (the host's mirror is incomplete until it resyncs).
+  /// @brief Whether a frame to this sink was dropped and the host's mirror is
+  ///        still incomplete: streaming to it is paused until the desktop's
+  ///        own snapshot gets through or the host sends GET_DESKTOP.
   bool sink_needs_resync(SinkId id) const {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto s = find_sink(id);
@@ -1130,7 +1145,11 @@ protected:
     send_fn send{nullptr};
     std::mutex mutex; ///< held across `send` so this sink's frames never interleave
     bool active{false};
-    std::atomic<bool> needs_resync{false}; ///< a frame was dropped since the last GET_DESKTOP
+    /// A frame was dropped and no snapshot got through since: the sink is
+    /// inactive and resync_if_due() re-sends the snapshot at `resync_due`.
+    std::atomic<bool> needs_resync{false};
+    std::chrono::steady_clock::time_point resync_due{}; ///< guarded by mutex_
+    std::chrono::milliseconds resync_retry{0};          ///< current back-off, guarded by mutex_
   };
 
   /// The wire type of a command's request (for an ERROR reply).
@@ -1223,7 +1242,8 @@ protected:
     }
     run_pending();
     flush_if_due();
-    // wait for the next due time (timer, flush) or a wake-up
+    resync_if_due();
+    // wait for the next due time (timer, flush, resync) or a wake-up
     std::chrono::steady_clock::time_point next = std::chrono::steady_clock::time_point::max();
     {
       std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -1237,6 +1257,9 @@ protected:
                                   ->due);
       if (model_.dirty.any())
         next = std::min(next, last_flush_ + config_.flush_period);
+      for (const auto &s : sinks_)
+        if (s->needs_resync.load() && !s->active)
+          next = std::min(next, s->resync_due);
     }
     std::unique_lock<std::mutex> lock(m);
     if (next == std::chrono::steady_clock::time_point::max())
@@ -1288,7 +1311,6 @@ protected:
     // to the requesting one (which becomes active)
     flush_now();
     std::shared_ptr<Sink> sink;
-    std::vector<OutMsg> out{};
     {
       std::lock_guard<std::recursive_mutex> lock(mutex_);
       sink = find_sink(cmd.sink);
@@ -1296,12 +1318,26 @@ protected:
         return;
       sink->active = true;
       sink->needs_resync.store(false); // this reply is the resync
+    }
+    const size_t frames = send_snapshot(sink, cmd.correlation);
+    logger_.debug("GET_DESKTOP from sink {}: {} frames", cmd.sink, frames);
+  }
+
+  /// Encode the full state (DESKTOP, then one WINDOW_OPEN snapshot per window
+  /// and the open dialogs) under the lock and send it to one sink outside it:
+  /// the GET_DESKTOP reply (`correlation` echoed on the DESKTOP frame) or a
+  /// device-initiated resync (no correlation). Returns the number of frames
+  /// built (whether they were all taken is tracked by send()).
+  size_t send_snapshot(const std::shared_ptr<Sink> &sink, std::optional<uint16_t> correlation) {
+    std::vector<OutMsg> out{};
+    {
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
       const bool has_snapshot = !model_.windows().empty() || !model_.dialogs().empty();
       bool trimmed = false;
       out.push_back({.type = detail::dp::Type::Desktop,
                      .payload = detail::dp::encode_desktop(model_.desktop_info(has_snapshot),
                                                            max_payload(), &trimmed),
-                     .correlation = cmd.correlation});
+                     .correlation = correlation});
       if (trimmed)
         logger_.warn("DESKTOP record set trimmed to fit {} bytes", max_payload());
       size_t dropped = 0;
@@ -1311,7 +1347,51 @@ protected:
         logger_.warn("snapshot: {} oversized properties dropped", dropped);
     }
     send(sink, out);
-    logger_.debug("GET_DESKTOP from sink {}: {} frames", cmd.sink, out.size());
+    return out.size();
+  }
+
+  /// Device-initiated resync: a sink that dropped a frame (inactive since) is
+  /// sent the full snapshot again once its retry time comes. While the
+  /// transport still refuses frames each attempt costs one failed write and
+  /// the retry backs off; once the whole snapshot is taken the sink is active
+  /// again and the following flushes stream deltas to it. The browser treats
+  /// an unsolicited DESKTOP (complete window list) + snapshot WINDOW_OPENs as
+  /// authoritative, so this heals its mirror without a request.
+  void resync_if_due() {
+    std::vector<std::shared_ptr<Sink>> due{};
+    {
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
+      const auto now = std::chrono::steady_clock::now();
+      std::copy_if(sinks_.begin(), sinks_.end(), std::back_inserter(due),
+                   [now](const std::shared_ptr<Sink> &s) {
+                     return s->needs_resync.load() && !s->active && now >= s->resync_due;
+                   });
+    }
+    for (const auto &sink : due) {
+      send_snapshot(sink, std::nullopt);
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
+      if (sink->needs_resync.load())
+        continue; // a frame failed again: on_send_failed() re-armed the retry
+      sink->active = true;
+      logger_.info("sink {} took the snapshot again; streaming to it resumed", sink->id);
+    }
+  }
+
+  /// A sink's transport dropped a frame: stop streaming to it and schedule the
+  /// device-initiated resync (see send_fn). Called by send() after it released
+  /// the sink's mutex (this takes mutex_; the two are never held together).
+  void on_send_failed(const std::shared_ptr<Sink> &sink, size_t frame_bytes) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    sink->active = false;
+    if (!sink->needs_resync.exchange(true)) {
+      sink->resync_retry = kResyncRetryMin;
+      logger_.warn("sink {} could not take a {}-byte frame; streaming to it is paused until it "
+                   "takes a snapshot again (retried every {} ms+) or the host sends GET_DESKTOP",
+                   sink->id, frame_bytes, kResyncRetryMin.count());
+    } else {
+      sink->resync_retry = std::min(sink->resync_retry * 2, kResyncRetryMax);
+    }
+    sink->resync_due = std::chrono::steady_clock::now() + sink->resync_retry;
   }
 
   void handle(const Command &cmd, const detail::dp::LaunchApp &req) {
@@ -1501,25 +1581,34 @@ protected:
 
   /// Build the frames for one sink (with its module id) and transmit them,
   /// serialized on the sink's mutex (held across the callback). Never called
-  /// with mutex_ held.
-  void send(const std::shared_ptr<Sink> &sink, const std::vector<OutMsg> &out) {
+  /// with mutex_ held. Stops at the first frame the transport refuses: the
+  /// rest of the batch would block for the same drain timeout each and the
+  /// host needs the snapshot anyway (on_send_failed). Returns whether every
+  /// frame was taken.
+  bool send(const std::shared_ptr<Sink> &sink, const std::vector<OutMsg> &out) {
     if (!sink)
-      return;
-    std::lock_guard<std::mutex> lock(sink->mutex);
-    if (!sink->send)
-      return;
-    for (const auto &m : out) {
-      const auto frame = detail::dp::build_frame(m.type, m.payload, sink->module, m.correlation);
-      if (frame.empty()) {
-        logger_.warn_rate_limited("dropping an oversized frame ({} bytes of payload)",
-                                  m.payload.size());
-        continue;
+      return false;
+    size_t failed_bytes = 0;
+    {
+      std::lock_guard<std::mutex> lock(sink->mutex);
+      if (!sink->send)
+        return false;
+      for (const auto &m : out) {
+        const auto frame = detail::dp::build_frame(m.type, m.payload, sink->module, m.correlation);
+        if (frame.empty()) {
+          logger_.warn_rate_limited("dropping an oversized frame ({} bytes of payload)",
+                                    m.payload.size());
+          continue;
+        }
+        if (!sink->send(frame)) {
+          failed_bytes = frame.size();
+          break;
+        }
       }
-      if (!sink->send(frame) && !sink->needs_resync.exchange(true))
-        logger_.warn("sink {} could not take a {}-byte frame; the host must resync "
-                     "(GET_DESKTOP)",
-                     sink->id, frame.size());
     }
+    if (failed_bytes)
+      on_send_failed(sink, failed_bytes);
+    return failed_bytes == 0;
   }
 
 private:

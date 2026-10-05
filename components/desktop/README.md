@@ -172,10 +172,17 @@ it), then the descriptions (logged). Unregistering an app closes its windows
 (WINDOW_CLOSE reason 2) and its id is not reused while a window references it.
 
 Flow control: a `DesktopService::Config::send` returns whether the frame was
-queued (all-or-nothing); when it was not, the desktop logs and flags that
-transport (`needs_resync()`) until the host's next GET_DESKTOP. A full
-command queue (`Config::max_queued_commands`) refuses a request with
-ERROR(EAGAIN) and drops an event; nothing queued is evicted.
+queued (all-or-nothing). When it was not (the host went away or stopped
+reading), the desktop logs once, drops the rest of that batch, and PAUSES
+streaming to that transport (`needs_resync()`): every further write would
+only block the desktop task for the transport's drain timeout, and the
+host's mirror is incomplete anyway. It then re-sends the full snapshot by
+itself (an unsolicited DESKTOP with the complete window list, then one
+snapshot WINDOW_OPEN per window) once the transport takes frames again,
+retrying every 1 s and backing off to 8 s (`kResyncRetryMin/Max`; each attempt
+costs one failed write), or at the host's next GET_DESKTOP, whichever comes
+first. A full command queue (`Config::max_queued_commands`) refuses a request
+with ERROR(EAGAIN) and drops an event; nothing queued is evicted.
 
 ## Log capture
 
