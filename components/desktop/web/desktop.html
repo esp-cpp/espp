@@ -3076,17 +3076,28 @@
               }
             }
             // the device keeps at most MaxTextBytes and applies this same rule
-            // to ITS copy on every append, so appends stay appends on the wire
+            // to ITS copy on every append, so appends stay appends on the wire.
+            // Dropping leading lines leaves the surviving console nodes valid:
+            // each line was rendered from the ANSI state the removed text really
+            // produced, and that state stays on the line (`startState`).
             const raw = wd.st.lines.map((l) => l.raw).join("\n");
             const bounded = boundTextBytes(raw, settings.maxTextBytes);
             if (bounded !== raw) {
               const kept = bounded.split("\n");
               const drop = wd.st.lines.length - kept.length;
               for (let i = 0; i < drop; i++) { wd.st.lines.shift(); if (wd.st.mode === "console" && wd.inner.firstChild) wd.inner.removeChild(wd.inner.firstChild); }
-              if (wd.st.lines.length && wd.st.lines[0].raw !== kept[0]) { wd.st.lines[0].raw = kept[0]; if (wd.st.mode === "console") wd.renderLine(0); }
-              if (wd.st.mode === "edit" && wd.inner.value !== bounded) wd.inner.value = bounded;
+              const first = wd.st.lines[0];
+              if (first && first.raw !== kept[0]) {
+                // a mid-line cut: the kept suffix starts in the ANSI state the removed prefix left behind
+                if (wd.st.flags & TA_FLAG.ANSI) first.startState = ansiSplit(first.raw.slice(0, first.raw.length - kept[0].length), first.startState).state;
+                first.raw = kept[0];
+                if (wd.st.mode === "console") wd.renderLine(0);
+              }
             }
-            if (wd.st.lines.length) wd.st.lines[0].startState = null;
+            // edit mode: the <textarea> follows the device's copy after either
+            // bound, unless the user is mid-edit (their text is sent whole and
+            // the device bounds + echoes it)
+            if (wd.st.mode === "edit" && !wd.st.dirty) { const v = wd.st.lines.map((l) => l.raw).join("\n"); if (wd.inner.value !== v) wd.inner.value = v; }
           };
           wd.append = (text) => {
             const parts = String(text).split("\n");
@@ -3669,7 +3680,23 @@
         app("abcdefghijklmnopqrstuvwxyz"); // 26 B on the last line: no newline after the cut, so it lands mid-line
         assert(rawOf() === "cdefghijklmnopqrstuvwxyz" && cw.inner.children.length === 1, "mid-line cut drops the earlier lines and shortens the first: " + JSON.stringify(rawOf()));
         assert(cw.inner.children[0].textContent === "cdefghijklmnopqrstuvwxyz", "first line re-rendered after a mid-line cut");
+        // an ANSI console: a mid-line cut keeps the colour the removed prefix switched on
+        feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "10" + "0200" + "1100"); // Flags: ReadOnly | Ansi
+        feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "01" + "0000"); // Text ""
+        app("\x1b[31mred " + "0123456789abcdefghijklmnopqrstuvwxyz"); // 5 + 4 + 36 B: cut lands after the SGR code
+        assert(rawOf() === "cdefghijklmnopqrstuvwxyz" && cw.inner.children.length === 1, "ANSI mid-line cut: " + JSON.stringify(rawOf()));
+        assert(cw.inner.children[0].firstElementChild && cw.inner.children[0].firstElementChild.classList.contains("ansi-fg-1") && cw.inner.children[0].textContent === "cdefghijklmnopqrstuvwxyz", "the kept suffix is rendered in the colour the cut-off prefix selected");
+        // edit mode follows the device's copy after a MaxLines trim too, unless the user is mid-edit
+        feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "10" + "0200" + "0000"); // Flags 0 -> editable
+        assert(cw.st.mode === "edit", "textarea switched to edit mode");
         settings.maxTextBytes = saved;
+        feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "01" + "0a00" + hexOf(utf8Encoder.encode("a\nb\nc\nd\ne\n"))); // Text, 6 lines
+        feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "11" + "0200" + "0300"); // MaxLines 3
+        assert(cw.inner.value === "d\ne\n" && cw.st.lines.length === 3, "edit-mode textarea trimmed with the lines: " + JSON.stringify(cw.inner.value));
+        cw.inner.value = "d\ne\nedit"; cw.st.dirty = true;
+        feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "11" + "0200" + "0200"); // MaxLines 2
+        assert(cw.inner.value === "d\ne\nedit" && cw.st.lines.length === 2, "a pending edit is not discarded by a MaxLines trim");
+        cw.st.dirty = false; cw.idle.cancel();
         feedHex(DT.WIDGET_REMOVE, "0100" + "0100" + "6000");
       }
       // 9. a List added on the fly: Select / Activate
