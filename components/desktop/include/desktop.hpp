@@ -948,6 +948,7 @@ public:
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (auto s = find_sink(id)) {
       s->active = active;
+      ++s->generation;
       if (!active)
         s->needs_resync.store(
             false); // detached: no host to resync (the next GET_DESKTOP re-attaches)
@@ -1150,6 +1151,10 @@ protected:
     std::atomic<bool> needs_resync{false};
     std::chrono::steady_clock::time_point resync_due{}; ///< guarded by mutex_
     std::chrono::milliseconds resync_retry{0};          ///< current back-off, guarded by mutex_
+    /// Bumped by every state change (a refused frame, attach / detach); a
+    /// resync reactivates the sink only if nothing changed while its snapshot
+    /// was in flight. Guarded by mutex_.
+    uint32_t generation{0};
   };
 
   /// The wire type of a command's request (for an ERROR reply).
@@ -1318,6 +1323,7 @@ protected:
         return;
       sink->active = true;
       sink->needs_resync.store(false); // this reply is the resync
+      ++sink->generation;
     }
     const bool ok = send_snapshot(sink, cmd.correlation);
     logger_.debug("GET_DESKTOP from sink {}: snapshot {}", cmd.sink, ok ? "sent" : "NOT taken");
@@ -1357,24 +1363,25 @@ protected:
   /// an unsolicited DESKTOP (complete window list) + snapshot WINDOW_OPENs as
   /// authoritative, so this heals its mirror without a request.
   void resync_if_due() {
-    std::vector<std::shared_ptr<Sink>> due{};
+    std::vector<std::pair<std::shared_ptr<Sink>, uint32_t>> due{}; // sink + its generation
     {
       std::lock_guard<std::recursive_mutex> lock(mutex_);
       const auto now = std::chrono::steady_clock::now();
-      std::copy_if(sinks_.begin(), sinks_.end(), std::back_inserter(due),
-                   [now](const std::shared_ptr<Sink> &s) {
-                     return s->needs_resync.load() && !s->active && now >= s->resync_due;
-                   });
+      for (const auto &s : sinks_)
+        if (s->needs_resync.load() && !s->active && now >= s->resync_due)
+          due.emplace_back(s, s->generation);
     }
-    for (const auto &sink : due) {
+    for (const auto &[sink, gen] : due) {
       const bool ok = send_snapshot(sink, std::nullopt);
       std::lock_guard<std::recursive_mutex> lock(mutex_);
       if (!ok)
         continue; // a frame was refused again: on_send_failed() re-armed the retry
-      if (!sink->needs_resync.load())
-        continue; // detached meanwhile (set_sink_active(false) cleared the flag): stay inactive
+      if (sink->generation != gen)
+        continue; // changed while the snapshot was in flight (a concurrent send was
+                  // refused, or the transport detached / re-attached): that state wins
       sink->needs_resync.store(false);
       sink->active = true;
+      ++sink->generation;
       logger_.info("sink {} took the snapshot again; streaming to it resumed", sink->id);
     }
   }
@@ -1385,6 +1392,7 @@ protected:
   void on_send_failed(const std::shared_ptr<Sink> &sink, size_t frame_bytes) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     sink->active = false;
+    ++sink->generation;
     if (!sink->needs_resync.exchange(true)) {
       sink->resync_retry = kResyncRetryMin;
       logger_.warn("sink {} could not take a {}-byte frame; streaming to it is paused until it "
