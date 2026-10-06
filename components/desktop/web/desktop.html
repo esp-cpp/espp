@@ -681,6 +681,7 @@
     const DESKTOP_PROTO = 1;                 // the `proto` byte at the head of every DESKTOP payload
     const DESKTOP_HAS_SNAPSHOT = 0x01;
     const DESKTOP_WINDOW_LIST_COMPLETE = 0x02;  // set when the window list is intact; a trimmed list is advisory, never authoritative
+    const DESKTOP_SNAPSHOT = 0x04;              // a full snapshot (GET_DESKTOP reply / the device's own resync): drop stale dialogs + unlisted windows
     const DESKTOP_MAX_PAYLOAD_CAP = 4081;    // stream_frame limit for a 4096-byte frame with a correlation id
     const DREC = { DEVICE_NAME: 1, FIRMWARE: 2, THEME: 3, ACCENT: 4, MAX_PAYLOAD: 5, FLUSH_PERIOD_MS: 6, MAX_TEXT_BYTES: 7 };
     const MAX_TEXT_BYTES_DEFAULT = 16384;     // DESKTOP record 7 absent: the largest reassembled host Text the device keeps
@@ -3416,6 +3417,11 @@
       for (const a of info.apps) apps.set(a.id, a);
       renderApps();
       for (const w of windows.values()) { w.appName = appName(w.app); }
+      // a snapshot (the reply to our GET_DESKTOP, or the device's own resync after
+      // it had to drop frames to us) re-creates every live dialog right after
+      // this frame: local dialogs are stale until then (a DIALOG_CLOSE may have
+      // been among the dropped frames), so drop them all now
+      if (fromRequest || (info.flags & DESKTOP_SNAPSHOT)) { for (const d of [...dialogs.values()]) closeDialogLocal(d.id); }
       // a COMPLETE open-window list (bit1 set) is authoritative: drop what the
       // device no longer has; a trimmed one says nothing about unlisted windows
       if (!(info.flags & DESKTOP_WINDOW_LIST_COMPLETE)) {
@@ -3812,6 +3818,15 @@
       const complete = Uint8Array.from(truncated); complete[1] = DESKTOP_WINDOW_LIST_COMPLETE;
       handleRxBytes(buildReplyFrame(moduleDesktop, DT.DESKTOP, complete));
       assert(!windows.has(1), "a complete empty window list drops the window");
+      // 13b. a dialog survives a plain DESKTOP broadcast (bit2 clear) but not a
+      // snapshot DESKTOP (bit2 set): its DIALOG frame would follow if it were live
+      feed("dialog");
+      assert(dialogs.size === 1, "dialog open before the broadcast");
+      handleRxBytes(buildReplyFrame(moduleDesktop, DT.DESKTOP, complete));
+      assert(dialogs.size === 1, "a change broadcast keeps the local dialog");
+      const snap = Uint8Array.from(complete); snap[1] = DESKTOP_WINDOW_LIST_COMPLETE | DESKTOP_SNAPSHOT;
+      handleRxBytes(buildReplyFrame(moduleDesktop, DT.DESKTOP, snap));
+      assert(dialogs.size === 0 && els.modal.hidden, "a snapshot DESKTOP drops the stale dialog");
       { // with no window (and no dialog) open, a real pointer hit on a desktop icon must reach the
         // icon: the full-size #windows layer must not swallow it (it did, until pointer-events: none)
         assert(els.modal.hidden, "no modal backdrop while probing the icons");

@@ -1344,9 +1344,11 @@ protected:
       std::lock_guard<std::recursive_mutex> lock(mutex_);
       const bool has_snapshot = !model_.windows().empty() || !model_.dialogs().empty();
       bool trimmed = false;
+      auto info = model_.desktop_info(has_snapshot);
+      info.flags |=
+          detail::dp::kDesktopSnapshot; // authoritative: the host drops stale dialogs / windows
       out.push_back({.type = detail::dp::Type::Desktop,
-                     .payload = detail::dp::encode_desktop(model_.desktop_info(has_snapshot),
-                                                           max_payload(), &trimmed),
+                     .payload = detail::dp::encode_desktop(info, max_payload(), &trimmed),
                      .correlation = correlation});
       if (trimmed)
         logger_.warn("DESKTOP record set trimmed to fit {} bytes", max_payload());

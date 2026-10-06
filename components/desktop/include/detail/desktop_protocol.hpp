@@ -31,6 +31,9 @@
 // Replies / events (device -> host, high bit set = frame reply flag):
 //   0x81 DESKTOP       [proto u8 = 1][flags u8][rec count u8]{rec}[app count u8]{app}
 //                      [win count u8]{[win u16][app u8]}
+//                      flags: bit0 HasSnapshot (WINDOW_OPEN(Snapshot) frames follow)
+//                      bit1 WindowListComplete bit2 Snapshot (a full snapshot: the
+//                      host drops its dialogs + unlisted windows, see kDesktopSnapshot)
 //                      app = [id u8][flags u8][name str8][icon str8][desc str8]
 //   0x82 WINDOW_OPEN   [win u16][app u8][flags u16][x i16][y i16][w u16][h u16]
 //                      [title str8][widget total u16][count u16]{widget rec}
@@ -184,6 +187,12 @@ inline constexpr uint8_t kDesktopHasSnapshot = 0x01; ///< WINDOW_OPEN(Snapshot) 
 /// The window list is complete (set by the encoder unless it had to trim it):
 /// a host may close windows missing from it only when this bit is set.
 inline constexpr uint8_t kDesktopWindowListComplete = 0x02;
+/// This DESKTOP is a full snapshot (the GET_DESKTOP reply, or the device's
+/// own resync after a refused frame): the state of every open window and
+/// dialog follows it. A host drops every local dialog (the snapshot's DIALOG
+/// frames re-create the live ones) and, when the window list is complete,
+/// the windows missing from it. Clear on the change broadcast (apps / records).
+inline constexpr uint8_t kDesktopSnapshot = 0x04;
 
 /// Tags of the DESKTOP records.
 enum class DesktopTag : uint8_t {
