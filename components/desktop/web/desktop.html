@@ -3025,7 +3025,10 @@
         // colours, auto-scroll and optional Key events)
         create(wd) {
           const el = document.createElement("div"); el.className = "w-textarea";
-          wd.st = { lines: [{ raw: "", startState: null }], maxLines: MAX_LINES_DEFAULT, flags: 0, mode: null, dirty: false, lastScroll: -1 };
+          // `bytes` = the UTF-8 size of the lines joined by "\n" (what the device
+          // counts against MaxTextBytes), kept incrementally so an append does
+          // not re-encode the whole text
+          wd.st = { lines: [{ raw: "", startState: null }], bytes: 0, maxLines: MAX_LINES_DEFAULT, flags: 0, mode: null, dirty: false, lastScroll: -1 };
           const idle = throttle(() => { if (wd.st.mode === "edit" && wd.st.dirty) { wd.st.dirty = false; sendText(wd, wd.inner.value); } }, TEXT_IDLE_MS);
           wd.idle = idle;
           wd.setMode = (mode) => {
@@ -3082,40 +3085,51 @@
             }
             if (wd.st.flags & TA_FLAG.AUTO_SCROLL) wd.inner.scrollTop = wd.inner.scrollHeight;
           };
+          // Evict the first line from the model AND the console DOM together (both
+          // bounds use this, so the two never drift). Only called with 2+ lines.
+          wd.dropFirstLine = () => {
+            const l = wd.st.lines.shift();
+            wd.st.bytes -= utf8ByteLength(l.raw) + 1; // + the newline that joined it
+            if (wd.st.mode === "console" && wd.inner.firstChild) wd.inner.removeChild(wd.inner.firstChild);
+          };
           wd.trim = () => {
+            let changed = false;
             const max = wd.st.maxLines;
             if (max) {
-              while (wd.st.lines.length > max) {
-                wd.st.lines.shift();
-                if (wd.st.mode === "console" && wd.inner.firstChild) wd.inner.removeChild(wd.inner.firstChild);
-              }
+              while (wd.st.lines.length > max) { wd.dropFirstLine(); changed = true; }
             }
             // the device keeps at most MaxTextBytes and applies this same rule
             // to ITS copy on every append, so appends stay appends on the wire.
             // Dropping leading lines leaves the surviving console nodes valid:
             // each line was rendered from the ANSI state the removed text really
-            // produced, and that state stays on the line (`startState`).
-            const raw = wd.st.lines.map((l) => l.raw).join("\n");
-            const bounded = boundTextBytes(raw, settings.maxTextBytes);
-            if (bounded !== raw) {
-              const kept = bounded.split("\n");
-              const drop = wd.st.lines.length - kept.length;
-              for (let i = 0; i < drop; i++) { wd.st.lines.shift(); if (wd.st.mode === "console" && wd.inner.firstChild) wd.inner.removeChild(wd.inner.firstChild); }
-              const first = wd.st.lines[0];
-              if (first && first.raw !== kept[0]) {
-                // a mid-line cut: the kept suffix starts in the ANSI state the removed prefix left behind
-                if (wd.st.flags & TA_FLAG.ANSI) first.startState = ansiSplit(first.raw.slice(0, first.raw.length - kept[0].length), first.startState).state;
-                first.raw = kept[0];
-                if (wd.st.mode === "console") wd.renderLine(0);
+            // produced, and that state stays on the line (`startState`). The
+            // joined text is only rebuilt + encoded when the bound is exceeded.
+            if (wd.st.bytes > settings.maxTextBytes) {
+              const raw = wd.st.lines.map((l) => l.raw).join("\n");
+              const bounded = boundTextBytes(raw, settings.maxTextBytes);
+              if (bounded !== raw) {
+                const kept = bounded.split("\n");
+                const drop = wd.st.lines.length - kept.length;
+                for (let i = 0; i < drop; i++) wd.dropFirstLine();
+                const first = wd.st.lines[0];
+                if (first && first.raw !== kept[0]) {
+                  // a mid-line cut: the kept suffix starts in the ANSI state the removed prefix left behind
+                  if (wd.st.flags & TA_FLAG.ANSI) first.startState = ansiSplit(first.raw.slice(0, first.raw.length - kept[0].length), first.startState).state;
+                  first.raw = kept[0];
+                  if (wd.st.mode === "console") wd.renderLine(0);
+                }
+                changed = true;
               }
+              wd.st.bytes = utf8ByteLength(bounded);
             }
             // edit mode: the <textarea> follows the device's copy after either
             // bound, unless the user is mid-edit (their text is sent whole and
             // the device bounds + echoes it)
-            if (wd.st.mode === "edit" && !wd.st.dirty) { const v = wd.st.lines.map((l) => l.raw).join("\n"); if (wd.inner.value !== v) wd.inner.value = v; }
+            if (changed && wd.st.mode === "edit" && !wd.st.dirty) { const v = wd.st.lines.map((l) => l.raw).join("\n"); if (wd.inner.value !== v) wd.inner.value = v; }
           };
           wd.append = (text) => {
             const parts = String(text).split("\n");
+            wd.st.bytes += utf8ByteLength(String(text)); // newlines included: they join the new lines
             const stick = wd.st.mode === "console" && (wd.st.flags & TA_FLAG.AUTO_SCROLL) && wd.atBottom();
             const last = wd.st.lines.length - 1;
             wd.st.lines[last].raw += parts[0];
@@ -3132,6 +3146,7 @@
           };
           wd.setText = (text) => {
             wd.st.lines = String(text).split("\n").map((raw) => ({ raw, startState: null }));
+            wd.st.bytes = utf8ByteLength(String(text));
             if (wd.st.mode === "edit") { wd.inner.value = String(text); wd.st.dirty = false; }
             wd.trim(); // line bound, then the device's byte bound (edit mode: inner.value follows)
             if (wd.st.mode === "console") wd.renderAll();
@@ -3695,6 +3710,7 @@
         app("abcdefghijklmnopqrstuvwxyz"); // 26 B on the last line: no newline after the cut, so it lands mid-line
         assert(rawOf() === "cdefghijklmnopqrstuvwxyz" && cw.inner.children.length === 1, "mid-line cut drops the earlier lines and shortens the first: " + JSON.stringify(rawOf()));
         assert(cw.inner.children[0].textContent === "cdefghijklmnopqrstuvwxyz", "first line re-rendered after a mid-line cut");
+        assert(cw.st.bytes === utf8ByteLength(rawOf()), "the incremental byte counter matches the text after the cuts: " + cw.st.bytes);
         // an ANSI console: a mid-line cut keeps the colour the removed prefix switched on
         feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "10" + "0200" + "1100"); // Flags: ReadOnly | Ansi
         feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "01" + "0000"); // Text ""
