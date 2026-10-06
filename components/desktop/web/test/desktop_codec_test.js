@@ -298,11 +298,11 @@ test("ansiSplit: SGR colours / attributes, state carried, other escapes dropped"
 test("registry metadata and wiring constants", () => {
   const meta = (name) => { const m = new RegExp('<meta\\s+name="' + name + '"\\s+content="([^"]*)"').exec(html); return m ? m[1] : null; };
   assert.strictEqual(meta("espp-category"), "device management");
-  assert.strictEqual(meta("espp-protocols"), "espp.desktop:1");
+  assert.strictEqual(meta("espp-protocols"), "espp.desktop:2");
   assert.strictEqual(meta("espp-transports"), "webusb webserial");
   assert(/<title>espp Desktop \(WebUSB \/ Web Serial\)<\/title>/.test(html));
   assert(html.includes('const DEFAULT_MODULE_DESKTOP = 9;'));
-  assert(html.includes('const DESKTOP_PROTOCOL = "espp.desktop", DESKTOP_PROTOCOL_VERSION = 1;'));
+  assert(html.includes('const DESKTOP_PROTOCOL = "espp.desktop", DESKTOP_PROTOCOL_VERSION = 2;'));
   assert(html.includes('let moduleDesktop = DEFAULT_MODULE_DESKTOP;'));
   assert.strictEqual(P.DESKTOP_MAX_PAYLOAD_CAP, 4081);
   assert.strictEqual(P.DESKTOP_HAS_SNAPSHOT, 0x01); assert.strictEqual(P.DESKTOP_WINDOW_LIST_COMPLETE, 0x02);

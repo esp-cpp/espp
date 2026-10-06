@@ -3,7 +3,7 @@
 // Wire protocol of espp::DesktopService / espp::Desktop: a browser-rendered
 // windowed desktop (apps, windows, widgets, dialogs, notifications) over the
 // espp stream_frame codec, routed by an espp::Dispatcher on module 9 by
-// default (`espp.desktop` v1 through discovery).
+// default (`espp.desktop` v2 through discovery).
 //
 // This header is deliberately host-buildable (stream_frame.hpp + the standard
 // library only) so the codec is unit-tested on the host
@@ -93,7 +93,14 @@ namespace espp::detail::desktop_protocol {
 inline constexpr uint8_t kModule = 9;
 /// Stable protocol identifier + version advertised through discovery.
 inline constexpr const char *kProtocol = "espp.desktop";
-inline constexpr uint16_t kProtocolVersion = 1;
+/// Negotiated through discovery (ModuleInfo::protocol_version). v2: the host
+/// applies MaxTextBytes to TextAppend the way the device does (an append past
+/// the bound stays an append on the wire) and honours DESKTOP flags bit2
+/// Snapshot (drops its dialogs / unlisted windows on a snapshot). v1 was never
+/// released; a v1 host would keep appending without trimming and could keep
+/// a stale dialog after a resync. The wire layout of every message is the
+/// same, so kDesktopProto (the DESKTOP payload's own version byte) stays 1.
+inline constexpr uint16_t kProtocolVersion = 2;
 /// The `proto` byte at the head of every DESKTOP payload.
 inline constexpr uint8_t kDesktopProto = 1;
 

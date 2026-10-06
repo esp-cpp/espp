@@ -68,7 +68,7 @@ Module id  Protocol                                                  Protocol id
 6          MCP266 motor-controller console (``espp::Mcp266Service``) ``espp.mcp266`` v1
 7          System info / reboot control (``espp::SystemService``)    ``espp.system`` v1
 8          Heap / task monitor (``espp::MonitorService``)            ``espp.monitor`` v1
-9          Windowed desktop (``espp::DesktopService``)               ``espp.desktop`` v1
+9          Windowed desktop (``espp::DesktopService``)               ``espp.desktop`` v2
 0xF0-0xFE  reserved for dispatcher / meta use
 0xFF       capability discovery
 =========  ========================================================  ==================================

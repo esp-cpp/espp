@@ -5,7 +5,7 @@ registers apps and describes their windows / widgets with `espp::Desktop`;
 the hosted [desktop web app](https://esp-cpp.github.io/espp/apps/desktop.html)
 (`components/desktop/web/desktop.html`) draws and operates them over the
 native USB port, on both the **vendor (WebUSB)** and **CDC (Web Serial)**
-interfaces (`espp.desktop` v1 on module 9 by default). The
+interfaces (`espp.desktop` v2 on module 9 by default). The
 [Device Hub](https://esp-cpp.github.io/espp/apps/dispatcher_hub.html) lists it
 through discovery next to the standard services.
 

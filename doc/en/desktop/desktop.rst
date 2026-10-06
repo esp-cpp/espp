@@ -31,7 +31,7 @@ maximizable, centered, pinned, wants-geometry) and a geometry the browser may
 override with what the user last chose (remembered per app and title).
 
 The `DesktopService` class serves one ``Desktop`` over **any byte stream** as
-a :doc:`dispatcher <../dispatcher/dispatcher>` module (``espp.desktop`` v1,
+a :doc:`dispatcher <../dispatcher/dispatcher>` module (``espp.desktop`` v2,
 module id 9 by default; one instance per transport). It only decodes and
 validates: a malformed request is answered with ``ERROR``, everything else is
 handed to the desktop and handled — replied to, and its events broadcast — on

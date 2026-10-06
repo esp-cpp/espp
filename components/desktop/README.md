@@ -15,7 +15,7 @@ user's actions back, over WebUSB / Web Serial (or any framed byte stream).
   timers and `post()`. Changes are coalesced and flushed by the desktop task
   every `flush_period`; every app callback runs on that task.
 - `espp::DesktopService` — one `Desktop` as a transport-agnostic
-  [dispatcher](../dispatcher) module (`espp.desktop` v1, module 9 by default;
+  [dispatcher](../dispatcher) module (`espp.desktop` v2, module 9 by default;
   one instance per transport).
 - `espp::ConsoleCapture` — tees stdout / stderr into a byte ring (through a
   write-only VFS device) so an app can show the device log live.
@@ -36,7 +36,7 @@ automatic connects off.
 - [Desktop Component](#desktop-component)
   - [Writing an app](#writing-an-app)
   - [Threading rules](#threading-rules)
-  - [Protocol (module 9, `espp.desktop` v1)](#protocol-module-9-esppdesktop-v1)
+  - [Protocol (module 9, `espp.desktop` v2)](#protocol-module-9-esppdesktop-v2)
   - [Log capture](#log-capture)
   - [Example](#example)
 
@@ -96,7 +96,12 @@ once.
 - The only frame sent from another context is `DesktopService`'s ERROR for a
   malformed request.
 
-## Protocol (module 9, `espp.desktop` v1)
+## Protocol (module 9, `espp.desktop` v2)
+
+Version 2 (negotiated through discovery) differs from the never-released v1
+only in what the host does: it applies `MaxTextBytes` to `TextAppend` the
+way the device does, and it honours the DESKTOP `Snapshot` flag (bit2). The
+message layouts are unchanged (the DESKTOP payload's own `proto` byte stays 1).
 
 Framed with `stream_frame` and routed by `espp::Dispatcher`; requests carry
 the reply flag clear, replies / events set it (type high bit). All multi-byte

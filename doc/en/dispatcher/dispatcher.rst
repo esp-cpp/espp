@@ -30,7 +30,7 @@ Module id  Protocol                                        Protocol id (discover
 6          MCP266 console                                  ``espp.mcp266`` v1
 7          System info / reboot                            ``espp.system`` v1
 8          Heap / task monitor                             ``espp.monitor`` v1
-9          Windowed desktop                                ``espp.desktop`` v1
+9          Windowed desktop                                ``espp.desktop`` v2
 0xF0-0xFE  reserved (meta)
 0xFF       capability discovery
 =========  ==============================================  ===============================

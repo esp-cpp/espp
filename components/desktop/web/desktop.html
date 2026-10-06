@@ -6,7 +6,7 @@
   <title>espp Desktop (WebUSB / Web Serial)</title>
 <meta name="description" content="A windowed desktop for an espp device, rendered entirely in the browser from the widget tree the firmware's desktop component streams over WebUSB or Web Serial: apps, windows, widgets, dialogs and notifications.">
 <meta name="espp-category" content="device management">
-<meta name="espp-protocols" content="espp.desktop:1">
+<meta name="espp-protocols" content="espp.desktop:2">
 <meta name="espp-transports" content="webusb webserial">
   <!--
     espp Desktop (WebUSB / Web Serial)
@@ -29,7 +29,7 @@
       [magic u16 = 0x4F54 "OT"][flags u8][module u8][type u8][len u32][payload...][crc32 u32]
     flags bit0 = reply (0 host->device, 1 device->host); bits 4-7 = version 1.
 
-    Desktop protocol (module 9 by default, `espp.desktop` v1):
+    Desktop protocol (module 9 by default, `espp.desktop` v2):
       str8 = [len u8][utf8], str16 = [len u16][utf8], rec = [tag u8][len u16][value]
       host -> device : 0x01 GET_DESKTOP, 0x02 LAUNCH_APP[app u8],
                        0x03 CLOSE_WINDOW[win u16],
@@ -472,7 +472,7 @@
     // advertised protocol id, then app / name); ?module=N overrides it. The
     // PROTOCOL constants mirror desktop_protocol.hpp kProtocol(Version).
     const DEFAULT_MODULE_DESKTOP = 9;
-    const DESKTOP_PROTOCOL = "espp.desktop", DESKTOP_PROTOCOL_VERSION = 1;
+    const DESKTOP_PROTOCOL = "espp.desktop", DESKTOP_PROTOCOL_VERSION = 2;
     const DESKTOP_IDENT = { protocol: DESKTOP_PROTOCOL, protocolVersion: DESKTOP_PROTOCOL_VERSION, app: "desktop.html", name: "Desktop", fallback: DEFAULT_MODULE_DESKTOP, override: null };
     let moduleDesktop = DEFAULT_MODULE_DESKTOP;   // adopted by adoptModules() before the first request
     // True once adoptModules() has run for this connection: every send path
