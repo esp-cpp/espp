@@ -91,8 +91,9 @@ static void test_position_pid_remap() {
 
 static void test_scale_position_gain() {
   std::printf("test_scale_position_gain\n");
-  // round-to-nearest (not truncate) and clamp to the non-negative i32 range,
-  // matching espp::Basicmicro's scale_pid_gain()
+  // round-to-nearest (not truncate) and clamp to the full unsigned 32-bit
+  // range of the record's gain fields, matching espp::Basicmicro's
+  // scale_pid_gain()
   CHECK(scale_position_gain(4.0f) == 4096);
   CHECK(scale_position_gain(1.5f) == 1536);
   // 102.5 / 1024 scales back to exactly 102.5 -> rounds up to 103 (truncation: 102)
@@ -101,11 +102,23 @@ static void test_scale_position_gain() {
   CHECK(scale_position_gain(0.0f) == 0);
   CHECK(scale_position_gain(-1.0f) == 0); // negatives clamp to 0
   CHECK(scale_position_gain(std::numeric_limits<float>::quiet_NaN()) == 0);
-  CHECK(scale_position_gain(std::numeric_limits<float>::infinity()) == INT32_MAX);
-  CHECK(scale_position_gain(1.0e12f) == INT32_MAX); // >> 2^31, saturates
+  CHECK(scale_position_gain(std::numeric_limits<float>::infinity()) == UINT32_MAX);
+  CHECK(scale_position_gain(1.0e12f) == UINT32_MAX);     // >> 2^32, saturates
+  CHECK(scale_position_gain(4194304.0f) == UINT32_MAX);  // 4194304 * 1024 == 2^32, saturates
+  CHECK(scale_position_gain(4194303.0f) == 4294966272u); // just below 2^32, fits exactly
+  CHECK(scale_position_gain(2097152.0f) == 2147483648u); // bit 31 set: must not be narrowed
   // constexpr-evaluable
   static_assert(scale_position_gain(2.0f) == 2048);
   static_assert(scale_position_gain(-2.0f) == 0);
+
+  // a gain with bit 31 set survives the trip through the i32 record slot and
+  // decodes back as a positive float (not a negative one)
+  const int32_t bits = position_gain_bits(scale_position_gain(4194303.0f));
+  CHECK(static_cast<uint32_t>(bits) == 0xFFFFFC00u);
+  CHECK(bits < 0); // the slot itself is negative: only the bit pattern matters
+  CHECK(position_gain_from_bits(bits) == 4194303.0f);
+  CHECK(position_gain_from_bits(position_gain_bits(2048)) == 2.0f);
+  static_assert(position_gain_from_bits(position_gain_bits(UINT32_MAX)) > 0.0f);
 }
 
 int main() {

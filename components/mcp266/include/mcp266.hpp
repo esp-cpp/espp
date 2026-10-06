@@ -217,10 +217,11 @@ public:
     if (!read_position_pid_raw(axis_state(axis), readback, ec)) {
       return false;
     }
-    constexpr float scale = static_cast<float>(detail::mcp266::kPositionGainScale);
-    p = static_cast<float>(readback[0]) / scale;
-    i = static_cast<float>(readback[1]) / scale;
-    d = static_cast<float>(readback[2]) / scale;
+    // gain / MaxI / Deadzone fields are unsigned on the record; the i32 read
+    // only carried their bit pattern
+    p = detail::mcp266::position_gain_from_bits(readback[0]);
+    i = detail::mcp266::position_gain_from_bits(readback[1]);
+    d = detail::mcp266::position_gain_from_bits(readback[2]);
     max_i = static_cast<uint32_t>(readback[3]);
     deadzone = static_cast<uint32_t>(readback[4]);
     min_pos = readback[5];
@@ -254,11 +255,14 @@ public:
       return false;
     }
     const AxisState &a = axis_state(axis);
-    const std::array<int32_t, 7> readback_order{detail::mcp266::scale_position_gain(p),
-                                                detail::mcp266::scale_position_gain(i),
-                                                detail::mcp266::scale_position_gain(d),
-                                                static_cast<int32_t>(max_i),
-                                                static_cast<int32_t>(deadzone),
+    using detail::mcp266::position_gain_bits;
+    using detail::mcp266::scale_position_gain;
+    // the unsigned fields travel as 4-byte bit patterns in the i32 slots
+    const std::array<int32_t, 7> readback_order{position_gain_bits(scale_position_gain(p)),
+                                                position_gain_bits(scale_position_gain(i)),
+                                                position_gain_bits(scale_position_gain(d)),
+                                                position_gain_bits(max_i),
+                                                position_gain_bits(deadzone),
                                                 min_pos,
                                                 max_pos};
     if (!write_position_pid_raw(a, detail::mcp266::position_pid_readback_to_setter(readback_order),
@@ -266,7 +270,8 @@ public:
       return false;
     }
     logger_.info("{}: position PID written (P={}, I={}, D={}, clamp=[{}, {}])", a.name,
-                 readback_order[0], readback_order[1], readback_order[2], min_pos, max_pos);
+                 static_cast<uint32_t>(readback_order[0]), static_cast<uint32_t>(readback_order[1]),
+                 static_cast<uint32_t>(readback_order[2]), min_pos, max_pos);
     return true;
   }
 
@@ -576,6 +581,8 @@ private:
 
   /// Read the seven-field position PID record in the readback's order
   /// [P, I, D, MaxI, Deadzone, MinPos, MaxPos] (subindices 1..7 of command 63/64).
+  /// The first five fields are unsigned on the device; the i32 read carries
+  /// their 4-byte bit pattern, which the callers reinterpret.
   bool read_position_pid_raw(const AxisState &a, std::array<int32_t, 7> &readback,
                              std::error_code &ec) {
     for (uint8_t sub = 1; sub <= 7; ++sub) {

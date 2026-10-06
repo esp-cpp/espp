@@ -65,23 +65,38 @@ inline constexpr uint16_t kResetEncodersObject =
 inline constexpr int32_t kPositionGainScale = 1024;
 
 /// \brief Convert a floating-point position PID gain to the record's fixed-point
-///        representation (x kPositionGainScale), as written through the i32 SDO.
+///        representation (x kPositionGainScale).
 /// \details Mirrors espp::Basicmicro's scale_pid_gain(): rounds to nearest rather
 ///          than truncating (truncation biases every gain downward by up to one
-///          LSB) and clamps to [0, INT32_MAX]. Gains are non-negative on these
-///          controllers, and a raw cast of a negative or non-finite product to
-///          an integer is either silently wrong or undefined.
+///          LSB) and clamps to the full unsigned 32-bit range of the record's
+///          gain fields. Gains are non-negative on these controllers, and a raw
+///          cast of a negative or non-finite product to an integer is either
+///          silently wrong or undefined. The record's P, I, D, MaxI and Deadzone
+///          fields are unsigned; only MinPos / MaxPos are signed. The SDO
+///          transfer is a 4-byte bit pattern either way, so the value is carried
+///          through the i32 helpers unchanged (see position_gain_bits()).
 /// \param gain The gain as a float.
-/// \return The fixed-point gain, clamped to the non-negative int32_t range.
-inline constexpr int32_t scale_position_gain(float gain) {
+/// \return The fixed-point gain, clamped to [0, UINT32_MAX].
+inline constexpr uint32_t scale_position_gain(float gain) {
   if (!(gain > 0.0f)) { // false for <= 0 and for NaN
     return 0;
   }
   const double scaled = static_cast<double>(gain) * static_cast<double>(kPositionGainScale);
-  if (!(scaled < 2147483647.5)) { // also false for +inf; saturate instead of overflowing
-    return INT32_MAX;
+  if (!(scaled < 4294967295.5)) { // also false for +inf; saturate instead of overflowing
+    return UINT32_MAX;
   }
-  return static_cast<int32_t>(scaled + 0.5); // scaled > 0, so this rounds to nearest
+  return static_cast<uint32_t>(scaled + 0.5); // scaled > 0, so this rounds to nearest
+}
+
+/// \brief Reinterpret an unsigned record field (gain, MaxI, Deadzone) as the
+///        int32_t slot of the seven-field record array, preserving the bit
+///        pattern for the 4-byte SDO write.
+inline constexpr int32_t position_gain_bits(uint32_t raw) { return static_cast<int32_t>(raw); }
+
+/// \brief Convert a fixed-point gain field read back from the record (an
+///        unsigned 32-bit bit pattern carried in an int32_t slot) to a float.
+inline constexpr float position_gain_from_bits(int32_t raw) {
+  return static_cast<float>(static_cast<uint32_t>(raw)) / static_cast<float>(kPositionGainScale);
 }
 
 /// \brief The manufacturer command objects and CiA 402 offset for one axis.
