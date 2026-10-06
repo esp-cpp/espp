@@ -40,11 +40,14 @@ namespace espp {
  *
  * GET_DESKTOP answers with the DESKTOP snapshot (apps, settings, open
  * windows) followed by the full tree of every open window and every open
- * dialog, and marks this transport active: from then on the Desktop
+ * dialog, and marks this transport attached: from then on the Desktop
  * broadcasts its changes (WINDOW_OPEN / WIDGET_SET / ... ) to it until
  * detach() (e.g. on USB unmount) or until the next GET_DESKTOP after a
- * reconnect. LAUNCH_APP / CLOSE_WINDOW are acknowledged with OK / ERROR; the
- * events (WINDOW_EVENT / WIDGET_EVENT / DIALOG_RESULT) are not.
+ * reconnect. A frame the transport refuses pauses the broadcasts (the
+ * transport stays attached, needs_resync() is true) until the Desktop's own
+ * retried snapshot gets through or the host sends GET_DESKTOP. LAUNCH_APP /
+ * CLOSE_WINDOW are acknowledged with OK / ERROR; the events (WINDOW_EVENT /
+ * WIDGET_EVENT / DIALOG_RESULT) are not.
  *
  * **Threading**: an internal mutex covers the parser; the only frame this
  * object sends itself is the ERROR for a malformed request, serialized on a
@@ -67,11 +70,12 @@ public:
   static constexpr uint16_t kProtocolVersion = espp::detail::desktop_protocol::kProtocolVersion;
 
   /// Transmits one encoded frame to the host, all-or-nothing, and returns
-  /// whether it was queued (unlike the other espp services' `send`, which is
-  /// void: the desktop streams state, so a dropped frame must be known -- the
-  /// Desktop then flags this transport as needing a resync, see
-  /// needs_resync()). UsbDevice::write_vendor / write_cdc have exactly this
-  /// contract (bounded wait for FIFO room, never a partial frame).
+  /// whether it was queued. Unlike the other espp services' `send`, which is
+  /// void, this one must report a refused frame: the desktop streams state,
+  /// so it then pauses streaming to this transport and re-sends the full
+  /// snapshot by itself once frames go through again, see needs_resync().
+  /// UsbDevice::write_vendor / write_cdc have exactly this contract (bounded
+  /// wait for FIFO room, never a partial frame).
   using send_fn = std::function<bool(std::span<const uint8_t> frame)>;
 
   /// Configuration for the DesktopService.
@@ -118,8 +122,10 @@ public:
   bool attached() const { return desktop_.sink_active(sink_); }
 
   /// @brief Whether a frame to this transport was dropped (send returned
-  ///        false) since the host's last GET_DESKTOP: its mirror of the
-  ///        desktop is incomplete until it resyncs.
+  ///        false) and the host's mirror is still incomplete: streaming is
+  ///        paused (the transport stays attached()) until the desktop's own
+  ///        snapshot gets through (retried with back-off) or the host sends
+  ///        GET_DESKTOP.
   bool needs_resync() const { return desktop_.sink_needs_resync(sink_); }
 
   /**

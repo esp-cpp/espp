@@ -15,7 +15,7 @@ user's actions back, over WebUSB / Web Serial (or any framed byte stream).
   timers and `post()`. Changes are coalesced and flushed by the desktop task
   every `flush_period`; every app callback runs on that task.
 - `espp::DesktopService` — one `Desktop` as a transport-agnostic
-  [dispatcher](../dispatcher) module (`espp.desktop` v1, module 9 by default;
+  [dispatcher](../dispatcher) module (`espp.desktop` v2, module 9 by default;
   one instance per transport).
 - `espp::ConsoleCapture` — tees stdout / stderr into a byte ring (through a
   write-only VFS device) so an app can show the device log live.
@@ -36,7 +36,7 @@ automatic connects off.
 - [Desktop Component](#desktop-component)
   - [Writing an app](#writing-an-app)
   - [Threading rules](#threading-rules)
-  - [Protocol (module 9, `espp.desktop` v1)](#protocol-module-9-esppdesktop-v1)
+  - [Protocol (module 9, `espp.desktop` v2)](#protocol-module-9-esppdesktop-v2)
   - [Log capture](#log-capture)
   - [Example](#example)
 
@@ -86,15 +86,22 @@ once.
   `Items` ranges accumulate (an `ItemCount` / full `set_items` discards earlier
   ranges), a removed widget cancels its pending changes, a window opened and
   closed between flushes sends nothing. A TextArea keeps its last `max_lines`
-  lines (the browser applies the same rule) and at most `max_text_bytes`; when
-  the byte bound trims, the host gets a full `Text` replacement so both sides
-  hold the same text. Per-window order: WINDOW_CLOSE ->
+  lines and at most `max_text_bytes` (advertised as `MaxTextBytes`); the
+  browser applies both bounds with the same rules to its copy, so an append
+  stays a `TextAppend` on the wire even when it trims (a log that has filled
+  its bound costs one append per flush, not the whole text). Per-window
+  order: WINDOW_CLOSE ->
   WINDOW_OPEN (full tree) -> WIDGET_ADD -> WIDGET_SET -> WIDGET_REMOVE; then
   DIALOG / DIALOG_CLOSE -> NOTIFY -> DESKTOP (when apps or settings changed).
 - The only frame sent from another context is `DesktopService`'s ERROR for a
   malformed request.
 
-## Protocol (module 9, `espp.desktop` v1)
+## Protocol (module 9, `espp.desktop` v2)
+
+Version 2 (negotiated through discovery) differs from the never-released v1
+only in what the host does: it applies `MaxTextBytes` to `TextAppend` the
+way the device does, and it honours the DESKTOP `Snapshot` flag (bit2). The
+message layouts are unchanged (the DESKTOP payload's own `proto` byte stays 1).
 
 Framed with `stream_frame` and routed by `espp::Dispatcher`; requests carry
 the reply flag clear, replies / events set it (type high bit). All multi-byte
@@ -111,7 +118,7 @@ fields are little-endian; `str8` = `[len u8][utf8]`, `str16` = `[len u16][utf8]`
 | `0x04` WINDOW_EVENT | H→D | `[win u16][ev u8][x i16][y i16][w u16][h u16]` ev: 1 Focus 2 Blur 3 Minimize 4 Restore 5 Maximize 6 Moved 7 Resized (no ack) |
 | `0x05` WIDGET_EVENT | H→D | `[win u16][widget u16][ev u8][value]` ev: 1 Click · 2 Change `[i32]` · 3 Submit `[utf8]` · 4 Text `[offset u32][total u32][bytes]` (chunked) · 5 Select `[i32]` · 6 Activate `[i32]` · 7 Key `[key u16][mods u8][codepoint u32]` · 8 Scroll `[i32]` (no ack) |
 | `0x06` DIALOG_RESULT | H→D | `[dialog u16][button u8 (0xFF dismissed)][text utf8 rest]` (no ack) |
-| `0x81` DESKTOP | D→H | `[proto u8=1][flags u8 bit0 HasSnapshot bit1 WindowListComplete][rec count u8]{rec}[app count u8]{[id u8][flags u8 bit0 SingleInstance bit1 Hidden][name str8][icon str8][desc str8]}[win count u8]{[win u16][app u8]}`; recs: 1 DeviceName 2 Firmware 3 Theme 4 Accent u32 5 MaxPayload u16 6 FlushPeriodMs u16 7 MaxTextBytes u32 (the most text a TextArea holds / a host may send for one widget; a longer edit keeps its tail and is echoed back). Also sent when apps / settings change |
+| `0x81` DESKTOP | D→H | `[proto u8=1][flags u8 bit0 HasSnapshot bit1 WindowListComplete bit2 Snapshot (a full snapshot — GET_DESKTOP reply or the device's own resync: the host drops its dialogs and, with a complete list, unlisted windows before the frames that follow re-create them)][rec count u8]{rec}[app count u8]{[id u8][flags u8 bit0 SingleInstance bit1 Hidden][name str8][icon str8][desc str8]}[win count u8]{[win u16][app u8]}`; recs: 1 DeviceName 2 Firmware 3 Theme 4 Accent u32 5 MaxPayload u16 6 FlushPeriodMs u16 7 MaxTextBytes u32 (the most text a TextArea holds / a host may send for one widget; a longer edit keeps its tail and is echoed back). Also sent when apps / settings change |
 | `0x82` WINDOW_OPEN | D→H | `[win u16][app u8][flags u16][x i16][y i16][w u16][h u16][title str8][widget total u16][count u16]{widget rec}`; the rest of the tree follows in WIDGET_ADD |
 | `0x83` WINDOW_CLOSE | D→H | `[win u16][reason u8: 0 app 1 host 2 shutdown]` |
 | `0x84` WIDGET_SET | D→H | `[win u16][entries u8]{[widget u16][props u8]{rec}}`; widget 0 = the window (Title / WindowFlags / Geometry / Focus) |
@@ -170,10 +177,17 @@ it), then the descriptions (logged). Unregistering an app closes its windows
 (WINDOW_CLOSE reason 2) and its id is not reused while a window references it.
 
 Flow control: a `DesktopService::Config::send` returns whether the frame was
-queued (all-or-nothing); when it was not, the desktop logs and flags that
-transport (`needs_resync()`) until the host's next GET_DESKTOP. A full
-command queue (`Config::max_queued_commands`) refuses a request with
-ERROR(EAGAIN) and drops an event; nothing queued is evicted.
+queued (all-or-nothing). When it was not (the host went away or stopped
+reading), the desktop logs once, drops the rest of that batch, and PAUSES
+streaming to that transport (`needs_resync()`): every further write would
+only block the desktop task for the transport's drain timeout, and the
+host's mirror is incomplete anyway. It then re-sends the full snapshot by
+itself (an unsolicited DESKTOP with the complete window list, then one
+snapshot WINDOW_OPEN per window) once the transport takes frames again,
+retrying every 1 s and backing off to 8 s (`kResyncRetryMin/Max`; each attempt
+costs one failed write), or at the host's next GET_DESKTOP, whichever comes
+first. A full command queue (`Config::max_queued_commands`) refuses a request
+with ERROR(EAGAIN) and drops an event; nothing queued is evicted.
 
 ## Log capture
 

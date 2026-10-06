@@ -6,7 +6,7 @@
   <title>espp Desktop (WebUSB / Web Serial)</title>
 <meta name="description" content="A windowed desktop for an espp device, rendered entirely in the browser from the widget tree the firmware's desktop component streams over WebUSB or Web Serial: apps, windows, widgets, dialogs and notifications.">
 <meta name="espp-category" content="device management">
-<meta name="espp-protocols" content="espp.desktop:1">
+<meta name="espp-protocols" content="espp.desktop:2">
 <meta name="espp-transports" content="webusb webserial">
   <!--
     espp Desktop (WebUSB / Web Serial)
@@ -29,7 +29,7 @@
       [magic u16 = 0x4F54 "OT"][flags u8][module u8][type u8][len u32][payload...][crc32 u32]
     flags bit0 = reply (0 host->device, 1 device->host); bits 4-7 = version 1.
 
-    Desktop protocol (module 9 by default, `espp.desktop` v1):
+    Desktop protocol (module 9 by default, `espp.desktop` v2):
       str8 = [len u8][utf8], str16 = [len u16][utf8], rec = [tag u8][len u16][value]
       host -> device : 0x01 GET_DESKTOP, 0x02 LAUNCH_APP[app u8],
                        0x03 CLOSE_WINDOW[win u16],
@@ -457,13 +457,22 @@
     const HEADER_SIZE = 9, CRC_SIZE = 4;
     const MAX_PAYLOAD = 4096;
     const MAX_FRAME = HEADER_SIZE + MAX_PAYLOAD + CRC_SIZE;
+    // Bytes requested per bulk IN transfer. A bulk transfer ends on a short
+    // packet OR when the buffer is full, so when the device streams several
+    // max-size frames back-to-back (a 16 KiB log snapshot, a busy Log Viewer)
+    // every packet is full: the request length MUST then be a multiple of the
+    // endpoint's packet size, or the packet that straddles the buffer's end
+    // overruns it ("babble"/overflow) and the pipe errors out. Asking for the
+    // frame size (4111 B) did exactly that once the console held > 4 KiB.
+    // 16 KiB is a multiple of every bulk packet size (64 FS / 512 HS / 1024 SS).
+    const USB_READ_BYTES = 16384;
     // The dispatcher module byte is only a routing key: the desktop service is
     // published on module 9 by default, but a device may serve it on any id.
     // It is resolved on connect from the device's discovery reply (by the
     // advertised protocol id, then app / name); ?module=N overrides it. The
     // PROTOCOL constants mirror desktop_protocol.hpp kProtocol(Version).
     const DEFAULT_MODULE_DESKTOP = 9;
-    const DESKTOP_PROTOCOL = "espp.desktop", DESKTOP_PROTOCOL_VERSION = 1;
+    const DESKTOP_PROTOCOL = "espp.desktop", DESKTOP_PROTOCOL_VERSION = 2;
     const DESKTOP_IDENT = { protocol: DESKTOP_PROTOCOL, protocolVersion: DESKTOP_PROTOCOL_VERSION, app: "desktop.html", name: "Desktop", fallback: DEFAULT_MODULE_DESKTOP, override: null };
     let moduleDesktop = DEFAULT_MODULE_DESKTOP;   // adopted by adoptModules() before the first request
     // True once adoptModules() has run for this connection: every send path
@@ -672,6 +681,7 @@
     const DESKTOP_PROTO = 1;                 // the `proto` byte at the head of every DESKTOP payload
     const DESKTOP_HAS_SNAPSHOT = 0x01;
     const DESKTOP_WINDOW_LIST_COMPLETE = 0x02;  // set when the window list is intact; a trimmed list is advisory, never authoritative
+    const DESKTOP_SNAPSHOT = 0x04;              // a full snapshot (GET_DESKTOP reply / the device's own resync): drop stale dialogs + unlisted windows
     const DESKTOP_MAX_PAYLOAD_CAP = 4081;    // stream_frame limit for a 4096-byte frame with a correlation id
     const DREC = { DEVICE_NAME: 1, FIRMWARE: 2, THEME: 3, ACCENT: 4, MAX_PAYLOAD: 5, FLUSH_PERIOD_MS: 6, MAX_TEXT_BYTES: 7 };
     const MAX_TEXT_BYTES_DEFAULT = 16384;     // DESKTOP record 7 absent: the largest reassembled host Text the device keeps
@@ -1009,6 +1019,21 @@
       while (n > 0 && (b[n] & 0xC0) === 0x80) n--;
       return utf8Decoder.decode(b.subarray(0, n));
     }
+    // The device's byte bound on a TextArea (DESKTOP record MaxTextBytes), with
+    // the firmware's exact rule so both copies stay identical: when the UTF-8
+    // size exceeds `maxBytes`, cut = size - maxBytes, moved to the start of the
+    // next line when a newline follows the cut (and is not the last byte), then
+    // past any UTF-8 continuation bytes. Returns the (possibly unchanged) text.
+    function boundTextBytes(text, maxBytes) {
+      const str = String(text == null ? "" : text);
+      const b = utf8Encoder.encode(str);
+      if (!(maxBytes > 0) || b.length <= maxBytes) return str;
+      let cut = b.length - maxBytes;
+      const nl = b.indexOf(0x0A, cut);
+      if (nl !== -1 && nl + 1 < b.length) cut = nl + 1;
+      while (cut < b.length && (b[cut] & 0xC0) === 0x80) cut++;
+      return utf8Decoder.decode(b.subarray(cut));
+    }
     // Split UTF-8 text into Text-event chunks that fit `maxPayload` (never
     // cutting a UTF-8 sequence in half); an empty text is one empty chunk.
     function chunkText(bytes, maxPayload) {
@@ -1330,6 +1355,8 @@
         if (found.alternateSetting !== 0)
           await device.selectAlternateInterface(found.interfaceNumber, found.alternateSetting);
         const epIn = found.inEp.endpointNumber, epOut = found.outEp.endpointNumber;
+        const inPacket = found.inEp.packetSize > 0 ? found.inEp.packetSize : 64;
+        const readLen = Math.max(1, Math.ceil(USB_READ_BYTES / inPacket)) * inPacket; // see USB_READ_BYTES
         const t = {
           kind: "usb",
           name: (device.productName || "USB device") + " (" +
@@ -1360,13 +1387,17 @@
         (async () => {
           for (;;) {
             let result;
-            try { result = await device.transferIn(epIn, MAX_FRAME); }
+            try { result = await device.transferIn(epIn, readLen); }
             catch (e) {
               if (!t.closing) { logLine("err", "USB read error: " + e.message); onTransportGone(t); }
               return;
             }
             if (t.closing) return;
-            if (result.status === "stall") {
+            if (result.status === "stall" || result.status === "babble") {
+              // babble = the device offered more than the buffer took (cannot
+              // happen with packet-aligned reads, see USB_READ_BYTES); recover
+              // like the OTA / ODrive consoles do instead of dying
+              if (result.status === "babble") logLine("warn", "USB IN babble; clearing the endpoint and continuing.");
               try { await device.clearHalt("in", epIn); } catch (_) {}
               continue;
             }
@@ -2995,7 +3026,10 @@
         // colours, auto-scroll and optional Key events)
         create(wd) {
           const el = document.createElement("div"); el.className = "w-textarea";
-          wd.st = { lines: [{ raw: "", startState: null }], maxLines: MAX_LINES_DEFAULT, flags: 0, mode: null, dirty: false, lastScroll: -1 };
+          // `bytes` = the UTF-8 size of the lines joined by "\n" (what the device
+          // counts against MaxTextBytes), kept incrementally so an append does
+          // not re-encode the whole text
+          wd.st = { lines: [{ raw: "", startState: null }], bytes: 0, maxLines: MAX_LINES_DEFAULT, flags: 0, mode: null, dirty: false, lastScroll: -1 };
           const idle = throttle(() => { if (wd.st.mode === "edit" && wd.st.dirty) { wd.st.dirty = false; sendText(wd, wd.inner.value); } }, TEXT_IDLE_MS);
           wd.idle = idle;
           wd.setMode = (mode) => {
@@ -3052,17 +3086,51 @@
             }
             if (wd.st.flags & TA_FLAG.AUTO_SCROLL) wd.inner.scrollTop = wd.inner.scrollHeight;
           };
+          // Evict the first line from the model AND the console DOM together (both
+          // bounds use this, so the two never drift). Only called with 2+ lines.
+          wd.dropFirstLine = () => {
+            const l = wd.st.lines.shift();
+            wd.st.bytes -= utf8ByteLength(l.raw) + 1; // + the newline that joined it
+            if (wd.st.mode === "console" && wd.inner.firstChild) wd.inner.removeChild(wd.inner.firstChild);
+          };
           wd.trim = () => {
+            let changed = false;
             const max = wd.st.maxLines;
-            if (!max) return;
-            while (wd.st.lines.length > max) {
-              wd.st.lines.shift();
-              if (wd.st.mode === "console" && wd.inner.firstChild) wd.inner.removeChild(wd.inner.firstChild);
+            if (max) {
+              while (wd.st.lines.length > max) { wd.dropFirstLine(); changed = true; }
             }
-            if (wd.st.lines.length) wd.st.lines[0].startState = null;
+            // the device keeps at most MaxTextBytes and applies this same rule
+            // to ITS copy on every append, so appends stay appends on the wire.
+            // Dropping leading lines leaves the surviving console nodes valid:
+            // each line was rendered from the ANSI state the removed text really
+            // produced, and that state stays on the line (`startState`). The
+            // joined text is only rebuilt + encoded when the bound is exceeded.
+            if (wd.st.bytes > settings.maxTextBytes) {
+              const raw = wd.st.lines.map((l) => l.raw).join("\n");
+              const bounded = boundTextBytes(raw, settings.maxTextBytes);
+              if (bounded !== raw) {
+                const kept = bounded.split("\n");
+                const drop = wd.st.lines.length - kept.length;
+                for (let i = 0; i < drop; i++) wd.dropFirstLine();
+                const first = wd.st.lines[0];
+                if (first && first.raw !== kept[0]) {
+                  // a mid-line cut: the kept suffix starts in the ANSI state the removed prefix left behind
+                  if (wd.st.flags & TA_FLAG.ANSI) first.startState = ansiSplit(first.raw.slice(0, first.raw.length - kept[0].length), first.startState).state;
+                  first.raw = kept[0];
+                  if (wd.st.mode === "console") wd.renderLine(0);
+                }
+                changed = true;
+              }
+              wd.st.bytes = utf8ByteLength(bounded);
+            }
+            // edit mode: the <textarea> follows the device's copy after either
+            // bound, unless the user is mid-edit (their text is sent whole and
+            // the device bounds + echoes it)
+            if (changed && wd.st.mode === "edit" && !wd.st.dirty) { const v = wd.st.lines.map((l) => l.raw).join("\n"); if (wd.inner.value !== v) wd.inner.value = v; }
           };
           wd.append = (text) => {
             const parts = String(text).split("\n");
+            wd.st.bytes += utf8ByteLength(String(text)); // newlines included: they join the new lines
             const stick = wd.st.mode === "console" && (wd.st.flags & TA_FLAG.AUTO_SCROLL) && wd.atBottom();
             const last = wd.st.lines.length - 1;
             wd.st.lines[last].raw += parts[0];
@@ -3073,15 +3141,16 @@
               wd.st.lines.push({ raw: parts[i], startState });
               if (wd.st.mode === "console") { const node = document.createElement("div"); node.className = "line"; wd.inner.appendChild(node); wd.renderLine(wd.st.lines.length - 1); }
             }
-            wd.trim();
             if (wd.st.mode === "edit") { wd.inner.value += text; wd.st.dirty = false; }
-            else if (stick) wd.inner.scrollTop = wd.inner.scrollHeight;
+            wd.trim(); // the line bound, then the device's byte bound (edit mode: inner.value follows)
+            if (wd.st.mode === "console" && stick) wd.inner.scrollTop = wd.inner.scrollHeight;
           };
           wd.setText = (text) => {
             wd.st.lines = String(text).split("\n").map((raw) => ({ raw, startState: null }));
-            wd.trim();
-            if (wd.st.mode === "edit") { wd.inner.value = text; wd.st.dirty = false; }
-            else wd.renderAll();
+            wd.st.bytes = utf8ByteLength(String(text));
+            if (wd.st.mode === "edit") { wd.inner.value = String(text); wd.st.dirty = false; }
+            wd.trim(); // line bound, then the device's byte bound (edit mode: inner.value follows)
+            if (wd.st.mode === "console") wd.renderAll();
           };
           wd.dispose = () => idle.cancel();
           wd.setMode("edit");
@@ -3348,6 +3417,11 @@
       for (const a of info.apps) apps.set(a.id, a);
       renderApps();
       for (const w of windows.values()) { w.appName = appName(w.app); }
+      // a snapshot (the reply to our GET_DESKTOP, or the device's own resync after
+      // it had to drop frames to us) re-creates every live dialog right after
+      // this frame: local dialogs are stale until then (a DIALOG_CLOSE may have
+      // been among the dropped frames), so drop them all now
+      if (fromRequest || (info.flags & DESKTOP_SNAPSHOT)) { for (const d of [...dialogs.values()]) closeDialogLocal(d.id); }
       // a COMPLETE open-window list (bit1 set) is authoritative: drop what the
       // device no longer has; a trimmed one says nothing about unlisted windows
       if (!(info.flags & DESKTOP_WINDOW_LIST_COMPLETE)) {
@@ -3626,6 +3700,42 @@
       ta.value = "z".repeat(settings.maxTextBytes + 10); ta.dispatchEvent(new Event("input", { bubbles: true }));
       assert(ta.value.length === settings.maxTextBytes && ta.classList.contains("overflow"), "TextArea edit capped at MaxTextBytes");
       w.widgets.get(4).idle.flush(); await txQueue; await tick(0); // drain the capped edit's Text chunks
+      // 8b. a console TextArea applies the device's byte bound (MaxTextBytes) on
+      // appends with the firmware's cut rule, so appends can stay appends
+      {
+        feedHex(DT.WIDGET_ADD, "0100" + "0100" + "6000" + "0000" + "08" + "01" + "01" + "02" + "10" + "0200" + "0100" + "11" + "0200" + "0000"); // ReadOnly console, MaxLines 0
+        const cw = w.widgets.get(0x60);
+        assert(cw && cw.st.mode === "console", "console textarea added");
+        const saved = settings.maxTextBytes; settings.maxTextBytes = 24;
+        const app = (str) => { const b = utf8Encoder.encode(str); feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "02" + hexOf(new Uint8Array([b.length & 0xFF, b.length >> 8])) + hexOf(b)); };
+        app("0123456789\n"); app("abcdefghij\n"); app("KLMNO\n");
+        const rawOf = () => cw.st.lines.map((l) => l.raw).join("\n");
+        assert(rawOf() === "abcdefghij\nKLMNO\n" && cw.inner.children.length === 3, "byte bound cut at the next line start: " + JSON.stringify(rawOf()));
+        app("\u00e9\u00e9\u00e9\u00e9\u00e9"); // 10 B, pushes to 27 B: cut moves to the next line start again
+        assert(rawOf() === "KLMNO\n\u00e9\u00e9\u00e9\u00e9\u00e9" && cw.inner.children.length === 2, "byte bound keeps the device's exact tail: " + JSON.stringify(rawOf()));
+        app("abcdefghijklmnopqrstuvwxyz"); // 26 B on the last line: no newline after the cut, so it lands mid-line
+        assert(rawOf() === "cdefghijklmnopqrstuvwxyz" && cw.inner.children.length === 1, "mid-line cut drops the earlier lines and shortens the first: " + JSON.stringify(rawOf()));
+        assert(cw.inner.children[0].textContent === "cdefghijklmnopqrstuvwxyz", "first line re-rendered after a mid-line cut");
+        assert(cw.st.bytes === utf8ByteLength(rawOf()), "the incremental byte counter matches the text after the cuts: " + cw.st.bytes);
+        // an ANSI console: a mid-line cut keeps the colour the removed prefix switched on
+        feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "10" + "0200" + "1100"); // Flags: ReadOnly | Ansi
+        feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "01" + "0000"); // Text ""
+        app("\x1b[31mred " + "0123456789abcdefghijklmnopqrstuvwxyz"); // 5 + 4 + 36 B: cut lands after the SGR code
+        assert(rawOf() === "cdefghijklmnopqrstuvwxyz" && cw.inner.children.length === 1, "ANSI mid-line cut: " + JSON.stringify(rawOf()));
+        assert(cw.inner.children[0].firstElementChild && cw.inner.children[0].firstElementChild.classList.contains("ansi-fg-1") && cw.inner.children[0].textContent === "cdefghijklmnopqrstuvwxyz", "the kept suffix is rendered in the colour the cut-off prefix selected");
+        // edit mode follows the device's copy after a MaxLines trim too, unless the user is mid-edit
+        feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "10" + "0200" + "0000"); // Flags 0 -> editable
+        assert(cw.st.mode === "edit", "textarea switched to edit mode");
+        settings.maxTextBytes = saved;
+        feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "01" + "0a00" + hexOf(utf8Encoder.encode("a\nb\nc\nd\ne\n"))); // Text, 6 lines
+        feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "11" + "0200" + "0300"); // MaxLines 3
+        assert(cw.inner.value === "d\ne\n" && cw.st.lines.length === 3, "edit-mode textarea trimmed with the lines: " + JSON.stringify(cw.inner.value));
+        cw.inner.value = "d\ne\nedit"; cw.st.dirty = true;
+        feedHex(DT.WIDGET_SET, "0100" + "01" + "6000" + "01" + "11" + "0200" + "0200"); // MaxLines 2
+        assert(cw.inner.value === "d\ne\nedit" && cw.st.lines.length === 2, "a pending edit is not discarded by a MaxLines trim");
+        cw.st.dirty = false; cw.idle.cancel();
+        feedHex(DT.WIDGET_REMOVE, "0100" + "0100" + "6000");
+      }
       // 9. a List added on the fly: Select / Activate
       feedHex(DT.WIDGET_ADD, "0100" + "0100" + "0700" + "0100" + "09" + "00" + "00" + "01" + "0c" + "0a00" + "0000" + "0200" + "0100" + "61" + "0100" + "62");
       const list = w.widgets.get(7);
@@ -3708,6 +3818,15 @@
       const complete = Uint8Array.from(truncated); complete[1] = DESKTOP_WINDOW_LIST_COMPLETE;
       handleRxBytes(buildReplyFrame(moduleDesktop, DT.DESKTOP, complete));
       assert(!windows.has(1), "a complete empty window list drops the window");
+      // 13b. a dialog survives a plain DESKTOP broadcast (bit2 clear) but not a
+      // snapshot DESKTOP (bit2 set): its DIALOG frame would follow if it were live
+      feed("dialog");
+      assert(dialogs.size === 1, "dialog open before the broadcast");
+      handleRxBytes(buildReplyFrame(moduleDesktop, DT.DESKTOP, complete));
+      assert(dialogs.size === 1, "a change broadcast keeps the local dialog");
+      const snap = Uint8Array.from(complete); snap[1] = DESKTOP_WINDOW_LIST_COMPLETE | DESKTOP_SNAPSHOT;
+      handleRxBytes(buildReplyFrame(moduleDesktop, DT.DESKTOP, snap));
+      assert(dialogs.size === 0 && els.modal.hidden, "a snapshot DESKTOP drops the stale dialog");
       { // with no window (and no dialog) open, a real pointer hit on a desktop icon must reach the
         // icon: the full-size #windows layer must not swallow it (it did, until pointer-events: none)
         assert(els.modal.hidden, "no modal backdrop while probing the icons");

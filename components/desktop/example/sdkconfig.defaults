@@ -20,6 +20,9 @@ CONFIG_TINYUSB_CDC_TX_BUFSIZE=4096
 
 # Task statistics for MonitorService and the Task Manager app: the FreeRTOS
 # trace facility + run-time stats, and the core id per task.
+# 1 kHz tick: the USB write path polls the TX FIFO once per tick while a
+# frame waits for room, so a 100 Hz tick turns every wait into 10 ms steps
+CONFIG_FREERTOS_HZ=1000
 CONFIG_FREERTOS_USE_TRACE_FACILITY=y
 CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
 CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID=y

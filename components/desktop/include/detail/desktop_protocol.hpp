@@ -3,7 +3,7 @@
 // Wire protocol of espp::DesktopService / espp::Desktop: a browser-rendered
 // windowed desktop (apps, windows, widgets, dialogs, notifications) over the
 // espp stream_frame codec, routed by an espp::Dispatcher on module 9 by
-// default (`espp.desktop` v1 through discovery).
+// default (`espp.desktop` v2 through discovery).
 //
 // This header is deliberately host-buildable (stream_frame.hpp + the standard
 // library only) so the codec is unit-tested on the host
@@ -31,6 +31,9 @@
 // Replies / events (device -> host, high bit set = frame reply flag):
 //   0x81 DESKTOP       [proto u8 = 1][flags u8][rec count u8]{rec}[app count u8]{app}
 //                      [win count u8]{[win u16][app u8]}
+//                      flags: bit0 HasSnapshot (WINDOW_OPEN(Snapshot) frames follow)
+//                      bit1 WindowListComplete bit2 Snapshot (a full snapshot: the
+//                      host drops its dialogs + unlisted windows, see kDesktopSnapshot)
 //                      app = [id u8][flags u8][name str8][icon str8][desc str8]
 //   0x82 WINDOW_OPEN   [win u16][app u8][flags u16][x i16][y i16][w u16][h u16]
 //                      [title str8][widget total u16][count u16]{widget rec}
@@ -90,7 +93,14 @@ namespace espp::detail::desktop_protocol {
 inline constexpr uint8_t kModule = 9;
 /// Stable protocol identifier + version advertised through discovery.
 inline constexpr const char *kProtocol = "espp.desktop";
-inline constexpr uint16_t kProtocolVersion = 1;
+/// Negotiated through discovery (ModuleInfo::protocol_version). v2: the host
+/// applies MaxTextBytes to TextAppend the way the device does (an append past
+/// the bound stays an append on the wire) and honours DESKTOP flags bit2
+/// Snapshot (drops its dialogs / unlisted windows on a snapshot). v1 was never
+/// released; a v1 host would keep appending without trimming and could keep
+/// a stale dialog after a resync. The wire layout of every message is the
+/// same, so kDesktopProto (the DESKTOP payload's own version byte) stays 1.
+inline constexpr uint16_t kProtocolVersion = 2;
 /// The `proto` byte at the head of every DESKTOP payload.
 inline constexpr uint8_t kDesktopProto = 1;
 
@@ -184,6 +194,12 @@ inline constexpr uint8_t kDesktopHasSnapshot = 0x01; ///< WINDOW_OPEN(Snapshot) 
 /// The window list is complete (set by the encoder unless it had to trim it):
 /// a host may close windows missing from it only when this bit is set.
 inline constexpr uint8_t kDesktopWindowListComplete = 0x02;
+/// This DESKTOP is a full snapshot (the GET_DESKTOP reply, or the device's
+/// own resync after a refused frame): the state of every open window and
+/// dialog follows it. A host drops every local dialog (the snapshot's DIALOG
+/// frames re-create the live ones) and, when the window list is complete,
+/// the windows missing from it. Clear on the change broadcast (apps / records).
+inline constexpr uint8_t kDesktopSnapshot = 0x04;
 
 /// Tags of the DESKTOP records.
 enum class DesktopTag : uint8_t {
