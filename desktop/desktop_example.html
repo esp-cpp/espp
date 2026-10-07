@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Desktop over USB Example - ESP32 -  &mdash; ESPP v1.3.7 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=57312545"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'desktop/desktop_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'v1.3.7';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Storage &amp; Configuration APIs" href="../storage/index.html" />
+    <link rel="prev" title="Desktop, Desktop Service &amp; Console Capture" href="desktop.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../system/index.html">System APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Desktop APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="desktop.html">Desktop, Desktop Service &amp; Console Capture</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Desktop over USB Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-use-example">How to use example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#standard-usb-services">Standard USB services</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-output">Example Output</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="desktop.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../telemetry/index.html">Telemetry APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wdi/index.html">WDI (Wheelchair Digital Interface) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Desktop APIs</a></li>
+          <li class="breadcrumb-item"><a href="desktop.html">Desktop, Desktop Service &amp; Console Capture</a></li>
+      <li class="breadcrumb-item active">Desktop over USB Example</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/4b32f78e/docs/en/desktop/desktop_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="desktop-over-usb-example">
+<h1>Desktop over USB Example<a class="headerlink" href="#desktop-over-usb-example" title="Permalink to this heading"></a></h1>
+<p>A browser-rendered windowed desktop served from an ESP32-S3: the firmware
+registers apps and describes their windows / widgets with <code class="docutils literal notranslate"><span class="pre">espp::Desktop</span></code>;
+the hosted <a class="reference external" href="https://esp-cpp.github.io/espp/apps/desktop.html">desktop web app</a>
+(<code class="docutils literal notranslate"><span class="pre">components/desktop/web/desktop.html</span></code>) draws and operates them over the
+native USB port, on both the <strong>vendor (WebUSB)</strong> and <strong>CDC (Web Serial)</strong>
+interfaces (<code class="docutils literal notranslate"><span class="pre">espp.desktop</span></code> v2 on module 9 by default). The
+<a class="reference external" href="https://esp-cpp.github.io/espp/apps/dispatcher_hub.html">Device Hub</a> lists it
+through discovery next to the standard services.</p>
+<p>Apps (<code class="docutils literal notranslate"><span class="pre">main/apps/*.hpp</span></code>, one <code class="docutils literal notranslate"><span class="pre">register_&lt;name&gt;_app()</span></code> each):</p>
+<ul class="simple">
+<li><p><strong>Counter</strong> — the API reference (~40 lines): a label, three buttons, the
+count kept in NVS, a confirmation message box.</p></li>
+<li><p><strong>About</strong> — chip / firmware / partition / hardware labels (<code class="docutils literal notranslate"><span class="pre">SystemInfo</span></code>).</p></li>
+<li><p><strong>System Monitor</strong> — uptime and per-region heap gauges (<code class="docutils literal notranslate"><span class="pre">HeapMonitor</span></code>),
+refreshed by a 1 s window timer.</p></li>
+<li><p><strong>Task Manager</strong> — the FreeRTOS task table (<code class="docutils literal notranslate"><span class="pre">TaskMonitor</span></code>: CPU %, stack
+high-water mark, priority, core) with a refresh-period selector. Filter by task name (substring,
+case-insensitive) and core; click a column header to sort (again for
+descending, again to clear).</p></li>
+<li><p><strong>Log Viewer</strong> — the captured console (<code class="docutils literal notranslate"><span class="pre">ConsoleCapture</span></code>) streamed live into
+a read-only, ANSI-aware console text area; pause and clear.</p></li>
+<li><p><strong>Files</strong> — browse the LittleFS partition (<code class="docutils literal notranslate"><span class="pre">FileSystem</span></code>), create / rename /
+delete through dialogs; open a file in the <strong>Editor</strong> (a text area saved
+with <code class="docutils literal notranslate"><span class="pre">std::ofstream</span></code>).</p></li>
+<li><p><strong>Settings</strong> — nickname, theme and accent (applied to the browser at once)
+and the log-capture tee (whether captured logs still go to the UART
+console; the capture itself is the compile-time
+<code class="docutils literal notranslate"><span class="pre">CONFIG_DESKTOP_EXAMPLE_LOG_CAPTURE</span></code>), all kept in NVS and restored at boot.</p></li>
+</ul>
+<p>Hardware apps, each behind a Kconfig option (see
+<a class="reference internal" href="#configuration"><span class="xref myst">Configuration</span></a>). CANopen (on the simulated node), the I2C
+scanner and the Wi-Fi group are on by default, so the CI build compiles them;
+the Ethernet group defaults off and is only selectable on SoCs with an EMAC
+(ESP32 / ESP32-P4, not the S3):</p>
+<ul class="simple">
+<li><p><strong>CANopen / DS402</strong> — a CiA 301 NMT master + SDO client
+(<code class="docutils literal notranslate"><span class="pre">espp::CanopenClient</span></code>) and a CiA 402 drive panel (<code class="docutils literal notranslate"><span class="pre">espp::Ds402Drive</span></code>):
+node id, NMT Start / Stop / Pre-operational / Reset, NMT + drive state and
+statusword, mode of operation, Enable / Disable / Quick stop / Fault reset,
+a target-velocity slider, position / velocity, and a raw SDO read / write
+row. The bus is either the in-firmware <strong>simulated DS402 node</strong> (the CAN
+bridge example’s <code class="docutils literal notranslate"><span class="pre">SimulatedCanBus</span></code>, no hardware needed, with an “Inject
+fault” button) or the <strong>TWAI peripheral</strong> wired to a CAN transceiver. Every
+bus transaction runs on the app’s own task (SDO calls block); the window
+only queues commands and the task updates the widgets.</p></li>
+<li><p><strong>I2C scanner</strong> — probe every 7-bit address on the configured bus
+(<code class="docutils literal notranslate"><span class="pre">espp::I2c</span></code>) from a short task and list what answers; read / write a
+device register from the window. A bus that fails to initialize shows a
+hint instead.</p></li>
+<li><p><strong>Network</strong> — the Wi-Fi station (<code class="docutils literal notranslate"><span class="pre">espp::WifiSta</span></code>): status / SSID / IP /
+RSSI / MAC, Scan (on its own task; a scan disconnects first), the AP list,
+password field and Connect / Disconnect / Forget with the credentials kept
+in NVS (<code class="docutils literal notranslate"><span class="pre">desktop</span></code> namespace, <code class="docutils literal notranslate"><span class="pre">wifi_ssid</span></code> / <code class="docutils literal notranslate"><span class="pre">wifi_pass</span></code>); and, on SoCs with an
+EMAC, the RMII Ethernet link (<code class="docutils literal notranslate"><span class="pre">espp::Ethernet</span></code>): link / IP / MAC / speed.
+The interfaces come up on the first launch and stay up when the window is
+closed.</p></li>
+</ul>
+<section id="how-to-use-example">
+<h2>How to use example<a class="headerlink" href="#how-to-use-example" title="Permalink to this heading"></a></h2>
+<section id="hardware-required">
+<h3>Hardware Required<a class="headerlink" href="#hardware-required" title="Permalink to this heading"></a></h3>
+<p>An ESP32-S3 (or -S2 / -P4) board with the native USB port wired to a host. The
+console / logs go to UART0 (see <code class="docutils literal notranslate"><span class="pre">sdkconfig.defaults</span></code>); with
+<code class="docutils literal notranslate"><span class="pre">CONFIG_DESKTOP_EXAMPLE_LOG_CAPTURE</span></code> (default on) they are also captured for
+the Log Viewer.</p>
+<p>The hardware apps need nothing extra by default: the CANopen app talks to a
+simulated node, the I2C scanner just reports an empty bus and the Network app
+scans for Wi-Fi. For a real CAN bus select the TWAI peripheral and wire a
+transceiver (SN65HVD230 or similar) to the configured TX / RX GPIOs; for the
+Ethernet group an ESP32-Ethernet-Kit or an ESP32-P4-Function-EV-Board (the
+RMII wiring is selected by <code class="docutils literal notranslate"><span class="pre">DESKTOP_EXAMPLE_ETHERNET_BOARD</span></code>; other boards:
+edit <code class="docutils literal notranslate"><span class="pre">rmii_config()</span></code> in <code class="docutils literal notranslate"><span class="pre">main/apps/network_app.hpp</span></code>).</p>
+</section>
+<section id="configuration">
+<h3>Configuration<a class="headerlink" href="#configuration" title="Permalink to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">menuconfig</span></code> -&gt; <em>Desktop Example Configuration</em>:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DESKTOP_EXAMPLE_LOG_CAPTURE</span></code> (+ <code class="docutils literal notranslate"><span class="pre">_BYTES</span></code>)</p></td>
+<td><p>y (16384)</p></td>
+<td><p>Tee the console into a ring for the Log Viewer</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DESKTOP_EXAMPLE_ENABLE_CANOPEN</span></code></p></td>
+<td><p>y</p></td>
+<td><p>Register the CANopen / DS402 app</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DESKTOP_EXAMPLE_CANOPEN_BUS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SIMULATED</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SIMULATED</span></code> (in-firmware DS402 node) or <code class="docutils literal notranslate"><span class="pre">TWAI</span></code> (the peripheral)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DESKTOP_EXAMPLE_CANOPEN_NODE_ID</span></code></p></td>
+<td><p>1</p></td>
+<td><p>Server node id (1..127; also the simulated node’s id)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DESKTOP_EXAMPLE_CAN_TX_GPIO</span></code> / <code class="docutils literal notranslate"><span class="pre">_RX_GPIO</span></code> / <code class="docutils literal notranslate"><span class="pre">_BAUDRATE</span></code></p></td>
+<td><p>17 / 16 / 500000</p></td>
+<td><p>TWAI wiring and bit rate (TWAI bus only)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DESKTOP_EXAMPLE_ENABLE_I2C</span></code></p></td>
+<td><p>y</p></td>
+<td><p>Register the I2C scanner app</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DESKTOP_EXAMPLE_I2C_PORT</span></code> / <code class="docutils literal notranslate"><span class="pre">_SDA_GPIO</span></code> / <code class="docutils literal notranslate"><span class="pre">_SCL_GPIO</span></code> / <code class="docutils literal notranslate"><span class="pre">_FREQ_HZ</span></code></p></td>
+<td><p>0 / 8 / 9 / 400000</p></td>
+<td><p>The I2C bus it scans</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DESKTOP_EXAMPLE_ENABLE_WIFI</span></code></p></td>
+<td><p>y</p></td>
+<td><p>The Network app’s Wi-Fi station group (<code class="docutils literal notranslate"><span class="pre">SOC_WIFI_SUPPORTED</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DESKTOP_EXAMPLE_ENABLE_ETHERNET</span></code></p></td>
+<td><p>n</p></td>
+<td><p>The Network app’s RMII Ethernet group (<code class="docutils literal notranslate"><span class="pre">SOC_EMAC_SUPPORTED</span></code>: ESP32 / -P4)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DESKTOP_EXAMPLE_ETHERNET_BOARD</span></code></p></td>
+<td><p>per target</p></td>
+<td><p>RMII wiring: <code class="docutils literal notranslate"><span class="pre">ETHERNET_KIT</span></code> (ESP32-Ethernet-Kit) or <code class="docutils literal notranslate"><span class="pre">P4_FUNCTION_EV</span></code> (ESP32-P4-Function-EV-Board, with its routable data pins)</p></td>
+</tr>
+</tbody>
+</table>
+<p>The hardware components (<code class="docutils literal notranslate"><span class="pre">i2c</span></code>, <code class="docutils literal notranslate"><span class="pre">wifi</span></code>, <code class="docutils literal notranslate"><span class="pre">ethernet</span></code>, <code class="docutils literal notranslate"><span class="pre">cli</span></code>) are always part
+of the build (<code class="docutils literal notranslate"><span class="pre">REQUIRES</span></code> cannot depend on Kconfig); the options only decide
+which apps are registered.</p>
+<p><strong>Minimum IDF.</strong> The example itself builds on IDF 5.5 (the <code class="docutils literal notranslate"><span class="pre">desktop</span></code>,
+<code class="docutils literal notranslate"><span class="pre">usb_device</span></code>, <code class="docutils literal notranslate"><span class="pre">ethernet</span></code> (&gt;= 5.4), <code class="docutils literal notranslate"><span class="pre">wifi</span></code>, <code class="docutils literal notranslate"><span class="pre">i2c</span></code> and <code class="docutils literal notranslate"><span class="pre">canopen</span></code> components
+all support it). The CANopen app is the exception: it is built on the <code class="docutils literal notranslate"><span class="pre">twai</span></code>
+component (the simulated bus is a <code class="docutils literal notranslate"><span class="pre">Twai</span></code> drop-in), which needs the IDF &gt;= 6.0
+<code class="docutils literal notranslate"><span class="pre">esp_driver_twai</span></code> node API. The CMakeLists therefore adds <code class="docutils literal notranslate"><span class="pre">canopen</span></code> + <code class="docutils literal notranslate"><span class="pre">twai</span></code>
+and compiles the app only on IDF &gt;= 6.0, controlled by the CMake option
+<code class="docutils literal notranslate"><span class="pre">DESKTOP_EXAMPLE_CANOPEN</span></code> (default ON on IDF &gt;= 6, OFF below; override with
+<code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">-DDESKTOP_EXAMPLE_CANOPEN=OFF</span> <span class="pre">build</span></code>). On an older IDF
+<code class="docutils literal notranslate"><span class="pre">CONFIG_DESKTOP_EXAMPLE_ENABLE_CANOPEN</span></code> has no effect and <code class="docutils literal notranslate"><span class="pre">app_main</span></code> logs a
+warning. The simulated CAN bus / DS402 node headers are included from the CAN
+bridge example (<code class="docutils literal notranslate"><span class="pre">components/canopen/can_bridge_example/main</span></code>); promoting them
+into the <code class="docutils literal notranslate"><span class="pre">canopen</span></code> component is a follow-up.</p>
+</section>
+<section id="build-and-flash">
+<h3>Build and Flash<a class="headerlink" href="#build-and-flash" title="Permalink to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">idf</span><span class="o">.</span><span class="n">py</span> <span class="nb">set</span><span class="o">-</span><span class="n">target</span> <span class="n">esp32s3</span>
+<span class="n">idf</span><span class="o">.</span><span class="n">py</span> <span class="n">build</span> <span class="n">flash</span> <span class="n">monitor</span>
+</pre></div>
+</div>
+<p>CI builds it with the component manager off (<code class="docutils literal notranslate"><span class="pre">IDF_COMPONENT_MANAGER=0</span> <span class="pre">idf.py</span> <span class="pre">build</span></code>), resolving every dependency from the repository (including the
+vendored <code class="docutils literal notranslate"><span class="pre">esp_tinyusb</span></code> / <code class="docutils literal notranslate"><span class="pre">tinyusb</span></code> submodules under <code class="docutils literal notranslate"><span class="pre">external/</span></code> and the
+<code class="docutils literal notranslate"><span class="pre">littlefs</span></code> submodule under <code class="docutils literal notranslate"><span class="pre">components/</span></code>).</p>
+<p>Then open the desktop web app and Connect (WebUSB or Web Serial): the app
+icons appear; double-click one (or use the start menu) to launch it. Windows
+can be dragged, resized, minimised, maximised and closed; the browser
+remembers where you put them. Reconnecting (or reloading the page) resyncs
+the whole desktop with one <code class="docutils literal notranslate"><span class="pre">GET_DESKTOP</span></code>.</p>
+</section>
+</section>
+<section id="standard-usb-services">
+<h2>Standard USB services<a class="headerlink" href="#standard-usb-services" title="Permalink to this heading"></a></h2>
+<p>Like every espp USB example, this one serves the standard service set on its
+framed USB link(s) next to its own protocol, so the hosted consoles and the
+<a class="reference external" href="https://esp-cpp.github.io/espp/apps/dispatcher_hub.html">Device Hub</a> (which
+finds each service through discovery, by protocol id) work against it:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Service</p></th>
+<th class="head"><p>Module (default)</p></th>
+<th class="head"><p>Protocol id</p></th>
+<th class="head"><p>Console</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">espp::DesktopService</span></code> – this desktop</p></td>
+<td><p>9</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">espp.desktop</span></code></p></td>
+<td><p><a class="reference external" href="https://esp-cpp.github.io/espp/apps/desktop.html">desktop</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">espp::SystemService</span></code> – device info, reboot, reboot into the bootloader</p></td>
+<td><p>7</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">espp.system</span></code></p></td>
+<td><p><a class="reference external" href="https://esp-cpp.github.io/espp/apps/system_console.html">system console</a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">espp::MonitorService</span></code> – heap regions + task table, on request or streamed</p></td>
+<td><p>8</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">espp.monitor</span></code></p></td>
+<td><p>system console</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">espp::OtaService</span></code> – firmware update (host-driven rollback confirmation)</p></td>
+<td><p>0</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">espp.ota</span></code></p></td>
+<td><p><a class="reference external" href="https://esp-cpp.github.io/espp/apps/ota_console.html">OTA console</a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">espp::CoreDumpService</span></code> – last-crash report, core dump download / erase</p></td>
+<td><p>4</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">espp.coredump</span></code></p></td>
+<td><p><a class="reference external" href="https://esp-cpp.github.io/espp/apps/coredump_console.html">coredump console</a></p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">partitions.csv</span></code> therefore carries the OTA layout (<code class="docutils literal notranslate"><span class="pre">otadata</span></code>, <code class="docutils literal notranslate"><span class="pre">ota_0</span></code>, <code class="docutils literal notranslate"><span class="pre">ota_1</span></code>),
+a <code class="docutils literal notranslate"><span class="pre">coredump</span></code> partition and a <code class="docutils literal notranslate"><span class="pre">littlefs</span></code> partition for the Files app, and
+<code class="docutils literal notranslate"><span class="pre">sdkconfig.defaults</span></code> enables core dumps to flash, OTA rollback and the FreeRTOS
+run-time statistics the task monitor reads. Every device-&gt;host write on a
+transport goes through one mutex, so the services never interleave frames;
+<code class="docutils literal notranslate"><span class="pre">write_vendor</span></code> / <code class="docutils literal notranslate"><span class="pre">write_cdc</span></code> wait (bounded, 250 ms) for FIFO room for a whole
+frame and never queue a partial one, and when the host is not draining the
+FIFO the frame is dropped and the desktop flags that transport as needing a
+resync (the browser resyncs with GET_DESKTOP on its next connect).</p>
+</section>
+<section id="example-output">
+<h2>Example Output<a class="headerlink" href="#example-output" title="Permalink to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">I</span> <span class="p">(</span><span class="mi">327</span><span class="p">)</span> <span class="n">Desktop</span> <span class="n">Example</span><span class="p">:</span> <span class="n">Starting</span> <span class="n">desktop</span> <span class="n">example</span>
+<span class="n">I</span> <span class="p">(</span><span class="mi">337</span><span class="p">)</span> <span class="n">Desktop</span> <span class="n">Example</span><span class="p">:</span> <span class="n">LittleFS</span> <span class="n">at</span> <span class="o">/</span><span class="n">littlefs</span><span class="p">:</span> <span class="mi">8</span> <span class="o">/</span> <span class="mi">256</span> <span class="n">KiB</span> <span class="n">used</span>
+<span class="n">I</span> <span class="p">(</span><span class="mi">347</span><span class="p">)</span> <span class="n">Desktop</span> <span class="n">Example</span><span class="p">:</span> <span class="n">Clean</span> <span class="n">boot</span> <span class="n">history</span> <span class="p">(</span><span class="n">reset</span> <span class="n">reason</span><span class="p">:</span> <span class="n">power</span><span class="o">-</span><span class="n">on</span><span class="p">)</span>
+<span class="n">I</span> <span class="p">(</span><span class="mi">1077</span><span class="p">)</span> <span class="n">Desktop</span> <span class="n">Example</span><span class="p">:</span> <span class="n">Ready</span><span class="o">.</span> <span class="n">Connect</span> <span class="n">the</span> <span class="n">native</span> <span class="n">USB</span> <span class="n">port</span> <span class="ow">and</span> <span class="nb">open</span> <span class="n">the</span> <span class="n">desktop</span> <span class="o">...</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="desktop.html" class="btn btn-neutral float-left" title="Desktop, Desktop Service &amp; Console Capture" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../storage/index.html" class="btn btn-neutral float-right" title="Storage &amp; Configuration APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

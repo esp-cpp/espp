@@ -1,0 +1,21 @@
+BMI270 6-Axis IMU
+*****************
+
+The `Bmi270` component provides an interface to the BMI270 6-axis IMU sensor. It
+supports both SPI and I2C communication protocols and can be used to read
+accelerometer and gyroscope data. It also includes features for sensor
+configuration and data processing.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   bmi270_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/bmi270.inc
+.. include-build-file:: inc/bmi270_detail.inc
