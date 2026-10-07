@@ -34,7 +34,12 @@ object dictionary at index `0x2000 + command number` (see
 `include/detail/mcp266_core.hpp`, which is host-buildable and unit-tested).
 This component uses that to:
 
-* configure the position PID (commands 61-64),
+* configure the position PID (commands 61-64), read the record back
+  (`read_position_pid`, `read_position_limits`) and install tuned gains
+  (`set_position_pid`),
+* set an axis's encoder count (22/23, `set_encoder`) or zero both (20,
+  `reset_encoders`) — how a quadrature encoder is homed against a limit switch
+  or restored to a remembered position after power-up,
 * issue the manufacturer speed/duty commands (32/33, 35/36), and
 * read telemetry: main battery (24) and temperature (82).
 

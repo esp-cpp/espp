@@ -11,6 +11,7 @@
 #include <array>
 #include <cstdint>
 #include <cstdio>
+#include <limits>
 
 #include "detail/mcp266_core.hpp"
 
@@ -37,9 +38,14 @@ static void test_command_object() {
   CHECK(command_object(24) == 0x2018);  // read main battery
   CHECK(command_object(82) == 0x2052);  // read temperature
   CHECK(command_object(200) == 0x20C8); // e-stop reset
+  CHECK(command_object(20) == 0x2014);  // reset encoders
+  CHECK(command_object(22) == 0x2016);  // set M1 encoder
+  CHECK(command_object(23) == 0x2017);  // set M2 encoder
   CHECK(kMainBatteryObject == 0x2018);
   CHECK(kTemperatureObject == 0x2052);
   CHECK(kEStopResetObject == 0x20C8);
+  CHECK(kResetEncodersObject == 0x2014);
+  CHECK(kPositionGainScale == 1024);
 }
 
 static void test_axis_objects() {
@@ -54,10 +60,12 @@ static void test_axis_objects() {
   CHECK(m1.position_pid_get == 0x203F);
   CHECK(m1.drive_duty == 0x2020);
   CHECK(m1.drive_speed == 0x2023);
+  CHECK(m1.encoder_set == 0x2016);
   CHECK(m2.position_pid_set == 0x203E);
   CHECK(m2.position_pid_get == 0x2040);
   CHECK(m2.drive_duty == 0x2021);
   CHECK(m2.drive_speed == 0x2024);
+  CHECK(m2.encoder_set == 0x2017);
   // the CiA 402 offset applied to a device-profile object selects the axis
   CHECK(static_cast<uint16_t>(0x6040 + m2.object_offset) == 0x6840); // controlword
   CHECK(static_cast<uint16_t>(0x607A + m2.object_offset) == 0x687A); // target position
@@ -81,10 +89,43 @@ static void test_position_pid_remap() {
   static_assert(position_pid_readback_to_setter({7, 8, 9, 0, 0, 0, 0})[1] == 7);
 }
 
+static void test_scale_position_gain() {
+  std::printf("test_scale_position_gain\n");
+  // round-to-nearest (not truncate) and clamp to the full unsigned 32-bit
+  // range of the record's gain fields, matching espp::Basicmicro's
+  // scale_pid_gain()
+  CHECK(scale_position_gain(4.0f) == 4096);
+  CHECK(scale_position_gain(1.5f) == 1536);
+  // 102.5 / 1024 scales back to exactly 102.5 -> rounds up to 103 (truncation: 102)
+  CHECK(scale_position_gain(102.5f / 1024.0f) == 103);
+  CHECK(scale_position_gain(15491.0f / 1024.0f) == 15491); // the default fallback P round-trips
+  CHECK(scale_position_gain(0.0f) == 0);
+  CHECK(scale_position_gain(-1.0f) == 0); // negatives clamp to 0
+  CHECK(scale_position_gain(std::numeric_limits<float>::quiet_NaN()) == 0);
+  CHECK(scale_position_gain(std::numeric_limits<float>::infinity()) == UINT32_MAX);
+  CHECK(scale_position_gain(1.0e12f) == UINT32_MAX);     // >> 2^32, saturates
+  CHECK(scale_position_gain(4194304.0f) == UINT32_MAX);  // 4194304 * 1024 == 2^32, saturates
+  CHECK(scale_position_gain(4194303.0f) == 4294966272u); // just below 2^32, fits exactly
+  CHECK(scale_position_gain(2097152.0f) == 2147483648u); // bit 31 set: must not be narrowed
+  // constexpr-evaluable
+  static_assert(scale_position_gain(2.0f) == 2048);
+  static_assert(scale_position_gain(-2.0f) == 0);
+
+  // a gain with bit 31 set survives the trip through the i32 record slot and
+  // decodes back as a positive float (not a negative one)
+  const int32_t bits = position_gain_bits(scale_position_gain(4194303.0f));
+  CHECK(static_cast<uint32_t>(bits) == 0xFFFFFC00u);
+  CHECK(bits < 0); // the slot itself is negative: only the bit pattern matters
+  CHECK(position_gain_from_bits(bits) == 4194303.0f);
+  CHECK(position_gain_from_bits(position_gain_bits(2048)) == 2.0f);
+  static_assert(position_gain_from_bits(position_gain_bits(UINT32_MAX)) > 0.0f);
+}
+
 int main() {
   test_command_object();
   test_axis_objects();
   test_position_pid_remap();
+  test_scale_position_gain();
   if (g_failures) {
     std::printf("%d FAILURES\n", g_failures);
     return 1;
