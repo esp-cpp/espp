@@ -129,6 +129,25 @@ extern "C" void app_main(void) {
     }
     ec.clear();
 
+    // test setting + getting a binary blob (arbitrary bytes, incl. embedded nulls)
+    std::vector<uint8_t> blob = {0xDE, 0xAD, 0x00, 0xBE, 0xEF};
+    nvs.set_var("system", "blob", blob, ec);
+    if (ec) {
+      fmt::print("Error: {}\n", ec.message());
+    } else {
+      fmt::print("Blob set ({} bytes)\n", blob.size());
+    }
+    ec.clear();
+
+    std::vector<uint8_t> read_blob;
+    nvs.get_var("system", "blob", read_blob, ec);
+    if (ec) {
+      fmt::print("Error: {}\n", ec.message());
+    } else {
+      fmt::print("Blob read back ({} bytes), matches = {}\n", read_blob.size(), read_blob == blob);
+    }
+    ec.clear();
+
     counter++;
 
     if (counter > 10) {
