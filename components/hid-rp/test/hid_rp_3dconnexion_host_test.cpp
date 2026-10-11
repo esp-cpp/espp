@@ -3,7 +3,7 @@
 // intergatedcircuits/hid-rp headers it wraps) are not -Werror clean, so they
 // are pulled in via -isystem. Build & run:
 //
-//   c++ -std=c++20 -Wall -Wextra -Werror \
+//   c++ -std=c++23 -Wall -Wextra -Werror \
 //       -isystem components/hid-rp/include \
 //       -isystem components/hid-rp/detail/hid-rp/hid-rp \
 //       -isystem components/format/include \

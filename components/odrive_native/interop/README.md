@@ -12,7 +12,7 @@ endpoint 0, enumerates the object tree, and reads/writes endpoints.
 - `odrive_native_interop_device.cpp` — host device shim. Opens a PTY (or a serial
   path arg), registers a small ODrive-like tree on an `OdriveNativeCore`, and runs
   the serve loop: stream bytes → `StreamDeframer` → `process_bytes` → `stream_frame`
-  → write. Uses only the host-buildable `detail/` headers (plain `c++ -std=c++20`,
+  → write. Uses only the host-buildable `detail/` headers (plain `c++ -std=c++23`,
   no espp lib). Prints `PTY_SLAVE <path>` on startup.
 - `odrive_fibre_client.py` — drives the real reference fibre library
   (`find_any("serial:<pty>")`): connect, enumerate the tree, read a value,

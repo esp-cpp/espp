@@ -1,7 +1,7 @@
 // Host-side unit test for the WDI (Wheelchair Digital Interface) protocol core.
-// Builds with just a C++20 standard library (no ESP-IDF):
+// Builds with just a C++23 standard library (no ESP-IDF):
 //
-//   c++ -std=c++20 -Wall -Wextra -Werror -I components/wdi/include \
+//   c++ -std=c++23 -Wall -Wextra -Werror -I components/wdi/include \
 //       components/wdi/test/wdi_protocol_host_test.cpp -o wdi_test && ./wdi_test
 
 #include <cstdio>

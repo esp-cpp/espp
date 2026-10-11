@@ -150,7 +150,7 @@ The node is host-buildable and unit-tested against the `canopen` component's
 client-side frame builders / parsers:
 
 ```
-cd test && c++ -std=c++20 -I../../include -I../main simulated_node_host_test.cpp -o test && ./test
+cd test && c++ -std=c++23 -I../../include -I../main simulated_node_host_test.cpp -o test && ./test
 ```
 
 The simulation has no bit timing, so the baudrate is only reported; in

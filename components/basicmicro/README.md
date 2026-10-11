@@ -76,5 +76,5 @@ duty-cycle ramp on motor 1 with encoder readback, and stop.
 The wire core is host-buildable and unit-tested without ESP-IDF:
 
 ```sh
-c++ -std=c++20 -I include -o /tmp/bm_test test/basicmicro_host_test.cpp && /tmp/bm_test
+c++ -std=c++23 -I include -o /tmp/bm_test test/basicmicro_host_test.cpp && /tmp/bm_test
 ```

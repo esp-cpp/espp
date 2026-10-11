@@ -1,7 +1,7 @@
 // Host-side unit test for the WDI device role (WdiDevice). Deterministic: uses a
 // fake clock and a mock send callback (no ESP-IDF, no real time).
 //
-//   c++ -std=c++20 -Wall -Wextra -Werror -I components/wdi/include \
+//   c++ -std=c++23 -Wall -Wextra -Werror -I components/wdi/include \
 //       components/wdi/test/wdi_device_host_test.cpp -o wdi_dev_test && ./wdi_dev_test
 
 #include <cstdio>

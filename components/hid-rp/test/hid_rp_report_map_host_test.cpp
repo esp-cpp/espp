@@ -1,7 +1,7 @@
 // Host-buildable unit tests for the runtime report map / decoders
 // (hid-rp-report-map.hpp). Build & run:
 //
-//   c++ -std=c++20 -Wall -Wextra -Werror \
+//   c++ -std=c++23 -Wall -Wextra -Werror \
 //       -isystem components/hid-rp/include \
 //       -isystem components/hid-rp/detail/hid-rp/hid-rp \
 //       -isystem components/format/include \

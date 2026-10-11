@@ -1,6 +1,6 @@
 // Host-buildable unit tests for the MCP266 console wire protocol
 // (include/mcp266_protocol.hpp -- standard library only). Build & run:
-//   c++ -std=c++20 -Wall -Wextra -Werror -I components/mcp266/include \
+//   c++ -std=c++23 -Wall -Wextra -Werror -I components/mcp266/include \
 //       components/mcp266/test/mcp266_protocol_host_test.cpp -o test && ./test
 
 #include <cstdio>

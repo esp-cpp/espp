@@ -6,7 +6,7 @@
 //
 // This header deliberately has NO ESP-IDF / FreeRTOS dependency so the framing
 // (CRC-32, frame building, incremental parsing with resynchronization) builds
-// and unit-tests on a host with nothing more than a C++20 standard library.
+// and unit-tests on a host with nothing more than a C++23 standard library.
 //
 // It is the shared substrate under several espp protocols (OTA, crash dump, a
 // CAN bridge, ...) and — via espp::Dispatcher — any number of independent

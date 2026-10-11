@@ -1,5 +1,5 @@
 // Host-buildable unit tests for the espp stream_frame codec (v2). Build & run:
-//   c++ -std=c++20 -Werror -I components/stream_frame/include \
+//   c++ -std=c++23 -Werror -I components/stream_frame/include \
 //       components/stream_frame/test/stream_frame_host_test.cpp -o test && ./test
 //
 // No ESP-IDF headers required.

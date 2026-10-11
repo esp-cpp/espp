@@ -213,7 +213,7 @@ reported as a warning, not refused.
 ## Host tests
 
 ```
-c++ -std=c++20 -Werror -I components/dispatcher/include -I components/stream_frame/include \
+c++ -std=c++23 -Werror -I components/dispatcher/include -I components/stream_frame/include \
     components/dispatcher/test/dispatcher_host_test.cpp -o test && ./test
 node components/dispatcher/web/test/resolve_module_id_test.js   # the consoles' shared discovery helpers
 node components/dispatcher/web/test/apps_registry_test.js       # app metadata, registry generator, hub app matching

@@ -1,5 +1,5 @@
 // Host-buildable unit tests for the MCP266 CANopen mapping core. Build & run:
-//   c++ -std=c++20 -I../include -I../../motor_controller/include \
+//   c++ -std=c++23 -I../include -I../../motor_controller/include \
 //       mcp266_host_test.cpp -o test && ./test
 // (the -I../../motor_controller/include is for the shared BasicmicroCommand table)
 //

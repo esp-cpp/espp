@@ -14,7 +14,7 @@ Both motor channels (``M1``, ``M2``) are driven symmetrically. M2's CiA 402
 objects mirror M1's at ``+0x800``, handled through ``Ds402Drive``'s object
 offset. The reverse-engineered object mapping lives in ``espp::detail`` inside
 ``include/detail/mcp266_core.hpp``, a host-buildable core that depends only on
-the C++20 standard library and is unit-tested off-target.
+the C++23 standard library and is unit-tested off-target.
 
 What works, and what does not
 -----------------------------

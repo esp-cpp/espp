@@ -45,4 +45,4 @@ set(
 
 project(esp32_p4_eth_example)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)

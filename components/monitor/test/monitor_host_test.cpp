@@ -1,6 +1,6 @@
 // Host-buildable unit tests for the MonitorService wire codec
 // (include/detail/monitor_protocol.hpp). Build & run with:
-//   c++ -std=c++20 -I../include -I../../stream_frame/include monitor_host_test.cpp -o test &&
+//   c++ -std=c++23 -I../include -I../../stream_frame/include monitor_host_test.cpp -o test &&
 //   ./test
 //
 // The codec needs no ESP-IDF headers; these are golden encode/decode tests so

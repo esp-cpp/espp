@@ -888,7 +888,7 @@ Checklist: shipping a new module + webapp
    them can be exercised in a plain host-side C++ test — see
    ``components/dispatcher/test/dispatcher_host_test.cpp`` and
    ``components/stream_frame/test/stream_frame_host_test.cpp`` for the
-   pattern (build and run with a plain ``c++ -std=c++20``, no ESP-IDF
+   pattern (build and run with a plain ``c++ -std=c++23``, no ESP-IDF
    toolchain needed).
 
 .. seealso::

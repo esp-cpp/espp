@@ -9,7 +9,7 @@
 // host sends back via handle_output(). It owns the keepalive state machine from
 // the spec.
 //
-// The class depends only on the C++20 standard library and the WDI protocol core
+// The class depends only on the C++23 standard library and the WDI protocol core
 // (detail/wdi_protocol.hpp), so it is unit-testable on a host. It does NOT own a
 // timer: call poll() periodically (from an espp::Timer / Task on device, or a
 // test loop) and it emits a keepalive when one is due. Time is read through a

@@ -30,7 +30,7 @@ set(
 
 project(esp_timer_cam_example)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 # The mDNS component (espressif/mdns from the registry, or the vendored copy)
 # trips -Werror=stringop-truncation under the ESP-IDF v6 toolchain (GCC 15). It
