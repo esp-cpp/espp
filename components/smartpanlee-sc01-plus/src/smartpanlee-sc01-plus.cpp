@@ -164,7 +164,9 @@ bool SmartPanleeSc01Plus::initialize_i2s(uint32_t default_audio_rate) {
 
   auto buffer_size = calc_audio_buffer_size(default_audio_rate);
   audio_tx_buffer_.resize(buffer_size);
-  audio_tx_stream_ = xStreamBufferCreate(buffer_size * 4, 0);
+  // Trigger level = one block: the audio task waits for a whole block instead of
+  // padding a partial one with silence (see audio_task_callback).
+  audio_tx_stream_ = xStreamBufferCreate(buffer_size * 4, buffer_size);
   if (!audio_tx_stream_) {
     logger_.error("Failed to create audio stream buffer");
     return false;
@@ -524,16 +526,25 @@ bool SmartPanleeSc01Plus::audio_task_callback(std::mutex &m, std::condition_vari
   (void)cv;
   (void)task_notified;
 
-  auto available = xStreamBufferBytesAvailable(audio_tx_stream_);
+  // Wait (bounded) for a whole block rather than taking whatever is queued and
+  // zero-padding it to a block: producers push audio in bursts (one video frame
+  // at a time, with frame-to-frame jitter), and the stream buffer exists to
+  // absorb exactly that. Taking a partial block padded it with silence every
+  // time the stream momentarily held less than one block, which is audible as
+  // stutter whenever the producer's cadence is uneven. The DMA is still fed
+  // whole blocks at a constant cadence while audio is flowing (the stream's
+  // trigger level is one block); only after the timeout -- producer idle or
+  // slower than real time -- is a partial block written as is (the I2S driver
+  // concatenates partial writes without gaps), or silence when there is none.
   auto buffer_size = audio_tx_buffer_.size();
-  available = std::min(available, buffer_size);
-
   uint8_t *buffer = audio_tx_buffer_.data();
-  std::memset(buffer, 0, buffer_size);
-
-  size_t bytes_received = 0;
-  if (available > 0) {
-    bytes_received = xStreamBufferReceive(audio_tx_stream_, buffer, available, 0);
+  size_t bytes_received =
+      xStreamBufferReceive(audio_tx_stream_, buffer, buffer_size, pdMS_TO_TICKS(40));
+  bytes_received &= ~static_cast<size_t>(1); // whole 16-bit samples only
+  if (bytes_received == 0) {
+    std::memset(buffer, 0, buffer_size);
+    i2s_channel_write(audio_tx_handle_, buffer, buffer_size, nullptr, portMAX_DELAY);
+    return false;
   }
 
   if (mute_) {
@@ -551,7 +562,7 @@ bool SmartPanleeSc01Plus::audio_task_callback(std::mutex &m, std::condition_vari
     }
   }
 
-  i2s_channel_write(audio_tx_handle_, buffer, buffer_size, nullptr, portMAX_DELAY);
+  i2s_channel_write(audio_tx_handle_, buffer, bytes_received, nullptr, portMAX_DELAY);
   return false;
 }
 
