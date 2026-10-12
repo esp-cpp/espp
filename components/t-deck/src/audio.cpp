@@ -112,7 +112,9 @@ bool TDeck::initialize_i2s(uint32_t default_audio_rate) {
   auto buffer_size = calc_audio_buffer_size(default_audio_rate);
   audio_tx_buffer.resize(buffer_size);
 
-  audio_tx_stream = xStreamBufferCreate(buffer_size * 4, 0);
+  // Trigger level = one block: the audio task waits for a whole block instead of
+  // padding a partial one with silence (see audio_task_callback).
+  audio_tx_stream = xStreamBufferCreate(buffer_size * 4, buffer_size);
 
   xStreamBufferReset(audio_tx_stream);
 
@@ -147,34 +149,41 @@ bool TDeck::initialize_sound(uint32_t default_audio_rate,
 }
 
 bool TDeck::audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
-  // Queue the next I2S out frame to write
-  size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
+  // Queue the next I2S out block. Wait (bounded) for a whole block rather than
+  // taking whatever is queued and zero-padding it to a block: producers push
+  // audio in bursts (one video frame at a time, with frame-to-frame jitter),
+  // and the stream buffer exists to absorb exactly that. Taking a partial block
+  // padded it with silence every time the stream momentarily held less than
+  // one block, which is audible as stutter whenever the producer's cadence is
+  // uneven. The DMA is still fed whole blocks while audio is flowing (the
+  // stream's trigger level is one block); only after the timeout -- producer
+  // idle or slower than real time -- is a partial block written as is (the I2S
+  // driver concatenates partial writes without gaps), or silence when there is
+  // none.
   size_t buffer_size = audio_tx_buffer.size();
-  available = std::min(available, buffer_size);
   uint8_t *buffer = &audio_tx_buffer[0];
-  memset(buffer, 0, buffer_size);
+  size_t got = xStreamBufferReceive(audio_tx_stream, buffer, buffer_size, pdMS_TO_TICKS(40));
+  got &= ~static_cast<size_t>(1); // whole 16-bit samples only
 
-  if (available == 0) {
+  if (got == 0) {
+    memset(buffer, 0, buffer_size);
     i2s_channel_write(audio_tx_handle, buffer, buffer_size, NULL, portMAX_DELAY);
   } else {
-    // get the data from the buffer
-    xStreamBufferReceive(audio_tx_stream, buffer, available, 0);
-
     // apply volume and mute
     if (mute_) {
-      memset(buffer, 0, available);
+      memset(buffer, 0, got);
     } else {
       // NOTE: we are actually using int16_t samples, so we need to adjust the
       // pointers to the buffer to the correct positions.
       int16_t *ptr = reinterpret_cast<int16_t *>(buffer);
-      for (size_t i = 0; i < (available / 2); ++i) {
+      for (size_t i = 0; i < (got / 2); ++i) {
         int32_t sample = (ptr[i] * volume_) / 100.0f;
         ptr[i] = static_cast<int16_t>(std::clamp<int32_t>(sample, INT16_MIN, INT16_MAX));
       }
     }
 
     // write the buffer to the I2S channel
-    i2s_channel_write(audio_tx_handle, buffer, buffer_size, NULL, portMAX_DELAY);
+    i2s_channel_write(audio_tx_handle, buffer, got, NULL, portMAX_DELAY);
   }
   return false; // don't stop the task
 }
