@@ -169,6 +169,10 @@ bool Esp32P4Wifi6DevKit::initialize_audio(uint32_t sample_rate,
   // how much it queued, so callers stream clips longer than the buffer in
   // chunks (see the example's playback loop).
   auto tx_buf_size = calc_audio_buffer_size(sample_rate, TX_NUM_CHANNELS);
+  // the block (and so the stream's trigger level) must be a whole number of
+  // frames: the sample-rate formula can land between frames, and a block that
+  // split one would desynchronize the framing of everything received after it
+  tx_buf_size -= tx_buf_size % (TX_NUM_CHANNELS * NUM_BYTES_PER_CHANNEL);
   audio_tx_buffer.resize(tx_buf_size);
   // Trigger level = one block: the audio task waits for a whole block instead of
   // padding a partial one with silence (see audio_task_callback).
@@ -383,6 +387,13 @@ void Esp32P4Wifi6DevKit::microphone_volume(float volume) {
 
 float Esp32P4Wifi6DevKit::microphone_volume() const { return mic_volume_; }
 
+// How long the audio task waits for a whole block before writing a partial one
+// (or silence). Longer than one block at every rate the board supports (a block
+// is 1/60 s at the default rate), so partial writes only happen when the
+// producer is idle or genuinely behind, never because its next frame simply had
+// not arrived yet; short enough that idle->silence latency is not noticeable.
+static constexpr uint32_t AUDIO_TX_RECEIVE_TIMEOUT_MS = 40;
+
 bool Esp32P4Wifi6DevKit::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                              bool &task_notified) {
   (void)cv; // unused: this task paces itself on the finite-timeout receive/write below
@@ -400,10 +411,18 @@ bool Esp32P4Wifi6DevKit::audio_task_callback(std::mutex &m, std::condition_varia
   // concatenates partial writes without gaps), or silence when there is none.
   // The wait happens before taking audio_tx_mutex_ so a sample-rate change is
   // never held off by it.
-  size_t got = xStreamBufferReceive(audio_tx_stream, tx_buf, buffer_size, pdMS_TO_TICKS(40));
-  // only ever hand whole 16-bit samples to I2S; a partial sample would shift
-  // the framing of everything after it
-  got &= ~static_cast<size_t>(1);
+  size_t got = xStreamBufferReceive(audio_tx_stream, tx_buf, buffer_size,
+                                    pdMS_TO_TICKS(AUDIO_TX_RECEIVE_TIMEOUT_MS));
+  // the block is frame-aligned and producers queue whole frames, so this cannot
+  // happen; if it ever does, do not silently drop bytes (that would desynchronize
+  // the framing of everything after them) -- say so
+  constexpr size_t frame_bytes = TX_NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
+  if (got % frame_bytes != 0) {
+    static uint32_t misaligned_count = 0;
+    if ((misaligned_count++ % 100) == 0) {
+      logger_.warn("audio stream holds a partial frame ({} bytes)", got);
+    }
+  }
   size_t to_write = buffer_size;
   if (got == 0) {
     memset(tx_buf, 0, buffer_size);
