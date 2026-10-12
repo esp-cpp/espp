@@ -113,7 +113,10 @@ bool Esp32P4Eth::initialize_audio(uint32_t sample_rate, const espp::Task::BaseCo
   // whole UI sound clip fits and play_audio() can enqueue it without blocking.
   auto tx_buf_size = calc_audio_buffer_size(sample_rate);
   audio_tx_buffer.resize(tx_buf_size);
-  audio_tx_stream = xStreamBufferCreate(std::max<size_t>(tx_buf_size * 4, 64 * 1024), 0);
+  // Trigger level = one block: the audio task waits for a whole block instead of
+  // padding a partial one with silence (see audio_task_callback).
+  audio_tx_stream =
+      xStreamBufferCreate(std::max<size_t>(tx_buf_size * 4, 64 * 1024), tx_buf_size);
   if (audio_tx_stream == nullptr) {
     return fail_audio_init("Failed to allocate the audio TX stream buffer");
   }
@@ -296,27 +299,29 @@ float Esp32P4Eth::microphone_volume() const { return mic_volume_; }
 
 bool Esp32P4Eth::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                      bool &task_notified) {
-  size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
   size_t buffer_size = audio_tx_buffer.size();
-  available = std::min(available, buffer_size);
+  uint8_t *tx_buf = audio_tx_buffer.data();
+  // Wait (bounded) for a whole block rather than taking whatever is queued and
+  // zero-padding it to a block: producers push audio in bursts (one video frame
+  // at a time, with frame-to-frame jitter), and the stream buffer exists to
+  // absorb exactly that. Taking a partial block padded it with silence every
+  // time the stream momentarily held less than one block, which is audible as
+  // stutter whenever the producer's cadence is uneven. The DMA is still fed
+  // whole blocks at a constant cadence while audio is flowing (the stream's
+  // trigger level is one block); only after the timeout -- producer idle or
+  // slower than real time -- is a partial block written as is (the I2S driver
+  // concatenates partial writes without gaps), or silence when there is none.
+  // Finite timeouts (not portMAX_DELAY) so this task returns periodically and
+  // can observe a stop request during teardown.
+  size_t got = xStreamBufferReceive(audio_tx_stream, tx_buf, buffer_size, pdMS_TO_TICKS(40));
   // only ever hand whole 16-bit samples to I2S; a partial sample would shift
   // the framing of everything after it
-  available &= ~static_cast<size_t>(1);
-  uint8_t *tx_buf = audio_tx_buffer.data();
-  memset(tx_buf, 0, buffer_size);
-  // Use a finite write timeout (not portMAX_DELAY) so this task returns
-  // periodically and can observe a stop request; an infinite write would block
-  // Task::stop() from joining during teardown if the I2S sink ever stalls.
-  if (available == 0) {
+  got &= ~static_cast<size_t>(1);
+  if (got == 0) {
+    memset(tx_buf, 0, buffer_size);
     i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, pdMS_TO_TICKS(100));
   } else {
-    xStreamBufferReceive(audio_tx_stream, tx_buf, available, 0);
-    // Always write a full, frame-aligned buffer (queued samples zero-padded to
-    // buffer_size) so the I2S DMA is fed at a constant cadence - matching the
-    // esp-box / t-deck / m5stack-tab5 playback path. Writing only `available`
-    // bytes makes the drain cadence variable and interleaves whole frames of
-    // silence into bursty streams, which sounds choppy/glitchy.
-    i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, pdMS_TO_TICKS(100));
+    i2s_channel_write(audio_tx_handle, tx_buf, got, NULL, pdMS_TO_TICKS(100));
   }
   // honor a stop request per the Task contract: check/clear notified under m
   std::unique_lock<std::mutex> lock(m);
