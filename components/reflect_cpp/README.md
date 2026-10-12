@@ -22,7 +22,7 @@ Only the header-only reflection core is exposed (`rfl/to_view.hpp`,
 yyjson, etc.) are not built and their headers should not be included on
 ESP-IDF targets.
 
-Requires C++20 or newer (ESP-IDF 5.2+ toolchains). The reflection-driven
+Requires C++23 or newer (ESP-IDF 5.2+ toolchains). The reflection-driven
 `cdr` component (stacked follow-up PR) uses this component as its backend.
 
 When updating the submodule pin, keep it on the same reflect-cpp tag that

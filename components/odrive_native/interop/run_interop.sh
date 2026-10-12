@@ -36,15 +36,15 @@ result() { # name exit_code
 CXX="${CXX:-c++}"
 
 # --- 1. Build golden tests + device shim ------------------------------------
-note "Build golden host tests + device shim ($CXX -std=c++20)"
+note "Build golden host tests + device shim ($CXX -std=c++23)"
 build_rc=0
-"$CXX" -std=c++20 -I"$INC" "$COMPONENT_DIR/test/odrive_native_host_test.cpp" \
+"$CXX" -std=c++23 -I"$INC" "$COMPONENT_DIR/test/odrive_native_host_test.cpp" \
   -o "$WORK/host_test" || build_rc=1
-"$CXX" -std=c++20 -I"$INC" "$COMPONENT_DIR/test/odrive_native_stream_test.cpp" \
+"$CXX" -std=c++23 -I"$INC" "$COMPONENT_DIR/test/odrive_native_stream_test.cpp" \
   -o "$WORK/stream_test" || build_rc=1
-"$CXX" -std=c++20 -I"$INC" "$INTEROP_DIR/../../../pc/tests/odrive_native_golden.cpp" \
+"$CXX" -std=c++23 -I"$INC" "$INTEROP_DIR/../../../pc/tests/odrive_native_golden.cpp" \
   -o "$WORK/golden" || build_rc=1
-"$CXX" -std=c++20 -I"$INC" "$INTEROP_DIR/odrive_native_interop_device.cpp" \
+"$CXX" -std=c++23 -I"$INC" "$INTEROP_DIR/odrive_native_interop_device.cpp" \
   -o "$WORK/device" || build_rc=1
 result "build" $build_rc
 if [ $build_rc -ne 0 ]; then

@@ -5,7 +5,7 @@ The `stream_frame` component provides a minimal wire framing (v2) for carrying
 typed, length-delimited, CRC-verified messages over any raw byte stream. It is
 intentionally free of any ESP-IDF / FreeRTOS dependency, so the framing (CRC-32,
 frame building, incremental parsing with resynchronization) builds and
-unit-tests on a host with nothing more than a C++20 standard library.
+unit-tests on a host with nothing more than a C++23 standard library.
 
 Wire format (all multi-byte fields little-endian)::
 

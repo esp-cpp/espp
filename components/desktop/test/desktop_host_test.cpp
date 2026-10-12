@@ -1,7 +1,7 @@
 // Host-buildable unit tests for the espp desktop wire codec
 // (include/detail/desktop_protocol.hpp) and the ESP-free desktop model
 // (include/detail/desktop_model.hpp). Build & run from this directory with:
-//   c++ -std=c++20 -I../include -I../../stream_frame/include desktop_host_test.cpp -o test &&
+//   c++ -std=c++23 -I../include -I../../stream_frame/include desktop_host_test.cpp -o test &&
 //   ./test
 //
 // The golden vectors live in desktop_vectors.txt (shared with the web app's

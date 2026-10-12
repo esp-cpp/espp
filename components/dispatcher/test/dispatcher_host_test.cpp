@@ -1,5 +1,5 @@
 // Host-buildable unit tests for espp::Dispatcher (v2). Build & run with:
-//   c++ -std=c++20 -Werror -I components/dispatcher/include \
+//   c++ -std=c++23 -Werror -I components/dispatcher/include \
 //       -I components/stream_frame/include \
 //       components/dispatcher/test/dispatcher_host_test.cpp -o test && ./test
 //

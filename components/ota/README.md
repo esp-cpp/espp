@@ -53,7 +53,7 @@ matching browser uploader is
   and incoming app descriptions, `session_active()`, `bytes_written()`
 - **No exceptions**: every failure is reported via `std::error_code`
 - **Host-buildable wire framing**: the USB/WebUSB stream protocol lives in
-  `detail/ota_stream_protocol.hpp` and builds with just a C++20 standard
+  `detail/ota_stream_protocol.hpp` and builds with just a C++23 standard
   library
 
 ## API
@@ -220,7 +220,7 @@ HTTPS, or HTTP on localhost; a `file://` copy loses the grant on reload.
 The wire framing is host-tested (no ESP-IDF needed):
 
 ```bash
-c++ -std=c++20 -Werror -I components/ota/include -I components/stream_frame/include \
+c++ -std=c++23 -Werror -I components/ota/include -I components/stream_frame/include \
     components/ota/test/ota_protocol_host_test.cpp -o ota_test && ./ota_test
 ```
 

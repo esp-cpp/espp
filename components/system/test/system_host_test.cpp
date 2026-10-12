@@ -1,6 +1,6 @@
 // Host-buildable unit tests for the SystemService wire codec
 // (include/detail/system_protocol.hpp). Build & run with:
-//   c++ -std=c++20 -I../include -I../../stream_frame/include system_host_test.cpp -o test && ./test
+//   c++ -std=c++23 -I../include -I../../stream_frame/include system_host_test.cpp -o test && ./test
 //
 // The codec needs no ESP-IDF headers; these are golden encode/decode tests so
 // the browser console and any host tool can rely on the byte layout.

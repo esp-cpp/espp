@@ -1,7 +1,7 @@
 // Host-side unit test for the hid-rp-built WDI HID report descriptor. hid-rp is
 // header-only and stdlib-only, so this builds on a host:
 //
-//   c++ -std=c++20 -Wall -Wextra -Werror \
+//   c++ -std=c++23 -Wall -Wextra -Werror \
 //       -I components/wdi/include -isystem components/hid-rp/include \
 //       -isystem components/hid-rp/detail/hid-rp/hid-rp \
 //       components/wdi/test/wdi_hid_host_test.cpp -o wdi_hid_test && ./wdi_hid_test

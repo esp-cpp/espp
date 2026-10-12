@@ -7,7 +7,7 @@
 // keepalive **watchdog** from the spec (if the app stops sending, the host
 // disconnects and drive-disables). It is the mirror image of WdiDevice.
 //
-// Like WdiDevice it is transport-agnostic and depends only on the C++20 standard
+// Like WdiDevice it is transport-agnostic and depends only on the C++23 standard
 // library and the WDI protocol core (detail/wdi_protocol.hpp): you give it a
 // `send` callback that puts an OUTPUT report on the wire (USB HID SET_REPORT or a
 // BLE write) and feed it the app's INPUT reports via handle_input(). It does NOT

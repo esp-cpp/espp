@@ -1,6 +1,6 @@
 // Host-buildable tests for the bridge example's simulated CiA 402 node
 // (main/simulated_ds402_node.hpp). Build & run with:
-//   c++ -std=c++20 -I../../include -I../main simulated_node_host_test.cpp -o test && ./test
+//   c++ -std=c++23 -I../../include -I../main simulated_node_host_test.cpp -o test && ./test
 //
 // The node is driven with the canopen component's client-side frame builders
 // / parsers, so a passing run means espp::CanopenClient / Ds402Drive (and the

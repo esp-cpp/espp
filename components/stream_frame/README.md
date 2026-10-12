@@ -7,7 +7,7 @@ incremental, resynchronizing `StreamParser` — for carrying messages over any
 raw byte stream (USB vendor / CDC, TCP/UDP sockets, UART, ...).
 
 It has **no** ESP-IDF / FreeRTOS dependency, so the framing builds and
-unit-tests on a host with nothing more than a C++20 standard library. It is the
+unit-tests on a host with nothing more than a C++23 standard library. It is the
 shared substrate under the OTA stream protocol (`espp::detail::ota_stream`),
 the crash-dump service, the CAN bridge, and — via `espp::Dispatcher` — any
 number of independent protocols multiplexed over one stream.
@@ -67,6 +67,6 @@ ignoring unknown modules) is the job of `espp::Dispatcher` (or the caller).
 ## Host tests
 
 ```
-c++ -std=c++20 -Werror -I components/stream_frame/include \
+c++ -std=c++23 -Werror -I components/stream_frame/include \
     components/stream_frame/test/stream_frame_host_test.cpp -o test && ./test
 ```

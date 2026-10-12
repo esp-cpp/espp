@@ -8,7 +8,7 @@
 //   - by the pc harness against the installed espp package (full espp::espp
 //     target, so the espp::OdriveNative wrapper section below also runs);
 //   - by the interop harness (components/odrive_native/interop/run_interop.sh)
-//     with ONLY `c++ -std=c++20 -I components/odrive_native/include` — no espp
+//     with ONLY `c++ -std=c++23 -I components/odrive_native/include` — no espp
 //     lib, so the wrapper section (which needs base_component/logger/fmt and
 //     the compiled Logger) is compiled out via the __has_include guard.
 // Exits 0 when every golden matches.

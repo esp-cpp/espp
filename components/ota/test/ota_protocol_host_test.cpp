@@ -2,7 +2,7 @@
 // frame codec (magic/flags/module/type/len/crc, StreamParser resync, ...) is
 // tested by components/stream_frame/test; this file exercises the OTA-specific
 // make_*/parse_* helpers layered on top. Build & run:
-//   c++ -std=c++20 -Werror -I components/ota/include -I components/stream_frame/include \
+//   c++ -std=c++23 -Werror -I components/ota/include -I components/stream_frame/include \
 //       components/ota/test/ota_protocol_host_test.cpp -o test && ./test
 //
 // No ESP-IDF headers required.
