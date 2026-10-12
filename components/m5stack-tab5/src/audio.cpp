@@ -87,7 +87,9 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   // Stream buffers and task
   auto tx_buf_size = calc_audio_buffer_size(sample_rate);
   audio_tx_buffer.resize(tx_buf_size);
-  audio_tx_stream = xStreamBufferCreate(tx_buf_size * 4, 0);
+  // Trigger level = one block: the audio task waits for a whole block instead of
+  // padding a partial one with silence (see audio_task_callback).
+  audio_tx_stream = xStreamBufferCreate(tx_buf_size * 4, tx_buf_size);
   xStreamBufferReset(audio_tx_stream);
   // RX buffer for recording
   audio_rx_buffer.resize(tx_buf_size);
@@ -334,20 +336,26 @@ void M5StackTab5::stop_audio_recording() {
 
 bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                       bool &task_notified) {
-  // Playback: write next buffer worth of audio from stream buffer
-  // Queue the next I2S out frame to write (matches the esp-box / t-deck path):
-  // always write a full, frame-aligned buffer with the queued samples zero-
-  // padded up to buffer_size so the I2S DMA is fed at a constant cadence.
-  size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
+  // Playback: write the next block of audio from the stream buffer. Wait
+  // (bounded) for a whole block rather than taking whatever is queued and
+  // zero-padding it to a block: producers push audio in bursts (one video frame
+  // at a time, with frame-to-frame jitter), and the stream buffer exists to
+  // absorb exactly that. Taking a partial block padded it with silence every
+  // time the stream momentarily held less than one block, which is audible as
+  // stutter whenever the producer's cadence is uneven. The DMA is still fed
+  // whole blocks at a constant cadence while audio is flowing (the stream's
+  // trigger level is one block); only after the timeout -- producer idle or
+  // slower than real time -- is a partial block written as is (the I2S driver
+  // concatenates partial writes without gaps), or silence when there is none.
   size_t buffer_size = audio_tx_buffer.size();
-  available = std::min(available, buffer_size);
   uint8_t *tx_buf = audio_tx_buffer.data();
-  memset(tx_buf, 0, buffer_size);
-  if (available == 0) {
+  size_t got = xStreamBufferReceive(audio_tx_stream, tx_buf, buffer_size, pdMS_TO_TICKS(40));
+  got -= got % 4; // whole 16-bit stereo frames only
+  if (got == 0) {
+    memset(tx_buf, 0, buffer_size);
     i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, portMAX_DELAY);
   } else {
-    xStreamBufferReceive(audio_tx_stream, tx_buf, available, 0);
-    i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, portMAX_DELAY);
+    i2s_channel_write(audio_tx_handle, tx_buf, got, NULL, portMAX_DELAY);
   }
 
   return false;
