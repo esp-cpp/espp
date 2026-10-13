@@ -62,6 +62,13 @@ void BleGattServerCallbacks::onAuthenticationComplete(NimBLEConnInfo &conn_info)
     }
   }
 }
+void BleGattServerCallbacks::onConnParamsUpdate(NimBLEConnInfo &conn_info) {
+  if (server_) {
+    if (server_->callbacks_.conn_params_update_callback) {
+      server_->callbacks_.conn_params_update_callback(conn_info);
+    }
+  }
+}
 uint32_t BleGattServerCallbacks::onPassKeyDisplay() {
   if (server_ && server_->callbacks_.get_passkey_callback) {
     return server_->callbacks_.get_passkey_callback();

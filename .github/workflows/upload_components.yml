@@ -171,6 +171,7 @@ jobs:
             components/st25dv
             components/st7123touch
             components/state_machine
+            components/switch2_pro
             components/switch_pro
             components/sx126x
             components/system
