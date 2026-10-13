@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>espp MCP266 Console (WebUSB / Web Serial)</title>
+  <meta name="description" content="Configure, command, and monitor a Basicmicro MCP266 dual-channel motor controller from the browser over USB (WebUSB / Web Serial): per-axis position loop setup, profile-position moves, and live status. The device runs the CANopen driver and exposes a high-level protocol.">
+  <meta name="espp-category" content="motor control">
+  <meta name="espp-protocols" content="espp.mcp266:1">
+  <meta name="espp-transports" content="webusb webserial">
+  <!--
+    espp MCP266 Console
+    ===================
+    A single-file, offline, dependency-free browser front-end for the espp MCP266
+    webapp example (components/mcp266/webapp_example). The ESP32 runs the
+    espp::Mcp266 driver and exposes a small HIGH-LEVEL protocol over USB; this
+    page speaks it over EITHER WebUSB (vendor 0xFF interface) OR Web Serial. All
+    CANopen/DS402 work happens on the device - this page just sends configure /
+    command / status messages.
+
+    Framed with the espp stream_frame v2 codec, routed on module id 6 by default
+    (a routing key; the id actually used is discovered from the device, see
+    resolveModuleId). Requests use type high-nibble 6; replies/events use
+    high-nibble E (reply flag set).
+    Status payload (25 bytes, little-endian): per axis M1 then M2
+    [pos i32][vel i32][statusword u16], then [battery_dV u16][temp_dC u16][flags u8].
+  -->
+  <style>
+    :root {
+      --bg:#f4f6f9; --panel-bg:#fff; --panel-border:#d9dee6; --text:#1c2330; --text-muted:#5c6675;
+      --accent:#2563eb; --accent-hover:#1d4ed8; --accent-contrast:#fff; --danger:#dc2626; --ok:#16a34a;
+      --warn:#b45309; --log-bg:#0f1420; --log-text:#d6dbe6; --tx:#7dd3fc; --rx:#86efac; --err:#fca5a5;
+      --sys:#fcd34d; --time:#64748b; --input-bg:#fff; --input-border:#c3cbd6; --chip-bg:#eef2f8;
+      --row-alt:#f7f9fc; --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#0b0e14; --panel-bg:#151a23; --panel-border:#262d3a; --text:#e6eaf2; --text-muted:#98a2b3;
+        --accent:#3b82f6; --accent-hover:#60a5fa; --accent-contrast:#0b0e14; --danger:#ef4444; --ok:#22c55e;
+        --warn:#f59e0b; --log-bg:#05070c; --log-text:#cdd4e0; --tx:#38bdf8; --rx:#4ade80; --err:#f87171;
+        --sys:#fbbf24; --time:#64748b; --input-bg:#0e1219; --input-border:#2b3341; --chip-bg:#1b2230;
+        --row-alt:#10151d; --shadow:0 1px 3px rgba(0,0,0,.4);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg:#0b0e14; --panel-bg:#151a23; --panel-border:#262d3a; --text:#e6eaf2; --text-muted:#98a2b3;
+      --accent:#3b82f6; --accent-hover:#60a5fa; --accent-contrast:#0b0e14; --danger:#ef4444; --ok:#22c55e;
+      --warn:#f59e0b; --log-bg:#05070c; --log-text:#cdd4e0; --tx:#38bdf8; --rx:#4ade80; --err:#f87171;
+      --sys:#fbbf24; --time:#64748b; --input-bg:#0e1219; --input-border:#2b3341; --chip-bg:#1b2230; --row-alt:#10151d;
+    }
+    :root[data-theme="light"] {
+      --bg:#f4f6f9; --panel-bg:#fff; --panel-border:#d9dee6; --text:#1c2330; --text-muted:#5c6675;
+      --accent:#2563eb; --accent-hover:#1d4ed8; --accent-contrast:#fff; --danger:#dc2626; --ok:#16a34a;
+      --warn:#b45309; --log-bg:#0f1420; --log-text:#d6dbe6; --tx:#7dd3fc; --rx:#86efac; --err:#fca5a5;
+      --sys:#fcd34d; --time:#64748b; --input-bg:#fff; --input-border:#c3cbd6; --chip-bg:#eef2f8; --row-alt:#f7f9fc;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.45; min-height: 100vh; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 16px; }
+    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    header h1 { font-size: 18px; margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--chip-bg); color: var(--text-muted); border: 1px solid var(--panel-border); }
+    .status-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+    .status-pill.connected { color: var(--ok); } .status-pill.connected::before { background: var(--ok); }
+    .status-pill.error { color: var(--danger); } .status-pill.error::before { background: var(--danger); }
+    .panel { background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 10px; box-shadow: var(--shadow); padding: 14px; margin-bottom: 14px; }
+    .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 0 0 10px; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .row + .row { margin-top: 10px; }
+    .muted { color: var(--text-muted); font-size: 12.5px; }
+    .spacer { flex: 1 1 auto; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field > span { font-size: 12px; color: var(--text-muted); }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+    button { font: inherit; padding: 7px 14px; border-radius: 7px; cursor: pointer; border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text); }
+    button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    button.small { padding: 5px 10px; font-size: 13px; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+    input[type="text"], input[type="number"] { font: inherit; padding: 6px 8px; border-radius: 6px; background: var(--input-bg); color: var(--text); border: 1px solid var(--input-border); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; width: 110px; }
+    input.tiny { width: 78px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .axis-title { font-weight: 700; font-size: 14px; }
+    .state-badge { display: inline-block; padding: 3px 10px; border-radius: 8px; font-weight: 700; font-size: 12.5px; border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text-muted); }
+    .state-badge.enabled { color: var(--ok); border-color: var(--ok); }
+    .state-badge.ready { color: var(--accent); border-color: var(--accent); }
+    .state-badge.fault { color: var(--danger); border-color: var(--danger); }
+    .state-badge.qstop { color: var(--warn); border-color: var(--warn); }
+    .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px; margin-top: 10px; }
+    .kv .k { color: var(--text-muted); } .kv .v { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+    hr.sep { border: none; border-top: 1px solid var(--panel-border); margin: 12px 0; }
+    .statusline { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .statusline b { color: var(--text); font-weight: 600; }
+    .log { background: var(--log-bg); color: var(--log-text); border-radius: 8px; padding: 10px 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5; height: 170px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+    .log .t { color: var(--time); } .log .tx { color: var(--tx); } .log .rx { color: var(--rx); } .log .err { color: var(--err); } .log .warn { color: #d08770; } .log .sys { color: var(--sys); }
+    footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
+    #unsupported { display: none; background: var(--panel-bg); border: 1px solid var(--danger); color: var(--danger); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+    /* espp web-app navigation: back to the Device Hub (primary) and the apps page */
+    .espp-nav { display: inline-flex; gap: 6px; align-items: center; margin-left: 12px; font-size: 12px; font-weight: 600; vertical-align: middle; }
+    .espp-nav a { text-decoration: none; white-space: nowrap; padding: 4px 10px; border-radius: 6px;
+      border: 1px solid var(--accent, #4aa8ff); color: var(--accent, #4aa8ff); }
+    .espp-nav a.hub { background: var(--accent, #4aa8ff); color: var(--accent-contrast, #06121f); }
+    .espp-nav a:hover { filter: brightness(1.1); }
+    .espp-nav a:focus-visible { outline: 2px solid var(--accent, #4aa8ff); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>espp MCP266 Console <span class="muted">(WebUSB / Web Serial)</span></h1>
+      <nav class="espp-nav" aria-label="espp web apps"><a id="navHub" class="hub" href="https://esp-cpp.github.io/espp/apps/dispatcher_hub.html" title="Back to the espp Device Hub (hands a connected device back to it)">Device Hub</a><a id="navApps" href="https://esp-cpp.github.io/espp/apps/index.html" title="All espp web apps">All apps</a></nav>
+      <span id="status" class="status-pill">Disconnected</span>
+    </header>
+
+    <div id="unsupported">
+      This browser supports neither WebUSB nor Web Serial. Use a Chromium-based browser
+      (Chrome / Edge / Opera) on a secure origin (https, localhost or file://).
+    </div>
+
+    <!-- ============================ Device ============================ -->
+    <div class="panel">
+      <h2>Device</h2>
+      <div class="row">
+        <button id="connectUsbBtn" class="primary">Connect (WebUSB)</button>
+        <button id="connectSerialBtn">Connect (Web Serial)</button>
+        <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
+        <label><input type="checkbox" id="anyDevice"> Any device (ignore VID/PID filter)</label>
+        <label title="Reconnect automatically when the device comes back after a reboot or re-plug"><input type="checkbox" id="autoReconnect" checked> auto-reconnect</label>
+        <div class="spacer"></div>
+        <button id="startBtn" class="small" disabled title="NMT-start the node + clear faults">Start node</button>
+        <button id="resetFaultsBtn" class="small" disabled>Reset faults</button>
+        <button id="resetEstopBtn" class="small" disabled>Reset e-stop</button>
+      </div>
+      <p id="devInfo" class="muted" style="margin: 10px 0 0;">Not connected. Default WebUSB filter: VID 0x1209 / PID 0x0d32 (espp default).</p>
+      <div class="statusline" style="margin-top:8px;">
+        <span>Device type: <b id="devType">-</b></span>
+        <span>Name: <b id="devName">-</b></span>
+        <span>Battery: <b id="devBatt">-</b></span>
+        <span>Temp: <b id="devTemp">-</b></span>
+        <div class="spacer"></div>
+        <label><input type="checkbox" id="livePoll"> Live status</label>
+        <button id="refreshBtn" class="small" disabled>Refresh</button>
+      </div>
+    </div>
+
+    <!-- ============================ Axes ============================ -->
+    <div class="grid2" id="axes"></div>
+
+    <!-- ============================ Log ============================ -->
+    <div class="panel">
+      <h2>Log <button id="clearLogBtn" class="small" style="float:right; margin-top:-4px;">Clear</button></h2>
+      <div id="log" class="log"></div>
+    </div>
+
+    <footer>
+      espp MCP266 Console &middot; talks to the espp MCP266 webapp example
+      (<span class="mono">components/mcp266/webapp_example</span>), which runs the
+      <span class="mono">espp::Mcp266</span> driver over CANopen. Single-file, offline, no dependencies.
+    </footer>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ===================== stream_frame protocol =====================
+    const DEFAULT_VID = 0x1209, DEFAULT_PID = 0x0d32, VENDOR_CLASS = 0xFF;
+    const MAGIC0 = 0x54, MAGIC1 = 0x4F, HEADER_SIZE = 9, CRC_SIZE = 4, CORRELATION_SIZE = 2;
+    const MAX_PAYLOAD = 4096, MAX_FRAME = HEADER_SIZE + CORRELATION_SIZE + MAX_PAYLOAD + CRC_SIZE;
+    const FLAGS_VERSION = 1, FLAGS_REQUEST = (FLAGS_VERSION << 4), FLAGS_REPLY_BIT = 0x01, FLAG_CORRELATION = 0x02;
+    // The dispatcher module byte is only a routing key: the MCP266 service is
+    // published on module 6 by default, but a device may serve it on any id.
+    // The id actually used is resolved on connect from the device's discovery
+    // reply (by the advertised protocol id, then app / name), from ?module=N,
+    // or the default. PROTOCOL(_VERSION) mirror mcp266_protocol::kProtocol(Version).
+    const DEFAULT_MODULE = 6;
+    const PROTOCOL = "espp.mcp266", PROTOCOL_VERSION = 1;
+    const MODULE_IDENT = { protocol: PROTOCOL, protocolVersion: PROTOCOL_VERSION,
+                           app: "mcp266_console.html", name: "MCP266", fallback: DEFAULT_MODULE, override: null };
+    let moduleMcp = DEFAULT_MODULE;             // adopted by adoptModule() before the first MCP266 frame
+    // True once adoptModule() has run for this connection: every send path
+    // waits for it, so nothing can go out on the default id while the discovery
+    // probe (up to DISCOVERY_TIMEOUT_MS) is still pending.
+    let moduleReady = false;
+    // Reserved dispatcher discovery module: a device running an espp::Dispatcher
+    // answers a ListModules query on 0xFF with the modules it serves, which is
+    // how the MCP266 module's id is found before driving it.
+    const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
+    const DISCOVERY_TIMEOUT_MS = 800;        // module-presence probe (0xFF ListModules) timeout
+    // requests (0x6X)
+    const T_START = 0x60, T_RESET_FAULTS = 0x61, T_RESET_ESTOP = 0x62, T_CONFIG_POS = 0x63,
+          T_SET_LIMITS = 0x64, T_MOVE = 0x65, T_SPEED = 0x66, T_DUTY = 0x67, T_GET_STATUS = 0x68,
+          T_SET_STREAM = 0x69, T_GET_INFO = 0x6A;
+    // replies (0xEX)
+    const T_STATUS = 0xE0, T_OK = 0xE1, T_ERROR = 0xE2, T_DEVINFO = 0xE3;
+    const AXIS_M1 = 0, AXIS_M2 = 1;
+    const REQ_NAME = { 0x60:"start",0x61:"reset faults",0x62:"reset e-stop",0x63:"configure position loop",
+      0x64:"set position limits",0x65:"move",0x66:"drive speed",0x67:"drive duty",0x68:"get status",
+      0x69:"set stream",0x6A:"get info" };
+    const STATUS_POLL_MS = 250;
+
+    const els = {};
+    for (const id of ["status","connectUsbBtn","connectSerialBtn","disconnectBtn","anyDevice", "autoReconnect", "devInfo",
+      "devType","devName","devBatt","devTemp","livePoll","refreshBtn","startBtn","resetFaultsBtn",
+      "resetEstopBtn","axes","clearLogBtn","log","unsupported"]) els[id] = document.getElementById(id);
+
+    function logLine(cls, text) {
+      const line = document.createElement("div");
+      const time = document.createElement("span"); time.className = "t"; time.textContent = new Date().toLocaleTimeString() + " ";
+      const body = document.createElement("span"); body.className = cls; body.textContent = text;
+      line.appendChild(time); line.appendChild(body); els.log.appendChild(line);
+      while (els.log.childNodes.length > 400) els.log.removeChild(els.log.firstChild);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+    els.clearLogBtn.addEventListener("click", () => { els.log.textContent = ""; });
+    function setStatus(state, text) { els.status.className = "status-pill" + (state ? " " + state : ""); els.status.textContent = text; }
+
+    // ---- CRC-32 (zlib), golden crc32("123456789") === 0xCBF43926 ----
+    const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c=(c&1)?((c>>>1)^0xEDB88320):(c>>>1); t[i]=c>>>0; } return t; })();
+    function crc32(bytes) { let c=0xFFFFFFFF; for (let i=0;i<bytes.length;i++) c=CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8); return (~c)>>>0; }
+    if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) throw new Error("CRC-32 self-test failed");
+
+    function buildFrame(type, payload, module = moduleMcp) {
+      payload = payload || new Uint8Array(0);
+      const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
+      const view = new DataView(frame.buffer);
+      view.setUint16(0, 0x4F54, true);
+      frame[2] = FLAGS_REQUEST | ((type & 0x80) ? FLAGS_REPLY_BIT : 0);
+      frame[3] = module; frame[4] = type;
+      view.setUint32(5, payload.length, true);
+      frame.set(payload, HEADER_SIZE);
+      view.setUint32(HEADER_SIZE + payload.length, crc32(frame.subarray(0, HEADER_SIZE + payload.length)), true);
+      return frame;
+    }
+
+    class StreamParser {
+      constructor() { this.buf = new Uint8Array(0); }
+      reset() { this.buf = new Uint8Array(0); }
+      feed(chunk) {
+        const merged = new Uint8Array(this.buf.length + chunk.length);
+        merged.set(this.buf, 0); merged.set(chunk, this.buf.length);
+        const frames = []; let pos = 0;
+        for (;;) {
+          while (pos < merged.length && !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) pos++;
+          if (merged.length - pos < 3) break;
+          const flags = merged[pos + 2];
+          const ext = (flags & FLAG_CORRELATION) ? CORRELATION_SIZE : 0;
+          const headerSize = HEADER_SIZE + ext;
+          if (merged.length - pos < headerSize) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true);
+          if (len > MAX_PAYLOAD) { pos++; continue; }
+          const total = headerSize + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(headerSize + len, true);
+          if (crc32(merged.subarray(pos, pos + headerSize + len)) !== expected) { pos++; continue; }
+          frames.push({ module: merged[pos + 3], type: merged[pos + 4], reply: (flags & FLAGS_REPLY_BIT) !== 0,
+                        payload: merged.slice(pos + headerSize, pos + headerSize + len) });
+          pos += total;
+        }
+        this.buf = merged.slice(pos);
+        return frames;
+      }
+    }
+    const parser = new StreamParser();
+    // A pending checkModulePresent() parks its resolver here; onIncoming calls it
+    // when the 0xFF ListModules reply arrives.
+    let discoveryResolve = null;
+
+    // ===================== Transports (WebUSB + Web Serial) =====================
+    let transport = null;
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
+    class UsbTransport {
+      constructor() { this.device=null; this.iface=null; this.epIn=null; this.epOut=null; this.reading=false; }
+      // `preset`: an already-permitted USBDevice (auto-connect / reconnect) is
+      // opened directly, without the chooser.
+      async open(anyDevice, preset) {
+        this.device = preset || await requestUsbDevice(anyDevice);
+        await this.device.open();
+        if (this.device.configuration === null) await this.device.selectConfiguration(1);
+        const config = this.device.configuration; if (!config) throw new Error("no active USB configuration");
+        let found = null;
+        for (const itf of config.interfaces) { for (const alt of itf.alternates) {
+          if (alt.interfaceClass !== VENDOR_CLASS) continue;
+          let inEp=null, outEp=null;
+          for (const ep of alt.endpoints) { if (ep.type!=="bulk") continue; if (ep.direction==="in"&&!inEp) inEp=ep; else if (ep.direction==="out"&&!outEp) outEp=ep; }
+          if (inEp && outEp) { found = { itf: itf.interfaceNumber, alt: alt.alternateSetting, inEp, outEp }; break; }
+        } if (found) break; }
+        if (!found) throw new Error("no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found");
+        await this.device.claimInterface(found.itf);
+        if (found.alt !== 0) await this.device.selectAlternateInterface(found.itf, found.alt);
+        this.iface = found.itf; this.epIn = found.inEp.endpointNumber; this.epOut = found.outEp.endpointNumber;
+      }
+      describe() { const d=this.device; return (d.productName||"USB device")+" ("+d.vendorId.toString(16).padStart(4,"0")+":"+d.productId.toString(16).padStart(4,"0")+") [WebUSB]"; }
+      identity() { return usbIdentity(this.device); }
+      async send(bytes) {
+        let sent = 0;
+        while (sent < bytes.length) {
+          const out = await this.device.transferOut(this.epOut, sent === 0 ? bytes : bytes.subarray(sent));
+          if (out.status === "stall") { try { await this.device.clearHalt("out", this.epOut); } catch(_){} throw new Error("OUT endpoint stalled"); }
+          if (out.status !== "ok") throw new Error("OUT transfer status: " + out.status);
+          const n = out.bytesWritten || 0; if (n === 0) throw new Error("OUT transfer made no progress"); sent += n;
+        }
+      }
+      async readLoop(onData) {
+        this.reading = true;
+        while (this.reading && this.device) {
+          let result;
+          try { result = await this.device.transferIn(this.epIn, MAX_FRAME); } catch(e) { if (this.reading) throw e; return; }
+          if (!this.reading) return;
+          if (result.status === "stall") { try { await this.device.clearHalt("in", this.epIn); } catch(_){} continue; }
+          if (result.data && result.data.byteLength) onData(new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength));
+        }
+      }
+      async close() { this.reading = false; if (this.device) { if (this.iface !== null) { try { await this.device.releaseInterface(this.iface); } catch(_){} } try { await this.device.close(); } catch(_){} } this.device = null; }
+    }
+    class SerialTransport {
+      constructor() { this.port=null; this.reader=null; this.writer=null; this.reading=false; }
+      async open(preset) { this.port = preset || await navigator.serial.requestPort(); await this.port.open({ baudRate: 115200 }); this.writer = this.port.writable.getWriter(); }
+      describe() { const info = this.port.getInfo ? this.port.getInfo() : {}; let id = "Serial port"; if (info && info.usbVendorId != null) id = "USB serial ("+info.usbVendorId.toString(16).padStart(4,"0")+":"+(info.usbProductId||0).toString(16).padStart(4,"0")+")"; return id + " [Web Serial]"; }
+      identity() { return serialIdentity(this.port); }
+      async send(bytes) { await this.writer.write(bytes); }
+      async readLoop(onData) {
+        this.reading = true; this.reader = this.port.readable.getReader();
+        try { while (this.reading) { const { value, done } = await this.reader.read(); if (done) { if (this.reading) throw new Error("serial connection closed (EOF)"); break; } if (value && value.length) onData(new Uint8Array(value.buffer, value.byteOffset, value.byteLength)); } }
+        finally { try { this.reader.releaseLock(); } catch(_){} this.reader = null; }
+      }
+      async close() {
+        this.reading = false;
+        if (this.reader) { try { await this.reader.cancel(); } catch(_){} try { this.reader.releaseLock(); } catch(_){} this.reader = null; }
+        if (this.writer) { try { await this.writer.close(); } catch(_){} try { this.writer.releaseLock(); } catch(_){} this.writer = null; }
+        if (this.port) { try { await this.port.close(); } catch(_){} this.port = null; }
+      }
+    }
+
+    async function tx(bytes) { if (!transport) { logLine("err", "not connected"); return; } try { await transport.send(bytes); } catch(e) { logLine("err", "send failed: " + (e && e.message ? e.message : e)); } }
+    function send(type, payload) {
+      if (!moduleReady) { logLine("warn", "Module id not resolved yet (discovery pending)."); return; }
+      tx(buildFrame(type, payload));
+    }
+
+    // ---- request encoders ----
+    function u8(x){ return x & 0xFF; }
+    function encAxisI32s(axis, ...vals) { const b = new Uint8Array(1 + 4*vals.length); const dv = new DataView(b.buffer); b[0]=axis; vals.forEach((v,i)=>dv.setInt32(1+4*i, v|0, true)); return b; }
+    function encMove(axis, target, vel, accel, decel) { const b = new Uint8Array(17); const dv = new DataView(b.buffer); b[0]=axis; dv.setInt32(1,target|0,true); dv.setUint32(5,vel>>>0,true); dv.setUint32(9,accel>>>0,true); dv.setUint32(13,decel>>>0,true); return b; }
+    function encSpeed(axis, qpps) { const b = new Uint8Array(5); new DataView(b.buffer).setInt32(1, qpps|0, true); b[0]=axis; return b; }
+    function encDuty(axis, duty) { const b = new Uint8Array(3); new DataView(b.buffer).setInt16(1, duty|0, true); b[0]=axis; return b; }
+
+    // ===================== DS402 statusword decode =====================
+    function ds402State(sw) {
+      if ((sw & 0x4F) === 0x00) return { name: "Not ready", cls: "" };
+      if ((sw & 0x4F) === 0x40) return { name: "Switch on disabled", cls: "" };
+      if ((sw & 0x6F) === 0x21) return { name: "Ready to switch on", cls: "ready" };
+      if ((sw & 0x6F) === 0x23) return { name: "Switched on", cls: "ready" };
+      if ((sw & 0x6F) === 0x27) return { name: "Operation enabled", cls: "enabled" };
+      if ((sw & 0x6F) === 0x07) return { name: "Quick stop active", cls: "qstop" };
+      if ((sw & 0x4F) === 0x0F) return { name: "Fault reaction", cls: "fault" };
+      if ((sw & 0x4F) === 0x08) return { name: "Fault", cls: "fault" };
+      return { name: "Unknown", cls: "" };
+    }
+    const TARGET_REACHED = 0x400; // statusword bit 10
+
+    // ===================== Per-axis UI =====================
+    const axisEls = [];   // [ {state, sw, pos, vel, reached, ...inputs} ] indexed by axis
+    function buildAxisPanel(axis, label) {
+      const p = document.createElement("div");
+      p.className = "panel";
+      p.innerHTML = `
+        <div class="row"><span class="axis-title">${label}</span><span class="spacer"></span>
+          <span class="state-badge" data-role="state">-</span></div>
+        <div class="kv">
+          <span class="k">Position (counts)</span><span class="v" data-role="pos">-</span>
+          <span class="k">Velocity (counts/s)</span><span class="v" data-role="vel">-</span>
+          <span class="k">Statusword</span><span class="v" data-role="sw">-</span>
+          <span class="k">Target reached</span><span class="v" data-role="reached">-</span>
+        </div>
+        <hr class="sep">
+        <div class="row"><span class="muted">Configure:</span>
+          <div class="field"><span>Clamp min</span><input type="text" data-role="cmin" value="-2000000000"></div>
+          <div class="field"><span>Clamp max</span><input type="text" data-role="cmax" value="2000000000"></div>
+          <div class="field"><span>Fallback P</span><input type="text" data-role="cfp" class="tiny" value="15491"></div>
+          <button class="small" data-role="cfgBtn" disabled style="align-self:flex-end;">Configure loop</button>
+        </div>
+        <div class="row">
+          <div class="field"><span>Soft limit min</span><input type="text" data-role="lmin" value="-20000"></div>
+          <div class="field"><span>Soft limit max</span><input type="text" data-role="lmax" value="20000"></div>
+          <button class="small" data-role="limBtn" disabled style="align-self:flex-end;">Set limits</button>
+        </div>
+        <hr class="sep">
+        <div class="row"><span class="muted">Move:</span>
+          <div class="field"><span>Target</span><input type="text" data-role="target" value="10000"></div>
+          <div class="field"><span>Velocity</span><input type="text" data-role="mvel" class="tiny" value="500"></div>
+          <div class="field"><span>Accel</span><input type="text" data-role="maccel" class="tiny" value="500"></div>
+          <div class="field"><span>Decel</span><input type="text" data-role="mdecel" class="tiny" value="500"></div>
+          <button class="small primary" data-role="moveBtn" disabled style="align-self:flex-end;">Move to</button>
+        </div>
+        <div class="row"><span class="muted">Manufacturer (inert on tested fw):</span>
+          <div class="field"><span>Speed (qpps)</span><input type="text" data-role="speed" class="tiny" value="0"></div>
+          <button class="small" data-role="speedBtn" disabled style="align-self:flex-end;">Drive speed</button>
+          <div class="field"><span>Duty (±32767)</span><input type="text" data-role="duty" class="tiny" value="0"></div>
+          <button class="small" data-role="dutyBtn" disabled style="align-self:flex-end;">Drive duty</button>
+        </div>`;
+      els.axes.appendChild(p);
+      const q = (r) => p.querySelector(`[data-role="${r}"]`);
+      const e = { state:q("state"), pos:q("pos"), vel:q("vel"), sw:q("sw"), reached:q("reached"),
+        cmin:q("cmin"), cmax:q("cmax"), cfp:q("cfp"), lmin:q("lmin"), lmax:q("lmax"),
+        target:q("target"), mvel:q("mvel"), maccel:q("maccel"), mdecel:q("mdecel"), speed:q("speed"), duty:q("duty"),
+        buttons: [q("cfgBtn"),q("limBtn"),q("moveBtn"),q("speedBtn"),q("dutyBtn")] };
+      const num = (el) => { const v = parseInt(el.value, 10); return Number.isFinite(v) ? v : 0; };
+      q("cfgBtn").addEventListener("click", () => send(T_CONFIG_POS, encAxisI32s(axis, num(e.cmin), num(e.cmax), num(e.cfp))));
+      q("limBtn").addEventListener("click", () => send(T_SET_LIMITS, encAxisI32s(axis, num(e.lmin), num(e.lmax))));
+      q("moveBtn").addEventListener("click", () => send(T_MOVE, encMove(axis, num(e.target), num(e.mvel), num(e.maccel), num(e.mdecel))));
+      q("speedBtn").addEventListener("click", () => send(T_SPEED, encSpeed(axis, num(e.speed))));
+      q("dutyBtn").addEventListener("click", () => send(T_DUTY, encDuty(axis, num(e.duty))));
+      axisEls[axis] = e;
+    }
+    buildAxisPanel(AXIS_M1, "M1");
+    buildAxisPanel(AXIS_M2, "M2");
+
+    function updateAxis(axis, pos, vel, sw) {
+      const e = axisEls[axis]; if (!e) return;
+      const st = ds402State(sw);
+      e.state.textContent = st.name; e.state.className = "state-badge " + st.cls;
+      e.pos.textContent = pos; e.vel.textContent = vel;
+      e.sw.textContent = "0x" + (sw >>> 0).toString(16).padStart(4, "0");
+      e.reached.textContent = (sw & TARGET_REACHED) ? "yes" : "no";
+    }
+
+    // ===================== Module discovery + module id resolution =====================
+    // Decode the ListModules TLV (see espp::Dispatcher::describe).
+    function parseDiscovery(payload) {
+      let i = 0;
+      const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
+      const u8 = () => { need(1); return payload[i++]; };
+      const u16 = () => { need(2); const v = payload[i] | (payload[i + 1] << 8); i += 2; return v; };
+      const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
+      const version = u8(); u8();            // version, reserved
+      const device = str(), fw = str();
+      const count = u8();
+      const modules = [];
+      for (let m = 0; m < count; m++) {
+        const rec = { id: u8(), name: str(), app: str(), desc: str(), protocol: "", protocolVersion: 0 };
+        // Version 2 records also carry [protocol str][protocol_version u16 LE].
+        // Records carry no length, so a payload version newer than
+        // DISCOVERY_VERSION_KNOWN is parsed with the exact version-2 record
+        // layout: a future version may only append bytes AFTER the record list
+        // (reported as `trailing`, ignored), never inside a record.
+        if (version >= 2) { rec.protocol = str(); rec.protocolVersion = u16(); }
+        modules.push(rec);
+      }
+      return { version, device, fw, modules, trailing: payload.length - i };
+    }
+    // ---- module id resolution (identical in every espp console) --------------
+    // The dispatcher module byte is a routing key, not the identity of a
+    // service: a device may serve any protocol on any id. Identity is what the
+    // device advertises in its ListModules reply -- the protocol id first
+    // (e.g. "espp.ota"), then the hosted app filename, then the module name.
+    // Latest discovery payload version these helpers understand.
+    const DISCOVERY_VERSION_KNOWN = 2;
+    // info: parseDiscovery() output, or null when the device did not answer.
+    // ident: { protocol, protocolVersion, app, name, fallback, override } -- the
+    //   identity this console implements; `override` (from ?module=) wins.
+    // Returns { id, source: "override"|"protocol"|"app"|"name"|"default",
+    //           protocolVersion (advertised by the chosen module, else null),
+    //           warnings: [strings], notes: [informational strings] }.
+    function resolveModuleId(info, ident) {
+      const norm = (s) => String(s == null ? "" : s).trim().toLowerCase();
+      const base = (s) => { const n = norm(s).split("?")[0].split("#")[0]; return n.slice(n.lastIndexOf("/") + 1); };
+      const list = (info && Array.isArray(info.modules)) ? info.modules : null;
+      const label = (m) => (m.name || m.protocol || "?") + " (#" + m.id + ")";
+      const want = String(ident.protocol || "");
+      const warnings = [], notes = [];
+      if (info && info.version > DISCOVERY_VERSION_KNOWN)
+        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed with the v" + DISCOVERY_VERSION_KNOWN + " record layout");
+      if (info && info.trailing > 0)
+        notes.push("ignoring " + info.trailing + " trailing byte(s) after the module list (discovery v" + info.version + ")");
+      // Finish with the chosen module (m may be null when unknown), checking
+      // that it speaks the protocol we implement, at a version we support.
+      const done = (m, source) => {
+        const v = (m && Number.isInteger(m.protocolVersion)) ? m.protocolVersion : null;
+        if (m && want && m.protocol && m.protocol !== want)
+          warnings.push("module #" + m.id + " advertises protocol " + m.protocol + ", not " + want);
+        else if (v && Number.isInteger(ident.protocolVersion) && v !== ident.protocolVersion)
+          warnings.push("device speaks " + (m.protocol || want) + " v" + v + ", this console supports v" + ident.protocolVersion);
+        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings, notes };
+      };
+      const ov = ident.override;
+      if (Number.isInteger(ov) && ov >= 0 && ov <= 0xEF) { // 0xF0..0xFF: reserved (dispatcher / meta)
+        const m = list ? list.find((x) => x.id === ov) : null;
+        if (list && !m) warnings.push("module #" + ov + " was requested but the device does not advertise it");
+        const r = done(m, "override"); r.id = ov; return r;
+      }
+      if (list) {
+        const byProto = want ? list.filter((m) => m.protocol === want) : [];
+        if (byProto.length > 1)
+          warnings.push("several modules speak " + want + " (" + byProto.map(label).join(", ") + "); using the first -- add ?module=N to the URL to pick another");
+        if (byProto.length) return done(byProto[0], "protocol");
+        const wantApp = base(ident.app), wantName = norm(ident.name);
+        const byApp = wantApp ? list.find((m) => base(m.app) === wantApp) : null;
+        if (byApp) return done(byApp, "app");
+        const byName = wantName ? list.find((m) => norm(m.name) === wantName) : null;
+        if (byName) return done(byName, "name");
+        warnings.push("the device does not advertise " + (want || ident.name || ident.app) + " (advertised: " + (list.map(label).join(", ") || "none") + "); using the default module #" + ident.fallback);
+      }
+      return { id: ident.fallback, source: "default", protocolVersion: null, warnings, notes };
+    }
+    // The ?module=N query parameter (decimal or 0x..) overrides discovery; the
+    // Device Hub links each console this way. Null when absent or invalid.
+    function moduleOverrideFromQuery(search) {
+      const raw = new URLSearchParams(search || "").get("module");
+      if (raw == null || raw.trim() === "") return null;
+      // the WHOLE token must be a decimal or 0x-hex integer (parseInt would
+      // accept "9oops" as 9); anything else is invalid and ignored
+      const m = /^(?:0x([0-9a-f]+)|([0-9]+))$/i.exec(raw.trim());
+      if (!m) return null;
+      const n = m[1] !== undefined ? Number.parseInt(m[1], 16) : Number.parseInt(m[2], 10);
+      return (Number.isInteger(n) && n >= 0 && n <= 0xEF) ? n : null; // 0xF0..0xFF are reserved
+    }
+    // One log line saying how a module id was chosen.
+    function describeModuleChoice(label, r, ident, info) {
+      const how = r.source === "override" ? "from ?module=" :
+                  r.source === "protocol" ? "advertises " + ident.protocol + (r.protocolVersion ? " v" + r.protocolVersion : "") :
+                  r.source === "app" ? "advertised as app " + ident.app :
+                  r.source === "name" ? "advertised as \"" + ident.name + "\"" :
+                  info ? "default" : "default; the device did not answer discovery";
+      return label + " module: #" + r.id + " (" + how + ")";
+    }
+
+    // --- begin connection helpers (shared; byte-identical in every console + the hub, see web/test/resolve_module_id_test.js) ---
+    // Links may carry, besides ?module=, parameters that make a page connect on
+    // load WITHOUT the browser chooser to a device this origin was already
+    // granted (the Device Hub links its apps this way after releasing the
+    // device):  ?autoconnect=1&transport=usb|serial&vid=0x1209&pid=0x0d32&serial=ABC
+    // vid / pid are hex (0x..) or decimal; `serial` is the USB serial number
+    // (WebUSB only: Web Serial exposes vid / pid alone).
+    function parseConnectParams(search) {
+      const q = new URLSearchParams(search || "");
+      const num = (key) => {
+        const raw = q.get(key);
+        if (raw === null) return null;
+        const s = raw.trim();
+        if (!/^(0x[0-9a-f]+|[0-9]+)$/i.test(s)) return null;
+        const v = Number(s);
+        return Number.isInteger(v) && v >= 0 && v <= 0xFFFF ? v : null;
+      };
+      const transport = (q.get("transport") || "").trim().toLowerCase();
+      const flag = (q.get("autoconnect") || "").trim().toLowerCase();
+      return {
+        autoconnect: flag === "1" || flag === "true" || flag === "yes",
+        transport: transport === "usb" || transport === "serial" ? transport : null,
+        vid: num("vid"),
+        pid: num("pid"),
+        serial: (q.get("serial") || "").trim() || null,
+      };
+    }
+    // The identity of an open connection: enough to find the same device again
+    // (after a reboot it re-enumerates as a NEW USBDevice / SerialPort object
+    // with the same ids) and to build hand-off links.
+    function usbIdentity(device) {
+      return { transport: "usb", vid: device.vendorId, pid: device.productId, serial: device.serialNumber || null };
+    }
+    function serialIdentity(port) {
+      const info = port && typeof port.getInfo === "function" ? (port.getInfo() || {}) : {};
+      return { transport: "serial", vid: info.usbVendorId != null ? info.usbVendorId : null,
+               pid: info.usbProductId != null ? info.usbProductId : null, serial: null };
+    }
+    // Is `got` (the identity of a device that just appeared) the device `want`
+    // names? vid + pid must match; the serial number only when both sides
+    // report one (a serial-port arrival never has one). An arrival with no
+    // usable ids is never a match.
+    function identityMatches(want, got) {
+      if (!want || !got || got.vid == null || got.pid == null) return false;
+      if (want.vid != null && want.vid !== got.vid) return false;
+      if (want.pid != null && want.pid !== got.pid) return false;
+      if (want.serial && got.serial && want.serial !== got.serial) return false;
+      return true;
+    }
+    function describeIdentity(identity) {
+      if (!identity) return "device";
+      const hex = (v) => v == null ? "?" : "0x" + v.toString(16).padStart(4, "0");
+      return (identity.transport === "serial" ? "serial port" : "USB device") + " " + hex(identity.vid) + ":" + hex(identity.pid) +
+             (identity.serial ? " sn " + identity.serial : "");
+    }
+    // Pick, among the devices this origin may already use (navigator.usb
+    // .getDevices() / navigator.serial.getPorts()), the one `want` names: vid
+    // and pid must match when given; a serial number must match when both sides
+    // report one (a device that reports none is accepted only when it is the
+    // sole candidate). Several candidates without a serial -> the first. With no
+    // ids at all only a lone permitted device is accepted.
+    function pickUsbDevice(devices, want) {
+      const list = Array.isArray(devices) ? devices.filter(Boolean) : [];
+      if (!want || (want.vid == null && want.pid == null && !want.serial)) return list.length === 1 ? list[0] : null;
+      const byIds = list.filter(d => (want.vid == null || d.vendorId === want.vid) && (want.pid == null || d.productId === want.pid));
+      if (want.serial) {
+        const exact = byIds.find(d => d.serialNumber === want.serial);
+        if (exact) return exact;
+        const unnamed = byIds.filter(d => !d.serialNumber);
+        return unnamed.length === 1 ? unnamed[0] : null;
+      }
+      return byIds.length ? byIds[0] : null;
+    }
+    function pickSerialPort(ports, want) {
+      const list = Array.isArray(ports) ? ports.filter(Boolean) : [];
+      if (!want || (want.vid == null && want.pid == null)) return list.length === 1 ? list[0] : null;
+      const byIds = list.filter(p => { const id = serialIdentity(p); return (want.vid == null || id.vid === want.vid) && (want.pid == null || id.pid === want.pid); });
+      return byIds.length ? byIds[0] : null;
+    }
+    async function findPermittedUsbDevice(want) {
+      if (typeof navigator === "undefined" || !navigator.usb || typeof navigator.usb.getDevices !== "function") return null;
+      try { return pickUsbDevice(await navigator.usb.getDevices(), want); } catch (_) { return null; }
+    }
+    async function findPermittedSerialPort(want) {
+      if (typeof navigator === "undefined" || !navigator.serial || typeof navigator.serial.getPorts !== "function") return null;
+      try { return pickSerialPort(await navigator.serial.getPorts(), want); } catch (_) { return null; }
+    }
+    // "Auto-reconnect" checkbox preference, shared by every app on this origin
+    // (localStorage; default on; access may throw in private windows).
+    const AUTO_RECONNECT_KEY = "espp.autoReconnect";
+    function loadAutoReconnect() {
+      try { const v = localStorage.getItem(AUTO_RECONNECT_KEY); return v === null ? true : v === "1"; } catch (_) { return true; }
+    }
+    function saveAutoReconnect(on) { try { localStorage.setItem(AUTO_RECONNECT_KEY, on ? "1" : "0"); } catch (_) {} }
+    // One open at a time per page. Every connect entry point — the Connect
+    // button(s), the ?autoconnect path and the reconnect supervisor — runs
+    // through gate.run(fn); while an open is in progress a second entry is
+    // refused (resolves false) instead of racing the first: the later
+    // completion would otherwise overwrite a live transport without closing it
+    // or orphan a claimed USB device. The supervisor consults isBusy() and
+    // waits rather than counting a refused entry as a failed attempt.
+    // opts.connected() is the page's "already holds a device" predicate: the
+    // gate serializes opens but does not know about an adopted connection, so
+    // run() also refuses (opens nothing) while the page is connected — a
+    // reconnect callback whose permitted-device lookup outlived a manual
+    // connect must not open the same device a second time.
+    function createOpenGate(opts) {
+      const connected = opts && typeof opts.connected === "function" ? opts.connected : () => false;
+      const gate = { busy: false };
+      gate.isBusy = () => gate.busy;
+      gate.isConnected = () => !!connected();
+      gate.run = async (fn) => {
+        if (gate.busy || connected()) return false;
+        gate.busy = true;
+        try { return await fn(); } finally { gate.busy = false; }
+      };
+      return gate;
+    }
+    // Reconnect supervisor. After an UNEXPECTED link loss (unplug, reboot) it
+    // retries opts.reconnect(identity, attempt) -> bool on a bounded back-off
+    // until an attempt succeeds, the attempts run out, or stop() is called; a
+    // platform `connect` event (onDeviceAppeared) retries at once. opts.enabled()
+    // (the checkbox) is consulted on every attempt. expectReboot() marks a
+    // reboot the page itself requested (longer window, friendlier log);
+    // suppress() cancels reconnecting until the next successful connect (a
+    // bootloader reboot: the device comes back as a DIFFERENT USB device that
+    // this page cannot drive). opts.log(cls, text) receives progress lines.
+    // Attempts never overlap: one opts.reconnect() call is in flight at a time
+    // (two concurrent opens of the same device would race each other); an
+    // arrival event during an attempt is remembered and retried right after
+    // the current attempt settles. A loss that happens while an older attempt
+    // is still in flight (the device dropped again during the post-open
+    // discovery probe) starts a new generation; when the stale attempt settles
+    // it hands over by scheduling the current generation's pending retry.
+    // opts.gate (createOpenGate) is shared with the page's manual / auto-connect
+    // paths: while one of those holds it the supervisor polls instead of opening.
+    // Cancellation: stop() (the checkbox unticked, a manual disconnect) and a
+    // newer loss cancel the attempt in flight. opts.reconnect(identity, n,
+    // token) may consult token.cancelled(); when a cancelled attempt settles
+    // the supervisor ignores the page's connected() call made while it was
+    // open and runs opts.discard() (the page's close path), so an open that
+    // finished after the user said "stop" is closed instead of adopted.
+    function createReconnectSupervisor(opts) {
+      const delays = opts.delaysMs || [500, 1000, 1500, 2000, 3000, 4000, 5000, 5000, 5000, 5000];
+      const rebootDelays = opts.rebootDelaysMs || delays.concat([5000, 5000, 5000, 5000, 5000, 5000]);
+      const log = typeof opts.log === "function" ? opts.log : () => {};
+      // generations <= cancelBefore are cancelled; inFlightGen is the generation of the attempt in flight
+      const sup = { active: false, identity: null, attempt: 0, expected: false, suppressed: false, timer: null, generation: 0, inFlight: false, retryAfter: false, cancelBefore: 0, inFlightGen: 0 };
+      const cancelled = (gen) => gen <= sup.cancelBefore;
+      const cancelCurrent = () => { sup.cancelBefore = sup.generation; };
+      const clearTimer = () => { if (sup.timer) { clearTimeout(sup.timer); sup.timer = null; } };
+      const schedule = (gen, ms) => { clearTimer(); sup.timer = setTimeout(() => { sup.timer = null; attempt(gen); }, ms); };
+      async function attempt(gen) {
+        if (gen !== sup.generation || !sup.active) return;
+        if (sup.inFlight) { sup.retryAfter = true; return; } // serialized: retry once the current attempt settles
+        if (opts.gate && opts.gate.isBusy()) { schedule(gen, 250); return; } // a manual / auto-connect open is in progress: wait, not an attempt
+        if (!opts.enabled()) { sup.stop("auto-reconnect is off"); return; }
+        const plan = sup.expected ? rebootDelays : delays;
+        sup.attempt++;
+        let ok = false;
+        sup.inFlight = true; sup.inFlightGen = gen; sup.retryAfter = false;
+        const token = { cancelled: () => cancelled(gen) };
+        try { ok = await opts.reconnect(sup.identity, sup.attempt, token); }
+        catch (e) { if (!cancelled(gen)) log("warn", "reconnect attempt " + sup.attempt + " failed: " + (e && e.message ? e.message : e)); }
+        finally { sup.inFlight = false; }
+        if (cancelled(gen) && ok) {
+          // stop() / a newer loss happened while the open was pending and the
+          // open succeeded anyway: it must not stay adopted (the page's
+          // connected() was ignored). An attempt that opened nothing (lookup
+          // failed, returned false) has nothing to discard; running the page's
+          // disconnect then would drop a manual connection made meanwhile.
+          if (typeof opts.discard === "function") { try { await opts.discard(); } catch (_) {} }
+        }
+        if (gen !== sup.generation) {
+          // stale: a newer loss owns the supervisor now. Its timer may already
+          // have fired into our in-flight attempt (retryAfter) and left no timer
+          // behind, so re-arm it here or auto-reconnect would stall for good.
+          const pending = sup.retryAfter; sup.retryAfter = false;
+          if (sup.active && !sup.timer && pending) schedule(sup.generation, 100);
+          return;
+        }
+        if (!sup.active) { sup.retryAfter = false; return; }
+        if (ok) { sup.active = false; sup.expected = false; sup.retryAfter = false; clearTimer(); return; }
+        if (sup.attempt >= plan.length) { sup.stop("gave up reconnecting after " + sup.attempt + " attempts; use Connect"); return; }
+        if (sup.retryAfter) { sup.retryAfter = false; schedule(gen, 100); return; } // the device showed up meanwhile
+        schedule(gen, plan[sup.attempt]);
+      }
+      // the page lost its connection without asking for it
+      sup.onLinkLost = (identity) => {
+        clearTimer();
+        cancelCurrent();
+        sup.generation++;
+        if (sup.suppressed) { sup.suppressed = false; sup.active = false; log("sys", "Not reconnecting: the device was asked to reboot into its bootloader (it enumerates as a different USB device; use Connect once it is back in the application)."); return; }
+        if (!opts.enabled() || !identity) { sup.active = false; return; }
+        sup.active = true; sup.identity = identity; sup.attempt = 0;
+        const plan = sup.expected ? rebootDelays : delays;
+        log("sys", (sup.expected ? "Device is rebooting — reconnecting to " : "Link lost — trying to reconnect to ") + describeIdentity(identity) + " (auto-reconnect; uncheck to stop)…");
+        schedule(sup.generation, plan[0]);
+      };
+      // a permitted device re-appeared (navigator.usb / navigator.serial
+      // "connect"): only the device being recovered wakes the supervisor — an
+      // unrelated arrival would otherwise burn one of the bounded retries
+      sup.onDeviceAppeared = (identity) => {
+        if (!sup.active || !identityMatches(sup.identity, identity)) return;
+        if (sup.inFlight) sup.retryAfter = true; else schedule(sup.generation, 100);
+      };
+      sup.expectReboot = () => { sup.expected = true; sup.suppressed = false; };
+      sup.suppress = () => { sup.suppressed = true; sup.expected = false; };
+      // a connection was established (manually or by a successful attempt)
+      sup.connected = () => {
+        if (sup.inFlight && cancelled(sup.inFlightGen)) return; // a cancelled attempt's open: it is about to be discarded
+        clearTimer(); sup.generation++; sup.active = false; sup.expected = false; sup.suppressed = false; sup.attempt = 0; sup.retryAfter = false; };
+      sup.stop = (reason) => { clearTimer(); cancelCurrent(); sup.generation++; const was = sup.active; sup.active = false; sup.expected = false; sup.retryAfter = false; if (was && reason) log("sys", "Auto-reconnect stopped: " + reason + "."); };
+      sup.isActive = () => sup.active;
+      return sup;
+    }
+    // Forward the platform "a permitted device was (re)attached" events to the
+    // supervisor, with the arriving device's identity, so a reboot is caught
+    // the moment the device enumerates (and other devices are ignored).
+    function watchDeviceArrivals(sup) {
+      if (typeof navigator === "undefined") return;
+      if (navigator.usb && typeof navigator.usb.addEventListener === "function")
+        navigator.usb.addEventListener("connect", (ev) => sup.onDeviceAppeared(ev && ev.device ? usbIdentity(ev.device) : null));
+      if (navigator.serial && typeof navigator.serial.addEventListener === "function")
+        navigator.serial.addEventListener("connect", (ev) => { const port = ev && (ev.port || ev.target); sup.onDeviceAppeared(port ? serialIdentity(port) : null); });
+    }
+    // App -> hub notice that an app released its device (manual disconnect or
+    // page closed), so a hub that handed the device off can offer to reconnect.
+    // Same-origin pages only (BroadcastChannel); best effort everywhere.
+    function openDeviceChannel() {
+      let channel = null;
+      try { channel = typeof BroadcastChannel === "function" ? new BroadcastChannel("espp-device") : null; } catch (_) { return null; }
+      // Close the channel when the page goes away (no late deliveries to a page
+      // that is unloading, no leaked channel across rapid reloads). The listener
+      // is registered on a later task so it runs AFTER the page's own pagehide
+      // handler, which still needs the channel to post its released notice.
+      if (channel && typeof window !== "undefined" && typeof window.addEventListener === "function")
+        setTimeout(() => window.addEventListener("pagehide", () => { try { channel.close(); } catch (_) {} }, { once: true }), 0);
+      return channel;
+    }
+    function postReleased(channel, identity) {
+      if (!channel || !identity) return;
+      try { channel.postMessage({ type: "released", identity: identity, page: (typeof location !== "undefined" ? location.pathname : "").split("/").pop() }); } catch (_) {}
+    }
+    // --- end connection helpers ---
+    // --- begin app navigation (shared; byte-identical in every web app, see web/test/resolve_module_id_test.js) ---
+    // Links back to the Device Hub (primary) and the apps page. The static hrefs
+    // in the HTML are the hosted copies (always valid, also when this script
+    // never runs — a file:// page whose ES-module import is blocked). In the
+    // hosted apps directory (…/apps/ on the documentation site, or a local
+    // server in docs/apps) hub and apps page are siblings of every app, so the
+    // links are rewritten to the sibling files there; anywhere else — file://,
+    // a source tree served from http://localhost (where the haptics console is
+    // example/webapp/index.html itself) — they stay on the hosted copies.
+    const ESPP_APPS_BASE = "https://esp-cpp.github.io/espp/apps/";
+    function inHostedAppsDir(loc) {
+      if (!loc || !/^https?:$/.test(loc.protocol)) return false;
+      const dir = String(loc.pathname || "").replace(/[^/]*$/, "");
+      return /\/apps\/$/.test(dir);
+    }
+    function navHref(file) {
+      return inHostedAppsDir(typeof location !== "undefined" ? location : null) ? file : ESPP_APPS_BASE + file;
+    }
+    // Wire the #navHub / #navApps hrefs (every app). Returns the hub link.
+    function installAppNav() {
+      const hub = typeof document !== "undefined" ? document.getElementById("navHub") : null;
+      const apps = typeof document !== "undefined" ? document.getElementById("navApps") : null;
+      if (apps) apps.href = navHref("index.html");
+      if (hub) hub.href = navHref("dispatcher_hub.html");
+      return hub;
+    }
+    // --- end app navigation ---
+    // --- begin app hand-back (shared; byte-identical in every dispatcher-module console, see web/test/resolve_module_id_test.js) ---
+    // The auto-connect query (no module) a hand-back carries so the hub opens the
+    // device the app just released, without a chooser.
+    function hubConnectQuery(identity) {
+      const q = new URLSearchParams();
+      if (!identity || (identity.transport !== "usb" && identity.transport !== "serial")) return "";
+      q.set("autoconnect", "1");
+      q.set("transport", identity.transport);
+      if (identity.vid != null) q.set("vid", "0x" + identity.vid.toString(16).padStart(4, "0"));
+      if (identity.pid != null) q.set("pid", "0x" + identity.pid.toString(16).padStart(4, "0"));
+      if (identity.serial) q.set("serial", identity.serial);
+      return q.toString();
+    }
+    // A plain left click on "Device Hub" while connected hands the device back.
+    // handover.connected() says whether the page holds a device;
+    // handover.handBack() closes it the way a manual Disconnect does (stop the
+    // supervisor, close, then post the released notice) and resolves the
+    // device's identity; the tab then navigates to the hub with the auto-connect
+    // query. The href stays the plain hub URL, so middle-click / open-in-new-tab
+    // / modified clicks keep working and never close anything. One hand-back at
+    // a time: a second click while the first is closing is swallowed (the guard
+    // is never cleared on success — the page navigates away — and cleared on
+    // failure). The chooser-less pick-up on the hub needs the same origin (the
+    // device grant is per origin); a console on another origin still lands on
+    // the hub with the identity in the URL, and the hub offers Connect.
+    function installAppHandBack(handover) {
+      const hub = typeof document !== "undefined" ? document.getElementById("navHub") : null;
+      if (!hub) return;
+      let handingBack = false;
+      hub.addEventListener("click", (ev) => {
+        if (ev.defaultPrevented || ev.button !== 0 || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+        if (handingBack) { ev.preventDefault(); return; }
+        if (!handover.connected()) return;
+        ev.preventDefault();
+        handingBack = true;
+        const target = hub.href;
+        Promise.resolve().then(() => handover.handBack()).then(
+          (identity) => { const q = hubConnectQuery(identity); location.assign(target + (q ? "?" + q : "")); },
+          () => { handingBack = false; location.assign(target); });
+      });
+    }
+    // --- end app hand-back ---
+    // Adopt the MCP266 module id from a discovery reply (null = none) -- every
+    // MCP266 frame built / matched from here on uses it.
+    function adoptModule(info) {
+      MODULE_IDENT.override = moduleOverrideFromQuery(location.search);
+      const r = resolveModuleId(info, MODULE_IDENT);
+      moduleMcp = r.id;
+      moduleReady = true;
+      logLine("sys", describeModuleChoice("MCP266", r, MODULE_IDENT, info));
+      for (const w of r.warnings) logLine("warn", w + ".");
+      for (const n of r.notes) logLine("sys", n + ".");
+    }
+    // Ask the device which dispatcher modules it serves and adopt the MCP266
+    // module's id from the answer (adoptModule). No discovery reply (older
+    // firmware) -> the default id; the normal INFO/STATUS request still
+    // surfaces a genuinely missing module.
+    async function checkModulePresent() {
+      const t = transport;
+      if (!t) return;
+      const payload = await new Promise((resolve) => {
+        let timer = null;
+        // settle guards the shared resolver: only clear it if it is still ours,
+        // so a prior probe's timeout can't cancel a newer probe's resolver.
+        const settle = (p) => { clearTimeout(timer); if (discoveryResolve === settle) discoveryResolve = null; resolve(p); };
+        timer = setTimeout(() => settle(null), DISCOVERY_TIMEOUT_MS);
+        discoveryResolve = settle;
+        t.send(buildFrame(T_LIST_MODULES, null, MODULE_DISCOVERY)).catch(() => settle(null));
+      });
+      // this probe belongs to the transport it sent on: if that connection was
+      // closed or replaced while we waited, its result (a reply or, more
+      // likely, the timeout) must not be adopted into the current one
+      if (t !== transport) return;
+      let info = null;
+      if (payload) { try { info = parseDiscovery(payload); } catch (_) { info = null; } }
+      adoptModule(info);
+    }
+
+    // ===================== Incoming frame handling =====================
+    function onIncoming(chunk) {
+      let frames; try { frames = parser.feed(chunk); } catch(e) { logLine("err", "parse error: " + (e && e.message ? e.message : e)); return; }
+      for (const f of frames) {
+        // Discovery reply (reserved module 0xFF): hand the TLV to a pending
+        // module probe before the moduleMcp match below ignores it.
+        if (f.module === MODULE_DISCOVERY && f.reply && f.type === T_LIST_MODULES) {
+          if (discoveryResolve) { discoveryResolve(f.payload); discoveryResolve = null; }
+          continue;
+        }
+        if (f.module !== moduleMcp) continue;
+        const dv = new DataView(f.payload.buffer, f.payload.byteOffset, f.payload.length);
+        if (f.type === T_STATUS) {
+          if (f.payload.length < 25) continue;
+          updateAxis(AXIS_M1, dv.getInt32(0, true), dv.getInt32(4, true), dv.getUint16(8, true));
+          updateAxis(AXIS_M2, dv.getInt32(10, true), dv.getInt32(14, true), dv.getUint16(18, true));
+          els.devBatt.textContent = (dv.getUint16(20, true) / 10).toFixed(1) + " V";
+          els.devTemp.textContent = (dv.getUint16(22, true) / 10).toFixed(1) + " °C";
+        } else if (f.type === T_OK) {
+          const rt = f.payload.length ? f.payload[0] : 0;
+          logLine("rx", "ok: " + (REQ_NAME[rt] || ("0x" + rt.toString(16))));
+        } else if (f.type === T_ERROR) {
+          const rt = f.payload.length ? f.payload[0] : 0;
+          const code = f.payload.length >= 5 ? dv.getUint32(1, true) : 0;
+          let msg = ""; try { msg = new TextDecoder().decode(f.payload.subarray(5)); } catch(_){}
+          logLine("err", (REQ_NAME[rt] || ("0x" + rt.toString(16))) + " failed [" + code + "]: " + msg);
+        } else if (f.type === T_DEVINFO) {
+          const dtype = f.payload.length >= 4 ? dv.getUint32(0, true) : 0;
+          let name = ""; try { name = new TextDecoder().decode(f.payload.subarray(4)); } catch(_){}
+          els.devType.textContent = "0x" + dtype.toString(16).padStart(8, "0");
+          els.devName.textContent = name || "-";
+          logLine("sys", "device: " + name + " (type 0x" + dtype.toString(16) + ")");
+        }
+      }
+    }
+
+    // ===================== Connect / disconnect =====================
+    if (!navigator.usb) els.connectUsbBtn.disabled = true;
+    if (!navigator.serial) els.connectSerialBtn.disabled = true;
+    if (!navigator.usb && !navigator.serial) els.unsupported.style.display = "block";
+    els.connectUsbBtn.addEventListener("click", () => connect("usb"));
+    els.connectSerialBtn.addEventListener("click", () => connect("serial"));
+    els.disconnectBtn.addEventListener("click", () => disconnect());
+
+    // `preset`: an already-permitted USBDevice / SerialPort (no chooser).
+    // One open at a time (Connect button(s), auto-connect, reconnect) — see createOpenGate.
+    async function connect(kind, preset) {
+      return openGate.run(() => connectLocked(kind, preset));
+    }
+    async function connectLocked(kind, preset) {
+      if (transport) return;
+      const t = kind === "usb" ? new UsbTransport() : new SerialTransport();
+      try { if (kind === "usb") await t.open(els.anyDevice.checked, preset); else await t.open(preset); }
+      catch (e) { if (e && e.name === "NotFoundError" && !preset) logLine("sys", "Device selection cancelled."); else logLine("err", "Connect failed: " + (e && e.message ? e.message : e)); try { await t.close(); } catch(_){} return; }
+      transport = t; connIdentity = t.identity(); reconnect.connected(); parser.reset(); moduleReady = false;
+      const name = t.describe(); setStatus("connected", "Connected"); els.devInfo.textContent = name; logLine("sys", "Connected: " + name);
+      t.readLoop(onIncoming).catch((e) => { if (transport === t) { logLine("err", "Read loop error: " + (e && e.message ? e.message : e)); onLinkLost(); } });
+      // Resolve the MCP266 module id from discovery BEFORE the first request.
+      try { await checkModulePresent(); } catch (_) {}
+      if (transport !== t) return; // the link dropped while probing
+      setConnectedUI(true); // module id resolved: only now enable the controls
+      send(T_GET_INFO); send(T_GET_STATUS);
+      if (els.livePoll.checked) startStream();
+    }
+    async function disconnect() {
+      if (!transport) return; logLine("sys", "Disconnecting..."); stopStream();
+      const t = transport; transport = null;
+      reconnect.stop(); const released = connIdentity; connIdentity = null; try { await t.close(); } catch(_){}
+      postReleased(deviceChannel, released); // only once the device is closed: the hub may reopen it on this notice
+      setConnectedUI(false); setStatus("", "Disconnected");
+    }
+    function onLinkLost() {
+      if (!transport) return; stopStream(); const t = transport; transport = null; t.close().catch(()=>{});
+      setConnectedUI(false); setStatus("error", "Disconnected");
+      reconnect.onLinkLost(connIdentity);
+    }
+    if (navigator.usb && navigator.usb.addEventListener) navigator.usb.addEventListener("disconnect", (e) => { if (transport instanceof UsbTransport && e.device === transport.device) { logLine("err", "Device disconnected."); onLinkLost(); } });
+
+    if (navigator.serial && navigator.serial.addEventListener) {
+      navigator.serial.addEventListener("disconnect", (e) => {
+        const eventPort = e.port ?? e.target;
+        if (transport instanceof SerialTransport && eventPort === transport.port) { logLine("err", "Serial device disconnected."); onLinkLost(); }
+      });
+    }
+
+    function setConnectedUI(connected) {
+      els.connectUsbBtn.disabled = connected || !navigator.usb;
+      els.connectSerialBtn.disabled = connected || !navigator.serial;
+      els.disconnectBtn.disabled = !connected; els.anyDevice.disabled = connected;
+      for (const id of ["startBtn","resetFaultsBtn","resetEstopBtn","refreshBtn"]) els[id].disabled = !connected;
+      for (const e of axisEls) if (e) for (const b of e.buttons) b.disabled = !connected;
+      if (!connected) {
+        els.devInfo.textContent = "Not connected. Default WebUSB filter: VID 0x1209 / PID 0x0d32 (espp default).";
+        els.devType.textContent = els.devName.textContent = els.devBatt.textContent = els.devTemp.textContent = "-";
+        els.livePoll.checked = false;
+        updateAxis(AXIS_M1, "-", "-", 0); updateAxis(AXIS_M2, "-", "-", 0);
+        axisEls.forEach(e => { if (e) { e.pos.textContent = e.vel.textContent = e.sw.textContent = e.reached.textContent = "-"; e.state.textContent = "-"; e.state.className = "state-badge"; } });
+      }
+    }
+
+    els.startBtn.addEventListener("click", () => send(T_START));
+    els.resetFaultsBtn.addEventListener("click", () => send(T_RESET_FAULTS));
+    els.resetEstopBtn.addEventListener("click", () => send(T_RESET_ESTOP));
+    els.refreshBtn.addEventListener("click", () => send(T_GET_STATUS));
+
+    // ---- device-side status streaming ----
+    function streamPayload(enable, period) { const b = new Uint8Array(3); b[0] = enable ? 1 : 0; new DataView(b.buffer).setUint16(1, period, true); return b; }
+    function startStream() { send(T_SET_STREAM, streamPayload(true, STATUS_POLL_MS)); }
+    function stopStream() { if (transport) send(T_SET_STREAM, streamPayload(false, STATUS_POLL_MS)); }
+    els.livePoll.addEventListener("change", () => { if (!transport) return; els.livePoll.checked ? startStream() : stopStream(); });
+
+
+    // ---- auto-connect (?autoconnect=1&transport=&vid=&pid=&serial=) + auto-reconnect ----
+    const connectParams = parseConnectParams(location.search);
+    let connIdentity = null; // identity of the current (or just lost) device
+    const deviceChannel = openDeviceChannel();
+    els.autoReconnect.checked = loadAutoReconnect();
+    els.autoReconnect.addEventListener("change", () => {
+      saveAutoReconnect(els.autoReconnect.checked);
+      if (!els.autoReconnect.checked) reconnect.stop("auto-reconnect is off");
+    });
+    const openGate = createOpenGate({ connected: () => !!transport });
+    const reconnect = createReconnectSupervisor({ gate: openGate, discard: () => disconnect(), enabled: () => els.autoReconnect.checked, log: logLine, reconnect: reconnectAttempt });
+    watchDeviceArrivals(reconnect);
+    // One reconnect attempt: the device must be back among the permitted ones.
+    // The lookup runs outside the open gate, so re-check afterwards that the
+    // attempt was not cancelled (checkbox unticked) and that no manual connect
+    // completed meanwhile — the gate refuses while connected as well.
+    async function reconnectAttempt(identity, attempt, token) {
+      if (transport) return true;
+      const preset = identity.transport === "usb" ? await findPermittedUsbDevice(identity) : await findPermittedSerialPort(identity);
+      if (token.cancelled() || transport) return false;
+      if (!preset) return false;
+      await connect(identity.transport, preset);
+      return !!transport;
+    }
+    async function autoConnect() {
+      const want = connectParams;
+      for (const kind of want.transport ? [want.transport] : ["usb", "serial"]) {
+        const preset = kind === "usb" ? await findPermittedUsbDevice(want) : await findPermittedSerialPort(want);
+        if (!preset) continue;
+        logLine("sys", "Auto-connecting to " + describeIdentity(kind === "usb" ? usbIdentity(preset) : serialIdentity(preset)) + "…");
+        await connect(kind, preset);
+        return;
+      }
+      logLine("warn", "Auto-connect: no permitted " + describeIdentity(want) + " found — use Connect (the browser only lists devices this page was already granted).");
+    }
+    // pagehide: the browser tears the handle down itself and an await cannot finish here, so the notice goes out before the close (best effort)
+    window.addEventListener("pagehide", () => { if (transport) postReleased(deviceChannel, connIdentity); });
+
+    setConnectedUI(false);
+    // Device Hub / All apps links; a plain click on Device Hub while connected hands the device back
+    installAppNav();
+    installAppHandBack({ connected: () => !!transport, handBack: async () => { const id = connIdentity; await disconnect(); return id; } });
+    if (connectParams.autoconnect) autoConnect();
+  </script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>espp Web Apps</title>
+<meta name="description" content="Browser tools hosted with the espp documentation: Web Serial / WebUSB / WebHID consoles, control panels, and flashers.">
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a2e; --muted: #666; --card: #f6f7f9;
+    --border: #d9dce1; --accent: #2563eb; --accent-contrast: #ffffff; --chip: #e8edf5; --chip-fg: #334;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a; --fg: #e6e6e6; --muted: #9aa0a6; --card: #1d2127;
+      --border: #333842; --accent: #7aa2ff; --accent-contrast: #0b1220; --chip: #2a313c; --chip-fg: #cfd6e0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 2rem 1rem; background: var(--bg); color: var(--fg);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 60rem; margin: 0 auto; }
+  .title-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
+  h1 { margin: 0 0 .25rem; }
+  .hub-link { display: inline-block; background: var(--accent); color: var(--accent-contrast); font-weight: 600; text-decoration: none;
+         padding: .45rem .9rem; border-radius: .5rem; white-space: nowrap; }
+  .hub-link:hover { filter: brightness(1.1); }
+  .hub-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sub { color: var(--muted); margin: 0 0 1.25rem; }
+  .controls { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin: 0 0 1.5rem; }
+  .controls label { color: var(--muted); font-size: .92rem; display: flex; gap: .4rem; align-items: center; }
+  .controls input[type=search] { flex: 1 1 16rem; min-width: 12rem; padding: .5rem .7rem; font: inherit;
+         color: var(--fg); background: var(--card); border: 1px solid var(--border); border-radius: .5rem; }
+  .controls select { padding: .45rem .6rem; font: inherit; color: var(--fg); background: var(--card);
+         border: 1px solid var(--border); border-radius: .5rem; }
+  .controls input:focus-visible, .controls select:focus-visible, .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .group { margin: 0 0 1.75rem; }
+  .group-title { font-size: 1rem; text-transform: capitalize; color: var(--muted); margin: 0 0 .6rem;
+         border-bottom: 1px solid var(--border); padding-bottom: .3rem; }
+  .group-title .count { font-weight: normal; }
+  .group[hidden] { display: none; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; }
+  body.flat .group-title { display: none; }
+  body.flat .group { margin: 0; }
+  body.flat .grid { display: contents; }
+  body.flat .group { display: none; } /* the cards moved out; an empty wrapper must not take a grid slot */
+  body.flat #all { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; }
+  .card { display: block; padding: 1rem 1.25rem; background: var(--card);
+          border: 1px solid var(--border); border-radius: .6rem;
+          color: inherit; text-decoration: none; }
+  .card:hover { border-color: var(--accent); }
+  .card[hidden] { display: none; }
+  .card h2 { margin: 0 0 .4rem; font-size: 1.05rem; color: var(--accent); }
+  .card p { margin: 0 0 .6rem; color: var(--muted); font-size: .92rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: .3rem; }
+  .chip { font-size: .72rem; padding: .1rem .45rem; border-radius: .6rem; background: var(--chip); color: var(--chip-fg);
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .chip.transport { font-family: inherit; }
+  .chip.proto.opt { opacity: .75; border: 1px dashed var(--border); }
+  .empty { color: var(--muted); font-style: italic; }
+  .empty[hidden] { display: none; }
+  footer { margin-top: 2.5rem; color: var(--muted); font-size: .85rem; }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+  <main>
+    <div class="title-row">
+      <h1>espp Web Apps</h1>
+      <a class="hub-link" href="dispatcher_hub.html" title="Connect a device and see which of these apps it can use">Device Hub &rarr;</a>
+    </div>
+    <p class="sub">17 self-contained browser tools hosted with the espp
+    documentation. They use the Web&nbsp;Serial / WebUSB / WebHID APIs
+    (Chromium-based browsers) and talk directly to your hardware &mdash; nothing
+    to install. Chips show the espp protocols an app speaks (a trailing
+    <code>?</code> marks an optional one) and its transports.</p>
+    <div class="controls" role="search">
+      <input type="search" id="filter" placeholder="Filter by name, description, protocol, transport or category" aria-label="Filter apps">
+      <label for="sort">Sort <select id="sort"><option value="category" selected>by category</option><option value="name">by name</option></select></label>
+      <span class="count" id="shown" aria-live="polite"></span>
+    </div>
+    <div id="all">
+    <section class="group" data-category="device management">
+      <h2 class="group-title">device management <span class="count" data-total="5">5</span></h2>
+      <div class="grid">
+      <a class="card" href="coredump_console.html" data-category="device management" data-title="espp core dump console (webusb / web serial)" data-search="espp core dump console (webusb / web serial) inspect esp-idf flash core dumps in the browser: crash summary, elf core dump download, client-side nearest-symbol backtrace resolution and erase, over webusb or web serial via the espp coredump component. device management espp.coredump espp.coredump-crash-trigger webusb web serial webusb webserial">
+        <h2>espp Core Dump Console (WebUSB / Web Serial)</h2>
+        <p>Inspect ESP-IDF flash core dumps in the browser: crash summary, ELF core dump download, client-side nearest-symbol backtrace resolution and erase, over WebUSB or Web Serial via the espp coredump component.</p>
+        <div class="chips"><span class="chip proto" title="required">espp.coredump v1</span><span class="chip proto opt" title="optional: the app works without it">espp.coredump-crash-trigger v1?</span><span class="chip transport">WebUSB</span><span class="chip transport">Web Serial</span></div>
+      </a>
+      <a class="card" href="desktop.html" data-category="device management" data-title="espp desktop (webusb / web serial)" data-search="espp desktop (webusb / web serial) a windowed desktop for an espp device, rendered entirely in the browser from the widget tree the firmware&#x27;s desktop component streams over webusb or web serial: apps, windows, widgets, dialogs and notifications. device management espp.desktop webusb web serial webusb webserial">
+        <h2>espp Desktop (WebUSB / Web Serial)</h2>
+        <p>A windowed desktop for an espp device, rendered entirely in the browser from the widget tree the firmware&#x27;s desktop component streams over WebUSB or Web Serial: apps, windows, widgets, dialogs and notifications.</p>
+        <div class="chips"><span class="chip proto" title="required">espp.desktop v2</span><span class="chip transport">WebUSB</span><span class="chip transport">Web Serial</span></div>
+      </a>
+      <a class="card" href="dispatcher_hub.html" data-category="device management" data-title="espp device hub (webusb / web serial)" data-search="espp device hub (webusb / web serial) connect to an espp device over usb (webusb / web serial) and discover which modules it runs. the device answers a capability query on the reserved dispatcher discovery module (0xff) with its name, firmware, and the list of modules — each shown as a tab that links to its hosted web app. device management webusb web serial webusb webserial">
+        <h2>espp Device Hub (WebUSB / Web Serial)</h2>
+        <p>Connect to an espp device over USB (WebUSB / Web Serial) and discover which modules it runs. The device answers a capability query on the reserved dispatcher discovery module (0xFF) with its name, firmware, and the list of modules — each shown as a tab that links to its hosted web app.</p>
+        <div class="chips"><span class="chip transport">WebUSB</span><span class="chip transport">Web Serial</span></div>
+      </a>
+      <a class="card" href="ota_console.html" data-category="device management" data-title="espp ota console (webusb)" data-search="espp ota console (webusb) update espp device firmware over webusb: streams a .bin to the espp ota component&#x27;s vendor-interface protocol with progress and rollback-aware finish. device management espp.ota webusb webusb">
+        <h2>espp OTA Console (WebUSB)</h2>
+        <p>Update espp device firmware over WebUSB: streams a .bin to the espp ota component&#x27;s vendor-interface protocol with progress and rollback-aware finish.</p>
+        <div class="chips"><span class="chip proto" title="required">espp.ota v1</span><span class="chip transport">WebUSB</span></div>
+      </a>
+      <a class="card" href="system_console.html" data-category="device management" data-title="espp system console (webusb / web serial)" data-search="espp system console (webusb / web serial) device info, reboot and reboot-into-bootloader plus live heap and task statistics for an espp device, over webusb or web serial via the espp system and monitor components. device management espp.system espp.monitor webusb web serial webusb webserial">
+        <h2>espp System Console (WebUSB / Web Serial)</h2>
+        <p>Device info, reboot and reboot-into-bootloader plus live heap and task statistics for an espp device, over WebUSB or Web Serial via the espp system and monitor components.</p>
+        <div class="chips"><span class="chip proto" title="required">espp.system v1</span><span class="chip proto opt" title="optional: the app works without it">espp.monitor v1?</span><span class="chip transport">WebUSB</span><span class="chip transport">Web Serial</span></div>
+      </a>
+      </div>
+    </section>
+    <section class="group" data-category="motor control">
+      <h2 class="group-title">motor control <span class="count" data-total="7">7</span></h2>
+      <div class="grid">
+      <a class="card" href="mcp_console.html" data-category="motor control" data-title="basicmicro mcp console" data-search="basicmicro mcp console test and configure basicmicro mcp/roboclaw motor controllers over a usb-uart (packet serial) or usb-can (slcan + canopen/ds402) adapter: device info, motion control, encoders, and an sdo object browser. motor control web serial webserial">
+        <h2>Basicmicro MCP Console</h2>
+        <p>Test and configure Basicmicro MCP/RoboClaw motor controllers over a USB-UART (packet serial) or USB-CAN (slcan + CANopen/DS402) adapter: device info, motion control, encoders, and an SDO object browser.</p>
+        <div class="chips"><span class="chip transport">Web Serial</span></div>
+      </a>
+      <a class="card" href="haptics_console.html" data-category="motor control" data-title="espp bldc haptics console (webusb)" data-search="espp bldc haptics console (webusb) control and visualize an espp bldc haptic knob over webusb: live dial, detent presets, and control commands. firmware update and crash inspection are separate modules (see the ota / coredump consoles via the device hub). motor control espp.haptics webusb webusb">
+        <h2>espp BLDC Haptics Console (WebUSB)</h2>
+        <p>Control and visualize an espp BLDC haptic knob over WebUSB: live dial, detent presets, and control commands. Firmware update and crash inspection are separate modules (see the ota / coredump consoles via the device hub).</p>
+        <div class="chips"><span class="chip proto" title="required">espp.haptics v1</span><span class="chip transport">WebUSB</span></div>
+      </a>
+      <a class="card" href="ds402_panel.html" data-category="motor control" data-title="espp ds402 drive panel (webusb / web serial)" data-search="espp ds402 drive panel (webusb / web serial) commission a canopen cia 402 (ds402) drive over a usb-to-can bridge from the browser: sdo object read/write, the ds402 state machine, mode selection, target/actual values, an object-dictionary browser (the device&#x27;s stored eds, an eds file, or the built-in cia 301/402 table, scanned over sdo), and a generic read/write panel for vendor-specific addresses. motor control espp.can-bridge webusb web serial webusb webserial">
+        <h2>espp DS402 Drive Panel (WebUSB / Web Serial)</h2>
+        <p>Commission a CANopen CiA 402 (DS402) drive over a USB-to-CAN bridge from the browser: SDO object read/write, the DS402 state machine, mode selection, target/actual values, an object-dictionary browser (the device&#x27;s stored EDS, an EDS file, or the built-in CiA 301/402 table, scanned over SDO), and a generic read/write panel for vendor-specific addresses.</p>
+        <div class="chips"><span class="chip proto" title="required">espp.can-bridge v1</span><span class="chip transport">WebUSB</span><span class="chip transport">Web Serial</span></div>
+      </a>
+      <a class="card" href="mcp266_console.html" data-category="motor control" data-title="espp mcp266 console (webusb / web serial)" data-search="espp mcp266 console (webusb / web serial) configure, command, and monitor a basicmicro mcp266 dual-channel motor controller from the browser over usb (webusb / web serial): per-axis position loop setup, profile-position moves, and live status. the device runs the canopen driver and exposes a high-level protocol. motor control espp.mcp266 webusb web serial webusb webserial">
+        <h2>espp MCP266 Console (WebUSB / Web Serial)</h2>
+        <p>Configure, command, and monitor a Basicmicro MCP266 dual-channel motor controller from the browser over USB (WebUSB / Web Serial): per-axis position loop setup, profile-position moves, and live status. The device runs the CANopen driver and exposes a high-level protocol.</p>
+        <div class="chips"><span class="chip proto" title="required">espp.mcp266 v1</span><span class="chip transport">WebUSB</span><span class="chip transport">Web Serial</span></div>
+      </a>
+      <a class="card" href="odrive_console.html" data-category="motor control" data-title="odrive ascii web serial console" data-search="odrive ascii web serial console web serial console for the odrive ascii protocol: interactive terminal, quick motor controls, and live position/velocity plotting. motor control web serial webserial">
+        <h2>ODrive ASCII Web Serial Console</h2>
+        <p>Web Serial console for the ODrive ASCII protocol: interactive terminal, quick motor controls, and live position/velocity plotting.</p>
+        <div class="chips"><span class="chip transport">Web Serial</span></div>
+      </a>
+      <a class="card" href="odrive_webusb_console.html" data-category="motor control" data-title="odrive ascii webusb console" data-search="odrive ascii webusb console webusb console speaking the odrive ascii protocol over the vendor bulk interface (no serial driver needed). motor control webusb webusb">
+        <h2>ODrive ASCII WebUSB Console</h2>
+        <p>WebUSB console speaking the ODrive ASCII protocol over the vendor bulk interface (no serial driver needed).</p>
+        <div class="chips"><span class="chip transport">WebUSB</span></div>
+      </a>
+      <a class="card" href="odrive_control_panel.html" data-category="motor control" data-title="odrive native webusb control panel" data-search="odrive native webusb control panel webusb control panel for the odrive native (fibre) binary protocol: endpoint tree browser, live multi-signal plots, and quick controls. motor control webusb webusb">
+        <h2>ODrive Native WebUSB Control Panel</h2>
+        <p>WebUSB control panel for the ODrive native (Fibre) binary protocol: endpoint tree browser, live multi-signal plots, and quick controls.</p>
+        <div class="chips"><span class="chip transport">WebUSB</span></div>
+      </a>
+      </div>
+    </section>
+    <section class="group" data-category="bus tools">
+      <h2 class="group-title">bus tools <span class="count" data-total="2">2</span></h2>
+      <div class="grid">
+      <a class="card" href="can_console.html" data-category="bus tools" data-title="can bus console (slcan)" data-search="can bus console (slcan) generic can bus console for slcan (lawicel) usb-can adapters over web serial: send standard/extended/rtr frames, periodic transmits, live per-id monitoring, and log export. bus tools web serial webserial">
+        <h2>CAN Bus Console (slcan)</h2>
+        <p>Generic CAN bus console for slcan (LAWICEL) USB-CAN adapters over Web Serial: send standard/extended/RTR frames, periodic transmits, live per-ID monitoring, and log export.</p>
+        <div class="chips"><span class="chip transport">Web Serial</span></div>
+      </a>
+      <a class="card" href="can_bridge_console.html" data-category="bus tools" data-title="espp can bridge console (webusb / web serial)" data-search="espp can bridge console (webusb / web serial) drive a usb-to-can bridge device over webusb or web serial: configure the bus, send can frames, and watch a live monitor of received traffic using the espp stream_frame protocol. bus tools espp.can-bridge webusb web serial webusb webserial">
+        <h2>espp CAN Bridge Console (WebUSB / Web Serial)</h2>
+        <p>Drive a USB-to-CAN bridge device over WebUSB or Web Serial: configure the bus, send CAN frames, and watch a live monitor of received traffic using the espp stream_frame protocol.</p>
+        <div class="chips"><span class="chip proto" title="required">espp.can-bridge v1</span><span class="chip transport">WebUSB</span><span class="chip transport">Web Serial</span></div>
+      </a>
+      </div>
+    </section>
+    <section class="group" data-category="input devices">
+      <h2 class="group-title">input devices <span class="count" data-total="1">1</span></h2>
+      <div class="grid">
+      <a class="card" href="hid_visualizer.html" data-category="input devices" data-title="webhid gamepad input visualizer" data-search="webhid gamepad input visualizer webhid input visualizer: connect any hid gamepad or device and watch its decoded buttons, sticks, and raw input reports live. input devices webhid webhid">
+        <h2>WebHID Gamepad Input Visualizer</h2>
+        <p>WebHID input visualizer: connect any HID gamepad or device and watch its decoded buttons, sticks, and raw input reports live.</p>
+        <div class="chips"><span class="chip transport">WebHID</span></div>
+      </a>
+      </div>
+    </section>
+    <section class="group" data-category="utilities">
+      <h2 class="group-title">utilities <span class="count" data-total="2">2</span></h2>
+      <div class="grid">
+      <a class="card" href="board_console.html" data-category="utilities" data-title="espp board console &amp; esp flasher" data-search="espp board console &amp; esp flasher general-purpose web serial board console and esp flasher (esptool-js): serial monitor, reset/bootloader controls, and firmware flashing. utilities web serial webserial">
+        <h2>espp Board Console &amp; ESP Flasher</h2>
+        <p>General-purpose Web Serial board console and ESP flasher (esptool-js): serial monitor, reset/bootloader controls, and firmware flashing.</p>
+        <div class="chips"><span class="chip transport">Web Serial</span></div>
+      </a>
+      <a class="card" href="telemetry.html" data-category="utilities" data-title="espp serial plotter" data-search="espp serial plotter data plotter: auto-parses columnar serial output over web serial, or plots binary telemetry (espp::telemetry) over webusb. efficient high-point-count plots (uplot), per-series filter, csv save/load, and optional 2d x-y / 3d x-y-z modes. utilities espp.telemetry webusb web serial webusb webserial">
+        <h2>espp Serial Plotter</h2>
+        <p>Data plotter: auto-parses columnar serial output over Web Serial, or plots binary telemetry (espp::Telemetry) over WebUSB. Efficient high-point-count plots (uPlot), per-series filter, CSV save/load, and optional 2D X-Y / 3D X-Y-Z modes.</p>
+        <div class="chips"><span class="chip proto" title="required">espp.telemetry v1</span><span class="chip transport">WebUSB</span><span class="chip transport">Web Serial</span></div>
+      </a>
+      </div>
+    </section>
+    </div>
+    <p class="empty" id="empty" hidden>No app matches the filter.</p>
+    <footer>Part of the <a href="../index.html">espp documentation</a> &middot;
+    <a href="https://github.com/esp-cpp/espp">esp-cpp/espp</a> &middot;
+    <a href="registry.json">registry.json</a></footer>
+  </main>
+  <script>
+    (function () {
+      const filter = document.getElementById("filter");
+      const sort = document.getElementById("sort");
+      const shown = document.getElementById("shown");
+      const empty = document.getElementById("empty");
+      const all = document.getElementById("all");
+      const groups = Array.from(document.querySelectorAll(".group"));
+      const cards = Array.from(document.querySelectorAll(".card"));
+      const total = cards.length;
+      // remember the filter / sort per browser (a convenience only)
+      try {
+        filter.value = localStorage.getItem("espp.apps.filter") || "";
+        sort.value = localStorage.getItem("espp.apps.sort") || "category";
+      } catch (_) {}
+      function apply() {
+        const q = filter.value.trim().toLowerCase();
+        const terms = q ? q.split(/\s+/) : [];
+        let visible = 0;
+        for (const c of cards) {
+          const hay = c.dataset.search;
+          const hit = terms.every((t) => hay.includes(t));
+          c.hidden = !hit;
+          if (hit) visible++;
+        }
+        // Place the cards first, count the groups after: in name order the
+        // cards sit directly under #all as one flat alphabetical list and every
+        // group wrapper is hidden (an emptied wrapper would otherwise take a
+        // grid slot); in category order they go back into their group's grid.
+        // The card elements are moved, not copied, so their hidden state follows.
+        const flat = sort.value === "name";
+        document.body.classList.toggle("flat", flat);
+        if (flat) {
+          const sorted = cards.slice().sort((a, b) => a.dataset.title.localeCompare(b.dataset.title));
+          for (const c of sorted) all.appendChild(c);
+        } else {
+          for (const g of groups) {
+            const grid = g.querySelector(".grid");
+            const mine = cards.filter((c) => c.dataset.category === g.dataset.category)
+                              .sort((a, b) => a.dataset.title.localeCompare(b.dataset.title));
+            for (const c of mine) grid.appendChild(c);
+            all.appendChild(g);
+          }
+        }
+        for (const g of groups) {
+          const n = g.querySelectorAll(".card:not([hidden])").length;
+          g.hidden = flat || n === 0;
+          const count = g.querySelector(".count");
+          count.textContent = n === Number(count.dataset.total) ? String(n) : n + " / " + count.dataset.total;
+        }
+        shown.textContent = visible === total ? total + " apps" : visible + " of " + total + " apps";
+        empty.hidden = visible !== 0;
+        try {
+          localStorage.setItem("espp.apps.filter", filter.value);
+          localStorage.setItem("espp.apps.sort", sort.value);
+        } catch (_) {}
+      }
+      filter.addEventListener("input", apply);
+      sort.addEventListener("change", apply);
+      filter.addEventListener("keydown", (e) => { if (e.key === "Escape") { filter.value = ""; apply(); } });
+      apply();
+    })();
+  </script>
+</body>
+</html>
