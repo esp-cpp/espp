@@ -114,6 +114,10 @@ bool Vl53l5cx::read_multi(uint16_t reg, uint8_t *data, size_t length, std::error
 
 bool Vl53l5cx::poll_for_answer(size_t size, size_t pos, uint16_t reg, uint8_t mask,
                                uint8_t expected, std::error_code &ec) {
+  if (size == 0 || size > TEMP_BUFFER_SIZE || pos >= size) {
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
   for (int attempt = 0; attempt <= POLL_ATTEMPTS; ++attempt) {
     if (!read_multi(reg, temp_buffer_.data(), size, ec)) {
       return false;
@@ -246,7 +250,11 @@ bool Vl53l5cx::initialize(std::error_code &ec) {
   ranging_ = false;
   motion_enabled_ = false;
 
-  if (!is_alive(ec) && ec) {
+  if (!is_alive(ec)) {
+    // never upload the firmware into something that is not a VL53L5CX
+    if (!ec) {
+      ec = std::make_error_code(std::errc::no_such_device);
+    }
     return false;
   }
 
@@ -401,10 +409,11 @@ bool Vl53l5cx::send_offset_data(Resolution resolution, std::error_code &ec) {
     std::memcpy(temp_buffer_.data() + 0x140, range_grid, sizeof(range_grid));
     swap_buffer(temp_buffer_.data(), OFFSET_BUFFER_SIZE);
   }
-  // drop the 8-byte NVM header (the ULD shifts the whole buffer)
-  for (size_t k = 0; k < OFFSET_BUFFER_SIZE - 4; k++) {
-    temp_buffer_[k] = temp_buffer_[k + 8];
-  }
+  // drop the 8-byte NVM header: the payload moves down by 8 and the footer
+  // takes the last 8 bytes (the ULD shifts 4 bytes further, reading past the
+  // offset buffer into stale data the footer then overwrites)
+  static_assert(0x1E0 + sizeof(kFooter) == OFFSET_BUFFER_SIZE);
+  std::memmove(temp_buffer_.data(), temp_buffer_.data() + 8, OFFSET_BUFFER_SIZE - 8);
   std::memcpy(temp_buffer_.data() + 0x1E0, kFooter, sizeof(kFooter));
   if (!write_multi(0x2e18, temp_buffer_.data(), OFFSET_BUFFER_SIZE, ec) ||
       !poll_for_answer(4, 1, UI_CMD_STATUS, 0xff, 0x03, ec)) {
@@ -861,6 +870,8 @@ bool Vl53l5cx::start_ranging(std::error_code &ec) {
   }
   uint8_t output_bytes[sizeof(output)];
   std::memcpy(output_bytes, output, sizeof(output));
+  // the ULD reports the output list length as (loop index after the list) + 1,
+  // i.e. 13 for the 12 entries; the firmware expects that value, keep it
   uint8_t header_config[8];
   store_u32(header_config, data_read_size_);
   store_u32(header_config + 4, i + 1);
@@ -927,7 +938,8 @@ bool Vl53l5cx::is_data_ready(std::error_code &ec) {
   if (!read_multi(0x0, header, sizeof(header), ec)) {
     return false;
   }
-  // a new stream count with the "ranging / data valid" flags set
+  // a new stream count with the "ranging / data valid" flags set; 255 is the
+  // "no frame yet" value the ULD excludes as well (stream_count_ starts there)
   if (header[0] != stream_count_ && header[0] != 255 && header[1] == 0x5 &&
       (header[2] & 0x5) == 0x5 && (header[3] & 0x10) == 0x10) {
     stream_count_ = header[0];
