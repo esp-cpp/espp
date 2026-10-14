@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
@@ -53,6 +54,20 @@ class Vl53l5cx : public BasePeripheral<uint16_t, true> {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS = 0x29; ///< 7-bit address (ULD's 8-bit 0x52)
   static constexpr size_t MAX_ZONES = 64;          ///< zones in 8x8 mode
+  /// Longest I2C transaction the driver issues (an 8x8 result frame with every
+  /// output enabled, plus the register address): size the bus / device
+  /// timeout for it, see i2c_timeout_ms().
+  static constexpr size_t MAX_TRANSFER_BYTES = 1440 + 2;
+  /// \brief A transaction timeout that covers MAX_TRANSFER_BYTES at `clock_hz`
+  ///        with a 2x margin (plus 10 ms), for the I2C bus and device configs
+  /// \param clock_hz I2C clock
+  /// \return Timeout in milliseconds
+  static constexpr int i2c_timeout_ms(uint32_t clock_hz) {
+    // 9 bits per byte on the wire
+    const uint64_t transfer_ms =
+        (uint64_t{MAX_TRANSFER_BYTES} * 9 * 1000 + clock_hz - 1) / clock_hz;
+    return static_cast<int>(transfer_ms * 2 + 10);
+  }
 
   /// \brief Number of ranging zones
   enum class Resolution : uint8_t {
@@ -305,6 +320,9 @@ protected:
   /// Bytes per I2C write transaction (the register address auto-increments);
   /// the firmware is uploaded in chunks of this size.
   static constexpr size_t MAX_WRITE_CHUNK = 512;
+  static_assert(MAX_TRANSFER_BYTES >= TEMP_BUFFER_SIZE + 2 &&
+                    MAX_TRANSFER_BYTES >= MAX_WRITE_CHUNK + 2,
+                "MAX_TRANSFER_BYTES must cover the longest read and write");
   static constexpr int POLL_INTERVAL_MS = 10;
   static constexpr int POLL_ATTEMPTS = 200; // 2 s
 
@@ -400,8 +418,8 @@ protected:
   void motion_set_resolution(Resolution resolution);
 
   std::recursive_mutex mutex_;
-  bool initialized_{false};
-  bool ranging_{false};
+  std::atomic<bool> initialized_{false}; ///< read lock-free by is_initialized()
+  std::atomic<bool> ranging_{false};     ///< read lock-free by is_ranging()
   Resolution resolution_{Resolution::ZONES_4X4};
   uint8_t stream_count_{255};
   uint32_t data_read_size_{0};

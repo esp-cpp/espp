@@ -21,18 +21,21 @@ extern "C" void app_main(void) {
   static constexpr gpio_num_t i2c_scl = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO;
   logger.info("Creating I2C on port {} with SDA {} and SCL {} at {} Hz", i2c_port, i2c_sda, i2c_scl,
               i2c_clock_speed);
+  // The transaction timeout must cover the driver's longest transfers (512-byte
+  // firmware chunks, ~1.4 KB result frames): derived from the clock, and set on
+  // the bus (the legacy I2C API uses the bus timeout) and on the device
+  static constexpr int i2c_timeout_ms = espp::Vl53l5cx::i2c_timeout_ms(i2c_clock_speed);
   espp::I2c i2c({.port = i2c_port,
                  .sda_io_num = i2c_sda,
                  .scl_io_num = i2c_scl,
                  .sda_pullup_en = GPIO_PULLUP_ENABLE,
                  .scl_pullup_en = GPIO_PULLUP_ENABLE,
+                 .timeout_ms = i2c_timeout_ms,
                  .clk_speed = i2c_clock_speed});
   std::error_code ec;
-  // 16-bit register addresses, sent MSB first. The transaction timeout must
-  // cover the driver's longest transfers: 512-byte firmware chunks and
-  // ~1.4 KB result frames (a few tens of ms at 400 kHz).
+  // 16-bit register addresses, sent MSB first
   auto device = i2c.add_device<uint16_t>({.device_address = espp::Vl53l5cx::DEFAULT_ADDRESS,
-                                          .timeout_ms = 100,
+                                          .timeout_ms = i2c_timeout_ms,
                                           .scl_speed_hz = i2c.config().clk_speed,
                                           .log_level = espp::Logger::Verbosity::WARN},
                                          ec);

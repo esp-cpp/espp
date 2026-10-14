@@ -21,9 +21,10 @@ VL53L5CX](https://www.sparkfun.com/products/18642) or ST's
 The sensor needs its `LPn` pin high (it is pulled up on the breakouts) and its
 I2C address is 0x29 at power-up.
 
-> **Note:** the sensor's firmware is uploaded at every boot, so the I2C
-> transaction timeout of the device must allow the 512-byte chunks the driver
-> writes (the example uses 100 ms).
+> **Note:** the sensor's firmware is uploaded at every boot and result frames
+> are up to 1.4 KB, so the I2C transaction timeout (bus and device) must cover
+> the driver's longest transfers: the example derives it from the clock with
+> `espp::Vl53l5cx::i2c_timeout_ms()`.
 
 ## How to use example
 

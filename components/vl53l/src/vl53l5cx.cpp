@@ -230,8 +230,17 @@ bool Vl53l5cx::is_alive(std::error_code &ec) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   uint8_t device_id = 0;
   uint8_t revision_id = 0;
-  if (!write_byte(0x7fff, 0x00, ec) || !read_byte(0x0000, device_id, ec) ||
-      !read_byte(0x0001, revision_id, ec) || !write_byte(0x7fff, 0x02, ec)) {
+  const bool read_ok = write_byte(0x7fff, 0x00, ec) && read_byte(0x0000, device_id, ec) &&
+                       read_byte(0x0001, revision_id, ec);
+  // back to the firmware's register page whatever happened above, so a probe
+  // on a running sensor never leaves later DCI / frame reads on page 0
+  std::error_code restore_ec;
+  const bool restored = write_byte(0x7fff, 0x02, restore_ec);
+  if (!read_ok) {
+    return false;
+  }
+  if (!restored) {
+    ec = restore_ec;
     return false;
   }
   const bool alive = device_id == DEVICE_ID && revision_id == REVISION_ID;
@@ -485,7 +494,15 @@ bool Vl53l5cx::set_i2c_address(uint8_t address, std::error_code &ec) {
 Vl53l5cx::PowerMode Vl53l5cx::get_power_mode(std::error_code &ec) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   uint8_t tmp = 0;
-  if (!write_byte(0x7FFF, 0x00, ec) || !read_byte(0x0009, tmp, ec)) {
+  const bool read_ok = write_byte(0x7FFF, 0x00, ec) && read_byte(0x0009, tmp, ec);
+  // restore the firmware's register page even when the read failed
+  std::error_code restore_ec;
+  write_byte(0x7FFF, 0x02, restore_ec);
+  if (!read_ok) {
+    return PowerMode::WAKEUP;
+  }
+  if (restore_ec) {
+    ec = restore_ec;
     return PowerMode::WAKEUP;
   }
   PowerMode mode = PowerMode::WAKEUP;
@@ -500,11 +517,6 @@ Vl53l5cx::PowerMode Vl53l5cx::get_power_mode(std::error_code &ec) {
     logger_.error("Unknown power mode register value 0x{:02x}", tmp);
     ec = std::make_error_code(std::errc::io_error);
     break;
-  }
-  std::error_code restore_ec;
-  write_byte(0x7FFF, 0x02, restore_ec);
-  if (restore_ec && !ec) {
-    ec = restore_ec;
   }
   return mode;
 }
@@ -882,11 +894,23 @@ bool Vl53l5cx::start_ranging(std::error_code &ec) {
       !dci_write_data(enable_bytes, DCI_OUTPUT_ENABLES, sizeof(enable_bytes), ec)) {
     return false;
   }
-  // xshut bypass (interrupt mode), then the start command
+  // xshut bypass (interrupt mode): page 0, then back to the firmware's page
+  // even if the bypass write failed, so a retry starts on the right page
+  const bool page0 = write_byte(0x7fff, 0x00, ec);
+  const bool bypass = page0 && write_byte(0x09, 0x05, ec);
+  std::error_code restore_ec;
+  const bool restored = page0 && write_byte(0x7fff, 0x02, restore_ec);
+  if (!bypass) {
+    logger_.error("Starting ranging failed (xshut bypass)");
+    return false;
+  }
+  if (!restored) {
+    ec = restore_ec;
+    return false;
+  }
+  // the start command
   static constexpr uint8_t kStart[] = {0x00, 0x03, 0x00, 0x00};
-  if (!write_byte(0x7fff, 0x00, ec) || !write_byte(0x09, 0x05, ec) ||
-      !write_byte(0x7fff, 0x02, ec) ||
-      !write_multi(UI_CMD_END - (sizeof(kStart) - 1), kStart, sizeof(kStart), ec) ||
+  if (!write_multi(UI_CMD_END - (sizeof(kStart) - 1), kStart, sizeof(kStart), ec) ||
       !poll_for_answer(4, 1, UI_CMD_STATUS, 0xff, 0x03, ec)) {
     logger_.error("Starting ranging failed");
     return false;
@@ -928,7 +952,11 @@ bool Vl53l5cx::stop_ranging(std::error_code &ec) {
     ec = restore_ec;
     ok = false;
   }
-  ranging_ = false;
+  // only a confirmed stop (and cleanup) releases the while-ranging guards of
+  // the setters: the sensor may still be active otherwise
+  if (ok) {
+    ranging_ = false;
+  }
   return ok;
 }
 
