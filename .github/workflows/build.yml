@@ -380,6 +380,8 @@ jobs:
           target: esp32p4
         - path: 'components/vl53l/example'
           target: esp32s3
+        - path: 'components/vl53l/vl53l5cx_example'
+          target: esp32s3
         - path: 'components/wdi/ble_example'
           target: esp32s3
         - path: 'components/wdi/ble_central_example'
