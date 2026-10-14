@@ -89,6 +89,9 @@ bool Vl53l5cx::read_byte(uint16_t reg, uint8_t &value, std::error_code &ec) {
 }
 
 bool Vl53l5cx::write_multi(uint16_t reg, const uint8_t *data, size_t length, std::error_code &ec) {
+  // a stale error from an earlier call must not survive a transfer that
+  // succeeds (the base class's separate write / read path only sets ec)
+  ec.clear();
   // the register address auto-increments, so a long write (the firmware image)
   // can go out in bounded transactions; the base class stages each one on the
   // stack
@@ -104,6 +107,7 @@ bool Vl53l5cx::write_multi(uint16_t reg, const uint8_t *data, size_t length, std
 }
 
 bool Vl53l5cx::read_multi(uint16_t reg, uint8_t *data, size_t length, std::error_code &ec) {
+  ec.clear(); // see write_multi
   read_many_from_register(reg, data, length, ec);
   if (ec) {
     logger_.error("Read of {} bytes from 0x{:04x} failed: {}", length, reg, ec.message());
@@ -943,13 +947,17 @@ bool Vl53l5cx::stop_ranging(std::error_code &ec) {
       std::this_thread::sleep_for(10ms);
     }
   }
-  // undo the MCU stop and the xshut bypass whatever happened above
-  std::error_code restore_ec;
-  const bool restored = write_byte(0x7fff, 0x00, restore_ec) &&
-                        write_byte(0x14, 0x00, restore_ec) && write_byte(0x15, 0x00, restore_ec) &&
-                        write_byte(0x09, 0x04, restore_ec) && write_byte(0x7fff, 0x02, restore_ec);
-  if (!restored && ok) {
-    ec = restore_ec;
+  // undo the MCU stop and the xshut bypass whatever happened above, and go
+  // back to the firmware's register page even if that cleanup failed (the
+  // first error is the one reported)
+  std::error_code cleanup_ec;
+  const bool page0 = write_byte(0x7fff, 0x00, cleanup_ec);
+  const bool cleaned = page0 && write_byte(0x14, 0x00, cleanup_ec) &&
+                       write_byte(0x15, 0x00, cleanup_ec) && write_byte(0x09, 0x04, cleanup_ec);
+  std::error_code page_ec;
+  const bool paged = page0 && write_byte(0x7fff, 0x02, page_ec);
+  if ((!cleaned || !paged) && ok) {
+    ec = cleanup_ec ? cleanup_ec : page_ec;
     ok = false;
   }
   // only a confirmed stop (and cleanup) releases the while-ranging guards of

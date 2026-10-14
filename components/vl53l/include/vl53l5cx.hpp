@@ -161,8 +161,9 @@ public:
   /// \brief Configuration
   struct Config {
     uint8_t device_address = DEFAULT_ADDRESS; ///< I2C address of the sensor
-    Base::write_fn write = nullptr;           ///< Write function (16-bit register, MSB first)
-    Base::read_fn read = nullptr;             ///< Read function
+    Base::write_fn write = nullptr; ///< Write function; the address argument is the sensor's
+                                    ///< current address (see set_i2c_address())
+    Base::read_fn read = nullptr;   ///< Read function (same note)
     bool auto_init = true; ///< Upload the firmware and initialize in the constructor (about
                            ///< two seconds; see initialize())
     Logger::Verbosity log_level = Logger::Verbosity::WARN; ///< Log level for this class
@@ -194,7 +195,11 @@ public:
   /// \brief Change the sensor's I2C address (volatile: back to 0x29 at reset)
   /// \param address New 7-bit address
   /// \param ec Error code if unsuccessful
-  /// \return True if successful; the driver then uses the new address
+  /// \return True if successful; the driver then passes the new address to the
+  ///         Config::write / Config::read callbacks
+  /// \note The callbacks must honour their address argument (e.g. lambdas
+  ///       over espp::I2c::write / read); adapters bound to one I2C device
+  ///       (espp::make_i2c_addressed_write) keep talking to the old address.
   bool set_i2c_address(uint8_t address, std::error_code &ec);
 
   /// \brief Read the power mode

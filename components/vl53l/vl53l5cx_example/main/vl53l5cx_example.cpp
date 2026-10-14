@@ -22,8 +22,7 @@ extern "C" void app_main(void) {
   logger.info("Creating I2C on port {} with SDA {} and SCL {} at {} Hz", i2c_port, i2c_sda, i2c_scl,
               i2c_clock_speed);
   // The transaction timeout must cover the driver's longest transfers (512-byte
-  // firmware chunks, ~1.4 KB result frames): derived from the clock, and set on
-  // the bus (the legacy I2C API uses the bus timeout) and on the device
+  // firmware chunks, ~1.4 KB result frames): derived from the clock
   static constexpr int i2c_timeout_ms = espp::Vl53l5cx::i2c_timeout_ms(i2c_clock_speed);
   espp::I2c i2c({.port = i2c_port,
                  .sda_io_num = i2c_sda,
@@ -33,23 +32,16 @@ extern "C" void app_main(void) {
                  .timeout_ms = i2c_timeout_ms,
                  .clk_speed = i2c_clock_speed});
   std::error_code ec;
-  // 16-bit register addresses, sent MSB first
-  auto device = i2c.add_device<uint16_t>({.device_address = espp::Vl53l5cx::DEFAULT_ADDRESS,
-                                          .timeout_ms = i2c_timeout_ms,
-                                          .scl_speed_hz = i2c.config().clk_speed,
-                                          .log_level = espp::Logger::Verbosity::WARN},
-                                         ec);
-  if (!device) {
-    logger.error("Failed to add the VL53L5CX I2C device: {}", ec.message());
-    return;
-  }
 
   // the constructor reboots the sensor and uploads its firmware (about two
-  // seconds at 400 kHz)
+  // seconds at 400 kHz). The callbacks take the address from the driver, so
+  // set_i2c_address() keeps working (a per-device adapter would not).
   espp::Vl53l5cx sensor(espp::Vl53l5cx::Config{
       .device_address = espp::Vl53l5cx::DEFAULT_ADDRESS,
-      .write = espp::make_i2c_addressed_write<uint16_t>(device),
-      .read = espp::make_i2c_addressed_read<uint16_t>(device),
+      .write = [&i2c](uint8_t address, const uint8_t *data,
+                      size_t length) { return i2c.write(address, data, length); },
+      .read = [&i2c](uint8_t address, uint8_t *data,
+                     size_t length) { return i2c.read(address, data, length); },
       .log_level = espp::Logger::Verbosity::INFO,
   });
   if (!sensor.is_initialized()) {

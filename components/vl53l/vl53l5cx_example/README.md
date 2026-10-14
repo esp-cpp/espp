@@ -22,7 +22,7 @@ The sensor needs its `LPn` pin high (it is pulled up on the breakouts) and its
 I2C address is 0x29 at power-up.
 
 > **Note:** the sensor's firmware is uploaded at every boot and result frames
-> are up to 1.4 KB, so the I2C transaction timeout (bus and device) must cover
+> are up to 1.4 KB, so the I2C bus timeout must cover
 > the driver's longest transfers: the example derives it from the clock with
 > `espp::Vl53l5cx::i2c_timeout_ms()`.
 
