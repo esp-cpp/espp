@@ -180,7 +180,7 @@ public:
 
   /// \brief Reboot the sensor, upload the firmware, load the NVM offset data
   ///        and the default configuration (4x4, 1 Hz, autonomous, strongest
-  ///        target first, 5 ms integration time).
+  ///        target first, 10 ms integration time).
   /// \param ec Error code if unsuccessful
   /// \return True if successful
   /// \note Takes about two seconds at 400 kHz I2C. Ranging must be restarted
