@@ -487,7 +487,14 @@ bool Vl53l5cx::set_i2c_address(uint8_t address, std::error_code &ec) {
     ec = std::make_error_code(std::errc::invalid_argument);
     return false;
   }
-  if (!write_byte(0x7fff, 0x00, ec) || !write_byte(0x0004, address, ec)) {
+  if (!write_byte(0x7fff, 0x00, ec)) {
+    return false;
+  }
+  if (!write_byte(0x0004, address, ec)) {
+    // the address did not change: go back to the firmware's page on the old
+    // one (the original error is the one reported)
+    std::error_code restore_ec;
+    write_byte(0x7fff, 0x02, restore_ec);
     return false;
   }
   // from here on the sensor only answers on the new address
@@ -512,6 +519,7 @@ Vl53l5cx::PowerMode Vl53l5cx::get_power_mode(std::error_code &ec) {
   PowerMode mode = PowerMode::WAKEUP;
   switch (tmp) {
   case 0x04:
+  case 0x05: // awake with the xshut bypass start_ranging() sets
     mode = PowerMode::WAKEUP;
     break;
   case 0x02:
