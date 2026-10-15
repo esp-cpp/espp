@@ -1,0 +1,19 @@
+menu "M5Stack Tab5 Example Configuration"
+
+    config M5STACK_TAB5_EXAMPLE_RENDER_TO_FRAME_BUFFERS
+        bool "Render LVGL straight into the panel's frame buffers"
+        depends on M5STACK_TAB5_DPI_NUM_FBS > 1
+        default n
+        help
+            Initialize the display with
+            DisplayConfig::render_to_frame_buffers: LVGL renders in DIRECT
+            mode straight into the DPI panel's frame buffers and a finished
+            frame is shown by switching the panel to it, instead of copying
+            LVGL's draw buffers into the one frame buffer the panel scans
+            out. Saves the two draw buffers and the rotation scratch buffer
+            (PSRAM) and the copy on every flush. Needs
+            CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2 (M5Stack Tab5 Configuration).
+            The rotate button does nothing in this mode: LVGL cannot rotate in
+            DIRECT mode.
+
+endmenu

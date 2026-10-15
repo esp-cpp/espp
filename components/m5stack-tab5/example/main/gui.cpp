@@ -541,6 +541,12 @@ bool Gui::draw_page_active() {
 }
 
 void Gui::next_rotation() {
+#if CONFIG_M5STACK_TAB5_EXAMPLE_RENDER_TO_FRAME_BUFFERS
+  // LVGL renders into the panel's frame buffers in DIRECT mode, which cannot
+  // rotate.
+  logger_.warn("Rotation is not available while rendering into the frame buffers");
+  return;
+#endif
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   clear_circles_impl();
   auto rotation = lv_display_get_rotation(lv_display_get_default());
