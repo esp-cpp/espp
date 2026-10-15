@@ -482,6 +482,29 @@ bool M5StackTab5::initialize_lcd() {
       return false;
     }
   }
+  if constexpr (kNumDpiFramebuffers > 1) {
+    // Frame-done event for present_frame(): the DMA has finished a frame and
+    // restarted on the frame buffer queued last (cur_fb_index), i.e. a queued
+    // switch has happened. ESP-IDF v5.5.5 / v6.0.3 / v6.1 renamed this
+    // callback from on_refresh_done (now deprecated) to on_frame_buf_complete
+    // and added a separate on_vsync; pick whichever this ESP-IDF has.
+    auto set_frame_done_callback = [](auto &callbacks, auto callback) {
+      if constexpr (requires { callbacks.on_frame_buf_complete; }) {
+        callbacks.on_frame_buf_complete = callback;
+      } else {
+        callbacks.on_refresh_done = callback;
+      }
+    };
+    // Created before the callback is registered, so the ISR never sees null.
+    if (frame_done_sem_ == nullptr) {
+      frame_done_sem_ = xSemaphoreCreateBinary();
+    }
+    if (frame_done_sem_ != nullptr) {
+      set_frame_done_callback(cbs, &M5StackTab5::notify_frame_done);
+    } else {
+      logger_.warn("Could not create the frame-done semaphore; present_frame() will not wait");
+    }
+  }
   ret = esp_lcd_dpi_panel_register_event_callbacks(lcd_handles_.panel, &cbs, this);
   if (ret != ESP_OK) {
     logger_.error("Failed to register panel event callback: {}", esp_err_to_name(ret));
@@ -954,6 +977,47 @@ void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t 
   draw_and_wait(xs, ys, xe + 1, ye + 1, data);
 }
 
+bool M5StackTab5::present_frame(const void *frame_buffer, uint32_t timeout_ms) {
+  // frame_buffers() is empty until the lcd_initialized_ gate is open
+  // (acquire), so this also refuses a panel that is not fully initialized.
+  const auto fbs = frame_buffers();
+  if (frame_buffer == nullptr || std::find(fbs.begin(), fbs.end(), frame_buffer) == fbs.end()) {
+    logger_.error("present_frame() needs the start of one of the panel's frame buffers");
+    return false;
+  }
+  {
+    // Queue the switch: for a frame buffer the driver writes the cache back,
+    // makes it the next one to scan out (cur_fb_index) and calls
+    // on_color_trans_done synchronously, so draw_and_wait() returns at once.
+    // The DMA takes the new buffer up when it restarts at the end of the
+    // frame it is sending. Serialized with write_lcd_lines() like every other
+    // panel draw; the frame-done wait below is outside the mutex, so a direct
+    // write is not held up for a refresh.
+    std::lock_guard<std::mutex> lock(panel_op_mutex_);
+    if (!draw_and_wait(0, 0, display_width_, display_height_, frame_buffer)) {
+      logger_.error("present_frame(): draw_bitmap failed");
+      return false;
+    }
+  }
+  if (!vsync_enabled_.load(std::memory_order_relaxed) || frame_done_sem_ == nullptr) {
+    return true;
+  }
+  // Drop a frame-done event that came before this point: it may have
+  // restarted the DMA on the previous buffer. Any later one restarts it on
+  // the new buffer. (If the switch itself landed between draw_bitmap() and
+  // here, this waits one refresh longer, which is safe.)
+  xSemaphoreTake(frame_done_sem_, 0);
+  if (xSemaphoreTake(frame_done_sem_, pdMS_TO_TICKS(timeout_ms)) == pdTRUE) {
+    return true;
+  }
+  // A panel that stopped refreshing must not freeze the caller: the switch
+  // stays queued and happens whenever the DMA restarts.
+  if (!vsync_timeout_logged_.exchange(true, std::memory_order_relaxed)) {
+    logger_.warn("present_frame(): no frame-done event within {} ms (logged once)", timeout_ms);
+  }
+  return false;
+}
+
 void M5StackTab5::brightness(float brightness) {
   brightness = std::clamp(brightness, 0.0f, 100.0f);
   if (backlight_) {
@@ -1010,20 +1074,19 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
   if (direct_render_) {
     // DIRECT mode (DisplayConfig::render_to_frame_buffers): LVGL has rendered
     // the dirty areas in place, into the frame buffer px_map points to, and
-    // calls this once per area. When the last area is done, draw_bitmap() on
-    // the frame buffer writes the cache back and switches the panel to it (no
-    // copy, on_color_trans_done fires synchronously). LVGL then renders the
-    // next frame into the other buffer.
+    // calls this once per area. When the last area is done, present_frame()
+    // switches the panel to that buffer (no copy). LVGL then renders the next
+    // frame into the other buffer.
     static bool rotation_warned = false; // flush() only runs on the LVGL task
     if (rotation != LV_DISPLAY_ROTATION_0 && !rotation_warned) {
       logger_.warn("Display rotation is not supported when rendering into the frame buffers");
       rotation_warned = true;
     }
     if (lv_display_flush_is_last(disp)) {
-      // Serialized with write_lcd_lines() like every other panel draw; for a
-      // frame buffer the completion is synchronous, so this does not block.
-      std::lock_guard<std::mutex> lock(panel_op_mutex_);
-      draw_and_wait(0, 0, display_width_, display_height_, px_map);
+      // Waits until the panel scans px_map out, so LVGL never renders the
+      // next frame into the buffer the panel is still reading (see
+      // present_frame()).
+      present_frame(px_map);
     }
     lv_display_flush_ready(disp);
     return;
@@ -1163,6 +1226,21 @@ bool IRAM_ATTR M5StackTab5::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel
   if (tab5->draw_done_sem_ != nullptr) {
     xSemaphoreGiveFromISR(tab5->draw_done_sem_, &higher_priority_task_woken);
   }
+  return higher_priority_task_woken == pdTRUE;
+}
+
+bool IRAM_ATTR M5StackTab5::notify_frame_done(esp_lcd_panel_handle_t panel,
+                                              esp_lcd_dpi_panel_event_data_t *edata,
+                                              void *user_ctx) {
+  auto *tab5 = static_cast<espp::M5StackTab5 *>(user_ctx);
+  if (tab5 == nullptr || tab5->frame_done_sem_ == nullptr) {
+    return false;
+  }
+  // ISR context (the DMA transfer-done interrupt, or on chips with a DSI
+  // bridge VSYNC interrupt and ESP-IDF < v6.0.3, that one): only give the
+  // semaphore. Returning true asks the driver to yield to the woken task.
+  BaseType_t higher_priority_task_woken = pdFALSE;
+  xSemaphoreGiveFromISR(tab5->frame_done_sem_, &higher_priority_task_woken);
   return higher_priority_task_woken == pdTRUE;
 }
 

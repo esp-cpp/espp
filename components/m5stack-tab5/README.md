@@ -109,11 +109,18 @@ no copy:
   `initialize_lcd()`), each `frame_buffer_size()` bytes, cache-line aligned.
   `esp_lcd_panel_draw_bitmap()` with a pointer inside one of them makes the
   panel switch to that buffer instead of copying it.
+- `present_frame(frame_buffer)` switches the panel to a finished frame and
+  waits until the panel scans it out (at most one refresh: about 17 ms, 21 ms
+  on the ILI9881 panel), so the previous buffer is free to draw into:
+  tear-free double buffering. The wait uses the DMA's frame-done event;
+  `on_color_trans_done` cannot serve, because for a frame buffer the driver
+  calls it before the switch. A timeout (default 100 ms) logs once and returns
+  `false` rather than stalling the UI; `set_vsync_enabled(false)` skips the
+  wait.
 - `initialize_display({.render_to_frame_buffers = true})` sets LVGL up in DIRECT
-  mode on two of them, with the BSP's flush switching buffers at the end of each
-  frame. No draw buffers and no rotation scratch buffer are allocated. The
-  display rotation must stay at 0 (LVGL cannot rotate in DIRECT mode), and the
-  buffer switch is not synchronized to the panel refresh, so a frame can tear.
+  mode on two of them, with the BSP's flush calling `present_frame()` at the end
+  of each frame. No draw buffers and no rotation scratch buffer are allocated.
+  The display rotation must stay at 0 (LVGL cannot rotate in DIRECT mode).
 
 ```cpp
 // menuconfig: M5Stack Tab5 Configuration -> Number of DPI frame buffers = 2
