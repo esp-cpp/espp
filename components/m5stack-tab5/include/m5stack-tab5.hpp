@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cmath>
 #include <functional>
 #include <memory>
@@ -205,10 +206,34 @@ public:
   /// \return true if the LCD was successfully initialized, false otherwise
   bool initialize_lcd();
 
+  /// How initialize_display() sets LVGL up
+  struct DisplayConfig {
+    /// Size of each of LVGL's two draw buffers, in pixels. They are allocated
+    /// in PSRAM, as is the rotation scratch buffer of the same size. Ignored
+    /// with render_to_frame_buffers.
+    size_t pixel_buffer_size{1280 * 720 / 10};
+    /// Let LVGL render in DIRECT mode straight into the DPI panel's frame
+    /// buffers (see frame_buffers()) instead of into separate draw buffers.
+    /// No draw buffers and no rotation scratch buffer are allocated, and a
+    /// finished frame is shown by switching the panel to its frame buffer
+    /// instead of copying it. Needs initialize_lcd() first and
+    /// CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2.
+    /// \note The display rotation must stay at 0: LVGL cannot rotate in DIRECT
+    ///       mode. Pixels written with write_lcd_lines() are lost at the next
+    ///       frame switch. The switch is not synchronized to the panel's
+    ///       refresh, so a frame can tear.
+    bool render_to_frame_buffers{false};
+  };
+
   /// Initialize the LVGL display
   /// \param pixel_buffer_size The size of the pixel buffer
   /// \return true if the display was successfully initialized, false otherwise
   bool initialize_display(size_t pixel_buffer_size = 1280 * 720 / 10);
+
+  /// Initialize the LVGL display
+  /// \param config How to set LVGL up (draw buffers, or the panel's frame buffers)
+  /// \return true if the display was successfully initialized, false otherwise
+  bool initialize_display(const DisplayConfig &config);
 
   /// Initialize the GT911 multi-touch controller
   /// \param callback The touchpad callback
@@ -275,6 +300,34 @@ public:
   /// Get a shared pointer to the low-level display driver
   /// \return A shared pointer to the display driver
   const std::shared_ptr<DisplayDriver> &display_driver() const { return display_driver_; }
+
+  /// Most frame buffers the DPI panel driver supports (ESP-IDF's limit)
+  static constexpr size_t max_frame_buffers = 3;
+
+  /// Get the DPI panel's frame buffers
+  /// \return The CONFIG_M5STACK_TAB5_DPI_NUM_FBS frame buffers initialize_lcd()
+  ///         got from the panel driver, each frame_buffer_size() bytes
+  ///         (display_width() x display_height() RGB565 pixels) in PSRAM and
+  ///         cache-line aligned; empty until initialize_lcd() succeeded
+  /// \note The panel scans one of them out all the time. Passing a pointer
+  ///       inside one of them to esp_lcd_panel_draw_bitmap() makes the panel
+  ///       switch to that buffer (after a cache write-back) instead of copying
+  ///       it. This lets an application render (e.g. LVGL in DIRECT mode)
+  ///       straight into the frame buffers; see also
+  ///       DisplayConfig::render_to_frame_buffers.
+  std::span<void *const> frame_buffers() const {
+    // frame_buffers_ is written before initialize_lcd() opens the gate
+    if (!lcd_initialized_.load(std::memory_order_acquire)) {
+      return {};
+    }
+    return {frame_buffers_.data(), num_frame_buffers_};
+  }
+
+  /// Get the size of one DPI frame buffer
+  /// \return The size of one frame buffer in bytes
+  static constexpr size_t frame_buffer_size() {
+    return display_width_ * display_height_ * sizeof(Pixel);
+  }
 
   /// Write lines to the LCD
   /// \param xs The x start coordinate
@@ -986,6 +1039,13 @@ protected:
   // unavailable, in which case flush() falls back to the scratch-buffer path.
   void *dpi_framebuffer_{nullptr};
   size_t dpi_framebuffer_bytes_{0};
+
+  // The DPI panel's frame buffers (frame_buffers()), filled by initialize_lcd()
+  std::array<void *, max_frame_buffers> frame_buffers_{};
+  size_t num_frame_buffers_{0};
+  // initialize_display() set LVGL up in DIRECT mode on the frame buffers
+  // (DisplayConfig::render_to_frame_buffers)
+  bool direct_render_{false};
 
   // Display controller detection
   DisplayController display_controller_{DisplayController::UNKNOWN};

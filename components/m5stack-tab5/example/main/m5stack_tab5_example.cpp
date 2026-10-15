@@ -88,12 +88,21 @@ extern "C" void app_main(void) {
   // repaints at once rather than wiping progressively. Partial updates still
   // only render/flush their dirty area, so the larger buffer costs nothing
   // there (just PSRAM).
-  logger.info("Initializing display...");
+  logger.info("Initializing display ({} DPI frame buffers)...", tab5.frame_buffers().size());
+#if CONFIG_M5STACK_TAB5_EXAMPLE_RENDER_TO_FRAME_BUFFERS
+  // LVGL renders straight into the panel's frame buffers (DIRECT mode): no
+  // draw buffers, no rotation scratch buffer, and no copy per flush.
+  if (!tab5.initialize_display({.render_to_frame_buffers = true})) {
+    logger.error("Failed to initialize display!");
+    return;
+  }
+#else
   auto pixel_buffer_size = tab5.display_width() * tab5.display_height();
   if (!tab5.initialize_display(pixel_buffer_size)) {
     logger.error("Failed to initialize display!");
     return;
   }
+#endif
 
   // make the filter we'll use for the IMU to compute the orientation
   static constexpr float angle_noise = 0.001f;

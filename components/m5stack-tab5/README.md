@@ -96,6 +96,40 @@ auto controller_type = tab5.get_display_controller();
 const char* controller_name = tab5.get_display_controller_name();
 ```
 
+## Rendering into the panel's frame buffers
+
+The DPI panel scans a frame buffer in PSRAM out to the display continuously. By
+default the BSP creates one (`CONFIG_M5STACK_TAB5_DPI_NUM_FBS` = 1): LVGL
+renders into separate draw buffers and every flush copies the area into that
+frame buffer. With 2 (or 3) frame buffers an application can render straight
+into them and show a finished frame by switching the panel to its buffer, with
+no copy:
+
+- `frame_buffers()` returns the panel's frame buffers (after
+  `initialize_lcd()`), each `frame_buffer_size()` bytes, cache-line aligned.
+  `esp_lcd_panel_draw_bitmap()` with a pointer inside one of them makes the
+  panel switch to that buffer instead of copying it.
+- `initialize_display({.render_to_frame_buffers = true})` sets LVGL up in DIRECT
+  mode on two of them, with the BSP's flush switching buffers at the end of each
+  frame. No draw buffers and no rotation scratch buffer are allocated. The
+  display rotation must stay at 0 (LVGL cannot rotate in DIRECT mode), and the
+  buffer switch is not synchronized to the panel refresh, so a frame can tear.
+
+```cpp
+// menuconfig: M5Stack Tab5 Configuration -> Number of DPI frame buffers = 2
+auto &tab5 = espp::M5StackTab5::get();
+tab5.initialize_lcd();
+tab5.initialize_display({.render_to_frame_buffers = true});
+```
+
+Measured on a Tab5 in an LVGL application (full-screen redraw, 720 x 1280
+RGB565): 75.6 ms with full-frame double draw buffers copied into one frame buffer,
+48.6 ms rendering into two frame buffers. Memory: two frame buffers take 3.7 MB of
+PSRAM, against 5.5 MB for one frame buffer plus two full-frame draw buffers (and
+the 1.8 MB rotation scratch buffer is not needed either). The frame buffers are
+cache-line aligned, so they also satisfy a raised `LV_DRAW_BUF_ALIGN` (e.g. 128
+for the PPA draw unit), which a plain `heap_caps_malloc()` draw buffer may not.
+
 ## Example
 
 The [example](./example) shows how to use the `espp::M5StackTab5` hardware abstraction component to initialize and use various subsystems of the Tab5.
