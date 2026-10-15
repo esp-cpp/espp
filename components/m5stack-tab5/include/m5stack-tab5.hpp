@@ -222,6 +222,9 @@ public:
     ///       mode. Pixels written with write_lcd_lines() are lost at the next
     ///       frame switch. The switch is not synchronized to the panel's
     ///       refresh, so a frame can tear.
+    /// \note If you install your own LVGL flush callback, call
+    ///       lv_display_flush_ready() yourself; the transfer-done interrupt
+    ///       does not.
     bool render_to_frame_buffers{false};
   };
 
@@ -315,6 +318,9 @@ public:
   ///       it. This lets an application render (e.g. LVGL in DIRECT mode)
   ///       straight into the frame buffers; see also
   ///       DisplayConfig::render_to_frame_buffers.
+  /// \note If you install your own LVGL flush callback, call
+  ///       lv_display_flush_ready() yourself; the transfer-done interrupt
+  ///       does not.
   std::span<void *const> frame_buffers() const {
     // frame_buffers_ is written before initialize_lcd() opens the gate
     if (!lcd_initialized_.load(std::memory_order_acquire)) {
