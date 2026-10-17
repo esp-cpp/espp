@@ -417,16 +417,22 @@ void Gui::init_circle_layer() {
 }
 
 bool Gui::update(std::mutex &m, std::condition_variable &cv) {
+  [[maybe_unused]] uint32_t next_ms = 16;
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    lv_task_handler();
+    next_ms = lv_task_handler();
     // keep the audio volume label in sync with the live BSP state, so the
     // first press of a volume button doesn't appear to jump from a stale
     // default (the values are set by app_main after the Gui is constructed)
     update_audio_label();
   }
   std::unique_lock<std::mutex> lock(m);
+#if CONFIG_M5STACK_TAB5_EXAMPLE_RENDER_TO_FRAME_BUFFERS
+  // the flush already waits for the panel's frame-done event, so only sleep until LVGL's next timer
+  cv.wait_for(lock, std::chrono::milliseconds(std::clamp<uint32_t>(next_ms, 1, 16)));
+#else
   cv.wait_for(lock, std::chrono::milliseconds(16));
+#endif
   return false; // don't stop the task
 }
 
@@ -541,6 +547,12 @@ bool Gui::draw_page_active() {
 }
 
 void Gui::next_rotation() {
+#if CONFIG_M5STACK_TAB5_EXAMPLE_RENDER_TO_FRAME_BUFFERS
+  // LVGL renders into the panel's frame buffers in DIRECT mode, which cannot
+  // rotate.
+  logger_.warn("Rotation is not available while rendering into the frame buffers");
+  return;
+#endif
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   clear_circles_impl();
   auto rotation = lv_display_get_rotation(lv_display_get_default());
