@@ -54,6 +54,15 @@ The I2C device's transaction timeout must cover the driver's longest transfers
 (512-byte firmware chunks, ~1.4 KB result frames): a few tens of milliseconds
 at 400 kHz, more at 100 kHz.
 
+### Web console (`espp::Vl53l5cxService`)
+
+`vl53l5cx_service.hpp` wraps a `Vl53l5cx` as an espp dispatcher module (id 10,
+protocol `espp.vl53l5cx`, wire format in `vl53l5cx_protocol.hpp`): a host can
+configure every setting, start / stop ranging and receive each ranging frame.
+The hosted [VL53L5CX console](https://esp-cpp.github.io/espp/apps/vl53l5cx_console.html)
+(`web/vl53l5cx_console.html`) shows the frames as a live 3D view over WebUSB /
+Web Serial; see the [vl53l5cx_webapp_example](./vl53l5cx_webapp_example).
+
 ### License note
 
 The VL53L5CX firmware image and default configuration (`src/vl53l5cx_firmware.cpp`)
@@ -68,3 +77,6 @@ rest of the component is MIT like the rest of espp.
 - [example](./example): `Vl53l` with a VL53L4CD, printing the distance.
 - [vl53l5cx_example](./vl53l5cx_example): `Vl53l5cx` printing the 8x8 grid of
   distances at 15 Hz.
+- [vl53l5cx_webapp_example](./vl53l5cx_webapp_example): `Vl53l5cx` behind
+  `Vl53l5cxService` over USB (WebUSB / Web Serial) for the hosted VL53L5CX
+  console's live 3D view and settings, next to the standard USB services.

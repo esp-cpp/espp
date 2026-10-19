@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>espp VL53L5CX Console (WebUSB / Web Serial)</title>
+  <meta name="description" content="Live 3D view of a VL53L5CX / VL53L7CX multizone Time-of-Flight sensor's 4x4 or 8x8 zone distances, streamed from the browser over USB (WebUSB / Web Serial), plus every sensor setting (resolution, frequency, integration time, sharpener, target order, ranging mode, power, motion indicator) and start / stop / initialize controls. The device runs the I2C driver and exposes a high-level protocol.">
+  <meta name="espp-category" content="sensors">
+  <meta name="espp-protocols" content="espp.vl53l5cx:1">
+  <meta name="espp-transports" content="webusb webserial">
+  <!--
+    espp VL53L5CX Console
+    =====================
+    A single-file, offline, dependency-free browser front-end for the espp
+    VL53L5CX webapp example (components/vl53l/vl53l5cx_webapp_example). The
+    ESP32 runs the espp::Vl53l5cx driver and exposes a small HIGH-LEVEL protocol
+    over USB; this page speaks it over EITHER WebUSB (vendor 0xFF interface) OR
+    Web Serial. All I2C work happens on the device - this page sends settings /
+    start / stop requests and decodes the streamed ranging frames, which it
+    draws as a live 3D surface (each zone at its measured position in the
+    sensor's field of view) or as a bar height field, next to a numeric grid.
+
+    Framed with the espp stream_frame v2 codec, routed on module id 10 by
+    default (a routing key; the id actually used is discovered from the device,
+    see resolveModuleId). Requests use types 0x1X; replies/events use 0x9X
+    (reply flag set).
+    Frame payload (little-endian): [seq u32][time_ms u32][zones u8][flags u8]
+    then per zone [distance i16][status u8][targets u8][reflectance u8]
+    [sigma u16][signal u32][ambient u32][spads u32] (19 B), then, when flags
+    bit 0 is set, the motion indicator block (140 B).
+  -->
+  <style>
+    :root {
+      --bg:#f4f6f9; --panel-bg:#fff; --panel-border:#d9dee6; --text:#1c2330; --text-muted:#5c6675;
+      --accent:#2563eb; --accent-hover:#1d4ed8; --accent-contrast:#fff; --danger:#dc2626; --ok:#16a34a;
+      --warn:#b45309; --log-bg:#0f1420; --log-text:#d6dbe6; --tx:#7dd3fc; --rx:#86efac; --err:#fca5a5;
+      --sys:#fcd34d; --time:#64748b; --input-bg:#fff; --input-border:#c3cbd6; --chip-bg:#eef2f8;
+      --row-alt:#f7f9fc; --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+      --view-bg:#0d1118; --view-grid:#2a3344; --view-text:#9aa6ba;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#0b0e14; --panel-bg:#151a23; --panel-border:#262d3a; --text:#e6eaf2; --text-muted:#98a2b3;
+        --accent:#3b82f6; --accent-hover:#60a5fa; --accent-contrast:#0b0e14; --danger:#ef4444; --ok:#22c55e;
+        --warn:#f59e0b; --log-bg:#05070c; --log-text:#cdd4e0; --tx:#38bdf8; --rx:#4ade80; --err:#f87171;
+        --sys:#fbbf24; --time:#64748b; --input-bg:#0e1219; --input-border:#2b3341; --chip-bg:#1b2230;
+        --row-alt:#10151d; --shadow:0 1px 3px rgba(0,0,0,.4);
+        --view-bg:#05070c; --view-grid:#222a38; --view-text:#8591a6;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg:#0b0e14; --panel-bg:#151a23; --panel-border:#262d3a; --text:#e6eaf2; --text-muted:#98a2b3;
+      --accent:#3b82f6; --accent-hover:#60a5fa; --accent-contrast:#0b0e14; --danger:#ef4444; --ok:#22c55e;
+      --warn:#f59e0b; --log-bg:#05070c; --log-text:#cdd4e0; --tx:#38bdf8; --rx:#4ade80; --err:#f87171;
+      --sys:#fbbf24; --time:#64748b; --input-bg:#0e1219; --input-border:#2b3341; --chip-bg:#1b2230; --row-alt:#10151d;
+      --view-bg:#05070c; --view-grid:#222a38; --view-text:#8591a6;
+    }
+    :root[data-theme="light"] {
+      --bg:#f4f6f9; --panel-bg:#fff; --panel-border:#d9dee6; --text:#1c2330; --text-muted:#5c6675;
+      --accent:#2563eb; --accent-hover:#1d4ed8; --accent-contrast:#fff; --danger:#dc2626; --ok:#16a34a;
+      --warn:#b45309; --log-bg:#0f1420; --log-text:#d6dbe6; --tx:#7dd3fc; --rx:#86efac; --err:#fca5a5;
+      --sys:#fcd34d; --time:#64748b; --input-bg:#fff; --input-border:#c3cbd6; --chip-bg:#eef2f8; --row-alt:#f7f9fc;
+      --view-bg:#0d1118; --view-grid:#2a3344; --view-text:#9aa6ba;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.45; min-height: 100vh; }
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 16px; }
+    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    header h1 { font-size: 18px; margin: 0; }
+    .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--chip-bg); color: var(--text-muted); border: 1px solid var(--panel-border); }
+    .status-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+    .status-pill.connected { color: var(--ok); } .status-pill.connected::before { background: var(--ok); }
+    .status-pill.error { color: var(--danger); } .status-pill.error::before { background: var(--danger); }
+    .panel { background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 10px; box-shadow: var(--shadow); padding: 14px; margin-bottom: 14px; }
+    .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 0 0 10px; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .row + .row { margin-top: 10px; }
+    .muted { color: var(--text-muted); font-size: 12.5px; }
+    .spacer { flex: 1 1 auto; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field > span { font-size: 12px; color: var(--text-muted); }
+    .main { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 14px; align-items: start; }
+    .nowrap { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    @media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } }
+    button { font: inherit; padding: 7px 14px; border-radius: 7px; cursor: pointer; border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text); }
+    button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    button.small { padding: 5px 10px; font-size: 13px; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+    input[type="text"], input[type="number"], select { font: inherit; padding: 6px 8px; border-radius: 6px; background: var(--input-bg); color: var(--text); border: 1px solid var(--input-border); }
+    input[type="text"], input[type="number"] { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; width: 96px; }
+    input.tiny { width: 72px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .state-badge { display: inline-block; padding: 3px 10px; border-radius: 8px; font-weight: 700; font-size: 12.5px; border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text-muted); }
+    .state-badge.ranging { color: var(--ok); border-color: var(--ok); }
+    .state-badge.idle { color: var(--accent); border-color: var(--accent); }
+    .state-badge.fault { color: var(--danger); border-color: var(--danger); }
+    .statusline { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .statusline b { color: var(--text); font-weight: 600; }
+    hr.sep { border: none; border-top: 1px solid var(--panel-border); margin: 12px 0; }
+    /* settings: one line per setting -- label, input, apply */
+    .settings { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 10px; align-items: center; font-size: 13px; }
+    .settings .k { color: var(--text-muted); white-space: nowrap; }
+    .settings select, .settings input[type="number"] { width: 100%; }
+    .settings .pair { display: flex; gap: 6px; }
+    .settings .pair input { width: 50%; min-width: 0; }
+    .settings .note { grid-column: 1 / -1; font-size: 12px; color: var(--warn); }
+    /* the 3D view */
+    .view { position: relative; background: var(--view-bg); border-radius: 8px; overflow: hidden; }
+    .view canvas { display: block; width: 100%; height: auto; cursor: grab; touch-action: none; }
+    .view canvas.dragging { cursor: grabbing; }
+    .view .hint { position: absolute; left: 10px; bottom: 8px; font-size: 11px; color: var(--view-text); pointer-events: none; }
+    .view .legend { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-size: 11px; color: var(--view-text); pointer-events: none; font-variant-numeric: tabular-nums; }
+    .view .legend .bar { width: 120px; height: 10px; border-radius: 3px; border: 1px solid rgba(255,255,255,.15); }
+    .view .nodata { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--view-text); font-size: 13px; pointer-events: none; }
+    /* the numeric grid */
+    .zones { display: grid; gap: 3px; margin-top: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 11.5px; }
+    .zones .z { position: relative; aspect-ratio: 1.6; display: flex; align-items: center; justify-content: center; border-radius: 4px; background: var(--chip-bg); color: var(--text); border: 1px solid transparent; cursor: default; min-width: 0; overflow: hidden; }
+    .zones .z.invalid { color: var(--text-muted); }
+    .zones .z.hover { border-color: var(--text); }
+    .zones.w8 .z { font-size: 10.5px; }
+    .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 12.5px; margin-top: 10px; }
+    .kv .k { color: var(--text-muted); } .kv .v { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+    .motion { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin-top: 8px; }
+    .motion .m { aspect-ratio: 1.6; border-radius: 4px; background: var(--chip-bg); display: flex; align-items: center; justify-content: center; font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .log { background: var(--log-bg); color: var(--log-text); border-radius: 8px; padding: 10px 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5; height: 150px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+    .log .t { color: var(--time); } .log .tx { color: var(--tx); } .log .rx { color: var(--rx); } .log .err { color: var(--err); } .log .warn { color: #d08770; } .log .sys { color: var(--sys); }
+    footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
+    #unsupported { display: none; background: var(--panel-bg); border: 1px solid var(--danger); color: var(--danger); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+    @media (prefers-reduced-motion: reduce) { .view canvas { transition: none; } }
+    /* espp web-app navigation: back to the Device Hub (primary) and the apps page */
+    .espp-nav { display: inline-flex; gap: 6px; align-items: center; margin-left: 12px; font-size: 12px; font-weight: 600; vertical-align: middle; }
+    .espp-nav a { text-decoration: none; white-space: nowrap; padding: 4px 10px; border-radius: 6px;
+      border: 1px solid var(--accent, #4aa8ff); color: var(--accent, #4aa8ff); }
+    .espp-nav a.hub { background: var(--accent, #4aa8ff); color: var(--accent-contrast, #06121f); }
+    .espp-nav a:hover { filter: brightness(1.1); }
+    .espp-nav a:focus-visible { outline: 2px solid var(--accent, #4aa8ff); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>espp VL53L5CX Console <span class="muted">(WebUSB / Web Serial)</span></h1>
+      <nav class="espp-nav" aria-label="espp web apps"><a id="navHub" class="hub" href="https://esp-cpp.github.io/espp/apps/dispatcher_hub.html" title="Back to the espp Device Hub (hands a connected device back to it)">Device Hub</a><a id="navApps" href="https://esp-cpp.github.io/espp/apps/index.html" title="All espp web apps">All apps</a></nav>
+      <span id="status" class="status-pill">Disconnected</span>
+    </header>
+
+    <div id="unsupported">
+      This browser supports neither WebUSB nor Web Serial. Use a Chromium-based browser
+      (Chrome / Edge / Opera) on a secure origin (https, localhost or file://).
+    </div>
+
+    <!-- ============================ Device ============================ -->
+    <div class="panel">
+      <h2>Device</h2>
+      <div class="row">
+        <button id="connectUsbBtn" class="primary">Connect (WebUSB)</button>
+        <button id="connectSerialBtn">Connect (Web Serial)</button>
+        <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
+        <label><input type="checkbox" id="anyDevice"> Any device (ignore VID/PID filter)</label>
+        <label title="Reconnect automatically when the device comes back after a reboot or re-plug"><input type="checkbox" id="autoReconnect" checked> auto-reconnect</label>
+        <div class="spacer"></div>
+        <button id="startBtn" class="small primary" disabled title="Start ranging with the current settings">Start ranging</button>
+        <button id="stopBtn" class="small" disabled title="Stop ranging (settings can only be changed while stopped)">Stop</button>
+        <button id="initBtn" class="small" disabled title="Reboot the sensor and re-upload its firmware (~2 s); every setting goes back to the sensor's defaults">Initialize</button>
+      </div>
+      <p id="devInfo" class="muted" style="margin: 10px 0 0;">Not connected. Default WebUSB filter: VID 0x1209 / PID 0x0d32 (espp default).</p>
+      <div class="statusline" style="margin-top:8px;">
+        <span>Sensor: <span id="sensorState" class="state-badge">-</span></span>
+        <span>Part: <b id="devPart">-</b></span>
+        <span>I2C: <b id="devAddr">-</b></span>
+        <span>Zones: <b id="devZones">-</b></span>
+        <span>Sensor rate: <b id="devRate">-</b></span>
+        <span>Frames: <b id="devFrames">-</b></span>
+        <span>Received: <b id="rxRate">-</b></span>
+        <div class="spacer"></div>
+        <label title="Stream every frame the device reads (every Nth with the divider)"><input type="checkbox" id="liveFrames" checked> Live frames</label>
+        <label>every <select id="streamDivider"><option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option><option value="5">5th</option><option value="10">10th</option></select></label>
+        <button id="snapshotBtn" class="small" disabled title="Fetch the latest frame once">Snapshot</button>
+        <button id="refreshBtn" class="small" disabled>Refresh</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <div>
+        <!-- ============================ 3D view ============================ -->
+        <div class="panel">
+          <h2>Live view</h2>
+          <div class="row">
+            <label>View <select id="viewMode"><option value="surface">Surface (zones at their measured position)</option><option value="bars">Bars (height = distance)</option></select></label>
+            <label>Color <select id="colorBy"><option value="distance">distance</option><option value="signal">signal (kcps/SPAD)</option><option value="ambient">ambient (kcps/SPAD)</option><option value="sigma">sigma (mm)</option><option value="reflectance">reflectance (%)</option><option value="status">target status</option></select></label>
+            <label title="Color / height range; auto follows the frame's min and max"><input type="checkbox" id="autoRange" checked> auto range</label>
+            <span class="nowrap"><input type="number" id="rangeMin" class="tiny" value="0" min="0" step="100" disabled title="range minimum"> <span class="muted">to</span> <input type="number" id="rangeMax" class="tiny" value="4000" min="1" step="100" disabled title="range maximum"></span>
+            <label title="Taller bars for closer targets"><input type="checkbox" id="invertBars"> near = tall</label>
+            <label title="Mirror the grid left-right / top-bottom to match the scene (zone 0's physical corner depends on how the module is mounted, see UM2884)"><input type="checkbox" id="mirrorX"> mirror X</label>
+            <label><input type="checkbox" id="mirrorY"> mirror Y</label>
+            <label><input type="checkbox" id="autoRotate"> auto-rotate</label>
+            <button id="resetViewBtn" class="small">Reset view</button>
+          </div>
+          <div class="view" style="margin-top:10px;">
+            <canvas id="view3d" width="900" height="560" aria-label="3D view of the zone distances"></canvas>
+            <div class="legend"><div id="legendMax">-</div><div id="legendBar" class="bar"></div><div id="legendMin">-</div></div>
+            <div class="hint">drag to orbit &middot; wheel / pinch to zoom &middot; hover a zone for details</div>
+            <div id="noData" class="nodata">No frame yet - connect, start ranging and keep "Live frames" on.</div>
+          </div>
+          <div id="zones" class="zones w8"></div>
+        </div>
+      </div>
+
+      <div>
+        <!-- ============================ Settings ============================ -->
+        <div class="panel">
+          <h2>Settings</h2>
+          <div class="settings" id="settings">
+            <span class="note" id="settingsNote">Stop ranging to change the settings (the sensor refuses them while ranging).</span>
+            <span class="k">Resolution</span><select id="sResolution"><option value="16">4x4 (max 60 Hz)</option><option value="64">8x8 (max 15 Hz)</option></select><button class="small" id="sResolutionBtn" disabled>Apply</button>
+            <span class="k">Frequency (Hz)</span><input type="number" id="sFrequency" value="15" min="1" max="60"><button class="small" id="sFrequencyBtn" disabled>Apply</button>
+            <span class="k">Integration (ms)</span><input type="number" id="sIntegration" value="10" min="2" max="1000" title="Autonomous mode only; must fit in the ranging period (8x8 does four integrations per frame)"><button class="small" id="sIntegrationBtn" disabled>Apply</button>
+            <span class="k">Sharpener (%)</span><input type="number" id="sSharpener" value="5" min="0" max="99"><button class="small" id="sSharpenerBtn" disabled>Apply</button>
+            <span class="k">Target order</span><select id="sTargetOrder"><option value="1">closest</option><option value="2">strongest</option></select><button class="small" id="sTargetOrderBtn" disabled>Apply</button>
+            <span class="k">Ranging mode</span><select id="sRangingMode"><option value="1">continuous</option><option value="3">autonomous</option></select><button class="small" id="sRangingModeBtn" disabled>Apply</button>
+            <span class="k">Power mode</span><select id="sPowerMode"><option value="1">wake-up</option><option value="0">sleep</option></select><button class="small" id="sPowerModeBtn" disabled>Apply</button>
+            <span class="k" title="Report how much the scene moved between frames per aggregate of zones, within a distance window (start >= 400 mm, at most 1500 mm wide). Only Initialize switches it off again.">Motion window (mm)</span><span class="pair"><input type="number" id="sMotionMin" value="400" min="400" max="4000"><input type="number" id="sMotionMax" value="1500" min="400" max="4000"></span><button class="small" id="sMotionBtn" disabled>Enable</button>
+            <span class="k" title="7-bit address; volatile (back to 0x29 at the next sensor reset)">I2C address</span><input type="text" id="sAddress" value="0x29"><button class="small" id="sAddressBtn" disabled>Set</button>
+          </div>
+        </div>
+
+        <!-- ============================ Zone details ============================ -->
+        <div class="panel">
+          <h2>Zone <span id="zoneTitle" class="mono" style="text-transform:none; letter-spacing:0;">-</span></h2>
+          <div class="kv">
+            <span class="k">Distance</span><span class="v" id="zDistance">-</span>
+            <span class="k">Status</span><span class="v" id="zStatus">-</span>
+            <span class="k">Sigma</span><span class="v" id="zSigma">-</span>
+            <span class="k">Signal</span><span class="v" id="zSignal">-</span>
+            <span class="k">Ambient</span><span class="v" id="zAmbient">-</span>
+            <span class="k">SPADs</span><span class="v" id="zSpads">-</span>
+            <span class="k">Reflectance</span><span class="v" id="zReflectance">-</span>
+            <span class="k">Targets</span><span class="v" id="zTargets">-</span>
+          </div>
+          <hr class="sep">
+          <div class="row"><span class="muted">Frame <b id="frameSeq" class="mono">-</b> &middot; device time <b id="frameTime" class="mono">-</b> &middot; valid <b id="frameValid" class="mono">-</b></span><div class="spacer"></div><button id="csvBtn" class="small" disabled title="Download the frame shown as CSV (one row per zone)">Download CSV</button></div>
+        </div>
+
+        <!-- ============================ Motion ============================ -->
+        <div class="panel" id="motionPanel" hidden>
+          <h2>Motion indicator</h2>
+          <div class="statusline"><span>Global: <b id="mGlobal">-</b></span><span>Detected: <b id="mDetected">-</b></span><span>Status: <b id="mStatus">-</b></span></div>
+          <div id="motionGrid" class="motion"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ Log ============================ -->
+    <div class="panel">
+      <h2>Log <button id="clearLogBtn" class="small" style="float:right; margin-top:-4px;">Clear</button></h2>
+      <div id="log" class="log"></div>
+    </div>
+
+    <footer>
+      espp VL53L5CX Console &middot; talks to the espp VL53L5CX webapp example
+      (<span class="mono">components/vl53l/vl53l5cx_webapp_example</span>), which runs the
+      <span class="mono">espp::Vl53l5cx</span> driver over I2C. Single-file, offline, no dependencies.
+    </footer>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ===================== stream_frame protocol =====================
+    const DEFAULT_VID = 0x1209, DEFAULT_PID = 0x0d32, VENDOR_CLASS = 0xFF;
+    const MAGIC0 = 0x54, MAGIC1 = 0x4F, HEADER_SIZE = 9, CRC_SIZE = 4, CORRELATION_SIZE = 2;
+    const MAX_PAYLOAD = 4096, MAX_FRAME = HEADER_SIZE + CORRELATION_SIZE + MAX_PAYLOAD + CRC_SIZE;
+    const FLAGS_VERSION = 1, FLAGS_REQUEST = (FLAGS_VERSION << 4), FLAGS_REPLY_BIT = 0x01, FLAG_CORRELATION = 0x02;
+    // The dispatcher module byte is only a routing key: the VL53L5CX service is
+    // published on module 10 by default, but a device may serve it on any id.
+    // The id actually used is resolved on connect from the device's discovery
+    // reply (by the advertised protocol id, then app / name), from ?module=N,
+    // or the default. PROTOCOL(_VERSION) mirror vl53l5cx_protocol::kProtocol(Version).
+    const DEFAULT_MODULE = 10;
+    const PROTOCOL = "espp.vl53l5cx", PROTOCOL_VERSION = 1;
+    const MODULE_IDENT = { protocol: PROTOCOL, protocolVersion: PROTOCOL_VERSION,
+                           app: "vl53l5cx_console.html", name: "VL53L5CX", fallback: DEFAULT_MODULE, override: null };
+    let moduleTof = DEFAULT_MODULE;             // adopted by adoptModule() before the first VL53L5CX frame
+    // True once adoptModule() has run for this connection: every send path
+    // waits for it, so nothing can go out on the default id while the discovery
+    // probe (up to DISCOVERY_TIMEOUT_MS) is still pending.
+    let moduleReady = false;
+    // Reserved dispatcher discovery module: a device running an espp::Dispatcher
+    // answers a ListModules query on 0xFF with the modules it serves, which is
+    // how the VL53L5CX module's id is found before driving it.
+    const MODULE_DISCOVERY = 0xFF, T_LIST_MODULES = 0x00;
+    const DISCOVERY_TIMEOUT_MS = 800;        // module-presence probe (0xFF ListModules) timeout
+    // requests (0x1X)
+    const T_GET_STATUS = 0x10, T_SET_RESOLUTION = 0x11, T_SET_FREQUENCY = 0x12, T_SET_INTEGRATION = 0x13,
+          T_SET_SHARPENER = 0x14, T_SET_TARGET_ORDER = 0x15, T_SET_RANGING_MODE = 0x16, T_SET_POWER_MODE = 0x17,
+          T_ENABLE_MOTION = 0x18, T_START = 0x19, T_STOP = 0x1A, T_INITIALIZE = 0x1B, T_SET_STREAM = 0x1C,
+          T_GET_FRAME = 0x1D, T_SET_ADDRESS = 0x1E;
+    // replies (0x9X)
+    const T_STATUS = 0x90, T_FRAME = 0x91, T_OK = 0x92, T_ERROR = 0x93;
+    const REQ_NAME = { 0x10:"get status",0x11:"set resolution",0x12:"set frequency",0x13:"set integration time",
+      0x14:"set sharpener",0x15:"set target order",0x16:"set ranging mode",0x17:"set power mode",
+      0x18:"enable motion indicator",0x19:"start ranging",0x1A:"stop ranging",0x1B:"initialize",
+      0x1C:"set frame stream",0x1D:"get frame",0x1E:"set I2C address" };
+    const STATUS_POLL_MS = 1000;
+    const STATUS_NAME = { 0:"not updated", 1:"signal rate too low (SPAD array)", 2:"target phase", 3:"sigma too high",
+      4:"target consistency failed", 5:"range valid", 6:"wrap-around not performed", 7:"rate consistency failed",
+      8:"signal rate too low (target)", 9:"range valid (large pulse)", 10:"range valid (no previous target)",
+      11:"measurement consistency failed", 12:"target blurred by another", 13:"target inconsistent", 255:"no target" };
+    const isValidStatus = (s) => s === 5 || s === 9;
+    // field of view per part (UM2884: 45 x 45 deg for the VL53L5CX, 60 x 60 for the VL53L7CX)
+    const PART = { 0: { name: "VL53L5CX", fovDeg: 45 }, 1: { name: "VL53L7CX", fovDeg: 60 } };
+
+    const els = {};
+    for (const id of ["status","connectUsbBtn","connectSerialBtn","disconnectBtn","anyDevice","autoReconnect","devInfo",
+      "sensorState","devPart","devAddr","devZones","devRate","devFrames","rxRate","liveFrames","streamDivider","snapshotBtn","refreshBtn",
+      "startBtn","stopBtn","initBtn","viewMode","colorBy","autoRange","rangeMin","rangeMax","invertBars","mirrorX","mirrorY","autoRotate","resetViewBtn",
+      "view3d","legendMax","legendBar","legendMin","noData","zones","settingsNote",
+      "sResolution","sResolutionBtn","sFrequency","sFrequencyBtn","sIntegration","sIntegrationBtn","sSharpener","sSharpenerBtn",
+      "sTargetOrder","sTargetOrderBtn","sRangingMode","sRangingModeBtn","sPowerMode","sPowerModeBtn","sMotionMin","sMotionMax","sMotionBtn",
+      "sAddress","sAddressBtn","zoneTitle","zDistance","zStatus","zSigma","zSignal","zAmbient","zSpads","zReflectance","zTargets",
+      "frameSeq","frameTime","frameValid","csvBtn","motionPanel","mGlobal","mDetected","mStatus","motionGrid","clearLogBtn","log","unsupported"]) els[id] = document.getElementById(id);
+
+    function logLine(cls, text) {
+      const line = document.createElement("div");
+      const time = document.createElement("span"); time.className = "t"; time.textContent = new Date().toLocaleTimeString() + " ";
+      const body = document.createElement("span"); body.className = cls; body.textContent = text;
+      line.appendChild(time); line.appendChild(body); els.log.appendChild(line);
+      while (els.log.childNodes.length > 400) els.log.removeChild(els.log.firstChild);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+    els.clearLogBtn.addEventListener("click", () => { els.log.textContent = ""; });
+    function setStatus(state, text) { els.status.className = "status-pill" + (state ? " " + state : ""); els.status.textContent = text; }
+
+    // ---- CRC-32 (zlib), golden crc32("123456789") === 0xCBF43926 ----
+    const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c=(c&1)?((c>>>1)^0xEDB88320):(c>>>1); t[i]=c>>>0; } return t; })();
+    function crc32(bytes) { let c=0xFFFFFFFF; for (let i=0;i<bytes.length;i++) c=CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8); return (~c)>>>0; }
+    if (crc32(new TextEncoder().encode("123456789")) !== 0xCBF43926) throw new Error("CRC-32 self-test failed");
+
+    function buildFrame(type, payload, module = moduleTof) {
+      payload = payload || new Uint8Array(0);
+      const frame = new Uint8Array(HEADER_SIZE + payload.length + CRC_SIZE);
+      const view = new DataView(frame.buffer);
+      view.setUint16(0, 0x4F54, true);
+      frame[2] = FLAGS_REQUEST | ((type & 0x80) ? FLAGS_REPLY_BIT : 0);
+      frame[3] = module; frame[4] = type;
+      view.setUint32(5, payload.length, true);
+      frame.set(payload, HEADER_SIZE);
+      view.setUint32(HEADER_SIZE + payload.length, crc32(frame.subarray(0, HEADER_SIZE + payload.length)), true);
+      return frame;
+    }
+
+    class StreamParser {
+      constructor() { this.buf = new Uint8Array(0); }
+      reset() { this.buf = new Uint8Array(0); }
+      feed(chunk) {
+        const merged = new Uint8Array(this.buf.length + chunk.length);
+        merged.set(this.buf, 0); merged.set(chunk, this.buf.length);
+        const frames = []; let pos = 0;
+        for (;;) {
+          while (pos < merged.length && !(merged[pos] === MAGIC0 && (pos + 1 >= merged.length || merged[pos + 1] === MAGIC1))) pos++;
+          if (merged.length - pos < 3) break;
+          const flags = merged[pos + 2];
+          const ext = (flags & FLAG_CORRELATION) ? CORRELATION_SIZE : 0;
+          const headerSize = HEADER_SIZE + ext;
+          if (merged.length - pos < headerSize) break;
+          const view = new DataView(merged.buffer, merged.byteOffset + pos);
+          const len = view.getUint32(5 + ext, true);
+          if (len > MAX_PAYLOAD) { pos++; continue; }
+          const total = headerSize + len + CRC_SIZE;
+          if (merged.length - pos < total) break;
+          const expected = view.getUint32(headerSize + len, true);
+          if (crc32(merged.subarray(pos, pos + headerSize + len)) !== expected) { pos++; continue; }
+          frames.push({ module: merged[pos + 3], type: merged[pos + 4], reply: (flags & FLAGS_REPLY_BIT) !== 0,
+                        payload: merged.slice(pos + headerSize, pos + headerSize + len) });
+          pos += total;
+        }
+        this.buf = merged.slice(pos);
+        return frames;
+      }
+    }
+    const parser = new StreamParser();
+    // A pending checkModulePresent() parks its resolver here; onIncoming calls it
+    // when the 0xFF ListModules reply arrives.
+    let discoveryResolve = null;
+
+    // ===================== Transports (WebUSB + Web Serial) =====================
+    let transport = null;
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
+    class UsbTransport {
+      constructor() { this.device=null; this.iface=null; this.epIn=null; this.epOut=null; this.reading=false; }
+      // `preset`: an already-permitted USBDevice (auto-connect / reconnect) is
+      // opened directly, without the chooser.
+      async open(anyDevice, preset) {
+        this.device = preset || await requestUsbDevice(anyDevice);
+        await this.device.open();
+        if (this.device.configuration === null) await this.device.selectConfiguration(1);
+        const config = this.device.configuration; if (!config) throw new Error("no active USB configuration");
+        let found = null;
+        for (const itf of config.interfaces) { for (const alt of itf.alternates) {
+          if (alt.interfaceClass !== VENDOR_CLASS) continue;
+          let inEp=null, outEp=null;
+          for (const ep of alt.endpoints) { if (ep.type!=="bulk") continue; if (ep.direction==="in"&&!inEp) inEp=ep; else if (ep.direction==="out"&&!outEp) outEp=ep; }
+          if (inEp && outEp) { found = { itf: itf.interfaceNumber, alt: alt.alternateSetting, inEp, outEp }; break; }
+        } if (found) break; }
+        if (!found) throw new Error("no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found");
+        await this.device.claimInterface(found.itf);
+        if (found.alt !== 0) await this.device.selectAlternateInterface(found.itf, found.alt);
+        this.iface = found.itf; this.epIn = found.inEp.endpointNumber; this.epOut = found.outEp.endpointNumber;
+      }
+      describe() { const d=this.device; return (d.productName||"USB device")+" ("+d.vendorId.toString(16).padStart(4,"0")+":"+d.productId.toString(16).padStart(4,"0")+") [WebUSB]"; }
+      identity() { return usbIdentity(this.device); }
+      async send(bytes) {
+        let sent = 0;
+        while (sent < bytes.length) {
+          const out = await this.device.transferOut(this.epOut, sent === 0 ? bytes : bytes.subarray(sent));
+          if (out.status === "stall") { try { await this.device.clearHalt("out", this.epOut); } catch(_){} throw new Error("OUT endpoint stalled"); }
+          if (out.status !== "ok") throw new Error("OUT transfer status: " + out.status);
+          const n = out.bytesWritten || 0; if (n === 0) throw new Error("OUT transfer made no progress"); sent += n;
+        }
+      }
+      async readLoop(onData) {
+        this.reading = true;
+        while (this.reading && this.device) {
+          let result;
+          try { result = await this.device.transferIn(this.epIn, MAX_FRAME); } catch(e) { if (this.reading) throw e; return; }
+          if (!this.reading) return;
+          if (result.status === "stall") { try { await this.device.clearHalt("in", this.epIn); } catch(_){} continue; }
+          if (result.data && result.data.byteLength) onData(new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength));
+        }
+      }
+      async close() { this.reading = false; if (this.device) { if (this.iface !== null) { try { await this.device.releaseInterface(this.iface); } catch(_){} } try { await this.device.close(); } catch(_){} } this.device = null; }
+    }
+    class SerialTransport {
+      constructor() { this.port=null; this.reader=null; this.writer=null; this.reading=false; }
+      async open(preset) { this.port = preset || await navigator.serial.requestPort(); await this.port.open({ baudRate: 115200 }); this.writer = this.port.writable.getWriter(); }
+      describe() { const info = this.port.getInfo ? this.port.getInfo() : {}; let id = "Serial port"; if (info && info.usbVendorId != null) id = "USB serial ("+info.usbVendorId.toString(16).padStart(4,"0")+":"+(info.usbProductId||0).toString(16).padStart(4,"0")+")"; return id + " [Web Serial]"; }
+      identity() { return serialIdentity(this.port); }
+      async send(bytes) { await this.writer.write(bytes); }
+      async readLoop(onData) {
+        this.reading = true; this.reader = this.port.readable.getReader();
+        try { while (this.reading) { const { value, done } = await this.reader.read(); if (done) { if (this.reading) throw new Error("serial connection closed (EOF)"); break; } if (value && value.length) onData(new Uint8Array(value.buffer, value.byteOffset, value.byteLength)); } }
+        finally { try { this.reader.releaseLock(); } catch(_){} this.reader = null; }
+      }
+      async close() {
+        this.reading = false;
+        if (this.reader) { try { await this.reader.cancel(); } catch(_){} try { this.reader.releaseLock(); } catch(_){} this.reader = null; }
+        if (this.writer) { try { await this.writer.close(); } catch(_){} try { this.writer.releaseLock(); } catch(_){} this.writer = null; }
+        if (this.port) { try { await this.port.close(); } catch(_){} this.port = null; }
+      }
+    }
+
+    async function tx(bytes) { if (!transport) { logLine("err", "not connected"); return; } try { await transport.send(bytes); } catch(e) { logLine("err", "send failed: " + (e && e.message ? e.message : e)); } }
+    function send(type, payload) {
+      if (!moduleReady) { logLine("warn", "Module id not resolved yet (discovery pending)."); return; }
+      tx(buildFrame(type, payload));
+    }
+
+    // ---- request encoders ----
+    function encU8(v) { return new Uint8Array([v & 0xFF]); }
+    function encU32(v) { const b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, v >>> 0, true); return b; }
+    function encMotion(min, max) { const b = new Uint8Array(4); const dv = new DataView(b.buffer); dv.setUint16(0, min & 0xFFFF, true); dv.setUint16(2, max & 0xFFFF, true); return b; }
+    function encStream(enable, divider) { return new Uint8Array([enable ? 1 : 0, divider & 0xFF]); }
+
+    // ===================== Module discovery + module id resolution =====================
+    // Decode the ListModules TLV (see espp::Dispatcher::describe).
+    function parseDiscovery(payload) {
+      let i = 0;
+      const need = (n) => { if (i + n > payload.length) throw new Error("truncated discovery payload"); };
+      const u8 = () => { need(1); return payload[i++]; };
+      const u16 = () => { need(2); const v = payload[i] | (payload[i + 1] << 8); i += 2; return v; };
+      const str = () => { const n = u8(); need(n); const s = new TextDecoder().decode(payload.subarray(i, i + n)); i += n; return s; };
+      const version = u8(); u8();            // version, reserved
+      const device = str(), fw = str();
+      const count = u8();
+      const modules = [];
+      for (let m = 0; m < count; m++) {
+        const rec = { id: u8(), name: str(), app: str(), desc: str(), protocol: "", protocolVersion: 0 };
+        // Version 2 records also carry [protocol str][protocol_version u16 LE].
+        // Records carry no length, so a payload version newer than
+        // DISCOVERY_VERSION_KNOWN is parsed with the exact version-2 record
+        // layout: a future version may only append bytes AFTER the record list
+        // (reported as `trailing`, ignored), never inside a record.
+        if (version >= 2) { rec.protocol = str(); rec.protocolVersion = u16(); }
+        modules.push(rec);
+      }
+      return { version, device, fw, modules, trailing: payload.length - i };
+    }
+    // ---- module id resolution (identical in every espp console) --------------
+    // The dispatcher module byte is a routing key, not the identity of a
+    // service: a device may serve any protocol on any id. Identity is what the
+    // device advertises in its ListModules reply -- the protocol id first
+    // (e.g. "espp.ota"), then the hosted app filename, then the module name.
+    // Latest discovery payload version these helpers understand.
+    const DISCOVERY_VERSION_KNOWN = 2;
+    // info: parseDiscovery() output, or null when the device did not answer.
+    // ident: { protocol, protocolVersion, app, name, fallback, override } -- the
+    //   identity this console implements; `override` (from ?module=) wins.
+    // Returns { id, source: "override"|"protocol"|"app"|"name"|"default",
+    //           protocolVersion (advertised by the chosen module, else null),
+    //           warnings: [strings], notes: [informational strings] }.
+    function resolveModuleId(info, ident) {
+      const norm = (s) => String(s == null ? "" : s).trim().toLowerCase();
+      const base = (s) => { const n = norm(s).split("?")[0].split("#")[0]; return n.slice(n.lastIndexOf("/") + 1); };
+      const list = (info && Array.isArray(info.modules)) ? info.modules : null;
+      const label = (m) => (m.name || m.protocol || "?") + " (#" + m.id + ")";
+      const want = String(ident.protocol || "");
+      const warnings = [], notes = [];
+      if (info && info.version > DISCOVERY_VERSION_KNOWN)
+        warnings.push("discovery payload v" + info.version + " is newer than this console understands (v" + DISCOVERY_VERSION_KNOWN + "); parsed with the v" + DISCOVERY_VERSION_KNOWN + " record layout");
+      if (info && info.trailing > 0)
+        notes.push("ignoring " + info.trailing + " trailing byte(s) after the module list (discovery v" + info.version + ")");
+      // Finish with the chosen module (m may be null when unknown), checking
+      // that it speaks the protocol we implement, at a version we support.
+      const done = (m, source) => {
+        const v = (m && Number.isInteger(m.protocolVersion)) ? m.protocolVersion : null;
+        if (m && want && m.protocol && m.protocol !== want)
+          warnings.push("module #" + m.id + " advertises protocol " + m.protocol + ", not " + want);
+        else if (v && Number.isInteger(ident.protocolVersion) && v !== ident.protocolVersion)
+          warnings.push("device speaks " + (m.protocol || want) + " v" + v + ", this console supports v" + ident.protocolVersion);
+        return { id: m ? m.id : ident.fallback, source, protocolVersion: v, warnings, notes };
+      };
+      const ov = ident.override;
+      if (Number.isInteger(ov) && ov >= 0 && ov <= 0xEF) { // 0xF0..0xFF: reserved (dispatcher / meta)
+        const m = list ? list.find((x) => x.id === ov) : null;
+        if (list && !m) warnings.push("module #" + ov + " was requested but the device does not advertise it");
+        const r = done(m, "override"); r.id = ov; return r;
+      }
+      if (list) {
+        const byProto = want ? list.filter((m) => m.protocol === want) : [];
+        if (byProto.length > 1)
+          warnings.push("several modules speak " + want + " (" + byProto.map(label).join(", ") + "); using the first -- add ?module=N to the URL to pick another");
+        if (byProto.length) return done(byProto[0], "protocol");
+        const wantApp = base(ident.app), wantName = norm(ident.name);
+        const byApp = wantApp ? list.find((m) => base(m.app) === wantApp) : null;
+        if (byApp) return done(byApp, "app");
+        const byName = wantName ? list.find((m) => norm(m.name) === wantName) : null;
+        if (byName) return done(byName, "name");
+        warnings.push("the device does not advertise " + (want || ident.name || ident.app) + " (advertised: " + (list.map(label).join(", ") || "none") + "); using the default module #" + ident.fallback);
+      }
+      return { id: ident.fallback, source: "default", protocolVersion: null, warnings, notes };
+    }
+    // The ?module=N query parameter (decimal or 0x..) overrides discovery; the
+    // Device Hub links each console this way. Null when absent or invalid.
+    function moduleOverrideFromQuery(search) {
+      const raw = new URLSearchParams(search || "").get("module");
+      if (raw == null || raw.trim() === "") return null;
+      // the WHOLE token must be a decimal or 0x-hex integer (parseInt would
+      // accept "9oops" as 9); anything else is invalid and ignored
+      const m = /^(?:0x([0-9a-f]+)|([0-9]+))$/i.exec(raw.trim());
+      if (!m) return null;
+      const n = m[1] !== undefined ? Number.parseInt(m[1], 16) : Number.parseInt(m[2], 10);
+      return (Number.isInteger(n) && n >= 0 && n <= 0xEF) ? n : null; // 0xF0..0xFF are reserved
+    }
+    // One log line saying how a module id was chosen.
+    function describeModuleChoice(label, r, ident, info) {
+      const how = r.source === "override" ? "from ?module=" :
+                  r.source === "protocol" ? "advertises " + ident.protocol + (r.protocolVersion ? " v" + r.protocolVersion : "") :
+                  r.source === "app" ? "advertised as app " + ident.app :
+                  r.source === "name" ? "advertised as \"" + ident.name + "\"" :
+                  info ? "default" : "default; the device did not answer discovery";
+      return label + " module: #" + r.id + " (" + how + ")";
+    }
+
+    // --- begin connection helpers (shared; byte-identical in every console + the hub, see web/test/resolve_module_id_test.js) ---
+    // Links may carry, besides ?module=, parameters that make a page connect on
+    // load WITHOUT the browser chooser to a device this origin was already
+    // granted (the Device Hub links its apps this way after releasing the
+    // device):  ?autoconnect=1&transport=usb|serial&vid=0x1209&pid=0x0d32&serial=ABC
+    // vid / pid are hex (0x..) or decimal; `serial` is the USB serial number
+    // (WebUSB only: Web Serial exposes vid / pid alone).
+    function parseConnectParams(search) {
+      const q = new URLSearchParams(search || "");
+      const num = (key) => {
+        const raw = q.get(key);
+        if (raw === null) return null;
+        const s = raw.trim();
+        if (!/^(0x[0-9a-f]+|[0-9]+)$/i.test(s)) return null;
+        const v = Number(s);
+        return Number.isInteger(v) && v >= 0 && v <= 0xFFFF ? v : null;
+      };
+      const transport = (q.get("transport") || "").trim().toLowerCase();
+      const flag = (q.get("autoconnect") || "").trim().toLowerCase();
+      return {
+        autoconnect: flag === "1" || flag === "true" || flag === "yes",
+        transport: transport === "usb" || transport === "serial" ? transport : null,
+        vid: num("vid"),
+        pid: num("pid"),
+        serial: (q.get("serial") || "").trim() || null,
+      };
+    }
+    // The identity of an open connection: enough to find the same device again
+    // (after a reboot it re-enumerates as a NEW USBDevice / SerialPort object
+    // with the same ids) and to build hand-off links.
+    function usbIdentity(device) {
+      return { transport: "usb", vid: device.vendorId, pid: device.productId, serial: device.serialNumber || null };
+    }
+    function serialIdentity(port) {
+      const info = port && typeof port.getInfo === "function" ? (port.getInfo() || {}) : {};
+      return { transport: "serial", vid: info.usbVendorId != null ? info.usbVendorId : null,
+               pid: info.usbProductId != null ? info.usbProductId : null, serial: null };
+    }
+    // Is `got` (the identity of a device that just appeared) the device `want`
+    // names? vid + pid must match; the serial number only when both sides
+    // report one (a serial-port arrival never has one). An arrival with no
+    // usable ids is never a match.
+    function identityMatches(want, got) {
+      if (!want || !got || got.vid == null || got.pid == null) return false;
+      if (want.vid != null && want.vid !== got.vid) return false;
+      if (want.pid != null && want.pid !== got.pid) return false;
+      if (want.serial && got.serial && want.serial !== got.serial) return false;
+      return true;
+    }
+    function describeIdentity(identity) {
+      if (!identity) return "device";
+      const hex = (v) => v == null ? "?" : "0x" + v.toString(16).padStart(4, "0");
+      return (identity.transport === "serial" ? "serial port" : "USB device") + " " + hex(identity.vid) + ":" + hex(identity.pid) +
+             (identity.serial ? " sn " + identity.serial : "");
+    }
+    // Pick, among the devices this origin may already use (navigator.usb
+    // .getDevices() / navigator.serial.getPorts()), the one `want` names: vid
+    // and pid must match when given; a serial number must match when both sides
+    // report one (a device that reports none is accepted only when it is the
+    // sole candidate). Several candidates without a serial -> the first. With no
+    // ids at all only a lone permitted device is accepted.
+    function pickUsbDevice(devices, want) {
+      const list = Array.isArray(devices) ? devices.filter(Boolean) : [];
+      if (!want || (want.vid == null && want.pid == null && !want.serial)) return list.length === 1 ? list[0] : null;
+      const byIds = list.filter(d => (want.vid == null || d.vendorId === want.vid) && (want.pid == null || d.productId === want.pid));
+      if (want.serial) {
+        const exact = byIds.find(d => d.serialNumber === want.serial);
+        if (exact) return exact;
+        const unnamed = byIds.filter(d => !d.serialNumber);
+        return unnamed.length === 1 ? unnamed[0] : null;
+      }
+      return byIds.length ? byIds[0] : null;
+    }
+    function pickSerialPort(ports, want) {
+      const list = Array.isArray(ports) ? ports.filter(Boolean) : [];
+      if (!want || (want.vid == null && want.pid == null)) return list.length === 1 ? list[0] : null;
+      const byIds = list.filter(p => { const id = serialIdentity(p); return (want.vid == null || id.vid === want.vid) && (want.pid == null || id.pid === want.pid); });
+      return byIds.length ? byIds[0] : null;
+    }
+    async function findPermittedUsbDevice(want) {
+      if (typeof navigator === "undefined" || !navigator.usb || typeof navigator.usb.getDevices !== "function") return null;
+      try { return pickUsbDevice(await navigator.usb.getDevices(), want); } catch (_) { return null; }
+    }
+    async function findPermittedSerialPort(want) {
+      if (typeof navigator === "undefined" || !navigator.serial || typeof navigator.serial.getPorts !== "function") return null;
+      try { return pickSerialPort(await navigator.serial.getPorts(), want); } catch (_) { return null; }
+    }
+    // "Auto-reconnect" checkbox preference, shared by every app on this origin
+    // (localStorage; default on; access may throw in private windows).
+    const AUTO_RECONNECT_KEY = "espp.autoReconnect";
+    function loadAutoReconnect() {
+      try { const v = localStorage.getItem(AUTO_RECONNECT_KEY); return v === null ? true : v === "1"; } catch (_) { return true; }
+    }
+    function saveAutoReconnect(on) { try { localStorage.setItem(AUTO_RECONNECT_KEY, on ? "1" : "0"); } catch (_) {} }
+    // One open at a time per page. Every connect entry point — the Connect
+    // button(s), the ?autoconnect path and the reconnect supervisor — runs
+    // through gate.run(fn); while an open is in progress a second entry is
+    // refused (resolves false) instead of racing the first: the later
+    // completion would otherwise overwrite a live transport without closing it
+    // or orphan a claimed USB device. The supervisor consults isBusy() and
+    // waits rather than counting a refused entry as a failed attempt.
+    // opts.connected() is the page's "already holds a device" predicate: the
+    // gate serializes opens but does not know about an adopted connection, so
+    // run() also refuses (opens nothing) while the page is connected — a
+    // reconnect callback whose permitted-device lookup outlived a manual
+    // connect must not open the same device a second time.
+    function createOpenGate(opts) {
+      const connected = opts && typeof opts.connected === "function" ? opts.connected : () => false;
+      const gate = { busy: false };
+      gate.isBusy = () => gate.busy;
+      gate.isConnected = () => !!connected();
+      gate.run = async (fn) => {
+        if (gate.busy || connected()) return false;
+        gate.busy = true;
+        try { return await fn(); } finally { gate.busy = false; }
+      };
+      return gate;
+    }
+    // Reconnect supervisor. After an UNEXPECTED link loss (unplug, reboot) it
+    // retries opts.reconnect(identity, attempt) -> bool on a bounded back-off
+    // until an attempt succeeds, the attempts run out, or stop() is called; a
+    // platform `connect` event (onDeviceAppeared) retries at once. opts.enabled()
+    // (the checkbox) is consulted on every attempt. expectReboot() marks a
+    // reboot the page itself requested (longer window, friendlier log);
+    // suppress() cancels reconnecting until the next successful connect (a
+    // bootloader reboot: the device comes back as a DIFFERENT USB device that
+    // this page cannot drive). opts.log(cls, text) receives progress lines.
+    // Attempts never overlap: one opts.reconnect() call is in flight at a time
+    // (two concurrent opens of the same device would race each other); an
+    // arrival event during an attempt is remembered and retried right after
+    // the current attempt settles. A loss that happens while an older attempt
+    // is still in flight (the device dropped again during the post-open
+    // discovery probe) starts a new generation; when the stale attempt settles
+    // it hands over by scheduling the current generation's pending retry.
+    // opts.gate (createOpenGate) is shared with the page's manual / auto-connect
+    // paths: while one of those holds it the supervisor polls instead of opening.
+    // Cancellation: stop() (the checkbox unticked, a manual disconnect) and a
+    // newer loss cancel the attempt in flight. opts.reconnect(identity, n,
+    // token) may consult token.cancelled(); when a cancelled attempt settles
+    // the supervisor ignores the page's connected() call made while it was
+    // open and runs opts.discard() (the page's close path), so an open that
+    // finished after the user said "stop" is closed instead of adopted.
+    function createReconnectSupervisor(opts) {
+      const delays = opts.delaysMs || [500, 1000, 1500, 2000, 3000, 4000, 5000, 5000, 5000, 5000];
+      const rebootDelays = opts.rebootDelaysMs || delays.concat([5000, 5000, 5000, 5000, 5000, 5000]);
+      const log = typeof opts.log === "function" ? opts.log : () => {};
+      // generations <= cancelBefore are cancelled; inFlightGen is the generation of the attempt in flight
+      const sup = { active: false, identity: null, attempt: 0, expected: false, suppressed: false, timer: null, generation: 0, inFlight: false, retryAfter: false, cancelBefore: 0, inFlightGen: 0 };
+      const cancelled = (gen) => gen <= sup.cancelBefore;
+      const cancelCurrent = () => { sup.cancelBefore = sup.generation; };
+      const clearTimer = () => { if (sup.timer) { clearTimeout(sup.timer); sup.timer = null; } };
+      const schedule = (gen, ms) => { clearTimer(); sup.timer = setTimeout(() => { sup.timer = null; attempt(gen); }, ms); };
+      async function attempt(gen) {
+        if (gen !== sup.generation || !sup.active) return;
+        if (sup.inFlight) { sup.retryAfter = true; return; } // serialized: retry once the current attempt settles
+        if (opts.gate && opts.gate.isBusy()) { schedule(gen, 250); return; } // a manual / auto-connect open is in progress: wait, not an attempt
+        if (!opts.enabled()) { sup.stop("auto-reconnect is off"); return; }
+        const plan = sup.expected ? rebootDelays : delays;
+        sup.attempt++;
+        let ok = false;
+        sup.inFlight = true; sup.inFlightGen = gen; sup.retryAfter = false;
+        const token = { cancelled: () => cancelled(gen) };
+        try { ok = await opts.reconnect(sup.identity, sup.attempt, token); }
+        catch (e) { if (!cancelled(gen)) log("warn", "reconnect attempt " + sup.attempt + " failed: " + (e && e.message ? e.message : e)); }
+        finally { sup.inFlight = false; }
+        if (cancelled(gen) && ok) {
+          // stop() / a newer loss happened while the open was pending and the
+          // open succeeded anyway: it must not stay adopted (the page's
+          // connected() was ignored). An attempt that opened nothing (lookup
+          // failed, returned false) has nothing to discard; running the page's
+          // disconnect then would drop a manual connection made meanwhile.
+          if (typeof opts.discard === "function") { try { await opts.discard(); } catch (_) {} }
+        }
+        if (gen !== sup.generation) {
+          // stale: a newer loss owns the supervisor now. Its timer may already
+          // have fired into our in-flight attempt (retryAfter) and left no timer
+          // behind, so re-arm it here or auto-reconnect would stall for good.
+          const pending = sup.retryAfter; sup.retryAfter = false;
+          if (sup.active && !sup.timer && pending) schedule(sup.generation, 100);
+          return;
+        }
+        if (!sup.active) { sup.retryAfter = false; return; }
+        if (ok) { sup.active = false; sup.expected = false; sup.retryAfter = false; clearTimer(); return; }
+        if (sup.attempt >= plan.length) { sup.stop("gave up reconnecting after " + sup.attempt + " attempts; use Connect"); return; }
+        if (sup.retryAfter) { sup.retryAfter = false; schedule(gen, 100); return; } // the device showed up meanwhile
+        schedule(gen, plan[sup.attempt]);
+      }
+      // the page lost its connection without asking for it
+      sup.onLinkLost = (identity) => {
+        clearTimer();
+        cancelCurrent();
+        sup.generation++;
+        if (sup.suppressed) { sup.suppressed = false; sup.active = false; log("sys", "Not reconnecting: the device was asked to reboot into its bootloader (it enumerates as a different USB device; use Connect once it is back in the application)."); return; }
+        if (!opts.enabled() || !identity) { sup.active = false; return; }
+        sup.active = true; sup.identity = identity; sup.attempt = 0;
+        const plan = sup.expected ? rebootDelays : delays;
+        log("sys", (sup.expected ? "Device is rebooting — reconnecting to " : "Link lost — trying to reconnect to ") + describeIdentity(identity) + " (auto-reconnect; uncheck to stop)…");
+        schedule(sup.generation, plan[0]);
+      };
+      // a permitted device re-appeared (navigator.usb / navigator.serial
+      // "connect"): only the device being recovered wakes the supervisor — an
+      // unrelated arrival would otherwise burn one of the bounded retries
+      sup.onDeviceAppeared = (identity) => {
+        if (!sup.active || !identityMatches(sup.identity, identity)) return;
+        if (sup.inFlight) sup.retryAfter = true; else schedule(sup.generation, 100);
+      };
+      sup.expectReboot = () => { sup.expected = true; sup.suppressed = false; };
+      sup.suppress = () => { sup.suppressed = true; sup.expected = false; };
+      // a connection was established (manually or by a successful attempt)
+      sup.connected = () => {
+        if (sup.inFlight && cancelled(sup.inFlightGen)) return; // a cancelled attempt's open: it is about to be discarded
+        clearTimer(); sup.generation++; sup.active = false; sup.expected = false; sup.suppressed = false; sup.attempt = 0; sup.retryAfter = false; };
+      sup.stop = (reason) => { clearTimer(); cancelCurrent(); sup.generation++; const was = sup.active; sup.active = false; sup.expected = false; sup.retryAfter = false; if (was && reason) log("sys", "Auto-reconnect stopped: " + reason + "."); };
+      sup.isActive = () => sup.active;
+      return sup;
+    }
+    // Forward the platform "a permitted device was (re)attached" events to the
+    // supervisor, with the arriving device's identity, so a reboot is caught
+    // the moment the device enumerates (and other devices are ignored).
+    function watchDeviceArrivals(sup) {
+      if (typeof navigator === "undefined") return;
+      if (navigator.usb && typeof navigator.usb.addEventListener === "function")
+        navigator.usb.addEventListener("connect", (ev) => sup.onDeviceAppeared(ev && ev.device ? usbIdentity(ev.device) : null));
+      if (navigator.serial && typeof navigator.serial.addEventListener === "function")
+        navigator.serial.addEventListener("connect", (ev) => { const port = ev && (ev.port || ev.target); sup.onDeviceAppeared(port ? serialIdentity(port) : null); });
+    }
+    // App -> hub notice that an app released its device (manual disconnect or
+    // page closed), so a hub that handed the device off can offer to reconnect.
+    // Same-origin pages only (BroadcastChannel); best effort everywhere.
+    function openDeviceChannel() {
+      let channel = null;
+      try { channel = typeof BroadcastChannel === "function" ? new BroadcastChannel("espp-device") : null; } catch (_) { return null; }
+      // Close the channel when the page goes away (no late deliveries to a page
+      // that is unloading, no leaked channel across rapid reloads). The listener
+      // is registered on a later task so it runs AFTER the page's own pagehide
+      // handler, which still needs the channel to post its released notice.
+      if (channel && typeof window !== "undefined" && typeof window.addEventListener === "function")
+        setTimeout(() => window.addEventListener("pagehide", () => { try { channel.close(); } catch (_) {} }, { once: true }), 0);
+      return channel;
+    }
+    function postReleased(channel, identity) {
+      if (!channel || !identity) return;
+      try { channel.postMessage({ type: "released", identity: identity, page: (typeof location !== "undefined" ? location.pathname : "").split("/").pop() }); } catch (_) {}
+    }
+    // --- end connection helpers ---
+    // --- begin app navigation (shared; byte-identical in every web app, see web/test/resolve_module_id_test.js) ---
+    // Links back to the Device Hub (primary) and the apps page. The static hrefs
+    // in the HTML are the hosted copies (always valid, also when this script
+    // never runs — a file:// page whose ES-module import is blocked). In the
+    // hosted apps directory (…/apps/ on the documentation site, or a local
+    // server in docs/apps) hub and apps page are siblings of every app, so the
+    // links are rewritten to the sibling files there; anywhere else — file://,
+    // a source tree served from http://localhost (where the haptics console is
+    // example/webapp/index.html itself) — they stay on the hosted copies.
+    const ESPP_APPS_BASE = "https://esp-cpp.github.io/espp/apps/";
+    function inHostedAppsDir(loc) {
+      if (!loc || !/^https?:$/.test(loc.protocol)) return false;
+      const dir = String(loc.pathname || "").replace(/[^/]*$/, "");
+      return /\/apps\/$/.test(dir);
+    }
+    function navHref(file) {
+      return inHostedAppsDir(typeof location !== "undefined" ? location : null) ? file : ESPP_APPS_BASE + file;
+    }
+    // Wire the #navHub / #navApps hrefs (every app). Returns the hub link.
+    function installAppNav() {
+      const hub = typeof document !== "undefined" ? document.getElementById("navHub") : null;
+      const apps = typeof document !== "undefined" ? document.getElementById("navApps") : null;
+      if (apps) apps.href = navHref("index.html");
+      if (hub) hub.href = navHref("dispatcher_hub.html");
+      return hub;
+    }
+    // --- end app navigation ---
+    // --- begin app hand-back (shared; byte-identical in every dispatcher-module console, see web/test/resolve_module_id_test.js) ---
+    // The auto-connect query (no module) a hand-back carries so the hub opens the
+    // device the app just released, without a chooser.
+    function hubConnectQuery(identity) {
+      const q = new URLSearchParams();
+      if (!identity || (identity.transport !== "usb" && identity.transport !== "serial")) return "";
+      q.set("autoconnect", "1");
+      q.set("transport", identity.transport);
+      if (identity.vid != null) q.set("vid", "0x" + identity.vid.toString(16).padStart(4, "0"));
+      if (identity.pid != null) q.set("pid", "0x" + identity.pid.toString(16).padStart(4, "0"));
+      if (identity.serial) q.set("serial", identity.serial);
+      return q.toString();
+    }
+    // A plain left click on "Device Hub" while connected hands the device back.
+    // handover.connected() says whether the page holds a device;
+    // handover.handBack() closes it the way a manual Disconnect does (stop the
+    // supervisor, close, then post the released notice) and resolves the
+    // device's identity; the tab then navigates to the hub with the auto-connect
+    // query. The href stays the plain hub URL, so middle-click / open-in-new-tab
+    // / modified clicks keep working and never close anything. One hand-back at
+    // a time: a second click while the first is closing is swallowed (the guard
+    // is never cleared on success — the page navigates away — and cleared on
+    // failure). The chooser-less pick-up on the hub needs the same origin (the
+    // device grant is per origin); a console on another origin still lands on
+    // the hub with the identity in the URL, and the hub offers Connect.
+    function installAppHandBack(handover) {
+      const hub = typeof document !== "undefined" ? document.getElementById("navHub") : null;
+      if (!hub) return;
+      let handingBack = false;
+      hub.addEventListener("click", (ev) => {
+        if (ev.defaultPrevented || ev.button !== 0 || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+        if (handingBack) { ev.preventDefault(); return; }
+        if (!handover.connected()) return;
+        ev.preventDefault();
+        handingBack = true;
+        const target = hub.href;
+        Promise.resolve().then(() => handover.handBack()).then(
+          (identity) => { const q = hubConnectQuery(identity); location.assign(target + (q ? "?" + q : "")); },
+          () => { handingBack = false; location.assign(target); });
+      });
+    }
+    // --- end app hand-back ---
+    // Adopt the VL53L5CX module id from a discovery reply (null = none) -- every
+    // VL53L5CX frame built / matched from here on uses it.
+    function adoptModule(info) {
+      MODULE_IDENT.override = moduleOverrideFromQuery(location.search);
+      const r = resolveModuleId(info, MODULE_IDENT);
+      moduleTof = r.id;
+      moduleReady = true;
+      logLine("sys", describeModuleChoice("VL53L5CX", r, MODULE_IDENT, info));
+      for (const w of r.warnings) logLine("warn", w + ".");
+      for (const n of r.notes) logLine("sys", n + ".");
+    }
+    // Ask the device which dispatcher modules it serves and adopt the VL53L5CX
+    // module's id from the answer (adoptModule). No discovery reply (older
+    // firmware) -> the default id; the normal STATUS request still surfaces a
+    // genuinely missing module.
+    async function checkModulePresent() {
+      const t = transport;
+      if (!t) return;
+      const payload = await new Promise((resolve) => {
+        let timer = null;
+        // settle guards the shared resolver: only clear it if it is still ours,
+        // so a prior probe's timeout can't cancel a newer probe's resolver.
+        const settle = (p) => { clearTimeout(timer); if (discoveryResolve === settle) discoveryResolve = null; resolve(p); };
+        timer = setTimeout(() => settle(null), DISCOVERY_TIMEOUT_MS);
+        discoveryResolve = settle;
+        t.send(buildFrame(T_LIST_MODULES, null, MODULE_DISCOVERY)).catch(() => settle(null));
+      });
+      // this probe belongs to the transport it sent on: if that connection was
+      // closed or replaced while we waited, its result (a reply or, more
+      // likely, the timeout) must not be adopted into the current one
+      if (t !== transport) return;
+      let info = null;
+      if (payload) { try { info = parseDiscovery(payload); } catch (_) { info = null; } }
+      adoptModule(info);
+    }
+
+    // ===================== Payload decoders =====================
+    // STATUS (24 B): see vl53l5cx_protocol::Status.
+    function parseStatus(p) {
+      if (p.length < 24) return null;
+      const dv = new DataView(p.buffer, p.byteOffset, p.length);
+      const flags = p[0];
+      return { initialized: !!(flags & 1), ranging: !!(flags & 2), motionEnabled: !!(flags & 4), streamEnabled: !!(flags & 8),
+        variant: p[1], address: p[2], zones: p[3], frequencyHz: p[4], integrationMs: dv.getUint32(5, true),
+        sharpener: p[9], targetOrder: p[10], rangingMode: p[11], powerMode: p[12],
+        motionMin: dv.getUint16(13, true), motionMax: dv.getUint16(15, true),
+        frameCount: dv.getUint32(17, true), frameRateHz: dv.getUint16(21, true) / 100, streamDivider: p[23] };
+    }
+    // FRAME: [seq u32][time_ms u32][zones u8][flags u8] + 19 B per zone (+ 140 B motion).
+    const ZONE_SIZE = 19, MOTION_SIZE = 140;
+    function parseFrame(p) {
+      if (p.length < 10) return null;
+      const dv = new DataView(p.buffer, p.byteOffset, p.length);
+      const n = p[8];
+      if (n !== 16 && n !== 64) return null;
+      const hasMotion = !!(p[9] & 1);
+      if (p.length < 10 + n * ZONE_SIZE + (hasMotion ? MOTION_SIZE : 0)) return null;
+      const f = { seq: dv.getUint32(0, true), timeMs: dv.getUint32(4, true), zones: n, width: n === 64 ? 8 : 4,
+        distance: new Int16Array(n), status: new Uint8Array(n), targets: new Uint8Array(n), reflectance: new Uint8Array(n),
+        sigma: new Uint16Array(n), signal: new Uint32Array(n), ambient: new Uint32Array(n), spads: new Uint32Array(n), motion: null };
+      let off = 10;
+      for (let i = 0; i < n; i++, off += ZONE_SIZE) {
+        f.distance[i] = dv.getInt16(off, true); f.status[i] = p[off + 2]; f.targets[i] = p[off + 3]; f.reflectance[i] = p[off + 4];
+        f.sigma[i] = dv.getUint16(off + 5, true); f.signal[i] = dv.getUint32(off + 7, true); f.ambient[i] = dv.getUint32(off + 11, true); f.spads[i] = dv.getUint32(off + 15, true);
+      }
+      if (hasMotion) {
+        const m = { global1: dv.getUint32(off, true), global2: dv.getUint32(off + 4, true), status: p[off + 8], detected: p[off + 9], aggregates: p[off + 10], motion: new Uint32Array(32) };
+        off += 12;
+        for (let i = 0; i < 32; i++, off += 4) m.motion[i] = dv.getUint32(off, true);
+        f.motion = m;
+      }
+      return f;
+    }
+
+    // ===================== Sensor state (STATUS) =====================
+    let lastStatus = null;
+    function applyStatus(s) {
+      lastStatus = s;
+      const st = !s.initialized ? { name: "not initialized", cls: "fault" } : s.ranging ? { name: "ranging", cls: "ranging" } : { name: "idle", cls: "idle" };
+      els.sensorState.textContent = st.name; els.sensorState.className = "state-badge " + st.cls;
+      const part = PART[s.variant] || { name: "variant " + s.variant };
+      els.devPart.textContent = part.name;
+      els.devAddr.textContent = "0x" + s.address.toString(16).padStart(2, "0");
+      els.devZones.textContent = s.zones === 64 ? "8x8" : s.zones === 16 ? "4x4" : String(s.zones);
+      els.devRate.textContent = s.frameRateHz ? s.frameRateHz.toFixed(1) + " Hz" : "-";
+      els.devFrames.textContent = String(s.frameCount);
+      // reflect the sensor's settings in the inputs the user is not editing
+      const setIf = (el, v) => { if (document.activeElement !== el) el.value = String(v); };
+      setIf(els.sResolution, s.zones); setIf(els.sFrequency, s.frequencyHz); setIf(els.sIntegration, s.integrationMs);
+      setIf(els.sSharpener, s.sharpener); setIf(els.sTargetOrder, s.targetOrder); setIf(els.sRangingMode, s.rangingMode);
+      setIf(els.sPowerMode, s.powerMode); setIf(els.sAddress, "0x" + s.address.toString(16).padStart(2, "0"));
+      if (s.motionEnabled) { setIf(els.sMotionMin, s.motionMin); setIf(els.sMotionMax, s.motionMax); }
+      els.sMotionBtn.textContent = s.motionEnabled ? "Enabled" : "Enable";
+      // settings are refused while ranging: say so and grey the Apply buttons
+      const canSet = s.initialized && !s.ranging;
+      for (const b of SETTING_BUTTONS) b.disabled = !canSet;
+      els.settingsNote.textContent = !s.initialized ? "The sensor is not initialized: fix the wiring, then Initialize." :
+        s.ranging ? "Stop ranging to change the settings (the sensor refuses them while ranging)." :
+        "Settings are applied at once; ranging uses them when started.";
+      els.startBtn.disabled = !s.initialized || s.ranging; els.stopBtn.disabled = !s.ranging;
+      // the device-side stream flag is the truth for the checkbox after a reconnect
+      if (s.streamEnabled !== els.liveFrames.checked && !streamRequestPending) els.liveFrames.checked = s.streamEnabled;
+      streamRequestPending = false;
+    }
+    let streamRequestPending = false;
+
+    // ===================== Frames =====================
+    let frame = null;            // the frame shown
+    let rxTimes = [];            // arrival times of the last frames (RX rate)
+    let hoverZone = -1;          // zone under the pointer (grid or 3D)
+    function onFrame(f) {
+      frame = f;
+      const now = performance.now(); rxTimes.push(now); while (rxTimes.length && now - rxTimes[0] > 2000) rxTimes.shift();
+      if (rxTimes.length >= 2) els.rxRate.textContent = ((rxTimes.length - 1) * 1000 / (now - rxTimes[0])).toFixed(1) + " Hz";
+      els.noData.style.display = "none"; els.csvBtn.disabled = false;
+      els.frameSeq.textContent = String(f.seq); els.frameTime.textContent = (f.timeMs / 1000).toFixed(3) + " s";
+      let valid = 0; for (let i = 0; i < f.zones; i++) if (isValidStatus(f.status[i])) valid++;
+      els.frameValid.textContent = valid + " / " + f.zones;
+      updateZoneGrid(f);
+      updateMotion(f);
+      if (hoverZone >= 0 && hoverZone < f.zones) showZone(hoverZone); else if (hoverZone >= f.zones) { hoverZone = -1; showZone(-1); }
+      requestRender();
+    }
+
+    // ---- metric / colour mapping ----
+    function metricOf(f, i) {
+      switch (els.colorBy.value) {
+        case "signal": return f.signal[i]; case "ambient": return f.ambient[i]; case "sigma": return f.sigma[i];
+        case "reflectance": return f.reflectance[i]; case "status": return f.status[i] === 255 ? 14 : f.status[i];
+        default: return f.distance[i];
+      }
+    }
+    function metricUnit() { const c = els.colorBy.value; return c === "distance" || c === "sigma" ? " mm" : c === "reflectance" ? " %" : c === "status" ? "" : " kcps"; }
+    // the colour / height range in use: auto = the valid zones' min..max (with a floor of 1 mm of span)
+    function currentRange(f) {
+      if (!els.autoRange.checked) { const lo = Number(els.rangeMin.value) || 0, hi = Number(els.rangeMax.value) || 1; return hi > lo ? [lo, hi] : [lo, lo + 1]; }
+      if (els.colorBy.value === "status") return [0, 14];
+      let lo = Infinity, hi = -Infinity;
+      if (f) for (let i = 0; i < f.zones; i++) { if (!isValidStatus(f.status[i]) && els.colorBy.value === "distance") continue; const v = metricOf(f, i); if (v < lo) lo = v; if (v > hi) hi = v; }
+      if (!Number.isFinite(lo)) return [0, 4000];
+      if (hi - lo < 1) hi = lo + 1;
+      return [lo, hi];
+    }
+    // a 7-stop "turbo"-like ramp (dark blue -> cyan -> green -> yellow -> orange -> red)
+    const RAMP = [[48,18,59],[65,102,221],[31,201,163],[162,234,42],[250,186,25],[237,88,29],[122,4,3]];
+    function rampColor(t) {
+      t = Math.min(1, Math.max(0, t)); const x = t * (RAMP.length - 1), i = Math.min(RAMP.length - 2, Math.floor(x)), u = x - i;
+      const a = RAMP[i], b = RAMP[i + 1];
+      return [Math.round(a[0] + (b[0] - a[0]) * u), Math.round(a[1] + (b[1] - a[1]) * u), Math.round(a[2] + (b[2] - a[2]) * u)];
+    }
+    const rgb = (c, a) => a == null ? "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")" : "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")";
+    function zoneColor(f, i, range) {
+      if (els.colorBy.value === "status") { const s = f.status[i]; return isValidStatus(s) ? [34,197,94] : s === 255 ? [90,98,112] : [245,158,11]; }
+      return rampColor((metricOf(f, i) - range[0]) / (range[1] - range[0]));
+    }
+    function updateLegend(range) {
+      const u = metricUnit();
+      if (els.colorBy.value === "status") { els.legendMax.textContent = "valid / other / none"; els.legendMin.textContent = ""; els.legendBar.style.background = "linear-gradient(90deg, rgb(34,197,94) 33%, rgb(245,158,11) 33% 66%, rgb(90,98,112) 66%)"; return; }
+      els.legendMax.textContent = Math.round(range[1]) + u; els.legendMin.textContent = Math.round(range[0]) + u;
+      els.legendBar.style.background = "linear-gradient(90deg," + RAMP.map((c, i) => rgb(c) + " " + Math.round(100 * i / (RAMP.length - 1)) + "%").join(",") + ")";
+    }
+
+    // ---- the numeric grid (row-major like the frame; mirrored with the 3D view) ----
+    let gridCells = [], gridZones = 0;
+    function buildZoneGrid(n) {
+      const w = n === 64 ? 8 : 4;
+      els.zones.className = "zones " + (w === 8 ? "w8" : "w4"); els.zones.style.gridTemplateColumns = "repeat(" + w + ", 1fr)";
+      els.zones.textContent = ""; gridCells = [];
+      for (let i = 0; i < n; i++) {
+        const c = document.createElement("div"); c.className = "z"; c.textContent = "-"; c.dataset.zone = String(i);
+        c.addEventListener("pointerenter", () => setHover(i)); c.addEventListener("pointerleave", () => { if (hoverZone === i) setHover(-1); });
+        els.zones.appendChild(c); gridCells.push(c);
+      }
+      gridZones = n;
+    }
+    function gridIndex(f, i) { // display position of zone i after the mirror options
+      const w = f.width, r = Math.floor(i / w), c = i % w;
+      return (els.mirrorY.checked ? w - 1 - r : r) * w + (els.mirrorX.checked ? w - 1 - c : c);
+    }
+    function updateZoneGrid(f) {
+      if (gridZones !== f.zones) buildZoneGrid(f.zones);
+      const range = currentRange(f); updateLegend(range);
+      for (let i = 0; i < f.zones; i++) {
+        const cell = gridCells[gridIndex(f, i)]; cell.dataset.zone = String(i);
+        const valid = isValidStatus(f.status[i]);
+        cell.textContent = valid || els.colorBy.value !== "distance" ? String(metricOf(f, i)) : "—";
+        cell.className = "z" + (valid ? "" : " invalid") + (i === hoverZone ? " hover" : "");
+        const col = zoneColor(f, i, range);
+        cell.style.background = rgb(col, valid ? 0.85 : 0.25);
+        cell.style.color = valid && (col[0] * 0.299 + col[1] * 0.587 + col[2] * 0.114) > 150 ? "#111" : (valid ? "#fff" : "");
+        cell.title = "zone " + i + " (row " + Math.floor(i / f.width) + ", col " + (i % f.width) + "): " + f.distance[i] + " mm, " + (STATUS_NAME[f.status[i]] || f.status[i]);
+      }
+    }
+    els.zones.addEventListener("pointerover", (ev) => { const z = ev.target && ev.target.dataset ? ev.target.dataset.zone : null; if (z != null) setHover(Number(z)); });
+    function setHover(i) { hoverZone = i; showZone(i); if (frame) { updateZoneGrid(frame); requestRender(); } }
+    function showZone(i) {
+      const f = frame; const none = i < 0 || !f || i >= f.zones;
+      els.zoneTitle.textContent = none ? "-" : "#" + i + " (row " + Math.floor(i / f.width) + ", col " + (i % f.width) + ")";
+      els.zDistance.textContent = none ? "-" : f.distance[i] + " mm";
+      els.zStatus.textContent = none ? "-" : f.status[i] + " – " + (STATUS_NAME[f.status[i]] || "?");
+      els.zSigma.textContent = none ? "-" : f.sigma[i] + " mm";
+      els.zSignal.textContent = none ? "-" : f.signal[i] + " kcps/SPAD";
+      els.zAmbient.textContent = none ? "-" : f.ambient[i] + " kcps/SPAD";
+      els.zSpads.textContent = none ? "-" : String(f.spads[i]);
+      els.zReflectance.textContent = none ? "-" : f.reflectance[i] + " %";
+      els.zTargets.textContent = none ? "-" : String(f.targets[i]);
+    }
+
+    // ---- motion indicator (16 aggregates in a 4x4 layout, both resolutions) ----
+    let motionCells = [];
+    function updateMotion(f) {
+      const m = f.motion;
+      els.motionPanel.hidden = !m;
+      if (!m) return;
+      els.mGlobal.textContent = m.global1 + " / " + m.global2; els.mDetected.textContent = m.detected + " / " + m.aggregates; els.mStatus.textContent = String(m.status);
+      const n = Math.min(16, m.aggregates || 16);
+      if (motionCells.length !== n) { els.motionGrid.textContent = ""; motionCells = []; for (let i = 0; i < n; i++) { const c = document.createElement("div"); c.className = "m"; els.motionGrid.appendChild(c); motionCells.push(c); } }
+      let peak = 1; for (let i = 0; i < n; i++) if (m.motion[i] > peak) peak = m.motion[i];
+      for (let i = 0; i < n; i++) { const v = m.motion[i]; motionCells[i].textContent = String(v); motionCells[i].style.background = rgb(rampColor(v / peak), v ? 0.8 : 0.15); motionCells[i].style.color = v / peak > 0.5 ? "#111" : ""; }
+    }
+
+    // ===================== 3D view (Canvas 2D, hand-rolled projection) =====================
+    // Sensor frame: the sensor sits at the origin looking along +Z; X is to the
+    // right and Y up as seen from BEHIND the sensor. A zone's measured point is
+    // its distance along the centre ray of its field-of-view cell. The camera
+    // orbits a target point (yaw / pitch / distance) and projects with a
+    // simple pinhole; faces are painter-sorted by depth.
+    const canvas = els.view3d, ctx = canvas.getContext("2d");
+    const cam = { yaw: -0.55, pitch: 0.42, dist: 1.6 };  // dist is relative to the scene scale
+    const CAM_DEFAULT = { ...cam };
+    let renderQueued = false;
+    function requestRender() { if (!renderQueued) { renderQueued = true; requestAnimationFrame(() => { renderQueued = false; render(); }); } }
+    function fitCanvas() {
+      const w = Math.max(320, Math.floor(canvas.clientWidth || canvas.parentElement.clientWidth || 900));
+      const h = Math.round(w * 0.6), dpr = Math.min(2, window.devicePixelRatio || 1);
+      if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); canvas.style.height = h + "px"; }
+      return { w, h, dpr };
+    }
+    function zoneRay(f, i) { // unit vector of zone i's centre ray
+      const fov = (PART[lastStatus ? lastStatus.variant : 0] || PART[0]).fovDeg * Math.PI / 180, w = f.width;
+      let r = Math.floor(i / w), c = i % w;
+      if (els.mirrorX.checked) c = w - 1 - c; if (els.mirrorY.checked) r = w - 1 - r;
+      const ax = ((c + 0.5) / w - 0.5) * fov, ay = -((r + 0.5) / w - 0.5) * fov; // row 0 at the top
+      const x = Math.tan(ax), y = Math.tan(ay), n = Math.hypot(x, y, 1);
+      return [x / n, y / n, 1 / n];
+    }
+    function render() {
+      const { w, h, dpr } = fitCanvas();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--view-bg").trim() || "#0d1118";
+      ctx.fillRect(0, 0, w, h);
+      const f = frame; if (!f) return;
+      const range = currentRange(f);
+      const bars = els.viewMode.value === "bars";
+      // scene scale: the far distance in view (mm); bars: the grid's extent
+      let far = 0; for (let i = 0; i < f.zones; i++) if (isValidStatus(f.status[i]) && f.distance[i] > far) far = f.distance[i];
+      if (els.colorBy.value === "distance" && !els.autoRange.checked) far = Math.max(far, range[1]);
+      far = Math.max(300, far);
+      const scale = bars ? f.width * 1.1 : far;                 // world units per "scene unit"
+      const centre = bars ? [0, 0.25 * scale, 0] : [0, 0, far * 0.5];
+      const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+      const focal = 0.9 * h;
+      // world -> camera (yaw about Y, then pitch about X), then pinhole
+      const project = (p) => {
+        const x = p[0] - centre[0], y = p[1] - centre[1], z = p[2] - centre[2];
+        const x1 = cy * x - sy * z, z1 = sy * x + cy * z;             // yaw
+        const y2 = cp * y - sp * z1, z2 = sp * y + cp * z1;          // pitch
+        const depth = z2 / scale + cam.dist;                          // camera sits cam.dist scene units back
+        if (depth <= 0.05) return null;
+        return { x: w / 2 + focal * (x1 / scale) / depth, y: h / 2 - focal * (y2 / scale) / depth, depth };
+      };
+      const faces = [];  // { pts: [{x,y}], depth, fill, stroke, zone }
+      const addFace = (pts3, fill, stroke, zone, alpha) => {
+        const pts = pts3.map(project); if (pts.some((p) => !p)) return;
+        faces.push({ pts, depth: pts.reduce((a, p) => a + p.depth, 0) / pts.length, fill, stroke, zone, alpha });
+      };
+      const lines = [];  // { a, b, color, width, dash }
+      const addLine = (a3, b3, color, width, dash) => { const a = project(a3), b = project(b3); if (a && b) lines.push({ a, b, color, width, dash }); };
+      const gridColor = getComputedStyle(document.documentElement).getPropertyValue("--view-grid").trim() || "#2a3344";
+      const textColor = getComputedStyle(document.documentElement).getPropertyValue("--view-text").trim() || "#9aa6ba";
+      if (!bars) {
+        // the field-of-view frustum and distance ticks along the axis
+        const fov = (PART[lastStatus ? lastStatus.variant : 0] || PART[0]).fovDeg * Math.PI / 180;
+        const t = Math.tan(fov / 2), corners = [[-t, -t], [t, -t], [t, t], [-t, t]];
+        for (const [cx, cz] of corners) addLine([0, 0, 0], [cx * far, cz * far, far], gridColor, 1, [4, 4]);
+        for (let k = 0; k < 4; k++) { const a = corners[k], b = corners[(k + 1) % 4]; addLine([a[0] * far, a[1] * far, far], [b[0] * far, b[1] * far, far], gridColor, 1, [4, 4]); }
+        const step = far > 2500 ? 1000 : far > 1200 ? 500 : far > 500 ? 250 : 100;
+        for (let d = step; d <= far; d += step) { const s = d * t; addLine([-s, -s, d], [s, -s, d], gridColor, 1, [2, 4]); lines[lines.length - 1].label = d >= 1000 ? (d / 1000).toFixed(d % 1000 ? 1 : 0) + " m" : d + " mm"; }
+        // the sensor
+        const s0 = far * 0.03; addFace([[-s0, -s0, 0], [s0, -s0, 0], [s0, s0, 0], [-s0, s0, 0]], "#5b8def", "#9ec0ff", -1, 0.9);
+        // zone points in the sensor frame, then the surface quads between valid neighbours
+        const pts = new Array(f.zones); const wdt = f.width;
+        for (let i = 0; i < f.zones; i++) { if (!isValidStatus(f.status[i])) continue; const r = zoneRay(f, i), d = f.distance[i]; pts[i] = [r[0] * d, r[1] * d, r[2] * d]; }
+        for (let r = 0; r + 1 < wdt; r++) for (let c = 0; c + 1 < wdt; c++) {
+          const i00 = r * wdt + c, i01 = i00 + 1, i10 = i00 + wdt, i11 = i10 + 1;
+          if (!pts[i00] || !pts[i01] || !pts[i10] || !pts[i11]) continue;
+          const mix = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+          const col = mix(mix(zoneColor(f, i00, range), zoneColor(f, i01, range)), mix(zoneColor(f, i10, range), zoneColor(f, i11, range)));
+          addFace([pts[i00], pts[i01], pts[i11], pts[i10]], rgb(col.map(Math.round), 0.55), rgb(col.map(Math.round), 0.9), -1, 1);
+        }
+        // the zone markers themselves (small squares facing the camera, drawn after the faces)
+        for (let i = 0; i < f.zones; i++) {
+          if (!pts[i]) continue;
+          const p = project(pts[i]); if (!p) continue;
+          const col = zoneColor(f, i, range), sz = Math.max(3, 9 / p.depth * (cam.dist / 1.6));
+          faces.push({ marker: true, x: p.x, y: p.y, size: i === hoverZone ? sz * 1.8 : sz, depth: p.depth - 0.001, fill: rgb(col), stroke: i === hoverZone ? "#fff" : rgb(col, 0.6), zone: i });
+        }
+      } else {
+        // bars on a ground plane: one cell per zone, height = the metric (inverted on request)
+        const wdt = f.width, cell = 1, gap = 0.12, half = wdt * cell / 2;
+        const hMax = 0.75 * scale;
+        for (let x = 0; x <= wdt; x++) addLine([x * cell - half, 0, -half], [x * cell - half, 0, half], gridColor, 1);
+        for (let z = 0; z <= wdt; z++) addLine([-half, 0, z * cell - half], [half, 0, z * cell - half], gridColor, 1);
+        for (let i = 0; i < f.zones; i++) {
+          let r = Math.floor(i / wdt), c = i % wdt;
+          if (els.mirrorX.checked) c = wdt - 1 - c; if (els.mirrorY.checked) r = wdt - 1 - r;
+          const valid = isValidStatus(f.status[i]) || els.colorBy.value !== "distance";
+          let t = (metricOf(f, i) - range[0]) / (range[1] - range[0]); t = Math.min(1, Math.max(0, t));
+          if (els.invertBars.checked) t = 1 - t;
+          const hgt = valid ? Math.max(0.02 * scale, t * hMax) : 0.02 * scale;
+          const x0 = c * cell - half + gap / 2, x1 = x0 + cell - gap, z0 = (wdt - 1 - r) * cell - half + gap / 2, z1 = z0 + cell - gap; // row 0 at the far side
+          const col = valid ? zoneColor(f, i, range) : [90, 98, 112];
+          const shade = (k) => rgb(col.map((v) => Math.round(v * k)), valid ? 0.95 : 0.4);
+          const stroke = i === hoverZone ? "#fff" : rgb(col, 0.5);
+          addFace([[x0, hgt, z0], [x1, hgt, z0], [x1, hgt, z1], [x0, hgt, z1]], shade(1), stroke, i, 1);          // top
+          addFace([[x0, 0, z0], [x1, 0, z0], [x1, hgt, z0], [x0, hgt, z0]], shade(0.72), stroke, i, 1);           // near (-Z)
+          addFace([[x0, 0, z1], [x1, 0, z1], [x1, hgt, z1], [x0, hgt, z1]], shade(0.72), stroke, i, 1);           // far (+Z)
+          addFace([[x0, 0, z0], [x0, 0, z1], [x0, hgt, z1], [x0, hgt, z0]], shade(0.55), stroke, i, 1);           // left
+          addFace([[x1, 0, z0], [x1, 0, z1], [x1, hgt, z1], [x1, hgt, z0]], shade(0.55), stroke, i, 1);           // right
+        }
+      }
+      // draw: lines first (reference), then faces far -> near
+      ctx.lineCap = "round"; ctx.font = "11px system-ui, sans-serif"; ctx.textBaseline = "middle";
+      for (const l of lines) { ctx.strokeStyle = l.color; ctx.lineWidth = l.width; ctx.setLineDash(l.dash || []); ctx.beginPath(); ctx.moveTo(l.a.x, l.a.y); ctx.lineTo(l.b.x, l.b.y); ctx.stroke(); if (l.label) { ctx.fillStyle = textColor; ctx.fillText(l.label, l.b.x + 4, l.b.y); } }
+      ctx.setLineDash([]);
+      faces.sort((a, b) => b.depth - a.depth);
+      for (const fc of faces) {
+        if (fc.marker) { ctx.fillStyle = fc.fill; ctx.strokeStyle = fc.stroke; ctx.lineWidth = 1; ctx.beginPath(); ctx.rect(fc.x - fc.size / 2, fc.y - fc.size / 2, fc.size, fc.size); ctx.fill(); ctx.stroke(); continue; }
+        ctx.beginPath(); ctx.moveTo(fc.pts[0].x, fc.pts[0].y); for (let k = 1; k < fc.pts.length; k++) ctx.lineTo(fc.pts[k].x, fc.pts[k].y); ctx.closePath();
+        ctx.fillStyle = fc.fill; ctx.fill(); ctx.strokeStyle = fc.stroke; ctx.lineWidth = fc.zone === hoverZone && fc.zone >= 0 ? 2 : 0.75; ctx.stroke();
+      }
+      // hover label
+      if (hoverZone >= 0 && hoverZone < f.zones) {
+        const label = "#" + hoverZone + ": " + f.distance[hoverZone] + " mm" + (els.colorBy.value !== "distance" ? " · " + metricOf(f, hoverZone) + metricUnit() : "");
+        ctx.fillStyle = textColor; ctx.font = "12px system-ui, sans-serif"; ctx.textBaseline = "top"; ctx.fillText(label, 10, 10);
+      }
+      lastPick = { faces, w, h };
+    }
+    // ---- interaction: orbit / zoom / hover-pick ----
+    let lastPick = null, drag = null, autoRotateTimer = null;
+    function pick(x, y) {
+      if (!lastPick || !frame) return -1;
+      // markers first (surface view), then faces (bars) -- nearest wins
+      let best = -1, bestD = 14;
+      for (const fc of lastPick.faces) if (fc.marker) { const d = Math.hypot(fc.x - x, fc.y - y); if (d < bestD) { bestD = d; best = fc.zone; } }
+      if (best >= 0) return best;
+      const inside = (pts) => { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) c = !c; } return c; };
+      for (let k = lastPick.faces.length - 1; k >= 0; k--) { const fc = lastPick.faces[k]; if (!fc.marker && fc.zone >= 0 && inside(fc.pts)) return fc.zone; }
+      return -1;
+    }
+    canvas.addEventListener("pointerdown", (ev) => { drag = { x: ev.clientX, y: ev.clientY, yaw: cam.yaw, pitch: cam.pitch, moved: false }; canvas.setPointerCapture(ev.pointerId); canvas.classList.add("dragging"); });
+    canvas.addEventListener("pointermove", (ev) => {
+      if (drag) {
+        const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 2) drag.moved = true;
+        cam.yaw = drag.yaw + dx * 0.008; cam.pitch = Math.max(-1.4, Math.min(1.4, drag.pitch + dy * 0.008)); requestRender(); return;
+      }
+      const rect = canvas.getBoundingClientRect(); const z = pick(ev.clientX - rect.left, ev.clientY - rect.top);
+      if (z !== hoverZone) setHover(z);
+    });
+    const endDrag = (ev) => { if (!drag) return; drag = null; canvas.classList.remove("dragging"); try { canvas.releasePointerCapture(ev.pointerId); } catch (_) {} };
+    canvas.addEventListener("pointerup", endDrag); canvas.addEventListener("pointercancel", endDrag);
+    canvas.addEventListener("pointerleave", () => { if (!drag && hoverZone >= 0) setHover(-1); });
+    canvas.addEventListener("wheel", (ev) => { ev.preventDefault(); cam.dist = Math.max(0.8, Math.min(8, cam.dist * (ev.deltaY > 0 ? 1.1 : 0.9))); requestRender(); }, { passive: false });
+    // pinch zoom (two pointers)
+    const pointers = new Map(); let pinchStart = null;
+    canvas.addEventListener("pointerdown", (ev) => { pointers.set(ev.pointerId, ev); if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinchStart = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), dist: cam.dist }; drag = null; } });
+    canvas.addEventListener("pointermove", (ev) => { if (!pointers.has(ev.pointerId)) return; pointers.set(ev.pointerId, ev); if (pointers.size === 2 && pinchStart) { const [a, b] = [...pointers.values()]; const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); cam.dist = Math.max(0.8, Math.min(8, pinchStart.dist * pinchStart.d / Math.max(1, d))); requestRender(); } });
+    for (const t of ["pointerup", "pointercancel", "pointerleave"]) canvas.addEventListener(t, (ev) => { pointers.delete(ev.pointerId); if (pointers.size < 2) pinchStart = null; });
+    els.resetViewBtn.addEventListener("click", () => { Object.assign(cam, CAM_DEFAULT); requestRender(); });
+    els.autoRotate.addEventListener("change", () => {
+      if (autoRotateTimer) { clearInterval(autoRotateTimer); autoRotateTimer = null; }
+      if (els.autoRotate.checked && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) autoRotateTimer = setInterval(() => { if (!drag) { cam.yaw += 0.006; requestRender(); } }, 33);
+    });
+    for (const id of ["viewMode", "colorBy", "invertBars", "mirrorX", "mirrorY"]) els[id].addEventListener("change", () => { if (frame) updateZoneGrid(frame); requestRender(); });
+    els.autoRange.addEventListener("change", () => { els.rangeMin.disabled = els.rangeMax.disabled = els.autoRange.checked; if (frame) updateZoneGrid(frame); requestRender(); });
+    for (const id of ["rangeMin", "rangeMax"]) els[id].addEventListener("input", () => { if (frame) updateZoneGrid(frame); requestRender(); });
+    window.addEventListener("resize", requestRender);
+    if (window.matchMedia) { try { window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", requestRender); } catch (_) {} }
+    requestRender();
+
+    // ---- CSV export of the frame shown ----
+    els.csvBtn.addEventListener("click", () => {
+      const f = frame; if (!f) return;
+      const rows = ["zone,row,col,distance_mm,status,status_name,sigma_mm,signal_kcps_per_spad,ambient_kcps_per_spad,spads,reflectance_pct,targets"];
+      for (let i = 0; i < f.zones; i++) rows.push([i, Math.floor(i / f.width), i % f.width, f.distance[i], f.status[i], JSON.stringify(STATUS_NAME[f.status[i]] || ""), f.sigma[i], f.signal[i], f.ambient[i], f.spads[i], f.reflectance[i], f.targets[i]].join(","));
+      if (f.motion) { rows.push(""); rows.push("motion_aggregate,value"); for (let i = 0; i < Math.min(16, f.motion.aggregates || 16); i++) rows.push(i + "," + f.motion.motion[i]); }
+      const blob = new Blob([rows.join("\n") + "\n"], { type: "text/csv" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "vl53l5cx_frame_" + f.seq + ".csv"; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    });
+
+    // ===================== Incoming frame handling =====================
+    function onIncoming(chunk) {
+      let frames; try { frames = parser.feed(chunk); } catch(e) { logLine("err", "parse error: " + (e && e.message ? e.message : e)); return; }
+      for (const f of frames) {
+        // Discovery reply (reserved module 0xFF): hand the TLV to a pending
+        // module probe before the moduleTof match below ignores it.
+        if (f.module === MODULE_DISCOVERY && f.reply && f.type === T_LIST_MODULES) {
+          if (discoveryResolve) { discoveryResolve(f.payload); discoveryResolve = null; }
+          continue;
+        }
+        if (f.module !== moduleTof) continue;
+        const dv = new DataView(f.payload.buffer, f.payload.byteOffset, f.payload.length);
+        if (f.type === T_FRAME) {
+          const fr = parseFrame(f.payload);
+          if (fr) onFrame(fr); else logLine("warn", "malformed frame (" + f.payload.length + " bytes)");
+        } else if (f.type === T_STATUS) {
+          const s = parseStatus(f.payload);
+          if (s) applyStatus(s); else logLine("warn", "short status payload (" + f.payload.length + " bytes)");
+        } else if (f.type === T_OK) {
+          const rt = f.payload.length ? f.payload[0] : 0;
+          logLine("rx", "ok: " + (REQ_NAME[rt] || ("0x" + rt.toString(16))));
+          if (rt !== T_GET_STATUS && rt !== T_GET_FRAME) send(T_GET_STATUS); // reflect the change
+        } else if (f.type === T_ERROR) {
+          const rt = f.payload.length ? f.payload[0] : 0;
+          const code = f.payload.length >= 5 ? dv.getUint32(1, true) : 0;
+          let msg = ""; try { msg = new TextDecoder().decode(f.payload.subarray(5)); } catch(_){}
+          logLine("err", (REQ_NAME[rt] || ("0x" + rt.toString(16))) + " failed [" + code + "]: " + msg);
+          if (rt === T_SET_STREAM) streamRequestPending = false;
+          if (rt !== T_GET_STATUS) send(T_GET_STATUS);
+        }
+      }
+    }
+
+    // ===================== Connect / disconnect =====================
+    if (!navigator.usb) els.connectUsbBtn.disabled = true;
+    if (!navigator.serial) els.connectSerialBtn.disabled = true;
+    if (!navigator.usb && !navigator.serial) els.unsupported.style.display = "block";
+    els.connectUsbBtn.addEventListener("click", () => connect("usb"));
+    els.connectSerialBtn.addEventListener("click", () => connect("serial"));
+    els.disconnectBtn.addEventListener("click", () => disconnect());
+
+    // `preset`: an already-permitted USBDevice / SerialPort (no chooser).
+    // One open at a time (Connect button(s), auto-connect, reconnect) — see createOpenGate.
+    async function connect(kind, preset) {
+      return openGate.run(() => connectLocked(kind, preset));
+    }
+    async function connectLocked(kind, preset) {
+      if (transport) return;
+      const t = kind === "usb" ? new UsbTransport() : new SerialTransport();
+      try { if (kind === "usb") await t.open(els.anyDevice.checked, preset); else await t.open(preset); }
+      catch (e) { if (e && e.name === "NotFoundError" && !preset) logLine("sys", "Device selection cancelled."); else logLine("err", "Connect failed: " + (e && e.message ? e.message : e)); try { await t.close(); } catch(_){} return; }
+      transport = t; connIdentity = t.identity(); reconnect.connected(); parser.reset(); moduleReady = false;
+      const name = t.describe(); setStatus("connected", "Connected"); els.devInfo.textContent = name; logLine("sys", "Connected: " + name);
+      t.readLoop(onIncoming).catch((e) => { if (transport === t) { logLine("err", "Read loop error: " + (e && e.message ? e.message : e)); onLinkLost(); } });
+      // Resolve the VL53L5CX module id from discovery BEFORE the first request.
+      try { await checkModulePresent(); } catch (_) {}
+      if (transport !== t) return; // the link dropped while probing
+      setConnectedUI(true); // module id resolved: only now enable the controls
+      send(T_GET_STATUS);
+      if (els.liveFrames.checked) startStream();
+      startStatusPoll();
+    }
+    async function disconnect() {
+      if (!transport) return; logLine("sys", "Disconnecting..."); stopStatusPoll(); stopStream();
+      const t = transport; transport = null;
+      reconnect.stop(); const released = connIdentity; connIdentity = null; try { await t.close(); } catch(_){}
+      postReleased(deviceChannel, released); // only once the device is closed: the hub may reopen it on this notice
+      setConnectedUI(false); setStatus("", "Disconnected");
+    }
+    function onLinkLost() {
+      if (!transport) return; stopStatusPoll(); const t = transport; transport = null; t.close().catch(()=>{});
+      setConnectedUI(false); setStatus("error", "Disconnected");
+      reconnect.onLinkLost(connIdentity);
+    }
+    if (navigator.usb && navigator.usb.addEventListener) navigator.usb.addEventListener("disconnect", (e) => { if (transport instanceof UsbTransport && e.device === transport.device) { logLine("err", "Device disconnected."); onLinkLost(); } });
+
+    if (navigator.serial && navigator.serial.addEventListener) {
+      navigator.serial.addEventListener("disconnect", (e) => {
+        const eventPort = e.port ?? e.target;
+        if (transport instanceof SerialTransport && eventPort === transport.port) { logLine("err", "Serial device disconnected."); onLinkLost(); }
+      });
+    }
+
+    const SETTING_BUTTONS = [els.sResolutionBtn, els.sFrequencyBtn, els.sIntegrationBtn, els.sSharpenerBtn, els.sTargetOrderBtn, els.sRangingModeBtn, els.sPowerModeBtn, els.sMotionBtn, els.sAddressBtn];
+    function setConnectedUI(connected) {
+      els.connectUsbBtn.disabled = connected || !navigator.usb;
+      els.connectSerialBtn.disabled = connected || !navigator.serial;
+      els.disconnectBtn.disabled = !connected; els.anyDevice.disabled = connected;
+      for (const id of ["refreshBtn", "snapshotBtn", "initBtn"]) els[id].disabled = !connected;
+      if (!connected) {
+        els.devInfo.textContent = "Not connected. Default WebUSB filter: VID 0x1209 / PID 0x0d32 (espp default).";
+        els.sensorState.textContent = "-"; els.sensorState.className = "state-badge";
+        for (const id of ["devPart", "devAddr", "devZones", "devRate", "devFrames", "rxRate"]) els[id].textContent = "-";
+        els.startBtn.disabled = els.stopBtn.disabled = true;
+        for (const b of SETTING_BUTTONS) b.disabled = true;
+        els.settingsNote.textContent = "Connect to a device to read and change its settings.";
+        lastStatus = null; rxTimes = [];
+      }
+    }
+
+    // ---- sensor controls ----
+    els.startBtn.addEventListener("click", () => send(T_START));
+    els.stopBtn.addEventListener("click", () => send(T_STOP));
+    els.initBtn.addEventListener("click", () => { logLine("sys", "Initializing the sensor (firmware upload, about 2 s)..."); send(T_INITIALIZE); });
+    els.refreshBtn.addEventListener("click", () => send(T_GET_STATUS));
+    els.snapshotBtn.addEventListener("click", () => send(T_GET_FRAME));
+    const intOf = (el, lo, hi) => { const v = Math.round(Number(el.value)); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : lo; };
+    els.sResolutionBtn.addEventListener("click", () => send(T_SET_RESOLUTION, encU8(Number(els.sResolution.value))));
+    els.sFrequencyBtn.addEventListener("click", () => send(T_SET_FREQUENCY, encU8(intOf(els.sFrequency, 1, 60))));
+    els.sIntegrationBtn.addEventListener("click", () => send(T_SET_INTEGRATION, encU32(intOf(els.sIntegration, 2, 1000))));
+    els.sSharpenerBtn.addEventListener("click", () => send(T_SET_SHARPENER, encU8(intOf(els.sSharpener, 0, 99))));
+    els.sTargetOrderBtn.addEventListener("click", () => send(T_SET_TARGET_ORDER, encU8(Number(els.sTargetOrder.value))));
+    els.sRangingModeBtn.addEventListener("click", () => send(T_SET_RANGING_MODE, encU8(Number(els.sRangingMode.value))));
+    els.sPowerModeBtn.addEventListener("click", () => send(T_SET_POWER_MODE, encU8(Number(els.sPowerMode.value))));
+    els.sMotionBtn.addEventListener("click", () => send(T_ENABLE_MOTION, encMotion(intOf(els.sMotionMin, 400, 4000), intOf(els.sMotionMax, 400, 4000))));
+    els.sAddressBtn.addEventListener("click", () => {
+      const raw = els.sAddress.value.trim(); const m = /^(?:0x([0-9a-f]+)|([0-9]+))$/i.exec(raw);
+      const v = m ? (m[1] !== undefined ? parseInt(m[1], 16) : parseInt(m[2], 10)) : NaN;
+      if (!Number.isInteger(v) || v < 0x08 || v > 0x77) { logLine("err", "I2C address must be a 7-bit address (0x08..0x77)"); return; }
+      logLine("sys", "Changing the sensor's I2C address to 0x" + v.toString(16).padStart(2, "0") + " (volatile: back to 0x29 at the next sensor reset)");
+      send(T_SET_ADDRESS, encU8(v));
+    });
+
+    // ---- device-side frame streaming + status polling ----
+    function startStream() { streamRequestPending = true; send(T_SET_STREAM, encStream(true, Number(els.streamDivider.value) || 1)); }
+    function stopStream() { if (transport) { streamRequestPending = true; send(T_SET_STREAM, encStream(false, Number(els.streamDivider.value) || 1)); } }
+    els.liveFrames.addEventListener("change", () => { if (!transport) return; els.liveFrames.checked ? startStream() : stopStream(); });
+    els.streamDivider.addEventListener("change", () => { if (transport && els.liveFrames.checked) startStream(); });
+    let statusTimer = null;
+    function startStatusPoll() { stopStatusPoll(); statusTimer = setInterval(() => { if (transport && moduleReady) send(T_GET_STATUS); }, STATUS_POLL_MS); }
+    function stopStatusPoll() { if (statusTimer) { clearInterval(statusTimer); statusTimer = null; } }
+
+    // ---- auto-connect (?autoconnect=1&transport=&vid=&pid=&serial=) + auto-reconnect ----
+    const connectParams = parseConnectParams(location.search);
+    let connIdentity = null; // identity of the current (or just lost) device
+    const deviceChannel = openDeviceChannel();
+    els.autoReconnect.checked = loadAutoReconnect();
+    els.autoReconnect.addEventListener("change", () => {
+      saveAutoReconnect(els.autoReconnect.checked);
+      if (!els.autoReconnect.checked) reconnect.stop("auto-reconnect is off");
+    });
+    const openGate = createOpenGate({ connected: () => !!transport });
+    const reconnect = createReconnectSupervisor({ gate: openGate, discard: () => disconnect(), enabled: () => els.autoReconnect.checked, log: logLine, reconnect: reconnectAttempt });
+    watchDeviceArrivals(reconnect);
+    // One reconnect attempt: the device must be back among the permitted ones.
+    // The lookup runs outside the open gate, so re-check afterwards that the
+    // attempt was not cancelled (checkbox unticked) and that no manual connect
+    // completed meanwhile — the gate refuses while connected as well.
+    async function reconnectAttempt(identity, attempt, token) {
+      if (transport) return true;
+      const preset = identity.transport === "usb" ? await findPermittedUsbDevice(identity) : await findPermittedSerialPort(identity);
+      if (token.cancelled() || transport) return false;
+      if (!preset) return false;
+      await connect(identity.transport, preset);
+      return !!transport;
+    }
+    async function autoConnect() {
+      const want = connectParams;
+      for (const kind of want.transport ? [want.transport] : ["usb", "serial"]) {
+        const preset = kind === "usb" ? await findPermittedUsbDevice(want) : await findPermittedSerialPort(want);
+        if (!preset) continue;
+        logLine("sys", "Auto-connecting to " + describeIdentity(kind === "usb" ? usbIdentity(preset) : serialIdentity(preset)) + "…");
+        await connect(kind, preset);
+        return;
+      }
+      logLine("warn", "Auto-connect: no permitted " + describeIdentity(want) + " found — use Connect (the browser only lists devices this page was already granted).");
+    }
+    // pagehide: the browser tears the handle down itself and an await cannot finish here, so the notice goes out before the close (best effort)
+    window.addEventListener("pagehide", () => { if (transport) postReleased(deviceChannel, connIdentity); });
+
+    setConnectedUI(false);
+    buildZoneGrid(64);
+    // Device Hub / All apps links; a plain click on Device Hub while connected hands the device back
+    installAppNav();
+    installAppHandBack({ connected: () => !!transport, handBack: async () => { const id = connIdentity; await disconnect(); return id; } });
+    if (connectParams.autoconnect) autoConnect();
+  </script>
+</body>
+</html>

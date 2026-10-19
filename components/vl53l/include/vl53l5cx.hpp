@@ -191,6 +191,13 @@ public:
   /// \brief True once initialize() succeeded
   bool is_initialized() const { return initialized_; }
 
+  /// \brief The part this driver was configured for (Config::variant)
+  Variant variant() const { return variant_; }
+
+  /// \brief True once enable_motion_indicator() succeeded (until the next
+  ///        initialize(): the sensor has no way to switch the indicator off)
+  bool is_motion_indicator_enabled() const { return motion_enabled_; }
+
   /// \brief Reboot the sensor, upload the firmware, load the NVM offset data
   ///        and the default configuration (4x4, 1 Hz, autonomous, strongest
   ///        target first, 10 ms integration time).
@@ -445,7 +452,7 @@ protected:
   Resolution resolution_{Resolution::ZONES_4X4};
   uint8_t stream_count_{255};
   uint32_t data_read_size_{0};
-  bool motion_enabled_{false};
+  std::atomic<bool> motion_enabled_{false}; ///< read lock-free by is_motion_indicator_enabled()
   MotionConfiguration motion_config_{};
   std::array<uint8_t, OFFSET_BUFFER_SIZE> offset_data_{};
   std::array<uint8_t, XTALK_BUFFER_SIZE> xtalk_data_{};

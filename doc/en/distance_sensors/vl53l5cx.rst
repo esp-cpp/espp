@@ -22,11 +22,25 @@ plugins are not ported yet.
    :doc:`VL53L4CD / VL53L4CX driver <vl53l>` (both use 16-bit register
    addresses), but the two drivers share nothing else.
 
-.. ------------------------------- Example -------------------------------------
+Web console
+-----------
+
+``espp::Vl53l5cxService`` (``vl53l5cx_service.hpp``) exposes a sensor over the
+:doc:`dispatcher <../dispatcher/dispatcher>` / ``stream_frame`` protocol
+(module id 10, protocol id ``espp.vl53l5cx``, see ``vl53l5cx_protocol.hpp``):
+a host can configure every setting, start / stop ranging and receive each
+ranging frame. The hosted `VL53L5CX console
+<https://esp-cpp.github.io/espp/apps/vl53l5cx_console.html>`_ web app
+(``components/vl53l/web/vl53l5cx_console.html``) draws the frames as a live 3D
+surface or bar height field over WebUSB / Web Serial; the
+:doc:`vl53l5cx_webapp_example` runs it next to the standard USB services.
+
+.. ------------------------------- Examples ------------------------------------
 
 .. toctree::
 
    vl53l5cx_example
+   vl53l5cx_webapp_example
 
 .. ---------------------------- API Reference ----------------------------------
 
@@ -34,3 +48,5 @@ API Reference
 -------------
 
 .. include-build-file:: inc/vl53l5cx.inc
+.. include-build-file:: inc/vl53l5cx_protocol.inc
+.. include-build-file:: inc/vl53l5cx_service.inc
