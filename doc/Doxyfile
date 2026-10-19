@@ -216,6 +216,8 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/wdi/usb_example/main/wdi_usb_example.cpp \
   $(PROJECT_PATH)/components/wdi/usb_host_example/main/wdi_usb_host_example.cpp \
   $(PROJECT_PATH)/components/vl53l/example/main/vl53l_example.cpp \
+  $(PROJECT_PATH)/components/vl53l/vl53l5cx_example/main/vl53l5cx_example.cpp \
+  $(PROJECT_PATH)/components/vl53l/vl53l5cx_webapp_example/main/vl53l5cx_webapp_example.cpp \
   $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp \
   $(PROJECT_PATH)/components/wrover-kit/example/main/wrover_kit_example.cpp \
   $(PROJECT_PATH)/components/ws-s3-geek/example/main/ws_s3_geek_example.cpp \
@@ -506,6 +508,9 @@ INPUT = \
   $(PROJECT_PATH)/components/wdi/include/wdi_usb_host.hpp \
   $(PROJECT_PATH)/components/wdi/include/wdi_ble_central.hpp \
   $(PROJECT_PATH)/components/vl53l/include/vl53l.hpp \
+  $(PROJECT_PATH)/components/vl53l/include/vl53l5cx.hpp \
+  $(PROJECT_PATH)/components/vl53l/include/vl53l5cx_protocol.hpp \
+  $(PROJECT_PATH)/components/vl53l/include/vl53l5cx_service.hpp \
   $(PROJECT_PATH)/components/utils/include/bitmask_operators.hpp \
   $(PROJECT_PATH)/components/wifi/include/wifi.hpp \
   $(PROJECT_PATH)/components/wifi/include/wifi_base.hpp \

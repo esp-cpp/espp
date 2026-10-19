@@ -69,6 +69,7 @@ Module id  Protocol                                                  Protocol id
 7          System info / reboot control (``espp::SystemService``)    ``espp.system`` v1
 8          Heap / task monitor (``espp::MonitorService``)            ``espp.monitor`` v1
 9          Windowed desktop (``espp::DesktopService``)               ``espp.desktop`` v2
+10         VL53L5CX ToF console (``espp::Vl53l5cxService``)          ``espp.vl53l5cx`` v1
 0xF0-0xFE  reserved for dispatcher / meta use
 0xFF       capability discovery
 =========  ========================================================  ==================================
@@ -833,7 +834,8 @@ tags the generator and the hub read:
    <meta name="espp-transports" content="webusb webserial">
 
 `espp-category` (required) is one of ``device management``, ``motor
-control``, ``bus tools``, ``input devices``, ``utilities``; `espp-protocols`
+control``, ``bus tools``, ``input devices``, ``sensors``, ``utilities``;
+`espp-protocols`
 lists the protocol ids + versions your console implements (``id:version``,
 space-separated, a trailing ``?`` for one it can do without — the exact
 `ModuleInfo::protocol` / `protocol_version` your module advertises); the

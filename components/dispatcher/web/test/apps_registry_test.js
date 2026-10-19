@@ -18,7 +18,7 @@ const assert = require("assert");
 const { spawnSync } = require("child_process");
 
 const root = path.resolve(__dirname, "..", "..", "..", "..");
-const CATEGORIES = ["device management", "motor control", "bus tools", "input devices", "utilities"];
+const CATEGORIES = ["device management", "motor control", "bus tools", "input devices", "sensors", "utilities"];
 const TRANSPORTS = ["webusb", "webserial", "webhid"];
 
 function meta(src, name) {

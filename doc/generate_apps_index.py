@@ -43,7 +43,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # Section order on the landing page.
-CATEGORIES = ["device management", "motor control", "bus tools", "input devices", "utilities"]
+CATEGORIES = ["device management", "motor control", "bus tools", "input devices", "sensors", "utilities"]
 TRANSPORTS = ["webusb", "webserial", "webhid"]
 TRANSPORT_LABEL = {"webusb": "WebUSB", "webserial": "Web Serial", "webhid": "WebHID"}
 # A protocol id is a dotted, namespaced identifier (e.g. espp.can-bridge).

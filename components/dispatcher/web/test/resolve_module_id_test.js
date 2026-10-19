@@ -26,6 +26,7 @@ const consoles = [
   "components/telemetry/web/telemetry.html",
   "components/system/web/system_console.html",
   "components/desktop/web/desktop.html",
+  "components/vl53l/web/vl53l5cx_console.html",
 ];
 const hub = "components/dispatcher/web/dispatcher_hub.html";
 
@@ -855,7 +856,7 @@ function navTests() {
     if (navBlock === null) navBlock = b;
     else assert.strictEqual(b, navBlock, rel + ": app navigation block differs from " + consoles[0]);
     assert.ok(!/installAppHandBack|hubConnectQuery/.test(b), "the navigation block must hold only what every page uses");
-    // the hand-back block: identical in the 8 consoles, absent elsewhere (no unused function in the plain pages)
+    // the hand-back block: identical in every console, absent elsewhere (no unused function in the plain pages)
     if (consoles.includes(rel)) {
       const h = extractHandBackBlock(src, rel);
       if (handBackBlock === null) handBackBlock = h;

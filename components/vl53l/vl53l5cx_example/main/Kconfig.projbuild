@@ -1,0 +1,110 @@
+menu "Example Configuration"
+
+    choice EXAMPLE_HARDWARE
+        prompt "Hardware"
+        default EXAMPLE_HARDWARE_QTPY if IDF_TARGET_ESP32 || IDF_TARGET_ESP32S3
+        default EXAMPLE_HARDWARE_ESP32_P4_DEVKIT if IDF_TARGET_ESP32P4
+        default EXAMPLE_HARDWARE_CUSTOM
+        help
+            Select the hardware to run this example on.
+
+        config EXAMPLE_HARDWARE_QTPY
+            bool "QtPy ESP32 Pico or QtPy ESP32-S3"
+            depends on IDF_TARGET_ESP32 || IDF_TARGET_ESP32S3
+
+        config EXAMPLE_HARDWARE_ESP32_P4_DEVKIT
+            bool "ESP32-P4 dev kit (ESP32-P4-Function-EV / WIFI6 dev kit: SDA 7, SCL 8)"
+            depends on IDF_TARGET_ESP32P4
+
+        config EXAMPLE_HARDWARE_CUSTOM
+            bool "Custom"
+    endchoice
+
+    config EXAMPLE_I2C_SCL_GPIO
+        int "SCL GPIO Num"
+        range 0 54
+        default 40 if EXAMPLE_HARDWARE_QTPY && IDF_TARGET_ESP32S3
+        default 19 if EXAMPLE_HARDWARE_QTPY && IDF_TARGET_ESP32
+        default 8 if EXAMPLE_HARDWARE_ESP32_P4_DEVKIT
+        default 8 if IDF_TARGET_ESP32P4
+        default 19
+        help
+            GPIO number for I2C Master clock line.
+
+    config EXAMPLE_I2C_SDA_GPIO
+        int "SDA GPIO Num"
+        range 0 54
+        default 41 if EXAMPLE_HARDWARE_QTPY && IDF_TARGET_ESP32S3
+        default 22 if EXAMPLE_HARDWARE_QTPY && IDF_TARGET_ESP32
+        default 7 if EXAMPLE_HARDWARE_ESP32_P4_DEVKIT
+        default 7 if IDF_TARGET_ESP32P4
+        default 22
+        help
+            GPIO number for I2C Master data line.
+
+    config EXAMPLE_I2C_CLOCK_SPEED_HZ
+        int "I2C Clock Speed"
+        range 100 1000000
+        default 400000
+        help
+            I2C clock speed in Hz. The VL53L5CX supports up to 1 MHz (Fast Mode
+            Plus); the firmware upload at initialization takes about two
+            seconds at 400 kHz.
+
+    choice EXAMPLE_VARIANT
+        prompt "Sensor part"
+        default EXAMPLE_VARIANT_VL53L5CX
+        help
+            The VL53L5CX (63 deg field of view) and the VL53L7CX (90 deg) answer
+            the same ids over I2C but need different firmware images; pick the
+            part printed on the module.
+
+        config EXAMPLE_VARIANT_VL53L5CX
+            bool "VL53L5CX"
+
+        config EXAMPLE_VARIANT_VL53L7CX
+            bool "VL53L7CX"
+    endchoice
+
+    choice EXAMPLE_RESOLUTION
+        prompt "Ranging resolution"
+        default EXAMPLE_RESOLUTION_8X8
+        help
+            Number of ranging zones.
+
+        config EXAMPLE_RESOLUTION_4X4
+            bool "4x4 zones (up to 60 Hz)"
+
+        config EXAMPLE_RESOLUTION_8X8
+            bool "8x8 zones (up to 15 Hz)"
+    endchoice
+
+    config EXAMPLE_RANGING_FREQUENCY_HZ
+        int "Ranging frequency (Hz)"
+        range 1 60
+        default 15
+        help
+            Frames per second: 1..60 Hz in 4x4, 1..15 Hz in 8x8.
+
+    config EXAMPLE_MOTION_INDICATOR
+        bool "Enable the motion indicator"
+        default n
+        help
+            Have the sensor report, per aggregate of zones, how much the scene
+            moved between frames, and print it with every frame.
+
+    config EXAMPLE_MOTION_MIN_MM
+        int "Motion window start (mm)"
+        depends on EXAMPLE_MOTION_INDICATOR
+        range 400 4000
+        default 400
+
+    config EXAMPLE_MOTION_MAX_MM
+        int "Motion window end (mm)"
+        depends on EXAMPLE_MOTION_INDICATOR
+        range 400 4000
+        default 1500
+        help
+            At most 1500 mm past the window start.
+
+endmenu

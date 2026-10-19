@@ -12,7 +12,7 @@ Each app is a single HTML file; it also runs offline straight from its
 ``components/<name>/web/`` directory via a ``file://`` URL.
 
 The landing page groups the apps by category (*device management*, *motor
-control*, *bus tools*, *input devices*, *utilities*), can be filtered by name,
+control*, *bus tools*, *input devices*, *sensors*, *utilities*), can be filtered by name,
 description, protocol id, transport or category, and sorted by name or
 category. Each card shows the espp dispatcher protocols the app speaks (a
 trailing ``?`` marks an optional one, e.g. the System Console's
@@ -59,6 +59,12 @@ device may serve a protocol on any dispatcher module id.
   over SDO).
 - **MCP266 Console** (``mcp266_console.html``) — status, motor, and configuration
   controls for the :doc:`mcp266 <motor_control/mcp266>` motor controller.
+- **VL53L5CX Console** (``vl53l5cx_console.html``) — live 3D view (surface or
+  bar height field, coloured by distance / signal / sigma / reflectance /
+  status) of a :doc:`VL53L5CX / VL53L7CX <distance_sensors/vl53l5cx>`
+  multizone ToF sensor's 4x4 or 8x8 zones, with a numeric grid, per-zone
+  details, the motion indicator, every sensor setting and start / stop /
+  initialize controls.
 - **System Console** (``system_console.html``) — device info (chip, firmware,
   partitions, reset reason, uptime, memory), reboot and reboot-into-bootloader
   for the :doc:`system <system/system>` component, plus live heap gauges and a
@@ -70,6 +76,11 @@ device may serve a protocol on any dispatcher module id.
   drag / resize / minimise / maximise, dialogs, notifications) and streams
   clicks, edits, selections and key presses back; window placement is
   remembered per app and title.
+
+.. image:: https://github.com/user-attachments/assets/c5e4ac21-f534-4238-b0ff-1775eae6d014
+   :alt: espp VL53L5CX Console showing a live 8x8 frame as a 3D surface and as bars
+   :width: 100%
+   :target: https://esp-cpp.github.io/espp/apps/vl53l5cx_console.html
 
 Motor control
 =============
@@ -138,8 +149,8 @@ hand-maintained list; the page describes itself with tags in its ``<head>``:
 
 - ``<title>`` / ``description`` — the card's title and blurb.
 - ``espp-category`` (**required**) — one of ``device management``,
-  ``motor control``, ``bus tools``, ``input devices``, ``utilities``; the
-  section the card is listed under.
+  ``motor control``, ``bus tools``, ``input devices``, ``sensors``,
+  ``utilities``; the section the card is listed under.
 - ``espp-protocols`` — space-separated ``id:version`` entries naming the
   espp dispatcher protocols the app speaks (the same ids a device advertises
   in discovery, see :doc:`dispatcher/custom_modules`); a trailing ``?`` marks
