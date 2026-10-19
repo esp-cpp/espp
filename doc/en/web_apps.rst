@@ -77,6 +77,11 @@ device may serve a protocol on any dispatcher module id.
   clicks, edits, selections and key presses back; window placement is
   remembered per app and title.
 
+.. image:: https://github.com/user-attachments/assets/c5e4ac21-f534-4238-b0ff-1775eae6d014
+   :alt: espp VL53L5CX Console showing a live 8x8 frame as a 3D surface and as bars
+   :width: 100%
+   :target: https://esp-cpp.github.io/espp/apps/vl53l5cx_console.html
+
 Motor control
 =============
 

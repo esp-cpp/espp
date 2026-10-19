@@ -63,6 +63,8 @@ The hosted [VL53L5CX console](https://esp-cpp.github.io/espp/apps/vl53l5cx_conso
 (`web/vl53l5cx_console.html`) shows the frames as a live 3D view over WebUSB /
 Web Serial; see the [vl53l5cx_webapp_example](./vl53l5cx_webapp_example).
 
+![VL53L5CX console: live 3D surface view of an 8x8 frame](https://github.com/user-attachments/assets/dd696291-8066-4764-86a0-1ca3d2425e8f)
+
 ### License note
 
 The VL53L5CX firmware image and default configuration (`src/vl53l5cx_firmware.cpp`)

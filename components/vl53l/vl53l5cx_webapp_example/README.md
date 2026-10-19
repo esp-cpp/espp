@@ -14,6 +14,14 @@ connects over native USB and can
   motion indicator window, the I2C address — and
 - **control** it: start / stop ranging, re-initialize (firmware upload).
 
+![VL53L5CX console: surface view of an 8x8 frame, zones at their measured positions](https://github.com/user-attachments/assets/dd696291-8066-4764-86a0-1ca3d2425e8f)
+
+![VL53L5CX console: bars view, height = distance, with a zone's details](https://github.com/user-attachments/assets/8f81f078-9e8d-49bb-b516-2de3048baa5f)
+
+![VL53L5CX console live: orbiting the surface, the bars view and colouring by signal](https://github.com/user-attachments/assets/c5e4ac21-f534-4238-b0ff-1775eae6d014)
+
+(Live data from a VL53L5CX on an ESP32-P4-WIFI6 dev kit, 8x8 at 15 Hz.)
+
 The example runs the `espp::Vl53l5cx` driver **on the device** and exposes a
 small high-level protocol (`vl53l5cx_protocol.hpp`, dispatcher **module id
 10**, protocol id `espp.vl53l5cx`) through `espp::Vl53l5cxService`, so the web

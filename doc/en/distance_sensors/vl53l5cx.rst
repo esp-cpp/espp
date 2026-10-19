@@ -35,6 +35,16 @@ ranging frame. The hosted `VL53L5CX console
 surface or bar height field over WebUSB / Web Serial; the
 :doc:`vl53l5cx_webapp_example` runs it next to the standard USB services.
 
+.. image:: https://github.com/user-attachments/assets/dd696291-8066-4764-86a0-1ca3d2425e8f
+   :alt: VL53L5CX console: live 3D surface view of an 8x8 frame, zones at their measured positions
+   :width: 100%
+   :target: https://esp-cpp.github.io/espp/apps/vl53l5cx_console.html
+
+.. image:: https://github.com/user-attachments/assets/c5e4ac21-f534-4238-b0ff-1775eae6d014
+   :alt: VL53L5CX console live: orbiting the surface, the bars view and colouring by signal
+   :width: 100%
+   :target: https://esp-cpp.github.io/espp/apps/vl53l5cx_console.html
+
 .. ------------------------------- Examples ------------------------------------
 
 .. toctree::
