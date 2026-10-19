@@ -1,13 +1,23 @@
 #include <chrono>
+#include <map>
 #include <string>
 #include <thread>
 
 #include "i2c.hpp"
 #include "logger.hpp"
-#include "timer.hpp"
+#include "task.hpp"
 #include "vl53l5cx.hpp"
 
 using namespace std::chrono_literals;
+
+namespace {
+int invalid_total(const std::map<espp::Vl53l5cx::TargetStatus, int> &invalid) {
+  int total = 0;
+  for (const auto &[_status, count] : invalid)
+    total += count;
+  return total;
+}
+} // namespace
 
 extern "C" void app_main(void) {
   static espp::Logger logger({.tag = "VL53L5CX example", .level = espp::Logger::Verbosity::INFO});
@@ -74,32 +84,50 @@ extern "C" void app_main(void) {
   }
 
   // poll for frames and print the distance grid (mm; "----" where the zone
-  // has no valid target)
+  // has no valid target, with a summary of why). A plain task rather than a
+  // periodic timer: a frame read is ~1.4 KB of I2C (about 40 ms at 400 kHz),
+  // far longer than a sensible data-ready poll interval.
   espp::Vl53l5cx::RangingData frame;
-  auto poll_fn = [&]() {
-    std::error_code ec;
-    if (!sensor.is_data_ready(ec)) {
-      return false; // nothing new yet (or an I2C error, logged by the driver)
-    }
-    if (!sensor.get_ranging_data(frame, ec)) {
-      logger.error("Failed to read the frame: {}", ec.message());
-      return false;
-    }
-    std::string grid;
-    for (size_t row = 0; row < frame.width(); row++) {
-      for (size_t col = 0; col < frame.width(); col++) {
-        const size_t zone = frame.zone_index(row, col);
-        grid += frame.is_valid(zone) ? fmt::format("{:5d}", frame.distance_mm[zone]) : " ----";
-      }
-      grid += "\n";
-    }
-    fmt::print("{}\n", grid);
-    return false; // keep polling
-  };
-  espp::Timer timer({.period = 5ms,
-                     .callback = poll_fn,
-                     .task_config = {.name = "vl53l5cx poll", .stack_size_bytes = 6 * 1024},
-                     .log_level = espp::Logger::Verbosity::WARN});
+  espp::Task poll_task({
+      .callback = [&](std::mutex &m, std::condition_variable &cv) -> bool {
+        std::error_code ec;
+        if (!sensor.is_data_ready(ec)) {
+          // nothing new yet (an I2C error is logged by the driver); check again soon
+          std::unique_lock<std::mutex> lock(m);
+          cv.wait_for(lock, 5ms);
+          return false;
+        }
+        if (!sensor.get_ranging_data(frame, ec)) {
+          logger.error("Failed to read the frame: {}", ec.message());
+          return false;
+        }
+        std::string grid;
+        std::map<espp::Vl53l5cx::TargetStatus, int> invalid;
+        for (size_t row = 0; row < frame.width(); row++) {
+          for (size_t col = 0; col < frame.width(); col++) {
+            const size_t zone = frame.zone_index(row, col);
+            if (frame.is_valid(zone)) {
+              grid += fmt::format("{:5d}", frame.distance_mm[zone]);
+            } else {
+              grid += " ----";
+              invalid[frame.status(zone)]++;
+            }
+          }
+          grid += "\n";
+        }
+        std::string why;
+        for (const auto &[status, count] : invalid) {
+          why += fmt::format("  {} x {} ({})", count, static_cast<int>(status),
+                             espp::Vl53l5cx::target_status_name(status));
+        }
+        fmt::print("{}{} / {} zones valid{}\n\n", grid, frame.num_zones() - invalid_total(invalid),
+                   frame.num_zones(), why.empty() ? "" : ";" + why);
+        return false; // keep polling
+      },
+      .task_config = {.name = "vl53l5cx poll", .stack_size_bytes = 6 * 1024},
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
+  poll_task.start();
   //! [vl53l5cx example]
 
   while (true) {

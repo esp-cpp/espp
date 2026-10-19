@@ -12,7 +12,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py timer logger vl53l i2c"
+  "main esptool_py task logger vl53l i2c"
   CACHE STRING
   "List of components to include"
   )

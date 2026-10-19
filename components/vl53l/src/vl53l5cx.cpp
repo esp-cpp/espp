@@ -267,7 +267,20 @@ bool Vl53l5cx::initialize(std::error_code &ec) {
   ranging_ = false;
   motion_enabled_ = false;
 
-  if (!is_alive(ec)) {
+  // The first transaction after a HOST reset can fail: the sensor may still be
+  // clocking out the frame the previous firmware was reading when the host
+  // went away, holding SDA low until that byte completes (seen on the bench:
+  // "Write of 1 bytes to 0x7fff failed" right after a reset while ranging).
+  // A few retries let it finish; a sensor that stays silent still fails.
+  bool alive = false;
+  for (int attempt = 0; attempt < 5; ++attempt) {
+    alive = is_alive(ec);
+    if (alive || !ec) {
+      break; // answered, or answered with the wrong ids
+    }
+    std::this_thread::sleep_for(2ms);
+  }
+  if (!alive) {
     // never upload the firmware into something that is not a VL53L5CX
     if (!ec) {
       ec = std::make_error_code(std::errc::no_such_device);

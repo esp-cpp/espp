@@ -7,13 +7,15 @@ The example initializes the sensor (which uploads the sensor's firmware over
 I2C, about two seconds at 400 kHz), configures the resolution (8x8 zones by
 default) and the ranging frequency (15 Hz by default), starts ranging and then
 prints every frame as a grid of distances in millimeters, with `----` for the
-zones that have no valid target.
+zones that have no valid target and a summary line of why (the target status
+counts; 255 "no target" is a zone with nothing within reach).
 
 ## Hardware Required
 
 This example is designed to work with any ESP32 which has I2C pins exposed, but
 is pre-configured to run on QtPy boards such as the QtPy ESP32 Pico and QtPy
-ESP32-S3.
+ESP32-S3, and on the ESP32-P4 dev kits (SDA 7, SCL 8) when the target is
+esp32p4. Tested on an ESP32-P4-WIFI6 dev kit with a VL53L5CX breakout.
 
 It requires a VL53L5CX breakout, such as the [SparkFun Qwiic ToF Imager
 VL53L5CX](https://www.sparkfun.com/products/18642) or ST's
