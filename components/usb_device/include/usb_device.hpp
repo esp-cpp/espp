@@ -356,6 +356,14 @@ public:
      *  full-speed port, shared with the USB-Serial-JTAG console), so this lets
      *  the application pick the connector. */
     int port{-1};
+    /** ESP32-P4 only, for the full-speed port (`port` 0): which of the two
+     *  internal full-speed PHYs (pad pairs) the USB-OTG 1.1 controller drives.
+     *  0 = GPIO 24 / 25, the pads the USB-Serial-JTAG console normally uses
+     *  (the USB-C connector of the Espressif / Waveshare dev kits; the
+     *  console moves to the other pair while TinyUSB owns the port), 1 =
+     *  GPIO 26 / 27 (IDF's power-on mapping), -1 = leave the mapping alone.
+     *  Ignored on other targets and for the high-speed port. */
+    int fs_phy{0};
 
     std::optional<CdcFunction> cdc{};       /**< Enable a CDC-ACM function. */
     std::optional<VendorFunction> vendor{}; /**< Enable a vendor-specific / WebUSB function. */

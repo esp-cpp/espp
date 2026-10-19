@@ -165,9 +165,8 @@ struct SetFrameStream {
 /// [frequency_hz u8][integration_ms u32][sharpener u8][target_order u8]
 /// [ranging_mode u8][power_mode u8][motion_min_mm u16][motion_max_mm u16]
 /// [frame_count u32][frame_rate_chz u16][stream_divider u8].
-/// The sensor settings are the values read back from the sensor (its own
-/// defaults after an INITIALIZE); while ranging they are the last values read
-/// or set (the firmware cannot be queried mid-ranging).
+/// The sensor settings are the values read back from the sensor at the time
+/// of the request (its own defaults after an INITIALIZE).
 struct Status {
   bool initialized{false};     ///< the firmware is uploaded and the sensor answers
   bool ranging{false};         ///< between a successful START and STOP

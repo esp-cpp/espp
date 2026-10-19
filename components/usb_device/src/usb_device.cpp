@@ -15,6 +15,10 @@
 
 #include "tinyusb.h"
 #include "tinyusb_default_config.h"
+#if CONFIG_IDF_TARGET_ESP32P4
+#include "hal/usb_wrap_ll.h" // usb_wrap_ll_phy_select: which FS PHY pads USB-OTG 1.1 drives
+#include "soc/usb_wrap_struct.h"
+#endif
 #include "tusb.h"
 // Only pull in the CDC-ACM helper when the CDC class is actually compiled in
 // (CONFIG_TINYUSB_CDC_COUNT > 0 -> CFG_TUD_CDC). This keeps XInput-only / vendor-
@@ -1505,6 +1509,23 @@ bool UsbDevice::initialize(std::error_code &ec) {
     }
     tusb_cfg.port = static_cast<tinyusb_port_t>(config_.port);
   }
+#if CONFIG_IDF_TARGET_ESP32P4
+  // The P4 has two internal full-speed PHYs; at power-on the USB-Serial-JTAG
+  // owns PHY 0 (GPIO 24 / 25, the dev kits' USB-C) and USB-OTG 1.1 is wired to
+  // PHY 1 (GPIO 26 / 27), and IDF never swaps them. A full-speed device meant
+  // for the USB-C therefore has to take PHY 0 (the console moves to PHY 1).
+  if (tusb_cfg.port == TINYUSB_PORT_FULL_SPEED_0 && config_.fs_phy >= 0) {
+    if (config_.fs_phy > 1) {
+      logger_.error("Invalid fs_phy {} (0 = GPIO 24/25, 1 = GPIO 26/27, -1 = leave)",
+                    config_.fs_phy);
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+    usb_wrap_ll_phy_select(&USB_WRAP, static_cast<unsigned int>(config_.fs_phy));
+    logger_.info("USB-OTG 1.1 on full-speed PHY {} (GPIO {})", config_.fs_phy,
+                 config_.fs_phy == 0 ? "24/25" : "26/27");
+  }
+#endif
   tusb_cfg.descriptor.device = &impl_->device_desc;
   tusb_cfg.descriptor.string = impl_->strings.data();
   tusb_cfg.descriptor.string_count = static_cast<int>(impl_->strings.size());

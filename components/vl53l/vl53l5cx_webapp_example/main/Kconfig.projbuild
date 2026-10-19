@@ -97,14 +97,17 @@ menu "Example Configuration"
 
     choice EXAMPLE_USB_PORT
         prompt "USB port"
+        default EXAMPLE_USB_PORT_FULL_SPEED if EXAMPLE_HARDWARE_ESP32_P4_DEVKIT
         default EXAMPLE_USB_PORT_DEFAULT
         help
             Which USB-OTG port TinyUSB drives. The ESP32-P4 has two: the
             USB 2.0 high-speed port (TinyUSB's default there) and the USB 1.1
             full-speed port shared with the USB-Serial-JTAG console. Boards do
             not always route the high-speed port to a device-capable
-            connector, so pick the one wired to the connector you plug the
-            host into. Other targets have a single full-speed port.
+            connector (the Waveshare ESP32-P4-WIFI6 dev kit's USB-C is the
+            full-speed port; its high-speed port goes to the USB-A host jack),
+            so pick the one wired to the connector you plug the host into.
+            Other targets have a single full-speed port.
 
         config EXAMPLE_USB_PORT_DEFAULT
             bool "TinyUSB's default for the target (P4: high-speed)"

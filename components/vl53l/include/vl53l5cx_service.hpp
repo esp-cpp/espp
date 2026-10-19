@@ -51,7 +51,8 @@ namespace espp {
  * espp::DispatcherWorker) and the reply is sent after the mutex is released.
  * Frames arrive through on_frame() from the application's poll task and are
  * forwarded (every Nth, see SetFrameStream) while the host has the stream
- * enabled; the latest one is kept for GetFrame.
+ * enabled; the latest one is kept for GetFrame. A STATUS snapshot reads every
+ * setting back from the sensor (seven DCI reads; allowed while ranging).
  *
  * \section vl53l5cx_service_ex1 Vl53l5cxService Example
  * \snippet vl53l5cx_webapp_example.cpp vl53l5cx_webapp_example
@@ -168,14 +169,14 @@ public:
       send(Reply::Frame, payload);
   }
 
-  /// @brief Take a STATUS snapshot (reads the settings back from the sensor
-  ///        when it is idle; the cached values while it is ranging).
+  /// @brief Take a STATUS snapshot (reads the settings back from the sensor).
   Status read_status() {
     Status s;
     {
       std::lock_guard<std::mutex> lock(sensor_mutex_);
-      if (sensor_.is_initialized() && !sensor_.is_ranging())
-        refresh_settings_locked();
+      if (sensor_.is_initialized())
+        refresh_settings_locked(); // the firmware answers reads while ranging (only writes are
+                                   // refused)
       s = settings_;
       s.initialized = sensor_.is_initialized();
       s.ranging = sensor_.is_ranging();
@@ -254,7 +255,7 @@ protected:
             .count());
   }
 
-  /// Read every setting back from the sensor (sensor mutex held, sensor idle).
+  /// Read every setting back from the sensor (sensor mutex held).
   void refresh_settings_locked() {
     std::error_code ec;
     settings_.zones = static_cast<uint8_t>(sensor_.get_resolution(ec));
@@ -469,7 +470,7 @@ protected:
   Config config_;
   std::mutex own_mutex_;
   std::mutex &sensor_mutex_;
-  Status settings_{}; ///< last settings read from / written to the sensor (sensor mutex)
+  Status settings_{}; ///< settings last read from / written to the sensor (sensor mutex)
   std::atomic<bool> stream_enabled_{false};
   std::atomic<uint8_t> stream_divider_;
   std::atomic<uint32_t> frame_count_{0};

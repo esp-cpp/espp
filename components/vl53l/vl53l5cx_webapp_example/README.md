@@ -30,9 +30,11 @@ breakout's pull-up). `idf.py menuconfig` → *Example Configuration* selects the
 hardware (QtPy ESP32-S3: SDA 41 / SCL 40; ESP32-P4 dev kits: SDA 7 / SCL 8; or
 custom pins), the I2C clock, the **part** (VL53L5CX / VL53L7CX — same ids,
 different firmware image), the resolution and frequency at boot, whether
-ranging starts at boot, and on the ESP32-P4 which **USB port** TinyUSB drives
-(the high-speed port by default; the full-speed port is shared with the
-USB-Serial-JTAG console).
+ranging starts at boot, and on the ESP32-P4 which **USB port** TinyUSB drives:
+the full-speed port for the dev kits (their USB-C is the full-speed port, the
+one the USB-Serial-JTAG console normally uses; `espp::UsbDevice` moves the
+USB-OTG 1.1 controller onto those pads, see `UsbDevice::Config::fs_phy`), or
+the high-speed port where a board routes it to a device-capable connector.
 
 ## Protocol (module 10, `espp.vl53l5cx` v1)
 
@@ -63,8 +65,7 @@ are little-endian.
 | `0x93` ERROR | D→H | `[request_type u8][code u32][utf8 message]` |
 
 Settings are refused by the sensor while it is ranging (the device answers
-ERROR); STATUS reports the settings read back from the sensor when it is idle
-and the last known values while it ranges.
+ERROR); STATUS reports the settings read back from the sensor.
 
 ## Build & flash
 

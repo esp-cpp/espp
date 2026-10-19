@@ -82,7 +82,12 @@ for back-compatibility.
 - **Port selection** (`Config::port`): on targets with two USB-OTG
   controllers (ESP32-P4) pick the full-speed or the high-speed port; boards do
   not always route the high-speed port to a device-capable connector (the
-  M5Stack Tab5's USB-C carries the full-speed port).
+  M5Stack Tab5's and the Espressif / Waveshare dev kits' USB-C carry the
+  full-speed port). On the P4 the full-speed port also needs the right PHY
+  (`Config::fs_phy`): the chip has two full-speed pad pairs, IDF leaves
+  USB-OTG 1.1 on GPIO 26 / 27, and the USB-C (shared with the USB-Serial-JTAG
+  console) is GPIO 24 / 25 — the default here, so a full-speed device shows up
+  on the connector.
 - **Idiomatic espp**: no exceptions; `initialize()` reports failures via
   `std::error_code`.
 - **Safe marshaling**: the TinyUSB RX callbacks (TinyUSB task context) are drained
