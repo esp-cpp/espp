@@ -41,7 +41,8 @@ inline constexpr size_t kFirmwareSize = 86016;
 inline constexpr size_t kDefaultConfigurationSize = 972;
 inline constexpr size_t kDefaultXtalkSize = 776;
 inline constexpr size_t kGetNvmCommandSize = 40;
-extern const uint8_t kFirmware[kFirmwareSize];
+extern const uint8_t kFirmware[kFirmwareSize];         ///< VL53L5CX (63 deg FoV)
+extern const uint8_t kFirmwareVl53l7cx[kFirmwareSize]; ///< VL53L7CX (90 deg FoV), same size
 extern const uint8_t kDefaultConfiguration[kDefaultConfigurationSize];
 extern const uint8_t kDefaultXtalk[kDefaultXtalkSize];
 extern const uint8_t kGetNvmCommand[kGetNvmCommandSize];

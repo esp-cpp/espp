@@ -36,13 +36,18 @@ extern "C" void app_main(void) {
   // the constructor reboots the sensor and uploads its firmware (about two
   // seconds at 400 kHz). The callbacks take the address from the driver, so
   // set_i2c_address() keeps working (a per-device adapter would not).
-  espp::Vl53l5cx sensor(espp::Vl53l5cx::Config{
-      .device_address = espp::Vl53l5cx::DEFAULT_ADDRESS,
-      .write = [&i2c](uint8_t address, const uint8_t *data,
-                      size_t length) { return i2c.write(address, data, length); },
-      .read = [&i2c](uint8_t address, uint8_t *data,
-                     size_t length) { return i2c.read(address, data, length); },
-      .log_level = espp::Logger::Verbosity::INFO,
+  espp::Vl53l5cx sensor(espp::Vl53l5cx::Config {
+    .device_address = espp::Vl53l5cx::DEFAULT_ADDRESS,
+#if CONFIG_EXAMPLE_VARIANT_VL53L7CX
+    .variant = espp::Vl53l5cx::Variant::VL53L7CX,
+#else
+      .variant = espp::Vl53l5cx::Variant::VL53L5CX,
+#endif
+    .write = [&i2c](uint8_t address, const uint8_t *data,
+                    size_t length) { return i2c.write(address, data, length); },
+    .read = [&i2c](uint8_t address, uint8_t *data,
+                   size_t length) { return i2c.read(address, data, length); },
+    .log_level = espp::Logger::Verbosity::INFO,
   });
   if (!sensor.is_initialized()) {
     logger.error("The VL53L5CX did not initialize; check the wiring and the address");

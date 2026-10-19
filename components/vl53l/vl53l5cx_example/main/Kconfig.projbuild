@@ -40,6 +40,21 @@ menu "Example Configuration"
             Plus); the firmware upload at initialization takes about two
             seconds at 400 kHz.
 
+    choice EXAMPLE_VARIANT
+        prompt "Sensor part"
+        default EXAMPLE_VARIANT_VL53L5CX
+        help
+            The VL53L5CX (63 deg field of view) and the VL53L7CX (90 deg) answer
+            the same ids over I2C but need different firmware images; pick the
+            part printed on the module.
+
+        config EXAMPLE_VARIANT_VL53L5CX
+            bool "VL53L5CX"
+
+        config EXAMPLE_VARIANT_VL53L7CX
+            bool "VL53L7CX"
+    endchoice
+
     choice EXAMPLE_RESOLUTION
         prompt "Ranging resolution"
         default EXAMPLE_RESOLUTION_8X8

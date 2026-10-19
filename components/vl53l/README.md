@@ -8,7 +8,7 @@ Drivers for ST's VL53L Time-of-Flight (ToF) sensors that talk over I2C with
 | Class | Sensors | What it measures |
 | --- | --- | --- |
 | `espp::Vl53l` (`vl53l.hpp`) | VL53L4CD, VL53L4CX | one distance, up to 1.3 m (CD) or 6 m (CX), 1 mm resolution |
-| `espp::Vl53l5cx` (`vl53l5cx.hpp`) | VL53L5CX | a 4x4 or 8x8 grid of distances up to 4 m over a 63° diagonal field of view, at up to 60 Hz (4x4) or 15 Hz (8x8) |
+| `espp::Vl53l5cx` (`vl53l5cx.hpp`) | VL53L5CX, VL53L7CX | a 4x4 or 8x8 grid of distances up to 4 m over a 63° (L5CX) or 90° (L7CX) diagonal field of view, at up to 60 Hz (4x4) or 15 Hz (8x8) |
 
 The sensors use a laser to send a pulse of light and measure the time it takes
 for the light to reflect back. They can struggle outdoors, as sunlight
@@ -26,7 +26,11 @@ autonomous mode, data-ready polling and interrupt clearing.
 
 ## VL53L5CX (`espp::Vl53l5cx`)
 
-Multizone ranging. The sensor has no firmware in ROM: `initialize()` (run by
+Multizone ranging, for the VL53L5CX and the VL53L7CX (its 90° sibling: the
+same silicon, ids and command interface, a different firmware image -
+`Config::variant` picks it, since the parts cannot be told apart over I2C; the
+wrong image fails at the first firmware command after boot). The sensor has
+no firmware in ROM: `initialize()` (run by
 the constructor by default) reboots it and uploads the ~84 KB VL53L5CX firmware
 over I2C, which takes about two seconds at 400 kHz (the sensor supports 1 MHz
 Fast Mode Plus). The driver then offers:

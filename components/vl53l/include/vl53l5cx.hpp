@@ -9,10 +9,11 @@
 #include "base_peripheral.hpp"
 
 namespace espp {
-/// \brief VL53L5CX multizone Time-of-Flight ranging sensor (4x4 / 8x8 zones)
+/// \brief VL53L5CX / VL53L7CX multizone Time-of-Flight ranging sensor (4x4 / 8x8 zones)
 /// \details
 /// The VL53L5CX is a Time-of-Flight (ToF) sensor with a 63 degree diagonal
-/// field of view that ranges up to 4 m in every zone of a 4x4 or 8x8 grid, at
+/// field of view (the VL53L7CX: the same sensor with a 90 degree field of
+/// view) that ranges up to 4 m in every zone of a 4x4 or 8x8 grid, at
 /// up to 60 Hz (4x4) or 15 Hz (8x8). Every zone reports a distance, a signal
 /// / ambient rate, a sigma, a reflectance estimate and a validity status; the
 /// sensor can also run a motion indicator over the zones.
@@ -27,6 +28,11 @@ namespace espp {
 /// Results are reported per zone in row-major order (`zone = row * width +
 /// col`, width 4 or 8); for the physical orientation of zone 0 see UM2884
 /// ("Ranging data arrangement").
+///
+/// \note The VL53L5CX and VL53L7CX answer the same device / revision ids and
+/// take different firmware images: Config::variant selects the image, and a
+/// wrong one fails at the first firmware command after boot (the NVM read)
+/// with a firmware error. There is no way to tell the parts apart over I2C.
 ///
 /// \note The communication uses 16-bit register addresses, like the VL53L4
 /// driver (espp::Vl53l) in this component, but the two devices share nothing
@@ -68,6 +74,12 @@ public:
         (uint64_t{MAX_TRANSFER_BYTES} * 9 * 1000 + clock_hz - 1) / clock_hz;
     return static_cast<int>(transfer_ms * 2 + 10);
   }
+
+  /// \brief Which part is on the bus (same ids, different firmware image)
+  enum class Variant : uint8_t {
+    VL53L5CX = 0, ///< 63 degree diagonal field of view
+    VL53L7CX = 1, ///< 90 degree diagonal field of view
+  };
 
   /// \brief Number of ranging zones
   enum class Resolution : uint8_t {
@@ -161,6 +173,7 @@ public:
   /// \brief Configuration
   struct Config {
     uint8_t device_address = DEFAULT_ADDRESS; ///< I2C address of the sensor
+    Variant variant = Variant::VL53L5CX;      ///< The part: selects the firmware image
     Base::write_fn write = nullptr; ///< Write function; the address argument is the sensor's
                                     ///< current address (see set_i2c_address())
     Base::read_fn read = nullptr;   ///< Read function (same note)
@@ -415,6 +428,9 @@ protected:
   bool dci_replace_data(uint16_t index, uint16_t size, const uint8_t *new_data, uint16_t new_size,
                         uint16_t new_pos, std::error_code &ec);
 
+  /// Wait for the MCU to boot after its reset (0x06 bit 7), then read its
+  /// boot error code (0x07); the ULD 1.3 / L7CX 1.2 sequence.
+  bool wait_for_mcu_boot(std::error_code &ec);
   bool send_offset_data(Resolution resolution, std::error_code &ec);
   bool send_xtalk_data(Resolution resolution, std::error_code &ec);
   bool refuse_while_ranging(const char *what, std::error_code &ec);
@@ -423,6 +439,7 @@ protected:
   void motion_set_resolution(Resolution resolution);
 
   std::recursive_mutex mutex_;
+  Variant variant_{Variant::VL53L5CX};
   std::atomic<bool> initialized_{false}; ///< read lock-free by is_initialized()
   std::atomic<bool> ranging_{false};     ///< read lock-free by is_ranging()
   Resolution resolution_{Resolution::ZONES_4X4};

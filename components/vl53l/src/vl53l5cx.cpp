@@ -28,7 +28,8 @@ void store_u32(uint8_t *p, uint32_t v) { std::memcpy(p, &v, sizeof(v)); }
 } // namespace
 
 Vl53l5cx::Vl53l5cx(const Config &config)
-    : Base({}, "Vl53l5cx", config.log_level) {
+    : Base({}, "Vl53l5cx", config.log_level)
+    , variant_(config.variant) {
   set_address(config.device_address);
   set_write(config.write);
   set_read(config.read);
@@ -128,7 +129,10 @@ bool Vl53l5cx::poll_for_answer(size_t size, size_t pos, uint16_t reg, uint8_t ma
     }
     // byte 2 of a 4-byte command status is the firmware's error code
     if (size >= 4 && temp_buffer_[2] >= 0x7f) {
-      logger_.error("Firmware error 0x{:02x} while polling 0x{:04x}", temp_buffer_[2], reg);
+      logger_.error("Firmware error 0x{:02x} while polling 0x{:04x} (status bytes {:02x} {:02x} "
+                    "{:02x} {:02x}, wanted byte {} & 0x{:02x} == 0x{:02x})",
+                    temp_buffer_[2], reg, temp_buffer_[0], temp_buffer_[1], temp_buffer_[2],
+                    temp_buffer_[3], pos, mask, expected);
       ec = std::make_error_code(std::errc::io_error);
       return false;
     }
@@ -336,10 +340,12 @@ bool Vl53l5cx::initialize(std::error_code &ec) {
   }
 
   // upload the firmware: three RAM pages (0x7fff selects the page)
-  logger_.info("Uploading the VL53L5CX firmware ({} bytes)", kFirmwareSize);
-  if (!write_byte(0x7fff, 0x09, ec) || !write_multi(0, kFirmware, 0x8000, ec) ||
-      !write_byte(0x7fff, 0x0a, ec) || !write_multi(0, kFirmware + 0x8000, 0x8000, ec) ||
-      !write_byte(0x7fff, 0x0b, ec) || !write_multi(0, kFirmware + 0x10000, 0x5000, ec) ||
+  const uint8_t *firmware = variant_ == Variant::VL53L7CX ? kFirmwareVl53l7cx : kFirmware;
+  logger_.info("Uploading the {} firmware ({} bytes)",
+               variant_ == Variant::VL53L7CX ? "VL53L7CX" : "VL53L5CX", kFirmwareSize);
+  if (!write_byte(0x7fff, 0x09, ec) || !write_multi(0, firmware, 0x8000, ec) ||
+      !write_byte(0x7fff, 0x0a, ec) || !write_multi(0, firmware + 0x8000, 0x8000, ec) ||
+      !write_byte(0x7fff, 0x0b, ec) || !write_multi(0, firmware + 0x10000, 0x5000, ec) ||
       !write_byte(0x7fff, 0x01, ec)) {
     logger_.error("Firmware upload failed");
     return false;
@@ -354,17 +360,19 @@ bool Vl53l5cx::initialize(std::error_code &ec) {
   // reset the MCU and wait for it to boot
   static constexpr Step kResetMcu[] = {{0x7FFF, 0x00}, {0x114, 0x00}, {0x115, 0x00}, {0x116, 0x42},
                                        {0x117, 0x00},  {0x0B, 0x00},  {0x0C, 0x00},  {0x0B, 0x01}};
-  if (!run(kResetMcu, std::size(kResetMcu)) || !poll_for_answer(1, 0, 0x06, 0xff, 0x00, ec) ||
+  if (!run(kResetMcu, std::size(kResetMcu)) || !wait_for_mcu_boot(ec) ||
       !write_byte(0x7fff, 0x02, ec)) {
-    logger_.error("The MCU did not boot");
     return false;
   }
 
-  // read the NVM (per-unit offset calibration) into the offset buffer
+  // read the NVM (per-unit offset calibration) into the offset buffer: the
+  // first command to the running firmware, so this is where a firmware image
+  // for the other part fails
   if (!write_multi(0x2fd8, kGetNvmCommand, kGetNvmCommandSize, ec) ||
       !poll_for_answer(4, 0, UI_CMD_STATUS, 0xff, 2, ec) ||
       !read_multi(UI_CMD_START, temp_buffer_.data(), NVM_DATA_SIZE, ec)) {
-    logger_.error("Reading the NVM data failed");
+    logger_.error("Reading the NVM data failed (a VL53L5CX and a VL53L7CX answer the same ids "
+                  "but need different firmware: check Config::variant)");
     return false;
   }
   std::memcpy(offset_data_.data(), temp_buffer_.data(), OFFSET_BUFFER_SIZE);
@@ -393,6 +401,36 @@ bool Vl53l5cx::initialize(std::error_code &ec) {
   initialized_ = true;
   logger_.info("Initialized (4x4, autonomous, 1 Hz)");
   return true;
+}
+
+bool Vl53l5cx::wait_for_mcu_boot(std::error_code &ec) {
+  using namespace std::chrono_literals;
+  for (int attempt = 0; attempt < 500; ++attempt) {
+    uint8_t go2_status0 = 0;
+    if (!read_byte(0x06, go2_status0, ec)) {
+      return false;
+    }
+    if (go2_status0 & 0x80) {
+      uint8_t go2_status1 = 0;
+      if (!read_byte(0x07, go2_status1, ec)) {
+        return false;
+      }
+      if (go2_status1 != 0) {
+        logger_.error("The MCU booted with error 0x{:02x} (0x06 = 0x{:02x})", go2_status1,
+                      go2_status0);
+        ec = std::make_error_code(std::errc::io_error);
+        return false;
+      }
+      return true;
+    }
+    if (go2_status0 & 0x01) {
+      return true;
+    }
+    std::this_thread::sleep_for(1ms);
+  }
+  logger_.error("The MCU did not boot within 500 ms");
+  ec = std::make_error_code(std::errc::timed_out);
+  return false;
 }
 
 bool Vl53l5cx::send_offset_data(Resolution resolution, std::error_code &ec) {
