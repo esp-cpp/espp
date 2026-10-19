@@ -196,7 +196,7 @@
             <label>View <select id="viewMode"><option value="surface">Surface (zones at their measured position)</option><option value="bars">Bars (height = distance)</option></select></label>
             <label>Color <select id="colorBy"><option value="distance">distance</option><option value="signal">signal (kcps/SPAD)</option><option value="ambient">ambient (kcps/SPAD)</option><option value="sigma">sigma (mm)</option><option value="reflectance">reflectance (%)</option><option value="status">target status</option></select></label>
             <label title="Which zones are plotted: statuses 5 / 9 are valid ranges, 6 / 10 / 12 are ranges the sensor reports with lower confidence, the rest are failed measurements; a zone with no target is never plotted">Show <select id="showZones"><option value="low">valid + low confidence</option><option value="valid">valid only (5, 9)</option><option value="any">any target</option></select></label>
-            <label title="Color / height range; auto follows the frame's min and max"><input type="checkbox" id="autoRange" checked> auto range</label>
+            <label title="Colour / bar-height range. Sensor: the metric's full scale (0-4000 mm for the distance), so the same distance always has the same colour. Auto: follows the frame's extent, widening at once and narrowing slowly. Manual: the two fields.">Range <select id="rangeMode"><option value="sensor">sensor scale</option><option value="auto">auto (follow the frame)</option><option value="manual">manual</option></select></label>
             <span class="nowrap"><input type="number" id="rangeMin" class="tiny" value="0" min="0" step="100" disabled title="range minimum"> <span class="muted">to</span> <input type="number" id="rangeMax" class="tiny" value="4000" min="1" step="100" disabled title="range maximum"></span>
             <label title="Taller bars for closer targets"><input type="checkbox" id="invertBars"> near = tall</label>
             <label title="Mirror the grid left-right / top-bottom to match the scene (zone 0's physical corner depends on how the module is mounted, see UM2884)"><input type="checkbox" id="mirrorX"> mirror X</label>
@@ -331,7 +331,7 @@
     const els = {};
     for (const id of ["status","connectUsbBtn","connectSerialBtn","disconnectBtn","anyDevice","autoReconnect","devInfo",
       "sensorState","devPart","devAddr","devZones","devRate","devFrames","rxRate","liveFrames","streamDivider","snapshotBtn","refreshBtn",
-      "startBtn","stopBtn","initBtn","viewMode","colorBy","autoRange","rangeMin","rangeMax","invertBars","mirrorX","mirrorY","autoRotate","resetViewBtn",
+      "startBtn","stopBtn","initBtn","viewMode","colorBy","rangeMode","rangeMin","rangeMax","invertBars","mirrorX","mirrorY","autoRotate","resetViewBtn",
       "view3d","legendMax","legendBar","legendMin","noData","zones","showZones","rangeHint","settingsNote",
       "sResolution","sResolutionBtn","sFrequency","sFrequencyBtn","sIntegration","sIntegrationBtn","sSharpener","sSharpenerBtn",
       "sTargetOrder","sTargetOrderBtn","sRangingMode","sRangingModeBtn","sPowerMode","sPowerModeBtn","sMotionMin","sMotionMax","sMotionBtn",
@@ -1043,15 +1043,43 @@
       }
     }
     function metricUnit() { const c = els.colorBy.value; return c === "distance" || c === "sigma" ? " mm" : c === "reflectance" ? " %" : c === "status" ? "" : " kcps"; }
-    // the colour / height range in use: auto = the valid zones' min..max (with a floor of 1 mm of span)
+    // The colour / bar-height range. "sensor" = the metric's full scale, so a
+    // given value always gets the same colour frame after frame (the sensor
+    // ranges 0..4 m; signal / ambient have no fixed scale and fall back to
+    // auto). "auto" follows the frame's extent with hysteresis -- it widens at
+    // once but narrows only slowly, and its ends are rounded to a tidy step --
+    // so a few millimetres of noise does not re-colour the whole grid.
+    const FULL_SCALE = { distance: [0, 4000], reflectance: [0, 100], sigma: [0, 32] };
+    const rangeTrack = { metric: null, lo: null, hi: null, frame: null };
+    function niceStep(span) { const p = Math.pow(10, Math.floor(Math.log10(Math.max(1, span)))); const m = span / p; return m >= 5 ? p : m >= 2 ? p / 2 : p / 5; }
     function currentRange(f) {
-      if (!els.autoRange.checked) { const lo = Number(els.rangeMin.value) || 0, hi = Number(els.rangeMax.value) || 1; return hi > lo ? [lo, hi] : [lo, lo + 1]; }
-      if (els.colorBy.value === "status") return [0, 14];
+      const metric = els.colorBy.value, mode = els.rangeMode.value;
+      if (mode === "manual") { const lo = Number(els.rangeMin.value) || 0, hi = Number(els.rangeMax.value) || 1; return hi > lo ? [lo, hi] : [lo, lo + 1]; }
+      if (metric === "status") return [0, 14];
+      const full = FULL_SCALE[metric];
+      if (mode === "sensor" && full) return full;
       let lo = Infinity, hi = -Infinity;
-      if (f) for (let i = 0; i < f.zones; i++) { if (!isShown(f.status[i]) && els.colorBy.value === "distance") continue; const v = metricOf(f, i); if (v < lo) lo = v; if (v > hi) hi = v; }
-      if (!Number.isFinite(lo)) return [0, 4000];
+      if (f) for (let i = 0; i < f.zones; i++) { if (!isShown(f.status[i]) && metric === "distance") continue; const v = metricOf(f, i); if (v < lo) lo = v; if (v > hi) hi = v; }
+      if (!Number.isFinite(lo)) return full || [0, 1];
       if (hi - lo < 1) hi = lo + 1;
-      return [lo, hi];
+      if (rangeTrack.metric !== metric || rangeTrack.lo == null) { rangeTrack.metric = metric; rangeTrack.lo = lo; rangeTrack.hi = hi; rangeTrack.frame = f; }
+      else if (rangeTrack.frame !== f) { // one update per frame: widen at once, narrow 5 % of the way
+        rangeTrack.frame = f;
+        rangeTrack.lo = lo < rangeTrack.lo ? lo : rangeTrack.lo + (lo - rangeTrack.lo) * 0.05;
+        rangeTrack.hi = hi > rangeTrack.hi ? hi : rangeTrack.hi + (hi - rangeTrack.hi) * 0.05;
+      }
+      const step = niceStep(rangeTrack.hi - rangeTrack.lo);
+      const rlo = Math.floor(rangeTrack.lo / step) * step, rhi = Math.ceil(rangeTrack.hi / step) * step;
+      return rhi > rlo ? [rlo, rhi] : [rlo, rlo + step];
+    }
+    // The 3D scene scale (the far distance framed) is tracked the same way, so
+    // the view does not zoom in and out with every frame.
+    let sceneFar = 0;
+    function trackSceneFar(f) {
+      let far = 0; for (let i = 0; i < f.zones; i++) if (isShown(f.status[i]) && f.distance[i] > far) far = f.distance[i];
+      far = Math.max(300, far);
+      sceneFar = far > sceneFar ? far : sceneFar + (far - sceneFar) * 0.03;
+      return Math.ceil(sceneFar / 250) * 250;
     }
     // a 7-stop "turbo"-like ramp (dark blue -> cyan -> green -> yellow -> orange -> red)
     const RAMP = [[48,18,59],[65,102,221],[31,201,163],[162,234,42],[250,186,25],[237,88,29],[122,4,3]];
@@ -1168,9 +1196,7 @@
       const range = currentRange(f);
       const bars = els.viewMode.value === "bars";
       // scene scale: the far distance in view (mm); bars: the grid's extent
-      let far = 0; for (let i = 0; i < f.zones; i++) if (isShown(f.status[i]) && f.distance[i] > far) far = f.distance[i];
-      if (els.colorBy.value === "distance" && !els.autoRange.checked) far = Math.max(far, range[1]);
-      far = Math.max(300, far);
+      const far = trackSceneFar(f);
       const scale = bars ? f.width * 1.1 : far;                 // world units per "scene unit"
       const centre = bars ? [0, 0.25 * scale, 0] : [0, 0, far * 0.5];
       const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
@@ -1300,7 +1326,7 @@
       if (els.autoRotate.checked && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) autoRotateTimer = setInterval(() => { if (!drag) { cam.yaw += 0.006; requestRender(); } }, 33);
     });
     for (const id of ["viewMode", "colorBy", "showZones", "invertBars", "mirrorX", "mirrorY"]) els[id].addEventListener("change", () => { if (frame) updateZoneGrid(frame); requestRender(); });
-    els.autoRange.addEventListener("change", () => { els.rangeMin.disabled = els.rangeMax.disabled = els.autoRange.checked; if (frame) updateZoneGrid(frame); requestRender(); });
+    els.rangeMode.addEventListener("change", () => { els.rangeMin.disabled = els.rangeMax.disabled = els.rangeMode.value !== "manual"; rangeTrack.lo = null; if (frame) updateZoneGrid(frame); requestRender(); });
     for (const id of ["rangeMin", "rangeMax"]) els[id].addEventListener("input", () => { if (frame) updateZoneGrid(frame); requestRender(); });
     window.addEventListener("resize", requestRender);
     if (window.matchMedia) { try { window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", requestRender); } catch (_) {} }
