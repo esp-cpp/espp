@@ -202,6 +202,7 @@
             <label title="Mirror the grid left-right / top-bottom to match the scene (zone 0's physical corner depends on how the module is mounted, see UM2884)"><input type="checkbox" id="mirrorX"> mirror X</label>
             <label><input type="checkbox" id="mirrorY"> mirror Y</label>
             <label><input type="checkbox" id="autoRotate"> auto-rotate</label>
+            <label title="Previous zone positions stay in the 3D view and fade out over this many seconds (0 = off): intermittent far zones remain visible between detections, and moving targets leave a trail">Trail <input type="number" id="trailSec" class="tiny" value="2" min="0" max="60" step="0.5"> s</label>
             <button id="resetViewBtn" class="small">Reset view</button>
           </div>
           <div class="view" style="margin-top:10px;">
@@ -331,7 +332,7 @@
     const els = {};
     for (const id of ["status","connectUsbBtn","connectSerialBtn","disconnectBtn","anyDevice","autoReconnect","devInfo",
       "sensorState","devPart","devAddr","devZones","devRate","devFrames","rxRate","liveFrames","streamDivider","snapshotBtn","refreshBtn",
-      "startBtn","stopBtn","initBtn","viewMode","colorBy","rangeMode","rangeMin","rangeMax","invertBars","mirrorX","mirrorY","autoRotate","resetViewBtn",
+      "startBtn","stopBtn","initBtn","viewMode","colorBy","rangeMode","rangeMin","rangeMax","invertBars","mirrorX","mirrorY","autoRotate","trailSec","resetViewBtn",
       "view3d","legendMax","legendBar","legendMin","noData","zones","showZones","rangeHint","settingsNote",
       "sResolution","sResolutionBtn","sFrequency","sFrequencyBtn","sIntegration","sIntegrationBtn","sSharpener","sSharpenerBtn",
       "sTargetOrder","sTargetOrderBtn","sRangingMode","sRangingModeBtn","sPowerMode","sPowerModeBtn","sMotionMin","sMotionMax","sMotionBtn",
@@ -1017,8 +1018,16 @@
     let frame = null;            // the frame shown
     let rxTimes = [];            // arrival times of the last frames (RX rate)
     let hoverZone = -1;          // zone under the pointer (grid or 3D)
+    // Frames of the last `Trail` seconds, oldest first: the 3D view draws their
+    // zone positions fading out behind the current frame.
+    const history = [];
+    function trailSeconds() { const v = Number(els.trailSec.value); return Number.isFinite(v) && v > 0 ? Math.min(60, v) : 0; }
+    function pruneHistory(now) { const keep = (now - trailSeconds() * 1000); while (history.length && history[0].t < keep) history.shift(); }
     function onFrame(f) {
       frame = f;
+      const nowMs = performance.now();
+      if (trailSeconds() > 0) history.push({ t: nowMs, f }); else history.length = 0;
+      pruneHistory(nowMs);
       const now = performance.now(); rxTimes.push(now); while (rxTimes.length && now - rxTimes[0] > 2000) rxTimes.shift();
       if (rxTimes.length >= 2) els.rxRate.textContent = ((rxTimes.length - 1) * 1000 / (now - rxTimes[0])).toFixed(1) + " Hz";
       els.noData.style.display = "none"; els.csvBtn.disabled = false;
@@ -1248,22 +1257,47 @@
           const sure = isValidStatus(f.status[i]); // low-confidence zones are hollow markers
           faces.push({ marker: true, x: p.x, y: p.y, size: i === hoverZone ? sz * 1.8 : sz, depth: p.depth - 0.001, fill: sure ? rgb(col) : "transparent", stroke: i === hoverZone ? "#fff" : rgb(col, sure ? 0.6 : 1), zone: i });
         }
+        // the trail: zone positions from the previous frames, fading with age
+        const trailMs = trailSeconds() * 1000;
+        if (trailMs > 0) {
+          const now = performance.now();
+          for (const h of history) {
+            if (h.f === f) continue;
+            const age = now - h.t; if (age >= trailMs) continue;
+            const fade = 1 - age / trailMs;
+            for (let i = 0; i < h.f.zones; i++) {
+              if (!isShown(h.f.status[i])) continue;
+              const r = zoneRay(h.f, i), d = h.f.distance[i];
+              const p = project([r[0] * d, r[1] * d, r[2] * d]); if (!p) continue;
+              const col = zoneColor(h.f, i, range), sz = Math.max(2, 7 / p.depth * (cam.dist / 1.6));
+              faces.push({ marker: true, x: p.x, y: p.y, size: sz, depth: p.depth + 0.0005, fill: rgb(col), stroke: "transparent", alpha: 0.7 * fade, zone: -1 });
+            }
+          }
+        }
       } else {
         // bars on a ground plane: one cell per zone, height = the metric (inverted on request)
         const wdt = f.width, cell = 1, gap = 0.12, half = wdt * cell / 2;
         const hMax = 0.75 * scale;
+        const trailMs = trailSeconds() * 1000, now = performance.now();
         for (let x = 0; x <= wdt; x++) addLine([x * cell - half, 0, -half], [x * cell - half, 0, half], gridColor, 1);
         for (let z = 0; z <= wdt; z++) addLine([-half, 0, z * cell - half], [half, 0, z * cell - half], gridColor, 1);
         for (let i = 0; i < f.zones; i++) {
           let r = Math.floor(i / wdt), c = i % wdt;
           if (els.mirrorX.checked) c = wdt - 1 - c; if (els.mirrorY.checked) r = wdt - 1 - r;
-          const valid = isShown(f.status[i]) || els.colorBy.value !== "distance", sure = isValidStatus(f.status[i]);
-          let t = (metricOf(f, i) - range[0]) / (range[1] - range[0]); t = Math.min(1, Math.max(0, t));
+          let src = f, valid = isShown(f.status[i]) || els.colorBy.value !== "distance", fade = 1;
+          const sure = isValidStatus(f.status[i]);
+          if (!valid && trailMs > 0) { // the trail: the zone's last seen value, fading with age
+            for (let k = history.length - 1; k >= 0; k--) {
+              const h = history[k]; const age = now - h.t; if (age >= trailMs) break;
+              if (h.f.zones === f.zones && isShown(h.f.status[i])) { src = h.f; valid = true; fade = 1 - age / trailMs; break; }
+            }
+          }
+          let t = (metricOf(src, i) - range[0]) / (range[1] - range[0]); t = Math.min(1, Math.max(0, t));
           if (els.invertBars.checked) t = 1 - t;
           const hgt = valid ? Math.max(0.02 * scale, t * hMax) : 0.02 * scale;
           const x0 = c * cell - half + gap / 2, x1 = x0 + cell - gap, z0 = (wdt - 1 - r) * cell - half + gap / 2, z1 = z0 + cell - gap; // row 0 at the far side
-          const col = valid ? zoneColor(f, i, range) : [90, 98, 112];
-          const shade = (k) => rgb(col.map((v) => Math.round(v * k)), valid ? (sure ? 0.95 : 0.5) : 0.4);
+          const col = valid ? zoneColor(src, i, range) : [90, 98, 112];
+          const shade = (k) => rgb(col.map((v) => Math.round(v * k)), (valid ? (sure || src !== f ? 0.95 : 0.5) : 0.4) * (src === f ? 1 : 0.6 * fade));
           const stroke = i === hoverZone ? "#fff" : rgb(col, 0.5);
           addFace([[x0, hgt, z0], [x1, hgt, z0], [x1, hgt, z1], [x0, hgt, z1]], shade(1), stroke, i, 1);          // top
           addFace([[x0, 0, z0], [x1, 0, z0], [x1, hgt, z0], [x0, hgt, z0]], shade(0.72), stroke, i, 1);           // near (-Z)
@@ -1278,7 +1312,7 @@
       ctx.setLineDash([]);
       faces.sort((a, b) => b.depth - a.depth);
       for (const fc of faces) {
-        if (fc.marker) { ctx.fillStyle = fc.fill; ctx.strokeStyle = fc.stroke; ctx.lineWidth = 1; ctx.beginPath(); ctx.rect(fc.x - fc.size / 2, fc.y - fc.size / 2, fc.size, fc.size); ctx.fill(); ctx.stroke(); continue; }
+        if (fc.marker) { ctx.globalAlpha = fc.alpha == null ? 1 : fc.alpha; ctx.fillStyle = fc.fill; ctx.strokeStyle = fc.stroke; ctx.lineWidth = 1; ctx.beginPath(); ctx.rect(fc.x - fc.size / 2, fc.y - fc.size / 2, fc.size, fc.size); ctx.fill(); if (fc.stroke !== "transparent") ctx.stroke(); ctx.globalAlpha = 1; continue; }
         ctx.beginPath(); ctx.moveTo(fc.pts[0].x, fc.pts[0].y); for (let k = 1; k < fc.pts.length; k++) ctx.lineTo(fc.pts[k].x, fc.pts[k].y); ctx.closePath();
         ctx.fillStyle = fc.fill; ctx.fill(); ctx.strokeStyle = fc.stroke; ctx.lineWidth = fc.zone === hoverZone && fc.zone >= 0 ? 2 : 0.75; ctx.stroke();
       }
@@ -1296,7 +1330,7 @@
       if (!lastPick || !frame) return -1;
       // markers first (surface view), then faces (bars) -- nearest wins
       let best = -1, bestD = 14;
-      for (const fc of lastPick.faces) if (fc.marker) { const d = Math.hypot(fc.x - x, fc.y - y); if (d < bestD) { bestD = d; best = fc.zone; } }
+      for (const fc of lastPick.faces) if (fc.marker && fc.zone >= 0) { const d = Math.hypot(fc.x - x, fc.y - y); if (d < bestD) { bestD = d; best = fc.zone; } }
       if (best >= 0) return best;
       const inside = (pts) => { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) c = !c; } return c; };
       for (let k = lastPick.faces.length - 1; k >= 0; k--) { const fc = lastPick.faces[k]; if (!fc.marker && fc.zone >= 0 && inside(fc.pts)) return fc.zone; }
@@ -1321,6 +1355,9 @@
     canvas.addEventListener("pointermove", (ev) => { if (!pointers.has(ev.pointerId)) return; pointers.set(ev.pointerId, ev); if (pointers.size === 2 && pinchStart) { const [a, b] = [...pointers.values()]; const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); cam.dist = Math.max(0.8, Math.min(8, pinchStart.dist * pinchStart.d / Math.max(1, d))); requestRender(); } });
     for (const t of ["pointerup", "pointercancel", "pointerleave"]) canvas.addEventListener(t, (ev) => { pointers.delete(ev.pointerId); if (pointers.size < 2) pinchStart = null; });
     els.resetViewBtn.addEventListener("click", () => { Object.assign(cam, CAM_DEFAULT); requestRender(); });
+    // the trail keeps fading between frames (and after the last one)
+    setInterval(() => { if (history.length && trailSeconds() > 0) { pruneHistory(performance.now()); requestRender(); } }, 80);
+    els.trailSec.addEventListener("input", () => { if (trailSeconds() === 0) history.length = 0; else pruneHistory(performance.now()); requestRender(); });
     els.autoRotate.addEventListener("change", () => {
       if (autoRotateTimer) { clearInterval(autoRotateTimer); autoRotateTimer = null; }
       if (els.autoRotate.checked && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) autoRotateTimer = setInterval(() => { if (!drag) { cam.yaw += 0.006; requestRender(); } }, 33);

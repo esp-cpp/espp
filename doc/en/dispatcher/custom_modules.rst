@@ -834,7 +834,8 @@ tags the generator and the hub read:
    <meta name="espp-transports" content="webusb webserial">
 
 `espp-category` (required) is one of ``device management``, ``motor
-control``, ``bus tools``, ``input devices``, ``utilities``; `espp-protocols`
+control``, ``bus tools``, ``input devices``, ``sensors``, ``utilities``;
+`espp-protocols`
 lists the protocol ids + versions your console implements (``id:version``,
 space-separated, a trailing ``?`` for one it can do without — the exact
 `ModuleInfo::protocol` / `protocol_version` your module advertises); the
