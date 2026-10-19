@@ -86,4 +86,25 @@ menu "Example Configuration"
         help
             Frames per second: 1..60 Hz in 4x4, 1..15 Hz in 8x8.
 
+    config EXAMPLE_MOTION_INDICATOR
+        bool "Enable the motion indicator"
+        default n
+        help
+            Have the sensor report, per aggregate of zones, how much the scene
+            moved between frames, and print it with every frame.
+
+    config EXAMPLE_MOTION_MIN_MM
+        int "Motion window start (mm)"
+        depends on EXAMPLE_MOTION_INDICATOR
+        range 400 4000
+        default 400
+
+    config EXAMPLE_MOTION_MAX_MM
+        int "Motion window end (mm)"
+        depends on EXAMPLE_MOTION_INDICATOR
+        range 400 4000
+        default 1500
+        help
+            At most 1500 mm past the window start.
+
 endmenu

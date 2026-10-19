@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <map>
 #include <string>
@@ -78,6 +79,13 @@ extern "C" void app_main(void) {
     logger.error("Failed to set the ranging frequency: {}", ec.message());
     return;
   }
+#if CONFIG_EXAMPLE_MOTION_INDICATOR
+  if (!sensor.enable_motion_indicator(CONFIG_EXAMPLE_MOTION_MIN_MM, CONFIG_EXAMPLE_MOTION_MAX_MM,
+                                      ec)) {
+    logger.error("Failed to enable the motion indicator: {}", ec.message());
+    return;
+  }
+#endif
   if (!sensor.start_ranging(ec)) {
     logger.error("Failed to start ranging: {}", ec.message());
     return;
@@ -120,8 +128,17 @@ extern "C" void app_main(void) {
           why += fmt::format("  {} x {} ({})", count, static_cast<int>(status),
                              espp::Vl53l5cx::target_status_name(status));
         }
-        fmt::print("{}{} / {} zones valid{}\n\n", grid, frame.num_zones() - invalid_total(invalid),
+        fmt::print("{}{} / {} zones valid{}\n", grid, frame.num_zones() - invalid_total(invalid),
                    frame.num_zones(), why.empty() ? "" : ";" + why);
+#if CONFIG_EXAMPLE_MOTION_INDICATOR
+        const auto &motion = frame.motion_indicator;
+        const size_t aggregates = std::min<size_t>(motion.nb_of_aggregates, motion.motion.size());
+        fmt::print("motion: global {} {} status {} detected {}/{} aggregates:{}\n",
+                   motion.global_indicator_1, motion.global_indicator_2, motion.status,
+                   motion.nb_of_detected_aggregates, motion.nb_of_aggregates,
+                   fmt::join(motion.motion.begin(), motion.motion.begin() + aggregates, " "));
+#endif
+        fmt::print("\n");
         return false; // keep polling
       },
       .task_config = {.name = "vl53l5cx poll", .stack_size_bytes = 6 * 1024},
