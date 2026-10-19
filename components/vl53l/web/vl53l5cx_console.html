@@ -121,6 +121,8 @@
     .zones { display: grid; gap: 3px; margin-top: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 11.5px; }
     .zones .z { position: relative; aspect-ratio: 1.6; display: flex; align-items: center; justify-content: center; border-radius: 4px; background: var(--chip-bg); color: var(--text); border: 1px solid transparent; cursor: default; min-width: 0; overflow: hidden; }
     .zones .z.invalid { color: var(--text-muted); }
+    .zones .z.low { border-style: dashed; border-color: var(--text-muted); }
+    .zones .z.none { font-size: 10px; letter-spacing: .04em; }
     .zones .z.hover { border-color: var(--text); }
     .zones.w8 .z { font-size: 10.5px; }
     .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 12.5px; margin-top: 10px; }
@@ -193,6 +195,7 @@
           <div class="row">
             <label>View <select id="viewMode"><option value="surface">Surface (zones at their measured position)</option><option value="bars">Bars (height = distance)</option></select></label>
             <label>Color <select id="colorBy"><option value="distance">distance</option><option value="signal">signal (kcps/SPAD)</option><option value="ambient">ambient (kcps/SPAD)</option><option value="sigma">sigma (mm)</option><option value="reflectance">reflectance (%)</option><option value="status">target status</option></select></label>
+            <label title="Which zones are plotted: statuses 5 / 9 are valid ranges, 6 / 10 / 12 are ranges the sensor reports with lower confidence, the rest are failed measurements; a zone with no target is never plotted">Show <select id="showZones"><option value="low">valid + low confidence</option><option value="valid">valid only (5, 9)</option><option value="any">any target</option></select></label>
             <label title="Color / height range; auto follows the frame's min and max"><input type="checkbox" id="autoRange" checked> auto range</label>
             <span class="nowrap"><input type="number" id="rangeMin" class="tiny" value="0" min="0" step="100" disabled title="range minimum"> <span class="muted">to</span> <input type="number" id="rangeMax" class="tiny" value="4000" min="1" step="100" disabled title="range maximum"></span>
             <label title="Taller bars for closer targets"><input type="checkbox" id="invertBars"> near = tall</label>
@@ -208,6 +211,7 @@
             <div id="noData" class="nodata">No frame yet - connect, start ranging and keep "Live frames" on.</div>
           </div>
           <div id="zones" class="zones w8"></div>
+          <p id="rangeHint" class="muted" hidden style="margin: 8px 0 0;"></p>
         </div>
       </div>
 
@@ -311,7 +315,16 @@
       4:"target consistency failed", 5:"range valid", 6:"wrap-around not performed", 7:"rate consistency failed",
       8:"signal rate too low (target)", 9:"range valid (large pulse)", 10:"range valid (no previous target)",
       11:"measurement consistency failed", 12:"target blurred by another", 13:"target inconsistent", 255:"no target" };
+    // Target status tiers (UM2884): 5 / 9 = range valid; 6 / 10 / 12 = a range the
+    // sensor reports with lower confidence (first range, no target at the previous
+    // range, blurred by a neighbour); 255 = no target -- the distance field then
+    // still holds the zone's LAST measurement, which is not a reading; any other
+    // status = the measurement failed (signal too low, sigma too high, ...).
     const isValidStatus = (s) => s === 5 || s === 9;
+    const isLowConfidence = (s) => s === 6 || s === 10 || s === 12;
+    const hasTarget = (s) => s !== 255 && s !== 0;
+    // which zones are plotted and counted as readings (the "Show" selector)
+    function isShown(s) { const m = els.showZones.value; return m === "valid" ? isValidStatus(s) : m === "any" ? hasTarget(s) : (isValidStatus(s) || isLowConfidence(s)); }
     // field of view per part (UM2884: 45 x 45 deg for the VL53L5CX, 60 x 60 for the VL53L7CX)
     const PART = { 0: { name: "VL53L5CX", fovDeg: 45 }, 1: { name: "VL53L7CX", fovDeg: 60 } };
 
@@ -319,7 +332,7 @@
     for (const id of ["status","connectUsbBtn","connectSerialBtn","disconnectBtn","anyDevice","autoReconnect","devInfo",
       "sensorState","devPart","devAddr","devZones","devRate","devFrames","rxRate","liveFrames","streamDivider","snapshotBtn","refreshBtn",
       "startBtn","stopBtn","initBtn","viewMode","colorBy","autoRange","rangeMin","rangeMax","invertBars","mirrorX","mirrorY","autoRotate","resetViewBtn",
-      "view3d","legendMax","legendBar","legendMin","noData","zones","settingsNote",
+      "view3d","legendMax","legendBar","legendMin","noData","zones","showZones","rangeHint","settingsNote",
       "sResolution","sResolutionBtn","sFrequency","sFrequencyBtn","sIntegration","sIntegrationBtn","sSharpener","sSharpenerBtn",
       "sTargetOrder","sTargetOrderBtn","sRangingMode","sRangingModeBtn","sPowerMode","sPowerModeBtn","sMotionMin","sMotionMax","sMotionBtn",
       "sAddress","sAddressBtn","zoneTitle","zDistance","zStatus","zSigma","zSignal","zAmbient","zSpads","zReflectance","zTargets",
@@ -1010,8 +1023,11 @@
       if (rxTimes.length >= 2) els.rxRate.textContent = ((rxTimes.length - 1) * 1000 / (now - rxTimes[0])).toFixed(1) + " Hz";
       els.noData.style.display = "none"; els.csvBtn.disabled = false;
       els.frameSeq.textContent = String(f.seq); els.frameTime.textContent = (f.timeMs / 1000).toFixed(3) + " s";
-      let valid = 0; for (let i = 0; i < f.zones; i++) if (isValidStatus(f.status[i])) valid++;
-      els.frameValid.textContent = valid + " / " + f.zones;
+      let valid = 0, low = 0, none = 0; for (let i = 0; i < f.zones; i++) { const st = f.status[i]; if (isValidStatus(st)) valid++; else if (isLowConfidence(st)) low++; else if (!hasTarget(st)) none++; }
+      const failed = f.zones - valid - low - none;
+      els.frameValid.textContent = valid + " / " + f.zones + (low || none || failed ? " (" + [low ? low + " low confidence" : "", none ? none + " no target" : "", failed ? failed + " failed" : ""].filter(Boolean).join(", ") + ")" : "");
+      els.rangeHint.hidden = none === 0;
+      if (none) els.rangeHint.textContent = none + " zone" + (none > 1 ? "s" : "") + " report no target (status 255): the return signal is too weak at that distance or on that surface, and the distance shown for such a zone is its last measurement, not a reading. A longer integration time, 4x4 instead of 8x8, a lower ranging frequency or continuous mode extend the reach.";
       updateZoneGrid(f);
       updateMotion(f);
       if (hoverZone >= 0 && hoverZone < f.zones) showZone(hoverZone); else if (hoverZone >= f.zones) { hoverZone = -1; showZone(-1); }
@@ -1032,7 +1048,7 @@
       if (!els.autoRange.checked) { const lo = Number(els.rangeMin.value) || 0, hi = Number(els.rangeMax.value) || 1; return hi > lo ? [lo, hi] : [lo, lo + 1]; }
       if (els.colorBy.value === "status") return [0, 14];
       let lo = Infinity, hi = -Infinity;
-      if (f) for (let i = 0; i < f.zones; i++) { if (!isValidStatus(f.status[i]) && els.colorBy.value === "distance") continue; const v = metricOf(f, i); if (v < lo) lo = v; if (v > hi) hi = v; }
+      if (f) for (let i = 0; i < f.zones; i++) { if (!isShown(f.status[i]) && els.colorBy.value === "distance") continue; const v = metricOf(f, i); if (v < lo) lo = v; if (v > hi) hi = v; }
       if (!Number.isFinite(lo)) return [0, 4000];
       if (hi - lo < 1) hi = lo + 1;
       return [lo, hi];
@@ -1046,12 +1062,12 @@
     }
     const rgb = (c, a) => a == null ? "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")" : "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")";
     function zoneColor(f, i, range) {
-      if (els.colorBy.value === "status") { const s = f.status[i]; return isValidStatus(s) ? [34,197,94] : s === 255 ? [90,98,112] : [245,158,11]; }
+      if (els.colorBy.value === "status") { const s = f.status[i]; return isValidStatus(s) ? [34,197,94] : isLowConfidence(s) ? [250,204,21] : hasTarget(s) ? [239,68,68] : [90,98,112]; }
       return rampColor((metricOf(f, i) - range[0]) / (range[1] - range[0]));
     }
     function updateLegend(range) {
       const u = metricUnit();
-      if (els.colorBy.value === "status") { els.legendMax.textContent = "valid / other / none"; els.legendMin.textContent = ""; els.legendBar.style.background = "linear-gradient(90deg, rgb(34,197,94) 33%, rgb(245,158,11) 33% 66%, rgb(90,98,112) 66%)"; return; }
+      if (els.colorBy.value === "status") { els.legendMax.textContent = "valid / low conf. / failed / none"; els.legendMin.textContent = ""; els.legendBar.style.background = "linear-gradient(90deg, rgb(34,197,94) 25%, rgb(250,204,21) 25% 50%, rgb(239,68,68) 50% 75%, rgb(90,98,112) 75%)"; return; }
       els.legendMax.textContent = Math.round(range[1]) + u; els.legendMin.textContent = Math.round(range[0]) + u;
       els.legendBar.style.background = "linear-gradient(90deg," + RAMP.map((c, i) => rgb(c) + " " + Math.round(100 * i / (RAMP.length - 1)) + "%").join(",") + ")";
     }
@@ -1078,13 +1094,14 @@
       const range = currentRange(f); updateLegend(range);
       for (let i = 0; i < f.zones; i++) {
         const cell = gridCells[gridIndex(f, i)]; cell.dataset.zone = String(i);
-        const valid = isValidStatus(f.status[i]);
-        cell.textContent = valid || els.colorBy.value !== "distance" ? String(metricOf(f, i)) : "—";
-        cell.className = "z" + (valid ? "" : " invalid") + (i === hoverZone ? " hover" : "");
+        const st = f.status[i], shown = isShown(st) || els.colorBy.value !== "distance", low = isLowConfidence(st);
+        // no target: say so (the distance field is stale); a failed measurement: its value in brackets
+        cell.textContent = !hasTarget(st) && els.colorBy.value === "distance" ? "none" : shown ? String(metricOf(f, i)) : "(" + metricOf(f, i) + ")";
+        cell.className = "z" + (shown ? "" : " invalid") + (shown && low ? " low" : "") + (!hasTarget(st) ? " none invalid" : "") + (i === hoverZone ? " hover" : "");
         const col = zoneColor(f, i, range);
-        cell.style.background = rgb(col, valid ? 0.85 : 0.25);
-        cell.style.color = valid && (col[0] * 0.299 + col[1] * 0.587 + col[2] * 0.114) > 150 ? "#111" : (valid ? "#fff" : "");
-        cell.title = "zone " + i + " (row " + Math.floor(i / f.width) + ", col " + (i % f.width) + "): " + f.distance[i] + " mm, " + (STATUS_NAME[f.status[i]] || f.status[i]);
+        cell.style.background = rgb(col, shown ? (low ? 0.6 : 0.85) : 0.25);
+        cell.style.color = shown && (col[0] * 0.299 + col[1] * 0.587 + col[2] * 0.114) > 150 ? "#111" : (shown ? "#fff" : "");
+        cell.title = "zone " + i + " (row " + Math.floor(i / f.width) + ", col " + (i % f.width) + "): " + (hasTarget(st) ? f.distance[i] + " mm, " : "no target (last " + f.distance[i] + " mm), ") + "status " + st + " " + (STATUS_NAME[st] || "");
       }
     }
     els.zones.addEventListener("pointerover", (ev) => { const z = ev.target && ev.target.dataset ? ev.target.dataset.zone : null; if (z != null) setHover(Number(z)); });
@@ -1092,8 +1109,10 @@
     function showZone(i) {
       const f = frame; const none = i < 0 || !f || i >= f.zones;
       els.zoneTitle.textContent = none ? "-" : "#" + i + " (row " + Math.floor(i / f.width) + ", col " + (i % f.width) + ")";
-      els.zDistance.textContent = none ? "-" : f.distance[i] + " mm";
-      els.zStatus.textContent = none ? "-" : f.status[i] + " – " + (STATUS_NAME[f.status[i]] || "?");
+      const st = none ? -1 : f.status[i];
+      els.zDistance.textContent = none ? "-" : !hasTarget(st) ? "no target (last " + f.distance[i] + " mm)" : f.distance[i] + " mm" + (isValidStatus(st) ? "" : isLowConfidence(st) ? " (low confidence)" : " (measurement failed)");
+      els.zStatus.textContent = none ? "-" : st + " – " + (STATUS_NAME[st] || "?");
+      els.zStatus.style.color = none ? "" : isValidStatus(st) ? "var(--ok)" : isLowConfidence(st) ? "var(--warn)" : "var(--danger)";
       els.zSigma.textContent = none ? "-" : f.sigma[i] + " mm";
       els.zSignal.textContent = none ? "-" : f.signal[i] + " kcps/SPAD";
       els.zAmbient.textContent = none ? "-" : f.ambient[i] + " kcps/SPAD";
@@ -1149,7 +1168,7 @@
       const range = currentRange(f);
       const bars = els.viewMode.value === "bars";
       // scene scale: the far distance in view (mm); bars: the grid's extent
-      let far = 0; for (let i = 0; i < f.zones; i++) if (isValidStatus(f.status[i]) && f.distance[i] > far) far = f.distance[i];
+      let far = 0; for (let i = 0; i < f.zones; i++) if (isShown(f.status[i]) && f.distance[i] > far) far = f.distance[i];
       if (els.colorBy.value === "distance" && !els.autoRange.checked) far = Math.max(far, range[1]);
       far = Math.max(300, far);
       const scale = bars ? f.width * 1.1 : far;                 // world units per "scene unit"
@@ -1186,20 +1205,22 @@
         const s0 = far * 0.03; addFace([[-s0, -s0, 0], [s0, -s0, 0], [s0, s0, 0], [-s0, s0, 0]], "#5b8def", "#9ec0ff", -1, 0.9);
         // zone points in the sensor frame, then the surface quads between valid neighbours
         const pts = new Array(f.zones); const wdt = f.width;
-        for (let i = 0; i < f.zones; i++) { if (!isValidStatus(f.status[i])) continue; const r = zoneRay(f, i), d = f.distance[i]; pts[i] = [r[0] * d, r[1] * d, r[2] * d]; }
+        for (let i = 0; i < f.zones; i++) { if (!isShown(f.status[i])) continue; const r = zoneRay(f, i), d = f.distance[i]; pts[i] = [r[0] * d, r[1] * d, r[2] * d]; }
         for (let r = 0; r + 1 < wdt; r++) for (let c = 0; c + 1 < wdt; c++) {
           const i00 = r * wdt + c, i01 = i00 + 1, i10 = i00 + wdt, i11 = i10 + 1;
           if (!pts[i00] || !pts[i01] || !pts[i10] || !pts[i11]) continue;
           const mix = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
           const col = mix(mix(zoneColor(f, i00, range), zoneColor(f, i01, range)), mix(zoneColor(f, i10, range), zoneColor(f, i11, range)));
-          addFace([pts[i00], pts[i01], pts[i11], pts[i10]], rgb(col.map(Math.round), 0.55), rgb(col.map(Math.round), 0.9), -1, 1);
+          const sure = [i00, i01, i10, i11].every((k) => isValidStatus(f.status[k])); // a low-confidence corner fades the quad
+          addFace([pts[i00], pts[i01], pts[i11], pts[i10]], rgb(col.map(Math.round), sure ? 0.55 : 0.22), rgb(col.map(Math.round), sure ? 0.9 : 0.5), -1, 1);
         }
         // the zone markers themselves (small squares facing the camera, drawn after the faces)
         for (let i = 0; i < f.zones; i++) {
           if (!pts[i]) continue;
           const p = project(pts[i]); if (!p) continue;
           const col = zoneColor(f, i, range), sz = Math.max(3, 9 / p.depth * (cam.dist / 1.6));
-          faces.push({ marker: true, x: p.x, y: p.y, size: i === hoverZone ? sz * 1.8 : sz, depth: p.depth - 0.001, fill: rgb(col), stroke: i === hoverZone ? "#fff" : rgb(col, 0.6), zone: i });
+          const sure = isValidStatus(f.status[i]); // low-confidence zones are hollow markers
+          faces.push({ marker: true, x: p.x, y: p.y, size: i === hoverZone ? sz * 1.8 : sz, depth: p.depth - 0.001, fill: sure ? rgb(col) : "transparent", stroke: i === hoverZone ? "#fff" : rgb(col, sure ? 0.6 : 1), zone: i });
         }
       } else {
         // bars on a ground plane: one cell per zone, height = the metric (inverted on request)
@@ -1210,13 +1231,13 @@
         for (let i = 0; i < f.zones; i++) {
           let r = Math.floor(i / wdt), c = i % wdt;
           if (els.mirrorX.checked) c = wdt - 1 - c; if (els.mirrorY.checked) r = wdt - 1 - r;
-          const valid = isValidStatus(f.status[i]) || els.colorBy.value !== "distance";
+          const valid = isShown(f.status[i]) || els.colorBy.value !== "distance", sure = isValidStatus(f.status[i]);
           let t = (metricOf(f, i) - range[0]) / (range[1] - range[0]); t = Math.min(1, Math.max(0, t));
           if (els.invertBars.checked) t = 1 - t;
           const hgt = valid ? Math.max(0.02 * scale, t * hMax) : 0.02 * scale;
           const x0 = c * cell - half + gap / 2, x1 = x0 + cell - gap, z0 = (wdt - 1 - r) * cell - half + gap / 2, z1 = z0 + cell - gap; // row 0 at the far side
           const col = valid ? zoneColor(f, i, range) : [90, 98, 112];
-          const shade = (k) => rgb(col.map((v) => Math.round(v * k)), valid ? 0.95 : 0.4);
+          const shade = (k) => rgb(col.map((v) => Math.round(v * k)), valid ? (sure ? 0.95 : 0.5) : 0.4);
           const stroke = i === hoverZone ? "#fff" : rgb(col, 0.5);
           addFace([[x0, hgt, z0], [x1, hgt, z0], [x1, hgt, z1], [x0, hgt, z1]], shade(1), stroke, i, 1);          // top
           addFace([[x0, 0, z0], [x1, 0, z0], [x1, hgt, z0], [x0, hgt, z0]], shade(0.72), stroke, i, 1);           // near (-Z)
@@ -1237,7 +1258,8 @@
       }
       // hover label
       if (hoverZone >= 0 && hoverZone < f.zones) {
-        const label = "#" + hoverZone + ": " + f.distance[hoverZone] + " mm" + (els.colorBy.value !== "distance" ? " · " + metricOf(f, hoverZone) + metricUnit() : "");
+        const hs = f.status[hoverZone];
+        const label = "#" + hoverZone + ": " + (hasTarget(hs) ? f.distance[hoverZone] + " mm" + (isValidStatus(hs) ? "" : isLowConfidence(hs) ? " (low confidence)" : " (failed)") : "no target") + (els.colorBy.value !== "distance" ? " · " + metricOf(f, hoverZone) + metricUnit() : "");
         ctx.fillStyle = textColor; ctx.font = "12px system-ui, sans-serif"; ctx.textBaseline = "top"; ctx.fillText(label, 10, 10);
       }
       lastPick = { faces, w, h };
@@ -1277,7 +1299,7 @@
       if (autoRotateTimer) { clearInterval(autoRotateTimer); autoRotateTimer = null; }
       if (els.autoRotate.checked && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) autoRotateTimer = setInterval(() => { if (!drag) { cam.yaw += 0.006; requestRender(); } }, 33);
     });
-    for (const id of ["viewMode", "colorBy", "invertBars", "mirrorX", "mirrorY"]) els[id].addEventListener("change", () => { if (frame) updateZoneGrid(frame); requestRender(); });
+    for (const id of ["viewMode", "colorBy", "showZones", "invertBars", "mirrorX", "mirrorY"]) els[id].addEventListener("change", () => { if (frame) updateZoneGrid(frame); requestRender(); });
     els.autoRange.addEventListener("change", () => { els.rangeMin.disabled = els.rangeMax.disabled = els.autoRange.checked; if (frame) updateZoneGrid(frame); requestRender(); });
     for (const id of ["rangeMin", "rangeMax"]) els[id].addEventListener("input", () => { if (frame) updateZoneGrid(frame); requestRender(); });
     window.addEventListener("resize", requestRender);
