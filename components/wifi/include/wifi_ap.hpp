@@ -9,6 +9,7 @@
 
 #include "base_component.hpp"
 #include "wifi_base.hpp"
+#include "wifi_credentials.hpp"
 #include "wifi_format_helpers.hpp"
 
 namespace espp {
@@ -264,11 +265,19 @@ public:
     // Update configuration
     wifi_config_t wifi_config;
     memset(&wifi_config, 0, sizeof(wifi_config));
+    if (!wifi_credentials::set_field(wifi_config.ap.ssid, config.ssid)) {
+      logger_.error("SSID is too long ({} bytes, at most {})", config.ssid.size(),
+                    sizeof(wifi_config.ap.ssid));
+      return false;
+    }
+    if (!wifi_credentials::set_field(wifi_config.ap.password, config.password)) {
+      logger_.error("Password is too long ({} bytes, at most {})", config.password.size(),
+                    sizeof(wifi_config.ap.password));
+      return false;
+    }
     wifi_config.ap.ssid_len = (uint8_t)config.ssid.size();
     wifi_config.ap.channel = config.channel;
     wifi_config.ap.max_connection = config.max_number_of_stations;
-    memcpy(wifi_config.ap.ssid, config.ssid.data(), config.ssid.size());
-    memcpy(wifi_config.ap.password, config.password.data(), config.password.size());
     if (config.password.size() == 0) {
       wifi_config.ap.authmode = WIFI_AUTH_OPEN;
     }
@@ -382,18 +391,21 @@ public:
       logger_.error("Could not get current WiFi config: {}", esp_err_to_name(err));
       return false;
     }
-    memset(wifi_config.ap.ssid, 0, sizeof(wifi_config.ap.ssid));
-    memset(wifi_config.ap.password, 0, sizeof(wifi_config.ap.password));
-    // now update the SSID and password
-    wifi_config.ap.ssid_len = (uint8_t)ssid.size();
-    memcpy(wifi_config.ap.ssid, ssid.data(), ssid.size());
-    // update the password / authmode
-    if (password.empty()) {
-      wifi_config.ap.authmode = WIFI_AUTH_OPEN;
-    } else {
-      wifi_config.ap.authmode = WIFI_AUTH_WPA2_PSK;
-      memcpy(wifi_config.ap.password, password.data(), password.size());
+    // now update the SSID and password (each field is cleared before the copy,
+    // so a shorter value never keeps the previous one's trailing bytes)
+    if (!wifi_credentials::set_field(wifi_config.ap.ssid, ssid)) {
+      logger_.error("SSID is too long ({} bytes, at most {})", ssid.size(),
+                    sizeof(wifi_config.ap.ssid));
+      return false;
     }
+    if (!wifi_credentials::set_field(wifi_config.ap.password, password)) {
+      logger_.error("Password is too long ({} bytes, at most {})", password.size(),
+                    sizeof(wifi_config.ap.password));
+      return false;
+    }
+    wifi_config.ap.ssid_len = (uint8_t)ssid.size();
+    // update the authmode
+    wifi_config.ap.authmode = password.empty() ? WIFI_AUTH_OPEN : WIFI_AUTH_WPA2_PSK;
     // set the new configuration
     err = esp_wifi_set_config(WIFI_IF_AP, &wifi_config);
     if (err != ESP_OK) {
