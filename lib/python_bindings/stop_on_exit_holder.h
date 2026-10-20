@@ -11,6 +11,8 @@
 // class needs a stop_for_exit() overload below naming the call that stops its
 // threads (idempotent, safe on an object that never started).
 
+#include <mutex>
+
 #include <pybind11/pybind11.h>
 
 #include "ftp_server.hpp"
@@ -61,30 +63,45 @@ public:
   T &operator*() const { return *ptr_; }
   explicit operator bool() const { return ptr_ != nullptr; }
 
-  /// Give up ownership without deleting (pybind11 uses this for
-  /// return_value_policy::take_ownership hand-overs).
+  /// Give up ownership without deleting.
   T *release() {
     T *p = ptr_;
-    if (p)
-      StopRegistry::instance().remove(p);
+    if (p) {
+      if (auto entry = StopRegistry::instance().take(p)) {
+        std::lock_guard<std::mutex> lock(entry->mutex);
+        entry->alive = false;
+      }
+    }
     ptr_ = nullptr;
     return p;
   }
 
   /// Delete the object. The destructor joins the object's threads; a thread
   /// that is waiting for the GIL to run its python callback can only finish if
-  /// the GIL is released here (pybind11 deletes holders with it held).
+  /// the GIL is released here (pybind11 deletes holders with it held). The
+  /// delete is serialised against a concurrent StopRegistry::stop_all() through
+  /// the entry's mutex, taken only after the GIL is released (stop_all() holds
+  /// that mutex while it joins threads that may need the GIL).
   void reset() {
     T *p = ptr_;
     if (!p)
       return;
     ptr_ = nullptr;
-    StopRegistry::instance().remove(p);
+    auto entry = StopRegistry::instance().take(p);
+    auto destroy = [&]() {
+      if (entry) {
+        std::lock_guard<std::mutex> lock(entry->mutex);
+        delete p;
+        entry->alive = false;
+      } else {
+        delete p;
+      }
+    };
     if (PyGILState_Check()) {
       pybind11::gil_scoped_release release;
-      delete p;
+      destroy();
     } else {
-      delete p;
+      destroy();
     }
   }
 
