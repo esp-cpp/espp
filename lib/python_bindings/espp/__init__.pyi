@@ -4138,6 +4138,26 @@ class TrajectoryPlanner:
 
         """
         pass
+    def start_task(self) -> bool:
+        """*
+           * @brief Start the periodic planning and callback timers.
+           *
+           * The planning timer calls update() at Config::planning_period.
+           * The callback task fires output_callback whenever update() produces new output.
+           * Has no effect if the timers are already running.
+           *
+           * @return True if both timers were started successfully.
+
+        """
+        pass
+    def stop_task(self) -> bool:
+        """*
+           * @brief Stop the periodic planning and callback timers (joins their tasks).
+           *
+           * @return True if the task was stopped, False if it was not running.
+
+        """
+        pass
 
     def __init__(self) -> None:
         """Auto-generated default constructor"""

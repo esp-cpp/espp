@@ -214,16 +214,6 @@ Leave as nullptr to disable. */
    */
   bool is_running() const;
 
-protected:
-  /// Internal motion state tracked between update() calls.
-  struct State {
-    float v = 0.0f;   /**< Current linear velocity (m/s). */
-    float w = 0.0f;   /**< Current angular velocity (rad/s). */
-    float a_v = 0.0f; /**< Current linear acceleration (m/s^2) -- jerk-limited mode only. */
-    float a_w = 0.0f; /**< Current angular acceleration (rad/s^2) -- jerk-limited mode only. */
-  };
-  friend struct fmt::formatter<State>;
-
   /**
    * @brief Start the periodic planning and callback timers.
    *
@@ -236,11 +226,24 @@ protected:
   bool start_task();
 
   /**
-   * @brief Stop the periodic update task.
+   * @brief Stop the periodic planning and callback timers (joins their tasks).
+   *
+   * The planner can be started again with start_task(); the destructor stops
+   * them itself.
    *
    * @return true if the task was stopped, false if it was not running.
    */
   bool stop_task();
+
+protected:
+  /// Internal motion state tracked between update() calls.
+  struct State {
+    float v = 0.0f;   /**< Current linear velocity (m/s). */
+    float w = 0.0f;   /**< Current angular velocity (rad/s). */
+    float a_v = 0.0f; /**< Current linear acceleration (m/s^2) -- jerk-limited mode only. */
+    float a_w = 0.0f; /**< Current angular acceleration (rad/s^2) -- jerk-limited mode only. */
+  };
+  friend struct fmt::formatter<State>;
 
   /**
    * @brief Advance the planner by one time step.
