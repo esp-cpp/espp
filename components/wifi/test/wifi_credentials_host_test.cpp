@@ -62,9 +62,8 @@ int main() {
     const std::string full(creds::kSsidFieldSize, 'x');
     CHECK(creds::set_field(ssid, full));
     CHECK(std::memcmp(ssid, full.data(), full.size()) == 0);
-    const std::string previous = full;
-    CHECK(!creds::set_field(ssid, full + "y"));                      // refused ...
-    CHECK(std::memcmp(ssid, previous.data(), previous.size()) == 0); // ... and the field untouched
+    CHECK(!creds::set_field(ssid, full + "y"));              // refused ...
+    CHECK(std::memcmp(ssid, full.data(), full.size()) == 0); // ... and the field untouched
     uint8_t password[creds::kPasswordFieldSize];
     CHECK(creds::set_field(password, std::string(creds::kPasswordFieldSize, 'p')));
     CHECK(!creds::set_field(password, std::string(creds::kPasswordFieldSize + 1, 'p')));
