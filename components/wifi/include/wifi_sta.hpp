@@ -54,7 +54,9 @@ public:
    * @brief Configuration structure for the WiFi Station.
    */
   struct Config {
-    std::string ssid;     /**< SSID for the access point. */
+    std::string ssid;     /**< SSID for the access point. If empty, the credentials (SSID and
+                             password) saved by esp-wifi from the last connection are used and
+                             `password` is ignored. */
     std::string password; /**< Password for the access point. If empty, the AP will be open / have
                              no security. */
     wifi_phy_rate_t phy_rate{
