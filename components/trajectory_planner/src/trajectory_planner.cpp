@@ -1,73 +1,6 @@
 #include "trajectory_planner.hpp"
 
-#include <tuple>
-
-namespace {
-
-// Minimum velocity-change distance when decelerating |a| to 0 at max jerk.
-static float sd(float a_abs, float step, float dt_) {
-  int n = static_cast<int>(a_abs / step);
-  return n * a_abs * dt_ - n * (n + 1) * 0.5f * step * dt_;
-}
-
-// Returns {d_now, d_maintain, d_increase} signed by sign(a). Matches Python stopping_thresholds().
-static std::tuple<float, float, float> stopping_thresh(float a, float step, float dt_) {
-  if (a == 0.0f)
-    return {0.0f, 0.0f, step * dt_};
-  float sign = a > 0.0f ? 1.0f : -1.0f;
-  float a_abs = std::abs(a);
-  float d_now = sd(a_abs, step, dt_);
-  float d_maintain = a_abs * dt_ + d_now;
-  float d_increase = (a_abs + step) * dt_ + sd(a_abs + step, step, dt_);
-  return {sign * d_now, sign * d_maintain, sign * d_increase};
-}
-
-// Per-axis discrete optimal-control acceleration update. Matches the Python decision block.
-static void update_accel(float &a, float dist, float step, float a_max, float dt_) {
-  auto [d_now, d_maintain, d_increase] = stopping_thresh(a, step, dt_);
-  float a_prev = a;
-
-  if (dist > 0.0f) {
-    if (dist > d_increase)
-      a += step;
-    else if (dist <= d_maintain) {
-      auto ideal_a = dist / dt_; // positive
-      if (ideal_a <= a && ideal_a >= a - step && ideal_a < step)
-        a = ideal_a;
-      else
-        a -= step;
-    }
-    // else: maintain current a
-  } else if (dist < 0.0f) {
-    if (dist < d_increase)
-      a -= step;
-    else if (dist >= d_maintain) {
-      auto ideal_a = dist / dt_; // negative
-      if (ideal_a >= a && ideal_a <= a + step && ideal_a > -step)
-        a = ideal_a;
-      else
-        a += step;
-    }
-    // else: maintain current a
-  } else {
-    a = 0.0f;
-  }
-
-  // Safety: clamp delta_a to the jerk limit in case the decision block over-stepped.
-  float delta_a = a - a_prev;
-  if (std::abs(delta_a) > step)
-    a = a_prev + std::copysign(step, delta_a);
-
-  a = std::clamp(a, -a_max, a_max);
-}
-
-// Trapezoidal rate-limiter: advance current toward target by at most max_accel*dt.
-static float rate_limit(float current, float target, float max_accel, float dt_) {
-  float max_delta = max_accel * dt_;
-  return current + std::clamp(target - current, -max_delta, max_delta);
-}
-
-} // namespace
+#include "detail/trajectory_planner_math.hpp"
 
 namespace espp {
 
@@ -93,6 +26,10 @@ bool TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
     logger_.error("max_linear_velocity must be > 0");
     return false;
   }
+  if (config.max_reverse_linear_velocity < 0.0f) {
+    logger_.error("max_reverse_linear_velocity must be >= 0 (0 = same as max_linear_velocity)");
+    return false;
+  }
   if (config.max_angular_velocity <= 0.0f) {
     logger_.error("max_angular_velocity must be > 0");
     return false;
@@ -104,6 +41,15 @@ bool TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
   }
   if (config.driving_profile.max_angular_acceleration <= 0.0f) {
     logger_.error("driving_profile.max_angular_acceleration must be > 0");
+    return false;
+  }
+  // a stopping profile with no acceleration could never bring the chassis to rest
+  if (config.stopping_profile.max_linear_acceleration <= 0.0f) {
+    logger_.error("stopping_profile.max_linear_acceleration must be > 0");
+    return false;
+  }
+  if (config.stopping_profile.max_angular_acceleration <= 0.0f) {
+    logger_.error("stopping_profile.max_angular_acceleration must be > 0");
     return false;
   }
 
@@ -143,6 +89,11 @@ bool TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
   return true;
 }
 
+float TrajectoryPlanner::reverse_velocity_limit_locked() const {
+  return config_.max_reverse_linear_velocity > 0.0f ? config_.max_reverse_linear_velocity
+                                                    : config_.max_linear_velocity;
+}
+
 const TrajectoryPlanner::Config &TrajectoryPlanner::get_config() const {
   std::lock_guard<std::recursive_mutex> lk(mutex_);
   return config_;
@@ -164,12 +115,14 @@ void TrajectoryPlanner::set_target(float linear, float angular) {
   bool enforce_motion_envelope = false;
   float max_centripetal_acceleration = 0.0f;
   float max_linear_velocity = 0.0f;
+  float max_reverse_velocity = 0.0f;
   float max_angular_velocity = 0.0f;
   {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
     enforce_motion_envelope = config_.enforce_motion_envelope;
     max_centripetal_acceleration = config_.max_centripetal_acceleration;
     max_linear_velocity = config_.max_linear_velocity;
+    max_reverse_velocity = reverse_velocity_limit_locked();
     max_angular_velocity = config_.max_angular_velocity;
   }
 
@@ -183,7 +136,8 @@ void TrajectoryPlanner::set_target(float linear, float angular) {
     }
   }
 
-  auto target_v = linear * max_linear_velocity;
+  // full forward stick = max_linear_velocity, full reverse stick = the reverse limit
+  auto target_v = linear * (linear < 0.0f ? max_reverse_velocity : max_linear_velocity);
   auto target_w = angular * max_angular_velocity;
 
   // Centripetal acceleration limit: |v · w| ≤ a_c_max
@@ -210,7 +164,9 @@ void TrajectoryPlanner::set_target(float linear, float angular) {
 
 std::pair<float, float> TrajectoryPlanner::get_target() const {
   std::lock_guard<std::recursive_mutex> lk(mutex_);
-  return {target_v_ / config_.max_linear_velocity, target_w_ / config_.max_angular_velocity};
+  const float v_limit =
+      target_v_ < 0.0f ? reverse_velocity_limit_locked() : config_.max_linear_velocity;
+  return {target_v_ / v_limit, target_w_ / config_.max_angular_velocity};
 }
 
 void TrajectoryPlanner::update(float dt) {
@@ -225,29 +181,22 @@ void TrajectoryPlanner::update(float dt) {
     const bool is_stopping = (target_v_ == 0.0f && target_w_ == 0.0f);
     const MotionProfile &profile = is_stopping ? config_.stopping_profile : config_.driving_profile;
 
-    const bool jerk_limited = (profile.max_linear_jerk > 0.0f) || (profile.max_angular_jerk > 0.0f);
-
-    if (jerk_limited) {
-      const float step_lj =
-          profile.max_linear_jerk > 0.0f ? profile.max_linear_jerk * dt : 1e9f * dt;
-      const float step_aj =
-          profile.max_angular_jerk > 0.0f ? profile.max_angular_jerk * dt : 1e9f * dt;
-
-      update_accel(state_.a_v, target_v_ - state_.v, step_lj, profile.max_linear_acceleration, dt);
-      update_accel(state_.a_w, target_w_ - state_.w, step_aj, profile.max_angular_acceleration, dt);
-
-      state_.v = std::clamp(state_.v + state_.a_v * dt, -config_.max_linear_velocity,
-                            config_.max_linear_velocity);
-      state_.w = std::clamp(state_.w + state_.a_w * dt, -config_.max_angular_velocity,
-                            config_.max_angular_velocity);
-
-    } else {
-      // Trapezoidal mode: rate-limit velocity directly by acceleration limit.
-      state_.v = std::clamp(rate_limit(state_.v, target_v_, profile.max_linear_acceleration, dt),
-                            -config_.max_linear_velocity, config_.max_linear_velocity);
-      state_.w = std::clamp(rate_limit(state_.w, target_w_, profile.max_angular_acceleration, dt),
-                            -config_.max_angular_velocity, config_.max_angular_velocity);
-    }
+    // Each axis is stepped on its own: S-curve where its jerk limit is > 0,
+    // trapezoidal where it is 0. The acceleration actually applied is kept
+    // in the state either way, so a jerk-limited step after a trapezoidal
+    // one (a stop, then driving again) resumes from the real value.
+    using detail::trajectory_planner::AxisState;
+    using detail::trajectory_planner::step_axis;
+    AxisState lin{.v = state_.v, .a = state_.a_v};
+    AxisState ang{.v = state_.w, .a = state_.a_w};
+    step_axis(lin, target_v_, -reverse_velocity_limit_locked(), config_.max_linear_velocity,
+              profile.max_linear_acceleration, profile.max_linear_jerk, dt);
+    step_axis(ang, target_w_, -config_.max_angular_velocity, config_.max_angular_velocity,
+              profile.max_angular_acceleration, profile.max_angular_jerk, dt);
+    state_.v = lin.v;
+    state_.a_v = lin.a;
+    state_.w = ang.v;
+    state_.a_w = ang.a;
 
     logger_.debug("State: {}, target_v={:.3f}, target_w={:.3f}", state_, target_v_, target_w_);
   } // mutex_ released here
