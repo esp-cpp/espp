@@ -145,6 +145,29 @@ int main() {
     CHECK(near(s.v, 1.8f));
   }
 
+  // ---- an unclamped S-curve step keeps the planned acceleration bit for bit ----
+  {
+    tp::AxisState s{.v = 0.3f, .a = 0.7f};
+    float planned = s.a;
+    tp::update_accel(planned, 1.8f - s.v, 5.0f * 0.02f, 1.0f, 0.02f);
+    tp::step_axis(s, 1.8f, -1.8f, 1.8f, 1.0f, 5.0f, 0.02f);
+    CHECK(s.a == planned);
+  }
+
+  // ---- an S-curve pinned at the velocity bound records no acceleration, and leaves it from 0 ----
+  {
+    Axis ax{.v_max = 0.5f,
+            .a_drive = 1.0f,
+            .j_drive = 5.0f,
+            .a_stop = 1.6f,
+            .j_stop = 5.0f,
+            .dt = 0.02f};
+    ax.run(0.5f, 100);
+    CHECK(near(ax.s.v, 0.5f) && near(ax.s.a, 0.0f));
+    ax.step(-0.5f);
+    CHECK(near(ax.s.a, -0.1f)); // one jerk step from 0, not from a phantom +1.0
+  }
+
   // ---- the S-curve alone: ramps at the jerk limit, caps at a_max, lands without overshoot ----
   {
     Axis ax{.v_max = 10.0f,

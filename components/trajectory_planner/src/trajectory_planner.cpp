@@ -43,6 +43,15 @@ bool TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
     logger_.error("driving_profile.max_angular_acceleration must be > 0");
     return false;
   }
+  // a stopping profile with no acceleration could never bring the chassis to rest
+  if (config.stopping_profile.max_linear_acceleration <= 0.0f) {
+    logger_.error("stopping_profile.max_linear_acceleration must be > 0");
+    return false;
+  }
+  if (config.stopping_profile.max_angular_acceleration <= 0.0f) {
+    logger_.error("stopping_profile.max_angular_acceleration must be > 0");
+    return false;
+  }
 
   if (config.driving_profile.max_linear_jerk * config.planning_period.count() >
       config.driving_profile.max_linear_acceleration) {

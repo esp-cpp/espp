@@ -108,10 +108,13 @@ struct AxisState {
  * With `jerk` > 0 the acceleration is planned by update_accel() (S-curve);
  * with `jerk` == 0 the velocity is rate-limited by `a_max` directly
  * (trapezoidal). Either way `state.a` ends up as the acceleration that was
- * actually applied -- (v_new - v_old) / dt, after the velocity clamp -- so
- * that a later jerk-limited step resumes from the real value: after a
- * trapezoidal stop has completed it is 0, not the last S-curve acceleration,
- * and if the stop is interrupted it is the deceleration in force.
+ * actually applied, so that a later jerk-limited step resumes from the real
+ * value: after a trapezoidal stop has completed it is 0, not the last S-curve
+ * acceleration; if the stop is interrupted it is the deceleration in force;
+ * while the velocity sits on a bound it is 0. An S-curve step whose velocity
+ * was not clamped keeps the planned acceleration bit for bit (recomputing it
+ * from the velocity delta would feed rounding noise into update_accel()'s
+ * step-count truncation).
  *
  * @param state Axis state in / out.
  * @param target Target velocity.
@@ -126,11 +129,14 @@ inline void step_axis(AxisState &state, float target, float v_min, float v_max, 
   const float v_prev = state.v;
   if (jerk > 0.0f) {
     update_accel(state.a, target - state.v, jerk * dt, a_max, dt);
-    state.v = std::clamp(state.v + state.a * dt, v_min, v_max);
+    const float v_free = state.v + state.a * dt;
+    state.v = std::clamp(v_free, v_min, v_max);
+    if (state.v != v_free) // clamped: the acceleration applied is what the bound allowed
+      state.a = (state.v - v_prev) / dt;
   } else {
     state.v = std::clamp(rate_limit(state.v, target, a_max, dt), v_min, v_max);
+    state.a = (state.v - v_prev) / dt;
   }
-  state.a = (state.v - v_prev) / dt;
 }
 
 } // namespace trajectory_planner
