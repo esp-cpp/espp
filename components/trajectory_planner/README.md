@@ -25,6 +25,10 @@ constraints.
   - **Trapezoidal**: `max_linear_jerk = max_angular_jerk = 0` (default)
   - **S-curve**: non-zero jerk limits; discrete optimal-control landing
   - Recommended: S-curve driving + trapezoidal stopping (jerk = 0) -> smooth starts, overshoot-free stops.
+  - The choice is per axis (a profile may be S-curve on one axis and trapezoidal on
+    the other), and the hand-off between profiles is continuous: each step resumes
+    from the acceleration actually applied on the previous one, so after a
+    trapezoidal stop the next S-curve start begins from zero.
 - **Motion envelope enforcement** - optionally constrains `(v/v_max)^2 + (w/w_max)^2 <= 1`.
 - **Centripetal acceleration limiting** - constrains `|v * w| <= max_centripetal_acceleration`.
 - **Planning timer** - `planning_period` drives `update()` (default 20 ms / 50 Hz);

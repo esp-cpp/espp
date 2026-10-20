@@ -84,11 +84,16 @@ public:
    * @brief Acceleration and jerk limits for one phase of motion.
    *
    * Set max_linear_jerk / max_angular_jerk to 0 for a trapezoidal (ramp)
-   * profile, or to a positive value for an S-curve profile.
+   * profile, or to a positive value for an S-curve profile. The choice is per
+   * axis: a profile may be jerk-limited on one axis and trapezoidal on the
+   * other.
    *
    * @note Using a trapezoidal stopping profile (jerk = 0) is recommended to
    *       avoid S-curve overshoot past zero when the planner decelerates from
-   *       a jerk-limited driving phase.
+   *       a jerk-limited driving phase. The hand-off between the profiles is
+   *       continuous: the next step always resumes from the acceleration
+   *       actually applied on the previous one, and an acceleration beyond the
+   *       new profile's limit is wound back at that profile's jerk limit.
    */
   struct MotionProfile {
     float max_linear_acceleration = 0.0f;  /**< Linear acceleration limit (m/s^2). */
@@ -219,8 +224,10 @@ protected:
   struct State {
     float v = 0.0f;   /**< Current linear velocity (m/s). */
     float w = 0.0f;   /**< Current angular velocity (rad/s). */
-    float a_v = 0.0f; /**< Current linear acceleration (m/s^2) -- jerk-limited mode only. */
-    float a_w = 0.0f; /**< Current angular acceleration (rad/s^2) -- jerk-limited mode only. */
+    float a_v = 0.0f; /**< Linear acceleration (m/s^2) applied on the last update(), in either
+                           profile mode (0 once a stop has completed). */
+    float a_w = 0.0f; /**< Angular acceleration (rad/s^2) applied on the last update(), in either
+                           profile mode (0 once a stop has completed). */
   };
   friend struct fmt::formatter<State>;
 
