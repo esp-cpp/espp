@@ -11,6 +11,7 @@
 
 #include "base_component.hpp"
 #include "wifi_base.hpp"
+#include "wifi_credentials.hpp"
 #include "wifi_format_helpers.hpp"
 
 namespace espp {
@@ -53,7 +54,9 @@ public:
    * @brief Configuration structure for the WiFi Station.
    */
   struct Config {
-    std::string ssid;     /**< SSID for the access point. */
+    std::string ssid;     /**< SSID for the access point. If empty, the credentials (SSID and
+                             password) saved by esp-wifi from the last connection are used and
+                             `password` is ignored. */
     std::string password; /**< Password for the access point. If empty, the AP will be open / have
                              no security. */
     wifi_phy_rate_t phy_rate{
@@ -461,8 +464,16 @@ public:
                    std::string_view(reinterpret_cast<char *>(wifi_config.sta.ssid)));
     } else {
       logger_.debug("Setting WiFi SSID to '{}'", config.ssid);
-      memcpy(wifi_config.sta.ssid, config.ssid.data(), config.ssid.size());
-      memcpy(wifi_config.sta.password, config.password.data(), config.password.size());
+      if (!wifi_credentials::set_field(wifi_config.sta.ssid, config.ssid)) {
+        logger_.error("SSID is too long ({} bytes, at most {})", config.ssid.size(),
+                      sizeof(wifi_config.sta.ssid));
+        return false;
+      }
+      if (!wifi_credentials::set_field(wifi_config.sta.password, config.password)) {
+        logger_.error("Password is too long ({} bytes, at most {})", config.password.size(),
+                      sizeof(wifi_config.sta.password));
+        return false;
+      }
     }
 
     wifi_config.sta.channel = config.channel;
@@ -569,9 +580,13 @@ public:
 
   /**
    * @brief Connect to the access point with the given SSID and password.
-   * @param ssid SSID of the access point.
-   * @param password Password of the access point. If empty, the AP will be open / have no security.
+   * @param ssid SSID of the access point (at most 32 bytes).
+   * @param password Password of the access point (at most 64 bytes). If empty, the AP is open /
+   *        has no security: the previously stored password is cleared, not kept.
    * @return true if the connection was initiated successfully, false otherwise.
+   * @note The SSID and password replace the stored ones completely: a shorter value never keeps
+   *       the trailing bytes of the previous one. The rest of the stored STA configuration
+   *       (channel, BSSID, ...) is kept.
    */
   bool connect(std::string_view ssid, std::string_view password) {
     if (ssid.empty()) {
@@ -584,9 +599,15 @@ public:
       logger_.error("Could not get saved WiFi configuration");
       return false;
     }
-    memcpy(wifi_config.sta.ssid, ssid.data(), ssid.size());
-    if (!password.empty()) {
-      memcpy(wifi_config.sta.password, password.data(), password.size());
+    if (!wifi_credentials::set_field(wifi_config.sta.ssid, ssid)) {
+      logger_.error("SSID is too long ({} bytes, at most {})", ssid.size(),
+                    sizeof(wifi_config.sta.ssid));
+      return false;
+    }
+    if (!wifi_credentials::set_field(wifi_config.sta.password, password)) {
+      logger_.error("Password is too long ({} bytes, at most {})", password.size(),
+                    sizeof(wifi_config.sta.password));
+      return false;
     }
     esp_err_t err = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
     if (err != ESP_OK) {

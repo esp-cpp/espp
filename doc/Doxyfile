@@ -515,6 +515,7 @@ INPUT = \
   $(PROJECT_PATH)/components/wifi/include/wifi.hpp \
   $(PROJECT_PATH)/components/wifi/include/wifi_base.hpp \
   $(PROJECT_PATH)/components/wifi/include/wifi_ap.hpp \
+  $(PROJECT_PATH)/components/wifi/include/wifi_credentials.hpp \
   $(PROJECT_PATH)/components/wifi/include/wifi_ap_menu.hpp \
   $(PROJECT_PATH)/components/wifi/include/wifi_sta.hpp \
   $(PROJECT_PATH)/components/wifi/include/wifi_sta_menu.hpp \
