@@ -134,11 +134,19 @@ bool TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
   }
 
   logger_.info("Updated config: {}", config);
-  std::lock_guard<std::recursive_mutex> lk(mutex_);
-  config_ = config;
-  output_callback_ = config.output_callback;
-  if (reset_state) {
-    reset();
+  // Copy the configuration (and its callback) before taking mutex_, and let the
+  // previous ones die after releasing it: copying or destroying a std::function
+  // that wraps a python callable takes the GIL, and a thread holding the GIL may
+  // be waiting for mutex_ (see output_callback_ in the header).
+  Config new_config = config;
+  auto new_callback = std::make_shared<const output_callback_t>(config.output_callback);
+  {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    std::swap(config_, new_config);
+    output_callback_.swap(new_callback);
+    if (reset_state) {
+      reset();
+    }
   }
   return true;
 }
@@ -295,15 +303,17 @@ bool TrajectoryPlanner::start_task() {
             return true; // stop the task
           callback_wake_flag_ = false;
         }
-        output_callback_t cb;
+        // snapshot the callback by shared_ptr (no std::function copy under mutex_,
+        // see output_callback_) and call it with the mutex released
+        std::shared_ptr<const output_callback_t> cb;
         MotionCommand cmd;
         {
           std::lock_guard<std::recursive_mutex> lk(mutex_);
           cb = output_callback_;
           cmd = MotionCommand{.linear_velocity = state_.v, .angular_velocity = state_.w};
         }
-        if (cb)
-          cb(cmd);
+        if (cb && *cb)
+          (*cb)(cmd);
         return false;
       },
       .task_config = config_.callback_task_config,

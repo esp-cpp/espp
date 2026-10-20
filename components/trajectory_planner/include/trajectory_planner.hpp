@@ -259,7 +259,12 @@ protected:
   State state_ = {};
   float target_v_ = 0.0f;
   float target_w_ = 0.0f;
-  espp::TrajectoryPlanner::output_callback_t output_callback_ = nullptr;
+  /// The output callback, shared so the callback task can take a snapshot under
+  /// mutex_ without copying the std::function itself. Copying or destroying a
+  /// std::function that wraps a python callable takes the GIL (pybind11), and a
+  /// thread that holds the GIL may be waiting for mutex_ in set_target() /
+  /// output(): no GIL work may ever happen while mutex_ is held.
+  std::shared_ptr<const output_callback_t> output_callback_;
   std::unique_ptr<espp::Timer> timer_ = nullptr;
   std::unique_ptr<espp::Task> callback_task_ =
       nullptr; // woken by CV from update(), falls back to timeout
