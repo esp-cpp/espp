@@ -26,6 +26,10 @@ bool TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
     logger_.error("max_linear_velocity must be > 0");
     return false;
   }
+  if (config.max_reverse_linear_velocity < 0.0f) {
+    logger_.error("max_reverse_linear_velocity must be >= 0 (0 = same as max_linear_velocity)");
+    return false;
+  }
   if (config.max_angular_velocity <= 0.0f) {
     logger_.error("max_angular_velocity must be > 0");
     return false;
@@ -76,6 +80,11 @@ bool TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
   return true;
 }
 
+float TrajectoryPlanner::reverse_velocity_limit_locked() const {
+  return config_.max_reverse_linear_velocity > 0.0f ? config_.max_reverse_linear_velocity
+                                                    : config_.max_linear_velocity;
+}
+
 const TrajectoryPlanner::Config &TrajectoryPlanner::get_config() const {
   std::lock_guard<std::recursive_mutex> lk(mutex_);
   return config_;
@@ -97,12 +106,14 @@ void TrajectoryPlanner::set_target(float linear, float angular) {
   bool enforce_motion_envelope = false;
   float max_centripetal_acceleration = 0.0f;
   float max_linear_velocity = 0.0f;
+  float max_reverse_velocity = 0.0f;
   float max_angular_velocity = 0.0f;
   {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
     enforce_motion_envelope = config_.enforce_motion_envelope;
     max_centripetal_acceleration = config_.max_centripetal_acceleration;
     max_linear_velocity = config_.max_linear_velocity;
+    max_reverse_velocity = reverse_velocity_limit_locked();
     max_angular_velocity = config_.max_angular_velocity;
   }
 
@@ -116,7 +127,8 @@ void TrajectoryPlanner::set_target(float linear, float angular) {
     }
   }
 
-  auto target_v = linear * max_linear_velocity;
+  // full forward stick = max_linear_velocity, full reverse stick = the reverse limit
+  auto target_v = linear * (linear < 0.0f ? max_reverse_velocity : max_linear_velocity);
   auto target_w = angular * max_angular_velocity;
 
   // Centripetal acceleration limit: |v · w| ≤ a_c_max
@@ -143,7 +155,9 @@ void TrajectoryPlanner::set_target(float linear, float angular) {
 
 std::pair<float, float> TrajectoryPlanner::get_target() const {
   std::lock_guard<std::recursive_mutex> lk(mutex_);
-  return {target_v_ / config_.max_linear_velocity, target_w_ / config_.max_angular_velocity};
+  const float v_limit =
+      target_v_ < 0.0f ? reverse_velocity_limit_locked() : config_.max_linear_velocity;
+  return {target_v_ / v_limit, target_w_ / config_.max_angular_velocity};
 }
 
 void TrajectoryPlanner::update(float dt) {
@@ -166,10 +180,10 @@ void TrajectoryPlanner::update(float dt) {
     using detail::trajectory_planner::step_axis;
     AxisState lin{.v = state_.v, .a = state_.a_v};
     AxisState ang{.v = state_.w, .a = state_.a_w};
-    step_axis(lin, target_v_, config_.max_linear_velocity, profile.max_linear_acceleration,
-              profile.max_linear_jerk, dt);
-    step_axis(ang, target_w_, config_.max_angular_velocity, profile.max_angular_acceleration,
-              profile.max_angular_jerk, dt);
+    step_axis(lin, target_v_, -reverse_velocity_limit_locked(), config_.max_linear_velocity,
+              profile.max_linear_acceleration, profile.max_linear_jerk, dt);
+    step_axis(ang, target_w_, -config_.max_angular_velocity, config_.max_angular_velocity,
+              profile.max_angular_acceleration, profile.max_angular_jerk, dt);
     state_.v = lin.v;
     state_.a_v = lin.a;
     state_.w = ang.v;

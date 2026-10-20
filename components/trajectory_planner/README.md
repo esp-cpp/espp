@@ -20,7 +20,9 @@ constraints.
 
 - **Normalized inputs** - `set_target(linear, angular)` accepts `[-1, +1]`;
   `+/-1` maps to configured maximum speed. `get_target()` reads it back.
-- **Velocity limiting** - outputs bounded by `max_linear_velocity` / `max_angular_velocity`.
+- **Velocity limiting** - outputs bounded by `max_linear_velocity` / `max_angular_velocity`;
+  an optional `max_reverse_linear_velocity` makes full reverse stick slower than full
+  forward (powered wheelchairs typically reverse at ~70 % of forward speed).
 - **Dual motion profiles** - separate `driving_profile` and `stopping_profile`:
   - **Trapezoidal**: `max_linear_jerk = max_angular_jerk = 0` (default)
   - **S-curve**: non-zero jerk limits; discrete optimal-control landing
@@ -43,7 +45,8 @@ constraints.
 
 ```cpp
 espp::TrajectoryPlanner planner({
-    .max_linear_velocity  = 1.0f,       // m/s
+    .max_linear_velocity  = 1.0f,       // m/s at full forward stick
+    .max_reverse_linear_velocity = 0.7f, // m/s at full reverse stick (0 = same as forward)
     .max_angular_velocity = 3.14159f,   // rad/s
 
     // S-curve driving profile

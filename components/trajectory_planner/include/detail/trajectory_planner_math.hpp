@@ -115,19 +115,20 @@ struct AxisState {
  *
  * @param state Axis state in / out.
  * @param target Target velocity.
- * @param v_max Velocity limit (the result is clamped to +-v_max).
+ * @param v_min Lowest velocity allowed (<= 0; e.g. minus the reverse limit).
+ * @param v_max Highest velocity allowed (>= 0); the result is clamped to [v_min, v_max].
  * @param a_max Acceleration limit.
  * @param jerk Jerk limit; 0 selects the trapezoidal profile.
  * @param dt Step length (> 0).
  */
-inline void step_axis(AxisState &state, float target, float v_max, float a_max, float jerk,
-                      float dt) {
+inline void step_axis(AxisState &state, float target, float v_min, float v_max, float a_max,
+                      float jerk, float dt) {
   const float v_prev = state.v;
   if (jerk > 0.0f) {
     update_accel(state.a, target - state.v, jerk * dt, a_max, dt);
-    state.v = std::clamp(state.v + state.a * dt, -v_max, v_max);
+    state.v = std::clamp(state.v + state.a * dt, v_min, v_max);
   } else {
-    state.v = std::clamp(rate_limit(state.v, target, a_max, dt), -v_max, v_max);
+    state.v = std::clamp(rate_limit(state.v, target, a_max, dt), v_min, v_max);
   }
   state.a = (state.v - v_prev) / dt;
 }

@@ -32,7 +32,8 @@ struct Axis {
   void step(float target) {
     const bool stopping = target == 0.0f;
     const float a_prev = s.a;
-    tp::step_axis(s, target, v_max, stopping ? a_stop : a_drive, stopping ? j_stop : j_drive, dt);
+    tp::step_axis(s, target, -v_max, v_max, stopping ? a_stop : a_drive,
+                  stopping ? j_stop : j_drive, dt);
     max_jerk_seen = std::max(max_jerk_seen, std::abs(s.a - a_prev) / dt);
   }
   void run(float target, int steps) {
@@ -129,8 +130,19 @@ int main() {
   // (it used to be fed through the S-curve logic with a huge "jerk" and never moved)
   {
     tp::AxisState s{};
-    tp::step_axis(s, 3.0f, 3.0f, 6.0f, 0.0f, 0.02f);
+    tp::step_axis(s, 3.0f, -3.0f, 3.0f, 6.0f, 0.0f, 0.02f);
     CHECK(near(s.v, 0.12f) && near(s.a, 6.0f));
+  }
+
+  // ---- asymmetric velocity bounds (issue #852): full reverse settles at the reverse limit ----
+  {
+    tp::AxisState s{};
+    for (int i = 0; i < 100; i++)
+      tp::step_axis(s, -1.8f, -1.0f, 1.8f, 1.6f, 0.0f, 0.02f); // target beyond the bound
+    CHECK(near(s.v, -1.0f) && near(s.a, 0.0f));
+    for (int i = 0; i < 100; i++)
+      tp::step_axis(s, 1.8f, -1.0f, 1.8f, 1.6f, 0.0f, 0.02f);
+    CHECK(near(s.v, 1.8f));
   }
 
   // ---- the S-curve alone: ramps at the jerk limit, caps at a_max, lands without overshoot ----

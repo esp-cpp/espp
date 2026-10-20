@@ -3997,7 +3997,8 @@ class TrajectoryPlanner:
            * @brief Configuration for the TrajectoryPlanner.
 
         """
-        max_linear_velocity: float = 1.0                                           #*< Maximum linear velocity magnitude (m/s).
+        max_linear_velocity: float = 1.0                                           #*< Maximum forward linear velocity (m/s): the speed at full forward stick.
+        max_reverse_linear_velocity: float = 0.0                                   #*< Maximum reverse linear velocity (m/s): the speed at full reverse stick. 0 = the same as max_linear_velocity (symmetric).
         max_angular_velocity: float = 3.14159                                      #*< Maximum angular velocity magnitude (rad/s).
         driving_profile: TrajectoryPlanner.MotionProfile                           #*< Accel/jerk limits used when target != (0, 0).
         stopping_profile: TrajectoryPlanner.MotionProfile                          #*< Accel/jerk limits used when target
@@ -4030,6 +4031,7 @@ class TrajectoryPlanner:
         def __init__(
             self,
             max_linear_velocity: float = 1.0,
+            max_reverse_linear_velocity: float = 0.0,
             max_angular_velocity: float = 3.14159,
             driving_profile: TrajectoryPlanner.MotionProfile = TrajectoryPlanner.MotionProfile(),
             stopping_profile: TrajectoryPlanner.MotionProfile = TrajectoryPlanner.MotionProfile(),
@@ -4080,7 +4082,8 @@ class TrajectoryPlanner:
            *
            * Both inputs are in the range [-1, +1] and are scaled internally:
            * @code
-           *   v_target  = linear  * max_linear_velocity
+           *   v_target  = linear  * max_linear_velocity          (linear >= 0)
+           *   v_target  = linear  * max_reverse_linear_velocity  (linear < 0; = max_linear_velocity when 0)
            *   w_target  = angular * max_angular_velocity
            * @endcode
            * Values outside [-1, +1] are clamped before scaling.

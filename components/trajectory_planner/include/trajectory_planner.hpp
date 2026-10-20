@@ -106,8 +106,12 @@ public:
    * @brief Configuration for the TrajectoryPlanner.
    */
   struct Config {
-    float max_linear_velocity = 1.0f;      /**< Maximum linear velocity magnitude (m/s). */
-    float max_angular_velocity = 3.14159f; /**< Maximum angular velocity magnitude (rad/s). */
+    float max_linear_velocity = 1.0f;         /**< Maximum forward linear velocity (m/s): the
+                                                   speed at full forward stick. */
+    float max_reverse_linear_velocity = 0.0f; /**< Maximum reverse linear velocity (m/s): the
+                                                   speed at full reverse stick. 0 = the same as
+                                                   max_linear_velocity (symmetric). */
+    float max_angular_velocity = 3.14159f;    /**< Maximum angular velocity magnitude (rad/s). */
     espp::TrajectoryPlanner::MotionProfile
         driving_profile; /**< Accel/jerk limits used when target != (0, 0). */
     espp::TrajectoryPlanner::MotionProfile stopping_profile; /**< Accel/jerk limits used when target
@@ -171,7 +175,8 @@ Leave as nullptr to disable. */
    *
    * Both inputs are in the range [-1, +1] and are scaled internally:
    * @code
-   *   v_target  = linear  * max_linear_velocity
+   *   v_target  = linear  * max_linear_velocity          (linear >= 0)
+   *   v_target  = linear  * max_reverse_linear_velocity  (linear < 0; = max_linear_velocity when 0)
    *   w_target  = angular * max_angular_velocity
    * @endcode
    * Values outside [-1, +1] are clamped before scaling.
@@ -187,6 +192,8 @@ Leave as nullptr to disable. */
    * @brief Get the current normalized velocity target.
    * @note  If enforce_motion_envelope is enabled the stored target may differ
    *        from the value passed to set_target() (it is projected onto the unit circle).
+   *        A negative linear target is normalized by the reverse limit, so -1 is
+   *        full reverse stick whatever the two limits are.
    * @return Pair of {linear, angular} in [-1, +1].
    */
   std::pair<float, float> get_target() const;
@@ -220,6 +227,10 @@ Leave as nullptr to disable. */
   bool is_running() const;
 
 protected:
+  /// The reverse linear velocity limit in force (max_reverse_linear_velocity, or
+  /// max_linear_velocity when it is 0). Call with mutex_ held.
+  float reverse_velocity_limit_locked() const;
+
   /// Internal motion state tracked between update() calls.
   struct State {
     float v = 0.0f;   /**< Current linear velocity (m/s). */
