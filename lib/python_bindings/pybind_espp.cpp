@@ -2550,7 +2550,8 @@ void py_init_module_espp(py::module &m) {
             "*\n   * @brief Configuration for the TrajectoryPlanner.\n")
             .def(
                 py::init<>(
-                    [](float max_linear_velocity = 1.0f, float max_angular_velocity = 3.14159f,
+                    [](float max_linear_velocity = 1.0f, float max_reverse_linear_velocity = 0.0f,
+                       float max_angular_velocity = 3.14159f,
                        espp::TrajectoryPlanner::MotionProfile driving_profile =
                            espp::TrajectoryPlanner::MotionProfile(),
                        espp::TrajectoryPlanner::MotionProfile stopping_profile =
@@ -2570,6 +2571,7 @@ void py_init_module_espp(py::module &m) {
                        espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN) {
                       auto r_ctor_ = std::make_unique<espp::TrajectoryPlanner::Config>();
                       r_ctor_->max_linear_velocity = max_linear_velocity;
+                      r_ctor_->max_reverse_linear_velocity = max_reverse_linear_velocity;
                       r_ctor_->max_angular_velocity = max_angular_velocity;
                       r_ctor_->driving_profile = driving_profile;
                       r_ctor_->stopping_profile = stopping_profile;
@@ -2582,7 +2584,9 @@ void py_init_module_espp(py::module &m) {
                       r_ctor_->log_level = log_level;
                       return r_ctor_;
                     }),
-                py::arg("max_linear_velocity") = 1.0f, py::arg("max_angular_velocity") = 3.14159f,
+                py::arg("max_linear_velocity") = 1.0f,
+                py::arg("max_reverse_linear_velocity") = 0.0f,
+                py::arg("max_angular_velocity") = 3.14159f,
                 py::arg("driving_profile") = espp::TrajectoryPlanner::MotionProfile(),
                 py::arg("stopping_profile") = espp::TrajectoryPlanner::MotionProfile(),
                 py::arg("enforce_motion_envelope") = false,
@@ -2597,9 +2601,13 @@ void py_init_module_espp(py::module &m) {
                     espp::Task::BaseConfig{
                         .name = "TP_cb", .stack_size_bytes = 8192, .priority = 0, .core_id = -1},
                 py::arg("log_level") = espp::Logger::Verbosity::WARN)
-            .def_readwrite("max_linear_velocity",
-                           &espp::TrajectoryPlanner::Config::max_linear_velocity,
-                           "*< Maximum linear velocity magnitude (m/s).")
+            .def_readwrite(
+                "max_linear_velocity", &espp::TrajectoryPlanner::Config::max_linear_velocity,
+                "*< Maximum forward linear velocity (m/s): the speed at full forward stick.")
+            .def_readwrite("max_reverse_linear_velocity",
+                           &espp::TrajectoryPlanner::Config::max_reverse_linear_velocity,
+                           "*< Maximum reverse linear velocity (m/s): the speed at full reverse "
+                           "stick. 0 = the same as max_linear_velocity (symmetric).")
             .def_readwrite("max_angular_velocity",
                            &espp::TrajectoryPlanner::Config::max_angular_velocity,
                            "*< Maximum angular velocity magnitude (rad/s).")
@@ -2653,8 +2661,10 @@ void py_init_module_espp(py::module &m) {
            py::arg("angular"),
            "*\n   * @brief Set the desired chassis velocity target using normalized joystick "
            "inputs.\n   *\n   * Both inputs are in the range [-1, +1] and are scaled internally:\n "
-           "  * @code\n   *   v_target  = linear  * max_linear_velocity\n   *   w_target  = "
-           "angular * max_angular_velocity\n   * @endcode\n   * Values outside [-1, +1] are "
+           "  * @code\n   *   v_target  = linear  * max_linear_velocity          (linear >= 0)\n"
+           "   *   v_target  = linear  * max_reverse_linear_velocity  (linear < 0; = "
+           "max_linear_velocity when 0)\n   *   w_target  = angular * max_angular_velocity\n"
+           "   * @endcode\n   * Values outside [-1, +1] are "
            "clamped before scaling.\n   *\n   * @param linear  Normalized linear velocity command  "
            "[-1, +1].\n   *                +1 = full forward, -1 = full reverse.\n   * @param "
            "angular Normalized angular velocity command [-1, +1].\n   *                +1 = full "
