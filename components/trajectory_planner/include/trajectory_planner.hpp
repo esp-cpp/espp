@@ -226,6 +226,27 @@ Leave as nullptr to disable. */
    */
   bool is_running() const;
 
+  /**
+   * @brief Start the periodic planning and callback timers.
+   *
+   * The planning timer calls update() at Config::planning_period.
+   * The callback task fires output_callback whenever update() produces new output.
+   * Has no effect if the timers are already running.
+   *
+   * @return true if both timers were started successfully.
+   */
+  bool start_task();
+
+  /**
+   * @brief Stop the periodic planning and callback timers (joins their tasks).
+   *
+   * The planner can be started again with start_task(); the destructor stops
+   * them itself.
+   *
+   * @return true if the task was stopped, false if it was not running.
+   */
+  bool stop_task();
+
 protected:
   /// The reverse linear velocity limit in force (max_reverse_linear_velocity, or
   /// max_linear_velocity when it is 0). Call with mutex_ held.
@@ -243,24 +264,6 @@ protected:
   friend struct fmt::formatter<State>;
 
   /**
-   * @brief Start the periodic planning and callback timers.
-   *
-   * The planning timer calls update() at Config::planning_period.
-   * The callback task fires output_callback whenever update() produces new output.
-   * Has no effect if the timers are already running.
-   *
-   * @return true if both timers were started successfully.
-   */
-  bool start_task();
-
-  /**
-   * @brief Stop the periodic update task.
-   *
-   * @return true if the task was stopped, false if it was not running.
-   */
-  bool stop_task();
-
-  /**
    * @brief Advance the planner by one time step.
    *
    * Called automatically by the periodic task. Can also be called manually
@@ -274,7 +277,12 @@ protected:
   State state_ = {};
   float target_v_ = 0.0f;
   float target_w_ = 0.0f;
-  espp::TrajectoryPlanner::output_callback_t output_callback_ = nullptr;
+  /// The output callback, shared so the callback task can take a snapshot under
+  /// mutex_ without copying the std::function itself. Copying or destroying a
+  /// std::function that wraps a python callable takes the GIL (pybind11), and a
+  /// thread that holds the GIL may be waiting for mutex_ in set_target() /
+  /// output(): no GIL work may ever happen while mutex_ is held.
+  std::shared_ptr<const output_callback_t> output_callback_;
   std::unique_ptr<espp::Timer> timer_ = nullptr;
   std::unique_ptr<espp::Task> callback_task_ =
       nullptr; // woken by CV from update(), falls back to timeout

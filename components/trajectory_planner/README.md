@@ -40,6 +40,10 @@ constraints.
   Safe to call `set_target()` and `output()` from within it.
 - **Thread-safe** - `set_target()`, `get_target()`, `output()`, `stop()`, and
   `reset()` are safe to call from any thread concurrently.
+- **Pause / resume** - `stop_task()` stops the planning and callback tasks (the
+  destructor does the same) and `start_task()` starts them again; `is_running()`
+  reports the state. From Python, `stop_task()` is the clean way to shut a
+  planner down before dropping it.
 
 ## Usage
 
