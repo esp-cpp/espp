@@ -163,6 +163,15 @@ All methods lock an internal mutex; `get()` returns a copy, and `update()`
 runs the caller's function and the save under the same lock. A save blocks
 other callers for the duration of the flash write.
 
+## Host (cross-platform library)
+
+The component is part of the cross-platform C++ library in `lib/` (included
+by `espp.hpp`), so the same class and file format work on a PC against the
+installed `espp::espp` target, for desktop tools that read or write a device's
+settings file, or for host-side tests of migrations. It is not in the Python
+bindings: `PersistentData` is a class template over the application's own
+types, which the generated bindings cannot instantiate generically.
+
 ## Host test
 
 The file format, version list, migration chain and file helpers live in

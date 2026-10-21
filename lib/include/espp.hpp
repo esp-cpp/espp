@@ -43,6 +43,7 @@ extern "C" {
 #include "mjpeg_packetizer.hpp"
 #include "ndef.hpp"
 #include "odrive_native.hpp"
+#include "persistent_data.hpp"
 #include "pid.hpp"
 #include "range_mapper.hpp"
 #include "rtp_depacketizer.hpp"

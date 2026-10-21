@@ -616,6 +616,9 @@ def autogenerate() -> None:
 
                     # serialization (template header):
                     # include_dir + "serialization/include/serialization.hpp",
+
+                    # persistent_data (class template over the app's own version types):
+                    # include_dir + "persistent_data/include/persistent_data.hpp",
     ]
 
     pydef_file = output_dir + "/pybind_espp.cpp"
