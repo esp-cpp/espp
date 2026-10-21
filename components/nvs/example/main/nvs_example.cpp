@@ -88,7 +88,7 @@ extern "C" void app_main(void) {
     if (ec) {
       fmt::print("Error: {}\n", ec.message());
     } else {
-      fmt::print("String = '{}'\n", str);
+      fmt::print("String = '{}' ({} bytes)\n", str, str.size());
     }
     ec.clear();
 
@@ -107,7 +107,7 @@ extern "C" void app_main(void) {
     if (ec) {
       fmt::print("Error: {}\n", ec.message());
     } else {
-      fmt::print("String = '{}'\n", str);
+      fmt::print("String = '{}' ({} bytes)\n", str, str.size());
     }
     ec.clear();
 
