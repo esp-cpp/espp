@@ -114,6 +114,13 @@ settings.update([](Settings &s) { s.boot_count++; }, ec);
 Settings s = settings.get(); // a copy
 s.brightness = 1.0f;
 settings.save(s, ec);
+
+// get() / set() are also available as conversion / assignment operators;
+// saving stays explicit because it can fail
+Settings t = settings; // == settings.get()
+t.boot_count = 0;
+settings = t;          // == settings.set(t)
+settings.save(ec);
 ```
 
 With `auto_load` (the default) the constructor loads the file and logs any

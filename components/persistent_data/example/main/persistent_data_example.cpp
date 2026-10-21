@@ -122,6 +122,12 @@ extern "C" void app_main(void) {
     copy.favorites = {"red", "green"};
     settings.set(copy);
     settings.save(ec);
+
+    // the same through the conversion / assignment operators
+    Settings s = settings; // == settings.get()
+    s.display.brightness = 1.0f;
+    settings = s; // == settings.set(s)
+    settings.save(ec);
     //! [persistent data example]
     logger.info("After update: {}", settings.get());
   }
@@ -174,6 +180,21 @@ extern "C" void app_main(void) {
             again.get().boot_count == 11 && again.get().display.brightness == 0.75f);
       bool declined = settings.update([](Settings &) { return false; }, ec);
       check("update() returning false does not save", !declined && !ec);
+    }
+
+    // assignment / conversion operators
+    {
+      PersistentSettings settings({.file_path = settings_path});
+      Settings s = settings; // conversion == get()
+      check("conversion operator returns the loaded data", s.boot_count == 11);
+      s.boot_count = 42;
+      settings = s; // assignment == set()
+      check("assignment operator sets the data in memory", settings.get().boot_count == 42);
+      PersistentSettings again({.file_path = settings_path});
+      check("assignment does not write the file", again.get().boot_count == 11);
+      settings.save(ec);
+      PersistentSettings after_save({.file_path = settings_path});
+      check("save() after assignment persists it", !ec && after_save.get().boot_count == 42);
     }
 
     //! [persistent data migration example]

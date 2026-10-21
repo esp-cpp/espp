@@ -41,7 +41,10 @@ namespace espp {
  *
  *          All methods are thread-safe; get() returns a copy and update()
  *          runs the caller's function and the save under the same lock. A save
- *          blocks other callers for the duration of the flash write.
+ *          blocks other callers for the duration of the flash write. For
+ *          convenience the object converts to a copy of the data (get()) and
+ *          can be assigned from it (set()); saving stays an explicit call
+ *          because it can fail.
  *
  * @tparam Versions The schema versions, oldest first; the last is the current
  *         type. Each must be an aggregate the serialization component can
@@ -134,6 +137,17 @@ public:
     std::lock_guard<std::mutex> lock(mutex_);
     data_ = data;
   }
+
+  /// @brief Assign new data, the same as set(): `settings = Settings{...};`.
+  /// @note In memory only; save() still writes the file (and reports errors).
+  PersistentData &operator=(const Current &data) {
+    set(data);
+    return *this;
+  }
+
+  /// @brief Convert to a copy of the data in memory, the same as get():
+  ///        `Settings s = settings;`.
+  operator Current() const { return get(); }
 
   /**
    * @brief Load the file, migrating it to the current version if needed.

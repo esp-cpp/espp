@@ -39,7 +39,7 @@ I (…) persistent data example: Day-to-day use: load or create, then update
 I (…) PersistentData:settings.bin: No file at '/littlefs/settings.bin'
 I (…) PersistentData:settings.bin: No file at '/littlefs/settings.bin', creating it with defaults
 I (…) persistent data example: Loaded (file version 0): Settings{name: 'espp', brightness: 0.50, color: 0x00ff00, favorites: [], boot_count: 0}
-I (…) persistent data example: After update: Settings{name: 'espp', brightness: 0.50, color: 0x00ff00, favorites: ["red", "green"], boot_count: 1}
+I (…) persistent data example: After update: Settings{name: 'espp', brightness: 1.00, color: 0x00ff00, favorites: ["red", "green"], boot_count: 1}
 I (…) persistent data example: Validating persistent data operations...
   [PASS] erase succeeds
   [PASS] file does not exist after erase
@@ -55,6 +55,10 @@ I (…) persistent data example: Validating persistent data operations...
   [PASS] update() saves
   [PASS] update() result persisted
   [PASS] update() returning false does not save
+  [PASS] conversion operator returns the loaded data
+  [PASS] assignment operator sets the data in memory
+  [PASS] assignment does not write the file
+  [PASS] save() after assignment persists it
   [PASS] v1 file written
   [PASS] v1 file loads
   [PASS] v1 file was migrated
@@ -74,7 +78,7 @@ I (…) persistent data example: Validating persistent data operations...
   [PASS] decode
   [PASS] decode round trip
   [PASS] final save
-Persistent data validation: 33/33 checks passed - PASS
+Persistent data validation: 37/37 checks passed - PASS
 I (…) persistent data example: Persistent data example complete!
 ```
 
