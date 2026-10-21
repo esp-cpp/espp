@@ -161,6 +161,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/mt6701/example/main/mt6701_example.cpp \
   $(PROJECT_PATH)/components/neopixel/example/main/neopixel_example.cpp \
   $(PROJECT_PATH)/components/nvs/example/main/nvs_example.cpp \
+  $(PROJECT_PATH)/components/persistent_data/example/main/persistent_data_example.cpp \
   $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp \
   $(PROJECT_PATH)/components/odrive_native/example/main/odrive_native_example.cpp \
   $(PROJECT_PATH)/components/odrive_native/usb_example/main/odrive_usb_example.cpp \
@@ -407,6 +408,8 @@ INPUT = \
   $(PROJECT_PATH)/components/neopixel/include/neopixel.hpp \
   $(PROJECT_PATH)/components/nvs/include/nvs.hpp \
   $(PROJECT_PATH)/components/nvs/include/nvs_handle_espp.hpp \
+  $(PROJECT_PATH)/components/persistent_data/include/persistent_data.hpp \
+  $(PROJECT_PATH)/components/persistent_data/include/persistent_data_errc.hpp \
   $(PROJECT_PATH)/components/mcp23x17/include/mcp23x17.hpp \
   $(PROJECT_PATH)/components/meshtastic/include/meshtastic.hpp \
   $(PROJECT_PATH)/components/meshtastic/include/meshtastic_crypto.hpp \
