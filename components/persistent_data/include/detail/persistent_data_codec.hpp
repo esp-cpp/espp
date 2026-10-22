@@ -12,13 +12,21 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <deque>
 #include <filesystem>
+#include <list>
+#include <map>
+#include <optional>
+#include <set>
 #include <span>
 #include <string>
 #include <system_error>
 #include <tuple>
 #include <type_traits>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #if __has_include(<unistd.h>)
@@ -32,14 +40,15 @@
 namespace espp::persistent_data {
 
 /// @brief Serialization options used for the payload.
-/// @details `with_version` embeds a hash of the type's field types, so a
-///          payload never decodes as a type with a different layout even if a
-///          version number was reused by mistake; `strict` rejects payloads
-///          that are shorter than the type; `fixed_length_encoding` keeps the
-///          encoding independent of the values stored.
-inline constexpr alpaca::options SERIALIZATION_OPTIONS = alpaca::options::fixed_length_encoding |
-                                                         alpaca::options::with_version |
-                                                         alpaca::options::strict;
+/// @details `strict` rejects payloads that are shorter than the type;
+///          `fixed_length_encoding` keeps the encoding independent of the
+///          values stored. alpaca's own `with_version` is deliberately not used:
+///          its hash folds `sizeof(struct)` in, which differs between a 32-bit
+///          ESP32 and a 64-bit host, so a file written on one would not load on
+///          the other. The header's layout fingerprint (see layout::fingerprint)
+///          plays that role portably.
+inline constexpr alpaca::options SERIALIZATION_OPTIONS =
+    alpaca::options::fixed_length_encoding | alpaca::options::strict;
 
 /// @brief Magic number at the start of every file ("ESPD" stored little-endian).
 inline constexpr uint32_t MAGIC = 0x44505345;
@@ -48,10 +57,11 @@ inline constexpr uint32_t MAGIC = 0x44505345;
 /// @details Layout (all fields little-endian):
 ///   - u32 magic   (MAGIC)
 ///   - u32 version (schema version of the payload, the type's `VERSION`)
+///   - u32 layout  (fingerprint of the payload type's layout, layout::fingerprint)
 ///   - u32 length  (payload length in bytes)
-///   - u32 crc32   (over magic, version, length and the payload)
+///   - u32 crc32   (over the four fields above and the payload)
 ///   - payload     (alpaca, SERIALIZATION_OPTIONS)
-inline constexpr size_t HEADER_SIZE = 16;
+inline constexpr size_t HEADER_SIZE = 20;
 
 inline void put_u32(uint8_t *p, uint32_t v) {
   p[0] = static_cast<uint8_t>(v);
@@ -65,6 +75,179 @@ inline uint32_t get_u32(const uint8_t *p) {
          (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[3]) << 24);
 }
 
+/**
+ * @brief Portable description of a type's serialized layout.
+ *
+ * @details The fingerprint is a CRC32 over a byte sequence that describes the
+ *          type exactly as alpaca serializes it, using alpaca's own
+ *          `field_type` codes, and nothing platform-dependent (no sizeof, no
+ *          padding). It is the same on every target and host, and a tool
+ *          without the C++ type (a Python reader) can derive it from a field
+ *          spec. Grammar (one entry per type, recursive):
+ *            - scalar                 code
+ *            - enum                   enum_class, <underlying integer>
+ *            - std::string            string
+ *            - std::vector<T>         vector, <T>
+ *            - std::array<T, N>       array, u32 N, <T>
+ *            - std::list / deque<T>   list / deque, <T>
+ *            - std::map<K, V>         map, <K>, <V>   (unordered_map likewise)
+ *            - std::set<T>            set, <T>        (unordered_set likewise)
+ *            - std::optional<T>       optional, <T>
+ *            - std::pair<A, B>        pair, <A>, <B>
+ *            - std::tuple<Ts...>      tuple, u16 count, <Ts>...
+ *            - std::variant<Ts...>    variant, u16 count, <Ts>...
+ *            - aggregate              struct_, u16 field count, <fields>...
+ *          Multi-byte counts are little-endian.
+ */
+namespace layout {
+
+using alpaca::detail::field_type;
+
+template <typename T> struct always_false : std::false_type {};
+
+inline void code(std::vector<uint8_t> &out, field_type t) {
+  out.push_back(static_cast<uint8_t>(t));
+}
+inline void put_u16(std::vector<uint8_t> &out, uint16_t v) {
+  out.push_back(static_cast<uint8_t>(v));
+  out.push_back(static_cast<uint8_t>(v >> 8));
+}
+inline void put_u32(std::vector<uint8_t> &out, uint32_t v) {
+  out.push_back(static_cast<uint8_t>(v));
+  out.push_back(static_cast<uint8_t>(v >> 8));
+  out.push_back(static_cast<uint8_t>(v >> 16));
+  out.push_back(static_cast<uint8_t>(v >> 24));
+}
+
+template <typename T> void describe(std::vector<uint8_t> &out);
+
+template <typename T, size_t N, size_t I> void describe_fields(std::vector<uint8_t> &out) {
+  if constexpr (I < N) {
+    T ref{};
+    using Field = std::decay_t<decltype(alpaca::detail::get<I, T, N>(ref))>;
+    describe<Field>(out);
+    describe_fields<T, N, I + 1>(out);
+  }
+}
+
+template <typename T, size_t N, size_t I> void describe_tuple(std::vector<uint8_t> &out) {
+  if constexpr (I < N) {
+    describe<std::tuple_element_t<I, T>>(out);
+    describe_tuple<T, N, I + 1>(out);
+  }
+}
+
+template <typename T, size_t N, size_t I> void describe_variant(std::vector<uint8_t> &out) {
+  if constexpr (I < N) {
+    describe<std::variant_alternative_t<I, T>>(out);
+    describe_variant<T, N, I + 1>(out);
+  }
+}
+
+template <typename T> void describe(std::vector<uint8_t> &out) {
+  using U = std::remove_cv_t<T>;
+  using alpaca::detail::is_specialization;
+  if constexpr (std::is_same_v<U, bool>) {
+    code(out, field_type::bool_);
+  } else if constexpr (std::is_same_v<U, char>) {
+    code(out, field_type::char_);
+  } else if constexpr (std::is_same_v<U, uint8_t>) {
+    code(out, field_type::uint8);
+  } else if constexpr (std::is_same_v<U, uint16_t>) {
+    code(out, field_type::uint16);
+  } else if constexpr (std::is_same_v<U, uint32_t>) {
+    code(out, field_type::uint32);
+  } else if constexpr (std::is_same_v<U, uint64_t>) {
+    code(out, field_type::uint64);
+  } else if constexpr (std::is_same_v<U, int8_t>) {
+    code(out, field_type::int8);
+  } else if constexpr (std::is_same_v<U, int16_t>) {
+    code(out, field_type::int16);
+  } else if constexpr (std::is_same_v<U, int32_t>) {
+    code(out, field_type::int32);
+  } else if constexpr (std::is_same_v<U, int64_t>) {
+    code(out, field_type::int64);
+  } else if constexpr (std::is_same_v<U, float>) {
+    code(out, field_type::float32);
+  } else if constexpr (std::is_same_v<U, double>) {
+    code(out, field_type::float64);
+  } else if constexpr (std::is_enum_v<U>) {
+    code(out, field_type::enum_class);
+    describe<std::underlying_type_t<U>>(out);
+  } else if constexpr (is_specialization<U, std::basic_string>::value) {
+    code(out, field_type::string);
+  } else if constexpr (is_specialization<U, std::vector>::value) {
+    code(out, field_type::vector);
+    describe<typename U::value_type>(out);
+  } else if constexpr (alpaca::detail::is_array_type<U>::value) {
+    code(out, field_type::array);
+    put_u32(out, static_cast<uint32_t>(std::tuple_size_v<U>));
+    describe<typename U::value_type>(out);
+  } else if constexpr (is_specialization<U, std::list>::value) {
+    code(out, field_type::list);
+    describe<typename U::value_type>(out);
+  } else if constexpr (is_specialization<U, std::deque>::value) {
+    code(out, field_type::deque);
+    describe<typename U::value_type>(out);
+  } else if constexpr (is_specialization<U, std::map>::value) {
+    code(out, field_type::map);
+    describe<typename U::key_type>(out);
+    describe<typename U::mapped_type>(out);
+  } else if constexpr (is_specialization<U, std::unordered_map>::value) {
+    code(out, field_type::unordered_map);
+    describe<typename U::key_type>(out);
+    describe<typename U::mapped_type>(out);
+  } else if constexpr (is_specialization<U, std::set>::value) {
+    code(out, field_type::set);
+    describe<typename U::value_type>(out);
+  } else if constexpr (is_specialization<U, std::unordered_set>::value) {
+    code(out, field_type::unordered_set);
+    describe<typename U::value_type>(out);
+  } else if constexpr (is_specialization<U, std::optional>::value) {
+    code(out, field_type::optional);
+    describe<typename U::value_type>(out);
+  } else if constexpr (is_specialization<U, std::pair>::value) {
+    code(out, field_type::pair);
+    describe<typename U::first_type>(out);
+    describe<typename U::second_type>(out);
+  } else if constexpr (is_specialization<U, std::tuple>::value) {
+    code(out, field_type::tuple);
+    put_u16(out, static_cast<uint16_t>(std::tuple_size_v<U>));
+    describe_tuple<U, std::tuple_size_v<U>, 0>(out);
+  } else if constexpr (is_specialization<U, std::variant>::value) {
+    code(out, field_type::variant);
+    put_u16(out, static_cast<uint16_t>(std::variant_size_v<U>));
+    describe_variant<U, std::variant_size_v<U>, 0>(out);
+  } else if constexpr (std::is_aggregate_v<U>) {
+    constexpr size_t N = alpaca::detail::aggregate_arity<U>::size();
+    code(out, field_type::struct_);
+    put_u16(out, static_cast<uint16_t>(N));
+    describe_fields<U, N, 0>(out);
+  } else {
+    static_assert(always_false<T>::value,
+                  "persistent_data: this field type has no layout description (add it to "
+                  "layout::describe, or use a type alpaca serializes)");
+  }
+}
+
+/// @brief The layout description bytes of T (see the grammar above).
+template <typename T> std::vector<uint8_t> describe() {
+  std::vector<uint8_t> out;
+  describe<T>(out);
+  return out;
+}
+
+/// @brief CRC32 of describe<T>(); the value stored in the file header.
+template <typename T> uint32_t fingerprint() {
+  static const uint32_t value = [] {
+    auto bytes = describe<T>();
+    return crc32_fast(bytes.data(), bytes.size());
+  }();
+  return value;
+}
+
+} // namespace layout
+
 /// @brief A type usable as a schema version: an aggregate with a `static constexpr uint32_t
 ///        VERSION` member.
 template <typename T>
@@ -76,6 +259,12 @@ concept VersionedType = std::is_aggregate_v<T> && requires {
 template <typename Prev, typename Next>
 concept MigratableFrom = requires(const Prev &prev) {
   { Next::migrate(prev) } -> std::convertible_to<Next>;
+};
+
+/// @brief What the header of a well-formed file says.
+struct Header {
+  uint32_t version{0}; ///< Schema version of the payload
+  uint32_t layout{0};  ///< Layout fingerprint of the type that wrote the payload
 };
 
 /// @brief Encode `value` (schema version `version`) into the file format.
@@ -92,47 +281,54 @@ bool encode(const T &value, uint32_t version, std::vector<uint8_t> &out, std::er
   }
   put_u32(out.data(), MAGIC);
   put_u32(out.data() + 4, version);
-  put_u32(out.data() + 8, static_cast<uint32_t>(payload_len));
-  // crc over magic, version and length (the crc field itself is skipped) plus the payload
-  uint32_t crc = crc32_fast(out.data(), 12);
+  put_u32(out.data() + 8, layout::fingerprint<T>());
+  put_u32(out.data() + 12, static_cast<uint32_t>(payload_len));
+  // crc over the header fields (the crc field itself is skipped) plus the payload
+  uint32_t crc = crc32_fast(out.data(), 16);
   crc = crc32_fast(out.data() + HEADER_SIZE, payload_len, crc);
-  put_u32(out.data() + 12, crc);
+  put_u32(out.data() + 16, crc);
   ec.clear();
   return true;
 }
 
 /// @brief Validate the header + checksum of an encoded file.
 /// @param[in] bytes The whole file
-/// @param[out] version The schema version recorded in the header
+/// @param[out] header The schema version and layout fingerprint recorded in the header
 /// @param[out] payload The payload bytes (a view into `bytes`)
 /// @return true if the file is well-formed; ec says why not otherwise.
-inline bool parse(std::span<const uint8_t> bytes, uint32_t &version,
-                  std::span<const uint8_t> &payload, std::error_code &ec) {
+inline bool parse(std::span<const uint8_t> bytes, Header &header, std::span<const uint8_t> &payload,
+                  std::error_code &ec) {
   if (bytes.size() < HEADER_SIZE || get_u32(bytes.data()) != MAGIC) {
     ec = PersistentDataErrc::bad_header;
     return false;
   }
-  uint32_t length = get_u32(bytes.data() + 8);
+  uint32_t length = get_u32(bytes.data() + 12);
   if (length != bytes.size() - HEADER_SIZE) {
     // truncated write, or trailing bytes that we never wrote
     ec = PersistentDataErrc::bad_header;
     return false;
   }
-  uint32_t crc = crc32_fast(bytes.data(), 12);
+  uint32_t crc = crc32_fast(bytes.data(), 16);
   crc = crc32_fast(bytes.data() + HEADER_SIZE, length, crc);
-  if (crc != get_u32(bytes.data() + 12)) {
+  if (crc != get_u32(bytes.data() + 16)) {
     ec = PersistentDataErrc::bad_checksum;
     return false;
   }
-  version = get_u32(bytes.data() + 4);
+  header.version = get_u32(bytes.data() + 4);
+  header.layout = get_u32(bytes.data() + 8);
   payload = bytes.subspan(HEADER_SIZE);
   ec.clear();
   return true;
 }
 
-/// @brief Decode a payload as type T.
+/// @brief Decode a payload as type T after checking its layout fingerprint.
 template <typename T>
-bool decode_payload(std::span<const uint8_t> payload, T &out, std::error_code &ec) {
+bool decode_payload(uint32_t layout, std::span<const uint8_t> payload, T &out,
+                    std::error_code &ec) {
+  if (layout != layout::fingerprint<T>()) {
+    ec = PersistentDataErrc::layout_mismatch;
+    return false;
+  }
   std::error_code alpaca_ec;
   out = alpaca::deserialize<SERIALIZATION_OPTIONS, T>(payload, payload.size(), alpaca_ec);
   if (alpaca_ec) {
@@ -195,29 +391,33 @@ public:
     }
   }
 
-  /// @brief Decode a payload of schema version `version` and migrate it to Current.
-  /// @return true on success; ec is unknown_version or deserialize_failed otherwise.
-  static bool decode(uint32_t version, std::span<const uint8_t> payload, Current &out,
+  /// @brief Decode a payload described by `header` and migrate it to Current.
+  /// @return true on success; ec is unknown_version, layout_mismatch or
+  ///         deserialize_failed otherwise.
+  static bool decode(const Header &header, std::span<const uint8_t> payload, Current &out,
                      std::error_code &ec) {
-    return decode_impl(version, payload, out, ec, std::make_index_sequence<count>{});
+    return decode_impl(header, payload, out, ec, std::make_index_sequence<count>{});
   }
 
 private:
   template <size_t I>
-  static bool decode_at(std::span<const uint8_t> payload, Current &out, std::error_code &ec) {
+  static bool decode_at(uint32_t layout, std::span<const uint8_t> payload, Current &out,
+                        std::error_code &ec) {
     At<I> value{};
-    if (!decode_payload(payload, value, ec))
+    if (!decode_payload(layout, payload, value, ec))
       return false;
     out = migrate_from<I>(std::move(value));
     return true;
   }
 
   template <size_t... Is>
-  static bool decode_impl(uint32_t version, std::span<const uint8_t> payload, Current &out,
+  static bool decode_impl(const Header &header, std::span<const uint8_t> payload, Current &out,
                           std::error_code &ec, std::index_sequence<Is...>) {
     bool ok = false;
-    bool matched =
-        ((versions[Is] == version ? (ok = decode_at<Is>(payload, out, ec), true) : false) || ...);
+    bool matched = ((versions[Is] == header.version
+                         ? (ok = decode_at<Is>(header.layout, payload, out, ec), true)
+                         : false) ||
+                    ...);
     if (!matched) {
       ec = PersistentDataErrc::unknown_version;
       return false;
@@ -352,14 +552,14 @@ bool load_file(const std::filesystem::path &path, size_t max_size, typename List
   std::vector<uint8_t> bytes;
   if (!read_file(path, max_size, bytes, ec))
     return false;
-  uint32_t version = 0;
+  Header header;
   std::span<const uint8_t> payload;
-  if (!parse(bytes, version, payload, ec))
+  if (!parse(bytes, header, payload, ec))
     return false;
-  if (!List::decode(version, payload, out, ec))
+  if (!List::decode(header, payload, out, ec))
     return false;
-  info.file_version = version;
-  info.migrated = version != List::current_version;
+  info.file_version = header.version;
+  info.migrated = header.version != List::current_version;
   return true;
 }
 

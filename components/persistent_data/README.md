@@ -27,8 +27,8 @@ is on disk, and migrates older files forward when the structure changes.
 
 `espp::PersistentData<Versions...>` takes the schema versions of a structure as
 a type list, newest first; the first type is the current one. Every file carries
-a 16-byte header (magic, schema version, payload length, CRC32) in front of the
-payload, which is serialized with the
+a 20-byte header (magic, schema version, layout fingerprint, payload length,
+CRC32) in front of the payload, which is serialized with the
 [serialization](../serialization) component (alpaca). A load therefore
 distinguishes, without guessing:
 
@@ -40,7 +40,7 @@ distinguishes, without guessing:
 | file of a version not in the list     | `unknown_version` (newer firmware wrote it, or support was dropped) |
 | truncated file, wrong magic, trailing bytes | `bad_header`                         |
 | bit error                             | `bad_checksum`                             |
-| same version number, different layout | `deserialize_failed` (alpaca's type hash)  |
+| same version number, different layout | `layout_mismatch` (header fingerprint)     |
 
 Saves are atomic: the data is written to `<file>.tmp`, flushed and synced,
 then renamed over the file, so a reset in the middle of a save keeps the
@@ -139,20 +139,53 @@ All fields little-endian:
 |--------|------|------------------------------------------------------------|
 | 0      | 4    | magic `"ESPD"`                                             |
 | 4      | 4    | schema version (`VERSION` of the type that wrote it)       |
-| 8      | 4    | payload length                                             |
-| 12     | 4    | CRC32 over the three fields above and the payload          |
-| 16     | n    | payload: alpaca, `fixed_length_encoding \| with_version \| strict` |
+| 8      | 4    | layout fingerprint of the type that wrote it (below)       |
+| 12     | 4    | payload length                                             |
+| 16     | 4    | CRC32 over the four fields above and the payload           |
+| 20     | n    | payload: alpaca, `fixed_length_encoding \| strict`         |
 
-`with_version` embeds a hash of the payload type's field types, so a payload
-never decodes as a type with a different layout even if a version number was
-reused; `strict` rejects payloads shorter than the type.
+The format is the same on every target and on the host: alpaca encodes
+container lengths as 32-bit values, and nothing in the header depends on the
+platform, so a PC tool can read and write a device's file.
+
+### Layout fingerprint
+
+The fingerprint is a CRC32 over a byte sequence describing the type exactly as
+alpaca serializes it, built from alpaca's `field_type` codes
+(`components/serialization/detail/alpaca/include/alpaca/detail/field_type.h`),
+recursively, one entry per type; multi-byte counts are little-endian:
+
+| type                        | bytes                                   |
+|-----------------------------|-----------------------------------------|
+| scalar (`bool` ... `double`) | code                                   |
+| enum                        | `enum_class`, underlying integer        |
+| `std::string`               | `string`                                |
+| `std::vector<T>`            | `vector`, T                             |
+| `std::array<T, N>`          | `array`, u32 N, T                       |
+| `std::list` / `deque<T>`    | `list` / `deque`, T                     |
+| `std::map<K, V>`            | `map`, K, V (`unordered_map` likewise)  |
+| `std::set<T>`               | `set`, T (`unordered_set` likewise)     |
+| `std::optional<T>`          | `optional`, T                           |
+| `std::pair<A, B>`           | `pair`, A, B                            |
+| `std::tuple<Ts...>`         | `tuple`, u16 count, Ts...               |
+| `std::variant<Ts...>`       | `variant`, u16 count, Ts...             |
+| aggregate                   | `struct_`, u16 field count, fields...   |
+
+A version number reused for a different layout therefore loads with
+`layout_mismatch` instead of producing garbage, and a reader without the C++
+type (a Python tool) can compute the same fingerprint from a field spec.
+
+alpaca's own `with_version` option is deliberately not used: its hash folds
+`sizeof(struct)` in, which differs between a 32-bit ESP32 and a 64-bit host
+(a struct of a string, a vector and an integer is 40 bytes on the ESP32, 56 on
+macOS and 64 on Linux), so a file written on one would not load on the other.
 
 ## Errors
 
 Every operation takes a `std::error_code &` and returns `bool`. The codes are
 `espp::PersistentDataErrc` (`file_not_found`, `io_error`, `file_too_large`,
-`bad_header`, `bad_checksum`, `unknown_version`, `deserialize_failed`,
-`serialize_failed`) and compare directly: `ec == espp::PersistentDataErrc::file_not_found`.
+`bad_header`, `bad_checksum`, `unknown_version`, `layout_mismatch`,
+`deserialize_failed`, `serialize_failed`) and compare directly: `ec == espp::PersistentDataErrc::file_not_found`.
 
 ## Other backends
 

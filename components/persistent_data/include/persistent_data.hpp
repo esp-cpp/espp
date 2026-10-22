@@ -19,10 +19,13 @@ namespace espp {
  * @details Stores a serializable aggregate (see the serialization component)
  *          in a single file on any filesystem reachable through the VFS
  *          (LittleFS, SPIFFS, SD card). Every file carries a small header with
- *          a magic number, the schema version of the data it holds, the payload
- *          length and a CRC32, so a load distinguishes "no file yet", "corrupt
- *          or truncated", "written by newer firmware" and "old version,
- *          migrated" instead of guessing by trying to parse.
+ *          a magic number, the schema version of the data it holds, a portable
+ *          fingerprint of the type's layout, the payload length and a CRC32,
+ *          so a load distinguishes "no file yet", "corrupt or truncated",
+ *          "written by newer firmware", "version number reused for a different
+ *          layout" and "old version, migrated" instead of guessing by trying
+ *          to parse. The format is identical on every target and on the host,
+ *          so a PC tool can read and write a device's file.
  *
  *          Versions are given as a type list, newest first; the first type is
  *          the current one. Each type declares `static constexpr uint32_t
@@ -262,16 +265,20 @@ public:
    */
   static bool decode(std::span<const uint8_t> bytes, Current &out, persistent_data::LoadInfo &info,
                      std::error_code &ec) {
-    uint32_t version = 0;
+    persistent_data::Header header;
     std::span<const uint8_t> payload;
-    if (!persistent_data::parse(bytes, version, payload, ec))
+    if (!persistent_data::parse(bytes, header, payload, ec))
       return false;
-    if (!List::decode(version, payload, out, ec))
+    if (!List::decode(header, payload, out, ec))
       return false;
-    info.file_version = version;
-    info.migrated = version != CURRENT_VERSION;
+    info.file_version = header.version;
+    info.migrated = header.version != CURRENT_VERSION;
     return true;
   }
+
+  /// @brief Portable fingerprint of the current type's serialized layout
+  ///        (what save() writes into the header; see layout::fingerprint).
+  static uint32_t layout_fingerprint() { return persistent_data::layout::fingerprint<Current>(); }
 
 protected:
   bool load_locked(std::error_code &ec) {

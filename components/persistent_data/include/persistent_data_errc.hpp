@@ -21,6 +21,8 @@ enum class PersistentDataErrc {
                       ///< newer firmware, or support for that version was dropped)
   deserialize_failed, ///< The payload does not decode as the type registered for its version
   serialize_failed,   ///< The data could not be serialized
+  layout_mismatch,    ///< The payload was written by a type with a different layout than the
+                      ///< one registered for its version (a version number was reused)
 };
 
 /**
@@ -47,6 +49,8 @@ inline const std::error_category &persistent_data_category() {
         return "Payload does not decode as the type registered for its version";
       case PersistentDataErrc::serialize_failed:
         return "Could not serialize the data";
+      case PersistentDataErrc::layout_mismatch:
+        return "Payload layout does not match the type registered for its version";
       default:
         return "Unknown persistent_data error";
       }
