@@ -83,6 +83,7 @@ jobs:
             components/codec
             components/color
             components/controller
+            components/persistent_data
             components/stream_frame
             components/coredump
             components/cst816
