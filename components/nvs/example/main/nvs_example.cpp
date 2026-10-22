@@ -286,14 +286,14 @@ extern "C" void app_main(void) {
     std::string s;
     nvs.get_or_set_var("validate", "str", s, std::string("default"), ec);
     check("string get_or_set_var on a missing key returns the default",
-          !ec && s == "default" && s.size() == 7 && !has_nul(s));
+          !ec && s == "default" && !has_nul(s));
     ec.clear();
 
     // get_or_set_var on an existing key returns the stored value, not the default
     s.clear();
     nvs.get_or_set_var("validate", "str", s, std::string("other"), ec);
     check("string get_or_set_var on an existing key returns the stored value",
-          !ec && s == "default" && s.size() == 7 && !has_nul(s));
+          !ec && s == "default" && !has_nul(s));
     ec.clear();
 
     // set_var / get_var round trip: equal, exact size, last character intact
@@ -301,7 +301,7 @@ extern "C" void app_main(void) {
     s.clear();
     nvs.get_var("validate", "str", s, ec);
     check("string set_var / get_var round trip",
-          !ec && s == "hello world" && s.size() == 11 && s.back() == 'd' && !has_nul(s));
+          !ec && s == "hello world" && s.back() == 'd' && !has_nul(s));
     ec.clear();
 
     // overwriting with a shorter string: the read is the new string only,
@@ -309,7 +309,7 @@ extern "C" void app_main(void) {
     nvs.set_var("validate", "str", std::string("hi"), ec);
     s = std::string(32, 'x');
     nvs.get_var("validate", "str", s, ec);
-    check("shorter string overwrite reads back exactly", !ec && s == "hi" && s.size() == 2);
+    check("shorter string overwrite reads back exactly", !ec && s == "hi");
     ec.clear();
 
     // an empty string is stored and read back as empty
