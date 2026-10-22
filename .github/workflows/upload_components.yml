@@ -83,7 +83,6 @@ jobs:
             components/codec
             components/color
             components/controller
-            components/persistent_data
             components/stream_frame
             components/coredump
             components/cst816
@@ -150,6 +149,7 @@ jobs:
             components/odrive_native
             components/ota
             components/pcf85063
+            components/persistent_data
             components/pi4ioe5v
             components/pid
             components/ping
