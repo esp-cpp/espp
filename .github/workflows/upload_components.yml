@@ -149,6 +149,7 @@ jobs:
             components/odrive_native
             components/ota
             components/pcf85063
+            components/persistent_data
             components/pi4ioe5v
             components/pid
             components/ping

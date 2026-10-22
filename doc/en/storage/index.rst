@@ -9,4 +9,5 @@ storage.
 
    file_system
    nvs
+   persistent_data
    sdcard
