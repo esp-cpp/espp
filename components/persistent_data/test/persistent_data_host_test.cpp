@@ -81,8 +81,8 @@ struct ConfigV4 {
   uint8_t flags{0};
 };
 
-using Full = pd::VersionList<ConfigV1, ConfigV2, ConfigV3>;
-using Recent = pd::VersionList<ConfigV2, ConfigV3>;
+using Full = pd::VersionList<ConfigV3, ConfigV2, ConfigV1>;
+using Recent = pd::VersionList<ConfigV3, ConfigV2>;
 using Single = pd::VersionList<ConfigV3>;
 
 static_assert(Full::count == 3);

@@ -143,36 +143,40 @@ bool decode_payload(std::span<const uint8_t> payload, T &out, std::error_code &e
 }
 
 /**
- * @brief An ordered list of schema versions of one data structure, oldest first.
+ * @brief An ordered list of schema versions of one data structure, newest first.
  * @tparam Versions Aggregate types, each with `static constexpr uint32_t VERSION`
- *         (strictly increasing along the list). Every type after the first
- *         must provide `static Next migrate(const Prev &)` from the type before it.
+ *         (strictly decreasing along the list); the first is the current type.
+ *         Every type except the last must provide `static T migrate(const Older &)`
+ *         from the type after it, so an old file is migrated one step at a
+ *         time toward the front of the list.
  */
 template <VersionedType... Versions> struct VersionList {
   static_assert(sizeof...(Versions) > 0, "at least one version type is required");
 
   static constexpr size_t count = sizeof...(Versions);
   template <size_t I> using At = std::tuple_element_t<I, std::tuple<Versions...>>;
-  using Current = At<count - 1>;
+  using Current = At<0>;
   static constexpr std::array<uint32_t, count> versions{
       static_cast<uint32_t>(Versions::VERSION)...};
-  static constexpr uint32_t current_version = versions[count - 1];
+  static constexpr uint32_t current_version = versions[0];
 
 private:
-  static constexpr bool strictly_increasing() {
+  static constexpr bool strictly_decreasing() {
     for (size_t i = 1; i < count; i++) {
-      if (versions[i] <= versions[i - 1])
+      if (versions[i] >= versions[i - 1])
         return false;
     }
     return true;
   }
-  static_assert(strictly_increasing(), "VERSION values must strictly increase along the list");
+  static_assert(strictly_decreasing(),
+                "VERSION values must strictly decrease along the list (newest first)");
 
   template <size_t... Is> static constexpr bool chain_migratable(std::index_sequence<Is...>) {
-    return (MigratableFrom<At<Is>, At<Is + 1>> && ...);
+    return (MigratableFrom<At<Is + 1>, At<Is>> && ...);
   }
   static_assert(chain_migratable(std::make_index_sequence<count - 1>{}),
-                "every version after the first needs 'static T migrate(const Previous &)'");
+                "every version except the last needs 'static T migrate(const Older &)' from "
+                "the version after it in the list");
 
 public:
   /// @brief Whether a file of schema version `version` can be loaded.
@@ -184,12 +188,12 @@ public:
     return false;
   }
 
-  /// @brief Run the migration chain from the version at index I up to Current.
+  /// @brief Run the migration chain from the version at index I up to Current (index 0).
   template <size_t I> static Current migrate_from(At<I> &&value) {
-    if constexpr (I + 1 == count) {
+    if constexpr (I == 0) {
       return std::move(value);
     } else {
-      return migrate_from<I + 1>(At<I + 1>::migrate(value));
+      return migrate_from<I - 1>(At<I - 1>::migrate(value));
     }
   }
 

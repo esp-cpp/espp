@@ -24,14 +24,15 @@ namespace espp {
  *          or truncated", "written by newer firmware" and "old version,
  *          migrated" instead of guessing by trying to parse.
  *
- *          Versions are given as a type list, oldest first; the last type is
+ *          Versions are given as a type list, newest first; the first type is
  *          the current one. Each type declares `static constexpr uint32_t
- *          VERSION` (strictly increasing along the list) and every type after
- *          the first provides `static T migrate(const Previous &)`. A file of
- *          an older version is decoded as that version and walked up the chain
- *          one step at a time, so each version only knows how to come from the
- *          one before it. Dropping support for a very old version is removing
- *          it from the list: such files then load with
+ *          VERSION` (strictly decreasing along the list) and every type except
+ *          the last provides `static T migrate(const Older &)` from the type
+ *          after it. A file of an older version is decoded as that version and
+ *          walked toward the front of the list one step at a time, so each
+ *          version only knows how to come from the one before it. A new
+ *          version is prepended; dropping support for the oldest version is
+ *          removing the last entry: such files then load with
  *          PersistentDataErrc::unknown_version and the application decides
  *          what to do (typically load_or_create()).
  *
@@ -46,7 +47,7 @@ namespace espp {
  *          can be assigned from it (set()); saving stays an explicit call
  *          because it can fail.
  *
- * @tparam Versions The schema versions, oldest first; the last is the current
+ * @tparam Versions The schema versions, newest first; the first is the current
  *         type. Each must be an aggregate the serialization component can
  *         (de)serialize.
  *

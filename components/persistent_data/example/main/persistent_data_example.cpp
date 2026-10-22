@@ -13,8 +13,9 @@ using namespace std::chrono_literals;
 // ----------------------------------------------------------------------------
 // The data we persist, as it evolved over three firmware releases. Every
 // version is a plain aggregate (the serialization component needs that) with
-// a VERSION constant, and each version after the first knows how to migrate
-// from the one before it.
+// a VERSION constant, and each version knows how to migrate from the one
+// before it. (They are declared oldest first because C++ needs the previous
+// type complete; the PersistentData type list below is newest first.)
 // ----------------------------------------------------------------------------
 
 // Version 1: what the first firmware stored.
@@ -94,9 +95,9 @@ extern "C" void app_main(void) {
   {
     logger.info("Day-to-day use: load or create, then update");
     //! [persistent data example]
-    // The type list is oldest first; the last type is the current one. A file
+    // The type list is newest first; the first type is the current one. A file
     // written by any listed version loads and is migrated to Settings.
-    using PersistentSettings = espp::PersistentData<SettingsV1, SettingsV2, Settings>;
+    using PersistentSettings = espp::PersistentData<Settings, SettingsV2, SettingsV1>;
     std::error_code ec;
     PersistentSettings settings({
         .file_path = settings_path,
@@ -135,7 +136,7 @@ extern "C" void app_main(void) {
   {
     logger.info("Validating persistent data operations...");
     std::error_code ec;
-    using PersistentSettings = espp::PersistentData<SettingsV1, SettingsV2, Settings>;
+    using PersistentSettings = espp::PersistentData<Settings, SettingsV2, SettingsV1>;
 
     // start clean
     {

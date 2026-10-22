@@ -26,7 +26,7 @@ is on disk, and migrates older files forward when the structure changes.
 ## Overview
 
 `espp::PersistentData<Versions...>` takes the schema versions of a structure as
-a type list, oldest first; the last type is the current one. Every file carries
+a type list, newest first; the first type is the current one. Every file carries
 a 16-byte header (magic, schema version, payload length, CRC32) in front of the
 payload, which is serialized with the
 [serialization](../serialization) component (alpaca). A load therefore
@@ -49,10 +49,13 @@ previous contents.
 ## Defining versions
 
 Each version is an aggregate (no user-declared constructors; that is what alpaca
-serializes) with a `static constexpr uint32_t VERSION`, strictly increasing
-along the list. Every version after the first provides `static T migrate(const
-Previous &)`; an older file is walked up the chain one step at a time, so each
-version only knows how to come from the one before it.
+serializes) with a `static constexpr uint32_t VERSION`, strictly decreasing
+along the list (newest first). Every version except the last provides `static T
+migrate(const Older &)` from the version after it in the list; an older file is
+walked toward the front of the list one step at a time, so each version only
+knows how to come from the one before it. The structs themselves are declared
+oldest first (C++ needs the older type complete before `migrate` can mention
+it); only the type list is newest first.
 
 ```cpp
 struct SettingsV1 {
@@ -86,12 +89,13 @@ struct Settings { // current
   }
 };
 
-using PersistentSettings = espp::PersistentData<SettingsV1, SettingsV2, Settings>;
+using PersistentSettings = espp::PersistentData<Settings, SettingsV2, SettingsV1>;
 ```
 
-Dropping support for a very old version is removing it from the list; such
-files then load with `unknown_version` and the application decides what to do.
-A missing `VERSION`, a non-increasing version, or a missing `migrate` is a
+A new version is prepended to the list. Dropping support for the oldest
+version is removing the last entry; such files then load with
+`unknown_version` and the application decides what to do.
+A missing `VERSION`, a non-decreasing version, or a missing `migrate` is a
 compile error with a message saying which requirement failed.
 
 ## Using it
