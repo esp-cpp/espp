@@ -92,6 +92,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/bldc_haptics/example/main/bldc_haptics_example.cpp \
   $(PROJECT_PATH)/components/bm8563/example/main/bm8563_example.cpp \
   $(PROJECT_PATH)/components/bmi270/example/main/bmi270_example.cpp \
+  $(PROJECT_PATH)/components/bno055/example/main/bno055_example.cpp \
   $(PROJECT_PATH)/components/bq27220/example/main/bq27220_example.cpp \
   $(PROJECT_PATH)/components/button/example/main/button_example.cpp \
   $(PROJECT_PATH)/components/byte90/example/main/byte90_example.cpp \
@@ -274,6 +275,7 @@ INPUT = \
   $(PROJECT_PATH)/components/bm8563/include/bm8563.hpp \
   $(PROJECT_PATH)/components/bmi270/include/bmi270.hpp \
   $(PROJECT_PATH)/components/bmi270/include/bmi270_detail.hpp \
+  $(PROJECT_PATH)/components/bno055/include/bno055.hpp \
   $(PROJECT_PATH)/components/bq27220/include/bq27220.hpp \
   $(PROJECT_PATH)/components/button/include/button.hpp \
   $(PROJECT_PATH)/components/byte90/include/byte90.hpp \
