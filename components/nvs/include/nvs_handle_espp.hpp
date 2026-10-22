@@ -164,7 +164,8 @@ public:
 
   /// @brief Reads a string from the NVS
   /// @param[in] key NVS Key of the string to read
-  /// @param[out] value string to read
+  /// @param[out] value string to read; its size() is the stored string's length
+  ///             (the zero terminator NVS keeps with it is not part of the value)
   /// @param[out] ec Saves a std::error_code representing success or failure
   void get(const char *key, std::string &value, std::error_code &ec) {
     if (!check_handle_initialized(ec))
@@ -188,6 +189,9 @@ public:
       logger_.error("Error {} reading from NVS!", esp_err_to_name(err));
       return;
     }
+    // get_item_size() counts the zero terminator for strings and get_string()
+    // writes it: drop it, so value.size() is the stored string's length
+    value.resize(len > 0 ? len - 1 : 0);
     return;
   }
 
@@ -295,7 +299,8 @@ public:
 
   /// @brief Reads a string from the NVS
   /// @param[in] key NVS Key of the string to read
-  /// @param[out] value string to read
+  /// @param[out] value string to read; its size() is the stored string's length
+  ///             (the zero terminator NVS keeps with it is not part of the value)
   /// @param[in] default_value Default value to return if key is not found
   /// @param[out] ec Saves a std::error_code representing success or failure
   void get(const char *key, std::string &value, const std::string &default_value,
@@ -323,6 +328,9 @@ public:
         logger_.error("Error {} reading from NVS!", esp_err_to_name(err));
         return;
       }
+      // get_item_size() counts the zero terminator for strings and get_string()
+      // writes it: drop it, so value.size() is the stored string's length
+      value.resize(len - 1);
     }
   }
 

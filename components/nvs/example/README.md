@@ -78,3 +78,38 @@ Restarting now.
 Restart counter will increment on each run.
 
 To reset the counter, erase the contents of flash memory using `idf.py erase-flash`, then upload the program again as described above.
+
+## NVS Validation Output
+
+The last section of the example exercises the NVS operations (integer, bool,
+float and string round trips through `get_or_set_var` / `set_var` / `get_var`,
+key and namespace erase) with explicit pass / fail checks in a `validate`
+namespace that is erased before and after, so the same sequence runs on every
+boot. Each check prints its own line and a summary closes the section:
+
+```
+Validating NVS operations...
+  [PASS] uint8 get_or_set_var on a missing key returns the default
+  [PASS] uint8 default was stored
+  [PASS] int32 set_var / get_var round trip
+  [PASS] bool set_var / get_var round trip
+  [PASS] float set_var / get_var round trip
+  [PASS] string get_or_set_var on a missing key returns the default
+  [PASS] string get_or_set_var on an existing key returns the stored value
+  [PASS] string set_var / get_var round trip
+  [PASS] shorter string overwrite reads back exactly
+  [PASS] empty string set_var / get_var round trip
+  [PASS] 64 character string round trip
+  [PASS] string c_str() has no embedded terminator
+  [PASS] erase key succeeds
+  [PASS] erased key is not found
+  [PASS] other keys survive erasing one key
+  [PASS] reading a missing string key fails and leaves the value alone
+  [PASS] erase namespace succeeds
+  [PASS] keys are not found after erasing the namespace
+NVS validation: 18/18 checks passed - PASS
+```
+
+Any failing check is listed again after the summary line. The string checks
+assert that `size()` is the stored string's length (no zero terminator in the
+value, see [#854](https://github.com/esp-cpp/espp/issues/854)).
