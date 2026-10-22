@@ -99,6 +99,8 @@ jobs:
           target: esp32
         - path: 'components/bmi270/example'
           target: esp32p4
+        - path: 'components/bno055/example'
+          target: esp32p4
         - path: 'components/bq27220/example'
           target: esp32
         - path: 'components/button/example'

@@ -73,6 +73,7 @@ jobs:
             components/ble_gatt_server
             components/bm8563
             components/bmi270
+            components/bno055
             components/button
             components/byte90
             components/canopen
