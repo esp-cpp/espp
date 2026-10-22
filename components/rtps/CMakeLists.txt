@@ -91,6 +91,16 @@ foreach(knob ${RTPS_LIMIT_KNOBS})
   endif()
 endforeach()
 
+# Transport task priority (Kconfig "Transport task priority"): a nonzero value
+# overrides the selected profile's THREAD_POOL_READER_PRIO, which the transport
+# gives its worker pool and reactor tasks. 0 keeps the profile's value.
+if(DEFINED CONFIG_RTPS_THREAD_POOL_READER_PRIO
+   AND NOT "${CONFIG_RTPS_THREAD_POOL_READER_PRIO}" STREQUAL ""
+   AND NOT "${CONFIG_RTPS_THREAD_POOL_READER_PRIO}" STREQUAL "0")
+  target_compile_definitions(${COMPONENT_LIB} PUBLIC
+    "RTPS_CFG_THREAD_POOL_READER_PRIO=${CONFIG_RTPS_THREAD_POOL_READER_PRIO}")
+endif()
+
 # Cross-limit capacity check (mirrors lib/espp.cmake): every participant
 # consumes 1 stateless writer/reader + 2 stateful writers/readers from the
 # GLOBAL pools for its builtin discovery endpoints. Effective value = the
