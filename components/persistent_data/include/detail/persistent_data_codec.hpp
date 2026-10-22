@@ -239,7 +239,9 @@ inline bool file_exists(const std::filesystem::path &path) {
 ///        any allocation, so a corrupt directory entry cannot exhaust memory.
 inline bool read_file(const std::filesystem::path &path, size_t max_size, std::vector<uint8_t> &out,
                       std::error_code &ec) {
-  FILE *f = std::fopen(path.c_str(), "rb");
+  // path.c_str() is wchar_t on Windows; string() gives the narrow form everywhere
+  const std::string path_str = path.string();
+  FILE *f = std::fopen(path_str.c_str(), "rb");
   if (!f) {
     ec = errno == ENOENT ? PersistentDataErrc::file_not_found : PersistentDataErrc::io_error;
     return false;
@@ -282,7 +284,8 @@ inline bool write_file_atomic(const std::filesystem::path &path, std::span<const
                               std::error_code &ec) {
   std::filesystem::path tmp = path;
   tmp += ".tmp";
-  FILE *f = std::fopen(tmp.c_str(), "wb");
+  const std::string tmp_str = tmp.string();
+  FILE *f = std::fopen(tmp_str.c_str(), "wb");
   if (!f) {
     ec = PersistentDataErrc::io_error;
     return false;
@@ -293,20 +296,22 @@ inline bool write_file_atomic(const std::filesystem::path &path, std::span<const
   ok = (fsync(fileno(f)) == 0) && ok;
 #endif
   ok = (std::fclose(f) == 0) && ok;
+  std::error_code fs_ec;
   if (!ok) {
-    std::remove(tmp.c_str());
+    std::filesystem::remove(tmp, fs_ec);
     ec = PersistentDataErrc::io_error;
     return false;
   }
-  if (std::rename(tmp.c_str(), path.c_str()) != 0) {
-    // some filesystems (SPIFFS) refuse to replace an existing file
-    bool retried = false;
-    if (errno == EEXIST || errno == ENOTEMPTY) {
-      std::remove(path.c_str());
-      retried = std::rename(tmp.c_str(), path.c_str()) == 0;
-    }
-    if (!retried) {
-      std::remove(tmp.c_str());
+  // std::filesystem::rename replaces an existing file atomically on POSIX
+  // (rename(2)) and on Windows (MoveFileEx REPLACE_EXISTING)
+  std::filesystem::rename(tmp, path, fs_ec);
+  if (fs_ec) {
+    // some filesystems (SPIFFS) refuse to replace an existing file: remove it
+    // first and retry; that short window is the only non-atomic step
+    std::filesystem::remove(path, fs_ec);
+    std::filesystem::rename(tmp, path, fs_ec);
+    if (fs_ec) {
+      std::filesystem::remove(tmp, fs_ec);
       ec = PersistentDataErrc::io_error;
       return false;
     }
@@ -320,8 +325,11 @@ inline bool write_file_atomic(const std::filesystem::path &path, std::span<const
 inline bool remove_file(const std::filesystem::path &path, std::error_code &ec) {
   std::filesystem::path tmp = path;
   tmp += ".tmp";
-  std::remove(tmp.c_str());
-  if (std::remove(path.c_str()) != 0 && errno != ENOENT) {
+  std::error_code fs_ec;
+  std::filesystem::remove(tmp, fs_ec);
+  // remove() returns false without an error when there is nothing to remove
+  std::filesystem::remove(path, fs_ec);
+  if (fs_ec) {
     ec = PersistentDataErrc::io_error;
     return false;
   }
