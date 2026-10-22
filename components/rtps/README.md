@@ -164,6 +164,7 @@ via `include/rtps/config.hpp`.
 | `RTPS_STORAGE_DYNAMIC` | off on ESP32 / on host | Static `std::array` history (zero-heap, drop-oldest) vs heap-backed `std::deque` (grows). Orthogonal to the profile. |
 | `RTPS_ENABLE_FRAGMENTATION` | off on ESP32 / on host | DATA_FRAG for samples > ~64 KB (interoperates with FastDDS/ROS 2). |
 | `RTPS_ENABLE_RPC` | on (default) | Compile in services + actions (RMI/AMI). Disable to drop that code + its threads on a pure-pub/sub device. |
+| `RTPS_THREAD_POOL_READER_PRIO` | 0 = profile default (5 on ESP32) | FreeRTOS priority of the transport's worker pool and reactor tasks, which send and receive all traffic (see [Priority scheduling](#priority-scheduling-bands-dedicated-ports-dscp)). |
 
 The domain id, announcement/heartbeat periods, and pool sizes live in the profile
 headers.
@@ -250,6 +251,15 @@ them to both of its endpoints (request + reply); an action passes them to all
 of its underlying service/topic endpoints (note a ROS action server is ~8
 endpoints — more than the default ration, so most fall back to deferred
 dispatch unless the cap is raised).
+
+Bands order work *inside* the transport's worker pool. The pool's tasks
+themselves (`rtps_worker_<n>`, plus the `rtps_reactor` `select()` loop) run at
+the profile's `THREAD_POOL_READER_PRIO` (5 on ESP32) on no particular core.
+Every send and receive goes through them (`publish()` only queues the sample),
+so a busy task of higher priority on their core stalls all traffic until it
+yields. On ESP-IDF, menuconfig `RTPS -> Transport task priority (advanced)`
+sets their priority; `0` keeps the profile default. The reader and matched
+callbacks then run at that priority too, so keep them short.
 
 ---
 

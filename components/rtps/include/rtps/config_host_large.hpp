@@ -182,7 +182,12 @@ const int MAX_NUM_UDP_CONNECTIONS = RTPS_CFG_MAX_NUM_UDP_CONNECTIONS;
 const int THREAD_POOL_NUM_WRITERS = 2;
 const int THREAD_POOL_NUM_READERS = 2;
 const int THREAD_POOL_WRITER_PRIO = 3;
-const int THREAD_POOL_READER_PRIO = 3;
+// The transport's worker pool and reactor tasks (EsppTransport). On ESP-IDF,
+// menuconfig RTPS -> Transport task priority overrides it.
+#ifndef RTPS_CFG_THREAD_POOL_READER_PRIO
+#define RTPS_CFG_THREAD_POOL_READER_PRIO 3
+#endif
+const int THREAD_POOL_READER_PRIO = RTPS_CFG_THREAD_POOL_READER_PRIO;
 const int THREAD_POOL_WORKLOAD_QUEUE_LENGTH_USERTRAFFIC = 64;
 const int THREAD_POOL_WORKLOAD_QUEUE_LENGTH_METATRAFFIC = 64;
 
