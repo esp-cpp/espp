@@ -89,7 +89,11 @@ extern "C" void app_main(void) {
   int failed = 0;
   auto check = [&](const char *name, bool ok) {
     fmt::print("  [{}] {}\n", ok ? "PASS" : "FAIL", name);
-    (ok ? passed : failed)++;
+    if (ok) {
+      passed++;
+    } else {
+      failed++;
+    }
   };
 
   {

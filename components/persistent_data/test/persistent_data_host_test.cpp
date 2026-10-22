@@ -1,10 +1,11 @@
 // Host-buildable test for the PersistentData file format, version list,
 // migration chain and file helpers (include/detail/persistent_data_codec.hpp --
-// standard library + alpaca only). Build & run from the repo root (alpaca is
-// third-party, hence -isystem so its own warnings do not trip -Werror):
-//   c++ -std=c++23 -Wall -Wextra -Werror \
-//       -I components/persistent_data/include -I components/serialization/include \
-//       -isystem components/serialization/detail/alpaca/include \
+// standard library + alpaca only). Build & run from the repo root, as one
+// command (alpaca is third-party, hence -isystem so its own warnings do not
+// trip -Werror):
+//   c++ -std=c++23 -Wall -Wextra -Werror
+//       -I components/persistent_data/include -I components/serialization/include
+//       -isystem components/serialization/detail/alpaca/include
 //       components/persistent_data/test/persistent_data_host_test.cpp -o test && ./test
 
 #include <cstdint>
@@ -302,8 +303,10 @@ static void test_files() {
   {
     FILE *f = std::fopen(tmp.c_str(), "wb");
     CHECK(f != nullptr);
-    std::fputs("partial", f);
-    std::fclose(f);
+    if (f) {
+      std::fputs("partial", f);
+      std::fclose(f);
+    }
   }
   CHECK(pd::load_file<Full>(path, 1024, out, info, ec));
   CHECK(out.name == "old (migrated)");
@@ -328,7 +331,9 @@ static void test_files() {
   // remove (also clears a temporary)
   {
     FILE *f = std::fopen(tmp.c_str(), "wb");
-    std::fclose(f);
+    CHECK(f != nullptr);
+    if (f)
+      std::fclose(f);
   }
   CHECK(pd::remove_file(path, ec));
   CHECK(!pd::file_exists(path));

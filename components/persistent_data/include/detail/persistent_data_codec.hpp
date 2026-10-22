@@ -5,6 +5,7 @@
 // (see test/persistent_data_host_test.cpp); espp::PersistentData adds the
 // logger, the mutex and the Config on top of these functions.
 
+#include <algorithm>
 #include <array>
 #include <cerrno>
 #include <concepts>
@@ -181,11 +182,8 @@ private:
 public:
   /// @brief Whether a file of schema version `version` can be loaded.
   static constexpr bool supports(uint32_t version) {
-    for (auto v : versions) {
-      if (v == version)
-        return true;
-    }
-    return false;
+    return std::any_of(versions.begin(), versions.end(),
+                       [version](uint32_t v) { return v == version; });
   }
 
   /// @brief Run the migration chain from the version at index I up to Current (index 0).
