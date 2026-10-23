@@ -75,7 +75,6 @@ if(DEFINED ENV{IDF_COMPONENT_MANAGER} AND "$ENV{IDF_COMPONENT_MANAGER}" STREQUAL
   list(APPEND EXTRA_COMPONENT_DIRS
     "../../../components/littlefs"
     "../../../external/esp-usb/device/esp_tinyusb"
-    "../../../external/tinyusb"
   )
 endif()
 

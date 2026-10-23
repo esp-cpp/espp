@@ -35,7 +35,6 @@ set(EXTRA_COMPONENT_DIRS
 if(DEFINED ENV{IDF_COMPONENT_MANAGER} AND "$ENV{IDF_COMPONENT_MANAGER}" STREQUAL "0")
   list(APPEND EXTRA_COMPONENT_DIRS
     "../../../external/esp-usb/device/esp_tinyusb"
-    "../../../external/tinyusb"
   )
 endif()
 

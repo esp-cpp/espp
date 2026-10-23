@@ -7,6 +7,13 @@ component that assembles a **native USB device** from a *set of selectable
 functions* on the ESP32-S3 / -S2 / -P4 USB-OTG peripheral, with a **configurable
 VID/PID** and manufacturer / product / serial strings.
 
+It requires `espressif/esp_tinyusb` 3.0 or newer (ESP-IDF 5.3 or newer), which
+ships TinyUSB as its own submodule: projects must not add a separate `tinyusb`
+dependency, since a second copy of the stack cannot find `tusb_config.h` and the
+build fails. With the component manager off, the vendored copy under
+`external/esp-usb/device/esp_tinyusb` (initialised recursively) is the one to put
+on `EXTRA_COMPONENT_DIRS`; the examples show the pattern.
+
 Today it can enable, in any combination (subject to the endpoint budget):
 
 - A **CDC-ACM** function (virtual serial port).

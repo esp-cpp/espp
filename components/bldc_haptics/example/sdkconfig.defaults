@@ -49,7 +49,7 @@ CONFIG_TINYUSB_VENDOR_RX_BUFSIZE=4200
 CONFIG_TINYUSB_VENDOR_TX_BUFSIZE=4200
 
 # CDC is instantiated and used: the example exposes a CDC-ACM debug serial
-# port and routes the system console to it (esp_tusb_init_console), so keep
+# port and routes the system console to it (tinyusb_console_init), so keep
 # the CDC class driver enabled. HID is compile-only: the usb_device
 # component's sources reference the TinyUSB HID class driver APIs, which
 # esp_tinyusb gates behind CONFIG_TINYUSB_HID_COUNT -- keep it > 0 so the
