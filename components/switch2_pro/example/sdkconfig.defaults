@@ -1,0 +1,86 @@
+# Default target is esp32c6 (open-source NimBLE BLE controller): pairing,
+# reconnect, wake, and sustained lag-free input all verified against a real
+# Switch 2. The ESP32-S3 is also fully verified on ESP-IDF >= v6.1, where the
+# official CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (default on) lets its BTDM
+# controller accept the console's 5 ms interval with no binary patch (the old
+# ~3 s tx-stall was on the pre-v6.1 controller lib — see README "Known issues").
+CONFIG_IDF_TARGET="esp32c6"
+
+# On the ESP32-S3 (native USB), route the console to USB-Serial-JTAG so the
+# monitor shows the pairing trace. Harmless on boards with a UART bridge too.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+
+# Common ESP-related
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+# 1000 Hz tick so the ~15 ms / 5 ms input-stream cadence is representable (at the
+# 100 Hz default, sleep_for(15ms) rounds to a 20 ms tick, desyncing from the
+# connection interval). CPU frequency is set per-target (sdkconfig.defaults.esp32c6
+# = 160 MHz, the C6 maximum; sdkconfig.defaults.esp32s3 = 240 MHz) — a 240 MHz
+# choice here would be invalid for the default C6 target.
+CONFIG_FREERTOS_HZ=1000
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+
+# Partition Table
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# BT config: NimBLE only (the Switch 2 controller interface is BLE)
+CONFIG_BT_ENABLED=y
+CONFIG_BT_BLUEDROID_ENABLED=n
+CONFIG_BT_NIMBLE_ENABLED=y
+# No WiFi is used, so disable BLE/WiFi software coexistence. Coexistence
+# arbitration injects tx-scheduling latency on the radio that shows up as
+# stalled BLE notifications under sustained streaming (a suspect in the ENOMEM
+# tx wedge). Giving BLE the full radio removes that latency source.
+CONFIG_ESP_COEX_SW_COEXIST_ENABLE=n
+# Pin the BLE controller and NimBLE host to core 1, away from the app's main task
+# (core 0). By default all three share core 0, so our ~66 Hz notify loop starves
+# the host: it falls behind processing the controller's "number-of-completed-
+# packets" HCI events, tx credits are never returned, and after a few seconds
+# every notify() returns ENOMEM (rc=6) and the link supervision-times-out.
+CONFIG_BT_CTRL_PINNED_TO_CORE_1=y
+CONFIG_BT_NIMBLE_PINNED_TO_CORE_1=y
+# Logging: keep the NimBLE host quiet (its DEBUG dumps every ACL byte on its own
+# line, which is enormous) and let our own Switch2Pro INFO trace carry the
+# protocol flow. Raise NimBLE back to _DEBUG only when the raw stack-level view
+# is needed.
+CONFIG_BT_NIMBLE_LOG_LEVEL_WARNING=y
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+CONFIG_BT_NIMBLE_NVS_PERSIST=y
+CONFIG_BT_NIMBLE_GAP_DEVICE_NAME_MAX_LEN=100
+CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE=8192
+# A real Pro Controller 2 answers the console's ATT Exchange MTU (512) with 512.
+# NimBLE's default preferred MTU is 256; the console appears to stall right after
+# the MTU exchange if the controller grants less, so match the real controller.
+CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU=512
+
+# We stream input reports continuously (one per connection interval, ~62 Hz at
+# 15 ms) on the 2M PHY the console negotiates. Give the host mbuf pools generous
+# headroom over the default 12 MSYS blocks so a transient tx backlog (the driver
+# also applies real backpressure, capping un-drained mbufs) never exhausts them.
+CONFIG_BT_NIMBLE_MSYS_1_BLOCK_COUNT=100
+CONFIG_BT_NIMBLE_MSYS_2_BLOCK_COUNT=48
+CONFIG_BT_NIMBLE_TRANSPORT_ACL_FROM_LL_COUNT=40
+# S3-only (ignored elsewhere): pre-allocate persistent controller ACL TX buffers
+# instead of the default per-TX dynamic allocation — removes one allocation
+# failure mode under sustained streaming.
+CONFIG_BT_CTRL_BLE_STATIC_ACL_TX_BUF_NB=12
+
+# NOTE: MAX_CCCDS should be 4 * MAX_BONDS
+CONFIG_BT_NIMBLE_MAX_BONDS=3
+CONFIG_BT_NIMBLE_MAX_CCCDS=128
+
+# The console's sub-spec 5 ms interval is required for sustained input in EVERY
+# mode (it drops even the fresh session to 5 ms ~1.5 s after subscription via
+# LL_CONNECTION_UPDATE) plus reconnect/wake (bonded CONNECT_IND is 5 ms from the
+# first packet). Only the initial pairing handshake runs at 15 ms.
+#   * ESP32-S3 / C3: use ESP-IDF >= v6.1's official, default-on
+#     CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE — no patch needed.
+#   * ESP32-C6 / C61 / C2 / H2: the open NimBLE controller has no such option, so
+#     enable the patch below. It is OFF by default because it mutates the prebuilt
+#     BLE controller lib in your global $IDF_PATH at configure time (too invasive
+#     to do silently). Uncomment (or run `tools/patch_nimble_5ms.py --target
+#     <chip>`), verify with `tools/smoke_test_5ms.py --target <chip>`; undo with
+#     `--restore`.
+# CONFIG_SWITCH2_PRO_PATCH_NIMBLE_5MS=y
