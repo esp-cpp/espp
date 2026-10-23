@@ -12,8 +12,8 @@
 
 #include "esp_system.h"
 #include "esp_timer.h"
-#include "tusb_cdc_acm.h"
-#include "tusb_console.h"
+#include "tinyusb_cdc_acm.h"
+#include "tinyusb_console.h"
 
 #include "format.hpp"
 
@@ -347,7 +347,7 @@ extern "C" void app_main(void) {
   usb_cfg.log_level = espp::Logger::Verbosity::INFO;
   // CDC alongside the vendor interface: a plain serial port any terminal can
   // attach to (e.g. `screen /dev/tty.usbmodem*`). Once USB is up it becomes
-  // the live SYSTEM console (esp_tusb_init_console below routes stdout/stderr
+  // the live SYSTEM console (tinyusb_console_init below routes stdout/stderr
   // - all espp/fmt and esp_log output - to it) and re-logs the last-crash
   // report on every connect. Panic backtraces still cannot appear live
   // (TinyUSB dies with the panic); the flash core dump + next-boot report
@@ -672,7 +672,7 @@ extern "C" void app_main(void) {
     // backtraces still cannot appear live (TinyUSB dies with the panic) -
     // those are captured by the flash core dump and summarized on the next
     // boot (see crash_report above / GET_CRASH).
-    if (esp_tusb_init_console(TINYUSB_CDC_ACM_0) != ESP_OK)
+    if (tinyusb_console_init(TINYUSB_CDC_ACM_0) != ESP_OK)
       logger.warn("Could not route the console to USB CDC");
   }
 

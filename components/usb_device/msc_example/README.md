@@ -30,11 +30,11 @@ USB port's PHY with USB-OTG, which the mass storage interface takes over.
 The build works with the IDF component manager on (esp_tinyusb comes from the
 registry) or off, which is how CI builds it and the way to go while a local espp
 component the example uses is not published yet. With the manager off,
-esp_tinyusb and TinyUSB come from the vendored submodules, so initialize them
-first:
+esp_tinyusb (which bundles TinyUSB as a nested submodule) comes from the
+vendored submodule, so initialize it first:
 
 ```sh
-git submodule update --init external/esp-usb external/tinyusb components/lvgl components/format/detail/fmt
+git submodule update --init --recursive external/esp-usb components/lvgl components/format/detail/fmt
 IDF_COMPONENT_MANAGER=0 idf.py -p <PORT> flash monitor
 ```
 

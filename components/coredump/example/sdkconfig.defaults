@@ -25,7 +25,7 @@ CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y
 # works.
 CONFIG_TINYUSB_VENDOR_COUNT=1
 
-# The CDC function carries the system console (esp_tusb_init_console) AND the
+# The CDC function carries the system console (route_console_to_cdc / tinyusb_console_init) AND the
 # core-dump protocol frames (the web console's Web Serial transport); the HID
 # count just keeps the usb_device component's HID references compiling (no HID
 # interface is instantiated here).
