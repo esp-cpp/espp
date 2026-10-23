@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VL53L5CX Web Console Example - ESP32 -  &mdash; ESPP v1.3.10 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=fc0e2bbe"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'distance_sensors/vl53l5cx_webapp_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'v1.3.10';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Presence Sensor APIs" href="../presence/index.html" />
+    <link rel="prev" title="VL53L5CX Multizone ToF Example" href="vl53l5cx_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../system/index.html">System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../desktop/index.html">Desktop APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Distance Sensor APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="vl53l.html">VL53LXX ToF Distance Sensor</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="vl53l5cx.html">VL53L5CX Multizone ToF Sensor</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="vl53l5cx.html#web-console">Web console</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="vl53l5cx_example.html">VL53L5CX Multizone ToF Example</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">VL53L5CX Web Console Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="vl53l5cx.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../telemetry/index.html">Telemetry APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wdi/index.html">WDI (Wheelchair Digital Interface) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Distance Sensor APIs</a></li>
+          <li class="breadcrumb-item"><a href="vl53l5cx.html">VL53L5CX Multizone ToF Sensor</a></li>
+      <li class="breadcrumb-item active">VL53L5CX Web Console Example</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/d0e07f0b/docs/en/distance_sensors/vl53l5cx_webapp_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="vl53l5cx-web-console-example">
+<h1>VL53L5CX Web Console Example<a class="headerlink" href="#vl53l5cx-web-console-example" title="Permalink to this heading"></a></h1>
+<p>Turns an ESP32-S3 / ESP32-P4 into a <strong>WebUSB / Web Serial front-end</strong> for a
+VL53L5CX (or VL53L7CX) multizone Time-of-Flight sensor: the hosted
+<a class="reference external" href="https://esp-cpp.github.io/espp/apps/vl53l5cx_console.html">VL53L5CX console web app</a>
+connects over native USB and can</p>
+<ul class="simple">
+<li><p><strong>view</strong> every ranging frame live, as a 3D surface (each zone at its
+measured position in the sensor’s field of view) or a bar height field,
+coloured by distance / signal / ambient / sigma / reflectance / status, next
+to a numeric grid with per-zone details and the motion indicator,</p></li>
+<li><p><strong>configure</strong> the sensor — resolution (4x4 / 8x8), ranging frequency,
+integration time, sharpener, target order, ranging mode, power mode, the
+motion indicator window, the I2C address — and</p></li>
+<li><p><strong>control</strong> it: start / stop ranging, re-initialize (firmware upload).</p></li>
+</ul>
+<p><img alt="VL53L5CX console: surface view of an 8x8 frame, zones at their measured positions" src="https://github.com/user-attachments/assets/dd696291-8066-4764-86a0-1ca3d2425e8f" /></p>
+<p><img alt="VL53L5CX console: bars view, height = distance, with a zone's details" src="https://github.com/user-attachments/assets/8f81f078-9e8d-49bb-b516-2de3048baa5f" /></p>
+<p><img alt="VL53L5CX console live: orbiting the surface, the bars view and colouring by signal" src="https://github.com/user-attachments/assets/c5e4ac21-f534-4238-b0ff-1775eae6d014" /></p>
+<p>(Live data from a VL53L5CX on an ESP32-P4-WIFI6 dev kit, 8x8 at 15 Hz.)</p>
+<p>The example runs the <code class="docutils literal notranslate"><span class="pre">espp::Vl53l5cx</span></code> driver <strong>on the device</strong> and exposes a
+small high-level protocol (<code class="docutils literal notranslate"><span class="pre">vl53l5cx_protocol.hpp</span></code>, dispatcher <strong>module id
+10</strong>, protocol id <code class="docutils literal notranslate"><span class="pre">espp.vl53l5cx</span></code>) through <code class="docutils literal notranslate"><span class="pre">espp::Vl53l5cxService</span></code>, so the web
+app needs no knowledge of the sensor’s I2C / firmware interface. Both the
+vendor (WebUSB) and CDC (Web Serial) interfaces carry the same protocol; the
+system console/logs go to <strong>UART0</strong> (set in <code class="docutils literal notranslate"><span class="pre">sdkconfig.defaults</span></code>): on the S3 /
+P4, USB-Serial-JTAG shares the native USB port’s PHY with USB-OTG, which
+TinyUSB takes over.</p>
+<section id="wiring-configuration">
+<h2>Wiring &amp; configuration<a class="headerlink" href="#wiring-configuration" title="Permalink to this heading"></a></h2>
+<p>The sensor sits on I2C (3.3 V, GND, SDA, SCL; LPn high or left to the
+breakout’s pull-up). <code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">menuconfig</span></code> → <em>Example Configuration</em> selects the
+hardware (QtPy ESP32-S3: SDA 41 / SCL 40; ESP32-P4 dev kits: SDA 7 / SCL 8; or
+custom pins), the I2C clock, the <strong>part</strong> (VL53L5CX / VL53L7CX — same ids,
+different firmware image), the resolution and frequency at boot, whether
+ranging starts at boot, and on the ESP32-P4 which <strong>USB port</strong> TinyUSB drives:
+the full-speed port for the dev kits (their USB-C is the full-speed port, the
+one the USB-Serial-JTAG console normally uses; <code class="docutils literal notranslate"><span class="pre">espp::UsbDevice</span></code> moves the
+USB-OTG 1.1 controller onto those pads, see <code class="docutils literal notranslate"><span class="pre">UsbDevice::Config::fs_phy</span></code>), or
+the high-speed port where a board routes it to a device-capable connector.</p>
+</section>
+<section id="protocol-module-10-espp-vl53l5cx-v1">
+<h2>Protocol (module 10, <code class="docutils literal notranslate"><span class="pre">espp.vl53l5cx</span></code> v1)<a class="headerlink" href="#protocol-module-10-espp-vl53l5cx-v1" title="Permalink to this heading"></a></h2>
+<p>Framed with <code class="docutils literal notranslate"><span class="pre">stream_frame</span></code> and routed by <code class="docutils literal notranslate"><span class="pre">espp::Dispatcher</span></code>. Requests use
+types <code class="docutils literal notranslate"><span class="pre">0x1X</span></code>; replies / events use <code class="docutils literal notranslate"><span class="pre">0x9X</span></code> (reply flag set). Multi-byte fields
+are little-endian.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Dir</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">0x10</span></code> GET_STATUS</p></td>
+<td><p>H→D</p></td>
+<td><p>request one STATUS snapshot</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">0x11</span></code> SET_RESOLUTION</p></td>
+<td><p>H→D</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[zones</span> <span class="pre">u8]</span></code> 16 (4x4) or 64 (8x8) — not while ranging</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">0x12</span></code> SET_RANGING_FREQUENCY</p></td>
+<td><p>H→D</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[hz</span> <span class="pre">u8]</span></code> 1..60 (4x4) / 1..15 (8x8)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">0x13</span></code> SET_INTEGRATION_TIME</p></td>
+<td><p>H→D</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[ms</span> <span class="pre">u32]</span></code> 2..1000 (autonomous mode)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">0x14</span></code> SET_SHARPENER</p></td>
+<td><p>H→D</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[percent</span> <span class="pre">u8]</span></code> 0..99</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">0x15</span></code> SET_TARGET_ORDER</p></td>
+<td><p>H→D</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[order</span> <span class="pre">u8]</span></code> 1 closest / 2 strongest</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">0x16</span></code> SET_RANGING_MODE</p></td>
+<td><p>H→D</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[mode</span> <span class="pre">u8]</span></code> 1 continuous / 3 autonomous</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">0x17</span></code> SET_POWER_MODE</p></td>
+<td><p>H→D</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[mode</span> <span class="pre">u8]</span></code> 0 sleep / 1 wake-up</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">0x18</span></code> ENABLE_MOTION_INDICATOR</p></td>
+<td><p>H→D</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[min_mm</span> <span class="pre">u16][max_mm</span> <span class="pre">u16]</span></code> (only INITIALIZE switches it off)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">0x19</span></code> START_RANGING</p></td>
+<td><p>H→D</p></td>
+<td><p>start ranging with the current settings</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">0x1A</span></code> STOP_RANGING</p></td>
+<td><p>H→D</p></td>
+<td><p>stop ranging</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">0x1B</span></code> INITIALIZE</p></td>
+<td><p>H→D</p></td>
+<td><p>reboot the sensor + re-upload the firmware (~2 s); resets every setting</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">0x1C</span></code> SET_FRAME_STREAM</p></td>
+<td><p>H→D</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[enable</span> <span class="pre">u8][divider</span> <span class="pre">u8]</span></code> stream every divider-th frame on this transport</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">0x1D</span></code> GET_FRAME</p></td>
+<td><p>H→D</p></td>
+<td><p>request the latest FRAME</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">0x1E</span></code> SET_I2C_ADDRESS</p></td>
+<td><p>H→D</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[address</span> <span class="pre">u8]</span></code> 7-bit, volatile</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">0x90</span></code> STATUS</p></td>
+<td><p>D→H</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[flags</span> <span class="pre">u8][variant</span> <span class="pre">u8][address</span> <span class="pre">u8][zones</span> <span class="pre">u8][frequency</span> <span class="pre">u8][integration_ms</span> <span class="pre">u32][sharpener</span> <span class="pre">u8][target_order</span> <span class="pre">u8][ranging_mode</span> <span class="pre">u8][power_mode</span> <span class="pre">u8][motion_min</span> <span class="pre">u16][motion_max</span> <span class="pre">u16][frame_count</span> <span class="pre">u32][frame_rate_cHz</span> <span class="pre">u16][stream_divider</span> <span class="pre">u8]</span></code> — flags: bit 0 initialized, 1 ranging, 2 motion indicator on, 3 stream on</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">0x91</span></code> FRAME</p></td>
+<td><p>D→H</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[seq</span> <span class="pre">u32][time_ms</span> <span class="pre">u32][zones</span> <span class="pre">u8][flags</span> <span class="pre">u8]</span></code>, then per zone <code class="docutils literal notranslate"><span class="pre">[distance</span> <span class="pre">i16][status</span> <span class="pre">u8][targets</span> <span class="pre">u8][reflectance</span> <span class="pre">u8][sigma</span> <span class="pre">u16][signal</span> <span class="pre">u32][ambient</span> <span class="pre">u32][spads</span> <span class="pre">u32]</span></code> (19 B, row-major), then the 140-byte motion block when flags bit 0 is set</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">0x92</span></code> OK</p></td>
+<td><p>D→H</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[request_type</span> <span class="pre">u8]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">0x93</span></code> ERROR</p></td>
+<td><p>D→H</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[request_type</span> <span class="pre">u8][code</span> <span class="pre">u32][utf8</span> <span class="pre">message]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>Settings are refused by the sensor while it is ranging (the device answers
+ERROR); STATUS reports the settings read back from the sensor.</p>
+</section>
+<section id="build-flash">
+<h2>Build &amp; flash<a class="headerlink" href="#build-flash" title="Permalink to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">idf</span><span class="o">.</span><span class="n">py</span> <span class="nb">set</span><span class="o">-</span><span class="n">target</span> <span class="n">esp32s3</span>        <span class="c1"># or esp32p4</span>
+<span class="n">idf</span><span class="o">.</span><span class="n">py</span> <span class="n">build</span> <span class="n">flash</span> <span class="n">monitor</span>       <span class="c1"># console is on UART0</span>
+</pre></div>
+</div>
+<p>Then open the VL53L5CX console web app and Connect (WebUSB or Web Serial).
+The sensor ranges at boot by default: tick <strong>Live frames</strong> (on by default) to
+see the 3D view; <strong>Stop</strong> to change the settings, then <strong>Start ranging</strong>.</p>
+</section>
+<section id="standard-usb-services">
+<h2>Standard USB services<a class="headerlink" href="#standard-usb-services" title="Permalink to this heading"></a></h2>
+<p>Like every espp USB example, this one serves the standard service set on its
+framed USB link(s) next to its own protocol, so the hosted consoles and the
+<a class="reference external" href="https://esp-cpp.github.io/espp/apps/dispatcher_hub.html">Device Hub</a> (which
+finds each service through discovery, by protocol id) work against it:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Service</p></th>
+<th class="head"><p>Module (default)</p></th>
+<th class="head"><p>Protocol id</p></th>
+<th class="head"><p>Console</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">espp::SystemService</span></code> – device info, reboot, reboot into the bootloader</p></td>
+<td><p>7</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">espp.system</span></code></p></td>
+<td><p><a class="reference external" href="https://esp-cpp.github.io/espp/apps/system_console.html">system console</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">espp::MonitorService</span></code> – heap regions + task table, on request or streamed</p></td>
+<td><p>8</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">espp.monitor</span></code></p></td>
+<td><p>system console</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">espp::OtaService</span></code> – firmware update (host-driven rollback confirmation)</p></td>
+<td><p>0</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">espp.ota</span></code></p></td>
+<td><p><a class="reference external" href="https://esp-cpp.github.io/espp/apps/ota_console.html">OTA console</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">espp::CoreDumpService</span></code> – last-crash report, core dump download / erase</p></td>
+<td><p>4</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">espp.coredump</span></code></p></td>
+<td><p><a class="reference external" href="https://esp-cpp.github.io/espp/apps/coredump_console.html">coredump console</a></p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">partitions.csv</span></code> therefore carries the OTA layout (<code class="docutils literal notranslate"><span class="pre">otadata</span></code>, <code class="docutils literal notranslate"><span class="pre">ota_0</span></code>, <code class="docutils literal notranslate"><span class="pre">ota_1</span></code>)
+plus a <code class="docutils literal notranslate"><span class="pre">coredump</span></code> partition, and <code class="docutils literal notranslate"><span class="pre">sdkconfig.defaults</span></code> enables core dumps to
+flash, OTA rollback and the FreeRTOS run-time statistics the task monitor
+reads. Every device-&gt;host write on a transport goes through one mutex, so the
+services (and the frame stream) never interleave frames.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="vl53l5cx_example.html" class="btn btn-neutral float-left" title="VL53L5CX Multizone ToF Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../presence/index.html" class="btn btn-neutral float-right" title="Presence Sensor APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
