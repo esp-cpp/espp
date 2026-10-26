@@ -3,13 +3,14 @@
 // Wire protocol for the USB <-> CAN (TWAI) bridge example.
 //
 // Framed with the espp stream_frame v2 codec and routed by espp::Dispatcher on
-// MODULE ID 5. The v2 frame has a DEDICATED module byte, so EVERY frame here —
-// requests and replies alike — sets module = 5 and routes to dispatcher module
-// 5 (this is NOT the retired v1 scheme where the module was derived from the
-// type's high nibble). The 0x5X / 0xD_ values below are the `type` byte, not
-// the module; the reply/event types (0xD_) additionally set the frame reply
-// flag (build derives it from the type's high bit). The hosted CAN console web
-// app speaks this exact protocol over WebUSB / Web Serial.
+// one module id, 5 by default (kModuleId here; the example registers under
+// kCanBridgeModule in can_bridge_example.cpp, and a host must use the same id).
+// The v2 frame has a DEDICATED module byte, so EVERY frame here — requests and
+// replies alike — carries that module id and routes to it (this is NOT the
+// retired v1 scheme where the module was derived from the type's high nibble). The 0x5X / 0xD_
+// values below are the `type` byte, not the module; the reply/event types (0xD_) additionally set
+// the frame reply flag (build derives it from the type's high bit). The hosted CAN console web app
+// speaks this exact protocol over WebUSB / Web Serial.
 //
 // A CAN frame is encoded as a compact payload:
 //   [id u32 LE][flags u8][dlc u8][data: dlc bytes]
@@ -25,8 +26,16 @@
 
 namespace can_bridge {
 
-/// Dispatcher module id owned by the CAN bridge protocol.
+/// Default dispatcher module id of the CAN bridge protocol. Only a routing
+/// key: the hosted CAN console / DS402 panel find the id through discovery
+/// (by kProtocol). The example registers under `kCanBridgeModule`
+/// (can_bridge_example.cpp), which defaults to this.
 static constexpr uint8_t kModuleId = 5;
+/// Stable protocol identifier + version advertised through discovery
+/// (Dispatcher::ModuleInfo::protocol); the CAN console and DS402 panel locate
+/// the bridge module by this rather than by its module id.
+static constexpr const char *kProtocol = "espp.can-bridge";
+static constexpr uint16_t kProtocolVersion = 1;
 
 /// Host -> device (requests, high nibble 5).
 enum : uint8_t {

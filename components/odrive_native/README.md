@@ -64,6 +64,11 @@ A scripted example is provided in [`example`](./example) and is built by CI. It
 registers a few simulated-motor properties and feeds crafted packets through
 `process_bytes`, logging the responses.
 
+A second example, [`usb_example`](./usb_example), presents an ODrive-compatible
+**USB device** on an ESP32-S3: the ODrive ASCII protocol over CDC, the native /
+Fibre protocol over the vendor (WebUSB) interface, and a HID gamepad, all from
+one simulated motor state (see its README and `HARDWARE_TEST.md`).
+
 ## Notes
 
 - This component implements the **properties** (primitive get/set) surface of the

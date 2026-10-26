@@ -1,6 +1,6 @@
 // Host-buildable unit tests for the CANopen (CiA 301) wire core and the
 // CiA 402 statusword decoding. Build & run with:
-//   c++ -std=c++20 -I../include canopen_host_test.cpp -o test && ./test
+//   c++ -std=c++23 -I../include canopen_host_test.cpp -o test && ./test
 //
 // These tests exercise espp::detail::canopen / espp::detail::ds402 directly so
 // they need no ESP-IDF headers.

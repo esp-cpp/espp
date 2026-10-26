@@ -23,6 +23,8 @@ collected under :doc:`web_apps`.
 
    core/index
    coredump/index
+   system/index
+   desktop/index
 
 .. toctree::
    :maxdepth: 1

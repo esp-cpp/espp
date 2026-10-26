@@ -15,10 +15,14 @@
 #include "esp_http_server.h"
 #include "nvs_flash.h"
 
+#include "coredump.hpp"
+#include "coredump_service.hpp"
 #include "dispatcher_worker.hpp"
 #include "logger.hpp"
+#include "monitor_service.hpp"
 #include "ota.hpp"
 #include "ota_service.hpp"
+#include "system_service.hpp"
 #include "usb_device.hpp"
 #include "wifi_sta.hpp"
 
@@ -315,6 +319,19 @@ extern "C" void app_main(void) {
                 "host to confirm it (MARK_VALID); it rolls back on the next reset if not.");
   }
 
+  // --- Core dump engine --------------------------------------------------------
+  // A panic core-dumps to the `coredump` partition and is reported here on the
+  // next boot; the coredump console downloads / erases it over the service
+  // below (every espp USB example serves the same standard set: system,
+  // monitor, OTA, core dump).
+  espp::CoreDump core_dump({.log_level = espp::Logger::Verbosity::INFO});
+  const std::string crash_report = core_dump.format_report();
+  if (crash_report.empty())
+    logger.info("Clean boot history (reset reason: {})",
+                espp::CoreDump::reset_reason_name(espp::CoreDump::reset_reason()));
+  else
+    logger.error("Previous abnormal reset:\n{}", crash_report);
+
   // --- Transport 1: USB vendor / WebUSB (espp::UsbDevice) --------------------
   // The vendor interface carries the framed OTA stream protocol (see
   // detail/ota_stream_protocol.hpp); the hosted web app
@@ -345,13 +362,38 @@ extern "C" void app_main(void) {
   usb_cfg.cdc = cdc;
   espp::UsbDevice usb(usb_cfg);
 
+  // Every device->host write on the vendor interface (OTA replies, the
+  // streamed monitor events, discovery) comes from more than one task, so it
+  // goes through one mutex; write_vendor is all-or-nothing per call, so a
+  // frame is never truncated or interleaved.
+  std::mutex vendor_tx_mutex;
+  auto vendor_send = [&](std::span<const uint8_t> frame) {
+    std::lock_guard<std::mutex> lock(vendor_tx_mutex);
+    usb.write_vendor(frame);
+  };
+
   // The OTA service on this transport: replies go back over the vendor
   // interface. One OtaService per byte stream -- it only ever appends to /
   // finishes / aborts a session IT began, so a USB DATA frame can never touch
   // the HTTP-started session below (and vice versa).
-  espp::OtaService ota_service(
-      ota, {.send = [&](std::span<const uint8_t> frame) { usb.write_vendor(frame); },
-            .log_level = espp::Logger::Verbosity::INFO});
+  espp::OtaService ota_service(ota,
+                               {.send = vendor_send, .log_level = espp::Logger::Verbosity::INFO});
+
+  // The other standard services on the same stream: system info + reboot /
+  // bootloader (module 7), heap + task monitor (module 8), core dump (module 4).
+  auto reboot_request = [&](espp::SystemService::RebootKind kind) {
+    logger.warn("Host requested a {}; allowing it",
+                kind == espp::SystemService::RebootKind::Bootloader ? "reboot into the bootloader"
+                                                                    : "reboot");
+    return true;
+  };
+  espp::SystemService system_service({.send = vendor_send,
+                                      .on_reboot_request = reboot_request,
+                                      .log_level = espp::Logger::Verbosity::INFO});
+  espp::MonitorService monitor_service(
+      {.send = vendor_send, .log_level = espp::Logger::Verbosity::INFO});
+  espp::CoreDumpService coredump_service(
+      core_dump, {.send = vendor_send, .log_level = espp::Logger::Verbosity::INFO});
 
   // RX bytes arrive in the TinyUSB task context, where nothing may block --
   // and an OTA BEGIN erases a partition (seconds). DispatcherWorker owns the
@@ -359,12 +401,14 @@ extern "C" void app_main(void) {
   // frame to its module (OTA on module 0; other protocols could register
   // alongside on the same stream) on its own task. On an RX overflow it resets
   // the parser and lets the OTA service abort the transfer + tell the host.
-  espp::DispatcherWorker usb_link(
-      {.send = [&](std::span<const uint8_t> frame) { usb.write_vendor(frame); },
-       .on_overflow = [&]() { ota_service.on_rx_overflow(); },
-       .task_config = {.name = "ota_usb", .stack_size_bytes = 8192}});
-  usb_link.register_module(ota_service);     // module 0 + its discovery metadata
-  usb_link.serve_discovery(usb_cfg.product); // so the browser Device Hub can find it
+  espp::DispatcherWorker usb_link({.send = vendor_send,
+                                   .on_overflow = [&]() { ota_service.on_rx_overflow(); },
+                                   .task_config = {.name = "ota_usb", .stack_size_bytes = 8192}});
+  usb_link.register_module(ota_service); // module 0 + its discovery metadata
+  usb_link.register_module(system_service);
+  usb_link.register_module(monitor_service);
+  usb_link.register_module(coredump_service);
+  usb_link.serve_discovery(usb_cfg.product); // so the browser Device Hub can find them
   usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { usb_link.push(data); });
 
   std::error_code usb_ec;

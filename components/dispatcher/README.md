@@ -18,19 +18,22 @@ The `module` byte (0..255) is the routing key — a full byte, so up to 256
 protocols can coexist on one stream. The message/transaction `type` and the
 request/reply direction (`flags`) travel with the frame and are handed to the
 module's handler untouched; the Dispatcher does not interpret them. espp's own
-protocols and examples use, for example:
+protocols and examples use these ids by default:
 
-| Module    | Protocol                                       |
-|-----------|-------------------------------------------------|
-| 0         | OTA                                             |
-| 1         | Core-dump example crash trigger (example only)  |
-| 2         | BLDC haptics                                    |
-| 3         | Telemetry                                       |
-| 4         | crash dump                                      |
-| 5         | CAN bridge                                      |
-| 6         | MCP266                                          |
-| 0xF0–0xFE | reserved (meta)                                 |
-| 0xFF      | capability discovery                            |
+| Module    | Protocol                                       | Protocol id (discovery)       |
+|-----------|-------------------------------------------------|-------------------------------|
+| 0         | OTA                                             | `espp.ota` v1                 |
+| 1         | Core-dump example crash trigger (example only)  | `espp.coredump-crash-trigger` v1 |
+| 2         | BLDC haptics                                    | `espp.haptics` v1             |
+| 3         | Telemetry                                       | `espp.telemetry` v1           |
+| 4         | crash dump                                      | `espp.coredump` v1            |
+| 5         | CAN bridge                                      | `espp.can-bridge` v1          |
+| 6         | MCP266                                          | `espp.mcp266` v1              |
+| 7         | System info / reboot (`espp::SystemService`)    | `espp.system` v1              |
+| 8         | Heap / task monitor (`espp::MonitorService`)    | `espp.monitor` v1             |
+| 9         | Windowed desktop (`espp::DesktopService`)       | `espp.desktop` v2             |
+| 0xF0–0xFE | reserved (meta)                                 | —                             |
+| 0xFF      | capability discovery                            | —                             |
 
 A device-side dispatcher registers the modules it serves; frames for an
 unregistered module are silently ignored. A protocol's replies use the **same**
@@ -39,7 +42,47 @@ the module), so both route to the one registered handler — use `frame.is_reply
 to distinguish them. In practice a device only *receives* requests (it *sends*
 the replies), so its handler normally sees requests only. Application code may
 assign any unused module id to its own protocol — nothing is hard-wired to a
-specific service.
+specific service. The ids above are **defaults**: the module id is only a routing
+key, and every espp service takes its id from `Config::module` (used for both
+the requests it accepts and the replies it sends — `kModule` is just the
+default), while each example module keeps its id in one named constant.
+
+**The id is not how a peer identifies a protocol.** Every espp service also
+carries a stable **protocol id** (`kProtocol`, e.g. `"espp.ota"`, plus a
+`kProtocolVersion`) in the `ModuleInfo` it advertises through capability
+discovery (below). The hosted web consoles and the `espp_ota` / `espp_coredump`
+host tools query discovery on connect and talk to whichever module advertises
+*their* protocol id (then, for firmware predating protocol ids, the module
+advertising their app filename or name). The published default id is used
+only as a last resort, in two cases: the device does not answer discovery at
+all (silently: older firmware without a Dispatcher), or it answers but nothing
+it advertises matches the protocol, app or name (with a warning, since that
+usually means a misadvertised or missing service). So a device is free to move
+a service to any id: discovery tells its hosts where it went. (`?module=N` on a
+console URL, or `--module N` on the CLIs, forces an id; the Device Hub links
+each console that way.)
+
+The hub's links also carry the connected device's identity
+(`?autoconnect=1&transport=usb|serial&vid=&pid=[&serial=]`) and clicking one
+hands the device off: the hub closes its connection first (one page can hold a
+WebUSB interface / serial port at a time), opens the app, which connects to
+the same device on load without a chooser, and shows a *Device handed off*
+banner with a **Reconnect** button. The hub never reconnects on its own (it
+cannot tell "the app released the device" from "the device rebooted"); an app
+that disconnects posts a `released` notice on the same-origin
+`BroadcastChannel("espp-device")` so the banner says the device is free again.
+Every console has an **auto-reconnect** checkbox (default on) that re-opens
+the same device after an unexpected link loss such as a reboot. Every app
+also links back to the hub (**Device Hub**, primary) and the apps page (**All
+apps**); a connected console's Device Hub link hands the device back — close,
+`released` notice, then navigate the same tab to the hub with the device's
+auto-connect query, which the hub honours on load. The helpers
+(`parseConnectParams`, the permitted-device matchers, the reconnect
+supervisor) are a byte-identical block in each console and the hub, and the
+hub's link builder `connectQuery` sits in its own block next to it; both are
+checked by `web/test/resolve_module_id_test.js`. All of this needs a page
+served over HTTPS, or HTTP on localhost (WebUSB / Web Serial need a secure
+context): a `file://` page's device grants do not persist.
 
 ## API
 
@@ -54,8 +97,8 @@ specific service.
   `espp::CoreDumpService`, `espp::Telemetry`, `espp::Mcp266Service` satisfy it
   (and `static_assert` so); add `static_assert(espp::DispatcherModuleConcept<MyModule>);`
   to your own module for a precise compile-time check. The id and metadata are
-  read from the *object*, so a module whose id is configured per instance
-  registers under that id.
+  read from the *object* at registration, so a module whose id is configured
+  per instance (every espp service: `Config::module`) registers under that id.
 - `void feed(std::span<const uint8_t> data)` — parse + route.
 - `void dispatch(const stream_frame::Frame&)` — route an already-parsed frame.
 - `void reset()` — drop buffered bytes (reconnect / RX overflow).
@@ -63,8 +106,8 @@ specific service.
 
 ```cpp
 espp::Dispatcher dispatcher;
-dispatcher.register_module(ota_service);      // espp::OtaService, module 0
-dispatcher.register_module(coredump_service); // espp::CoreDumpService, module 4
+dispatcher.register_module(ota_service);      // espp::OtaService, its Config::module (0 by default)
+dispatcher.register_module(coredump_service); // espp::CoreDumpService, its Config::module (4 by default)
 dispatcher.register_module(0x10, [&](const espp::stream_frame::Frame &f) {
   // your own protocol: f.type, f.is_reply(), f.payload
 });
@@ -105,14 +148,30 @@ usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { link.push(d
 
 ## Capability discovery
 
-A module can be registered with a `ModuleInfo` (name / web app / description) so a
-connected peer can ask the device **which** modules it runs — over the reserved
-discovery module id `0xFF` — and render or link each one. This powers the browser
-**Device Hub** app (`components/dispatcher/web/dispatcher_hub.html`, hosted at
+A module can be registered with a `ModuleInfo` (name / web app / description /
+protocol id + version) so a connected peer can ask the device **which** modules
+it runs — over the reserved discovery module id `0xFF` — and render or link each
+one, or find the module that speaks the protocol the peer implements. This
+powers the browser **Device Hub** app
+(`components/dispatcher/web/dispatcher_hub.html`, hosted at
 `apps/dispatcher_hub.html`): connect over WebUSB / Web Serial, and it lists the
-device's modules as tabs, each linking to that module's own web app.
+device's modules as tabs, each linking to that module's own web app (with the
+module id in the link), and it is how every module console and host tool finds
+its module id on connect. The hosted hub also loads the generated app registry
+(`registry.js`, written beside the apps by `doc/generate_apps_index.py` from
+each page's `<meta name="espp-protocols">` tag) and links every app that speaks
+a discovered protocol: "Apps for this device" (all apps whose required
+protocols the device advertises, each with the matching module id) and, per
+module, "Also works with" (e.g. the DS402 panel for a CAN bridge module). It
+notes a version the app does not implement and listed protocols the device
+lacks; without the registry (`file://`) only the advertised app is linked.
 
-- `struct ModuleInfo { std::string name, app, description; };`
+- `struct ModuleInfo { std::string name, app, description, protocol; uint16_t protocol_version; };`
+  — `protocol` is a stable machine-matched identifier (`"espp.ota"`, ...; see
+  the table above), `protocol_version` the version of it the module speaks
+  (0 = unspecified). Every espp service fills them from its own
+  `kProtocol` / `kProtocolVersion` constants. Both are optional; a plain
+  `ModuleInfo{.name, .app, .description}` initializer still compiles.
 - `void register_module(uint8_t id, handler_fn handler, ModuleInfo info)` — the
   registration overload that carries metadata (a module with an empty `name` is
   not advertised).
@@ -134,12 +193,31 @@ dispatcher.serve_discovery([&](std::span<const uint8_t> frame) { usb.write_vendo
 
 The discovery reply payload is a compact binary TLV (all lengths one byte;
 strings are `[len][bytes]`): `[version][reserved][device_name][device_fw]
-[module_count]` then per module `[id][name][app][description]`. The reserved
-discovery module (`0xFF`) never lists itself.
+[module_count]` then per module `[id][name][app][description][protocol]
+[protocol_version u16 LE]`. `version` is `Dispatcher::kDiscoveryVersion`
+(currently **2**); version-1 records (firmware predating protocol ids) end
+after `[description]`, so a parser branches on the version byte and treats an
+unknown newer version as 2 (more fields may follow). An unset protocol encodes
+as a zero-length string. The reserved discovery module (`0xFF`) never lists
+itself.
+
+How a peer picks the module to talk to, given the reply (the rule every espp
+console and host tool implements — `resolveModuleId` in the web apps,
+`resolve_module_id` in `espp_ota` / `espp_coredump`): an explicit override
+(`?module=N` / `--module N`) first; else the first module whose `protocol`
+equals the peer's (several → the first, with a warning); else the module whose
+`app` filename matches; else the module whose `name` matches; else the
+protocol's published default id. A `protocol_version` other than the peer's is
+reported as a warning, not refused.
 
 ## Host tests
 
 ```
-c++ -std=c++20 -Werror -I components/dispatcher/include -I components/stream_frame/include \
+c++ -std=c++23 -Werror -I components/dispatcher/include -I components/stream_frame/include \
     components/dispatcher/test/dispatcher_host_test.cpp -o test && ./test
+node components/dispatcher/web/test/resolve_module_id_test.js   # the consoles' shared discovery helpers
+node components/dispatcher/web/test/apps_registry_test.js       # app metadata, registry generator, hub app matching
 ```
+
+(The node tests are not run in CI; run them after touching a console, an app
+page's `<head>`, the generator, or the hub.)

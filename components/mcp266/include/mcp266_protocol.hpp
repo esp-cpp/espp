@@ -26,8 +26,14 @@
 namespace espp {
 namespace mcp266_protocol {
 
-/// Dispatcher module id owned by the MCP266 console protocol.
+/// Default dispatcher module id of the MCP266 console protocol (a routing key;
+/// Mcp266Service::Config::module can move it).
 static constexpr uint8_t kModuleId = 6;
+/// Stable protocol identifier + version advertised through discovery
+/// (Dispatcher::ModuleInfo::protocol); the console locates the MCP266 module
+/// by this rather than by its module id.
+static constexpr const char *kProtocol = "espp.mcp266";
+static constexpr uint16_t kProtocolVersion = 1;
 
 /// Axis selector used in request payloads (matches espp::Mcp266::Axis order).
 enum class Axis : uint8_t {

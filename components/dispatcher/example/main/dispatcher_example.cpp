@@ -27,15 +27,21 @@ extern "C" void app_main(void) {
   static constexpr uint8_t kModuleTelemetry = 4;
 
   espp::Dispatcher dispatcher;
-  // Register each module WITH discovery metadata (name / web app / description)
-  // so a connected peer can enumerate them (see the discovery section below).
-  dispatcher.register_module(
-      kModuleControl,
-      [&](const sf::Frame &f) {
-        logger.info("[control] {} type=0x{:02X} ({} payload bytes)",
-                    f.is_reply() ? "reply" : "request", f.type, f.payload.size());
-      },
-      {.name = "Control", .app = "control_console.html", .description = "Device control channel"});
+  // Register each module WITH discovery metadata (name / web app / description
+  // / protocol id + version) so a connected peer can enumerate them and find
+  // each protocol by its stable id, whatever module number it is served on
+  // (see the discovery section below).
+  dispatcher.register_module(kModuleControl,
+                             [&](const sf::Frame &f) {
+                               logger.info("[control] {} type=0x{:02X} ({} payload bytes)",
+                                           f.is_reply() ? "reply" : "request", f.type,
+                                           f.payload.size());
+                             },
+                             {.name = "Control",
+                              .app = "control_console.html",
+                              .description = "Device control channel",
+                              .protocol = "example.control",
+                              .protocol_version = 1});
   dispatcher.register_module(kModuleTelemetry,
                              [&](const sf::Frame &f) {
                                uint32_t value = f.payload.size() == 4 ? sf::get_u32(f.payload) : 0;
@@ -43,7 +49,9 @@ extern "C" void app_main(void) {
                              },
                              {.name = "Telemetry",
                               .app = "telemetry_console.html",
-                              .description = "Live telemetry stream"});
+                              .description = "Live telemetry stream",
+                              .protocol = "example.telemetry",
+                              .protocol_version = 1});
 
   // Build a mixed stream, as a peer would send it.
   std::vector<uint8_t> telemetry_payload;
@@ -84,7 +92,8 @@ extern "C" void app_main(void) {
   const auto reply_frames = sf::StreamParser{}.feed(discovery_reply);
   if (!reply_frames.empty()) {
     const auto &p = reply_frames[0].payload;
-    size_t i = 2; // skip [version][reserved]
+    const uint8_t version = p[0]; // kDiscoveryVersion: 2 = records carry protocol id + version
+    size_t i = 2;                 // skip [version][reserved]
     auto rd_str = [&]() {
       const uint8_t n = p[i++];
       std::string s(reinterpret_cast<const char *>(&p[i]), n);
@@ -94,13 +103,21 @@ extern "C" void app_main(void) {
     const std::string dev = rd_str();
     const std::string fw = rd_str();
     const uint8_t count = p[i++];
-    logger.info("discovery: '{}' (fw {}) advertises {} module(s):", dev, fw, count);
+    logger.info("discovery v{}: '{}' (fw {}) advertises {} module(s):", version, dev, fw, count);
     for (uint8_t m = 0; m < count; ++m) {
       const uint8_t id = p[i++];
       const std::string name = rd_str();
       const std::string app = rd_str();
       const std::string desc = rd_str();
-      logger.info("  module {}: {} [app={}] — {}", id, name, app, desc);
+      std::string protocol;
+      uint16_t protocol_version = 0;
+      if (version >= 2) {
+        protocol = rd_str();
+        protocol_version = static_cast<uint16_t>(p[i] | (p[i + 1] << 8));
+        i += 2;
+      }
+      logger.info("  module {}: {} [app={}, protocol={} v{}] — {}", id, name, app, protocol,
+                  protocol_version, desc);
     }
   }
   //! [dispatcher example]

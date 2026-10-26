@@ -22,6 +22,7 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/interrupt"
   "../../../components/logger"
   "../../../components/lvgl"
+  "../../../components/sdcard"
   "../../../components/spi"
   "../../../components/task"
   "../../../components/touch"
@@ -36,4 +37,4 @@ set(
 
 project(lilygo_t5_47_example)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)

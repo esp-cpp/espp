@@ -1,8 +1,15 @@
-"""espp OTA stream protocol (dispatcher module 0).
+"""espp OTA stream protocol (dispatcher module 0 by default).
 
 Mirrors ``components/ota/include/detail/ota_stream_protocol.hpp``: the OTA
 message-type enum, frame builders (``make_*``) and reply parsers (``parse_*``)
-layered on the :mod:`espp_ota.frame` codec.
+layered on the :mod:`espp_ota.frame` codec, plus (re-exported from
+:mod:`espp_ota.discovery`) the dispatcher discovery (ListModules) request, its
+TLV reply parser and the module-id resolution rule.
+
+The module id is only a routing key: ``MODULE`` is the service's published
+default, every builder takes a ``module`` argument, and a client finds the id a
+device actually serves the protocol on through discovery (``PROTOCOL`` is the
+stable identity the device advertises -- ``OtaService::kProtocol``).
 
 Requests are host->device (reply flag = 0); replies are device->host
 (reply flag = 1). Flow control is one-frame-in-flight: the host sends a request
@@ -17,13 +24,48 @@ from enum import IntEnum
 from typing import Optional
 
 from . import frame as _f
+from .discovery import (DISCOVERY_LIST_MODULES, DISCOVERY_MODULE, DISCOVERY_VERSION_KNOWN,
+                        DiscoveryInfo, ModuleInfo, Resolution, describe_resolution,
+                        make_discovery_request, parse_discovery, resolve_module_id)
 
-#: OTA occupies dispatcher module id 0.
+#: The public wire API: this module's own builders / parsers plus the
+#: discovery API re-exported from :mod:`.discovery` (so ``protocol`` is the one
+#: import a host tool needs for everything on the wire).
+__all__ = [
+    "MODULE", "PROTOCOL", "PROTOCOL_VERSION", "MODULE_NAME", "MODULE_APP",
+    "MessageType",
+    "StatusFlags",
+    "make_begin",
+    "make_data",
+    "make_finish",
+    "make_abort",
+    "make_get_status",
+    "make_mark_valid",
+    "make_mark_invalid",
+    "ErrorInfo",
+    "ProgressInfo",
+    "StatusInfo",
+    "parse_u32",
+    "parse_error",
+    "parse_progress",
+    "parse_status",
+    "OtaError",
+    # re-exported discovery API
+    "DISCOVERY_LIST_MODULES", "DISCOVERY_MODULE", "DISCOVERY_VERSION_KNOWN", "DiscoveryInfo",
+    "ModuleInfo", "Resolution", "describe_resolution", "make_discovery_request",
+    "parse_discovery", "resolve_module_id",
+]
+
+#: OtaService's default dispatcher module id (a routing key only).
 MODULE = 0
 
-#: Discovery meta-module (see components/dispatcher). ListModules == 0x00.
-DISCOVERY_MODULE = 0xFF
-DISCOVERY_LIST_MODULES = 0x00
+#: The protocol identity the service advertises through discovery
+#: (``OtaService::kProtocol`` / ``kProtocolVersion``), plus the name and hosted
+#: app it advertises: what a client matches on to find its module id.
+PROTOCOL = "espp.ota"
+PROTOCOL_VERSION = 1
+MODULE_NAME = "OTA"
+MODULE_APP = "ota_console.html"
 
 
 class MessageType(IntEnum):
@@ -48,42 +90,39 @@ class StatusFlags(IntEnum):
 _REPLY_TYPES = {MessageType.OK, MessageType.ERROR, MessageType.PROGRESS, MessageType.STATUS}
 
 
-def _build(type_: MessageType, payload: bytes = b"") -> bytes:
-    return _f.build_frame(MODULE, int(type_), payload, reply=type_ in _REPLY_TYPES)
+def _build(type_: MessageType, payload: bytes = b"", module: int = MODULE) -> bytes:
+    return _f.build_frame(module, int(type_), payload, reply=type_ in _REPLY_TYPES)
 
 
 # ---- request builders (host -> device) --------------------------------------
-def make_begin(image_size: int) -> bytes:
-    return _build(MessageType.BEGIN, struct.pack("<I", image_size & 0xFFFFFFFF))
+# ``module`` is the dispatcher module id to stamp (the published default, or
+# the id discovery found the device serving the protocol on).
+def make_begin(image_size: int, module: int = MODULE) -> bytes:
+    return _build(MessageType.BEGIN, struct.pack("<I", image_size & 0xFFFFFFFF), module)
 
 
-def make_data(chunk: bytes) -> bytes:
-    return _build(MessageType.DATA, chunk)
+def make_data(chunk: bytes, module: int = MODULE) -> bytes:
+    return _build(MessageType.DATA, chunk, module)
 
 
-def make_finish() -> bytes:
-    return _build(MessageType.FINISH)
+def make_finish(module: int = MODULE) -> bytes:
+    return _build(MessageType.FINISH, module=module)
 
 
-def make_abort() -> bytes:
-    return _build(MessageType.ABORT)
+def make_abort(module: int = MODULE) -> bytes:
+    return _build(MessageType.ABORT, module=module)
 
 
-def make_get_status() -> bytes:
-    return _build(MessageType.GET_STATUS)
+def make_get_status(module: int = MODULE) -> bytes:
+    return _build(MessageType.GET_STATUS, module=module)
 
 
-def make_mark_valid() -> bytes:
-    return _build(MessageType.MARK_VALID)
+def make_mark_valid(module: int = MODULE) -> bytes:
+    return _build(MessageType.MARK_VALID, module=module)
 
 
-def make_mark_invalid() -> bytes:
-    return _build(MessageType.MARK_INVALID)
-
-
-def make_discovery_request() -> bytes:
-    """A dispatcher discovery (ListModules) request on module 0xFF."""
-    return _f.build_frame(DISCOVERY_MODULE, DISCOVERY_LIST_MODULES, b"", reply=False)
+def make_mark_invalid(module: int = MODULE) -> bytes:
+    return _build(MessageType.MARK_INVALID, module=module)
 
 
 # ---- reply parsers (device -> host) -----------------------------------------

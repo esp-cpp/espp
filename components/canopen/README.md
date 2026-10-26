@@ -35,9 +35,41 @@ SDO transactions are blocking with a configurable timeout; `process_frame()`
 must be called from a different task than the one performing SDO transfers
 (automatic with `espp::Twai`, whose `on_receive` runs in its own task).
 
-The wire core (`include/detail/canopen_core.hpp`) is host-buildable pure C++20
+The wire core (`include/detail/canopen_core.hpp`) is host-buildable pure C++23
 with no ESP dependencies, and is covered by golden-frame unit tests in
 `test/canopen_host_test.cpp`.
+
+## Web apps
+
+Two single-file browser apps under [web/](./web) talk to the
+[USB↔CAN bridge example](./can_bridge_example) (WebUSB or Web Serial, espp
+`stream_frame` framing); the firmware stays a raw-CAN pipe and all CANopen logic
+runs in the browser:
+
+* `can_bridge_console.html` - configure the bus, send frames, monitor traffic.
+* `ds402_panel.html` - a CANopen SDO client plus a DS402 control panel: node
+  identity, the power-drive-system state machine with the enable sequence, mode
+  of operation, targets / actuals, and an **object-dictionary browser**. Its
+  object list comes from the device's own EDS (object `0x1021` *Store EDS*,
+  read as a DOMAIN over segmented SDO and parsed in the browser when `0x1022`
+  reports plain ASCII), from an EDS file, or from a built-in CiA 301 / CiA 402
+  table of the commonly implemented objects; a scan reads every readable
+  scalar / string entry (one SDO transaction at a time) and classifies each as
+  present, absent, write-only, aborted or unanswered - it never writes. DOMAIN
+  entries (a stored EDS, an OS command reply) are left unread by a scan and
+  fetched with the row's *Read* button instead, with a 1 MiB bound. The
+  parser, table, decoder and scan walk are pure functions covered by
+  `node web/test/ds402_od_test.js`.
+
+Both apps auto-connect when opened with
+`?autoconnect=1&transport=usb|serial&vid=0x1209&pid=0x0d33[&serial=...]`
+(the query the Device Hub's links carry): the page connects on load, without
+the browser chooser, to a device it was already granted. Their
+**auto-reconnect** checkbox (default on, remembered per origin) reconnects
+after an unexpected link loss (a device reboot or re-plug with the same USB
+ids). Both only see devices the browser already granted to the page, i.e. a
+page served over HTTPS, or HTTP on localhost; a `file://` copy loses the
+grant on reload.
 
 ## Example
 

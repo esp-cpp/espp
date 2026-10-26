@@ -99,6 +99,8 @@ jobs:
           target: esp32
         - path: 'components/bmi270/example'
           target: esp32p4
+        - path: 'components/bno055/example'
+          target: esp32p4
         - path: 'components/bq27220/example'
           target: esp32
         - path: 'components/button/example'
@@ -108,6 +110,11 @@ jobs:
         - path: 'components/canopen/can_bridge_example'
           target: esp32s3
           command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
+        - path: 'components/canopen/can_bridge_example'
+          target: esp32s3
+          command: >-
+            IDF_COMPONENT_MANAGER=0 idf.py
+            -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.simulated" build
         - path: 'components/canopen/example'
           target: esp32
         - path: 'components/chsc6x/example'
@@ -129,6 +136,9 @@ jobs:
           target: esp32s3
         - path: 'components/csv/example'
           target: esp32
+        - path: 'components/desktop/example'
+          target: esp32s3
+          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/dispatcher/example'
           target: esp32
         - path: 'components/display_drivers/example'
@@ -243,10 +253,14 @@ jobs:
           target: esp32s3
         - path: 'components/nvs/example'
           target: esp32s3
+        - path: 'components/persistent_data/example'
+          target: esp32s3
         - path: 'components/odrive_ascii/example'
           target: esp32
         - path: 'components/odrive_native/example'
           target: esp32
+        - path: 'components/odrive_native/usb_example'
+          target: esp32s3
         - path: 'components/ota/example'
           target: esp32s3
           command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
@@ -281,6 +295,8 @@ jobs:
         - path: 'components/runqueue/example'
           target: esp32
         - path: 'components/rx8130ce/example'
+          target: esp32s3
+        - path: 'components/sdcard/example'
           target: esp32s3
         - path: 'components/seeed-studio-round-display/example'
           target: esp32s3
@@ -325,6 +341,9 @@ jobs:
           target: esp32s3
         - path: 'components/sx126x/example'
           target: esp32s3
+        - path: 'components/system/example'
+          target: esp32s3
+          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/t-deck/example'
           target: esp32s3
         - path: 'components/t-dongle-s3/example'
@@ -356,13 +375,24 @@ jobs:
           target: esp32
         - path: 'components/usb_device/example'
           target: esp32s3
+          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
+        - path: 'components/usb_device/msc_example'
+          target: esp32s3
+          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/usb_device/xinput_example'
           target: esp32s3
           command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/usb_host/example'
           target: esp32s3
+        - path: 'components/usb_host/tab5_example'
+          target: esp32p4
         - path: 'components/vl53l/example'
           target: esp32s3
+        - path: 'components/vl53l/vl53l5cx_example'
+          target: esp32s3
+        - path: 'components/vl53l/vl53l5cx_webapp_example'
+          target: esp32s3
+          command: 'IDF_COMPONENT_MANAGER=0 idf.py build'
         - path: 'components/wdi/ble_example'
           target: esp32s3
         - path: 'components/wdi/ble_central_example'
@@ -394,9 +424,9 @@ jobs:
     - name: Build Examples
       uses: espressif/esp-idf-ci-action@v1
       with:
-        # Default to ESP-IDF v6.0.1. Individual matrix entries can still pin a
+        # Default to ESP-IDF v6.1. Individual matrix entries can still pin a
         # different IDF via matrix.test.idf_version if an example ever needs one.
-        esp_idf_version: ${{ matrix.test.idf_version || 'v6.0.1' }}
+        esp_idf_version: ${{ matrix.test.idf_version || 'v6.1' }}
         target: ${{ matrix.test.target }}
         path: ${{ matrix.test.path }}
         command: ${{ matrix.test.command || 'idf.py build' }}

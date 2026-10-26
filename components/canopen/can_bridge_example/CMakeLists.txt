@@ -21,33 +21,39 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 set(EXTRA_COMPONENT_DIRS
   "../../../components/base_component"
+  "../../../components/canopen"
+  "../../../components/coredump"
   "../../../components/dispatcher"
   "../../../components/format"
   "../../../components/logger"
+  "../../../components/monitor"
+  "../../../components/ota"
   "../../../components/stream_frame"
+  "../../../components/system"
   "../../../components/task"
   "../../../components/twai"
   "../../../components/usb_device"
 )
 
-# With the component manager disabled, esp_tinyusb/tinyusb are not fetched from
-# the registry; add the vendored submodule copies to the component search path.
-# esp_tinyusb's own CMakeLists adds `tinyusb` to its REQUIRES when the manager is
-# off, so both component directories must be discoverable here.
+# With the component manager disabled (IDF_COMPONENT_MANAGER=0, e.g. in CI so the
+# build does not need the as-yet unpublished espp/* components in the registry),
+# esp_tinyusb is not fetched from the registry; add the vendored submodule copy
+# under external/ to the search path. esp_tinyusb >= 3.0 ships TinyUSB as its own
+# nested submodule (external/esp-usb/device/esp_tinyusb/tinyusb), so that one
+# directory is all that is needed; a second TinyUSB copy must NOT be on the path.
 if(DEFINED ENV{IDF_COMPONENT_MANAGER} AND "$ENV{IDF_COMPONENT_MANAGER}" STREQUAL "0")
   list(APPEND EXTRA_COMPONENT_DIRS
     "../../../external/esp-usb/device/esp_tinyusb"
-    "../../../external/tinyusb"
   )
 endif()
 
 set(
   COMPONENTS
-  "main esptool_py base_component dispatcher format logger stream_frame task twai usb_device esp_tinyusb"
+  "main esptool_py base_component canopen dispatcher format logger stream_frame task twai usb_device esp_tinyusb coredump monitor ota system espcoredump esp_psram"
   CACHE STRING
   "List of components to include"
   )
 
 project(can_bridge_example)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)

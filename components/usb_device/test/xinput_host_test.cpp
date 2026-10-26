@@ -3,7 +3,7 @@
 // endpoint descriptor builder. No ESP-IDF / TinyUSB headers required.
 //
 /* Build & run (a block comment so the line-continuation doesn't trip -Wcomment):
-     c++ -std=c++20 -Wall -Wextra -Werror -I components/usb_device/include \
+     c++ -std=c++23 -Wall -Wextra -Werror -I components/usb_device/include \
          components/usb_device/test/xinput_host_test.cpp -o test && ./test        */
 
 #include <cstdio>

@@ -9,11 +9,16 @@ connects over the native USB and can
   node is a passive sniffer that never ACKs or transmits.
 
 It bridges the ESP32-S3 TWAI (CAN 2.0) controller to the host over USB using the
-espp `stream_frame` framing and an `espp::Dispatcher` (this example owns
-**module id 5**). The same framed protocol is exposed on both the USB **vendor**
+espp `stream_frame` framing and an `espp::Dispatcher` (this example uses
+**module id 5** by default — `kCanBridgeModule` at the top of
+`can_bridge_example.cpp` is the one place to change it; the hosted consoles
+find it through discovery by its protocol id `espp.can-bridge`). The same
+framed protocol is exposed
+on both the USB **vendor**
 interface (WebUSB) and a **CDC** interface (Web Serial), so the web app can use
-either transport. The system console/logs stay on the separate built-in
-USB-Serial-JTAG.
+either transport. The system console/logs go to **UART0** (set in
+`sdkconfig.defaults`): on the S3 / P4, USB-Serial-JTAG shares the native USB
+port's PHY with USB-OTG, which TinyUSB takes over.
 
 ## Wiring
 
@@ -72,7 +77,82 @@ The bus starts **stopped**: the host sets baudrate/mode with `SET_CONFIG`, then
 
 ```
 idf.py set-target esp32s3
-idf.py build flash monitor
+idf.py build flash monitor   # console is on UART0 (USB-UART adapter)
 ```
 
 Then open the CAN console web app and Connect (WebUSB or Web Serial).
+
+## Standard USB services
+
+Like every espp USB example, this one serves the standard service set on its
+framed USB link(s) next to its own protocol, so the hosted consoles and the
+[Device Hub](https://esp-cpp.github.io/espp/apps/dispatcher_hub.html) (which
+finds each service through discovery, by protocol id) work against it:
+
+| Service | Module (default) | Protocol id | Console |
+|---|---|---|---|
+| `espp::SystemService` -- device info, reboot, reboot into the bootloader | 7 | `espp.system` | [system console](https://esp-cpp.github.io/espp/apps/system_console.html) |
+| `espp::MonitorService` -- heap regions + task table, on request or streamed | 8 | `espp.monitor` | system console |
+| `espp::OtaService` -- firmware update (host-driven rollback confirmation) | 0 | `espp.ota` | [OTA console](https://esp-cpp.github.io/espp/apps/ota_console.html) |
+| `espp::CoreDumpService` -- last-crash report, core dump download / erase | 4 | `espp.coredump` | [coredump console](https://esp-cpp.github.io/espp/apps/coredump_console.html) |
+
+`partitions.csv` therefore carries the OTA layout (`otadata`, `ota_0`, `ota_1`)
+plus a `coredump` partition, and `sdkconfig.defaults` enables core dumps to
+flash, OTA rollback and the FreeRTOS run-time statistics the task monitor
+reads. Every device->host write on a transport goes through one mutex, so the
+services (and any streaming) never interleave frames.
+
+## Simulated CANopen node (no CAN hardware)
+
+To try the [CAN console](https://esp-cpp.github.io/espp/apps/can_bridge_console.html)
+and the [DS402 panel](https://esp-cpp.github.io/espp/apps/ds402_panel.html)
+without a transceiver, bus or drive, build the bridge with a **simulated
+CANopen CiA 402 node** in place of the TWAI peripheral. It is off by default;
+enable it in `idf.py menuconfig` under *CAN Bridge Example Configuration*, or
+build with the extra defaults file:
+
+```
+idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.simulated" build flash
+```
+
+The USB side and the bridge protocol are unchanged, so the web apps connect and
+work exactly as with real hardware (set a baudrate, START the bus, then talk to
+node id 1 — `CONFIG_CAN_BRIDGE_SIMULATED_NODE_ID`). Frames the host sends are
+answered by the node in firmware (`main/simulated_ds402_node.hpp`) instead of
+going out on a bus, and the node's own traffic streams back as `CAN_RX`:
+
+- **NMT** start / stop / pre-operational / reset node / reset communication,
+  the boot-up message, and the producer heartbeat (`0x1017`, 1 s by default).
+- **SDO** server on `0x600`/`0x580` + id: expedited and segmented upload and
+  download (toggle bit checked) with the CiA 301 abort codes (unknown object /
+  sub-index, read-only, length mismatch, value range, ...).
+- An **object dictionary** with the CiA 301 communication and identity objects
+  (`0x1000`, `0x1001`, `0x1008`–`0x100A`, `0x1010`/`0x1011` with the
+  `save`/`load` signatures, `0x1017`, `0x1018`, `0x1200`, PDO parameters), its
+  own **stored EDS** (`0x1021`, a DOMAIN generated from the dictionary; `0x1022`
+  = 0) so a browser can read the device's object list from the device, the
+  CiA 402 objects of a single-axis drive, and manufacturer objects: write `1`
+  to `0x2000` to inject a fault (an EMCY is sent; clear it with the controlword
+  fault-reset edge).
+- The **DS402 state machine** driven by the controlword (`0x6040`) and reported
+  in the statusword (`0x6041`): the enable sequence, disable / shutdown,
+  quick-stop (transits to Switch On Disabled once stopped, `0x605A` = 2) and
+  fault reset; the supported **modes** (`0x6502`) are profile position (with
+  the new-set-point handshake, absolute / relative, halt), profile velocity
+  (ramping at the profile acceleration / deceleration), profile torque and
+  homing. Position / velocity / torque actual values (`0x6064`, `0x606C`,
+  `0x6077`) follow a simple trapezoidal motion model.
+- **TPDO1** (statusword + position actual) every `0x1800:5` ms (100 by
+  default) while Operational (NMT start), also on an RTR; **RPDO1**
+  (controlword + modes of operation) is applied.
+
+The node is host-buildable and unit-tested against the `canopen` component's
+client-side frame builders / parsers:
+
+```
+cd test && c++ -std=c++23 -I../../include -I../main simulated_node_host_test.cpp -o test && ./test
+```
+
+The simulation has no bit timing, so the baudrate is only reported; in
+listen-only mode the bridge refuses to transmit (as a real listen-only node
+cannot) while the node's heartbeat and boot-up traffic is still observed.

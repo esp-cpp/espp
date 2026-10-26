@@ -16,8 +16,9 @@ and runs CANopen in the browser), this example runs the `espp::Mcp266` driver
 **on the device** and exposes a small high-level protocol (see
 `main/mcp266_protocol.hpp`, dispatcher **module id 6**), so the web app needs no
 CANopen/DS402 knowledge. Both the vendor (WebUSB) and CDC (Web Serial) interfaces
-carry the same protocol; the system console/logs stay on the built-in
-USB-Serial-JTAG.
+carry the same protocol; the system console/logs go to **UART0** (set in
+`sdkconfig.defaults`): on the S3 / P4, USB-Serial-JTAG shares the native USB
+port's PHY with USB-OTG, which TinyUSB takes over.
 
 ## Wiring & configuration
 
@@ -63,8 +64,28 @@ high-nibble 6; replies/events use high-nibble E (reply flag set).
 
 ```
 idf.py set-target esp32s3
-idf.py build flash monitor
+idf.py build flash monitor   # console is on UART0 (USB-UART adapter)
 ```
 
 Then open the MCP266 console web app and Connect (WebUSB or Web Serial). Click
 **Start node**, tick **Live status**, then configure a loop and command a move.
+
+## Standard USB services
+
+Like every espp USB example, this one serves the standard service set on its
+framed USB link(s) next to its own protocol, so the hosted consoles and the
+[Device Hub](https://esp-cpp.github.io/espp/apps/dispatcher_hub.html) (which
+finds each service through discovery, by protocol id) work against it:
+
+| Service | Module (default) | Protocol id | Console |
+|---|---|---|---|
+| `espp::SystemService` -- device info, reboot, reboot into the bootloader | 7 | `espp.system` | [system console](https://esp-cpp.github.io/espp/apps/system_console.html) |
+| `espp::MonitorService` -- heap regions + task table, on request or streamed | 8 | `espp.monitor` | system console |
+| `espp::OtaService` -- firmware update (host-driven rollback confirmation) | 0 | `espp.ota` | [OTA console](https://esp-cpp.github.io/espp/apps/ota_console.html) |
+| `espp::CoreDumpService` -- last-crash report, core dump download / erase | 4 | `espp.coredump` | [coredump console](https://esp-cpp.github.io/espp/apps/coredump_console.html) |
+
+`partitions.csv` therefore carries the OTA layout (`otadata`, `ota_0`, `ota_1`)
+plus a `coredump` partition, and `sdkconfig.defaults` enables core dumps to
+flash, OTA rollback and the FreeRTOS run-time statistics the task monitor
+reads. Every device->host write on a transport goes through one mutex, so the
+services (and any streaming) never interleave frames.

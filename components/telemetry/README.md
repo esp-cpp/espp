@@ -35,6 +35,15 @@ rest, with the per-series filter bar:
 
 ## Features
 
+- **Auto-connect / auto-reconnect.** Opened with
+  `?autoconnect=1&transport=usb|serial&vid=0x1209&pid=...[&serial=...]` (the
+  query the Device Hub's links carry) the page connects on load, without the
+  browser chooser, to a device it was already granted; the **auto-reconnect**
+  checkbox (default on, remembered per origin) reconnects on the same transport
+  after an unexpected link loss (a device reboot or re-plug with the same USB
+  ids). Both only see devices the browser already granted to the page, i.e. a
+  page served over HTTPS, or HTTP on localhost; a `file://` copy loses the
+  grant on reload.
 - **Automatic parsing.** The delimiter (comma / tab / semicolon / whitespace) is
   detected per line. A line of non-numeric labels is treated as a **header**; the
   first numeric row of matching width confirms it and becomes the schema. Rows
@@ -71,8 +80,10 @@ rest, with the per-series filter bar:
 - **Binary telemetry over WebUSB.** Connect with **USB** to an espp device
   running `espp::Telemetry`: the app reads the channel schema and plots the
   device-timestamped sample stream (decoded from the `stream_frame` framing,
-  dispatcher module 3) into the same plot. Requests the schema on connect and
-  can pause/resume the device stream.
+  dispatcher module 3 — the `espp::Telemetry` default; `Config::module` can
+  move an instance, and the app finds it through discovery by its protocol id
+  `espp.telemetry`) into the same
+  plot. Requests the schema on connect and can pause/resume the device stream.
 
 ## Requirements
 

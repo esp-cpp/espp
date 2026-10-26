@@ -24,6 +24,18 @@ haptic feedback loop with configuration of:
   - Frequency of the haptic feedback [currently not implemented]
   - Duration of the haptic feedback [currently not implemented]
 
+## Web console
+
+The [Haptics Console](https://esp-cpp.github.io/espp/apps/haptics_console.html)
+(`web/haptics_console.html`) drives the USB example over WebUSB. Opened with
+`?autoconnect=1&transport=usb&vid=0x1209&pid=...[&serial=...]` (the query the
+Device Hub's links carry) it connects on load, without the browser chooser, to
+a device the page was already granted; its **auto-reconnect** checkbox (default
+on, remembered per origin) reconnects after an unexpected link loss such as a
+device reboot or re-plug. Both only see devices the browser already granted to
+the page (served over HTTPS, or HTTP on localhost; a `file://` copy loses the
+grant on reload).
+
 ## Example
 
 The [example](./example) shows the use of the `BldcHaptics` component to drive a

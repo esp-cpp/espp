@@ -35,6 +35,7 @@ dependencies:
   espp/gt911: ">=1.0"
   espp/input_drivers: ">=1.0"
   espp/interrupt: ">=1.0"
+  espp/sdcard: ">=1.0"
   # MIPI-CSI camera pipeline: esp_video provides the V4L2 capture framework
   # (CSI + ISP) and esp_cam_sensor provides the OV5647 sensor driver.
   espressif/esp_video: ">=2.0,<2.4" # 2.4.0 fails to compile against the CI IDF (ISP_LL_EVENT_ERROR_MASK undeclared)

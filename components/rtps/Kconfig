@@ -178,6 +178,29 @@ menu "RTPS"
 
     endmenu
 
+    menu "Transport task priority (advanced)"
+        config RTPS_THREAD_POOL_READER_PRIO
+            int "THREAD_POOL_READER_PRIO: worker pool and reactor (0 = profile default)"
+            default 0
+            range 0 24
+            help
+                FreeRTOS priority of the transport's tasks: the worker pool
+                ("rtps_worker_<n>"), which sends and receives all RTPS traffic
+                (publish() only queues a sample; a worker sends it) and runs
+                every reader and matched callback, and the reactor
+                ("rtps_reactor"), the select() loop that hands received
+                datagrams to the pool. 0 keeps the selected profile's value
+                (5 on the embedded profile, 3 on the host profiles).
+
+                Raise it when a busy task of higher priority (a UI renderer, a
+                long computation) can run on the same core as these tasks:
+                until it yields, nothing is sent or received. Bands (QosBand)
+                order work inside the pool and cannot help when the pool's
+                tasks are not scheduled. The callbacks then run at this
+                priority too, so keep them short.
+
+    endmenu
+
     config RTPS_STORAGE_DYNAMIC
         bool "Use dynamic (heap) history/queue storage"
         default n

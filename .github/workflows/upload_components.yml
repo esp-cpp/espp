@@ -41,6 +41,11 @@ jobs:
           #       ahead of its first-time dependents coredump / dispatcher / ota,
           #       so it is uploaded to the registry before they try to resolve it.
           #
+          # Note: sdcard is intentionally listed (out of alphabetical order) ahead
+          #       of the BSPs that depend on espp/sdcard (esp32-p4-*, lilygo-t5-47,
+          #       m5stack-cardputer, m5stack-tab5, ...), so it is uploaded to the
+          #       registry before they try to resolve it.
+          #
           # Note: comments are not allowed in the "components" list, so please
           #       do not add any comments here.
           components: |
@@ -68,6 +73,7 @@ jobs:
             components/ble_gatt_server
             components/bm8563
             components/bmi270
+            components/bno055
             components/button
             components/byte90
             components/canopen
@@ -82,6 +88,7 @@ jobs:
             components/coredump
             components/cst816
             components/csv
+            components/desktop
             components/dispatcher
             components/display
             components/display_drivers
@@ -89,6 +96,7 @@ jobs:
             components/drv2605
             components/encoder
             components/esp-box
+            components/sdcard
             components/ethernet
             components/esp32-p4-eth
             components/esp32-p4-function-ev-board
@@ -142,6 +150,7 @@ jobs:
             components/odrive_native
             components/ota
             components/pcf85063
+            components/persistent_data
             components/pi4ioe5v
             components/pid
             components/ping
@@ -167,6 +176,7 @@ jobs:
             components/switch2_pro
             components/switch_pro
             components/sx126x
+            components/system
             components/t_keyboard
             components/t-deck
             components/t-dongle-s3
@@ -175,6 +185,7 @@ jobs:
             components/telemetry
             components/thermistor
             components/thread_pool
+            components/trajectory_planner
             components/timer
             components/touch
             components/tla2528

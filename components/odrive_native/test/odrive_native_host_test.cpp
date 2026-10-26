@@ -1,6 +1,6 @@
 // Host-buildable unit tests for the ODrive legacy native (Fibre endpoint)
 // protocol wire core. Build & run with:
-//   c++ -std=c++20 -I../include odrive_native_host_test.cpp -o test && ./test
+//   c++ -std=c++23 -I../include odrive_native_host_test.cpp -o test && ./test
 //
 // These tests exercise espp::detail::OdriveNativeCore directly so they need no
 // ESP-IDF headers.

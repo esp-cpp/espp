@@ -18,7 +18,7 @@ built-in USB-Serial-JTAG, separate from this device.
 ## 1. Flash
 
 ```sh
-cd components/usb_device/example
+cd components/odrive_native/usb_example
 idf.py set-target esp32s3
 idf.py -p <PORT> flash monitor
 ```

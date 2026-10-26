@@ -102,6 +102,15 @@ extern "C" void app_main(void) {
     logger.error("Failed to configure M1 position loop: {}", ec.message());
     return;
   }
+  // The record the controller now holds: gains as tuned in Motion Studio (or
+  // the seeded fallback), and the clamp just installed.
+  float p = 0, i = 0, d = 0;
+  uint32_t max_i = 0, deadzone = 0;
+  int32_t min_pos = 0, max_pos = 0;
+  if (mcp.read_position_pid(Axis::M1, p, i, d, max_i, deadzone, min_pos, max_pos, ec)) {
+    logger.info("M1 position PID: P={:.3f} I={:.3f} D={:.3f} maxI={} deadzone={} clamp=[{}, {}]", p,
+                i, d, max_i, deadzone, min_pos, max_pos);
+  }
   if (!mcp.set_software_position_limits(Axis::M1, -20'000, 20'000, ec)) {
     logger.error("Failed to set M1 software position limits: {}", ec.message());
     return;

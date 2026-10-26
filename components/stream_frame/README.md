@@ -7,7 +7,7 @@ incremental, resynchronizing `StreamParser` — for carrying messages over any
 raw byte stream (USB vendor / CDC, TCP/UDP sockets, UART, ...).
 
 It has **no** ESP-IDF / FreeRTOS dependency, so the framing builds and
-unit-tests on a host with nothing more than a C++20 standard library. It is the
+unit-tests on a host with nothing more than a C++23 standard library. It is the
 shared substrate under the OTA stream protocol (`espp::detail::ota_stream`),
 the crash-dump service, the CAN bridge, and — via `espp::Dispatcher` — any
 number of independent protocols multiplexed over one stream.
@@ -28,7 +28,10 @@ All multi-byte fields are little-endian:
   a request and awaits a response is an initiator). **bit1 = correlation
   present**; bits 2–3 reserved for future optional header fields; bits 4–7 =
   format version (currently 1).
-- `module` — routing / protocol id (0..255). `espp::Dispatcher` routes on this.
+- `module` — routing key (0..255) selecting which registered handler a frame goes
+  to; `espp::Dispatcher` routes on it. It is not a protocol identity: which
+  protocol a module speaks is advertised through dispatcher discovery
+  (`ModuleInfo::protocol`), and 0xF0..0xFF are reserved for dispatcher / meta use.
 - `type` — message / transaction type within the module (0..255). See the
   `Transaction` enum for recommended standard values (Write/Read/WriteRead/
   Custom); a protocol may otherwise define its own type values and carry a
@@ -64,6 +67,6 @@ ignoring unknown modules) is the job of `espp::Dispatcher` (or the caller).
 ## Host tests
 
 ```
-c++ -std=c++20 -Werror -I components/stream_frame/include \
+c++ -std=c++23 -Werror -I components/stream_frame/include \
     components/stream_frame/test/stream_frame_host_test.cpp -o test && ./test
 ```

@@ -33,7 +33,7 @@ extern "C" void app_main(void) {
   //   - HID interface -> an animated gamepad (visualize with hid_visualizer.html)
   Logger logger({.tag = "OdriveUsbExample", .level = Logger::Verbosity::INFO});
 
-  //! [usb_cdc_example]
+  //! [odrive_usb_example]
 
   // One simulated motor state, shared by both protocol servers.
   struct {
@@ -191,7 +191,7 @@ extern "C" void app_main(void) {
   logger.info("Native endpoint tree ({} bytes, json_crc=0x{:04x})", native.json().size(),
               native.json_crc());
 
-  //! [usb_cdc_example]
+  //! [odrive_usb_example]
 
   // The CDC / vendor transports run off the TinyUSB task + their RX callbacks.
   // Here on the main task we animate the shared motor state (seen by the ASCII /

@@ -53,7 +53,7 @@ matching browser uploader is
   and incoming app descriptions, `session_active()`, `bytes_written()`
 - **No exceptions**: every failure is reported via `std::error_code`
 - **Host-buildable wire framing**: the USB/WebUSB stream protocol lives in
-  `detail/ota_stream_protocol.hpp` and builds with just a C++20 standard
+  `detail/ota_stream_protocol.hpp` and builds with just a C++23 standard
   library
 
 ## API
@@ -74,8 +74,8 @@ Key class: `espp::Ota` (header-only, `ota.hpp`)
   `session_active()`, `bytes_written()`, `image_size()`
 
 Service class: `espp::OtaService` (`ota_service.hpp`) — the stream protocol
-below as a drop-in [dispatcher](../dispatcher) module (module 0), so an
-application never implements the OTA state machine itself:
+below as a drop-in [dispatcher](../dispatcher) module (module 0 by default), so
+an application never implements the OTA state machine itself:
 
 ```cpp
 auto send = [&](std::span<const uint8_t> frame) { usb.write_vendor(frame); };
@@ -88,9 +88,14 @@ usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { link.push(d
 ```
 
 - construct with the `Ota` engine and a `send` function; `Config` also has
-  `auto_restart` (default true: reply `OK` to `FINISH`, then restart after
-  `restart_delay`, 750 ms) and `on_update_finished` (run your own logic /
-  `Ota::restart()` when `auto_restart` is off)
+  `module` (the dispatcher module id the instance answers on and stamps on its
+  replies — default `kModule` = 0; the id is only a routing key: the OTA
+  console and the `espp_ota` CLI find it through dispatcher discovery by the
+  service's protocol id `espp.ota` (`kProtocol`), so it can be moved freely),
+  `auto_restart` (default true: reply
+  `OK` to `FINISH`, then restart after `restart_delay`, 750 ms) and
+  `on_update_finished` (run your own logic / `Ota::restart()` when
+  `auto_restart` is off)
 - `handle(frame)` — the dispatcher entry point (ignores other modules and
   replies); `feed(bytes)` / `handle_frame(type, payload)` for standalone use;
   `on_rx_overflow()` — abort the transfer and tell the host after the transport
@@ -116,7 +121,9 @@ little-endian:
 
 This is the shared [`stream_frame`](../stream_frame) v2 codec: `flags` bit0 =
 reply (0 = request, 1 = device→host reply) and bits 4-7 = version (1); `module`
-is the routing id (OTA is **module 0**). OTA layers its message types on it.
+is the routing id (OTA is **module 0** by default — every `make_*` builder takes
+an optional module argument, and `OtaService::Config::module` moves the
+service). OTA layers its message types on it.
 
 - `crc32` is the standard zlib CRC-32 (poly `0xEDB88320` reflected, init/final
   xor `0xFFFFFFFF`) over magic..payload; check value `crc32("123456789") ==
@@ -146,12 +153,18 @@ The [espp OTA Console](https://esp-cpp.github.io/espp/apps/ota_console.html)
 ### Command line: build → OTA
 
 The [`python/espp_ota`](python/) tool speaks the same protocol from a terminal.
-Because this component ships a `project_include.cmake`, any project using it gets
-a build-and-flash-over-USB target — the OTA counterpart to `idf.py flash`:
+Because this component ships an `idf_ext.py`, any project using it (on
+ESP-IDF 6.0 or later, whose idf.py loads component extensions) gets an
+`idf.py ota-usb` action — the OTA counterpart to `idf.py flash`, with options
+(`--no-verify`, `--binary`, `--status` / `--mark-valid` / `--rollback`,
+`--vid`/`--pid`/`--serial`, ...); the same action is also available through an
+`idf_extension` entry point of the espp wheel, and `project_include.cmake`
+keeps a plain `ota-usb` CMake target as a fallback:
 
 ```sh
 pip install pyusb          # once (needs a libusb backend)
-idf.py ota-usb            # builds the app, then OTAs it over USB
+idf.py ota-usb            # builds the app, then OTAs it over USB (+ marks it valid)
+idf.py ota-usb --status   # query the rollback state instead of flashing
 ```
 
 Or drive it directly: `python -m espp_ota flash build/<app>.bin` (see
@@ -192,12 +205,22 @@ engine on an ESP32-S3:
 - the **same HTTP server works unchanged over Ethernet** (the espp `ethernet`
   component / any `esp_netif`)
 
+The web console auto-connects when opened with
+`?autoconnect=1&transport=usb&vid=0x1209&pid=0x0d32[&serial=...]` (the query
+the Device Hub's links carry): it connects on load, without the browser
+chooser, to a device the page was already granted. Its **auto-reconnect**
+checkbox (default on, remembered per origin) reconnects after the restart that
+follows a finished update or a rollback (same USB ids), so the post-reboot
+verify / "mark valid" prompt appears without a manual reconnect. Both only see
+devices the browser already granted to the page, i.e. a page served over
+HTTPS, or HTTP on localhost; a `file://` copy loses the grant on reload.
+
 ## Testing
 
 The wire framing is host-tested (no ESP-IDF needed):
 
 ```bash
-c++ -std=c++20 -Werror -I components/ota/include -I components/stream_frame/include \
+c++ -std=c++23 -Werror -I components/ota/include -I components/stream_frame/include \
     components/ota/test/ota_protocol_host_test.cpp -o ota_test && ./ota_test
 ```
 

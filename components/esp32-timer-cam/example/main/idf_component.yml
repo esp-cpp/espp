@@ -4,7 +4,8 @@ dependencies:
   idf:
     version: '>=5.0'
   espressif/mdns: '>=1.8'
-  espressif/esp32-camera: '>=2.0'
+  # 2.1.8 added camera_config_t::jpeg_buffer_size, which the example sets
+  espressif/esp32-camera: '>=2.1.8'
   espp/rtsp: '>=1.0'
   espp/wifi: '>=1.0'
   espp/monitor: '>=1.0'

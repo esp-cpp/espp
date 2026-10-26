@@ -1,0 +1,33 @@
+menu "Example Configuration"
+
+config EXAMPLE_I2C_SDA_GPIO
+  int "SDA GPIO Num"
+  range 0 50
+  default 7 if IDF_TARGET_ESP32P4
+  default 21
+  help
+    GPIO number for I2C Master data line.
+
+config EXAMPLE_I2C_SCL_GPIO
+  int "SCL GPIO Num"
+  range 0 50
+  default 8 if IDF_TARGET_ESP32P4
+  default 22
+  help
+    GPIO number for I2C Master clock line.
+
+config EXAMPLE_I2C_CLOCK_SPEED_HZ
+  int "I2C Clock Speed"
+  range 100 400000
+  default 400000
+  help
+    I2C clock speed in Hz. The BNO055 supports up to 400 kHz.
+
+config EXAMPLE_I2C_ADDRESS
+  hex "BNO055 I2C Address"
+  range 0x28 0x29
+  default 0x28
+  help
+    I2C address of the BNO055: 0x28 with ADR (COM3) low, 0x29 with it high.
+
+endmenu

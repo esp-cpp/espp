@@ -7,7 +7,7 @@
 //
 // It uses ONLY the host-buildable detail/ headers (OdriveNativeCore for the packet
 // codec + JSON descriptor, StreamDeframer/stream_frame for the UART framing) so it
-// builds with a plain `c++ -std=c++20` -- no BaseComponent, no espp lib link.
+// builds with a plain `c++ -std=c++23` -- no BaseComponent, no espp lib link.
 //
 // Transport: opens a pseudo-terminal (posix_openpt/grantpt/unlockpt/ptsname) and
 // prints the slave path, OR uses a serial device path given as argv[1]. The read
@@ -16,7 +16,7 @@
 // framed packet stays <= 127 bytes (the stream cap); the client's chunked read
 // loop advances by the bytes it actually receives, so truncation is safe.
 //
-// Build:  c++ -std=c++20 -I../include odrive_native_interop_device.cpp -o device
+// Build:  c++ -std=c++23 -I../include odrive_native_interop_device.cpp -o device
 // Run:    ./device            # opens a PTY, prints the slave path
 //         ./device /dev/ttyS0 # uses an existing serial device
 

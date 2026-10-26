@@ -234,15 +234,15 @@ host.scan_and_connect(5000, ec);
 
 ## Testing
 
-The protocol core and device role build and run on a host with just a C++20
+The protocol core and device role build and run on a host with just a C++23
 standard library:
 
 ```bash
-c++ -std=c++20 -Wall -Wextra -Werror -I components/wdi/include \
+c++ -std=c++23 -Wall -Wextra -Werror -I components/wdi/include \
     components/wdi/test/wdi_protocol_host_test.cpp -o wdi_test && ./wdi_test
-c++ -std=c++20 -Wall -Wextra -Werror -I components/wdi/include \
+c++ -std=c++23 -Wall -Wextra -Werror -I components/wdi/include \
     components/wdi/test/wdi_device_host_test.cpp -o wdi_dev_test && ./wdi_dev_test
-c++ -std=c++20 -Wall -Wextra -Werror -I components/wdi/include \
+c++ -std=c++23 -Wall -Wextra -Werror -I components/wdi/include \
     components/wdi/test/wdi_host_host_test.cpp -o wdi_host_test && ./wdi_host_test
 ```
 
@@ -250,7 +250,7 @@ The hid-rp report descriptor also builds on a host (hid-rp is header-only; add i
 as `-isystem` so its third-party headers don't trip `-Werror`):
 
 ```bash
-c++ -std=c++20 -Wall -Wextra -Werror -I components/wdi/include \
+c++ -std=c++23 -Wall -Wextra -Werror -I components/wdi/include \
     -isystem components/hid-rp/include -isystem components/hid-rp/detail/hid-rp/hid-rp \
     components/wdi/test/wdi_hid_host_test.cpp -o wdi_hid_test && ./wdi_hid_test
 ```

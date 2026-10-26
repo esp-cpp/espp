@@ -212,6 +212,17 @@ by hand:
   when called from python, because the blocked-on thread needs the GIL to invoke
   its python callback (see `_GIL_RELEASE_METHODS` in `autogenerate_bindings.py`;
   the hand-written `rtps` bindings apply the same guard).
+- `espp::py_detail::StopOnExitHolder` as the holder of the classes whose
+  **destructor** joins a thread (`Task`, `Timer`, `TrajectoryPlanner`,
+  `ThreadPool`, `FtpServer`, `RtspServer`; `_STOP_ON_EXIT_CLASSES`). A call
+  guard cannot cover `tp_dealloc`, so deleting a running `Task` from python
+  joined its thread with the GIL held and deadlocked the moment that thread
+  needed the GIL for its callback. The holder (`stop_on_exit_holder.h`) deletes
+  with the GIL released, and registers every live object so the module's
+  `atexit` hook (`stop_registry.h`) stops their threads before the interpreter
+  finalises, when a thread could no longer re-acquire the GIL at all.
+  `python/blocking_destructors_test.py` covers delete-while-running and
+  exit-while-running for each class (it is part of the wheel test command).
 
 The litgen dependency is unpinned and recent versions (0.20–0.22) regressed
 nested-scope/template generation, which is why this automation is needed.

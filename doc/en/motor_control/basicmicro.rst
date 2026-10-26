@@ -13,7 +13,7 @@ calls user-provided ``write`` / ``read`` functions for each transaction, so it
 works over a UART driver, USB CDC, an RS-232 adapter, etc. All wire-format
 logic (CRC16, packet building, reply validation, big-endian codecs) lives in
 ``espp::detail`` inside ``include/detail/basicmicro_core.hpp``, a
-host-buildable core that depends only on the C++20 standard library and is
+host-buildable core that depends only on the C++23 standard library and is
 unit-tested off-target.
 
 Features

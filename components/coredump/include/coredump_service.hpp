@@ -4,19 +4,20 @@
 // handler layered on the espp `stream_frame` codec (magic "OT" + flags u8 +
 // module u8 + type u8 + len u32 + payload + CRC-32, all little-endian; see
 // components/stream_frame/include/stream_frame.hpp for the authoritative
-// framing spec). The core-dump protocol owns dispatcher MODULE 4, so it can
-// share one byte stream with other espp protocols (OTA on module 0, an
-// application protocol, or free-form console text): frames for other modules
-// are simply ignored (route with espp::Dispatcher, or call handle_frame()
-// after routing by module).
+// framing spec). The core-dump protocol occupies dispatcher MODULE 4 by
+// default (CoreDumpService::Config::module can move it), so it can share one
+// byte stream with other espp protocols (OTA on module 0, an application
+// protocol, or free-form console text): frames for other modules are simply
+// ignored (route with espp::Dispatcher, or call handle_frame() after routing
+// by module).
 //
-// Message types & payloads (host -> device), module 4:
+// Message types & payloads (host -> device), module 4 by default:
 //   0x40 GET_SUMMARY — no payload. Reply: SUMMARY.
 //   0x41 GET_SIZE    — no payload. Reply: SIZE.
 //   0x42 READ        — payload: u32 offset + u16 length. Reply: DATA / ERROR.
 //   0x43 ERASE       — no payload. Reply: OK / ERROR.
 //
-// Message types & payloads (device -> host), module 4, reply flag set:
+// Message types & payloads (device -> host), same module, reply flag set:
 //   0xC0 SUMMARY — payload: UTF-8 crash report text (espp::CoreDump::
 //                  format_report()); EMPTY payload = clean boot history.
 //   0xC1 SIZE    — payload: u32 total core-dump image size in bytes (0 = no
@@ -35,11 +36,19 @@
 // Flow control: the host serializes transactions — one request in flight,
 // wait for its reply. READ length is capped so the DATA reply (4-byte offset
 // + data) fits the framing's 4096-byte payload cap.
+//
+// Correlation: a request may carry the framing's optional u16 correlation id
+// (stream_frame flags bit1); the reply echoes it. A host that re-sends a
+// request after a reply timeout can then tell the late reply of the first
+// attempt from the retry's (the two are otherwise identical) — without it,
+// a late reply desynchronises the next transaction. Requests without an id
+// get replies without one (the browser console does not use them).
 
 #include <cstdint>
 #include <functional>
 #include <limits>
 #include <mutex>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -112,8 +121,8 @@ public:
   /// Frame-stream parser type (from the shared stream_frame codec).
   using Stream = espp::stream_frame::StreamParser;
 
-  /// Core-dump protocol message types (the stream_frame `type` byte within
-  /// module 4; see the header comment for the payload spec).
+  /// Core-dump protocol message types (the stream_frame `type` byte within the
+  /// service's module, 4 by default; see the header comment for the payload spec).
   enum class Msg : uint8_t {
     // host -> device
     GetSummary = 0x40, ///< request the crash report text
@@ -128,10 +137,17 @@ public:
     Error = 0xC4,   ///< u32 informational code + authoritative UTF-8 message
   };
 
-  /// Dispatcher module id owned by the core-dump protocol (the frame `module`
-  /// byte). Reply Msg values keep the high bit set, which build() maps to the
-  /// frame reply flag.
+  /// Default dispatcher module id of the core-dump protocol (the frame
+  /// `module` byte). Only a routing key: Config::module serves on any id, and
+  /// the hosted console / `espp_coredump` CLI find it through discovery (by
+  /// kProtocol). Reply Msg values keep the high bit set, which build() maps
+  /// to the frame reply flag.
   static constexpr uint8_t kModule = 4;
+  /// Stable protocol identifier + version advertised through discovery
+  /// (Dispatcher::ModuleInfo::protocol); hosts locate the core-dump module by
+  /// this rather than by its (configurable) module id.
+  static constexpr const char *kProtocol = "espp.coredump";
+  static constexpr uint16_t kProtocolVersion = 1;
 
   /// Maximum image bytes per READ request / DATA reply (the DATA payload is
   /// a 4-byte offset plus the data, capped by the framing's payload limit).
@@ -146,6 +162,11 @@ public:
   /// Configuration for the CoreDumpService.
   struct Config {
     send_fn send{nullptr}; ///< Transmits an encoded reply frame (required).
+    /// Dispatcher module id this instance answers on (and stamps on its
+    /// replies). The module id is purely a routing key: the stock core-dump
+    /// console / `espp_coredump` CLI find whichever id is chosen through
+    /// discovery (by kProtocol), so any id 0x00..0xEF is fine (0xF0..0xFF are reserved).
+    uint8_t module{kModule};
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Logger verbosity.
   };
 
@@ -158,17 +179,20 @@ public:
   explicit CoreDumpService(CoreDump &core_dump, const Config &config)
       : BaseComponent("CoreDumpService", config.log_level)
       , core_dump_(core_dump)
-      , send_(config.send) {}
+      , send_(config.send)
+      , module_(config.module) {}
 
-  /// @brief The dispatcher module id this service answers on (kModule: the
-  ///        core-dump protocol's fixed id, which the web console expects).
-  uint8_t module_id() const { return kModule; }
+  /// @brief The dispatcher module id this service answers on (Config::module;
+  ///        kModule by default; hosts find it through discovery either way).
+  uint8_t module_id() const { return module_; }
 
   /// @brief Discovery metadata for registering this service on a Dispatcher.
   Dispatcher::ModuleInfo module_info() const {
     return {.name = "Core Dump",
             .app = "coredump_console.html",
-            .description = "Inspect the last crash core dump"};
+            .description = "Inspect the last crash core dump",
+            .protocol = kProtocol,
+            .protocol_version = kProtocolVersion};
   }
 
   /**
@@ -181,7 +205,7 @@ public:
   void handle(const espp::stream_frame::Frame &frame) {
     if (frame.module != module_id() || frame.is_reply())
       return;
-    handle_frame(frame.type, frame.payload);
+    handle_frame(frame.type, frame.payload, frame.correlation);
   }
 
   /**
@@ -217,12 +241,12 @@ public:
       // Only handle this protocol's REQUESTS: ignore frames for other modules
       // and reply-flagged frames (the service answers requests; a reply-typed
       // frame — e.g. an echo/loopback — is never a host request).
-      if (frame.module != kModule || frame.is_reply())
+      if (frame.module != module_id() || frame.is_reply())
         continue;
       std::vector<uint8_t> reply;
       {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (!handle_frame_locked(frame.type, frame.payload, reply))
+        if (!handle_frame_locked(frame.type, frame.payload, reply, frame.correlation))
           continue;
       }
       // send outside the lock so a re-entrant transport cannot deadlock
@@ -235,6 +259,8 @@ public:
    * @brief Handle one already-parsed frame.
    * @param type The frame type byte.
    * @param payload The frame payload bytes.
+   * @param correlation The request's correlation id, if it carried one; the
+   *        reply echoes it (see the wire spec above).
    * @return true if the frame type belongs to the core-dump protocol and the
    *         frame was processed (a reply frame is produced; it is delivered
    *         only when a `send` callback is configured, and dropped with a
@@ -245,12 +271,13 @@ public:
    * @note The reply `send` callback is invoked after the internal mutex has
    *       been released (see the class-level threading notes).
    */
-  bool handle_frame(uint8_t type, std::span<const uint8_t> payload) {
+  bool handle_frame(uint8_t type, std::span<const uint8_t> payload,
+                    std::optional<uint16_t> correlation = std::nullopt) {
     std::vector<uint8_t> reply;
     bool handled;
     {
       std::lock_guard<std::mutex> lock(mutex_);
-      handled = handle_frame_locked(type, payload, reply);
+      handled = handle_frame_locked(type, payload, reply, correlation);
     }
     // send outside the lock so a re-entrant transport cannot deadlock
     if (!reply.empty())
@@ -271,9 +298,14 @@ protected:
   /// (feed() / handle_frame()) transmits @p reply after releasing the mutex,
   /// so the user `send` callback never runs under the internal lock. See
   /// handle_frame().
+  /// @param correlation The request's stream_frame correlation id, if any;
+  ///        every reply built here echoes it. Optional and last, so the
+  ///        pre-correlation three-argument form still works for subclasses.
   bool handle_frame_locked(uint8_t type, std::span<const uint8_t> payload,
-                           std::vector<uint8_t> &reply) {
+                           std::vector<uint8_t> &reply,
+                           std::optional<uint16_t> correlation = std::nullopt) {
     namespace stream = espp::stream_frame;
+    reply_correlation_ = correlation; // echoed by every reply built below
     switch (static_cast<Msg>(type)) {
     case Msg::GetSummary: {
       const std::string report = core_dump_.format_report();
@@ -289,7 +321,8 @@ protected:
       }
       reply =
           build(Msg::Summary,
-                std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(report.data()), count));
+                std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(report.data()), count),
+                module_id(), reply_correlation_);
       return true;
     }
     case Msg::GetSize: {
@@ -302,7 +335,7 @@ protected:
       logger_.info("GET_SIZE -> {} bytes", size);
       std::vector<uint8_t> reply_payload;
       stream::put_u32(reply_payload, size);
-      reply = build(Msg::Size, reply_payload);
+      reply = build(Msg::Size, reply_payload, module_id(), reply_correlation_);
       return true;
     }
     case Msg::Read: {
@@ -329,7 +362,7 @@ protected:
         return true;
       }
       logger_.debug("READ offset {} length {}", offset, length);
-      reply = build(Msg::Data, reply_payload);
+      reply = build(Msg::Data, reply_payload, module_id(), reply_correlation_);
       return true;
     }
     case Msg::Erase: {
@@ -343,7 +376,7 @@ protected:
       logger_.info("ERASE ok");
       std::vector<uint8_t> reply_payload;
       stream::put_u32(reply_payload, 0);
-      reply = build(Msg::Ok, reply_payload);
+      reply = build(Msg::Ok, reply_payload, module_id(), reply_correlation_);
       return true;
     }
     default:
@@ -354,13 +387,22 @@ protected:
   }
 
   /// Build an encoded frame for a core-dump protocol message type.
-  static std::vector<uint8_t> build(Msg type, std::span<const uint8_t> payload = {}) {
+  /// \param type The message type.
+  /// \param payload The payload bytes.
+  /// \param module The dispatcher module id to stamp (kModule by default; a
+  ///        service instance passes its module_id() so replies follow
+  ///        Config::module).
+  /// \param correlation Optional correlation id to carry (a reply echoes its
+  ///        request's; see the wire spec above).
+  static std::vector<uint8_t> build(Msg type, std::span<const uint8_t> payload = {},
+                                    uint8_t module = kModule,
+                                    std::optional<uint16_t> correlation = std::nullopt) {
     namespace stream = espp::stream_frame;
     // Reply message types (Summary/Size/Data/Ok/Error) carry the high bit; map
     // it to the frame reply flag so requests and replies are distinguishable
     // independent of the type value.
     const bool reply = (static_cast<uint8_t>(type) & 0x80) != 0;
-    return stream::build_frame(reply, kModule, static_cast<uint8_t>(type), payload);
+    return stream::build_frame(reply, module, static_cast<uint8_t>(type), payload, correlation);
   }
 
   /// Transmit an encoded reply frame via the configured send function. Must
@@ -408,7 +450,7 @@ protected:
       --count;
     }
     payload.insert(payload.end(), message.begin(), message.begin() + count);
-    return build(Msg::Error, payload);
+    return build(Msg::Error, payload, module_id(), reply_correlation_);
   }
 
   /// Overload taking a std::errc directly.
@@ -419,8 +461,12 @@ protected:
 private:
   CoreDump &core_dump_;
   send_fn send_;
+  const uint8_t module_; // Config::module: routing id for requests + replies
   std::mutex mutex_;
   Stream parser_;
+  /// The in-flight request's correlation id (set under mutex_ by
+  /// handle_frame_locked()), echoed by the replies it builds.
+  std::optional<uint16_t> reply_correlation_{};
 };
 
 // Compile-time check that the service keeps satisfying the dispatcher's module

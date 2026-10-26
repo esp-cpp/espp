@@ -34,7 +34,12 @@ object dictionary at index `0x2000 + command number` (see
 `include/detail/mcp266_core.hpp`, which is host-buildable and unit-tested).
 This component uses that to:
 
-* configure the position PID (commands 61-64),
+* configure the position PID (commands 61-64), read the record back
+  (`read_position_pid`, `read_position_limits`) and install tuned gains
+  (`set_position_pid`),
+* set an axis's encoder count (22/23, `set_encoder`) or zero both (20,
+  `reset_encoders`) — how a quadrature encoder is homed against a limit switch
+  or restored to a remembered position after power-up,
 * issue the manufacturer speed/duty commands (32/33, 35/36), and
 * read telemetry: main battery (24) and temperature (82).
 
@@ -59,10 +64,21 @@ position loop, and runs a small profile-position sequence.
 The [MCP266 Console](https://esp-cpp.github.io/espp/apps/mcp266_console.html)
 (`web/mcp266_console.html`) drives an MCP266 from the browser over USB (WebUSB
 or Web Serial) with a small high-level protocol — the CANopen/DS402 work stays
-on the device:
+on the device. Opened with
+`?autoconnect=1&transport=usb|serial&vid=0x1209&pid=...[&serial=...]` (the
+query the Device Hub's links carry) it connects on load, without the browser
+chooser, to a device the page was already granted; its **auto-reconnect**
+checkbox (default on, remembered per origin) reconnects after an unexpected
+link loss such as a device reboot or re-plug. Both only see devices the browser
+already granted to the page (served over HTTPS, or HTTP on localhost; a
+`file://` copy loses the
+grant on reload).
 
-- `mcp266_protocol.hpp` — the wire protocol (dispatcher **module 6**,
-  `stream_frame` framing): request/reply types, the payload structs
+- `mcp266_protocol.hpp` — the wire protocol (dispatcher **module 6** by
+  default — `Mcp266Service::Config::module` moves an instance, and the console
+  finds it through discovery by its protocol id `espp.mcp266`; `stream_frame`
+  framing): request/reply
+  types, the payload structs
   (`ConfigurePositionLoop`, `MoveToPosition`, `Status`, `DeviceInfo`, ...) with
   `serialize()` / `parse()`. Standard-library only, so it is usable from any
   client (host tests in `test/mcp266_protocol_host_test.cpp`).

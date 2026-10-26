@@ -38,6 +38,7 @@
 #include "ili9881.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
+#include "sdcard.hpp"
 #include "task.hpp"
 #include "touchpad_input.hpp"
 
@@ -343,13 +344,23 @@ public:
   /// \return True if uSD card was successfully initialized
   bool initialize_sdcard(const SdCardConfig &config);
 
-  /// Check if SD card is present and mounted
-  /// \return True if SD card is available
-  bool is_sd_card_available() const { return sd_card_initialized_; }
+  /// Check if the SD card is initialized and its volume is currently mounted
+  /// \return True if the SD card is available (false after
+  ///         sdcard_component()->unmount())
+  bool is_sd_card_available() const { return sdcard_ && sdcard_->is_mounted(); }
 
   /// Get the uSD card handle
   /// \return A pointer to the uSD card, or nullptr if not initialized
-  sdmmc_card_t *sdcard() const { return sdcard_; }
+  /// \note nullptr until initialize_sdcard() succeeded. The card stays valid while
+  ///       its volume is unmounted (sdcard_component()->unmount()), e.g. to hand it
+  ///       to a USB host through espp::UsbDevice's MSC function.
+  sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
+
+  /// Get the SD card component: mount() / unmount() (e.g. to hand the card to a
+  /// USB host with the usb_device MSC function), format(), card_info(),
+  /// volume_info(), ...
+  /// \return The component, or nullptr until initialize_sdcard() succeeded
+  espp::SdCard *sdcard_component() const { return sdcard_.get(); }
 
   /// Get SD card info
   /// \param size_mb Pointer to store size in MB
@@ -599,9 +610,7 @@ protected:
   std::atomic<float> mic_volume_{70.0f};
 
   // uSD card
-  std::atomic<bool> sd_card_initialized_{false};
-  sdmmc_card_t *sdcard_{nullptr};
-  void *sd_pwr_ctrl_handle_{nullptr};
+  std::unique_ptr<espp::SdCard> sdcard_;
 
 #if CONFIG_ESP_P4_EV_BOARD_ETHERNET
   // The board's RMII Ethernet is driven by the reusable espp::Ethernet component

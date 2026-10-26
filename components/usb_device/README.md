@@ -7,6 +7,13 @@ component that assembles a **native USB device** from a *set of selectable
 functions* on the ESP32-S3 / -S2 / -P4 USB-OTG peripheral, with a **configurable
 VID/PID** and manufacturer / product / serial strings.
 
+It requires `espressif/esp_tinyusb` 3.0 or newer (ESP-IDF 5.3 or newer), which
+ships TinyUSB as its own submodule: projects must not add a separate `tinyusb`
+dependency, since a second copy of the stack cannot find `tusb_config.h` and the
+build fails. With the component manager off, the vendored copy under
+`external/esp-usb/device/esp_tinyusb` (initialised recursively) is the one to put
+on `EXTRA_COMPONENT_DIRS`; the examples show the pattern.
+
 Today it can enable, in any combination (subject to the endpoint budget):
 
 - A **CDC-ACM** function (virtual serial port).
@@ -27,6 +34,10 @@ Today it can enable, in any combination (subject to the endpoint budget):
   identity + 0xFF/0xFF/0xFF device class so the host recognizes it). See the
   [`xinput_example`](xinput_example/). *These are Microsoft's IDs, for emulation /
   testing of your own device only.*
+- An **MSC** (mass storage) function exposing an SD card and/or a FAT partition
+  in flash as USB drives, shared with the application through an ownership
+  hand-over (see [Enabling mass storage](#enabling-mass-storage-msc) and the
+  [`msc_example`](msc_example/)).
 
 Interface numbers, endpoint addresses and string indices are allocated
 *sequentially* as functions are enabled, and the result is checked against the
@@ -47,9 +58,9 @@ for back-compatibility.
   - [Enabling the vendor / WebUSB class](#enabling-the-vendor--webusb-class)
   - [Enabling the HID class](#enabling-the-hid-class)
   - [Enabling X-Input (Xbox 360)](#enabling-x-input-xbox-360)
+  - [Enabling mass storage (MSC)](#enabling-mass-storage-msc)
   - [Routing the console over CDC](#routing-the-console-over-cdc)
   - [Endpoint budget (ESP32-S3 USB-OTG)](#endpoint-budget-esp32-s3-usb-otg)
-  - [Extending with HID / MSC](#extending-with-hid--msc)
   - [Example](#example)
   - [Notes](#notes)
 
@@ -62,6 +73,8 @@ for back-compatibility.
 - **Vendor-specific interface** (class 0xFF): raw bulk IN + bulk OUT byte stream.
 - **HID interface**: application-supplied report descriptor (built with `hid-rp`
   in the example) on an interrupt IN endpoint; `write_hid_report()` sends reports.
+- **Mass storage (MSC)**: an SD card and/or a wear-levelled FAT flash partition as
+  USB drives, handed between the application (VFS file access) and the host.
 - **WebUSB**: BOS + WebUSB URL + MS OS 2.0 descriptors for driverless browser
   access, with a configurable landing-page URL.
 - **Console over CDC**: optionally route the ESP console (stdout) to the CDC
@@ -70,7 +83,18 @@ for back-compatibility.
 - **Sequential allocation** of interfaces / endpoints / strings with an
   endpoint-budget check (error via `std::error_code` if exceeded).
 - **Configurable identity**: VID, PID, manufacturer / product / serial / interface
-  strings.
+  strings, plus the descriptor details some hosts check: `bcd_device`
+  (device release), `max_power_ma` (bMaxPower, clamped to 500 mA and rounded up
+  to the next 2 mA unit) and `remote_wakeup`.
+- **Port selection** (`Config::port`): on targets with two USB-OTG
+  controllers (ESP32-P4) pick the full-speed or the high-speed port; boards do
+  not always route the high-speed port to a device-capable connector (the
+  M5Stack Tab5's and the Espressif / Waveshare dev kits' USB-C carry the
+  full-speed port). On the P4 the full-speed port also needs the right PHY
+  (`Config::fs_phy`): the chip has two full-speed pad pairs, IDF leaves
+  USB-OTG 1.1 on GPIO 26 / 27, and the USB-C (shared with the USB-Serial-JTAG
+  console) is GPIO 24 / 25 — the default here, so a full-speed device shows up
+  on the connector.
 - **Idiomatic espp**: no exceptions; `initialize()` reports failures via
   `std::error_code`.
 - **Safe marshaling**: the TinyUSB RX callbacks (TinyUSB task context) are drained
@@ -85,6 +109,11 @@ Composite CDC + vendor/WebUSB device (both interfaces carry the same raw stream)
 espp::UsbDevice::Config cfg;
 cfg.vid = 0x1209;  // pid.codes VID (ODrive uses this)
 cfg.pid = 0x0d32;  // ODrive-like PID
+// optional descriptor details (defaults: 0x0100, 100 mA, remote wakeup on);
+// e.g. a Nintendo Switch expects a Pro Controller to report 0x0210 and 500 mA
+cfg.bcd_device = 0x0100;
+cfg.max_power_ma = 100;   // clamped to 500, rounded up to a 2 mA unit
+cfg.remote_wakeup = true;
 
 espp::UsbDevice::CdcFunction cdc;
 cdc.on_receive = [&](std::span<const uint8_t> data) { /* serial rx */ };
@@ -132,6 +161,10 @@ Key methods:
   draining).
 - `bool is_cdc_connected() const` / `bool is_vendor_connected() const` /
   `bool is_hid_ready() const`.
+- `bool set_msc_owner(size_t lun, MscOwner owner, ...)` — hand an MSC medium to
+  the application (mounted at its `base_path`) or the host; `msc_owner(lun)`,
+  `msc_capacity(lun)`, `msc_lun_count()`, `format_msc_medium(lun, ...)` and
+  `set_msc_event_callback(...)` complete the MSC API.
 
 CDC-only preset (`espp::UsbCdc`, unchanged API): `initialize()`, `write()`,
 `set_receive_callback()`, `is_connected()`.
@@ -212,6 +245,89 @@ use **separate endpoint numbers**, and the DMA report buffers are word-aligned, 
 the ESP32-S3 DWC2 requires. See `include/xinput.hpp` for the report/`GamepadState`
 API and the button/axis layout.
 
+## Enabling mass storage (MSC)
+
+The MSC function exposes up to **two media** as USB drives: an SD card and/or a
+FAT data partition in flash (accessed through wear levelling). It is built on
+esp_tinyusb's MSC storage backend, which provides the SCSI handling, so enable it
+in sdkconfig (the [`msc_example`](msc_example/) does):
+
+```
+CONFIG_TINYUSB_MSC_ENABLED=y
+# flash media: 4 KiB wear-levelling sectors (one flash erase block) and an MSC
+# buffer that holds one
+CONFIG_WL_SECTOR_SIZE_4096=y
+CONFIG_TINYUSB_MSC_BUFSIZE=4096
+```
+
+**Flash media and speed.** esp_tinyusb erases a range before writing it, and NOR
+flash erases in 4 KiB blocks. With 4096-byte wear-levelling sectors a host write
+costs one erase and one write. With 512-byte sectors each one needs a
+read-modify-erase of its block: 4 erases in `CONFIG_WL_SECTOR_MODE_SAFE`, or 1 in
+`CONFIG_WL_SECTOR_MODE_PERF`, which loses the whole block if the chip resets
+mid-erase. A small file edit from a host can then take seconds. 4 KiB sectors cost
+4 KiB of RAM per mounted volume and open file, and every file takes at least 4 KiB
+of space; the host sees 4 KiB logical sectors (fine for current macOS, Linux,
+Windows). **SD cards bypass all of this**: their controller does its own
+erase-block management, so sectors are written directly with no ESP-side wear
+levelling. See the [`msc_example` README](msc_example/README.md#flash-write-speed-and-sector-size)
+for the full comparison.
+
+**Ownership.** A medium belongs to one side at a time, so the firmware and a PC
+never write the same FAT volume at once:
+
+- While the **application** owns it, the FAT volume is mounted at the medium's
+  `base_path` and you use ordinary file APIs (`fopen`, `std::fstream`,
+  `std::filesystem`). A connected host sees the drive as "no medium".
+- While the **host** owns it, `base_path` is unmounted (files you had open there
+  become invalid) and the PC sees the volume.
+
+With `MscFunction::auto_handover` (the default) the host takes the media when it
+mounts the device, and the application gets them back when the host ejects the
+drive or the device is detached. To finish application I/O before any host can
+take a medium, set `Config::connect_on_initialize = false` and call `connect()`
+when done (the `msc_example` does). The hand-over covers **all media at once**:
+esp_tinyusb ignores which drive was ejected, so ejecting either returns both.
+Taking a medium from an attached host with `set_msc_owner()` is refused
+(`device_or_resource_busy`) because host writes already queued could land under
+the application's volume: eject the drive on the host first. Turn it off to decide yourself with
+`set_msc_owner(lun, MscOwner::Host / App)` — for example only expose an SD card
+while a "USB drive" screen is shown. `msc_owner()`, `msc_capacity()` and
+`MscFunction::on_event` (hand-over started / done / failed, format required)
+report the state; the event callback runs in the TinyUSB task for host-driven
+hand-overs, so act on it from your own task.
+
+```cpp
+espp::UsbDevice::MscMedium card;
+card.type = espp::UsbDevice::MscMedium::Type::SdCard;
+card.sd_card = sdcard.card(); // an initialized, unmounted sdmmc_card_t* (SDMMC or SDSPI host),
+                              // e.g. from espp::SdCard with mount_on_initialize = false
+card.base_path = "/sdcard";   // do NOT also esp_vfs_fat_*_mount() the card yourself
+
+espp::UsbDevice::MscMedium flash;
+flash.type = espp::UsbDevice::MscMedium::Type::FlashPartition;
+flash.partition_label = "storage"; // a `data, fat` partition
+flash.base_path = "/data";
+flash.volume_label = "MY DATA";   // drive name on the host; needs CONFIG_FATFS_USE_LABEL=y
+
+espp::UsbDevice::MscFunction msc;
+msc.media = {card, flash};         // LUN 0 and LUN 1
+cfg.msc = msc;
+```
+
+Limits, all from esp_tinyusb's backend: at most one SD card and one flash
+partition; SD card media need a target with an SDMMC host peripheral (ESP32-S3 /
+-P4), even for an SPI-wired card; the SCSI inquiry strings are esp_tinyusb's
+fixed ones. **Formatting** (`format_if_unformatted` / `format_msc_medium()`) runs
+on FatFs drive 0 rather than the medium's own drive, so only use it when no other
+FAT volume is mounted on the device. A host can only read FAT, so a LittleFS (or
+SPIFFS) partition cannot be exposed as a drive — use a FAT partition for storage
+you want to share with a PC.
+
+Destroying the `UsbDevice` releases the media: an application-owned medium's
+`base_path` is unmounted (an SD card stays initialized, but you must mount it
+again if the application still needs its files).
+
 ## Routing the console over CDC
 
 When the native USB port is handed to TinyUSB for a vendor / HID / XInput
@@ -264,7 +380,7 @@ consumes:
 | Vendor / WebUSB   | 1 (bulk-IN)                                  | 1 (bulk-OUT)                   |
 | HID               | 1 (interrupt-IN)                            | 0 or 1 (optional interrupt-OUT) |
 | X-Input (Xbox 360)| 1 (interrupt-IN)                            | 1 (interrupt-OUT)              |
-| MSC (future)      | 1 (bulk-IN)                                  | 1 (bulk-OUT)                   |
+| MSC               | 1 (bulk-IN)                                  | 1 (bulk-OUT)                   |
 
 This is why the device is **selectable** ("not all at once"). Combinations that
 fit comfortably: CDC+Vendor (3 IN / 2 OUT, used by the example), CDC+Vendor+HID,
@@ -272,21 +388,10 @@ CDC+Vendor+MSC. Enabling CDC+Vendor+HID+MSC reaches 5 IN endpoints — at the ha
 limit, not recommended. `initialize()` returns `std::errc::value_too_large` if the
 IN or OUT budget is exceeded.
 
-## Extending with MSC
-
-The **HID** function is implemented (see "Enabling the HID class" above).
-`espp::UsbDevice::Config` still reserves a `std::optional` slot for an
-`MscFunction` as a documented extension point; it is not implemented yet, and
-enabling it today makes `initialize()` fail with
-`std::errc::function_not_supported`. When implemented it slots into the same
-sequential allocator: MSC appends one interface (SCSI + storage
-read/write/capacity callbacks) claiming a bulk IN + bulk OUT endpoint, exactly
-as HID appends one interface claiming an interrupt-IN endpoint (plus an optional
-interrupt-OUT).
-
 ## Example
 
-See `example/` for a full project that wires a **composite CDC + Vendor/WebUSB**
+See [`msc_example/`](msc_example/) for a USB drive backed by a flash FAT partition,
+[`xinput_example/`](xinput_example/) for an Xbox 360 controller, and `example/` for a full project that wires a **composite CDC + Vendor/WebUSB**
 `espp::UsbDevice` to the transport-agnostic `espp::OdriveAscii` protocol server.
 Both interfaces feed the same server (RX from either interface → `process_bytes`
 → response written back out the same interface), while the log console stays on

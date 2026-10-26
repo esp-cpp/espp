@@ -1,5 +1,7 @@
 #include <pybind11/pybind11.h>
 
+#include "stop_registry.h"
+
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
@@ -43,4 +45,10 @@ PYBIND11_MODULE(_espp, m) {
   py_init_odrive_native(m);
   py_init_dispatcher(m);
   py_init_wdi(m);
+
+  // Stop the threads of every live Task / Timer / TrajectoryPlanner / ... before the interpreter
+  // finalises (see stop_registry.h): their destructors run during finalisation, when a thread
+  // waiting for the GIL to run its python callback could never get it, so the join would hang.
+  py::module_::import("atexit").attr("register")(
+      py::cpp_function([]() { espp::py_detail::StopRegistry::instance().stop_all(); }));
 }

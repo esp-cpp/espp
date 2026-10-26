@@ -19,5 +19,6 @@ idf_component_register(
     "esp_netif"
     "fatfs"
     "esp_driver_sdmmc"
+    "sdcard"
     "sdmmc"
   )

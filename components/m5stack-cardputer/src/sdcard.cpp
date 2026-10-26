@@ -1,7 +1,5 @@
 #include "m5stack-cardputer.hpp"
 
-#include <cstring>
-
 using namespace espp;
 
 ////////////////////////
@@ -23,44 +21,32 @@ bool M5StackCardputer::initialize_sdcard(const SdCardConfig &config) {
     return false;
   }
 
-  sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-  host.slot = sdcard_spi_num;
-
-  sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
-  slot_config.gpio_cs = sdcard_cs;
-  slot_config.host_id = static_cast<spi_host_device_t>(host.slot);
-
-  esp_vfs_fat_sdmmc_mount_config_t mount_config;
-  memset(&mount_config, 0, sizeof(mount_config));
-  mount_config.format_if_mount_failed = config.format_if_mount_failed;
-  mount_config.max_files = config.max_files;
-  mount_config.allocation_unit_size = config.allocation_unit_size;
-
-  logger_.debug("Mounting filesystem");
-  auto ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &sdcard_);
-
-  if (ret != ESP_OK) {
-    if (ret == ESP_FAIL) {
-      logger_.error("Failed to mount filesystem. If you want the card to be formatted, set the "
-                    "format_if_mount_failed field in the SdCardConfig.");
-    } else {
-      logger_.error("Failed to initialize the card ({}). Make sure SD card lines have pull-up "
-                    "resistors in place.",
-                    esp_err_to_name(ret));
-    }
+  espp::SdCard::SpiConfig spi;
+  spi.host = sdcard_spi_num;
+  spi.cs = sdcard_cs;
+  spi.initialize_bus = false; // the BSP owns the (shared) expansion bus
+  sdcard_ = std::make_unique<espp::SdCard>(espp::SdCard::Config{
+      .interface = spi,
+      .mount_point = mount_point,
+      .format_if_mount_failed = config.format_if_mount_failed,
+      .max_files = config.max_files,
+      .allocation_unit_size = config.allocation_unit_size,
+      .log_level = get_log_level(),
+  });
+  std::error_code ec;
+  if (!sdcard_->initialize(ec)) {
+    logger_.error("Failed to initialize the SD card: {}", ec.message());
+    // release the card (and its SPI device) before touching the bus
+    sdcard_.reset();
     // only free the bus if the LoRa radio isn't using it
     if (!lora_) {
       spi_bus_free(sdcard_spi_num);
       expansion_spi_bus_initialized_ = false;
     }
-    sdcard_ = nullptr;
     return false;
   }
 
-  logger_.info("Filesystem mounted");
-
-  // Card has been initialized, print its properties
-  sdmmc_card_print_info(stdout, sdcard_);
-
+  logger_.info("Filesystem mounted at {}", mount_point);
+  sdcard_->print_info(stdout);
   return true;
 }

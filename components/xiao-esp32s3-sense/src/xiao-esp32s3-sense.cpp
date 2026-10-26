@@ -2,8 +2,6 @@
 
 #include <cmath>
 
-#include <driver/spi_master.h>
-
 using namespace espp;
 
 XiaoEsp32S3Sense::XiaoEsp32S3Sense()
@@ -55,49 +53,32 @@ bool XiaoEsp32S3Sense::initialize_sdcard(const XiaoEsp32S3Sense::SdCardConfig &c
   }
 
   logger_.info("Initializing microSD card");
-
-  esp_vfs_fat_sdmmc_mount_config_t mount_config{};
-  mount_config.format_if_mount_failed = config.format_if_mount_failed;
-  mount_config.max_files = config.max_files;
-  mount_config.allocation_unit_size = config.allocation_unit_size;
-
-  spi_bus_config_t bus_config{};
-  bus_config.mosi_io_num = sd_card_mosi_pin();
-  bus_config.miso_io_num = sd_card_miso_pin();
-  bus_config.sclk_io_num = sd_card_clk_pin();
-  bus_config.quadwp_io_num = -1;
-  bus_config.quadhd_io_num = -1;
-  bus_config.max_transfer_sz = sd_card_spi_max_transfer_bytes_;
-
-  esp_err_t ret = spi_bus_initialize(sd_card_spi_num_, &bus_config, SDSPI_DEFAULT_DMA);
-  if (ret != ESP_OK) {
-    logger_.error("Failed to initialize microSD SPI bus: {}", esp_err_to_name(ret));
+  // The card is on its own SPI bus: the component initializes the bus and
+  // frees it again when the card is released (or initialization fails).
+  espp::SdCard::SpiConfig spi;
+  spi.host = sd_card_spi_num_;
+  spi.cs = sd_card_cs_pin();
+  spi.initialize_bus = true;
+  spi.mosi = sd_card_mosi_pin();
+  spi.miso = sd_card_miso_pin();
+  spi.sclk = sd_card_clk_pin();
+  spi.max_transfer_size = sd_card_spi_max_transfer_bytes_;
+  sdcard_ = std::make_unique<espp::SdCard>(espp::SdCard::Config{
+      .interface = spi,
+      .mount_point = mount_point,
+      .format_if_mount_failed = config.format_if_mount_failed,
+      .max_files = config.max_files,
+      .allocation_unit_size = config.allocation_unit_size,
+      .log_level = get_log_level(),
+  });
+  std::error_code ec;
+  if (!sdcard_->initialize(ec)) {
+    logger_.error("Failed to initialize the microSD card: {}", ec.message());
+    sdcard_.reset();
     return false;
   }
-
-  sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-  host.slot = sd_card_spi_num_;
-
-  sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
-  slot_config.gpio_cs = sd_card_cs_pin();
-  slot_config.host_id = sd_card_spi_num_;
-
-  ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &sdcard_);
-  if (ret != ESP_OK) {
-    if (ret == ESP_FAIL) {
-      logger_.error("Failed to mount microSD filesystem");
-    } else {
-      logger_.error("Failed to initialize microSD card ({}). Make sure the card is inserted and "
-                    "the bus has pull-ups.",
-                    esp_err_to_name(ret));
-    }
-    spi_bus_free(sd_card_spi_num_);
-    sdcard_ = nullptr;
-    return false;
-  }
-
   logger_.info("microSD filesystem mounted at {}", mount_point);
-  sdmmc_card_print_info(stdout, sdcard_);
+  sdcard_->print_info(stdout);
   return true;
 }
 

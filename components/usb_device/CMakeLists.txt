@@ -1,9 +1,22 @@
+include($ENV{IDF_PATH}/tools/cmake/version.cmake)
+
+# MSC, used only by the source: esp_partition (find the FAT partition),
+# wear_levelling (wl_mount), fatfs (esp_vfs_fat_info / ff_diskio_get_drive).
+set(usb_device_priv_requires esp_partition fatfs wear_levelling)
+# ESP32-P4 full-speed PHY selection (usb_wrap_ll_phy_select); the USB HALs
+# live in their own component from IDF 6.
+if(IDF_VERSION_MAJOR GREATER_EQUAL 6)
+  list(APPEND usb_device_priv_requires esp_hal_usb)
+endif()
+
 idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src"
   # vfs: route_console_to_cdc() registers a VFS device (esp_vfs_register /
   # esp_vfs_t) to redirect stdout to the CDC interface.
-  REQUIRES base_component esp_tinyusb vfs
+  # sdmmc: the public header names sdmmc_card_t (MscMedium::sd_card).
+  REQUIRES base_component esp_tinyusb sdmmc vfs
+  PRIV_REQUIRES ${usb_device_priv_requires}
 )
 
 # X-Input registers a custom TinyUSB application class driver by overriding the

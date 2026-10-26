@@ -12,8 +12,8 @@
 
 #include "esp_system.h"
 #include "esp_timer.h"
-#include "tusb_cdc_acm.h"
-#include "tusb_console.h"
+#include "tinyusb_cdc_acm.h"
+#include "tinyusb_console.h"
 
 #include "format.hpp"
 
@@ -24,9 +24,11 @@
 #include "coredump_service.hpp"
 #include "dispatcher_worker.hpp"
 #include "i2c.hpp"
+#include "monitor_service.hpp"
 #include "mt6701.hpp"
 #include "ota.hpp"
 #include "ota_service.hpp"
+#include "system_service.hpp"
 #include "task.hpp"
 #include "usb_device.hpp"
 
@@ -56,6 +58,14 @@ static constexpr size_t example_motor_index = 1;
 #else
 static constexpr size_t example_motor_index = 0;
 #endif
+
+// Dispatcher module id the haptics protocol is registered under (and stamped on
+// every haptics reply / telemetry frame). It is only a routing key: change this
+// one constant to move the protocol; the hosted haptics console finds it
+// through discovery (by haptics_proto::kProtocol), whatever id is chosen. The
+// OTA (0) and core-dump (4) services keep their own defaults; pass `.module` in
+// their Config to move those.
+static constexpr uint8_t kHapticsModule = haptics_proto::kModule;
 
 // The USB telemetry / web dial needs the continuous knob value, i.e. the detent
 // index PLUS the fractional progress towards the neighboring detents. The
@@ -337,7 +347,7 @@ extern "C" void app_main(void) {
   usb_cfg.log_level = espp::Logger::Verbosity::INFO;
   // CDC alongside the vendor interface: a plain serial port any terminal can
   // attach to (e.g. `screen /dev/tty.usbmodem*`). Once USB is up it becomes
-  // the live SYSTEM console (esp_tusb_init_console below routes stdout/stderr
+  // the live SYSTEM console (tinyusb_console_init below routes stdout/stderr
   // - all espp/fmt and esp_log output - to it) and re-logs the last-crash
   // report on every connect. Panic backtraces still cannot appear live
   // (TinyUSB dies with the panic); the flash core dump + next-boot report
@@ -382,19 +392,23 @@ extern "C" void app_main(void) {
   // Haptics protocol (module 2) frame handling -- runs on the dispatcher
   // worker task, never on the TinyUSB task.
   // --------------------------------------------------------------------------
-  // Build replies via proto::build so they carry the haptics module (2) + reply
-  // flag — NOT the OTA reply builders (those are OTA module 0).
+  // Build replies via proto::build so they carry the haptics module
+  // (kHapticsModule) + reply flag — NOT the OTA reply builders (those are OTA
+  // module 0).
+  auto build = [](proto::Msg type, std::span<const uint8_t> payload = {}) {
+    return proto::build(type, payload, kHapticsModule);
+  };
   auto reply_ok = [&](uint32_t value) {
     std::vector<uint8_t> payload;
     proto::put_u32(payload, value);
-    usb_send(proto::build(proto::Msg::Ok, payload));
+    usb_send(build(proto::Msg::Ok, payload));
   };
   auto reply_error = [&](const std::error_code &err, const std::string &context) {
     std::vector<uint8_t> payload;
     proto::put_u32(payload, static_cast<uint32_t>(err.value()));
     const std::string message = context + ": " + err.message();
     payload.insert(payload.end(), message.begin(), message.end());
-    usb_send(proto::build(proto::Msg::Error, payload));
+    usb_send(build(proto::Msg::Error, payload));
   };
   auto reply_errc = [&](std::errc errc, const std::string &context) {
     reply_error(std::make_error_code(errc), context);
@@ -408,7 +422,7 @@ extern "C" void app_main(void) {
     proto::put_str(payload, app.version);
     proto::put_str(payload, app.date + " " + app.time);
     proto::put_str(payload, app.idf_version);
-    usb_send(proto::build(proto::Msg::Info, payload));
+    usb_send(build(proto::Msg::Info, payload));
   };
 
   auto send_status = [&]() {
@@ -420,7 +434,7 @@ extern "C" void app_main(void) {
     proto::put_f32(payload, motor->get_shaft_angle());
     proto::put_f32(payload, motor->get_shaft_velocity());
     proto::put_u16(payload, stream_period_ms);
-    usb_send(proto::build(proto::Msg::Status, payload));
+    usb_send(build(proto::Msg::Status, payload));
   };
 
   auto send_modes = [&]() {
@@ -440,7 +454,7 @@ extern "C" void app_main(void) {
         proto::put_i32(payload, detent);
       proto::put_str(payload, kPresets[i].name);
     }
-    usb_send(proto::build(proto::Msg::Modes, payload));
+    usb_send(build(proto::Msg::Modes, payload));
   };
 
   auto handle_frame = [&](const proto::stream::Frame &frame) {
@@ -551,13 +565,18 @@ extern "C" void app_main(void) {
   };
 
   // --------------------------------------------------------------------------
-  // The three protocols on the one vendor stream
+  // The protocols on the one vendor stream
   // --------------------------------------------------------------------------
   // Each is on its own dispatcher module and each is advertised for capability
   // discovery so the browser Device Hub lists and links them:
   //   module 0 -> OTA          (espp::OtaService       -> ota_console)
   //   module 2 -> BLDC haptics (this example's protocol -> haptics_console)
   //   module 4 -> core dump    (espp::CoreDumpService  -> coredump_console)
+  //   module 7 -> system       (espp::SystemService    -> system_console)
+  //   module 8 -> monitor      (espp::MonitorService   -> system_console)
+  // (the published defaults; each id is configurable -- kHapticsModule above,
+  // and `.module` in the services' Config -- and the hosted consoles find the
+  // ids through discovery, by protocol id, so any choice works)
   // All replies -- and the discovery reply -- go through the same
   // tx_mutex-guarded usb_send as the telemetry frames.
 
@@ -573,6 +592,25 @@ extern "C" void app_main(void) {
   espp::CoreDumpService coredump_service(core_dump,
                                          {.send = [&](std::span<const uint8_t> f) { usb_send(f); },
                                           .log_level = espp::Logger::Verbosity::INFO});
+
+  // --- System (module 7) + monitor (module 8): the rest of the standard service
+  //     set every espp USB example carries (info / reboot / bootloader, heap +
+  //     task table), so the system console and the Device Hub work here too.
+  //     A reboot de-energizes the motor first (BldcHaptics::stop() disables
+  //     the driver) so the knob never reboots under torque.
+  auto reboot_request = [&](espp::SystemService::RebootKind kind) {
+    logger.warn("Host requested a {}; stopping the haptics and allowing it",
+                kind == espp::SystemService::RebootKind::Bootloader ? "reboot into the bootloader"
+                                                                    : "reboot");
+    haptic_motor.stop();
+    enabled = false;
+    return true;
+  };
+  espp::SystemService system_service({.send = [&](std::span<const uint8_t> f) { usb_send(f); },
+                                      .on_reboot_request = reboot_request,
+                                      .log_level = espp::Logger::Verbosity::INFO});
+  espp::MonitorService monitor_service({.send = [&](std::span<const uint8_t> f) { usb_send(f); },
+                                        .log_level = espp::Logger::Verbosity::INFO});
 
   // RX bytes arrive in the TinyUSB task context: DispatcherWorker owns the
   // bounded receive queue + worker task that feeds its Dispatcher, so the
@@ -600,15 +638,19 @@ extern "C" void app_main(void) {
        .task_config = {.name = "haptics_usb", .stack_size_bytes = 8192}});
   usb_link.register_module(ota_service);      // module 0 + its discovery metadata
   usb_link.register_module(coredump_service); // module 4 + its discovery metadata
+  usb_link.register_module(system_service);   // module 7
+  usb_link.register_module(monitor_service);  // module 8
   // The handler gates on !is_reply() so a reply-typed echo cannot re-enter it.
-  usb_link.register_module(proto::kModule,
+  usb_link.register_module(kHapticsModule,
                            [&](const proto::stream::Frame &frame) {
                              if (!frame.is_reply())
                                handle_frame(frame);
                            },
                            {.name = "BLDC Haptics",
                             .app = "haptics_console.html",
-                            .description = "Haptic detent / feedback modes"});
+                            .description = "Haptic detent / feedback modes",
+                            .protocol = haptics_proto::kProtocol,
+                            .protocol_version = haptics_proto::kProtocolVersion});
   usb_link.serve_discovery(usb_cfg.product); // reserved module 0xFF
   usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { usb_link.push(data); });
 
@@ -630,7 +672,7 @@ extern "C" void app_main(void) {
     // backtraces still cannot appear live (TinyUSB dies with the panic) -
     // those are captured by the flash core dump and summarized on the next
     // boot (see crash_report above / GET_CRASH).
-    if (esp_tusb_init_console(TINYUSB_CDC_ACM_0) != ESP_OK)
+    if (tinyusb_console_init(TINYUSB_CDC_ACM_0) != ESP_OK)
       logger.warn("Could not route the console to USB CDC");
   }
 
@@ -659,7 +701,7 @@ extern "C" void app_main(void) {
            proto::put_f32(payload, continuous_value());
            proto::put_f32(payload, motor->get_shaft_angle());
            proto::put_f32(payload, motor->get_shaft_velocity());
-           if (usb_send(proto::build(proto::Msg::Telemetry, payload))) {
+           if (usb_send(build(proto::Msg::Telemetry, payload))) {
              telemetry_stall_start = {}; // queued OK -> the host is draining
            } else if (telemetry_stall_start == std::chrono::steady_clock::time_point{}) {
              telemetry_stall_start = start; // first drop -> start the stall clock

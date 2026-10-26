@@ -70,8 +70,9 @@ Key class: `espp::SwitchPro` (`switch_pro.hpp`)
   report setters.
 - `is_ready()` — whether the host has enabled input reports.
 - `set_battery_level()`, `set_trigger_elapsed_times()`.
-- Identity constants: `vid`, `pid`, `bcd_device`, `bcd_usb`, `manufacturer_name`,
-  `product_name`, `input_report_id()`.
+- Identity constants: `vid`, `pid`, `bcd_device` (2.10), `bcd_usb`, `max_power_ma`
+  (500), `remote_wakeup`, `manufacturer_name`, `product_name`, `input_report_id()` —
+  what a real Pro Controller reports; feed them to `espp::UsbDevice::Config`.
 
 ## Example
 

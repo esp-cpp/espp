@@ -20,6 +20,17 @@ descriptor and report packing come from the ``hid-rp`` component.
    (exposed as ``espp::SwitchPro`` constants). Use these to emulate / test against
    a Switch you own; do not ship a product impersonating Nintendo hardware.
 
+USB identity constants
+----------------------
+
+``espp::SwitchPro`` carries everything the USB device descriptor needs to look
+like a real Pro Controller, so an emulator has one source of truth: ``vid``,
+``pid``, ``bcd_usb``, ``manufacturer_name``, ``product_name``, plus the details a
+Switch compares against the original -- ``bcd_device`` (device release 2.10),
+``max_power_ma`` (500 mA bus power) and ``remote_wakeup``. Feed them to
+``espp::UsbDevice::Config`` (``vid`` / ``pid`` / ``manufacturer`` / ``product`` /
+``bcd_device`` / ``max_power_ma`` / ``remote_wakeup``), as the example does.
+
 .. ------------------------------- Example -------------------------------------
 
 .. toctree::

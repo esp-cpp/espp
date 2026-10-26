@@ -72,7 +72,8 @@ public:
     /// so it must be thread-safe: if the transport does not serialize
     /// writers (e.g. UsbDevice::write_vendor), guard it with a mutex.
     send_fn send{nullptr};
-    /// Dispatcher module id to answer on (the console expects the default).
+    /// Dispatcher module id to answer on (a routing key only: the console
+    /// finds it through discovery, by kProtocol, whatever id is chosen).
     uint8_t module{mcp266_protocol::kModuleId};
     /// Mutex serializing every use of the Mcp266 (one SDO channel). Share it
     /// between all users of the driver -- other service instances and the
@@ -129,7 +130,9 @@ public:
   Dispatcher::ModuleInfo module_info() const {
     return {.name = "MCP266",
             .app = "mcp266_console.html",
-            .description = "Configure & command MCP266 motors"};
+            .description = "Configure & command MCP266 motors",
+            .protocol = mcp266_protocol::kProtocol,
+            .protocol_version = mcp266_protocol::kProtocolVersion};
   }
 
   /// @brief The mutex serializing use of the driver (take it around your own

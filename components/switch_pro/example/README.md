@@ -14,6 +14,12 @@ sweeping the left stick so a connected Switch shows live input.
 > (`0x057E` / `0x2009`) so a real Switch will bind it. Use it to test against a
 > Switch you own.
 
+The USB device descriptor is filled from the `espp::SwitchPro` identity
+constants: VID/PID, manufacturer / product strings, and the details a Switch
+compares against a real controller — `bcd_device` (device release 2.10),
+`max_power_ma` (500 mA) and `remote_wakeup` — passed to
+`espp::UsbDevice::Config::bcd_device` / `max_power_ma` / `remote_wakeup`.
+
 ## How to use
 
 ### Hardware Required

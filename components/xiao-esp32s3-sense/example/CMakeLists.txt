@@ -12,6 +12,7 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/logger"
   "../../../components/monitor"
   "../../../components/rtsp"
+  "../../../components/sdcard"
   "../../../components/socket"
   "../../../components/task"
   "../../../components/thread_pool"
@@ -28,7 +29,7 @@ set(
 
 project(xiao_esp32s3_sense_example)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 # The mDNS component (espressif/mdns from the registry, or the vendored copy)
 # trips -Werror=stringop-truncation under the ESP-IDF v6 toolchain (GCC 15). It

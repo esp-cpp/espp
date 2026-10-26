@@ -119,8 +119,14 @@ bool M5StackCardputer::initialize_sound(uint32_t default_audio_rate,
 
   // size the transmit buffering from the actual (possibly shared) rate
   size_t buffer_size = calc_audio_buffer_size(audio_sample_rate());
+  // the block (and so the stream's trigger level) must be a whole number of
+  // frames: the sample-rate formula can land between frames, and a block that
+  // split one would desynchronize the framing of everything received after it
+  buffer_size -= buffer_size % (NUM_CHANNELS * NUM_BYTES_PER_CHANNEL);
   audio_tx_buffer.resize(buffer_size);
-  audio_tx_stream = xStreamBufferCreate(buffer_size * 4, 0);
+  // Trigger level = one block: the audio task waits for a whole block instead of
+  // padding a partial one with silence (see audio_task_callback).
+  audio_tx_stream = xStreamBufferCreate(buffer_size * 4, buffer_size);
   if (audio_tx_stream == nullptr) {
     logger_.error("Could not allocate the audio stream buffer");
     audio_tx_buffer.clear();
@@ -177,27 +183,54 @@ bool M5StackCardputer::initialize_sound(uint32_t default_audio_rate,
   return audio_task_->start();
 }
 
+// How long the audio task waits for a whole block before writing a partial one
+// (or silence). Longer than one block at every rate the board supports (a block
+// is 1/60 s at the default rate), so partial writes only happen when the
+// producer is idle or genuinely behind, never because its next frame simply had
+// not arrived yet; short enough that idle->silence latency is not noticeable.
+static constexpr uint32_t AUDIO_TX_RECEIVE_TIMEOUT_MS = 40;
+
 bool M5StackCardputer::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                            bool &task_notified) {
-  // Queue the next I2S out frame to write
-  size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
+  // Queue the next I2S out block. Wait (bounded) for a whole block rather than
+  // taking whatever is queued and zero-padding it to a block: producers push
+  // audio in bursts (one video frame at a time, with frame-to-frame jitter),
+  // and the stream buffer exists to absorb exactly that. Taking a partial block
+  // padded it with silence every time the stream momentarily held less than
+  // one block, which is audible as stutter whenever the producer's cadence is
+  // uneven. The DMA is still fed whole blocks while audio is flowing (the
+  // stream's trigger level is one block); only after the timeout -- producer
+  // idle or slower than real time -- is a partial block written as is (the I2S
+  // driver concatenates partial writes without gaps), or silence when there is
+  // none.
   size_t buffer_size = audio_tx_buffer.size();
-  available = std::min(available, buffer_size);
   uint8_t *buffer = &audio_tx_buffer[0];
-  memset(buffer, 0, buffer_size);
-
-  if (available > 0) {
-    xStreamBufferReceive(audio_tx_stream, buffer, available, 0);
-    // The amplifier has no volume control, so scale the samples in software
-    // according to the current volume / mute state
-    float scale = mute_ ? 0.0f : (volume_ / 100.0f);
-    auto *samples = reinterpret_cast<int16_t *>(buffer);
-    size_t num_samples = available / sizeof(int16_t);
-    for (size_t i = 0; i < num_samples; i++) {
-      samples[i] = static_cast<int16_t>(samples[i] * scale);
+  size_t got = xStreamBufferReceive(audio_tx_stream, buffer, buffer_size,
+                                    pdMS_TO_TICKS(AUDIO_TX_RECEIVE_TIMEOUT_MS));
+  // the block is frame-aligned and producers queue whole frames, so this cannot
+  // happen; if it ever does, do not silently drop bytes (that would desynchronize
+  // the framing of everything after them) -- say so
+  constexpr size_t frame_bytes = NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
+  if (got % frame_bytes != 0) {
+    static uint32_t misaligned_count = 0;
+    if ((misaligned_count++ % 100) == 0) {
+      logger_.warn("audio stream holds a partial frame ({} bytes)", got);
     }
   }
-  i2s_channel_write(audio_tx_handle, buffer, buffer_size, NULL, portMAX_DELAY);
+  if (got == 0) {
+    memset(buffer, 0, buffer_size);
+    i2s_channel_write(audio_tx_handle, buffer, buffer_size, NULL, portMAX_DELAY);
+    return false; // don't stop the task
+  }
+  // The amplifier has no volume control, so scale the samples in software
+  // according to the current volume / mute state
+  float scale = mute_ ? 0.0f : (volume_ / 100.0f);
+  auto *samples = reinterpret_cast<int16_t *>(buffer);
+  size_t num_samples = got / sizeof(int16_t);
+  for (size_t i = 0; i < num_samples; i++) {
+    samples[i] = static_cast<int16_t>(samples[i] * scale);
+  }
+  i2s_channel_write(audio_tx_handle, buffer, got, NULL, portMAX_DELAY);
   return false; // don't stop the task
 }
 

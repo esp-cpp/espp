@@ -28,6 +28,7 @@ dependencies:
   espp/led: '>=1.0'
   espp/math: '>=1.0'
   espp/neopixel: '>=1.0'
+  espp/sdcard: '>=1.0'
   espp/spi: '>=1.0'
   espp/sx126x: '>=1.0'
   espp/task: '>=1.0'

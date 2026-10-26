@@ -8,7 +8,8 @@ Basicmicro MCP266 (RoboClaw-family) motor controller over **CANopen**. It:
 2. NMT-starts the node and clears any latched CiA 402 faults,
 3. reads the main battery voltage and board temperature,
 4. configures the M1 position loop (widening the position clamp and seeding a
-   non-zero P gain — required once per boot), and
+   non-zero P gain — required once per boot) and reads the resulting PID
+   record back, and
 5. runs a small profile-position sequence on M1, reporting arrival at each
    target.
 

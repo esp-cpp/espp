@@ -1,6 +1,6 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
-description: "VL53L Time of Flight (ToF) Distance Sensor component for ESP-IDF"
+description: "VL53L Time of Flight (ToF) sensor components for ESP-IDF: VL53L4CD / VL53L4CX distance sensors and the VL53L5CX / VL53L7CX multizone (4x4 / 8x8) sensors, with a WebUSB console service"
 url: "https://github.com/esp-cpp/espp/tree/main/components/vl53l"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
@@ -8,16 +8,24 @@ maintainers:
 documentation: "https://esp-cpp.github.io/espp/distance_sensors/vl53l.html"
 examples:
   - path: example
+  - path: vl53l5cx_example
+  - path: vl53l5cx_webapp_example
 tags:
   - cpp
   - Component
   - Sensing
   - VL53L
+  - VL53L5CX
+  - VL53L7CX
   - ToF
   - Time-of-Flight
   - Distance
+  - Multizone
   - Laser
 dependencies:
   idf:
     version: '>=5.0'
   espp/base_peripheral: '>=1.0'
+  espp/base_component: '>=1.0'
+  espp/dispatcher: '>=1.0'
+  espp/stream_frame: '>=1.0'

@@ -41,7 +41,7 @@ USB to CAN bridge
 The ``can_bridge_example`` (``components/canopen/can_bridge_example``) turns an
 ESP32-S3 into a WebUSB / Web Serial CAN interface: it bridges the ``Twai``
 (CAN 2.0) controller to the host over USB using the ``stream_frame`` framing and
-an :doc:`../dispatcher/index` (module id 5), so the hosted
+an :doc:`../dispatcher/index` (module id 5 by default), so the hosted
 `CAN bridge console <https://esp-cpp.github.io/espp/apps/can_bridge_console.html>`_ web app can
 send frames (as a bus master) and inspect the bus (streaming every received
 frame, optionally in passive listen-only mode) directly from a Chromium browser.
@@ -52,11 +52,38 @@ app that talks to the *same* bridge. It layers a CANopen SDO client and the DS40
 profile entirely in the browser (the firmware stays a dumb raw-CAN pipe): read
 the node identity, walk the power-drive-system state machine (statusword /
 controlword with the enable sequence, quick-stop and fault-reset), select the
-mode of operation, set target and read actual velocity/position/torque, and
-read/write any object dictionary index:subindex (including vendor-specific
-objects) with a chosen data type. Because it drives the node over SDO rather than
-cyclic PDOs it is a commissioning / bring-up tool; the bus must be in Normal
-(not listen-only) mode so the bridge ACKs the node.
+mode of operation, set target and read actual velocity/position/torque, browse
+the node's object dictionary, and read/write any object dictionary
+index:subindex (including vendor-specific objects) with a chosen data type.
+
+The object-dictionary browser takes its object list from the device itself when
+it stores one - object ``0x1021`` *Store EDS* is read as a DOMAIN over segmented
+SDO and the EDS (CiA 306) file is parsed in the browser, provided ``0x1022``
+reports the plain ASCII format - or from an EDS file chosen from disk, or from a
+built-in table of the commonly implemented CiA 301 communication-profile and
+CiA 402 drive-profile objects (a subset of the standards, with the multi-axis
+offset on request). A *scan* then reads every readable scalar / string entry
+through the SDO client, one transaction at a time, and shows each as present
+(decoded by its declared type, or by length when the type is unknown), absent
+(abort ``0x06020000``), write-only, aborted (by name) or unanswered; DOMAIN
+entries (a stored EDS, an OS command reply) are left unread by a scan and
+fetched on request with the row's *Read* button (1 MiB bound); a scan never
+writes. Rows can be filtered, refreshed one at a time,
+exported as CSV, and clicked to load the address into the manual read/write
+fields. Because the panel drives the node over SDO rather than cyclic PDOs it
+is a commissioning / bring-up tool; the bus must be in Normal (not listen-only)
+mode so the bridge ACKs the node.
+
+To try either web app without any CAN hardware, build the bridge example with
+its **simulated CANopen node** (``CONFIG_CAN_BRIDGE_SIMULATED_NODE``, off by
+default: ``idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.simulated"
+build``). An in-firmware CiA 402 drive then answers in place of the TWAI
+peripheral: NMT and heartbeat, the SDO server (expedited and segmented, with
+abort codes) over an object dictionary that includes the device's own stored
+EDS (``0x1021``), the DS402 state machine with profile position / velocity /
+torque and homing modes and a simple motion model, a TPDO and EMCY. The USB side
+is unchanged, so the web apps connect and behave exactly as with a real bus; see
+the example's README for what the node implements.
 
 .. ---------------------------- API Reference ----------------------------------
 

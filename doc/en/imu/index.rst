@@ -6,6 +6,7 @@ IMU APIs
 
     adxl345
     bmi270
+    bno055
     icm20948
     icm42607
     lsm6dso

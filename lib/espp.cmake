@@ -259,6 +259,7 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/math/include
   ${ESPP_COMPONENTS}/ndef/include
   ${ESPP_COMPONENTS}/odrive_native/include
+  ${ESPP_COMPONENTS}/persistent_data/include
   ${ESPP_COMPONENTS}/pid/include
   ${ESPP_COMPONENTS}/rtps/include
   ${ESPP_COMPONENTS}/rtsp/include

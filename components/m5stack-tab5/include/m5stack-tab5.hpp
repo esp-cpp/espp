@@ -40,6 +40,7 @@
 #include "led.hpp"
 #include "pi4ioe5v.hpp"
 #include "rx8130ce.hpp"
+#include "sdcard.hpp"
 #include "st7121.hpp"
 #include "st7123.hpp"
 #include "st7123touch.hpp"
@@ -131,6 +132,8 @@ public:
   /// variants — both TDDI parts speak the same touch protocol at I2C 0x55)
   using St7123TouchDriver = espp::St7123Touch;
 
+  /// Alias for the multi-touch state (every finger) of the Tab5 touchpad
+  using TouchState = espp::TouchState;
   /// Alias for the touchpad data used by the Tab5 touchpad
   using TouchpadData = espp::TouchpadData;
 
@@ -224,7 +227,26 @@ public:
 
   /// Get the most recent touchpad data
   /// \return The touchpad data
-  TouchpadData touchpad_data() const { return touchpad_data_; }
+  TouchpadData touchpad_data() const {
+    std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
+    return touchpad_data_;
+  }
+
+  /// Get the most recent multi-touch state: every finger the controller
+  /// reported, in raw (native) coordinates, as of the same update that
+  /// produced touchpad_data(). The touch callback may call this to see all
+  /// the fingers behind the primary point it was handed.
+  /// \return The touch state
+  TouchState touch_state() const {
+    std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
+    return touch_state_;
+  }
+
+  /// Convert a multi-touch state from raw readings to display coordinates
+  /// (every point, the way touchpad_convert() converts the primary one)
+  /// \param state The touch state to convert
+  /// \return The converted touch state
+  TouchState touch_state_convert(const TouchState &state) const;
 
   /// Get the touchpad data for LVGL integration
   /// \param num_touch_points The number of touch points
@@ -562,6 +584,14 @@ public:
   /// \return true on success
   bool set_charging_enabled(bool enable);
 
+  /// Switch the 5 V supply of the USB-A host jack (USB_5V_EN on the 0x44 IO
+  /// expander). On by default after initialize_io_expanders(); turn it off and
+  /// back on to power-cycle an attached device (e.g. so a device attached at
+  /// boot sees the same VBUS + host sequence as a hot-plug).
+  /// \param enable True to power the jack.
+  /// \return True on success (requires initialize_io_expanders()).
+  bool set_usb_a_power(bool enable);
+
   /// Read battery charging status (IP2326 CHG_STAT on 0x44 P6)
   /// Returns true if charging is indicated asserted.
   bool get_charging_status();
@@ -602,15 +632,23 @@ public:
   /// \return True if uSD card was successfully initialized
   bool initialize_sdcard(const SdCardConfig &config);
 
-  /// Check if SD card is present and mounted
-  /// \return True if SD card is available
+  /// Check if the SD card is initialized and its volume is currently mounted
+  /// \return True if the SD card is available (false after
+  ///         sdcard_component()->unmount())
   bool is_sd_card_available() const;
 
   /// Get the uSD card
   /// \return A pointer to the uSD card
-  /// \note The uSD card is only available if it was successfully initialized
-  ///       and the mount point is valid
-  sdmmc_card_t *sdcard() const { return sdcard_; }
+  /// \note nullptr until initialize_sdcard() succeeded. The card stays valid while
+  ///       its volume is unmounted (sdcard_component()->unmount()), e.g. to hand it
+  ///       to a USB host through espp::UsbDevice's MSC function.
+  sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
+
+  /// Get the SD card component: mount() / unmount() (e.g. to hand the card to a
+  /// USB host with the usb_device MSC function), format(), card_info(),
+  /// volume_info(), ...
+  /// \return The component, or nullptr until initialize_sdcard() succeeded
+  espp::SdCard *sdcard_component() const { return sdcard_.get(); }
 
   /// Get SD card info
   /// \param size_mb Pointer to store size in MB
@@ -746,6 +784,9 @@ protected:
   static constexpr gpio_num_t sd_dat3_io = GPIO_NUM_42; // CS/DAT3
   static constexpr gpio_num_t sd_clk_io = GPIO_NUM_43;  // SCK/CLK
   static constexpr gpio_num_t sd_cmd_io = GPIO_NUM_44;  // MOSI/CMD
+  // The SD card's IO pads (GPIO39-44) are powered by the ESP32-P4's internal
+  // LDO channel 4 (LDO_VO4), which the SDMMC host has to switch on.
+  static constexpr int sd_ldo_channel = 4;
 
   // RS-485
   static constexpr gpio_num_t rs485_rx_io = GPIO_NUM_21;  // RX
@@ -837,8 +878,9 @@ protected:
   std::shared_ptr<espp::ITouchDriver>
       touch_driver_; ///< Concept-erased touch driver (GT911 or ST7123)
   std::shared_ptr<TouchpadInput> touchpad_input_;
-  std::recursive_mutex touchpad_data_mutex_;
+  mutable std::recursive_mutex touchpad_data_mutex_;
   TouchpadData touchpad_data_;
+  TouchState touch_state_; ///< every finger of the update behind touchpad_data_
   touch_callback_t touch_callback_{nullptr};
 
   std::shared_ptr<I2c::Device<uint8_t>> imu_i2c_device_;
@@ -923,10 +965,9 @@ protected:
   std::shared_ptr<IoExpander> ioexp_0x44_;
 
   // Communication interfaces
-  std::atomic<bool> sd_card_initialized_{false};
 
   // uSD Card
-  sdmmc_card_t *sdcard_{nullptr};
+  std::unique_ptr<espp::SdCard> sdcard_;
 
   // RTC
   std::atomic<bool> rtc_initialized_{false};
