@@ -3,6 +3,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -14,6 +15,7 @@
 #include "ble_gatt_server.hpp"
 
 #include "base_component.hpp"
+#include "high_resolution_timer.hpp"
 #include "task.hpp"
 #include "timer.hpp"
 
@@ -222,10 +224,16 @@ protected:
   /// continuous mode (default, Config::continuous_streaming_enabled = true) it
   /// sends one report every connection interval like a real controller; in
   /// on-change mode it sends only when the app state changes plus a low-rate
-  /// keepalive. Sleeps on `cv` for the connection interval so Task::stop() wakes
-  /// it immediately. Started in init(), stopped in the destructor.
+  /// keepalive. Pacing: the FreeRTOS tick cannot time the console's 5 ms (or
+  /// 15 ms) interval accurately, so a HighResolutionTimer (esp_timer) runs at
+  /// the live connection interval and wakes this task through pace_cv_; the
+  /// task does the (deep) notify on its own 8 KB stack. While idle it polls on
+  /// the task's own cv at 10 ms. Started in init(), stopped in the destructor.
   /// @return false to keep the task running.
   bool input_stream_tick(std::mutex &m, std::condition_variable &cv);
+  /// Wait for the next pacing tick (or the stop signal). Falls back to a
+  /// millisecond timeout so the task can never hang if the timer is not running.
+  void wait_for_pace_tick(uint32_t itvl_us);
   /// Send the given input-report snapshot now (the caller passes the exact bytes it
   /// snapshotted under input_mutex_; this adds the counter/rumble/motion fields it
   /// manages), honoring the mbuf backpressure cap. Returns true iff a notification
@@ -354,6 +362,14 @@ protected:
   std::mutex input_mutex_; ///< guards input_report_ (set from app task, read by stream task)
   std::unique_ptr<espp::Task> input_stream_task_; ///< streams input reports once per connection
                                                   ///< interval (input_stream_tick)
+  /// esp_timer-backed pacer: fires every connection interval (re-armed when the
+  /// console changes the interval) and wakes input_stream_task_ via pace_cv_.
+  std::unique_ptr<espp::HighResolutionTimer> pace_timer_;
+  uint32_t pace_period_us_{0}; ///< period pace_timer_ is currently armed with (0 = stopped)
+  std::mutex pace_mutex_;
+  std::condition_variable pace_cv_;
+  bool pace_tick_{false};                ///< set by the pacer, consumed by the stream task
+  std::atomic<bool> stream_stop_{false}; ///< destructor: unblock the pace wait before Task::stop()
   // Last-observed link state, logged whenever it changes so we can see exactly
   // what the console renegotiates at the pairing->active transition.
   uint16_t last_itvl_{0};

@@ -199,23 +199,25 @@ bool Switch2Pro::init() {
     start_wake_timer();
   logger_.info("Switch2Pro advertising as '{}'", device_name_);
 
-  // The input stream paces itself with sub-15 ms sleeps (down to ~5 ms once the
-  // console moves the link there). The condition-variable wait is tick-quantised,
-  // so a low FreeRTOS tick rate coarsens the cadence: at the 100 Hz default a 5 ms
-  // sleep rounds to ~10 ms and 15 ms to ~20 ms, desyncing from the connection
-  // interval. The example sets CONFIG_FREERTOS_HZ=1000; warn a consumer whose build
-  // did not.
-#if CONFIG_FREERTOS_HZ < 1000
-  logger_.warn("CONFIG_FREERTOS_HZ is {} (< 1000): input-stream pacing is tick-quantised, so the "
-               "per-connection-interval cadence (especially the console's 5 ms) will be coarse. "
-               "Set CONFIG_FREERTOS_HZ=1000 for an accurate stream rate.",
-               static_cast<int>(CONFIG_FREERTOS_HZ));
-#endif
-
   // Start the driver-owned input-streaming task. It notifies the latest report
   // once per connection interval while the console is subscribed. Give it a
   // generous stack (ble_gatts_notify_custom is a deep call) and pin it to core 0,
   // away from the BLE controller/host on core 1 (the example's sdkconfig).
+  // Pacer: an esp_timer (microsecond resolution, independent of the FreeRTOS
+  // tick) armed at the live connection interval by the stream task; its callback
+  // only flips a flag and notifies, so nothing heavy runs in the esp_timer task.
+  pace_timer_ = std::make_unique<espp::HighResolutionTimer>(espp::HighResolutionTimer::Config{
+      .name = "s2p_pace",
+      .callback =
+          [this]() {
+            {
+              std::lock_guard<std::mutex> lk(pace_mutex_);
+              pace_tick_ = true;
+            }
+            pace_cv_.notify_all();
+          },
+      .log_level = Logger::Verbosity::WARN,
+  });
   input_stream_task_ = std::make_unique<espp::Task>(espp::Task::Config{
       .callback = [this](std::mutex &m,
                          std::condition_variable &cv) { return input_stream_tick(m, cv); },
@@ -233,10 +235,17 @@ Switch2Pro::~Switch2Pro() {
   // NimBLE GAP/GATT callbacks all capture `this`; members declared after
   // ble_gatt_server_/wake_timer_ are destroyed first, so a late callback would
   // otherwise access already-destroyed state.
+  // Unblock a stream task parked on the pace cv, then stop the pacer and the task.
+  stream_stop_.store(true);
+  pace_cv_.notify_all();
+  if (pace_timer_) {
+    pace_timer_->stop();
+  }
   if (input_stream_task_) {
-    input_stream_task_->stop(); // notifies the cv wait and joins
+    input_stream_task_->stop(); // notifies the task's own cv wait and joins
     input_stream_task_.reset();
   }
+  pace_timer_.reset();
   if (wake_timer_) {
     wake_timer_->cancel(); // stop + join the wake-advertisement timer task
     wake_timer_.reset();
@@ -833,6 +842,25 @@ int64_t Switch2Pro::now_us() {
       .count();
 }
 
+void Switch2Pro::wait_for_pace_tick(uint32_t itvl_us) {
+  // (Re)arm the pacer whenever the interval changes (the console renegotiates
+  // 15 ms -> 5 ms mid-session) or it is not running (first tick of a run).
+  if (pace_timer_ && (pace_period_us_ != itvl_us || !pace_timer_->is_running())) {
+    if (pace_timer_->periodic(itvl_us)) {
+      pace_period_us_ = itvl_us;
+    } else {
+      logger_.warn("could not arm the stream pacer at {} us; falling back to tick-quantised waits",
+                   itvl_us);
+      pace_period_us_ = 0;
+    }
+  }
+  std::unique_lock<std::mutex> lk(pace_mutex_);
+  // The timeout is only a safety net (ms-quantised): the pacer normally wakes us.
+  pace_cv_.wait_for(lk, std::chrono::microseconds(itvl_us) * 4,
+                    [this] { return pace_tick_ || stream_stop_.load(); });
+  pace_tick_ = false;
+}
+
 bool Switch2Pro::input_stream_tick(std::mutex &m, std::condition_variable &cv) {
   // Two streaming models (Config::continuous_streaming_enabled):
   //
@@ -845,12 +873,6 @@ bool Switch2Pro::input_stream_tick(std::mutex &m, std::condition_variable &cv) {
   //    reduced-traffic fallback that partially masks the ESP32-S3 BTDM
   //    controller's tx-servicing bug (it stops draining tx ~3 s into any
   //    sustained encrypted stream — see README "Known issues").
-  // Sleep on the task's condition variable (not sleep_for) so Task::stop() can
-  // wake the task immediately instead of waiting out the interval.
-  auto sleep_for = [&](std::chrono::microseconds d) {
-    std::unique_lock<std::mutex> lk(m);
-    cv.wait_for(lk, d);
-  };
   {
     // Require an encrypted (paired) session, not just a CCCD subscription, before
     // streaming — otherwise any peer that connects and subscribes to this NOTIFY
@@ -862,7 +884,14 @@ bool Switch2Pro::input_stream_tick(std::mutex &m, std::condition_variable &cv) {
       stream_start_us_ = 0; // reset the wedge diagnostics for the next run
       wedge_reported_ = false;
       send_attempts_ = 0;
-      sleep_for(std::chrono::milliseconds(10));
+      // Idle: stop the pacer and poll at 10 ms on the task's own cv, which
+      // Task::stop() notifies.
+      if (pace_timer_ && pace_timer_->is_running()) {
+        pace_timer_->stop();
+        pace_period_us_ = 0;
+      }
+      std::unique_lock<std::mutex> lk(m);
+      cv.wait_for(lk, std::chrono::milliseconds(10));
       return false; // keep running
     }
     // NOTE: poll_conn_state() is NOT called here — it issues an HCI LE-Read-PHY
@@ -937,7 +966,7 @@ bool Switch2Pro::input_stream_tick(std::mutex &m, std::condition_variable &cv) {
       last_streamed_ = snap;
       have_streamed_ = true;
     }
-    sleep_for(std::chrono::microseconds(itvl_us));
+    wait_for_pace_tick(itvl_us);
   }
   return false; // keep running
 }

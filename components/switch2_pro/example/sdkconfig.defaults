@@ -12,12 +12,10 @@ CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 # Common ESP-related
 CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
-# 1000 Hz tick so the ~15 ms / 5 ms input-stream cadence is representable (at the
-# 100 Hz default, sleep_for(15ms) rounds to a 20 ms tick, desyncing from the
-# connection interval). CPU frequency is set per-target (sdkconfig.defaults.esp32c6
-# = 160 MHz, the C6 maximum; sdkconfig.defaults.esp32s3 = 240 MHz) — a 240 MHz
-# choice here would be invalid for the default C6 target.
-CONFIG_FREERTOS_HZ=1000
+# CPU frequency is set per-target (sdkconfig.defaults.esp32s3 = 240 MHz,
+# sdkconfig.defaults.esp32c6 = 160 MHz, the C6 maximum). The input stream is
+# paced by an esp_timer (HighResolutionTimer), not the FreeRTOS tick, so no
+# CONFIG_FREERTOS_HZ override is needed.
 CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
 
 # Partition Table
