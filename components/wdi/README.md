@@ -125,7 +125,6 @@ espp::WdiBlePeripheral wdi({.on_feedback = [](const espp::wdi::FeedbackReport &f
 espp::BleGattServer ble;
 ble.init("espp WDI");
 wdi.make_service(ble.server());
-ble.start_services();
 wdi.start();
 ble.start();
 espp::BleGattServer::AdvertisedData adv;

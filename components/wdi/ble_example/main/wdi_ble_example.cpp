@@ -43,7 +43,6 @@ extern "C" void app_main(void) {
   const std::string device_name = "espp WDI";
   ble.init(device_name);
   wdi.make_service(ble.server());
-  ble.start_services();
   wdi.start();
   ble.start();
 

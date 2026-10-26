@@ -294,11 +294,10 @@ public:
   }
 
   /// Start the services
-  /// This method starts the device info and battery services.
-  void start_services() {
-    device_info_service_.start();
-    battery_service_.start();
-  }
+  /// \note Kept for API compatibility: NimBLE starts every service when the
+  ///       server starts (start()), so there is nothing to do here.
+  [[deprecated("services are started with the server (start()); this is a no-op")]] void
+  start_services() {}
 
   /// Start the server
   /// This method starts the GATT server.

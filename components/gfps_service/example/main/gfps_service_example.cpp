@@ -53,12 +53,9 @@ extern "C" void app_main(void) {
 
   // now that we've made the input characteristic, we can start the service
   gfps_service.start();
-  ble_gatt_server.start_services(); // starts the device info service and battery service
   // NOTE: we could also directly start them ourselves if we wanted to
   //      control the order of starting the services
   // e.g.:
-  // ble_gatt_server.battery_service().start();
-  // ble_gatt_server.device_info_service().start();
 
   // now start the gatt server
   ble_gatt_server.start();

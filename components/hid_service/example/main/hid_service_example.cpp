@@ -488,12 +488,6 @@ extern "C" void app_main(void) {
   ps4_feature_f2->setValue(feature_f2_data);
 #endif // CONFIG_EXAMPLE_AS_XBOX
 
-  // now that we've made the input characteristic, we can start the service
-  hid_service.start();
-  // starts the device info service and battery service, see
-  // hid_service_example for more info
-  ble_gatt_server.start_services();
-
   // now start the gatt server
   ble_gatt_server.start();
 
