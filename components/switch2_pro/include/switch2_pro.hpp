@@ -48,7 +48,6 @@ public:
   /// Configuration for the controller.
   struct Config {
     std::string device_name{"Pro Controller"}; ///< BLE advertised name.
-    Logger::Verbosity log_level{Logger::Verbosity::INFO};
     /// If we boot with a saved bond, broadcast the *wake* advertisement (and
     /// re-issue it every wake_interval) until the console connects, so a sleeping
     /// console is woken and reconnects without re-pairing. When false we use the
@@ -83,6 +82,7 @@ public:
     /// packet-count-based one (our-side tx-credit accumulation — survives ~N×
     /// longer). Ignored in on-change mode.
     uint32_t continuous_stream_divisor{1};
+    Logger::Verbosity log_level{Logger::Verbosity::INFO}; ///< Verbosity of the logger.
   };
 
   explicit Switch2Pro(const Config &config)

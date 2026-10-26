@@ -15,6 +15,9 @@ namespace espp::switch2 {
 /// The 63-byte Pro Controller 2 input report (BLE omits the leading report-id
 /// byte). Buttons are a 3-byte bitfield; sticks are two 12-bit axes packed into
 /// 3 bytes each; the tail carries motion/IMU when enabled via feature-select.
+/// The application fills buttons, sticks and power; byte 0 (the sequence
+/// counter), byte 0x0B (the negotiated-feature flags) and the motion block are
+/// written by the driver when it streams the report.
 ///
 /// Button bits (matching the reverse-engineered layout). The three button bytes
 /// are at report offsets 2, 3, 4 — data()[0] is the counter and data()[1] the
@@ -37,8 +40,6 @@ public:
     set_left_stick(0.f, 0.f);
     set_right_stick(0.f, 0.f);
   }
-
-  void increment_counter() { data_[0]++; }
 
   /// battery_level: 0..9 (values above 9 are clamped — 10..15 are reserved, and the
   /// field is only 4 bits, so a larger value would otherwise encode a reserved level

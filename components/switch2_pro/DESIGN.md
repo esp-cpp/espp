@@ -130,8 +130,10 @@ supported target.
       include/switch2_pro.hpp            Switch2Pro class (over BleGattServer)
       include/switch2_pro_protocol.hpp   UUIDs, command/subcommand ids, feature bits, fixed key, golden vector
       include/switch2_pro_report.hpp     Pro Controller 2 input report (0x09) packed struct
-      src/switch2_pro.cpp                GATT setup, advertising, GAP, command dispatch
-      src/switch2_pro_pairing.cpp        pairing crypto (mbedTLS) + state machine + self-test
+      src/switch2_pro.cpp                GATT setup, advertising, GAP, command dispatch, pairing state machine, streaming
+      src/switch2_pro_pairing.cpp        pairing crypto (mbedTLS PSA) + self-test
+      src/switch2_pro_flash.hpp          simulated controller flash (captured calibration / device-info blocks)
+      src/switch2_pro_motion.hpp         captured IMU motion frames (optional replay)
       tools/patch_nimble_5ms.py          opt-in 5 ms interval patcher (C6/C61/C2/H2 NimBLE; S3/C3 use the official IDF option)
       tools/smoke_test_5ms.py            hardware-free verifier (disassembles the controller floor)
       Kconfig                            SWITCH2_PRO_PATCH_NIMBLE_5MS opt-in

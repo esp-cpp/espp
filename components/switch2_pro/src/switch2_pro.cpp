@@ -166,7 +166,6 @@ bool Switch2Pro::init() {
     logger_.error("failed to build GATT services");
     return false;
   }
-  ble_gatt_server_.start_services();
   if (!ble_gatt_server_.start()) {
     logger_.error("init failed: could not start the GATT server");
     return false;
@@ -225,6 +224,12 @@ bool Switch2Pro::init() {
   // once per connection interval while the console is subscribed. Give it a
   // generous stack (ble_gatts_notify_custom is a deep call) and pin it to core 0,
   // away from the BLE controller/host on core 1.
+  // esp_pthread_set_cfg() configures every pthread the CALLING thread creates from
+  // now on, so save the caller's configuration and put it back once our thread
+  // exists; otherwise every std::thread the application starts after init() would
+  // silently inherit this stack size / priority / core pin.
+  esp_pthread_cfg_t prev_cfg;
+  const bool had_prev_cfg = esp_pthread_get_cfg(&prev_cfg) == ESP_OK;
   esp_pthread_cfg_t cfg = esp_pthread_get_default_config();
   cfg.stack_size = 8192;
   cfg.prio = 5;
@@ -233,6 +238,12 @@ bool Switch2Pro::init() {
   if (esp_pthread_set_cfg(&cfg) != ESP_OK)
     logger_.warn("esp_pthread_set_cfg failed; streaming thread will use default stack/prio/core");
   input_stream_thread_ = std::thread(&Switch2Pro::input_stream_loop, this);
+  if (had_prev_cfg) {
+    esp_pthread_set_cfg(&prev_cfg);
+  } else {
+    const esp_pthread_cfg_t default_cfg = esp_pthread_get_default_config();
+    esp_pthread_set_cfg(&default_cfg);
+  }
   initialized_ = true;
   return true;
 }
@@ -404,7 +415,7 @@ bool Switch2Pro::build_gatt() {
   // by fixed handles (0x0016 command, 0x001e response, …) and never discovers;
   // with our services shifted to 0x0022+ the console is forced into a discovery
   // + firmware-probe fallback path that rejects at the pairing commit. Must be
-  // set before start_services() (below) starts the GATT server.
+  // set before ble_gatt_server_.start() (in init()) starts the GATT server.
   server->registerAppServicesFirst(true);
 
   // Attach a tracing callback to every characteristic so bring-up logs show
@@ -1223,8 +1234,8 @@ void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, P
     logger_.info("pairing: stored console identity addr {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
                  host_addr[5], host_addr[4], host_addr[3], host_addr[2], host_addr[1],
                  host_addr[0]);
-    // Reply: {0x01, 0x04, 0x01} + our BT address. The 0x04/0x01 prefix bytes
-    // are as observed in captures; address byte order to be confirmed on HW.
+    // Reply: {0x01, 0x04, 0x01} + our BT address in wire (little-endian) order,
+    // as observed in captures and verified against a real console.
     const auto addr = local_bt_address();
     std::array<uint8_t, 9> reply{0x01,    0x04,    0x01,    addr[0], addr[1],
                                  addr[2], addr[3], addr[4], addr[5]};
