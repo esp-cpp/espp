@@ -86,17 +86,9 @@ public:
   }
 
   /// Start the service
-  /// \note This must be called after the service has been initialized
-  void start() {
-    if (!service_) {
-      logger_.error("Service not created");
-      return;
-    }
-    if (!service_->start()) {
-      logger_.error("Failed to start service");
-      return;
-    }
-  }
+  /// \note Kept for API compatibility: NimBLE starts every service when the
+  ///       server starts (esp-nimble-cpp 2.x), so there is nothing to do here.
+  [[deprecated("no-op: services start with BleGattServer::start()")]] void start() {}
 
   /// Get the service object
   /// \return The service object

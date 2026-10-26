@@ -118,15 +118,13 @@ dev.poll();                        // keepalive if due
 
 `wdi_ble.hpp` wraps `WdiDevice` with the WDI GATT service (service `10A50001-…`,
 characteristics `10A5000{6..A}`) on `espp::BleGattServer` (esp-nimble-cpp). After
-`BleGattServer::init()`, create the service, start it, advertise, and poll:
+`BleGattServer::init()`, create the service, start the server, advertise, and poll:
 
 ```cpp
 espp::WdiBlePeripheral wdi({.on_feedback = [](const espp::wdi::FeedbackReport &f){ /*...*/ }});
 espp::BleGattServer ble;
 ble.init("espp WDI");
 wdi.make_service(ble.server());
-ble.start_services();
-wdi.start();
 ble.start();
 espp::BleGattServer::AdvertisedData adv;
 adv.setName("espp WDI");
