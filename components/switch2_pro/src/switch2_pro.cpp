@@ -492,8 +492,7 @@ bool Switch2Pro::build_gatt() {
   attach(svc2->createCharacteristic(NimBLEUUID(AUDIO_COMMAND_UUID), NIMBLE_PROPERTY::WRITE_NR),
          "audio_command(0x0032)", 0);
 
-  svc1->start();
-  svc2->start();
+  // services are started with the server (NimBLEService::start() is a deprecated no-op)
   return true;
 }
 
