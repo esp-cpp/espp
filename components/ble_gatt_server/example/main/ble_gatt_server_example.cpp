@@ -67,15 +67,8 @@ extern "C" void app_main(void) {
     // you can create a service and add it to the server using
     // ble_gatt_server.server().addService()
 
-    // now start the services
-    ble_gatt_server.start_services(); // starts the device info service and battery service
-    // NOTE: we could also directly start them ourselves if we wanted to
-    //      control the order of starting the services
-    // e.g.:
-    // ble_gatt_server.battery_service().start();
-    // ble_gatt_server.device_info_service().start();
-
-    // now start the gatt server
+    // now start the gatt server; this also starts every service that has
+    // been added to it (the built-in device info / battery services included)
     ble_gatt_server.start();
 
     // let's set some of the service data

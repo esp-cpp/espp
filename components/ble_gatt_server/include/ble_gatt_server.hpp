@@ -268,7 +268,7 @@ public:
     // set the server callbacks
     server_->setCallbacks(new BleGattServerCallbacks(this));
 
-    if (builtin_info_services_) {
+    if (builtin_info_services_enabled_) {
       // create the device info service
       device_info_service_.init(server_);
 
@@ -289,12 +289,12 @@ public:
   ///       (the built-in services are created/skipped during init) and is ignored
   ///       with a warning, since honoring it would leave services created but never
   ///       started or torn down.
-  void set_builtin_info_services_enabled(bool enabled) {
+  void set_builtin_info_services_enabled_enabled(bool enabled) {
     if (server_) {
-      logger_.warn("set_builtin_info_services_enabled() ignored: must be called before init()");
+      logger_.warn("set_builtin_info_services_enabled_enabled() ignored: must be called before init()");
       return;
     }
-    builtin_info_services_ = enabled;
+    builtin_info_services_enabled_ = enabled;
   }
 
   /// Deinitialize the GATT server
@@ -312,7 +312,7 @@ public:
     }
 
     // deinitialize the services
-    if (builtin_info_services_) {
+    if (builtin_info_services_enabled_) {
       device_info_service_.deinit();
       battery_service_.deinit();
     }
@@ -325,13 +325,9 @@ public:
   }
 
   /// Start the services
-  /// This method starts the device info and battery services.
-  void start_services() {
-    if (builtin_info_services_) {
-      device_info_service_.start();
-      battery_service_.start();
-    }
-  }
+  /// \note Kept for API compatibility: NimBLE starts every service when the
+  ///       server starts (start()), so there is nothing to do here.
+  [[deprecated("no-op: services start with start()")]] void start_services() {}
 
   /// Start the server
   /// This method starts the GATT server.
@@ -838,7 +834,7 @@ protected:
   NimBLEServer *server_{nullptr};         ///< The GATT server.
   DeviceInfoService device_info_service_; ///< The device info service.
   BatteryService battery_service_;        ///< The battery service.
-  bool builtin_info_services_{
+  bool builtin_info_services_enabled_{
       true}; ///< Whether to create/start the built-in DIS + battery services.
 };
 } // namespace espp
