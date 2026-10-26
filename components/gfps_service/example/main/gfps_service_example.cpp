@@ -51,13 +51,11 @@ extern "C" void app_main(void) {
   gfps_service.set_log_level(espp::Logger::Verbosity::DEBUG);
   gfps_service.init(ble_gatt_server.server());
 
-  // now that we've made the input characteristic, we can start the service
+  // set the nearby-framework advertisement mode (the GATT service itself is
+  // started with the server below)
   gfps_service.start();
-  // NOTE: we could also directly start them ourselves if we wanted to
-  //      control the order of starting the services
-  // e.g.:
 
-  // now start the gatt server
+  // now start the gatt server; this also starts every service added to it
   ble_gatt_server.start();
 
   // let's set some of the service data
