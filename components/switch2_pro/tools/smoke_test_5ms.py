@@ -40,42 +40,20 @@ import re
 import subprocess
 import sys
 import tempfile
-from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from patch_nimble_5ms import TARGETS, archive_paths, resolve_tool, spec_for  # noqa: E402
 
-# Function that contains the floor check, per stack.
-FLOOR_FUNC = {
-    "nimble": None,  # NimBLE object has no single obvious symbol; scan the whole object
-    "btdm": "r_llc_con_upd_param_in_range",
-}
-
-
-def stack_of(spec: dict) -> str:
-    return "btdm" if spec["object"] == "llc_con_upd.o" else "nimble"
-
-
-def disassemble(objdump: str, obj_path: str, func: Optional[str]) -> str:
+def disassemble(objdump: str, obj_path: str) -> str:
     r = subprocess.run([objdump, "-d", obj_path], capture_output=True, text=True)
     if r.returncode != 0:
         # Surface the real cause (wrong arch, corrupt object, missing tool) instead of
         # treating empty stdout as an indeterminate verdict; the entry point maps this
         # to exit code 2 (error), distinct from a valid unpatched (1) result.
         raise RuntimeError(f"{objdump} -d {obj_path} failed (rc={r.returncode}): {r.stderr.strip()}")
-    out = r.stdout
-    if not func:
-        return out
-    # keep only the named function body (up to the next symbol header)
-    lines, keep, buf = out.splitlines(), False, []
-    for ln in lines:
-        if re.search(rf"<{re.escape(func)}>:", ln):
-            keep = True
-        elif keep and re.match(r"^[0-9a-f]{8} <", ln):
-            break
-        if keep:
-            buf.append(ln)
-    return "\n".join(buf)
+    # the NimBLE object has no single symbol for the floor check, so the whole
+    # object is scanned for the floor instruction
+    return r.stdout
 
 
 def main() -> int:
@@ -93,12 +71,10 @@ def main() -> int:
     objdump = resolve_tool("objdump", spec["arch"], args.objdump)
     libs = archive_paths(args.idf_path, spec)
     obj = spec["object"]
-    func = FLOOR_FUNC[stack_of(spec)]
     re_old, re_new = re.compile(spec["disasm_old"]), re.compile(spec["disasm_new"])
 
-    print(f"target {args.target}  ({spec['arch']}, {stack_of(spec)} controller)")
-    print(f"objdump: {objdump}   object: {obj}"
-          + (f"   function: {func}" if func else ""))
+    print(f"target {args.target}  ({spec['arch']}, NimBLE controller)")
+    print(f"objdump: {objdump}   object: {obj}")
     print("-" * 68)
 
     verdicts = []
@@ -106,7 +82,7 @@ def main() -> int:
         tag = os.path.basename(lib)
         with tempfile.TemporaryDirectory() as tmp:
             subprocess.run([ar, "x", lib, obj], cwd=tmp, check=True)
-            disasm = disassemble(objdump, os.path.join(tmp, obj), func)
+            disasm = disassemble(objdump, os.path.join(tmp, obj))
         old_lines = [l.strip() for l in disasm.splitlines() if re_old.search(l)]
         new_lines = [l.strip() for l in disasm.splitlines() if re_new.search(l)]
         if new_lines and not old_lines:

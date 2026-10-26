@@ -112,10 +112,7 @@ def resolve_tool(kind: str, arch: str, explicit: Optional[str]) -> str:
     the ESP-IDF export script), then llvm-*, then the bare tool."""
     if explicit:
         return explicit
-    prefixes = {
-        "riscv": ["riscv32-esp-elf-"],
-        "xtensa-esp32s3": ["xtensa-esp32s3-elf-"],
-    }.get(arch, [])
+    prefixes = {"riscv": ["riscv32-esp-elf-"]}.get(arch, [])
     cands = [p + kind for p in prefixes] + [f"llvm-{kind}", kind]
     for cand in cands:
         if shutil.which(cand):

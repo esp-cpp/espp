@@ -7,7 +7,6 @@
 #include <system_error>
 #include <vector>
 
-#include "esp_log.h"
 #include "esp_mac.h"
 #include "esp_pthread.h"   // esp_pthread_set_cfg — size the streaming task's stack
 #include "esp_timer.h"     // esp_timer_get_time — µs timestamps for tx-wedge telemetry
@@ -99,12 +98,6 @@ bool Switch2Pro::init() {
     return false;
   }
   init_attempted_ = true;
-  // Keep the NimBLE host log quiet — our own Switch2Pro trace carries the
-  // protocol flow. Bump these to ESP_LOG_DEBUG when the raw stack-level view
-  // (every ATT/ACL byte) is needed.
-  esp_log_level_set("NimBLE", ESP_LOG_WARN);
-  esp_log_level_set("NimBLEGATTS", ESP_LOG_WARN);
-
   // The pairing crypto is the load-bearing part; verify it against the golden
   // vector up front so a broken build fails loudly rather than at the console.
   if (PairingCrypto::self_test()) {
@@ -1447,8 +1440,11 @@ void Switch2Pro::handle_command(bool via_vibration_command, Command cmd, uint8_t
     break;
   }
   case Command::FIRMWARE_UPDATE:
-    // ACK without offering an update, to suppress the console's update prompt.
-    // TODO(hw): confirm the exact bytes the console needs to skip the prompt.
+    // Bare ACK. The console has not been observed to prompt for a controller
+    // firmware update against this emulator (its firmware-info reply presents a
+    // current version), but the exact bytes a real controller returns here have
+    // NOT been verified against a capture; if the console ever starts an update
+    // flow, this is the handler to revisit.
     send_ack(via_vibration_command, static_cast<uint8_t>(cmd), transport, sub);
     break;
   case Command::NFC:
