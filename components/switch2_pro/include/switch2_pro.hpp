@@ -8,13 +8,13 @@
 #include <mutex>
 #include <optional>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "NimBLEDevice.h"
 #include "ble_gatt_server.hpp"
 
 #include "base_component.hpp"
+#include "task.hpp"
 #include "timer.hpp"
 
 #include "switch2_pro_pairing.hpp"
@@ -38,8 +38,9 @@ namespace espp {
 /// wake-from-sleep are all implemented and verified against a real console. The
 /// console drives the link at a sub-spec 5 ms interval for sustained input,
 /// reconnect, and wake; the S3/C3 get that from ESP-IDF's default-on
-/// CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (>= v6.1), the open-NimBLE chips
-/// from the opt-in tools/patch_nimble_5ms.py (see the component README).
+/// CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (>= v6.1). The open-NimBLE chips
+/// (C6/C61/C2/H2) have no such option yet, so there only the initial pairing
+/// handshake works on a stock controller (see the component README).
 ///
 /// \section switch2_pro_ex1 Example
 /// \snippet switch2_pro_example.cpp switch2_pro example
@@ -52,7 +53,7 @@ public:
     /// re-issue it every wake_interval) until the console connects, so a sleeping
     /// console is woken and reconnects without re-pairing. When false we use the
     /// plain reconnection advertisement (only reconnects an already-awake console).
-    bool wake_console_on_boot{true};
+    bool wake_console_on_boot_enabled{true};
     std::chrono::duration<float> wake_interval{std::chrono::seconds(5)};
     /// Replay captured IMU motion frames in the input reports' motion block. Once
     /// the console enables the IMU feature (it does during standard init), every
@@ -63,7 +64,7 @@ public:
     /// embedded timestamps jump backwards at the wrap. The driver owns the motion
     /// block, so there is no per-report motion input today; a live-IMU path (a
     /// motion setter on the report) is future work.
-    bool stream_imu_motion{false};
+    bool imu_motion_enabled{false};
     /// Streaming model. **On (default) = continuous:** send one report every
     /// connection interval with the counter incrementing each time, exactly like
     /// a real controller — verified stable and lag-free on the C6-class chips and
@@ -72,7 +73,7 @@ public:
     /// button/stick state changes, plus a low-rate keepalive — an optional
     /// reduced-traffic mode (it was also a workaround for the pre-v6.1 S3 BTDM
     /// tx-servicing stall, now fixed; see README "Known issues").
-    bool continuous_streaming{true};
+    bool continuous_streaming_enabled{true};
     /// Continuous-mode send divisor: send one report every Nth connection interval
     /// (1 = every interval, 2 = every other, ...). The resulting rate depends on the
     /// live interval the console chose: at the initial 15 ms, N=1 is ~62 Hz and N=2
@@ -88,10 +89,10 @@ public:
   explicit Switch2Pro(const Config &config)
       : BaseComponent("Switch2Pro", config.log_level)
       , device_name_(config.device_name)
-      , wake_console_on_boot_(config.wake_console_on_boot)
+      , wake_console_on_boot_enabled_(config.wake_console_on_boot_enabled)
       , wake_interval_(config.wake_interval)
-      , stream_imu_motion_(config.stream_imu_motion)
-      , continuous_streaming_(config.continuous_streaming)
+      , imu_motion_enabled_(config.imu_motion_enabled)
+      , continuous_streaming_enabled_(config.continuous_streaming_enabled)
       , continuous_stream_divisor_(
             config.continuous_stream_divisor ? config.continuous_stream_divisor : 1)
       , ble_gatt_server_({.callbacks = {}, .log_level = Logger::Verbosity::WARN}) {}
@@ -211,20 +212,25 @@ protected:
   void save_bond();
   /// Load a persisted bond into bond_peer_* / ltk_. Returns true if one exists.
   bool load_bond();
+  /// Monotonic microseconds since boot (steady_clock), for the stream telemetry.
+  static int64_t now_us();
   /// Our own BT address (6 bytes) for the exchange-addresses reply.
   std::array<uint8_t, 6> local_bt_address() const;
 
-  /// Driver-owned streaming task: while the console is subscribed, notify the
-  /// input report on 0x000e. In continuous mode (default, Config::continuous_streaming
-  /// = true) it sends one report every connection interval like a real controller;
-  /// in on-change mode it sends only when the app state changes plus a low-rate
-  /// keepalive. Started in init(), stopped in the destructor.
-  void input_stream_loop();
+  /// One iteration of the driver-owned streaming task (espp::Task callback):
+  /// while the console is subscribed, notify the input report on 0x000e. In
+  /// continuous mode (default, Config::continuous_streaming_enabled = true) it
+  /// sends one report every connection interval like a real controller; in
+  /// on-change mode it sends only when the app state changes plus a low-rate
+  /// keepalive. Sleeps on `cv` for the connection interval so Task::stop() wakes
+  /// it immediately. Started in init(), stopped in the destructor.
+  /// @return false to keep the task running.
+  bool input_stream_tick(std::mutex &m, std::condition_variable &cv);
   /// Send the given input-report snapshot now (the caller passes the exact bytes it
   /// snapshotted under input_mutex_; this adds the counter/rumble/motion fields it
   /// manages), honoring the mbuf backpressure cap. Returns true iff a notification
   /// was actually queued (rc==0); false on a backpressure skip or ENOMEM. Called by
-  /// input_stream_loop().
+  /// input_stream_tick().
   bool send_input_report(const std::array<uint8_t, switch2::Pro2InputReport::SIZE> &report_data);
   /// On-change keepalive: send a report at least this often (in connection
   /// intervals) even when the app state is unchanged, so the console keeps seeing
@@ -261,10 +267,10 @@ protected:
   friend class ChannelCallbacks;
 
   std::string device_name_;
-  bool wake_console_on_boot_;
+  bool wake_console_on_boot_enabled_;
   std::chrono::duration<float> wake_interval_;
-  bool stream_imu_motion_;
-  bool continuous_streaming_; ///< see Config::continuous_streaming (on-change vs per-interval)
+  bool imu_motion_enabled_;
+  bool continuous_streaming_enabled_; ///< see Config::continuous_streaming_enabled
   uint32_t
       continuous_stream_divisor_; ///< see Config::continuous_stream_divisor (rate-halving probe)
   std::shared_ptr<espp::Timer> wake_timer_; ///< re-issues the wake advertisement until connected
@@ -333,10 +339,11 @@ protected:
   uint32_t idle_intervals_{0}; ///< connection intervals since last send (on-change keepalive)
   uint32_t interval_tick_{0};  ///< continuous-mode interval counter (for the rate divisor)
   // --- tx-wedge diagnostics: localize the ENOMEM stall (our tx drain vs the console) ---
-  std::atomic<int64_t> last_tx_complete_us_{0}; ///< esp_timer time of the last NOTIFY_TX completion
-  std::atomic<int64_t> stream_start_us_{0};     ///< when the current streaming run began (0 = not
-                                                ///< started; read cross-thread at disconnect)
-  int64_t hb_last_us_{0};                       ///< last heartbeat timestamp
+  std::atomic<int64_t> last_tx_complete_us_{
+      0};                                   ///< steady_clock µs of the last NOTIFY_TX completion
+  std::atomic<int64_t> stream_start_us_{0}; ///< when the current streaming run began (0 = not
+                                            ///< started; read cross-thread at disconnect)
+  int64_t hb_last_us_{0};                   ///< last heartbeat timestamp
   uint32_t hb_last_completions_{
       0};                      ///< tx_completions_ snapshot at last heartbeat (drain-rate delta)
   uint32_t hb_last_enomem_{0}; ///< enomem_count_ snapshot at last heartbeat
@@ -345,8 +352,8 @@ protected:
   std::atomic<bool> wedge_reported_{
       false}; ///< one-shot guard for the wedge-onset log (read cross-thread at disconnect)
   std::mutex input_mutex_; ///< guards input_report_ (set from app task, read by stream task)
-  std::thread input_stream_thread_;      ///< streams input reports once per connection interval
-  std::atomic<bool> stream_stop_{false}; ///< signals input_stream_thread_ to exit
+  std::unique_ptr<espp::Task> input_stream_task_; ///< streams input reports once per connection
+                                                  ///< interval (input_stream_tick)
   // Last-observed link state, logged whenever it changes so we can see exactly
   // what the console renegotiates at the pairing->active transition.
   uint16_t last_itvl_{0};

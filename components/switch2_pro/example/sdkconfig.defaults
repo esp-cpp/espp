@@ -1,10 +1,9 @@
-# Default target is esp32c6 (open-source NimBLE BLE controller): pairing,
-# reconnect, wake, and sustained lag-free input all verified against a real
-# Switch 2. The ESP32-S3 is also fully verified on ESP-IDF >= v6.1, where the
-# official CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (default on) lets its BTDM
-# controller accept the console's 5 ms interval with no binary patch (the old
-# ~3 s tx-stall was on the pre-v6.1 controller lib — see README "Known issues").
-CONFIG_IDF_TARGET="esp32c6"
+# Default target is esp32s3: on ESP-IDF >= v6.1 the official
+# CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (default on) lets its BTDM controller
+# accept the console's 5 ms interval, and pairing, input, reconnect and wake are
+# all verified against a real Switch 2. The esp32c6 (and C61/C2/H2) build too, but
+# their stock NimBLE controller rejects 5 ms (see the component README).
+CONFIG_IDF_TARGET="esp32s3"
 
 # On the ESP32-S3 (native USB), route the console to USB-Serial-JTAG so the
 # monitor shows the pairing trace. Harmless on boards with a UART bridge too.
@@ -74,13 +73,7 @@ CONFIG_BT_NIMBLE_MAX_CCCDS=128
 # The console's sub-spec 5 ms interval is required for sustained input in EVERY
 # mode (it drops even the fresh session to 5 ms ~1.5 s after subscription via
 # LL_CONNECTION_UPDATE) plus reconnect/wake (bonded CONNECT_IND is 5 ms from the
-# first packet). Only the initial pairing handshake runs at 15 ms.
-#   * ESP32-S3 / C3: use ESP-IDF >= v6.1's official, default-on
-#     CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE — no patch needed.
-#   * ESP32-C6 / C61 / C2 / H2: the open NimBLE controller has no such option, so
-#     enable the patch below. It is OFF by default because it mutates the prebuilt
-#     BLE controller lib in your global $IDF_PATH at configure time (too invasive
-#     to do silently). Uncomment (or run `tools/patch_nimble_5ms.py --target
-#     <chip>`), verify with `tools/smoke_test_5ms.py --target <chip>`; undo with
-#     `--restore`.
-# CONFIG_SWITCH2_PRO_PATCH_NIMBLE_5MS=y
+# first packet). Only the initial pairing handshake runs at 15 ms. On ESP32-S3 /
+# C3 that is ESP-IDF >= v6.1's official, default-on
+# CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE; the C6-family NimBLE controller has
+# no such option yet.

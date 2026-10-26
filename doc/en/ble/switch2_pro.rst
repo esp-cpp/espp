@@ -10,14 +10,15 @@ streaming input reports. It is built on :cpp:class:`espp::BleGattServer`
 
 .. warning::
 
-   **Supported targets: ESP32-C6** (and the other open-NimBLE-controller chips:
-   C61/C2/H2) **and ESP32-S3** — pairing, input streaming, reconnect, and
-   wake-from-sleep all verified against a real console. The S3 needs the console's
-   sub-spec 5 ms interval, which is now official in ESP-IDF via
-   ``CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE`` (default on) — use **ESP-IDF
-   ≥ v6.1** (or the v6.0/v5.5/v5.4/v5.3 backports), where the S3 works with no
-   binary patch. See the component README's "The 5 ms connection interval" and
-   "Known issues".
+   **Supported target: ESP32-S3** with **ESP-IDF ≥ v6.1** (or the
+   v6.0/v5.5/v5.4/v5.3 backports), where the official
+   ``CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE`` (default on) lets the controller
+   accept the console's sub-spec 5 ms interval — pairing, input streaming,
+   reconnect, and wake-from-sleep all verified against a real console. The
+   open-NimBLE-controller chips (ESP32-C6/C61/C2/H2) build and pair, but their
+   stock controller rejects the 5 ms interval, so sustained input, reconnect and
+   wake do not work there yet. See the component README's "The 5 ms connection
+   interval" and "Known issues".
 
 .. note::
 
@@ -52,12 +53,11 @@ wake all need it**. How to enable it depends on the chip:
   backports), where the official ``CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE``
   (default on; espressif/esp-idf#18467) makes the BTDM controller accept the 5 ms
   interval with **no binary patch**. This is the verified S3/C3 path.
-- **ESP32-C6 / C61 / C2 / H2:** the open NimBLE controller has no such option, so
-  enable the opt-in Kconfig option ``SWITCH2_PRO_PATCH_NIMBLE_5MS``, which
-  binary-patches the prebuilt controller library in your global ``$IDF_PATH``
-  install (off by default — it mutates your ESP-IDF install).
+- **ESP32-C6 / C61 / C2 / H2:** the open NimBLE controller has no such option
+  yet, and espp does not modify the ESP-IDF controller libraries, so these chips
+  are limited to the initial pairing handshake until Espressif exposes one.
 
-See the component README and ``tools/patch_nimble_5ms.py``.
+See the component README.
 
 .. ------------------------------- Example -------------------------------------
 

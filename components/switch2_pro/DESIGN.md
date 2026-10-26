@@ -18,8 +18,8 @@ this component builds custom GATT services directly on `espp::BleGattServer`.
 - **Working ESP32 reference** (MIT): `zhantss/ESP32-BLE5-NSController-Emulator` —
   raw-NimBLE C emulator that a real Switch 2 accepts. We adapt its *approach and
   structure* (with attribution) and reimplement on esp-nimble-cpp / `BleGattServer`.
-  We do **not** copy ndeadly's prose/tables wholesale, and we do **not** vendor
-  Espressif's `libble_app.a`.
+  We do **not** copy ndeadly's prose/tables wholesale, and we do **not** vendor or
+  modify Espressif's controller libraries.
 
 ## Feasibility (verified)
 
@@ -58,22 +58,12 @@ enable 5 ms on hardware (patching that min-interval compare alone is reported
 insufficient on the pre-fix S3, esp-idf#18467, matching our own testing where it
 had no effect), so it is not shipped. Those RE notes live in git history.
 
-**ESP32-C6 / C61 / C2 / H2 — binary patch.** The open RISC-V NimBLE controller has
-no equivalent config option, so `tools/patch_nimble_5ms.py` lowers its 7.5 ms floor
-with a single-instruction edit: patch `$IDF_PATH/.../libble_app.a`, object
-`ble_ll_conn.c.o` — the floor is `addi a5, a4, -6`; flip the immediate to `-4`
-(`93 07 a7 ff` → `93 07 c7 ff`). Adapted from zhantss (MIT). It is the single
-unique occurrence in its object (asserted by the patcher); `tools/smoke_test_5ms.py`
-proves the edit at the disassembly level with no hardware.
-
-**Build integration (decision: opt-in, never silent).** The patch mutates the user's
-global IDF install and is version-fragile (the byte pattern is not guaranteed across
-IDF versions — the patcher refuses to run if the pattern is missing or non-unique). So
-it is gated behind a component Kconfig option `SWITCH2_PRO_PATCH_NIMBLE_5MS`
-(default **n**). When enabled for a supported target, the component CMake invokes the
-patcher at configure time (idempotent) and prints a loud notice. It is **not required
-for the GATT + pairing skeleton milestone** — pairing runs over the command channel
-independent of the interval.
+**ESP32-C6 / C61 / C2 / H2 — no supported route today.** The open RISC-V NimBLE
+controller has no equivalent config option, and the component does not modify the
+ESP-IDF controller libraries (decision: espp ships nothing that mutates a user's
+IDF install). The protocol was developed and verified on a C6 with a locally
+modified controller, so these chips work as soon as Espressif exposes a
+sub-spec-interval option for the NimBLE controller.
 
 ## GATT layout (reproduced from captures)
 
@@ -97,7 +87,7 @@ disconnect a peer that initiates SMP. We configure NimBLE not to initiate pairin
 the LTK from the 0x15 exchange is what encrypts the link. Bond (host addr + LTK)
 persists in NVS for reconnect + wake.
 
-## Milestones (all implemented; verified end-to-end on ESP32-C6 and ESP32-S3)
+## Milestones (all implemented; verified end-to-end on ESP32-S3, and on a C6 with a modified controller)
 
 1. **GATT + pairing skeleton**: custom GATT tree stands up, advertises with
    Nintendo manufacturer data, completes the 0x15 pairing handshake (crypto
@@ -114,15 +104,14 @@ persists in NVS for reconnect + wake.
    The console connects a bonded controller at 5 ms from the first packet, and
    drops even the fresh session to 5 ms mid-stream, so the link runs at 5 ms in
    every mode. On S3/C3 use ESP-IDF ≥ v6.1's official
-   `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE` (default on); on C6/C61/C2/H2 use
-   the opt-in `SWITCH2_PRO_PATCH_NIMBLE_5MS` controller patch.
+   `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE` (default on); the C6-family
+   controller has no such option yet (see above).
 
 On ESP-IDF ≥ v6.1 the ESP32-S3 is also fully verified (pairing, continuous input,
 reconnect, wake) — its updated BTDM controller lib both accepts the console's 5 ms
 CONNECT_IND (via `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE`) and sustains the
 encrypted input stream, fixing the ~3 s tx-stall seen on v6.0.1 (see the README
-"Known issues"). On pre-v6.1 IDF, C6-class chips (open NimBLE controller) are the
-supported target.
+"Known issues").
 
 ## Component layout
 
@@ -134,7 +123,4 @@ supported target.
       src/switch2_pro_pairing.cpp        pairing crypto (mbedTLS PSA) + self-test
       src/switch2_pro_flash.hpp          simulated controller flash (captured calibration / device-info blocks)
       src/switch2_pro_motion.hpp         captured IMU motion frames (optional replay)
-      tools/patch_nimble_5ms.py          opt-in 5 ms interval patcher (C6/C61/C2/H2 NimBLE; S3/C3 use the official IDF option)
-      tools/smoke_test_5ms.py            hardware-free verifier (disassembles the controller floor)
-      Kconfig                            SWITCH2_PRO_PATCH_NIMBLE_5MS opt-in
-      example/                           C6-primary, S3-buildable
+      example/                           S3-primary, C6-buildable

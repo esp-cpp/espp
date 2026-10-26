@@ -54,7 +54,7 @@ extern "C" void app_main(void) {
   // console automatically every few seconds.
   espp::Switch2Pro controller({
       .device_name = "Pro Controller",
-      .wake_console_on_boot = false,
+      .wake_console_on_boot_enabled = false,
       .log_level = espp::Logger::Verbosity::INFO,
   });
 

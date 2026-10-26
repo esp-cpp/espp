@@ -4,32 +4,28 @@ Emulate a **Nintendo Switch 2 Pro Controller over BLE** so a real Switch 2
 console accepts it as a native controller — including waking the console from
 sleep. Built on `espp::BleGattServer` (NimBLE).
 
-> **Status: fully working on the ESP32-C6 (recommended target).**
-> Verified against a real Switch 2 (ESP32-C6-DevKit): the console pairs with and
-> accepts the emulator as a Pro Controller (full battery, correct icon), input
-> streams **continuously and lag-free** (one report per live connection interval,
-> matching a real controller — ~62 Hz during the initial 15 ms window, then ~200 Hz
-> once the console moves the link to 5 ms; see "The 5 ms connection interval"),
-> buttons and sticks register on the console's "Test Input Devices" screen, and
-> **reconnect**
-> (including the console reconnecting on its own after a reboot) and
-> **wake-from-sleep** both work without re-pairing. What's implemented:
-> advertising with Nintendo manufacturer data, the exact GATT handle layout,
-> the reverse-engineered pairing crypto (known-answer verified) + LTK injection
-> for standard LL encryption, the full console init/command sequence, bond
-> persistence (NVS), and continuous input-report streaming with real
+> **Status: fully working on the ESP32-S3 with ESP-IDF ≥ v6.1 (recommended
+> target).** Verified against a real Switch 2: the console pairs with and accepts
+> the emulator as a Pro Controller (full battery, correct icon), input streams
+> **continuously and lag-free** (one report per live connection interval,
+> matching a real controller — ~62 Hz during the initial 15 ms window, then
+> ~200 Hz once the console moves the link to 5 ms; see "The 5 ms connection
+> interval"), buttons and sticks register on the console's "Test Input Devices"
+> screen, and **reconnect** (including the console reconnecting on its own after
+> a reboot) and **wake-from-sleep** both work without re-pairing. What's
+> implemented: advertising with Nintendo manufacturer data, the exact GATT handle
+> layout, the reverse-engineered pairing crypto (known-answer verified) + LTK
+> injection for standard LL encryption, the full console init/command sequence,
+> bond persistence (NVS), and continuous input-report streaming with real
 > backpressure.
 >
-> **ESP32-S3: also fully working on ESP-IDF ≥ v6.1 (verified on real hardware).**
-> The S3's sub-spec-interval rejection (which blocked reconnect/wake) is fixed by
-> ESP-IDF's `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE` (default on;
-> espressif/esp-idf#18467), backported to v6.0/v5.5/v5.4/v5.3 — so on a current
-> IDF the S3 needs **no binary patch**. Verified against a real Switch 2 on
-> **v6.1**: pairing, continuous lag-free input, reconnect, and wake-from-sleep all
-> work. The earlier finding that the *closed BTDM controller stalls sustained tx
-> ~3 s into a stream* was on the **pre-fix (v6.0.1) controller lib**; v6.1 ships an
-> updated controller lib and the stall is gone. See "The 5 ms connection interval"
-> and "Known issues".
+> **ESP32-C6 / C61 / C2 / H2: builds and pairs, but sustained input, reconnect
+> and wake need a BLE controller that accepts the console's sub-spec 5 ms
+> interval**, which the open NimBLE controller ESP-IDF ships for these chips does
+> not (there is no config option for it yet). The protocol work was developed and
+> verified on a C6 with a locally modified controller library, so the component
+> is known to work there once the controller accepts 5 ms — but espp does not
+> ship or apply any modification to ESP-IDF. See "The 5 ms connection interval".
 
 Unlike the original Switch (Bluetooth Classic HID), the Switch 2 uses a
 **proprietary BLE GATT interface — not HID-over-GATT — and a custom pairing
@@ -109,28 +105,17 @@ S3/C3; see the note below).
 > (`libbtdm_app.a`, `r_llc_con_upd_param_in_range`) was reverse-engineered but never
 > confirmed to enable 5 ms on hardware — patching that min-interval compare alone is
 > reported insufficient on the pre-fix S3 (esp-idf#18467), matching our own testing
-> where it had no effect. So `SWITCH2_PRO_PATCH_NIMBLE_5MS` covers only the
-> C6-family chips below; on S3/C3 use the official option above (update your IDF).
+> where it had no effect. On S3/C3 use the official option above (update your IDF).
 
-### ESP32-C6 / C61 / C2 / H2 — binary patch
+### ESP32-C6 / C61 / C2 / H2 — not supported by the stock controller
 
-The open NimBLE controller (`libble_app.a`) has no equivalent config option yet
-(Espressif support is planned), so these chips use the opt-in Kconfig option
-**`SWITCH2_PRO_PATCH_NIMBLE_5MS`** (off by default — it mutates the prebuilt
-controller lib in your global `$IDF_PATH`, which is too invasive to do silently).
-When enabled, the build runs `tools/patch_nimble_5ms.py`, which binary-patches the
-minimum-interval floor from 6 units (7.5 ms) to 4 (5 ms):
-
-- **ESP32-C6 / C61 / C2 / H2** (RISC-V, open NimBLE controller): `libble_app.a`,
-  `addi a5,a4,-6` → `-4`.
-
-(The patcher only supports these targets; it refuses S3/C3 — use the official
-option above there.)
-
-This modifies your ESP-IDF installation; undo with `python
-tools/patch_nimble_5ms.py --target <chip> --restore`, and check the current state
-(no hardware needed) with `python tools/smoke_test_5ms.py --target <chip>`, which
-disassembles the controller and reports whether 5 ms is accepted or rejected.
+The open NimBLE controller (`libble_app.a`) enforces the 7.5 ms spec minimum and
+has no equivalent config option yet, so on these chips a stock ESP-IDF completes
+the initial pairing handshake but loses the session once the console moves the
+link to 5 ms (and cannot accept a bonded 5 ms reconnect/wake). espp does not
+modify the ESP-IDF controller libraries; if Espressif adds a sub-spec-interval
+option for the NimBLE controller (as they did for the BTDM controller), these
+chips become fully supported with no change to this component.
 
 ## Stability notes & known issues
 
@@ -161,12 +146,12 @@ dropping the link from 15 ms to **5 ms** (`CONN PARAMS UPDATE: itvl=5.00ms`). Th
 pre-fix S3 BTDM controller could not apply that sub-spec interval, so tx servicing
 collapsed a few seconds into every session — which is why the "stall" always hit
 at the same wall-clock regardless of send rate (it was the console's timed switch,
-not resource exhaustion), and why the C6 (which accepts 5 ms via the binary patch)
-never showed it. It is the **same** sub-spec-interval limitation as reconnect/wake,
+not resource exhaustion), and why the C6 development setup (whose controller
+accepted 5 ms) never showed it. It is the **same** sub-spec-interval limitation as reconnect/wake,
 just arriving mid-session. Espressif's controller-lib update in v6.1 (with
 `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE`) makes the S3 accept the 5 ms update,
 and the stream now holds — verified on real hardware. On a pre-fix IDF, on-change
-streaming (`Config::continuous_streaming = false`) reduces traffic enough to
+streaming (`Config::continuous_streaming_enabled = false`) reduces traffic enough to
 partially mask it (input works in bursts); the real fix is updating to
 ESP-IDF ≥ v6.1 (or a C6-class chip).
 
@@ -184,7 +169,7 @@ a real controller (verified in captures: a real device streams 62 Hz at the
 un-drained host mbufs (the `NOTIFY_TX` event fires at host→controller handoff,
 *not* over-air completion, so counting those cannot detect a backlog — the mbuf
 pool level can). The 40-byte IMU motion block is sent all-zero by default
-(accepted by the console); `Config::stream_imu_motion` replays captured frames
+(accepted by the console); `Config::imu_motion_enabled` replays captured frames
 instead.
 
 **Dedicate a core to BLE (dual-core chips).** With everything on core 0 (the
@@ -222,7 +207,7 @@ user-initiated wake should broadcast `0x81` (see `wake_console()`).
 
 The protocol was reverse-engineered by the community, principally
 [ndeadly/switch2_controller_research](https://github.com/ndeadly/switch2_controller_research).
-The overall approach and the NimBLE-patch technique are adapted (MIT) from
+The overall approach is adapted (MIT) from
 [zhantss/ESP32-BLE5-NSController-Emulator](https://github.com/zhantss/ESP32-BLE5-NSController-Emulator).
 This component reimplements the interoperability protocol on espp/NimBLE; it
 contains no Nintendo or Espressif binaries. The pairing "authentication" relies
@@ -230,7 +215,8 @@ on a published fixed key and is a possession check, not per-device attestation.
 
 ## Example
 
-See [example](./example) — default target ESP32-C6 (also fully working on the
-ESP32-S3 with ESP-IDF ≥ v6.1). It brings up the controller, runs the
-pairing-crypto self-test, advertises for a console to pair with, and maps the
-BOOT button to A (GPIO0 on Xtensa boards, GPIO9 on the RISC-V devkits).
+See [example](./example) — default target ESP32-S3 (ESP-IDF ≥ v6.1; it also
+builds for the ESP32-C6, with the controller caveat above). It brings up the
+controller, runs the pairing-crypto self-test, advertises for a console to pair
+with, and maps the BOOT button to A (GPIO0 on Xtensa boards, GPIO9 on the RISC-V
+devkits).

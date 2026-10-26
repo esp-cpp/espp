@@ -1,6 +1,7 @@
 #include "switch2_pro.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -8,8 +9,6 @@
 #include <vector>
 
 #include "esp_mac.h"
-#include "esp_pthread.h"   // esp_pthread_set_cfg — size the streaming task's stack
-#include "esp_timer.h"     // esp_timer_get_time — µs timestamps for tx-wedge telemetry
 #include "nvs.hpp"         // espp::Nvs — bond persistence via the espp NVS component
 #include "os/os_mempool.h" // os_mempool_info_get_next — mbuf pool free/low-water telemetry
 
@@ -177,7 +176,7 @@ bool Switch2Pro::init() {
     if (!inject_ltk(peer_type, peer_val.data()))
       logger_.error("reconnect: pre-loading the stored LTK failed — a bonded reconnect/wake "
                     "will not encrypt; call clear_bond() and re-pair to recover");
-    if (wake_console_on_boot_) {
+    if (wake_console_on_boot_enabled_) {
       logger_.info(
           "wake-on-boot: broadcasting the wake advertisement every {:.0f}s until connected",
           wake_interval_.count());
@@ -194,14 +193,14 @@ bool Switch2Pro::init() {
   }
   // Now that the initial advertisement is on the air, start the periodic wake
   // re-advertiser. boot_wake_pending_ is set only when reconnect_mode_ &&
-  // wake_console_on_boot_, so this covers the wake-on-boot case; starting it here
+  // wake_console_on_boot_enabled_, so this covers the wake-on-boot case; starting it here
   // (after advertising succeeds) means a failed init never leaves a timer running.
   if (boot_wake_pending_)
     start_wake_timer();
   logger_.info("Switch2Pro advertising as '{}'", device_name_);
 
   // The input stream paces itself with sub-15 ms sleeps (down to ~5 ms once the
-  // console moves the link there). std::this_thread::sleep_for is tick-quantised,
+  // console moves the link there). The condition-variable wait is tick-quantised,
   // so a low FreeRTOS tick rate coarsens the cadence: at the 100 Hz default a 5 ms
   // sleep rounds to ~10 ms and 15 ms to ~20 ms, desyncing from the connection
   // interval. The example sets CONFIG_FREERTOS_HZ=1000; warn a consumer whose build
@@ -216,27 +215,14 @@ bool Switch2Pro::init() {
   // Start the driver-owned input-streaming task. It notifies the latest report
   // once per connection interval while the console is subscribed. Give it a
   // generous stack (ble_gatts_notify_custom is a deep call) and pin it to core 0,
-  // away from the BLE controller/host on core 1.
-  // esp_pthread_set_cfg() configures every pthread the CALLING thread creates from
-  // now on, so save the caller's configuration and put it back once our thread
-  // exists; otherwise every std::thread the application starts after init() would
-  // silently inherit this stack size / priority / core pin.
-  esp_pthread_cfg_t prev_cfg;
-  const bool had_prev_cfg = esp_pthread_get_cfg(&prev_cfg) == ESP_OK;
-  esp_pthread_cfg_t cfg = esp_pthread_get_default_config();
-  cfg.stack_size = 8192;
-  cfg.prio = 5;
-  cfg.pin_to_core = 0;
-  cfg.thread_name = "s2p_stream";
-  if (esp_pthread_set_cfg(&cfg) != ESP_OK)
-    logger_.warn("esp_pthread_set_cfg failed; streaming thread will use default stack/prio/core");
-  input_stream_thread_ = std::thread(&Switch2Pro::input_stream_loop, this);
-  if (had_prev_cfg) {
-    esp_pthread_set_cfg(&prev_cfg);
-  } else {
-    const esp_pthread_cfg_t default_cfg = esp_pthread_get_default_config();
-    esp_pthread_set_cfg(&default_cfg);
-  }
+  // away from the BLE controller/host on core 1 (the example's sdkconfig).
+  input_stream_task_ = std::make_unique<espp::Task>(espp::Task::Config{
+      .callback = [this](std::mutex &m,
+                         std::condition_variable &cv) { return input_stream_tick(m, cv); },
+      .task_config = {.name = "s2p_stream", .stack_size_bytes = 8192, .priority = 5, .core_id = 0},
+      .log_level = Logger::Verbosity::WARN,
+  });
+  input_stream_task_->start();
   initialized_ = true;
   return true;
 }
@@ -247,9 +233,10 @@ Switch2Pro::~Switch2Pro() {
   // NimBLE GAP/GATT callbacks all capture `this`; members declared after
   // ble_gatt_server_/wake_timer_ are destroyed first, so a late callback would
   // otherwise access already-destroyed state.
-  stream_stop_.store(true);
-  if (input_stream_thread_.joinable())
-    input_stream_thread_.join();
+  if (input_stream_task_) {
+    input_stream_task_->stop(); // notifies the cv wait and joins
+    input_stream_task_.reset();
+  }
   if (wake_timer_) {
     wake_timer_->cancel(); // stop + join the wake-advertisement timer task
     wake_timer_.reset();
@@ -329,7 +316,7 @@ void Switch2Pro::configure_callbacks() {
     // disconnect), which would otherwise yield an uptime-sized "streamed" value.
     const int64_t started = stream_start_us_.load();
     if (started != 0) {
-      const int64_t now = esp_timer_get_time();
+      const int64_t now = now_us();
       logger_.warn("  @disconnect: streamed {:.1f}s, {} completions, {} enomem, wedged={}, "
                    "since_last_tx={:.0f}ms | {}",
                    (now - started) / 1e6f, tx_completions_.load(), enomem_count_.load(),
@@ -766,7 +753,7 @@ void Switch2Pro::on_subscribe(NimBLECharacteristic *characteristic, uint16_t sub
   if (characteristic == pro2_input_) {
     // Just flip the flag (atomic). The per-session counters/link-baseline are
     // reset by the streaming thread itself at the start of each streaming run
-    // (see input_stream_loop) so they stay single-writer — no cross-thread race.
+    // (see input_stream_tick) so they stay single-writer — no cross-thread race.
     const bool subscribed = (sub_value != 0);
     input_subscribed_.store(subscribed);
     logger_.info("input-report streaming {}", subscribed ? "ENABLED (0x000e)" : "disabled");
@@ -788,7 +775,7 @@ void Switch2Pro::on_notify_tx(NimBLECharacteristic *characteristic, int status) 
     notify_in_flight_.fetch_sub(1);
   if (status == 0) {
     tx_completions_.fetch_add(1);
-    last_tx_complete_us_.store(esp_timer_get_time());
+    last_tx_complete_us_.store(now_us());
   }
 }
 
@@ -840,8 +827,14 @@ void Switch2Pro::poll_conn_state() {
                rx_phy);
 }
 
-void Switch2Pro::input_stream_loop() {
-  // Two streaming models (Config::continuous_streaming):
+int64_t Switch2Pro::now_us() {
+  return std::chrono::duration_cast<std::chrono::microseconds>(
+             std::chrono::steady_clock::now().time_since_epoch())
+      .count();
+}
+
+bool Switch2Pro::input_stream_tick(std::mutex &m, std::condition_variable &cv) {
+  // Two streaming models (Config::continuous_streaming_enabled):
   //
   //  * continuous (default): send one report every connection interval with the
   //    counter incrementing every time, exactly like a real controller (the
@@ -852,7 +845,13 @@ void Switch2Pro::input_stream_loop() {
   //    reduced-traffic fallback that partially masks the ESP32-S3 BTDM
   //    controller's tx-servicing bug (it stops draining tx ~3 s into any
   //    sustained encrypted stream — see README "Known issues").
-  while (!stream_stop_.load()) {
+  // Sleep on the task's condition variable (not sleep_for) so Task::stop() can
+  // wake the task immediately instead of waiting out the interval.
+  auto sleep_for = [&](std::chrono::microseconds d) {
+    std::unique_lock<std::mutex> lk(m);
+    cv.wait_for(lk, d);
+  };
+  {
     // Require an encrypted (paired) session, not just a CCCD subscription, before
     // streaming — otherwise any peer that connects and subscribes to this NOTIFY
     // characteristic without completing pairing would receive live input.
@@ -863,8 +862,8 @@ void Switch2Pro::input_stream_loop() {
       stream_start_us_ = 0; // reset the wedge diagnostics for the next run
       wedge_reported_ = false;
       send_attempts_ = 0;
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      continue;
+      sleep_for(std::chrono::milliseconds(10));
+      return false; // keep running
     }
     // NOTE: poll_conn_state() is NOT called here — it issues an HCI LE-Read-PHY
     // command, and running that at the 62 Hz stream rate floods the HCI path and
@@ -876,7 +875,7 @@ void Switch2Pro::input_stream_loop() {
       itvl_us = static_cast<uint32_t>(desc.conn_itvl) * 1250; // 1.25 ms units -> us
 
     // --- tx-wedge telemetry ---
-    const int64_t now_us = esp_timer_get_time();
+    const int64_t t_us = now_us();
     if (stream_start_us_ == 0) { // first live tick of this streaming run
       // Reset the per-session state here (in the streaming thread) rather than in
       // the on_subscribe callback, so these stay single-writer.
@@ -891,23 +890,23 @@ void Switch2Pro::input_stream_loop() {
       last_latency_ = 0xffff;
       last_tx_phy_ = 0;
       last_rx_phy_ = 0;
-      stream_start_us_ = hb_last_us_ = now_us;
-      last_tx_complete_us_.store(now_us);
+      stream_start_us_ = hb_last_us_ = t_us;
+      last_tx_complete_us_.store(t_us);
       hb_last_completions_ = tx_completions_.load();
       hb_last_enomem_ = enomem_count_;
     }
-    if (now_us - hb_last_us_ >= 500000) { // 500 ms heartbeat
-      poll_conn_state();                  // interval/PHY-change log — 2 Hz, off the hot path
+    if (t_us - hb_last_us_ >= 500000) { // 500 ms heartbeat
+      poll_conn_state();                // interval/PHY-change log — 2 Hz, off the hot path
       const uint32_t c = tx_completions_.load(), e = enomem_count_;
-      const float dt = (now_us - hb_last_us_) / 1e6f;
-      const int64_t since_tx = now_us - last_tx_complete_us_.load();
+      const float dt = (t_us - hb_last_us_) / 1e6f;
+      const int64_t since_tx = t_us - last_tx_complete_us_.load();
       logger_.debug(
           "stream@{:.1f}s drain={:.0f}Hz(Δ{}) attempts={} skips={} enomemΔ={} inflight={} "
           "since_tx={:.0f}ms itvl={:.1f}ms | {}",
-          (now_us - stream_start_us_) / 1e6f, (c - hb_last_completions_) / dt,
+          (t_us - stream_start_us_) / 1e6f, (c - hb_last_completions_) / dt,
           c - hb_last_completions_, send_attempts_, backpressure_skips_, e - hb_last_enomem_,
           notify_in_flight_.load(), since_tx / 1000.0f, itvl_us / 1000.0f, pool_stats());
-      hb_last_us_ = now_us;
+      hb_last_us_ = t_us;
       hb_last_completions_ = c;
       hb_last_enomem_ = e;
     }
@@ -922,7 +921,7 @@ void Switch2Pro::input_stream_loop() {
     }
 
     bool should_send = true;
-    if (continuous_streaming_) {
+    if (continuous_streaming_enabled_) {
       // Rate-halving probe: send only every Nth interval (N=1 → every interval).
       should_send = (interval_tick_++ % continuous_stream_divisor_) == 0;
     } else {
@@ -932,14 +931,15 @@ void Switch2Pro::input_stream_loop() {
         idle_intervals_ = 0;
     }
 
-    if (should_send && send_input_report(snap) && !continuous_streaming_) {
+    if (should_send && send_input_report(snap) && !continuous_streaming_enabled_) {
       // Advance the baseline to EXACTLY what we sent, and only on an actual send
       // (a backpressure skip retries the change next interval).
       last_streamed_ = snap;
       have_streamed_ = true;
     }
-    std::this_thread::sleep_for(std::chrono::microseconds(itvl_us));
+    sleep_for(std::chrono::microseconds(itvl_us));
   }
+  return false; // keep running
 }
 
 bool Switch2Pro::send_input_report(
@@ -970,11 +970,11 @@ bool Switch2Pro::send_input_report(
   buf[0x0b] = (enabled_features_ & switch2::FEATURE_RUMBLE) ? 0x38 : 0x30;
   if (enabled_features_ & switch2::FEATURE_IMU) {
     buf[0x0e] = 0x28; // motion data length (40) — always present once IMU is enabled
-    if (stream_imu_motion_) {
+    if (imu_motion_enabled_) {
       // Replay captured resting-motion frames. NOTE: the sequence loops (128
       // frames ≈ 2 s at 62 Hz), so its embedded timestamps jump backwards at the
       // wrap; the known-working emulator streams ALL-ZERO motion instead, which
-      // the console accepts. Disable stream_imu_motion for zero-motion parity.
+      // the console accepts. Disable imu_motion_enabled for zero-motion parity.
       const auto &blk = switch2::kMotionSequence[motion_idx_++ % switch2::kMotionSequence.size()];
       std::copy(blk.begin(), blk.end(), buf.begin() + 0x0f);
     } // else: motion block stays zeroed, like the known-working emulator
@@ -1003,7 +1003,7 @@ bool Switch2Pro::send_input_report(
     ++enomem_count_;
     if (!wedge_reported_) { // one-shot snapshot at the exact moment the stall begins
       wedge_reported_ = true;
-      const int64_t now = esp_timer_get_time();
+      const int64_t now = now_us();
       const int64_t since_tx = now - last_tx_complete_us_.load();
       logger_.warn(
           "TX WEDGE: first ENOMEM at {:.1f}s after {} completions / {} attempts; "

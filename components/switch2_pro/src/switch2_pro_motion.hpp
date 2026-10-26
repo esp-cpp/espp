@@ -10,7 +10,7 @@
 /// internal (packed, undocumented) per-sample timestamps advance monotonically
 /// when replayed in sequence. The console enables IMU during init and every real
 /// report carries this 40-byte block. This sequence is replayed (looping) ONLY when
-/// Config::stream_imu_motion is enabled; by default (false) send_input_report()
+/// Config::imu_motion_enabled is set; by default (false) send_input_report()
 /// leaves the motion block all-zero, which the console also accepts.
 
 namespace espp::switch2 {

@@ -8,17 +8,17 @@ board's BOOT button doubles as the **A** button while connected, and — when
 bonded but disconnected — a BOOT press broadcasts the wake advertisement to wake
 the console.
 
-> **Supported targets: ESP32-C6** (default) **and ESP32-S3**. Pairing, input,
-> reconnect, and wake-from-sleep all work against a real console. RISC-V siblings
-> (C61/C2/H2) use the same open NimBLE controller as the C6.
->
-> **ESP32-S3** works with **ESP-IDF ≥ v6.1**, where the official
-> `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE` (default on) gives it the console's
-> 5 ms reconnect/wake with no binary patch — verified on real hardware.
+> **Supported target: ESP32-S3** (default) with **ESP-IDF ≥ v6.1**, where the
+> official `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE` (default on) lets the
+> controller accept the console's 5 ms interval — pairing, input, reconnect, and
+> wake-from-sleep all verified against a real console. The example also builds
+> for the **ESP32-C6** (and C61/C2/H2), but the stock NimBLE controller on those
+> chips rejects the 5 ms interval, so only the initial pairing handshake works
+> there (see the component README).
 
 ## Build, flash, monitor
 
-Default target is **esp32c6**:
+Default target is **esp32s3** (ESP-IDF ≥ v6.1):
 
 ```bash
 idf.py build flash monitor
@@ -27,20 +27,9 @@ idf.py build flash monitor
 The console drives the link at a sub-spec 5 ms connection interval for
 **sustained input** (it drops even the fresh session to 5 ms ~1.5 s after
 subscribing) as well as reconnect and wake-from-sleep — only the initial pairing
-handshake (~15 ms, the first ~1.5 s) works without it. On the C6-family chips
-that needs the opt-in controller patch (off by default because it modifies your
-global `$IDF_PATH` install). To enable it:
-
-```bash
-idf.py menuconfig   # Component config -> Switch 2 Pro -> enable the 5 ms NimBLE patch
-# or: python ../tools/patch_nimble_5ms.py --target esp32c6   (undo with --restore)
-python ../tools/smoke_test_5ms.py --target esp32c6   # verify (no hardware needed)
-idf.py build flash monitor
-```
-
-The ESP32-S3 works out of the box on ESP-IDF ≥ v6.1 (`idf.py set-target esp32s3`);
-no patch is needed there — the official `CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE`
-is default-on and covers the console's 5 ms reconnect/wake.
+handshake (~15 ms, the first ~1.5 s) works without it. On the S3 the official
+`CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE` is default-on and covers it; the
+component warns at configure time if it is missing (older IDF).
 
 ## Testing with a real Switch 2
 
@@ -61,8 +50,8 @@ is default-on and covers the console's 5 ms reconnect/wake.
 After the first pairing the bond is saved to NVS. On the next boot the controller
 advertises for reconnection. With the console asleep, press **BOOT** while the
 log shows `connected=false` to broadcast the wake advertisement — the console
-should power on and reconnect without re-pairing. (On the S3 this needs
-ESP-IDF ≥ v6.1; on C6-family chips it needs the 5 ms controller patch.)
+should power on and reconnect without re-pairing. (This needs ESP-IDF ≥ v6.1 on
+the S3; the C6-family stock controller cannot accept the 5 ms reconnect.)
 
 ### Verified on ESP32-S3 (ESP-IDF v6.1)
 

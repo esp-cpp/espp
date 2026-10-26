@@ -289,9 +289,9 @@ public:
   ///       (the built-in services are created/skipped during init) and is ignored
   ///       with a warning, since honoring it would leave services created but never
   ///       started or torn down.
-  void set_builtin_info_services_enabled_enabled(bool enabled) {
+  void set_builtin_info_services_enabled(bool enabled) {
     if (server_) {
-      logger_.warn("set_builtin_info_services_enabled_enabled() ignored: must be called before init()");
+      logger_.warn("set_builtin_info_services_enabled() ignored: must be called before init()");
       return;
     }
     builtin_info_services_enabled_ = enabled;
