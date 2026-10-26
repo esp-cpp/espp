@@ -25,21 +25,15 @@ dependencies:
     # backports; espressif/esp-idf#18467). CMakeLists warns at configure time if a
     # S3/C3 build lacks it (the version floor here can't be target-conditional).
     version: '>=5.5'
-  # NOTE: these floors are placeholders that MUST be raised before this component
-  # is published to the registry, because it depends on APIs that are not yet in a
-  # tagged release of each dependency:
-  #   * h2zero/esp-nimble-cpp — NimBLEServer::registerAppServicesFirst() (upstream
-  #     h2zero/esp-nimble-cpp#443, still open; built here against the pinned
-  #     esp-cpp/esp-nimble-cpp submodule until it ships).
-  #   * espp/ble_gatt_server — the conn_params_update_callback, the bool return of
-  #     start(), and set_builtin_info_services_enabled() (added in this same repo).
-  #   * espp/nvs — std::vector<uint8_t> blob set/get (added in this same repo).
-  # For espp's own (monorepo) build these resolve to the in-tree components; the
-  # floors are bumped to the first release containing each change when this lands.
-  # This is tracked by the "do not merge until #443 releases" gate on the PR.
+  # NimBLEServer::registerAppServicesFirst() (h2zero/esp-nimble-cpp#443) shipped
+  # in esp-nimble-cpp 2.6.0; espp's in-tree submodule tracks that release.
   h2zero/esp-nimble-cpp:
-    version: '>=2.3.0'
-  espp/ble_gatt_server: '>=1.0'
+    version: '>=2.6.0'
+  # ble_gatt_server's conn_params_update_callback / bool start() /
+  # set_builtin_info_services_enabled() and nvs's std::vector<uint8_t> blob
+  # support land in the same espp release as this component (the first one
+  # after 1.3.10), so the sibling floors are that release.
+  espp/ble_gatt_server: '>=1.3.11'
   espp/base_component: '>=1.0'
-  espp/nvs: '>=1.0'
+  espp/nvs: '>=1.3.11'
   espp/timer: '>=1.0'
