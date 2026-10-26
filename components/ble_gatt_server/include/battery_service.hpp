@@ -51,9 +51,7 @@ public:
   /// Start the service
   /// \note Kept for API compatibility: NimBLE starts every service when the
   ///       server starts (esp-nimble-cpp 2.x), so there is nothing to do here.
-  [[deprecated(
-      "services are started with the server (BleGattServer::start()); this is a no-op")]] void
-  start() {}
+  [[deprecated("no-op: services start with BleGattServer::start()")]] void start() {}
 
   /// Get the service
   /// \return The Battery Service

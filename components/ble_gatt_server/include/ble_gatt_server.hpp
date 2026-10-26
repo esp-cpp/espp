@@ -296,8 +296,7 @@ public:
   /// Start the services
   /// \note Kept for API compatibility: NimBLE starts every service when the
   ///       server starts (start()), so there is nothing to do here.
-  [[deprecated("services are started with the server (start()); this is a no-op")]] void
-  start_services() {}
+  [[deprecated("no-op: services start with start()")]] void start_services() {}
 
   /// Start the server
   /// This method starts the GATT server.

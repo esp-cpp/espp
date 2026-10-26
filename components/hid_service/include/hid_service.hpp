@@ -82,9 +82,7 @@ public:
   /// @brief Start the HID service.
   /// @note Kept for API compatibility: NimBLE starts every service when the
   ///       server starts (BleGattServer::start()), so there is nothing to do.
-  [[deprecated(
-      "services are started with the server (BleGattServer::start()); this is a no-op")]] void
-  start() {}
+  [[deprecated("no-op: services start with BleGattServer::start()")]] void start() {}
 
   /// @brief Get the HID service.
   /// @return The HID service.

@@ -115,10 +115,9 @@ public:
     keepalive_resp_->setCallbacks(&keepalive_resp_cb_);
   }
 
-  /// @brief Kept for API symmetry with make_service(); NimBLE starts every
-  ///        service when the server starts (NimBLEService::start() is a
-  ///        deprecated no-op), so there is nothing to do here.
-  void start() {}
+  /// @brief Kept for API compatibility: NimBLE starts every service when the
+  ///        server starts (BleGattServer::start()), so there is nothing to do.
+  [[deprecated("no-op: services start with BleGattServer::start()")]] void start() {}
 
   NimBLEService *get_service() { return service_; }
 
