@@ -350,6 +350,60 @@ extern "C" void app_main(void) {
     // c-string comparison: the stored string ends where the value ends
     check("string c_str() has no embedded terminator", strlen(s.c_str()) == s.size());
 
+    // binary blobs (std::vector<uint8_t>): arbitrary bytes, embedded zeros kept
+    std::vector<uint8_t> blob = {0xDE, 0xAD, 0x00, 0xBE, 0xEF, 0x00};
+    std::vector<uint8_t> read_blob;
+    nvs.set_var("validate", "blob", blob, ec);
+    nvs.get_var("validate", "blob", read_blob, ec);
+    check("blob set_var / get_var round trip (embedded zeros kept)", !ec && read_blob == blob);
+    ec.clear();
+
+    // a shorter blob overwrite reads back exactly, even into a longer destination
+    nvs.set_var("validate", "blob", std::vector<uint8_t>{0x01, 0x02}, ec);
+    read_blob.assign(32, 0xFF);
+    nvs.get_var("validate", "blob", read_blob, ec);
+    check("shorter blob overwrite reads back exactly",
+          !ec && read_blob == std::vector<uint8_t>{0x01, 0x02});
+    ec.clear();
+
+    // reading a blob key that was never written fails and leaves the value alone
+    read_blob = {0xAA};
+    nvs.get_var("validate", "no-blob", read_blob, ec);
+    check("reading a missing blob key fails and leaves the value alone",
+          ec && read_blob == std::vector<uint8_t>{0xAA});
+    ec.clear();
+
+    // a blob larger than a string key could hold (strings are limited by the page
+    // size; 1 KB is well inside the blob limit)
+    std::vector<uint8_t> big(1024);
+    for (size_t i = 0; i < big.size(); i++)
+      big[i] = static_cast<uint8_t>(i * 7);
+    nvs.set_var("validate", "blob", big, ec);
+    read_blob.clear();
+    nvs.get_var("validate", "blob", read_blob, ec);
+    check("1 KB blob round trip", !ec && read_blob == big);
+    ec.clear();
+
+    // get_or_set_var on a missing blob key stores and returns the default
+    read_blob.clear();
+    nvs.get_or_set_var("validate", "blob2", read_blob, std::vector<uint8_t>{0x42, 0x43}, ec);
+    check("blob get_or_set_var on a missing key returns the default",
+          !ec && read_blob == std::vector<uint8_t>{0x42, 0x43});
+    ec.clear();
+    read_blob.clear();
+    nvs.get_var("validate", "blob2", read_blob, ec);
+    check("blob default was stored", !ec && read_blob == std::vector<uint8_t>{0x42, 0x43});
+    ec.clear();
+
+    // erasing a blob key
+    nvs.erase("validate", "blob", ec);
+    check("erase blob key succeeds", !ec);
+    ec.clear();
+    read_blob = {0xAA};
+    nvs.get_var("validate", "blob", read_blob, ec);
+    check("erased blob key is not found", ec && read_blob == std::vector<uint8_t>{0xAA});
+    ec.clear();
+
     // erasing a key: the key is gone, the others survive
     nvs.erase("validate", "str", ec);
     check("erase key succeeds", !ec);
