@@ -82,7 +82,7 @@ To reset the counter, erase the contents of flash memory using `idf.py erase-fla
 ## NVS Validation Output
 
 The last section of the example exercises the NVS operations (integer, bool,
-float and string round trips through `get_or_set_var` / `set_var` / `get_var`,
+float, string and binary-blob round trips through `get_or_set_var` / `set_var` / `get_var`,
 key and namespace erase) with explicit pass / fail checks in a `validate`
 namespace that is erased before and after, so the same sequence runs on every
 boot. Each check prints its own line and a summary closes the section:
@@ -101,13 +101,21 @@ Validating NVS operations...
   [PASS] empty string set_var / get_var round trip
   [PASS] 64 character string round trip
   [PASS] string c_str() has no embedded terminator
+  [PASS] blob set_var / get_var round trip (embedded zeros kept)
+  [PASS] shorter blob overwrite reads back exactly
+  [PASS] reading a missing blob key fails and leaves the value alone
+  [PASS] 1 KB blob round trip
+  [PASS] blob get_or_set_var on a missing key returns the default
+  [PASS] blob default was stored
+  [PASS] erase blob key succeeds
+  [PASS] erased blob key is not found
   [PASS] erase key succeeds
   [PASS] erased key is not found
   [PASS] other keys survive erasing one key
   [PASS] reading a missing string key fails and leaves the value alone
   [PASS] erase namespace succeeds
   [PASS] keys are not found after erasing the namespace
-NVS validation: 18/18 checks passed - PASS
+NVS validation: 26/26 checks passed - PASS
 ```
 
 Any failing check is listed again after the summary line. The string checks
