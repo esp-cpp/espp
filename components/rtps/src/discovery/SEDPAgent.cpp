@@ -31,6 +31,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/messages/MessageTypes.hpp"
 #include "rtps/utils/CdrBuffer.hpp"
 #include "rtps/utils/Log.hpp"
+#include <algorithm>
 #include <mutex>
 #include <span>
 
@@ -110,10 +111,11 @@ rtps::LocatorIPv4 endpointUnicastLocator(rtps::Participant *part, const rtps::To
   }
   const rtps::ParticipantProxyData *remote = part->findRemoteParticipant(data.endpointGuid.prefix);
   if (remote != nullptr) {
-    for (const auto &candidate : remote->m_defaultUnicastLocatorList) {
-      if (candidate.isValid()) {
-        return candidate;
-      }
+    const auto &defaults = remote->m_defaultUnicastLocatorList;
+    const auto found = std::find_if(defaults.begin(), defaults.end(),
+                                    [](const auto &candidate) { return candidate.isValid(); });
+    if (found != defaults.end()) {
+      return *found;
     }
   }
   return loc;
