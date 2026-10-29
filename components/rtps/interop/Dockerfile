@@ -1,6 +1,7 @@
 # FastDDS / ROS 2 interop harness image for the embeddedRTPS engine.
 # ros:jazzy-ros-base ships FastDDS + rmw_fastrtps + the ros2 CLI, giving both the
-# raw-DDS and ROS 2 sides of the interop matrix in one image. The espp repo is
+# raw-DDS and ROS 2 sides of the interop matrix in one image. rmw_cyclonedds_cpp is
+# added so the ROS 2 pairs also run against CycloneDDS. The espp repo is
 # bind-mounted read-only at /work, copied to a container-local tree, and built
 # there (the repo's lib/pc install dir carries the developer's host-platform
 # artifacts and must not be clobbered with linux ones). See run_interop.sh.
@@ -8,7 +9,7 @@ FROM ros:jazzy-ros-base
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential cmake git rsync python3-dev python3-pip python3-venv pybind11-dev \
-    ros-jazzy-example-interfaces \
+    ros-jazzy-example-interfaces ros-jazzy-rmw-cyclonedds-cpp \
     && rm -rf /var/lib/apt/lists/*
 
 # A venv with the espp wheel build backend, so run_interop.sh can build the
