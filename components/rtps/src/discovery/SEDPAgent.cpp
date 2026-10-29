@@ -97,6 +97,29 @@ void SEDPAgent::handlePublisherReaderMessage(const ReaderCacheChange &change) {
   }
 }
 
+namespace {
+// The unicast locator a remote endpoint's traffic goes to. FastDDS puts
+// PID_UNICAST_LOCATOR in every SEDP sample; CycloneDDS omits it and relies on
+// the participant's default unicast locator from SPDP (RTPS 2.5 8.5.3.2 allows
+// both). Without this fallback a CycloneDDS endpoint gets an invalid locator
+// and nothing is ever sent to it.
+rtps::LocatorIPv4 endpointUnicastLocator(rtps::Participant *part, const rtps::TopicData &data) {
+  rtps::LocatorIPv4 loc(data.unicastLocator);
+  if (loc.isValid()) {
+    return loc;
+  }
+  const rtps::ParticipantProxyData *remote = part->findRemoteParticipant(data.endpointGuid.prefix);
+  if (remote != nullptr) {
+    for (const auto &candidate : remote->m_defaultUnicastLocatorList) {
+      if (candidate.isValid()) {
+        return candidate;
+      }
+    }
+  }
+  return loc;
+}
+} // namespace
+
 void SEDPAgent::addUnmatchedRemoteWriter(const TopicData &writerData) {
   addUnmatchedRemoteWriter(TopicDataCompressed(writerData));
 }
@@ -196,7 +219,7 @@ void SEDPAgent::handlePublisherReaderMessage(const TopicData &writerData,
   }
 #endif
   reader->addNewMatchedWriter(
-      WriterProxy{writerData.endpointGuid, LocatorIPv4(writerData.unicastLocator),
+      WriterProxy{writerData.endpointGuid, endpointUnicastLocator(m_part, writerData),
                   (writerData.reliabilityKind == ReliabilityKind_t::RELIABLE)});
   if (mfp_onNewPublisherCallback != nullptr) {
     mfp_onNewPublisherCallback(m_onNewPublisherArgs);
@@ -276,12 +299,12 @@ void SEDPAgent::handleSubscriptionReaderMessage(const TopicData &readerData,
 #endif
   if (readerData.multicastLocator.kind == rtps::LocatorKind_t::LOCATOR_KIND_UDPv4) {
     writer->addNewMatchedReader(
-        ReaderProxy{readerData.endpointGuid, LocatorIPv4(readerData.unicastLocator),
+        ReaderProxy{readerData.endpointGuid, endpointUnicastLocator(m_part, readerData),
                     LocatorIPv4(readerData.multicastLocator),
                     (readerData.reliabilityKind == ReliabilityKind_t::RELIABLE)});
   } else {
     writer->addNewMatchedReader(
-        ReaderProxy{readerData.endpointGuid, LocatorIPv4(readerData.unicastLocator),
+        ReaderProxy{readerData.endpointGuid, endpointUnicastLocator(m_part, readerData),
                     (readerData.reliabilityKind == ReliabilityKind_t::RELIABLE)});
   }
 
