@@ -159,11 +159,13 @@ bool StatefulReader::onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_
     info.destPort = writer->remoteLocator.port;
     PayloadBuffer payload;
     rtps::MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+    GuidPrefix_t dst = writer->remoteWriterGuid.prefix;
+    rtps::MessageFactory::addSubMessageInfoDST(payload, dst);
     SequenceNumber_t last_valid = msg.gapStart;
     --last_valid;
     auto missing_sns = writer->getMissing(writer->expectedSN, last_valid);
-    rtps::MessageFactory::addAckNack(payload, msg.writerId, msg.readerId, missing_sns,
-                                     writer->getNextAckNackCount(), false);
+    rtps::MessageFactory::addAckNack(payload, msg.writerId, m_attributes.endpointGuid.entityId,
+                                     missing_sns, writer->getNextAckNackCount(), false);
     info.payload = std::move(payload.bytes);
     if (info.payload.empty()) {
       return false;
@@ -207,12 +209,14 @@ bool StatefulReader::onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_
         info.destPort = writer->remoteLocator.port;
         PayloadBuffer payload;
         rtps::MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+        GuidPrefix_t dst = writer->remoteWriterGuid.prefix;
+        rtps::MessageFactory::addSubMessageInfoDST(payload, dst);
         SequenceNumberSet set;
         set.base = writer->expectedSN;
         set.numBits = 1;
         set.bitMap[0] = set.bitMap[0] |= uint32_t{1} << 31;
-        rtps::MessageFactory::addAckNack(payload, msg.writerId, msg.readerId, set,
-                                         writer->getNextAckNackCount(), false);
+        rtps::MessageFactory::addAckNack(payload, msg.writerId, m_attributes.endpointGuid.entityId,
+                                         set, writer->getNextAckNackCount(), false);
         info.payload = std::move(payload.bytes);
         if (info.payload.empty()) {
           return false;
@@ -259,10 +263,15 @@ bool StatefulReader::onNewHeartbeat(const SubmessageHeartbeat &msg,
   info.destAddr = writer->remoteLocator.getIp4AddressBytes();
   info.destPort = writer->remoteLocator.port;
   rtps::MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+  // RTPS 2.5 8.3.7.1: an ACKNACK should be preceded by INFO_DST. CycloneDDS
+  // resolves the writer by (destination prefix, writerId); without INFO_DST the
+  // prefix is null and the ACKNACK never reaches the writer's reader table.
+  GuidPrefix_t dst = writer->remoteWriterGuid.prefix;
+  rtps::MessageFactory::addSubMessageInfoDST(payload, dst);
   auto missing_sns = writer->getMissing(msg.firstSN, msg.lastSN);
   bool final_flag = (missing_sns.numBits == 0);
-  rtps::MessageFactory::addAckNack(payload, msg.writerId, msg.readerId, missing_sns,
-                                   writer->getNextAckNackCount(), final_flag);
+  rtps::MessageFactory::addAckNack(payload, msg.writerId, m_attributes.endpointGuid.entityId,
+                                   missing_sns, writer->getNextAckNackCount(), final_flag);
 
   SFR_LOG("Sending acknack base {} bits {}.", (int)missing_sns.base.low, (int)missing_sns.numBits);
   info.payload = std::move(payload.bytes);
@@ -285,9 +294,15 @@ bool StatefulReader::sendPreemptiveAckNack(const WriterProxy &writer) {
   info.destPort = writer.remoteLocator.port;
   PayloadBuffer payload;
   rtps::MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+  GuidPrefix_t dst = writer.remoteWriterGuid.prefix;
+  rtps::MessageFactory::addSubMessageInfoDST(payload, dst);
+  // "Nothing received yet, send from the start": base 1 is the lowest valid
+  // sequence number. CycloneDDS validates the base and discards a base of 0
+  // (it patches that only for eProsima and RTI vendor ids); FastDDS accepts
+  // either.
   SequenceNumberSet number_set;
   number_set.base.high = 0;
-  number_set.base.low = 0;
+  number_set.base.low = 1;
   number_set.numBits = 0;
   rtps::MessageFactory::addAckNack(payload, writer.remoteWriterGuid.entityId,
                                    m_attributes.endpointGuid.entityId, number_set, Count_t{1},

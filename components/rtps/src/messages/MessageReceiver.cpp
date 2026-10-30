@@ -348,7 +348,17 @@ bool MessageReceiver::processHeartbeatSubmessage(MessageProcessingInfo &msgInfo,
   }
 
   uint32_t readerGen = 0;
-  Reader *reader = mp_part->getReader(submsgHB.readerId, readerGen);
+  Reader *reader;
+  if (submsgHB.readerId == ENTITYID_UNKNOWN) {
+    // A HEARTBEAT addressed to the destination participant rather than to one
+    // reader (readerId ENTITYID_UNKNOWN, RTPS 2.5 8.3.7.5): CycloneDDS sends its
+    // SEDP and user-data heartbeats this way. Resolve the reader through the
+    // writer it is matched to, as the DATA path does.
+    reader = mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, submsgHB.writerId},
+                                          readerGen);
+  } else {
+    reader = mp_part->getReader(submsgHB.readerId, readerGen);
+  }
   if (reader != nullptr) {
     reader->onNewHeartbeatIfCurrent(readerGen, submsgHB, sourceState.sourceGuidPrefix);
     mp_part->refreshRemoteParticipantLiveliness(sourceState.sourceGuidPrefix);
@@ -383,7 +393,13 @@ bool MessageReceiver::processGapSubmessage(MessageProcessingInfo &msgInfo,
   }
 
   uint32_t readerGen = 0;
-  Reader *reader = mp_part->getReader(submsgGap.readerId, readerGen);
+  Reader *reader;
+  if (submsgGap.readerId == ENTITYID_UNKNOWN) {
+    reader = mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, submsgGap.writerId},
+                                          readerGen);
+  } else {
+    reader = mp_part->getReader(submsgGap.readerId, readerGen);
+  }
   if (reader != nullptr) {
     reader->onNewGapIfCurrent(readerGen, submsgGap, sourceState.sourceGuidPrefix);
     return true;

@@ -341,6 +341,62 @@ echo "--- espp action client ---"; tail -2 /tmp/actclient.log
 echo "--- rclpy server ---"; grep -iE "order=" /tmp/rosactsrv.log | tail -2
 result "espp_action_client->ros2_server" $actclient_rc
 
+# --- CycloneDDS: the ROS 2 pairs again on rmw_cyclonedds_cpp -----------------
+# CycloneDDS is stricter than FastDDS on the wire: it addresses HEARTBEAT/GAP to
+# ENTITYID_UNKNOWN, resolves ACKNACKs through INFO_DST, rejects a pre-emptive
+# ACKNACK with base 0 from vendors other than eProsima/RTI, and leaves the
+# per-endpoint unicast locator out of SEDP. Each of these alone stops all samples.
+# Services are not run here: rmw_cyclonedds_cpp correlates requests with a
+# {guid, seq} header in the payload, not the related_sample_identity inline QoS
+# that espp's services (and rmw_fastrtps_cpp) use.
+note "CycloneDDS (rmw_cyclonedds_cpp): ROS 2 pub/sub pairs"
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ros2 daemon stop > /dev/null 2>&1
+
+"$BIN"/rtps_interop_pub rt/chatter std_msgs::msg::dds_::String_ 1 60 200 > /tmp/cpub1.log 2>&1 &
+ESPP_PID=$!
+sleep 3
+timeout 30 ros2 topic echo --once /chatter std_msgs/msg/String > /tmp/cecho1.log 2>&1
+cecho1_rc=$?
+kill $ESPP_PID 2>/dev/null; wait $ESPP_PID 2>/dev/null
+cat /tmp/cecho1.log
+result "cyclone: espp_pub->ros2_echo" $cecho1_rc
+
+"$BIN"/rtps_interop_sub rt/chatter std_msgs::msg::dds_::String_ 1 3 30 > /tmp/csub1.log 2>&1 &
+SUB_PID=$!
+sleep 3
+timeout 35 ros2 topic pub -r 5 /chatter std_msgs/msg/String "data: 'cyclone to espp'" > /tmp/crospub1.log 2>&1 &
+ROS_PID=$!
+wait $SUB_PID
+csub1_rc=$?
+kill $ROS_PID 2>/dev/null; wait $ROS_PID 2>/dev/null
+tail -2 /tmp/csub1.log
+result "cyclone: ros2_pub->espp_sub" $csub1_rc
+
+"$BIN"/rtps_interop_pub rt/chatter std_msgs::msg::dds_::String_ 0 60 200 > /tmp/cpub2.log 2>&1 &
+ESPP_PID=$!
+sleep 3
+timeout 30 ros2 topic echo --once --qos-reliability best_effort /chatter std_msgs/msg/String > /tmp/cecho2.log 2>&1
+cecho2_rc=$?
+kill $ESPP_PID 2>/dev/null; wait $ESPP_PID 2>/dev/null
+result "cyclone: espp_be_pub->ros2_be_echo" $cecho2_rc
+
+"$BIN"/rtps_interop_sub rt/chatter std_msgs::msg::dds_::String_ 0 3 30 > /tmp/csub2.log 2>&1 &
+SUB_PID=$!
+sleep 3
+timeout 35 ros2 topic pub -r 5 --qos-reliability best_effort /chatter std_msgs/msg/String "data: 'cyclone be to espp'" > /tmp/crospub2.log 2>&1 &
+ROS_PID=$!
+wait $SUB_PID
+csub2_rc=$?
+kill $ROS_PID 2>/dev/null; wait $ROS_PID 2>/dev/null
+tail -2 /tmp/csub2.log
+result "cyclone: ros2_be_pub->espp_be_sub" $csub2_rc
+
+if grep -l "malformed packet received from vendor" /tmp/c*.log > /dev/null 2>&1; then
+  echo "CycloneDDS reported malformed packets from espp:"; grep -h "malformed packet" /tmp/c*.log | head -3
+fi
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+
 # --- Python bindings: functional round-trip of every RMI/AMI mechanism --------
 # Build the espp wheel in-container and run the demo (multicast discovery works
 # here via the shared network namespace), exercising the GIL-wrapped service /
