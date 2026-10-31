@@ -305,12 +305,15 @@ public:
   /// \param ye The y end coordinate
   /// \param data The data to write
   /// \param user_data User data to pass to the lower-level transport
-  /// \note This method queues the panel transfer asynchronously and may return
-  ///       before the write has completed.
+  /// \note Synchronous: serialized with the LVGL flush and returns once the
+  ///       panel driver has finished copying `data` (or after a bounded wait
+  ///       if the completion never arrives), so the caller may reuse `data`
+  ///       immediately afterwards.
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
-  // Issue one draw_bitmap and block until the DPI copy completes (or a
-  // bounded timeout). Caller must hold panel_op_mutex_. Returns false if the
-  // draw was rejected/failed (no completion will arrive).
+  // Issue one draw_bitmap and block until the DPI copy completes. Caller must
+  // hold panel_op_mutex_. Returns false if the draw was rejected/failed (no
+  // completion will arrive) or if the completion did not arrive within the
+  // bounded wait (the copy may still be reading `data`).
   bool draw_and_wait(int x1, int y1, int x2, int y2, const void *data);
 
   /////////////////////////////////////////////////////////////////////////////

@@ -853,6 +853,11 @@ void M5StackTab5::apply_panel_rotation(const DisplayRotation &rotation) {
 #endif
 }
 
+// How long draw_and_wait() waits for the DPI driver's transfer-done callback.
+// A DMA2D copy of a full 720x1280 RGB565 frame takes a few milliseconds even
+// under PSRAM contention, so anything near this is a wedged transfer.
+static constexpr uint32_t kDrawTimeoutMs = 200;
+
 bool M5StackTab5::draw_and_wait(int x1, int y1, int x2, int y2, const void *data) {
   // Caller holds panel_op_mutex_. Drain any stale completion first (defensive:
   // a prior transfer that timed out could leave the binary semaphore signalled),
@@ -868,8 +873,17 @@ bool M5StackTab5::draw_and_wait(int x1, int y1, int x2, int y2, const void *data
     return false;
   }
   if (draw_done_sem_ != nullptr) {
-    // Bounded wait so a missing completion cannot wedge the caller forever.
-    xSemaphoreTake(draw_done_sem_, pdMS_TO_TICKS(200));
+    // Bounded wait so a missing completion cannot wedge the caller forever. A
+    // timeout is a failure, not a success: the copy may still be reading the
+    // caller's buffer, and the caller is about to hand that buffer back (LVGL
+    // re-renders into it, the camera task reuses it). Report it so the fault
+    // is visible; the late completion, if it ever arrives, is drained by the
+    // next call rather than being mistaken for that call's own completion.
+    if (xSemaphoreTake(draw_done_sem_, pdMS_TO_TICKS(kDrawTimeoutMs)) != pdTRUE) {
+      logger_.warn_rate_limited("draw_bitmap ({},{})-({},{}) did not complete within {} ms", x1, y1,
+                                x2, y2, kDrawTimeoutMs);
+      return false;
+    }
   }
   return true;
 }
