@@ -21,7 +21,7 @@ Or straight from the repository:
 pip install git+https://github.com/esp-cpp/espp.git
 ```
 
-Building from source requires CMake (>= 3.20) and a C++20 compiler.
+Building from source requires CMake (>= 3.20) and a C++23 compiler.
 
 ## What's included
 

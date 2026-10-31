@@ -460,10 +460,8 @@ bool M5StackTab5::initialize_lcd() {
   logger_.info("Display initialized with resolution {}x{}", display_width_, display_height_);
 
   logger_.info("Register DPI panel event callback for LVGL flush ready notification");
-  esp_lcd_dpi_panel_event_callbacks_t cbs = {
-      .on_color_trans_done = &M5StackTab5::notify_lvgl_flush_ready,
-      .on_refresh_done = nullptr,
-  };
+  esp_lcd_dpi_panel_event_callbacks_t cbs = {};
+  cbs.on_color_trans_done = &M5StackTab5::notify_lvgl_flush_ready;
   // Completion semaphore for the serialized synchronous draws (see
   // draw_and_wait()); created before the callback that gives it can fire.
   if (draw_done_sem_ == nullptr) {

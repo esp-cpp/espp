@@ -97,8 +97,9 @@ void py_init_socket_reactor(py::module &m) {
            "Stop the loop and wait for in-flight handlers to finish.")
       .def("is_running", &SocketReactor::is_running)
       .def("num_registered", &SocketReactor::num_registered)
-      .def("remove", &SocketReactor::remove, py::arg("id"),
-           "Unregister a socket by the id returned from add_udp_receiver().")
+      .def("remove",
+           static_cast<bool (SocketReactor::*)(SocketReactor::Id)>(&SocketReactor::remove),
+           py::arg("id"), "Unregister a socket by the id returned from add_udp_receiver().")
       .def(
           "add_udp_receiver",
           [](SocketReactor &self, espp::UdpSocket &socket, std::size_t port,

@@ -6,11 +6,9 @@
 
 #include <esp_err.h>
 #include <esp_partition.h>
-#include <esp_vfs_fat.h>
 #include <sdmmc_cmd.h>
 
 #include <driver/gpio.h>
-#include <driver/sdmmc_host.h>
 #include <driver/spi_master.h>
 #include <hal/spi_ll.h>
 #include <hal/spi_types.h>
@@ -18,6 +16,7 @@
 #include "base_component.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
+#include "sdcard.hpp"
 #include "spi.hpp"
 #include "st7789.hpp"
 
@@ -185,9 +184,16 @@ public:
 
   /// Get the uSD card
   /// \return A pointer to the uSD card
-  /// \note The uSD card is only available if it was successfully initialized
-  ///       and the mount point is valid
-  sdmmc_card_t *sdcard() const { return sdcard_; }
+  /// \note nullptr until initialize_sdcard() succeeded. The card stays valid while
+  ///       its volume is unmounted (sdcard_component()->unmount()), e.g. to hand it
+  ///       to a USB host through espp::UsbDevice's MSC function.
+  sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
+
+  /// Get the SD card component: mount() / unmount() (e.g. to hand the card to a
+  /// USB host with the usb_device MSC function), format(), card_info(),
+  /// volume_info(), ...
+  /// \return The component, or nullptr until initialize_sdcard() succeeded
+  espp::SdCard *sdcard_component() const { return sdcard_.get(); }
 
 protected:
   WsS3Geek();
@@ -234,7 +240,7 @@ protected:
   static constexpr gpio_num_t sdcard_mosi = GPIO_NUM_35; // same as cmd
 
   // sdcard
-  sdmmc_card_t *sdcard_{nullptr};
+  std::unique_ptr<espp::SdCard> sdcard_;
 
   // Interrupts
   espp::Interrupt::PinConfig button_interrupt_pin_{

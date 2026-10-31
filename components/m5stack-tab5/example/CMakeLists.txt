@@ -38,6 +38,7 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/lvgl"
   "../../../components/math"
   "../../../components/rx8130ce"
+  "../../../components/sdcard"
   "../../../components/pi4ioe5v"
   "../../../components/spi"
   "../../../components/st7123touch"
@@ -54,4 +55,4 @@ set(
 
 project(m5stack_tab5_example)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)

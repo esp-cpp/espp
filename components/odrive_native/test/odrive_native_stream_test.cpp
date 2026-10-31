@@ -1,6 +1,6 @@
 // Host-buildable golden tests for the ODrive legacy native (Fibre) UART *stream*
 // framing. Build & run with:
-//   c++ -std=c++20 -I../include odrive_native_stream_test.cpp -o stream_test && ./stream_test
+//   c++ -std=c++23 -I../include odrive_native_stream_test.cpp -o stream_test && ./stream_test
 //
 // These tests exercise espp::detail (stream_frame / StreamDeframer / odrive_crc8)
 // directly, so they need no ESP-IDF headers. They freeze the wire framing that

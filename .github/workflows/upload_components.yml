@@ -28,12 +28,23 @@ jobs:
           #
           # Note: ethernet is intentionally listed ahead of the esp32-p4-* board
           #       BSPs (esp32-p4-eth / esp32-p4-function-ev-board /
-          #       esp32-p4-nano), which depend on espp/ethernet, so it is
-          #       uploaded to the registry first.
+          #       esp32-p4-module-dev-kit / esp32-p4-nano /
+          #       esp32-p4-wifi6-dev-kit / esp32-p4-wifi6-poe-eth), 
+          #       which depend on espp/ethernet, so
+          #       ethernet is uploaded to the registry ahead of them.
           #
           # Note: magnetic_encoder is intentionally listed ahead of as5600 and
           #       mt6701, which depend on espp/magnetic_encoder, so it is
           #       uploaded to the registry first.
+          #
+          # Note: stream_frame is intentionally listed (out of alphabetical order)
+          #       ahead of its first-time dependents coredump / dispatcher / ota,
+          #       so it is uploaded to the registry before they try to resolve it.
+          #
+          # Note: sdcard is intentionally listed (out of alphabetical order) ahead
+          #       of the BSPs that depend on espp/sdcard (esp32-p4-*, lilygo-t5-47,
+          #       m5stack-cardputer, m5stack-tab5, ...), so it is uploaded to the
+          #       registry before they try to resolve it.
           #
           # Note: comments are not allowed in the "components" list, so please
           #       do not add any comments here.
@@ -49,7 +60,9 @@ jobs:
             components/aw9523
             components/base_component
             components/base_peripheral
+            components/motor_controller
             components/basicmicro
+            components/mcp266
             components/bdc_driver
             components/binary-log
             components/bldc_current_sense
@@ -60,6 +73,7 @@ jobs:
             components/ble_gatt_server
             components/bm8563
             components/bmi270
+            components/bno055
             components/button
             components/byte90
             components/canopen
@@ -70,18 +84,26 @@ jobs:
             components/codec
             components/color
             components/controller
+            components/stream_frame
+            components/coredump
             components/cst816
             components/csv
+            components/desktop
+            components/dispatcher
             components/display
             components/display_drivers
             components/dns_server
             components/drv2605
             components/encoder
             components/esp-box
+            components/sdcard
             components/ethernet
             components/esp32-p4-eth
             components/esp32-p4-function-ev-board
+            components/esp32-p4-module-dev-kit
             components/esp32-p4-nano
+            components/esp32-p4-wifi6-dev-kit
+            components/esp32-p4-wifi6-poe-eth
             components/esp32-timer-cam
             components/event_manager
             components/expressive_eyes
@@ -128,6 +150,7 @@ jobs:
             components/odrive_native
             components/ota
             components/pcf85063
+            components/persistent_data
             components/pi4ioe5v
             components/pid
             components/ping
@@ -150,22 +173,29 @@ jobs:
             components/st25dv
             components/st7123touch
             components/state_machine
+            components/switch2_pro
+            components/switch_pro
             components/sx126x
+            components/system
             components/t_keyboard
             components/t-deck
             components/t-dongle-s3
             components/tabulate
             components/task
+            components/telemetry
             components/thermistor
             components/thread_pool
+            components/trajectory_planner
             components/timer
             components/touch
             components/tla2528
             components/tt21100
             components/twai
             components/usb_device
+            components/usb_host
             components/utils
             components/vl53l
+            components/wdi
             components/wifi
             components/wrover-kit
             components/ws-s3-geek

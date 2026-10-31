@@ -88,7 +88,7 @@ public:
     std::vector<uint8_t> psk{1}; ///< The channel PSK. Default {1} = the public
                                  ///< default key. See meshtastic::expand_psk.
 
-    transmit_fn transmit; ///< Function used to transmit frames
+    transmit_fn transmit{nullptr}; ///< Function used to transmit frames
 
     uint8_t hop_limit{3};    ///< Hop limit for originated broadcasts (0-7)
     bool rebroadcast{false}; ///< Whether to rebroadcast (relay) others' packets

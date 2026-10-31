@@ -12,6 +12,10 @@ from ._espp import __version__  # noqa: F401
 # ``espp.rtps.Publisher`` / ``espp.rtps.Subscriber``).
 from . import rtps  # noqa: F401,E402
 
+# Pure-Python counterpart of the persistent_data component: reads / writes the
+# firmware's versioned settings files from dataclasses (``espp.persistent_data``).
+from . import persistent_data  # noqa: F401,E402
+
 # The pure-python ODrive legacy-native protocol CLIENT (espp_odrive, sourced
 # from components/odrive_native/python) ships alongside this package in the
 # wheel / installed prefix; expose it as ``espp.odrive`` for convenience. The

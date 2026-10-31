@@ -36,6 +36,8 @@ dependencies that is unit-tested off-target.
   encoder-mode readback (91)
 - Velocity PID get/set with automatic 16.16 fixed-point conversion (28/29,
   55/56)
+- Position PID get/set (61-64) for both channels, with automatic 1024x
+  fixed-point conversion and the MaxI / deadzone / min / max position fields
 - Telemetry: firmware version (21), main/logic battery voltage (24/25), motor
   currents (49), motor PWMs (48), board temperatures (82/83) and unit status
   (90)
@@ -74,5 +76,5 @@ duty-cycle ramp on motor 1 with encoder readback, and stop.
 The wire core is host-buildable and unit-tested without ESP-IDF:
 
 ```sh
-c++ -std=c++20 -I include -o /tmp/bm_test test/basicmicro_host_test.cpp && /tmp/bm_test
+c++ -std=c++23 -I include -o /tmp/bm_test test/basicmicro_host_test.cpp && /tmp/bm_test
 ```

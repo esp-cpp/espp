@@ -1,0 +1,57 @@
+# The USB vendor / WebUSB + CDC transports use the native USB-OTG peripheral,
+# available on the ESP32-S3 (also S2 / P4) -- NOT the classic ESP32. Pin the
+# target so a bare `idf.py build` does not fall back to esp32; use
+# `idf.py set-target esp32p4` for an ESP32-P4 board.
+CONFIG_IDF_TARGET="esp32s3"
+
+# Common ESP-related
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
+# app_main keeps the driver (its ~3 KB of firmware / result buffers), a ranging
+# frame and the two services (each holding the latest frame for GET_FRAME) on
+# its stack: well over the 8 KB default.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=24576
+
+# Console on UART0. On the ESP32-S3 (and -P4) USB-Serial-JTAG shares the native
+# USB port's PHY with USB-OTG, which TinyUSB takes over for espp::UsbDevice's
+# interfaces: a primary console on USB-Serial-JTAG contends with them for that one
+# port and the device is unusable over USB. UART0 is an independent peripheral, so
+# the console always has a place to go (connect a USB-UART adapter to UART0 for
+# `idf.py monitor`; the ESP32-P4 dev kits have one on board).
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+# USB-Serial-JTAG stays the SECONDARY console so early-boot / bootloader logs are
+# still visible on the native USB port before the app brings up TinyUSB.
+CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y
+
+# Enable the TinyUSB vendor + CDC class drivers. The vendor interface carries
+# the framed protocol for WebUSB; the CDC interface carries the SAME framed
+# protocol for Web Serial. HID count is set only so the usb_device component's
+# HID code paths compile (no HID interface is instantiated here). esp_tinyusb
+# gates each class behind these counts.
+CONFIG_TINYUSB_VENDOR_COUNT=1
+CONFIG_TINYUSB_CDC_ENABLED=y
+CONFIG_TINYUSB_CDC_COUNT=1
+CONFIG_TINYUSB_HID_COUNT=1
+
+# An 8x8 ranging frame is a ~1.4 KB framed message, written all-or-nothing
+# into the TX FIFO: size the FIFOs so a frame fits behind a pending reply.
+CONFIG_TINYUSB_VENDOR_RX_BUFSIZE=2048
+CONFIG_TINYUSB_VENDOR_TX_BUFSIZE=4096
+CONFIG_TINYUSB_CDC_TX_BUFSIZE=4096
+
+# C++
+CONFIG_COMPILER_CXX_EXCEPTIONS=y
+
+# Standard USB services (system / monitor / OTA / core dump): the OTA+coredump
+# partition layout (partitions.csv), core dumps to flash, OTA rollback, and the
+# FreeRTOS run-time statistics the task monitor reads.
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_OFFSET=0x8000
+CONFIG_PARTITION_TABLE_MD5=y
+CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+CONFIG_FREERTOS_USE_TRACE_FACILITY=y
+CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
+CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID=y

@@ -1,0 +1,22 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Tiny dependency-free wire-framing codec: CRC-32 length-delimited typed frames with an incremental, resynchronizing StreamParser for carrying messages over any raw byte stream (USB/CDC/socket/UART)"
+url: "https://github.com/esp-cpp/espp/tree/main/components/stream_frame"
+repository: "https://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/stream_frame/stream_frame.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Framing
+  - Protocol
+  - CRC
+  - Stream
+  - USB
+  - Socket
+dependencies:
+  idf:
+    version: '>=5.0'

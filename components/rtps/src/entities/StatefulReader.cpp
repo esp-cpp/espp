@@ -24,11 +24,13 @@ Author: i11 - Embedded Software, RWTH Aachen University
 */
 
 #include "rtps/entities/StatefulReader.hpp"
+
 #include "rtps/communication/EsppTransport.hpp"
 #include "rtps/messages/MessageFactory.hpp"
 #include "rtps/storages/PayloadBuffer.hpp"
 #include "rtps/utils/Diagnostics.hpp"
 #include "rtps/utils/Log.hpp"
+#include <algorithm>
 #include <mutex>
 
 #if SFR_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -71,18 +73,31 @@ void StatefulReader::newChange(const ReaderCacheChange &cacheChange) {
   if (m_callback_count == 0 || !m_is_initialized_) {
     return;
   }
-  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
-  for (auto &proxy : m_proxies) {
-    if (proxy.remoteWriterGuid == cacheChange.writerGuid) {
+  // Serialize the whole delivery (claim + callbacks) on m_delivery_mutex, and
+  // hold m_proxies_mutex only for the expectedSN claim - NOT across the user
+  // callbacks. Invoking user code under the proxies mutex created a lock-order
+  // cycle: a callback calling back into the facade (e.g. add_writer/publish)
+  // reaches the facade/SEDP/participant locks, while the SEDP receive path
+  // takes those locks and then this reader's proxies mutex
+  // (addNewMatchedWriter). The delivery mutex is a leaf acquired first, so the
+  // strict in-order, one-callback-at-a-time semantics are preserved while the
+  // proxies mutex stays off every user-callback stack.
+  std::lock_guard<std::mutex> delivery(m_delivery_mutex);
+  bool deliver = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
+    auto matches_writer = [&](const WriterProxy &proxy) {
+      return proxy.remoteWriterGuid == cacheChange.writerGuid;
+    };
+    auto it = std::find_if(m_proxies.begin(), m_proxies.end(), matches_writer);
+    if (it != m_proxies.end()) {
+      WriterProxy &proxy = *it;
       if (proxy.expectedSN == cacheChange.sn) {
-        SFR_LOG("Delivering SN {}.{} | GUID {} {} {} {}", (int)cacheChange.sn.high,
-                (int)cacheChange.sn.low, cacheChange.writerGuid.prefix.id[0],
-                cacheChange.writerGuid.prefix.id[1], cacheChange.writerGuid.prefix.id[2],
-                cacheChange.writerGuid.prefix.id[3]);
-        executeCallbacks(cacheChange);
+        // Claim the SN under the proxies mutex; the callbacks run below,
+        // still serialized by m_delivery_mutex so delivery order matches
+        // claim order.
         ++proxy.expectedSN;
-        SFR_LOG("Done processing SN {}.{}", (int)cacheChange.sn.high, (int)cacheChange.sn.low);
-        return;
+        deliver = true;
       } else {
         Diagnostics::StatefulReader::sfr_unexpected_sn++;
         SFR_LOG("Unexpected SN {}.{} != {}.{}, dropping! GUID {} {} {} {}",
@@ -93,12 +108,24 @@ void StatefulReader::newChange(const ReaderCacheChange &cacheChange) {
       }
     }
   }
+  if (deliver) {
+    SFR_LOG("Delivering SN {}.{} | GUID {} {} {} {}", (int)cacheChange.sn.high,
+            (int)cacheChange.sn.low, cacheChange.writerGuid.prefix.id[0],
+            cacheChange.writerGuid.prefix.id[1], cacheChange.writerGuid.prefix.id[2],
+            cacheChange.writerGuid.prefix.id[3]);
+    executeCallbacks(cacheChange);
+    SFR_LOG("Done processing SN {}.{}", (int)cacheChange.sn.high, (int)cacheChange.sn.low);
+  }
 }
 
 bool StatefulReader::addNewMatchedWriter(const WriterProxy &newProxy) {
 #if SFR_VERBOSE && RTPS_GLOBAL_VERBOSE
   SFR_LOG("New writer added");
 #endif
+  // Guard the pool mutation: newChange()/onNewHeartbeat() iterate m_proxies
+  // under m_proxies_mutex on the receive workers, and an unlocked add races
+  // them (endpoint (re)announcements arrive on a different worker).
+  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   return m_proxies.add(newProxy);
 }
 
@@ -132,11 +159,13 @@ bool StatefulReader::onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_
     info.destPort = writer->remoteLocator.port;
     PayloadBuffer payload;
     rtps::MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+    GuidPrefix_t dst = writer->remoteWriterGuid.prefix;
+    rtps::MessageFactory::addSubMessageInfoDST(payload, dst);
     SequenceNumber_t last_valid = msg.gapStart;
     --last_valid;
     auto missing_sns = writer->getMissing(writer->expectedSN, last_valid);
-    rtps::MessageFactory::addAckNack(payload, msg.writerId, msg.readerId, missing_sns,
-                                     writer->getNextAckNackCount(), false);
+    rtps::MessageFactory::addAckNack(payload, msg.writerId, m_attributes.endpointGuid.entityId,
+                                     missing_sns, writer->getNextAckNackCount(), false);
     info.payload = std::move(payload.bytes);
     if (info.payload.empty()) {
       return false;
@@ -180,12 +209,14 @@ bool StatefulReader::onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_
         info.destPort = writer->remoteLocator.port;
         PayloadBuffer payload;
         rtps::MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+        GuidPrefix_t dst = writer->remoteWriterGuid.prefix;
+        rtps::MessageFactory::addSubMessageInfoDST(payload, dst);
         SequenceNumberSet set;
         set.base = writer->expectedSN;
         set.numBits = 1;
         set.bitMap[0] = set.bitMap[0] |= uint32_t{1} << 31;
-        rtps::MessageFactory::addAckNack(payload, msg.writerId, msg.readerId, set,
-                                         writer->getNextAckNackCount(), false);
+        rtps::MessageFactory::addAckNack(payload, msg.writerId, m_attributes.endpointGuid.entityId,
+                                         set, writer->getNextAckNackCount(), false);
         info.payload = std::move(payload.bytes);
         if (info.payload.empty()) {
           return false;
@@ -232,10 +263,15 @@ bool StatefulReader::onNewHeartbeat(const SubmessageHeartbeat &msg,
   info.destAddr = writer->remoteLocator.getIp4AddressBytes();
   info.destPort = writer->remoteLocator.port;
   rtps::MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+  // RTPS 2.5 8.3.7.1: an ACKNACK should be preceded by INFO_DST. CycloneDDS
+  // resolves the writer by (destination prefix, writerId); without INFO_DST the
+  // prefix is null and the ACKNACK never reaches the writer's reader table.
+  GuidPrefix_t dst = writer->remoteWriterGuid.prefix;
+  rtps::MessageFactory::addSubMessageInfoDST(payload, dst);
   auto missing_sns = writer->getMissing(msg.firstSN, msg.lastSN);
   bool final_flag = (missing_sns.numBits == 0);
-  rtps::MessageFactory::addAckNack(payload, msg.writerId, msg.readerId, missing_sns,
-                                   writer->getNextAckNackCount(), final_flag);
+  rtps::MessageFactory::addAckNack(payload, msg.writerId, m_attributes.endpointGuid.entityId,
+                                   missing_sns, writer->getNextAckNackCount(), final_flag);
 
   SFR_LOG("Sending acknack base {} bits {}.", (int)missing_sns.base.low, (int)missing_sns.numBits);
   info.payload = std::move(payload.bytes);
@@ -258,9 +294,15 @@ bool StatefulReader::sendPreemptiveAckNack(const WriterProxy &writer) {
   info.destPort = writer.remoteLocator.port;
   PayloadBuffer payload;
   rtps::MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+  GuidPrefix_t dst = writer.remoteWriterGuid.prefix;
+  rtps::MessageFactory::addSubMessageInfoDST(payload, dst);
+  // "Nothing received yet, send from the start": base 1 is the lowest valid
+  // sequence number. CycloneDDS validates the base and discards a base of 0
+  // (it patches that only for eProsima and RTI vendor ids); FastDDS accepts
+  // either.
   SequenceNumberSet number_set;
   number_set.base.high = 0;
-  number_set.base.low = 0;
+  number_set.base.low = 1;
   number_set.numBits = 0;
   rtps::MessageFactory::addAckNack(payload, writer.remoteWriterGuid.entityId,
                                    m_attributes.endpointGuid.entityId, number_set, Count_t{1},

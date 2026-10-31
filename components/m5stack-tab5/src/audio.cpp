@@ -86,8 +86,14 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
 
   // Stream buffers and task
   auto tx_buf_size = calc_audio_buffer_size(sample_rate);
+  // the block (and so the stream's trigger level) must be a whole number of
+  // frames: the sample-rate formula can land between frames, and a block that
+  // split one would desynchronize the framing of everything received after it
+  tx_buf_size -= tx_buf_size % (NUM_CHANNELS * NUM_BYTES_PER_CHANNEL);
   audio_tx_buffer.resize(tx_buf_size);
-  audio_tx_stream = xStreamBufferCreate(tx_buf_size * 4, 0);
+  // Trigger level = one block: the audio task waits for a whole block instead of
+  // padding a partial one with silence (see audio_task_callback).
+  audio_tx_stream = xStreamBufferCreate(tx_buf_size * 4, tx_buf_size);
   xStreamBufferReset(audio_tx_stream);
   // RX buffer for recording
   audio_rx_buffer.resize(tx_buf_size);
@@ -332,22 +338,45 @@ void M5StackTab5::stop_audio_recording() {
   logger_.info("Audio recording stopped");
 }
 
+// How long the audio task waits for a whole block before writing a partial one
+// (or silence). Longer than one block at every rate the board supports (a block
+// is 1/60 s at the default rate), so partial writes only happen when the
+// producer is idle or genuinely behind, never because its next frame simply had
+// not arrived yet; short enough that idle->silence latency is not noticeable.
+static constexpr uint32_t AUDIO_TX_RECEIVE_TIMEOUT_MS = 40;
+
 bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                       bool &task_notified) {
-  // Playback: write next buffer worth of audio from stream buffer
-  // Queue the next I2S out frame to write (matches the esp-box / t-deck path):
-  // always write a full, frame-aligned buffer with the queued samples zero-
-  // padded up to buffer_size so the I2S DMA is fed at a constant cadence.
-  size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
+  // Playback: write the next block of audio from the stream buffer. Wait
+  // (bounded) for a whole block rather than taking whatever is queued and
+  // zero-padding it to a block: producers push audio in bursts (one video frame
+  // at a time, with frame-to-frame jitter), and the stream buffer exists to
+  // absorb exactly that. Taking a partial block padded it with silence every
+  // time the stream momentarily held less than one block, which is audible as
+  // stutter whenever the producer's cadence is uneven. The DMA is still fed
+  // whole blocks at a constant cadence while audio is flowing (the stream's
+  // trigger level is one block); only after the timeout -- producer idle or
+  // slower than real time -- is a partial block written as is (the I2S driver
+  // concatenates partial writes without gaps), or silence when there is none.
   size_t buffer_size = audio_tx_buffer.size();
-  available = std::min(available, buffer_size);
   uint8_t *tx_buf = audio_tx_buffer.data();
-  memset(tx_buf, 0, buffer_size);
-  if (available == 0) {
+  size_t got = xStreamBufferReceive(audio_tx_stream, tx_buf, buffer_size,
+                                    pdMS_TO_TICKS(AUDIO_TX_RECEIVE_TIMEOUT_MS));
+  // the block is frame-aligned and producers queue whole frames, so this cannot
+  // happen; if it ever does, do not silently drop bytes (that would desynchronize
+  // the framing of everything after them) -- say so
+  constexpr size_t frame_bytes = NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
+  if (got % frame_bytes != 0) {
+    static uint32_t misaligned_count = 0;
+    if ((misaligned_count++ % 100) == 0) {
+      logger_.warn("audio stream holds a partial frame ({} bytes)", got);
+    }
+  }
+  if (got == 0) {
+    memset(tx_buf, 0, buffer_size);
     i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, portMAX_DELAY);
   } else {
-    xStreamBufferReceive(audio_tx_stream, tx_buf, available, 0);
-    i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, portMAX_DELAY);
+    i2s_channel_write(audio_tx_handle, tx_buf, got, NULL, portMAX_DELAY);
   }
 
   return false;

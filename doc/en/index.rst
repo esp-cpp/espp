@@ -22,6 +22,9 @@ collected under :doc:`web_apps`.
    :caption: Core & RTOS
 
    core/index
+   coredump/index
+   system/index
+   desktop/index
 
 .. toctree::
    :maxdepth: 1
@@ -83,6 +86,10 @@ collected under :doc:`web_apps`.
    ftp/index
    nfc/index
    ota/index
+   stream_frame/index
+   dispatcher/index
+   telemetry/index
+   wdi/index
    wireless/index
    protocols/index
 

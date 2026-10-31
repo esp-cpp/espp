@@ -1,0 +1,119 @@
+name: Host sanitizers (TSan / ASan)
+
+# Build the host library + pc test suite under ThreadSanitizer and
+# AddressSanitizer and run the standalone (non-interop) tests. The RTPS stack
+# is heavily concurrent (transport worker pool, socket reactor, protocol
+# scheduler, deferred dispatchers), and most defects found in review have been
+# data races, deadlocks, and use-after-frees - exactly the classes these
+# sanitizers detect mechanically. Runs whenever RTPS or its concurrency
+# building blocks change.
+
+# Minimal token scope: build + run tests, never writes.
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - "components/rtps/**"
+      - "components/socket/**"
+      - "components/thread_pool/**"
+      - "components/task/**"
+      - "components/timer/**"
+      - "components/cdr/**"
+      - "lib/espp.cmake"
+      - "pc/tests/rtps_*"
+      - "pc/tests/socket_reactor.cpp"
+      - "pc/tests/thread_pool.cpp"
+      - ".github/workflows/host_sanitizers.yml"
+  workflow_dispatch:
+
+# Supersede in-progress runs (same rationale as rtps_interop.yml): keyed by
+# workflow + PR number; never runs on push to main, so cancel is always safe.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sanitize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sanitizer: thread
+            cflags: "-fsanitize=thread -fno-omit-frame-pointer"
+            ldflags: "-fsanitize=thread"
+          - sanitizer: address
+            cflags: "-fsanitize=address -fno-omit-frame-pointer"
+            ldflags: "-fsanitize=address"
+    name: ${{ matrix.sanitizer }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: "recursive"
+
+      - name: Build library (${{ matrix.sanitizer }})
+        run: |
+          cmake -S lib -B lib/build \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DESPP_INSTALL=ON \
+            -DESPP_BUILD_PYTHON=OFF \
+            -DCMAKE_INSTALL_PREFIX="$PWD/install" \
+            -DCMAKE_C_FLAGS="${{ matrix.cflags }}" \
+            -DCMAKE_CXX_FLAGS="${{ matrix.cflags }}" \
+            -DCMAKE_EXE_LINKER_FLAGS="${{ matrix.ldflags }}" \
+            -DCMAKE_SHARED_LINKER_FLAGS="${{ matrix.ldflags }}"
+          cmake --build lib/build --target install --parallel 4
+
+      - name: Build pc tests (${{ matrix.sanitizer }})
+        run: |
+          cmake -S pc -B pc/build \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_PREFIX_PATH="$PWD/install" \
+            -DCMAKE_CXX_FLAGS="${{ matrix.cflags }}" \
+            -DCMAKE_EXE_LINKER_FLAGS="${{ matrix.ldflags }}"
+          cmake --build pc/build --parallel 4
+
+      - name: Run standalone tests under ${{ matrix.sanitizer }} sanitizer
+        run: |
+          # halt_on_error=0: report every finding, fail via the exit code.
+          # detect_leaks=0: the engine deliberately holds pooled/static
+          # allocations for its lifetime; LSan end-of-process reports would be
+          # noise. ASan still catches use-after-free / overflow.
+          #
+          # The lock-order (deadlock) detector is ENABLED. Its first runs found
+          # four real ABBA cycles, all now fixed: checkAndResetHeartbeats
+          # agent->participant order, addBuiltInEndpoints lock scope,
+          # executeCallbacks snapshot-invoke, and StatefulReader delivering
+          # user callbacks under a leaf delivery mutex instead of the proxies
+          # mutex (which user callbacks could cycle back into via the
+          # facade/SEDP lock chain).
+          export TSAN_OPTIONS="second_deadlock_stack=1"
+          export ASAN_OPTIONS="detect_leaks=0"
+          fails=0
+          # The interop client/server binaries need a FastDDS/ROS 2 peer (the
+          # docker matrix covers them); everything else runs standalone. The
+          # generous per-test timeout absorbs the sanitizer's slowdown; a hang
+          # (e.g. a deadlock TSan cannot see) still fails the job.
+          for t in pc/build/rtps_* pc/build/socket_reactor pc/build/thread_pool; do
+            [ -x "$t" ] || continue
+            name=$(basename "$t")
+            case "$name" in *interop*) continue;; esac
+            echo "::group::$name"
+            if timeout 300 "$t"; then
+              echo "PASS: $name"
+            else
+              rc=$?
+              echo "FAIL: $name (exit $rc)"
+              fails=$((fails+1))
+            fi
+            echo "::endgroup::"
+          done
+          echo "==================== ${{ matrix.sanitizer }} summary ===================="
+          if [ "$fails" -ne 0 ]; then
+            echo "FAILED: $fails test(s) under ${{ matrix.sanitizer }} sanitizer"
+            exit 1
+          fi
+          echo "ALL PASS under ${{ matrix.sanitizer }} sanitizer"

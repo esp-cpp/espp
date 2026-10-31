@@ -260,6 +260,7 @@ esp_err_t initialize_camera(void) {
       .fb_location = CAMERA_FB_IN_PSRAM,
       .grab_mode = CAMERA_GRAB_LATEST,
       .sccb_i2c_port = I2C_NUM_0,
+      .jpeg_buffer_size = 0, // esp32-camera >= 2.1.8: 0 = the driver's default JPEG buffer size
   };
 
   auto err = esp_camera_init(&camera_config);

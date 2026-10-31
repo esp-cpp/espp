@@ -239,6 +239,7 @@ def _fix_rtsp_qualifications(code: str) -> str:
 _GIL_RELEASE_METHODS = {
     "espp::Task": ["start", "stop"],
     "espp::Timer": ["start", "stop", "cancel"],
+    "espp::TrajectoryPlanner": ["start_task", "stop_task"],
     "espp::FtpServer": ["start", "stop"],
     "espp::TcpSocket": ["connect", "transmit", "receive", "accept"],
     "espp::UdpSocket": ["send", "receive", "start_receiving", "stop_receiving"],
@@ -252,6 +253,40 @@ _GIL_RELEASE_METHODS = {
 }
 
 _GIL_GUARD = "py::call_guard<py::gil_scoped_release>()"
+
+
+# Classes whose destructor joins a thread (a Task's thread, a Timer's, a TrajectoryPlanner's planning /
+# callback tasks, ...). Deleting one from python runs that join with the GIL held, which deadlocks
+# whenever the thread is waiting for the GIL to invoke its python callback, and at interpreter
+# shutdown the thread can no longer get the GIL at all. These classes get the
+# espp::py_detail::StopOnExitHolder holder (lib/python_bindings/stop_on_exit_holder.h): it deletes
+# with the GIL released and registers the live object so the module's atexit hook stops its threads
+# before finalisation. Only classes without a python-visible base can use it (pybind11 requires a
+# derived class to share its base's holder kind); each needs a stop_for_exit() overload in the header.
+_STOP_ON_EXIT_CLASSES = [
+    "Task",
+    "Timer",
+    "TrajectoryPlanner",
+    "ThreadPool",
+    "FtpServer",
+    "RtspServer",
+]
+_STOP_ON_EXIT_INCLUDE = '#include "stop_on_exit_holder.h"'
+
+
+def _use_stop_on_exit_holders(code: str) -> str:
+    for name in _STOP_ON_EXIT_CLASSES:
+        bare = f"py::class_<espp::{name}>"
+        replacement = f"py::class_<espp::{name}, espp::py_detail::StopOnExitHolder<espp::{name}>>"
+        if bare in code:
+            code = code.replace(bare, replacement)
+        elif replacement not in code:
+            print(f"WARNING: stop-on-exit holder for {name} did not match {bare}")
+    if _STOP_ON_EXIT_INCLUDE not in code:
+        anchor = '#include "espp.hpp"\n'
+        assert anchor in code, "generated file does not include espp.hpp"
+        code = code.replace(anchor, anchor + "\n" + _STOP_ON_EXIT_INCLUDE + "\n", 1)
+    return code
 
 
 def _find_call_end(code: str, open_paren: int) -> int:
@@ -365,6 +400,7 @@ def _postprocess_generated(code: str) -> str:
     code = _fix_class_holders(code)
     code = _fix_rtsp_qualifications(code)
     code = _add_gil_release_guards(code)
+    code = _use_stop_on_exit_holders(code)
     return code
 
 
@@ -580,6 +616,9 @@ def autogenerate() -> None:
 
                     # serialization (template header):
                     # include_dir + "serialization/include/serialization.hpp",
+
+                    # persistent_data (class template over the app's own version types):
+                    # include_dir + "persistent_data/include/persistent_data.hpp",
     ]
 
     pydef_file = output_dir + "/pybind_espp.cpp"

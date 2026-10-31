@@ -1,14 +1,38 @@
+#include <algorithm>
+#include <array>
+#include <atomic>
 #include <chrono>
+#include <cmath>
 #include <memory>
+#include <mutex>
 #include <sdkconfig.h>
+#include <span>
+#include <thread>
 #include <vector>
+
+#include "esp_system.h"
+#include "esp_timer.h"
+#include "tinyusb_cdc_acm.h"
+#include "tinyusb_console.h"
+
+#include "format.hpp"
 
 #include "bldc_driver.hpp"
 #include "bldc_haptics.hpp"
 #include "bldc_motor.hpp"
+#include "coredump.hpp"
+#include "coredump_service.hpp"
+#include "dispatcher_worker.hpp"
 #include "i2c.hpp"
+#include "monitor_service.hpp"
 #include "mt6701.hpp"
+#include "ota.hpp"
+#include "ota_service.hpp"
+#include "system_service.hpp"
 #include "task.hpp"
+#include "usb_device.hpp"
+
+#include "haptics_usb_protocol.hpp"
 
 #if CONFIG_EXAMPLE_HARDWARE_MOTORGO_MINI
 #include "motorgo-mini.hpp"
@@ -26,6 +50,7 @@ using Encoder = espp::Mt6701<espp::Mt6701Interface::SSI>;
 using Encoder = espp::Mt6701<>;
 #endif
 using BldcMotor = espp::BldcMotor<espp::BldcDriver, Encoder>;
+using BldcHaptics = espp::BldcHaptics<BldcMotor>;
 
 // Which MotorGo channel to drive (index 0 == "Motor 1", index 1 == "Motor 2").
 #if CONFIG_EXAMPLE_MOTOR_CHANNEL_2
@@ -34,216 +59,702 @@ static constexpr size_t example_motor_index = 1;
 static constexpr size_t example_motor_index = 0;
 #endif
 
-extern "C" void app_main(void) {
-  espp::Logger logger({.tag = "BLDC Haptics Example", .level = espp::Logger::Verbosity::DEBUG});
-  constexpr int num_seconds_to_run = 20;
-  {
-    logger.info("Running BLDC Haptics example for {} seconds!", num_seconds_to_run);
+// Dispatcher module id the haptics protocol is registered under (and stamped on
+// every haptics reply / telemetry frame). It is only a routing key: change this
+// one constant to move the protocol; the hosted haptics console finds it
+// through discovery (by haptics_proto::kProtocol), whatever id is chosen. The
+// OTA (0) and core-dump (4) services keep their own defaults; pass `.module` in
+// their Config to move those.
+static constexpr uint8_t kHapticsModule = haptics_proto::kModule;
 
-    // The motor and driver are set up below depending on the selected hardware.
-    std::shared_ptr<espp::BldcDriver> driver;
-    std::shared_ptr<BldcMotor> motor;
+// The USB telemetry / web dial needs the continuous knob value, i.e. the detent
+// index PLUS the fractional progress towards the neighboring detents. The
+// detent center and active config are protected in espp::BldcHaptics, so expose
+// them with a thin subclass.
+class HapticKnob : public BldcHaptics {
+public:
+  using BldcHaptics::BldcHaptics;
+
+  /// Paired snapshot of the detent state that update_detent_config() writes
+  /// together: the active config and the shaft angle (radians) of the center
+  /// of the current detent.
+  struct DetentSnapshot {
+    espp::detail::DetentConfig config;
+    float center;
+  };
+
+  /// Thread-safe single-lock snapshot of the active detent config and detent
+  /// center. Taking both under ONE detent_mutex_ acquisition guarantees they
+  /// belong to the same update_detent_config() generation - separate
+  /// accessors could interleave with a concurrent config update and return a
+  /// torn (mismatched) pair.
+  DetentSnapshot detent_snapshot() {
+    std::unique_lock<std::mutex> lk(detent_mutex_);
+    return {detent_config_, current_detent_center_};
+  }
+};
+
+// The detent / haptic mode presets exposed over USB (indices are the wire
+// `mode index`; keep PROTOCOL.md and the webapp in sync when editing).
+struct Preset {
+  const char *name;
+  const espp::detail::DetentConfig *config;
+};
+static constexpr size_t kDefaultPresetIndex = 4; // coarse values / strong detents
+static const std::array<Preset, 9> kPresets = {{
+    {"Unbounded, no detents", &espp::detail::UNBOUNDED_NO_DETENTS},
+    {"Bounded, no detents", &espp::detail::BOUNDED_NO_DETENTS},
+    {"Multi-rev, no detents", &espp::detail::MULTI_REV_NO_DETENTS},
+    {"On/off, strong detents", &espp::detail::ON_OFF_STRONG_DETENTS},
+    {"Coarse values, strong detents", &espp::detail::COARSE_VALUES_STRONG_DETENTS},
+    {"Fine values, no detents", &espp::detail::FINE_VALUES_NO_DETENTS},
+    {"Fine values, with detents", &espp::detail::FINE_VALUES_WITH_DETENTS},
+    {"Magnetic detents", &espp::detail::MAGNETIC_DETENTS},
+    {"Return to center, with detents", &espp::detail::RETURN_TO_CENTER_WITH_DETENTS},
+}};
+
+extern "C" void app_main(void) {
+  // rate_limit only affects the *_rate_limited() calls (e.g. the USB TX drop
+  // breadcrumb in usb_send below).
+  espp::Logger logger(
+      {.tag = "BLDC Haptics Example", .rate_limit = 1s, .level = espp::Logger::Verbosity::INFO});
+  logger.info("Starting USB-controlled BLDC haptics example");
+
+  namespace proto = haptics_proto;
+
+  // --------------------------------------------------------------------------
+  // Core dump: the last-crash summary (logged at boot + shown on the CDC banner
+  // below) plus the module-4 download service further down. TinyUSB owns the
+  // S3's only USB PHY, so there is no live USB-Serial-JTAG console to watch a
+  // panic backtrace on; panics core-dump to flash (see sdkconfig/partitions).
+  // The dump is intentionally NOT erased here -- the coredump web console can
+  // download and explicitly erase it over the module-4 protocol.
+  // --------------------------------------------------------------------------
+  espp::CoreDump core_dump({.log_level = espp::Logger::Verbosity::INFO});
+  const std::string crash_report = core_dump.format_report();
+  if (crash_report.empty()) {
+    logger.info("Clean boot (reset reason: {})",
+                espp::CoreDump::reset_reason_name(espp::CoreDump::reset_reason()));
+  } else {
+    logger.error("Previous abnormal reset:\n{}", crash_report);
+    if (core_dump.has_core_dump())
+      logger.info("Core dump in flash ({} bytes) -- download it with the coredump web console",
+                  core_dump.image_size());
+  }
+
+  // --------------------------------------------------------------------------
+  // Motor / driver setup (board-dependent)
+  // --------------------------------------------------------------------------
+  std::shared_ptr<espp::BldcDriver> driver;
+  std::shared_ptr<BldcMotor> motor;
 
 #if CONFIG_EXAMPLE_HARDWARE_MOTORGO_MINI || CONFIG_EXAMPLE_HARDWARE_MOTORGO_AXIS
 #if CONFIG_EXAMPLE_HARDWARE_MOTORGO_MINI
-    using Board = espp::MotorGoMini;
-    logger.info("Using MotorGo Mini, motor channel {}", example_motor_index + 1);
+  using Board = espp::MotorGoMini;
+  logger.info("Using MotorGo Mini, motor channel {}", example_motor_index + 1);
 #else
-    using Board = espp::MotorGoAxis;
-    logger.info("Using MotorGo Axis, motor channel {}", example_motor_index + 1);
+  using Board = espp::MotorGoAxis;
+  logger.info("Using MotorGo Axis, motor channel {}", example_motor_index + 1);
 #endif
-    // Both MotorGo boards expose the same symmetric, index-based API, so the
-    // rest of the setup is identical regardless of which board is selected.
-    auto &board = Board::get();
-    board.set_log_level(espp::Logger::Verbosity::INFO);
-    board.initialize_encoders(); // start the encoder update task(s)
-    board.initialize_motors();   // create the motor driver(s)
-    auto motor_config = board.default_motor_config(example_motor_index);
-    // tweak motor_config here if desired (PID gains, current limit, etc.)
-    motor = board.initialize_motor(example_motor_index, motor_config);
-    driver = board.motor_driver(example_motor_index);
+  // Both MotorGo boards expose the same symmetric, index-based API, so the
+  // rest of the setup is identical regardless of which board is selected.
+  auto &board = Board::get();
+  board.set_log_level(espp::Logger::Verbosity::INFO);
+  board.initialize_encoders(); // start the encoder update task(s)
+  board.initialize_motors();   // create the motor driver(s)
+  auto motor_config = board.default_motor_config(example_motor_index);
+  // tweak motor_config here if desired (PID gains, current limit, etc.)
+  motor = board.initialize_motor(example_motor_index, motor_config);
+  driver = board.motor_driver(example_motor_index);
 #else
-    logger.info("Using test-stand / custom wiring (I2C MT6701 + TMC6300)");
-    // Objects which must outlive the motor for the standalone (I2C) wiring.
-    std::unique_ptr<espp::I2c> i2c;
-    std::shared_ptr<Encoder> standalone_encoder;
-    // make the I2C that we'll use to communicate with the mt6701 (magnetic encoder)
-    logger.info("initializing i2c driver...");
-    i2c = std::make_unique<espp::I2c>(espp::I2c::Config{
-        .port = I2C_NUM_1,
-        .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
-        .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
-        .clk_speed = 1 * 1000 * 1000, // MT6701 supports 1 MHz I2C
-    });
+  logger.info("Using test-stand / custom wiring (I2C MT6701 + TMC6300)");
+  // Objects which must outlive the motor for the standalone (I2C) wiring.
+  std::unique_ptr<espp::I2c> i2c;
+  std::shared_ptr<Encoder> standalone_encoder;
+  // make the I2C that we'll use to communicate with the mt6701 (magnetic encoder)
+  logger.info("initializing i2c driver...");
+  i2c = std::make_unique<espp::I2c>(espp::I2c::Config{
+      .port = I2C_NUM_1,
+      .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
+      .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+      .clk_speed = 1 * 1000 * 1000, // MT6701 supports 1 MHz I2C
+  });
 
-    // now make the mt6701 which decodes the data
-    std::error_code ec;
-    auto encoder_device =
-        i2c->add_device<uint8_t>({.device_address = Encoder::DEFAULT_ADDRESS,
-                                  .timeout_ms = static_cast<int>(i2c->config().timeout_ms),
-                                  .scl_speed_hz = i2c->config().clk_speed,
-                                  .log_level = espp::Logger::Verbosity::WARN},
-                                 ec);
-    if (!encoder_device) {
-      logger.error("Failed to initialize MT6701 I2C device: {}", ec.message());
-      return;
+  // now make the mt6701 which decodes the data
+  std::error_code ec;
+  auto encoder_device =
+      i2c->add_device<uint8_t>({.device_address = Encoder::DEFAULT_ADDRESS,
+                                .timeout_ms = static_cast<int>(i2c->config().timeout_ms),
+                                .scl_speed_hz = i2c->config().clk_speed,
+                                .log_level = espp::Logger::Verbosity::WARN},
+                               ec);
+  if (!encoder_device) {
+    logger.error("Failed to initialize MT6701 I2C device: {}", ec.message());
+    return;
+  }
+  static constexpr float core_update_period = 0.001f; // seconds
+  standalone_encoder = std::make_shared<Encoder>(
+      Encoder::Config{.write = espp::make_i2c_addressed_write(encoder_device),
+                      .read = espp::make_i2c_addressed_read(encoder_device),
+                      .velocity_filter = nullptr, // no filtering
+                      .update_period = std::chrono::duration<float>(core_update_period),
+                      .log_level = espp::Logger::Verbosity::WARN});
+
+  standalone_encoder->initialize(true, ec);
+  if (ec) {
+    logger.error("Failed to initialize MT6701 encoder: {}", ec.message());
+    return;
+  }
+
+  // now make the bldc driver
+  driver = std::make_shared<espp::BldcDriver>(
+      espp::BldcDriver::Config{// this pinout is configured for the TinyS3 connected to the
+                               // TMC6300-BOB in the BLDC Motor Test Stand
+                               .gpio_a_h = 1,
+                               .gpio_a_l = 2,
+                               .gpio_b_h = 3,
+                               .gpio_b_l = 4,
+                               .gpio_c_h = 5,
+                               .gpio_c_l = 21,
+                               .gpio_enable = 34, // connected to the VIO/~Stdby pin of TMC6300-BOB
+                               .gpio_fault = 36,  // connected to the nFAULT pin of TMC6300-BOB
+                               .power_supply_voltage = 5.0f,
+                               .limit_voltage = 5.0f,
+                               .log_level = espp::Logger::Verbosity::WARN});
+
+  // now make the bldc motor
+  motor = std::make_shared<BldcMotor>(BldcMotor::Config{
+      // measured by setting it into ANGLE_OPENLOOP and then counting how many
+      // spots you feel when rotating it.
+      .num_pole_pairs = 7,
+      .phase_resistance =
+          4.0f, // tested by running velocity_openloop and seeing if the veloicty is ~correct
+      .kv_rating =
+          320, // tested by running velocity_openloop and seeing if the velocity is ~correct
+      .current_limit = 1.0f,        // Amps
+      .zero_electric_offset = 0.0f, // set to zero to always calibrate, since this is a test
+      .sensor_direction =
+          espp::detail::SensorDirection::UNKNOWN, // set to unknown to always calibrate, since
+                                                  // this is a test
+      .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
+      .driver = driver,
+      .sensor = standalone_encoder,
+      .velocity_pid_config =
+          {
+              .kp = 0.020f,
+              .ki = 0.700f,
+              .kd = 0.000f,
+              .integrator_min = -1.0f, // same scale as output_min (so same scale as current)
+              .integrator_max = 1.0f,  // same scale as output_max (so same scale as current)
+              .output_min = -1.0, // velocity pid works on current (if we have phase resistance)
+              .output_max = 1.0,  // velocity pid works on current (if we have phase resistance)
+          },
+      .angle_pid_config =
+          {
+              .kp = 5.000f,
+              .ki = 1.000f,
+              .kd = 0.000f,
+              .integrator_min = -10.0f, // same scale as output_min (so same scale as velocity)
+              .integrator_max = 10.0f,  // same scale as output_max (so same scale as velocity)
+              .output_min = -20.0,      // angle pid works on velocity (rad/s)
+              .output_max = 20.0,       // angle pid works on velocity (rad/s)
+          },
+      .log_level = espp::Logger::Verbosity::WARN});
+  motor->initialize();
+#endif
+
+  // --------------------------------------------------------------------------
+  // Haptic engine
+  // --------------------------------------------------------------------------
+  //! [bldc_haptics_example_1]
+  auto haptic_motor = HapticKnob({.motor = motor,
+                                  .kp_factor = 2,
+                                  .kd_factor_min = 0.01,
+                                  .kd_factor_max = 0.04,
+                                  .log_level = espp::Logger::Verbosity::INFO});
+
+  auto detent_config = *kPresets[kDefaultPresetIndex].config;
+  haptic_motor.update_detent_config(detent_config);
+  // this will start the haptic motor thread which will run in the background.
+  // If we want to change the detent config we can call update_detent_config()
+  // and it will update the detent config in the background thread.
+  haptic_motor.start();
+  //! [bldc_haptics_example_1]
+  logger.info("Haptics running with preset '{}'", kPresets[kDefaultPresetIndex].name);
+
+  std::atomic<uint8_t> mode_index{kDefaultPresetIndex};
+  std::atomic<bool> enabled{true};
+  std::atomic<bool> streaming{false};
+  std::atomic<uint16_t> stream_period_ms{20}; // 50 Hz default telemetry
+
+  // Continuous knob value: detent index plus fractional progress towards the
+  // neighboring detents. Position DEcreases as the shaft angle increases (see
+  // the snap logic in BldcHaptics::motor_task), hence the minus sign.
+  auto continuous_value = [&]() -> float {
+    // Single-lock snapshot: width and center must come from the same detent
+    // config generation (see HapticKnob::detent_snapshot()).
+    const auto detent = haptic_motor.detent_snapshot();
+    const float width = detent.config.position_width;
+    const float position = haptic_motor.get_position();
+    if (width <= 0.0f)
+      return position;
+    const float angle_to_center = motor->get_shaft_angle() - detent.center;
+    return position - angle_to_center / width;
+  };
+
+  auto status_flags = [&]() -> uint8_t {
+    uint8_t flags = 0;
+    if (enabled)
+      flags |= proto::flags::kEnabled;
+    if (driver->is_faulted())
+      flags |= proto::flags::kFaulted;
+    if (streaming)
+      flags |= proto::flags::kStreaming;
+    return flags;
+  };
+
+  // --------------------------------------------------------------------------
+  // OTA engine (transport-agnostic; served over USB by the OtaService below)
+  // --------------------------------------------------------------------------
+  espp::Ota ota({.reject_same_version = false, .log_level = espp::Logger::Verbosity::INFO});
+
+  const auto running = ota.running_app_description();
+  logger.info("Running '{}' version '{}' (built {} {}) from partition '{}'", running.project_name,
+              running.version, running.date, running.time, ota.running_partition_label());
+
+  // With CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE, an app booted right after an
+  // OTA update is PENDING_VERIFY: it must prove it is healthy and mark itself
+  // valid, or the bootloader rolls back on the next reset. Getting this far
+  // (motor + haptics up) is this example's health check.
+  if (ota.is_pending_verify()) {
+    logger.warn("This image is PENDING VERIFY (first boot after an OTA update)");
+    std::error_code ota_ec;
+    if (ota.mark_app_valid(ota_ec)) {
+      logger.info("Self-check passed -> image marked VALID; rollback cancelled");
+    } else {
+      logger.error("Marking app valid failed ({}) -> rolling back", ota_ec.message());
+      ota.mark_app_invalid_and_rollback(ota_ec); // reboots into the old image
     }
-    static constexpr float core_update_period = 0.001f; // seconds
-    standalone_encoder = std::make_shared<Encoder>(
-        Encoder::Config{.write = espp::make_i2c_addressed_write(encoder_device),
-                        .read = espp::make_i2c_addressed_read(encoder_device),
-                        .velocity_filter = nullptr, // no filtering
-                        .update_period = std::chrono::duration<float>(core_update_period),
-                        .log_level = espp::Logger::Verbosity::WARN});
+  }
 
-    // now make the bldc driver
-    driver = std::make_shared<espp::BldcDriver>(espp::BldcDriver::Config{
-        // this pinout is configured for the TinyS3 connected to the
-        // TMC6300-BOB in the BLDC Motor Test Stand
-        .gpio_a_h = 1,
-        .gpio_a_l = 2,
-        .gpio_b_h = 3,
-        .gpio_b_l = 4,
-        .gpio_c_h = 5,
-        .gpio_c_l = 21,
-        .gpio_enable = 34, // connected to the VIO/~Stdby pin of TMC6300-BOB
-        .gpio_fault = 36,  // connected to the nFAULT pin of TMC6300-BOB
-        .power_supply_voltage = 5.0f,
-        .limit_voltage = 5.0f,
-        .log_level = espp::Logger::Verbosity::DEBUG});
+  // --------------------------------------------------------------------------
+  // USB vendor / WebUSB interface
+  // --------------------------------------------------------------------------
+  espp::UsbDevice::Config usb_cfg;
+  usb_cfg.pid = 0x0d34; // distinct from the espp default so the webapp filter is specific
+  usb_cfg.manufacturer = "espp";
+  usb_cfg.product = "espp BLDC Haptics";
+  usb_cfg.log_level = espp::Logger::Verbosity::INFO;
+  // CDC alongside the vendor interface: a plain serial port any terminal can
+  // attach to (e.g. `screen /dev/tty.usbmodem*`). Once USB is up it becomes
+  // the live SYSTEM console (tinyusb_console_init below routes stdout/stderr
+  // - all espp/fmt and esp_log output - to it) and re-logs the last-crash
+  // report on every connect. Panic backtraces still cannot appear live
+  // (TinyUSB dies with the panic); the flash core dump + next-boot report
+  // above is the backtrace path.
+  espp::UsbDevice::CdcFunction cdc;
+  cdc.interface_name = "espp BLDC Haptics (debug)";
+  usb_cfg.cdc = cdc;
+  espp::UsbDevice::VendorFunction vendor;
+  vendor.interface_name = "espp BLDC Haptics (WebUSB)";
+  vendor.webusb = true; // advertise BOS / WebUSB / MS OS 2.0 descriptors
+  vendor.landing_page_url = "esp-cpp.github.io/espp/apps/haptics_console.html";
+  usb_cfg.vendor = vendor;
+  espp::UsbDevice usb(usb_cfg);
 
-    // now make the bldc motor
-    motor = std::make_shared<BldcMotor>(BldcMotor::Config{
-        // measured by setting it into ANGLE_OPENLOOP and then counting how many
-        // spots you feel when rotating it.
-        .num_pole_pairs = 7,
-        .phase_resistance =
-            5.0f, // tested by running velocity_openloop and seeing if the veloicty is ~correct
-        .kv_rating =
-            320, // tested by running velocity_openloop and seeing if the velocity is ~correct
-        .current_limit = 1.0f,        // Amps
-        .zero_electric_offset = 0.0f, // set to zero to always calibrate, since this is a test
-        .sensor_direction =
-            espp::detail::SensorDirection::UNKNOWN, // set to unknown to always calibrate, since
-                                                    // this is a test
-        .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
-        .driver = driver,
-        .sensor = standalone_encoder,
-        .velocity_pid_config =
-            {
-                .kp = 0.010f,
-                .ki = 1.000f,
-                .kd = 0.000f,
-                .integrator_min = -1.0f, // same scale as output_min (so same scale as current)
-                .integrator_max = 1.0f,  // same scale as output_max (so same scale as current)
-                .output_min = -1.0, // velocity pid works on current (if we have phase resistance)
-                .output_max = 1.0,  // velocity pid works on current (if we have phase resistance)
-            },
-        .angle_pid_config =
-            {
-                .kp = 7.000f,
-                .ki = 0.300f,
-                .kd = 0.010f,
-                .integrator_min = -10.0f, // same scale as output_min (so same scale as velocity)
-                .integrator_max = 10.0f,  // same scale as output_max (so same scale as velocity)
-                .output_min = -20.0,      // angle pid works on velocity (rad/s)
-                .output_max = 20.0,       // angle pid works on velocity (rad/s)
-            },
-        .log_level = espp::Logger::Verbosity::DEBUG});
-#endif
+  // The vendor TX path is written to from two tasks (the dispatcher worker's
+  // replies + telemetry), so serialize the writes.
+  std::mutex usb_tx_mutex;
+  // Takes a span so callers can pass either an owning std::vector (built by
+  // proto::build, converted implicitly, no copy) or a borrowed buffer (the
+  // discovery / OTA / coredump reply spans) without allocating. Returns true if
+  // the frame was queued, false if it was dropped (FIFO full / host not
+  // draining). Callers that don't care (command replies) ignore it; the
+  // telemetry task uses it to auto-pause a stream the host has abandoned.
+  auto usb_send = [&](std::span<const uint8_t> frame) -> bool {
+    if (frame.empty())
+      return true;
+    std::lock_guard<std::mutex> lk(usb_tx_mutex);
+    std::error_code tx_ec;
+    if (!usb.write_vendor(frame, tx_ec)) {
+      // The frame was dropped (FIFO full / host gone). The host notices via
+      // its own timeout, but keep a device-side breadcrumb - it is the signal
+      // needed when diagnosing OTA / protocol issues. Rate-limited so a
+      // disconnected host streaming telemetry cannot flood the console.
+      logger.warn_rate_limited("USB vendor TX failed, dropped {}-byte frame: {}", frame.size(),
+                               tx_ec.message());
+      return false;
+    }
+    return true;
+  };
 
-    auto print_detent_config = [&logger](const auto &detent_config) {
-      if (detent_config == espp::detail::UNBOUNDED_NO_DETENTS) {
-        logger.info("Setting detent config to UNBOUNDED_NO_DETENTS");
-      }
-      if (detent_config == espp::detail::BOUNDED_NO_DETENTS) {
-        logger.info("Setting detent config to BOUNDED_NO_DETENTS");
-      }
-      if (detent_config == espp::detail::MULTI_REV_NO_DETENTS) {
-        logger.info("Setting detent config to MULTI_REV_NO_DETENTS");
-      }
-      if (detent_config == espp::detail::ON_OFF_STRONG_DETENTS) {
-        logger.info("Setting detent config to ON_OFF_STRONG_DETENTS");
-      }
-      if (detent_config == espp::detail::COARSE_VALUES_STRONG_DETENTS) {
-        logger.info("Setting detent config to COARSE_VALUES_STRONG_DETENTS");
-      }
-      if (detent_config == espp::detail::FINE_VALUES_NO_DETENTS) {
-        logger.info("Setting detent config to FINE_VALUES_NO_DETENTS");
-      }
-      if (detent_config == espp::detail::FINE_VALUES_WITH_DETENTS) {
-        logger.info("Setting detent config to FINE_VALUES_WITH_DETENTS");
-      }
-      if (detent_config == espp::detail::MAGNETIC_DETENTS) {
-        logger.info("Setting detent config to MAGNETIC_DETENTS");
-      }
-      if (detent_config == espp::detail::RETURN_TO_CENTER_WITH_DETENTS) {
-        logger.info("Setting detent config to RETURN_TO_CENTER_WITH_DETENTS");
-      }
-    };
+  // --------------------------------------------------------------------------
+  // Haptics protocol (module 2) frame handling -- runs on the dispatcher
+  // worker task, never on the TinyUSB task.
+  // --------------------------------------------------------------------------
+  // Build replies via proto::build so they carry the haptics module
+  // (kHapticsModule) + reply flag — NOT the OTA reply builders (those are OTA
+  // module 0).
+  auto build = [](proto::Msg type, std::span<const uint8_t> payload = {}) {
+    return proto::build(type, payload, kHapticsModule);
+  };
+  auto reply_ok = [&](uint32_t value) {
+    std::vector<uint8_t> payload;
+    proto::put_u32(payload, value);
+    usb_send(build(proto::Msg::Ok, payload));
+  };
+  auto reply_error = [&](const std::error_code &err, const std::string &context) {
+    std::vector<uint8_t> payload;
+    proto::put_u32(payload, static_cast<uint32_t>(err.value()));
+    const std::string message = context + ": " + err.message();
+    payload.insert(payload.end(), message.begin(), message.end());
+    usb_send(build(proto::Msg::Error, payload));
+  };
+  auto reply_errc = [&](std::errc errc, const std::string &context) {
+    reply_error(std::make_error_code(errc), context);
+  };
 
-    //! [bldc_haptics_example_1]
-    using BldcHaptics = espp::BldcHaptics<BldcMotor>;
+  auto send_info = [&]() {
+    std::vector<uint8_t> payload;
+    payload.push_back(proto::kProtocolVersion);
+    const auto app = ota.running_app_description();
+    proto::put_str(payload, app.project_name);
+    proto::put_str(payload, app.version);
+    proto::put_str(payload, app.date + " " + app.time);
+    proto::put_str(payload, app.idf_version);
+    usb_send(build(proto::Msg::Info, payload));
+  };
 
-    auto haptic_motor = BldcHaptics({.motor = motor,
-                                     .kp_factor = 2,
-                                     .kd_factor_min = 0.01,
-                                     .kd_factor_max = 0.04,
-                                     .log_level = espp::Logger::Verbosity::INFO});
+  auto send_status = [&]() {
+    std::vector<uint8_t> payload;
+    payload.push_back(mode_index);
+    payload.push_back(status_flags());
+    proto::put_i32(payload, static_cast<int32_t>(haptic_motor.get_position()));
+    proto::put_f32(payload, continuous_value());
+    proto::put_f32(payload, motor->get_shaft_angle());
+    proto::put_f32(payload, motor->get_shaft_velocity());
+    proto::put_u16(payload, stream_period_ms);
+    usb_send(build(proto::Msg::Status, payload));
+  };
 
-    // auto detent_config = espp::detail::UNBOUNDED_NO_DETENTS;
-    // auto detent_config = espp::detail::BOUNDED_NO_DETENTS;
-    // auto detent_config = espp::detail::MULTI_REV_NO_DETENTS;
-    // auto detent_config = espp::detail::ON_OFF_STRONG_DETENTS;
-    auto detent_config = espp::detail::COARSE_VALUES_STRONG_DETENTS;
-    // auto detent_config = espp::detail::FINE_VALUES_NO_DETENTS;
-    // auto detent_config = espp::detail::FINE_VALUES_WITH_DETENTS;
-    // auto detent_config = espp::detail::MAGNETIC_DETENTS;
-    // auto detent_config = espp::detail::RETURN_TO_CENTER_WITH_DETENTS;
+  auto send_modes = [&]() {
+    std::vector<uint8_t> payload;
+    payload.push_back(static_cast<uint8_t>(kPresets.size()));
+    for (size_t i = 0; i < kPresets.size(); i++) {
+      const auto &cfg = *kPresets[i].config;
+      payload.push_back(static_cast<uint8_t>(i));
+      proto::put_i32(payload, static_cast<int32_t>(cfg.min_position));
+      proto::put_i32(payload, static_cast<int32_t>(cfg.max_position));
+      proto::put_f32(payload, cfg.position_width);
+      proto::put_f32(payload, cfg.detent_strength);
+      proto::put_f32(payload, cfg.end_strength);
+      proto::put_f32(payload, cfg.snap_point);
+      payload.push_back(static_cast<uint8_t>(cfg.detent_positions.size()));
+      for (const int detent : cfg.detent_positions)
+        proto::put_i32(payload, detent);
+      proto::put_str(payload, kPresets[i].name);
+    }
+    usb_send(build(proto::Msg::Modes, payload));
+  };
 
-    logger.info("{}", detent_config);
-
-    haptic_motor.update_detent_config(detent_config);
-    // this will start the haptic motor thread which will run in the background.
-    // If we want to change the detent config we can call update_detent_config()
-    // and it will update the detent config in the background thread.
-    haptic_motor.start();
-    //! [bldc_haptics_example_1]
-    print_detent_config(detent_config);
-
-    static auto start = std::chrono::high_resolution_clock::now();
-    auto now = std::chrono::high_resolution_clock::now();
-    auto seconds = std::chrono::duration<float>(now - start).count();
-    while (seconds < num_seconds_to_run) {
-      now = std::chrono::high_resolution_clock::now();
-      seconds = std::chrono::duration<float>(now - start).count();
-      std::this_thread::sleep_for(500ms);
-      if (driver->is_faulted()) {
-        logger.error("Driver is faulted, cannot continue haptics");
+  auto handle_frame = [&](const proto::stream::Frame &frame) {
+    switch (static_cast<proto::Msg>(frame.type)) {
+    // --- Haptics commands ----------------------------------------------------
+    case proto::Msg::GetInfo:
+      send_info();
+      break;
+    case proto::Msg::GetStatus:
+      send_status();
+      break;
+    case proto::Msg::GetModes:
+      send_modes();
+      break;
+    case proto::Msg::SetMode: {
+      if (frame.payload.size() != 1 || frame.payload[0] >= kPresets.size()) {
+        reply_errc(std::errc::invalid_argument, "SET_MODE needs a valid u8 mode index");
         break;
       }
+      const uint8_t index = frame.payload[0];
+      haptic_motor.update_detent_config(*kPresets[index].config);
+      mode_index = index;
+      logger.info("Mode changed to {} ('{}')", index, kPresets[index].name);
+      reply_ok(index);
+      break;
     }
-
-    // test the haptic buzz / click
-    if (!driver->is_faulted()) {
-      logger.info("Playing haptic click!");
+    case proto::Msg::SetPosition: {
+      const auto position = proto::get_i32_at(frame.payload, 0);
+      if (!position.has_value() || frame.payload.size() != 4) {
+        reply_errc(std::errc::invalid_argument, "SET_POSITION needs an i32 position");
+        break;
+      }
+      // NOTE: BldcHaptics::set_position() re-labels the current detent (sets
+      // the logical index the knob is at, clamped to the active config); it
+      // does NOT drive the motor to a different physical detent. See
+      // PROTOCOL.md / the web console's "Set detent index" control.
+      haptic_motor.set_position(*position);
+      reply_ok(static_cast<uint32_t>(static_cast<int32_t>(haptic_motor.get_position())));
+      break;
+    }
+    case proto::Msg::SetEnabled: {
+      if (frame.payload.size() != 1) {
+        reply_errc(std::errc::invalid_argument, "SET_ENABLED needs a u8 0/1");
+        break;
+      }
+      const bool enable = frame.payload[0] != 0;
+      if (enable)
+        haptic_motor.start();
+      else
+        // BldcHaptics::stop() -> BldcMotor::disable() -> BldcDriver::disable(),
+        // so this de-energizes the motor driver outputs (see PROTOCOL.md)
+        haptic_motor.stop();
+      enabled = enable;
+      logger.info("Haptics {}", enable ? "enabled" : "disabled");
+      reply_ok(enable ? 1 : 0);
+      break;
+    }
+    case proto::Msg::PlayHaptic: {
+      const auto strength = proto::get_f32_at(frame.payload, 0);
+      if (!strength.has_value() || frame.payload.size() != 4) {
+        reply_errc(std::errc::invalid_argument, "PLAY_HAPTIC needs an f32 strength");
+        break;
+      }
+      if (!enabled) {
+        reply_errc(std::errc::operation_not_permitted, "haptics are disabled");
+        break;
+      }
+      // Do not drive a new torque pulse into a faulted driver (over-current /
+      // thermal / driver fault): mirror the disabled check.
+      if (driver->is_faulted()) {
+        reply_errc(std::errc::device_or_resource_busy, "driver is faulted");
+        break;
+      }
+      // std::clamp does not sanitize NaN, so reject non-finite strengths
+      // before they can propagate into the motor torque math.
+      if (!std::isfinite(*strength)) {
+        reply_errc(std::errc::invalid_argument, "PLAY_HAPTIC strength must be finite");
+        break;
+      }
+      const float clamped = std::clamp(*strength, 0.0f, 10.0f);
       //! [bldc_haptics_example_2]
       haptic_motor.play_haptic(espp::detail::HapticConfig{
-          .strength = 5.0f,
+          .strength = clamped,
           .frequency = 200.0f, // Hz, NOTE: frequency is unused for now
           .duration = 1s       // NOTE: duration is unused for now
       });
       //! [bldc_haptics_example_2]
+      reply_ok(0);
+      break;
     }
+    case proto::Msg::SetStreaming: {
+      const auto period = proto::get_u16_at(frame.payload, 1);
+      if (frame.payload.size() != 3 || !period.has_value()) {
+        reply_errc(std::errc::invalid_argument, "SET_STREAMING needs u8 enable + u16 period_ms");
+        break;
+      }
+      const uint16_t period_ms = std::clamp<uint16_t>(*period == 0 ? 20 : *period, 5, 1000);
+      stream_period_ms = period_ms;
+      streaming = frame.payload[0] != 0;
+      logger.info("Telemetry streaming {} (period {} ms)", streaming ? "on" : "off", period_ms);
+      reply_ok(period_ms);
+      break;
+    }
+    default:
+      reply_errc(std::errc::not_supported, "unknown message type");
+      break;
+    }
+  };
 
+  // --------------------------------------------------------------------------
+  // The protocols on the one vendor stream
+  // --------------------------------------------------------------------------
+  // Each is on its own dispatcher module and each is advertised for capability
+  // discovery so the browser Device Hub lists and links them:
+  //   module 0 -> OTA          (espp::OtaService       -> ota_console)
+  //   module 2 -> BLDC haptics (this example's protocol -> haptics_console)
+  //   module 4 -> core dump    (espp::CoreDumpService  -> coredump_console)
+  //   module 7 -> system       (espp::SystemService    -> system_console)
+  //   module 8 -> monitor      (espp::MonitorService   -> system_console)
+  // (the published defaults; each id is configurable -- kHapticsModule above,
+  // and `.module` in the services' Config -- and the hosted consoles find the
+  // ids through discovery, by protocol id, so any choice works)
+  // All replies -- and the discovery reply -- go through the same
+  // tx_mutex-guarded usb_send as the telemetry frames.
+
+  // --- OTA (module 0): the standard espp ota_stream protocol (BEGIN / DATA /
+  //     FINISH / ABORT, session ownership, rollback status, the post-FINISH
+  //     restart) is implemented by OtaService, so a plain ota_console can
+  //     update this device.
+  espp::OtaService ota_service(ota, {.send = [&](std::span<const uint8_t> f) { usb_send(f); },
+                                     .log_level = espp::Logger::Verbosity::INFO});
+
+  // --- Core dump (module 4): the CoreDumpService serves the flash dump over the
+  //     standard protocol, so a plain coredump_console can download / erase it.
+  espp::CoreDumpService coredump_service(core_dump,
+                                         {.send = [&](std::span<const uint8_t> f) { usb_send(f); },
+                                          .log_level = espp::Logger::Verbosity::INFO});
+
+  // --- System (module 7) + monitor (module 8): the rest of the standard service
+  //     set every espp USB example carries (info / reboot / bootloader, heap +
+  //     task table), so the system console and the Device Hub work here too.
+  //     A reboot de-energizes the motor first (BldcHaptics::stop() disables
+  //     the driver) so the knob never reboots under torque.
+  auto reboot_request = [&](espp::SystemService::RebootKind kind) {
+    logger.warn("Host requested a {}; stopping the haptics and allowing it",
+                kind == espp::SystemService::RebootKind::Bootloader ? "reboot into the bootloader"
+                                                                    : "reboot");
     haptic_motor.stop();
+    enabled = false;
+    return true;
+  };
+  espp::SystemService system_service({.send = [&](std::span<const uint8_t> f) { usb_send(f); },
+                                      .on_reboot_request = reboot_request,
+                                      .log_level = espp::Logger::Verbosity::INFO});
+  espp::MonitorService monitor_service({.send = [&](std::span<const uint8_t> f) { usb_send(f); },
+                                        .log_level = espp::Logger::Verbosity::INFO});
 
-    driver->disable();
+  // RX bytes arrive in the TinyUSB task context: DispatcherWorker owns the
+  // bounded receive queue + worker task that feeds its Dispatcher, so the
+  // handlers above run on the worker (esp_ota_begin's flash erase can take
+  // seconds and must not block the USB stack). The protocol is
+  // one-command-in-flight, so a well-behaved host queues at most ~one frame;
+  // the queue is capped anyway so a misbehaving host cannot exhaust device RAM
+  // while the worker blocks in the flash operations.
+  espp::DispatcherWorker usb_link(
+      {.send = [&](std::span<const uint8_t> f) { usb_send(f); },
+       .on_overflow =
+           [&]() {
+             // Bytes were dropped: any in-flight frame / OTA image is unusable.
+             // The OTA service aborts a transfer it owned and tells the host
+             // (module 0). If no update was running the host is a haptics
+             // console (module 2), so report the drop there too -- an error
+             // on the wrong module would be ignored by the host, which would
+             // then wait for its own timeout.
+             // on_rx_overflow() aborts + replies (module 0) only if an OTA
+             // transfer was in progress; otherwise the error is ours to send.
+             if (!ota_service.on_rx_overflow())
+               reply_errc(std::errc::no_buffer_space,
+                          "RX overflow: frames dropped -- wait for OK replies between frames");
+           },
+       .task_config = {.name = "haptics_usb", .stack_size_bytes = 8192}});
+  usb_link.register_module(ota_service);      // module 0 + its discovery metadata
+  usb_link.register_module(coredump_service); // module 4 + its discovery metadata
+  usb_link.register_module(system_service);   // module 7
+  usb_link.register_module(monitor_service);  // module 8
+  // The handler gates on !is_reply() so a reply-typed echo cannot re-enter it.
+  usb_link.register_module(kHapticsModule,
+                           [&](const proto::stream::Frame &frame) {
+                             if (!frame.is_reply())
+                               handle_frame(frame);
+                           },
+                           {.name = "BLDC Haptics",
+                            .app = "haptics_console.html",
+                            .description = "Haptic detent / feedback modes",
+                            .protocol = haptics_proto::kProtocol,
+                            .protocol_version = haptics_proto::kProtocolVersion});
+  usb_link.serve_discovery(usb_cfg.product); // reserved module 0xFF
+  usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { usb_link.push(data); });
+
+  std::error_code usb_ec;
+  const bool usb_ok = usb.initialize(usb_ec);
+  if (!usb_ok) {
+    // Not fatal for the haptics themselves: the knob keeps running standalone,
+    // but everything USB-dependent (telemetry, CDC console) is skipped below
+    // so no task ever touches a dead USB stack. (The dispatcher worker simply
+    // never receives any bytes.)
+    logger.error("Failed to initialize USB device: {}; continuing WITHOUT USB "
+                 "(web console / OTA / telemetry unavailable; haptics still run)",
+                 usb_ec.message());
+  } else {
+    // Route the SYSTEM console (stdout/stderr - all espp/fmt and esp_log
+    // output) to the CDC interface: TinyUSB owns the S3's only USB PHY, so
+    // this replaces the unusable USB-Serial-JTAG console. Attach any serial
+    // terminal (e.g. `screen /dev/tty.usbmodem*`) for live logs. Panic
+    // backtraces still cannot appear live (TinyUSB dies with the panic) -
+    // those are captured by the flash core dump and summarized on the next
+    // boot (see crash_report above / GET_CRASH).
+    if (tinyusb_console_init(TINYUSB_CDC_ACM_0) != ESP_OK)
+      logger.warn("Could not route the console to USB CDC");
   }
 
-  logger.info("BLDC Haptics example complete!");
+  // --------------------------------------------------------------------------
+  // Telemetry streaming task
+  // --------------------------------------------------------------------------
+  // Auto-pause guard: if telemetry sends fail continuously for this long, the
+  // host has stopped draining the vendor IN endpoint (tab closed / backgrounded
+  // / frozen). Streaming into a full FIFO just spams drops and, worse, buries a
+  // reconnecting host's GET_INFO reply so it can never connect -- so pause the
+  // stream until a host re-enables it (SET_STREAMING on connect).
+  constexpr auto kTelemetryStallTimeout = 2s;
+  auto telemetry_stall_start = std::chrono::steady_clock::time_point{};
 
+  espp::Task telemetry_task(
+      {.callback = [&](std::mutex &m, std::condition_variable &cv) -> bool {
+         const auto start = std::chrono::steady_clock::now();
+         // pause the stream while an OTA transfer runs so the bulk IN pipe
+         // carries only the flow-controlled OTA replies
+         if (streaming && usb.is_vendor_connected() && !ota.session_active()) {
+           std::vector<uint8_t> payload;
+           proto::put_u32(payload, static_cast<uint32_t>(esp_timer_get_time() / 1000));
+           payload.push_back(mode_index);
+           payload.push_back(status_flags());
+           proto::put_i32(payload, static_cast<int32_t>(haptic_motor.get_position()));
+           proto::put_f32(payload, continuous_value());
+           proto::put_f32(payload, motor->get_shaft_angle());
+           proto::put_f32(payload, motor->get_shaft_velocity());
+           if (usb_send(build(proto::Msg::Telemetry, payload))) {
+             telemetry_stall_start = {}; // queued OK -> the host is draining
+           } else if (telemetry_stall_start == std::chrono::steady_clock::time_point{}) {
+             telemetry_stall_start = start; // first drop -> start the stall clock
+           } else if (start - telemetry_stall_start > kTelemetryStallTimeout) {
+             streaming = false; // host abandoned the stream: stop flooding a full FIFO
+             telemetry_stall_start = {};
+             // Drop the queued backlog now (a tab close does not unmount, so it
+             // is not cleared for us) so a reconnecting host reads a clean stream
+             // instead of stale telemetry it might mis-parse as a command reply.
+             usb.vendor_write_clear();
+             logger.warn("Telemetry auto-paused: the host stopped draining the USB vendor "
+                         "endpoint (re-enable streaming from the web console)");
+           }
+         }
+         {
+           std::unique_lock<std::mutex> lk(m);
+           cv.wait_until(lk, start + std::chrono::milliseconds(stream_period_ms.load()));
+         }
+         return false; // don't stop the task
+       },
+       // 8 KB: write_vendor's rate-limited TX-full warning goes through fmt,
+       // which alone can use a few KB of stack - 4 KB overflowed (= reboot)
+       // when the host stopped draining the IN endpoint.
+       .task_config = {.name = "haptics_telem", .stack_size_bytes = 8192}});
+  if (usb_ok) {
+    telemetry_task.start();
+    logger.info("Ready: connect the native USB port and open the web console "
+                "(example/webapp/index.html or https://{})",
+                vendor.landing_page_url);
+  } else {
+    logger.warn("Ready (haptics only): USB failed to initialize, so the web "
+                "console / OTA / telemetry are unavailable this boot");
+  }
+
+  bool was_faulted = false;
+  bool cdc_was_connected = false;
   while (true) {
     std::this_thread::sleep_for(1s);
+    // A terminal attaching to the CDC console missed the boot output; re-log
+    // the previous-crash summary for it once per connection. (is_cdc_connected
+    // is a safe no-op returning false while uninitialized, but gate on usb_ok
+    // anyway so the intent is explicit.)
+    const bool cdc_connected = usb_ok && usb.is_cdc_connected();
+    if (cdc_connected && !cdc_was_connected && !crash_report.empty())
+      logger.error("Previous abnormal reset: {}", crash_report);
+    cdc_was_connected = cdc_connected;
+    const bool faulted = driver->is_faulted();
+    if (faulted != was_faulted) {
+      was_faulted = faulted;
+      if (faulted)
+        logger.error("Motor driver FAULT asserted");
+      else
+        logger.info("Motor driver fault cleared");
+    }
   }
 }

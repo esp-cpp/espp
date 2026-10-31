@@ -65,6 +65,7 @@ USB device stack is handled in a later phase.
 .. toctree::
 
    odrive_native_example.md
+   odrive_usb_example.md
 
 .. ---------------------------- API Reference ----------------------------------
 

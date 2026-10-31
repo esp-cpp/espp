@@ -27,6 +27,56 @@ resynchronizing parser and a bounded 4096-byte maximum payload. The hosted
 `espp OTA Console <https://esp-cpp.github.io/espp/apps/ota_console.html>`_ web
 app speaks this protocol over WebUSB directly from a Chromium browser.
 
+The frame codec itself lives in the reusable :doc:`../stream_frame/index`
+component (``detail/ota_stream_protocol.hpp`` re-exports it and layers the OTA
+message types on top); to run OTA alongside other protocols (crash-dump, CAN,
+...) on one stream, register it as a module with the
+:doc:`../dispatcher/index` — the ``ota`` example does exactly this (OTA is
+module id 0 by default; ``OtaService::Config::module`` moves an instance to
+any id, and the stock OTA console / ``espp_ota`` CLI still find it there
+through discovery — see :doc:`../dispatcher/custom_modules`).
+
+Command line: build → OTA
+-------------------------
+
+The ``ota`` component ships an idf.py extension (``idf_ext.py``) and a
+pure-Python host tool (``components/ota/python/espp_ota``), so any project using
+it gets an ``idf.py ota-usb`` action that builds and OTA-flashes over USB in one
+step — the OTA counterpart to ``idf.py flash``, with options::
+
+    pip install pyusb              # once (needs a libusb backend)
+    idf.py ota-usb                 # builds the app, then OTAs it over USB (+ marks it valid)
+    idf.py ota-usb --no-verify     # ... without the reconnect + mark-valid
+    idf.py ota-usb --status        # query the rollback state instead of flashing
+    idf.py ota-usb --mark-valid    # confirm the running image / --rollback to reject it
+    idf.py ota-usb --pid 0x1234 --serial ABC123
+
+The action needs ESP-IDF 6.0 or later (idf.py of 5.x loads neither component
+extensions nor entry points). ESP-IDF 6.0 and 6.0.1 load every participating
+component's extension; from 6.0.2 on idf.py loads a component's extension only
+from trusted sources (ESP-IDF, the project's components,
+``EXTRA_COMPONENT_DIRS``, ``espressif/`` registry components), so there a
+registry install of ``espp/ota`` needs ``IDF_EXTENSION_ALLOW_UNTRUSTED=1``, or
+the espp wheel installed in the IDF Python environment (its ``idf_extension``
+entry point is loaded without a trust check). A plain ``ota-usb`` CMake target
+remains as an option-less fallback, and is all that ESP-IDF 5.x gets.
+
+The tool draws a live progress bar (percent, size, transfer speed, ETA) and
+colorizes its output. Because ``idf.py`` captures the target's output, the bar is
+drawn straight to the controlling terminal so it still animates in place:
+
+.. image:: https://github.com/user-attachments/assets/a042481a-2964-4b06-9109-bb2dcb4e355b
+   :alt: espp_ota flashing an image over USB via idf.py ota-usb
+   :width: 100%
+
+.. image:: https://github.com/user-attachments/assets/da8e1b71-c65f-4ecc-9223-e232f8591ceb
+   :alt: espp_ota reporting a completed OTA over USB
+   :width: 100%
+
+For full control (a specific serial, chunk size, discovery probe) run it directly
+with ``python -m espp_ota flash build/<app>.bin`` — see
+``components/ota/python/README.md``.
+
 .. ------------------------------- Example -------------------------------------
 
 .. toctree::
@@ -40,3 +90,4 @@ API Reference
 
 .. include-build-file:: inc/ota.inc
 .. include-build-file:: inc/ota_stream_protocol.inc
+.. include-build-file:: inc/ota_service.inc

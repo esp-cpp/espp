@@ -79,33 +79,33 @@ extern "C" void app_main(void) {
 
   // gentle speed ramp on M1 (up to ~12.5% duty) with encoder readback, then
   // back down to a stop. Duty-cycle drive works without a tuned velocity PID;
-  // if your encoders + PID are configured, try drive_m1_speed() instead.
+  // if your encoders + PID are configured, try drive_speed(Axis::M1, ...)
+  // instead. The channel is selected with the shared espp::MotorAxis enum.
+  using Axis = espp::Basicmicro::Axis;
   static constexpr int16_t max_duty = 4096; // of 32767
   static constexpr int16_t step = 512;
   for (int16_t duty = 0; duty <= max_duty; duty = static_cast<int16_t>(duty + step)) {
-    if (!mcp.drive_m1_duty(duty, ec)) {
-      logger.error("drive_m1_duty({}) failed: {}", duty, ec.message());
+    if (!mcp.drive_duty(Axis::M1, duty, ec)) {
+      logger.error("drive_duty(M1, {}) failed: {}", duty, ec.message());
       break;
     }
     std::this_thread::sleep_for(250ms);
-    uint32_t count{0};
-    uint8_t enc_status{0};
+    int32_t count{0};
     int32_t speed{0};
     uint8_t direction{0};
-    if (mcp.read_encoder_m1(count, enc_status, ec) &&
-        mcp.read_encoder_speed_m1(speed, direction, ec)) {
+    if (mcp.read_encoder(Axis::M1, count, ec) && mcp.read_speed(Axis::M1, speed, direction, ec)) {
       logger.info("duty {:5d}: encoder count = {:10d}, speed = {} pulses/s ({})", duty, count,
                   speed, direction ? "backward" : "forward");
     }
   }
   for (int16_t duty = max_duty; duty >= 0; duty = static_cast<int16_t>(duty - step)) {
-    if (!mcp.drive_m1_duty(duty, ec))
+    if (!mcp.drive_duty(Axis::M1, duty, ec))
       break;
     std::this_thread::sleep_for(100ms);
   }
 
   // make sure the motor is stopped
-  if (mcp.drive_m1_duty(0, ec))
+  if (mcp.drive_duty(Axis::M1, 0, ec))
     logger.info("Motor stopped");
 
   //! [basicmicro example]

@@ -1,0 +1,28 @@
+menu "CAN Bridge Example Configuration"
+
+    config CAN_BRIDGE_SIMULATED_NODE
+        bool "Simulate a CANopen DS402 node instead of using the TWAI peripheral"
+        default n
+        help
+            Run a simulated CANopen (CiA 301) node with a CiA 402 drive profile
+            in firmware instead of bridging to the TWAI (CAN) peripheral, so the
+            hosted CAN console and DS402 panel web apps can be exercised with no
+            transceiver, bus, or drive attached. The node answers NMT, serves
+            the default SDO channel (expedited + segmented, with CiA 301 abort
+            codes) from an object dictionary that includes its own stored EDS
+            (0x1021), runs the DS402 state machine with profile position /
+            velocity / torque and homing modes, sends a heartbeat and a TPDO,
+            and raises an EMCY when a fault is injected (write 1 to 0x2000).
+            The USB side of the bridge is unchanged: the web apps connect and
+            talk to it exactly as they would with real hardware.
+
+    config CAN_BRIDGE_SIMULATED_NODE_ID
+        int "Simulated node id"
+        depends on CAN_BRIDGE_SIMULATED_NODE
+        range 1 127
+        default 1
+        help
+            The CANopen node id (1..127) the simulated node answers on: SDO on
+            0x600/0x580 + id, heartbeat on 0x700 + id, TPDO1 on 0x180 + id.
+
+endmenu

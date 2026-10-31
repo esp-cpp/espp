@@ -33,6 +33,8 @@
 
 # build folder for ESP-IDF
 build/
+# alternate/per-target ESP-IDF build dirs (e.g. build_s3, build_c6)
+build_*/
 
 
 # we only version sdkconfig.defaults
@@ -64,3 +66,8 @@ docs/
 
 # Local example-build helper script (not part of the repo).
 build_examples.sh
+
+# local sanitizer / variant build trees (host TSan/ASan, static-storage validation)
+lib/build-*/
+pc/build-*/
+install-*/

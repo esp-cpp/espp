@@ -1,5 +1,7 @@
 #include <pybind11/pybind11.h>
 
+#include "stop_registry.h"
+
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
@@ -20,6 +22,13 @@ void py_init_socket_reactor(py::module &m);
 // accessors with std::error_code& and std::span wire APIs; see odrive_native_bindings.cpp). Runs
 // after py_init_module_espp so Logger::Verbosity is already registered.
 void py_init_odrive_native(py::module &m);
+// Hand-written bindings for the espp stream_frame codec (Frame / StreamParser /
+// build_frame / ...) and espp::Dispatcher. Both are header-only and
+// dependency-free; kept out of the generated bindings (see dispatcher_bindings.cpp).
+void py_init_dispatcher(py::module &m);
+// Hand-written bindings for the `wdi` (Wheelchair Digital Interface) protocol core
+// (reports / bitfields, header-only + dependency-free; see wdi_bindings.cpp).
+void py_init_wdi(py::module &m);
 
 // This builds the native python extension module `espp._espp`, which the
 // `espp` python package (python_bindings/espp/__init__.py) re-exports.
@@ -34,4 +43,12 @@ PYBIND11_MODULE(_espp, m) {
   py_init_rtps(m);
   py_init_socket_reactor(m);
   py_init_odrive_native(m);
+  py_init_dispatcher(m);
+  py_init_wdi(m);
+
+  // Stop the threads of every live Task / Timer / TrajectoryPlanner / ... before the interpreter
+  // finalises (see stop_registry.h): their destructors run during finalisation, when a thread
+  // waiting for the GIL to run its python callback could never get it, so the join would hang.
+  py::module_::import("atexit").attr("register")(
+      py::cpp_function([]() { espp::py_detail::StopRegistry::instance().stop_all(); }));
 }

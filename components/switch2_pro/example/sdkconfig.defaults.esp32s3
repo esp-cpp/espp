@@ -1,0 +1,8 @@
+# ESP32-S3-specific defaults (applied on top of sdkconfig.defaults when the
+# target is esp32s3). The S3 is fully verified against a real Switch 2 on
+# ESP-IDF >= v6.1, where CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (default on)
+# lets the BTDM controller accept the console's 5 ms interval with no patch.
+
+# The S3 CPU runs at 240 MHz for headroom in the BLE host + input path.
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240

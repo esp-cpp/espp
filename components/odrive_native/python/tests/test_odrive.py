@@ -66,7 +66,7 @@ def test_stream_roundtrip():
 def _build_device(workdir):
     out = os.path.join(workdir, "odrive_native_device")
     cxx = os.environ.get("CXX", "c++")
-    cmd = [cxx, "-std=c++20", "-I", INCLUDE, DEVICE_SRC, "-o", out]
+    cmd = [cxx, "-std=c++23", "-I", INCLUDE, DEVICE_SRC, "-o", out]
     log("building device shim: " + " ".join(cmd))
     subprocess.run(cmd, check=True)
     return out

@@ -145,7 +145,7 @@ Hardware section if it is not relevant to the PR.
 
 ## Code Style
 
-- C++20 standard
+- C++23 standard
 - Follow `.clang-format` for formatting
 - Use `espp` namespace
 - Follow the patterns of existing components for logging (`espp::Logger`), configuration structs (`Config`), and task usage

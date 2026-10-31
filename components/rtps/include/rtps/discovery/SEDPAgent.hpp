@@ -58,6 +58,14 @@ public:
   uint32_t getNumRemoteUnmatchedReaders();
   uint32_t getNumRemoteUnmatchedWriters();
 
+  /// The agent's discovery mutex (recursive). Exposed so an endpoint deletion
+  /// can be made ATOMIC with the participant's slot removal under the global
+  /// lock order (SEDPAgent::m_mutex -> Participant::m_mutex): holding it across
+  /// deleteReader/deleteWriter() AND the slot-clear prevents a concurrent SEDP
+  /// receive handler from matching a remote to the endpoint in the window
+  /// between its disposal and its removal from the participant's tables.
+  std::recursive_mutex &getMutex() { return m_mutex; }
+
 protected: // For testing purposes
   void handlePublisherReaderMessage(const TopicData &writerData, const ReaderCacheChange &change);
   void handleSubscriptionReaderMessage(const TopicData &writerData,

@@ -31,4 +31,4 @@ This component is the reflection backend for the reflection-driven ``cdr``
 component (introduced in a follow-up PR), which uses it to have the compiler
 generate CDR serialization code directly from struct definitions.
 
-Requires C++20 or newer (the default on ESP-IDF 5.2+ toolchains).
+Requires C++23 or newer (the default on ESP-IDF 5.2+ toolchains).

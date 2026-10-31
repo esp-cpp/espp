@@ -1,0 +1,27 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Browser-rendered windowed desktop for microcontrollers: the firmware describes apps, windows and widgets (retained tree) and a web app draws and operates them over WebUSB / Web Serial; plus a stdout/stderr log capture ring"
+url: "https://github.com/esp-cpp/espp/tree/main/components/desktop"
+repository: "https://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/desktop/desktop.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Desktop
+  - GUI
+  - Widgets
+  - WebUSB
+  - WebSerial
+  - USB
+dependencies:
+  idf:
+    version: '>=5.1'
+  espp/base_component: '>=1.0'
+  espp/task: '>=1.0'
+  espp/format: '>=1.0'
+  espp/stream_frame: '>=1.0'
+  espp/dispatcher: '>=1.0'

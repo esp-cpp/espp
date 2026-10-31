@@ -13,7 +13,7 @@ calls user-provided ``write`` / ``read`` functions for each transaction, so it
 works over a UART driver, USB CDC, an RS-232 adapter, etc. All wire-format
 logic (CRC16, packet building, reply validation, big-endian codecs) lives in
 ``espp::detail`` inside ``include/detail/basicmicro_core.hpp``, a
-host-buildable core that depends only on the C++20 standard library and is
+host-buildable core that depends only on the C++23 standard library and is
 unit-tested off-target.
 
 Features
@@ -61,12 +61,13 @@ Basic Usage
   });
 
   std::error_code ec;
+  using Axis = espp::Basicmicro::Axis;   // shared espp::MotorAxis (M1 / M2)
   std::string version;
   mcp.read_firmware_version(version, ec);
-  mcp.drive_m1_duty(4096, ec);   // ~12.5% duty
-  uint32_t count; uint8_t status;
-  mcp.read_encoder_m1(count, status, ec);
-  mcp.drive_m1_duty(0, ec);
+  mcp.drive_duty(Axis::M1, 4096, ec);    // ~12.5% duty
+  int32_t count;
+  mcp.read_encoder(Axis::M1, count, ec);
+  mcp.drive_duty(Axis::M1, 0, ec);
 
 .. ------------------------------- Example -------------------------------------
 

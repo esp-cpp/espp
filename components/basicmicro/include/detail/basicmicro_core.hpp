@@ -29,11 +29,17 @@
 //    as the error-recovery mechanism — by the time a reply times out, the
 //    controller's packet buffer has already been cleared automatically.
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <numeric>
 #include <span>
 #include <vector>
+
+// The BasicmicroCommand table lives in the shared motor_controller component so
+// the mcp266 CANopen driver (which mirrors these commands at object 0x2000 + n)
+// can derive its object indices from the same source of truth.
+#include "basicmicro_commands.hpp"
 
 namespace espp {
 namespace detail {
@@ -56,75 +62,14 @@ static constexpr int kBasicmicroPacketTimeoutMs = 10;
 /// and D=0x00004000, i.e. P=1.0, I=0.5, D=0.25.
 static constexpr float kBasicmicroPidScale = 65536.0f;
 
-/// @brief Packet-serial command bytes.
-///
-/// Every value below was verified against the MCP Series User Manual (sections
-/// 2.2.12, 2.2.13, 2.3.1, 2.4.8 and 2.4.9). Commands whose payload layout is
-/// not clearly documented in the manual are intentionally omitted.
-enum class BasicmicroCommand : uint8_t {
-  // -- Compatibility commands (section 2.2.12), payload: one byte 0-127 --
-  DriveForwardM1 = 0,   ///< 0 = stop, 127 = full forward
-  DriveBackwardsM1 = 1, ///< 0 = stop, 127 = full reverse
-  DriveForwardM2 = 4,   ///< 0 = stop, 127 = full forward
-  DriveBackwardsM2 = 5, ///< 0 = stop, 127 = full reverse
-  DriveM1_7Bit = 6,     ///< 0 = full reverse, 64 = stop, 127 = full forward
-  DriveM2_7Bit = 7,     ///< 0 = full reverse, 64 = stop, 127 = full forward
-  // -- Encoder commands (section 2.4.8) --
-  ReadEncoderM1 = 16,           ///< reply: count (4 bytes), status (1 byte)
-  ReadEncoderM2 = 17,           ///< reply: count (4 bytes), status (1 byte)
-  ReadEncoderSpeedM1 = 18,      ///< reply: pulses/s (4 bytes), direction (1 byte)
-  ReadEncoderSpeedM2 = 19,      ///< reply: pulses/s (4 bytes), direction (1 byte)
-  ResetEncoders = 20,           ///< payload: none (write command, CRC appended)
-  ReadFirmwareVersion = 21,     ///< reply: string terminated by LF + NUL (<=48 bytes)
-  SetEncoderM1 = 22,            ///< payload: value (4 bytes)
-  SetEncoderM2 = 23,            ///< payload: value (4 bytes)
-  ReadMainBatteryVoltage = 24,  ///< reply: tenths of a volt (2 bytes)
-  ReadLogicBatteryVoltage = 25, ///< reply: tenths of a volt (2 bytes)
-  SetVelocityPidM1 = 28,        ///< payload: D, P, I (16.16 fixed), QPPS (4 bytes each)
-  SetVelocityPidM2 = 29,        ///< payload: D, P, I (16.16 fixed), QPPS (4 bytes each)
-  ReadRawSpeedM1 = 30,          ///< reply: counts/s (4 bytes), direction (1 byte)
-  ReadRawSpeedM2 = 31,          ///< reply: counts/s (4 bytes), direction (1 byte)
-  // -- Advanced motor control (section 2.4.9) --
-  DriveM1SignedDuty = 32,              ///< payload: duty (2 bytes, +/-32767)
-  DriveM2SignedDuty = 33,              ///< payload: duty (2 bytes, +/-32767)
-  DriveM1M2SignedDuty = 34,            ///< payload: dutyM1 (2 bytes), dutyM2 (2 bytes)
-  DriveM1SignedSpeed = 35,             ///< payload: speed (4 bytes, qpps)
-  DriveM2SignedSpeed = 36,             ///< payload: speed (4 bytes, qpps)
-  DriveM1M2SignedSpeed = 37,           ///< payload: speedM1 (4 bytes), speedM2 (4 bytes)
-  DriveM1SignedSpeedAccel = 38,        ///< payload: accel (4 bytes), speed (4 bytes)
-  DriveM2SignedSpeedAccel = 39,        ///< payload: accel (4 bytes), speed (4 bytes)
-  DriveM1M2SignedSpeedAccel = 40,      ///< payload: accel, speedM1, speedM2 (4 bytes each)
-  BufferedM1SpeedDistance = 41,        ///< payload: speed, distance (4 bytes each), buffer (1 byte)
-  BufferedM2SpeedDistance = 42,        ///< payload: speed, distance (4 bytes each), buffer (1 byte)
-  BufferedM1M2SpeedDistance = 43,      ///< payload: speedM1, distM1, speedM2, distM2, buffer
-  BufferedM1SpeedAccelDistance = 44,   ///< payload: accel, speed, distance, buffer
-  BufferedM2SpeedAccelDistance = 45,   ///< payload: accel, speed, distance, buffer
-  BufferedM1M2SpeedAccelDistance = 46, ///< payload: accel, speedM1, distM1, speedM2, distM2, buffer
-  ReadBufferLengths = 47,              ///< reply: bufferM1 (1 byte), bufferM2 (1 byte)
-  ReadMotorPWMs = 48,                  ///< reply: pwmM1 (2 bytes), pwmM2 (2 bytes), +/-32767
-  ReadMotorCurrents = 49,       ///< reply: currentM1 (2 bytes), currentM2 (2 bytes), 10 mA units
-  ReadVelocityPidM1 = 55,       ///< reply: P, I, D (16.16 fixed), QPPS (4 bytes each)
-  ReadVelocityPidM2 = 56,       ///< reply: P, I, D (16.16 fixed), QPPS (4 bytes each)
-  SetMainBatteryVoltages = 57,  ///< payload: min (2 bytes), max (2 bytes), tenths of a volt
-  SetLogicBatteryVoltages = 58, ///< payload: min (2 bytes), max (2 bytes), tenths of a volt
-  ReadMainBatteryVoltageSettings = 59,  ///< reply: min (2 bytes), max (2 bytes)
-  ReadLogicBatteryVoltageSettings = 60, ///< reply: min (2 bytes), max (2 bytes)
-  SetM1DefaultDutyAccel = 68,           ///< payload: accel (4 bytes)
-  SetM2DefaultDutyAccel = 69,           ///< payload: accel (4 bytes)
-  ReadEncoderCounters = 78,             ///< reply: encM1 (4 bytes), encM2 (4 bytes)
-  ReadISpeedCounters = 79,              ///< reply: ispeedM1 (4 bytes), ispeedM2 (4 bytes)
-  RestoreDefaults = 80,                 ///< payload: none (write command, CRC appended)
-  ReadDefaultDutyAccels = 81,           ///< reply: accelM1 (4 bytes), accelM2 (4 bytes)
-  ReadTemperature = 82,                 ///< reply: tenths of a degree (2 bytes)
-  ReadTemperature2 = 83, ///< reply: tenths of a degree (2 bytes), supported units only
-  // -- Status / configuration (section 2.3.1) --
-  ReadStatus = 90,            ///< reply: status bit mask (see BasicmicroStatus)
-  ReadEncoderModes = 91,      ///< reply: encM1 mode (1 byte), encM2 mode (1 byte)
-  SetEncoderModeM1 = 92,      ///< payload: pin/mode (1 byte)
-  SetEncoderModeM2 = 93,      ///< payload: pin/mode (1 byte)
-  WriteSettingsToEeprom = 94, ///< no payload and no CRC on the request (per manual), ACK reply
-  EStopReset = 200,           ///< payload: none (write command, CRC appended)
-};
+/// Position PID gains are transferred scaled by 1024 (Basicmicro reference
+/// library convention for the position loop; commands 61-64). The velocity
+/// loop uses the separate kBasicmicroPidScale above.
+static constexpr float kBasicmicroPositionPidScale = 1024.0f;
+
+// BasicmicroCommand (the packet-serial command-number table) is defined in
+// basicmicro_commands.hpp, included above -- it is shared with the mcp266
+// CANopen driver so the two cannot drift.
 
 /// @brief Unit status bit masks returned by BasicmicroCommand::ReadStatus
 ///        (manual command 90). Current MCP firmware returns a 32-bit status
@@ -162,6 +107,35 @@ inline uint16_t basicmicro_crc16_byte(uint16_t crc, uint8_t val) {
 /// CRC (used to seed reply validation with the sent address + command bytes).
 inline uint16_t basicmicro_crc16(std::span<const uint8_t> data, uint16_t init = 0) {
   return std::accumulate(data.begin(), data.end(), init, basicmicro_crc16_byte);
+}
+
+/// Convert a floating-point PID gain to the controller's fixed-point wire
+/// representation (multiply by \p scale). Rounds to nearest rather than
+/// truncating (truncation biases every gain downward by up to ~1 LSB), and
+/// clamps to the non-negative uint32_t range: PID gains are non-negative on
+/// these controllers, and a raw static_cast of a negative product to uint32_t
+/// would silently wrap to a huge value. Non-finite or out-of-range inputs are
+/// saturated rather than fed to the rounding function (std::llround of a value
+/// outside long long, or of inf/NaN, is undefined).
+inline uint32_t scale_pid_gain(float gain, float scale) {
+  if (!(gain > 0.0f)) { // false for <= 0 and for NaN
+    return 0;
+  }
+  const double scaled = static_cast<double>(gain) * static_cast<double>(scale);
+  // Compare before rounding: a scaled value at/above UINT32_MAX (or +inf) must
+  // not reach std::llround, whose result is undefined outside long long's range
+  // and for non-finite inputs.
+  if (!(scaled < 4294967296.0)) { // 2^32; also false for +inf and NaN
+    return UINT32_MAX;
+  }
+  const long long rounded = std::llround(scaled);
+  if (rounded <= 0) {
+    return 0;
+  }
+  if (rounded > static_cast<long long>(UINT32_MAX)) {
+    return UINT32_MAX;
+  }
+  return static_cast<uint32_t>(rounded);
 }
 
 // --- big-endian codec helpers ("high byte first", manual section 2.2.9) ---

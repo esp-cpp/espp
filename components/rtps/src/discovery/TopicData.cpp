@@ -53,6 +53,11 @@ bool TopicData::readFromBuffer(std::span<const uint8_t> data) {
   // Reset valid flags, as the respective parameters are optional
   statusInfoValid = false;
   entityIdFromKeyHashValid = false;
+  // Locators are optional too (RTPS 2.5 8.5.3.2): a peer that omits them, as
+  // CycloneDDS does, means "use my participant's default locators". Without
+  // this reset the constructor's placeholder address would pass for a real one.
+  unicastLocator.setInvalid();
+  multicastLocator.setInvalid();
 
   while (buffer.remaining() >= 4) {
     const auto pidRaw = buffer.read<uint16_t>();

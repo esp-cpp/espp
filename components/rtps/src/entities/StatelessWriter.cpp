@@ -32,6 +32,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/communication/PacketInfo.hpp"
 #include "rtps/messages/MessageFactory.hpp"
 #include "rtps/storages/PayloadBuffer.hpp"
+#include "rtps/utils/Diagnostics.hpp"
 #include "rtps/utils/Log.hpp"
 #include "rtps/utils/udpUtils.hpp"
 #include <mutex>
@@ -59,6 +60,12 @@ StatelessWriter::~StatelessWriter() {
 
 bool StatelessWriter::init(TopicData attributes, TopicKind_t topicKind, EsppTransport &driver,
                            bool enfUnicast) {
+  // Take m_mutex across the FULL (re)initialization: progress() (possibly a
+  // stale generation-guarded job for the slot's previous owner) reads
+  // m_is_initialized_ / m_proxies / m_history under this lock, and a pooled
+  // writer slot can be re-init()ed while such a job runs on another thread -
+  // unlocked writes here would be a data race exposing partial state.
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   m_attributes = attributes;
 
@@ -67,6 +74,9 @@ bool StatelessWriter::init(TopicData attributes, TopicKind_t topicKind, EsppTran
 
   m_topicKind = topicKind;
   m_nextSequenceNumberToSend = {0, 1};
+  // Reused pooled slot: fresh logical writer, fresh drop counter (the facade
+  // attributes publish()-time overflow warnings to it).
+  m_history_drops_ = 0;
   m_is_initialized_ = true;
 
   m_proxies.clear();
@@ -77,7 +87,15 @@ bool StatelessWriter::init(TopicData attributes, TopicKind_t topicKind, EsppTran
   return true;
 }
 
-void StatelessWriter::reset() { m_is_initialized_ = false; }
+void StatelessWriter::reset() {
+  // Clear the init flag under m_mutex so it synchronizes with progress(): an
+  // in-flight progress() completes before reset() proceeds, and any later job
+  // sees !initialized and no-ops. Bump the generation so an already-accepted
+  // guaranteed job cannot run against this slot once it is reused.
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  m_is_initialized_ = false;
+  ++m_generation_;
+}
 
 const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uint8_t *data,
                                               DataSize_t size, bool inLineQoS,
@@ -113,13 +131,21 @@ const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uin
     const SequenceNumber_t minAfter = m_history.getSeqNumMin();
     if (minBefore < minAfter && m_nextSequenceNumberToSend < minAfter) {
       m_nextSequenceNumberToSend = minAfter; // Skip past the dropped sample
+      // Count the loss (an UNSENT sample was overwritten): per-writer for the
+      // facade's publish()-time warning, process-wide for Diagnostics.
+      ++m_history_drops_;
+      ++Diagnostics::Writer::history_overwrite_drops;
       SLW_LOG("History full, dropped oldest {}", this->m_attributes.topicName);
     }
   }
   if (m_transport != nullptr) {
     // Run the send asynchronously on the transport's worker pool (never inline
     // under the caller's locks), matching the previous ThreadPool semantics.
-    m_transport->submit([this]() { progress(); });
+    // Guaranteed + banded: a bounded-queue rejection must not strand unsent
+    // samples (a lone best-effort DATA has no recovery path), and a
+    // prioritized endpoint's outbound work runs at ITS band end-to-end.
+    m_transport->submitGuaranteedDrain(
+        this, [this, gen = currentGeneration()]() { progressIfCurrent(gen); }, m_attributes.band);
   }
 
   SLW_LOG("Adding new data.");
@@ -140,7 +166,11 @@ void StatelessWriter::setAllChangesToUnsent() {
   if (m_transport != nullptr) {
     // Run the send asynchronously on the transport's worker pool (never inline
     // under the caller's locks), matching the previous ThreadPool semantics.
-    m_transport->submit([this]() { progress(); });
+    // Guaranteed + banded: a bounded-queue rejection must not strand unsent
+    // samples (a lone best-effort DATA has no recovery path), and a
+    // prioritized endpoint's outbound work runs at ITS band end-to-end.
+    m_transport->submitGuaranteedDrain(
+        this, [this, gen = currentGeneration()]() { progressIfCurrent(gen); }, m_attributes.band);
   }
 }
 
@@ -155,8 +185,36 @@ void StatelessWriter::progress() {
   // TODO smarter packaging e.g. by creating MessageStruct and serializing
   // after adjusting values.
 
+  // Hold m_mutex across the proxy iteration: proxies are added/removed under
+  // m_mutex from the SEDP receive workers, and iterating unlocked races those
+  // mutations (see StatefulWriter::sendHeartBeat). m_mutex is recursive, so
+  // the pre-existing inner history guard stays harmless.
+  std::lock_guard<std::recursive_mutex> proxies_lock(m_mutex);
+  // A guaranteed progress() job may still be parked/queued when this writer is
+  // deleted; reset() clears m_is_initialized_ under m_mutex, so a late job
+  // no-ops here instead of sending on a reset/reused endpoint or a released
+  // dedicated port.
+  if (!m_is_initialized_) {
+    return;
+  }
   if (m_proxies.getNumElements() == 0) {
     SLW_LOG("No proxy!");
+  }
+
+  // Clamp a send cursor that fell behind the history: under KEEP_LAST
+  // overflow, newChange() overwrites the oldest UNSENT change and advances the
+  // cursor - but by the time this (queued) progress() runs, further publishes
+  // may have overwritten the cursor's change again. Without the clamp every
+  // such invocation returned early having sent NOTHING, so a saturated
+  // best-effort writer collapsed to ~zero delivery instead of degrading to
+  // drop-oldest (the counterpart of StatefulWriter::progress()'s hole-skip;
+  // the ring is contiguous, so resuming at the minimum is sufficient. m_mutex
+  // is held, so the cursor/history are stable across the clamp and sends).
+  {
+    const SequenceNumber_t minSN = m_history.getSeqNumMin();
+    if (!(minSN == SEQUENCENUMBER_UNKNOWN) && m_nextSequenceNumberToSend < minSN) {
+      m_nextSequenceNumberToSend = minSN; // resume at the oldest live sample
+    }
   }
 
   for (const auto &proxy : m_proxies) {
@@ -244,6 +302,19 @@ void StatelessWriter::progress() {
 
   m_history.removeUntilIncl(m_nextSequenceNumberToSend);
   ++m_nextSequenceNumberToSend;
+
+  // Drain re-arm (see EsppTransport::submitGuaranteedDrain): pokes park with a
+  // pending-count of at most ONE, so this run must resubmit itself while
+  // unsent samples remain - each admitted run sends one sample and re-arms
+  // until the retained history is empty, keeping the parked debt per writer
+  // bounded at one regardless of how many samples a KEEP_LAST overflow storm
+  // published (m_mutex is held, so the cursor/history read is stable).
+  const SequenceNumber_t maxSN = m_history.getSeqNumMax();
+  if (!(maxSN == SEQUENCENUMBER_UNKNOWN) && m_nextSequenceNumberToSend <= maxSN &&
+      m_transport != nullptr) {
+    m_transport->submitGuaranteedDrain(
+        this, [this, gen = currentGeneration()]() { progressIfCurrent(gen); }, m_attributes.band);
+  }
 }
 
 #ifdef RTPS_ENABLE_FRAGMENTATION

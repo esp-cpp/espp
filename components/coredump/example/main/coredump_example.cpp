@@ -1,0 +1,353 @@
+#include <atomic>
+#include <cassert>
+#include <chrono>
+#include <cstdint>
+#include <mutex>
+#include <span>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
+
+#include "sdkconfig.h"
+
+#include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "tinyusb_cdc_acm.h"
+#include "tinyusb_console.h"
+
+#include "coredump.hpp"
+#include "coredump_service.hpp"
+#include "dispatcher_worker.hpp"
+#include "logger.hpp"
+#include "monitor_service.hpp"
+#include "ota.hpp"
+#include "ota_service.hpp"
+#include "system_service.hpp"
+#include "usb_device.hpp"
+
+using namespace std::chrono_literals;
+
+// Deliberate test crashes, selectable from the CDC console (type the command +
+// enter — the web console's Web Serial input works too) or the BOOT button.
+// Each demonstrates a different row of the next-boot crash report:
+//   nullptr  -> StoreProhibited panic  -> core dump + backtrace
+//   assert   -> assert failure panic   -> core dump + backtrace
+//   divzero  -> IntegerDivideByZero    -> core dump + backtrace
+//   hang     -> interrupts-off forever -> INT_WDT reset, NO core dump (the
+//               report explains the reset reason instead)
+enum class CrashKind : uint8_t { None, NullPointer, Assert, DivideByZero, Hang };
+
+// Example-specific "trigger a test crash" command: a stream_frame with
+// module = kCrashModule, type = kMsgTriggerCrash, payload = [CrashKind]. Its
+// own dispatcher module keeps it cleanly separate from the core-dump protocol
+// (module 4 by default -- CoreDumpService::Config::module can move it); the
+// CDC text console keeps working for Web Serial / terminal users too. The
+// module id is only a routing key: this one constant is the place to change
+// it. The module is registered WITH discovery metadata (below) carrying the
+// protocol id kCrashProtocol, so the hosted coredump console finds the trigger
+// on whatever id this is set to (falling back to 1 when discovery is silent).
+static constexpr uint8_t kCrashModule = 1;
+static constexpr const char *kCrashProtocol = "espp.coredump-crash-trigger";
+static constexpr uint16_t kCrashProtocolVersion = 1;
+static constexpr uint8_t kMsgTriggerCrash = 0x00;
+
+[[noreturn]] static void perform_crash(CrashKind kind) {
+  switch (kind) {
+  case CrashKind::Assert:
+    assert(false && "deliberate test crash (assert)");
+    perform_crash(CrashKind::NullPointer); // only reached if asserts are compiled out (NDEBUG)
+    // cppcheck-suppress unreachableCode // explicit no-fallthrough marker after [[noreturn]] call
+    __builtin_unreachable();
+  case CrashKind::DivideByZero: {
+    volatile int numerator = 42;
+    volatile int divisor = 0;
+    // cppcheck-suppress zerodiv // deliberate: this command EXISTS to crash
+    volatile int result = numerator / divisor; // IntegerDivideByZero panic
+    (void)result;
+    __builtin_unreachable();
+  }
+  case CrashKind::Hang:
+    // Interrupts off + never yield: the interrupt watchdog resets the chip
+    // WITHOUT writing a core dump — the next boot reports the reset reason.
+    portDISABLE_INTERRUPTS();
+    for (;;) {
+    }
+  case CrashKind::NullPointer:
+  default: {
+    volatile uint32_t *null_ptr = nullptr;
+    // cppcheck-suppress nullPointer // deliberate: this command EXISTS to crash
+    *null_ptr = 0xdead; // StoreProhibited panic
+    __builtin_unreachable();
+  }
+  }
+}
+
+extern "C" void app_main(void) {
+  espp::Logger logger({.tag = "CoreDump Example", .level = espp::Logger::Verbosity::INFO});
+  logger.info("Starting core dump over USB example");
+
+  //! [coredump_example]
+  // --------------------------------------------------------------------------
+  // Core dump accessor: crash report + raw image access for the service below.
+  // --------------------------------------------------------------------------
+  espp::CoreDump core_dump({.log_level = espp::Logger::Verbosity::INFO});
+  const std::string report = core_dump.format_report();
+  if (report.empty()) {
+    logger.info("Clean boot history (reset reason: {})",
+                espp::CoreDump::reset_reason_name(espp::CoreDump::reset_reason()));
+  } else {
+    logger.error("Previous abnormal reset:\n{}", report);
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH // avoid a constant-condition warning when disabled
+    if (core_dump.has_core_dump())
+      logger.info("Core dump image in flash: {} bytes (download / erase it with the web console)",
+                  core_dump.image_size());
+#endif
+  }
+
+  // OTA engine for the standard OTA service below (every espp USB example
+  // serves system, monitor, OTA and core dump). Rollback confirmation is
+  // host-driven, as in the ota example: a freshly updated image stays PENDING
+  // VERIFY until the host sends MARK_VALID.
+  espp::Ota ota({.reject_same_version = false, .log_level = espp::Logger::Verbosity::INFO});
+  if (ota.is_pending_verify())
+    logger.warn("This image is PENDING VERIFY (first boot after an OTA update): it rolls back on "
+                "the next reset unless the host confirms it (MARK_VALID from the OTA console)");
+
+  // --------------------------------------------------------------------------
+  // USB composite device: a vendor/WebUSB function (framed protocol only) and
+  // a CDC function carrying the system console PLUS the same framed protocol
+  // (the web console's Web Serial transport separates text from frames).
+  // --------------------------------------------------------------------------
+  espp::UsbDevice::Config usb_cfg;
+  usb_cfg.pid = 0x0d36; // distinct from the espp default so the webapp filter is specific
+  usb_cfg.manufacturer = "espp";
+  usb_cfg.product = "espp CoreDump";
+  usb_cfg.log_level = espp::Logger::Verbosity::INFO;
+  espp::UsbDevice::CdcFunction cdc;
+  cdc.interface_name = "espp CoreDump (console)";
+  usb_cfg.cdc = cdc;
+  espp::UsbDevice::VendorFunction vendor;
+  vendor.interface_name = "espp CoreDump (WebUSB)";
+  vendor.webusb = true; // advertise BOS / WebUSB / MS OS 2.0 descriptors
+  vendor.landing_page_url = "esp-cpp.github.io/espp/apps/coredump_console.html";
+  usb_cfg.vendor = vendor;
+  espp::UsbDevice usb(usb_cfg);
+
+  // Replies go back on the stream the request came in on: one send function
+  // per transport. Several services (and the monitor's stream task) write to
+  // each transport from different tasks, so every write goes through one
+  // mutex per transport; write_vendor / write_cdc are all-or-nothing per call.
+  std::mutex vendor_tx_mutex, cdc_tx_mutex;
+  auto vendor_send = [&](std::span<const uint8_t> frame) {
+    std::lock_guard<std::mutex> lock(vendor_tx_mutex);
+    usb.write_vendor(frame);
+  };
+  auto cdc_send = [&](std::span<const uint8_t> frame) {
+    std::lock_guard<std::mutex> lock(cdc_tx_mutex);
+    usb.write_cdc(frame);
+  };
+
+  // One CoreDumpService per byte stream, both sharing the same espp::CoreDump
+  // (it serializes its flash access internally). Declared BEFORE the workers
+  // that call into them, so they outlive the worker tasks on teardown.
+  espp::CoreDumpService vendor_service(
+      core_dump, {.send = vendor_send, .log_level = espp::Logger::Verbosity::INFO});
+  espp::CoreDumpService cdc_service(core_dump,
+                                    {.send = cdc_send, .log_level = espp::Logger::Verbosity::INFO});
+  // The other standard services, one per stream as well: system info + reboot
+  // / bootloader (module 7), heap + task monitor (module 8), OTA (module 0).
+  auto reboot_request = [&](espp::SystemService::RebootKind kind) {
+    logger.warn("Host requested a {}; allowing it",
+                kind == espp::SystemService::RebootKind::Bootloader ? "reboot into the bootloader"
+                                                                    : "reboot");
+    return true;
+  };
+  espp::SystemService vendor_system({.send = vendor_send,
+                                     .on_reboot_request = reboot_request,
+                                     .log_level = espp::Logger::Verbosity::INFO});
+  espp::SystemService cdc_system({.send = cdc_send,
+                                  .on_reboot_request = reboot_request,
+                                  .log_level = espp::Logger::Verbosity::INFO});
+  espp::MonitorService vendor_monitor(
+      {.send = vendor_send,
+       .task_config = {.name = "monitor_v", .stack_size_bytes = 6 * 1024},
+       .log_level = espp::Logger::Verbosity::INFO});
+  espp::MonitorService cdc_monitor(
+      {.send = cdc_send,
+       .task_config = {.name = "monitor_c", .stack_size_bytes = 6 * 1024},
+       .log_level = espp::Logger::Verbosity::INFO});
+  espp::OtaService vendor_ota(ota,
+                              {.send = vendor_send, .log_level = espp::Logger::Verbosity::INFO});
+  espp::OtaService cdc_ota(ota, {.send = cdc_send, .log_level = espp::Logger::Verbosity::INFO});
+
+  // One DispatcherWorker per byte stream: each owns the bounded receive queue
+  // + worker task that feeds its Dispatcher, so protocol handlers never run
+  // on the TinyUSB task (ERASE can block for tens of ms) and every stream
+  // parses on exactly one thread. Registering a service routes its module (4)
+  // to it and advertises it for discovery.
+  // On an RX overflow the OTA service aborts a transfer it owned and tells the
+  // host (an OTA image with dropped bytes is unusable).
+  espp::DispatcherWorker vendor_link(
+      {.send = vendor_send,
+       .on_overflow = [&]() { vendor_ota.on_rx_overflow(); },
+       .task_config = {.name = "coredump_rx_vendor", .stack_size_bytes = 8192}});
+  espp::DispatcherWorker cdc_link(
+      {.send = cdc_send,
+       .on_overflow = [&]() { cdc_ota.on_rx_overflow(); },
+       .task_config = {.name = "coredump_rx_cdc", .stack_size_bytes = 8192}});
+  vendor_link.register_module(vendor_service);
+  vendor_link.register_module(vendor_system);
+  vendor_link.register_module(vendor_monitor);
+  vendor_link.register_module(vendor_ota);
+  cdc_link.register_module(cdc_service);
+  cdc_link.register_module(cdc_system);
+  cdc_link.register_module(cdc_monitor);
+  cdc_link.register_module(cdc_ota);
+  //! [coredump_example]
+
+  // --------------------------------------------------------------------------
+  // RX plumbing: the vendor bytes go straight to their worker; the CDC RX path
+  // additionally implements the tiny line-oriented test-crash console:
+  // printable characters accumulate into a line; enter runs it. The SAME bytes
+  // are also queued for the frame parser — text never forms a valid frame and
+  // frames never form a command line, so both decoders can safely watch the
+  // one stream.
+  // --------------------------------------------------------------------------
+  usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) { vendor_link.push(data); });
+
+  std::atomic<CrashKind> pending_crash{CrashKind::None};
+  auto request_crash = [&](CrashKind kind, const char *name) {
+    logger.warn("Test crash requested: {} (crashing from the main task in ~1s...)", name);
+    pending_crash = kind;
+  };
+  std::mutex line_mutex;
+  std::string cdc_line;
+  auto handle_command = [&](const std::string &line) {
+    if (line == "crash" || line == "nullptr")
+      request_crash(CrashKind::NullPointer, "null-pointer write");
+    else if (line == "assert")
+      request_crash(CrashKind::Assert, "failed assert");
+    else if (line == "divzero")
+      request_crash(CrashKind::DivideByZero, "integer divide by zero");
+    else if (line == "hang")
+      request_crash(CrashKind::Hang, "interrupts-off hang (INT_WDT, no core dump)");
+    else if (line == "report")
+      logger.info("Crash report:\n{}", report.empty() ? "(clean boot history)" : report);
+    else if (line == "help" || line == "?")
+      logger.info("commands: crash | assert | divzero | hang | report | help");
+    else if (!line.empty())
+      logger.warn("unknown command '{}' (try 'help')", line);
+  };
+  usb.set_cdc_receive_callback([&](std::span<const uint8_t> data) {
+    {
+      std::lock_guard<std::mutex> lock(line_mutex);
+      for (const uint8_t byte : data) {
+        if (byte == '\r' || byte == '\n') {
+          if (!cdc_line.empty()) {
+            handle_command(cdc_line);
+            cdc_line.clear();
+          }
+        } else if (byte >= 0x20 && byte < 0x7F && cdc_line.size() < 64) {
+          cdc_line.push_back(static_cast<char>(byte));
+        } else if (byte < 0x20 || byte >= 0x7F) {
+          cdc_line.clear(); // binary (frame) bytes: not a command line
+        }
+      }
+    }
+    cdc_link.push(data);
+  });
+
+  std::error_code usb_ec;
+  if (!usb.initialize(usb_ec)) {
+    logger.error("Failed to initialize USB device: {}", usb_ec.message());
+  } else {
+    // Route the SYSTEM console (stdout/stderr — all espp/fmt and esp_log
+    // output) to the CDC interface: TinyUSB owns the S3's only USB PHY, so
+    // this replaces the unusable USB-Serial-JTAG console. Attach any serial
+    // terminal (`screen /dev/tty.usbmodem*`) or the web console (Web Serial)
+    // for live logs. Panic backtraces cannot appear live (TinyUSB dies with
+    // the panic) — they are captured by the flash core dump and reported on
+    // the next boot.
+    if (tinyusb_console_init(TINYUSB_CDC_ACM_0) != ESP_OK)
+      logger.warn("Could not route the console to USB CDC");
+  }
+
+  // The example's WebUSB crash trigger rides the same streams on its own
+  // module (kCrashModule = 1), cleanly separate from the core-dump protocol.
+  // host->device request only: ignore reply-flagged frames (echo/loopback).
+  auto handle_cmd_frame = [&](const espp::stream_frame::Frame &f) {
+    if (f.is_reply() || f.type != kMsgTriggerCrash || f.payload.size() != 1)
+      return;
+    switch (static_cast<CrashKind>(f.payload[0])) {
+    case CrashKind::NullPointer:
+      request_crash(CrashKind::NullPointer, "null-pointer write (WebUSB)");
+      break;
+    case CrashKind::Assert:
+      request_crash(CrashKind::Assert, "failed assert (WebUSB)");
+      break;
+    case CrashKind::DivideByZero:
+      request_crash(CrashKind::DivideByZero, "integer divide by zero (WebUSB)");
+      break;
+    case CrashKind::Hang:
+      request_crash(CrashKind::Hang, "interrupts-off hang (WebUSB)");
+      break;
+    default:
+      logger.warn("TRIGGER_CRASH: unknown kind {}", static_cast<int>(f.payload[0]));
+      break;
+    }
+  };
+  // Registered with discovery metadata so the console can locate the trigger
+  // module (by protocol id) instead of assuming module 1.
+  vendor_link.register_module(kCrashModule, handle_cmd_frame,
+                              {.name = "Crash Trigger",
+                               .app = "",
+                               .description = "Trigger a test crash (coredump example)",
+                               .protocol = kCrashProtocol,
+                               .protocol_version = kCrashProtocolVersion});
+  // Advertise the device and answer discovery on whichever transport asked.
+  vendor_link.serve_discovery(usb_cfg.product);
+  cdc_link.serve_discovery(usb_cfg.product);
+
+  // --------------------------------------------------------------------------
+  // BOOT button (GPIO0): press to trigger the null-pointer test crash.
+  // --------------------------------------------------------------------------
+  static constexpr gpio_num_t kBootButton = GPIO_NUM_0;
+  {
+    gpio_config_t io_conf = {};
+    io_conf.pin_bit_mask = 1ULL << kBootButton;
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+    gpio_config(&io_conf);
+  }
+
+  logger.info("Ready. Connect the native USB port and open the web console "
+              "(components/coredump/web/coredump_console.html or https://{})",
+              vendor.landing_page_url);
+  logger.info("Trigger a test crash: press the BOOT button, or type 'help' on this console");
+
+  bool cdc_was_connected = false;
+  int button_pressed_polls = 0;
+  while (true) {
+    std::this_thread::sleep_for(50ms);
+    // BOOT button held for a couple of polls -> crash (debounce).
+    if (gpio_get_level(kBootButton) == 0) {
+      if (++button_pressed_polls == 3)
+        request_crash(CrashKind::NullPointer, "BOOT button null-pointer write");
+    } else {
+      button_pressed_polls = 0;
+    }
+    // Crash from here (the main task) so the report names a recognizable
+    // task, and after a delay so the CDC console gets to flush the warning.
+    if (pending_crash != CrashKind::None) {
+      std::this_thread::sleep_for(1s);
+      perform_crash(pending_crash.load());
+    }
+    // A terminal attaching to the CDC console missed the boot output; re-log
+    // the previous-crash summary for it once per connection.
+    const bool cdc_connected = usb.is_cdc_connected();
+    if (cdc_connected && !cdc_was_connected && !report.empty())
+      logger.error("Previous abnormal reset:\n{}", report);
+    cdc_was_connected = cdc_connected;
+  }
+}

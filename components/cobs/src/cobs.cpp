@@ -44,8 +44,7 @@ size_t Cobs::encode_packet(std::span<const uint8_t> data, std::span<uint8_t> out
       *codep = code;
       code = 1;
       codep = encode;
-      if (!byte)
-        ++encode;
+      ++encode;
     }
   }
   *codep = code; // Write final code value

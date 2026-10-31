@@ -1,4 +1,4 @@
-# RTPS interop harness (FastDDS / ROS 2)
+# RTPS interop harness (FastDDS, CycloneDDS / ROS 2)
 
 The Phase 0 safety net from `../REFACTOR_PLAN.md`: every refactor phase must keep
 this matrix green.
@@ -11,7 +11,7 @@ cd components/rtps/interop
 ```
 
 Requires docker. One container (`ros:jazzy-ros-base` = FastDDS + rmw_fastrtps +
-`ros2` CLI) runs everything in a single network namespace, so RTPS multicast works
+`ros2` CLI, plus rmw_cyclonedds_cpp) runs everything in a single network namespace, so RTPS multicast works
 unconditionally. The repo is bind-mounted and copied to a container-local tree
 before building (espp is installed into a container-local staging prefix and the
 pc tests `find_package` it from there), so your host build artifacts are never
@@ -27,6 +27,7 @@ touched.
 | espp_pub->ros2_echo | espp reliable writer -> ROS 2 subscriber (`rt/chatter`, `std_msgs::msg::dds_::String_`) |
 | ros2_pub->espp_sub | ROS 2 publisher -> espp reliable reader |
 | espp_be_pub->ros2_be_echo | best-effort pairing |
+| cyclone: ... | the ROS 2 pub/sub pairs (reliable and best-effort, both directions) again on `rmw_cyclonedds_cpp`. Services are not covered: rmw_cyclonedds_cpp puts a `{guid, seq}` request header in the payload instead of `related_sample_identity` |
 
 ## Notes
 

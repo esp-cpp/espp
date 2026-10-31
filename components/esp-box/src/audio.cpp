@@ -114,9 +114,15 @@ bool EspBox::initialize_i2s(uint32_t default_audio_rate) {
   ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_tx_handle, &audio_std_cfg));
 
   auto buffer_size = calc_audio_buffer_size(default_audio_rate);
+  // the block (and so the stream's trigger level) must be a whole number of
+  // frames: the sample-rate formula can land between frames, and a block that
+  // split one would desynchronize the framing of everything received after it
+  buffer_size -= buffer_size % (NUM_CHANNELS * NUM_BYTES_PER_CHANNEL);
   audio_tx_buffer.resize(buffer_size);
 
-  audio_tx_stream = xStreamBufferCreate(buffer_size * 4, 0);
+  // Trigger level = one block: the consumer waits for a whole block instead of
+  // padding a partial one with silence (see audio_task_callback).
+  audio_tx_stream = xStreamBufferCreate(buffer_size * 4, buffer_size);
 
   xStreamBufferReset(audio_tx_stream);
 
@@ -157,19 +163,43 @@ bool EspBox::initialize_sound(uint32_t default_audio_rate,
 
 void EspBox::enable_sound(bool enable) { gpio_set_level(sound_power_pin, enable); }
 
-bool EspBox::audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
-  // Queue the next I2S out frame to write
-  size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
-  size_t buffer_size = audio_tx_buffer.size();
-  available = std::min(available, buffer_size);
-  uint8_t *buffer = &audio_tx_buffer[0];
-  memset(buffer, 0, buffer_size);
+// How long the audio task waits for a whole block before writing a partial one
+// (or silence). Longer than one block at every rate the board supports (a block
+// is 1/60 s at the default rate, 30 ms at 26.6 kHz), so partial writes only
+// happen when the producer is idle or genuinely behind, never because its next
+// frame simply had not arrived yet; short enough that idle->silence latency is
+// not noticeable.
+static constexpr uint32_t AUDIO_TX_RECEIVE_TIMEOUT_MS = 40;
 
-  if (available == 0) {
+bool EspBox::audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
+  // Queue the next I2S out block. Wait (bounded) for a whole block rather than
+  // taking a partial one and padding it with silence: producers such as the
+  // emulators push one video frame of audio at a time with frame-to-frame
+  // jitter, and the stream (4 blocks) exists to absorb exactly that. Taking a
+  // partial block injected up to a block of silence every time the stream
+  // momentarily held less than one -- audible as stutter whenever the producer's
+  // cadence was uneven. If the producer is idle (menu, pause) the timeout keeps
+  // the DMA fed with silence; a partial block after the timeout is written as
+  // is (the I2S driver concatenates partial writes without gaps).
+  size_t buffer_size = audio_tx_buffer.size();
+  uint8_t *buffer = &audio_tx_buffer[0];
+  size_t got = xStreamBufferReceive(audio_tx_stream, buffer, buffer_size,
+                                    pdMS_TO_TICKS(AUDIO_TX_RECEIVE_TIMEOUT_MS));
+  // the block is frame-aligned and producers queue whole frames, so this cannot
+  // happen; if it ever does, do not silently drop bytes (that would desynchronize
+  // the framing of everything after them) -- say so
+  constexpr size_t frame_bytes = NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
+  if (got % frame_bytes != 0) {
+    static uint32_t misaligned_count = 0;
+    if ((misaligned_count++ % 100) == 0) {
+      logger_.warn("audio stream holds a partial frame ({} bytes)", got);
+    }
+  }
+  if (got == 0) {
+    memset(buffer, 0, buffer_size);
     i2s_channel_write(audio_tx_handle, buffer, buffer_size, NULL, portMAX_DELAY);
   } else {
-    xStreamBufferReceive(audio_tx_stream, buffer, available, 0);
-    i2s_channel_write(audio_tx_handle, buffer, buffer_size, NULL, portMAX_DELAY);
+    i2s_channel_write(audio_tx_handle, buffer, got, NULL, portMAX_DELAY);
   }
   return false; // don't stop the task
 }

@@ -6,6 +6,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
@@ -455,6 +456,104 @@ int main() {
       reactor.stop();
     }
   }
+
+  // -------------------------------------------------------------------------
+  // 7. Removal-completion callbacks: a throwing callback must be contained
+  //    (it runs on a pool worker OUTSIDE the handler try/catch) and a chained
+  //    callback must still run (exactly-once) even when the one before throws.
+  // -------------------------------------------------------------------------
+#if defined(__cpp_exceptions) && __cpp_exceptions
+  logger.info("--- removal-callback exception containment ---");
+  {
+    constexpr size_t idle_port = 6160;
+    constexpr size_t alive_port = 6161;
+    constexpr size_t gated_port = 6162;
+
+    // sockets declared before the reactor so the reactor is destroyed first
+    // (one socket per registration - add_udp_receiver binds the socket, and a
+    // second registration of the same socket would fail the re-bind)
+    espp::UdpSocket idle_server({.log_level = WARN});
+    espp::UdpSocket gated_server({.log_level = WARN});
+    espp::UdpSocket alive_server({.log_level = WARN});
+    {
+      std::mutex gate_mtx;
+      std::condition_variable gate_cv;
+      bool release = false;
+      std::atomic<bool> handler_running{false};
+
+      espp::SocketReactor reactor({.log_level = WARN});
+
+      // Idle-path removal: the completion callback runs synchronously on the
+      // caller's thread; a throw must be contained there too.
+      std::atomic<bool> idle_cb_ran{false};
+      auto idle_id = reactor.add_udp_receiver(
+          idle_server, {.port = idle_port,
+                        .buffer_size = kBufferSize,
+                        .on_receive_callback = [](const ByteVector &, const espp::Socket::Info &)
+                            -> std::optional<ByteVector> { return std::nullopt; }});
+      check(idle_id != espp::SocketReactor::INVALID_ID, "receiver registered for idle removal");
+      check(reactor.remove(idle_id,
+                           [&]() {
+                             idle_cb_ran = true;
+                             throw std::runtime_error("idle removal callback throws");
+                           }),
+            "idle remove() with a throwing callback returns true (throw contained)");
+      check(idle_cb_ran.load(), "idle removal callback ran");
+
+      // In-flight chained removal: re-register, gate the handler, then chain
+      // two removal callbacks while it is in flight - the FIRST throws.
+      auto id = reactor.add_udp_receiver(
+          gated_server,
+          {.port = gated_port,
+           .buffer_size = kBufferSize,
+           .on_receive_callback = [&](const ByteVector &,
+                                      const espp::Socket::Info &) -> std::optional<ByteVector> {
+             handler_running = true;
+             std::unique_lock<std::mutex> lk(gate_mtx);
+             gate_cv.wait(lk, [&] { return release; });
+             return std::nullopt;
+           }});
+      auto alive_id = reactor.add_udp_receiver(
+          alive_server,
+          {.port = alive_port, .buffer_size = kBufferSize, .on_receive_callback = echo_reversed});
+      check(id != espp::SocketReactor::INVALID_ID && alive_id != espp::SocketReactor::INVALID_ID,
+            "gated + liveness receivers registered");
+
+      espp::UdpSocket client({.log_level = WARN});
+      client.send(make_payload(8, 0x01), {.ip_address = kLoopback, .port = gated_port});
+      check(wait_until([&] { return handler_running.load(); }, 5s), "gated handler is in flight");
+
+      std::atomic<bool> first_ran{false};
+      std::atomic<bool> second_ran{false};
+      check(reactor.remove(id,
+                           [&]() {
+                             first_ran = true;
+                             throw std::runtime_error("first removal callback throws");
+                           }),
+            "in-flight remove() with a throwing callback accepted");
+      check(reactor.remove(id, [&]() { second_ran = true; }),
+            "second remove() chains onto the pending removal");
+
+      {
+        std::lock_guard<std::mutex> lk(gate_mtx);
+        release = true;
+      }
+      gate_cv.notify_all();
+
+      // The throw from the first callback must not kill the pool worker, and
+      // the chained second callback must still run (exactly-once contract).
+      check(wait_until([&] { return second_ran.load(); }, 5s),
+            "chained callback ran despite the earlier callback throwing");
+      check(first_ran.load(), "throwing callback itself was invoked");
+      check(wait_until([&] { return reactor.num_registered() == 1; }, 5s),
+            "gated registration fully removed");
+      // The reactor (and its pool worker) must still be fully functional.
+      check(udp_echo_roundtrip(alive_port, make_payload(24, 0x77)),
+            "reactor still dispatches after contained throws");
+      reactor.stop();
+    }
+  }
+#endif // __cpp_exceptions
 
   // -------------------------------------------------------------------------
   // Summary

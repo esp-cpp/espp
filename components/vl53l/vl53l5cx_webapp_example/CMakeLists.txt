@@ -1,0 +1,61 @@
+# The following lines of boilerplate have to be in your project's CMakeLists
+# in this exact order for cmake to work correctly
+cmake_minimum_required(VERSION 3.20)
+
+# This example needs the managed `espressif/esp_tinyusb` component (required by
+# usb_device). It supports two build modes:
+#
+#  * DEFAULT (component manager ON) - how an end user builds it from the
+#    component registry: the manager fetches esp_tinyusb (and its tinyusb
+#    dependency) and the espp/* dependencies from the registry. EXTRA_COMPONENT_DIRS
+#    is narrowed to just the components this example uses so the manager does not
+#    scan every espp manifest (some board components declare target-specific
+#    constraints that would fail on esp32s3).
+#
+#  * MANAGER OFF (IDF_COMPONENT_MANAGER=0) - used by CI so the build does not need
+#    the (as-yet unpublished) espp/* components in the registry: every espp
+#    dependency resolves locally from EXTRA_COMPONENT_DIRS, and esp_tinyusb /
+#    tinyusb come from the vendored git submodules under external/ (esp_tinyusb
+#    ships inside the espressif/esp-usb monorepo, so its component subdir is added).
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+
+set(EXTRA_COMPONENT_DIRS
+  "../../../components/base_component"
+  "../../../components/base_peripheral"
+  "../../../components/cli"
+  "../../../components/coredump"
+  "../../../components/dispatcher"
+  "../../../components/format"
+  "../../../components/i2c"
+  "../../../components/logger"
+  "../../../components/monitor"
+  "../../../components/ota"
+  "../../../components/stream_frame"
+  "../../../components/system"
+  "../../../components/task"
+  "../../../components/usb_device"
+  "../../../components/vl53l"
+)
+
+# With the component manager disabled (IDF_COMPONENT_MANAGER=0, e.g. in CI so the
+# build does not need the as-yet unpublished espp/* components in the registry),
+# esp_tinyusb is not fetched from the registry; add the vendored submodule copy
+# under external/ to the search path. esp_tinyusb >= 3.0 ships TinyUSB as its own
+# nested submodule (external/esp-usb/device/esp_tinyusb/tinyusb), so that one
+# directory is all that is needed; a second TinyUSB copy must NOT be on the path.
+if(DEFINED ENV{IDF_COMPONENT_MANAGER} AND "$ENV{IDF_COMPONENT_MANAGER}" STREQUAL "0")
+  list(APPEND EXTRA_COMPONENT_DIRS
+    "../../../external/esp-usb/device/esp_tinyusb"
+  )
+endif()
+
+set(
+  COMPONENTS
+  "main esptool_py base_component base_peripheral cli dispatcher format i2c logger stream_frame task usb_device vl53l esp_tinyusb coredump monitor ota system espcoredump esp_psram"
+  CACHE STRING
+  "List of components to include"
+  )
+
+project(vl53l5cx_webapp_example)
+
+set(CMAKE_CXX_STANDARD 23)

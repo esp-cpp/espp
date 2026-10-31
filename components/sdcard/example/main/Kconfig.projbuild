@@ -1,0 +1,74 @@
+menu "SD Card Example Configuration"
+
+    choice SDCARD_EXAMPLE_INTERFACE
+        prompt "Card interface"
+        default SDCARD_EXAMPLE_INTERFACE_SDMMC
+        help
+            How the card is wired: the dedicated SDMMC (SDIO) peripheral, or a
+            plain SPI bus (SDSPI). The default pins are the LilyGo T-Dongle-S3's
+            microSD slot (SDMMC, 4-bit); change them for your board.
+
+        config SDCARD_EXAMPLE_INTERFACE_SDMMC
+            bool "SDMMC (SDIO)"
+            depends on SOC_SDMMC_HOST_SUPPORTED
+        config SDCARD_EXAMPLE_INTERFACE_SPI
+            bool "SPI (SDSPI)"
+    endchoice
+
+    if SDCARD_EXAMPLE_INTERFACE_SDMMC
+        choice SDCARD_EXAMPLE_SDMMC_BUS_WIDTH
+            prompt "Bus width"
+            default SDCARD_EXAMPLE_SDMMC_BUS_WIDTH_4
+            config SDCARD_EXAMPLE_SDMMC_BUS_WIDTH_4
+                bool "4-bit (CLK, CMD, D0-D3)"
+            config SDCARD_EXAMPLE_SDMMC_BUS_WIDTH_1
+                bool "1-bit (CLK, CMD, D0)"
+        endchoice
+        config SDCARD_EXAMPLE_SDMMC_CLK
+            int "CLK GPIO"
+            default 12
+        config SDCARD_EXAMPLE_SDMMC_CMD
+            int "CMD GPIO"
+            default 16
+        config SDCARD_EXAMPLE_SDMMC_D0
+            int "D0 GPIO"
+            default 14
+        config SDCARD_EXAMPLE_SDMMC_D1
+            int "D1 GPIO (4-bit only)"
+            default 17
+        config SDCARD_EXAMPLE_SDMMC_D2
+            int "D2 GPIO (4-bit only)"
+            default 21
+        config SDCARD_EXAMPLE_SDMMC_D3
+            int "D3 GPIO (4-bit only)"
+            default 18
+        config SDCARD_EXAMPLE_SDMMC_LDO_CHANNEL
+            int "On-chip LDO channel powering the card (-1 = none)"
+            default 4 if IDF_TARGET_ESP32P4
+            default -1
+            help
+                The ESP32-P4 powers its SD pads from LDO channel 4 (LDO_VO4).
+    endif
+
+    if SDCARD_EXAMPLE_INTERFACE_SPI
+        config SDCARD_EXAMPLE_SPI_MOSI
+            int "MOSI GPIO"
+            default 16
+        config SDCARD_EXAMPLE_SPI_MISO
+            int "MISO GPIO"
+            default 14
+        config SDCARD_EXAMPLE_SPI_SCLK
+            int "SCLK GPIO"
+            default 12
+        config SDCARD_EXAMPLE_SPI_CS
+            int "CS GPIO"
+            default 18
+    endif
+
+    config SDCARD_EXAMPLE_FORMAT_IF_MOUNT_FAILED
+        bool "Format the card if it has no FAT filesystem"
+        default n
+        help
+            Erases the card. Off by default so an unknown card is never wiped.
+
+endmenu

@@ -190,18 +190,13 @@ public:
   }
 
   /// Start the service
-  /// \note This function will start the service
-  /// \note This function will also set the advertisement mode for the nearby
-  ///       framework
+  /// \note The GATT service itself is started with the server
+  ///       (BleGattServer::start()); this sets the advertisement mode for the
+  ///       nearby framework, which must still be called.
   void start() {
     if (!service_) {
       logger_.error("Service not created");
       return;
-    }
-    if (service_->start()) {
-      logger_.info("Service started");
-    } else {
-      logger_.error("Failed to start service");
     }
     int advertisement_mode =
         NEARBY_FP_ADVERTISEMENT_DISCOVERABLE | NEARBY_FP_ADVERTISEMENT_PAIRING_UI_INDICATOR;

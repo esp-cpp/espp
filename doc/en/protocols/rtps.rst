@@ -63,7 +63,7 @@ engine.
      subgraph plat["platform adapter (the ONLY porting layer)"]
        TR["rtps::EsppTransport"]
        SOCK["espp::UdpSocket × N ports"]
-       REACT["espp::SocketReactor → espp::ThreadPool"]
+       REACT["espp::SocketReactor → espp::ThreadPool (QosBand priority)"]
        CDR["espp::cdr (reflection CDR/XCDR)"]
        TR --> SOCK --> REACT
      end
@@ -203,6 +203,53 @@ The component follows the standard UDPv4 RTPS port mapping formula:
    * - User unicast
      - ``7400 + 250 * domain + 11 + 2 * participant``
      - ``7411``
+   * - Dedicated endpoint (prioritized)
+     - ``7400 + 250 * domain + 100 + n``
+     - ``7500``, ``7501``, …
+
+Every channel is one ``espp::UdpSocket`` registered on the transport's
+``espp::SocketReactor`` at a **priority band** (:cpp:enum:`espp::QosBand`).
+By default the *metatraffic* channels (SPDP multicast + SEDP unicast) run at
+``QosBand::High`` so discovery dispatch overtakes queued user-traffic handling
+under load, and the shared user channels run at ``Normal``; both are
+configurable (``Config::metatraffic_band`` / ``Config::user_traffic_band``).
+
+Per-endpoint priority (dedicated ports)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+All user traffic for a participant normally shares ONE user-unicast port, so
+per-socket priority alone cannot distinguish endpoints. An endpoint (writer or
+reader) configured with a non-default ``band`` — or a ``dscp`` marking, which is
+per-socket — is therefore granted its own **dedicated unicast port**:
+
+- the port is allocated deterministically from the domain's RTPS port block at
+  offset 100 (``7400 + 250*domain + 100 + n``). Each allocation probes at most
+  16 consecutive candidates (a reuse-disabled bind, so ports taken by other
+  processes fail loudly) starting at an advancing cursor — if the whole window
+  is occupied, **that endpoint falls back to the shared user port** (with a
+  warning) and the cursor advances past the window, so the next allocation
+  probes fresh ports rather than one request scanning the entire 100..249
+  range. The standard RTPS offsets stay below 100 only for participant ids
+  0–44, so participant creation enforces that cap while dedicated ports are
+  enabled;
+- its socket is registered on the reactor **at the endpoint's band** and
+  optionally DSCP-marked (:cpp:enum:`espp::Dscp`, e.g. ``Dscp::Ef``) — the
+  endpoint also *sends* from this socket, so the marking applies to its
+  outgoing traffic;
+- the endpoint's SEDP announcement carries the dedicated port as its standard
+  per-endpoint unicast locator (``PID_UNICAST_LOCATOR``), so FastDDS / ROS 2
+  peers send that endpoint's traffic straight to the prioritized socket. The
+  wire format is unchanged — only the announced port value differs.
+
+Dedicated ports are **rationed** (``Config::max_prioritized_endpoint_ports``,
+default 4): each one consumes a UDP socket/fd, and lwIP on ESP32 defaults to
+~10 sockets total of which the participant already uses 4. When the ration is
+exhausted (or ``Config::enable_dedicated_endpoint_ports`` is false), a banded
+endpoint logs a warning and falls back to the shared port; banded *readers*
+then use **deferred banded dispatch** — samples are queued (bounded) and the
+``on_sample`` callback is re-submitted to the transport's worker pool at the
+reader's band, one in-flight delivery per reader, preserving order. Endpoints
+left at ``QosBand::Normal`` keep the exact pre-band inline delivery path.
 
 Configuration
 -------------

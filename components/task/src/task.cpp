@@ -172,6 +172,9 @@ bool Task::start() {
     return false;
   }
   thread_config.stack_size = config_.stack_size_bytes;
+  if (config_.stack_alloc_caps != 0) {
+    thread_config.stack_alloc_caps = config_.stack_alloc_caps;
+  }
   // clamp to the valid FreeRTOS priority range, exactly like set_priority():
   // an out-of-range configured value must not make startup fail
   size_t start_priority = priority_.load();

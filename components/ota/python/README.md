@@ -1,0 +1,167 @@
+# espp_ota — OTA over USB from the command line
+
+A small, pure-Python host tool that updates an espp device over USB using the
+espp `stream_frame` framing + OTA stream protocol (dispatcher **module 0** by
+default — the tool discovers the id a device actually serves it on, see below)
+— the same protocol the on-device [`ota` example](../example/) serves and
+[`ota_console.html`](../web/ota_console.html) drives from the browser.
+
+It talks to the device's USB **vendor (WebUSB)** interface (`bInterfaceClass
+0xFF`, one bulk IN + one bulk OUT endpoint). The frame codec and OTA protocol are
+standard-library only; the USB transport uses [`pyusb`](https://pypi.org/project/pyusb/),
+imported lazily.
+
+## Seamless: build → OTA with `idf.py`
+
+If your project uses the espp `ota` component, `idf.py` gains an `ota-usb`
+action: it builds the app and OTAs the resulting `.bin` over USB in one step
+(just like `idf.py flash` does over the serial bootloader), then reconnects
+and marks the new image valid. It is a real idf.py action (like `flash`), so it
+takes options:
+
+```sh
+pip install pyusb            # once (libusb backend: `brew install libusb`, `apt install libusb-1.0-0`)
+idf.py ota-usb                        # build, then OTA the app .bin over USB
+idf.py ota-usb --no-verify            # ... without the reconnect + mark-valid afterwards
+idf.py ota-usb --binary other.bin     # OTA some other image instead of the project's
+idf.py ota-usb --status               # is the running image pending verification?
+idf.py ota-usb --mark-valid           # confirm the running image (cancel rollback)
+idf.py ota-usb --rollback             # reject it: roll back + reboot
+idf.py ota-usb --pid 0x1234 --serial ABC123 --chunk-size 2048
+idf.py ota-usb --help                 # all options (--vid/--pid/--serial/--interface, --quiet, ...)
+idf.py build ota-usb                  # the option-less CMake fallback target
+```
+
+The action needs **ESP-IDF 6.0 or later**: idf.py of 5.x loads neither
+component extensions nor entry points, so on 5.x requiring the component gives
+only the option-less CMake target described below. The action comes from the
+component's `idf_ext.py`, which idf.py loads when the component is in the
+build. ESP-IDF 6.0 and 6.0.1 load every participating component's extension;
+from 6.0.2 on only those **from a trusted source**: ESP-IDF itself, the
+project's own components, `EXTRA_COMPONENT_DIRS` (how espp is normally used) or
+an `espressif/` registry component. A registry install of `espp/ota` is not in
+that list, so there idf.py prints a warning and skips it unless you set
+`IDF_EXTENSION_ALLOW_UNTRUSTED=1`. Alternatively, install the espp wheel in the
+ESP-IDF Python environment: it declares an `idf_extension` entry point, which
+idf.py loads with no trust check, in every project. For builds where neither
+extension is loaded, `project_include.cmake` still registers the plain `ota-usb`
+CMake target, which takes no options (an idf.py action shadows a CMake target of
+the same name).
+
+Override the target device without editing anything (the tool reads these):
+
+```sh
+ESPP_OTA_PID=0x1234 idf.py ota-usb
+```
+
+## Standalone CLI
+
+Run it directly for full control (or when you already have a `.bin`):
+
+```sh
+python -m espp_ota flash build/my_app.bin        # BEGIN -> stream -> FINISH
+python -m espp_ota flash build/my_app.bin --pid 0x1234 --chunk-size 2048
+python -m espp_ota list                          # list matching USB devices
+python -m espp_ota discover                       # probe the device's dispatcher
+python -m espp_ota status                         # is the running image pending verify?
+python -m espp_ota mark-valid                     # confirm the running image (cancel rollback)
+python -m espp_ota rollback                        # reject it: roll back + reboot
+```
+
+Installed with the espp wheel it's also available as the `espp-ota` command
+(`pip install "espp[usb]"`, or `"espp[usb-ui]"` to also get the `rich` UI).
+
+### Rollback: confirm the image from the host
+
+With bootloader rollback enabled, a freshly flashed image boots **pending verify**
+and rolls back on the next reset unless it is confirmed. Confirmation is
+deliberately **host-driven** — the running app must not mark *itself* valid, since
+a broken build could do so right before crashing.
+
+`flash` **auto-verifies by default**: after streaming the image it waits for the
+device to reboot, reconnects (the device re-enumerates with the same VID/PID),
+and reads the running firmware + rollback status. If the new image is *responding*
+to OTA commands and still *pending verify*, it has booted — so the host marks it
+valid. It prints the before → after firmware, e.g.:
+
+```
+● Currently running: ota_example 1.0.0
+  ... flashing ...
+● ota_example 1.0.0  →  ota_example 1.1.0
+The new image booted and responded, so it has been marked valid (rollback cancelled).
+```
+
+Pass `--no-verify` to skip that step (then confirm later with `mark-valid`), or
+`--verify-timeout <seconds>` to change how long it waits for the device to
+reappear. The `status`, `mark-valid`, and `rollback` commands remain available to
+do it manually; `rollback` rejects the running image (roll back + reboot).
+
+## Library use
+
+```python
+from espp_ota import OtaClient, UsbVendorTransport
+
+with open("build/my_app.bin", "rb") as f:
+    image = f.read()
+
+with UsbVendorTransport() as t:                    # default VID/PID 0x1209:0x0d32
+    OtaClient(t, progress=lambda w, tot: print(w, "/", tot)).flash(image)
+```
+
+## Protocol
+
+`module = 0` by default; requests are host→device, replies device→host (reply
+flag set). The module id is only a routing key: before its first request the
+tool sends a dispatcher `ListModules` query and talks to whichever module
+advertises protocol id `espp.ota` (for firmware predating protocol ids: the
+module advertising `ota_console.html`, then the name "OTA"). The published
+default, 0, is the last resort in two cases: the device does not answer
+discovery at all (older firmware, silently), or it answers but advertises
+nothing matching the protocol, app or name (with a warning). `--module N` (or
+`ESPP_OTA_MODULE`) forces an id; `discover` lists what the device advertises
+and which module the tool would use.
+Flow control is one request in flight — each request waits for its OK/ERROR
+reply before the next is sent.
+
+| type | name | dir | payload |
+|------|------|-----|---------|
+| 0x01 | BEGIN | host→dev | u32 image_size (0 = unknown/streaming) |
+| 0x02 | DATA | host→dev | image bytes (1..4096) |
+| 0x03 | FINISH | host→dev | — (validate + activate) |
+| 0x04 | ABORT | host→dev | — |
+| 0x05 | OK | dev→host | u32 bytes_received |
+| 0x06 | ERROR | dev→host | u32 code + utf-8 message |
+| 0x07 | PROGRESS | dev→host | u32 written, u32 total |
+
+The wire framing is `espp::stream_frame` v2 (magic `0x4F54`, CRC-32); see
+`espp_ota/frame.py`. Host tests (codec + a full OTA against a mock device) live
+in `tests/test_ota_host.py` and run with plain `python3`.
+
+## Output
+
+The tool draws a [`rich`](https://pypi.org/project/rich/) progress bar (spinner,
+bar, %, bytes, transfer speed, ETA) and colorizes status / error lines. Under
+`idf.py ota-usb` the tool's stdout/stderr are captured pipes, so the bar is drawn
+straight to the controlling terminal (`/dev/tty`, `CONOUT$` on Windows) and still
+animates in place. Without a terminal (CI / redirected output) it prints periodic
+plain-text lines instead. `rich` is optional — the output degrades to a plain
+`\r` bar or text without it. It ships in the ESP-IDF Python environment (so
+`idf.py ota-usb` already has it) and is pulled in by `pip install "espp[usb-ui]"`.
+
+`idf.py ota-usb` mid-flash — the rich bar (%, size, transfer speed, ETA) animates
+in place even though idf.py captures the tool's output:
+
+![espp_ota flashing over USB](https://github.com/user-attachments/assets/a042481a-2964-4b06-9109-bb2dcb4e355b)
+
+…and on completion:
+
+![espp_ota OTA complete](https://github.com/user-attachments/assets/da8e1b71-c65f-4ecc-9223-e232f8591ceb)
+
+## Requirements
+
+- Python 3.8+
+- `pyusb` + a libusb backend (only for the actual USB transport):
+  - macOS: `brew install libusb`
+  - Linux: `apt install libusb-1.0-0` (add a udev rule for non-root access)
+  - Windows: the device advertises WebUSB + MS-OS-2.0, so WinUSB binds
+    automatically; otherwise bind it once with [Zadig](https://zadig.akeo.ie/).

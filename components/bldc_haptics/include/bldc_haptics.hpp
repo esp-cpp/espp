@@ -176,8 +176,16 @@ public:
   ///        within the bounds of the current detent config
   /// @param position Position to set the haptics to
   void set_position(const int position) {
-    current_position_ =
-        std::clamp<int>(position, detent_config_.min_position, detent_config_.max_position);
+    // max_position < min_position is the documented "no bounds" sentinel (see
+    // DetentConfig, e.g. UNBOUNDED_NO_DETENTS). std::clamp requires lo <= hi -
+    // reversed bounds are undefined behavior - so leave an unbounded position
+    // unclamped.
+    if (detent_config_.max_position < detent_config_.min_position) {
+      current_position_ = position;
+    } else {
+      current_position_ =
+          std::clamp<int>(position, detent_config_.min_position, detent_config_.max_position);
+    }
   }
 
   /// @brief Configure the detents for the haptic motor

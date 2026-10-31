@@ -28,10 +28,13 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #define SUPPRESS_UNICAST 0
 
+#include "dscp.hpp"
+#include "qos_band.hpp"
 #include "rtps/config.hpp"
 #include "rtps/utils/CdrBuffer.hpp"
 #include "rtps/utils/hash.hpp"
 #include <array>
+#include <optional>
 #include <rtps/common/Locator.hpp>
 #include <span>
 
@@ -49,6 +52,23 @@ struct TopicData {
   DurabilityKind_t durabilityKind;
   FullLengthLocator unicastLocator;
   FullLengthLocator multicastLocator;
+
+  // --- Local-only endpoint scheduling attributes ----------------------------
+  // These are NEVER serialized to (or parsed from) the wire: serializeInto()
+  // and readFromBuffer() ignore them, so the SEDP encoding is unchanged. They
+  // only steer how the LOCAL endpoint's traffic is scheduled (see
+  // Domain::createWriter/createReader and EsppTransport).
+  //
+  /// Priority band for this endpoint's received-traffic dispatch (and, when a
+  /// dedicated port is granted, for that port's reactor registration).
+  espp::QosBand band{espp::QosBand::Normal};
+  /// Optional DSCP code point applied to the endpoint's dedicated socket (marks
+  /// the traffic it SENDS; requires a dedicated port to take effect).
+  std::optional<espp::Dscp> dscp{};
+  /// True when Domain granted this (local) endpoint a dedicated unicast port:
+  /// unicastLocator then carries that port instead of the participant's shared
+  /// user-unicast port. Always false for remote endpoints.
+  bool hasDedicatedPort{false};
 
   uint8_t statusInfo = 0;
   bool statusInfoValid = false;

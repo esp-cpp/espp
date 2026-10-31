@@ -3,5 +3,5 @@
 # as `#include "detail/basicmicro_core.hpp"` by consumers and by the host test.
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES base_component
+  REQUIRES base_component motor_controller
 )

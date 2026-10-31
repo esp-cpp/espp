@@ -48,6 +48,12 @@ public:
     std::string type_name; ///< Base DDS type (ROS 2), or any matching name (native).
     handler_t handler;     ///< Request -> Response.
     RtpsProtocol protocol{RtpsProtocol::ROS2}; ///< Wire protocol.
+    /// Priority band for the server's endpoints (see
+    /// RtpsParticipant::ServiceConfig::band).
+    espp::QosBand band{espp::QosBand::Normal};
+    /// Optional DSCP marking for the replies this server sends (see
+    /// RtpsParticipant::ServiceConfig::dscp).
+    std::optional<espp::Dscp> dscp{};
   };
 
   /// Construct and register the server on a started participant, which must
@@ -64,11 +70,11 @@ public:
       return detail::rtps_serialize<Response>(handler(*req));
     };
     if (config.protocol == RtpsProtocol::NATIVE) {
-      valid_ = participant.add_native_service_server({config.service, config.type_name},
-                                                     std::move(byte_handler));
+      valid_ = participant.add_native_service_server(
+          {config.service, config.type_name, config.band, config.dscp}, std::move(byte_handler));
     } else {
-      valid_ = participant.add_service_server({config.service, config.type_name},
-                                              std::move(byte_handler));
+      valid_ = participant.add_service_server(
+          {config.service, config.type_name, config.band, config.dscp}, std::move(byte_handler));
     }
   }
 
@@ -105,6 +111,12 @@ public:
     std::string service;   ///< Service name, e.g. "/add_two_ints".
     std::string type_name; ///< Base DDS type (ROS 2), or any matching name (native).
     RtpsProtocol protocol{RtpsProtocol::ROS2}; ///< Wire protocol.
+    /// Priority band for the client's endpoints (see
+    /// RtpsParticipant::ServiceConfig::band).
+    espp::QosBand band{espp::QosBand::Normal};
+    /// Optional DSCP marking for the requests this client sends (see
+    /// RtpsParticipant::ServiceConfig::dscp).
+    std::optional<espp::Dscp> dscp{};
   };
 
   /// Construct and register the client on a started participant, which must
@@ -113,9 +125,11 @@ public:
   /// \param config The client configuration (service name, type, protocol).
   ServiceClient(RtpsParticipant &participant, const Config &config) {
     if (config.protocol == RtpsProtocol::NATIVE) {
-      native_ = participant.add_native_service_client({config.service, config.type_name});
+      native_ = participant.add_native_service_client(
+          {config.service, config.type_name, config.band, config.dscp});
     } else {
-      ros_ = participant.add_service_client({config.service, config.type_name});
+      ros_ = participant.add_service_client(
+          {config.service, config.type_name, config.band, config.dscp});
     }
   }
 

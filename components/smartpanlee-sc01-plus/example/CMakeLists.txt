@@ -18,4 +18,4 @@ set(
 
 project(smartpanlee_sc01_plus_example)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)

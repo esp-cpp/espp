@@ -32,6 +32,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/storages/CacheChange.hpp"
 #include "rtps/storages/MemoryPool.hpp"
 
+#include <atomic>
 #include <cstdint>
 #include <mutex>
 
@@ -80,6 +81,26 @@ public:
   virtual void setAllChangesToUnsent() = 0;
   virtual void onNewAckNack(const SubmessageAckNack &msg, const GuidPrefix_t &sourceGuidPrefix) = 0;
 
+  //! Dispatch an ACKNACK only if `generation` still matches (checked under
+  //! m_mutex together with initialization). The receive path captures the
+  //! generation inside the participant's locked endpoint lookup, so a handler
+  //! that obtained this pooled Writer* just before it was deleted (and possibly
+  //! reused for another endpoint) no-ops instead of mutating/retransmitting the
+  //! new endpoint's history.
+  void onNewAckNackIfCurrent(uint32_t generation, const SubmessageAckNack &msg,
+                             const GuidPrefix_t &sourceGuidPrefix);
+
+  //! Pooled-slot reuse generation (see onNewAckNackIfCurrent); captured by the
+  //! receive path inside the participant's locked endpoint lookup.
+  uint32_t generation() const { return m_generation_.load(); }
+
+  //! Number of UNSENT samples this writer's history has overwritten under
+  //! KEEP_LAST overflow (newChange() on a full static ring drops the oldest
+  //! unsent change and advances the send cursor past it). The facade uses the
+  //! delta across a publish() to surface the loss; Diagnostics::Writer keeps a
+  //! process-wide total.
+  uint32_t historyDrops() const { return m_history_drops_.load(); }
+
   using dumpProxyCallback = void (*)(const Writer *writer, const ReaderProxy &, void *arg);
 
   int dumpAllProxies(dumpProxyCallback target, void *arg);
@@ -123,8 +144,26 @@ protected:
 
   friend class SizeInspector;
   bool m_is_initialized_ = false;
+  // Bumped by reset() (under m_mutex) each time this pooled writer slot is torn
+  // down. A guaranteed progress() job captures the generation at submit time
+  // and runs via progressIfCurrent(), which re-checks it under m_mutex - so a
+  // job accepted by the pool before deletion cannot run against a reset writer
+  // or the next endpoint that reuses this slot (a stale generation no-ops).
+  // Atomic so the receive path can capture it inside the participant's locked
+  // endpoint lookup (see Participant::getWriter(id, generation_out)) and
+  // onNewAckNackIfCurrent() can reject a dispatch that lost the race with
+  // deletion/reuse; all bumps still happen under m_mutex.
+  std::atomic<uint32_t> m_generation_{0};
+  //! Unsent samples overwritten by KEEP_LAST overflow (see historyDrops()).
+  std::atomic<uint32_t> m_history_drops_{0};
   virtual ~Writer() = default;
   MemoryPool<ReaderProxy, Config::NUM_READER_PROXIES_PER_WRITER> m_proxies;
+
+  //! Snapshot the current initialization generation (taken at job submit time).
+  uint32_t currentGeneration();
+  //! Run progress() only if `generation` still matches AND the writer is still
+  //! initialized, atomically under m_mutex. Used by the guaranteed-job lambdas.
+  void progressIfCurrent(uint32_t generation);
 
   void resetSendOptions();
   void manageSendOptions();

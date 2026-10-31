@@ -14,12 +14,9 @@
 #include <limits>
 
 #include <driver/i2s_std.h>
-#include <driver/sdspi_host.h>
 #include <esp_check.h>
 #include <esp_heap_caps.h>
 #include <esp_lcd_panel_ops.h>
-#include <esp_vfs_fat.h>
-#include <sdmmc_cmd.h>
 
 namespace espp {
 
@@ -166,8 +163,14 @@ bool SmartPanleeSc01Plus::initialize_i2s(uint32_t default_audio_rate) {
   ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_tx_handle_, &audio_std_cfg_));
 
   auto buffer_size = calc_audio_buffer_size(default_audio_rate);
+  // the block (and so the stream's trigger level) must be a whole number of
+  // frames: the sample-rate formula can land between frames, and a block that
+  // split one would desynchronize the framing of everything received after it
+  buffer_size -= buffer_size % (audio_num_channels * audio_num_bytes_per_channel);
   audio_tx_buffer_.resize(buffer_size);
-  audio_tx_stream_ = xStreamBufferCreate(buffer_size * 4, 0);
+  // Trigger level = one block: the audio task waits for a whole block instead of
+  // padding a partial one with silence (see audio_task_callback).
+  audio_tx_stream_ = xStreamBufferCreate(buffer_size * 4, buffer_size);
   if (!audio_tx_stream_) {
     logger_.error("Failed to create audio stream buffer");
     return false;
@@ -438,64 +441,56 @@ bool SmartPanleeSc01Plus::initialize_sdcard(const SmartPanleeSc01Plus::SdCardCon
     return false;
   }
 
-  esp_vfs_fat_sdmmc_mount_config_t mount_config = {};
-  mount_config.format_if_mount_failed = config.format_if_mount_failed;
-  mount_config.max_files = config.max_files;
-  mount_config.allocation_unit_size = config.allocation_unit_size;
-
-  sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-  host.slot = SPI2_HOST;
-  host.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
-
-  spi_bus_config_t bus_config = {};
-  bus_config.mosi_io_num = sd_card_pins().mosi;
-  bus_config.miso_io_num = sd_card_pins().miso;
-  bus_config.sclk_io_num = sd_card_pins().clk;
-  bus_config.quadwp_io_num = GPIO_NUM_NC;
-  bus_config.quadhd_io_num = GPIO_NUM_NC;
-  bus_config.max_transfer_sz = 4 * 1024;
-  auto ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_config, SDSPI_DEFAULT_DMA);
-  if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
-    logger_.error("Failed to initialize SD SPI bus ({})", esp_err_to_name(ret));
+  logger_.info("Initializing SD card");
+  // The card is on its own SPI bus (SPI2): the component initializes the bus
+  // and frees it again when the card is released.
+  const auto pins = sd_card_pins();
+  espp::SdCard::SpiConfig spi;
+  spi.host = SPI2_HOST;
+  spi.cs = pins.cs;
+  spi.initialize_bus = true;
+  spi.mosi = pins.mosi;
+  spi.miso = pins.miso;
+  spi.sclk = pins.clk;
+  spi.max_transfer_size = 4 * 1024;
+  spi.frequency_khz = SDMMC_FREQ_HIGHSPEED;
+  sdcard_ = std::make_unique<espp::SdCard>(espp::SdCard::Config{
+      .interface = spi,
+      .mount_point = mount_point,
+      .format_if_mount_failed = config.format_if_mount_failed,
+      .max_files = config.max_files,
+      .allocation_unit_size = config.allocation_unit_size,
+      .log_level = get_log_level(),
+  });
+  std::error_code ec;
+  if (!sdcard_->initialize(ec)) {
+    logger_.error("Failed to initialize the SD card: {}", ec.message());
+    sdcard_.reset();
     return false;
   }
+  logger_.info("Filesystem mounted at {}", mount_point);
 
-  sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
-  slot_config.gpio_cs = sd_card_pins().cs;
-  slot_config.host_id = (spi_host_device_t)host.slot;
-
-  ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &sdcard_);
-  if (ret != ESP_OK) {
-    logger_.error("Failed to initialize the card ({})", esp_err_to_name(ret));
-    return false;
-  }
-
-  sd_card_initialized_ = true;
   return true;
 }
 
 bool SmartPanleeSc01Plus::initialize_sdcard() { return initialize_sdcard(SdCardConfig{}); }
 
-bool SmartPanleeSc01Plus::is_sd_card_available() const { return sd_card_initialized_; }
+bool SmartPanleeSc01Plus::is_sd_card_available() const { return sdcard_ && sdcard_->is_mounted(); }
 
 bool SmartPanleeSc01Plus::get_sd_card_info(uint32_t *size_mb, uint32_t *free_mb) const {
-  if (!sd_card_initialized_) {
+  if (!sdcard_) {
     return false;
   }
-
-  uint64_t total_bytes = 0;
-  uint64_t free_bytes = 0;
-  auto ret = esp_vfs_fat_info(mount_point, &total_bytes, &free_bytes);
-  if (ret != ESP_OK) {
-    logger_.error("Failed to get SD card information ({})", esp_err_to_name(ret));
+  const auto volume = sdcard_->volume_info();
+  if (!volume) {
+    logger_.error("Failed to get SD card information (volume not mounted)");
     return false;
   }
-
   if (size_mb) {
-    *size_mb = total_bytes / (1024 * 1024);
+    *size_mb = volume->total_bytes / (1024 * 1024);
   }
   if (free_mb) {
-    *free_mb = free_bytes / (1024 * 1024);
+    *free_mb = volume->free_bytes / (1024 * 1024);
   }
   return true;
 }
@@ -529,22 +524,47 @@ bool SmartPanleeSc01Plus::update_touch() {
   return changed;
 }
 
+// How long the audio task waits for a whole block before writing a partial one
+// (or silence). Longer than one block at every rate the board supports (a block
+// is 1/60 s at the default rate), so partial writes only happen when the
+// producer is idle or genuinely behind, never because its next frame simply had
+// not arrived yet; short enough that idle->silence latency is not noticeable.
+static constexpr uint32_t AUDIO_TX_RECEIVE_TIMEOUT_MS = 40;
+
 bool SmartPanleeSc01Plus::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                               bool &task_notified) {
   (void)m;
   (void)cv;
   (void)task_notified;
 
-  auto available = xStreamBufferBytesAvailable(audio_tx_stream_);
+  // Wait (bounded) for a whole block rather than taking whatever is queued and
+  // zero-padding it to a block: producers push audio in bursts (one video frame
+  // at a time, with frame-to-frame jitter), and the stream buffer exists to
+  // absorb exactly that. Taking a partial block padded it with silence every
+  // time the stream momentarily held less than one block, which is audible as
+  // stutter whenever the producer's cadence is uneven. The DMA is still fed
+  // whole blocks at a constant cadence while audio is flowing (the stream's
+  // trigger level is one block); only after the timeout -- producer idle or
+  // slower than real time -- is a partial block written as is (the I2S driver
+  // concatenates partial writes without gaps), or silence when there is none.
   auto buffer_size = audio_tx_buffer_.size();
-  available = std::min(available, buffer_size);
-
   uint8_t *buffer = audio_tx_buffer_.data();
-  std::memset(buffer, 0, buffer_size);
-
-  size_t bytes_received = 0;
-  if (available > 0) {
-    bytes_received = xStreamBufferReceive(audio_tx_stream_, buffer, available, 0);
+  size_t bytes_received = xStreamBufferReceive(audio_tx_stream_, buffer, buffer_size,
+                                               pdMS_TO_TICKS(AUDIO_TX_RECEIVE_TIMEOUT_MS));
+  // the block is frame-aligned and producers queue whole frames, so this cannot
+  // happen; if it ever does, do not silently drop bytes (that would desynchronize
+  // the framing of everything after them) -- say so
+  constexpr size_t frame_bytes = audio_num_channels * audio_num_bytes_per_channel;
+  if (bytes_received % frame_bytes != 0) {
+    static uint32_t misaligned_count = 0;
+    if ((misaligned_count++ % 100) == 0) {
+      logger_.warn("audio stream holds a partial frame ({} bytes)", bytes_received);
+    }
+  }
+  if (bytes_received == 0) {
+    std::memset(buffer, 0, buffer_size);
+    i2s_channel_write(audio_tx_handle_, buffer, buffer_size, nullptr, portMAX_DELAY);
+    return false;
   }
 
   if (mute_) {
@@ -562,7 +582,7 @@ bool SmartPanleeSc01Plus::audio_task_callback(std::mutex &m, std::condition_vari
     }
   }
 
-  i2s_channel_write(audio_tx_handle_, buffer, buffer_size, nullptr, portMAX_DELAY);
+  i2s_channel_write(audio_tx_handle_, buffer, bytes_received, nullptr, portMAX_DELAY);
   return false;
 }
 

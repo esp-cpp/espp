@@ -11,13 +11,11 @@
 #include <vector>
 
 #include <esp_err.h>
-#include <esp_vfs_fat.h>
 #include <sdmmc_cmd.h>
 
 #include <driver/gpio.h>
 #include <driver/i2s_pdm.h>
 #include <driver/i2s_std.h>
-#include <driver/sdspi_host.h>
 #include <driver/spi_master.h>
 #include <hal/spi_ll.h>
 #include <hal/spi_types.h>
@@ -34,6 +32,7 @@
 #include "led.hpp"
 #include "neopixel.hpp"
 #include "oneshot_adc.hpp"
+#include "sdcard.hpp"
 #include "spi.hpp"
 #include "st7789.hpp"
 #include "sx126x.hpp"
@@ -501,9 +500,16 @@ public:
 
   /// Get the uSD card
   /// \return A pointer to the uSD card
-  /// \note The uSD card is only available if it was successfully initialized
-  ///       and the mount point is valid
-  sdmmc_card_t *sdcard() const { return sdcard_; }
+  /// \note nullptr until initialize_sdcard() succeeded. The card stays valid while
+  ///       its volume is unmounted (sdcard_component()->unmount()), e.g. to hand it
+  ///       to a USB host through espp::UsbDevice's MSC function.
+  sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
+
+  /// Get the SD card component: mount() / unmount() (e.g. to hand the card to a
+  /// USB host with the usb_device MSC function), format(), card_info(),
+  /// volume_info(), ...
+  /// \return The component, or nullptr until initialize_sdcard() succeeded
+  espp::SdCard *sdcard_component() const { return sdcard_.get(); }
 
   /////////////////////////////////////////////////////////////////////////////
   // RGB LED
@@ -902,7 +908,7 @@ protected:
                          .log_level = espp::Logger::Verbosity::WARN}};
 
   // sdcard
-  sdmmc_card_t *sdcard_{nullptr};
+  std::unique_ptr<espp::SdCard> sdcard_;
   // whether the (shared) uSD / LoRa Cap SPI bus has been initialized
   bool expansion_spi_bus_initialized_{false};
 

@@ -54,14 +54,18 @@ template <> struct fmt::formatter<espp::TrajectoryPlanner::Config> {
     return fmt::format_to(ctx.out(),
                           "TrajectoryPlanner::Config{{\n"
                           "  max_linear_velocity:   {:.3f} m/s\n"
+                          "  max_reverse_velocity:  {:.3f} m/s{}\n"
                           "  max_angular_velocity:  {:.3f} rad/s\n"
                           "  driving_profile:       {}\n"
                           "  stopping_profile:      {}\n"
                           "  enforce_envelope:      {}\n"
                           "  max_centripetal_accel: {:.3f} m/s^2\n"
                           "}}",
-                          cfg.max_linear_velocity, cfg.max_angular_velocity, cfg.driving_profile,
-                          cfg.stopping_profile, cfg.enforce_motion_envelope,
-                          cfg.max_centripetal_acceleration);
+                          cfg.max_linear_velocity,
+                          cfg.max_reverse_linear_velocity > 0.0f ? cfg.max_reverse_linear_velocity
+                                                                 : cfg.max_linear_velocity,
+                          cfg.max_reverse_linear_velocity > 0.0f ? "" : " (= forward)",
+                          cfg.max_angular_velocity, cfg.driving_profile, cfg.stopping_profile,
+                          cfg.enforce_motion_envelope, cfg.max_centripetal_acceleration);
   }
 };

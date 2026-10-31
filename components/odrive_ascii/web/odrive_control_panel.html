@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ODrive Native WebUSB Control Panel</title>
 <meta name="description" content="WebUSB control panel for the ODrive native (Fibre) binary protocol: endpoint tree browser, live multi-signal plots, and quick controls.">
+<meta name="espp-category" content="motor control">
+<meta name="espp-transports" content="webusb">
   <!--
     ODrive Native (Fibre endpoint) WebUSB Control Panel
     ===================================================
@@ -285,13 +287,21 @@
 
     footer { text-align: center; color: var(--text-muted); font-size: 12px; padding: 8px 18px 22px; }
     a { color: var(--accent); }
+    /* espp web-app navigation: back to the Device Hub (primary) and the apps page */
+    .espp-nav { display: inline-flex; gap: 6px; align-items: center; margin-left: 12px; font-size: 12px; font-weight: 600; vertical-align: middle; }
+    .espp-nav a { text-decoration: none; white-space: nowrap; padding: 4px 10px; border-radius: 6px;
+      border: 1px solid var(--accent, #4aa8ff); color: var(--accent, #4aa8ff); }
+    .espp-nav a.hub { background: var(--accent, #4aa8ff); color: var(--accent-contrast, #06121f); }
+    .espp-nav a:hover { filter: brightness(1.1); }
+    .espp-nav a:focus-visible { outline: 2px solid var(--accent, #4aa8ff); outline-offset: 2px; }
   </style>
 </head>
 <body>
   <header>
     <h1>ODrive Native &mdash; WebUSB Control Panel</h1>
+    <nav class="espp-nav" aria-label="espp web apps"><a id="navHub" class="hub" href="https://esp-cpp.github.io/espp/apps/dispatcher_hub.html" title="Back to the espp Device Hub (hands a connected device back to it)">Device Hub</a><a id="navApps" href="https://esp-cpp.github.io/espp/apps/index.html" title="All espp web apps">All apps</a></nav>
     <div class="spacer"></div>
-    <label class="checkbox-inline" title="Show every USB device in the chooser instead of only the default ODrive VID/PID (0x1209/0x0d32).">
+    <label class="checkbox-inline" title="Show every USB device in the chooser instead of only espp devices (the default filter is VID 0x1209, any PID).">
       <input type="checkbox" id="anyDevice"> Any device
     </label>
     <button id="connectBtn" class="primary">Connect</button>
@@ -454,6 +464,33 @@
   <script>
   "use strict";
   (function () {
+    // --- begin app navigation (shared; byte-identical in every web app, see web/test/resolve_module_id_test.js) ---
+    // Links back to the Device Hub (primary) and the apps page. The static hrefs
+    // in the HTML are the hosted copies (always valid, also when this script
+    // never runs — a file:// page whose ES-module import is blocked). In the
+    // hosted apps directory (…/apps/ on the documentation site, or a local
+    // server in docs/apps) hub and apps page are siblings of every app, so the
+    // links are rewritten to the sibling files there; anywhere else — file://,
+    // a source tree served from http://localhost (where the haptics console is
+    // example/webapp/index.html itself) — they stay on the hosted copies.
+    const ESPP_APPS_BASE = "https://esp-cpp.github.io/espp/apps/";
+    function inHostedAppsDir(loc) {
+      if (!loc || !/^https?:$/.test(loc.protocol)) return false;
+      const dir = String(loc.pathname || "").replace(/[^/]*$/, "");
+      return /\/apps\/$/.test(dir);
+    }
+    function navHref(file) {
+      return inHostedAppsDir(typeof location !== "undefined" ? location : null) ? file : ESPP_APPS_BASE + file;
+    }
+    // Wire the #navHub / #navApps hrefs (every app). Returns the hub link.
+    function installAppNav() {
+      const hub = typeof document !== "undefined" ? document.getElementById("navHub") : null;
+      const apps = typeof document !== "undefined" ? document.getElementById("navApps") : null;
+      if (apps) apps.href = navHref("index.html");
+      if (hub) hub.href = navHref("dispatcher_hub.html");
+      return hub;
+    }
+    // --- end app navigation ---
     // ===================================================================
     // Element references
     // ===================================================================
@@ -669,14 +706,25 @@
       if (device) await disconnect(); else await connect();
     });
 
+    // WebUSB requires a `filters` member (there is no acceptAllDevices). The
+    // "show all" path uses one empty filter `{}` (matches everything); a few
+    // WebUSB implementations reject an empty filter object, so fall back to a
+    // VID-only filter in that case.
+    async function requestUsbDevice(anyDevice) {
+      const showAll = { filters: [{}] };
+      const vidOnly = { filters: [{ vendorId: DEFAULT_VID }] };
+      try {
+        return await navigator.usb.requestDevice(anyDevice ? showAll : vidOnly);
+      } catch (e) {
+        if (anyDevice && e && e.name === "TypeError")
+          return await navigator.usb.requestDevice(vidOnly);
+        throw e;
+      }
+    }
+
     async function connect() {
       try {
-        // `{ filters: [] }` is not a valid "any device" request in Chromium's
-        // WebUSB; use the explicit `acceptAllDevices` flag for that path.
-        const options = els.anyDevice.checked
-          ? { acceptAllDevices: true }
-          : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
-        device = await navigator.usb.requestDevice(options);
+        device = await requestUsbDevice(els.anyDevice.checked);
       } catch (e) {
         // Only NotFoundError is a user cancel / no-match; anything else is real.
         if (e && e.name === "NotFoundError") {
@@ -1455,11 +1503,12 @@
       setStatus("", "Disconnected");
       setConnectedUI(false);
       logLine("sys", "Ready. Click Connect and pick the ODrive native (vendor) USB device.");
-      logLine("sys", `Default filter: VID 0x${DEFAULT_VID.toString(16)} / PID 0x${DEFAULT_PID.toString(16)}. Tick "Any device" to see all.`);
+      logLine("sys", `Default filter: any device with VID 0x${DEFAULT_VID.toString(16).padStart(4, "0")}. Tick "Any device" to see all.`);
       logLine("sys", "This panel speaks the native (Fibre-endpoint) BINARY protocol, not ASCII.");
       drawPlot(); updateLegend();
     }
     init();
+    installAppNav(); // Device Hub / All apps links (plain navigation: this page speaks no espp protocol)
   })();
   </script>
 </body>

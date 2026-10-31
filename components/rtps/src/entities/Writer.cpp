@@ -142,3 +142,33 @@ int rtps::Writer::dumpAllProxies(dumpProxyCallback target, void *arg) {
   }
   return dump_count;
 }
+
+uint32_t rtps::Writer::currentGeneration() { return m_generation_.load(); }
+
+void rtps::Writer::onNewAckNackIfCurrent(uint32_t generation, const SubmessageAckNack &msg,
+                                         const GuidPrefix_t &sourceGuidPrefix) {
+  // Check generation AND initialization atomically with the dispatch: reset()
+  // bumps m_generation_ under m_mutex, so a receive handler that captured the
+  // generation (inside the participant's locked lookup) just before this
+  // pooled slot was deleted either completes here against the still-intact
+  // endpoint (reset() waits on m_mutex) or no-ops after the bump - it can
+  // never mutate/retransmit the history of the NEXT endpoint in this slot.
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  if (generation != m_generation_.load() || !m_is_initialized_) {
+    return;
+  }
+  onNewAckNack(msg, sourceGuidPrefix);
+}
+
+void rtps::Writer::progressIfCurrent(uint32_t generation) {
+  // Check the generation AND initialization atomically with the send: reset()
+  // bumps m_generation_ / clears m_is_initialized_ under m_mutex, so a job that
+  // was accepted by the pool before this writer was deleted (and possibly reused
+  // for another endpoint) no-ops here instead of sending on the wrong endpoint.
+  // m_mutex is recursive, so the progress() override re-locking is harmless.
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  if (generation != m_generation_ || !m_is_initialized_) {
+    return;
+  }
+  progress();
+}

@@ -1,0 +1,47 @@
+name: Persistent data host test
+
+# Builds and runs components/persistent_data/test/persistent_data_host_test.cpp
+# (file format, version list, migration chain, atomic file helpers) on the
+# host with g++ -std=c++23. Runs whenever the component or the serialization
+# component it encodes with changes.
+
+# Minimal token scope: build + run tests, never writes.
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - "components/persistent_data/**"
+      - "components/serialization/**"
+      - ".github/workflows/persistent_data_tests.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "components/persistent_data/**"
+      - "components/serialization/**"
+      - ".github/workflows/persistent_data_tests.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host-test:
+    name: C++ host test (codec, migration chain, file helpers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: Build and run persistent_data_host_test
+        run: |
+          g++ --version | head -1
+          g++ -std=c++23 -Wall -Wextra -Werror \
+            -I components/persistent_data/include -I components/serialization/include \
+            -isystem components/serialization/detail/alpaca/include \
+            components/persistent_data/test/persistent_data_host_test.cpp -o persistent_data_host_test
+          ./persistent_data_host_test

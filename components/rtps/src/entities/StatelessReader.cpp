@@ -63,6 +63,9 @@ bool StatelessReader::addNewMatchedWriter(const WriterProxy &newProxy) {
   SLR_LOG("Adding WriterProxy");
   printGuid(newProxy.remoteWriterGuid);
 #endif
+  // Guard the pool mutation against concurrent m_proxies iteration (see
+  // StatefulReader::addNewMatchedWriter).
+  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   return m_proxies.add(newProxy);
 }
 

@@ -23,6 +23,7 @@
 #include "i2c.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
+#include "sdcard.hpp"
 #include "st7796.hpp"
 #include "task.hpp"
 #include "touchpad_input.hpp"
@@ -268,7 +269,21 @@ public:
   /// \param config Mount configuration.
   /// \return True if the card was mounted successfully, false otherwise.
   bool initialize_sdcard(const SdCardConfig &config);
-  /// Check whether the microSD card is currently mounted.
+  /// Get the microSD card.
+  /// \return Pointer to the sdmmc_card_t, or nullptr if not initialized
+  /// \note nullptr until initialize_sdcard() succeeded. The card stays valid while
+  ///       its volume is unmounted (sdcard_component()->unmount()), e.g. to hand it
+  ///       to a USB host through espp::UsbDevice's MSC function.
+  sdmmc_card_t *sdcard() const { return sdcard_ ? sdcard_->card() : nullptr; }
+
+  /// Get the SD card component: mount() / unmount() (e.g. to hand the card to a
+  /// USB host with the usb_device MSC function), format(), card_info(),
+  /// volume_info(), ...
+  /// \return The component, or nullptr until initialize_sdcard() succeeded
+  espp::SdCard *sdcard_component() const { return sdcard_.get(); }
+
+  /// Check whether the microSD card is initialized and its volume is currently
+  /// mounted (false after sdcard_component()->unmount()).
   /// \return True if the card is mounted and available.
   bool is_sd_card_available() const;
   /// Query mounted microSD capacity and free space.
@@ -383,7 +398,6 @@ protected:
   i2s_std_config_t audio_std_cfg_{};
   std::vector<uint8_t> audio_tx_buffer_;
 
-  bool sd_card_initialized_{false};
-  sdmmc_card_t *sdcard_{nullptr};
+  std::unique_ptr<espp::SdCard> sdcard_;
 };
 } // namespace espp

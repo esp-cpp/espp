@@ -3,7 +3,15 @@
 #include <array>
 #include <cstring>
 
+#include <mbedtls/build_info.h> // for MBEDTLS_VERSION_MAJOR
+#if MBEDTLS_VERSION_MAJOR >= 4
+// mbedtls 4.x (ESP-IDF v6+) moved the low-level AES API to a private header; the
+// mbedtls_aes_* functions used below are unchanged and still available there.
+// (PSA Crypto is the recommended long-term API.)
+#include <mbedtls/private/aes.h>
+#else
 #include <mbedtls/aes.h>
+#endif
 
 namespace espp::meshtastic {
 

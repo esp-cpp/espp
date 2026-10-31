@@ -1,0 +1,28 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "System identity / status (chip, app, partitions, reset reason, uptime, heap) and restart control (reboot, reboot into the ROM bootloader), plus a framed stream service and a browser console (WebUSB / Web Serial)"
+url: "https://github.com/esp-cpp/espp/tree/main/components/system"
+repository: "https://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/system/system.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - System
+  - Reboot
+  - Bootloader
+  - Info
+  - WebUSB
+  - WebSerial
+  - USB
+dependencies:
+  idf:
+    # esp_app_get_description() and esp_clk_tree.h first appear in ESP-IDF v5.1
+    version: '>=5.1'
+  espp/base_component: '>=1.0'
+  espp/format: '>=1.0'
+  espp/stream_frame: '>=1.0'
+  espp/dispatcher: '>=1.0'

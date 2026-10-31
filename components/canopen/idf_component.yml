@@ -8,6 +8,7 @@ maintainers:
 documentation: "https://esp-cpp.github.io/espp/buses/canopen.html"
 examples:
   - path: example
+  - path: can_bridge_example
 tags:
   - cpp
   - Component

@@ -1,0 +1,24 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Nintendo Switch Pro (NS1) controller USB emulation protocol engine for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/switch_pro"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/hid/switch_pro.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - USB
+  - HID
+  - Gamepad
+  - Nintendo
+  - Switch
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'
+  espp/hid-rp: '>=1.0'
+  espp/timer: '>=1.0'

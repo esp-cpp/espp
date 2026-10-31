@@ -1,5 +1,30 @@
+include($ENV{IDF_PATH}/tools/cmake/version.cmake)
+
+# MSC, used only by the source: esp_partition (find the FAT partition),
+# wear_levelling (wl_mount), fatfs (esp_vfs_fat_info / ff_diskio_get_drive).
+set(usb_device_priv_requires esp_partition fatfs wear_levelling)
+# ESP32-P4 full-speed PHY selection (usb_wrap_ll_phy_select); the USB HALs
+# live in their own component from IDF 6.
+if(IDF_VERSION_MAJOR GREATER_EQUAL 6)
+  list(APPEND usb_device_priv_requires esp_hal_usb)
+endif()
+
 idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src"
-  REQUIRES base_component esp_tinyusb
+  # vfs: route_console_to_cdc() registers a VFS device (esp_vfs_register /
+  # esp_vfs_t) to redirect stdout to the CDC interface.
+  # sdmmc: the public header names sdmmc_card_t (MscMedium::sd_card).
+  REQUIRES base_component esp_tinyusb sdmmc vfs
+  PRIV_REQUIRES ${usb_device_priv_requires}
 )
+
+# X-Input registers a custom TinyUSB application class driver by overriding the
+# weak usbd_app_driver_get_cb(). Because TinyUSB's usbd.c both defines that weak
+# symbol AND calls it in the same translation unit, our strong override in
+# usb_device.cpp is only guaranteed to win if the linker is forced to resolve the
+# symbol globally. `-u` enters it as an undefined reference so the linker binds it
+# to the strong definition (and patches usbd.c's call to it). Without this, the
+# X-Input interface enumerates but its endpoints are never opened, so no
+# controller input reaches the host.
+target_link_options(${COMPONENT_LIB} INTERFACE "-u" "usbd_app_driver_get_cb")

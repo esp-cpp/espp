@@ -1,0 +1,9 @@
+# Apply on top of sdkconfig.defaults to build the bridge with the simulated
+# CANopen DS402 node instead of the TWAI peripheral (no CAN hardware needed):
+#
+#   idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.simulated" build
+#
+# (or select it with `idf.py menuconfig` under "CAN Bridge Example
+# Configuration").
+CONFIG_CAN_BRIDGE_SIMULATED_NODE=y
+CONFIG_CAN_BRIDGE_SIMULATED_NODE_ID=1

@@ -10,6 +10,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <cstdio>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -99,26 +100,32 @@ int main() {
   }
   std::printf("typed service ros=%d native=%d\n", svc_ros, svc_native);
 
-  // Actions: typed feedback + result.
+  // Actions: typed feedback + result. The callback state is SHARED and
+  // captured by value: the client retains the callbacks until the result
+  // arrives, so if the wait below times out a late result/feedback would
+  // otherwise dereference destroyed lambda-stack state (use-after-scope).
   auto run_action = [](auto &cli, int order, const std::vector<int32_t> &expected) {
-    std::mutex m;
-    std::condition_variable cv;
-    bool done = false;
-    std::atomic<int> fb{0};
-    std::vector<int32_t> got;
-    espp::GoalStatus status{};
+    struct GoalState {
+      std::mutex m;
+      std::condition_variable cv;
+      bool done = false;
+      std::atomic<int> fb{0};
+      std::vector<int32_t> got;
+      espp::GoalStatus status{};
+    };
+    auto st = std::make_shared<GoalState>();
     cli.send_goal(
-        FibGoal{order}, [&](const FibSeq &) { fb.fetch_add(1); },
-        [&](espp::GoalStatus st, const FibSeq &res) {
-          std::lock_guard<std::mutex> lk(m);
-          status = st;
-          got = res.sequence;
-          done = true;
-          cv.notify_one();
+        FibGoal{order}, [st](const FibSeq &) { st->fb.fetch_add(1); },
+        [st](espp::GoalStatus gs, const FibSeq &res) {
+          std::lock_guard<std::mutex> lk(st->m);
+          st->status = gs;
+          st->got = res.sequence;
+          st->done = true;
+          st->cv.notify_one();
         });
-    std::unique_lock<std::mutex> lk(m);
-    cv.wait_for(lk, 15s, [&] { return done; });
-    return status == espp::GoalStatus::SUCCEEDED && got == expected && fb.load() > 0;
+    std::unique_lock<std::mutex> lk(st->m);
+    st->cv.wait_for(lk, 15s, [&] { return st->done; });
+    return st->status == espp::GoalStatus::SUCCEEDED && st->got == expected && st->fb.load() > 0;
   };
   act_ros = run_action(ros_act_cli, 5, {0, 1, 1, 2, 3, 5});
   act_native = run_action(nat_act_cli, 5, {0, 1, 1, 2, 3, 5});

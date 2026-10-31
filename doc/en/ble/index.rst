@@ -13,6 +13,8 @@ BLE APIs
     gfps_service_example
     hid_service
     hid_service_example
+    switch2_pro
+    switch2_pro_example
 
 These components provide some interfaces for implementing a BLE peripheral -
 namely a BLE GATT Server hosting various services.

@@ -2,190 +2,221 @@
 
 // espp OTA stream protocol — wire framing for OTA over a raw byte stream.
 //
-// This header is intentionally free of any ESP-IDF / FreeRTOS dependency so
-// that the framing logic (CRC-32, frame building, incremental parsing with
-// resynchronization) can be built and unit-tested on a host with nothing more
-// than a C++20 standard library. The espp `ota` example composes this framing
-// with `espp::Ota` and `espp::UsbDevice` to stream firmware over the USB
-// vendor (WebUSB) interface; the `ota_console.html` web app implements the
+// The generic frame codec (magic / type / len / crc, CRC-32, incremental
+// resynchronizing StreamParser) now lives in the dependency-free
+// `stream_frame` component (espp::stream_frame). This header layers the
+// OTA-specific message-type enum, frame builders (make_*) and payload parsers
+// (parse_*) on top, and re-exports the generic pieces under the historical
+// `espp::detail::ota_stream` namespace so existing OTA/host code keeps working.
+//
+// Like stream_frame it stays free of any ESP-IDF / FreeRTOS dependency, so the
+// framing builds and unit-tests on a host. The espp `ota` example composes it
+// with `espp::Ota`, `espp::Dispatcher` and `espp::UsbDevice` to stream firmware
+// over the USB vendor (WebUSB) interface; `ota_console.html` implements the
 // exact same framing in JavaScript.
 //
-// Wire format (all multi-byte fields LITTLE-ENDIAN):
+// Wire format (v2, all multi-byte fields LITTLE-ENDIAN):
 //
-//   [magic u16 = 0x4F54 ("OT")][type u8][len u32][payload: len bytes][crc32 u32]
+//   [magic u16 = 0x4F54 ("OT")][flags u8][module u8][type u8][len u32]
+//                                        [payload: len bytes][crc32 u32]
 //
-//   - magic: the u16 value 0x4F54 ("OT"), transmitted little-endian, so the
-//     raw byte sequence on the wire is 0x54 ('T') then 0x4F ('O').
-//   - type:  one of the MessageType values below.
-//   - len:   payload length in bytes; MUST be <= kMaxPayloadSize (4096). The
-//     parser rejects (and resynchronizes past) any frame whose length field
-//     exceeds this cap, so a remote-supplied length can never cause unbounded
-//     buffering.
-//   - crc32: standard zlib CRC-32 (IEEE 802.3: polynomial 0xEDB88320
-//     reflected, init 0xFFFFFFFF, final xor 0xFFFFFFFF) computed over
-//     magic..payload, i.e. the kHeaderSize (7) header bytes plus the payload.
-//     Golden check value: crc32("123456789") == 0xCBF43926.
+// OTA occupies module 0 by default (espp::OtaService::Config::module can move
+// it). Requests are host->device (flags reply bit = 0);
+// replies are device->host (flags reply bit = 1). `type` alone identifies the
+// message.
 //
-// Message types & payloads (host -> device):
-//   0x01 BEGIN  — payload: u32 image_size (0 = unknown / streaming).
-//   0x02 DATA   — payload: raw image bytes (1..kMaxPayloadSize per frame).
-//   0x03 FINISH — no payload. Validates + activates the received image.
-//   0x04 ABORT  — no payload. Discards the in-progress session.
+// Message types & payloads (host -> device, requests):
+//   0x01 BEGIN       — payload: u32 image_size (0 = unknown / streaming).
+//   0x02 DATA        — payload: raw image bytes (1..kMaxPayloadSize per frame).
+//   0x03 FINISH      — no payload. Validates + activates the received image.
+//   0x04 ABORT       — no payload. Discards the in-progress session.
+//   0x08 GET_STATUS  — no payload. Asks for a STATUS reply (rollback state).
+//   0x09 MARK_VALID  — no payload. Confirms the running image (cancel rollback).
+//   0x0A MARK_INVALID— no payload. Rolls back to the previous image + reboots.
 //
-// Message types & payloads (device -> host):
-//   0x81 OK       — payload: u32 bytes_received so far. Sent in reply to each
-//                   successfully-handled BEGIN / DATA / FINISH / ABORT.
-//   0x82 ERROR    — payload: u32 code followed by a UTF-8 message.
-//   0x83 PROGRESS — payload: u32 written, u32 total (0 if unknown). Optional,
-//                   informational; hosts must tolerate (and may ignore) it.
+// Message types & payloads (device -> host, replies; reply flag set):
+//   0x05 OK       — payload: u32 bytes_received so far.
+//   0x06 ERROR    — payload: u32 code followed by a UTF-8 message.
+//   0x07 PROGRESS — payload: u32 written, u32 total (0 if unknown). Optional.
+//   0x0B STATUS   — payload: u8 flags (bit0 pending_verify, bit1 rollback_supported),
+//                   then the running app's version and project name (each a
+//                   u8-length-prefixed UTF-8 string).
 //
-// Flow control: the host serializes transactions — it sends one frame and
-// waits for the matching OK / ERROR reply before sending the next — so the
-// device never needs to buffer more than one frame of image data.
+// Rollback (bootloader rollback support): a freshly flashed image boots "pending
+// verify" and rolls back on the next reset unless confirmed. The device app must
+// NOT confirm itself; the HOST confirms it (MARK_VALID) after its own health
+// checks — a broken build could otherwise mark itself valid before failing.
+//
+// Flow control: the host serializes transactions — it sends one frame and waits
+// for the matching OK / ERROR reply before sending the next — so the device
+// never needs to buffer more than one frame of image data.
 
 #include <algorithm>
 #include <cstdint>
-#include <cstring>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "stream_frame.hpp"
+
 namespace espp {
 namespace detail {
 namespace ota_stream {
 
-/// Frame magic: the u16 value 0x4F54 ("OT"); little-endian on the wire, so the
-/// first frame byte is 0x54 ('T') and the second is 0x4F ('O').
-static constexpr uint16_t kMagic = 0x4F54;
-/// First (low) magic byte on the wire.
-static constexpr uint8_t kMagicByte0 = static_cast<uint8_t>(kMagic & 0xFF); // 0x54 'T'
-/// Second (high) magic byte on the wire.
-static constexpr uint8_t kMagicByte1 = static_cast<uint8_t>(kMagic >> 8); // 0x4F 'O'
-/// Frame header size: magic (2) + type (1) + len (4).
-static constexpr size_t kHeaderSize = 7;
-/// Trailing CRC-32 size.
-static constexpr size_t kCrcSize = 4;
-/// Maximum payload bytes per frame. Frames whose length field exceeds this are
-/// rejected and resynchronized past, bounding parser memory usage.
-static constexpr size_t kMaxPayloadSize = 4096;
-/// Maximum total encoded frame size (header + payload + crc) = 4107 bytes.
-static constexpr size_t kMaxFrameSize = kHeaderSize + kMaxPayloadSize + kCrcSize;
+// --- Re-export the generic stream_frame codec under the historical name ------
+using espp::stream_frame::kCrcSize;
+using espp::stream_frame::kHeaderSize;
+using espp::stream_frame::kMagic;
+using espp::stream_frame::kMagicByte0;
+using espp::stream_frame::kMagicByte1;
+using espp::stream_frame::kMaxFrameSize;
+using espp::stream_frame::kMaxPayloadSize;
 
-/// OTA stream protocol message types.
+using espp::stream_frame::crc32;
+using espp::stream_frame::get_u16;
+using espp::stream_frame::get_u32;
+using espp::stream_frame::put_u16;
+using espp::stream_frame::put_u32;
+
+using espp::stream_frame::Frame;
+using espp::stream_frame::StreamParser;
+
+/// Default dispatcher module id of the OTA protocol (0) -- the id the OTA
+/// console / CLI expect. Every frame builder below takes an optional `module`
+/// argument (defaulting to this) so a device that serves OTA on another id
+/// (espp::OtaService::Config::module) builds its replies on that id.
+static constexpr uint8_t kModule = 0;
+
+/// OTA stream protocol message types (the frame `type` field within the OTA
+/// module, kModule by default).
+/// Requests are host->device (frame flag reply=0); replies are device->host
+/// (reply=1). `type` alone identifies the message; the reply flag is the generic
+/// direction hint.
 enum class MessageType : uint8_t {
   Begin = 0x01,    ///< host -> device: start a session (payload: u32 image_size, 0 = unknown)
   Data = 0x02,     ///< host -> device: image bytes (payload: raw image data)
   Finish = 0x03,   ///< host -> device: validate + activate the received image (no payload)
   Abort = 0x04,    ///< host -> device: discard the in-progress session (no payload)
-  Ok = 0x81,       ///< device -> host: success reply (payload: u32 bytes_received so far)
-  Error = 0x82,    ///< device -> host: failure reply (payload: u32 code + utf8 message)
-  Progress = 0x83, ///< device -> host: optional progress (payload: u32 written, u32 total)
+  Ok = 0x05,       ///< device -> host: success reply (payload: u32 bytes_received so far)
+  Error = 0x06,    ///< device -> host: failure reply (payload: u32 code + utf8 message)
+  Progress = 0x07, ///< device -> host: optional progress (payload: u32 written, u32 total)
+  // Rollback control (bootloader rollback support). After an OTA the new image
+  // boots "pending verify" and rolls back on the next reset unless confirmed.
+  // The device app must NOT confirm itself (a broken app could still do so before
+  // failing); the HOST confirms it once it has verified the device is healthy.
+  GetStatus = 0x08,   ///< host -> device: query rollback status (no payload) -> Status reply
+  MarkValid = 0x09,   ///< host -> device: confirm the running image (cancel rollback), no payload
+  MarkInvalid = 0x0A, ///< host -> device: reject the running image (roll back + reboot), no payload
+  Status = 0x0B, ///< device -> host reply: u8 flags (bit0 pending_verify, bit1 rollback_supported)
 };
 
-/// @brief Standard zlib CRC-32 (IEEE 802.3; poly 0xEDB88320 reflected, init
-///        0xFFFFFFFF, final xor 0xFFFFFFFF).
-/// @param data Bytes to checksum.
-/// @param crc Running CRC from a previous call (0 to start, matching zlib's
-///        crc32(0, ...) convention); chainable across chunks.
-/// @return The CRC-32 of the concatenated input.
-/// @note Golden check value: crc32 over the ASCII bytes "123456789" == 0xCBF43926.
-inline uint32_t crc32(std::span<const uint8_t> data, uint32_t crc = 0) {
-  crc = ~crc;
-  for (const uint8_t byte : data) {
-    crc ^= byte;
-    for (int bit = 0; bit < 8; bit++)
-      crc = (crc & 1u) ? ((crc >> 1) ^ 0xEDB88320u) : (crc >> 1);
-  }
-  return ~crc;
-}
-
-/// Append a u16 little-endian to a byte vector.
-inline void put_u16(std::vector<uint8_t> &out, uint16_t value) {
-  out.push_back(static_cast<uint8_t>(value & 0xFF));
-  out.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
-}
-
-/// Append a u32 little-endian to a byte vector.
-inline void put_u32(std::vector<uint8_t> &out, uint32_t value) {
-  out.push_back(static_cast<uint8_t>(value & 0xFF));
-  out.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
-  out.push_back(static_cast<uint8_t>((value >> 16) & 0xFF));
-  out.push_back(static_cast<uint8_t>((value >> 24) & 0xFF));
-}
-
-/// Read a u32 little-endian from a byte span (span must hold >= 4 bytes).
-inline uint32_t get_u32(std::span<const uint8_t> bytes) {
-  return static_cast<uint32_t>(bytes[0]) | (static_cast<uint32_t>(bytes[1]) << 8) |
-         (static_cast<uint32_t>(bytes[2]) << 16) | (static_cast<uint32_t>(bytes[3]) << 24);
-}
-
-/// @brief A complete, CRC-verified protocol frame.
-struct Frame {
-  MessageType type;             ///< Message type byte (unknown values are passed through).
-  std::vector<uint8_t> payload; ///< Payload bytes (may be empty).
+/// Status-reply flag bits (MessageType::Status payload byte 0).
+enum StatusFlags : uint8_t {
+  kStatusPendingVerify = 0x01,     ///< running image awaits confirmation (will roll back if not)
+  kStatusRollbackSupported = 0x02, ///< bootloader rollback support is compiled in
 };
 
-/// @brief Build an encoded frame: header + payload + CRC-32 over magic..payload.
-/// @param type Message type.
+/// Whether a message type is a device->host reply (sets the frame reply flag).
+inline bool is_reply(MessageType type) {
+  return type == MessageType::Ok || type == MessageType::Error || type == MessageType::Progress ||
+         type == MessageType::Status;
+}
+
+/// @brief Build an encoded OTA frame (typed overload of stream_frame::build_frame).
+/// @param type OTA message type.
 /// @param payload Payload bytes; must be <= kMaxPayloadSize.
+/// @param module Dispatcher module id to stamp on the frame (default kModule).
 /// @return The encoded frame bytes, or an empty vector if the payload is too large.
-inline std::vector<uint8_t> build_frame(MessageType type, std::span<const uint8_t> payload = {}) {
-  if (payload.size() > kMaxPayloadSize)
-    return {};
-  std::vector<uint8_t> out;
-  out.reserve(kHeaderSize + payload.size() + kCrcSize);
-  put_u16(out, kMagic);
-  out.push_back(static_cast<uint8_t>(type));
-  put_u32(out, static_cast<uint32_t>(payload.size()));
-  out.insert(out.end(), payload.begin(), payload.end());
-  put_u32(out, crc32(std::span<const uint8_t>(out.data(), out.size())));
-  return out;
+inline std::vector<uint8_t> build_frame(MessageType type, std::span<const uint8_t> payload = {},
+                                        uint8_t module = kModule) {
+  return espp::stream_frame::build_frame(is_reply(type), module, static_cast<uint8_t>(type),
+                                         payload);
 }
 
 /// Build a BEGIN frame (image_size in bytes, 0 = unknown / streaming).
-inline std::vector<uint8_t> make_begin(uint32_t image_size) {
+inline std::vector<uint8_t> make_begin(uint32_t image_size, uint8_t module = kModule) {
   std::vector<uint8_t> payload;
   put_u32(payload, image_size);
-  return build_frame(MessageType::Begin, payload);
+  return build_frame(MessageType::Begin, payload, module);
 }
 
 /// Build a DATA frame carrying up to kMaxPayloadSize image bytes.
-inline std::vector<uint8_t> make_data(std::span<const uint8_t> data) {
-  return build_frame(MessageType::Data, data);
+inline std::vector<uint8_t> make_data(std::span<const uint8_t> data, uint8_t module = kModule) {
+  return build_frame(MessageType::Data, data, module);
 }
 
 /// Build a FINISH frame (no payload).
-inline std::vector<uint8_t> make_finish() { return build_frame(MessageType::Finish); }
+inline std::vector<uint8_t> make_finish(uint8_t module = kModule) {
+  return build_frame(MessageType::Finish, {}, module);
+}
 
 /// Build an ABORT frame (no payload).
-inline std::vector<uint8_t> make_abort() { return build_frame(MessageType::Abort); }
+inline std::vector<uint8_t> make_abort(uint8_t module = kModule) {
+  return build_frame(MessageType::Abort, {}, module);
+}
+
+/// Build a GET_STATUS frame (no payload). The device replies with STATUS.
+inline std::vector<uint8_t> make_get_status(uint8_t module = kModule) {
+  return build_frame(MessageType::GetStatus, {}, module);
+}
+
+/// Build a MARK_VALID frame (no payload). Confirms the running image.
+inline std::vector<uint8_t> make_mark_valid(uint8_t module = kModule) {
+  return build_frame(MessageType::MarkValid, {}, module);
+}
+
+/// Build a MARK_INVALID frame (no payload). Rolls back + reboots the device.
+inline std::vector<uint8_t> make_mark_invalid(uint8_t module = kModule) {
+  return build_frame(MessageType::MarkInvalid, {}, module);
+}
+
+/// Append a length-prefixed (u8 length) UTF-8 string, truncated to 255 bytes.
+inline void put_str(std::vector<uint8_t> &out, std::string_view s) {
+  const uint8_t len = static_cast<uint8_t>(std::min<size_t>(s.size(), 255));
+  out.push_back(len);
+  out.insert(out.end(), s.begin(), s.begin() + len);
+}
+
+/// Build a STATUS reply: flags (OR of StatusFlags) plus the running app's version
+/// and project name (each a u8-length-prefixed string), so the host can report
+/// what firmware is now running before confirming it.
+inline std::vector<uint8_t> make_status(uint8_t flags, std::string_view version = {},
+                                        std::string_view project = {}, uint8_t module = kModule) {
+  std::vector<uint8_t> p;
+  p.push_back(flags);
+  put_str(p, version);
+  put_str(p, project);
+  return build_frame(MessageType::Status, p, module);
+}
 
 /// Build an OK reply (bytes_received so far).
-inline std::vector<uint8_t> make_ok(uint32_t bytes_received) {
+inline std::vector<uint8_t> make_ok(uint32_t bytes_received, uint8_t module = kModule) {
   std::vector<uint8_t> payload;
   put_u32(payload, bytes_received);
-  return build_frame(MessageType::Ok, payload);
+  return build_frame(MessageType::Ok, payload, module);
 }
 
 /// Build an ERROR reply (u32 code + UTF-8 message; the message is truncated if
 /// it would overflow the maximum payload size).
-inline std::vector<uint8_t> make_error(uint32_t code, std::string_view message) {
+inline std::vector<uint8_t> make_error(uint32_t code, std::string_view message,
+                                       uint8_t module = kModule) {
   std::vector<uint8_t> payload;
   put_u32(payload, code);
   const size_t max_message = kMaxPayloadSize - payload.size();
   const size_t count = std::min(message.size(), max_message);
   payload.insert(payload.end(), message.begin(), message.begin() + count);
-  return build_frame(MessageType::Error, payload);
+  return build_frame(MessageType::Error, payload, module);
 }
 
 /// Build a PROGRESS reply (bytes written so far, total expected — 0 if unknown).
-inline std::vector<uint8_t> make_progress(uint32_t written, uint32_t total) {
+inline std::vector<uint8_t> make_progress(uint32_t written, uint32_t total,
+                                          uint8_t module = kModule) {
   std::vector<uint8_t> payload;
   put_u32(payload, written);
   put_u32(payload, total);
-  return build_frame(MessageType::Progress, payload);
+  return build_frame(MessageType::Progress, payload, module);
 }
 
 /// Parse the single-u32 payload of a BEGIN (image_size) or OK (bytes_received)
@@ -198,7 +229,7 @@ inline std::optional<uint32_t> parse_u32_payload(const Frame &frame) {
 
 /// Decoded ERROR reply payload.
 struct ErrorInfo {
-  uint32_t code;       ///< Numeric error code (the device uses std::errc values).
+  uint32_t code{};     ///< Numeric error code (the device uses std::errc values).
   std::string message; ///< Human-readable UTF-8 message (may be empty).
 };
 
@@ -215,8 +246,8 @@ inline std::optional<ErrorInfo> parse_error(const Frame &frame) {
 
 /// Decoded PROGRESS reply payload.
 struct ProgressInfo {
-  uint32_t written; ///< Bytes written to the update partition so far.
-  uint32_t total;   ///< Total expected bytes (0 if unknown).
+  uint32_t written{}; ///< Bytes written to the update partition so far.
+  uint32_t total{};   ///< Total expected bytes (0 if unknown).
 };
 
 /// Parse a PROGRESS frame payload; returns std::nullopt if it is not exactly 8 bytes.
@@ -229,91 +260,37 @@ inline std::optional<ProgressInfo> parse_progress(const Frame &frame) {
   return info;
 }
 
-/// @brief Incremental frame parser for the OTA stream protocol.
-///
-/// Feed arbitrary chunks of received bytes (USB bulk transfers, socket reads,
-/// single bytes, ...) and it yields the complete, CRC-verified frames they
-/// contain. On a bad magic, an oversized length field (> kMaxPayloadSize) or a
-/// CRC mismatch it resynchronizes by discarding bytes until the next plausible
-/// frame start, so a corrupted stream recovers at the next intact frame.
-///
-/// Buffering is bounded: because the length field is capped, the parser never
-/// retains more than kMaxFrameSize bytes between feed() calls (plus at most the
-/// chunk currently being processed), so a remote-supplied length cannot cause
-/// memory exhaustion.
-class StreamParser {
-public:
-  /// @brief Feed received bytes to the parser.
-  /// @param data Any number of bytes (frames may be split or batched arbitrarily).
-  /// @return All complete, CRC-verified frames terminated by these bytes, in order.
-  std::vector<Frame> feed(std::span<const uint8_t> data) {
-    buffer_.insert(buffer_.end(), data.begin(), data.end());
-    std::vector<Frame> frames;
-    size_t pos = 0;
-    while (true) {
-      pos = find_frame_start(pos);
-      if (buffer_.size() - pos < kHeaderSize)
-        break; // incomplete header; wait for more bytes
-      const auto header = std::span<const uint8_t>(buffer_).subspan(pos);
-      const uint32_t len = get_u32(header.subspan(3));
-      if (len > kMaxPayloadSize) {
-        // Reject a remote-supplied length that exceeds the cap and resync one
-        // byte past this (bogus) frame start.
-        dropped_bytes_++;
-        pos++;
-        continue;
-      }
-      const size_t total = kHeaderSize + len + kCrcSize;
-      if (buffer_.size() - pos < total)
-        break; // incomplete frame; wait for more bytes
-      const uint32_t expected = get_u32(header.subspan(kHeaderSize + len));
-      const uint32_t actual = crc32(header.first(kHeaderSize + len));
-      if (actual != expected) {
-        // Corrupt frame; resync one byte past this frame start.
-        dropped_bytes_++;
-        pos++;
-        continue;
-      }
-      Frame frame{};
-      frame.type = static_cast<MessageType>(header[2]);
-      frame.payload.assign(header.begin() + kHeaderSize, header.begin() + kHeaderSize + len);
-      frames.push_back(std::move(frame));
-      pos += total;
-    }
-    buffer_.erase(buffer_.begin(), buffer_.begin() + pos);
-    return frames;
-  }
+/// Decoded STATUS reply payload.
+struct StatusInfo {
+  uint8_t flags{};          ///< OR of StatusFlags (pending_verify / rollback_supported)
+  std::string version;      ///< Running app version (may be empty)
+  std::string project_name; ///< Running app project name (may be empty)
 
-  /// Discard all buffered bytes (e.g. on transport reconnect).
-  void reset() { buffer_.clear(); }
-
-  /// Number of bytes currently buffered awaiting frame completion.
-  size_t buffered() const { return buffer_.size(); }
-
-  /// Total bytes discarded so far while resynchronizing (diagnostics).
-  size_t dropped_bytes() const { return dropped_bytes_; }
-
-protected:
-  /// Advance @p pos to the next plausible frame start (the magic byte pair),
-  /// counting the skipped bytes as dropped. A trailing lone kMagicByte0 is kept
-  /// (it may be the first half of a magic split across chunks).
-  size_t find_frame_start(size_t pos) {
-    const size_t start = pos;
-    while (pos < buffer_.size()) {
-      if (buffer_[pos] == kMagicByte0) {
-        if (pos + 1 >= buffer_.size() || buffer_[pos + 1] == kMagicByte1)
-          break; // found (or possibly-split) magic
-      }
-      pos++;
-    }
-    dropped_bytes_ += pos - start;
-    return pos;
-  }
-
-private:
-  std::vector<uint8_t> buffer_;
-  size_t dropped_bytes_{0};
+  bool pending_verify() const { return (flags & kStatusPendingVerify) != 0; }
+  bool rollback_supported() const { return (flags & kStatusRollbackSupported) != 0; }
 };
+
+/// Parse a STATUS frame payload: [flags u8][version u8-len+bytes][project
+/// u8-len+bytes]. Trailing strings are optional (older devices sent flags only);
+/// returns std::nullopt only if the payload is empty.
+inline std::optional<StatusInfo> parse_status(const Frame &frame) {
+  if (frame.payload.empty())
+    return std::nullopt;
+  StatusInfo info{};
+  info.flags = frame.payload[0];
+  size_t i = 1;
+  auto read_str = [&](std::string &out) {
+    if (i >= frame.payload.size())
+      return;
+    const size_t len = frame.payload[i++];
+    const size_t n = std::min(len, frame.payload.size() - i);
+    out.assign(frame.payload.begin() + i, frame.payload.begin() + i + n);
+    i += n;
+  };
+  read_str(info.version);
+  read_str(info.project_name);
+  return info;
+}
 
 } // namespace ota_stream
 } // namespace detail

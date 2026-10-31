@@ -19,4 +19,4 @@ set(
 
 project(lsm6dso_example)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)

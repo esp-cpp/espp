@@ -1,0 +1,529 @@
+#pragma once
+
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <cstdint>
+#include <deque>
+#include <functional>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <set>
+#include <span>
+#include <string>
+#include <system_error>
+#include <vector>
+
+#include "esp_idf_version.h"
+#ifndef ESP_IDF_VERSION_VAL
+#define ESP_IDF_VERSION_VAL(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef ESP_IDF_VERSION
+#define ESP_IDF_VERSION ESP_IDF_VERSION_VAL(0, 0, 0)
+#endif
+#include "soc/soc_caps.h"
+#include "usb/hid_host.h" // usb_host_hid managed component (pulls in the usb host library)
+
+#include "base_component.hpp"
+#include "task.hpp"
+
+/// Whether UsbHost::Config::port can select the USB-OTG peripheral: needs a
+/// target with more than one and usb_host_config_t::peripheral_map, which the
+/// esp-usb `usb` component gained in 1.3.0 (the version this component pulls in
+/// on ESP-IDF >= 6.0). IDF's built-in USB Host library (ESP-IDF 5.x) has no
+/// peripheral selection: there, port must stay at its default.
+#if defined(SOC_USB_OTG_PERIPH_NUM) && (SOC_USB_OTG_PERIPH_NUM > 1) &&                             \
+    (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0))
+#define ESPP_USB_HOST_HAS_PORT_SELECT 1
+#else
+#define ESPP_USB_HOST_HAS_PORT_SELECT 0
+#endif
+
+namespace espp {
+
+// Forward-declare the extern "C" trampolines (defined in usb_host.cpp inside
+// `namespace espp`) so the in-class friend declarations below refer to these
+// existing C-linkage declarations rather than introducing conflicting
+// C++-linkage symbols. The USB HID host driver invokes them from its background
+// task with a `void *arg` set to the owning UsbHost.
+extern "C" void espp_usb_host_driver_event_cb(hid_host_device_handle_t handle,
+                                              const hid_host_driver_event_t event, void *arg);
+extern "C" void espp_usb_host_interface_event_cb(hid_host_device_handle_t handle,
+                                                 const hid_host_interface_event_t event, void *arg);
+
+/**
+ * @brief Native-USB **host** built on the ESP-IDF USB Host library (`usb`) and
+ *        the `usb_host_hid` class driver, for the ESP32-S2 / -S3 / -P4 USB-OTG
+ *        peripheral acting as a host.
+ *
+ * @details `espp::UsbHost` is the counterpart to `espp::UsbDevice`: instead of
+ * enumerating *as* a USB device, it drives the bus as a **host**, enumerates
+ * attached devices, and exposes the **HID** class devices it finds (mice,
+ * keyboards, gamepads, and vendor-specific HID devices such as an
+ * `espp::WdiUsbPeripheral`). It owns the whole host-side lifecycle:
+ *
+ * - installs the USB Host library and runs its event-handling task,
+ * - installs the HID class driver (with its own background task),
+ * - on device attach, opens each HID interface and (optionally) starts receiving
+ *   its **Input** reports, delivering them to a per-device callback,
+ * - lets the application send **Output** reports (and issue the HID class
+ *   Get/Set Report / Idle / Protocol control requests) back to a device,
+ * - and cleans everything up on teardown.
+ *
+ * Report directions are named from the connected **device's** point of view (as
+ * in the USB HID spec): an *Input* report is device→host (delivered to
+ * `HidDevice`'s input callback), an *Output* report is host→device (sent with
+ * `HidDevice::send_output_report()`). This is deliberately symmetric with
+ * `espp::UsbDevice`'s HID function, so the two sides of a link (e.g. the two
+ * roles of the `wdi` component) mirror each other.
+ *
+ * **Threading model.** The HID class driver delivers its events on its own
+ * background task, and that same task is the one that completes the driver's
+ * synchronous control transfers (Set/Get Report, Set Protocol, ...). A control
+ * transfer issued *from* that task can therefore never complete. `UsbHost`
+ * handles this the way the ESP-IDF HID host example does: the driver task only
+ * *enqueues* events (copying each Input report out of the driver's buffer, which
+ * must happen inside the callback), and a dedicated **dispatch task** owned by
+ * `UsbHost` opens/starts/closes devices and invokes every user callback. So it
+ * is safe to call `HidDevice::send_output_report()` (and the other device
+ * methods) from within the callbacks, and callbacks never stall the USB stack.
+ * Events for a device are delivered in order (connected → inputs → disconnected).
+ * Device methods may also be called from any application task; each device
+ * serializes its driver calls internally.
+ *
+ * The class is idiomatic espp: it does not throw, reports failures via
+ * `std::error_code`, and marshals the USB-host driver's C callbacks into
+ * per-device `std::function`s.
+ *
+ * @note Only one `espp::UsbHost` may exist at a time: the USB Host library and
+ *       the HID class driver are global singletons. USB-OTG **host** mode is
+ *       only available on the ESP32-S2, ESP32-S3 and ESP32-P4, and the board
+ *       must be able to source VBUS to the attached device (a self-powered hub
+ *       or a board with a VBUS switch); the host does not manage board power.
+ *
+ * @note Callbacks run on the dispatch task. Keep them reasonably short: a
+ *       callback that blocks delays every later event (and `deinitialize()`).
+ *
+ * \section usb_host_ex1 UsbHost (generic HID host) Example
+ * \snippet usb_host_example.cpp usb_host_example
+ */
+class UsbHost : public BaseComponent {
+public:
+  /**
+   * @brief A HID interface on a device connected to the host.
+   *
+   * Created by `UsbHost` when a HID device is attached; handed to the
+   * application (as a `std::shared_ptr`) through the connect / disconnect
+   * callbacks and `UsbHost::devices()`. Owns nothing itself -- the underlying
+   * driver handle is owned by `UsbHost` -- and becomes inert once the device is
+   * disconnected (methods then fail with `std::errc::no_such_device`; the
+   * identity accessors keep returning the values captured at connect time).
+   */
+  class HidDevice {
+  public:
+    /// @brief Callback invoked with a raw HID Input report from the device.
+    /// @param data The report bytes. For a device whose report descriptor uses
+    ///        report IDs, byte 0 is the report ID (matching how
+    ///        `espp::UsbDevice`'s HID receive callback delivers OUT reports).
+    using input_callback_fn = std::function<void(std::span<const uint8_t> data)>;
+
+    /// @brief Device descriptor identity (VID/PID + string descriptors).
+    struct Info {
+      uint16_t vid{0}; ///< idVendor
+      uint16_t pid{0}; ///< idProduct
+      std::string
+          manufacturer{};    ///< iManufacturer string (UTF-8, converted from the device's UTF-16)
+      std::string product{}; ///< iProduct string (UTF-8, converted from the device's UTF-16)
+      std::string
+          serial_number{}; ///< iSerialNumber string (UTF-8, converted from the device's UTF-16)
+    };
+
+    /// @brief HID interface parameters.
+    struct Params {
+      uint8_t address{0};          ///< USB device address
+      uint8_t interface_number{0}; ///< bInterfaceNumber of this HID interface
+      uint8_t sub_class{0};        ///< bInterfaceSubClass (1 = boot interface)
+      uint8_t protocol{0};         ///< bInterfaceProtocol (1 = keyboard, 2 = mouse, 0 = none)
+    };
+
+    /// @brief The identity of the connected device (captured at connect time,
+    ///        so it stays valid after a disconnect).
+    const Info &info() const { return info_; }
+    /// @brief The parameters of this HID interface (captured at connect time).
+    const Params &params() const { return params_; }
+
+    /// @brief The device's HID report descriptor (captured at connect time; a
+    ///        copy owned by this object, not a view into driver memory).
+    const std::vector<uint8_t> &report_descriptor() const { return report_descriptor_; }
+
+    /// @brief Install the callback invoked with each Input report. Install it
+    ///        from the connect callback: `UsbHost` invokes that *before* it
+    ///        starts the device, so no report is missed.
+    void set_input_callback(input_callback_fn cb);
+
+    /// @brief Start receiving Input reports (called automatically on open when
+    ///        `Config::auto_start` is set).
+    bool start(std::error_code &ec);
+    /// @brief Stop receiving Input reports.
+    bool stop(std::error_code &ec);
+
+    /// @brief Send a HID **Output** report to the device (host→device).
+    /// @param report_id The report ID (0 if the descriptor is not report-ID'd).
+    /// @param data The report payload (without the report-ID byte).
+    /// @param ec Set on failure.
+    /// @return true on success.
+    bool send_output_report(uint8_t report_id, std::span<const uint8_t> data, std::error_code &ec);
+
+    /// @brief Request a report from the device (HID class Get_Report).
+    /// @param report_type The HID report type (HID_REPORT_TYPE_INPUT / _OUTPUT / _FEATURE).
+    /// @param report_id The report ID.
+    /// @param buffer Buffer that receives the report.
+    /// @param out_length Number of bytes written into @p buffer.
+    /// @param ec Set on failure.
+    bool get_report(hid_report_type_t report_type, uint8_t report_id, std::span<uint8_t> buffer,
+                    size_t &out_length, std::error_code &ec);
+
+    /// @brief Set the device's idle rate (HID class Set_Idle).
+    bool set_idle(uint8_t duration, uint8_t report_id, std::error_code &ec);
+    /// @brief Set the device's HID protocol (boot vs report; HID class Set_Protocol).
+    bool set_protocol(hid_report_protocol_t protocol, std::error_code &ec);
+
+    /// @brief Whether the device's interface is still usable, i.e. whether a
+    ///        driver call made through this object can still reach it. It goes
+    ///        false as soon as the interface is closed on disconnect, which
+    ///        happens on the driver task and therefore *before* any input
+    ///        reports already queued for this device are delivered.
+    bool is_connected() const { return connected_.load(); }
+
+    /// @brief The underlying driver handle (for advanced use; only valid while
+    ///        is_connected()).
+    hid_host_device_handle_t handle() const { return handle_; }
+
+  private:
+    friend class UsbHost;
+    HidDevice(hid_host_device_handle_t handle, Info info, Params params,
+              std::vector<uint8_t> report_descriptor)
+        : handle_(handle)
+        , info_(std::move(info))
+        , params_(std::move(params))
+        , report_descriptor_(std::move(report_descriptor)) {}
+
+    // Called by UsbHost (on the dispatch task) with a copy of an Input report.
+    void deliver_input(std::span<const uint8_t> data);
+    // Called by UsbHost on the driver task, from the DISCONNECTED callback:
+    // marks the device inert and closes the driver handle right there (the
+    // close must not race the driver's own disconnect processing).
+    void close_on_driver_task();
+    // Closes the driver handle if nothing else is closing it, recording the
+    // result; `where` names the caller for the log line.
+    // @return true if this call owned the close attempt, false if another task
+    //         was already inside the driver's close for this interface.
+    bool close_interface(const char *where);
+    // Called by UsbHost (dispatch task) to retire the device: marks it inert
+    // and closes the driver handle if that has not happened yet, serialized
+    // against any in-flight driver call.
+    void retire();
+
+    hid_host_device_handle_t handle_{nullptr};
+    const Info info_;
+    const Params params_;
+    const std::vector<uint8_t> report_descriptor_;
+    // Gates *outbound* driver calls (start/stop/get_report/...) only. It goes
+    // false when the close is attempted, whether or not the close itself
+    // succeeded: a disconnected interface must not be called into either way.
+    // (closed_ is what records a close that actually went through.)
+    //
+    // Input delivery deliberately does NOT consult it: reports queued ahead of
+    // the Disconnected event are still dispatched, so a caller sees the
+    // documented connected -> inputs -> disconnected order.
+    std::atomic<bool> connected_{true};
+    std::atomic<bool> closed_{false}; ///< hid_host_device_close() succeeded (on either task)
+    /// A close is in flight on some task; keeps the driver-task close and a
+    /// concurrent retire() from both calling hid_host_device_close().
+    std::atomic<bool> closing_{false};
+    bool retired_{false}; ///< retire() ran (guarded by io_mutex_); makes it idempotent
+    std::atomic<bool> started_{false};
+    // Serializes the driver calls made through this object (app or dispatch
+    // task) against retire(), so a control transfer in flight cannot race the
+    // interface being closed and freed. close_on_driver_task() is the one path
+    // that does not take it: it runs on the task that would have to complete
+    // that in-flight call, so waiting there would deadlock -- the driver
+    // rejects a close of a busy interface instead (ESP_ERR_INVALID_STATE) and
+    // retire() closes it under this mutex afterwards.
+    mutable std::mutex io_mutex_;
+    mutable std::mutex cb_mutex_;
+    input_callback_fn on_input_{nullptr};
+  };
+
+  /// @brief Callback invoked when a HID device is connected / disconnected.
+  using device_callback_fn = std::function<void(const std::shared_ptr<HidDevice> &device)>;
+
+  /// @brief Predicate deciding whether to open a newly attached HID interface.
+  ///        Return false to ignore it (no callbacks, not listed in devices()).
+  using open_filter_fn =
+      std::function<bool(const HidDevice::Info &info, const HidDevice::Params &params)>;
+
+  /// @brief Configuration for the USB host.
+  struct Config {
+    device_callback_fn on_device_connected{nullptr};    ///< a HID device attached and opened
+    device_callback_fn on_device_disconnected{nullptr}; ///< a HID device detached
+    open_filter_fn should_open{nullptr}; ///< optional filter (default: open every HID interface)
+    bool auto_start{true}; ///< start receiving Input reports as soon as a device opens
+    /// @brief USB-OTG peripheral (root port) to host on, on targets with more
+    ///        than one: -1 = the USB Host Library's default (peripheral 0), n =
+    ///        peripheral n. On the ESP32-P4, controller 0 is the high-speed OTG
+    ///        2.0 on the UTMI PHY and controller 1 the full-speed OTG 1.1 on its
+    ///        own FSLS PHY (GPIO 26/27 by default); which connector, if any,
+    ///        each reaches is the board's business (the M5Stack Tab5 routes
+    ///        controller 0 to its USB-A jack and neither to its USB-C port, which
+    ///        carries the USB-Serial-JTAG PHY). Only available with
+    ///        ESPP_USB_HOST_HAS_PORT_SELECT (esp-usb `usb` >= 1.3.0, i.e.
+    ///        ESP-IDF >= 6.0, on a multi-controller target); elsewhere
+    ///        initialize() rejects any value but -1.
+    int port{-1};
+    /// @brief Wait this long between installing the host library (which brings
+    ///        up the USB PHY) and powering the root port. A device attached at
+    ///        power-up is enumerated as soon as the port powers on; this gives a
+    ///        board whose supply is still settling after a cold boot a margin
+    ///        before that first enumeration. 0 = power the port at once.
+    std::chrono::milliseconds root_port_power_on_delay{0};
+    /// @brief Board-level VBUS control for the host jack, for boards where an IO
+    ///        expander or load switch (not the USB controller) switches the jack's
+    ///        5 V, so the library's own root-port power control does not reach the
+    ///        device. Called with true once the host is listening (after the root
+    ///        port powers on) and false at deinitialize(). Turn the jack off
+    ///        yourself before initialize() if a device attached at boot should see
+    ///        VBUS only once the host is ready.
+    std::function<void(bool on)> vbus_control{nullptr};
+    size_t task_priority{5};          ///< priority of the internal tasks
+    int task_core_id{-1};             ///< core for the internal tasks (-1 = no affinity)
+    size_t lib_task_stack_size{4096}; ///< stack for the USB-host-library event task
+    size_t hid_task_stack_size{4096}; ///< stack for the HID driver's event task (it only enqueues)
+    /// @brief Stack for the dispatch task that runs the user callbacks (size it
+    ///        for what your callbacks do -- logging with fmt, protocol work, ...).
+    size_t dispatch_task_stack_size{6 * 1024};
+    /// @brief Per-device Input-report copy size. A report larger than this is
+    ///        truncated (the driver copies at most this many bytes); raise it if
+    ///        your device sends larger reports. 64 covers full-speed HID.
+    size_t max_input_report_size{64};
+    /// @brief Bound on queued-but-undispatched events. When the queue is full: a
+    ///        new Input report is dropped; a lifecycle event first evicts the
+    ///        oldest queued Input report, and if there is none a *new-device*
+    ///        event is dropped (that device simply stays unopened while the
+    ///        consumer is overloaded) while a *disconnect* is always kept (it is
+    ///        needed to release the device, and can only follow a device that was
+    ///        opened). The queue length is therefore never more than
+    ///        max_queued_events + the number of currently open devices, and the
+    ///        USB stack is never blocked. Drops are counted and logged at a
+    ///        rate-limited cadence.
+    size_t max_queued_events{32};
+    /// @brief Run the root port in full/low-speed-only mode. "Full speed" here
+    ///        names the USB speed *class* that includes low speed (the DWC bit
+    ///        is FSLSSupp), so a low-speed device still enumerates. Only
+    ///        meaningful on targets whose host controller is high-speed
+    ///        capable, i.e. the ESP32-P4. ESP-IDF's
+    ///        hub support has no transaction translator, so full-speed devices
+    ///        (every HID keyboard / mouse / gamepad) behind a *high-speed* hub
+    ///        cannot be reached ("TT is not supported"). With this set the hub
+    ///        enumerates at full speed and its devices are reached directly;
+    ///        HID never needs more bandwidth than that. No effect on targets
+    ///        with a full-speed-only controller (ESP32-S2 / -S3).
+    bool full_speed_only{false};
+    /// @brief How often the library event task wakes to re-assert
+    ///        full_speed_only. The bit is cleared by a root port recovery (after
+    ///        an unplug / transfer error) and no event reports that, so it has to
+    ///        be re-applied on a timer. Shorter = the port spends less time in
+    ///        high-speed-capable mode after a recovery; longer = fewer wakeups.
+    ///        Each wake is a single task switch plus one register write. Only
+    ///        used when full_speed_only is set on a high-speed capable
+    ///        controller; ignored otherwise (the task then blocks indefinitely
+    ///        and wakes only on real events). Rounded *up* to at least one RTOS
+    ///        tick (the default tick is 10ms), so a shorter interval -- 0 or a
+    ///        negative one included -- wakes once per tick rather than turning
+    ///        the event wait into a busy loop; initialize() warns when the
+    ///        configured value is not positive.
+    std::chrono::milliseconds full_speed_reassert_interval{100};
+    /// @brief ESP only: heap capabilities for the internal tasks' stacks (see
+    ///        espp::Task::BaseConfig::stack_alloc_caps); 0 = internal RAM.
+    ///        MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT puts the three stacks (~14 KB)
+    ///        in PSRAM, worth it where internal RAM is scarce (ESP32-P4).
+    uint32_t task_stack_alloc_caps{0};
+    Logger::Verbosity log_level{Logger::Verbosity::WARN};
+  };
+
+  /// @brief Construct a USB host. Call initialize() to actually install the stack.
+  explicit UsbHost(const Config &config);
+
+  /// @brief Uninstall the stack (if still installed).
+  ~UsbHost();
+
+  UsbHost(const UsbHost &) = delete;
+  UsbHost &operator=(const UsbHost &) = delete;
+
+  /// @brief Install the USB Host library + HID class driver and start the tasks.
+  /// @param ec Set on failure.
+  /// @return true on success.
+  bool initialize(std::error_code &ec);
+
+  /// @brief Uninstall the HID class driver + USB Host library and stop the tasks.
+  ///        Attached devices are closed (their disconnect callbacks fire, on the
+  ///        calling task) and the root port is powered down so the driver can
+  ///        release them. Must not be called from within a `UsbHost` callback.
+  /// @param ec Set on failure. If any step of the teardown fails (a device the
+  ///        driver cannot release, or the library refusing to uninstall) the host
+  ///        stays initialized (is_initialized() remains true) and false is
+  ///        returned, rather than tearing down under a live driver. In that
+  ///        state event delivery has already stopped, every device has been
+  ///        retired, and the root port is left powered off (powering it back up
+  ///        would only make the driver re-track the device that a retry needs
+  ///        gone), so the host is not usable: the only valid next steps are to
+  ///        call deinitialize() again (which waits for the driver again) or to
+  ///        destroy the object, which aborts if teardown still fails (see the
+  ///        destructor). The HID event pump is deliberately left running in
+  ///        that state -- the driver's uninstall only completes while something
+  ///        pumps its events, so stopping it would make every retry fail -- and
+  ///        because the destructor aborts instead of freeing, the driver never
+  ///        holds a pointer to a destroyed host. Bounded: waiting for the
+  ///        driver to release the devices and retrying its uninstall share one
+  ///        budget of about two seconds (tens of milliseconds in the normal
+  ///        case, since the driver signals the release as it happens).
+  /// @return true on success.
+  bool deinitialize(std::error_code &ec);
+
+  /// @brief Whether the host stack is installed.
+  bool is_initialized() const { return initialized_.load(); }
+
+  /// @brief Snapshot of the currently connected (opened) HID devices.
+  std::vector<std::shared_ptr<HidDevice>> devices() const;
+
+  /// @brief Number of USB devices currently enumerated on the root port(s),
+  ///        HID or not (from the USB Host Library). A device that shows up here
+  ///        but not in devices() enumerated but was not opened as HID (no HID
+  ///        interface, or rejected by the should_open filter).
+  /// @return The device count, or 0 when not initialized.
+  size_t num_usb_devices() const;
+
+  /// @brief Print the device and configuration descriptors of every enumerated
+  ///        USB device to stdout (the host library's usb_print_* helpers), for
+  ///        diagnosing a device that enumerates but is not opened as HID: it
+  ///        shows each interface's class and endpoints. Registers a short-lived
+  ///        host-library client for the duration of the call. The header line
+  ///        gives both the library's device count (which includes devices still
+  ///        being enumerated) and the number of fully enumerated devices listed,
+  ///        so a device stuck in enumeration shows as the difference.
+  /// @return true if the devices could be listed.
+  bool print_usb_devices();
+
+private:
+  friend void espp_usb_host_driver_event_cb(hid_host_device_handle_t, const hid_host_driver_event_t,
+                                            void *);
+  friend void espp_usb_host_interface_event_cb(hid_host_device_handle_t,
+                                               const hid_host_interface_event_t, void *);
+
+  // An event queued by the HID driver task for the dispatch task. Input
+  // reports are stored inline (no heap traffic on the driver task) unless a
+  // larger Config::max_input_report_size was requested.
+  struct Event {
+    static constexpr size_t kInlineBytes = 64; // full-speed HID interrupt max packet
+    enum class Type { NewDevice, Input, Disconnected } type;
+    hid_host_device_handle_t handle{nullptr};
+    std::array<uint8_t, kInlineBytes> inline_data{};
+    std::vector<uint8_t> overflow{}; // used only when max_input_report_size > kInlineBytes
+    size_t len{0};
+    std::span<const uint8_t> data() const {
+      return overflow.empty() ? std::span<const uint8_t>(inline_data.data(), len)
+                              : std::span<const uint8_t>(overflow.data(), len);
+    }
+  };
+
+  // Trampoline targets: run on the HID driver's background task. They only
+  // enqueue (plus the Input-report copy that must happen inside the callback).
+  void on_driver_event(hid_host_device_handle_t handle, hid_host_driver_event_t event);
+  void on_interface_event(hid_host_device_handle_t handle, hid_host_interface_event_t event);
+  void enqueue(Event &&ev);
+
+  // The dispatch task: drains the queue and does the real work / user callbacks.
+  bool dispatch_task_fn(std::mutex &m, std::condition_variable &cv);
+  void handle_new_device(hid_host_device_handle_t handle);
+  void handle_input(hid_host_device_handle_t handle, std::span<const uint8_t> data);
+  void handle_disconnected(hid_host_device_handle_t handle);
+  std::shared_ptr<HidDevice> find_device(hid_host_device_handle_t handle) const;
+  void stop_dispatch_task();
+
+  // The USB Host library event-handling loop (own task).
+  bool lib_task_fn(std::mutex &m, std::condition_variable &cv);
+  void apply_full_speed_only();
+  // The HID class driver's event pump (own task, see task_stack_alloc_caps).
+  bool hid_task_fn(std::mutex &m, std::condition_variable &cv);
+  // Starts the pump task that runs the HID driver's events.
+  // @return false if the task could not be created (its stack, for example).
+  [[nodiscard]] bool start_hid_task();
+  void stop_hid_task();
+  void stop_lib_task();
+
+  // Count an interface into the tracked set, before the open that can start
+  // delivering its events.
+  void track_opened_device(hid_host_device_handle_t handle);
+  // Take a device out of the set the HID driver still tracks and wake a
+  // deinitialize() that is waiting for the set to empty.
+  void release_tracked_device(hid_host_device_handle_t handle);
+  // As release_tracked_device(), but for an interface that was never really
+  // opened (the open failed after it was counted in): no log, no complaint.
+  void drop_tracked_device(hid_host_device_handle_t handle);
+  // Forget every tracked interface, once the driver is uninstalled and no
+  // disconnect can arrive to do it: leaves the next initialize() a clean set.
+  void clear_tracked_devices();
+  // How many interfaces the driver still tracks (for logging).
+  size_t num_tracked_devices() const;
+  // Wait (bounded) for the HID driver to report every device we opened gone.
+  // @return true if the driver released them all, false on timeout.
+  bool wait_for_untracked(std::chrono::milliseconds timeout);
+
+  // Ticks to block in the library event wait when full_speed_only re-asserts,
+  // clamped to [1, portMAX_DELAY - 1] so the wait is always a real block.
+  static TickType_t reassert_wait_ticks(std::chrono::milliseconds interval);
+
+  static HidDevice::Info read_info(hid_host_device_handle_t handle);
+  static HidDevice::Params read_params(hid_host_device_handle_t handle);
+
+  Config config_;
+  std::atomic<bool> initialized_{false};
+
+  // USB Host library task.
+  std::atomic<bool> lib_task_run_{false};
+  std::unique_ptr<espp::Task> lib_task_;
+  uint32_t lib_event_errors_{0}; ///< lib task only: rate-limits its error log
+  // HID class driver event task.
+  std::atomic<bool> hid_task_run_{false};
+  std::unique_ptr<espp::Task> hid_task_;
+  uint32_t hid_event_errors_{0}; ///< HID event pump only: rate-limits its error log
+  // Interfaces we opened with the HID driver that it has not yet reported
+  // gone. Membership, not a count, and kept apart from devices_ on purpose:
+  // deinitialize() clears devices_ before it powers the root port down, and the
+  // disconnects that follow still have to be counted out of this set. Guarded
+  // by tracked_mutex_; tracked_cv_ is signalled (from the driver task) when it
+  // empties, so deinitialize() proceeds as soon as the driver is done rather
+  // than polling.
+  std::set<hid_host_device_handle_t> driver_tracked_;
+  mutable std::mutex tracked_mutex_;
+  std::condition_variable tracked_cv_;
+
+  // Event queue (driver task -> dispatch task) + dispatch task.
+  std::mutex queue_mutex_;
+  std::condition_variable queue_cv_;
+  std::deque<Event> queue_;
+  uint32_t dropped_inputs_{0}; // guarded by queue_mutex_; rate-limits the drop log
+  // Recycled Event::overflow buffers (only used when max_input_report_size >
+  // Event::kInlineBytes) so large reports don't allocate per report either.
+  std::vector<std::vector<uint8_t>> overflow_pool_; // guarded by queue_mutex_
+  std::atomic<bool> dispatch_run_{false};
+  std::atomic<bool> accepting_{false}; // enqueue() is a no-op unless set (cleared before teardown)
+  std::unique_ptr<espp::Task> dispatch_task_;
+
+  mutable std::mutex devices_mutex_;
+  std::map<hid_host_device_handle_t, std::shared_ptr<HidDevice>> devices_;
+};
+
+} // namespace espp
