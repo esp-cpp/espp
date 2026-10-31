@@ -43,21 +43,21 @@ class variable, and every version except the oldest provides ``migrate(older)``
 
 Type mapping (Python annotation -> alpaca field type, as the firmware sees it):
 
-======================================  ============================================
-``bool``                                ``bool``
-``u8 u16 u32 u64 i8 i16 i32 i64``        the fixed-width integer
-``f32`` / ``f64``                        ``float`` / ``double``
-``char``                                 ``char`` (one-character ``str``)
-``str``                                  ``std::string`` (UTF-8)
-``list[T]``                              ``std::vector<T>``
-``array(T, N)``                          ``std::array<T, N>``
+==========================================  ============================================
+``bool``                                    ``bool``
+``u8 u16 u32 u64 i8 i16 i32 i64``           the fixed-width integer
+``f32`` / ``f64``                           ``float`` / ``double``
+``char``                                    ``char`` (one-character ``str``)
+``str``                                     ``std::string`` (UTF-8)
+``list[T]``                                 ``std::vector<T>``
+``array(T, N)``                             ``std::array<T, N>``
 ``dict[K, V]`` / ``unordered(dict[K, V])``  ``std::map`` / ``std::unordered_map``
-``set[T]`` / ``unordered(set[T])``       ``std::set`` / ``std::unordered_set``
-``Optional[T]``                          ``std::optional<T>``
-``tuple[A, B, ...]``                     ``std::tuple<A, B, ...>``
-``enum.Enum`` (``Annotated[E, "B"]`` ...)  ``enum class E : uint8_t`` (default ``int``)
-nested ``@dataclass``                    nested aggregate
-======================================  ============================================
+``set[T]`` / ``unordered(set[T])``          ``std::set`` / ``std::unordered_set``
+``Optional[T]``                             ``std::optional<T>``
+``tuple[A, B, ...]``                        ``std::tuple<A, B, ...>``
+``enum.Enum`` (``Annotated[E, "B"]`` ...)   ``enum class E : uint8_t`` (default ``int``)
+nested ``@dataclass``                       nested aggregate
+==========================================  ============================================
 
 The layout fingerprint in the header is computed from these annotations by the
 grammar documented in ``components/persistent_data/README.md``, so a file written
@@ -70,13 +70,14 @@ from __future__ import annotations
 
 import dataclasses
 import enum
+import logging
 import os
 import struct
 import threading
 import types
 import typing
 import zlib
-from typing import Annotated, Any, Callable, ClassVar, Optional, Sequence
+from typing import Annotated, Any, Callable, Optional, Sequence
 
 __all__ = [
     "Errc",
@@ -104,9 +105,12 @@ __all__ = [
     "encode_payload",
     "decode_payload",
     "encode",
+    "parse",
     "decode",
     "VersionList",
 ]
+
+_log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # File format constants (must match include/detail/persistent_data_codec.hpp)
@@ -530,7 +534,11 @@ def _dec(spec: _Spec, r: _Reader, where: str) -> Any:
         return tuple(_dec(e, r, f"{where}[{i}]") for i, e in enumerate(spec.elems))
     if k == _FT.struct_:
         kwargs = {name: _dec(f, r, f"{where}.{name}") for name, f in spec.fields}
-        return spec.cls(**kwargs)
+        try:
+            return spec.cls(**kwargs)
+        except Exception as exc:  # a __post_init__ validation, typically
+            raise PersistentDataError(Errc.deserialize_failed,
+                                      f"{where}: {type(exc).__name__}: {exc}") from exc
     raise PersistentDataError(Errc.deserialize_failed, f"{where}: unsupported kind {k}")  # pragma: no cover
 
 
@@ -557,6 +565,9 @@ def decode_payload(cls: type, payload: bytes) -> Any:
 
 
 def _version_of(cls: type) -> int:
+    if dataclasses.is_dataclass(cls) and any(f.name == "VERSION" for f in dataclasses.fields(cls)):
+        raise TypeError(f"{cls.__qualname__}.VERSION must be a ClassVar[int], not a dataclass field "
+                        "(it is part of the header, not the payload)")
     v = getattr(cls, "VERSION", None)
     if not isinstance(v, int) or isinstance(v, bool):
         raise TypeError(f"{cls.__qualname__} needs an integer VERSION class variable")
@@ -667,7 +678,9 @@ class PersistentData:
     ``versions`` is the newest-first version list (the first class is the current
     one). All methods are thread-safe; ``get()`` returns the in-memory object
     itself (dataclasses are mutable), so use :meth:`update` for a locked
-    read-modify-write.
+    read-modify-write. ``auto_load=True`` calls :meth:`load` in the constructor,
+    so the constructor then raises :class:`PersistentDataError` when the file is
+    missing or unusable.
     """
 
     def __init__(self, versions: Sequence[type], path: os.PathLike | str, *,
@@ -746,8 +759,10 @@ class PersistentData:
             if self._info.migrated and self.save_after_migration:
                 try:
                     self._write_file(encode(value))
-                except PersistentDataError:
-                    pass  # the data is loaded fine; only the rewrite failed
+                except PersistentDataError as exc:
+                    # The data is loaded fine; only the rewrite to the current
+                    # version failed, so report success and leave the old file.
+                    _log.warning("%s: could not rewrite the migrated data: %s", self.path, exc)
             return value
 
     def load_or_create(self, defaults: Any) -> Any:
@@ -783,8 +798,9 @@ class PersistentData:
         """Modify the data in memory under the lock and save it.
 
         ``fn`` receives the data object; it may mutate it in place and return
-        ``None``, return a replacement object, or return ``False`` to skip the
-        save (the in-memory change is kept). Returns True if the file was written.
+        ``None`` (or ``True``), return a replacement object, or return ``False``
+        to skip the save (the in-memory change is kept). Returns True if the file
+        was written.
         """
         with self._lock:
             if self._data is None:
@@ -806,7 +822,7 @@ class PersistentData:
                 try:
                     os.remove(p)
                 except FileNotFoundError:
-                    pass
+                    continue  # nothing to erase: that is success, not an error
                 except OSError as exc:
                     raise PersistentDataError(Errc.io_error, f"{p}: {exc}") from None
             self._loaded = False
@@ -854,7 +870,7 @@ class PersistentData:
             os.replace(tmp, self.path)
         except OSError as exc:
             try:
-                os.remove(tmp)
+                os.remove(tmp)  # best effort: the write itself is the error to report
             except OSError:
-                pass
+                _log.debug("%s: could not remove the temporary file after a failed write", tmp)
             raise PersistentDataError(Errc.io_error, f"{self.path}: {exc}") from None

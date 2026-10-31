@@ -17,7 +17,7 @@ import os
 import sys
 import tempfile
 from dataclasses import dataclass, field
-from typing import ClassVar, Optional
+from typing import Annotated, ClassVar, Optional
 
 try:
     from espp import persistent_data as pd
@@ -100,7 +100,7 @@ class V3:
     gains: list[f32] = field(default_factory=list)
     limits: Limits = field(default_factory=Limits)
     enabled: bool = True
-    mode: pd.Annotated[Mode, "B"] = Mode.off
+    mode: Annotated[Mode, "B"] = Mode.off
     tag: pd.array(u8, 3) = field(default_factory=lambda: [0, 0, 0])
     offset: i16 = 0
     scale: f64 = 1.0
@@ -120,7 +120,7 @@ class SameAsV3:
     g: list[f32] = field(default_factory=list)
     lim: Limits = field(default_factory=Limits)
     e: bool = True
-    m: pd.Annotated[Mode, "B"] = Mode.off
+    m: Annotated[Mode, "B"] = Mode.off
     t: pd.array(u8, 3) = field(default_factory=lambda: [0, 0, 0])
     o: i16 = 0
     s: f64 = 1.0
@@ -245,6 +245,29 @@ class BareInt:
 
 
 check("bare int field is rejected", bad_list([BareInt]))
+
+
+@dataclass
+class VersionAsField:
+    VERSION: int = 1  # not a ClassVar: a mistake worth a clear message
+    x: u8 = 0
+
+
+check("VERSION as a dataclass field is rejected", bad_list([VersionAsField]))
+
+
+@dataclass
+class Validated:
+    VERSION: ClassVar[int] = 1
+    x: u8 = 0
+
+    def __post_init__(self):
+        if self.x > 9:
+            raise ValueError("x must be <= 9")
+
+
+check("constructor validation failure -> deserialize_failed",
+      raises(Errc.deserialize_failed, lambda: pd.decode_payload(Validated, b"\x10")))
 
 # ---------------------------------------------------------------------------
 print("--- corrupt / truncated input ---")
