@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Switch 2 Pro Controller - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'ble/switch2_pro';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Switch 2 Pro Controller Example" href="switch2_pro_example.html" />
+    <link rel="prev" title="BLE HID Service Example" href="hid_service_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../system/index.html">System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../desktop/index.html">Desktop APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">BLE APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="battery_service.html">Battery Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ble_gatt_server.html">BLE GATT Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ble_gatt_server_example.html">BLE GATT Server Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="device_info_service.html">Device Info Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generic_access_service.html">Generic Access Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gfps_service.html">Google Fast Pair Service (GFPS) Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gfps_service_example.html">Google Fast Pair Service (GFPS) Service Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hid_service.html">HID Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hid_service_example.html">BLE HID Service Example</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Switch 2 Pro Controller</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-5-ms-connection-interval">The 5 ms connection interval</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="switch2_pro_example.html">Switch 2 Pro Controller Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id1">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">Header File</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="switch2_pro_example.html">Switch 2 Pro Controller Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../telemetry/index.html">Telemetry APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wdi/index.html">WDI (Wheelchair Digital Interface) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">BLE APIs</a></li>
+      <li class="breadcrumb-item active">Switch 2 Pro Controller</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/637b0c70/docs/en/ble/switch2_pro.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="switch-2-pro-controller">
+<h1>Switch 2 Pro Controller<a class="headerlink" href="#switch-2-pro-controller" title="Permalink to this heading"></a></h1>
+<p>The <cite>Switch2Pro</cite> component emulates a <strong>Nintendo Switch 2 Pro Controller over
+BLE</strong> so that a real Nintendo Switch 2 console accepts it as a native
+controller — including pairing, waking the console from sleep, reconnecting, and
+streaming input reports. It is built on <a class="reference internal" href="ble_gatt_server.html#_CPPv4N4espp13BleGattServerE" title="espp::BleGattServer"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">espp::BleGattServer</span></code></a>
+(NimBLE) and implements the reverse-engineered Nintendo custom GATT interface
+(not HID-over-GATT) and the console’s custom pairing handshake (not BLE SMP).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>Supported target: ESP32-S3</strong> with <strong>ESP-IDF ≥ v6.1</strong> (or the
+v6.0/v5.5/v5.4/v5.3 backports), where the official
+<code class="docutils literal notranslate"><span class="pre">CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE</span></code> (default on) lets the controller
+accept the console’s sub-spec 5 ms interval — pairing, input streaming,
+reconnect, and wake-from-sleep all verified against a real console. The
+open-NimBLE-controller chips (ESP32-C6/C61/C2/H2) build and pair, but their
+stock controller rejects the 5 ms interval, so sustained input, reconnect and
+wake do not work there yet. See the component README’s “The 5 ms connection
+interval” and “Known issues”.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Interoperability only. This component contains no Nintendo or Espressif
+binaries; the pairing “authentication” relies on a published fixed key and is
+a possession check, not per-device attestation.</p>
+</div>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"switch2_pro.hpp"</span>
+
+<span class="n">espp</span><span class="o">::</span><span class="n">Switch2Pro</span><span class="w"> </span><span class="n">controller</span><span class="p">({.</span><span class="n">device_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Pro Controller"</span><span class="p">});</span>
+<span class="n">controller</span><span class="p">.</span><span class="n">init</span><span class="p">();</span><span class="w">  </span><span class="c1">// verifies pairing crypto, builds GATT, advertises</span>
+
+<span class="c1">// feed input state; a driver-owned task streams it once the console subscribes</span>
+<span class="n">espp</span><span class="o">::</span><span class="n">switch2</span><span class="o">::</span><span class="n">Pro2InputReport</span><span class="w"> </span><span class="n">report</span><span class="p">;</span>
+<span class="n">report</span><span class="p">.</span><span class="n">set_a</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="n">controller</span><span class="p">.</span><span class="n">set_input_report</span><span class="p">(</span><span class="n">report</span><span class="p">);</span>
+</pre></div>
+</div>
+<section id="the-5-ms-connection-interval">
+<h2>The 5 ms connection interval<a class="headerlink" href="#the-5-ms-connection-interval" title="Permalink to this heading"></a></h2>
+<p>The console drives the link at a 5 ms connection interval, below the 7.5 ms
+Bluetooth spec minimum. It reaches 5 ms in every mode: a bonded <em>reconnect</em> or
+<em>wake</em> connects at 5 ms from the <code class="docutils literal notranslate"><span class="pre">CONNECT_IND</span></code>, and a <em>fresh</em> session is
+renegotiated down to 5 ms (<code class="docutils literal notranslate"><span class="pre">LL_CONNECTION_UPDATE</span></code>) about 1.5 s after the
+console subscribes to input. Only the initial pairing handshake (~15 ms, the
+first ~1.5 s) works without sub-spec support; <strong>sustained input, reconnect, and
+wake all need it</strong>. How to enable it depends on the chip:</p>
+<ul class="simple">
+<li><p><strong>ESP32-S3 / C3:</strong> use <strong>ESP-IDF ≥ v6.1</strong> (or the v6.0/v5.5/v5.4/v5.3
+backports), where the official <code class="docutils literal notranslate"><span class="pre">CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE</span></code>
+(default on; espressif/esp-idf#18467) makes the BTDM controller accept the 5 ms
+interval with <strong>no binary patch</strong>. This is the verified S3/C3 path.</p></li>
+<li><p><strong>ESP32-C6 / C61 / C2 / H2:</strong> the open NimBLE controller has no such option
+yet, and espp does not modify the ESP-IDF controller libraries, so these chips
+are limited to the initial pairing handshake until Espressif exposes one.</p></li>
+</ul>
+<p>See the component README.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="switch2_pro_example.html">Switch 2 Pro Controller Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="switch2_pro_example.html#build-flash-monitor">Build, flash, monitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="switch2_pro_example.html#testing-with-a-real-switch-2">Testing with a real Switch 2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="switch2_pro_example.html#reconnect-and-wake">Reconnect and wake</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switch2_pro_example.html#verified-on-esp32-s3-esp-idf-v6-1">Verified on ESP32-S3 (ESP-IDF v6.1)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="switch2_pro_example.html#feeding-real-input">Feeding real input</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/637b0c70/components/switch2_pro/include/switch2_pro.hpp">components/switch2_pro/include/switch2_pro.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2ProE">
+<span id="_CPPv3N4espp10Switch2ProE"></span><span id="_CPPv2N4espp10Switch2ProE"></span><span id="espp::Switch2Pro"></span><span class="target" id="classespp_1_1Switch2Pro"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Switch2Pro</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp10Switch2ProE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Emulates a Nintendo Switch 2 Pro <a class="reference internal" href="../input/controller.html#classespp_1_1Controller"><span class="std std-ref">Controller</span></a> as a BLE peripheral. </p>
+<p>The Switch 2 uses a proprietary BLE GATT interface (not HID-over-GATT) with a custom pairing handshake (not BLE SMP). This class stands up that GATT tree on top of <a class="reference internal" href="ble_gatt_server.html#classespp_1_1BleGattServer"><span class="std std-ref">espp::BleGattServer</span></a>, advertises with Nintendo manufacturer data, and answers the console’s command channel — including the reverse- engineered pairing handshake so a real console will bond with it.</p>
+<p>Status: works on ESP32-C6 (and the other open-NimBLE-controller chips) and on ESP32-S3 (ESP-IDF &gt;= v6.1) — advertising, the custom GATT tree, the 0x15 pairing handshake, the full init/calibration command sequence, LL encryption, bond persistence, continuous input-report streaming, reconnect, and wake-from-sleep are all implemented and verified against a real console. The console drives the link at a sub-spec 5 ms interval for sustained input, reconnect, and wake; the S3/C3 get that from ESP-IDF’s default-on CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE (&gt;= v6.1). The open-NimBLE chips (C6/C61/C2/H2) have no such option yet, so there only the initial pairing handshake works on a stock controller (see the component README).</p>
+<section id="classespp_1_1Switch2Pro_1switch2_pro_ex1">
+<h4>Example<a class="headerlink" href="#classespp_1_1Switch2Pro_1switch2_pro_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Switch2Pro_1switch2_pro_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Bring up the emulated Switch 2 Pro Controller. init() verifies the pairing</span>
+<span class="w">  </span><span class="c1">// crypto against a known-answer vector, builds the custom Nintendo GATT</span>
+<span class="w">  </span><span class="c1">// services, configures security so the console (not BLE SMP) drives pairing,</span>
+<span class="w">  </span><span class="c1">// and starts advertising with Nintendo manufacturer data.</span>
+<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// INFO shows the high-level protocol flow (connect, pairing steps, subscribes,</span>
+<span class="w">  </span><span class="c1">// encryption, input-stream enable). Use DEBUG to also dump every command/</span>
+<span class="w">  </span><span class="c1">// response byte — but note that flood can saturate the serial link during the</span>
+<span class="w">  </span><span class="c1">// rapid init sequence.</span>
+<span class="w">  </span><span class="c1">// Defaults: continuous per-interval streaming (like a real controller,</span>
+<span class="w">  </span><span class="c1">// verified stable on C6-class chips) and an all-zero IMU motion block.</span>
+<span class="w">  </span><span class="c1">// Wake-on-boot is disabled so waking is user-initiated, like a real</span>
+<span class="w">  </span><span class="c1">// controller: while bonded but disconnected, pressing BOOT broadcasts the</span>
+<span class="w">  </span><span class="c1">// wake advertisement (see the loop below) instead of the driver nudging the</span>
+<span class="w">  </span><span class="c1">// console automatically every few seconds.</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Switch2Pro</span><span class="w"> </span><span class="n">controller</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">device_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Pro Controller"</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">wake_console_on_boot_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">controller</span><span class="p">.</span><span class="n">init</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"failed to initialize Switch2Pro"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"advertising — on the Switch 2, open Controllers &gt; Pair, and watch "</span>
+<span class="w">              </span><span class="s">"the log for the connect interval, the 0x15 pairing exchange, and "</span>
+<span class="w">              </span><span class="s">"either 'pairing finalised' or a disconnect reason"</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// The BOOT button (GPIO0) is wired as the A button for easy testing.</span>
+<span class="w">  </span><span class="n">gpio_config_t</span><span class="w"> </span><span class="n">btn_cfg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
+<span class="w">  </span><span class="n">btn_cfg</span><span class="p">.</span><span class="n">pin_bit_mask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1ULL</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">kBootButtonGpio</span><span class="p">;</span>
+<span class="w">  </span><span class="n">btn_cfg</span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_MODE_INPUT</span><span class="p">;</span>
+<span class="w">  </span><span class="n">btn_cfg</span><span class="p">.</span><span class="n">pull_up_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">;</span>
+<span class="w">  </span><span class="n">btn_cfg</span><span class="p">.</span><span class="n">pull_down_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLDOWN_DISABLE</span><span class="p">;</span>
+<span class="w">  </span><span class="n">btn_cfg</span><span class="p">.</span><span class="n">intr_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_INTR_DISABLE</span><span class="p">;</span>
+<span class="w">  </span><span class="n">gpio_config</span><span class="p">(</span><span class="o">&amp;</span><span class="n">btn_cfg</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Feed input state to the driver. set_input_report() just stores the latest</span>
+<span class="w">  </span><span class="c1">// report; the driver's streaming task paces the actual BLE notifications (one</span>
+<span class="w">  </span><span class="c1">// per connection interval, like a real controller) and only streams once the</span>
+<span class="w">  </span><span class="c1">// console has subscribed. So it is safe to call every loop — keep one report</span>
+<span class="w">  </span><span class="c1">// and mutate it. Replace the BOOT read below with your real button/stick source.</span>
+<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// Press BOOT and watch A register on the Switch 2's "Test Input Devices" screen.</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">switch2</span><span class="o">::</span><span class="n">Pro2InputReport</span><span class="w"> </span><span class="n">report</span><span class="p">;</span>
+<span class="w">  </span><span class="n">report</span><span class="p">.</span><span class="n">set_power</span><span class="p">(</span><span class="cm">/*battery_level=*/</span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="cm">/*charging=*/</span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="cm">/*external_power=*/</span><span class="nb">false</span><span class="p">);</span><span class="w"> </span><span class="c1">// full</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">tick</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// The Switch 2 shows "press L + R on the controller you want to use" while</span>
+<span class="w">  </span><span class="c1">// selecting; auto-hold L+R for ~1 s each time streaming (re)starts to satisfy</span>
+<span class="w">  </span><span class="c1">// that selection prompt so the console activates this controller.</span>
+<span class="w">  </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">kLrHoldTicks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">66</span><span class="p">;</span><span class="w"> </span><span class="c1">// ~1 s at the 15 ms cadence below</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">prev_streaming</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">prev_pressed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">lr_ticks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">pressed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">gpio_get_level</span><span class="p">(</span><span class="n">kBootButtonGpio</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="c1">// BOOT reads low when pressed</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">press_edge</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pressed</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">prev_pressed</span><span class="p">;</span>
+<span class="w">    </span><span class="n">prev_pressed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pressed</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// BOOT while bonded-but-disconnected = wake the console (a real controller</span>
+<span class="w">    </span><span class="c1">// wakes the console on a button press). wake_console() no-ops unless there</span>
+<span class="w">    </span><span class="c1">// is a stored bond and no active connection, so the edge check is enough.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">press_edge</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">controller</span><span class="p">.</span><span class="n">is_connected</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">controller</span><span class="p">.</span><span class="n">wake_console</span><span class="p">())</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"BOOT pressed while disconnected -&gt; sent wake advertisement"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Rising edge of streaming: (re)arm the L+R auto-press.</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">streaming</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">controller</span><span class="p">.</span><span class="n">is_input_streaming</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">streaming</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">prev_streaming</span><span class="p">)</span>
+<span class="w">      </span><span class="n">lr_ticks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kLrHoldTicks</span><span class="p">;</span>
+<span class="w">    </span><span class="n">prev_streaming</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">streaming</span><span class="p">;</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">lr_auto</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lr_ticks</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lr_ticks</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="w">      </span><span class="o">--</span><span class="n">lr_ticks</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">report</span><span class="p">.</span><span class="n">set_a</span><span class="p">(</span><span class="n">pressed</span><span class="p">);</span><span class="w"> </span><span class="c1">// BOOT doubles as A while connected</span>
+<span class="w">    </span><span class="n">report</span><span class="p">.</span><span class="n">set_l</span><span class="p">(</span><span class="n">lr_auto</span><span class="p">);</span>
+<span class="w">    </span><span class="n">report</span><span class="p">.</span><span class="n">set_r</span><span class="p">(</span><span class="n">lr_auto</span><span class="p">);</span>
+<span class="w">    </span><span class="n">report</span><span class="p">.</span><span class="n">set_left_stick</span><span class="p">(</span><span class="mf">0.f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.f</span><span class="p">);</span><span class="w">  </span><span class="c1">// centered</span>
+<span class="w">    </span><span class="n">report</span><span class="p">.</span><span class="n">set_right_stick</span><span class="p">(</span><span class="mf">0.f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.f</span><span class="p">);</span><span class="w"> </span><span class="c1">// centered</span>
+<span class="w">    </span><span class="n">controller</span><span class="p">.</span><span class="n">set_input_report</span><span class="p">(</span><span class="n">report</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">++</span><span class="n">tick</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">66</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="c1">// ~1 s at the 15 ms cadence below</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"connected={} streaming={} A(boot)={} L+R(auto)={}"</span><span class="p">,</span><span class="w"> </span><span class="n">controller</span><span class="p">.</span><span class="n">is_connected</span><span class="p">(),</span>
+<span class="w">                  </span><span class="n">streaming</span><span class="p">,</span><span class="w"> </span><span class="n">pressed</span><span class="p">,</span><span class="w"> </span><span class="n">lr_auto</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">15</span><span class="n">ms</span><span class="p">);</span><span class="w"> </span><span class="c1">// ~66 Hz, matching the real controller</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro7AdvModeE">
+<span id="_CPPv3N4espp10Switch2Pro7AdvModeE"></span><span id="_CPPv2N4espp10Switch2Pro7AdvModeE"></span><span class="target" id="classespp_1_1Switch2Pro_1a1c383a5a9782de277a3709692adcb80d"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AdvMode</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro7AdvModeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Advertisement variant. Discovery = fresh pairing (zero host addr). Reconnect = we already have a bond; the paired console’s address is embedded so it recognises us and reconnects (skipping the 0x15 pairing). Wake = like Reconnect but sets the wake flag to bring a sleeping console back up. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro7AdvMode9DiscoveryE">
+<span id="_CPPv3N4espp10Switch2Pro7AdvMode9DiscoveryE"></span><span id="_CPPv2N4espp10Switch2Pro7AdvMode9DiscoveryE"></span><span class="target" id="classespp_1_1Switch2Pro_1a1c383a5a9782de277a3709692adcb80daa1c4eb450799cb3f30c400d0201414e7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Discovery</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro7AdvMode9DiscoveryE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro7AdvMode9ReconnectE">
+<span id="_CPPv3N4espp10Switch2Pro7AdvMode9ReconnectE"></span><span id="_CPPv2N4espp10Switch2Pro7AdvMode9ReconnectE"></span><span class="target" id="classespp_1_1Switch2Pro_1a1c383a5a9782de277a3709692adcb80da880b8461cba2e295e1828be8d6eedb0a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Reconnect</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro7AdvMode9ReconnectE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro7AdvMode4WakeE">
+<span id="_CPPv3N4espp10Switch2Pro7AdvMode4WakeE"></span><span id="_CPPv2N4espp10Switch2Pro7AdvMode4WakeE"></span><span class="target" id="classespp_1_1Switch2Pro_1a1c383a5a9782de277a3709692adcb80da688761c83ec62d30ec1fe269849d42ad"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Wake</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro7AdvMode4WakeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2ProD0Ev">
+<span id="_CPPv3N4espp10Switch2ProD0Ev"></span><span id="_CPPv2N4espp10Switch2ProD0Ev"></span><span id="espp::Switch2Pro::~Switch2Pro"></span><span class="target" id="classespp_1_1Switch2Pro_1a339e14765e72833f32f7fb3edb62b13a"></span><span class="sig-name descname"><span class="n"><span class="pre">~Switch2Pro</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Switch2ProD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop the input-streaming task on teardown. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro4initEv">
+<span id="_CPPv3N4espp10Switch2Pro4initEv"></span><span id="_CPPv2N4espp10Switch2Pro4initEv"></span><span id="espp::Switch2Pro::init"></span><span class="target" id="classespp_1_1Switch2Pro_1a89199d897973ec91649f950bc43a2d4d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">init</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro4initEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize NimBLE, build the custom GATT services, configure security so the console (not standard SMP) drives pairing, and start advertising. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10Switch2Pro9is_pairedEv">
+<span id="_CPPv3NK4espp10Switch2Pro9is_pairedEv"></span><span id="_CPPv2NK4espp10Switch2Pro9is_pairedEv"></span><span id="espp::Switch2Pro::is_pairedC"></span><span class="target" id="classespp_1_1Switch2Pro_1a4676908a7c021f976b459ee1fa699ef1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_paired</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10Switch2Pro9is_pairedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether the pairing handshake has completed with a console. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10Switch2Pro12is_connectedEv">
+<span id="_CPPv3NK4espp10Switch2Pro12is_connectedEv"></span><span id="_CPPv2NK4espp10Switch2Pro12is_connectedEv"></span><span id="espp::Switch2Pro::is_connectedC"></span><span class="target" id="classespp_1_1Switch2Pro_1a1c358809a87f983b4aef3711c0353b0e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_connected</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10Switch2Pro12is_connectedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether a console is currently connected (link established; init/input subscription may still be in progress — see <a class="reference internal" href="#classespp_1_1Switch2Pro_1aa9e3962b8d4464a9c259a7f26698d104"><span class="std std-ref">is_input_streaming()</span></a>). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro12wake_consoleEv">
+<span id="_CPPv3N4espp10Switch2Pro12wake_consoleEv"></span><span id="_CPPv2N4espp10Switch2Pro12wake_consoleEv"></span><span id="espp::Switch2Pro::wake_console"></span><span class="target" id="classespp_1_1Switch2Pro_1a8fd55ba3523e27cce129ce10d3fdf1cb"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">wake_console</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro12wake_consoleEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Broadcast the wake advertisement now (e.g. from a button press, matching a real controller’s press-a-button-to-wake-the-console behaviour): embeds the bonded console’s identity address with the wake flag so a sleeping console powers on and reconnects. Requires a stored bond (from a completed pairing, this boot or restored from NVS) and no active connection. Returns true if the advertisement was issued. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro10clear_bondEv">
+<span id="_CPPv3N4espp10Switch2Pro10clear_bondEv"></span><span id="_CPPv2N4espp10Switch2Pro10clear_bondEv"></span><span id="espp::Switch2Pro::clear_bond"></span><span class="target" id="classespp_1_1Switch2Pro_1ab83d8a81beaee1647e5282e9fb22eb0f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_bond</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro10clear_bondEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Forget the persisted bond and return to fresh-pairing (discovery) mode. Erases the NVS bond blob (console address + LTK), clears the in-memory bond state, and — if not currently connected — re-advertises for discovery. Use this when the console has forgotten the controller (otherwise every boot stays in reconnect mode and never advertises for a fresh pairing), or to factory-reset the emulated controller. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the bond was erased (or none was stored); false if the NVS erase/commit failed. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10Switch2Pro18is_input_streamingEv">
+<span id="_CPPv3NK4espp10Switch2Pro18is_input_streamingEv"></span><span id="_CPPv2NK4espp10Switch2Pro18is_input_streamingEv"></span><span id="espp::Switch2Pro::is_input_streamingC"></span><span class="target" id="classespp_1_1Switch2Pro_1aa9e3962b8d4464a9c259a7f26698d104"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_input_streaming</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10Switch2Pro18is_input_streamingEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether the console has subscribed to the input characteristic (0x000e) on an LL-encrypted connection, i.e. the stream loop is actually sending input reports. Goes true once the subscribed link is encrypted and false on disconnect; useful for driving post-connect behaviour (e.g. the L+R “select this controller” prompt) from the application. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro16set_input_reportERKN7switch215Pro2InputReportE">
+<span id="_CPPv3N4espp10Switch2Pro16set_input_reportERKN7switch215Pro2InputReportE"></span><span id="_CPPv2N4espp10Switch2Pro16set_input_reportERKN7switch215Pro2InputReportE"></span><span id="espp::Switch2Pro::set_input_report__switch2::Pro2InputReportCR"></span><span class="target" id="classespp_1_1Switch2Pro_1a5132aa81ee82060f2b5e7e3294a0cbad"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_input_report</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">switch2</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp7switch215Pro2InputReportE" title="espp::switch2::Pro2InputReport"><span class="n"><span class="pre">Pro2InputReport</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">report</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro16set_input_reportERKN7switch215Pro2InputReportE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Store the latest controller state. This does NOT send — a driver-owned streaming task notifies the newest stored report once per connection interval (continuously, like a real controller), so you can call this as often as you like (e.g. on every button/stick change) without flooding the link. Thread-safe. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10Switch2Pro8get_nameEv">
+<span id="_CPPv3NK4espp10Switch2Pro8get_nameEv"></span><span id="_CPPv2NK4espp10Switch2Pro8get_nameEv"></span><span id="espp::Switch2Pro::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10Switch2Pro8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp10Switch2Pro11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp10Switch2Pro11set_log_tagERKNSt11string_viewE"></span><span id="espp::Switch2Pro::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10Switch2Pro13get_log_levelEv">
+<span id="_CPPv3NK4espp10Switch2Pro13get_log_levelEv"></span><span id="_CPPv2NK4espp10Switch2Pro13get_log_levelEv"></span><span id="espp::Switch2Pro::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10Switch2Pro13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp10Switch2Pro13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp10Switch2Pro13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Switch2Pro::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp10Switch2Pro17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp10Switch2Pro17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Switch2Pro::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10Switch2Pro17get_log_verbosityEv">
+<span id="_CPPv3NK4espp10Switch2Pro17get_log_verbosityEv"></span><span id="_CPPv2NK4espp10Switch2Pro17get_log_verbosityEv"></span><span id="espp::Switch2Pro::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10Switch2Pro17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp10Switch2Pro18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp10Switch2Pro18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Switch2Pro::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro6ConfigE">
+<span id="_CPPv3N4espp10Switch2Pro6ConfigE"></span><span id="_CPPv2N4espp10Switch2Pro6ConfigE"></span><span id="espp::Switch2Pro::Config"></span><span class="target" id="structespp_1_1Switch2Pro_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the controller. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro6Config11device_nameE">
+<span id="_CPPv3N4espp10Switch2Pro6Config11device_nameE"></span><span id="_CPPv2N4espp10Switch2Pro6Config11device_nameE"></span><span id="espp::Switch2Pro::Config::device_name__ss"></span><span class="target" id="structespp_1_1Switch2Pro_1_1Config_1a62b3230de6f681fdaf2349d5bf48d094"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_name</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="s"><span class="pre">&quot;Pro</span> <span class="pre">Controller&quot;</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro6Config11device_nameE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>BLE advertised name. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro6Config28wake_console_on_boot_enabledE">
+<span id="_CPPv3N4espp10Switch2Pro6Config28wake_console_on_boot_enabledE"></span><span id="_CPPv2N4espp10Switch2Pro6Config28wake_console_on_boot_enabledE"></span><span id="espp::Switch2Pro::Config::wake_console_on_boot_enabled__b"></span><span class="target" id="structespp_1_1Switch2Pro_1_1Config_1a752e040b6151831ba468481fc419a0c4"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">wake_console_on_boot_enabled</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro6Config28wake_console_on_boot_enabledE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>If we boot with a saved bond, broadcast the *wake* advertisement (and re-issue it every wake_interval) until the console connects, so a sleeping console is woken and reconnects without re-pairing. When false we use the plain reconnection advertisement (only reconnects an already-awake console). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro6Config18imu_motion_enabledE">
+<span id="_CPPv3N4espp10Switch2Pro6Config18imu_motion_enabledE"></span><span id="_CPPv2N4espp10Switch2Pro6Config18imu_motion_enabledE"></span><span id="espp::Switch2Pro::Config::imu_motion_enabled__b"></span><span class="target" id="structespp_1_1Switch2Pro_1_1Config_1ae44d3c2fc829ecea3becd20cad61ff94"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">imu_motion_enabled</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro6Config18imu_motion_enabledE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Replay captured IMU motion frames in the input reports’ motion block. Once the console enables the IMU feature (it does during standard init), every report carries a 40-byte motion block. **Off (default): the block is sent all-zero**, which the console accepts (verified on hardware, and what the zhantss emulator ships) — fine for games that do not use motion. On: replay a captured 128-frame resting sequence — but it loops (~2 s at 62 Hz) so its embedded timestamps jump backwards at the wrap. The driver owns the motion block, so there is no per-report motion input today; a live-IMU path (a motion setter on the report) is future work. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro6Config28continuous_streaming_enabledE">
+<span id="_CPPv3N4espp10Switch2Pro6Config28continuous_streaming_enabledE"></span><span id="_CPPv2N4espp10Switch2Pro6Config28continuous_streaming_enabledE"></span><span id="espp::Switch2Pro::Config::continuous_streaming_enabled__b"></span><span class="target" id="structespp_1_1Switch2Pro_1_1Config_1ae9366e0e86e5887badb283e2034fa76b"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">continuous_streaming_enabled</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro6Config28continuous_streaming_enabledE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Streaming model. **On (default) = continuous:** send one report every connection interval with the counter incrementing each time, exactly like a real controller — verified stable and lag-free on the C6-class chips and on the ESP32-S3 (ESP-IDF &gt;= v6.1). This is the recommended mode on every supported target. **Off = on-change:** notify only when the app’s button/stick state changes, plus a low-rate keepalive — an optional reduced-traffic mode (it was also a workaround for the pre-v6.1 S3 BTDM tx-servicing stall, now fixed; see README “Known issues”). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro6Config25continuous_stream_divisorE">
+<span id="_CPPv3N4espp10Switch2Pro6Config25continuous_stream_divisorE"></span><span id="_CPPv2N4espp10Switch2Pro6Config25continuous_stream_divisorE"></span><span id="espp::Switch2Pro::Config::continuous_stream_divisor__uint32_t"></span><span class="target" id="structespp_1_1Switch2Pro_1_1Config_1ab4965339505f169b1481b10619a00ddb"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">continuous_stream_divisor</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro6Config25continuous_stream_divisorE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Continuous-mode send divisor: send one report every Nth connection interval (1 = every interval, 2 = every other, …). The resulting rate depends on the live interval the console chose: at the initial 15 ms, N=1 is ~62 Hz and N=2 ~31 Hz; once the console moves the link to 5 ms, N=1 is ~200 Hz and N=2 ~100 Hz. Diagnostic knob to separate a time-based stall (console deprioritisation — stalls at the same wall-clock regardless of N) from a packet-count-based one (our-side tx-credit accumulation — survives ~N× longer). Ignored in on-change mode. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10Switch2Pro6Config9log_levelE">
+<span id="_CPPv3N4espp10Switch2Pro6Config9log_levelE"></span><span id="_CPPv2N4espp10Switch2Pro6Config9log_levelE"></span><span id="espp::Switch2Pro::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1Switch2Pro_1_1Config_1aa7c8a548878271df0db9bf4274b78b39"></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9Verbosity4INFOE" title="espp::Logger::Verbosity::INFO"><span class="n"><span class="pre">INFO</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10Switch2Pro6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Verbosity of the logger. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="id1">
+<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/637b0c70/components/switch2_pro/include/switch2_pro_pairing.hpp">components/switch2_pro/include/switch2_pro_pairing.hpp</a></p></li>
+</ul>
+</section>
+<section id="id2">
+<h3>Header File<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/637b0c70/components/switch2_pro/include/switch2_pro_report.hpp">components/switch2_pro/include/switch2_pro_report.hpp</a></p></li>
+</ul>
+</section>
+<section id="id3">
+<h3>Classes<a class="headerlink" href="#id3" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7switch215Pro2InputReportE">
+<span id="_CPPv3N4espp7switch215Pro2InputReportE"></span><span id="_CPPv2N4espp7switch215Pro2InputReportE"></span><span id="espp::switch2::Pro2InputReport"></span><span class="target" id="classespp_1_1switch2_1_1Pro2InputReport"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Pro2InputReport</span></span></span><a class="headerlink" href="#_CPPv4N4espp7switch215Pro2InputReportE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The 63-byte Pro <a class="reference internal" href="../input/controller.html#classespp_1_1Controller"><span class="std std-ref">Controller</span></a> 2 input report (BLE omits the leading report-id byte). Buttons are a 3-byte bitfield; sticks are two 12-bit axes packed into 3 bytes each; the tail carries motion/IMU when enabled via feature-select. The application fills buttons, sticks and power; byte 0 (the sequence counter), byte 0x0B (the negotiated-feature flags) and the motion block are written by the driver when it streams the report.</p>
+<p><a class="reference internal" href="../input/button.html#classespp_1_1Button"><span class="std std-ref">Button</span></a> bits (matching the reverse-engineered layout). The three button bytes are at report offsets 2, 3, 4 — data()[0] is the counter and data()[1] the power byte — which is what the setters below write (set_bit(2/3/4, …)): report offset 2: 0x80 RStick 0x40 Plus 0x20 ZR 0x10 R 0x08 X 0x04 Y 0x02 A 0x01 B report offset 3: 0x80 LStick 0x40 Minus 0x20 ZL 0x10 L 0x08 Up 0x04 Left 0x02 Right 0x01 Down report offset 4: 0x10 C 0x08 GL 0x04 GR 0x02 Capture 0x01 Home </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7switch215Pro2InputReport9set_powerE7uint8_tbb">
+<span id="_CPPv3N4espp7switch215Pro2InputReport9set_powerE7uint8_tbb"></span><span id="_CPPv2N4espp7switch215Pro2InputReport9set_powerE7uint8_tbb"></span><span id="espp::switch2::Pro2InputReport::set_power__uint8_t.b.b"></span><span class="target" id="classespp_1_1switch2_1_1Pro2InputReport_1a352bc6a53784dcc7795b21588305c766"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_power</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">battery_level</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">charging</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">external_power</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7switch215Pro2InputReport9set_powerE7uint8_tbb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>battery_level: 0..9 (values above 9 are clamped — 10..15 are reserved, and the field is only 4 bits, so a larger value would otherwise encode a reserved level or wrap). charging/external-power flags share the byte. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7switch215Pro2InputReport6set_grEb">
+<span id="_CPPv3N4espp7switch215Pro2InputReport6set_grEb"></span><span id="_CPPv2N4espp7switch215Pro2InputReport6set_grEb"></span><span id="espp::switch2::Pro2InputReport::set_gr__b"></span><span class="target" id="classespp_1_1switch2_1_1Pro2InputReport_1a9a4516bf1b34fc682725447295e19aab"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_gr</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7switch215Pro2InputReport6set_grEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>right grip button </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7switch215Pro2InputReport6set_glEb">
+<span id="_CPPv3N4espp7switch215Pro2InputReport6set_glEb"></span><span id="_CPPv2N4espp7switch215Pro2InputReport6set_glEb"></span><span id="espp::switch2::Pro2InputReport::set_gl__b"></span><span class="target" id="classespp_1_1switch2_1_1Pro2InputReport_1aa7da27089f230c3a252c095637a0739c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_gl</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7switch215Pro2InputReport6set_glEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>left grip button </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7switch215Pro2InputReport5set_cEb">
+<span id="_CPPv3N4espp7switch215Pro2InputReport5set_cEb"></span><span id="_CPPv2N4espp7switch215Pro2InputReport5set_cEb"></span><span id="espp::switch2::Pro2InputReport::set_c__b"></span><span class="target" id="classespp_1_1switch2_1_1Pro2InputReport_1a5f5e1151d90215a75905f8a7384b859f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_c</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7switch215Pro2InputReport5set_cEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Switch 2 “C” (chat) button. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7switch215Pro2InputReport14set_left_stickEff">
+<span id="_CPPv3N4espp7switch215Pro2InputReport14set_left_stickEff"></span><span id="_CPPv2N4espp7switch215Pro2InputReport14set_left_stickEff"></span><span id="espp::switch2::Pro2InputReport::set_left_stick__float.float"></span><span class="target" id="classespp_1_1switch2_1_1Pro2InputReport_1ad32848e736d9af6acafe82e52e5f94c6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_left_stick</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">x</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">y</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7switch215Pro2InputReport14set_left_stickEff" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Left/right stick, each axis in [-1, 1]. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7switch215Pro2InputReport12STICK_CENTERE">
+<span id="_CPPv3N4espp7switch215Pro2InputReport12STICK_CENTERE"></span><span id="_CPPv2N4espp7switch215Pro2InputReport12STICK_CENTERE"></span><span id="espp::switch2::Pro2InputReport::STICK_CENTER__uint16_t"></span><span class="target" id="classespp_1_1switch2_1_1Pro2InputReport_1a8735fcaaeeab16b2a1c450d269cebc8c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">STICK_CENTER</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x800</span></span><a class="headerlink" href="#_CPPv4N4espp7switch215Pro2InputReport12STICK_CENTERE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>12-bit midpoint (2048) </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+<section id="id4">
+<h3>Header File<a class="headerlink" href="#id4" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/637b0c70/components/switch2_pro/include/switch2_pro_protocol.hpp">components/switch2_pro/include/switch2_pro_protocol.hpp</a></p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="hid_service_example.html" class="btn btn-neutral float-left" title="BLE HID Service Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="switch2_pro_example.html" class="btn btn-neutral float-right" title="Switch 2 Pro Controller Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

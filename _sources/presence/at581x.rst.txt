@@ -1,0 +1,25 @@
+AT581X Radar Presence Sensor
+****************************
+
+The `At581x` component provides a driver for the AT581X (AirTouch) 5.8 GHz
+microwave-radar human-presence / motion sensor. This is the radar found on
+modules such as the MoreSense ``MS58-3909S68U4``, including the one on the
+ESP32-S3-BOX-3 sensor / dock board.
+
+The chip is configured over I2C (detection distance / sensitivity, RF frequency,
+gain, power consumption, and timing), while presence/motion is reported on a
+dedicated active-high output GPIO. To react to presence, attach an interrupt
+(e.g. ``espp::Interrupt``) to the radar's output GPIO.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   at581x_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/at581x.inc

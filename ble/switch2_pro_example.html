@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Switch 2 Pro Controller Example - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'ble/switch2_pro_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="FTP APIs" href="../ftp/index.html" />
+    <link rel="prev" title="Switch 2 Pro Controller" href="switch2_pro.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../system/index.html">System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../desktop/index.html">Desktop APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">BLE APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="battery_service.html">Battery Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ble_gatt_server.html">BLE GATT Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ble_gatt_server_example.html">BLE GATT Server Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="device_info_service.html">Device Info Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generic_access_service.html">Generic Access Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gfps_service.html">Google Fast Pair Service (GFPS) Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gfps_service_example.html">Google Fast Pair Service (GFPS) Service Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hid_service.html">HID Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hid_service_example.html">BLE HID Service Example</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="switch2_pro.html">Switch 2 Pro Controller</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="switch2_pro.html#the-5-ms-connection-interval">The 5 ms connection interval</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Switch 2 Pro Controller Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="switch2_pro.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Switch 2 Pro Controller Example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#build-flash-monitor">Build, flash, monitor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#testing-with-a-real-switch-2">Testing with a real Switch 2</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#reconnect-and-wake">Reconnect and wake</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#verified-on-esp32-s3-esp-idf-v6-1">Verified on ESP32-S3 (ESP-IDF v6.1)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#feeding-real-input">Feeding real input</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../telemetry/index.html">Telemetry APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wdi/index.html">WDI (Wheelchair Digital Interface) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">BLE APIs</a></li>
+          <li class="breadcrumb-item"><a href="switch2_pro.html">Switch 2 Pro Controller</a></li>
+      <li class="breadcrumb-item active">Switch 2 Pro Controller Example</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/637b0c70/docs/en/ble/switch2_pro_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="switch-2-pro-controller-example">
+<h1>Switch 2 Pro Controller Example<a class="headerlink" href="#switch-2-pro-controller-example" title="Permalink to this heading"></a></h1>
+<p>Brings up the emulated Switch 2 Pro Controller and connects to a real Nintendo
+Switch 2 console. On boot it runs the pairing-crypto self-test, stands up the
+custom Nintendo GATT services, and advertises with Nintendo manufacturer data.
+Once paired it streams input reports continuously (like a real controller); the
+board’s BOOT button doubles as the <strong>A</strong> button while connected, and — when
+bonded but disconnected — a BOOT press broadcasts the wake advertisement to wake
+the console.</p>
+<blockquote>
+<div><p><strong>Supported target: ESP32-S3</strong> (default) with <strong>ESP-IDF ≥ v6.1</strong>, where the
+official <code class="docutils literal notranslate"><span class="pre">CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE</span></code> (default on) lets the
+controller accept the console’s 5 ms interval — pairing, input, reconnect, and
+wake-from-sleep all verified against a real console. The example also builds
+for the <strong>ESP32-C6</strong> (and C61/C2/H2), but the stock NimBLE controller on those
+chips rejects the 5 ms interval, so only the initial pairing handshake works
+there (see the component README).</p>
+</div></blockquote>
+<section id="build-flash-monitor">
+<h2>Build, flash, monitor<a class="headerlink" href="#build-flash-monitor" title="Permalink to this heading"></a></h2>
+<p>Default target is <strong>esp32s3</strong> (ESP-IDF ≥ v6.1):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>idf.py<span class="w"> </span>build<span class="w"> </span>flash<span class="w"> </span>monitor
+</pre></div>
+</div>
+<p>The console drives the link at a sub-spec 5 ms connection interval for
+<strong>sustained input</strong> (it drops even the fresh session to 5 ms ~1.5 s after
+subscribing) as well as reconnect and wake-from-sleep — only the initial pairing
+handshake (~15 ms, the first ~1.5 s) works without it. On the S3 the official
+<code class="docutils literal notranslate"><span class="pre">CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE</span></code> is default-on and covers it; the
+component warns at configure time if it is missing (older IDF).</p>
+</section>
+<section id="testing-with-a-real-switch-2">
+<h2>Testing with a real Switch 2<a class="headerlink" href="#testing-with-a-real-switch-2" title="Permalink to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Flash and open the monitor. You should see <code class="docutils literal notranslate"><span class="pre">pairing</span> <span class="pre">crypto</span> <span class="pre">self-test</span> <span class="pre">passed</span></code>,
+the GATT handle map, and <code class="docutils literal notranslate"><span class="pre">Switch2Pro</span> <span class="pre">advertising</span> <span class="pre">as</span> <span class="pre">'Pro</span> <span class="pre">Controller'</span></code>.</p></li>
+<li><p>On the Switch 2: <strong>System Settings → Controllers → Pair New Controllers</strong>.</p></li>
+<li><p>Watch the log:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">connected:</span> <span class="pre">peer=…</span> <span class="pre">interval=…ms</span></code> — the negotiated connection interval.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pairing:</span> <span class="pre">finalised</span> <span class="pre">—</span> <span class="pre">bonded</span></code> then <code class="docutils literal notranslate"><span class="pre">AUTH</span> <span class="pre">complete:</span> <span class="pre">encrypted=true</span></code> — the
+handshake and link encryption completed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">input-report</span> <span class="pre">streaming</span> <span class="pre">ENABLED</span> <span class="pre">(0x000e)</span></code> — the console subscribed; input
+now streams.</p></li>
+</ul>
+</li>
+<li><p>Open <strong>Test Input Devices</strong> (Controllers → <em>your</em> controller) and press the
+board’s <strong>BOOT</strong> button — <strong>A</strong> should register on screen.</p></li>
+</ol>
+<section id="reconnect-and-wake">
+<h3>Reconnect and wake<a class="headerlink" href="#reconnect-and-wake" title="Permalink to this heading"></a></h3>
+<p>After the first pairing the bond is saved to NVS. On the next boot the controller
+advertises for reconnection. With the console asleep, press <strong>BOOT</strong> while the
+log shows <code class="docutils literal notranslate"><span class="pre">connected=false</span></code> to broadcast the wake advertisement — the console
+should power on and reconnect without re-pairing. (This needs ESP-IDF ≥ v6.1 on
+the S3; the C6-family stock controller cannot accept the 5 ms reconnect.)</p>
+</section>
+<section id="verified-on-esp32-s3-esp-idf-v6-1">
+<h3>Verified on ESP32-S3 (ESP-IDF v6.1)<a class="headerlink" href="#verified-on-esp32-s3-esp-idf-v6-1" title="Permalink to this heading"></a></h3>
+<p>A full session on a real Switch 2 — fresh pair, input testing, then powering the
+console off and back on with reconnect + input still working — with the official
+<code class="docutils literal notranslate"><span class="pre">CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE</span></code> (default on, <strong>no binary patch</strong>).
+The key moments:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">connected:</span> <span class="pre">…</span> <span class="pre">interval=15.00ms</span></code> — fresh pairing connects at the spec-legal
+15 ms, and the 0x15 handshake completes there.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CONN</span> <span class="pre">PARAMS</span> <span class="pre">UPDATE:</span> <span class="pre">itvl=5.00ms</span></code> — <strong>~1.5 s after streaming starts the console
+drops the link to 5 ms</strong> and streams there for the rest of the session. On the
+pre-v6.1 controller lib this is exactly where the old “~3 s tx-stall” hit; v6.1
+applies the update cleanly and input keeps flowing.</p></li>
+<li><p>After the console is powered off (<code class="docutils literal notranslate"><span class="pre">REMOTE_USER_TERMINATED</span></code>) and a <code class="docutils literal notranslate"><span class="pre">wake</span></code>
+broadcast, it reconnects <strong>straight at <code class="docutils literal notranslate"><span class="pre">interval=5.00ms</span></code></strong> and input resumes.</p></li>
+</ul>
+<details>
+<summary>Full monitor log (repetitive heartbeat lines elided)</summary>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[Switch2Pro/I][0.223]: pairing crypto self-test passed
+I (224) BLE_INIT: BT controller compile version [51d9dfd]
+I (226) BLE_INIT: Bluetooth MAC: f4:12:fa:5a:85:92
+[Switch2Pro/I][0.289]: BLE address: using PUBLIC
+[Switch2Pro/I][0.290]:   common_input  = 0x000a (0x000a)
+[Switch2Pro/I][0.291]:   pro2_input    = 0x000e (0x000e)
+[Switch2Pro/I][0.291]:   command       = 0x0014 (0x0014)
+[Switch2Pro/I][0.291]:   vib_command   = 0x0016 (0x0016)
+[Switch2Pro/I][0.292]:   resp1         = 0x001a (0x001a)
+[Switch2Pro/I][0.292]:   resp2         = 0x001e (0x001e)
+[Switch2Pro/I][0.296]: Switch2Pro advertising as 'Pro Controller'
+
+# --- fresh pairing, connects at 15 ms ---
+[Switch2Pro/I][5.331]: connected: peer=C8:48:05:64:A0:BB interval=15.00ms supervision=2000ms latency=0
+[Switch2Pro/I][6.291]: SUBSCRIBE resp1(0x001a) value=0x0001 (on)
+[Switch2Pro/I][6.321]: SUBSCRIBE resp2(0x001e) value=0x0001 (on)
+[Switch2Pro/I][6.501]: pairing: stored console identity addr c8:48:05:64:a0:bb
+[Switch2Pro/I][6.503]: pairing: exchange addresses -&gt; replied with our address 92 85 5a fa 12 f4 (little-endian)
+[Switch2Pro/I][6.532]: pairing: exchange keys -&gt; LTK derived, replied B1
+[Switch2Pro/I][6.578]: pairing: confirm -&gt; replied B2
+[Switch2Pro/I][6.607]: pairing: finalised — bonded
+[Switch2Pro/I][6.611]: injected LTK into NimBLE store (rc=0) — ready for LL encryption
+[Switch2Pro/I][6.613]: saved bond to NVS (console addr + LTK)
+[Switch2Pro/I][6.710]: AUTH complete: encrypted=true bonded=true authenticated=true
+[Switch2Pro/I][7.176]: SUBSCRIBE pro2_input(0x000e) value=0x0001 (on)
+[Switch2Pro/I][7.176]: input-report streaming ENABLED (0x000e)
+
+# --- console drops the FRESH session to 5 ms ~1.5 s after streaming begins ---
+[Switch2Pro/I][7.699]: LINK CHANGE: itvl=15.00ms latency=0 timeout=2000ms tx_phy=2 rx_phy=2
+[Switch2Pro/I][8.666]: CONN PARAMS UPDATE: itvl=5.00ms latency=0 timeout=2000ms
+[Switch2Pro/I][8.717]: LINK CHANGE: itvl=5.00ms latency=0 timeout=2000ms tx_phy=2 rx_phy=2
+
+# --- streams fine at 5 ms; BOOT press registers as A ---
+[switch2_pro example/I][9.749]: connected=true streaming=true A(boot)=false ...
+   ... (streaming continuously at 5 ms) ...
+[switch2_pro example/I][32.944]: connected=true streaming=true A(boot)=true L+R(auto)=false
+   ...
+
+# --- console powered off ---
+[Switch2Pro/I][40.616]: SUBSCRIBE pro2_input(0x000e) value=0x0000 (off)
+[Switch2Pro/W][40.620]: disconnected: peer=C8:48:05:64:A0:BB reason=REMOTE_USER_TERMINATED (paired=true)
+[Switch2Pro/I][40.623]: advertising (reconnect): flags+mfr(26 B) in adv, name in scan response
+   ... (advertising for reconnect) ...
+
+# --- BOOT press broadcasts wake; console powers back on and reconnects at 5 ms ---
+[Switch2Pro/I][54.114]: wake: broadcasting wake advertisement (user-requested)
+[switch2_pro example/I][54.118]: BOOT pressed while disconnected -&gt; sent wake advertisement
+[Switch2Pro/I][56.801]: connected: peer=C8:48:05:64:A0:BB interval=5.00ms supervision=2000ms latency=0
+[Switch2Pro/I][57.225]: AUTH complete: encrypted=true bonded=true authenticated=true
+[Switch2Pro/I][57.226]: SUBSCRIBE pro2_input(0x000e) value=0x0001 (on)
+[Switch2Pro/I][57.227]: input-report streaming ENABLED (0x000e)
+[Switch2Pro/I][57.731]: LINK CHANGE: itvl=5.00ms latency=0 timeout=2000ms tx_phy=2 rx_phy=2
+
+# --- input works again after wake/reconnect; BOOT press registers as A ---
+[switch2_pro example/I][63.454]: connected=true streaming=true A(boot)=true L+R(auto)=false
+   ...
+</pre></div>
+</div>
+</details>
+</section>
+</section>
+<section id="feeding-real-input">
+<h2>Feeding real input<a class="headerlink" href="#feeding-real-input" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">set_input_report()</span></code> just stores the latest state; a driver-owned task paces the
+BLE notifications. Replace the BOOT-button read in <code class="docutils literal notranslate"><span class="pre">main</span></code> with your real
+button/stick source and call <code class="docutils literal notranslate"><span class="pre">set_input_report()</span></code> whenever state changes.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="switch2_pro.html" class="btn btn-neutral float-left" title="Switch 2 Pro Controller" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../ftp/index.html" class="btn btn-neutral float-right" title="FTP APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
