@@ -42,11 +42,12 @@ namespace espp::persistent_data {
 /// @brief Serialization options used for the payload.
 /// @details `strict` rejects payloads that are shorter than the type;
 ///          `fixed_length_encoding` keeps the encoding independent of the
-///          values stored. alpaca's own `with_version` is deliberately not used:
-///          its hash folds `sizeof(struct)` in, which differs between a 32-bit
-///          ESP32 and a 64-bit host, so a file written on one would not load on
-///          the other. The header's layout fingerprint (see layout::fingerprint)
-///          plays that role portably.
+///          values stored. alpaca's own `with_version` is not used: the header's
+///          layout fingerprint (see layout::fingerprint) plays that role, and it
+///          also encodes enum underlying types and array lengths and can be
+///          computed from a field spec by a reader without the C++ type. (Before
+///          alpaca #56 the alpaca hash also folded `sizeof(struct)` in, which
+///          differs between a 32-bit ESP32 and a 64-bit host.)
 inline constexpr alpaca::options SERIALIZATION_OPTIONS =
     alpaca::options::fixed_length_encoding | alpaca::options::strict;
 
