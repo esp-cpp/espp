@@ -175,10 +175,11 @@ A version number reused for a different layout therefore loads with
 `layout_mismatch` instead of producing garbage, and a reader without the C++
 type (a Python tool) can compute the same fingerprint from a field spec.
 
-alpaca's own `with_version` option is deliberately not used: its hash folds
-`sizeof(struct)` in, which differs between a 32-bit ESP32 and a 64-bit host
-(a struct of a string, a vector and an integer is 40 bytes on the ESP32, 56 on
-macOS and 64 on Linux), so a file written on one would not load on the other.
+alpaca's own `with_version` option is not used: the fingerprint above covers
+more (enum underlying types, array lengths) and is computable from a field spec
+by a reader without the C++ type. (Before alpaca #56 the alpaca hash also folded
+`sizeof(struct)` in, which differs between a 32-bit ESP32 and a 64-bit host, so
+a file written on one would not have loaded on the other.)
 
 ## Errors
 
