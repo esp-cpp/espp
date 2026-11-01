@@ -176,6 +176,20 @@ menu "RTPS"
                 least 2 + 2*MAX_NUM_PARTICIPANTS (cross-checked at build time).
                 0 keeps the selected profile's value.
 
+        config RTPS_LIMIT_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS
+            int "SPDP_MAX_NUMBER_FOUND_PARTICIPANTS (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Remote participants a participant can track at once (the SPDP
+                proxy pool). A participant beyond this is ignored until a slot
+                frees: its endpoints are never matched and its data is dropped,
+                with no log. Size it for the whole domain, not just the peers you
+                talk to: a ROS 2 host with a dozen nodes is a dozen participants.
+                Each slot holds one ParticipantProxyData (a few hundred bytes with
+                the embedded profile's single locator per list). 0 keeps the
+                selected profile's value (10 embedded, 32 host, 128 host_large).
+
     endmenu
 
     menu "Transport task priority (advanced)"

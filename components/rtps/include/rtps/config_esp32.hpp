@@ -140,7 +140,10 @@ const uint16_t SF_WRITER_HB_PERIOD_MS = 4000;
 const uint16_t SPDP_RESEND_PERIOD_MS = 2000;
 const uint8_t SPDP_CYCLECOUNT_HEARTBEAT = 2; // skip x SPDP rounds before checking liveliness
 const uint8_t SPDP_WRITER_PRIO = 5;
-const uint8_t SPDP_MAX_NUMBER_FOUND_PARTICIPANTS = 10;
+#ifndef RTPS_CFG_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS
+#define RTPS_CFG_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS 10
+#endif
+const uint8_t SPDP_MAX_NUMBER_FOUND_PARTICIPANTS = RTPS_CFG_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS;
 const uint8_t SPDP_MAX_NUM_LOCATORS = 1;
 const Duration_t SPDP_DEFAULT_REMOTE_LEASE_DURATION = {
     5, 0}; // Default lease duration for remote participants, usually
