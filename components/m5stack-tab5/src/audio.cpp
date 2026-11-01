@@ -320,15 +320,16 @@ size_t M5StackTab5::play_audio(const uint8_t *data, uint32_t num_bytes) {
   if (sendable == 0) {
     return 0;
   }
-  return xStreamBufferSend(audio_tx_stream, data, sendable, 0);
+  const size_t sent = xStreamBufferSend(audio_tx_stream, data, sendable, 0);
   // Wake the playback task if it is waiting for the stream to hold a whole
   // block (see audio_task_callback); a notification nobody waits for is
   // harmless (the task re-reads the stream after every wake).
-  if (xStreamBufferBytesAvailable(audio_tx_stream) >= audio_tx_buffer.size()) {
+  if (sent > 0 && xStreamBufferBytesAvailable(audio_tx_stream) >= audio_tx_buffer.size()) {
     if (TaskHandle_t task = audio_tx_task_handle_.load(std::memory_order_acquire)) {
       xTaskNotifyGive(task);
     }
   }
+  return sent;
 }
 
 size_t M5StackTab5::play_audio(std::span<const uint8_t> data) {
