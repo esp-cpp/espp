@@ -16,6 +16,7 @@
 //
 // Exits 0 on success, 1 on the first failed check.
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <span>
@@ -106,12 +107,9 @@ bool check_spdp() {
   CHECK(proxy.readFromBuffer(reader, &part), "SPDP parse");
 
   const auto has_on_subnet = [](const auto &list) {
-    for (const auto &loc : list) {
-      if (loc.isValid() && loc.getIp4AddressBytes() == kOnSubnet) {
-        return true;
-      }
-    }
-    return false;
+    return std::any_of(list.begin(), list.end(), [](const auto &loc) {
+      return loc.isValid() && loc.getIp4AddressBytes() == kOnSubnet;
+    });
   };
   CHECK(has_on_subnet(proxy.m_metatrafficUnicastLocatorList),
         "on-subnet metatraffic locator replaces an off-subnet one");
