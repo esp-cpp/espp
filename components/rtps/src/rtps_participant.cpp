@@ -55,7 +55,10 @@ namespace {
 // whose set bits are not contiguous is not a netmask).
 bool parse_netmask(const std::string &text, uint8_t &prefix_length) {
   unsigned a = 0, b = 0, c = 0, d = 0;
-  if (std::sscanf(text.c_str(), "%u.%u.%u.%u", &a, &b, &c, &d) == 4) {
+  char trailing = 0;
+  // The %c sentinel only matches when something follows the quad, so exactly
+  // four conversions means the whole string was consumed.
+  if (std::sscanf(text.c_str(), "%u.%u.%u.%u%c", &a, &b, &c, &d, &trailing) == 4) {
     if (a > 255 || b > 255 || c > 255 || d > 255) {
       return false;
     }
@@ -71,7 +74,6 @@ bool parse_netmask(const std::string &text, uint8_t &prefix_length) {
     return true;
   }
   unsigned bits = 0;
-  char trailing = 0;
   if (std::sscanf(text.c_str(), "%u%c", &bits, &trailing) == 1 && bits <= 32) {
     prefix_length = static_cast<uint8_t>(bits);
     return true;
@@ -83,7 +85,8 @@ bool parse_netmask(const std::string &text, uint8_t &prefix_length) {
 bool RtpsParticipant::resolve_interface(std::array<uint8_t, 4> &ip_bytes,
                                         uint8_t &prefix_length) const {
   std::string addr = config_.interface_address;
-  const bool auto_detect = addr.empty();
+  // Only the host enumerates interfaces, so this is unused on ESP targets.
+  [[maybe_unused]] const bool auto_detect = addr.empty();
   // Prefix length of the interface that owns `addr`, when the platform can
   // tell (host only). Config::interface_netmask overrides it below.
   std::optional<uint8_t> detected_prefix{};
@@ -93,10 +96,9 @@ bool RtpsParticipant::resolve_interface(std::array<uint8_t, 4> &ip_bytes,
     return !ip.empty() && ip.rfind("127.", 0) != 0 && ip.rfind("169.254.", 0) != 0;
   };
 #if defined(ESP_PLATFORM)
-  if (auto_detect) {
-    logger_.error("interface_address must be set on ESP targets (e.g. from the netif IP)");
-    return false;
-  }
+  // No interface enumeration on ESP targets: interface_address is required
+  // (checked below) and the netmask comes from interface_netmask or the
+  // /24 default.
 #elif defined(_WIN32)
   {
     // Walk the up, non-loopback IPv4 adapters (GetAdaptersAddresses): pick the
@@ -113,7 +115,7 @@ bool RtpsParticipant::resolve_interface(std::array<uint8_t, 4> &ip_bytes,
       ret = GetAdaptersAddresses(AF_INET, flags, nullptr, adapters, &size);
     }
     if (ret == NO_ERROR) {
-      for (auto *a = adapters; a != nullptr && !detected_prefix; a = a->Next) {
+      for (const auto *a = adapters; a != nullptr && !detected_prefix; a = a->Next) {
         if (a->OperStatus != IfOperStatusUp || a->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
           continue;
         }
@@ -127,6 +129,9 @@ bool RtpsParticipant::resolve_interface(std::array<uint8_t, 4> &ip_bytes,
             continue;
           }
           if (auto_detect ? usable(buf) : addr == buf) {
+            if (auto_detect) {
+              logger_.info("Auto-detected interface address {}", buf);
+            }
             addr = buf;
             detected_prefix = static_cast<uint8_t>(ua->OnLinkPrefixLength);
             break;
@@ -152,6 +157,9 @@ bool RtpsParticipant::resolve_interface(std::array<uint8_t, 4> &ip_bytes,
           continue;
         }
         if (auto_detect ? usable(buf) : addr == buf) {
+          if (auto_detect) {
+            logger_.info("Auto-detected interface address {}", buf);
+          }
           addr = buf;
           if (ifa->ifa_netmask != nullptr && ifa->ifa_netmask->sa_family == AF_INET) {
             const auto *mask = reinterpret_cast<const struct sockaddr_in *>(ifa->ifa_netmask);
@@ -168,11 +176,9 @@ bool RtpsParticipant::resolve_interface(std::array<uint8_t, 4> &ip_bytes,
   }
 #endif
   if (addr.empty()) {
-    logger_.error("Could not auto-detect a usable IPv4 interface; set interface_address");
+    logger_.error("interface_address is empty and no usable IPv4 interface could be auto-detected; "
+                  "set it (required on ESP targets, e.g. from the netif IP)");
     return false;
-  }
-  if (auto_detect) {
-    logger_.info("Auto-detected interface address {}", addr);
   }
   unsigned a = 0, b = 0, c = 0, d = 0;
   if (std::sscanf(addr.c_str(), "%u.%u.%u.%u", &a, &b, &c, &d) != 4 || a > 255 || b > 255 ||
@@ -198,7 +204,7 @@ bool RtpsParticipant::resolve_interface(std::array<uint8_t, 4> &ip_bytes,
     logger_.debug("No netmask known for {}; assuming a /{} network (set interface_netmask)", addr,
                   prefix_length);
   }
-  logger_.info("Interface {}/{}", addr, prefix_length);
+  logger_.debug("Interface {}/{}", addr, prefix_length);
   return true;
 }
 

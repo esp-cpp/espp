@@ -105,7 +105,8 @@ bool check_sedp() {
   return true;
 }
 
-bool isSameSameSubnetClamp() {
+// A prefix length above 32 behaves as /32.
+bool isSameSubnetPrefixClamp() {
   return rtps::isSameSubnetAddress(kLocal17, kLocal17, 40) &&
          !rtps::isSameSubnetAddress(kWifi, kLocal17, 40);
 }
@@ -121,7 +122,7 @@ bool check_prefix() {
   CHECK(!isSameSubnetAddress(kWifi, kLocal17, 32), "/32 is the address itself");
   CHECK(isSameSubnetAddress(kLocal17, kLocal17, 32), "/32 matches itself");
   CHECK(isSameSubnetAddress(kVpn, kLocalIp, 0), "/0 is every address");
-  CHECK(isSameSameSubnetClamp(), "prefix > 32 behaves as /32");
+  CHECK(isSameSubnetPrefixClamp(), "prefix > 32 behaves as /32");
   CHECK(prefixLengthFromNetmask({255, 255, 255, 0}) == 24, "255.255.255.0 -> 24");
   CHECK(prefixLengthFromNetmask({255, 255, 128, 0}) == 17, "255.255.128.0 -> 17");
   CHECK(prefixLengthFromNetmask({255, 255, 255, 255}) == 32, "255.255.255.255 -> 32");
