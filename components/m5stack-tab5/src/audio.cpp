@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <chrono>
 #include <cmath>
 #include <cstring>
 
@@ -322,6 +321,14 @@ size_t M5StackTab5::play_audio(const uint8_t *data, uint32_t num_bytes) {
     return 0;
   }
   return xStreamBufferSend(audio_tx_stream, data, sendable, 0);
+  // Wake the playback task if it is waiting for the stream to hold a whole
+  // block (see audio_task_callback); a notification nobody waits for is
+  // harmless (the task re-reads the stream after every wake).
+  if (xStreamBufferBytesAvailable(audio_tx_stream) >= audio_tx_buffer.size()) {
+    if (TaskHandle_t task = audio_tx_task_handle_.load(std::memory_order_acquire)) {
+      xTaskNotifyGive(task);
+    }
+  }
 }
 
 size_t M5StackTab5::play_audio(std::span<const uint8_t> data) {
@@ -384,32 +391,45 @@ bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv
   // Producers push audio in bursts (a video frame at a time, with jitter), so
   // when a stream that is flowing momentarily holds less than a block, give
   // it a bounded chance to complete the block rather than padding the gap
-  // with silence (audible as stutter). The wait is shorter than the ring
-  // minus one block, so the ring never drains while waiting; a stream that
-  // was already idle gets silence at once.
+  // with silence (audible as stutter). The wait is event-driven: play_audio()
+  // notifies this task when the stream reaches a block. It is shorter than
+  // the ring minus one block, so the ring never drains while waiting; a
+  // stream that was already idle gets silence at once.
+  if (audio_tx_task_handle_.load(std::memory_order_relaxed) == nullptr) {
+    audio_tx_task_handle_.store(xTaskGetCurrentTaskHandle(), std::memory_order_release);
+  }
   const size_t block = audio_tx_buffer.size();
   uint8_t *tx_buf = audio_tx_buffer.data();
-  // singleton BSP: the task's own "was audio flowing" state
-  static bool was_flowing = false;
+  constexpr size_t frame_bytes = NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
   size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
-  if (available < block && (available > 0 || was_flowing)) {
-    const auto deadline =
-        std::chrono::steady_clock::now() + std::chrono::milliseconds(AUDIO_TX_WHOLE_BLOCK_WAIT_MS);
-    while (available < block && std::chrono::steady_clock::now() < deadline) {
-      vTaskDelay(1);
+  if (available % frame_bytes != 0) {
+    // Producers queue whole frames only (play_audio), so this is a bug
+    // somewhere. A stuck partial frame would misalign every frame queued after
+    // it for good, and merely skipping it here would leave it stuck: say so and
+    // start the stream over.
+    logger_.warn_rate_limited("audio stream misaligned ({} bytes queued); resetting it", available);
+    xStreamBufferReset(audio_tx_stream);
+    available = 0;
+  }
+  if (available < block && (available > 0 || audio_tx_was_flowing_)) {
+    const TickType_t deadline = xTaskGetTickCount() + pdMS_TO_TICKS(AUDIO_TX_WHOLE_BLOCK_WAIT_MS);
+    while (available < block) {
+      const TickType_t remaining = deadline - xTaskGetTickCount();
+      if (static_cast<int32_t>(remaining) <= 0) {
+        break;
+      }
+      // a notification left over from an earlier send wakes this at once; the
+      // stream is re-read and the wait resumes, still bounded by the deadline
+      ulTaskNotifyTake(pdTRUE, remaining);
       available = xStreamBufferBytesAvailable(audio_tx_stream);
     }
   }
   available = std::min(available, block);
-  // only whole frames: the block is frame-aligned and producers queue whole
-  // frames, so a partial frame cannot occur; never split one if it does
-  constexpr size_t frame_bytes = NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
-  available -= available % frame_bytes;
   memset(tx_buf, 0, block);
   if (available > 0) {
     xStreamBufferReceive(audio_tx_stream, tx_buf, available, 0);
   }
-  was_flowing = available > 0;
+  audio_tx_was_flowing_ = available > 0;
   i2s_channel_write(audio_tx_handle, tx_buf, block, NULL, portMAX_DELAY);
   return false;
 }

@@ -628,7 +628,11 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
     }
     o = body + length + (length & 1); // chunks are word-aligned
   }
-  // the playback path is 16-bit interleaved stereo (see play_audio)
+  // the playback path is 16-bit interleaved stereo (see play_audio), and it
+  // queues whole frames only: drop a trailing partial frame rather than feed it
+  if (channels == 2 && bits_per_sample == 16) {
+    data_length -= data_length % (2 * sizeof(int16_t));
+  }
   if (sample_rate == 0 || data_length == 0 || channels != 2 || bits_per_sample != 16) {
     audio_bytes.clear();
     return false;
