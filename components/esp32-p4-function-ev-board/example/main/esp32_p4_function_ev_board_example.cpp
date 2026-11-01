@@ -406,9 +406,15 @@ extern "C" void app_main(void) {
     if (!did_have_ip && have_ip) {
       did_have_ip = true;
       std::string address = ip_str;
-      logger.info("Got IP {}, starting RTPS participant", address);
+      auto netmask_ip = board.ethernet_netmask();
+      char netmask_buf[16];
+      esp_ip4addr_ntoa(&netmask_ip, netmask_buf, sizeof(netmask_buf));
+      std::string netmask = netmask_buf;
+      logger.info("Got IP {} netmask {}, starting RTPS participant", address, netmask);
       participant = std::make_shared<espp::RtpsParticipant>(espp::RtpsParticipant::Config{
           .interface_address = address,
+          // which of a multi-homed peer's announced addresses is on our network
+          .interface_netmask = netmask,
           // A remote reader (e.g. a ROS 2 subscriber) matched our writer: we now
           // have a peer to publish to. The facade signals matches through this
           // callback (it runs on an engine worker thread).

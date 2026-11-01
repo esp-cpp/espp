@@ -138,7 +138,7 @@ bool ParticipantProxyData::readFromBuffer(CdrReader &buffer, Participant *partic
     }
     case ParameterId::PID_METATRAFFIC_MULTICAST_LOCATOR: {
       if (!readLocatorIntoList(buffer, m_metatrafficMulticastLocatorList,
-                               participant->m_localIpAddress)) {
+                               participant->m_localIpAddress, participant->m_localPrefixLength)) {
         PPD_LOG("Failed to read metatraffic multicast locator");
         return false;
       }
@@ -146,23 +146,23 @@ bool ParticipantProxyData::readFromBuffer(CdrReader &buffer, Participant *partic
     }
     case ParameterId::PID_METATRAFFIC_UNICAST_LOCATOR: {
       if (!readLocatorIntoList(buffer, m_metatrafficUnicastLocatorList,
-                               participant->m_localIpAddress)) {
+                               participant->m_localIpAddress, participant->m_localPrefixLength)) {
         PPD_LOG("Failed to read metatraffic unicast locator");
         return false;
       }
       break;
     }
     case ParameterId::PID_DEFAULT_UNICAST_LOCATOR: {
-      if (!readLocatorIntoList(buffer, m_defaultUnicastLocatorList,
-                               participant->m_localIpAddress)) {
+      if (!readLocatorIntoList(buffer, m_defaultUnicastLocatorList, participant->m_localIpAddress,
+                               participant->m_localPrefixLength)) {
         PPD_LOG("Failed to read default unicast locator");
         return false;
       }
       break;
     }
     case ParameterId::PID_DEFAULT_MULTICAST_LOCATOR: {
-      if (!readLocatorIntoList(buffer, m_defaultMulticastLocatorList,
-                               participant->m_localIpAddress)) {
+      if (!readLocatorIntoList(buffer, m_defaultMulticastLocatorList, participant->m_localIpAddress,
+                               participant->m_localPrefixLength)) {
         PPD_LOG("Failed to read default multicast locator");
         return false;
       }
@@ -225,7 +225,7 @@ bool ParticipantProxyData::readFromBuffer(CdrReader &buffer, Participant *partic
 
 bool ParticipantProxyData::readLocatorIntoList(
     CdrReader &buffer, std::array<LocatorIPv4, Config::SPDP_MAX_NUM_LOCATORS> &list,
-    const Ip4AddressBytes &localIp) {
+    const Ip4AddressBytes &localIp, uint8_t localPrefixLength) {
   FullLengthLocator full_length_locator;
   if (!full_length_locator.readFromBuffer(buffer)) {
     PPD_LOG("Not enough data left in buffer to read locator");
@@ -246,12 +246,13 @@ bool ParticipantProxyData::readLocatorIntoList(
       return true;
     }
   }
-  // The list is full. A peer on several networks announces a locator for each,
-  // in its own order, and only one on our subnet is reachable: let it replace
-  // one that isn't on our subnet.
-  if (locator.isSameSubnet(localIp)) {
+  // The list is full. A peer on several networks announces a unicast locator
+  // for each, in its own order, and only one on our network is reachable: let
+  // it replace one that isn't. (A multicast locator is never "on our network";
+  // those lists keep their announcement order.)
+  if (!locator.isMulticastAddress() && locator.isSameSubnet(localIp, localPrefixLength)) {
     for (auto &proxy_locator : list) {
-      if (!proxy_locator.isSameSubnet(localIp)) {
+      if (!proxy_locator.isSameSubnet(localIp, localPrefixLength)) {
         proxy_locator = locator;
         PPD_LOG("Replacing an off-subnet locator with: {} {} {} {}", (int)locator.address[0],
                 (int)locator.address[1], (int)locator.address[2], (int)locator.address[3]);

@@ -126,6 +126,7 @@ Rtps::ServiceClient::reply_callback_t wrap_reply_callback(const py::function &fn
 // Python-facing Config: like Rtps::Config but with py::function callbacks.
 struct PyRtpsConfig {
   std::string interface_address{};
+  std::string interface_netmask{};
   py::function on_publisher_matched{};
   py::function on_subscriber_matched{};
   espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
@@ -138,6 +139,7 @@ struct PyRtpsConfig {
 Rtps::Config to_config(const PyRtpsConfig &pc) {
   return Rtps::Config{
       .interface_address = pc.interface_address,
+      .interface_netmask = pc.interface_netmask,
       .on_publisher_matched = wrap_matched_callback(pc.on_publisher_matched),
       .on_subscriber_matched = wrap_matched_callback(pc.on_subscriber_matched),
       .log_level = pc.log_level,
@@ -172,10 +174,11 @@ void py_init_rtps(py::module &m) {
       .def(py::init([](std::string interface_address, const py::object &on_publisher_matched,
                        const py::object &on_subscriber_matched, espp::Logger::Verbosity log_level,
                        espp::QosBand metatraffic_band, espp::QosBand user_traffic_band,
-                       bool enable_dedicated_endpoint_ports,
-                       uint8_t max_prioritized_endpoint_ports) {
+                       bool enable_dedicated_endpoint_ports, uint8_t max_prioritized_endpoint_ports,
+                       std::string interface_netmask) {
              PyRtpsConfig c;
              c.interface_address = std::move(interface_address);
+             c.interface_netmask = std::move(interface_netmask);
              c.on_publisher_matched = as_function(on_publisher_matched);
              c.on_subscriber_matched = as_function(on_subscriber_matched);
              c.log_level = log_level;
@@ -192,8 +195,14 @@ void py_init_rtps(py::module &m) {
            py::arg("metatraffic_band") = espp::QosBand::High,
            py::arg("user_traffic_band") = espp::QosBand::Normal,
            py::arg("enable_dedicated_endpoint_ports") = true,
-           py::arg("max_prioritized_endpoint_ports") = 4)
+           py::arg("max_prioritized_endpoint_ports") = 4,
+           py::arg("interface_netmask") = std::string{},
+           "interface_address: IPv4 address of the interface to use (empty: auto-detect).\n"
+           "interface_netmask: its netmask (\"255.255.128.0\") or prefix length (\"17\"), "
+           "which decides which of a multi-homed peer's locators is on our network; empty: "
+           "the netmask of the interface that owns interface_address.")
       .def_readwrite("interface_address", &PyRtpsConfig::interface_address)
+      .def_readwrite("interface_netmask", &PyRtpsConfig::interface_netmask)
       .def_readwrite("on_publisher_matched", &PyRtpsConfig::on_publisher_matched)
       .def_readwrite("on_subscriber_matched", &PyRtpsConfig::on_subscriber_matched)
       .def_readwrite("log_level", &PyRtpsConfig::log_level)

@@ -82,9 +82,13 @@ public:
   inline uint32_t getAliveSignalAgeInMilliseconds() const;
 
 private:
+  // Reads one locator parameter into `list`. For a unicast list, a locator on
+  // the local network (`localIp` / `localPrefixLength`) may replace an
+  // off-network one once the list is full; multicast lists are filled in
+  // announcement order only.
   bool readLocatorIntoList(CdrReader &buffer,
                            std::array<LocatorIPv4, Config::SPDP_MAX_NUM_LOCATORS> &list,
-                           const Ip4AddressBytes &localIp);
+                           const Ip4AddressBytes &localIp, uint8_t localPrefixLength);
 
   static const BuiltinEndpointSet_t DISC_BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER = 1 << 0;
   static const BuiltinEndpointSet_t DISC_BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR = 1 << 1;

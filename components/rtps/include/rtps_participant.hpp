@@ -162,6 +162,13 @@ public:
     /// to auto-detect the first non-loopback IPv4 interface. On ESP targets it
     /// must be set explicitly (e.g. from the WiFi/Ethernet netif IP).
     std::string interface_address{};
+    /// Netmask of that interface, as a dotted quad ("255.255.128.0") or a
+    /// prefix length ("17"). It decides which of a peer's announced unicast
+    /// locators is on our network when the peer has several interfaces. Leave
+    /// empty to use the netmask of the interface that owns interface_address
+    /// (host), or a /24 on ESP targets - set it from the netif's ip_info
+    /// netmask there when the network is not a /24.
+    std::string interface_netmask{};
     matched_callback_t on_publisher_matched{nullptr};     ///< A writer gained a remote reader.
     matched_callback_t on_subscriber_matched{nullptr};    ///< A reader gained a remote writer.
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; ///< Facade log verbosity.
@@ -696,7 +703,9 @@ protected:
   bool remove_native_service_client(const std::shared_ptr<NativeServiceClient> &client);
 #endif // RTPS_WITH_RPC
 
-  bool resolve_interface_address(std::array<uint8_t, 4> &ip_bytes) const;
+  /// Resolve Config::interface_address / interface_netmask into the local
+  /// address and the prefix length of its network (auto-detecting on the host).
+  bool resolve_interface(std::array<uint8_t, 4> &ip_bytes, uint8_t &prefix_length) const;
 
   /// Rollback helpers for partially-built composite endpoints (services /
   /// actions): remove a previously added writer/reader so a failed composite

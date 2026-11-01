@@ -47,7 +47,8 @@ bool TopicData::matchesTopicOf(const TopicData &other) {
          strcmp(this->typeName, other.typeName) == 0;
 }
 
-bool TopicData::readFromBuffer(std::span<const uint8_t> data, const Ip4AddressBytes &localIp) {
+bool TopicData::readFromBuffer(std::span<const uint8_t> data, const Ip4AddressBytes &localIp,
+                               uint8_t localPrefixLength) {
   CdrReader buffer(asBytes(data.data(), data.size()));
 
   // Reset valid flags, as the respective parameters are optional
@@ -145,7 +146,8 @@ bool TopicData::readFromBuffer(std::span<const uint8_t> data, const Ip4AddressBy
       // accepted, as the subnet is unknown until the local netif is up.
       if (uLoc.kind == LocatorKind_t::LOCATOR_KIND_UDPv4) {
         if (!unicastLocator.isValid() ||
-            (uLoc.isSameSubnet(localIp) && !unicastLocator.isSameSubnet(localIp))) {
+            (uLoc.isSameSubnet(localIp, localPrefixLength) &&
+             !unicastLocator.isSameSubnet(localIp, localPrefixLength))) {
           unicastLocator = uLoc;
         }
         const auto a0 = static_cast<unsigned int>(uLoc.address[12]);

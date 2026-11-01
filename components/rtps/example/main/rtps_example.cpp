@@ -69,10 +69,16 @@ extern "C" void app_main(void) {
     std::this_thread::sleep_for(100ms);
   }
   auto eth_ip = board.ethernet_ip();
+  auto eth_netmask = board.ethernet_netmask();
   const std::string interface_address =
       fmt::format("{}.{}.{}.{}", esp_ip4_addr1_16(&eth_ip), esp_ip4_addr2_16(&eth_ip),
                   esp_ip4_addr3_16(&eth_ip), esp_ip4_addr4_16(&eth_ip));
-  logger.info("Ethernet up, IP {}", interface_address);
+  // The netmask lets the participant tell which of a multi-homed peer's
+  // announced addresses is on our network (a /24 is assumed without it).
+  const std::string interface_netmask =
+      fmt::format("{}.{}.{}.{}", esp_ip4_addr1_16(&eth_netmask), esp_ip4_addr2_16(&eth_netmask),
+                  esp_ip4_addr3_16(&eth_netmask), esp_ip4_addr4_16(&eth_netmask));
+  logger.info("Ethernet up, IP {} netmask {}", interface_address, interface_netmask);
 
   // RTPS/DDS participant (embeddedRTPS engine behind the espp facade). The
   // topics pair with the FastDDS host peer in example/pc/host_pubsub.cpp; for
@@ -88,6 +94,7 @@ extern "C" void app_main(void) {
   //! [rtps participant example]
   espp::RtpsParticipant participant({
       .interface_address = interface_address,
+      .interface_netmask = interface_netmask,
       .on_publisher_matched = [&]() { logger.info("publisher matched a remote reader"); },
       .on_subscriber_matched = [&]() { logger.info("subscriber matched a remote writer"); },
       .log_level = espp::Logger::Verbosity::INFO,
@@ -245,6 +252,7 @@ extern "C" void app_main(void) {
   // target with headroom (e.g. PSRAM).
   espp::RtpsParticipant selftest_participant({
       .interface_address = interface_address,
+      .interface_netmask = interface_netmask,
       .log_level = espp::Logger::Verbosity::WARN,
   });
   if (!selftest_participant.start()) {

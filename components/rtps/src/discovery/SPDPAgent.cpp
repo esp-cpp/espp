@@ -161,7 +161,8 @@ bool SPDPAgent::addProxiesForBuiltInEndpoints() {
   // Check if the remote participants has a locator in our subnet
   for (unsigned int i = 0; i < m_proxyDataBuffer.m_metatrafficUnicastLocatorList.size(); i++) {
     LocatorIPv4 *l = &(m_proxyDataBuffer.m_metatrafficUnicastLocatorList[i]);
-    if (l->isValid() && l->isSameSubnet(mp_participant->m_localIpAddress)) {
+    if (l->isValid() &&
+        l->isSameSubnet(mp_participant->m_localIpAddress, mp_participant->m_localPrefixLength)) {
       locator = l;
       break;
     }

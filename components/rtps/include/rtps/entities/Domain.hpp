@@ -61,6 +61,10 @@ struct DomainConfig {
   /// The cap is a TRUE fd bound: released sockets whose fd is still open
   /// awaiting the reactor's removal completion (retired) count toward it.
   uint8_t max_prioritized_endpoint_ports{4};
+  /// Prefix length (CIDR bits) of the network the local address is on. Used to
+  /// tell which of a peer's announced unicast locators is reachable when the
+  /// peer sits on several networks; a /24 when unknown.
+  uint8_t local_prefix_length{DEFAULT_SUBNET_PREFIX_LENGTH};
 };
 
 /// Per-endpoint scheduling options for createWriter()/createReader().

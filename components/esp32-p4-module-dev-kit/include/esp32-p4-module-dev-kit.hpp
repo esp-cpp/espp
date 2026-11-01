@@ -297,6 +297,11 @@ public:
 
   /// \return The most recently acquired IPv4 address (0 if none).
   esp_ip4_addr_t ethernet_ip() const { return ethernet_ ? ethernet_->ip() : esp_ip4_addr_t{}; }
+  /// Get the netmask of the Ethernet IP address
+  /// \return The netmask (0 if not connected)
+  esp_ip4_addr_t ethernet_netmask() const {
+    return ethernet_ ? ethernet_->netmask() : esp_ip4_addr_t{};
+  }
 
   /////////////////////////////////////////////////////////////////////////////
   // Audio System (ES8311 + NS4150B)

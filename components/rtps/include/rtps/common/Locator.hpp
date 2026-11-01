@@ -42,9 +42,41 @@ namespace rtps {
 #define RTPS_EMBEDDED_PACKED __attribute__((packed))
 #endif
 
+/// Prefix length (CIDR bits) assumed for the local network when none is
+/// known: a /24, the historical behaviour of every subnet check below.
+constexpr uint8_t DEFAULT_SUBNET_PREFIX_LENGTH = 24;
+
+/// Whether `addr` is on the same IPv4 network as `local`, for a network of
+/// `prefixLength` bits (0..32; larger values are treated as 32). A prefix of 0
+/// puts every address on the local network.
 inline bool isSameSubnetAddress(const std::array<uint8_t, 4> &addr,
-                                const std::array<uint8_t, 4> &local) {
-  return addr[0] == local[0] && addr[1] == local[1] && addr[2] == local[2];
+                                const std::array<uint8_t, 4> &local,
+                                uint8_t prefixLength = DEFAULT_SUBNET_PREFIX_LENGTH) {
+  if (prefixLength > 32) {
+    prefixLength = 32;
+  }
+  const uint32_t mask = prefixLength == 0 ? 0u : (0xFFFFFFFFu << (32u - prefixLength));
+  const auto toU32 = [](const std::array<uint8_t, 4> &ip) {
+    return (static_cast<uint32_t>(ip[0]) << 24) | (static_cast<uint32_t>(ip[1]) << 16) |
+           (static_cast<uint32_t>(ip[2]) << 8) | static_cast<uint32_t>(ip[3]);
+  };
+  return (toU32(addr) & mask) == (toU32(local) & mask);
+}
+
+/// Prefix length of a dotted-quad netmask (255.255.128.0 -> 17). A mask whose
+/// set bits are not contiguous (e.g. 255.0.255.0) is not a valid netmask and
+/// yields DEFAULT_SUBNET_PREFIX_LENGTH.
+inline uint8_t prefixLengthFromNetmask(const std::array<uint8_t, 4> &netmask) {
+  const uint32_t mask =
+      (static_cast<uint32_t>(netmask[0]) << 24) | (static_cast<uint32_t>(netmask[1]) << 16) |
+      (static_cast<uint32_t>(netmask[2]) << 8) | static_cast<uint32_t>(netmask[3]);
+  uint8_t prefixLength = 0;
+  while (prefixLength < 32 && (mask & (0x80000000u >> prefixLength)) != 0) {
+    ++prefixLength;
+  }
+  // every bit after the first clear one must be clear too
+  const uint32_t expected = prefixLength == 0 ? 0u : (0xFFFFFFFFu << (32u - prefixLength));
+  return mask == expected ? prefixLength : DEFAULT_SUBNET_PREFIX_LENGTH;
 }
 
 enum class LocatorKind_t : int32_t {
@@ -100,8 +132,9 @@ struct FullLengthLocator {
     return getIp4AddressBytes() == ipAddress;
   }
 
-  inline bool isSameSubnet(const std::array<uint8_t, 4> &localIp) const {
-    return isSameSubnetAddress(getIp4AddressBytes(), localIp);
+  inline bool isSameSubnet(const std::array<uint8_t, 4> &localIp,
+                           uint8_t prefixLength = DEFAULT_SUBNET_PREFIX_LENGTH) const {
+    return isSameSubnetAddress(getIp4AddressBytes(), localIp, prefixLength);
   }
 
   inline bool isMulticastAddress() const {
@@ -166,8 +199,9 @@ struct LocatorIPv4 {
 
   bool isValid() const { return kind != LocatorKind_t::LOCATOR_KIND_INVALID; }
 
-  inline bool isSameSubnet(const std::array<uint8_t, 4> &localIp) const {
-    return isSameSubnetAddress(getIp4AddressBytes(), localIp);
+  inline bool isSameSubnet(const std::array<uint8_t, 4> &localIp,
+                           uint8_t prefixLength = DEFAULT_SUBNET_PREFIX_LENGTH) const {
+    return isSameSubnetAddress(getIp4AddressBytes(), localIp, prefixLength);
   }
 
   inline bool isMulticastAddress() const {

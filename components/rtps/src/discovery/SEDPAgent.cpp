@@ -94,7 +94,7 @@ void SEDPAgent::handlePublisherReaderMessage(const ReaderCacheChange &change) {
 
   TopicData topicData;
   if (topicData.readFromBuffer(std::span<const uint8_t>(m_buffer, change.getDataSize()),
-                               m_part->m_localIpAddress)) {
+                               m_part->m_localIpAddress, m_part->m_localPrefixLength)) {
     handlePublisherReaderMessage(topicData, change);
   }
 }
@@ -116,7 +116,8 @@ rtps::LocatorIPv4 endpointUnicastLocator(rtps::Participant *part, const rtps::To
   if (remote != nullptr) {
     const auto &defaults = remote->m_defaultUnicastLocatorList;
     auto found = std::find_if(defaults.begin(), defaults.end(), [part](const auto &candidate) {
-      return candidate.isValid() && candidate.isSameSubnet(part->m_localIpAddress);
+      return candidate.isValid() &&
+             candidate.isSameSubnet(part->m_localIpAddress, part->m_localPrefixLength);
     });
     if (found == defaults.end()) {
       found = std::find_if(defaults.begin(), defaults.end(),
@@ -251,7 +252,7 @@ void SEDPAgent::handleSubscriptionReaderMessage(const ReaderCacheChange &change)
 
   TopicData topicData;
   if (topicData.readFromBuffer(std::span<const uint8_t>(m_buffer, change.getDataSize()),
-                               m_part->m_localIpAddress)) {
+                               m_part->m_localIpAddress, m_part->m_localPrefixLength)) {
     handleSubscriptionReaderMessage(topicData, change);
   }
 }

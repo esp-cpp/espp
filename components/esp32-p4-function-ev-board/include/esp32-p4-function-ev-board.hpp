@@ -389,6 +389,11 @@ public:
   /// Get the most recently acquired IPv4 address (0 if none)
   /// \return The IPv4 address
   esp_ip4_addr_t ethernet_ip() const { return ethernet_ ? ethernet_->ip() : esp_ip4_addr_t{}; }
+  /// Get the netmask of the Ethernet IP address
+  /// \return The netmask (0 if not connected)
+  esp_ip4_addr_t ethernet_netmask() const {
+    return ethernet_ ? ethernet_->netmask() : esp_ip4_addr_t{};
+  }
 #endif // CONFIG_ESP_P4_EV_BOARD_ETHERNET || defined(_DOXYGEN_)
 
   /////////////////////////////////////////////////////////////////////////////
