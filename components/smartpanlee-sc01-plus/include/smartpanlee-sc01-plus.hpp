@@ -395,6 +395,14 @@ protected:
   std::unique_ptr<espp::Task> audio_task_{nullptr};
   i2s_chan_handle_t audio_tx_handle_{nullptr};
   StreamBufferHandle_t audio_tx_stream_{nullptr};
+  // The playback task's FreeRTOS handle (set by the task itself on its first
+  // run): play_audio() notifies it when the stream reaches a whole block, so
+  // its bounded wait for a block is event-driven (see audio_task_callback).
+  std::atomic<TaskHandle_t> audio_tx_task_handle_{nullptr};
+  // Whether the playback task's previous block carried audio (only the task
+  // touches this): a stream that momentarily holds less than a block while
+  // flowing is given time to complete it; an idle one gets silence at once.
+  bool audio_tx_was_flowing_{false};
   i2s_std_config_t audio_std_cfg_{};
   std::vector<uint8_t> audio_tx_buffer_;
 

@@ -10,6 +10,25 @@
 
 namespace espp {
 
+// How long the audio task gives a producer that is mid-stream to complete a
+// block before the block is written padded with silence. Longer than one block
+// at every rate the board supports (a block is 1/60 s), so a producer whose
+// next frame simply has not arrived yet is not padded; and shorter than the
+// DMA ring minus one block, so the ring never drains while waiting (see
+// AUDIO_TX_DMA_DESC_NUM).
+static constexpr uint32_t AUDIO_TX_WHOLE_BLOCK_WAIT_MS = 24;
+
+// Depth of the TX channel's DMA ring, in descriptors of AUDIO_TX_DMA_FRAME_NUM
+// frames (the I2S driver's default frame count). The audio task keeps this
+// ring full: the I2S driver fills descriptors progressively and the DMA sends
+// them in ring order, so a descriptor the task has only partly filled is
+// safe only while the DMA is a full ring behind it. The ring therefore has to
+// outlast the longest pause between writes (AUDIO_TX_WHOLE_BLOCK_WAIT_MS) plus
+// the block written after it: 12 x 240 frames is 60 ms at 48 kHz / 65 ms at
+// 44.1 kHz; the driver's default of 6 (about 30 ms) leaves no margin.
+static constexpr uint32_t AUDIO_TX_DMA_FRAME_NUM = 240;
+static constexpr uint32_t AUDIO_TX_DMA_DESC_NUM = 12;
+
 // Map a requested sample rate onto the ES8311 HAL's supported-rates enum.
 // Returns false for rates the codec driver does not support.
 static bool es8311_samples_from_rate(uint32_t sample_rate, audio_hal_iface_samples_t &out_samples) {
@@ -92,6 +111,13 @@ bool Esp32P4Wifi6DevKit::initialize_audio(uint32_t sample_rate,
   // duplex on this single bus, sharing the clock). MCLK = 256 * fs (default).
   i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(audio_i2s_port, I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true;
+  // The ring must outlast the audio task's whole-block wait plus one block at
+  // the highest rate the board supports (see AUDIO_TX_DMA_DESC_NUM).
+  static_assert(AUDIO_TX_DMA_DESC_NUM * AUDIO_TX_DMA_FRAME_NUM * 1000 / 48000 >
+                    AUDIO_TX_WHOLE_BLOCK_WAIT_MS + 1000 / UPDATE_FREQUENCY,
+                "the I2S TX DMA ring must outlast the whole-block wait plus one block");
+  chan_cfg.dma_desc_num = AUDIO_TX_DMA_DESC_NUM;
+  chan_cfg.dma_frame_num = AUDIO_TX_DMA_FRAME_NUM;
   if (i2s_new_channel(&chan_cfg, &audio_tx_handle, &audio_rx_handle) != ESP_OK) {
     logger_.error("Failed to create I2S channel");
     return false;
@@ -174,10 +200,10 @@ bool Esp32P4Wifi6DevKit::initialize_audio(uint32_t sample_rate,
   // split one would desynchronize the framing of everything received after it
   tx_buf_size -= tx_buf_size % (TX_NUM_CHANNELS * NUM_BYTES_PER_CHANNEL);
   audio_tx_buffer.resize(tx_buf_size);
-  // Trigger level = one block: the audio task waits for a whole block instead of
-  // padding a partial one with silence (see audio_task_callback).
-  audio_tx_stream =
-      xStreamBufferCreate(std::max<size_t>(tx_buf_size * 4, 4 * 1024), tx_buf_size);
+  // The audio task never blocks on the stream (see audio_task_callback), so
+  // the trigger level is irrelevant; the minimum keeps a producer's send from
+  // ever holding a receiver.
+  audio_tx_stream = xStreamBufferCreate(std::max<size_t>(tx_buf_size * 4, 4 * 1024), 1);
   if (audio_tx_stream == nullptr) {
     return fail_audio_init("Failed to allocate the audio TX stream buffer");
   }
@@ -243,7 +269,16 @@ size_t Esp32P4Wifi6DevKit::play_audio(const uint8_t *data, uint32_t num_bytes) {
   if (sendable == 0) {
     return 0;
   }
-  return xStreamBufferSend(audio_tx_stream, data, sendable, 0);
+  const size_t sent = xStreamBufferSend(audio_tx_stream, data, sendable, 0);
+  // Wake the playback task if it is waiting for the stream to hold a whole
+  // block (see audio_task_callback); a notification nobody waits for is
+  // harmless (the task re-reads the stream after every wake).
+  if (sent > 0 && xStreamBufferBytesAvailable(audio_tx_stream) >= audio_tx_buffer.size()) {
+    if (TaskHandle_t task = audio_tx_task_handle_.load(std::memory_order_acquire)) {
+      xTaskNotifyGive(task);
+    }
+  }
+  return sent;
 }
 
 void Esp32P4Wifi6DevKit::clear_audio() {
@@ -387,65 +422,82 @@ void Esp32P4Wifi6DevKit::microphone_volume(float volume) {
 
 float Esp32P4Wifi6DevKit::microphone_volume() const { return mic_volume_; }
 
-// How long the audio task waits for a whole block before writing a partial one
-// (or silence). Longer than one block at every rate the board supports (a block
-// is 1/60 s at the default rate), so partial writes only happen when the
-// producer is idle or genuinely behind, never because its next frame simply had
-// not arrived yet; short enough that idle->silence latency is not noticeable.
-static constexpr uint32_t AUDIO_TX_RECEIVE_TIMEOUT_MS = 40;
-
 bool Esp32P4Wifi6DevKit::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                              bool &task_notified) {
-  (void)cv; // unused: this task paces itself on the finite-timeout receive/write below
-  size_t buffer_size = audio_tx_buffer.size();
+  (void)cv; // unused: this task paces itself on the finite-timeout write below
+  // Playback: write the next block to the I2S channel, ALWAYS a whole block.
+  //
+  // The I2S driver fills DMA descriptors progressively and the DMA transmits
+  // them in ring order, so the only safe steady state is a full ring with the
+  // write position a whole ring ahead of the DMA. Writing a whole block every
+  // iteration - audio when there is some, silence when idle - keeps it there:
+  // the write blocks on the ring and paces this loop. Letting the task sit on
+  // the stream instead (waiting for data, writing whatever arrived) drains the
+  // ring while idle; the next sound then starts in descriptors the DMA is
+  // about to send, half old and half new - a pop at the start of every sound,
+  // and more whenever a partial write is left behind.
+  //
+  // Producers push audio in bursts (a video frame at a time, with jitter), so
+  // when a stream that is flowing momentarily holds less than a block, give
+  // it a bounded chance to complete the block rather than padding the gap
+  // with silence (audible as stutter). The wait is event-driven: play_audio()
+  // notifies this task when the stream reaches a block. It is shorter than
+  // the ring minus one block, so the ring never drains while waiting; a
+  // stream that was already idle gets silence at once.
+  if (audio_tx_task_handle_.load(std::memory_order_relaxed) == nullptr) {
+    audio_tx_task_handle_.store(xTaskGetCurrentTaskHandle(), std::memory_order_release);
+  }
+  const size_t block = audio_tx_buffer.size();
   uint8_t *tx_buf = audio_tx_buffer.data();
-  // Wait (bounded) for a whole block rather than taking whatever is queued and
-  // zero-padding it to a block: producers push audio in bursts (one video frame
-  // at a time, with frame-to-frame jitter), and the stream buffer exists to
-  // absorb exactly that. Taking a partial block padded it with silence every
-  // time the stream momentarily held less than one block, which is audible as
-  // stutter whenever the producer's cadence is uneven. The DMA is still fed
-  // whole blocks at a constant cadence while audio is flowing (the stream's
-  // trigger level is one block); only after the timeout -- producer idle or
-  // slower than real time -- is a partial block written as is (the I2S driver
-  // concatenates partial writes without gaps), or silence when there is none.
-  // The wait happens before taking audio_tx_mutex_ so a sample-rate change is
-  // never held off by it.
-  size_t got = xStreamBufferReceive(audio_tx_stream, tx_buf, buffer_size,
-                                    pdMS_TO_TICKS(AUDIO_TX_RECEIVE_TIMEOUT_MS));
-  // the block is frame-aligned and producers queue whole frames, so this cannot
-  // happen; if it ever does, do not silently drop bytes (that would desynchronize
-  // the framing of everything after them) -- say so
   constexpr size_t frame_bytes = TX_NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
-  if (got % frame_bytes != 0) {
-    static uint32_t misaligned_count = 0;
-    if ((misaligned_count++ % 100) == 0) {
-      logger_.warn("audio stream holds a partial frame ({} bytes)", got);
+  size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
+  if (available % frame_bytes != 0) {
+    // Producers queue whole frames only (play_audio), so this is a bug
+    // somewhere. A stuck partial frame would misalign every frame queued after
+    // it for good, and merely skipping it here would leave it stuck: say so and
+    // start the stream over.
+    logger_.warn_rate_limited("audio stream misaligned ({} bytes queued); resetting it", available);
+    xStreamBufferReset(audio_tx_stream);
+    available = 0;
+  }
+  if (available < block && (available > 0 || audio_tx_was_flowing_)) {
+    const TickType_t deadline = xTaskGetTickCount() + pdMS_TO_TICKS(AUDIO_TX_WHOLE_BLOCK_WAIT_MS);
+    while (available < block) {
+      const TickType_t remaining = deadline - xTaskGetTickCount();
+      if (static_cast<int32_t>(remaining) <= 0) {
+        break;
+      }
+      // a notification left over from an earlier send wakes this at once; the
+      // stream is re-read and the wait resumes, still bounded by the deadline
+      ulTaskNotifyTake(pdTRUE, remaining);
+      available = xStreamBufferBytesAvailable(audio_tx_stream);
     }
   }
-  size_t to_write = buffer_size;
-  if (got == 0) {
-    memset(tx_buf, 0, buffer_size);
-  } else {
-    to_write = got;
+  available = std::min(available, block);
+  memset(tx_buf, 0, block);
+  if (available > 0) {
+    xStreamBufferReceive(audio_tx_stream, tx_buf, available, 0);
   }
+  audio_tx_was_flowing_ = available > 0;
   // Use a finite write timeout (not portMAX_DELAY) so this task returns
   // periodically and can observe a stop request; an infinite write would block
   // Task::stop() from joining during teardown if the I2S sink ever stalls.
   size_t bytes_written = 0;
   esp_err_t err;
   {
-    // Serialize with audio_sample_rate(), which may disable/reconfigure the
-    // channel; writing to a disabled channel would race the reconfig.
+    // Serialize with set_audio_sample_rate(), which may disable/reconfigure the
+    // channel; writing to a disabled channel would race the reconfig. The wait
+    // above happens before taking the mutex so a sample-rate change is never
+    // held off by it.
     std::lock_guard<std::mutex> lk(audio_tx_mutex_);
-    err = i2s_channel_write(audio_tx_handle, tx_buf, to_write, &bytes_written, pdMS_TO_TICKS(100));
+    err = i2s_channel_write(audio_tx_handle, tx_buf, block, &bytes_written, pdMS_TO_TICKS(100));
   }
-  if (err != ESP_OK || bytes_written != to_write) {
+  if (err != ESP_OK || bytes_written != block) {
     // Rate-limit: a stalled I2S sink would otherwise emit this every ~100 ms.
     static uint32_t write_warn_count = 0;
     if ((write_warn_count++ % 100) == 0) {
       logger_.warn("i2s_channel_write: {} ({} of {} bytes written, occurrence {})",
-                   esp_err_to_name(err), bytes_written, to_write, write_warn_count);
+                   esp_err_to_name(err), bytes_written, block, write_warn_count);
     }
   }
   // honor a stop request per the Task contract: check/clear notified under m
