@@ -305,7 +305,8 @@ void addSubmessageGap(Buffer &buffer, EntityId_t writerId, EntityId_t readerId,
 #else
   subMsg.header.flags = FLAG_BIG_ENDIAN;
 #endif
-  subMsg.header.octetsToNextHeader = 32;
+  // readerId, writerId, gapStart, gapList.base, gapList.numBits: no bitmap words.
+  subMsg.header.octetsToNextHeader = 28;
 
   subMsg.writerId = writerId;
   subMsg.readerId = readerId;
