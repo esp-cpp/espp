@@ -1029,13 +1029,14 @@ protected:
   // write (write_lcd_lines()) waits on it under panel_op_mutex_, i.e. draws
   // synchronously; an LVGL flush does not wait (see transfer_in_flight_).
   SemaphoreHandle_t draw_done_sem_{nullptr};
-  // The LVGL flush is asynchronous: flush() issues its draw_bitmap and returns
+  // The LVGL flush is asynchronous: flush() issues its draw_bitmap copy (or,
+  // when rotating, its PPA rotation straight into the framebuffer) and returns
   // without waiting, so LVGL renders the next area into its other draw buffer
-  // while the DMA2D copy of this one runs. The copy is "in flight" until the
-  // ISR clears this flag; the next panel operation waits for it first. The ISR
-  // also signals LVGL (lv_display_flush_ready() on lvgl_flush_disp_) when
-  // lvgl_flush_pending_ is set, which it is only for a flush()'s draw, so a
-  // direct write's completion never reaches LVGL.
+  // while this one is being copied or rotated. The transfer is "in flight"
+  // until its completion ISR clears this flag; the next panel operation waits
+  // for it first. The ISR also signals LVGL (lv_display_flush_ready() on
+  // lvgl_flush_disp_) when lvgl_flush_pending_ is set, which it is only for a
+  // flush()'s transfer, so a direct write's completion never reaches LVGL.
   std::atomic<bool> transfer_in_flight_{false};
   std::atomic<bool> lvgl_flush_pending_{false};
   lv_display_t *lvgl_flush_disp_{nullptr};
@@ -1079,6 +1080,12 @@ protected:
   bool panel_handles_rotation(lv_display_rotation_t rotation) const;
   static bool notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel,
                                       esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx);
+  // PPA transaction-done callback (ISR) for the non-blocking rotation flush()
+  // queues into the framebuffer; user_data is the M5StackTab5 instance.
+  static bool notify_ppa_trans_done(ppa_client_handle_t client, ppa_event_data_t *edata,
+                                    void *user_data);
+  // Shared tail of both completion callbacks: the transfer in flight is done.
+  void complete_transfer_from_isr(BaseType_t *higher_priority_task_woken);
 
   // DSI write helpers
   void dsi_write_command(uint8_t cmd, std::span<const uint8_t> params, uint32_t flags);

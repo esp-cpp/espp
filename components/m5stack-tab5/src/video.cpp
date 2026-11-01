@@ -688,6 +688,20 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
       logger_.warn("Could not register PPA client ({}); rotation will fall back to software",
                    esp_err_to_name(perr));
       g_ppa_client = nullptr;
+    } else {
+      // flush() queues its rotations non-blocking; this callback completes
+      // them (see notify_ppa_trans_done()). Without it the PPA path cannot be
+      // used, since nothing would ever signal LVGL.
+      ppa_event_callbacks_t ppa_cbs = {};
+      ppa_cbs.on_trans_done = &M5StackTab5::notify_ppa_trans_done;
+      perr = ppa_client_register_event_callbacks(g_ppa_client, &ppa_cbs);
+      if (perr != ESP_OK) {
+        logger_.warn("Could not register the PPA completion callback ({}); rotation will fall "
+                     "back to software",
+                     esp_err_to_name(perr));
+        ppa_unregister_client(g_ppa_client);
+        g_ppa_client = nullptr;
+      }
     }
   }
   // The PPA output buffer in external (PSRAM) memory must be aligned to the
@@ -1069,28 +1083,47 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       srm.rotation_angle = angle;
       srm.scale_x = 1.0f;
       srm.scale_y = 1.0f;
-      srm.mode = PPA_TRANS_MODE_BLOCKING;
+      // Non-blocking, like the DMA2D copy of the unrotated path: the PPA
+      // driver writes back the source window and invalidates the destination
+      // window when the operation is queued, the operation is left in flight
+      // and notify_ppa_trans_done() signals LVGL when it finishes, so LVGL
+      // renders the next area into its other draw buffer meanwhile. The next
+      // panel operation waits for it first (wait_for_transfer_idle()).
+      srm.mode = PPA_TRANS_MODE_NON_BLOCKING;
+      srm.user_data = this;
       // Serialize the framebuffer write with draw_bitmap (write_lcd_lines /
       // the non-PPA flush tail) so two engines never write the panel FB at once.
       esp_err_t ppa_err;
       {
         std::lock_guard<std::mutex> lock(panel_op_mutex_);
-        wait_for_transfer_idle();
+        if (!wait_for_transfer_idle()) {
+          // a direct write's transfer is wedged: drop this area rather than
+          // rotate on top of it, and keep LVGL alive
+          lv_display_flush_ready(disp);
+          return;
+        }
+        lvgl_flush_disp_ = disp;
+        lvgl_flush_pending_.store(true, std::memory_order_relaxed);
+        transfer_in_flight_.store(true, std::memory_order_release);
         ppa_err = ppa_do_scale_rotate_mirror(g_ppa_client, &srm);
+        if (ppa_err != ESP_OK) {
+          // Not queued: no completion will arrive.
+          transfer_in_flight_.store(false, std::memory_order_release);
+          lvgl_flush_pending_.store(false, std::memory_order_relaxed);
+        }
       }
       if (ppa_err == ESP_OK) {
-        // The rotated pixels are already in the scanned-out framebuffer and
-        // the PPA driver performed the cache maintenance (write-back of the
-        // source window, invalidate of the destination window). The espp
-        // flush path never dirties the framebuffer with the CPU (draw_bitmap
-        // copies run on the DMA2D engine on the ST71xx variants, and the CPU
-        // copy path — used by the ILI9881 variant and as the DMA2D fallback —
-        // writes back the cache before returning), so there is nothing left
-        // to sync and
-        // no draw_bitmap call is needed: signal LVGL directly.
-        lv_display_flush_ready(disp);
+        // The rotated pixels land in the scanned-out framebuffer with the
+        // cache maintenance done by the PPA driver; the espp flush path never
+        // dirties the framebuffer with the CPU (draw_bitmap copies run on the
+        // DMA2D engine on the ST71xx variants, and the CPU copy path — used by
+        // the ILI9881 variant and as the DMA2D fallback — writes back the
+        // cache before returning), so no draw_bitmap call is needed and the
+        // PPA completion callback signals LVGL.
         return;
       }
+      logger_.warn_rate_limited("PPA rotation failed ({}); rotating in software",
+                                esp_err_to_name(ppa_err));
       // On failure fall through to the scratch-buffer software rotation: the
       // framebuffer may hold a partial block, but the fallback redraws the
       // full area at the same destination.
@@ -1169,26 +1202,47 @@ bool IRAM_ATTR M5StackTab5::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel
   }
 
   // ISR context (or, on the CPU copy path, called synchronously from inside
-  // draw_bitmap on the issuing thread). The transfer is complete: clear the
-  // in-flight flag, release LVGL if this was a flush()'s draw - only flush()
-  // sets lvgl_flush_pending_, so a direct write_lcd_lines() completion is never
-  // mistaken for an LVGL flush completion - and give the semaphore a direct
-  // write (or the next wait_for_transfer_idle()) is waiting on.
-  // lv_display_flush_ready() only clears two flags on the display, which is
-  // what the pre-serialization code called from this ISR as well. It lives in
-  // flash, so this callback must not run while the flash cache is disabled:
-  // leave CONFIG_LCD_DSI_ISR_CACHE_SAFE off (the default) with this BSP.
-  // The in-flight flag is NOT cleared here: the task that consumes this token
-  // clears it (wait_for_transfer_idle() / draw_and_wait()), so the flag and
-  // the token can never disagree across cores.
+  // draw_bitmap on the issuing thread): the draw_bitmap transfer is complete.
   BaseType_t higher_priority_task_woken = pdFALSE;
-  if (tab5->lvgl_flush_pending_.exchange(false)) {
-    lv_display_flush_ready(tab5->lvgl_flush_disp_);
-  }
-  if (tab5->draw_done_sem_ != nullptr) {
-    xSemaphoreGiveFromISR(tab5->draw_done_sem_, &higher_priority_task_woken);
-  }
+  tab5->complete_transfer_from_isr(&higher_priority_task_woken);
   return higher_priority_task_woken == pdTRUE;
+}
+
+bool IRAM_ATTR M5StackTab5::notify_ppa_trans_done(ppa_client_handle_t client,
+                                                  ppa_event_data_t *edata, void *user_data) {
+  (void)client;
+  (void)edata;
+  auto *tab5 = static_cast<espp::M5StackTab5 *>(user_data);
+  if (tab5 == nullptr) {
+    return false;
+  }
+  // ISR context (the PPA / 2D-DMA transfer-done interrupt): the rotation
+  // flush() queued into the framebuffer is complete.
+  BaseType_t higher_priority_task_woken = pdFALSE;
+  tab5->complete_transfer_from_isr(&higher_priority_task_woken);
+  return higher_priority_task_woken == pdTRUE;
+}
+
+void IRAM_ATTR M5StackTab5::complete_transfer_from_isr(BaseType_t *higher_priority_task_woken) {
+  // The transfer in flight (a DMA2D draw_bitmap copy or a PPA rotation) is
+  // complete: release LVGL if this was a flush()'s transfer - only flush()
+  // sets lvgl_flush_pending_, so a direct write_lcd_lines() completion is
+  // never mistaken for an LVGL flush completion - and give the token a direct
+  // write (or the next wait_for_transfer_idle()) is waiting on. The in-flight
+  // flag is NOT cleared here: the task that consumes the token clears it
+  // (wait_for_transfer_idle() / draw_and_wait()), so flag and token can never
+  // disagree across cores.
+  // lv_display_flush_ready() only clears two flags on the display, which is
+  // what the pre-serialization code called from the DSI ISR as well. It lives
+  // in flash, so these callbacks must not run while the flash cache is
+  // disabled: leave CONFIG_LCD_DSI_ISR_CACHE_SAFE and CONFIG_PPA_ISR_IRAM_SAFE
+  // off (the defaults) with this BSP.
+  if (lvgl_flush_pending_.exchange(false)) {
+    lv_display_flush_ready(lvgl_flush_disp_);
+  }
+  if (draw_done_sem_ != nullptr) {
+    xSemaphoreGiveFromISR(draw_done_sem_, higher_priority_task_woken);
+  }
 }
 
 void M5StackTab5::dsi_write_command(uint8_t cmd, std::span<const uint8_t> params,
