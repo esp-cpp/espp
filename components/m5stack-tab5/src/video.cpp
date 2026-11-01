@@ -888,6 +888,34 @@ bool M5StackTab5::draw_and_wait(int x1, int y1, int x2, int y2, const void *data
   return true;
 }
 
+bool M5StackTab5::wait_for_transfer_idle() {
+  // Caller holds panel_op_mutex_. An LVGL flush leaves its draw in flight (see
+  // flush()); nothing else may be issued, and no engine may write the
+  // framebuffer, until the ISR has reported it complete.
+  if (!transfer_in_flight_.load(std::memory_order_acquire)) {
+    if (draw_done_sem_ != nullptr) {
+      // The flush's completion was signalled but never taken (the ISR gives
+      // the semaphore for every draw): drain it so it cannot be paired with
+      // the next synchronous draw.
+      xSemaphoreTake(draw_done_sem_, 0);
+    }
+    return true;
+  }
+  bool ok = draw_done_sem_ != nullptr &&
+            xSemaphoreTake(draw_done_sem_, pdMS_TO_TICKS(kDrawTimeoutMs)) == pdTRUE;
+  transfer_in_flight_.store(false, std::memory_order_release);
+  if (!ok) {
+    // A wedged transfer: give up on it rather than stall every later draw,
+    // and release LVGL if it was the flush's draw (it would otherwise wait
+    // forever for the completion that never came).
+    logger_.warn_rate_limited("draw_bitmap did not complete within {} ms", kDrawTimeoutMs);
+    if (lvgl_flush_pending_.exchange(false)) {
+      lv_display_flush_ready(lvgl_flush_disp_);
+    }
+  }
+  return ok;
+}
+
 void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data,
                                   uint32_t user_data) {
   (void)user_data;
@@ -903,6 +931,9 @@ void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t 
     return;
   }
   std::lock_guard<std::mutex> lock(panel_op_mutex_);
+  // An LVGL flush's copy may still be in flight; it must finish before this
+  // draw is issued (single-flight) and before its completion is waited for.
+  wait_for_transfer_idle();
   draw_and_wait(xs, ys, xe + 1, ye + 1, data);
 }
 
@@ -932,7 +963,10 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
   // This is LVGL's flush callback; it runs in the LVGL task context (from
   // lv_display_flush / the LVGL timer), not from an ISR - the DPI transfer-done
   // interrupt is handled separately in notify_lvgl_flush_ready(). Blocking work
-  // (the PPA rotation and esp_lcd_panel_draw_bitmap) is therefore safe here.
+  // (the PPA rotation, waiting for a previous transfer) is therefore safe here.
+  // The draw_bitmap copy itself is NOT waited for: it is left in flight and the
+  // ISR signals LVGL when it completes, so LVGL renders the next area into its
+  // other draw buffer while this one is being copied (see transfer_in_flight_).
 
   // Acquire-load the publication gate before touching any LCD state. This
   // pairs with the release store at the end of initialize_lcd(): observing
@@ -1023,6 +1057,7 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       esp_err_t ppa_err;
       {
         std::lock_guard<std::mutex> lock(panel_op_mutex_);
+        wait_for_transfer_idle();
         ppa_err = ppa_do_scale_rotate_mirror(g_ppa_client, &srm);
       }
       if (ppa_err == ESP_OK) {
@@ -1049,6 +1084,11 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       // below.
       uint32_t w_stride = lv_draw_buf_width_to_stride(ww, cf);
       uint32_t h_stride = lv_draw_buf_width_to_stride(hh, cf);
+      {
+        // the previous (async) draw may still be reading third_buffer
+        std::lock_guard<std::mutex> lock(panel_op_mutex_);
+        wait_for_transfer_idle();
+      }
       if (rotation == LV_DISPLAY_ROTATION_180) {
         lv_draw_sw_rotate(px_map, third_buffer, hh, ww, h_stride, h_stride, LV_DISPLAY_ROTATION_180,
                           cf);
@@ -1063,16 +1103,34 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
     px_map = reinterpret_cast<uint8_t *>(third_buffer);
   }
 
-  // Pass the draw buffer to the DPI panel driver. Serialized + synchronous (see
-  // draw_and_wait): only one panel transfer is ever in flight, so a concurrent
-  // write_lcd_lines() cannot make this draw fail. Always signal LVGL afterwards
-  // - even if the draw was rejected/failed - so LVGL never waits forever for a
-  // completion that will not come.
+  // Pass the draw buffer to the DPI panel driver, asynchronously. Serialized
+  // under panel_op_mutex_ and issued only once no transfer is in flight, so a
+  // concurrent write_lcd_lines() cannot make this draw fail; then left in
+  // flight with lvgl_flush_pending_ set, so the transfer-done ISR signals LVGL
+  // (lv_display_flush_ready) the moment the copy finishes while LVGL already
+  // renders the next area. The next panel operation, whichever thread issues
+  // it, waits for this copy first (wait_for_transfer_idle()).
+  //
+  // A rejected/failed draw gets no completion: signal LVGL here instead, so it
+  // never waits forever.
   {
     std::lock_guard<std::mutex> lock(panel_op_mutex_);
-    draw_and_wait(offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, px_map);
+    wait_for_transfer_idle();
+    // Publish the pending state before the draw: with the CPU copy path (no
+    // DMA2D) the driver invokes the completion callback synchronously from
+    // inside draw_bitmap, on this thread.
+    lvgl_flush_disp_ = disp;
+    lvgl_flush_pending_.store(true, std::memory_order_relaxed);
+    transfer_in_flight_.store(true, std::memory_order_release);
+    esp_err_t err = esp_lcd_panel_draw_bitmap(lcd_handles_.panel, offsetx1, offsety1, offsetx2 + 1,
+                                              offsety2 + 1, px_map);
+    if (err != ESP_OK) {
+      transfer_in_flight_.store(false, std::memory_order_release);
+      lvgl_flush_pending_.store(false, std::memory_order_relaxed);
+      logger_.warn_rate_limited("draw_bitmap failed: {}", esp_err_to_name(err));
+      lv_display_flush_ready(disp);
+    }
   }
-  lv_display_flush_ready(disp);
 }
 
 bool IRAM_ATTR M5StackTab5::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel,
@@ -1083,12 +1141,21 @@ bool IRAM_ATTR M5StackTab5::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel
     return false;
   }
 
-  // ISR context: just release the draw-completion semaphore. The draw that
-  // issued this transfer (flush() or write_lcd_lines(), holding
-  // panel_op_mutex_) is waiting on it and will signal LVGL itself. This keeps
-  // a direct write_lcd_lines() completion from being mistaken for an LVGL
-  // flush completion.
+  // ISR context (or, on the CPU copy path, called synchronously from inside
+  // draw_bitmap on the issuing thread). The transfer is complete: clear the
+  // in-flight flag, release LVGL if this was a flush()'s draw - only flush()
+  // sets lvgl_flush_pending_, so a direct write_lcd_lines() completion is never
+  // mistaken for an LVGL flush completion - and give the semaphore a direct
+  // write (or the next wait_for_transfer_idle()) is waiting on.
+  // lv_display_flush_ready() only clears two flags on the display, which is
+  // what the pre-serialization code called from this ISR as well. It lives in
+  // flash, so this callback must not run while the flash cache is disabled:
+  // leave CONFIG_LCD_DSI_ISR_CACHE_SAFE off (the default) with this BSP.
   BaseType_t higher_priority_task_woken = pdFALSE;
+  tab5->transfer_in_flight_.store(false, std::memory_order_release);
+  if (tab5->lvgl_flush_pending_.exchange(false)) {
+    lv_display_flush_ready(tab5->lvgl_flush_disp_);
+  }
   if (tab5->draw_done_sem_ != nullptr) {
     xSemaphoreGiveFromISR(tab5->draw_done_sem_, &higher_priority_task_woken);
   }
