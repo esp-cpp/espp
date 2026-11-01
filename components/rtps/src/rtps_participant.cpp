@@ -116,7 +116,11 @@ bool RtpsParticipant::resolve_interface(std::array<uint8_t, 4> &ip_bytes,
     }
     if (ret == NO_ERROR) {
       for (const auto *a = adapters; a != nullptr && !detected_prefix; a = a->Next) {
-        if (a->OperStatus != IfOperStatusUp || a->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+        // Auto-detection skips down and loopback adapters (like the POSIX
+        // path's usable()); an explicitly configured address may name any
+        // adapter, loopback included, and still gets that adapter's prefix.
+        if (auto_detect &&
+            (a->OperStatus != IfOperStatusUp || a->IfType == IF_TYPE_SOFTWARE_LOOPBACK)) {
           continue;
         }
         for (auto *ua = a->FirstUnicastAddress; ua != nullptr; ua = ua->Next) {
