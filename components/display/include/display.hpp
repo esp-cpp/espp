@@ -347,11 +347,14 @@ protected:
    */
   static void event_cb(lv_event_t *event) {
     if (lv_event_get_code(event) == LV_EVENT_RESOLUTION_CHANGED) {
-      auto rotation =
-          static_cast<DisplayRotation>(lv_display_get_rotation(lv_display_get_default()));
-      auto display = static_cast<Display *>(lv_display_get_user_data(lv_disp_get_default()));
-      if (display != nullptr) {
-        display->set_rotation(rotation);
+      // Use the display that emitted the event and the Display registered
+      // with the callback (init_gfx()), not the global default display: with
+      // several displays the default may be another one, whose rotation would
+      // then be applied to this one's hardware.
+      auto *lv_disp = static_cast<lv_display_t *>(lv_event_get_current_target(event));
+      auto *display = static_cast<Display *>(lv_event_get_user_data(event));
+      if (lv_disp != nullptr && display != nullptr) {
+        display->set_rotation(static_cast<DisplayRotation>(lv_display_get_rotation(lv_disp)));
       }
     }
   };

@@ -1009,6 +1009,10 @@ protected:
   // false. The release/acquire pair makes all of the writes happen-before any
   // read that observes true, and the flag never transitions true -> false.
   std::atomic<bool> lcd_initialized_{false};
+  // The latest rotation LVGL asked for (on_display_rotation()), recorded even
+  // while the gate is closed so initialize_lcd() can apply it when the panel
+  // comes up (initialize_display() may legitimately run first).
+  std::atomic<DisplayRotation> requested_rotation_{rotation};
 
   // Serializes every panel operation. esp_lcd_panel_draw_bitmap() is
   // asynchronous and single-flight when the DMA2D hook is enabled (a second

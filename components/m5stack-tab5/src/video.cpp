@@ -600,7 +600,13 @@ bool M5StackTab5::initialize_lcd() {
   // rotation the app sets later is applied by on_display_rotation() (the LVGL
   // rotation callback, which runs on the GUI task), so the panel still tracks
   // runtime changes; this call only establishes the initial MADCTL.
-  apply_panel_rotation(rotation);
+  // ... except that a rotation the application set before this point (with
+  // initialize_display() first) was recorded by on_display_rotation() in
+  // requested_rotation_ rather than dropped, so apply the latest request, not
+  // the compile-time default. Sequentially consistent with the store/load pair
+  // in on_display_rotation(): either this load sees that request, or that
+  // thread's gate load sees the gate open and applies it itself.
+  apply_panel_rotation(requested_rotation_.load(std::memory_order_seq_cst));
 
   // Publish the fully initialized LCD state — the gate opens LAST. Every
   // field the cross-thread readers touch (lcd_handles_, dpi_framebuffer_ +
@@ -615,7 +621,7 @@ bool M5StackTab5::initialize_lcd() {
   // can no longer pass a plain lcd_handles_.panel null-check mid-build and
   // read a not-yet-init'd panel, a torn framebuffer-pointer/size pair, or a
   // panel whose scan direction does not yet match panel_handles_rotation().
-  lcd_initialized_.store(true, std::memory_order_release);
+  lcd_initialized_.store(true, std::memory_order_seq_cst);
 
   logger_.info("M5Stack Tab5 LCD initialization completed successfully");
   return true;
@@ -785,6 +791,13 @@ bool M5StackTab5::panel_handles_rotation(lv_display_rotation_t rotation) const {
 }
 
 void M5StackTab5::on_display_rotation(const DisplayRotation &rotation) {
+  // Record the latest request before the gate check, whatever the build
+  // variant: with initialize_display() called first, a rotation the
+  // application sets before initialize_lcd() would otherwise be dropped here
+  // and never re-sent, leaving the panel at the compile-time default while
+  // flush() believes the panel handles the rotation. initialize_lcd() applies
+  // this value when it brings the panel up (see the ordering note there).
+  requested_rotation_.store(rotation, std::memory_order_seq_cst);
 #if !CONFIG_M5STACK_TAB5_ST7121_HW_ROTATION
   // Panel-side rotation disabled (see panel_handles_rotation()): make this a
   // complete no-op so NO runtime MADCTL write ever reaches the panel - the
@@ -798,7 +811,7 @@ void M5StackTab5::on_display_rotation(const DisplayRotation &rotation) {
   // harmless — initialize_lcd() applies the current LVGL rotation via
   // apply_panel_rotation() before it opens the gate, so the panel state is
   // already consistent for the first flush() that observes the gate open.
-  if (!lcd_initialized_.load(std::memory_order_acquire)) {
+  if (!lcd_initialized_.load(std::memory_order_seq_cst)) {
     return;
   }
   apply_panel_rotation(rotation);
@@ -859,61 +872,64 @@ void M5StackTab5::apply_panel_rotation(const DisplayRotation &rotation) {
 static constexpr uint32_t kDrawTimeoutMs = 200;
 
 bool M5StackTab5::draw_and_wait(int x1, int y1, int x2, int y2, const void *data) {
-  // Caller holds panel_op_mutex_. Drain any stale completion first (defensive:
-  // a prior transfer that timed out could leave the binary semaphore signalled),
-  // issue the draw, then block until on_color_trans_done gives the semaphore.
-  if (draw_done_sem_ != nullptr) {
-    xSemaphoreTake(draw_done_sem_, 0);
-  }
+  // Caller holds panel_op_mutex_ and has called wait_for_transfer_idle(): no
+  // transfer is in flight and the completion semaphore holds no token. Issue
+  // the draw, then block until on_color_trans_done gives the token for it.
+  transfer_in_flight_.store(true, std::memory_order_release);
   esp_err_t err = esp_lcd_panel_draw_bitmap(lcd_handles_.panel, x1, y1, x2, y2, data);
   if (err != ESP_OK) {
-    // Rejected (e.g. ESP_ERR_INVALID_STATE: a prior draw still in flight) or
-    // failed - no completion callback will arrive, so do not wait for one.
+    // Rejected or failed - no completion callback will arrive.
+    transfer_in_flight_.store(false, std::memory_order_release);
     logger_.warn_rate_limited("draw_bitmap failed: {}", esp_err_to_name(err));
     return false;
   }
-  if (draw_done_sem_ != nullptr) {
-    // Bounded wait so a missing completion cannot wedge the caller forever. A
-    // timeout is a failure, not a success: the copy may still be reading the
-    // caller's buffer, and the caller is about to hand that buffer back (LVGL
-    // re-renders into it, the camera task reuses it). Report it so the fault
-    // is visible; the late completion, if it ever arrives, is drained by the
-    // next call rather than being mistaken for that call's own completion.
-    if (xSemaphoreTake(draw_done_sem_, pdMS_TO_TICKS(kDrawTimeoutMs)) != pdTRUE) {
-      logger_.warn_rate_limited("draw_bitmap ({},{})-({},{}) did not complete within {} ms", x1, y1,
-                                x2, y2, kDrawTimeoutMs);
-      return false;
-    }
+  if (draw_done_sem_ == nullptr) {
+    transfer_in_flight_.store(false, std::memory_order_release);
+    return true;
   }
+  // Bounded wait so a missing completion cannot wedge the caller forever. A
+  // timeout is a failure, not a success: the copy may still be reading the
+  // caller's buffer, and the caller is about to hand that buffer back. The
+  // transfer stays in flight - its token is still owed - so the next panel
+  // operation waits for it again instead of attributing the late completion
+  // to its own transfer (see wait_for_transfer_idle()).
+  if (xSemaphoreTake(draw_done_sem_, pdMS_TO_TICKS(kDrawTimeoutMs)) != pdTRUE) {
+    logger_.warn_rate_limited("draw_bitmap ({},{})-({},{}) did not complete within {} ms", x1, y1,
+                              x2, y2, kDrawTimeoutMs);
+    return false;
+  }
+  transfer_in_flight_.store(false, std::memory_order_release);
   return true;
 }
 
 bool M5StackTab5::wait_for_transfer_idle() {
-  // Caller holds panel_op_mutex_. An LVGL flush leaves its draw in flight (see
-  // flush()); nothing else may be issued, and no engine may write the
-  // framebuffer, until the ISR has reported it complete.
+  // Caller holds panel_op_mutex_. Token accounting: every transfer that sets
+  // transfer_in_flight_ is completed by exactly one token on draw_done_sem_,
+  // given by the completion ISR, and whoever consumes the token clears the
+  // flag - here, or draw_and_wait() for its own transfer. The ISR never
+  // clears the flag itself, so a transfer stays in flight until its token has
+  // been consumed under this mutex, and a token can never be attributed to a
+  // later transfer, whichever core the ISR runs on.
+  //
+  // An LVGL flush leaves its draw in flight (see flush()); nothing else may be
+  // issued, and no engine may write the framebuffer, until it is complete.
   if (!transfer_in_flight_.load(std::memory_order_acquire)) {
-    if (draw_done_sem_ != nullptr) {
-      // The flush's completion was signalled but never taken (the ISR gives
-      // the semaphore for every draw): drain it so it cannot be paired with
-      // the next synchronous draw.
-      xSemaphoreTake(draw_done_sem_, 0);
-    }
     return true;
   }
-  bool ok = draw_done_sem_ != nullptr &&
-            xSemaphoreTake(draw_done_sem_, pdMS_TO_TICKS(kDrawTimeoutMs)) == pdTRUE;
-  transfer_in_flight_.store(false, std::memory_order_release);
-  if (!ok) {
-    // A wedged transfer: give up on it rather than stall every later draw,
-    // and release LVGL if it was the flush's draw (it would otherwise wait
-    // forever for the completion that never came).
-    logger_.warn_rate_limited("draw_bitmap did not complete within {} ms", kDrawTimeoutMs);
-    if (lvgl_flush_pending_.exchange(false)) {
-      lv_display_flush_ready(lvgl_flush_disp_);
-    }
+  if (draw_done_sem_ == nullptr) {
+    transfer_in_flight_.store(false, std::memory_order_release);
+    return true;
   }
-  return ok;
+  if (xSemaphoreTake(draw_done_sem_, pdMS_TO_TICKS(kDrawTimeoutMs)) != pdTRUE) {
+    // A wedged transfer. It stays in flight (the caller must not issue its
+    // own operation on top of it) and LVGL, if it is the one waiting, stays
+    // waiting: the ISR releases it when the completion finally comes. The
+    // display stalls visibly rather than two engines working the same memory.
+    logger_.warn_rate_limited("draw_bitmap did not complete within {} ms", kDrawTimeoutMs);
+    return false;
+  }
+  transfer_in_flight_.store(false, std::memory_order_release);
+  return true;
 }
 
 void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data,
@@ -933,7 +949,9 @@ void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t 
   std::lock_guard<std::mutex> lock(panel_op_mutex_);
   // An LVGL flush's copy may still be in flight; it must finish before this
   // draw is issued (single-flight) and before its completion is waited for.
-  wait_for_transfer_idle();
+  if (!wait_for_transfer_idle()) {
+    return; // the previous transfer is wedged; do not stack another on it
+  }
   draw_and_wait(xs, ys, xe + 1, ye + 1, data);
 }
 
@@ -1087,7 +1105,10 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       {
         // the previous (async) draw may still be reading third_buffer
         std::lock_guard<std::mutex> lock(panel_op_mutex_);
-        wait_for_transfer_idle();
+        if (!wait_for_transfer_idle()) {
+          lv_display_flush_ready(disp); // wedged: drop this area, keep LVGL alive
+          return;
+        }
       }
       if (rotation == LV_DISPLAY_ROTATION_180) {
         lv_draw_sw_rotate(px_map, third_buffer, hh, ww, h_stride, h_stride, LV_DISPLAY_ROTATION_180,
@@ -1115,7 +1136,13 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
   // never waits forever.
   {
     std::lock_guard<std::mutex> lock(panel_op_mutex_);
-    wait_for_transfer_idle();
+    if (!wait_for_transfer_idle()) {
+      // A direct write's transfer is wedged (LVGL's own previous flush cannot
+      // be: LVGL waits for it before flushing again). Drop this area rather
+      // than issue a draw on top of it, and keep LVGL alive.
+      lv_display_flush_ready(disp);
+      return;
+    }
     // Publish the pending state before the draw: with the CPU copy path (no
     // DMA2D) the driver invokes the completion callback synchronously from
     // inside draw_bitmap, on this thread.
@@ -1151,8 +1178,10 @@ bool IRAM_ATTR M5StackTab5::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel
   // what the pre-serialization code called from this ISR as well. It lives in
   // flash, so this callback must not run while the flash cache is disabled:
   // leave CONFIG_LCD_DSI_ISR_CACHE_SAFE off (the default) with this BSP.
+  // The in-flight flag is NOT cleared here: the task that consumes this token
+  // clears it (wait_for_transfer_idle() / draw_and_wait()), so the flag and
+  // the token can never disagree across cores.
   BaseType_t higher_priority_task_woken = pdFALSE;
-  tab5->transfer_in_flight_.store(false, std::memory_order_release);
   if (tab5->lvgl_flush_pending_.exchange(false)) {
     lv_display_flush_ready(tab5->lvgl_flush_disp_);
   }
