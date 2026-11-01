@@ -102,7 +102,9 @@ struct TopicData {
   /// Parses the SEDP PL_CDR parameter list in `data` (little-endian; a
   /// leading PL_CDR_LE encapsulation header, if present, is skipped as an
   /// unknown zero-length parameter, matching the historical behavior).
-  bool readFromBuffer(std::span<const uint8_t> data);
+  /// Of several PID_UNICAST_LOCATORs, keeps the first one on `localIp`'s
+  /// subnet, or the first one if none is.
+  bool readFromBuffer(std::span<const uint8_t> data, const Ip4AddressBytes &localIp = {});
   /// Appends this endpoint's SEDP PL_CDR parameter list (including the
   /// terminating PID_SENTINEL) to `writer`.
   bool serializeInto(CdrWriter &writer) const;

@@ -23,6 +23,7 @@ touched.
 |---|---|
 | build | the engine + espp lib build on linux |
 | golden | wire-format bytes unchanged (see `pc/tests/rtps_golden.cpp`) |
+| locator_subnet | of the unicast locators a peer on several networks announces (SEDP and SPDP), the one on our subnet is kept (see `pc/tests/rtps_locator_subnet.cpp`) |
 | loopback | espp<->espp discovery + delivery in one process |
 | espp_pub->ros2_echo | espp reliable writer -> ROS 2 subscriber (`rt/chatter`, `std_msgs::msg::dds_::String_`) |
 | ros2_pub->espp_sub | ROS 2 publisher -> espp reliable reader |
