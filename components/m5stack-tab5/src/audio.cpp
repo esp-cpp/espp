@@ -1,5 +1,7 @@
 #include <algorithm>
+#include <chrono>
 #include <cmath>
+#include <cstring>
 
 #include "m5stack-tab5.hpp"
 
@@ -43,6 +45,25 @@ static audio_hal_iface_samples_t audio_hal_samples_from_rate(uint32_t rate) {
   }
 }
 
+// How long the audio task gives a producer that is mid-stream to complete a
+// block before the block is written padded with silence. Longer than one block
+// at every rate the board supports (a block is 1/60 s), so a producer whose
+// next frame simply has not arrived yet is not padded; and shorter than the
+// DMA ring minus one block, so the ring never drains while waiting (see
+// AUDIO_TX_DMA_DESC_NUM).
+static constexpr uint32_t AUDIO_TX_WHOLE_BLOCK_WAIT_MS = 24;
+
+// Depth of the TX channel's DMA ring, in descriptors of AUDIO_TX_DMA_FRAME_NUM
+// frames (the I2S driver's default frame count). The audio task keeps this
+// ring full: the I2S driver fills descriptors progressively and the DMA sends
+// them in ring order, so a descriptor the task has only partly filled is
+// safe only while the DMA is a full ring behind it. The ring therefore has to
+// outlast the longest pause between writes (AUDIO_TX_WHOLE_BLOCK_WAIT_MS) plus
+// the block written after it: 12 x 240 frames is 60 ms at 48 kHz / 65 ms at
+// 44.1 kHz; the driver's default of 6 (about 30 ms) leaves no margin.
+static constexpr uint32_t AUDIO_TX_DMA_FRAME_NUM = 240;
+static constexpr uint32_t AUDIO_TX_DMA_DESC_NUM = 12;
+
 bool M5StackTab5::initialize_audio(uint32_t sample_rate,
                                    const espp::Task::BaseConfig &task_config) {
   logger_.info("Initializing dual audio system (ES8388 + ES7210) at {} Hz", sample_rate);
@@ -56,6 +77,13 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   logger_.info("Creating I2S channel for playback (TX)");
   i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
+  // The ring must outlast the audio task's whole-block wait plus one block at
+  // the highest rate the board supports (see AUDIO_TX_DMA_DESC_NUM).
+  static_assert(AUDIO_TX_DMA_DESC_NUM * AUDIO_TX_DMA_FRAME_NUM * 1000 / 48000 >
+                    AUDIO_TX_WHOLE_BLOCK_WAIT_MS + 1000 / UPDATE_FREQUENCY,
+                "the I2S TX DMA ring must outlast the whole-block wait plus one block");
+  chan_cfg.dma_desc_num = AUDIO_TX_DMA_DESC_NUM;
+  chan_cfg.dma_frame_num = AUDIO_TX_DMA_FRAME_NUM;
   ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &audio_tx_handle, &audio_rx_handle));
 
   // Configure I2S for stereo output (needed for proper ES8388 operation). The
@@ -91,9 +119,10 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   // split one would desynchronize the framing of everything received after it
   tx_buf_size -= tx_buf_size % (NUM_CHANNELS * NUM_BYTES_PER_CHANNEL);
   audio_tx_buffer.resize(tx_buf_size);
-  // Trigger level = one block: the audio task waits for a whole block instead of
-  // padding a partial one with silence (see audio_task_callback).
-  audio_tx_stream = xStreamBufferCreate(tx_buf_size * 4, tx_buf_size);
+  // The audio task never blocks on the stream (see audio_task_callback), so
+  // the trigger level is irrelevant; the minimum keeps a producer's send from
+  // ever holding a receiver.
+  audio_tx_stream = xStreamBufferCreate(tx_buf_size * 4, 1);
   xStreamBufferReset(audio_tx_stream);
   // RX buffer for recording
   audio_rx_buffer.resize(tx_buf_size);
@@ -338,47 +367,50 @@ void M5StackTab5::stop_audio_recording() {
   logger_.info("Audio recording stopped");
 }
 
-// How long the audio task waits for a whole block before writing a partial one
-// (or silence). Longer than one block at every rate the board supports (a block
-// is 1/60 s at the default rate), so partial writes only happen when the
-// producer is idle or genuinely behind, never because its next frame simply had
-// not arrived yet; short enough that idle->silence latency is not noticeable.
-static constexpr uint32_t AUDIO_TX_RECEIVE_TIMEOUT_MS = 40;
-
 bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                       bool &task_notified) {
-  // Playback: write the next block of audio from the stream buffer. Wait
-  // (bounded) for a whole block rather than taking whatever is queued and
-  // zero-padding it to a block: producers push audio in bursts (one video frame
-  // at a time, with frame-to-frame jitter), and the stream buffer exists to
-  // absorb exactly that. Taking a partial block padded it with silence every
-  // time the stream momentarily held less than one block, which is audible as
-  // stutter whenever the producer's cadence is uneven. The DMA is still fed
-  // whole blocks at a constant cadence while audio is flowing (the stream's
-  // trigger level is one block); only after the timeout -- producer idle or
-  // slower than real time -- is a partial block written as is (the I2S driver
-  // concatenates partial writes without gaps), or silence when there is none.
-  size_t buffer_size = audio_tx_buffer.size();
+  // Playback: write the next block to the I2S channel, ALWAYS a whole block.
+  //
+  // The I2S driver fills DMA descriptors progressively and the DMA transmits
+  // them in ring order, so the only safe steady state is a full ring with the
+  // write position a whole ring ahead of the DMA. Writing a whole block every
+  // iteration - audio when there is some, silence when idle - keeps it there:
+  // the write blocks on the ring and paces this loop. Letting the task sit on
+  // the stream instead (waiting for data, writing whatever arrived) drains the
+  // ring while idle; the next sound then starts in descriptors the DMA is
+  // about to send, half old and half new - a pop at the start of every click
+  // and playback, and more whenever a partial write is left behind.
+  //
+  // Producers push audio in bursts (a video frame at a time, with jitter), so
+  // when a stream that is flowing momentarily holds less than a block, give
+  // it a bounded chance to complete the block rather than padding the gap
+  // with silence (audible as stutter). The wait is shorter than the ring
+  // minus one block, so the ring never drains while waiting; a stream that
+  // was already idle gets silence at once.
+  const size_t block = audio_tx_buffer.size();
   uint8_t *tx_buf = audio_tx_buffer.data();
-  size_t got = xStreamBufferReceive(audio_tx_stream, tx_buf, buffer_size,
-                                    pdMS_TO_TICKS(AUDIO_TX_RECEIVE_TIMEOUT_MS));
-  // the block is frame-aligned and producers queue whole frames, so this cannot
-  // happen; if it ever does, do not silently drop bytes (that would desynchronize
-  // the framing of everything after them) -- say so
-  constexpr size_t frame_bytes = NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
-  if (got % frame_bytes != 0) {
-    static uint32_t misaligned_count = 0;
-    if ((misaligned_count++ % 100) == 0) {
-      logger_.warn("audio stream holds a partial frame ({} bytes)", got);
+  // singleton BSP: the task's own "was audio flowing" state
+  static bool was_flowing = false;
+  size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
+  if (available < block && (available > 0 || was_flowing)) {
+    const auto deadline =
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(AUDIO_TX_WHOLE_BLOCK_WAIT_MS);
+    while (available < block && std::chrono::steady_clock::now() < deadline) {
+      vTaskDelay(1);
+      available = xStreamBufferBytesAvailable(audio_tx_stream);
     }
   }
-  if (got == 0) {
-    memset(tx_buf, 0, buffer_size);
-    i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, portMAX_DELAY);
-  } else {
-    i2s_channel_write(audio_tx_handle, tx_buf, got, NULL, portMAX_DELAY);
+  available = std::min(available, block);
+  // only whole frames: the block is frame-aligned and producers queue whole
+  // frames, so a partial frame cannot occur; never split one if it does
+  constexpr size_t frame_bytes = NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
+  available -= available % frame_bytes;
+  memset(tx_buf, 0, block);
+  if (available > 0) {
+    xStreamBufferReceive(audio_tx_stream, tx_buf, available, 0);
   }
-
+  was_flowing = available > 0;
+  i2s_channel_write(audio_tx_handle, tx_buf, block, NULL, portMAX_DELAY);
   return false;
 }
 

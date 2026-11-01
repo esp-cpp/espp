@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <span>
 #include <stdlib.h>
 #include <vector>
 
@@ -42,6 +43,11 @@ static size_t recording_capacity = 0;
 static std::atomic<bool> recording{false};
 static std::atomic<size_t> recording_len{0};
 static std::atomic<bool> playing{false};
+// Click playback (set by play_click() from the touch task, streamed to the
+// speaker by the main loop like a recording: the click is longer than the
+// speaker's stream buffer, and the stream buffer has a single writer)
+static std::atomic<bool> click_active{false};
+static std::atomic<size_t> click_offset{0};
 // wall-clock bounds of the capture, for reporting the measured effective
 // sample rate (ordering is provided by the `recording` atomic)
 static std::atomic<int64_t> recording_start_us{0};
@@ -503,6 +509,17 @@ extern "C" void app_main(void) {
       }
     } else {
       play_offset = 0;
+      // stream the click (if one was started by a tap) the same way
+      if (click_active) {
+        size_t off = click_offset.load();
+        if (off >= audio_bytes.size()) {
+          click_active = false;
+        } else {
+          off += tab5.play_audio(audio_bytes.data() + off,
+                                 std::min<size_t>(audio_bytes.size() - off, 16384));
+          click_offset = off;
+        }
+      }
     }
     // notice when the recording stopped (button press or buffer full)
     bool now_recording = recording;
@@ -558,7 +575,10 @@ extern "C" void app_main(void) {
                   gain);
     }
     was_recording = now_recording;
-    std::this_thread::sleep_for(50ms);
+    // Pump cadence: the speaker's stream buffer holds a few blocks (about
+    // 70 ms), so top it up well within that or playback runs dry on any
+    // loop jitter.
+    std::this_thread::sleep_for(20ms);
   }
   //! [m5stack tab5 example]
 }
@@ -573,43 +593,64 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
 
   extern const uint8_t click_wav_start[] asm("_binary_click_wav_start");
   extern const uint8_t click_wav_end[] asm("_binary_click_wav_end");
-  audio_bytes = std::vector<uint8_t>(click_wav_start, click_wav_end);
-  // ensure we have at least a wav header
-  if (audio_bytes.size() < 44) {
+  const std::span<const uint8_t> wav(click_wav_start, click_wav_end);
+  // Walk the RIFF chunks and play exactly the 'data' chunk at the rate the
+  // 'fmt ' chunk gives. Stripping a fixed 44-byte header and playing "the rest
+  // of the file" is wrong for this file: it carries 'cue ', 'LIST' and 'bext'
+  // metadata after the data chunk, and played as PCM that metadata is a
+  // full-scale burst at the end of every click.
+  auto u16 = [&](size_t o) { return static_cast<uint32_t>(wav[o]) | (wav[o + 1] << 8); };
+  auto u32 = [&](size_t o) { return u16(o) | (u16(o + 2) << 16); };
+  auto chunk_is = [&](size_t o, const char *id) { return memcmp(&wav[o], id, 4) == 0; };
+  if (wav.size() < 12 || !chunk_is(0, "RIFF") || !chunk_is(8, "WAVE")) {
     audio_bytes.clear();
     return false;
   }
-  // get the sample rate from the wav header (bytes 24-27)
-  uint32_t sample_rate = *(reinterpret_cast<const uint32_t *>(&audio_bytes[24]));
-  // set the audio sample rate accordingly
-  // decode the wav file header (first 44 bytes) and remove it
-  if (audio_bytes.size() > 44) {
-    audio_bytes.erase(audio_bytes.begin(), audio_bytes.begin() + 44);
+  uint32_t sample_rate = 0;
+  uint32_t channels = 0;
+  uint32_t bits_per_sample = 0;
+  size_t data_offset = 0;
+  size_t data_length = 0;
+  for (size_t o = 12; o + 8 <= wav.size();) {
+    const size_t length = u32(o + 4);
+    const size_t body = o + 8;
+    if (body + length > wav.size()) {
+      break;
+    }
+    if (chunk_is(o, "fmt ") && length >= 16) {
+      channels = u16(body + 2);
+      sample_rate = u32(body + 4);
+      bits_per_sample = u16(body + 14);
+    } else if (chunk_is(o, "data")) {
+      data_offset = body;
+      data_length = length;
+      break;
+    }
+    o = body + length + (length & 1); // chunks are word-aligned
   }
+  // the playback path is 16-bit interleaved stereo (see play_audio)
+  if (sample_rate == 0 || data_length == 0 || channels != 2 || bits_per_sample != 16) {
+    audio_bytes.clear();
+    return false;
+  }
+  audio_bytes.assign(wav.begin() + data_offset, wav.begin() + data_offset + data_length);
   out_size = audio_bytes.size();
   out_sample_rate = sample_rate;
   return true;
 }
 
 static void play_click(espp::M5StackTab5 &tab5) {
-  // Enqueue the click without blocking the caller (this runs in the touch
-  // callback). play_audio() enqueues only whole frames and returns how many
-  // bytes it took, so advance by that count (advancing by the requested size
-  // would skip samples). Stop as soon as the stream buffer is full rather than
-  // waiting for it to drain - blocking here would freeze the touch task for the
-  // whole click. The click comfortably fits in the stream buffer, so it plays
-  // in full in practice.
-  if (audio_bytes.empty()) {
+  // Runs in the touch callback: only (re)start the click here, the main loop
+  // streams it. The click (about 200 ms) is larger than the speaker's stream
+  // buffer (a few blocks), so pushing it once from here cut it off at the
+  // first full buffer - an abrupt end that was itself a pop - and the stream
+  // buffer must have a single writer, which the main loop already is for
+  // recorded playback. A tap during a click restarts it; a tap during a
+  // recording's playback is ignored.
+  (void)tab5;
+  if (audio_bytes.empty() || playing) {
     return;
   }
-  auto audio_buffer_size = tab5.audio_buffer_size();
-  size_t offset = 0;
-  while (offset < audio_bytes.size()) {
-    size_t chunk = std::min(audio_buffer_size, audio_bytes.size() - offset);
-    size_t queued = tab5.play_audio(audio_bytes.data() + offset, chunk);
-    offset += queued;
-    if (queued < chunk) {
-      break; // stream buffer full for now; do not block the caller
-    }
-  }
+  click_offset = 0;
+  click_active = true;
 }
