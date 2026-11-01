@@ -341,7 +341,8 @@ rtps::Participant *Domain::createParticipant() {
 
   auto &entry = m_participants[m_numParticipants];
   ++m_numParticipants;
-  entry.reuse(generateGuidPrefix(candidate), candidate, m_localIpAddress);
+  entry.reuse(generateGuidPrefix(candidate), candidate, m_localIpAddress,
+              m_config.local_prefix_length);
   if (!createBuiltinWritersAndReaders(entry)) {
     // Pool exhaustion (see createBuiltinWritersAndReaders): unwind the slot
     // and the probed ports so the failure is clean and the caller gets a

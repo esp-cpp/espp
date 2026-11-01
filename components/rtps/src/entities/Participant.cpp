@@ -61,10 +61,11 @@ void Participant::reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t particip
 }
 
 void Participant::reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId,
-                        const Ip4AddressBytes &localIpAddress) {
+                        const Ip4AddressBytes &localIpAddress, uint8_t localPrefixLength) {
   m_guidPrefix = guidPrefix;
   m_participantId = participantId;
   m_localIpAddress = localIpAddress;
+  m_localPrefixLength = localPrefixLength;
 }
 
 bool Participant::isValid() { return m_participantId != PARTICIPANT_ID_INVALID; }

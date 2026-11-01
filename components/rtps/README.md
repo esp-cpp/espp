@@ -134,6 +134,15 @@ espp::ServiceClient<AddReq, AddResp> client(participant, {
 if (auto resp = client.call(AddReq{7, 35}, std::chrono::seconds(1))) { /* resp->sum == 42 */ }
 ```
 
+`interface_address` is the IPv4 address of the interface to use (auto-detected on
+the host when empty; required on ESP targets). A peer on several networks (a ROS 2
+host with Ethernet, Wi-Fi and a VPN) announces one unicast locator per interface,
+and the participant keeps the one on its own network. That network is defined by
+`interface_netmask` (`"255.255.128.0"` or `"17"`): on the host it defaults to the
+netmask of the interface that owns `interface_address`; on ESP targets it defaults
+to a /24, so pass the netif's netmask (e.g. `board.ethernet_netmask()`) when the
+network is not a /24.
+
 For ROS 2 interop use ROS 2 naming: topic `rt/<name>`, type `<pkg>::msg::dds_::<Type>_`.
 The full request/reply + goal APIs (including the three client call styles and the
 native protocol) are documented in

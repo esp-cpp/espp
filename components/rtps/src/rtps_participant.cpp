@@ -8,11 +8,13 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <random>
 #include <thread>
 #include <unordered_map>
 #include <vector>
 
+#include "rtps/common/Locator.hpp"
 #include "rtps/entities/Domain.hpp"
 #include "rtps/rpc/action_naming.hpp"
 #include "rtps/rpc/action_types.hpp"
@@ -48,21 +50,60 @@ RtpsParticipant::RtpsParticipant(const Config &config)
 // unique_ptr/shared_ptr to those types, and libc++ requires the pointee to be
 // complete at the point of destruction (libstdc++ is more lenient).
 
-bool RtpsParticipant::resolve_interface_address(std::array<uint8_t, 4> &ip_bytes) const {
+namespace {
+// "255.255.128.0" or "17" -> prefix length; false for anything else (a mask
+// whose set bits are not contiguous is not a netmask).
+bool parse_netmask(const std::string &text, uint8_t &prefix_length) {
+  unsigned a = 0, b = 0, c = 0, d = 0;
+  char trailing = 0;
+  // The %c sentinel only matches when something follows the quad, so exactly
+  // four conversions means the whole string was consumed.
+  if (std::sscanf(text.c_str(), "%u.%u.%u.%u%c", &a, &b, &c, &d, &trailing) == 4) {
+    if (a > 255 || b > 255 || c > 255 || d > 255) {
+      return false;
+    }
+    const uint32_t mask = (a << 24) | (b << 16) | (c << 8) | d;
+    const uint8_t bits =
+        rtps::prefixLengthFromNetmask({static_cast<uint8_t>(a), static_cast<uint8_t>(b),
+                                       static_cast<uint8_t>(c), static_cast<uint8_t>(d)});
+    const uint32_t expected = bits == 0 ? 0u : (0xFFFFFFFFu << (32u - bits));
+    if (mask != expected) {
+      return false;
+    }
+    prefix_length = bits;
+    return true;
+  }
+  unsigned bits = 0;
+  if (std::sscanf(text.c_str(), "%u%c", &bits, &trailing) == 1 && bits <= 32) {
+    prefix_length = static_cast<uint8_t>(bits);
+    return true;
+  }
+  return false;
+}
+} // namespace
+
+bool RtpsParticipant::resolve_interface(std::array<uint8_t, 4> &ip_bytes,
+                                        uint8_t &prefix_length) const {
   std::string addr = config_.interface_address;
+  // Only the host enumerates interfaces, so this is unused on ESP targets.
+  [[maybe_unused]] const bool auto_detect = addr.empty();
+  // Prefix length of the interface that owns `addr`, when the platform can
+  // tell (host only). Config::interface_netmask overrides it below.
+  std::optional<uint8_t> detected_prefix{};
   // Skip loopback / link-local candidates during auto-detection. Unused on ESP
   // targets, which require an explicit interface_address.
   [[maybe_unused]] const auto usable = [](const std::string &ip) {
     return !ip.empty() && ip.rfind("127.", 0) != 0 && ip.rfind("169.254.", 0) != 0;
   };
 #if defined(ESP_PLATFORM)
-  if (addr.empty()) {
-    logger_.error("interface_address must be set on ESP targets (e.g. from the netif IP)");
-    return false;
-  }
+  // No interface enumeration on ESP targets: interface_address is required
+  // (checked below) and the netmask comes from interface_netmask or the
+  // /24 default.
 #elif defined(_WIN32)
-  if (addr.empty()) {
-    // Auto-detect: first up, non-loopback IPv4 adapter (GetAdaptersAddresses).
+  {
+    // Walk the up, non-loopback IPv4 adapters (GetAdaptersAddresses): pick the
+    // first usable address when none is configured, and either way take the
+    // prefix length of the adapter that owns the address.
     ULONG size = 15000;
     std::vector<uint8_t> buffer(size);
     auto *adapters = reinterpret_cast<IP_ADAPTER_ADDRESSES *>(buffer.data());
@@ -74,8 +115,12 @@ bool RtpsParticipant::resolve_interface_address(std::array<uint8_t, 4> &ip_bytes
       ret = GetAdaptersAddresses(AF_INET, flags, nullptr, adapters, &size);
     }
     if (ret == NO_ERROR) {
-      for (auto *a = adapters; a != nullptr && addr.empty(); a = a->Next) {
-        if (a->OperStatus != IfOperStatusUp || a->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+      for (const auto *a = adapters; a != nullptr && !detected_prefix; a = a->Next) {
+        // Auto-detection skips down and loopback adapters (like the POSIX
+        // path's usable()); an explicitly configured address may name any
+        // adapter, loopback included, and still gets that adapter's prefix.
+        if (auto_detect &&
+            (a->OperStatus != IfOperStatusUp || a->IfType == IF_TYPE_SOFTWARE_LOOPBACK)) {
           continue;
         }
         for (auto *ua = a->FirstUnicastAddress; ua != nullptr; ua = ua->Next) {
@@ -87,25 +132,26 @@ bool RtpsParticipant::resolve_interface_address(std::array<uint8_t, 4> &ip_bytes
           if (inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf)) == nullptr) {
             continue;
           }
-          if (usable(buf)) {
+          if (auto_detect ? usable(buf) : addr == buf) {
+            if (auto_detect) {
+              logger_.info("Auto-detected interface address {}", buf);
+            }
             addr = buf;
+            detected_prefix = static_cast<uint8_t>(ua->OnLinkPrefixLength);
             break;
           }
         }
       }
     }
-    if (addr.empty()) {
-      logger_.error("Could not auto-detect a usable IPv4 interface; set interface_address");
-      return false;
-    }
-    logger_.info("Auto-detected interface address {}", addr);
   }
 #else
-  if (addr.empty()) {
-    // Auto-detect: first non-loopback, non-link-local IPv4 interface.
+  {
+    // Walk the IPv4 interfaces (getifaddrs): pick the first non-loopback,
+    // non-link-local address when none is configured, and either way take the
+    // netmask of the interface that owns the address.
     struct ifaddrs *ifaddr = nullptr;
     if (getifaddrs(&ifaddr) == 0) {
-      for (struct ifaddrs *ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+      for (struct ifaddrs *ifa = ifaddr; ifa != nullptr && !detected_prefix; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr == nullptr || ifa->ifa_addr->sa_family != AF_INET) {
           continue;
         }
@@ -114,20 +160,30 @@ bool RtpsParticipant::resolve_interface_address(std::array<uint8_t, 4> &ip_bytes
         if (inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf)) == nullptr) {
           continue;
         }
-        if (usable(buf)) {
+        if (auto_detect ? usable(buf) : addr == buf) {
+          if (auto_detect) {
+            logger_.info("Auto-detected interface address {}", buf);
+          }
           addr = buf;
+          if (ifa->ifa_netmask != nullptr && ifa->ifa_netmask->sa_family == AF_INET) {
+            const auto *mask = reinterpret_cast<const struct sockaddr_in *>(ifa->ifa_netmask);
+            const uint32_t m = ntohl(mask->sin_addr.s_addr);
+            detected_prefix = rtps::prefixLengthFromNetmask(
+                {static_cast<uint8_t>(m >> 24), static_cast<uint8_t>(m >> 16),
+                 static_cast<uint8_t>(m >> 8), static_cast<uint8_t>(m)});
+          }
           break;
         }
       }
       freeifaddrs(ifaddr);
     }
-    if (addr.empty()) {
-      logger_.error("Could not auto-detect a usable IPv4 interface; set interface_address");
-      return false;
-    }
-    logger_.info("Auto-detected interface address {}", addr);
   }
 #endif
+  if (addr.empty()) {
+    logger_.error("interface_address is empty and no usable IPv4 interface could be auto-detected; "
+                  "set it (required on ESP targets, e.g. from the netif IP)");
+    return false;
+  }
   unsigned a = 0, b = 0, c = 0, d = 0;
   if (std::sscanf(addr.c_str(), "%u.%u.%u.%u", &a, &b, &c, &d) != 4 || a > 255 || b > 255 ||
       c > 255 || d > 255) {
@@ -136,6 +192,23 @@ bool RtpsParticipant::resolve_interface_address(std::array<uint8_t, 4> &ip_bytes
   }
   ip_bytes = {static_cast<uint8_t>(a), static_cast<uint8_t>(b), static_cast<uint8_t>(c),
               static_cast<uint8_t>(d)};
+
+  // The network's prefix length: the configured netmask, else the interface's
+  // own (host), else the historical /24 assumption.
+  prefix_length = rtps::DEFAULT_SUBNET_PREFIX_LENGTH;
+  if (!config_.interface_netmask.empty()) {
+    if (!parse_netmask(config_.interface_netmask, prefix_length)) {
+      logger_.error("Invalid interface_netmask '{}' (want e.g. \"255.255.128.0\" or \"17\")",
+                    config_.interface_netmask);
+      return false;
+    }
+  } else if (detected_prefix) {
+    prefix_length = *detected_prefix;
+  } else {
+    logger_.debug("No netmask known for {}; assuming a /{} network (set interface_netmask)", addr,
+                  prefix_length);
+  }
+  logger_.debug("Interface {}/{}", addr, prefix_length);
   return true;
 }
 
@@ -147,7 +220,8 @@ bool RtpsParticipant::start() {
   }
 
   std::array<uint8_t, 4> ip_bytes{};
-  if (!resolve_interface_address(ip_bytes)) {
+  uint8_t prefix_length = rtps::DEFAULT_SUBNET_PREFIX_LENGTH;
+  if (!resolve_interface(ip_bytes, prefix_length)) {
     return false;
   }
 
@@ -159,6 +233,7 @@ bool RtpsParticipant::start() {
       .user_traffic_band = config_.user_traffic_band,
       .enable_dedicated_endpoint_ports = config_.enable_dedicated_endpoint_ports,
       .max_prioritized_endpoint_ports = config_.max_prioritized_endpoint_ports,
+      .local_prefix_length = prefix_length,
   };
   domain_ = std::make_unique<rtps::Domain>(ip_bytes, domain_config);
   // Fresh liveness token for this run (a prior stop() left the old one flipped).

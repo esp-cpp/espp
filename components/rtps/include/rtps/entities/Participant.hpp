@@ -46,6 +46,10 @@ public:
   GuidPrefix_t m_guidPrefix;
   ParticipantId_t m_participantId;
   Ip4AddressBytes m_localIpAddress{{0, 0, 0, 0}};
+  /// Prefix length (CIDR bits) of the local network, used to tell which of a
+  /// peer's announced unicast locators is reachable (see
+  /// Locator.hpp isSameSubnetAddress()).
+  uint8_t m_localPrefixLength{DEFAULT_SUBNET_PREFIX_LENGTH};
 
   Participant();
   explicit Participant(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId);
@@ -62,7 +66,8 @@ public:
 
   void reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId);
   void reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId,
-             const Ip4AddressBytes &localIpAddress);
+             const Ip4AddressBytes &localIpAddress,
+             uint8_t localPrefixLength = DEFAULT_SUBNET_PREFIX_LENGTH);
 
   std::array<uint8_t, 3> getNextUserEntityKey();
 

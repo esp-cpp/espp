@@ -75,6 +75,7 @@ void Ethernet::eth_event_handler(void *arg, esp_event_base_t /*base*/, int32_t i
     // In server mode the IP is static, so surface got-IP immediately.
     if (self->config_.mode == DhcpMode::SERVER) {
       self->ip_addr_ = self->server_ip_info_.ip.addr;
+      self->netmask_ = self->server_ip_info_.netmask.addr;
       self->connected_ = true;
       if (self->config_.on_got_ip) {
         self->config_.on_got_ip(self->server_ip_info_.ip);
@@ -91,6 +92,7 @@ void Ethernet::eth_event_handler(void *arg, esp_event_base_t /*base*/, int32_t i
       }
     }
     self->ip_addr_ = 0;
+    self->netmask_ = 0;
     if (self->config_.on_link_down) {
       self->config_.on_link_down();
     }
@@ -103,6 +105,7 @@ void Ethernet::eth_event_handler(void *arg, esp_event_base_t /*base*/, int32_t i
     self->link_up_ = false;
     self->connected_ = false;
     self->ip_addr_ = 0;
+    self->netmask_ = 0;
     break;
   default:
     break;
@@ -120,6 +123,7 @@ void Ethernet::got_ip_handler(void *arg, esp_event_base_t /*base*/, int32_t /*id
     return;
   }
   self->ip_addr_ = event->ip_info.ip.addr;
+  self->netmask_ = event->ip_info.netmask.addr;
   self->connected_ = true;
   self->logger_.info("Got IP: {}.{}.{}.{}", esp_ip4_addr1_16(&event->ip_info.ip),
                      esp_ip4_addr2_16(&event->ip_info.ip), esp_ip4_addr3_16(&event->ip_info.ip),
@@ -143,6 +147,7 @@ void Ethernet::lost_ip_handler(void *arg, esp_event_base_t /*base*/, int32_t /*i
   self->logger_.info("Lost IP");
   self->connected_ = false;
   self->ip_addr_ = 0;
+  self->netmask_ = 0;
   if (self->config_.on_lost_ip) {
     self->config_.on_lost_ip();
   }
@@ -398,6 +403,7 @@ bool Ethernet::initialize(std::error_code &ec) {
     link_up_ = false;
     connected_ = false;
     ip_addr_ = 0;
+    netmask_ = 0;
     ec = std::make_error_code(code);
     return false;
   };
@@ -586,6 +592,7 @@ bool Ethernet::deinitialize(std::error_code &ec) {
   link_up_ = false;
   connected_ = false;
   ip_addr_ = 0;
+  netmask_ = 0;
   return true;
 }
 
@@ -604,6 +611,12 @@ esp_ip4_addr_t Ethernet::ip() const {
   esp_ip4_addr_t addr{};
   addr.addr = ip_addr_.load();
   return addr;
+}
+
+esp_ip4_addr_t Ethernet::netmask() const {
+  esp_ip4_addr_t mask{};
+  mask.addr = netmask_.load();
+  return mask;
 }
 
 std::string Ethernet::get_ip_address() const {

@@ -167,6 +167,10 @@ public:
 
   /// @return The current IPv4 address (0 if none).
   esp_ip4_addr_t ip() const;
+  /// @return The netmask of the current IPv4 address (0 if none). With ip()
+  ///         this gives e.g. espp::RtpsParticipant its interface_address and
+  ///         interface_netmask.
+  esp_ip4_addr_t netmask() const;
   /// @return The current IPv4 address as a dotted quad ("0.0.0.0" if none).
   std::string get_ip_address() const;
   /// @return The interface MAC as "aa:bb:cc:dd:ee:ff" (empty if not initialized).
@@ -194,6 +198,7 @@ protected:
   std::atomic<bool> link_up_{false};
   std::atomic<bool> connected_{false};
   std::atomic<uint32_t> ip_addr_{0}; ///< IPv4 in network byte order.
+  std::atomic<uint32_t> netmask_{0}; ///< Netmask of ip_addr_, network byte order.
 
   esp_eth_handle_t eth_handle_{nullptr};
   esp_eth_netif_glue_handle_t eth_glue_{nullptr};
