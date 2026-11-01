@@ -47,7 +47,7 @@ bool TopicData::matchesTopicOf(const TopicData &other) {
          strcmp(this->typeName, other.typeName) == 0;
 }
 
-bool TopicData::readFromBuffer(std::span<const uint8_t> data) {
+bool TopicData::readFromBuffer(std::span<const uint8_t> data, const Ip4AddressBytes &localIp) {
   CdrReader buffer(asBytes(data.data(), data.size()));
 
   // Reset valid flags, as the respective parameters are optional
@@ -139,10 +139,15 @@ bool TopicData::readFromBuffer(std::span<const uint8_t> data) {
     }
     case ParameterId::PID_UNICAST_LOCATOR:
       uLoc.readFromBuffer(buffer);
-      // Accept valid UDPv4 locators even if subnet detection is temporarily
-      // unavailable (e.g. early startup) to avoid keeping placeholder defaults.
+      // A peer on several networks lists a locator for each, and only one on
+      // our subnet is reachable. Keep the first locator, unless a later one is
+      // on our subnet and the kept one isn't. Off-subnet locators are still
+      // accepted, as the subnet is unknown until the local netif is up.
       if (uLoc.kind == LocatorKind_t::LOCATOR_KIND_UDPv4) {
-        unicastLocator = uLoc;
+        if (!unicastLocator.isValid() ||
+            (uLoc.isSameSubnet(localIp) && !unicastLocator.isSameSubnet(localIp))) {
+          unicastLocator = uLoc;
+        }
         const auto a0 = static_cast<unsigned int>(uLoc.address[12]);
         const auto a1 = static_cast<unsigned int>(uLoc.address[13]);
         const auto a2 = static_cast<unsigned int>(uLoc.address[14]);

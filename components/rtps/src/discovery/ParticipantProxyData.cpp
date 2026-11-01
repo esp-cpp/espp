@@ -137,28 +137,32 @@ bool ParticipantProxyData::readFromBuffer(CdrReader &buffer, Participant *partic
       break;
     }
     case ParameterId::PID_METATRAFFIC_MULTICAST_LOCATOR: {
-      if (!readLocatorIntoList(buffer, m_metatrafficMulticastLocatorList)) {
+      if (!readLocatorIntoList(buffer, m_metatrafficMulticastLocatorList,
+                               participant->m_localIpAddress)) {
         PPD_LOG("Failed to read metatraffic multicast locator");
         return false;
       }
       break;
     }
     case ParameterId::PID_METATRAFFIC_UNICAST_LOCATOR: {
-      if (!readLocatorIntoList(buffer, m_metatrafficUnicastLocatorList)) {
+      if (!readLocatorIntoList(buffer, m_metatrafficUnicastLocatorList,
+                               participant->m_localIpAddress)) {
         PPD_LOG("Failed to read metatraffic unicast locator");
         return false;
       }
       break;
     }
     case ParameterId::PID_DEFAULT_UNICAST_LOCATOR: {
-      if (!readLocatorIntoList(buffer, m_defaultUnicastLocatorList)) {
+      if (!readLocatorIntoList(buffer, m_defaultUnicastLocatorList,
+                               participant->m_localIpAddress)) {
         PPD_LOG("Failed to read default unicast locator");
         return false;
       }
       break;
     }
     case ParameterId::PID_DEFAULT_MULTICAST_LOCATOR: {
-      if (!readLocatorIntoList(buffer, m_defaultMulticastLocatorList)) {
+      if (!readLocatorIntoList(buffer, m_defaultMulticastLocatorList,
+                               participant->m_localIpAddress)) {
         PPD_LOG("Failed to read default multicast locator");
         return false;
       }
@@ -220,39 +224,43 @@ bool ParticipantProxyData::readFromBuffer(CdrReader &buffer, Participant *partic
 }
 
 bool ParticipantProxyData::readLocatorIntoList(
-    CdrReader &buffer, std::array<LocatorIPv4, Config::SPDP_MAX_NUM_LOCATORS> &list) {
-  int valid_locators = 0;
+    CdrReader &buffer, std::array<LocatorIPv4, Config::SPDP_MAX_NUM_LOCATORS> &list,
+    const Ip4AddressBytes &localIp) {
   FullLengthLocator full_length_locator;
+  if (!full_length_locator.readFromBuffer(buffer)) {
+    PPD_LOG("Not enough data left in buffer to read locator");
+    return false;
+  }
+  if (full_length_locator.kind != LocatorKind_t::LOCATOR_KIND_UDPv4) {
+    PPD_LOG("Ignoring locator: {} {} {} {}", (int)full_length_locator.address[12],
+            (int)full_length_locator.address[13], (int)full_length_locator.address[14],
+            (int)full_length_locator.address[15]);
+    return true;
+  }
+  const LocatorIPv4 locator(full_length_locator);
   for (auto &proxy_locator : list) {
     if (!proxy_locator.isValid()) {
-      bool ret = full_length_locator.readFromBuffer(buffer);
-      if (ret && full_length_locator.kind == LocatorKind_t::LOCATOR_KIND_UDPv4) {
-        proxy_locator = LocatorIPv4(full_length_locator);
-        PPD_LOG("Adding locator: {} {} {} {}", (int)proxy_locator.address[0],
-                (int)proxy_locator.address[1], (int)proxy_locator.address[2],
-                (int)proxy_locator.address[3]);
-        return true;
-      } else {
-        PPD_LOG("Ignoring locator: {} {} {} {}", (int)full_length_locator.address[12],
-                (int)full_length_locator.address[13], (int)full_length_locator.address[14],
-                (int)full_length_locator.address[15]);
-        return true;
-      }
-    } else {
-      valid_locators++;
-      if (valid_locators == Config::SPDP_MAX_NUM_LOCATORS) {
-        if (buffer.remaining() < sizeof(FullLengthLocator)) {
-          PPD_LOG("Not enough data left in buffer to read locator");
-          return false;
-        }
-        skipBytes(buffer, sizeof(FullLengthLocator));
-        PPD_LOG("Max number of valid locators exceeded, ignoring this locator as we have at least "
-                "one valid locator");
+      proxy_locator = locator;
+      PPD_LOG("Adding locator: {} {} {} {}", (int)locator.address[0], (int)locator.address[1],
+              (int)locator.address[2], (int)locator.address[3]);
+      return true;
+    }
+  }
+  // The list is full. A peer on several networks announces a locator for each,
+  // in its own order, and only one on our subnet is reachable: let it replace
+  // one that isn't on our subnet.
+  if (locator.isSameSubnet(localIp)) {
+    for (auto &proxy_locator : list) {
+      if (!proxy_locator.isSameSubnet(localIp)) {
+        proxy_locator = locator;
+        PPD_LOG("Replacing an off-subnet locator with: {} {} {} {}", (int)locator.address[0],
+                (int)locator.address[1], (int)locator.address[2], (int)locator.address[3]);
         return true;
       }
     }
   }
-  return false;
+  PPD_LOG("Max number of valid locators exceeded, ignoring this locator");
+  return true;
 }
 
 #undef PPD_LOG

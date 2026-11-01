@@ -27,7 +27,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
   && cmake --build lib/build -j"$(nproc)" --target install > /tmp/build_lib.log 2>&1 \
   && cmake -S pc -B pc/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/tmp/espp/install > /tmp/cmake.log 2>&1 \
   && cmake --build pc/build -j"$(nproc)" --target \
-       rtps_pubsub rtps_golden rtps_facade_pubsub rtps_typed_pubsub \
+       rtps_pubsub rtps_golden rtps_locator_subnet rtps_facade_pubsub rtps_typed_pubsub \
        rtps_facade_frag rtps_facade_backlog rtps_facade_frag_sizes rtps_service_loopback \
        rtps_service_naming rtps_action_naming rtps_action_types rtps_native_protocol \
        rtps_action_loopback \
@@ -50,6 +50,9 @@ export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
 note "Golden wire-format tests"
 "$BIN"/rtps_golden; result "golden" $?
+
+note "Unicast locator selection for a peer on several networks (host)"
+"$BIN"/rtps_locator_subnet; result "locator_subnet" $?
 
 note "ROS 2 service + action name/type mangling (host)"
 "$BIN"/rtps_service_naming; result "service_naming" $?

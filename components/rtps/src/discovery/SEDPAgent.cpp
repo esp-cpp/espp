@@ -93,7 +93,8 @@ void SEDPAgent::handlePublisherReaderMessage(const ReaderCacheChange &change) {
   }
 
   TopicData topicData;
-  if (topicData.readFromBuffer(std::span<const uint8_t>(m_buffer, change.getDataSize()))) {
+  if (topicData.readFromBuffer(std::span<const uint8_t>(m_buffer, change.getDataSize()),
+                               m_part->m_localIpAddress)) {
     handlePublisherReaderMessage(topicData, change);
   }
 }
@@ -103,7 +104,9 @@ namespace {
 // PID_UNICAST_LOCATOR in every SEDP sample; CycloneDDS omits it and relies on
 // the participant's default unicast locator from SPDP (RTPS 2.5 8.5.3.2 allows
 // both). Without this fallback a CycloneDDS endpoint gets an invalid locator
-// and nothing is ever sent to it.
+// and nothing is ever sent to it. Of the defaults, prefer one on our subnet:
+// a peer on several networks lists one per network, and only that one is
+// reachable.
 rtps::LocatorIPv4 endpointUnicastLocator(rtps::Participant *part, const rtps::TopicData &data) {
   rtps::LocatorIPv4 loc(data.unicastLocator);
   if (loc.isValid()) {
@@ -112,8 +115,13 @@ rtps::LocatorIPv4 endpointUnicastLocator(rtps::Participant *part, const rtps::To
   const rtps::ParticipantProxyData *remote = part->findRemoteParticipant(data.endpointGuid.prefix);
   if (remote != nullptr) {
     const auto &defaults = remote->m_defaultUnicastLocatorList;
-    const auto found = std::find_if(defaults.begin(), defaults.end(),
-                                    [](const auto &candidate) { return candidate.isValid(); });
+    auto found = std::find_if(defaults.begin(), defaults.end(), [part](const auto &candidate) {
+      return candidate.isValid() && candidate.isSameSubnet(part->m_localIpAddress);
+    });
+    if (found == defaults.end()) {
+      found = std::find_if(defaults.begin(), defaults.end(),
+                           [](const auto &candidate) { return candidate.isValid(); });
+    }
     if (found != defaults.end()) {
       return *found;
     }
@@ -242,7 +250,8 @@ void SEDPAgent::handleSubscriptionReaderMessage(const ReaderCacheChange &change)
   }
 
   TopicData topicData;
-  if (topicData.readFromBuffer(std::span<const uint8_t>(m_buffer, change.getDataSize()))) {
+  if (topicData.readFromBuffer(std::span<const uint8_t>(m_buffer, change.getDataSize()),
+                               m_part->m_localIpAddress)) {
     handleSubscriptionReaderMessage(topicData, change);
   }
 }

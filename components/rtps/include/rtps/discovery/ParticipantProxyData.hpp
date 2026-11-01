@@ -83,7 +83,8 @@ public:
 
 private:
   bool readLocatorIntoList(CdrReader &buffer,
-                           std::array<LocatorIPv4, Config::SPDP_MAX_NUM_LOCATORS> &list);
+                           std::array<LocatorIPv4, Config::SPDP_MAX_NUM_LOCATORS> &list,
+                           const Ip4AddressBytes &localIp);
 
   static const BuiltinEndpointSet_t DISC_BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER = 1 << 0;
   static const BuiltinEndpointSet_t DISC_BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR = 1 << 1;
