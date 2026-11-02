@@ -688,42 +688,39 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
       logger_.warn("Could not register PPA client ({}); rotation will fall back to software",
                    esp_err_to_name(perr));
       g_ppa_client = nullptr;
+    } else {
+      // flush() queues its rotations non-blocking; this callback completes
+      // them (see notify_ppa_trans_done()). Without it the PPA path cannot be
+      // used, since nothing would ever signal LVGL.
+      ppa_event_callbacks_t ppa_cbs = {};
+      ppa_cbs.on_trans_done = &M5StackTab5::notify_ppa_trans_done;
+      perr = ppa_client_register_event_callbacks(g_ppa_client, &ppa_cbs);
+      if (perr != ESP_OK) {
+        logger_.warn("Could not register the PPA completion callback ({}); rotation will fall "
+                     "back to software",
+                     esp_err_to_name(perr));
+        ppa_unregister_client(g_ppa_client);
+        g_ppa_client = nullptr;
+      }
     }
   }
-  // The PPA output buffer in external (PSRAM) memory must be aligned to the
-  // data cache line size: both the pointer and the size must be a multiple of
-  // it (see kPpaOutBufferAlignment).
+  // The software-rotation scratch buffer (see ensure_rotation_scratch_buffer())
+  // is the size of the LVGL draw buffer, aligned to the data cache line like a
+  // PPA output buffer (see kPpaOutBufferAlignment). It is NOT allocated here:
+  // with the PPA rotating straight into the panel framebuffer it is only ever
+  // used by the software fallback, so it is allocated the first time that
+  // fallback runs (never, on a board whose PPA works) - or never, with
+  // CONFIG_M5STACK_TAB5_ROTATION_SOFTWARE_FALLBACK disabled.
   const size_t cache_align = kPpaOutBufferAlignment;
   size_t required_bytes = pixel_buffer_size * sizeof(Pixel);
   required_bytes = (required_bytes + cache_align - 1) / cache_align * cache_align;
-
-  // Reuse the existing scratch buffer if it is already the right size; otherwise
-  // free it first so a repeated initialize_display() call (e.g. re-init with a
-  // different pixel buffer size) cannot leak the previous allocation.
-  if (third_buffer == nullptr || third_buffer_bytes != required_bytes) {
-    if (third_buffer != nullptr) {
-      heap_caps_free(third_buffer);
-      third_buffer = nullptr;
-    }
-    third_buffer_bytes = required_bytes;
-    // Request MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA: the buffer is a PPA (DMA)
-    // output target, and these are exactly the caps kPpaOutBufferAlignment is
-    // derived for. The heap layer supports this combination for external
-    // memory (esp_heap_adjust_alignment_to_hw() applies the cache-line
-    // alignment/size the caps require, then maps the request onto the PSRAM
-    // heap), so on the ESP32-P4 - whose PSRAM is DMA-capable - it yields a
-    // DMA-usable PSRAM allocation.
-    third_buffer = static_cast<Pixel *>(heap_caps_aligned_alloc(
-        cache_align, third_buffer_bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA));
-    if (third_buffer == nullptr) {
-      // The scratch buffer is required for display rotation - both the PPA path
-      // and the software fallback rotate into it - so without it a non-zero
-      // rotation (settable at runtime) would silently flush incorrect output.
-      // Fail initialization rather than come up with rotation quietly broken.
-      logger_.error("Could not allocate the rotation scratch buffer ({} bytes)", required_bytes);
-      third_buffer_bytes = 0;
-      return false;
-    }
+  rotation_scratch_bytes_ = required_bytes;
+  // A buffer left from an earlier initialize_display() with another draw
+  // buffer size is the wrong size: free it so the next fallback reallocates.
+  if (third_buffer != nullptr && third_buffer_bytes != required_bytes) {
+    heap_caps_free(third_buffer);
+    third_buffer = nullptr;
+    third_buffer_bytes = 0;
   }
 
   logger_.info("LVGL display initialized");
@@ -863,6 +860,35 @@ void M5StackTab5::apply_panel_rotation(const DisplayRotation &rotation) {
     // transform.
     display_driver_->set_rotation(DisplayRotation::LANDSCAPE);
   }
+#endif
+}
+
+bool M5StackTab5::ensure_rotation_scratch_buffer() {
+#if !CONFIG_M5STACK_TAB5_ROTATION_SOFTWARE_FALLBACK
+  // PPA-only rotation: the scratch buffer is never allocated.
+  return false;
+#else
+  if (third_buffer != nullptr) {
+    return true;
+  }
+  if (rotation_scratch_bytes_ == 0) {
+    return false; // initialize_display() has not run
+  }
+  // Request MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA with the cache-line alignment a
+  // PPA output buffer needs (kPpaOutBufferAlignment): the heap layer maps the
+  // request onto the PSRAM heap, and on the ESP32-P4 - whose PSRAM is
+  // DMA-capable - yields a DMA-usable PSRAM allocation.
+  third_buffer = static_cast<Pixel *>(heap_caps_aligned_alloc(
+      kPpaOutBufferAlignment, rotation_scratch_bytes_, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA));
+  if (third_buffer == nullptr) {
+    logger_.error_rate_limited("Could not allocate the rotation scratch buffer ({} bytes)",
+                               rotation_scratch_bytes_);
+    return false;
+  }
+  third_buffer_bytes = rotation_scratch_bytes_;
+  logger_.info("Rotating in software: allocated the {} byte rotation scratch buffer",
+               rotation_scratch_bytes_);
+  return true;
 #endif
 }
 
@@ -1015,8 +1041,7 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
   // logical frame is written to the framebuffer unrotated and at unrotated
   // coordinates; the panel flips the whole frame at scan-out, which lands each
   // partial area exactly where LVGL's rotated mapping expects it.
-  if (rotation > LV_DISPLAY_ROTATION_0 && !panel_handles_rotation(rotation) &&
-      third_buffer != nullptr) {
+  if (rotation > LV_DISPLAY_ROTATION_0 && !panel_handles_rotation(rotation)) {
     int32_t ww = lv_area_get_width(area);
     int32_t hh = lv_area_get_height(area);
     lv_color_format_t cf = lv_display_get_color_format(disp);
@@ -1069,28 +1094,49 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       srm.rotation_angle = angle;
       srm.scale_x = 1.0f;
       srm.scale_y = 1.0f;
-      srm.mode = PPA_TRANS_MODE_BLOCKING;
+      // Non-blocking, like the DMA2D copy of the unrotated path: the PPA
+      // driver writes back the source window and invalidates the destination
+      // window when the operation is queued, the operation is left in flight
+      // and notify_ppa_trans_done() signals LVGL when it finishes, so LVGL
+      // renders the next area into its other draw buffer meanwhile. The next
+      // panel operation waits for it first (wait_for_transfer_idle()).
+      srm.mode = PPA_TRANS_MODE_NON_BLOCKING;
+      srm.user_data = this;
       // Serialize the framebuffer write with draw_bitmap (write_lcd_lines /
       // the non-PPA flush tail) so two engines never write the panel FB at once.
       esp_err_t ppa_err;
       {
         std::lock_guard<std::mutex> lock(panel_op_mutex_);
-        wait_for_transfer_idle();
+        if (!wait_for_transfer_idle()) {
+          // a direct write's transfer is wedged: drop this area rather than
+          // rotate on top of it, and keep LVGL alive
+          lv_display_flush_ready(disp);
+          return;
+        }
+        // Publish the display pointer before the pending flag (release), so
+        // the ISR's acquire on the flag always sees the right display.
+        lvgl_flush_disp_ = disp;
+        lvgl_flush_pending_.store(true, std::memory_order_release);
+        transfer_in_flight_.store(true, std::memory_order_release);
         ppa_err = ppa_do_scale_rotate_mirror(g_ppa_client, &srm);
+        if (ppa_err != ESP_OK) {
+          // Not queued: no completion will arrive.
+          transfer_in_flight_.store(false, std::memory_order_release);
+          lvgl_flush_pending_.store(false, std::memory_order_relaxed);
+        }
       }
       if (ppa_err == ESP_OK) {
-        // The rotated pixels are already in the scanned-out framebuffer and
-        // the PPA driver performed the cache maintenance (write-back of the
-        // source window, invalidate of the destination window). The espp
-        // flush path never dirties the framebuffer with the CPU (draw_bitmap
-        // copies run on the DMA2D engine on the ST71xx variants, and the CPU
-        // copy path — used by the ILI9881 variant and as the DMA2D fallback —
-        // writes back the cache before returning), so there is nothing left
-        // to sync and
-        // no draw_bitmap call is needed: signal LVGL directly.
-        lv_display_flush_ready(disp);
+        // The rotated pixels land in the scanned-out framebuffer with the
+        // cache maintenance done by the PPA driver; the espp flush path never
+        // dirties the framebuffer with the CPU (draw_bitmap copies run on the
+        // DMA2D engine on the ST71xx variants, and the CPU copy path — used by
+        // the ILI9881 variant and as the DMA2D fallback — writes back the
+        // cache before returning), so no draw_bitmap call is needed and the
+        // PPA completion callback signals LVGL.
         return;
       }
+      logger_.warn_rate_limited("PPA rotation failed ({}); rotating in software",
+                                esp_err_to_name(ppa_err));
       // On failure fall through to the scratch-buffer software rotation: the
       // framebuffer may hold a partial block, but the fallback redraws the
       // full area at the same destination.
@@ -1100,6 +1146,16 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       // not be queried, or the PPA operation failed. Rotate on the CPU into
       // the scratch buffer, fully overwriting it, and hand it to draw_bitmap
       // below.
+      if (!ensure_rotation_scratch_buffer()) {
+        // No way to rotate this area (fallback disabled, or no memory for its
+        // buffer): drawing it unrotated would corrupt the frame, so drop it.
+        logger_.error_rate_limited(
+            "Rotation {} requested but the PPA is unavailable and there is no software "
+            "fallback (CONFIG_M5STACK_TAB5_ROTATION_SOFTWARE_FALLBACK / memory); dropping the area",
+            static_cast<int>(rotation));
+        lv_display_flush_ready(disp);
+        return;
+      }
       uint32_t w_stride = lv_draw_buf_width_to_stride(ww, cf);
       uint32_t h_stride = lv_draw_buf_width_to_stride(hh, cf);
       {
@@ -1146,8 +1202,10 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
     // Publish the pending state before the draw: with the CPU copy path (no
     // DMA2D) the driver invokes the completion callback synchronously from
     // inside draw_bitmap, on this thread.
+    // Publish the display pointer before the pending flag (release), so the
+    // ISR's acquire on the flag always sees the right display.
     lvgl_flush_disp_ = disp;
-    lvgl_flush_pending_.store(true, std::memory_order_relaxed);
+    lvgl_flush_pending_.store(true, std::memory_order_release);
     transfer_in_flight_.store(true, std::memory_order_release);
     esp_err_t err = esp_lcd_panel_draw_bitmap(lcd_handles_.panel, offsetx1, offsety1, offsetx2 + 1,
                                               offsety2 + 1, px_map);
@@ -1169,26 +1227,72 @@ bool IRAM_ATTR M5StackTab5::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel
   }
 
   // ISR context (or, on the CPU copy path, called synchronously from inside
-  // draw_bitmap on the issuing thread). The transfer is complete: clear the
-  // in-flight flag, release LVGL if this was a flush()'s draw - only flush()
-  // sets lvgl_flush_pending_, so a direct write_lcd_lines() completion is never
-  // mistaken for an LVGL flush completion - and give the semaphore a direct
-  // write (or the next wait_for_transfer_idle()) is waiting on.
-  // lv_display_flush_ready() only clears two flags on the display, which is
-  // what the pre-serialization code called from this ISR as well. It lives in
-  // flash, so this callback must not run while the flash cache is disabled:
-  // leave CONFIG_LCD_DSI_ISR_CACHE_SAFE off (the default) with this BSP.
-  // The in-flight flag is NOT cleared here: the task that consumes this token
-  // clears it (wait_for_transfer_idle() / draw_and_wait()), so the flag and
-  // the token can never disagree across cores.
+  // draw_bitmap on the issuing thread): the draw_bitmap transfer is complete.
   BaseType_t higher_priority_task_woken = pdFALSE;
-  if (tab5->lvgl_flush_pending_.exchange(false)) {
-    lv_display_flush_ready(tab5->lvgl_flush_disp_);
-  }
-  if (tab5->draw_done_sem_ != nullptr) {
-    xSemaphoreGiveFromISR(tab5->draw_done_sem_, &higher_priority_task_woken);
-  }
+  tab5->complete_transfer(&higher_priority_task_woken);
   return higher_priority_task_woken == pdTRUE;
+}
+
+bool IRAM_ATTR M5StackTab5::notify_ppa_trans_done(ppa_client_handle_t client,
+                                                  ppa_event_data_t *edata, void *user_data) {
+  (void)client;
+  (void)edata;
+  auto *tab5 = static_cast<espp::M5StackTab5 *>(user_data);
+  if (tab5 == nullptr) {
+    return false;
+  }
+  // ISR context (the PPA / 2D-DMA transfer-done interrupt): the rotation
+  // flush() queued into the framebuffer is complete.
+  BaseType_t higher_priority_task_woken = pdFALSE;
+  tab5->complete_transfer(&higher_priority_task_woken);
+  return higher_priority_task_woken == pdTRUE;
+}
+
+// The completion callbacks below call lv_display_flush_ready(), which lives in
+// flash: they must never run while the flash cache is disabled. Refuse the
+// configurations that would make the DSI / PPA (2D-DMA) ISRs run in that state
+// rather than ship a firmware that hard-faults on the first SPI-flash write
+// during a flush.
+#if defined(CONFIG_LCD_DSI_ISR_CACHE_SAFE) && CONFIG_LCD_DSI_ISR_CACHE_SAFE
+#error                                                                                             \
+    "m5stack-tab5: CONFIG_LCD_DSI_ISR_CACHE_SAFE runs the DSI transfer-done callback with the flash cache disabled, but it calls lv_display_flush_ready() (in flash); disable it"
+#endif
+#if defined(CONFIG_DMA2D_ISR_IRAM_SAFE) && CONFIG_DMA2D_ISR_IRAM_SAFE
+#error                                                                                             \
+    "m5stack-tab5: CONFIG_DMA2D_ISR_IRAM_SAFE runs the PPA transfer-done callback with the flash cache disabled, but it calls lv_display_flush_ready() (in flash); disable it"
+#endif
+
+void IRAM_ATTR M5StackTab5::complete_transfer(BaseType_t *higher_priority_task_woken) {
+  // The transfer in flight (a DMA2D draw_bitmap copy or a PPA rotation) is
+  // complete: release LVGL if this was a flush()'s transfer - only flush()
+  // sets lvgl_flush_pending_, so a direct write_lcd_lines() completion is
+  // never mistaken for an LVGL flush completion - and give the token a direct
+  // write (or the next wait_for_transfer_idle()) is waiting on. The in-flight
+  // flag is NOT cleared here: the task that consumes the token clears it
+  // (wait_for_transfer_idle() / draw_and_wait()), so flag and token can never
+  // disagree across cores.
+  // lv_display_flush_ready() only clears two flags on the display, which is
+  // what the pre-serialization code called from the DSI ISR as well. It lives
+  // in flash, so these callbacks must not run while the flash cache is
+  // disabled: the #error guards above refuse the configurations that would
+  // (CONFIG_LCD_DSI_ISR_CACHE_SAFE for the DSI callback,
+  // CONFIG_DMA2D_ISR_IRAM_SAFE for the PPA's), both off by default.
+  // acquire pairs with the release store of the flag in flush(), ordering the
+  // display pointer read after it
+  if (lvgl_flush_pending_.exchange(false, std::memory_order_acq_rel)) {
+    lv_display_flush_ready(lvgl_flush_disp_);
+  }
+  if (draw_done_sem_ != nullptr) {
+    // Usually an ISR (the 2D-DMA / PPA transfer-done interrupts), but the DPI
+    // driver's CPU copy path (no DMA2D: the ILI9881 variant, or the DMA2D
+    // fallback) invokes on_color_trans_done synchronously from inside
+    // draw_bitmap on the issuing task: use the matching semaphore API.
+    if (xPortInIsrContext()) {
+      xSemaphoreGiveFromISR(draw_done_sem_, higher_priority_task_woken);
+    } else {
+      xSemaphoreGive(draw_done_sem_);
+    }
+  }
 }
 
 void M5StackTab5::dsi_write_command(uint8_t cmd, std::span<const uint8_t> params,
