@@ -119,9 +119,16 @@ no copy:
   on the ILI9881 panel), so the previous buffer is free to draw into:
   tear-free double buffering. The wait uses the DMA's frame-done event;
   `on_color_trans_done` cannot serve, because for a frame buffer the driver
-  calls it before the switch. A timeout (default 100 ms) logs once and returns
-  `false` rather than stalling the UI; `set_vsync_enabled(false)` skips the
-  wait.
+  calls it before the switch. Tear-free therefore depends on that wait
+  succeeding. On a timeout (default 100 ms) the switch stays queued and the
+  call returns `false` rather than stalling: the caller carries on and the
+  next frame may tear. After three consecutive timeouts (a frame-done event
+  that never arrives, e.g. a panel / ESP-IDF combination whose callback does
+  not fire) `present_frame()` disables its wait itself, with a warning, so
+  the UI is not held at one frame per timeout for good; frames may then tear
+  until `set_vsync_enabled(true)` re-arms it. `set_vsync_enabled(false)` skips
+  the wait deliberately. The DIRECT-mode flush ignores the return value for
+  the same reason: it never blocks LVGL on a missing event.
 - `initialize_display({.render_to_frame_buffers_enabled = true})` sets LVGL up in DIRECT
   mode on two of them, with the BSP's flush calling `present_frame()` at the end
   of each frame. No draw buffers and no rotation scratch buffer are allocated.

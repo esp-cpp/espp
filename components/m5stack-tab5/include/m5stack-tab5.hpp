@@ -400,8 +400,13 @@ public:
 
   /// Enable or disable the wait in present_frame()
   /// \param enabled false: present_frame() queues the switch and returns at
-  ///        once (faster, but the next frame can tear)
-  void set_vsync_enabled(bool enabled) { vsync_enabled_.store(enabled, std::memory_order_relaxed); }
+  ///        once (faster, but the next frame can tear). present_frame()
+  ///        disables the wait itself after a few consecutive timeouts (a
+  ///        frame-done event that never arrives); pass true to arm it again.
+  void set_vsync_enabled(bool enabled) {
+    vsync_timeouts_in_a_row_ = 0;
+    vsync_enabled_.store(enabled, std::memory_order_relaxed);
+  }
 
   /// Whether present_frame() waits for the frame-buffer switch
   /// \return true if the wait is enabled (the default)
@@ -1271,6 +1276,12 @@ protected:
   std::atomic<bool> vsync_enabled_{true};
   // A stalled panel logs one present_frame() timeout, not one per frame
   std::atomic<bool> vsync_timeout_logged_{false};
+  // Consecutive present_frame() timeouts (only present_frame() touches it,
+  // under present_mutex_); at kVsyncTimeoutsBeforeDisable the wait is
+  // switched off so a frame-done event that never comes cannot hold the UI
+  // at one frame per timeout for good.
+  static constexpr int kVsyncTimeoutsBeforeDisable = 3;
+  int vsync_timeouts_in_a_row_{0};
 
   // DSI write helpers
   void dsi_write_command(uint8_t cmd, std::span<const uint8_t> params, uint32_t flags);

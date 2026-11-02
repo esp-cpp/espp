@@ -415,6 +415,24 @@ bool M5StackTab5::initialize_lcd() {
     frame_buffers_ = {};
     return false;
   }
+  // DIRECT mode hands LVGL buffers 1 and 0 and present_frame() switches
+  // between them, so every one of the first kNumDpiFramebuffers pointers
+  // must be a real, distinct buffer; a null or duplicate would make two
+  // "buffers" the same memory.
+  for (size_t i = 0; i < kNumDpiFramebuffers; ++i) {
+    if (frame_buffers_[i] == nullptr) {
+      logger_.error("DPI panel frame buffer {} of {} is null", i, kNumDpiFramebuffers);
+      frame_buffers_ = {};
+      return false;
+    }
+    for (size_t j = 0; j < i; ++j) {
+      if (frame_buffers_[j] == frame_buffers_[i]) {
+        logger_.error("DPI panel frame buffers {} and {} are the same buffer", j, i);
+        frame_buffers_ = {};
+        return false;
+      }
+    }
+  }
   num_frame_buffers_ = kNumDpiFramebuffers;
 
   espp::display_drivers::Config display_config{
@@ -1183,12 +1201,26 @@ bool M5StackTab5::present_frame(const void *frame_buffer, uint32_t timeout_ms) {
     }
   }
   if (switched) {
+    vsync_timeouts_in_a_row_ = 0;
     return true;
   }
   // A panel that stopped refreshing must not freeze the caller: the switch
-  // stays queued and happens whenever the DMA restarts.
+  // stays queued and happens whenever the DMA restarts. Each timeout costs
+  // the caller timeout_ms, so a frame-done event that never comes (a panel
+  // or ESP-IDF combination whose callback does not fire) would otherwise hold
+  // the UI at 1000 / timeout_ms frames per second for good. After a few
+  // consecutive timeouts the wait is switched off: present_frame() then
+  // queues the switch and returns at once (frames may tear, as with
+  // set_vsync_enabled(false)); set_vsync_enabled(true) arms it again.
   if (!vsync_timeout_logged_.exchange(true, std::memory_order_relaxed)) {
     logger_.warn("present_frame(): no frame-done event within {} ms (logged once)", timeout_ms);
+  }
+  if (++vsync_timeouts_in_a_row_ >= kVsyncTimeoutsBeforeDisable) {
+    vsync_timeouts_in_a_row_ = 0;
+    vsync_enabled_.store(false, std::memory_order_relaxed);
+    logger_.warn("present_frame(): {} consecutive timeouts; the frame-done wait is now disabled "
+                 "(frames may tear); set_vsync_enabled(true) to re-arm it",
+                 kVsyncTimeoutsBeforeDisable);
   }
   return false;
 }
@@ -1261,6 +1293,9 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       rotation_warned = true;
     }
     if (lv_display_flush_is_last(disp)) {
+      // The return value is deliberately not acted on: on a timeout the switch
+      // is still queued and LVGL carries on (that frame may tear); after a few
+      // consecutive timeouts present_frame() disables its wait itself.
       // Waits until the panel scans px_map out, so LVGL never renders the
       // next frame into the buffer the panel is still reading (see
       // present_frame()). Two costs are inherent to DIRECT mode with two
