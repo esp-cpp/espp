@@ -723,6 +723,28 @@ bool M5StackTab5::initialize_display(const DisplayConfig &config) {
                     num_frame_buffers_);
       return false;
     }
+    // DIRECT mode renders straight into the panel's frame buffers, whose rows
+    // are exactly display_width_ pixels apart. LVGL lays its draw buffers out
+    // with its own stride rule (LV_DRAW_BUF_STRIDE_ALIGN): 720 RGB565 pixels
+    // are 1440 bytes, a multiple of neither 64 nor 128, so a raised stride
+    // alignment would silently skew every row. Refuse rather than draw skewed.
+    const uint32_t lvgl_stride =
+        lv_draw_buf_width_to_stride(display_width_, LV_COLOR_FORMAT_RGB565);
+    if (lvgl_stride != display_width_ * sizeof(Pixel)) {
+      logger_.error("render_to_frame_buffers needs LVGL's row stride ({} bytes) to equal the "
+                    "panel's ({} bytes); set LV_DRAW_BUF_STRIDE_ALIGN so it does",
+                    lvgl_stride, display_width_ * sizeof(Pixel));
+      return false;
+    }
+    // LVGL cannot rotate in DIRECT mode (it renders in place, and the PPA /
+    // software rotation of flush() has no separate draw buffer to rotate
+    // from), so the display must come up unrotated and stay so.
+    if (rotation != DisplayRotation::LANDSCAPE ||
+        requested_rotation_.load(std::memory_order_seq_cst) != DisplayRotation::LANDSCAPE) {
+      logger_.error("render_to_frame_buffers needs the display rotation to be 0 (LANDSCAPE); "
+                    "LVGL cannot rotate in DIRECT mode");
+      return false;
+    }
     logger_.info("Initializing LVGL display in DIRECT mode on the DPI frame buffers");
     if (!display_) {
       // LVGL renders its first frame into vram0. The panel scans frame buffer 0
