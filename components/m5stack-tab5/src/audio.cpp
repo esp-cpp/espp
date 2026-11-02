@@ -270,6 +270,9 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   }
   if (!microphone_task_->start()) {
     logger_.error("Failed to start the microphone task");
+    // the playback task may already have registered its handle for
+    // play_audio()'s notifications: forget it before the task goes away
+    audio_tx_task_handle_.store(nullptr, std::memory_order_release);
     audio_task_->stop();
     return false;
   }
@@ -413,12 +416,11 @@ bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv
     available = 0;
   }
   if (available < block && (available > 0 || audio_tx_was_flowing_)) {
-    const TickType_t deadline = xTaskGetTickCount() + pdMS_TO_TICKS(AUDIO_TX_WHOLE_BLOCK_WAIT_MS);
-    while (available < block) {
-      const TickType_t remaining = deadline - xTaskGetTickCount();
-      if (static_cast<int32_t>(remaining) <= 0) {
-        break;
-      }
+    // wrap-safe bounded wait (FreeRTOS keeps the remaining ticks up to date)
+    TimeOut_t timeout;
+    vTaskSetTimeOutState(&timeout);
+    TickType_t remaining = pdMS_TO_TICKS(AUDIO_TX_WHOLE_BLOCK_WAIT_MS);
+    while (available < block && xTaskCheckForTimeOut(&timeout, &remaining) == pdFALSE) {
       // a notification left over from an earlier send wakes this at once; the
       // stream is re-read and the wait resumes, still bounded by the deadline
       ulTaskNotifyTake(pdTRUE, remaining);
@@ -426,10 +428,11 @@ bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv
     }
   }
   available = std::min(available, block);
-  memset(tx_buf, 0, block);
   if (available > 0) {
     xStreamBufferReceive(audio_tx_stream, tx_buf, available, 0);
   }
+  // silence only where there is no audio
+  memset(tx_buf + available, 0, block - available);
   audio_tx_was_flowing_ = available > 0;
   i2s_channel_write(audio_tx_handle, tx_buf, block, NULL, portMAX_DELAY);
   return false;
