@@ -380,12 +380,15 @@ public:
   /// is free. (on_color_trans_done cannot be used for this: for a frame
   /// buffer the driver calls it synchronously, before the switch.)
   ///
-  /// \param frame_buffer Start of one of frame_buffers()
+  /// \param frame_buffer A pointer inside one of frame_buffers() (its start, or any
+  ///        address in it: the buffer that contains it is shown)
   /// \param timeout_ms How long to wait for the switch
   /// \return true once the panel scans the frame out, or at once if the wait
   ///         is disabled or unavailable (see set_vsync_enabled()); false if
-  ///         \p frame_buffer is not one of frame_buffers() or the wait timed
-  ///         out (the switch is still queued; carry on rather than stall)
+  ///         \p frame_buffer is not inside one of frame_buffers(), a previous
+  ///         transfer is wedged, or the wait timed out (the switch is still
+  ///         queued; carry on rather than stall). Callers are serialized: one
+  ///         presenter at a time.
   /// \note Waits at most one panel refresh period (about 17 ms; 21 ms on the
   ///       ILI9881 panel) when the panel is running - two on ESP-IDF before
   ///       v5.5.5 / v6.0.3, whose frame-done event is the DSI bridge's VSYNC
@@ -1259,6 +1262,9 @@ protected:
   // Given once per panel refresh by notify_frame_done() (only with more than
   // one frame buffer); present_frame() waits on it
   SemaphoreHandle_t frame_done_sem_{nullptr};
+  // Serializes present_frame() end to end (queue the switch + wait for the
+  // frame-done event): the event has one token and one waiter per switch.
+  std::mutex present_mutex_;
   std::atomic<bool> vsync_enabled_{true};
   // A stalled panel logs one present_frame() timeout, not one per frame
   std::atomic<bool> vsync_timeout_logged_{false};

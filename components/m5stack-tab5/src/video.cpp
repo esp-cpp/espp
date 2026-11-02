@@ -1104,11 +1104,23 @@ void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t 
 bool M5StackTab5::present_frame(const void *frame_buffer, uint32_t timeout_ms) {
   // frame_buffers() is empty until the lcd_initialized_ gate is open
   // (acquire), so this also refuses a panel that is not fully initialized.
+  // Any pointer inside a frame buffer selects that buffer, as the driver's
+  // draw_bitmap does.
   const auto fbs = frame_buffers();
-  if (frame_buffer == nullptr || std::find(fbs.begin(), fbs.end(), frame_buffer) == fbs.end()) {
-    logger_.error("present_frame() needs the start of one of the panel's frame buffers");
+  const auto *p = static_cast<const uint8_t *>(frame_buffer);
+  const auto owner = std::find_if(fbs.begin(), fbs.end(), [p](void *fb) {
+    const auto *base = static_cast<const uint8_t *>(fb);
+    return base != nullptr && p >= base && p < base + frame_buffer_size();
+  });
+  if (frame_buffer == nullptr || owner == fbs.end()) {
+    logger_.error("present_frame() needs a pointer inside one of the panel's frame buffers");
     return false;
   }
+  // One presenter at a time: the frame-done semaphore has a single token and
+  // a single waiter per switch, so a second caller must not steal this one's
+  // event. (The LVGL flush is the only presenter in DIRECT mode; this guards
+  // an application that drives the frame buffers itself from another task.)
+  std::lock_guard<std::mutex> present_lock(present_mutex_);
   {
     // Queue the switch: for a frame buffer the driver writes the cache back,
     // makes it the next one to scan out (cur_fb_index) and calls
