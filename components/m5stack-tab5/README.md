@@ -38,7 +38,10 @@ The `espp::M5StackTab5` component provides a singleton hardware abstraction for 
 - MP4560 buck-boost converter
 - IP2326 charge management (`set_charging_enabled()`, off by default; only
   enable it when `read_battery_status().is_present` is true, since the charger
-  retrying to charge an empty battery bay pops the speaker periodically)
+  retrying to charge an empty battery bay pops the speaker periodically; the
+  enabled charger also pops on every speaker transient, so the BSP pauses
+  charging during playback and resumes it 3 s after the last sound, see
+  `set_charging_pause_on_playback_enabled()`)
 - INA226 real-time power monitoring
 - Multiple power modes for efficiency
 

@@ -48,6 +48,10 @@ This example demonstrates the comprehensive functionality of the M5Stack Tab5 de
   (`BatteryStatus::is_present`): with the bay empty, the IP2326 charger keeps
   retrying to charge nothing, and each retry is an audible pop on the speaker
   (every few seconds to a couple of minutes, even when the board is idle).
+  With a battery fitted, the BSP pauses charging while the speaker plays and
+  resumes it 3 s after the last sound (the enabled charger pops on every
+  audio transient, whatever the charge current); the example's battery line
+  shows the charger switching off during a click or playback and back on.
 
 ### Communication Interfaces
 - **microSD Card**: File system support with SDIO interface

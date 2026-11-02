@@ -157,6 +157,47 @@ M5StackTab5::BatteryStatus M5StackTab5::read_battery_status() {
   return get_battery_status();
 }
 
+void M5StackTab5::set_charging_pause_on_playback_enabled(bool enable) {
+  charging_pause_on_playback_enabled_.store(enable, std::memory_order_relaxed);
+  if (!enable) {
+    resume_charging_after_audio();
+  }
+}
+
+void M5StackTab5::update_charging_for_audio(bool audio_active) {
+  // Runs on the audio playback task once per block (about 60 Hz). The IO
+  // expander write happens only on the two transitions; the common case is a
+  // clock read and a compare.
+  if (!charging_pause_on_playback_enabled_.load(std::memory_order_relaxed)) {
+    return;
+  }
+  const auto now = std::chrono::steady_clock::now();
+  if (audio_active) {
+    audio_last_active_ = now;
+    std::lock_guard<std::mutex> lock(charging_mutex_);
+    if (!charging_paused_for_audio_) {
+      charging_paused_for_audio_ = true;
+      if (charging_requested_) {
+        set_io_expander_output(0x44, IO44_BIT_CHG_EN, false);
+      }
+    }
+    return;
+  }
+  if (now - audio_last_active_ >= std::chrono::milliseconds(CHARGING_RESUME_DELAY_MS)) {
+    resume_charging_after_audio();
+  }
+}
+
+void M5StackTab5::resume_charging_after_audio() {
+  std::lock_guard<std::mutex> lock(charging_mutex_);
+  if (charging_paused_for_audio_) {
+    charging_paused_for_audio_ = false;
+    if (charging_requested_) {
+      set_io_expander_output(0x44, IO44_BIT_CHG_EN, true);
+    }
+  }
+}
+
 void M5StackTab5::enable_battery_charging(bool enable) {
   // Control charging via IP2326 charge management IC This is done through the
   // PI4IOE5V6408 GPIO expander

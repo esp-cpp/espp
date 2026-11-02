@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cmath>
 #include <functional>
 #include <memory>
@@ -602,7 +603,26 @@ public:
   /// Enable/disable battery charging (IP2326 CHG_EN on 0x44 P7)
   /// \param enable True to enable charging, false to disable
   /// \return true on success
+  /// \note This is the requested state. While speaker playback pauses charging
+  ///       (see set_charging_pause_on_playback_enabled()), a request to enable
+  ///       is remembered and applied when playback has stopped.
   bool set_charging_enabled(bool enable);
+
+  /// Whether speaker playback pauses battery charging (default: enabled).
+  /// With the IP2326 charger enabled, every audio transient on the speaker
+  /// comes with a pop, whatever the charge current (measured on the Tab5:
+  /// clean with CHG_EN low, popping with it high even when the pack is full
+  /// and the charger idles). So while audio is being played the charger is
+  /// switched off, and switched back on CHARGING_RESUME_DELAY_MS after the
+  /// last audio block; charging a pack between sounds is not affected.
+  /// Disabling this leaves the charger alone while audio plays.
+  /// \param enable True to pause charging during playback
+  void set_charging_pause_on_playback_enabled(bool enable);
+
+  /// \return Whether speaker playback pauses battery charging
+  bool charging_pause_on_playback_enabled() const {
+    return charging_pause_on_playback_enabled_.load(std::memory_order_relaxed);
+  }
 
   /// Switch the 5 V supply of the USB-A host jack (USB_5V_EN on the 0x44 IO
   /// expander). On by default after initialize_io_expanders(); turn it off and
@@ -979,6 +999,20 @@ protected:
   std::atomic<bool> battery_monitoring_initialized_{false};
   BatteryStatus battery_status_;
   std::mutex battery_mutex_;
+  // Charger vs. speaker (see set_charging_pause_on_playback_enabled()). The
+  // audio playback task reports whether each block carried audio; the charger
+  // is switched off on the first audio block and back on this long after the
+  // last one, so consecutive sounds do not toggle it.
+  static constexpr uint32_t CHARGING_RESUME_DELAY_MS = 3000;
+  /// Called by the playback task for every block; pauses / resumes charging.
+  void update_charging_for_audio(bool audio_active);
+  /// Resume charging now if playback paused it (teardown, feature disabled).
+  void resume_charging_after_audio();
+  std::mutex charging_mutex_;
+  bool charging_requested_{false};        // last set_charging_enabled() request
+  bool charging_paused_for_audio_{false}; // CHG_EN held low by playback
+  std::atomic<bool> charging_pause_on_playback_enabled_{true};
+  std::chrono::steady_clock::time_point audio_last_active_{}; // playback task only
   std::shared_ptr<I2c::Device<uint8_t>> battery_monitor_i2c_device_;
   std::shared_ptr<BatteryMonitor> battery_monitor_;
   // IO expanders on the internal I2C (addresses 0x43 and 0x44 per Tab5 design)
