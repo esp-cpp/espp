@@ -1039,17 +1039,24 @@ protected:
   // The LVGL flush is asynchronous: flush() issues its draw_bitmap copy (or,
   // when rotating, its PPA rotation straight into the framebuffer) and returns
   // without waiting, so LVGL renders the next area into its other draw buffer
-  // while this one is being copied or rotated. The transfer is "in flight"
-  // until its completion ISR clears this flag; the next panel operation waits
-  // for it first. The ISR also signals LVGL (lv_display_flush_ready() on
-  // lvgl_flush_disp_) when lvgl_flush_pending_ is set, which it is only for a
-  // flush()'s transfer, so a direct write's completion never reaches LVGL.
+  // while this one is being copied or rotated. Token accounting: every
+  // transfer that sets transfer_in_flight_ is completed by exactly one token
+  // on draw_done_sem_, given by the completion callback (complete_transfer()),
+  // and whoever consumes the token under panel_op_mutex_ clears the flag -
+  // wait_for_transfer_idle() for a flush's transfer, draw_and_wait() for its
+  // own. The callback never clears the flag, so flag and token cannot
+  // disagree across cores, and a transfer that timed out stays in flight
+  // until its token is consumed. The callback also signals LVGL
+  // (lv_display_flush_ready() on lvgl_flush_disp_) when lvgl_flush_pending_
+  // is set, which it is only for a flush()'s transfer, so a direct write's
+  // completion never reaches LVGL.
   std::atomic<bool> transfer_in_flight_{false};
   std::atomic<bool> lvgl_flush_pending_{false};
   lv_display_t *lvgl_flush_disp_{nullptr};
   // Blocks until no transfer is in flight. Caller holds panel_op_mutex_.
   // Returns false if the in-flight transfer did not complete within the bounded
-  // wait (it is then considered done, and LVGL is released if it was waiting).
+  // wait; it then STAYS in flight (its token is still owed) and the caller must
+  // not issue its own operation on top of it.
   bool wait_for_transfer_idle();
 
   // The DPI panel's (PSRAM) framebuffer, queried from esp_lcd once the panel
@@ -1092,7 +1099,9 @@ protected:
   static bool notify_ppa_trans_done(ppa_client_handle_t client, ppa_event_data_t *edata,
                                     void *user_data);
   // Shared tail of both completion callbacks: the transfer in flight is done.
-  void complete_transfer_from_isr(BaseType_t *higher_priority_task_woken);
+  // Usually ISR context; the DPI driver's CPU copy path calls it synchronously
+  // on the issuing task, so it picks the semaphore API by xPortInIsrContext().
+  void complete_transfer(BaseType_t *higher_priority_task_woken);
 
   // DSI write helpers
   void dsi_write_command(uint8_t cmd, std::span<const uint8_t> params, uint32_t flags);

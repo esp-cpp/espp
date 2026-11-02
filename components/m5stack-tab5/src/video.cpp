@@ -1229,7 +1229,7 @@ bool IRAM_ATTR M5StackTab5::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel
   // ISR context (or, on the CPU copy path, called synchronously from inside
   // draw_bitmap on the issuing thread): the draw_bitmap transfer is complete.
   BaseType_t higher_priority_task_woken = pdFALSE;
-  tab5->complete_transfer_from_isr(&higher_priority_task_woken);
+  tab5->complete_transfer(&higher_priority_task_woken);
   return higher_priority_task_woken == pdTRUE;
 }
 
@@ -1244,7 +1244,7 @@ bool IRAM_ATTR M5StackTab5::notify_ppa_trans_done(ppa_client_handle_t client,
   // ISR context (the PPA / 2D-DMA transfer-done interrupt): the rotation
   // flush() queued into the framebuffer is complete.
   BaseType_t higher_priority_task_woken = pdFALSE;
-  tab5->complete_transfer_from_isr(&higher_priority_task_woken);
+  tab5->complete_transfer(&higher_priority_task_woken);
   return higher_priority_task_woken == pdTRUE;
 }
 
@@ -1262,7 +1262,7 @@ bool IRAM_ATTR M5StackTab5::notify_ppa_trans_done(ppa_client_handle_t client,
     "m5stack-tab5: CONFIG_DMA2D_ISR_IRAM_SAFE runs the PPA transfer-done callback with the flash cache disabled, but it calls lv_display_flush_ready() (in flash); disable it"
 #endif
 
-void IRAM_ATTR M5StackTab5::complete_transfer_from_isr(BaseType_t *higher_priority_task_woken) {
+void IRAM_ATTR M5StackTab5::complete_transfer(BaseType_t *higher_priority_task_woken) {
   // The transfer in flight (a DMA2D draw_bitmap copy or a PPA rotation) is
   // complete: release LVGL if this was a flush()'s transfer - only flush()
   // sets lvgl_flush_pending_, so a direct write_lcd_lines() completion is
@@ -1283,7 +1283,15 @@ void IRAM_ATTR M5StackTab5::complete_transfer_from_isr(BaseType_t *higher_priori
     lv_display_flush_ready(lvgl_flush_disp_);
   }
   if (draw_done_sem_ != nullptr) {
-    xSemaphoreGiveFromISR(draw_done_sem_, higher_priority_task_woken);
+    // Usually an ISR (the 2D-DMA / PPA transfer-done interrupts), but the DPI
+    // driver's CPU copy path (no DMA2D: the ILI9881 variant, or the DMA2D
+    // fallback) invokes on_color_trans_done synchronously from inside
+    // draw_bitmap on the issuing task: use the matching semaphore API.
+    if (xPortInIsrContext()) {
+      xSemaphoreGiveFromISR(draw_done_sem_, higher_priority_task_woken);
+    } else {
+      xSemaphoreGive(draw_done_sem_);
+    }
   }
 }
 
