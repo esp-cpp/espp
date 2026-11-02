@@ -53,13 +53,6 @@ Participant::Participant(const GuidPrefix_t &guidPrefix, ParticipantId_t partici
 
 Participant::~Participant() { m_spdpAgent.stop(); }
 
-void Participant::reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId) {
-  m_guidPrefix = guidPrefix;
-  m_participantId = participantId;
-  m_localIpAddress = {Config::IP_ADDRESS[0], Config::IP_ADDRESS[1], Config::IP_ADDRESS[2],
-                      Config::IP_ADDRESS[3]};
-}
-
 void Participant::reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId,
                         const Ip4AddressBytes &localIpAddress, uint8_t localPrefixLength) {
   m_guidPrefix = guidPrefix;

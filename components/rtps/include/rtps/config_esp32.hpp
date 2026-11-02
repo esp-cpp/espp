@@ -53,9 +53,14 @@ namespace Config {
 // consumer translation unit would silently disagree with the library.
 // ---------------------------------------------------------------------------
 
+// Wire identity, never a knob: goes into every RTPS message header, our SPDP
+// announcement and GUID prefix bytes 7-8 (Domain::generateGuidPrefix).
 const VendorId_t VENDOR_ID = {13, 37};
-const std::array<uint8_t, 4> IP_ADDRESS = {192, 168, 4,
-                                           1}; // Fallback: must match DHCPS server netif IP.
+// Fallback only: Domain::generateGuidPrefix() builds the prefix from the
+// Ethernet or Wi-Fi MAC (bytes 0-5) and uses this template only when neither
+// MAC can be read. Bytes 6-9 are always overwritten with the participant id,
+// VENDOR_ID and DOMAIN_ID, so two boards that both fall back share bytes 0-5
+// and 10-11 and would collide on a domain.
 const GuidPrefix_t BASE_GUID_PREFIX{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13};
 
 // DDS domain id (the ROS_DOMAIN_ID equivalent; 0..232 with UDP). The port base
@@ -143,8 +148,10 @@ const uint8_t MAX_TYPENAME_LENGTH = RTPS_CFG_MAX_TYPENAME_LENGTH;
 #endif
 const uint8_t MAX_TOPICNAME_LENGTH = RTPS_CFG_MAX_TOPICNAME_LENGTH;
 
-const int HEARTBEAT_STACKSIZE = 1024 * 6;      // byte
-const int THREAD_POOL_WRITER_STACKSIZE = 4096; // byte
+// Tasks (menuconfig RTPS -> Tasks). The engine runs exactly two kinds of task:
+// the transport's worker pool + reactor (THREAD_POOL_READER_*) and the Domain's
+// protocol task (SPDP_WRITER_*). Heartbeats and SPDP run on the protocol task,
+// writers send inline, so there are no separate heartbeat/writer tasks to size.
 // Stack of the transport's worker pool and reactor tasks (EsppTransport),
 // which run every reader and matched callback. Applied on ESP only (espp::Task
 // sets stacks through esp_pthread; a host std::thread uses the platform
@@ -216,8 +223,6 @@ const Duration_t SPDP_DEFAULT_REMOTE_LEASE_DURATION = {
 #endif
 const Duration_t SPDP_MAX_REMOTE_LEASE_DURATION = {RTPS_CFG_SPDP_MAX_REMOTE_LEASE_DURATION_S, 0};
 
-const Duration_t SPDP_LEASE_DURATION = {5, 0};
-
 // Transport channel pool: 2 shared multicast channels (SPDP metatraffic +
 // user multicast) + 2 unicast channels per participant (builtin + user), plus
 // any dedicated endpoint ports (max_prioritized_endpoint_ports, default 4)
@@ -228,22 +233,12 @@ const Duration_t SPDP_LEASE_DURATION = {5, 0};
 #endif
 const int MAX_NUM_UDP_CONNECTIONS = RTPS_CFG_MAX_NUM_UDP_CONNECTIONS;
 
-const int THREAD_POOL_NUM_WRITERS = 2;
-const int THREAD_POOL_NUM_READERS = 2;
-const int THREAD_POOL_WRITER_PRIO = 5;
-// The transport's worker pool and reactor tasks (EsppTransport). On ESP-IDF,
-// menuconfig RTPS -> Transport task priority overrides it.
+// Priority of the transport's worker pool and reactor tasks (EsppTransport);
+// the pool depth is fixed in the transport. menuconfig RTPS -> Tasks.
 #ifndef RTPS_CFG_THREAD_POOL_READER_PRIO
 #define RTPS_CFG_THREAD_POOL_READER_PRIO 5
 #endif
 const int THREAD_POOL_READER_PRIO = RTPS_CFG_THREAD_POOL_READER_PRIO;
-const int THREAD_POOL_WORKLOAD_QUEUE_LENGTH_USERTRAFFIC = 60;
-const int THREAD_POOL_WORKLOAD_QUEUE_LENGTH_METATRAFFIC = 60;
-
-constexpr int OVERALL_HEAP_SIZE = THREAD_POOL_NUM_WRITERS * THREAD_POOL_WRITER_STACKSIZE +
-                                  THREAD_POOL_NUM_READERS * THREAD_POOL_READER_STACKSIZE +
-                                  MAX_NUM_PARTICIPANTS * SPDP_WRITER_STACKSIZE +
-                                  NUM_STATEFUL_WRITERS * HEARTBEAT_STACKSIZE;
 } // namespace Config
 } // namespace rtps
 

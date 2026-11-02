@@ -60,8 +60,9 @@ namespace Config {
 // consumer translation unit would silently disagree with the library.
 // ---------------------------------------------------------------------------
 
+// Wire identity, never a knob: goes into every RTPS message header, our SPDP
+// announcement and GUID prefix bytes 7-8 (Domain::generateGuidPrefix).
 const VendorId_t VENDOR_ID = {13, 37};
-const std::array<uint8_t, 4> IP_ADDRESS = {192, 168, 4, 1}; // Needs to be set in lwipcfg.h too.
 // GUID_RANDOM: derive each participant prefix from OS entropy (see
 // Domain::generateGuidPrefix). A fixed prefix here makes every desktop
 // participant share an identity, which breaks discovery between them.
@@ -164,8 +165,10 @@ const uint8_t MAX_TYPENAME_LENGTH = RTPS_CFG_MAX_TYPENAME_LENGTH;
 #endif
 const uint8_t MAX_TOPICNAME_LENGTH = RTPS_CFG_MAX_TOPICNAME_LENGTH;
 
-const int HEARTBEAT_STACKSIZE = 1200;          // byte
-const int THREAD_POOL_WRITER_STACKSIZE = 1100; // byte
+// Tasks (menuconfig RTPS -> Tasks). The engine runs exactly two kinds of task:
+// the transport's worker pool + reactor (THREAD_POOL_READER_*) and the Domain's
+// protocol task (SPDP_WRITER_*). Heartbeats and SPDP run on the protocol task,
+// writers send inline, so there are no separate heartbeat/writer tasks to size.
 // Stack of the transport's worker pool and reactor tasks (EsppTransport),
 // which run every reader and matched callback. Applied on ESP only (espp::Task
 // sets stacks through esp_pthread; a host std::thread uses the platform
@@ -250,22 +253,12 @@ const Duration_t SPDP_MAX_REMOTE_LEASE_DURATION = {RTPS_CFG_SPDP_MAX_REMOTE_LEAS
 #endif
 const int MAX_NUM_UDP_CONNECTIONS = RTPS_CFG_MAX_NUM_UDP_CONNECTIONS;
 
-const int THREAD_POOL_NUM_WRITERS = 2;
-const int THREAD_POOL_NUM_READERS = 2;
-const int THREAD_POOL_WRITER_PRIO = 3;
-// The transport's worker pool and reactor tasks (EsppTransport). On ESP-IDF,
-// menuconfig RTPS -> Transport task priority overrides it.
+// Priority of the transport's worker pool and reactor tasks (EsppTransport);
+// the pool depth is fixed in the transport. menuconfig RTPS -> Tasks.
 #ifndef RTPS_CFG_THREAD_POOL_READER_PRIO
 #define RTPS_CFG_THREAD_POOL_READER_PRIO 3
 #endif
 const int THREAD_POOL_READER_PRIO = RTPS_CFG_THREAD_POOL_READER_PRIO;
-const int THREAD_POOL_WORKLOAD_QUEUE_LENGTH_USERTRAFFIC = 64;
-const int THREAD_POOL_WORKLOAD_QUEUE_LENGTH_METATRAFFIC = 64;
-
-constexpr int OVERALL_HEAP_SIZE = THREAD_POOL_NUM_WRITERS * THREAD_POOL_WRITER_STACKSIZE +
-                                  THREAD_POOL_NUM_READERS * THREAD_POOL_READER_STACKSIZE +
-                                  MAX_NUM_PARTICIPANTS * SPDP_WRITER_STACKSIZE +
-                                  NUM_STATEFUL_WRITERS * HEARTBEAT_STACKSIZE;
 } // namespace Config
 } // namespace rtps
 
