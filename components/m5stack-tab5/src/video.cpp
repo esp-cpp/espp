@@ -208,7 +208,7 @@ bool M5StackTab5::initialize_lcd() {
   // (display_driver_ / display_controller_ need no reset here: display_driver_
   // is .reset() unconditionally below and both are rewritten together before
   // the gate can open.)
-  dpi_framebuffer_ = nullptr;
+  dpi_framebuffer_.store(nullptr, std::memory_order_release);
   dpi_framebuffer_bytes_ = 0;
 
   if (!ioexp_0x43_) {
@@ -583,13 +583,13 @@ bool M5StackTab5::initialize_lcd() {
   // with the PPA (see flush()). The panel scans this buffer out continuously;
   // the espp draw/flush path itself never writes it with the CPU.
   //
-  // This optimization is only valid with a single DPI framebuffer: caching one
-  // fixed pointer assumes the panel scans that same buffer forever. With
-  // num_fbs > 1 the driver flips between buffers and the PPA could rotate into
-  // one that is not being scanned out, so dpi_framebuffer_ stays null and
-  // flush() takes its scratch-buffer path: draw_bitmap() then copies into
-  // whichever buffer is on screen, which is correct for any count.
-  if constexpr (kNumDpiFramebuffers == 1) {
+  // With several DPI framebuffers the driver scans whichever one was last
+  // handed to draw_bitmap(): nothing switches buffers except present_frame(),
+  // which keeps dpi_framebuffer_ pointing at the buffer it switched to, so the
+  // PPA rotation always targets the scanned-out buffer whatever the count.
+  // (An application that presents its own frames does not use the LVGL
+  // partial-mode flush at the same time, and DIRECT mode never rotates.)
+  {
     void *fb = frame_buffers_[0];
     if (fb != nullptr) {
       const size_t fb_bytes = static_cast<size_t>(display_width_) * display_height_ * sizeof(Pixel);
@@ -604,7 +604,7 @@ bool M5StackTab5::initialize_lcd() {
       // explores a configuration where the macro folds to 1, trivializing the
       // checks. On real configurations both checks are meaningful.
       if ((reinterpret_cast<uintptr_t>(fb) % cache_align) == 0 && (fb_bytes % cache_align) == 0) {
-        dpi_framebuffer_ = fb;
+        dpi_framebuffer_.store(fb, std::memory_order_release);
         dpi_framebuffer_bytes_ = fb_bytes;
       } else {
         logger_.warn("DPI framebuffer not cache-line aligned; PPA will rotate via scratch buffer");
@@ -1143,6 +1143,12 @@ bool M5StackTab5::present_frame(const void *frame_buffer, uint32_t timeout_ms) {
       logger_.error("present_frame(): draw_bitmap failed");
       return false;
     }
+    // The panel now scans (or is about to scan) this buffer: point the PPA
+    // rotation path at it (see initialize_lcd()). Only if that path was
+    // enabled at init, i.e. the buffers passed its alignment check.
+    if (dpi_framebuffer_.load(std::memory_order_relaxed) != nullptr) {
+      dpi_framebuffer_.store(*owner, std::memory_order_release);
+    }
   }
   if (!vsync_enabled_.load(std::memory_order_relaxed) || frame_done_sem_ == nullptr) {
     return true;
@@ -1286,7 +1292,10 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
     offsetx2 = rotated_area.x2;
     offsety1 = rotated_area.y1;
     offsety2 = rotated_area.y2;
-    if (g_ppa_client != nullptr && dpi_framebuffer_ != nullptr) {
+    // The scanned-out framebuffer (present_frame() moves it when it switches
+    // buffers; see initialize_lcd()).
+    void *const target_framebuffer = dpi_framebuffer_.load(std::memory_order_acquire);
+    if (g_ppa_client != nullptr && target_framebuffer != nullptr) {
       // Hardware rotation via the PPA, writing the rotated block DIRECTLY into
       // the DPI panel's framebuffer at the rotated offset (the PPA output
       // supports placing a block inside a larger picture). This halves the
@@ -1314,7 +1323,7 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       srm.in.block_w = ww;
       srm.in.block_h = hh;
       srm.in.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
-      srm.out.buffer = dpi_framebuffer_;
+      srm.out.buffer = target_framebuffer;
       srm.out.buffer_size = dpi_framebuffer_bytes_;
       srm.out.pic_w = display_width_;
       srm.out.pic_h = display_height_;

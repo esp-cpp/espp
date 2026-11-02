@@ -1210,7 +1210,10 @@ protected:
   // buffer + draw_bitmap copy (which doubles the PSRAM traffic and can starve
   // the DSI scan-out DMA into FIFO underruns / on-screen streaking). Null when
   // unavailable, in which case flush() falls back to the scratch-buffer path.
-  void *dpi_framebuffer_{nullptr};
+  // Null when the PPA direct-to-framebuffer path is unavailable. Moves with
+  // present_frame() to the buffer the panel scans out (written under
+  // panel_op_mutex_, read on the LVGL task by flush()).
+  std::atomic<void *> dpi_framebuffer_{nullptr};
   size_t dpi_framebuffer_bytes_{0};
 
   // The DPI panel's frame buffers (frame_buffers()), filled by initialize_lcd()
