@@ -381,7 +381,10 @@ bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv
     // Producers queue whole frames only (play_audio), so this is a bug
     // somewhere; the feeder reset the stream rather than leave a partial frame
     // misaligning everything queued after it.
-    logger_.warn_rate_limited("audio stream held a partial frame; reset it");
+    logger_.warn_rate_limited(
+        "audio stream misaligned ({} bytes queued, {} bytes into a {}-byte frame); reset it",
+        audio_tx_feed_.misaligned_bytes,
+        audio_tx_feed_.misaligned_bytes % audio_tx_feed_.frame_bytes, audio_tx_feed_.frame_bytes);
   }
   i2s_channel_write(audio_tx_handle, tx_buf, block, NULL, portMAX_DELAY);
   return false;
