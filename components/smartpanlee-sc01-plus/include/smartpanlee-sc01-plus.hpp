@@ -21,6 +21,7 @@
 #include "display.hpp"
 #include "ft5x06.hpp"
 #include "i2c.hpp"
+#include "i2s_tx_feed.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
 #include "sdcard.hpp"
@@ -395,6 +396,9 @@ protected:
   std::unique_ptr<espp::Task> audio_task_{nullptr};
   i2s_chan_handle_t audio_tx_handle_{nullptr};
   StreamBufferHandle_t audio_tx_stream_{nullptr};
+  // Stream-side playback policy shared by every audio BSP (bounded wait for a
+  // flowing producer, misalignment recovery, task wake-up): codec/i2s_tx_feed.hpp
+  espp::i2s_tx_feed::Feeder audio_tx_feed_;
   i2s_std_config_t audio_std_cfg_{};
   std::vector<uint8_t> audio_tx_buffer_;
 

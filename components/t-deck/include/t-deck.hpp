@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -25,6 +26,7 @@
 #include "gps.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
+#include "i2s_tx_feed.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
 #include "pointer_input.hpp"
@@ -823,6 +825,9 @@ protected:
   i2s_chan_handle_t audio_tx_handle{nullptr};
   std::vector<uint8_t> audio_tx_buffer;
   StreamBufferHandle_t audio_tx_stream;
+  // Stream-side playback policy shared by every audio BSP (bounded wait for a
+  // flowing producer, misalignment recovery, task wake-up): codec/i2s_tx_feed.hpp
+  espp::i2s_tx_feed::Feeder audio_tx_feed_;
   i2s_std_config_t audio_std_cfg;
 
   // LoRa radio

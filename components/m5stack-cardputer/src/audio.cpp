@@ -1,5 +1,6 @@
 #include "m5stack-cardputer.hpp"
 
+#include <algorithm>
 #include <cstring>
 
 using namespace espp;
@@ -15,6 +16,14 @@ bool M5StackCardputer::initialize_i2s(uint32_t default_audio_rate) {
 
   i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(i2s_port, I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
+  // Keep the TX DMA ring full and long enough to cover the playback task's
+  // bounded whole-block wait (the policy and its rationale: codec/i2s_tx_feed.hpp).
+  static_assert(espp::i2s_tx_feed::ring_outlasts_wait(espp::i2s_tx_feed::DMA_DESC_NUM,
+                                                      espp::i2s_tx_feed::DMA_FRAME_NUM, 48000,
+                                                      UPDATE_FREQUENCY),
+                "the I2S TX DMA ring must outlast the whole-block wait plus one block");
+  chan_cfg.dma_desc_num = espp::i2s_tx_feed::DMA_DESC_NUM;
+  chan_cfg.dma_frame_num = espp::i2s_tx_feed::DMA_FRAME_NUM;
   ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &audio_tx_handle, nullptr));
 
   audio_std_cfg = {
@@ -57,6 +66,14 @@ bool M5StackCardputer::ensure_adv_i2s(uint32_t sample_rate) {
 
   i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(i2s_port, I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
+  // Keep the TX DMA ring full and long enough to cover the playback task's
+  // bounded whole-block wait (the policy and its rationale: codec/i2s_tx_feed.hpp).
+  static_assert(espp::i2s_tx_feed::ring_outlasts_wait(espp::i2s_tx_feed::DMA_DESC_NUM,
+                                                      espp::i2s_tx_feed::DMA_FRAME_NUM, 48000,
+                                                      UPDATE_FREQUENCY),
+                "the I2S TX DMA ring must outlast the whole-block wait plus one block");
+  chan_cfg.dma_desc_num = espp::i2s_tx_feed::DMA_DESC_NUM;
+  chan_cfg.dma_frame_num = espp::i2s_tx_feed::DMA_FRAME_NUM;
   ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &audio_tx_handle, &audio_rx_handle));
 
   audio_std_cfg = {
@@ -124,9 +141,12 @@ bool M5StackCardputer::initialize_sound(uint32_t default_audio_rate,
   // split one would desynchronize the framing of everything received after it
   buffer_size -= buffer_size % (NUM_CHANNELS * NUM_BYTES_PER_CHANNEL);
   audio_tx_buffer.resize(buffer_size);
-  // Trigger level = one block: the audio task waits for a whole block instead of
-  // padding a partial one with silence (see audio_task_callback).
-  audio_tx_stream = xStreamBufferCreate(buffer_size * 4, buffer_size);
+  // The audio task never blocks on the stream (see audio_task_callback), so
+  // the trigger level is irrelevant; the minimum keeps a producer's send from
+  // ever holding a receiver.
+  audio_tx_stream = xStreamBufferCreate(buffer_size * 4, 1);
+  audio_tx_feed_.stream = audio_tx_stream;
+  audio_tx_feed_.frame_bytes = NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
   if (audio_tx_stream == nullptr) {
     logger_.error("Could not allocate the audio stream buffer");
     audio_tx_buffer.clear();
@@ -183,54 +203,33 @@ bool M5StackCardputer::initialize_sound(uint32_t default_audio_rate,
   return audio_task_->start();
 }
 
-// How long the audio task waits for a whole block before writing a partial one
-// (or silence). Longer than one block at every rate the board supports (a block
-// is 1/60 s at the default rate), so partial writes only happen when the
-// producer is idle or genuinely behind, never because its next frame simply had
-// not arrived yet; short enough that idle->silence latency is not noticeable.
-static constexpr uint32_t AUDIO_TX_RECEIVE_TIMEOUT_MS = 40;
-
 bool M5StackCardputer::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                            bool &task_notified) {
-  // Queue the next I2S out block. Wait (bounded) for a whole block rather than
-  // taking whatever is queued and zero-padding it to a block: producers push
-  // audio in bursts (one video frame at a time, with frame-to-frame jitter),
-  // and the stream buffer exists to absorb exactly that. Taking a partial block
-  // padded it with silence every time the stream momentarily held less than
-  // one block, which is audible as stutter whenever the producer's cadence is
-  // uneven. The DMA is still fed whole blocks while audio is flowing (the
-  // stream's trigger level is one block); only after the timeout -- producer
-  // idle or slower than real time -- is a partial block written as is (the I2S
-  // driver concatenates partial writes without gaps), or silence when there is
-  // none.
-  size_t buffer_size = audio_tx_buffer.size();
-  uint8_t *buffer = &audio_tx_buffer[0];
-  size_t got = xStreamBufferReceive(audio_tx_stream, buffer, buffer_size,
-                                    pdMS_TO_TICKS(AUDIO_TX_RECEIVE_TIMEOUT_MS));
-  // the block is frame-aligned and producers queue whole frames, so this cannot
-  // happen; if it ever does, do not silently drop bytes (that would desynchronize
-  // the framing of everything after them) -- say so
-  constexpr size_t frame_bytes = NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
-  if (got % frame_bytes != 0) {
-    static uint32_t misaligned_count = 0;
-    if ((misaligned_count++ % 100) == 0) {
-      logger_.warn("audio stream holds a partial frame ({} bytes)", got);
-    }
-  }
-  if (got == 0) {
-    memset(buffer, 0, buffer_size);
-    i2s_channel_write(audio_tx_handle, buffer, buffer_size, NULL, portMAX_DELAY);
-    return false; // don't stop the task
+  // Playback: write the next block to the I2S channel, ALWAYS a whole block
+  // (audio when there is some, silence when idle) so the DMA ring stays full;
+  // the write blocks on the ring and paces this loop. The stream side (the
+  // bounded wait for a flowing producer, misalignment recovery) is shared
+  // policy: see codec/i2s_tx_feed.hpp for the mechanism and why it matters.
+  audio_tx_feed_.attach_current_task();
+  const size_t block = audio_tx_buffer.size();
+  uint8_t *tx_buf = audio_tx_buffer.data();
+  bool misaligned = false;
+  const size_t got = audio_tx_feed_.fill_block(tx_buf, block, misaligned);
+  if (misaligned) {
+    // producers queue whole frames only (play_audio), so this is a bug somewhere
+    logger_.warn_rate_limited("audio stream held a partial frame; reset it");
   }
   // The amplifier has no volume control, so scale the samples in software
-  // according to the current volume / mute state
-  float scale = mute_ ? 0.0f : (volume_ / 100.0f);
-  auto *samples = reinterpret_cast<int16_t *>(buffer);
-  size_t num_samples = got / sizeof(int16_t);
-  for (size_t i = 0; i < num_samples; i++) {
-    samples[i] = static_cast<int16_t>(samples[i] * scale);
+  // according to the current volume / mute state (silence stays silence).
+  if (got > 0) {
+    float scale = mute_ ? 0.0f : (volume_ / 100.0f);
+    auto *samples = reinterpret_cast<int16_t *>(tx_buf);
+    size_t num_samples = block / sizeof(int16_t);
+    for (size_t i = 0; i < num_samples; i++) {
+      samples[i] = static_cast<int16_t>(samples[i] * scale);
+    }
   }
-  i2s_channel_write(audio_tx_handle, buffer, got, NULL, portMAX_DELAY);
+  i2s_channel_write(audio_tx_handle, tx_buf, block, NULL, portMAX_DELAY);
   return false; // don't stop the task
 }
 
@@ -299,5 +298,11 @@ size_t M5StackCardputer::play_audio(const uint8_t *data, uint32_t num_bytes) {
   if (sendable == 0) {
     return 0;
   }
-  return xStreamBufferSend(audio_tx_stream, data, sendable, 0);
+  const size_t sent = xStreamBufferSend(audio_tx_stream, data, sendable, 0);
+  if (sent > 0) {
+    // wake the playback task if the stream now holds a whole block (send ->
+    // notify -> return; see i2s_tx_feed.hpp)
+    audio_tx_feed_.notify_if_block_ready(audio_tx_buffer.size());
+  }
+  return sent;
 }
