@@ -36,7 +36,9 @@ The `espp::M5StackTab5` component provides a singleton hardware abstraction for 
 ### Power Management
 - Removable NP-F550 Li-ion battery
 - MP4560 buck-boost converter
-- IP2326 charge management
+- IP2326 charge management (`set_charging_enabled()`, off by default; only
+  enable it when `read_battery_status().is_present` is true, since the charger
+  retrying to charge an empty battery bay pops the speaker periodically)
 - INA226 real-time power monitoring
 - Multiple power modes for efficiency
 

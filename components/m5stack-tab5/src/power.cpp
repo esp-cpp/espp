@@ -1,3 +1,6 @@
+#include <chrono>
+#include <thread>
+
 #include "m5stack-tab5.hpp"
 
 namespace espp {
@@ -48,6 +51,28 @@ bool M5StackTab5::initialize_battery_monitoring() {
     return false;
   }
 
+  // The INA226's data registers read as zeros until its first averaged
+  // conversion completes (16 x 2.2 ms = 35 ms with the settings above), and a
+  // 0 V reading looks exactly like an empty battery bay to read_battery_status().
+  // Wait for the first conversion so the first read after this returns is real.
+  {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(200);
+    bool ready = false;
+    while (!ready && std::chrono::steady_clock::now() < deadline) {
+      ready = battery_monitor_->conversion_ready(ec);
+      if (ec) {
+        break;
+      }
+      if (!ready) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+      }
+    }
+    if (!ready) {
+      logger_.warn("Battery monitor (INA226) first conversion not ready after 200 ms{}{}",
+                   ec ? ": " : "", ec ? ec.message() : "");
+    }
+  }
+
   battery_monitoring_initialized_ = true;
 
   // Initialize battery status with default values
@@ -82,6 +107,11 @@ bool M5StackTab5::update_battery_status() {
   static constexpr float num_cells = 2.0f;
   static constexpr float pack_voltage_min = cell_voltage_min * num_cells;
   static constexpr float pack_voltage_max = cell_voltage_max * num_cells;
+  // The INA226 sits on the pack line. With no NP-F550 in the bay it reads the
+  // charger's open-circuit output (about 2 V, measured); a real 2S pack never
+  // reads below its protection cut-off (about 5 V), so anything under this is
+  // an empty bay, not a flat battery.
+  static constexpr float pack_present_min_volts = 4.0f;
 
   std::error_code ec;
   std::lock_guard<std::mutex> lock(battery_mutex_);
@@ -94,14 +124,19 @@ bool M5StackTab5::update_battery_status() {
     battery_status_.voltage_v = vbus;
     battery_status_.current_ma = current_a * 1000.0f;
     battery_status_.power_mw = power_w * 1000.0f;
-    // Basic SoC estimate from voltage (very rough placeholder)
-    float v = vbus;
-    float soc = (v - pack_voltage_min) / (pack_voltage_max - pack_voltage_min);
-    soc = std::clamp(soc, 0.0f, 1.0f);
-    battery_status_.charge_percent = soc * 100.0f;
-    // only charging if the bit says we are and  the current is < -1.0 mA
-    battery_status_.is_charging = get_charging_status() && battery_status_.current_ma < -1.0f;
-    battery_status_.is_present = true;
+    battery_status_.is_present = vbus >= pack_present_min_volts;
+    if (battery_status_.is_present) {
+      // Basic SoC estimate from voltage (very rough placeholder)
+      float v = vbus;
+      float soc = (v - pack_voltage_min) / (pack_voltage_max - pack_voltage_min);
+      soc = std::clamp(soc, 0.0f, 1.0f);
+      battery_status_.charge_percent = soc * 100.0f;
+      // only charging if the bit says we are and  the current is < -1.0 mA
+      battery_status_.is_charging = get_charging_status() && battery_status_.current_ma < -1.0f;
+    } else {
+      battery_status_.charge_percent = 0.0f;
+      battery_status_.is_charging = false;
+    }
   } else {
     logger_.warn("Battery status not updated: {}", ec.message());
     battery_status_.voltage_v = 0.0f;

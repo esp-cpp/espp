@@ -205,8 +205,19 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // enable charging
-  tab5.set_charging_enabled(true);
+  // Enable charging only when a battery is actually in the bay. The NP-F550 is
+  // optional (kit-dependent); with the bay empty, the IP2326 charger keeps
+  // retrying to charge nothing and every retry puts an audible pop on the
+  // speaker (every 5 s to 2 min, idle or not), while charging an inserted pack
+  // is silent.
+  if (auto battery = tab5.read_battery_status(); battery.is_present) {
+    logger.info("Battery detected ({:.2f} V), enabling charging", battery.voltage_v);
+    tab5.set_charging_enabled(true);
+  } else {
+    logger.warn("No battery detected ({:.2f} V on the pack line), leaving charging disabled",
+                battery.voltage_v);
+    tab5.set_charging_enabled(false);
+  }
 
   logger.info("Initializing sound...");
   // initialize the sound

@@ -123,6 +123,20 @@ public:
     return read_u16_from_register((uint8_t)Reg::DIE_ID, ec);
   }
 
+  /// Whether a conversion has completed since the Mask/Enable register was
+  /// last read (CVRF). After initialize() the data registers hold zeros until
+  /// the first averaged conversion finishes (averaging x (bus + shunt
+  /// conversion time), e.g. 16 x 2.2 ms = 35 ms at the defaults), so poll this
+  /// before trusting the first reading.
+  /// @param ec Error code to capture any read errors
+  /// @return true once a conversion is complete; false before that or on error
+  /// @note Reading the flag clears it (datasheet), so it reports "at least one
+  ///       conversion since the last call", not the state of the converter.
+  bool conversion_ready(std::error_code &ec) const {
+    uint16_t mask = read_u16_from_register((uint8_t)Reg::MASK_ENABLE, ec);
+    return !ec && (mask & MASK_ENABLE_CVRF) != 0;
+  }
+
   // Engineering-unit helpers
 
   /// Read shunt voltage in volts
@@ -259,6 +273,8 @@ protected:
     MANUFACTURER_ID = 0xFE, // 0x5449
     DIE_ID = 0xFF,          // 0x2260
   };
+  // Mask/Enable register: conversion ready flag (bit 3)
+  static constexpr uint16_t MASK_ENABLE_CVRF = 1 << 3;
 
   bool init(const Config &c, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);

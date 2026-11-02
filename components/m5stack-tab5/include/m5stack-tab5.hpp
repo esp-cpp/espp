@@ -168,7 +168,10 @@ public:
     float power_mw;       ///< Battery power in milliwatts
     float charge_percent; ///< Estimated charge percentage (0-100)
     bool is_charging;     ///< True if battery is charging
-    bool is_present;      ///< True if battery is present
+    bool is_present;      ///< True if a battery is in the bay (pack voltage reads at least 4 V;
+                          ///< an empty bay reads the charger's ~2 V open-circuit output).
+                          ///< Leave charging disabled when false: the IP2326 retrying to
+                          ///< charge an empty bay puts a periodic pop on the speaker.
   };
 
   /// Expansion port configuration
