@@ -1257,13 +1257,9 @@ bool IRAM_ATTR M5StackTab5::notify_ppa_trans_done(ppa_client_handle_t client,
 #error                                                                                             \
     "m5stack-tab5: CONFIG_LCD_DSI_ISR_CACHE_SAFE runs the DSI transfer-done callback with the flash cache disabled, but it calls lv_display_flush_ready() (in flash); disable it"
 #endif
-#if defined(CONFIG_PPA_ISR_IRAM_SAFE) && CONFIG_PPA_ISR_IRAM_SAFE
-#error                                                                                             \
-    "m5stack-tab5: CONFIG_PPA_ISR_IRAM_SAFE runs the PPA transfer-done callback with the flash cache disabled, but it calls lv_display_flush_ready() (in flash); disable it"
-#endif
 #if defined(CONFIG_DMA2D_ISR_IRAM_SAFE) && CONFIG_DMA2D_ISR_IRAM_SAFE
 #error                                                                                             \
-    "m5stack-tab5: CONFIG_DMA2D_ISR_IRAM_SAFE runs the 2D-DMA (PPA / draw_bitmap) completion callbacks with the flash cache disabled, but they call lv_display_flush_ready() (in flash); disable it"
+    "m5stack-tab5: CONFIG_DMA2D_ISR_IRAM_SAFE runs the PPA transfer-done callback with the flash cache disabled, but it calls lv_display_flush_ready() (in flash); disable it"
 #endif
 
 void IRAM_ATTR M5StackTab5::complete_transfer_from_isr(BaseType_t *higher_priority_task_woken) {
@@ -1279,8 +1275,8 @@ void IRAM_ATTR M5StackTab5::complete_transfer_from_isr(BaseType_t *higher_priori
   // what the pre-serialization code called from the DSI ISR as well. It lives
   // in flash, so these callbacks must not run while the flash cache is
   // disabled: the #error guards above refuse the configurations that would
-  // (CONFIG_LCD_DSI_ISR_CACHE_SAFE, CONFIG_PPA_ISR_IRAM_SAFE,
-  // CONFIG_DMA2D_ISR_IRAM_SAFE), all off by default.
+  // (CONFIG_LCD_DSI_ISR_CACHE_SAFE for the DSI callback,
+  // CONFIG_DMA2D_ISR_IRAM_SAFE for the PPA's), both off by default.
   // acquire pairs with the release store of the flag in flush(), ordering the
   // display pointer read after it
   if (lvgl_flush_pending_.exchange(false, std::memory_order_acq_rel)) {
