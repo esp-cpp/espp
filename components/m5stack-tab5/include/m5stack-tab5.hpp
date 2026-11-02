@@ -35,6 +35,7 @@
 #include "es8388.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
+#include "i2s_tx_feed.hpp"
 #include "ili9881.hpp"
 #include "ina226.hpp"
 #include "interrupt.hpp"
@@ -921,14 +922,9 @@ protected:
   std::vector<uint8_t> audio_tx_buffer;
   std::vector<uint8_t> audio_rx_buffer;
   StreamBufferHandle_t audio_tx_stream;
-  // The playback task's FreeRTOS handle (set by the task itself on its first
-  // run): play_audio() notifies it when the stream reaches a whole block, so
-  // its bounded wait for a block is event-driven (see audio_task_callback).
-  std::atomic<TaskHandle_t> audio_tx_task_handle_{nullptr};
-  // Whether the playback task's previous block carried audio (only the task
-  // touches this): a stream that momentarily holds less than a block while
-  // flowing is given time to complete it; an idle one gets silence at once.
-  bool audio_tx_was_flowing_{false};
+  // Feeding policy shared by every audio BSP (whole blocks, bounded wait,
+  // ring depth): see codec/i2s_tx_feed.hpp.
+  espp::i2s_tx_feed::Feeder audio_tx_feed_;
   StreamBufferHandle_t audio_rx_stream;
   std::atomic<bool> recording_{false};
   std::function<void(const uint8_t *data, size_t length)> audio_rx_callback_{nullptr};
