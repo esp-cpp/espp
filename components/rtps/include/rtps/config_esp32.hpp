@@ -35,16 +35,22 @@ namespace rtps {
 
 namespace Config {
 // ---------------------------------------------------------------------------
-// Per-limit overrides: every capacity cap below can be raised (or lowered)
-// individually WITHOUT switching profiles by defining RTPS_CFG_<NAME> as a
-// compile definition before this header is included - e.g.
-// -DRTPS_CFG_NUM_STATELESS_WRITERS=16. On ESP-IDF the Kconfig options under
-// "RTPS -> Custom capacity overrides" wire these up (0 = keep the profile
-// default); on host builds pass RTPS_LIMIT_OVERRIDES to espp.cmake. The
-// overrides MUST be applied when compiling the rtps sources themselves (the
-// pools are sized in the library), which both mechanisms guarantee; defining
-// them for only a consumer translation unit would silently disagree with the
-// library. Capacity-only: no bytes on the wire change.
+// Overridable settings: every constant below with an RTPS_CFG_<NAME> default
+// block can be changed individually WITHOUT switching profiles by defining
+// that macro as a compile definition before this header is included - e.g.
+// -DRTPS_CFG_NUM_STATELESS_WRITERS=16. They fall in four groups:
+//  - capacity caps (pool / history / name-length sizes; capacity only),
+//  - discovery and reliability timing (announcement, heartbeat, leases: WHEN
+//    messages are sent, never what is sent),
+//  - task scheduling (priorities and stacks of the engine's tasks),
+//  - the domain id, which selects the UDP port base and GUID prefix byte 9.
+// None changes the wire format. On ESP-IDF the Kconfig menus under "RTPS"
+// (Custom capacity overrides, Discovery and reliability timing, Tasks, Domain
+// id) wire these up (0 = keep the profile default, except the domain id); on
+// host builds pass RTPS_LIMIT_OVERRIDES to espp.cmake. The overrides MUST be
+// applied when compiling the rtps sources themselves (the pools are sized in
+// the library), which both mechanisms guarantee; defining them for only a
+// consumer translation unit would silently disagree with the library.
 // ---------------------------------------------------------------------------
 
 const VendorId_t VENDOR_ID = {13, 37};
@@ -140,13 +146,19 @@ const uint8_t MAX_TOPICNAME_LENGTH = RTPS_CFG_MAX_TOPICNAME_LENGTH;
 const int HEARTBEAT_STACKSIZE = 1024 * 6;      // byte
 const int THREAD_POOL_WRITER_STACKSIZE = 4096; // byte
 // Stack of the transport's worker pool and reactor tasks (EsppTransport),
-// which run every reader and matched callback. menuconfig RTPS -> Tasks.
+// which run every reader and matched callback. Applied on ESP only (espp::Task
+// sets stacks through esp_pthread; a host std::thread uses the platform
+// default). menuconfig RTPS -> Tasks.
 #ifndef RTPS_CFG_THREAD_POOL_READER_STACKSIZE
 #define RTPS_CFG_THREAD_POOL_READER_STACKSIZE 6144
 #endif
 const int THREAD_POOL_READER_STACKSIZE = RTPS_CFG_THREAD_POOL_READER_STACKSIZE; // byte
-// Stack of the protocol task (SPDP announcements, heartbeats, liveliness); the
-// Domain raises anything below 4096 to 4096. menuconfig RTPS -> Tasks.
+// Stack requested for the protocol task (SPDP announcements, heartbeats,
+// liveliness). Domain::initializeTransport() raises anything below 4096 to
+// 4096 before creating the task, on every target. espp::Task applies the stack
+// size only on ESP (esp_pthread), so there the task gets max(this, 4096); on a
+// host build std::thread uses the platform default stack and this value (like
+// THREAD_POOL_READER_STACKSIZE) has no effect. menuconfig RTPS -> Tasks.
 #ifndef RTPS_CFG_SPDP_WRITER_STACKSIZE
 #define RTPS_CFG_SPDP_WRITER_STACKSIZE 4096
 #endif

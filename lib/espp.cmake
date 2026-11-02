@@ -52,7 +52,10 @@ message(STATUS "RTPS limits profile: ${RTPS_LIMITS_PROFILE}")
 # Applied as GLOBAL compile definitions so the engine sources (which size the
 # pools) and every consumer translation unit agree on the values - defining
 # them for only a consumer TU would silently disagree with the library.
-# Capacity-only: no bytes on the wire change.
+# None of them changes the wire format: the capacity caps only size pools, the
+# timing knobs only change WHEN discovery/reliability messages are sent, the
+# task knobs how the engine's tasks are scheduled, and the domain id selects
+# the UDP port base (7400 + 250 * id) and GUID prefix byte 9.
 # ---------------------------------------------------------------------------
 set(RTPS_LIMIT_OVERRIDES "" CACHE STRING
     "Semicolon list of RTPS config overrides, e.g. NUM_STATELESS_WRITERS=16;HISTORY_SIZE_STATEFUL=20;DOMAIN_ID=3")
@@ -132,7 +135,13 @@ foreach(override ${RTPS_LIMIT_OVERRIDES})
   elseif(_rtps_knob STREQUAL "MAX_NUM_UDP_CONNECTIONS")
     set(_rtps_min 4) # 2 shared multicast + 2 unicast channels for 1 participant
   elseif(_rtps_knob STREQUAL "THREAD_POOL_READER_STACKSIZE" OR _rtps_knob STREQUAL "SPDP_WRITER_STACKSIZE")
-    set(_rtps_min 2048) # a smaller task stack cannot run the engine's callbacks
+    # On a host build these are not applied at all (espp::Task only sets task
+    # stacks on ESP through esp_pthread; std::thread uses the platform default),
+    # so only the type is range-checked here. The 2048-byte FreeRTOS minimum is
+    # enforced by the ESP-IDF component build (components/rtps/CMakeLists.txt),
+    # where it is real; the host profiles' own defaults (1600 / 550) must stay
+    # expressible as overrides.
+    set(_rtps_min 1)
   elseif(_rtps_knob STREQUAL "DOMAIN_ID")
     set(_rtps_min 0) # 0 is the DDS default domain, a real value
   else()

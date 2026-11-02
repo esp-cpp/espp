@@ -175,8 +175,8 @@ via `include/rtps/config.hpp`.
 | `RTPS_ENABLE_RPC` | on (default) | Compile in services + actions (RMI/AMI). Disable to drop that code + its threads on a pure-pub/sub device. |
 | `RTPS_DOMAIN_ID` | 0 | DDS domain id (the `ROS_DOMAIN_ID` equivalent, 0..232). Derives the port base `7400 + 250 * id` and GUID prefix byte 9, so every participant on a domain must use the same value. Compile-time. |
 | `RTPS_THREAD_POOL_READER_PRIO` | 0 = profile default (5 on ESP32) | FreeRTOS priority of the transport's worker pool and reactor tasks, which send and receive all traffic (see [Priority scheduling](#priority-scheduling-bands-dedicated-ports-dscp)). |
-| `RTPS_THREAD_POOL_READER_STACKSIZE` | 0 = profile default (6144 on ESP32) | Stack of those tasks (they also run every reader and matched callback). |
-| `RTPS_SPDP_WRITER_PRIO` / `RTPS_SPDP_WRITER_STACKSIZE` | 0 = profile default (5 / 4096 on ESP32) | Priority and stack of the protocol task (`rtps_protocol`: SPDP announcements, reliable-writer HEARTBEATs, liveliness checks). |
+| `RTPS_THREAD_POOL_READER_STACKSIZE` | 0 = profile default (6144 on ESP32) | Stack of those tasks (they also run every reader and matched callback). ESP only: a host `std::thread` uses the platform default stack. |
+| `RTPS_SPDP_WRITER_PRIO` / `RTPS_SPDP_WRITER_STACKSIZE` | 0 = profile default (5 / 4096 on ESP32) | Priority and stack of the protocol task (`rtps_protocol`: SPDP announcements, reliable-writer HEARTBEATs, liveliness checks). The stack is raised to at least 4096 before the task is created; ESP only, as above. |
 | `RTPS_SPDP_RESEND_PERIOD_MS` | 0 = profile default (2000 on ESP32) | Participant announcement period. Keep it well below the announced lease. |
 | `RTPS_SPDP_CYCLECOUNT_HEARTBEAT` | 0 = profile default (2) | Remote liveliness is checked every `(n + 1)` announce rounds. |
 | `RTPS_SF_WRITER_HB_PERIOD_MS` | 0 = profile default (4000 on ESP32) | RELIABLE writer HEARTBEAT period (a quarter of it while a reader has unacknowledged changes). |
