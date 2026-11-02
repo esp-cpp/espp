@@ -728,6 +728,10 @@ bool M5StackTab5::initialize_display(const DisplayConfig &config) {
     // with its own stride rule (LV_DRAW_BUF_STRIDE_ALIGN): 720 RGB565 pixels
     // are 1440 bytes, a multiple of neither 64 nor 128, so a raised stride
     // alignment would silently skew every row. Refuse rather than draw skewed.
+    // The stride comes from LVGL's draw-buffer handlers, which lv_init()
+    // installs; espp::Display calls lv_init() itself, but only below, and
+    // before that the query returns 0. lv_init() is idempotent.
+    lv_init();
     const uint32_t lvgl_stride =
         lv_draw_buf_width_to_stride(display_width_, LV_COLOR_FORMAT_RGB565);
     if (lvgl_stride != display_width_ * sizeof(Pixel)) {
