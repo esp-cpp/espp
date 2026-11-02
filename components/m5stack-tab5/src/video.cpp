@@ -1113,8 +1113,10 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
           lv_display_flush_ready(disp);
           return;
         }
+        // Publish the display pointer before the pending flag (release), so
+        // the ISR's acquire on the flag always sees the right display.
         lvgl_flush_disp_ = disp;
-        lvgl_flush_pending_.store(true, std::memory_order_relaxed);
+        lvgl_flush_pending_.store(true, std::memory_order_release);
         transfer_in_flight_.store(true, std::memory_order_release);
         ppa_err = ppa_do_scale_rotate_mirror(g_ppa_client, &srm);
         if (ppa_err != ESP_OK) {
@@ -1200,8 +1202,10 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
     // Publish the pending state before the draw: with the CPU copy path (no
     // DMA2D) the driver invokes the completion callback synchronously from
     // inside draw_bitmap, on this thread.
+    // Publish the display pointer before the pending flag (release), so the
+    // ISR's acquire on the flag always sees the right display.
     lvgl_flush_disp_ = disp;
-    lvgl_flush_pending_.store(true, std::memory_order_relaxed);
+    lvgl_flush_pending_.store(true, std::memory_order_release);
     transfer_in_flight_.store(true, std::memory_order_release);
     esp_err_t err = esp_lcd_panel_draw_bitmap(lcd_handles_.panel, offsetx1, offsety1, offsetx2 + 1,
                                               offsety2 + 1, px_map);
@@ -1244,6 +1248,24 @@ bool IRAM_ATTR M5StackTab5::notify_ppa_trans_done(ppa_client_handle_t client,
   return higher_priority_task_woken == pdTRUE;
 }
 
+// The completion callbacks below call lv_display_flush_ready(), which lives in
+// flash: they must never run while the flash cache is disabled. Refuse the
+// configurations that would make the DSI / PPA (2D-DMA) ISRs run in that state
+// rather than ship a firmware that hard-faults on the first SPI-flash write
+// during a flush.
+#if defined(CONFIG_LCD_DSI_ISR_CACHE_SAFE) && CONFIG_LCD_DSI_ISR_CACHE_SAFE
+#error                                                                                             \
+    "m5stack-tab5: CONFIG_LCD_DSI_ISR_CACHE_SAFE runs the DSI transfer-done callback with the flash cache disabled, but it calls lv_display_flush_ready() (in flash); disable it"
+#endif
+#if defined(CONFIG_PPA_ISR_IRAM_SAFE) && CONFIG_PPA_ISR_IRAM_SAFE
+#error                                                                                             \
+    "m5stack-tab5: CONFIG_PPA_ISR_IRAM_SAFE runs the PPA transfer-done callback with the flash cache disabled, but it calls lv_display_flush_ready() (in flash); disable it"
+#endif
+#if defined(CONFIG_DMA2D_ISR_IRAM_SAFE) && CONFIG_DMA2D_ISR_IRAM_SAFE
+#error                                                                                             \
+    "m5stack-tab5: CONFIG_DMA2D_ISR_IRAM_SAFE runs the 2D-DMA (PPA / draw_bitmap) completion callbacks with the flash cache disabled, but they call lv_display_flush_ready() (in flash); disable it"
+#endif
+
 void IRAM_ATTR M5StackTab5::complete_transfer_from_isr(BaseType_t *higher_priority_task_woken) {
   // The transfer in flight (a DMA2D draw_bitmap copy or a PPA rotation) is
   // complete: release LVGL if this was a flush()'s transfer - only flush()
@@ -1256,9 +1278,12 @@ void IRAM_ATTR M5StackTab5::complete_transfer_from_isr(BaseType_t *higher_priori
   // lv_display_flush_ready() only clears two flags on the display, which is
   // what the pre-serialization code called from the DSI ISR as well. It lives
   // in flash, so these callbacks must not run while the flash cache is
-  // disabled: leave CONFIG_LCD_DSI_ISR_CACHE_SAFE and CONFIG_PPA_ISR_IRAM_SAFE
-  // off (the defaults) with this BSP.
-  if (lvgl_flush_pending_.exchange(false)) {
+  // disabled: the #error guards above refuse the configurations that would
+  // (CONFIG_LCD_DSI_ISR_CACHE_SAFE, CONFIG_PPA_ISR_IRAM_SAFE,
+  // CONFIG_DMA2D_ISR_IRAM_SAFE), all off by default.
+  // acquire pairs with the release store of the flag in flush(), ordering the
+  // display pointer read after it
+  if (lvgl_flush_pending_.exchange(false, std::memory_order_acq_rel)) {
     lv_display_flush_ready(lvgl_flush_disp_);
   }
   if (draw_done_sem_ != nullptr) {
