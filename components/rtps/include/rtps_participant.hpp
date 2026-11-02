@@ -60,10 +60,12 @@ namespace espp {
 /// on /chatter).
 ///
 /// Engine limitations that still apply (see components/rtps/REFACTOR_PLAN.md):
-/// domain id is fixed at compile time (Config::DOMAIN_ID, default 0),
-/// announcement/heartbeat periods are compile-time constants, and endpoint
-/// counts are bounded by the engine's pools. Multiple RtpsParticipants per
-/// process/host work - each probes forward to free unicast ports.
+/// the domain id (Config::DOMAIN_ID, default 0) and the announcement/heartbeat
+/// periods are compile-time constants - settable per build through menuconfig
+/// (RTPS -> Domain id, Discovery and reliability timing) or the host build's
+/// RTPS_LIMIT_OVERRIDES, never per participant - and endpoint counts are
+/// bounded by the engine's pools. Multiple RtpsParticipants per process/host
+/// work - each probes forward to free unicast ports.
 ///
 /// Priority scheduling: transport channels dispatch at espp::QosBand bands
 /// (metatraffic High by default - Config::metatraffic_band; user traffic

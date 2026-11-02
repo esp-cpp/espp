@@ -64,7 +64,6 @@ public:
   ~Participant();
   bool isValid();
 
-  void reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId);
   void reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId,
              const Ip4AddressBytes &localIpAddress,
              uint8_t localPrefixLength = DEFAULT_SUBNET_PREFIX_LENGTH);

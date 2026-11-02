@@ -146,14 +146,17 @@ uint32_t ParticipantProxyData::getAliveSignalAgeInMilliseconds() const {
 bool ParticipantProxyData::isAlive() const {
   const double factor = static_cast<double>(1000) /
                         static_cast<double>(1ULL << 32); // Convert fraction to milliseconds
-  uint32_t lease_in_ms =
-      m_leaseDuration.seconds * 1000 + static_cast<uint32_t>(m_leaseDuration.fraction * factor);
+  // Widen before scaling: the remote lease is peer-supplied (int32 seconds), and
+  // seconds * 1000 overflows int32 above ~24.8 days. A negative lease counts as
+  // zero, i.e. the peer is dropped at the next check.
+  const auto to_ms = [factor](const Duration_t &d) -> uint64_t {
+    const int64_t seconds = d.seconds < 0 ? 0 : d.seconds;
+    return static_cast<uint64_t>(seconds) * 1000u + static_cast<uint64_t>(d.fraction * factor);
+  };
+  const uint64_t lease_in_ms = to_ms(m_leaseDuration);
+  const uint64_t max_lease_in_ms = to_ms(Config::SPDP_MAX_REMOTE_LEASE_DURATION);
 
-  uint32_t max_lease_in_ms =
-      Config::SPDP_MAX_REMOTE_LEASE_DURATION.seconds * 1000 +
-      static_cast<uint32_t>(Config::SPDP_MAX_REMOTE_LEASE_DURATION.fraction * factor);
-
-  auto heatbeat_age_in_ms = getAliveSignalAgeInMilliseconds();
+  const uint64_t heatbeat_age_in_ms = getAliveSignalAgeInMilliseconds();
 
   if (heatbeat_age_in_ms > std::min(lease_in_ms, max_lease_in_ms)) {
     return false;

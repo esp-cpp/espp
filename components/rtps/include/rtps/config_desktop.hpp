@@ -42,20 +42,27 @@ namespace rtps {
 
 namespace Config {
 // ---------------------------------------------------------------------------
-// Per-limit overrides: every capacity cap below can be raised (or lowered)
-// individually WITHOUT switching profiles by defining RTPS_CFG_<NAME> as a
-// compile definition before this header is included - e.g.
-// -DRTPS_CFG_NUM_STATELESS_WRITERS=16. On ESP-IDF the Kconfig options under
-// "RTPS -> Custom capacity overrides" wire these up (0 = keep the profile
-// default); on host builds pass RTPS_LIMIT_OVERRIDES to espp.cmake. The
-// overrides MUST be applied when compiling the rtps sources themselves (the
-// pools are sized in the library), which both mechanisms guarantee; defining
-// them for only a consumer translation unit would silently disagree with the
-// library. Capacity-only: no bytes on the wire change.
+// Overridable settings: every constant below with an RTPS_CFG_<NAME> default
+// block can be changed individually WITHOUT switching profiles by defining
+// that macro as a compile definition before this header is included - e.g.
+// -DRTPS_CFG_NUM_STATELESS_WRITERS=16. They fall in four groups:
+//  - capacity caps (pool / history / name-length sizes; capacity only),
+//  - discovery and reliability timing (announcement, heartbeat, leases: WHEN
+//    messages are sent, never what is sent),
+//  - task scheduling (priorities and stacks of the engine's tasks),
+//  - the domain id, which selects the UDP port base and GUID prefix byte 9.
+// None changes the wire format. On ESP-IDF the Kconfig menus under "RTPS"
+// (Custom capacity overrides, Discovery and reliability timing, Tasks, Domain
+// id) wire these up (0 = keep the profile default, except the domain id); on
+// host builds pass RTPS_LIMIT_OVERRIDES to espp.cmake. The overrides MUST be
+// applied when compiling the rtps sources themselves (the pools are sized in
+// the library), which both mechanisms guarantee; defining them for only a
+// consumer translation unit would silently disagree with the library.
 // ---------------------------------------------------------------------------
 
+// Wire identity, never a knob: goes into every RTPS message header, our SPDP
+// announcement and GUID prefix bytes 7-8 (Domain::generateGuidPrefix).
 const VendorId_t VENDOR_ID = {13, 37};
-const std::array<uint8_t, 4> IP_ADDRESS = {192, 168, 4, 1}; // Needs to be set in lwipcfg.h too.
 // GUID_RANDOM: derive each participant prefix from OS entropy (see
 // Domain::generateGuidPrefix). A fixed prefix here makes every desktop
 // participant share an identity, which breaks discovery between them.
@@ -72,7 +79,13 @@ const GuidPrefix_t BASE_GUID_PREFIX = GUID_RANDOM;
 //
 // NOTE: these are pure capacity caps and do NOT affect any bytes on the wire.
 // ---------------------------------------------------------------------------
-const uint8_t DOMAIN_ID = 0; // 230 possible with UDP
+// DDS domain id (the ROS_DOMAIN_ID equivalent; 0..232 with UDP). The port base
+// (7400 + 250 * id) and GUID prefix byte 9 derive from it, so every participant
+// on a domain must use the same value. On ESP-IDF: menuconfig RTPS -> Domain id.
+#ifndef RTPS_CFG_DOMAIN_ID
+#define RTPS_CFG_DOMAIN_ID 0
+#endif
+const uint8_t DOMAIN_ID = RTPS_CFG_DOMAIN_ID;
 
 // Reassembly / large-sample cap (bytes). A sample larger than this is refused on
 // publish and any partial reassembly exceeding it is dropped. On host this is the
@@ -158,15 +171,53 @@ const uint8_t MAX_TYPENAME_LENGTH = RTPS_CFG_MAX_TYPENAME_LENGTH;
 #endif
 const uint8_t MAX_TOPICNAME_LENGTH = RTPS_CFG_MAX_TOPICNAME_LENGTH;
 
-const int HEARTBEAT_STACKSIZE = 1200;          // byte
-const int THREAD_POOL_WRITER_STACKSIZE = 1100; // byte
-const int THREAD_POOL_READER_STACKSIZE = 1600; // byte
-const uint16_t SPDP_WRITER_STACKSIZE = 550;    // byte
+// Tasks (menuconfig RTPS -> Tasks). The engine runs exactly two kinds of task:
+// the transport's worker pool + reactor (THREAD_POOL_READER_*) and the Domain's
+// protocol task (SPDP_WRITER_*). Heartbeats and SPDP run on the protocol task,
+// writers send inline, so there are no separate heartbeat/writer tasks to size.
+// Stack of the transport's worker pool and reactor tasks (EsppTransport),
+// which run every reader and matched callback. Applied on ESP only (espp::Task
+// sets stacks through esp_pthread; a host std::thread uses the platform
+// default). menuconfig RTPS -> Tasks.
+#ifndef RTPS_CFG_THREAD_POOL_READER_STACKSIZE
+#define RTPS_CFG_THREAD_POOL_READER_STACKSIZE 1600
+#endif
+const int THREAD_POOL_READER_STACKSIZE = RTPS_CFG_THREAD_POOL_READER_STACKSIZE; // byte
+// Stack requested for the protocol task (SPDP announcements, heartbeats,
+// liveliness). Domain::initializeTransport() raises anything below 4096 to
+// 4096 before creating the task, on every target. espp::Task applies the stack
+// size only on ESP (esp_pthread), so there the task gets max(this, 4096); on a
+// host build std::thread uses the platform default stack and this value (like
+// THREAD_POOL_READER_STACKSIZE) has no effect. menuconfig RTPS -> Tasks.
+#ifndef RTPS_CFG_SPDP_WRITER_STACKSIZE
+#define RTPS_CFG_SPDP_WRITER_STACKSIZE 550
+#endif
+const uint16_t SPDP_WRITER_STACKSIZE = RTPS_CFG_SPDP_WRITER_STACKSIZE; // byte
 
-const uint16_t SF_WRITER_HB_PERIOD_MS = 2000;
-const uint16_t SPDP_RESEND_PERIOD_MS = 1000;
-const uint8_t SPDP_CYCLECOUNT_HEARTBEAT = 2; // skip x SPDP rounds before checking liveliness
-const uint8_t SPDP_WRITER_PRIO = 3;
+// Discovery / reliability timing (menuconfig RTPS -> Discovery and reliability
+// timing). All change only WHEN messages are sent, never what is sent.
+// Reliable (stateful) writers send a HEARTBEAT every SF_WRITER_HB_PERIOD_MS
+// (a quarter of it while a remote reader has unacknowledged changes).
+#ifndef RTPS_CFG_SF_WRITER_HB_PERIOD_MS
+#define RTPS_CFG_SF_WRITER_HB_PERIOD_MS 2000
+#endif
+const uint16_t SF_WRITER_HB_PERIOD_MS = RTPS_CFG_SF_WRITER_HB_PERIOD_MS;
+// Every participant announces itself (SPDP) every SPDP_RESEND_PERIOD_MS.
+#ifndef RTPS_CFG_SPDP_RESEND_PERIOD_MS
+#define RTPS_CFG_SPDP_RESEND_PERIOD_MS 1000
+#endif
+const uint16_t SPDP_RESEND_PERIOD_MS = RTPS_CFG_SPDP_RESEND_PERIOD_MS;
+// Remote liveliness is checked every (SPDP_CYCLECOUNT_HEARTBEAT + 1) announce
+// rounds, i.e. every (SPDP_CYCLECOUNT_HEARTBEAT + 1) * SPDP_RESEND_PERIOD_MS.
+#ifndef RTPS_CFG_SPDP_CYCLECOUNT_HEARTBEAT
+#define RTPS_CFG_SPDP_CYCLECOUNT_HEARTBEAT 2
+#endif
+const uint8_t SPDP_CYCLECOUNT_HEARTBEAT = RTPS_CFG_SPDP_CYCLECOUNT_HEARTBEAT;
+// Priority of the protocol task (see SPDP_WRITER_STACKSIZE). menuconfig RTPS -> Tasks.
+#ifndef RTPS_CFG_SPDP_WRITER_PRIO
+#define RTPS_CFG_SPDP_WRITER_PRIO 3
+#endif
+const uint8_t SPDP_WRITER_PRIO = RTPS_CFG_SPDP_WRITER_PRIO;
 // Remote participants tracked at once (the SPDP proxy pool). uint16_t here, like
 // the unmatched-remote registries: a host may sit on a domain with hundreds of
 // participants. The embedded profile keeps uint8_t.
@@ -174,12 +225,29 @@ const uint8_t SPDP_WRITER_PRIO = 3;
 #define RTPS_CFG_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS 32
 #endif
 const uint16_t SPDP_MAX_NUMBER_FOUND_PARTICIPANTS = RTPS_CFG_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS;
-const uint8_t SPDP_MAX_NUM_LOCATORS = 8;
+// Locators kept per list (metatraffic/default x unicast/multicast: 4 lists) of
+// every remote participant proxy, so each slot of
+// SPDP_MAX_NUMBER_FOUND_PARTICIPANTS grows by 4 x 12 bytes per locator. A peer
+// announcing more keeps the first ones, with one on our network preferred.
+#ifndef RTPS_CFG_SPDP_MAX_NUM_LOCATORS
+#define RTPS_CFG_SPDP_MAX_NUM_LOCATORS 8
+#endif
+const uint8_t SPDP_MAX_NUM_LOCATORS = RTPS_CFG_SPDP_MAX_NUM_LOCATORS;
+// Lease (seconds) this participant announces for itself, and the lease assumed
+// for a remote participant that announces none (usually overwritten by remote
+// info). Must comfortably exceed SPDP_RESEND_PERIOD_MS: a peer drops us when it
+// misses announcements for a whole lease.
+#ifndef RTPS_CFG_SPDP_DEFAULT_REMOTE_LEASE_DURATION_S
+#define RTPS_CFG_SPDP_DEFAULT_REMOTE_LEASE_DURATION_S 100
+#endif
 const Duration_t SPDP_DEFAULT_REMOTE_LEASE_DURATION = {
-    100, 0}; // Default lease duration for remote participants, usually
-             // overwritten by remote info
-const Duration_t SPDP_MAX_REMOTE_LEASE_DURATION = {
-    180, 0}; // Absolute maximum lease duration, ignoring remote participant info
+    RTPS_CFG_SPDP_DEFAULT_REMOTE_LEASE_DURATION_S, 0};
+// Absolute maximum lease (seconds) honoured for a remote participant, whatever
+// it announces: a silent peer is dropped after min(its lease, this).
+#ifndef RTPS_CFG_SPDP_MAX_REMOTE_LEASE_DURATION_S
+#define RTPS_CFG_SPDP_MAX_REMOTE_LEASE_DURATION_S 180
+#endif
+const Duration_t SPDP_MAX_REMOTE_LEASE_DURATION = {RTPS_CFG_SPDP_MAX_REMOTE_LEASE_DURATION_S, 0};
 
 // Transport channel pool: 2 shared multicast channels (SPDP metatraffic +
 // user multicast) + 2 unicast channels per participant (builtin + user), plus
@@ -191,22 +259,12 @@ const Duration_t SPDP_MAX_REMOTE_LEASE_DURATION = {
 #endif
 const int MAX_NUM_UDP_CONNECTIONS = RTPS_CFG_MAX_NUM_UDP_CONNECTIONS;
 
-const int THREAD_POOL_NUM_WRITERS = 2;
-const int THREAD_POOL_NUM_READERS = 2;
-const int THREAD_POOL_WRITER_PRIO = 3;
-// The transport's worker pool and reactor tasks (EsppTransport). On ESP-IDF,
-// menuconfig RTPS -> Transport task priority overrides it.
+// Priority of the transport's worker pool and reactor tasks (EsppTransport);
+// the pool depth is fixed in the transport. menuconfig RTPS -> Tasks.
 #ifndef RTPS_CFG_THREAD_POOL_READER_PRIO
 #define RTPS_CFG_THREAD_POOL_READER_PRIO 3
 #endif
 const int THREAD_POOL_READER_PRIO = RTPS_CFG_THREAD_POOL_READER_PRIO;
-const int THREAD_POOL_WORKLOAD_QUEUE_LENGTH_USERTRAFFIC = 32;
-const int THREAD_POOL_WORKLOAD_QUEUE_LENGTH_METATRAFFIC = 32;
-
-constexpr int OVERALL_HEAP_SIZE = THREAD_POOL_NUM_WRITERS * THREAD_POOL_WRITER_STACKSIZE +
-                                  THREAD_POOL_NUM_READERS * THREAD_POOL_READER_STACKSIZE +
-                                  MAX_NUM_PARTICIPANTS * SPDP_WRITER_STACKSIZE +
-                                  NUM_STATEFUL_WRITERS * HEARTBEAT_STACKSIZE;
 } // namespace Config
 } // namespace rtps
 
