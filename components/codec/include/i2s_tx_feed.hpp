@@ -90,6 +90,11 @@ struct Feeder {
   /// this): a stream that momentarily holds less than a block while flowing
   /// is given time to complete it; an idle one gets silence at once.
   bool was_flowing{false};
+  /// Diagnostic: how many bytes the stream held the last time fill_block()
+  /// found it misaligned (before the reset), so the BSP's warning can say what
+  /// the producer left behind (`misaligned_bytes % frame_bytes` is the partial
+  /// frame).
+  size_t misaligned_bytes{0};
 
   /// Called by the playback task (its first iteration suffices): records the
   /// calling task as the one to notify.
@@ -122,12 +127,13 @@ struct Feeder {
   /// audio bytes in `buf`. Sets `misaligned` (and resets the stream, since a
   /// stuck partial frame would misalign every frame after it for good) when
   /// the stream held a partial frame - producers never queue one, so the
-  /// caller should warn.
+  /// caller should warn (misaligned_bytes says what it held).
   size_t fill_block(uint8_t *buf, size_t block, bool &misaligned) {
     misaligned = false;
     size_t available = stream != nullptr ? xStreamBufferBytesAvailable(stream) : 0;
     if (available % frame_bytes != 0) {
       misaligned = true;
+      misaligned_bytes = available;
       xStreamBufferReset(stream);
       available = 0;
     }
