@@ -98,7 +98,7 @@ extern "C" void app_main(void) {
 #if CONFIG_M5STACK_TAB5_EXAMPLE_RENDER_TO_FRAME_BUFFERS
   // LVGL renders straight into the panel's frame buffers (DIRECT mode): no
   // draw buffers, no rotation scratch buffer, and no copy per flush.
-  if (!tab5.initialize_display({.render_to_frame_buffers = true})) {
+  if (!tab5.initialize_display({.render_to_frame_buffers_enabled = true})) {
     logger.error("Failed to initialize display!");
     return;
   }

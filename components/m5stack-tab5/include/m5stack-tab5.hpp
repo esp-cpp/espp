@@ -218,7 +218,7 @@ public:
   struct DisplayConfig {
     /// Size of each of LVGL's two draw buffers, in pixels. They are allocated
     /// in PSRAM, as is the rotation scratch buffer of the same size. Ignored
-    /// with render_to_frame_buffers.
+    /// with render_to_frame_buffers_enabled.
     size_t pixel_buffer_size{1280 * 720 / 10};
     /// Let LVGL render in DIRECT mode straight into the DPI panel's frame
     /// buffers (see frame_buffers()) instead of into separate draw buffers.
@@ -236,7 +236,7 @@ public:
     ///       for it before flushing the next area), or register a wait
     ///       callback with lv_display_set_flush_wait_cb(); the transfer-done
     ///       interrupt no longer does it.
-    bool render_to_frame_buffers{false};
+    bool render_to_frame_buffers_enabled{false};
   };
 
   /// Initialize the LVGL display
@@ -347,7 +347,7 @@ public:
   ///       switch to that buffer (after a cache write-back) instead of copying
   ///       it. This lets an application render (e.g. LVGL in DIRECT mode)
   ///       straight into the frame buffers; see also
-  ///       DisplayConfig::render_to_frame_buffers.
+  ///       DisplayConfig::render_to_frame_buffers_enabled.
   /// \note If you install your own LVGL flush callback, call
   ///       lv_display_flush_ready() once for every call of it (LVGL waits
   ///       for it before flushing the next area), or register a wait
@@ -1220,8 +1220,8 @@ protected:
   std::array<void *, max_frame_buffers> frame_buffers_{};
   size_t num_frame_buffers_{0};
   // initialize_display() set LVGL up in DIRECT mode on the frame buffers
-  // (DisplayConfig::render_to_frame_buffers)
-  bool direct_render_{false};
+  // (DisplayConfig::render_to_frame_buffers_enabled)
+  bool direct_render_enabled_{false};
 
   // Display controller detection
   DisplayController display_controller_{DisplayController::UNKNOWN};

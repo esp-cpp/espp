@@ -76,7 +76,7 @@ those tasks than the defaults assume:
 Set **M5Stack Tab5 Configuration -> Number of DPI frame buffers** to 2 and
 enable **M5Stack Tab5 Example Configuration -> Render LVGL straight into the
 panel's frame buffers** to run the example with
-`initialize_display({.render_to_frame_buffers = true})`: LVGL renders in DIRECT
+`initialize_display({.render_to_frame_buffers_enabled = true})`: LVGL renders in DIRECT
 mode into the panel's frame buffers instead of into two full-frame PSRAM draw
 buffers that are copied on every flush. The rotate button does nothing in this
 mode (LVGL cannot rotate in DIRECT mode). See the component README.

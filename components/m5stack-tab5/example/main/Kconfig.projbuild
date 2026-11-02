@@ -6,7 +6,7 @@ menu "M5Stack Tab5 Example Configuration"
         default n
         help
             Initialize the display with
-            DisplayConfig::render_to_frame_buffers: LVGL renders in DIRECT
+            DisplayConfig::render_to_frame_buffers_enabled: LVGL renders in DIRECT
             mode straight into the DPI panel's frame buffers and a finished
             frame is shown by switching the panel to it, instead of copying
             LVGL's draw buffers into the one frame buffer the panel scans

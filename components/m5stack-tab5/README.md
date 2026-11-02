@@ -122,7 +122,7 @@ no copy:
   calls it before the switch. A timeout (default 100 ms) logs once and returns
   `false` rather than stalling the UI; `set_vsync_enabled(false)` skips the
   wait.
-- `initialize_display({.render_to_frame_buffers = true})` sets LVGL up in DIRECT
+- `initialize_display({.render_to_frame_buffers_enabled = true})` sets LVGL up in DIRECT
   mode on two of them, with the BSP's flush calling `present_frame()` at the end
   of each frame. No draw buffers and no rotation scratch buffer are allocated.
   The display rotation must stay at 0 (LVGL cannot rotate in DIRECT mode).
@@ -131,7 +131,7 @@ no copy:
 // menuconfig: M5Stack Tab5 Configuration -> Number of DPI frame buffers = 2
 auto &tab5 = espp::M5StackTab5::get();
 tab5.initialize_lcd();
-tab5.initialize_display({.render_to_frame_buffers = true});
+tab5.initialize_display({.render_to_frame_buffers_enabled = true});
 ```
 
 Measured on a Tab5 in an LVGL application (full-screen redraw, 720 x 1280

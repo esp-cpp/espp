@@ -403,7 +403,7 @@ bool M5StackTab5::initialize_lcd() {
   }
 
   // Keep the panel's frame buffers for frame_buffers() and for
-  // DisplayConfig::render_to_frame_buffers. (The driver reads only the first
+  // DisplayConfig::render_to_frame_buffers_enabled. (The driver reads only the first
   // kNumDpiFramebuffers of the pointers passed.)
   num_frame_buffers_ = 0;
   frame_buffers_ = {};
@@ -697,9 +697,9 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
 }
 
 bool M5StackTab5::initialize_display(const DisplayConfig &config) {
-  if (display_ && direct_render_ != config.render_to_frame_buffers) {
+  if (display_ && direct_render_enabled_ != config.render_to_frame_buffers_enabled) {
     logger_.error("The LVGL display is already initialized {} the frame buffers",
-                  direct_render_ ? "on" : "without");
+                  direct_render_enabled_ ? "on" : "without");
     return false;
   }
   const Display<Pixel>::LvglConfig lvgl_config{
@@ -716,9 +716,9 @@ bool M5StackTab5::initialize_display(const DisplayConfig &config) {
           [this](float brightness) { this->brightness(brightness * 100.0f); },
       .get_brightness_callback = [this]() { return this->brightness() / 100.0f; }};
 
-  if (config.render_to_frame_buffers) {
+  if (config.render_to_frame_buffers_enabled) {
     if (num_frame_buffers_ < 2) {
-      logger_.error("render_to_frame_buffers needs initialize_lcd() first and "
+      logger_.error("render_to_frame_buffers_enabled needs initialize_lcd() first and "
                     "CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2 ({} frame buffers)",
                     num_frame_buffers_);
       return false;
@@ -731,9 +731,10 @@ bool M5StackTab5::initialize_display(const DisplayConfig &config) {
     const uint32_t lvgl_stride =
         lv_draw_buf_width_to_stride(display_width_, LV_COLOR_FORMAT_RGB565);
     if (lvgl_stride != display_width_ * sizeof(Pixel)) {
-      logger_.error("render_to_frame_buffers needs LVGL's row stride ({} bytes) to equal the "
-                    "panel's ({} bytes); set LV_DRAW_BUF_STRIDE_ALIGN so it does",
-                    lvgl_stride, display_width_ * sizeof(Pixel));
+      logger_.error(
+          "render_to_frame_buffers_enabled needs LVGL's row stride ({} bytes) to equal the "
+          "panel's ({} bytes); set LV_DRAW_BUF_STRIDE_ALIGN so it does",
+          lvgl_stride, display_width_ * sizeof(Pixel));
       return false;
     }
     // LVGL cannot rotate in DIRECT mode (it renders in place, and the PPA /
@@ -741,8 +742,9 @@ bool M5StackTab5::initialize_display(const DisplayConfig &config) {
     // from), so the display must come up unrotated and stay so.
     if (rotation != DisplayRotation::LANDSCAPE ||
         requested_rotation_.load(std::memory_order_seq_cst) != DisplayRotation::LANDSCAPE) {
-      logger_.error("render_to_frame_buffers needs the display rotation to be 0 (LANDSCAPE); "
-                    "LVGL cannot rotate in DIRECT mode");
+      logger_.error(
+          "render_to_frame_buffers_enabled needs the display rotation to be 0 (LANDSCAPE); "
+          "LVGL cannot rotate in DIRECT mode");
       return false;
     }
     logger_.info("Initializing LVGL display in DIRECT mode on the DPI frame buffers");
@@ -762,7 +764,7 @@ bool M5StackTab5::initialize_display(const DisplayConfig &config) {
       // espp::Display sets the buffers up for PARTIAL rendering; render whole
       // frames in place instead (nothing has been rendered yet).
       lv_display_set_render_mode(display_->get_lvgl_display(), LV_DISPLAY_RENDER_MODE_DIRECT);
-      direct_render_ = true;
+      direct_render_enabled_ = true;
     }
     // No PPA client and no rotation scratch buffer: flush() does not rotate in
     // DIRECT mode, and LVGL's buffers are the frame buffers themselves.
@@ -1243,8 +1245,8 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
   // safe; the camera task reads the cached atomic instead.
   camera_display_rotation_.store(static_cast<uint8_t>(rotation), std::memory_order_relaxed);
 
-  if (direct_render_) {
-    // DIRECT mode (DisplayConfig::render_to_frame_buffers): LVGL has rendered
+  if (direct_render_enabled_) {
+    // DIRECT mode (DisplayConfig::render_to_frame_buffers_enabled): LVGL has rendered
     // the dirty areas in place, into the frame buffer px_map points to, and
     // calls this once per area. When the last area is done, present_frame()
     // switches the panel to that buffer (no copy). LVGL then renders the next
