@@ -15,8 +15,10 @@
 // announced via its SEDP per-endpoint unicast locator - the interop matrix uses
 // this to prove a FastDDS/ROS 2 peer honors that locator and delivers the
 // topic's traffic to the dedicated port.
-// count_after_s (default 0): samples that arrive earlier than this many seconds
-// after start are reported but NOT counted toward `required`. The interop
+// count_after_s (default 0, must be >= 0 - a negative value is a usage error
+// and exits 1): samples that arrive earlier than this many seconds after start
+// are reported (and, in large-payload mode, still verified byte-exact) but
+// NOT counted toward `required`. The interop
 // matrix uses this as a liveliness gate: a peer whose participant we dropped
 // (e.g. its lease expired because its re-announcements were not delivered)
 // stops being matched, so nothing counts after the lease - only samples that
@@ -68,6 +70,10 @@ int main(int argc, char **argv) {
   const std::size_t payload_bytes = (argc > 7) ? std::strtoul(argv[7], nullptr, 10) : 0;
   const int band_arg = (argc > 8) ? std::atoi(argv[8]) : static_cast<int>(espp::QosBand::Normal);
   const int count_after_s = (argc > 9) ? std::atoi(argv[9]) : 0;
+  if (count_after_s < 0) {
+    std::printf("FAIL: count_after_s must be >= 0, got %d\n", count_after_s);
+    return 1;
+  }
   // Validate before casting: an out-of-range value would index band arrays.
   if (band_arg < static_cast<int>(espp::QosBand::Critical) ||
       band_arg > static_cast<int>(espp::QosBand::Low)) {
@@ -103,12 +109,9 @@ int main(int argc, char **argv) {
                 if (!msg) {
                   return;
                 }
-                if (std::chrono::steady_clock::now() < count_from) {
-                  const int n = early.fetch_add(1) + 1;
-                  std::printf("received (not counted yet) %d\n", n);
-                  std::fflush(stdout);
-                  return;
-                }
+                // Early samples (before count_after_s) are verified and
+                // reported exactly like counted ones; only the count differs.
+                const bool counts = std::chrono::steady_clock::now() >= count_from;
                 if (payload_bytes > 0) {
                   // Large-payload mode: only a byte-exact reassembly counts.
                   const bool exact = msg->data.size() == payload_bytes && msg->data == expected;
@@ -118,10 +121,23 @@ int main(int argc, char **argv) {
                     std::fflush(stdout);
                     return;
                   }
+                  if (!counts) {
+                    const int n = early.fetch_add(1) + 1;
+                    std::printf("received (not counted yet) %d: %zu bytes byte-exact\n", n,
+                                msg->data.size());
+                    std::fflush(stdout);
+                    return;
+                  }
                   const int n = received.fetch_add(1) + 1;
                   std::printf("received %d: %zu bytes byte-exact\n", n, msg->data.size());
                   std::fflush(stdout);
                 } else {
+                  if (!counts) {
+                    const int n = early.fetch_add(1) + 1;
+                    std::printf("received (not counted yet) %d: '%s'\n", n, msg->data.c_str());
+                    std::fflush(stdout);
+                    return;
+                  }
                   const int n = received.fetch_add(1) + 1;
                   std::printf("received %d: '%s'\n", n, msg->data.c_str());
                   std::fflush(stdout);

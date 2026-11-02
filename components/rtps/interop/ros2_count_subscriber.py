@@ -7,10 +7,13 @@ arriving - samples received earlier than `count_after_s` seconds after start
 are reported but not counted, so a peer that stops being served once its
 participant lease has expired cannot pass.
 
-Usage: ros2_count_subscriber.py TOPIC SECONDS REQUIRED COUNT_AFTER_S [reliable|best_effort]
-Exits 0 iff at least REQUIRED samples arrived after COUNT_AFTER_S seconds.
+Usage: ros2_count_subscriber.py TOPIC [--seconds S] [--required N] [--count-after S]
+       [--reliability reliable|best_effort]
+Exits 0 iff at least REQUIRED samples arrived after COUNT_AFTER seconds, 2 on
+bad arguments.
 """
 
+import argparse
 import sys
 import time
 
@@ -19,12 +22,40 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy
 from std_msgs.msg import String
 
 
+def non_negative(text: str) -> float:
+    value = float(text)
+    if value < 0:
+        raise argparse.ArgumentTypeError(f"must be >= 0, got {text}")
+    return value
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Count std_msgs/String samples on a topic for a fixed time; "
+        "samples before --count-after are reported but not counted."
+    )
+    parser.add_argument("topic", nargs="?", default="/chatter")
+    parser.add_argument("--seconds", type=non_negative, default=25.0, help="how long to listen")
+    parser.add_argument("--required", type=int, default=10, help="counted samples needed to pass")
+    parser.add_argument(
+        "--count-after", type=non_negative, default=0.0, help="seconds before counting starts"
+    )
+    parser.add_argument(
+        "--reliability", choices=("reliable", "best_effort"), default="reliable"
+    )
+    args = parser.parse_args(argv)
+    if args.required < 0:
+        parser.error(f"--required must be >= 0, got {args.required}")
+    return args
+
+
 def main() -> int:
-    topic = sys.argv[1] if len(sys.argv) > 1 else "/chatter"
-    seconds = float(sys.argv[2]) if len(sys.argv) > 2 else 25.0
-    required = int(sys.argv[3]) if len(sys.argv) > 3 else 10
-    count_after_s = float(sys.argv[4]) if len(sys.argv) > 4 else 0.0
-    reliable = (sys.argv[5] if len(sys.argv) > 5 else "reliable") != "best_effort"
+    args = parse_args(sys.argv[1:])
+    topic = args.topic
+    seconds = args.seconds
+    required = args.required
+    count_after_s = args.count_after
+    reliable = args.reliability == "reliable"
 
     rclpy.init()
     node = rclpy.create_node("countsub")

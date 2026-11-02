@@ -43,7 +43,7 @@ lease_liveliness_cases() { # prefix log-tag
   local rospub=$!
   wait $sub
   local sub_rc=$?
-  kill $rospub 2>/dev/null; wait $rospub 2>/dev/null
+  kill $rospub 2>/dev/null; wait $rospub 2>/dev/null || true
   tail -2 "/tmp/${tag}leasesub.log"
   result "${prefix}ros2_pub->espp_sub_liveliness" $sub_rc
 
@@ -51,10 +51,10 @@ lease_liveliness_cases() { # prefix log-tag
   "$BIN"/rtps_interop_pub rt/lease2 std_msgs::msg::dds_::String_ 1 220 200 > "/tmp/${tag}leasepub.log" 2>&1 &
   local pub=$!
   sleep 3
-  timeout 40 python3 /work/components/rtps/interop/ros2_count_subscriber.py /lease2 34 10 22 reliable \
+  timeout 40 python3 /work/components/rtps/interop/ros2_count_subscriber.py /lease2 --seconds 34 --required 10 --count-after 22 --reliability reliable \
     > "/tmp/${tag}leasecount.log" 2>&1
   local count_rc=$?
-  kill $pub 2>/dev/null; wait $pub 2>/dev/null
+  kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
   tail -2 "/tmp/${tag}leasecount.log"
   result "${prefix}espp_pub->ros2_sub_liveliness" $count_rc
 }
@@ -84,7 +84,7 @@ many_participants_case() { # prefix log-tag
   local pub=$!
   wait $sub
   local sub_rc=$?
-  kill $pub "${crowd[@]}" 2>/dev/null; wait $pub "${crowd[@]}" 2>/dev/null
+  kill $pub "${crowd[@]}" 2>/dev/null; wait $pub "${crowd[@]}" 2>/dev/null || true
   tail -2 "/tmp/${tag}crowdsub.log"
   result "${prefix}many_participants_late_joiner" $sub_rc
 }
