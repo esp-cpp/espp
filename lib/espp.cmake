@@ -41,18 +41,21 @@ add_compile_definitions(RTPS_CONFIG_HEADER="${RTPS_CONFIG_HEADER_FILE}")
 message(STATUS "RTPS limits profile: ${RTPS_LIMITS_PROFILE}")
 
 # ---------------------------------------------------------------------------
-# RTPS per-limit capacity overrides (fine-grained alternative to switching
+# RTPS per-constant overrides (fine-grained alternative to switching
 # profiles): a semicolon list of NAME=VALUE entries, each overriding ONE
-# capacity cap of the selected profile via its RTPS_CFG_<NAME> macro - e.g.
-#   -DRTPS_LIMIT_OVERRIDES="NUM_STATELESS_WRITERS=16;HISTORY_SIZE_STATEFUL=20"
-# See the RTPS_CFG_* blocks in include/rtps/config_*.hpp for the knob names.
+# constant of the selected profile via its RTPS_CFG_<NAME> macro - the
+# capacity caps, the discovery/reliability timing, the task priorities and
+# stacks, and the domain id - e.g.
+#   -DRTPS_LIMIT_OVERRIDES="NUM_STATELESS_WRITERS=16;HISTORY_SIZE_STATEFUL=20;DOMAIN_ID=3"
+# See the RTPS_CFG_* blocks in include/rtps/config_*.hpp for the knob names
+# (the ESP-IDF build exposes the same knobs through menuconfig).
 # Applied as GLOBAL compile definitions so the engine sources (which size the
 # pools) and every consumer translation unit agree on the values - defining
 # them for only a consumer TU would silently disagree with the library.
 # Capacity-only: no bytes on the wire change.
 # ---------------------------------------------------------------------------
 set(RTPS_LIMIT_OVERRIDES "" CACHE STRING
-    "Semicolon list of RTPS capacity overrides, e.g. NUM_STATELESS_WRITERS=16;HISTORY_SIZE_STATEFUL=20")
+    "Semicolon list of RTPS config overrides, e.g. NUM_STATELESS_WRITERS=16;HISTORY_SIZE_STATEFUL=20;DOMAIN_ID=3")
 # The supported knobs (must match the RTPS_CFG_* blocks in the profile headers).
 # Validated: an unknown name would silently define an unused macro (no override
 # at all), and an out-of-range value would silently truncate - e.g. 256 into a
@@ -68,9 +71,20 @@ set(RTPS_LIMIT_KNOB_NAMES
     MAX_NUM_UNMATCHED_REMOTE_WRITERS MAX_NUM_UNMATCHED_REMOTE_READERS
     MAX_NUM_READER_CALLBACKS HISTORY_SIZE_STATELESS HISTORY_SIZE_STATEFUL
     MAX_TYPENAME_LENGTH MAX_TOPICNAME_LENGTH MAX_NUM_UDP_CONNECTIONS
-    SPDP_MAX_NUMBER_FOUND_PARTICIPANTS)
+    SPDP_MAX_NUMBER_FOUND_PARTICIPANTS SPDP_MAX_NUM_LOCATORS
+    # tuning (not capacity): timing, tasks, domain id - same macro mechanism
+    SPDP_RESEND_PERIOD_MS SPDP_CYCLECOUNT_HEARTBEAT SF_WRITER_HB_PERIOD_MS
+    SPDP_DEFAULT_REMOTE_LEASE_DURATION_S SPDP_MAX_REMOTE_LEASE_DURATION_S
+    THREAD_POOL_READER_PRIO THREAD_POOL_READER_STACKSIZE SPDP_WRITER_PRIO SPDP_WRITER_STACKSIZE
+    DOMAIN_ID)
 set(RTPS_LIMIT_UINT16_KNOBS MAX_NUM_UNMATCHED_REMOTE_WRITERS MAX_NUM_UNMATCHED_REMOTE_READERS
     SPDP_MAX_NUMBER_FOUND_PARTICIPANTS)
+# Knobs that are uint16_t on EVERY profile (the two above are uint8_t under the
+# embedded profile), int-typed stacks, the Duration_t seconds, and the domain id
+# (uint8_t, 0..232 by the DDS port formula) have their own ranges.
+set(RTPS_LIMIT_UINT16_ALL_KNOBS SPDP_RESEND_PERIOD_MS SF_WRITER_HB_PERIOD_MS SPDP_WRITER_STACKSIZE)
+set(RTPS_LIMIT_INT_KNOBS THREAD_POOL_READER_STACKSIZE)
+set(RTPS_LIMIT_SECONDS_KNOBS SPDP_DEFAULT_REMOTE_LEASE_DURATION_S SPDP_MAX_REMOTE_LEASE_DURATION_S)
 # Collect the validated definitions; they are applied directory-wide below AND
 # exported via ESPP_RTPS_COMPILE_DEFINITIONS (they change public Config
 # constants and array-backed layouts, so a find_package(espp) consumer MUST
@@ -90,6 +104,18 @@ foreach(override ${RTPS_LIMIT_OVERRIDES})
   if(_rtps_knob IN_LIST RTPS_LIMIT_UINT16_KNOBS AND NOT RTPS_LIMITS_PROFILE STREQUAL "embedded")
     set(_rtps_max 65535)
     set(_rtps_type "uint16_t")
+  elseif(_rtps_knob IN_LIST RTPS_LIMIT_UINT16_ALL_KNOBS)
+    set(_rtps_max 65535)
+    set(_rtps_type "uint16_t")
+  elseif(_rtps_knob IN_LIST RTPS_LIMIT_INT_KNOBS)
+    set(_rtps_max 1048576)
+    set(_rtps_type "int")
+  elseif(_rtps_knob IN_LIST RTPS_LIMIT_SECONDS_KNOBS)
+    set(_rtps_max 3600)
+    set(_rtps_type "Duration_t seconds")
+  elseif(_rtps_knob STREQUAL "DOMAIN_ID")
+    set(_rtps_max 232)
+    set(_rtps_type "uint8_t domain id")
   else()
     set(_rtps_max 255)
     set(_rtps_type "uint8_t")
@@ -105,6 +131,10 @@ foreach(override ${RTPS_LIMIT_OVERRIDES})
     set(_rtps_min 3) # SPDP + 2 SEDP builtins
   elseif(_rtps_knob STREQUAL "MAX_NUM_UDP_CONNECTIONS")
     set(_rtps_min 4) # 2 shared multicast + 2 unicast channels for 1 participant
+  elseif(_rtps_knob STREQUAL "THREAD_POOL_READER_STACKSIZE" OR _rtps_knob STREQUAL "SPDP_WRITER_STACKSIZE")
+    set(_rtps_min 2048) # a smaller task stack cannot run the engine's callbacks
+  elseif(_rtps_knob STREQUAL "DOMAIN_ID")
+    set(_rtps_min 0) # 0 is the DDS default domain, a real value
   else()
     set(_rtps_min 1)
   endif()

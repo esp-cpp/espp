@@ -63,6 +63,7 @@ set(RTPS_LIMIT_KNOBS
     MAX_TOPICNAME_LENGTH
     MAX_NUM_UDP_CONNECTIONS
     SPDP_MAX_NUMBER_FOUND_PARTICIPANTS
+    SPDP_MAX_NUM_LOCATORS
 )
 foreach(knob ${RTPS_LIMIT_KNOBS})
   if(DEFINED CONFIG_RTPS_LIMIT_${knob} AND NOT "${CONFIG_RTPS_LIMIT_${knob}}" STREQUAL "" AND NOT "${CONFIG_RTPS_LIMIT_${knob}}" STREQUAL "0")
@@ -92,14 +93,41 @@ foreach(knob ${RTPS_LIMIT_KNOBS})
   endif()
 endforeach()
 
-# Transport task priority (Kconfig "Transport task priority"): a nonzero value
-# overrides the selected profile's THREAD_POOL_READER_PRIO, which the transport
-# gives its worker pool and reactor tasks. 0 keeps the profile's value.
-if(DEFINED CONFIG_RTPS_THREAD_POOL_READER_PRIO
-   AND NOT "${CONFIG_RTPS_THREAD_POOL_READER_PRIO}" STREQUAL ""
-   AND NOT "${CONFIG_RTPS_THREAD_POOL_READER_PRIO}" STREQUAL "0")
-  target_compile_definitions(${COMPONENT_LIB} PUBLIC
-    "RTPS_CFG_THREAD_POOL_READER_PRIO=${CONFIG_RTPS_THREAD_POOL_READER_PRIO}")
+# Tuning knobs (Kconfig "Discovery and reliability timing" and "Tasks"): a
+# nonzero CONFIG_RTPS_<knob> overrides that one constant of the selected
+# profile via its RTPS_CFG_<knob> macro; 0 keeps the profile's value. They
+# change only when discovery/reliability messages are sent and how the engine's
+# tasks are scheduled, never any bytes on the wire. PUBLIC for the same reason
+# as the capacity knobs (consumer translation units see the same Config).
+set(RTPS_TUNING_KNOBS
+    THREAD_POOL_READER_PRIO
+    THREAD_POOL_READER_STACKSIZE
+    SPDP_WRITER_PRIO
+    SPDP_WRITER_STACKSIZE
+    SPDP_RESEND_PERIOD_MS
+    SPDP_CYCLECOUNT_HEARTBEAT
+    SF_WRITER_HB_PERIOD_MS
+    SPDP_DEFAULT_REMOTE_LEASE_DURATION_S
+    SPDP_MAX_REMOTE_LEASE_DURATION_S
+)
+foreach(knob ${RTPS_TUNING_KNOBS})
+  if(DEFINED CONFIG_RTPS_${knob} AND NOT "${CONFIG_RTPS_${knob}}" STREQUAL "" AND NOT "${CONFIG_RTPS_${knob}}" STREQUAL "0")
+    # A task stack below 2 KB cannot run the engine's callbacks: refuse it
+    # rather than crash at the first datagram.
+    if((knob STREQUAL "THREAD_POOL_READER_STACKSIZE" OR knob STREQUAL "SPDP_WRITER_STACKSIZE")
+       AND CONFIG_RTPS_${knob} LESS 2048)
+      message(FATAL_ERROR
+        "CONFIG_RTPS_${knob}=${CONFIG_RTPS_${knob}} is below the minimum of 2048 bytes")
+    endif()
+    target_compile_definitions(${COMPONENT_LIB} PUBLIC "RTPS_CFG_${knob}=${CONFIG_RTPS_${knob}}")
+  endif()
+endforeach()
+
+# Domain id (Kconfig "Domain id"): 0 is a real value here (the DDS default),
+# not a sentinel, so it is always passed through when defined. It derives the
+# port base (7400 + 250 * id) and GUID prefix byte 9.
+if(DEFINED CONFIG_RTPS_DOMAIN_ID AND NOT "${CONFIG_RTPS_DOMAIN_ID}" STREQUAL "")
+  target_compile_definitions(${COMPONENT_LIB} PUBLIC "RTPS_CFG_DOMAIN_ID=${CONFIG_RTPS_DOMAIN_ID}")
 endif()
 
 # Cross-limit capacity check (mirrors lib/espp.cmake): every participant

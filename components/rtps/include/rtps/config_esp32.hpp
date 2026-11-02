@@ -52,7 +52,13 @@ const std::array<uint8_t, 4> IP_ADDRESS = {192, 168, 4,
                                            1}; // Fallback: must match DHCPS server netif IP.
 const GuidPrefix_t BASE_GUID_PREFIX{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13};
 
-const uint8_t DOMAIN_ID = 0; // 230 possible with UDP
+// DDS domain id (the ROS_DOMAIN_ID equivalent; 0..232 with UDP). The port base
+// (7400 + 250 * id) and GUID prefix byte 9 derive from it, so every participant
+// on a domain must use the same value. On ESP-IDF: menuconfig RTPS -> Domain id.
+#ifndef RTPS_CFG_DOMAIN_ID
+#define RTPS_CFG_DOMAIN_ID 0
+#endif
+const uint8_t DOMAIN_ID = RTPS_CFG_DOMAIN_ID;
 
 // Reassembly / large-sample cap (bytes) when RTPS_ENABLE_FRAGMENTATION is opted
 // in on this MCU (Kconfig, default off). Bounded (256 KB) - a fragmented sample
@@ -131,25 +137,72 @@ const uint8_t MAX_TYPENAME_LENGTH = RTPS_CFG_MAX_TYPENAME_LENGTH;
 #endif
 const uint8_t MAX_TOPICNAME_LENGTH = RTPS_CFG_MAX_TOPICNAME_LENGTH;
 
-const int HEARTBEAT_STACKSIZE = 1024 * 6;          // byte
-const int THREAD_POOL_WRITER_STACKSIZE = 4096;     // byte
-const int THREAD_POOL_READER_STACKSIZE = 1024 * 6; // byte
-const uint16_t SPDP_WRITER_STACKSIZE = 4096;       // byte
+const int HEARTBEAT_STACKSIZE = 1024 * 6;      // byte
+const int THREAD_POOL_WRITER_STACKSIZE = 4096; // byte
+// Stack of the transport's worker pool and reactor tasks (EsppTransport),
+// which run every reader and matched callback. menuconfig RTPS -> Tasks.
+#ifndef RTPS_CFG_THREAD_POOL_READER_STACKSIZE
+#define RTPS_CFG_THREAD_POOL_READER_STACKSIZE 6144
+#endif
+const int THREAD_POOL_READER_STACKSIZE = RTPS_CFG_THREAD_POOL_READER_STACKSIZE; // byte
+// Stack of the protocol task (SPDP announcements, heartbeats, liveliness); the
+// Domain raises anything below 4096 to 4096. menuconfig RTPS -> Tasks.
+#ifndef RTPS_CFG_SPDP_WRITER_STACKSIZE
+#define RTPS_CFG_SPDP_WRITER_STACKSIZE 4096
+#endif
+const uint16_t SPDP_WRITER_STACKSIZE = RTPS_CFG_SPDP_WRITER_STACKSIZE; // byte
 
-const uint16_t SF_WRITER_HB_PERIOD_MS = 4000;
-const uint16_t SPDP_RESEND_PERIOD_MS = 2000;
-const uint8_t SPDP_CYCLECOUNT_HEARTBEAT = 2; // skip x SPDP rounds before checking liveliness
-const uint8_t SPDP_WRITER_PRIO = 5;
+// Discovery / reliability timing (menuconfig RTPS -> Discovery and reliability
+// timing). All change only WHEN messages are sent, never what is sent.
+// Reliable (stateful) writers send a HEARTBEAT every SF_WRITER_HB_PERIOD_MS
+// (a quarter of it while a remote reader has unacknowledged changes).
+#ifndef RTPS_CFG_SF_WRITER_HB_PERIOD_MS
+#define RTPS_CFG_SF_WRITER_HB_PERIOD_MS 4000
+#endif
+const uint16_t SF_WRITER_HB_PERIOD_MS = RTPS_CFG_SF_WRITER_HB_PERIOD_MS;
+// Every participant announces itself (SPDP) every SPDP_RESEND_PERIOD_MS.
+#ifndef RTPS_CFG_SPDP_RESEND_PERIOD_MS
+#define RTPS_CFG_SPDP_RESEND_PERIOD_MS 2000
+#endif
+const uint16_t SPDP_RESEND_PERIOD_MS = RTPS_CFG_SPDP_RESEND_PERIOD_MS;
+// Remote liveliness is checked every (SPDP_CYCLECOUNT_HEARTBEAT + 1) announce
+// rounds, i.e. every (SPDP_CYCLECOUNT_HEARTBEAT + 1) * SPDP_RESEND_PERIOD_MS.
+#ifndef RTPS_CFG_SPDP_CYCLECOUNT_HEARTBEAT
+#define RTPS_CFG_SPDP_CYCLECOUNT_HEARTBEAT 2
+#endif
+const uint8_t SPDP_CYCLECOUNT_HEARTBEAT = RTPS_CFG_SPDP_CYCLECOUNT_HEARTBEAT;
+// Priority of the protocol task (see SPDP_WRITER_STACKSIZE). menuconfig RTPS -> Tasks.
+#ifndef RTPS_CFG_SPDP_WRITER_PRIO
+#define RTPS_CFG_SPDP_WRITER_PRIO 5
+#endif
+const uint8_t SPDP_WRITER_PRIO = RTPS_CFG_SPDP_WRITER_PRIO;
 #ifndef RTPS_CFG_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS
 #define RTPS_CFG_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS 10
 #endif
 const uint8_t SPDP_MAX_NUMBER_FOUND_PARTICIPANTS = RTPS_CFG_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS;
-const uint8_t SPDP_MAX_NUM_LOCATORS = 1;
+// Locators kept per list (metatraffic/default x unicast/multicast: 4 lists) of
+// every remote participant proxy, so each slot of
+// SPDP_MAX_NUMBER_FOUND_PARTICIPANTS grows by 4 x 12 bytes per locator. A peer
+// announcing more keeps the first ones, with one on our network preferred.
+#ifndef RTPS_CFG_SPDP_MAX_NUM_LOCATORS
+#define RTPS_CFG_SPDP_MAX_NUM_LOCATORS 1
+#endif
+const uint8_t SPDP_MAX_NUM_LOCATORS = RTPS_CFG_SPDP_MAX_NUM_LOCATORS;
+// Lease (seconds) this participant announces for itself, and the lease assumed
+// for a remote participant that announces none (usually overwritten by remote
+// info). Must comfortably exceed SPDP_RESEND_PERIOD_MS: a peer drops us when it
+// misses announcements for a whole lease.
+#ifndef RTPS_CFG_SPDP_DEFAULT_REMOTE_LEASE_DURATION_S
+#define RTPS_CFG_SPDP_DEFAULT_REMOTE_LEASE_DURATION_S 5
+#endif
 const Duration_t SPDP_DEFAULT_REMOTE_LEASE_DURATION = {
-    5, 0}; // Default lease duration for remote participants, usually
-           // overwritten by remote info
-const Duration_t SPDP_MAX_REMOTE_LEASE_DURATION = {
-    90, 0}; // Absolute maximum lease duration, ignoring remote participant info
+    RTPS_CFG_SPDP_DEFAULT_REMOTE_LEASE_DURATION_S, 0};
+// Absolute maximum lease (seconds) honoured for a remote participant, whatever
+// it announces: a silent peer is dropped after min(its lease, this).
+#ifndef RTPS_CFG_SPDP_MAX_REMOTE_LEASE_DURATION_S
+#define RTPS_CFG_SPDP_MAX_REMOTE_LEASE_DURATION_S 90
+#endif
+const Duration_t SPDP_MAX_REMOTE_LEASE_DURATION = {RTPS_CFG_SPDP_MAX_REMOTE_LEASE_DURATION_S, 0};
 
 const Duration_t SPDP_LEASE_DURATION = {5, 0};
 

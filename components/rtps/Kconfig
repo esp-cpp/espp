@@ -193,9 +193,97 @@ menu "RTPS"
                 host_large, hence the ranges. 0 keeps the selected profile's
                 value (10 embedded, 32 host, 128 host_large).
 
+        config RTPS_LIMIT_SPDP_MAX_NUM_LOCATORS
+            int "SPDP_MAX_NUM_LOCATORS (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Locators kept per list of every remote participant proxy. A
+                proxy has 4 lists (metatraffic and default, unicast and
+                multicast), so each of the SPDP_MAX_NUMBER_FOUND_PARTICIPANTS
+                slots grows by 4 x 12 bytes per locator. A peer on several
+                networks announces one unicast locator per interface; the
+                engine keeps the first ones and prefers one on our network, so
+                1 (the embedded default) already reaches a multi-homed peer.
+                Raise it to keep every announced locator. 0 keeps the selected
+                profile's value (1 embedded, 8 host, 16 host_large).
+
     endmenu
 
-    menu "Transport task priority (advanced)"
+    menu "Discovery and reliability timing (advanced)"
+        # Each option overrides ONE timing constant of the selected profile
+        # (0 = keep the profile's default). They change only WHEN discovery
+        # and reliability messages are sent, never their bytes.
+        config RTPS_SPDP_RESEND_PERIOD_MS
+            int "SPDP_RESEND_PERIOD_MS: participant announcement period (0 = profile default)"
+            default 0
+            range 0 65535
+            help
+                How often (ms) every local participant announces itself (SPDP
+                DATA on the metatraffic multicast). Peers refresh our liveliness
+                on each announcement and drop us when they miss them for a
+                whole lease, so keep this well below
+                SPDP_DEFAULT_REMOTE_LEASE_DURATION_S (at least 2-3 announcements
+                per lease). It also paces the liveliness check of remote
+                participants: every (SPDP_CYCLECOUNT_HEARTBEAT + 1) announce
+                rounds. 0 keeps the selected profile's value (2000 embedded,
+                1000 host).
+
+        config RTPS_SPDP_CYCLECOUNT_HEARTBEAT
+            int "SPDP_CYCLECOUNT_HEARTBEAT: announce rounds between liveliness checks (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Remote participants are checked for liveliness (and the expired
+                ones removed, with every matched endpoint) every
+                (SPDP_CYCLECOUNT_HEARTBEAT + 1) announcement rounds, i.e. every
+                (SPDP_CYCLECOUNT_HEARTBEAT + 1) * SPDP_RESEND_PERIOD_MS. A
+                silent peer therefore lingers up to that long past its lease.
+                0 keeps the selected profile's value (2 on every profile).
+
+        config RTPS_SF_WRITER_HB_PERIOD_MS
+            int "SF_WRITER_HB_PERIOD_MS: reliable writer heartbeat period (0 = profile default)"
+            default 0
+            range 0 65535
+            help
+                How often (ms) a RELIABLE (stateful) writer sends a HEARTBEAT to
+                its matched readers, which is what lets a reader notice and
+                NACK a missed sample. While a remote reader has unacknowledged
+                changes the writer sends them four times as often (a quarter of
+                this). Lower it for faster repair at the cost of metatraffic.
+                0 keeps the selected profile's value (4000 embedded, 2000 host).
+
+        config RTPS_SPDP_DEFAULT_REMOTE_LEASE_DURATION_S
+            int "SPDP_DEFAULT_REMOTE_LEASE_DURATION_S: our announced lease / default remote lease, seconds (0 = profile default)"
+            default 0
+            range 0 3600
+            help
+                Two things: the lease duration every local participant
+                announces for itself (peers drop us after that long without an
+                announcement - keep it at least 2-3 times
+                SPDP_RESEND_PERIOD_MS), and the lease assumed for a remote
+                participant that announces none (usually overwritten by the
+                remote's own value, capped by SPDP_MAX_REMOTE_LEASE_DURATION_S).
+                0 keeps the selected profile's value (5 embedded, 100 host).
+
+        config RTPS_SPDP_MAX_REMOTE_LEASE_DURATION_S
+            int "SPDP_MAX_REMOTE_LEASE_DURATION_S: cap on a remote lease, seconds (0 = profile default)"
+            default 0
+            range 0 3600
+            help
+                Absolute maximum lease honoured for a remote participant,
+                whatever it announces: a silent peer is dropped after
+                min(its announced lease, this). Lower it to forget a vanished
+                peer sooner than its own (often generous) lease; never set it
+                below a peer's announcement period or it is dropped while
+                alive. 0 keeps the selected profile's value (90 embedded, 180
+                host).
+
+    endmenu
+
+    menu "Tasks (advanced)"
+        # Priorities and stacks of the engine's tasks (0 = keep the profile's
+        # default).
         config RTPS_THREAD_POOL_READER_PRIO
             int "THREAD_POOL_READER_PRIO: worker pool and reactor (0 = profile default)"
             default 0
@@ -216,7 +304,54 @@ menu "RTPS"
                 tasks are not scheduled. The callbacks then run at this
                 priority too, so keep them short.
 
+        config RTPS_THREAD_POOL_READER_STACKSIZE
+            int "THREAD_POOL_READER_STACKSIZE: worker pool and reactor stack, bytes (0 = profile default)"
+            default 0
+            range 0 65535
+            help
+                Stack of each transport task: the worker pool tasks
+                ("rtps_worker_<n>"), which also run every reader and matched
+                callback, and the reactor ("rtps_reactor"). Raise it when a
+                callback needs more than the default; a value below 2048 is
+                refused at build time. 0 keeps the selected profile's value
+                (6144 on the embedded profile).
+
+        config RTPS_SPDP_WRITER_PRIO
+            int "SPDP_WRITER_PRIO: protocol task priority (0 = profile default)"
+            default 0
+            range 0 24
+            help
+                FreeRTOS priority of the protocol task ("rtps_protocol"), which
+                sends the SPDP announcements, the reliable writers' HEARTBEATs
+                and runs the liveliness checks. It must get scheduled at least
+                every SPDP_RESEND_PERIOD_MS or peers drop this participant.
+                0 keeps the selected profile's value (5 on the embedded
+                profile).
+
+        config RTPS_SPDP_WRITER_STACKSIZE
+            int "SPDP_WRITER_STACKSIZE: protocol task stack, bytes (0 = profile default)"
+            default 0
+            range 0 65535
+            help
+                Stack of the protocol task ("rtps_protocol"). The engine raises
+                anything below 4096 to 4096, and a value below 2048 is refused
+                at build time. 0 keeps the selected profile's value (4096 on the
+                embedded profile).
+
     endmenu
+
+    config RTPS_DOMAIN_ID
+        int "Domain id"
+        default 0
+        range 0 232
+        help
+            The DDS domain this device's participants join - the equivalent of
+            ROS_DOMAIN_ID on a ROS 2 host. The discovery and user-traffic port
+            base (7400 + 250 * id) and byte 9 of the participants' GUID prefix
+            derive from it, so every participant that should see each other
+            must use the same value. Compile-time: all participants in one
+            firmware share it. 0 is the DDS default and matches a ROS 2 host
+            with no ROS_DOMAIN_ID set.
 
     config RTPS_STORAGE_DYNAMIC
         bool "Use dynamic (heap) history/queue storage"
