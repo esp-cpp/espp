@@ -231,8 +231,16 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
     RECV_LOG("Received ENTITYID_UNKNOWN readerID, searching for writer ID = ");
     printGuid(Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId});
 #endif
-    reader = mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId},
-                                          readerGen);
+    if (dataSubmsg.writerId == ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER) {
+      // A DATA may leave the reader unnamed (RTPS 2.5 8.3.7.2). The SPDP reader
+      // is best-effort and matches no remote writer, so the writer lookup below
+      // cannot resolve it: route the SPDP writer's DATA to it directly.
+      // Regression test: pc/tests/rtps_spdp_unknown_reader.cpp.
+      reader = mp_part->getReader(ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, readerGen);
+    } else {
+      reader = mp_part->getReaderByWriterId(
+          Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId}, readerGen);
+    }
     if (reader != nullptr)
       RECV_LOG("Found reader!");
   } else {
