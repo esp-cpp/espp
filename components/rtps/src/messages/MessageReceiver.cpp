@@ -232,13 +232,10 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
     printGuid(Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId});
 #endif
     if (dataSubmsg.writerId == ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER) {
-      // SPDP DATA addressed to the participant rather than to our SPDP reader
-      // (readerId ENTITYID_UNKNOWN, RTPS 2.5 8.3.7.2): CycloneDDS sends its
-      // periodic announcements this way, and only its first message to a newly
-      // seen peer names the reader. The SPDP reader is best-effort and matches
-      // no remote writer, so the proxy lookup below never finds it and the
-      // repeat was dropped: the peer's liveliness was never refreshed and it
-      // expired after its lease, taking every matched endpoint with it.
+      // A DATA may leave the reader unnamed (RTPS 2.5 8.3.7.2). The SPDP reader
+      // is best-effort and matches no remote writer, so the writer lookup below
+      // cannot resolve it: route the SPDP writer's DATA to it directly.
+      // Regression test: pc/tests/rtps_spdp_unknown_reader.cpp.
       reader = mp_part->getReader(ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, readerGen);
     } else {
       reader = mp_part->getReaderByWriterId(
