@@ -1081,6 +1081,15 @@ bool M5StackTab5::present_frame(const void *frame_buffer, uint32_t timeout_ms) {
     // panel draw; the frame-done wait below is outside the mutex, so a direct
     // write is not held up for a refresh.
     std::lock_guard<std::mutex> lock(panel_op_mutex_);
+    // Like every panel operation: wait for the transfer in flight (an
+    // asynchronous LVGL flush copy or PPA rotation) before issuing one, so
+    // the token accounting in wait_for_transfer_idle() / draw_and_wait()
+    // stays exact. The driver completes a frame-buffer draw synchronously
+    // through on_color_trans_done, which gives the token from task context.
+    if (!wait_for_transfer_idle()) {
+      logger_.error("present_frame(): a previous transfer is wedged; not switching");
+      return false;
+    }
     if (!draw_and_wait(0, 0, display_width_, display_height_, frame_buffer)) {
       logger_.error("present_frame(): draw_bitmap failed");
       return false;
@@ -1175,7 +1184,15 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
     if (lv_display_flush_is_last(disp)) {
       // Waits until the panel scans px_map out, so LVGL never renders the
       // next frame into the buffer the panel is still reading (see
-      // present_frame()).
+      // present_frame()). Two costs are inherent to DIRECT mode with two
+      // buffers and deliberately not optimized here: LVGL copies the previous
+      // frame's dirty areas between the buffers on the CPU before each render
+      // (refr_sync_areas), and the switch writes the whole frame's cache back
+      // - the sync copy dirties lines outside this frame's areas, so a
+      // per-area write-back would have to union the previous frame's areas.
+      // This flush never leaves a transfer in flight (lvgl_flush_pending_ is
+      // not set): the switch completes synchronously and LVGL is released
+      // right here.
       present_frame(px_map);
     }
     lv_display_flush_ready(disp);
