@@ -30,6 +30,7 @@
 #include "ethernet.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
+#include "i2s_tx_feed.hpp"
 #include "ili9881.hpp"
 #include "interrupt.hpp"
 #include "jd9365.hpp"
@@ -622,6 +623,9 @@ protected:
   i2s_event_callbacks_t audio_tx_callbacks_{};
   std::vector<uint8_t> audio_tx_buffer;
   StreamBufferHandle_t audio_tx_stream{nullptr};
+  // Stream-side playback policy shared by every audio BSP (bounded wait for a
+  // flowing producer, misalignment recovery, task wake-up): codec/i2s_tx_feed.hpp
+  espp::i2s_tx_feed::Feeder audio_tx_feed_;
   std::atomic<bool> has_sound{false};
 
   // Microphone (ES8311 ADC, full duplex with the speaker)

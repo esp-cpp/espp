@@ -57,17 +57,20 @@ set(RTPS_LIMIT_OVERRIDES "" CACHE STRING
 # Validated: an unknown name would silently define an unused macro (no override
 # at all), and an out-of-range value would silently truncate - e.g. 256 into a
 # uint8_t knob becomes a ZERO-capacity pool. Most knobs back uint8_t constants
-# (range 1..255); the unmatched-remote registries are uint16_t in the host
-# profiles (host_large defaults them to 1024/512), so those two accept up to
-# 65535 - EXCEPT under the embedded profile, where they are uint8_t too.
+# (range 1..255); the unmatched-remote registries and the SPDP participant pool
+# are uint16_t in the host profiles (host_large defaults them to 1024/512/128),
+# so those three accept up to 65535 - EXCEPT under the embedded profile, where
+# they are uint8_t too.
 set(RTPS_LIMIT_KNOB_NAMES
     NUM_STATELESS_WRITERS NUM_STATELESS_READERS NUM_STATEFUL_WRITERS NUM_STATEFUL_READERS
     MAX_NUM_PARTICIPANTS NUM_WRITERS_PER_PARTICIPANT NUM_READERS_PER_PARTICIPANT
     NUM_WRITER_PROXIES_PER_READER NUM_READER_PROXIES_PER_WRITER
     MAX_NUM_UNMATCHED_REMOTE_WRITERS MAX_NUM_UNMATCHED_REMOTE_READERS
     MAX_NUM_READER_CALLBACKS HISTORY_SIZE_STATELESS HISTORY_SIZE_STATEFUL
-    MAX_TYPENAME_LENGTH MAX_TOPICNAME_LENGTH MAX_NUM_UDP_CONNECTIONS)
-set(RTPS_LIMIT_UINT16_KNOBS MAX_NUM_UNMATCHED_REMOTE_WRITERS MAX_NUM_UNMATCHED_REMOTE_READERS)
+    MAX_TYPENAME_LENGTH MAX_TOPICNAME_LENGTH MAX_NUM_UDP_CONNECTIONS
+    SPDP_MAX_NUMBER_FOUND_PARTICIPANTS)
+set(RTPS_LIMIT_UINT16_KNOBS MAX_NUM_UNMATCHED_REMOTE_WRITERS MAX_NUM_UNMATCHED_REMOTE_READERS
+    SPDP_MAX_NUMBER_FOUND_PARTICIPANTS)
 # Collect the validated definitions; they are applied directory-wide below AND
 # exported via ESPP_RTPS_COMPILE_DEFINITIONS (they change public Config
 # constants and array-backed layouts, so a find_package(espp) consumer MUST

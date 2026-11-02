@@ -41,4 +41,19 @@ menu "M5Stack Tab5 Configuration"
       (the default) to keep the known-good PPA rotation for all orientations;
       enable only to experiment on your unit.
 
+  config M5STACK_TAB5_ROTATION_SOFTWARE_FALLBACK
+    bool "Keep a software fallback for display rotation"
+    default y
+    help
+      Display rotation normally runs on the PPA, which rotates each flushed
+      area straight into the panel framebuffer. When the PPA is unavailable
+      (its client or completion callback could not be registered, or an
+      operation fails) the area is instead rotated on the CPU into a scratch
+      buffer the size of the LVGL draw buffer (1.8 MB of PSRAM with the
+      example's full-frame draw buffers). That scratch buffer is allocated
+      the first time the fallback is needed, so on a board where the PPA
+      works it costs nothing. Disable to never allocate it: rotation is then
+      PPA-only, and a rotated flush with no PPA available is dropped with an
+      error instead of being rotated in software.
+
 endmenu
