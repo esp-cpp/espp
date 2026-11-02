@@ -64,6 +64,21 @@ static constexpr uint8_t kNumDpiFramebuffers = CONFIG_M5STACK_TAB5_DPI_NUM_FBS;
 static_assert(kNumDpiFramebuffers >= 1 && kNumDpiFramebuffers <= M5StackTab5::max_frame_buffers,
               "CONFIG_M5STACK_TAB5_DPI_NUM_FBS must be 1..3 (the DPI panel driver's limit)");
 
+// Whether this ESP-IDF's DPI panel raises its frame-done event from the DMA
+// transfer-done interrupt after re-arming on the queued frame buffer
+// (on_frame_buf_complete: v5.5.5+, v6.0.3+). Earlier versions raise
+// on_refresh_done from the DSI bridge's VSYNC interrupt on chips that have
+// one (the P4), which is not synchronized with the re-arm; present_frame()
+// then waits for two events. The DMA2D / frame-buffer draw_bitmap ordering
+// bug of v6.0.0 is handled separately in initialize_lcd().
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 3) ||                                             \
+    (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 5) &&                                            \
+     ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0))
+static constexpr bool kFrameDoneIsBufferComplete = true;
+#else
+static constexpr bool kFrameDoneIsBufferComplete = false;
+#endif
+
 // Alignment the PPA requires for its output buffer in external (PSRAM) memory:
 // both the buffer pointer and the buffer size must be multiples of the data
 // cache line size. On the ESP32-P4 external memory sits behind the L2 cache,
@@ -1103,7 +1118,25 @@ bool M5StackTab5::present_frame(const void *frame_buffer, uint32_t timeout_ms) {
   // the new buffer. (If the switch itself landed between draw_bitmap() and
   // here, this waits one refresh longer, which is safe.)
   xSemaphoreTake(frame_done_sem_, 0);
-  if (xSemaphoreTake(frame_done_sem_, pdMS_TO_TICKS(timeout_ms)) == pdTRUE) {
+  // How many events prove the switch happened. With on_frame_buf_complete
+  // (ESP-IDF v5.5.5 / v6.0.3 and later) the driver raises the event from the
+  // DMA transfer-done interrupt right after it re-armed on cur_fb_index, so
+  // one event after the draw is the switch. Before that the P4 raises
+  // on_refresh_done from the DSI bridge's VSYNC interrupt, and the DMA fetch
+  // of a frame completes a porch BEFORE that frame's VSYNC: the first VSYNC
+  // after the draw may belong to a frame whose re-arm preceded the draw
+  // (still the old buffer). The DMA re-arms exactly once between two
+  // consecutive VSYNCs, so the second VSYNC after the draw is past a re-arm
+  // that saw the new index; one refresh of extra latency on those versions.
+  constexpr int kFrameDoneEventsForSwitch = kFrameDoneIsBufferComplete ? 1 : 2;
+  bool switched = true;
+  for (int i = 0; i < kFrameDoneEventsForSwitch; ++i) {
+    if (xSemaphoreTake(frame_done_sem_, pdMS_TO_TICKS(timeout_ms)) != pdTRUE) {
+      switched = false;
+      break;
+    }
+  }
+  if (switched) {
     return true;
   }
   // A panel that stopped refreshing must not freeze the caller: the switch

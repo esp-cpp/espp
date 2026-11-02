@@ -387,10 +387,12 @@ public:
   ///         \p frame_buffer is not one of frame_buffers() or the wait timed
   ///         out (the switch is still queued; carry on rather than stall)
   /// \note Waits at most one panel refresh period (about 17 ms; 21 ms on the
-  ///       ILI9881 panel) when the panel is running. Do not call it from an
-  ///       ISR. The wait needs CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2 (with one
-  ///       frame buffer there is nothing to switch, and the call only writes
-  ///       the cache back).
+  ///       ILI9881 panel) when the panel is running - two on ESP-IDF before
+  ///       v5.5.5 / v6.0.3, whose frame-done event is the DSI bridge's VSYNC
+  ///       rather than the DMA's re-arm (see present_frame() in video.cpp).
+  ///       Do not call it from an ISR. The wait needs
+  ///       CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2 (with one frame buffer there
+  ///       is nothing to switch, and the call only writes the cache back).
   bool present_frame(const void *frame_buffer, uint32_t timeout_ms = 100);
 
   /// Enable or disable the wait in present_frame()
