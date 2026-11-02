@@ -316,6 +316,13 @@ public:
   // was rejected/failed (no completion will arrive) or if the completion did
   // not arrive within the bounded wait (the copy may still be reading `data`).
   bool draw_and_wait(int x1, int y1, int x2, int y2, const void *data);
+  // Make sure the software-rotation scratch buffer exists (allocated lazily,
+  // see CONFIG_M5STACK_TAB5_ROTATION_SOFTWARE_FALLBACK). Returns false if the
+  // fallback is disabled or the allocation failed.
+  bool ensure_rotation_scratch_buffer();
+  // Size the scratch buffer needs (set by initialize_display() from the LVGL
+  // draw buffer size, cache-line aligned); 0 until then.
+  size_t rotation_scratch_bytes_{0};
 
   /////////////////////////////////////////////////////////////////////////////
   // Audio System

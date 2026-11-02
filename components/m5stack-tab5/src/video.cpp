@@ -704,40 +704,23 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
       }
     }
   }
-  // The PPA output buffer in external (PSRAM) memory must be aligned to the
-  // data cache line size: both the pointer and the size must be a multiple of
-  // it (see kPpaOutBufferAlignment).
+  // The software-rotation scratch buffer (see ensure_rotation_scratch_buffer())
+  // is the size of the LVGL draw buffer, aligned to the data cache line like a
+  // PPA output buffer (see kPpaOutBufferAlignment). It is NOT allocated here:
+  // with the PPA rotating straight into the panel framebuffer it is only ever
+  // used by the software fallback, so it is allocated the first time that
+  // fallback runs (never, on a board whose PPA works) - or never, with
+  // CONFIG_M5STACK_TAB5_ROTATION_SOFTWARE_FALLBACK disabled.
   const size_t cache_align = kPpaOutBufferAlignment;
   size_t required_bytes = pixel_buffer_size * sizeof(Pixel);
   required_bytes = (required_bytes + cache_align - 1) / cache_align * cache_align;
-
-  // Reuse the existing scratch buffer if it is already the right size; otherwise
-  // free it first so a repeated initialize_display() call (e.g. re-init with a
-  // different pixel buffer size) cannot leak the previous allocation.
-  if (third_buffer == nullptr || third_buffer_bytes != required_bytes) {
-    if (third_buffer != nullptr) {
-      heap_caps_free(third_buffer);
-      third_buffer = nullptr;
-    }
-    third_buffer_bytes = required_bytes;
-    // Request MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA: the buffer is a PPA (DMA)
-    // output target, and these are exactly the caps kPpaOutBufferAlignment is
-    // derived for. The heap layer supports this combination for external
-    // memory (esp_heap_adjust_alignment_to_hw() applies the cache-line
-    // alignment/size the caps require, then maps the request onto the PSRAM
-    // heap), so on the ESP32-P4 - whose PSRAM is DMA-capable - it yields a
-    // DMA-usable PSRAM allocation.
-    third_buffer = static_cast<Pixel *>(heap_caps_aligned_alloc(
-        cache_align, third_buffer_bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA));
-    if (third_buffer == nullptr) {
-      // The scratch buffer is required for display rotation - both the PPA path
-      // and the software fallback rotate into it - so without it a non-zero
-      // rotation (settable at runtime) would silently flush incorrect output.
-      // Fail initialization rather than come up with rotation quietly broken.
-      logger_.error("Could not allocate the rotation scratch buffer ({} bytes)", required_bytes);
-      third_buffer_bytes = 0;
-      return false;
-    }
+  rotation_scratch_bytes_ = required_bytes;
+  // A buffer left from an earlier initialize_display() with another draw
+  // buffer size is the wrong size: free it so the next fallback reallocates.
+  if (third_buffer != nullptr && third_buffer_bytes != required_bytes) {
+    heap_caps_free(third_buffer);
+    third_buffer = nullptr;
+    third_buffer_bytes = 0;
   }
 
   logger_.info("LVGL display initialized");
@@ -877,6 +860,35 @@ void M5StackTab5::apply_panel_rotation(const DisplayRotation &rotation) {
     // transform.
     display_driver_->set_rotation(DisplayRotation::LANDSCAPE);
   }
+#endif
+}
+
+bool M5StackTab5::ensure_rotation_scratch_buffer() {
+#if !CONFIG_M5STACK_TAB5_ROTATION_SOFTWARE_FALLBACK
+  // PPA-only rotation: the scratch buffer is never allocated.
+  return false;
+#else
+  if (third_buffer != nullptr) {
+    return true;
+  }
+  if (rotation_scratch_bytes_ == 0) {
+    return false; // initialize_display() has not run
+  }
+  // Request MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA with the cache-line alignment a
+  // PPA output buffer needs (kPpaOutBufferAlignment): the heap layer maps the
+  // request onto the PSRAM heap, and on the ESP32-P4 - whose PSRAM is
+  // DMA-capable - yields a DMA-usable PSRAM allocation.
+  third_buffer = static_cast<Pixel *>(heap_caps_aligned_alloc(
+      kPpaOutBufferAlignment, rotation_scratch_bytes_, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA));
+  if (third_buffer == nullptr) {
+    logger_.error_rate_limited("Could not allocate the rotation scratch buffer ({} bytes)",
+                               rotation_scratch_bytes_);
+    return false;
+  }
+  third_buffer_bytes = rotation_scratch_bytes_;
+  logger_.info("Rotating in software: allocated the {} byte rotation scratch buffer",
+               rotation_scratch_bytes_);
+  return true;
 #endif
 }
 
@@ -1029,8 +1041,7 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
   // logical frame is written to the framebuffer unrotated and at unrotated
   // coordinates; the panel flips the whole frame at scan-out, which lands each
   // partial area exactly where LVGL's rotated mapping expects it.
-  if (rotation > LV_DISPLAY_ROTATION_0 && !panel_handles_rotation(rotation) &&
-      third_buffer != nullptr) {
+  if (rotation > LV_DISPLAY_ROTATION_0 && !panel_handles_rotation(rotation)) {
     int32_t ww = lv_area_get_width(area);
     int32_t hh = lv_area_get_height(area);
     lv_color_format_t cf = lv_display_get_color_format(disp);
@@ -1133,6 +1144,16 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       // not be queried, or the PPA operation failed. Rotate on the CPU into
       // the scratch buffer, fully overwriting it, and hand it to draw_bitmap
       // below.
+      if (!ensure_rotation_scratch_buffer()) {
+        // No way to rotate this area (fallback disabled, or no memory for its
+        // buffer): drawing it unrotated would corrupt the frame, so drop it.
+        logger_.error_rate_limited(
+            "Rotation {} requested but the PPA is unavailable and there is no software "
+            "fallback (CONFIG_M5STACK_TAB5_ROTATION_SOFTWARE_FALLBACK / memory); dropping the area",
+            static_cast<int>(rotation));
+        lv_display_flush_ready(disp);
+        return;
+      }
       uint32_t w_stride = lv_draw_buf_width_to_stride(ww, cf);
       uint32_t h_stride = lv_draw_buf_width_to_stride(hh, cf);
       {
