@@ -28,16 +28,18 @@ result() { # name exit_code
 # CycloneDDS, which addresses the repeats to readerId ENTITYID_UNKNOWN) and
 # drops every matched endpoint with it - discovery looked fine, data stopped
 # after the lease. `ros2 topic echo --once` cannot see that, so both legs here
-# only count samples that arrive after the lease would have expired
-# (count_after_s, see rtps_interop_sub / ros2_count_subscriber.py). The
-# FastDDS pass is the control: it names the SPDP reader in every announcement.
+# only count samples that arrive from 22 s in: discovery (a few seconds), the
+# 10 s lease and the liveliness check cadence all fit before that, so a
+# dropped peer contributes nothing to the count (count_after_s, see
+# rtps_interop_sub / ros2_count_subscriber.py). The FastDDS pass is the
+# control: it names the SPDP reader in every announcement.
 lease_liveliness_cases() { # prefix log-tag
   local prefix="$1" tag="$2"
-  note "${prefix}ROS 2 publisher -> espp subscriber, samples still arriving 16 s in (liveliness past the lease)"
-  "$BIN"/rtps_interop_sub rt/lease std_msgs::msg::dds_::String_ 1 10 30 "" 0 2 16 > "/tmp/${tag}leasesub.log" 2>&1 &
+  note "${prefix}ROS 2 publisher -> espp subscriber, samples still arriving 22 s in (liveliness past the lease)"
+  "$BIN"/rtps_interop_sub rt/lease std_msgs::msg::dds_::String_ 1 10 34 "" 0 2 22 > "/tmp/${tag}leasesub.log" 2>&1 &
   local sub=$!
   sleep 3
-  timeout 30 ros2 topic pub -r 5 /lease std_msgs/msg/String "data: 'still alive'" > "/tmp/${tag}leaserospub.log" 2>&1 &
+  timeout 36 ros2 topic pub -r 5 /lease std_msgs/msg/String "data: 'still alive'" > "/tmp/${tag}leaserospub.log" 2>&1 &
   local rospub=$!
   wait $sub
   local sub_rc=$?
@@ -45,11 +47,11 @@ lease_liveliness_cases() { # prefix log-tag
   tail -2 "/tmp/${tag}leasesub.log"
   result "${prefix}ros2_pub->espp_sub_liveliness" $sub_rc
 
-  note "${prefix}espp publisher -> ROS 2 subscriber, samples still arriving 16 s in (liveliness past the lease)"
-  "$BIN"/rtps_interop_pub rt/lease2 std_msgs::msg::dds_::String_ 1 160 200 > "/tmp/${tag}leasepub.log" 2>&1 &
+  note "${prefix}espp publisher -> ROS 2 subscriber, samples still arriving 22 s in (liveliness past the lease)"
+  "$BIN"/rtps_interop_pub rt/lease2 std_msgs::msg::dds_::String_ 1 220 200 > "/tmp/${tag}leasepub.log" 2>&1 &
   local pub=$!
   sleep 3
-  timeout 32 python3 /work/components/rtps/interop/ros2_count_subscriber.py /lease2 27 10 16 reliable \
+  timeout 40 python3 /work/components/rtps/interop/ros2_count_subscriber.py /lease2 34 10 22 reliable \
     > "/tmp/${tag}leasecount.log" 2>&1
   local count_rc=$?
   kill $pub 2>/dev/null; wait $pub 2>/dev/null
@@ -422,6 +424,10 @@ result "espp_action_client->ros2_server" $actclient_rc
 # that espp's services (and rmw_fastrtps_cpp) use.
 note "CycloneDDS (rmw_cyclonedds_cpp): ROS 2 pub/sub pairs"
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+# CycloneDDS caps the participants one host may create on a domain through its
+# participant-index range (MaxAutoParticipantIndex, default 9 = ten
+# participants); the busy-domain case below creates thirteen, so lift it.
+export CYCLONEDDS_URI='<CycloneDDS><Domain><Discovery><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>'
 ros2 daemon stop > /dev/null 2>&1
 
 "$BIN"/rtps_interop_pub rt/chatter std_msgs::msg::dds_::String_ 1 60 200 > /tmp/cpub1.log 2>&1 &
@@ -470,6 +476,7 @@ if grep -l "malformed packet received from vendor" /tmp/c*.log > /dev/null 2>&1;
   echo "CycloneDDS reported malformed packets from espp:"; grep -h "malformed packet" /tmp/c*.log | head -3
 fi
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+unset CYCLONEDDS_URI
 
 # --- Python bindings: functional round-trip of every RMI/AMI mechanism --------
 # Build the espp wheel in-container and run the demo (multicast discovery works
