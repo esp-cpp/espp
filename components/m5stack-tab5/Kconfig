@@ -27,4 +27,18 @@ menu "M5Stack Tab5 Configuration"
   help
     Size of the stack used for the audio processing task.
 
+  config M5STACK_TAB5_ST7121_HW_ROTATION
+    bool "ST7121: apply 0/180 rotation in the panel (EXPERIMENTAL)"
+    default n
+    help
+      Route 0/180-degree display rotation to the ST7121 panel itself (MADCTL
+      GS/SS scan-direction flip) instead of the PPA/software rotation in the
+      flush path. EXPERIMENTAL: verified NOT working on at least some ST7121
+      Tab5 units - the 180-degree orientation renders corrupted, most likely
+      because the TDDI gate/source mux tables programmed at init (command
+      0xAC block) are matched to the normal scan direction and a MADCTL GS
+      flip alone reorders gate scanning without swapping them. Leave disabled
+      (the default) to keep the known-good PPA rotation for all orientations;
+      enable only to experiment on your unit.
+
 endmenu
