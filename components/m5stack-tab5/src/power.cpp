@@ -1,3 +1,6 @@
+#include <chrono>
+#include <thread>
+
 #include "m5stack-tab5.hpp"
 
 namespace espp {
@@ -48,6 +51,38 @@ bool M5StackTab5::initialize_battery_monitoring() {
     return false;
   }
 
+  // The INA226's data registers read as zeros until its first averaged
+  // conversion completes (averaging x (bus + shunt conversion time): 35 ms with
+  // the settings above), and a 0 V reading looks exactly like an empty battery
+  // bay to read_battery_status(). Wait for the first conversion so the first
+  // read after this returns is real. The timeout is a generous multiple of the
+  // expected time so a slow I2C bus or a busy scheduler does not trip it.
+  {
+    static constexpr uint32_t conversion_poll_ms = 5;
+    static constexpr uint32_t conversion_timeout_factor = 4;
+    const uint32_t expected_ms =
+        BatteryMonitor::conversion_time_us(cfg.averaging, cfg.bus_conv_time, cfg.shunt_conv_time) /
+        1000;
+    const uint32_t timeout_ms =
+        std::max<uint32_t>(conversion_timeout_factor * expected_ms, 10 * conversion_poll_ms);
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+    bool ready = false;
+    while (!ready && std::chrono::steady_clock::now() < deadline) {
+      ready = battery_monitor_->conversion_ready(ec);
+      if (ec) {
+        break;
+      }
+      if (!ready) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(conversion_poll_ms));
+      }
+    }
+    if (!ready) {
+      logger_.warn("Battery monitor (INA226) first conversion not ready after {} ms (expected "
+                   "{} ms){}{}",
+                   timeout_ms, expected_ms, ec ? ": " : "", ec ? ec.message() : "");
+    }
+  }
+
   battery_monitoring_initialized_ = true;
 
   // Initialize battery status with default values
@@ -82,6 +117,11 @@ bool M5StackTab5::update_battery_status() {
   static constexpr float num_cells = 2.0f;
   static constexpr float pack_voltage_min = cell_voltage_min * num_cells;
   static constexpr float pack_voltage_max = cell_voltage_max * num_cells;
+  // The INA226 sits on the pack line. With no NP-F550 in the bay it reads the
+  // charger's open-circuit output (about 2 V, measured); a real 2S pack never
+  // reads below its protection cut-off (about 5 V), so anything under this is
+  // an empty bay, not a flat battery.
+  static constexpr float pack_present_min_volts = 4.0f;
 
   std::error_code ec;
   std::lock_guard<std::mutex> lock(battery_mutex_);
@@ -94,14 +134,19 @@ bool M5StackTab5::update_battery_status() {
     battery_status_.voltage_v = vbus;
     battery_status_.current_ma = current_a * 1000.0f;
     battery_status_.power_mw = power_w * 1000.0f;
-    // Basic SoC estimate from voltage (very rough placeholder)
-    float v = vbus;
-    float soc = (v - pack_voltage_min) / (pack_voltage_max - pack_voltage_min);
-    soc = std::clamp(soc, 0.0f, 1.0f);
-    battery_status_.charge_percent = soc * 100.0f;
-    // only charging if the bit says we are and  the current is < -1.0 mA
-    battery_status_.is_charging = get_charging_status() && battery_status_.current_ma < -1.0f;
-    battery_status_.is_present = true;
+    battery_status_.is_present = vbus >= pack_present_min_volts;
+    if (battery_status_.is_present) {
+      // Basic SoC estimate from voltage (very rough placeholder)
+      float v = vbus;
+      float soc = (v - pack_voltage_min) / (pack_voltage_max - pack_voltage_min);
+      soc = std::clamp(soc, 0.0f, 1.0f);
+      battery_status_.charge_percent = soc * 100.0f;
+      // only charging if the bit says we are and the current is < -1.0 mA
+      battery_status_.is_charging = get_charging_status() && battery_status_.current_ma < -1.0f;
+    } else {
+      battery_status_.charge_percent = 0.0f;
+      battery_status_.is_charging = false;
+    }
   } else {
     logger_.warn("Battery status not updated: {}", ec.message());
     battery_status_.voltage_v = 0.0f;
@@ -120,6 +165,47 @@ M5StackTab5::BatteryStatus M5StackTab5::read_battery_status() {
     return {};
   }
   return get_battery_status();
+}
+
+void M5StackTab5::set_charging_pause_on_playback_enabled(bool enable) {
+  charging_pause_on_playback_enabled_.store(enable, std::memory_order_relaxed);
+  if (!enable) {
+    resume_charging_after_audio();
+  }
+}
+
+void M5StackTab5::update_charging_for_audio(bool audio_active) {
+  // Runs on the audio playback task once per block (about 60 Hz). The IO
+  // expander write happens only on the two transitions; the common case is a
+  // clock read and a compare.
+  if (!charging_pause_on_playback_enabled_.load(std::memory_order_relaxed)) {
+    return;
+  }
+  const auto now = std::chrono::steady_clock::now();
+  if (audio_active) {
+    audio_last_active_ = now;
+    std::lock_guard<std::mutex> lock(charging_mutex_);
+    if (!charging_paused_for_audio_) {
+      charging_paused_for_audio_ = true;
+      if (charging_requested_) {
+        set_io_expander_output(0x44, IO44_BIT_CHG_EN, false);
+      }
+    }
+    return;
+  }
+  if (now - audio_last_active_ >= std::chrono::milliseconds(CHARGING_RESUME_DELAY_MS)) {
+    resume_charging_after_audio();
+  }
+}
+
+void M5StackTab5::resume_charging_after_audio() {
+  std::lock_guard<std::mutex> lock(charging_mutex_);
+  if (charging_paused_for_audio_) {
+    charging_paused_for_audio_ = false;
+    if (charging_requested_) {
+      set_io_expander_output(0x44, IO44_BIT_CHG_EN, true);
+    }
+  }
 }
 
 void M5StackTab5::enable_battery_charging(bool enable) {

@@ -47,6 +47,25 @@ public:
     MS_8_244 = 7,
   };
 
+  /// Number of samples averaged for an Avg setting
+  static constexpr uint32_t averaging_count(Avg avg) {
+    constexpr uint32_t counts[] = {1, 4, 16, 64, 128, 256, 512, 1024};
+    return counts[static_cast<uint16_t>(avg) & 0x7];
+  }
+
+  /// Duration of one conversion for a ConvTime setting, in microseconds
+  static constexpr uint32_t conversion_time_us(ConvTime ct) {
+    constexpr uint32_t us[] = {140, 204, 332, 588, 1100, 2116, 4156, 8244};
+    return us[static_cast<uint16_t>(ct) & 0x7];
+  }
+
+  /// Time for one averaged bus + shunt conversion pair (one update of the
+  /// data registers in continuous mode), in microseconds: averaging x (bus +
+  /// shunt conversion time). E.g. AVG_16 with MS_1_1 for both is 35,200 us.
+  static constexpr uint32_t conversion_time_us(Avg avg, ConvTime bus, ConvTime shunt) {
+    return averaging_count(avg) * (conversion_time_us(bus) + conversion_time_us(shunt));
+  }
+
   /// Operating mode (MODE bits 2..0)
   enum class Mode : uint16_t {
     POWER_DOWN = 0,
@@ -121,6 +140,20 @@ public:
   /// @return Die ID (0x2260) or 0 on error
   uint16_t die_id(std::error_code &ec) const {
     return read_u16_from_register((uint8_t)Reg::DIE_ID, ec);
+  }
+
+  /// Whether a conversion has completed since the Mask/Enable register was
+  /// last read (CVRF). After initialize() the data registers hold zeros until
+  /// the first averaged conversion finishes (averaging x (bus + shunt
+  /// conversion time), see conversion_time_us()), so poll this before trusting
+  /// the first reading.
+  /// @param ec Error code to capture any read errors
+  /// @return true once a conversion is complete; false before that or on error
+  /// @note Reading the flag clears it (datasheet), so it reports "at least one
+  ///       conversion since the last call", not the state of the converter.
+  bool conversion_ready(std::error_code &ec) const {
+    uint16_t mask = read_u16_from_register((uint8_t)Reg::MASK_ENABLE, ec);
+    return !ec && (mask & MASK_ENABLE_CVRF) != 0;
   }
 
   // Engineering-unit helpers
@@ -259,6 +292,8 @@ protected:
     MANUFACTURER_ID = 0xFE, // 0x5449
     DIE_ID = 0xFF,          // 0x2260
   };
+  // Mask/Enable register: conversion ready flag (bit 3)
+  static constexpr uint16_t MASK_ENABLE_CVRF = 1 << 3;
 
   bool init(const Config &c, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);

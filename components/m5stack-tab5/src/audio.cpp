@@ -265,6 +265,8 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
     // play_audio()'s notifications: forget it before the task goes away
     audio_tx_feed_.detach_task();
     audio_task_->stop();
+    // the task may have paused charging on its first blocks
+    resume_charging_after_audio();
     return false;
   }
 
@@ -376,7 +378,7 @@ bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv
   const size_t block = audio_tx_buffer.size();
   uint8_t *tx_buf = audio_tx_buffer.data();
   bool misaligned = false;
-  audio_tx_feed_.fill_block(tx_buf, block, misaligned);
+  const size_t audio_bytes = audio_tx_feed_.fill_block(tx_buf, block, misaligned);
   if (misaligned) {
     // Producers queue whole frames only (play_audio), so this is a bug
     // somewhere; the feeder reset the stream rather than leave a partial frame
@@ -386,6 +388,9 @@ bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv
         audio_tx_feed_.misaligned_bytes,
         audio_tx_feed_.misaligned_bytes % audio_tx_feed_.frame_bytes, audio_tx_feed_.frame_bytes);
   }
+  // the charger pops the speaker while it is enabled: hold it off during
+  // playback (see set_charging_pause_on_playback_enabled)
+  update_charging_for_audio(audio_bytes > 0);
   i2s_channel_write(audio_tx_handle, tx_buf, block, NULL, portMAX_DELAY);
   return false;
 }

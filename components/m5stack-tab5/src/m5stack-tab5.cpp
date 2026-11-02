@@ -78,6 +78,12 @@ bool M5StackTab5::set_speaker_enabled(bool enable) {
 }
 
 bool M5StackTab5::set_charging_enabled(bool enable) {
+  std::lock_guard<std::mutex> lock(charging_mutex_);
+  charging_requested_ = enable;
+  if (enable && charging_paused_for_audio_) {
+    // playback holds the charger off; the request is applied when it resumes
+    return true;
+  }
   return set_io_expander_output(0x44, IO44_BIT_CHG_EN, enable);
 }
 

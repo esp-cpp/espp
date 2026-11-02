@@ -43,7 +43,15 @@ This example demonstrates the comprehensive functionality of the M5Stack Tab5 de
       dropped. It is logged from an ISR (`ESP_EARLY_LOGE`), which ignores the
       runtime log-level controls, so it cannot be silenced the way the CCM spam
       is without also hiding real errors - it is left as-is.
-- **Battery Management**: INA226 power monitoring with charging control
+- **Battery Management**: INA226 power monitoring with charging control.
+  Charging is enabled only when a battery is detected in the bay
+  (`BatteryStatus::is_present`): with the bay empty, the IP2326 charger keeps
+  retrying to charge nothing, and each retry is an audible pop on the speaker
+  (every few seconds to a couple of minutes, even when the board is idle).
+  With a battery fitted, the BSP pauses charging while the speaker plays and
+  resumes it 3 s after the last sound (the enabled charger pops on every
+  audio transient, whatever the charge current); the example's battery line
+  shows the charger switching off during a click or playback and back on.
 
 ### Communication Interfaces
 - **microSD Card**: File system support with SDIO interface
