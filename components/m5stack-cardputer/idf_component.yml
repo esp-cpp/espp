@@ -20,6 +20,7 @@ dependencies:
   espp/adc: '>=1.0'
   espp/base_component: '>=1.0'
   espp/bmi270: '>=1.0'
+  espp/codec: '>=1.0'
   espp/display: '>=1.0'
   espp/display_drivers: '>=1.0'
   espp/gps: '>=1.0'

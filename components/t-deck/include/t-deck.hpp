@@ -26,6 +26,7 @@
 #include "gps.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
+#include "i2s_tx_feed.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
 #include "pointer_input.hpp"
@@ -824,14 +825,9 @@ protected:
   i2s_chan_handle_t audio_tx_handle{nullptr};
   std::vector<uint8_t> audio_tx_buffer;
   StreamBufferHandle_t audio_tx_stream;
-  // The playback task's FreeRTOS handle (set by the task itself on its first
-  // run): play_audio() notifies it when the stream reaches a whole block, so
-  // its bounded wait for a block is event-driven (see audio_task_callback).
-  std::atomic<TaskHandle_t> audio_tx_task_handle_{nullptr};
-  // Whether the playback task's previous block carried audio (only the task
-  // touches this): a stream that momentarily holds less than a block while
-  // flowing is given time to complete it; an idle one gets silence at once.
-  bool audio_tx_was_flowing_{false};
+  // Stream-side playback policy shared by every audio BSP (bounded wait for a
+  // flowing producer, misalignment recovery, task wake-up): codec/i2s_tx_feed.hpp
+  espp::i2s_tx_feed::Feeder audio_tx_feed_;
   i2s_std_config_t audio_std_cfg;
 
   // LoRa radio

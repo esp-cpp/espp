@@ -22,6 +22,7 @@ dependencies:
   idf:
     version: ">=5.0"
   espp/base_component: ">=1.0"
+  espp/codec: ">=1.0"
   espp/display: ">=1.0"
   espp/display_drivers: ">=1.0"
   espp/ft5x06: ">=1.0"

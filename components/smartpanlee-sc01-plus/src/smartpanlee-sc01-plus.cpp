@@ -20,25 +20,6 @@
 
 namespace espp {
 
-// How long the audio task gives a producer that is mid-stream to complete a
-// block before the block is written padded with silence. Longer than one block
-// at every rate the board supports (a block is 1/60 s), so a producer whose
-// next frame simply has not arrived yet is not padded; and shorter than the
-// DMA ring minus one block, so the ring never drains while waiting (see
-// AUDIO_TX_DMA_DESC_NUM).
-static constexpr uint32_t AUDIO_TX_WHOLE_BLOCK_WAIT_MS = 24;
-
-// Depth of the TX channel's DMA ring, in descriptors of AUDIO_TX_DMA_FRAME_NUM
-// frames (the I2S driver's default frame count). The audio task keeps this
-// ring full: the I2S driver fills descriptors progressively and the DMA sends
-// them in ring order, so a descriptor the task has only partly filled is
-// safe only while the DMA is a full ring behind it. The ring therefore has to
-// outlast the longest pause between writes (AUDIO_TX_WHOLE_BLOCK_WAIT_MS) plus
-// the block written after it: 12 x 240 frames is 60 ms at 48 kHz / 65 ms at
-// 44.1 kHz; the driver's default of 6 (about 30 ms) leaves no margin.
-static constexpr uint32_t AUDIO_TX_DMA_FRAME_NUM = 240;
-static constexpr uint32_t AUDIO_TX_DMA_DESC_NUM = 12;
-
 SmartPanleeSc01Plus::SmartPanleeSc01Plus()
     : BaseComponent("SmartPanleeSc01Plus") {}
 
@@ -155,13 +136,14 @@ bool SmartPanleeSc01Plus::initialize_i2s(uint32_t default_audio_rate) {
 
   i2s_chan_config_t chan_config = I2S_CHANNEL_DEFAULT_CONFIG(i2s_port, I2S_ROLE_MASTER);
   chan_config.auto_clear = true;
-  // The ring must outlast the audio task's whole-block wait plus one block at
-  // the highest rate the board supports (see AUDIO_TX_DMA_DESC_NUM).
-  static_assert(AUDIO_TX_DMA_DESC_NUM * AUDIO_TX_DMA_FRAME_NUM * 1000 / 48000 >
-                    AUDIO_TX_WHOLE_BLOCK_WAIT_MS + 1000 / audio_update_frequency,
+  // Keep the TX DMA ring full and long enough to cover the playback task's
+  // bounded whole-block wait (the policy and its rationale: codec/i2s_tx_feed.hpp).
+  static_assert(espp::i2s_tx_feed::ring_outlasts_wait(espp::i2s_tx_feed::DMA_DESC_NUM,
+                                                      espp::i2s_tx_feed::DMA_FRAME_NUM, 48000,
+                                                      audio_update_frequency),
                 "the I2S TX DMA ring must outlast the whole-block wait plus one block");
-  chan_config.dma_desc_num = AUDIO_TX_DMA_DESC_NUM;
-  chan_config.dma_frame_num = AUDIO_TX_DMA_FRAME_NUM;
+  chan_config.dma_desc_num = espp::i2s_tx_feed::DMA_DESC_NUM;
+  chan_config.dma_frame_num = espp::i2s_tx_feed::DMA_FRAME_NUM;
   ESP_ERROR_CHECK(i2s_new_channel(&chan_config, &audio_tx_handle_, nullptr));
 
   auto pins = i2s_pins();
@@ -198,6 +180,8 @@ bool SmartPanleeSc01Plus::initialize_i2s(uint32_t default_audio_rate) {
   // the trigger level is irrelevant; the minimum keeps a producer's send from
   // ever holding a receiver.
   audio_tx_stream_ = xStreamBufferCreate(buffer_size * 4, 1);
+  audio_tx_feed_.stream = audio_tx_stream_;
+  audio_tx_feed_.frame_bytes = audio_num_channels * audio_num_bytes_per_channel;
   if (!audio_tx_stream_) {
     logger_.error("Failed to create audio stream buffer");
     return false;
@@ -432,13 +416,10 @@ size_t SmartPanleeSc01Plus::play_audio(const uint8_t *data, uint32_t num_bytes) 
     return 0;
   }
   const size_t sent = xStreamBufferSend(audio_tx_stream_, data, sendable, 0);
-  // Wake the playback task if it is waiting for the stream to hold a whole
-  // block (see audio_task_callback); a notification nobody waits for is
-  // harmless (the task re-reads the stream after every wake).
-  if (sent > 0 && xStreamBufferBytesAvailable(audio_tx_stream_) >= audio_tx_buffer_.size()) {
-    if (TaskHandle_t task = audio_tx_task_handle_.load(std::memory_order_acquire)) {
-      xTaskNotifyGive(task);
-    }
+  if (sent > 0) {
+    // wake the playback task if the stream now holds a whole block (send ->
+    // notify -> return; see i2s_tx_feed.hpp)
+    audio_tx_feed_.notify_if_block_ready(audio_tx_buffer_.size());
   }
   return sent;
 }
@@ -566,62 +547,22 @@ bool SmartPanleeSc01Plus::audio_task_callback(std::mutex &m, std::condition_vari
   (void)cv;
   (void)task_notified;
 
-  // Playback: write the next block to the I2S channel, ALWAYS a whole block.
-  //
-  // The I2S driver fills DMA descriptors progressively and the DMA transmits
-  // them in ring order, so the only safe steady state is a full ring with the
-  // write position a whole ring ahead of the DMA. Writing a whole block every
-  // iteration - audio when there is some, silence when idle - keeps it there:
-  // the write blocks on the ring and paces this loop. Letting the task sit on
-  // the stream instead (waiting for data, writing whatever arrived) drains the
-  // ring while idle; the next sound then starts in descriptors the DMA is
-  // about to send, half old and half new - a pop at the start of every sound,
-  // and more whenever a partial write is left behind.
-  //
-  // Producers push audio in bursts (a video frame at a time, with jitter), so
-  // when a stream that is flowing momentarily holds less than a block, give
-  // it a bounded chance to complete the block rather than padding the gap
-  // with silence (audible as stutter). The wait is event-driven: play_audio()
-  // notifies this task when the stream reaches a block. It is shorter than
-  // the ring minus one block, so the ring never drains while waiting; a
-  // stream that was already idle gets silence at once.
-  if (audio_tx_task_handle_.load(std::memory_order_relaxed) == nullptr) {
-    audio_tx_task_handle_.store(xTaskGetCurrentTaskHandle(), std::memory_order_release);
-  }
+  // Playback: write the next block to the I2S channel, ALWAYS a whole block
+  // (audio when there is some, silence when idle) so the DMA ring stays full;
+  // the write blocks on the ring and paces this loop. The stream side (the
+  // bounded wait for a flowing producer, misalignment recovery) is shared
+  // policy: see codec/i2s_tx_feed.hpp for the mechanism and why it matters.
+  audio_tx_feed_.attach_current_task();
   const size_t block = audio_tx_buffer_.size();
   uint8_t *tx_buf = audio_tx_buffer_.data();
-  constexpr size_t frame_bytes = audio_num_channels * audio_num_bytes_per_channel;
-  size_t available = xStreamBufferBytesAvailable(audio_tx_stream_);
-  if (available % frame_bytes != 0) {
-    // Producers queue whole frames only (play_audio), so this is a bug
-    // somewhere. A stuck partial frame would misalign every frame queued after
-    // it for good, and merely skipping it here would leave it stuck: say so and
-    // start the stream over.
-    logger_.warn_rate_limited("audio stream misaligned ({} bytes queued); resetting it", available);
-    xStreamBufferReset(audio_tx_stream_);
-    available = 0;
+  bool misaligned = false;
+  const size_t got = audio_tx_feed_.fill_block(tx_buf, block, misaligned);
+  if (misaligned) {
+    // producers queue whole frames only (play_audio), so this is a bug somewhere
+    logger_.warn_rate_limited("audio stream held a partial frame; reset it");
   }
-  if (available < block && (available > 0 || audio_tx_was_flowing_)) {
-    const TickType_t deadline = xTaskGetTickCount() + pdMS_TO_TICKS(AUDIO_TX_WHOLE_BLOCK_WAIT_MS);
-    while (available < block) {
-      const TickType_t remaining = deadline - xTaskGetTickCount();
-      if (static_cast<int32_t>(remaining) <= 0) {
-        break;
-      }
-      // a notification left over from an earlier send wakes this at once; the
-      // stream is re-read and the wait resumes, still bounded by the deadline
-      ulTaskNotifyTake(pdTRUE, remaining);
-      available = xStreamBufferBytesAvailable(audio_tx_stream_);
-    }
-  }
-  available = std::min(available, block);
-  memset(tx_buf, 0, block);
-  if (available > 0) {
-    xStreamBufferReceive(audio_tx_stream_, tx_buf, available, 0);
-  }
-  audio_tx_was_flowing_ = available > 0;
   // apply volume and mute in software (silence stays silence)
-  if (available > 0) {
+  if (got > 0) {
     if (mute_) {
       std::memset(tx_buf, 0, block);
     } else {
