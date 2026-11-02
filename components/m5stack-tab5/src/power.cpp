@@ -52,11 +52,20 @@ bool M5StackTab5::initialize_battery_monitoring() {
   }
 
   // The INA226's data registers read as zeros until its first averaged
-  // conversion completes (16 x 2.2 ms = 35 ms with the settings above), and a
-  // 0 V reading looks exactly like an empty battery bay to read_battery_status().
-  // Wait for the first conversion so the first read after this returns is real.
+  // conversion completes (averaging x (bus + shunt conversion time): 35 ms with
+  // the settings above), and a 0 V reading looks exactly like an empty battery
+  // bay to read_battery_status(). Wait for the first conversion so the first
+  // read after this returns is real. The timeout is a generous multiple of the
+  // expected time so a slow I2C bus or a busy scheduler does not trip it.
   {
-    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(200);
+    static constexpr uint32_t conversion_poll_ms = 5;
+    static constexpr uint32_t conversion_timeout_factor = 4;
+    const uint32_t expected_ms =
+        BatteryMonitor::conversion_time_us(cfg.averaging, cfg.bus_conv_time, cfg.shunt_conv_time) /
+        1000;
+    const uint32_t timeout_ms =
+        std::max<uint32_t>(conversion_timeout_factor * expected_ms, 10 * conversion_poll_ms);
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
     bool ready = false;
     while (!ready && std::chrono::steady_clock::now() < deadline) {
       ready = battery_monitor_->conversion_ready(ec);
@@ -64,12 +73,13 @@ bool M5StackTab5::initialize_battery_monitoring() {
         break;
       }
       if (!ready) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        std::this_thread::sleep_for(std::chrono::milliseconds(conversion_poll_ms));
       }
     }
     if (!ready) {
-      logger_.warn("Battery monitor (INA226) first conversion not ready after 200 ms{}{}",
-                   ec ? ": " : "", ec ? ec.message() : "");
+      logger_.warn("Battery monitor (INA226) first conversion not ready after {} ms (expected "
+                   "{} ms){}{}",
+                   timeout_ms, expected_ms, ec ? ": " : "", ec ? ec.message() : "");
     }
   }
 
@@ -131,7 +141,7 @@ bool M5StackTab5::update_battery_status() {
       float soc = (v - pack_voltage_min) / (pack_voltage_max - pack_voltage_min);
       soc = std::clamp(soc, 0.0f, 1.0f);
       battery_status_.charge_percent = soc * 100.0f;
-      // only charging if the bit says we are and  the current is < -1.0 mA
+      // only charging if the bit says we are and the current is < -1.0 mA
       battery_status_.is_charging = get_charging_status() && battery_status_.current_ma < -1.0f;
     } else {
       battery_status_.charge_percent = 0.0f;
