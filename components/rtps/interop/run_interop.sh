@@ -22,6 +22,71 @@ result() { # name exit_code
   else echo "RESULT FAIL: $1"; FAIL=$((FAIL+1)); fi
 }
 
+# --- Liveliness past the remote participant lease ----------------------------
+# A peer keeps re-announcing itself over SPDP; if those re-announcements are not
+# delivered to the SPDP reader, espp lets the peer's lease expire (10 s for
+# CycloneDDS, which addresses the repeats to readerId ENTITYID_UNKNOWN) and
+# drops every matched endpoint with it - discovery looked fine, data stopped
+# after the lease. `ros2 topic echo --once` cannot see that, so both legs here
+# only count samples that arrive after the lease would have expired
+# (count_after_s, see rtps_interop_sub / ros2_count_subscriber.py). The
+# FastDDS pass is the control: it names the SPDP reader in every announcement.
+lease_liveliness_cases() { # prefix log-tag
+  local prefix="$1" tag="$2"
+  note "${prefix}ROS 2 publisher -> espp subscriber, samples still arriving 16 s in (liveliness past the lease)"
+  "$BIN"/rtps_interop_sub rt/lease std_msgs::msg::dds_::String_ 1 10 30 "" 0 2 16 > "/tmp/${tag}leasesub.log" 2>&1 &
+  local sub=$!
+  sleep 3
+  timeout 30 ros2 topic pub -r 5 /lease std_msgs/msg/String "data: 'still alive'" > "/tmp/${tag}leaserospub.log" 2>&1 &
+  local rospub=$!
+  wait $sub
+  local sub_rc=$?
+  kill $rospub 2>/dev/null; wait $rospub 2>/dev/null
+  tail -2 "/tmp/${tag}leasesub.log"
+  result "${prefix}ros2_pub->espp_sub_liveliness" $sub_rc
+
+  note "${prefix}espp publisher -> ROS 2 subscriber, samples still arriving 16 s in (liveliness past the lease)"
+  "$BIN"/rtps_interop_pub rt/lease2 std_msgs::msg::dds_::String_ 1 160 200 > "/tmp/${tag}leasepub.log" 2>&1 &
+  local pub=$!
+  sleep 3
+  timeout 32 python3 /work/components/rtps/interop/ros2_count_subscriber.py /lease2 27 10 16 reliable \
+    > "/tmp/${tag}leasecount.log" 2>&1
+  local count_rc=$?
+  kill $pub 2>/dev/null; wait $pub 2>/dev/null
+  tail -2 "/tmp/${tag}leasecount.log"
+  result "${prefix}espp_pub->ros2_sub_liveliness" $count_rc
+}
+
+# --- A dozen participants on the domain, the publisher joins last -------------
+# Every ROS 2 process is a DDS participant, and espp tracks remote participants
+# in a fixed pool (SPDP_MAX_NUMBER_FOUND_PARTICIPANTS: 32 on the host profile
+# this harness builds, 10 on the embedded profile). A participant beyond the
+# pool is ignored silently - never matched, its data dropped. With twelve
+# unrelated participants already on the domain, the publisher espp actually
+# needs joins last and must still be matched. On an ESP32 the same scenario
+# needs the pool raised (menuconfig RTPS -> Custom capacity overrides).
+many_participants_case() { # prefix log-tag
+  local prefix="$1" tag="$2"
+  note "${prefix}espp subscriber with twelve other participants on the domain; the publisher joins last"
+  local crowd=()
+  local i
+  for i in $(seq 1 12); do
+    timeout 45 ros2 topic pub -r 1 "/crowd$i" std_msgs/msg/String "data: 'crowd'" > /dev/null 2>&1 &
+    crowd+=("$!")
+  done
+  sleep 8 # let the crowd come up (each is its own participant) before espp starts
+  "$BIN"/rtps_interop_sub rt/crowd std_msgs::msg::dds_::String_ 1 3 30 > "/tmp/${tag}crowdsub.log" 2>&1 &
+  local sub=$!
+  sleep 3
+  timeout 32 ros2 topic pub -r 5 /crowd std_msgs/msg/String "data: 'late joiner'" > "/tmp/${tag}crowdpub.log" 2>&1 &
+  local pub=$!
+  wait $sub
+  local sub_rc=$?
+  kill $pub "${crowd[@]}" 2>/dev/null; wait $pub "${crowd[@]}" 2>/dev/null
+  tail -2 "/tmp/${tag}crowdsub.log"
+  result "${prefix}many_participants_late_joiner" $sub_rc
+}
+
 note "Build espp lib + host binaries (linux)"
 cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_INSTALL_PREFIX=/tmp/espp/install > /tmp/cmake_lib.log 2>&1 \
   && cmake --build lib/build -j"$(nproc)" --target install > /tmp/build_lib.log 2>&1 \
@@ -233,6 +298,9 @@ kill $ROSBAND_PID 2>/dev/null; wait $ROSBAND_PID 2>/dev/null
 cat /tmp/subband.log
 result "ros2_pub->espp_banded_sub" $subband_rc
 
+lease_liveliness_cases "" "f"
+many_participants_case "" "f"
+
 note "espp best-effort publisher -> ROS 2 best-effort subscriber"
 "$BIN"/rtps_interop_pub rt/chatter std_msgs::msg::dds_::String_ 0 60 200 > /tmp/pub2.log 2>&1 &
 ESPP_PID=$!
@@ -394,6 +462,9 @@ csub2_rc=$?
 kill $ROS_PID 2>/dev/null; wait $ROS_PID 2>/dev/null
 tail -2 /tmp/csub2.log
 result "cyclone: ros2_be_pub->espp_be_sub" $csub2_rc
+
+lease_liveliness_cases "cyclone: " "c"
+many_participants_case "cyclone: " "c"
 
 if grep -l "malformed packet received from vendor" /tmp/c*.log > /dev/null 2>&1; then
   echo "CycloneDDS reported malformed packets from espp:"; grep -h "malformed packet" /tmp/c*.log | head -3
