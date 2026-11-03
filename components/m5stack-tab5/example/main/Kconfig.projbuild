@@ -16,4 +16,34 @@ menu "M5Stack Tab5 Example Configuration"
             The rotate button does nothing in this mode: LVGL cannot rotate in
             DIRECT mode.
 
+    config M5STACK_TAB5_EXAMPLE_FLUSH_TO_BACK_BUFFER
+        bool "Flush LVGL into the back frame buffer (tear-free, rotation works)"
+        depends on M5STACK_TAB5_DPI_NUM_FBS > 1 && !M5STACK_TAB5_EXAMPLE_RENDER_TO_FRAME_BUFFERS
+        default n
+        help
+            Initialize the display with
+            DisplayConfig::flush_to_back_buffer_enabled: every LVGL flush is
+            copied (and rotated) by the PPA into the frame buffer the panel is
+            not scanning out, and the panel switches to it at the frame
+            boundary once the frame is complete. Partial frames are never on
+            screen, so the draw buffers can be strips (see
+            M5STACK_TAB5_EXAMPLE_DRAW_BUFFER_LINES) and a full-screen redraw
+            still appears at once. The rotate button works. Needs
+            CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2 (M5Stack Tab5 Configuration).
+
+    config M5STACK_TAB5_EXAMPLE_DRAW_BUFFER_LINES
+        int "Rows per LVGL draw buffer"
+        depends on !M5STACK_TAB5_EXAMPLE_RENDER_TO_FRAME_BUFFERS
+        range 8 1280
+        default 1280
+        help
+            Height, in panel rows of 720 pixels, of each of LVGL's two draw
+            buffers; 1280 is a whole frame (1.8 MB of PSRAM each). With one
+            frame buffer a full-screen redraw flushes strip by strip into the
+            buffer on screen, so a whole-frame draw buffer is what makes it
+            appear at once; with the back-buffer flush the strips are
+            assembled off screen and a far smaller draw buffer (e.g. 128 rows,
+            184 KB, the BSP's default strip) looks the same and leaves the
+            PSRAM to the application.
+
 endmenu

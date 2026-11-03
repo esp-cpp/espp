@@ -427,7 +427,8 @@ bool Gui::update(std::mutex &m, std::condition_variable &cv) {
     update_audio_label();
   }
   std::unique_lock<std::mutex> lock(m);
-#if CONFIG_M5STACK_TAB5_EXAMPLE_RENDER_TO_FRAME_BUFFERS
+#if CONFIG_M5STACK_TAB5_EXAMPLE_RENDER_TO_FRAME_BUFFERS ||                                         \
+    CONFIG_M5STACK_TAB5_EXAMPLE_FLUSH_TO_BACK_BUFFER
   // The flush already waits for the panel's frame-done event, which paces a
   // frame that has something to draw; here only sleep until LVGL's next timer
   // is due (at least 1 ms so an idle LVGL never spins). lv_timer_handler()

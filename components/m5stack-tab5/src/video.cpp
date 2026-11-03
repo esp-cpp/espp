@@ -709,6 +709,10 @@ static size_t third_buffer_bytes = 0;
 // full-frame PSRAM buffer is slow and, because the transpose strides PSRAM,
 // asymmetric between 90 and 270 degrees; the PPA is fast and symmetric.
 static ppa_client_handle_t g_ppa_client = nullptr;
+#if M5STACK_TAB5_HAS_ASYNC_FBCPY
+// DMA2D window-copy driver for the back-buffer flush (installed with it)
+static async_color_convert_handle_t g_fbcpy = nullptr;
+#endif
 
 bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
   return initialize_display(DisplayConfig{.pixel_buffer_size = pixel_buffer_size});
@@ -718,6 +722,12 @@ bool M5StackTab5::initialize_display(const DisplayConfig &config) {
   if (display_ && direct_render_enabled_ != config.render_to_frame_buffers_enabled) {
     logger_.error("The LVGL display is already initialized {} the frame buffers",
                   direct_render_enabled_ ? "on" : "without");
+    return false;
+  }
+  if (display_ && !direct_render_enabled_ &&
+      back_buffer_flush_enabled_ != config.flush_to_back_buffer_enabled) {
+    logger_.error("The LVGL display is already initialized {} the back-buffer flush",
+                  back_buffer_flush_enabled_ ? "with" : "without");
     return false;
   }
   const Display<Pixel>::LvglConfig lvgl_config{
@@ -794,23 +804,6 @@ bool M5StackTab5::initialize_display(const DisplayConfig &config) {
     return true;
   }
 
-  const size_t pixel_buffer_size = config.pixel_buffer_size;
-  logger_.info("Initializing LVGL display with pixel buffer size: {} pixels", pixel_buffer_size);
-  if (!display_) {
-    display_ = std::make_shared<Display<Pixel>>(
-        lvgl_config, oled_config,
-        Display<Pixel>::DynamicMemoryConfig{
-            .pixel_buffer_size = pixel_buffer_size,
-            .double_buffered = true,
-            // Allocate the LVGL draw buffers in PSRAM: a full-frame double
-            // buffer is ~3.7 MB, far larger than internal RAM, and the DPI
-            // panel's draw_bitmap reads the source straight from PSRAM (the
-            // esp32-p4-function-ev-board uses the same PSRAM buffers).
-            .allocation_flags = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT,
-        },
-        Logger::Verbosity::WARN);
-  }
-
   // Register a PPA client for hardware rotation, and allocate the rotation
   // scratch buffer that the PPA writes into. The PPA output buffer (external /
   // PSRAM memory) must be aligned to the data cache line size, and both the
@@ -848,6 +841,74 @@ bool M5StackTab5::initialize_display(const DisplayConfig &config) {
       }
     }
   }
+  const size_t pixel_buffer_size = config.pixel_buffer_size;
+  if (config.flush_to_back_buffer_enabled && !display_) {
+    // The back-buffer flush writes every area with the PPA into the frame
+    // buffer the panel is not scanning out, which the DPI driver's own
+    // draw_bitmap cannot do (it always copies into the buffer being scanned
+    // out, and treats a frame-buffer pointer as a switch request).
+    if (num_frame_buffers_ < 2) {
+      logger_.error("flush_to_back_buffer_enabled needs initialize_lcd() first and "
+                    "CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2 ({} frame buffers)",
+                    num_frame_buffers_);
+      return false;
+    }
+    if (g_ppa_client == nullptr || dpi_framebuffer_.load(std::memory_order_acquire) == nullptr) {
+      logger_.error("flush_to_back_buffer_enabled needs the PPA (client registration or the "
+                    "frame-buffer alignment check failed)");
+      return false;
+    }
+    // Every buffer the panel is not showing holds whatever it held before:
+    // bring each one fully up to date the first time it becomes the back
+    // buffer (one full-frame copy each, once).
+    const int front = frame_buffer_index(dpi_framebuffer_.load(std::memory_order_acquire));
+    for (size_t i = 0; i < num_frame_buffers_; ++i) {
+      stale_area_[i] = lv_area_t{0, 0, static_cast<int32_t>(display_width_) - 1,
+                                 static_cast<int32_t>(display_height_) - 1};
+      stale_valid_[i] = static_cast<int>(i) != front;
+    }
+    frame_dirty_valid_ = false;
+#if M5STACK_TAB5_HAS_ASYNC_FBCPY
+    // Unrotated copies and the frame-buffer syncs go through the DMA2D
+    // engine, which moves about five times what the PPA's scale-rotate path
+    // does (the PPA is kept for rotated areas). Same burst length as the DPI
+    // driver's own draw_bitmap DMA2D path.
+    if (g_fbcpy == nullptr) {
+      async_color_convert_config_t cfg = {};
+      cfg.dma_burst_size = 128;
+      esp_err_t err = esp_async_color_convert_install_dma2d(&cfg, &g_fbcpy);
+      if (err != ESP_OK) {
+        logger_.warn("Could not install the DMA2D copy driver ({}); the back-buffer flush copies "
+                     "with the PPA instead (slower)",
+                     esp_err_to_name(err));
+        g_fbcpy = nullptr;
+      }
+    }
+    const char *copy_engine = g_fbcpy != nullptr ? "DMA2D" : "PPA";
+#else
+    const char *copy_engine = "PPA (ESP-IDF < 6.1: no DMA2D window-copy driver)";
+#endif
+    back_buffer_flush_enabled_ = true;
+    logger_.info("LVGL flushes land in the back frame buffer ({} frame buffers, switch at the "
+                 "frame boundary, unrotated copies on the {})",
+                 num_frame_buffers_, copy_engine);
+  }
+  logger_.info("Initializing LVGL display with pixel buffer size: {} pixels", pixel_buffer_size);
+  if (!display_) {
+    display_ = std::make_shared<Display<Pixel>>(
+        lvgl_config, oled_config,
+        Display<Pixel>::DynamicMemoryConfig{
+            .pixel_buffer_size = pixel_buffer_size,
+            .double_buffered = true,
+            // Allocate the LVGL draw buffers in PSRAM: a full-frame double
+            // buffer is ~3.7 MB, far larger than internal RAM, and the DPI
+            // panel's draw_bitmap reads the source straight from PSRAM (the
+            // esp32-p4-function-ev-board uses the same PSRAM buffers).
+            .allocation_flags = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT,
+        },
+        Logger::Verbosity::WARN);
+  }
+
   // The software-rotation scratch buffer (see ensure_rotation_scratch_buffer())
   // is the size of the LVGL draw buffer, aligned to the data cache line like a
   // PPA output buffer (see kPpaOutBufferAlignment). It is NOT allocated here:
@@ -1126,6 +1187,11 @@ void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t 
 }
 
 bool M5StackTab5::present_frame(const void *frame_buffer, uint32_t timeout_ms) {
+  return present_frame(frame_buffer, timeout_ms, static_cast<int>(display_height_));
+}
+
+bool M5StackTab5::present_frame(const void *frame_buffer, uint32_t timeout_ms,
+                                int cache_sync_rows) {
   // frame_buffers() is empty until the lcd_initialized_ gate is open
   // (acquire), so this also refuses a panel that is not fully initialized.
   // Any pointer inside a frame buffer selects that buffer, as the driver's
@@ -1173,7 +1239,9 @@ bool M5StackTab5::present_frame(const void *frame_buffer, uint32_t timeout_ms) {
       logger_.error("present_frame(): a previous transfer is wedged; not switching");
       return false;
     }
-    if (!draw_and_wait(0, 0, display_width_, display_height_, frame_buffer)) {
+    // The driver writes the cache back for the rows of the draw only, so a
+    // frame the CPU never wrote (the back-buffer flush) syncs a single row.
+    if (!draw_and_wait(0, 0, display_width_, cache_sync_rows, frame_buffer)) {
       logger_.error("present_frame(): draw_bitmap failed");
       return false;
     }
@@ -1323,6 +1391,11 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
     return;
   }
 
+  if (back_buffer_flush_enabled_) {
+    flush_to_back_buffer(disp, area, px_map, rotation);
+    return;
+  }
+
   // When the panel itself applies the rotation (ST7121, 180 degrees via the
   // display driver's MADCTL scan flip - see on_display_rotation()), the
   // logical frame is written to the framebuffer unrotated and at unrotated
@@ -1367,34 +1440,15 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       } else if (rotation == LV_DISPLAY_ROTATION_270) {
         angle = PPA_SRM_ROTATION_ANGLE_270;
       }
-      ppa_srm_oper_config_t srm = {};
-      srm.in.buffer = px_map;
-      srm.in.pic_w = ww;
-      srm.in.pic_h = hh;
-      srm.in.block_w = ww;
-      srm.in.block_h = hh;
-      srm.in.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
-      srm.out.buffer = target_framebuffer;
-      srm.out.buffer_size = dpi_framebuffer_bytes_;
-      srm.out.pic_w = display_width_;
-      srm.out.pic_h = display_height_;
-      srm.out.block_offset_x = offsetx1;
-      srm.out.block_offset_y = offsety1;
-      srm.out.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
-      srm.rotation_angle = angle;
-      srm.scale_x = 1.0f;
-      srm.scale_y = 1.0f;
       // Non-blocking, like the DMA2D copy of the unrotated path: the PPA
       // driver writes back the source window and invalidates the destination
       // window when the operation is queued, the operation is left in flight
       // and notify_ppa_trans_done() signals LVGL when it finishes, so LVGL
       // renders the next area into its other draw buffer meanwhile. The next
       // panel operation waits for it first (wait_for_transfer_idle()).
-      srm.mode = PPA_TRANS_MODE_NON_BLOCKING;
-      srm.user_data = this;
       // Serialize the framebuffer write with draw_bitmap (write_lcd_lines /
       // the non-PPA flush tail) so two engines never write the panel FB at once.
-      esp_err_t ppa_err;
+      bool queued = false;
       {
         std::lock_guard<std::mutex> lock(panel_op_mutex_);
         if (!wait_for_transfer_idle()) {
@@ -1407,15 +1461,14 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
         // the ISR's acquire on the flag always sees the right display.
         lvgl_flush_disp_ = disp;
         lvgl_flush_pending_.store(true, std::memory_order_release);
-        transfer_in_flight_.store(true, std::memory_order_release);
-        ppa_err = ppa_do_scale_rotate_mirror(g_ppa_client, &srm);
-        if (ppa_err != ESP_OK) {
+        queued = queue_ppa_block(px_map, ww, hh, 0, 0, ww, hh, target_framebuffer, offsetx1,
+                                 offsety1, angle);
+        if (!queued) {
           // Not queued: no completion will arrive.
-          transfer_in_flight_.store(false, std::memory_order_release);
           lvgl_flush_pending_.store(false, std::memory_order_relaxed);
         }
       }
-      if (ppa_err == ESP_OK) {
+      if (queued) {
         // The rotated pixels land in the scanned-out framebuffer with the
         // cache maintenance done by the PPA driver; the espp flush path never
         // dirties the framebuffer with the CPU (draw_bitmap copies run on the
@@ -1425,8 +1478,7 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
         // PPA completion callback signals LVGL.
         return;
       }
-      logger_.warn_rate_limited("PPA rotation failed ({}); rotating in software",
-                                esp_err_to_name(ppa_err));
+      logger_.warn_rate_limited("PPA rotation failed; rotating in software");
       // On failure fall through to the scratch-buffer software rotation: the
       // framebuffer may hold a partial block, but the fallback redraws the
       // full area at the same destination.
@@ -1506,6 +1558,277 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       lv_display_flush_ready(disp);
     }
   }
+}
+
+int M5StackTab5::frame_buffer_index(const void *p) const {
+  const auto *b = static_cast<const uint8_t *>(p);
+  for (size_t i = 0; i < num_frame_buffers_; ++i) {
+    const auto *base = static_cast<const uint8_t *>(frame_buffers_[i]);
+    if (base != nullptr && b >= base && b < base + frame_buffer_size()) {
+      return static_cast<int>(i);
+    }
+  }
+  return -1;
+}
+
+bool M5StackTab5::queue_ppa_block(const void *src, uint32_t src_pic_w, uint32_t src_pic_h,
+                                  uint32_t src_x, uint32_t src_y, uint32_t block_w,
+                                  uint32_t block_h, void *dst_frame_buffer, uint32_t dst_x,
+                                  uint32_t dst_y, ppa_srm_rotation_angle_t angle) {
+  // The PPA's scale-rotate-mirror engine copies a block out of a source
+  // picture into a block of a destination picture: used for LVGL's draw
+  // buffers (the whole buffer is the block) rotated into a frame buffer, and
+  // for the frame-buffer-to-frame-buffer sync of the back-buffer flush (a
+  // window of one frame buffer into the same window of another, unrotated).
+  // The LVGL rotation maps directly onto the PPA rotation angle (LVGL 90 ->
+  // PPA 90, 180 -> 180, 270 -> 270); this is the mapping verified on
+  // hardware. If a different panel comes out turned the wrong way, swap the
+  // 90 and 270 cases in the callers.
+  ppa_srm_oper_config_t srm = {};
+  srm.in.buffer = src;
+  srm.in.pic_w = src_pic_w;
+  srm.in.pic_h = src_pic_h;
+  srm.in.block_offset_x = src_x;
+  srm.in.block_offset_y = src_y;
+  srm.in.block_w = block_w;
+  srm.in.block_h = block_h;
+  srm.in.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
+  srm.out.buffer = dst_frame_buffer;
+  srm.out.buffer_size = dpi_framebuffer_bytes_;
+  srm.out.pic_w = display_width_;
+  srm.out.pic_h = display_height_;
+  srm.out.block_offset_x = dst_x;
+  srm.out.block_offset_y = dst_y;
+  srm.out.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
+  srm.rotation_angle = angle;
+  srm.scale_x = 1.0f;
+  srm.scale_y = 1.0f;
+  // Left in flight; notify_ppa_trans_done() completes it (see complete_transfer()).
+  srm.mode = PPA_TRANS_MODE_NON_BLOCKING;
+  srm.user_data = this;
+  transfer_in_flight_.store(true, std::memory_order_release);
+  esp_err_t err = ppa_do_scale_rotate_mirror(g_ppa_client, &srm);
+  if (err != ESP_OK) {
+    // Not queued: no completion will arrive.
+    transfer_in_flight_.store(false, std::memory_order_release);
+    logger_.warn_rate_limited("PPA block copy ({}x{} -> {},{}, angle {}) failed: {}", block_w,
+                              block_h, dst_x, dst_y, static_cast<int>(angle), esp_err_to_name(err));
+    return false;
+  }
+  return true;
+}
+
+bool M5StackTab5::queue_block_copy(const void *src, uint32_t src_stride_px, uint32_t src_height,
+                                   uint32_t src_x, uint32_t src_y, uint32_t w, uint32_t h,
+                                   void *dst_frame_buffer, uint32_t dst_x, uint32_t dst_y) {
+#if M5STACK_TAB5_HAS_ASYNC_FBCPY
+  if (g_fbcpy != nullptr) {
+    // The driver writes the source window's cache back and invalidates the
+    // destination window itself; left in flight, notify_block_copy_done()
+    // completes it (see complete_transfer()).
+    async_color_convert_request_t req = {};
+    req.src_buffer = src;
+    req.src_stride = src_stride_px;
+    req.src_height = src_height;
+    req.src_x = src_x;
+    req.src_y = src_y;
+    req.dst_buffer = dst_frame_buffer;
+    req.dst_stride = display_width_;
+    req.dst_height = display_height_;
+    req.dst_x = dst_x;
+    req.dst_y = dst_y;
+    req.copy_width = w;
+    req.copy_height = h;
+    req.src_color_format = ESP_COLOR_FOURCC_RGB16;
+    req.dst_color_format = ESP_COLOR_FOURCC_RGB16;
+    transfer_in_flight_.store(true, std::memory_order_release);
+    esp_err_t err =
+        esp_async_color_convert(g_fbcpy, &req, &M5StackTab5::notify_block_copy_done, this);
+    if (err != ESP_OK) {
+      transfer_in_flight_.store(false, std::memory_order_release);
+      logger_.warn_rate_limited("DMA2D block copy ({}x{} -> {},{}) failed: {}", w, h, dst_x, dst_y,
+                                esp_err_to_name(err));
+      return false;
+    }
+    return true;
+  }
+#endif
+  return queue_ppa_block(src, src_stride_px, src_height, src_x, src_y, w, h, dst_frame_buffer,
+                         dst_x, dst_y, PPA_SRM_ROTATION_ANGLE_0);
+}
+
+#if M5STACK_TAB5_HAS_ASYNC_FBCPY
+bool IRAM_ATTR M5StackTab5::notify_block_copy_done(async_color_convert_handle_t handle,
+                                                   async_color_convert_event_data_t *edata,
+                                                   void *cb_args) {
+  (void)handle;
+  (void)edata;
+  auto *tab5 = static_cast<espp::M5StackTab5 *>(cb_args);
+  if (tab5 == nullptr) {
+    return false;
+  }
+  // ISR context (the DMA2D transfer-done interrupt): the window copy the
+  // back-buffer flush queued is complete.
+  BaseType_t higher_priority_task_woken = pdFALSE;
+  tab5->complete_transfer(&higher_priority_task_woken);
+  return higher_priority_task_woken == pdTRUE;
+}
+#endif
+
+// The parts of `a` that `b` does not cover, as up to four rectangles (a band
+// above and below the overlap, and the rows of the overlap left and right of
+// it). Zero when `b` covers `a`, one (`a` itself) when they do not meet.
+static size_t subtract_area(const lv_area_t &a, const lv_area_t &b, lv_area_t out[4]) {
+  if (b.x1 > a.x2 || b.x2 < a.x1 || b.y1 > a.y2 || b.y2 < a.y1) {
+    out[0] = a;
+    return 1;
+  }
+  size_t n = 0;
+  if (b.y1 > a.y1) {
+    out[n++] = lv_area_t{a.x1, a.y1, a.x2, b.y1 - 1};
+  }
+  if (b.y2 < a.y2) {
+    out[n++] = lv_area_t{a.x1, b.y2 + 1, a.x2, a.y2};
+  }
+  const int32_t y1 = std::max(a.y1, b.y1);
+  const int32_t y2 = std::min(a.y2, b.y2);
+  if (b.x1 > a.x1) {
+    out[n++] = lv_area_t{a.x1, y1, b.x1 - 1, y2};
+  }
+  if (b.x2 < a.x2) {
+    out[n++] = lv_area_t{b.x2 + 1, y1, a.x2, y2};
+  }
+  return n;
+}
+
+static void join_area(lv_area_t &acc, bool &valid, const lv_area_t &a) {
+  if (!valid) {
+    acc = a;
+    valid = true;
+    return;
+  }
+  acc.x1 = std::min(acc.x1, a.x1);
+  acc.y1 = std::min(acc.y1, a.y1);
+  acc.x2 = std::max(acc.x2, a.x2);
+  acc.y2 = std::max(acc.y2, a.y2);
+}
+
+void M5StackTab5::flush_to_back_buffer(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map,
+                                       lv_display_rotation_t rotation) {
+  // DisplayConfig::flush_to_back_buffer_enabled: every area goes, through the
+  // PPA, into the frame buffer the panel is not scanning out; the frame's
+  // last area is waited for, the panel is switched to that buffer at the
+  // frame boundary (present_frame()), and the region this frame changed is
+  // copied into the next back buffer so it is current when LVGL renders the
+  // next frame into it. The panel never shows a half-drawn frame, whatever
+  // size the draw buffers are, and rotation works as in the plain flush:
+  // the PPA rotates each area into its rotated place.
+  //
+  // Only the LVGL task runs this, so the dirty-region bookkeeping needs no
+  // lock; the frame-buffer writes are serialized with every other panel
+  // operation under panel_op_mutex_ and the single-flight transfer token.
+  lv_area_t dst = *area;
+  ppa_srm_rotation_angle_t angle = PPA_SRM_ROTATION_ANGLE_0;
+  if (rotation > LV_DISPLAY_ROTATION_0 && !panel_handles_rotation(rotation)) {
+    // Panel coordinates of this area (the panel's own 180-degree flip, when
+    // it applies one, happens at scan-out: write unrotated for that one).
+    lv_display_rotate_area(disp, &dst);
+    if (rotation == LV_DISPLAY_ROTATION_90) {
+      angle = PPA_SRM_ROTATION_ANGLE_90;
+    } else if (rotation == LV_DISPLAY_ROTATION_180) {
+      angle = PPA_SRM_ROTATION_ANGLE_180;
+    } else {
+      angle = PPA_SRM_ROTATION_ANGLE_270;
+    }
+  }
+  const uint32_t ww = lv_area_get_width(area);
+  const uint32_t hh = lv_area_get_height(area);
+  const int front = frame_buffer_index(dpi_framebuffer_.load(std::memory_order_acquire));
+  if (front < 0) {
+    // cannot happen once initialize_display() accepted the mode
+    lv_display_flush_ready(disp);
+    return;
+  }
+  const int back = (front + 1) % static_cast<int>(num_frame_buffers_);
+  void *const back_fb = frame_buffers_[back];
+  const bool last = lv_display_flush_is_last(disp);
+  join_area(frame_dirty_area_, frame_dirty_valid_, dst);
+  {
+    std::lock_guard<std::mutex> lock(panel_op_mutex_);
+    if (!wait_for_transfer_idle()) {
+      lv_display_flush_ready(disp); // wedged: drop this area, keep LVGL alive
+      return;
+    }
+    // An area that is not the frame's last releases LVGL from the PPA's
+    // completion ISR, like the plain flush. The last one is waited for below
+    // (the switch must not be queued before it has landed) and releases LVGL
+    // after the switch.
+    lvgl_flush_disp_ = disp;
+    lvgl_flush_pending_.store(!last, std::memory_order_release);
+    const bool queued =
+        angle == PPA_SRM_ROTATION_ANGLE_0
+            ? queue_block_copy(px_map, ww, hh, 0, 0, ww, hh, back_fb, dst.x1, dst.y1)
+            : queue_ppa_block(px_map, ww, hh, 0, 0, ww, hh, back_fb, dst.x1, dst.y1, angle);
+    if (!queued) {
+      lvgl_flush_pending_.store(false, std::memory_order_relaxed);
+      lv_display_flush_ready(disp);
+      return;
+    }
+  }
+  if (!last) {
+    return;
+  }
+  // The frame's areas are in the back buffer (once the last copy lands).
+  // Everything else in that buffer is as old as the last time it was on
+  // screen: copy over, from the buffer on screen, the region it has missed
+  // since then MINUS what this frame just redrew. For a full-screen redraw
+  // that is nothing; for a small update it is the previous frame's small
+  // region. Done now rather than after the switch so the copy never races
+  // the next frame's areas, and so it costs only what the frame did not
+  // redraw.
+  void *const front_fb = frame_buffers_[front];
+  if (stale_valid_[back]) {
+    lv_area_t parts[4];
+    const size_t n = subtract_area(stale_area_[back], frame_dirty_area_, parts);
+    for (size_t i = 0; i < n; ++i) {
+      std::lock_guard<std::mutex> lock(panel_op_mutex_);
+      if (!wait_for_transfer_idle()) {
+        break; // wedged: the frame is shown with that region stale
+      }
+      lvgl_flush_pending_.store(false, std::memory_order_relaxed);
+      if (!queue_block_copy(front_fb, display_width_, display_height_, parts[i].x1, parts[i].y1,
+                            lv_area_get_width(&parts[i]), lv_area_get_height(&parts[i]), back_fb,
+                            parts[i].x1, parts[i].y1)) {
+        break;
+      }
+    }
+  }
+  {
+    std::lock_guard<std::mutex> lock(panel_op_mutex_);
+    if (!wait_for_transfer_idle()) {
+      // A copy never landed: do not show the frame (the switch would present
+      // a half-drawn one); its region stays in frame_dirty_area_ and is
+      // carried into the next frame's region.
+      lv_display_flush_ready(disp);
+      return;
+    }
+  }
+  // The back buffer is now complete. What this frame changed is what every
+  // other buffer lacks from now on; the buffer about to be shown lacks nothing.
+  for (size_t i = 0; i < num_frame_buffers_; ++i) {
+    if (static_cast<int>(i) != back) {
+      join_area(stale_area_[i], stale_valid_[i], frame_dirty_area_);
+    }
+  }
+  stale_valid_[back] = false;
+  frame_dirty_valid_ = false;
+  // Switch at the frame boundary. The return value is deliberately not acted
+  // on: on a timeout the switch is still queued and LVGL carries on (that
+  // frame may tear); after a few consecutive timeouts present_frame()
+  // disables its wait itself. One row of cache write-back: only DMA engines
+  // write these buffers.
+  present_frame(back_fb, 100, 1);
+  lv_display_flush_ready(disp);
 }
 
 bool IRAM_ATTR M5StackTab5::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel,

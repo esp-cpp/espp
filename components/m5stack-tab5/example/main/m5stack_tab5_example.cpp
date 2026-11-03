@@ -87,28 +87,32 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // initialize the display with a full-frame pixel buffer (Tab5 is 1280x720 with
-  // 2 bytes per pixel). A full-frame LVGL draw buffer (allocated in PSRAM, see
-  // initialize_display) lets a full-screen redraw - e.g. a rotation change -
-  // flush in a single pass instead of ~72 ten-line strips, so the screen
-  // repaints at once rather than wiping progressively. Partial updates still
-  // only render/flush their dirty area, so the larger buffer costs nothing
-  // there (just PSRAM).
   logger.info("Initializing display ({} DPI frame buffers)...", tab5.frame_buffers().size());
 #if CONFIG_M5STACK_TAB5_EXAMPLE_RENDER_TO_FRAME_BUFFERS
-  // LVGL renders straight into the panel's frame buffers (DIRECT mode): no
-  // draw buffers, no rotation scratch buffer, and no copy per flush.
+  // LVGL renders in DIRECT mode straight into the panel's frame buffers (no
+  // draw buffers); see the menuconfig help.
   if (!tab5.initialize_display({.render_to_frame_buffers_enabled = true})) {
-    logger.error("Failed to initialize display!");
-    return;
-  }
 #else
-  auto pixel_buffer_size = tab5.display_width() * tab5.display_height();
-  if (!tab5.initialize_display(pixel_buffer_size)) {
+  // LVGL draw buffers of CONFIG_M5STACK_TAB5_EXAMPLE_DRAW_BUFFER_LINES panel
+  // rows each. With one frame buffer a whole-frame draw buffer (the default, in
+  // PSRAM) lets a full-screen redraw - e.g. a rotation change - flush in a
+  // single pass instead of ten 128-row strips, so the screen repaints at once
+  // rather than wiping progressively. With the back-buffer flush
+  // (CONFIG_M5STACK_TAB5_EXAMPLE_FLUSH_TO_BACK_BUFFER) a full redraw is
+  // assembled off screen whatever the strip size, so a small draw buffer
+  // looks the same and frees the PSRAM.
+  const size_t pixel_buffer_size =
+      tab5.display_width() * static_cast<size_t>(CONFIG_M5STACK_TAB5_EXAMPLE_DRAW_BUFFER_LINES);
+  if (!tab5.initialize_display({
+        .pixel_buffer_size = pixel_buffer_size,
+#if CONFIG_M5STACK_TAB5_EXAMPLE_FLUSH_TO_BACK_BUFFER
+        .flush_to_back_buffer_enabled = true,
+#endif
+      })) {
+#endif
     logger.error("Failed to initialize display!");
     return;
   }
-#endif
 
   // make the filter we'll use for the IMU to compute the orientation
   static constexpr float angle_noise = 0.001f;

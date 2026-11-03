@@ -14,6 +14,11 @@
 #include <driver/i2s_std.h>
 #include <driver/i2s_tdm.h>
 #include <driver/ppa.h>
+#if __has_include(<esp_async_color_convert.h>)
+// ESP-IDF 6.1+: DMA2D window copies (esp_driver_dma), used by the back-buffer flush
+#include <esp_async_color_convert.h>
+#define M5STACK_TAB5_HAS_ASYNC_FBCPY 1
+#endif
 #include <driver/sdmmc_host.h>
 #include <driver/spi_master.h>
 #include <driver/uart.h>
@@ -237,6 +242,25 @@ public:
     ///       callback with lv_display_set_flush_wait_cb(); the transfer-done
     ///       interrupt no longer does it.
     bool render_to_frame_buffers_enabled{false};
+    /// Flush into the frame buffer the panel is NOT scanning out, and switch
+    /// the panel to it once the frame is complete (tear-free, and unlike
+    /// render_to_frame_buffers_enabled the display rotation keeps working).
+    /// Every flushed area is copied - rotated when needed - by the PPA into
+    /// the back frame buffer; when LVGL's last area of a frame has landed,
+    /// present_frame() switches the panel to that buffer at the frame
+    /// boundary, and the region this frame changed is copied into the new
+    /// back buffer (by the PPA, overlapping LVGL's next render) so it is
+    /// current for the next frame. Partial frames are never on screen, so
+    /// the draw buffers can be strips (pixel_buffer_size) instead of whole
+    /// frames: a full-screen redraw is assembled off screen and shown at
+    /// once. Needs initialize_lcd() first, CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2
+    /// and a working PPA; ignored with render_to_frame_buffers_enabled.
+    /// \note Costs: the flush of a frame's last area waits for the panel's
+    ///       frame-done event (one refresh, like DIRECT mode), and the PPA
+    ///       does an extra copy of the changed region per frame. Pixels
+    ///       written with write_lcd_lines() land in the buffer on screen and
+    ///       are not carried over to the next frame: draw through LVGL.
+    bool flush_to_back_buffer_enabled{false};
   };
 
   /// Initialize the LVGL display
@@ -1233,6 +1257,48 @@ protected:
   // initialize_display() set LVGL up in DIRECT mode on the frame buffers
   // (DisplayConfig::render_to_frame_buffers_enabled)
   bool direct_render_enabled_{false};
+  // initialize_display() set flush() up to land in the back frame buffer
+  // and switch at the frame boundary (DisplayConfig::flush_to_back_buffer_enabled)
+  bool back_buffer_flush_enabled_{false};
+  // Back-buffer flush bookkeeping, touched by the LVGL task only (flush()
+  // runs there): the panel-space region the frame in progress has changed so
+  // far, and per frame buffer the region it has missed since it was last on
+  // screen - what the sync copy after a switch brings over.
+  lv_area_t frame_dirty_area_{};
+  bool frame_dirty_valid_{false};
+  std::array<lv_area_t, max_frame_buffers> stale_area_{};
+  std::array<bool, max_frame_buffers> stale_valid_{};
+  // flush() for the back-buffer mode (see flush_to_back_buffer_enabled)
+  void flush_to_back_buffer(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map,
+                            lv_display_rotation_t rotation);
+  // Queue a non-blocking PPA copy of a block of a source picture into a frame
+  // buffer, rotated by `angle`, completed through notify_ppa_trans_done().
+  // Caller holds panel_op_mutex_ with no transfer in flight (and has set
+  // lvgl_flush_pending_ as it wants); sets transfer_in_flight_, cleared again
+  // if the operation is not queued (then returns false).
+  bool queue_ppa_block(const void *src, uint32_t src_pic_w, uint32_t src_pic_h, uint32_t src_x,
+                       uint32_t src_y, uint32_t block_w, uint32_t block_h, void *dst_frame_buffer,
+                       uint32_t dst_x, uint32_t dst_y, ppa_srm_rotation_angle_t angle);
+  // Index of a pointer inside one of frame_buffers(), or -1
+  int frame_buffer_index(const void *p) const;
+  // Queue a non-blocking unrotated window copy of a source picture into a
+  // frame buffer: on the DMA2D engine (ESP-IDF 6.1+, about five times the
+  // PPA's throughput) when available, else the PPA at angle 0. Same contract
+  // as queue_ppa_block().
+  bool queue_block_copy(const void *src, uint32_t src_stride_px, uint32_t src_height,
+                        uint32_t src_x, uint32_t src_y, uint32_t w, uint32_t h,
+                        void *dst_frame_buffer, uint32_t dst_x, uint32_t dst_y);
+#if M5STACK_TAB5_HAS_ASYNC_FBCPY
+  // DMA2D copy-done callback (ISR) for queue_block_copy(); cb_args is the
+  // M5StackTab5 instance.
+  static bool notify_block_copy_done(async_color_convert_handle_t handle,
+                                     async_color_convert_event_data_t *edata, void *cb_args);
+#endif
+  // present_frame() with the number of frame-buffer rows whose cache is
+  // written back before the switch (the driver syncs the rows of the draw):
+  // the public call syncs the whole buffer for CPU-rendered frames; the
+  // back-buffer flush, whose frame buffers only DMA engines write, syncs one.
+  bool present_frame(const void *frame_buffer, uint32_t timeout_ms, int cache_sync_rows);
 
   // Display controller detection
   DisplayController display_controller_{DisplayController::UNKNOWN};

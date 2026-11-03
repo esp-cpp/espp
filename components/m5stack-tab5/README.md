@@ -149,6 +149,70 @@ the 1.8 MB rotation scratch buffer is not needed either). The frame buffers are
 cache-line aligned, so they also satisfy a raised `LV_DRAW_BUF_ALIGN` (e.g. 128
 for the PPA draw unit), which a plain `heap_caps_malloc()` draw buffer may not.
 
+## Tear-free flushes with rotation: the back-buffer flush
+
+DIRECT mode cannot rotate. The back-buffer flush keeps LVGL's normal partial
+rendering into draw buffers (so the PPA rotation of each area, and the panel's
+own 180-degree flip, keep working) and gets rid of tearing differently:
+
+- `initialize_display({.flush_to_back_buffer_enabled = true})` (needs
+  `CONFIG_M5STACK_TAB5_DPI_NUM_FBS` >= 2 and the PPA). Every flushed area is
+  copied, rotated when needed, by the PPA into the frame buffer the panel is
+  *not* scanning out; nothing is drawn into the buffer on screen.
+- When LVGL's last area of a frame has landed, the flush switches the panel to
+  that buffer with `present_frame()` at the frame boundary, then has the PPA
+  copy the region this frame changed from the new front buffer into the new
+  back buffer, left in flight while LVGL renders the next frame, so the back
+  buffer is current when the next frame's areas are written into it. (With
+  three buffers each one is brought up to date when it becomes the back
+  buffer.)
+- The panel never shows a half-drawn frame, whatever the draw-buffer size.
+  That is what makes small draw buffers viable again: with a single frame
+  buffer a full-screen redraw flushes strip by strip into the buffer on
+  screen, visible as a progressive wipe, which is why the example used two
+  whole-frame draw buffers (3.7 MB); with the back-buffer flush the strips are
+  assembled off screen and shown at once.
+
+```cpp
+// menuconfig: M5Stack Tab5 Configuration -> Number of DPI frame buffers = 2
+auto &tab5 = espp::M5StackTab5::get();
+tab5.initialize_lcd();
+tab5.initialize_display({.pixel_buffer_size = 720 * 128, // 128-row strips (184 KB each)
+                         .flush_to_back_buffer_enabled = true});
+```
+
+Costs: the flush of a frame's last area waits for the frame-done event (one
+refresh, like DIRECT mode), and the PPA does one extra copy of the changed
+region per frame. Pixels written with `write_lcd_lines()` land in the buffer on
+screen and are not carried over to the next frame: draw through LVGL.
+
+Measured with the example's display benchmark (a local test aid, not in the
+repository: four phases of 8 s at 0 and at 90 degrees, same unit as the earlier
+tables) on a Tab5 (ST71xx, ESP-IDF v6.1). "Stock" is one frame buffer with two
+whole-frame draw buffers (the example's default); the back-buffer flush uses two
+frame buffers, with whole-frame or 128-row (184 KB) draw buffers:
+
+| phase | stock (tears) | back-buffer, whole-frame draw buffers | back-buffer, 128-row strips |
+| --- | --- | --- | --- |
+| small update, 0 deg | 993 fps (unthrottled) | 57.8 (locked to the 58 Hz panel) | 57.8 |
+| sweeping bar, 0 deg | 350 | 57.7, no tearing | 57.5, no tearing |
+| full-screen redraw, 0 deg | 38.2 | 28.9 | 28.9 |
+| heavy animation, 0 deg | 15.7 | 11.5 | 11.5 |
+| small update, 90 deg | 589 | 57.8 | 57.8 |
+| sweeping bar, 90 deg | 260 | 56.7 | 56.8 |
+| full-screen redraw, 90 deg | 16.2 | 11.6 | 14.4 |
+| heavy animation, 90 deg | 9.4 | 6.4 | 7.2 |
+| free PSRAM after display init | 26.36 MB | 24.52 MB | 27.89 MB |
+
+A full-screen redraw at 0 degrees takes two panel periods (34.5 ms): render plus
+copy is about 26 ms, which misses one frame-done event and waits for the next -
+the price of never showing a half-drawn frame, as in DIRECT mode. At 90 degrees
+the strips are faster than whole-frame draw buffers because the PPA rotation of
+one strip overlaps the rendering of the next. The 128-row configuration frees
+1.5 MB of PSRAM against the stock example (two frame buffers plus two 184 KB
+draw buffers, 4.1 MB, against one frame buffer plus two whole-frame draw
+buffers, 5.5 MB).
+
 ## Example
 
 The [example](./example) shows how to use the `espp::M5StackTab5` hardware abstraction component to initialize and use various subsystems of the Tab5.
