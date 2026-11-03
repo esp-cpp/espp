@@ -508,6 +508,9 @@ public:
   ///        configuration
   /// \return true if the audio system was successfully initialized, false
   ///         otherwise (also when neither playback nor recording is enabled)
+  /// \note A failure part way through undoes what was set up before it (the
+  ///       I2S channels and their DMA rings, the stream buffer, the tasks, the
+  ///       codecs), so the call can be retried.
   bool initialize_audio(const AudioConfig &config);
 
   /// Enable or disable the audio system
@@ -1122,7 +1125,7 @@ protected:
   i2s_std_config_t audio_std_cfg{};
   std::vector<uint8_t> audio_tx_buffer;
   std::vector<uint8_t> audio_rx_buffer;
-  StreamBufferHandle_t audio_tx_stream;
+  StreamBufferHandle_t audio_tx_stream{nullptr};
   // Feeding policy shared by every audio BSP (whole blocks, bounded wait,
   // ring depth): see codec/i2s_tx_feed.hpp.
   espp::i2s_tx_feed::Feeder audio_tx_feed_;
