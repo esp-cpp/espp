@@ -169,7 +169,9 @@ M5StackTab5::DisplayController M5StackTab5::detect_display_controller() {
   // Unknown display controller
   return M5StackTab5::DisplayController::UNKNOWN;
 }
-bool M5StackTab5::initialize_lcd() {
+bool M5StackTab5::initialize_lcd() { return initialize_lcd(LcdConfig{}); }
+
+bool M5StackTab5::initialize_lcd(const LcdConfig &config) {
   logger_.info("Initializing M5Stack Tab5 LCD (MIPI-DSI, {}x{})", display_width_, display_height_);
 
   // Re-initialization is NOT supported once the publication gate has opened:
@@ -335,7 +337,7 @@ bool M5StackTab5::initialize_lcd() {
     dpi_cfg.video_timing.vsync_pulse_width = 4;
     dpi_cfg.video_timing.vsync_front_porch = 20;
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0)
-    dpi_cfg.flags.use_dma2d = true;
+    dpi_cfg.flags.use_dma2d = config.dma2d_enabled;
 #endif
 
   } else if (detected_controller == DisplayController::ST7123 && lcd_handles_.panel == nullptr) {
@@ -357,7 +359,7 @@ bool M5StackTab5::initialize_lcd() {
     dpi_cfg.video_timing.vsync_pulse_width = 2;
     dpi_cfg.video_timing.vsync_front_porch = 220;
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0)
-    dpi_cfg.flags.use_dma2d = true;
+    dpi_cfg.flags.use_dma2d = config.dma2d_enabled;
 #endif
   } else if (detected_controller == DisplayController::ST7121 && lcd_handles_.panel == nullptr) {
     dpi_cfg.virtual_channel = 0;
@@ -376,7 +378,7 @@ bool M5StackTab5::initialize_lcd() {
     dpi_cfg.video_timing.vsync_pulse_width = 20;
     dpi_cfg.video_timing.vsync_front_porch = 200;
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0)
-    dpi_cfg.flags.use_dma2d = true;
+    dpi_cfg.flags.use_dma2d = config.dma2d_enabled;
 #endif
   }
 
@@ -571,6 +573,10 @@ bool M5StackTab5::initialize_lcd() {
   // M5Stack's own Tab5 demo firmware ships with DMA2D enabled on production
   // units that are predominantly ST71xx.
   //
+  // LcdConfig::dma2d_enabled turns it off altogether, for applications
+  // that never draw_bitmap() (every flush rotated by the PPA) and would rather
+  // have back the internal DMA-capable RAM its descriptors take.
+  //
   // ESP-IDF v6.0.0 only: its DPI draw_bitmap() checks the DMA2D hook before the
   // "pointer is inside a frame buffer" test (fixed in v6.0.1), so with DMA2D on
   // and 2+ frame buffers a frame-buffer switch would become a full-frame copy
@@ -580,7 +586,9 @@ bool M5StackTab5::initialize_lcd() {
 #else
   constexpr bool dma2d_breaks_fb_switch = false;
 #endif
-  if constexpr (dma2d_breaks_fb_switch) {
+  if (!config.dma2d_enabled) {
+    logger_.info("DMA2D disabled (LcdConfig::dma2d_enabled): keeping CPU draw_bitmap copies");
+  } else if (dma2d_breaks_fb_switch) {
     logger_.info("ESP-IDF v6.0.0 with {} frame buffers: keeping CPU draw_bitmap copies (DMA2D "
                  "would turn a frame-buffer switch into a copy)",
                  kNumDpiFramebuffers);

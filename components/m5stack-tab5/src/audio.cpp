@@ -52,15 +52,31 @@ static audio_hal_iface_samples_t audio_hal_samples_from_rate(uint32_t rate) {
 
 bool M5StackTab5::initialize_audio(uint32_t sample_rate,
                                    const espp::Task::BaseConfig &task_config) {
-  logger_.info("Initializing dual audio system (ES8388 + ES7210) at {} Hz", sample_rate);
+  return initialize_audio(AudioConfig{.sample_rate = sample_rate, .task_config = task_config});
+}
+
+bool M5StackTab5::initialize_audio(const AudioConfig &config) {
+  const uint32_t sample_rate = config.sample_rate;
+  const auto &task_config = config.task_config;
+  const bool playback = config.playback_enabled;
+  const bool recording = config.recording_enabled;
+  logger_.info("Initializing audio system ({}{}{}) at {} Hz", playback ? "ES8388 playback" : "",
+               playback && recording ? " + " : "", recording ? "ES7210 recording" : "",
+               sample_rate);
 
   if (audio_initialized_) {
     logger_.warn("Audio already initialized");
     return true;
   }
+  if (!playback && !recording) {
+    logger_.error("initialize_audio(): neither playback nor recording is enabled");
+    return false;
+  }
+  audio_playback_enabled_ = playback;
+  audio_recording_enabled_ = recording;
 
-  // I2S standard channel for TX (playback)
-  logger_.info("Creating I2S channel for playback (TX)");
+  // I2S standard channels: TX for playback, RX for recording
+  logger_.info("Creating I2S channel(s)");
   i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
   // The ring must outlast the audio task's whole-block wait plus one block at
@@ -72,7 +88,12 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
                 "the I2S TX DMA ring must outlast the whole-block wait plus one block");
   chan_cfg.dma_desc_num = espp::i2s_tx_feed::DMA_DESC_NUM;
   chan_cfg.dma_frame_num = espp::i2s_tx_feed::DMA_FRAME_NUM;
-  ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &audio_tx_handle, &audio_rx_handle));
+  // Both channels come from the one call so they run full duplex (RX shares the
+  // TX BCLK/WS), and each gets a DMA ring of this size: a direction that is not
+  // enabled is not created, which saves its ring's internal DMA memory. Alone,
+  // either channel drives the clocks itself (simplex master).
+  ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, playback ? &audio_tx_handle : nullptr,
+                                  recording ? &audio_rx_handle : nullptr));
 
   // Configure I2S for stereo output (needed for proper ES8388 operation). The
   // playback data is interleaved 16-bit stereo, so the slot mode MUST be stereo
@@ -88,8 +109,10 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
                    .din = audio_asdout_io, // ES7210 ASDOUT (record data output)
                    .invert_flags = {.mclk_inv = false, .bclk_inv = false, .ws_inv = false}},
   };
-  logger_.info("Configuring I2S standard mode with sample rate {} Hz", sample_rate);
-  ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_tx_handle, &audio_std_cfg));
+  if (playback) {
+    logger_.info("Configuring I2S channel for playback (TX) at {} Hz", sample_rate);
+    ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_tx_handle, &audio_std_cfg));
+  }
 
   // RX channel for recording (ES7210). The ES7210 is configured below for
   // standard I2S output (16-bit stereo: microphone 1 on the left slot,
@@ -97,8 +120,10 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   // the TX BCLK/WS, so the RX channel must use the same standard-mode
   // configuration - a different frame geometry (e.g. multi-slot TDM) would
   // not match the shared clock.
-  logger_.info("Configuring I2S channel for recording (RX)");
-  ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_rx_handle, &audio_std_cfg));
+  if (recording) {
+    logger_.info("Configuring I2S channel for recording (RX) at {} Hz", sample_rate);
+    ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_rx_handle, &audio_std_cfg));
+  }
 
   // Stream buffers and task
   auto tx_buf_size = calc_audio_buffer_size(sample_rate);
@@ -106,127 +131,147 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   // frames: the sample-rate formula can land between frames, and a block that
   // split one would desynchronize the framing of everything received after it
   tx_buf_size -= tx_buf_size % (NUM_CHANNELS * NUM_BYTES_PER_CHANNEL);
-  audio_tx_buffer.resize(tx_buf_size);
-  // The audio task never blocks on the stream (see audio_task_callback), so
-  // the trigger level is irrelevant; the minimum keeps a producer's send from
-  // ever holding a receiver.
-  audio_tx_stream = xStreamBufferCreate(tx_buf_size * 4, 1);
-  xStreamBufferReset(audio_tx_stream);
-  audio_tx_feed_.stream = audio_tx_stream;
-  audio_tx_feed_.frame_bytes = NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
+  if (playback) {
+    audio_tx_buffer.resize(tx_buf_size);
+    // The audio task never blocks on the stream (see audio_task_callback), so
+    // the trigger level is irrelevant; the minimum keeps a producer's send from
+    // ever holding a receiver.
+    audio_tx_stream = xStreamBufferCreate(tx_buf_size * 4, 1);
+    xStreamBufferReset(audio_tx_stream);
+    audio_tx_feed_.stream = audio_tx_stream;
+    audio_tx_feed_.frame_bytes = NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
+  }
   // RX buffer for recording
-  audio_rx_buffer.resize(tx_buf_size);
+  if (recording) {
+    audio_rx_buffer.resize(tx_buf_size);
+  }
 
-  // now enable both channels
-  ESP_ERROR_CHECK(i2s_channel_enable(audio_tx_handle));
-  ESP_ERROR_CHECK(i2s_channel_enable(audio_rx_handle));
+  // now enable the channels
+  if (playback) {
+    ESP_ERROR_CHECK(i2s_channel_enable(audio_tx_handle));
+  }
+  if (recording) {
+    ESP_ERROR_CHECK(i2s_channel_enable(audio_rx_handle));
+  }
 
   std::error_code ec;
-  es8388_i2c_device_ = internal_i2c_.add_device<uint8_t>(
-      {
-          .device_address = 0x10,
-          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
-          .scl_speed_hz = internal_i2c_.config().clk_speed,
-          .log_level = espp::Logger::Verbosity::WARN,
-      },
-      ec);
-  if (!es8388_i2c_device_) {
-    logger_.error("Could not initialize ES8388 I2C device: {}", ec.message());
-    return false;
+  if (playback) {
+    es8388_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+        {
+            .device_address = 0x10,
+            .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+            .scl_speed_hz = internal_i2c_.config().clk_speed,
+            .log_level = espp::Logger::Verbosity::WARN,
+        },
+        ec);
+    if (!es8388_i2c_device_) {
+      logger_.error("Could not initialize ES8388 I2C device: {}", ec.message());
+      return false;
+    }
   }
-  es7210_i2c_device_ = internal_i2c_.add_device<uint8_t>(
-      {
-          .device_address = 0x40,
-          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
-          .scl_speed_hz = internal_i2c_.config().clk_speed,
-          .log_level = espp::Logger::Verbosity::WARN,
-      },
-      ec);
-  if (!es7210_i2c_device_) {
-    logger_.error("Could not initialize ES7210 I2C device: {}", ec.message());
-    return false;
+  if (recording) {
+    es7210_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+        {
+            .device_address = 0x40,
+            .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+            .scl_speed_hz = internal_i2c_.config().clk_speed,
+            .log_level = espp::Logger::Verbosity::WARN,
+        },
+        ec);
+    if (!es7210_i2c_device_) {
+      logger_.error("Could not initialize ES7210 I2C device: {}", ec.message());
+      return false;
+    }
   }
 
   // Wire codec register access over internal I2C
-  set_es8388_write(espp::make_i2c_addressed_write(es8388_i2c_device_));
-  set_es8388_read(espp::make_i2c_addressed_read_register(es8388_i2c_device_));
-  set_es7210_write(espp::make_i2c_addressed_write(es7210_i2c_device_));
-  set_es7210_read(espp::make_i2c_addressed_read_register(es7210_i2c_device_));
-
-  // ES8388 DAC playback config
-  audio_hal_codec_config_t es8388_cfg{};
-  es8388_cfg.codec_mode = AUDIO_HAL_CODEC_MODE_DECODE;
-  es8388_cfg.dac_output = AUDIO_HAL_DAC_OUTPUT_ALL; // Enable both L and R outputs
-  // es8388_cfg.adc_input = AUDIO_HAL_ADC_INPUT_LINE1;  // Not used for playback but set anyway
-  es8388_cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
-  es8388_cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
-  es8388_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
-  es8388_cfg.i2s_iface.samples = AUDIO_HAL_48K_SAMPLES;
-  logger_.info("Initializing ES8388 codec for playback (DAC) at {} Hz", sample_rate);
-  if (es8388_init(&es8388_cfg) != ESP_OK) {
-    logger_.error("ES8388 init failed");
-    return false;
+  if (playback) {
+    set_es8388_write(espp::make_i2c_addressed_write(es8388_i2c_device_));
+    set_es8388_read(espp::make_i2c_addressed_read_register(es8388_i2c_device_));
   }
-  if (es8388_config_fmt(ES_MODULE_DAC, ES_I2S_NORMAL) != ESP_OK) {
-    logger_.error("ES8388 format config failed");
-  }
-  if (es8388_set_bits_per_sample(ES_MODULE_DAC, BIT_LENGTH_16BITS) != ESP_OK) {
-    logger_.error("ES8388 bps config failed");
+  if (recording) {
+    set_es7210_write(espp::make_i2c_addressed_write(es7210_i2c_device_));
+    set_es7210_read(espp::make_i2c_addressed_read_register(es7210_i2c_device_));
   }
 
-  // Configure DAC output routing
-  if (es8388_config_dac_output(DAC_OUTPUT_ALL) != ESP_OK) {
-    logger_.error("ES8388 DAC output config failed");
-  }
-
-  // Set initial volume and unmute
-  es8388_set_voice_volume(static_cast<int>(volume_));
-  es8388_set_voice_mute(false); // Make sure it's not muted
-  es8388_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START);
-
-  // ES7210 ADC recording config
-  audio_hal_codec_config_t es7210_cfg{};
-  es7210_cfg.codec_mode = AUDIO_HAL_CODEC_MODE_ENCODE;
-  es7210_cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
-  es7210_cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
-  es7210_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
-  // configure the ES7210 for the rate the I2S clocks are actually running at
-  // (rather than assuming 48 kHz) so its coefficient table matches
-  es7210_cfg.i2s_iface.samples = audio_hal_samples_from_rate(sample_rate);
-  logger_.info("Initializing ES7210 codec for recording (ADC) at {} Hz", sample_rate);
-  if (es7210_adc_init(&es7210_cfg) != ESP_OK) {
-    logger_.error("ES7210 init failed");
-    return false;
-  }
-  if (es7210_adc_config_i2s(AUDIO_HAL_CODEC_MODE_ENCODE, &es7210_cfg.i2s_iface) != ESP_OK) {
-    logger_.error("ES7210 I2S cfg failed");
-  }
-  // Enable the ES7210 digital high-pass filter on the ADC channels to strip
-  // the microphone DC offset. The espp es7210 driver leaves these registers
-  // at their reset value (HPF off), so the DC offset is amplified by the
-  // analog gain and rails the ADC to full scale - recordings come out as a
-  // near-constant DC level that the AC-coupled speaker plays as a click then
-  // silence. These are the driver's documented "quick setup" HPF values.
-  // write_register clears the error code on success, so a later successful
-  // write would mask an earlier failure; remember the first failure explicitly.
-  std::error_code hpf_ec, first_hpf_ec;
-  auto write_hpf = [&](uint8_t reg, uint8_t val) {
-    es7210_i2c_device_->write_register(reg, std::vector<uint8_t>{val}, hpf_ec);
-    if (hpf_ec && !first_hpf_ec) {
-      first_hpf_ec = hpf_ec;
+  if (playback) {
+    // ES8388 DAC playback config
+    audio_hal_codec_config_t es8388_cfg{};
+    es8388_cfg.codec_mode = AUDIO_HAL_CODEC_MODE_DECODE;
+    es8388_cfg.dac_output = AUDIO_HAL_DAC_OUTPUT_ALL; // Enable both L and R outputs
+    // es8388_cfg.adc_input = AUDIO_HAL_ADC_INPUT_LINE1;  // Not used for playback but set anyway
+    es8388_cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
+    es8388_cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
+    es8388_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
+    es8388_cfg.i2s_iface.samples = AUDIO_HAL_48K_SAMPLES;
+    logger_.info("Initializing ES8388 codec for playback (DAC) at {} Hz", sample_rate);
+    if (es8388_init(&es8388_cfg) != ESP_OK) {
+      logger_.error("ES8388 init failed");
+      return false;
     }
-  };
-  write_hpf(0x22, 0x0a); // ADC1/2 HPF1
-  write_hpf(0x23, 0x2a); // ADC1/2 HPF2
-  write_hpf(0x20, 0x0a); // ADC3/4 HPF2
-  write_hpf(0x21, 0x2a); // ADC3/4 HPF1
-  if (first_hpf_ec) {
-    logger_.warn("Could not enable the ES7210 high-pass filter: {}", first_hpf_ec.message());
+    if (es8388_config_fmt(ES_MODULE_DAC, ES_I2S_NORMAL) != ESP_OK) {
+      logger_.error("ES8388 format config failed");
+    }
+    if (es8388_set_bits_per_sample(ES_MODULE_DAC, BIT_LENGTH_16BITS) != ESP_OK) {
+      logger_.error("ES8388 bps config failed");
+    }
+
+    // Configure DAC output routing
+    if (es8388_config_dac_output(DAC_OUTPUT_ALL) != ESP_OK) {
+      logger_.error("ES8388 DAC output config failed");
+    }
+
+    // Set initial volume and unmute
+    es8388_set_voice_volume(static_cast<int>(volume_));
+    es8388_set_voice_mute(false); // Make sure it's not muted
+    es8388_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START);
   }
-  // apply the stored microphone volume (the driver's init leaves the analog
-  // gain at its 0 dB minimum, which records very quietly)
-  es7210_adc_set_gain_all(microphone_gain_from_volume(mic_volume_));
-  es7210_adc_ctrl_state(AUDIO_HAL_CODEC_MODE_ENCODE, AUDIO_HAL_CTRL_START);
+
+  if (recording) {
+    // ES7210 ADC recording config
+    audio_hal_codec_config_t es7210_cfg{};
+    es7210_cfg.codec_mode = AUDIO_HAL_CODEC_MODE_ENCODE;
+    es7210_cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
+    es7210_cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
+    es7210_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
+    // configure the ES7210 for the rate the I2S clocks are actually running at
+    // (rather than assuming 48 kHz) so its coefficient table matches
+    es7210_cfg.i2s_iface.samples = audio_hal_samples_from_rate(sample_rate);
+    logger_.info("Initializing ES7210 codec for recording (ADC) at {} Hz", sample_rate);
+    if (es7210_adc_init(&es7210_cfg) != ESP_OK) {
+      logger_.error("ES7210 init failed");
+      return false;
+    }
+    if (es7210_adc_config_i2s(AUDIO_HAL_CODEC_MODE_ENCODE, &es7210_cfg.i2s_iface) != ESP_OK) {
+      logger_.error("ES7210 I2S cfg failed");
+    }
+    // Enable the ES7210 digital high-pass filter on the ADC channels to strip
+    // the microphone DC offset. The espp es7210 driver leaves these registers
+    // at their reset value (HPF off), so the DC offset is amplified by the
+    // analog gain and rails the ADC to full scale - recordings come out as a
+    // near-constant DC level that the AC-coupled speaker plays as a click then
+    // silence. These are the driver's documented "quick setup" HPF values.
+    // write_register clears the error code on success, so a later successful
+    // write would mask an earlier failure; remember the first failure explicitly.
+    std::error_code hpf_ec, first_hpf_ec;
+    auto write_hpf = [&](uint8_t reg, uint8_t val) {
+      es7210_i2c_device_->write_register(reg, std::vector<uint8_t>{val}, hpf_ec);
+      if (hpf_ec && !first_hpf_ec) {
+        first_hpf_ec = hpf_ec;
+      }
+    };
+    write_hpf(0x22, 0x0a); // ADC1/2 HPF1
+    write_hpf(0x23, 0x2a); // ADC1/2 HPF2
+    write_hpf(0x20, 0x0a); // ADC3/4 HPF2
+    write_hpf(0x21, 0x2a); // ADC3/4 HPF1
+    if (first_hpf_ec) {
+      logger_.warn("Could not enable the ES7210 high-pass filter: {}", first_hpf_ec.message());
+    }
+    // apply the stored microphone volume (the driver's init leaves the analog
+    // gain at its 0 dB minimum, which records very quietly)
+    es7210_adc_set_gain_all(microphone_gain_from_volume(mic_volume_));
+    es7210_adc_ctrl_state(AUDIO_HAL_CODEC_MODE_ENCODE, AUDIO_HAL_CTRL_START);
+  }
 
   // Create two independent tasks, matching the (well-behaved) esp-box audio
   // path: one drains the playback stream buffer to the TX channel, and a
@@ -235,43 +280,52 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   // exactly the rate samples arrive (rather than only between blocking TX
   // writes), which the shared-task approach did irregularly - on this
   // full-duplex controller that jitter degraded the recording and let the ring
-  // back up.
-  logger_.info("Creating audio playback and microphone tasks");
+  // back up. Each task exists only for a direction that is enabled.
   using namespace std::placeholders;
-  audio_task_ = espp::Task::make_unique(
-      {.callback = std::bind(&M5StackTab5::audio_task_callback, this, _1, _2, _3),
-       .task_config = task_config});
+  if (playback) {
+    logger_.info("Creating audio playback task");
+    audio_task_ = espp::Task::make_unique(
+        {.callback = std::bind(&M5StackTab5::audio_task_callback, this, _1, _2, _3),
+         .task_config = task_config});
+  }
   // give the microphone task a distinct name from the playback task (they share
   // the rest of the caller's task config) so the two are easy to tell apart in
   // logs and while debugging
-  auto mic_task_config = task_config;
-  mic_task_config.name =
-      task_config.name.empty() ? std::string("microphone") : task_config.name + " microphone";
-  microphone_task_ = espp::Task::make_unique(
-      {.callback = std::bind(&M5StackTab5::microphone_task_callback, this, _1, _2, _3),
-       .task_config = mic_task_config});
+  if (recording) {
+    logger_.info("Creating microphone task");
+    auto mic_task_config = task_config;
+    mic_task_config.name =
+        task_config.name.empty() ? std::string("microphone") : task_config.name + " microphone";
+    microphone_task_ = espp::Task::make_unique(
+        {.callback = std::bind(&M5StackTab5::microphone_task_callback, this, _1, _2, _3),
+         .task_config = mic_task_config});
+  }
 
   // Start the tasks stepwise so a failure does not leave a half-initialized
   // state: if the microphone task fails to start, stop the already-running
   // playback task and report failure rather than leaving it running with
   // audio_initialized_ set.
-  if (!audio_task_->start()) {
+  if (audio_task_ && !audio_task_->start()) {
     logger_.error("Failed to start the audio playback task");
     return false;
   }
-  if (!microphone_task_->start()) {
+  if (microphone_task_ && !microphone_task_->start()) {
     logger_.error("Failed to start the microphone task");
-    // the playback task may already have registered its handle for
-    // play_audio()'s notifications: forget it before the task goes away
-    audio_tx_feed_.detach_task();
-    audio_task_->stop();
-    // the task may have paused charging on its first blocks
-    resume_charging_after_audio();
+    if (audio_task_) {
+      // the playback task may already have registered its handle for
+      // play_audio()'s notifications: forget it before the task goes away
+      audio_tx_feed_.detach_task();
+      audio_task_->stop();
+      // the task may have paused charging on its first blocks
+      resume_charging_after_audio();
+    }
     return false;
   }
 
   // Enable speaker output
-  enable_audio(true);
+  if (playback) {
+    enable_audio(true);
+  }
 
   audio_initialized_ = true;
   return true;
@@ -285,7 +339,9 @@ void M5StackTab5::enable_audio(bool enable) {
 void M5StackTab5::volume(float volume) {
   volume = std::max(0.0f, std::min(100.0f, volume));
   volume_ = volume;
-  es8388_set_voice_volume(static_cast<int>(volume_));
+  if (audio_playback_enabled_) {
+    es8388_set_voice_volume(static_cast<int>(volume_));
+  }
   logger_.debug("Volume set to {:.1f} %", volume);
 }
 
@@ -293,14 +349,16 @@ float M5StackTab5::volume() const { return volume_; }
 
 void M5StackTab5::mute(bool mute) {
   mute_ = mute;
-  es8388_set_voice_mute(mute_);
+  if (audio_playback_enabled_) {
+    es8388_set_voice_mute(mute_);
+  }
   logger_.debug("Audio {}", mute ? "muted" : "unmuted");
 }
 
 bool M5StackTab5::is_muted() const { return mute_; }
 
 size_t M5StackTab5::play_audio(const uint8_t *data, uint32_t num_bytes) {
-  if (!audio_initialized_ || !data || num_bytes == 0) {
+  if (!audio_initialized_ || !audio_playback_enabled_ || !data || num_bytes == 0) {
     return 0;
   }
   // Enqueue only whole 16-bit stereo frames (4 bytes) that actually fit:
@@ -331,7 +389,7 @@ size_t M5StackTab5::play_audio(std::span<const uint8_t> data) {
 
 void M5StackTab5::microphone_volume(float volume) {
   mic_volume_ = std::clamp(volume, 0.0f, 100.0f);
-  if (audio_initialized_) {
+  if (audio_initialized_ && audio_recording_enabled_) {
     es7210_adc_set_gain_all(microphone_gain_from_volume(mic_volume_));
   }
 }
@@ -342,6 +400,10 @@ bool M5StackTab5::start_audio_recording(
     std::function<void(const uint8_t *data, size_t length)> callback) {
   if (!audio_initialized_) {
     logger_.error("Audio system not initialized");
+    return false;
+  }
+  if (!audio_recording_enabled_) {
+    logger_.error("Audio recording was not enabled in initialize_audio()");
     return false;
   }
   // Reject a start while a recording is already in progress: the microphone
@@ -427,15 +489,32 @@ size_t M5StackTab5::audio_buffer_size() const { return audio_tx_buffer.size(); }
 
 void M5StackTab5::audio_sample_rate(uint32_t sample_rate) {
   logger_.info("Setting audio sample rate to {} Hz", sample_rate);
-  // stop the channel
-  i2s_channel_disable(audio_tx_handle);
+  // The channel that drives the clocks: TX (whose BCLK/WS RX shares in full
+  // duplex), or RX when only recording is set up.
+  i2s_chan_handle_t clock_handle = audio_tx_handle ? audio_tx_handle : audio_rx_handle;
+  if (!clock_handle) {
+    logger_.warn("Audio not initialized: pass the sample rate to initialize_audio()");
+    return;
+  }
+  // stop the channels: in full duplex RX runs on the clock being changed, so
+  // it is stopped too rather than left sampling through the switch (the
+  // microphone task's read just times out meanwhile)
+  i2s_channel_disable(clock_handle);
+  if (audio_rx_handle && audio_rx_handle != clock_handle) {
+    i2s_channel_disable(audio_rx_handle);
+  }
   // update the sample rate
   audio_std_cfg.clk_cfg.sample_rate_hz = sample_rate;
-  i2s_channel_reconfig_std_clock(audio_tx_handle, &audio_std_cfg.clk_cfg);
+  i2s_channel_reconfig_std_clock(clock_handle, &audio_std_cfg.clk_cfg);
   // clear the buffer
-  xStreamBufferReset(audio_tx_stream);
-  // restart the channel
-  i2s_channel_enable(audio_tx_handle);
+  if (audio_tx_handle) {
+    xStreamBufferReset(audio_tx_stream);
+  }
+  // restart the channels
+  i2s_channel_enable(clock_handle);
+  if (audio_rx_handle && audio_rx_handle != clock_handle) {
+    i2s_channel_enable(audio_rx_handle);
+  }
 }
 
 } // namespace espp
