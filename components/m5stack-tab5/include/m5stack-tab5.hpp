@@ -210,9 +210,29 @@ public:
   // Display & Touchpad
   /////////////////////////////////////////////////////////////////////////////
 
+  /// How initialize_lcd() sets the panel up
+  struct LcdConfig {
+    /// Let the DPI panel copy esp_lcd_panel_draw_bitmap() areas into its
+    /// frame buffer with the DMA2D engine instead of the CPU (on ESP-IDF 6.0
+    /// and later only on the ST7123 / ST7121 panels: the ILI9881 panel keeps
+    /// CPU copies). That takes the copies' PSRAM traffic off the CPU, which
+    /// otherwise can starve the panel's scan-out DMA, but DMA2D costs a few
+    /// KB of internal DMA-capable RAM. Only unrotated LVGL flushes,
+    /// write_lcd_lines() and the software rotation fallback use
+    /// draw_bitmap(): rotated flushes go through the PPA straight into the
+    /// frame buffer, so an application that always rotates (e.g. landscape)
+    /// can turn this off and lose nothing.
+    bool dma2d_enabled{true};
+  };
+
   /// Initialize the LCD (low level display driver, MIPI-DSI + ST7703)
   /// \return true if the LCD was successfully initialized, false otherwise
   bool initialize_lcd();
+
+  /// Initialize the LCD (low level display driver, MIPI-DSI + ST7703)
+  /// \param config How to set the panel up
+  /// \return true if the LCD was successfully initialized, false otherwise
+  bool initialize_lcd(const LcdConfig &config);
 
   /// How initialize_display() sets LVGL up
   struct DisplayConfig {
@@ -448,10 +468,31 @@ public:
   // Audio System
   /////////////////////////////////////////////////////////////////////////////
 
-  /// Initialize the dual audio system (ES8388 codec + ES7210 AEC)
-  /// \note With CONFIG_M5STACK_TAB5_AUDIO_RECORDING disabled only playback is
-  ///       set up (no I2S RX channel, ES7210 or microphone task), to save
-  ///       internal RAM in applications that never record.
+  /// How initialize_audio() sets the audio system up
+  struct AudioConfig {
+    /// The audio sample rate, in Hz
+    uint32_t sample_rate{48000};
+    /// Set up playback: the I2S TX channel, the ES8388 DAC, the speaker and
+    /// the playback task. Without it play_audio() queues nothing.
+    bool playback_enabled{true};
+    /// Set up recording: the I2S RX channel, the ES7210 microphones and the
+    /// microphone task. Without it start_audio_recording() fails.
+    /// \note Each I2S channel has a DMA ring of about 11.5 KB of internal
+    ///       DMA-capable RAM, and each task's stack is in internal RAM too,
+    ///       so an application that only plays (or only records) saves that
+    ///       memory by turning the other direction off.
+    bool recording_enabled{true};
+    /// The playback task's configuration; the microphone task uses it too,
+    /// with " microphone" appended to the name
+    espp::Task::BaseConfig task_config{.name = "tab5_audio",
+                                       .stack_size_bytes =
+                                           CONFIG_M5STACK_TAB5_AUDIO_TASK_STACK_SIZE,
+                                       .priority = 20,
+                                       .core_id = 1};
+  };
+
+  /// Initialize the audio system (ES8388 codec + ES7210 AEC) for playback and
+  /// recording
   /// \param sample_rate The audio sample rate (default 48kHz)
   /// \param task_config The task configuration for the audio task
   /// \return true if the audio system was successfully initialized, false otherwise
@@ -461,6 +502,13 @@ public:
                             .stack_size_bytes = CONFIG_M5STACK_TAB5_AUDIO_TASK_STACK_SIZE,
                             .priority = 20,
                             .core_id = 1});
+
+  /// Initialize the audio system (ES8388 codec + ES7210 AEC)
+  /// \param config The sample rate, which directions to set up, and the task
+  ///        configuration
+  /// \return true if the audio system was successfully initialized, false
+  ///         otherwise (also when neither playback nor recording is enabled)
+  bool initialize_audio(const AudioConfig &config);
 
   /// Enable or disable the audio system
   /// \param enable True to enable, false to disable
@@ -520,7 +568,7 @@ public:
   ///        signed interleaved stereo (ES7210 microphone 1 on the left slot,
   ///        microphone 2 on the right) at audio_sample_rate()
   /// \return True if recording started successfully (false, among other
-  ///         reasons, when CONFIG_M5STACK_TAB5_AUDIO_RECORDING is disabled)
+  ///         reasons, when initialize_audio() did not enable recording)
   /// \note The callback runs in the dedicated microphone task's context (a
   ///       separate task from audio playback), so keep it quick and non-
   ///       blocking and size that task's stack accordingly
@@ -1050,6 +1098,11 @@ protected:
 
   // Audio system
   std::atomic<bool> audio_initialized_{false};
+  // the directions initialize_audio() set up (written before
+  // audio_initialized_ is set; true until then, so that volume() and mute()
+  // keep reaching the ES8388 before initialization as they always have)
+  bool audio_playback_enabled_{true};
+  bool audio_recording_enabled_{true};
   std::atomic<float> volume_{50.0f};
   // microphone volume (percent), mapped onto the ES7210 analog gain range
   std::atomic<float> mic_volume_{70.0f};

@@ -151,20 +151,27 @@ for the PPA draw unit), which a plain `heap_caps_malloc()` draw buffer may not.
 
 ## Saving internal DMA-capable RAM
 
-Two options in `menuconfig` (M5Stack Tab5 Configuration) give back internal
-DMA-capable RAM that an application may not need (the SD card driver, for
-one, needs some of it for unaligned transfers):
+Applications that are short of internal DMA-capable RAM can skip the parts
+they don't use. The SD card driver, for example, needs some of that RAM for
+unaligned transfers.
 
-- `CONFIG_M5STACK_TAB5_AUDIO_RECORDING` (default on): with it off,
-  `initialize_audio()` sets up playback only. There is no I2S RX channel
-  (whose DMA ring matches the playback ring, about 11.5 KB), no ES7210
-  setup and no microphone task (whose stack is in internal RAM too), and
-  `start_audio_recording()` fails.
-- `CONFIG_M5STACK_TAB5_DPI_DMA2D` (default on): with it off,
-  `esp_lcd_panel_draw_bitmap()` copies into the frame buffer with the CPU
-  instead of the DMA2D engine, which saves about 5 KB. Rotated LVGL flushes
-  do not use `draw_bitmap()` (the PPA rotates them straight into the frame
-  buffer), so an application that always rotates loses nothing.
+- `initialize_audio({.playback_enabled = ..., .recording_enabled = ...})`
+  sets up only the directions it is asked for. Each I2S channel has a DMA
+  ring of about 11.5 KB and its own task, whose stack is in internal RAM.
+  Without recording there is no ES7210 setup and `start_audio_recording()`
+  fails. Without playback there is no ES8388 setup and `play_audio()` queues
+  nothing.
+- `initialize_lcd({.dma2d_enabled = false})` keeps CPU copies for
+  `esp_lcd_panel_draw_bitmap()` instead of the DMA2D engine, which saves a
+  few KB. Rotated LVGL flushes don't use `draw_bitmap()` (the PPA rotates
+  them straight into the frame buffer), so an application that always
+  rotates loses nothing.
+
+```cpp
+auto &tab5 = espp::M5StackTab5::get();
+tab5.initialize_lcd({.dma2d_enabled = false});          // always rotated
+tab5.initialize_audio({.recording_enabled = false});    // playback only
+```
 
 ## Example
 

@@ -27,18 +27,6 @@ menu "M5Stack Tab5 Configuration"
   help
     Size of the stack used for the audio processing task.
 
-  config M5STACK_TAB5_AUDIO_RECORDING
-  bool "Enable audio recording (ES7210 microphones)"
-  default y
-  help
-    Set up the I2S RX channel, the ES7210 microphone codec and the
-    microphone task in initialize_audio(), for start_audio_recording().
-    The RX channel's DMA ring is the same size as the playback ring (about
-    11.5 KB of internal DMA-capable RAM), and the microphone task's stack
-    is in internal RAM too. Disable it in an application that only plays
-    audio to get that memory back: initialize_audio() then creates the TX
-    channel alone, and start_audio_recording() fails.
-
   config M5STACK_TAB5_ST7121_HW_ROTATION
     bool "ST7121: apply 0/180 rotation in the panel (EXPERIMENTAL)"
     default n
@@ -67,21 +55,6 @@ menu "M5Stack Tab5 Configuration"
       works it costs nothing. Disable to never allocate it: rotation is then
       PPA-only, and a rotated flush with no PPA available is dropped with an
       error instead of being rotated in software.
-
-  config M5STACK_TAB5_DPI_DMA2D
-  bool "Copy draw_bitmap() areas into the frame buffer with DMA2D"
-  default y
-  help
-    Let the DPI panel copy esp_lcd_panel_draw_bitmap() areas into its
-    frame buffer with the DMA2D engine (on ESP-IDF 6.0 and later only on
-    the ST7123 / ST7121 panels: the ILI9881 panel keeps CPU copies). It
-    takes the PSRAM traffic of those copies off the CPU, which can starve
-    the panel's scan-out DMA, but its descriptors cost about 5 KB of
-    internal DMA-capable RAM. Only unrotated LVGL flushes,
-    write_lcd_lines() and the software rotation fallback use draw_bitmap():
-    rotated flushes go through the PPA straight into the frame buffer. An
-    application that always rotates (e.g. landscape) can disable this to
-    get that memory back.
 
   config M5STACK_TAB5_DPI_NUM_FBS
   int "Number of DPI frame buffers"
