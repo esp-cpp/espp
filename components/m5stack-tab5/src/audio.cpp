@@ -109,8 +109,8 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
                    .din = audio_asdout_io, // ES7210 ASDOUT (record data output)
                    .invert_flags = {.mclk_inv = false, .bclk_inv = false, .ws_inv = false}},
   };
-  logger_.info("Configuring I2S standard mode with sample rate {} Hz", sample_rate);
   if (playback) {
+    logger_.info("Configuring I2S channel for playback (TX) at {} Hz", sample_rate);
     ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_tx_handle, &audio_std_cfg));
   }
 
@@ -121,7 +121,7 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
   // configuration - a different frame geometry (e.g. multi-slot TDM) would
   // not match the shared clock.
   if (recording) {
-    logger_.info("Configuring I2S channel for recording (RX)");
+    logger_.info("Configuring I2S channel for recording (RX) at {} Hz", sample_rate);
     ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_rx_handle, &audio_std_cfg));
   }
 
