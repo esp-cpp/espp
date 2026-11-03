@@ -216,8 +216,8 @@ public:
     /// frame buffer with the DMA2D engine instead of the CPU (on ESP-IDF 6.0
     /// and later only on the ST7123 / ST7121 panels: the ILI9881 panel keeps
     /// CPU copies). That takes the copies' PSRAM traffic off the CPU, which
-    /// otherwise can starve the panel's scan-out DMA, but DMA2D costs a few
-    /// KB of internal DMA-capable RAM. Only unrotated LVGL flushes,
+    /// otherwise can starve the panel's scan-out DMA, but DMA2D costs about
+    /// 3 KB of internal DMA-capable RAM. Only unrotated LVGL flushes,
     /// write_lcd_lines() and the software rotation fallback use
     /// draw_bitmap(): rotated flushes go through the PPA straight into the
     /// frame buffer, so an application that always rotates (e.g. landscape)
@@ -516,6 +516,8 @@ public:
 
   /// Set the audio volume
   /// \param volume The volume as a percentage (0-100)
+  /// \note Without playback (AudioConfig::playback_enabled) the value is only
+  ///       stored.
   void volume(float volume);
 
   /// Get the audio volume
@@ -524,6 +526,8 @@ public:
 
   /// Mute or unmute the audio
   /// \param mute True to mute, false to unmute
+  /// \note Without playback (AudioConfig::playback_enabled) the value is only
+  ///       stored.
   void mute(bool mute);
 
   /// Check if audio is muted
@@ -580,6 +584,8 @@ public:
   /// Set the microphone volume
   /// \param volume The volume as a percentage (0 - 100), mapped onto the
   ///        ES7210 analog microphone gain range (0 dB - +37.5 dB)
+  /// \note Without recording (AudioConfig::recording_enabled) the value is
+  ///       only stored.
   void microphone_volume(float volume);
 
   /// Get the microphone volume

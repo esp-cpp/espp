@@ -489,15 +489,20 @@ size_t M5StackTab5::audio_buffer_size() const { return audio_tx_buffer.size(); }
 
 void M5StackTab5::audio_sample_rate(uint32_t sample_rate) {
   logger_.info("Setting audio sample rate to {} Hz", sample_rate);
-  // the channel that drives the clocks: TX (which RX shares in full duplex),
-  // or RX when only recording is set up
+  // The channel that drives the clocks: TX (whose BCLK/WS RX shares in full
+  // duplex), or RX when only recording is set up.
   i2s_chan_handle_t clock_handle = audio_tx_handle ? audio_tx_handle : audio_rx_handle;
   if (!clock_handle) {
     logger_.warn("Audio not initialized: pass the sample rate to initialize_audio()");
     return;
   }
-  // stop the channel
+  // stop the channels: in full duplex RX runs on the clock being changed, so
+  // it is stopped too rather than left sampling through the switch (the
+  // microphone task's read just times out meanwhile)
   i2s_channel_disable(clock_handle);
+  if (audio_rx_handle && audio_rx_handle != clock_handle) {
+    i2s_channel_disable(audio_rx_handle);
+  }
   // update the sample rate
   audio_std_cfg.clk_cfg.sample_rate_hz = sample_rate;
   i2s_channel_reconfig_std_clock(clock_handle, &audio_std_cfg.clk_cfg);
@@ -505,8 +510,11 @@ void M5StackTab5::audio_sample_rate(uint32_t sample_rate) {
   if (audio_tx_handle) {
     xStreamBufferReset(audio_tx_stream);
   }
-  // restart the channel
+  // restart the channels
   i2s_channel_enable(clock_handle);
+  if (audio_rx_handle && audio_rx_handle != clock_handle) {
+    i2s_channel_enable(audio_rx_handle);
+  }
 }
 
 } // namespace espp

@@ -162,8 +162,8 @@ unaligned transfers.
   fails. Without playback there is no ES8388 setup and `play_audio()` queues
   nothing.
 - `initialize_lcd({.dma2d_enabled = false})` keeps CPU copies for
-  `esp_lcd_panel_draw_bitmap()` instead of the DMA2D engine, which saves a
-  few KB. Rotated LVGL flushes don't use `draw_bitmap()` (the PPA rotates
+  `esp_lcd_panel_draw_bitmap()` instead of the DMA2D engine, which saves
+  about 3 KB. Rotated LVGL flushes don't use `draw_bitmap()` (the PPA rotates
   them straight into the frame buffer), so an application that always
   rotates loses nothing.
 
