@@ -149,6 +149,23 @@ the 1.8 MB rotation scratch buffer is not needed either). The frame buffers are
 cache-line aligned, so they also satisfy a raised `LV_DRAW_BUF_ALIGN` (e.g. 128
 for the PPA draw unit), which a plain `heap_caps_malloc()` draw buffer may not.
 
+## Saving internal DMA-capable RAM
+
+Two options in `menuconfig` (M5Stack Tab5 Configuration) give back internal
+DMA-capable RAM that an application may not need (the SD card driver, for
+one, needs some of it for unaligned transfers):
+
+- `CONFIG_M5STACK_TAB5_AUDIO_RECORDING` (default on): with it off,
+  `initialize_audio()` sets up playback only. There is no I2S RX channel
+  (whose DMA ring matches the playback ring, about 11.5 KB), no ES7210
+  setup and no microphone task (whose stack is in internal RAM too), and
+  `start_audio_recording()` fails.
+- `CONFIG_M5STACK_TAB5_DPI_DMA2D` (default on): with it off,
+  `esp_lcd_panel_draw_bitmap()` copies into the frame buffer with the CPU
+  instead of the DMA2D engine, which saves about 5 KB. Rotated LVGL flushes
+  do not use `draw_bitmap()` (the PPA rotates them straight into the frame
+  buffer), so an application that always rotates loses nothing.
+
 ## Example
 
 The [example](./example) shows how to use the `espp::M5StackTab5` hardware abstraction component to initialize and use various subsystems of the Tab5.

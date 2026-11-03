@@ -449,6 +449,9 @@ public:
   /////////////////////////////////////////////////////////////////////////////
 
   /// Initialize the dual audio system (ES8388 codec + ES7210 AEC)
+  /// \note With CONFIG_M5STACK_TAB5_AUDIO_RECORDING disabled only playback is
+  ///       set up (no I2S RX channel, ES7210 or microphone task), to save
+  ///       internal RAM in applications that never record.
   /// \param sample_rate The audio sample rate (default 48kHz)
   /// \param task_config The task configuration for the audio task
   /// \return true if the audio system was successfully initialized, false otherwise
@@ -516,7 +519,8 @@ public:
   /// \param callback Function to call with recorded audio data: 16-bit
   ///        signed interleaved stereo (ES7210 microphone 1 on the left slot,
   ///        microphone 2 on the right) at audio_sample_rate()
-  /// \return True if recording started successfully
+  /// \return True if recording started successfully (false, among other
+  ///         reasons, when CONFIG_M5STACK_TAB5_AUDIO_RECORDING is disabled)
   /// \note The callback runs in the dedicated microphone task's context (a
   ///       separate task from audio playback), so keep it quick and non-
   ///       blocking and size that task's stack accordingly
