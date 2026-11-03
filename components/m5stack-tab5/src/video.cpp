@@ -1140,6 +1140,16 @@ bool M5StackTab5::present_frame(const void *frame_buffer, uint32_t timeout_ms) {
     logger_.error("present_frame() needs a pointer inside one of the panel's frame buffers");
     return false;
   }
+  // With a single frame buffer there is nothing to switch to and no frame
+  // that is safe to draw into afterwards: say so instead of returning a
+  // "switched" that would hide the tearing. (Rate-limited: an application may
+  // call this once per frame.) The DIRECT-mode flush never gets here with one
+  // buffer, initialize_display() refuses that configuration up front.
+  if (fbs.size() < 2) {
+    logger_.error_rate_limited("present_frame() needs CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2 (one "
+                               "frame buffer: nothing to switch)");
+    return false;
+  }
   // One presenter at a time: the frame-done semaphore has a single token and
   // a single waiter per switch, so a second caller must not steal this one's
   // event. (The LVGL flush is the only presenter in DIRECT mode; this guards

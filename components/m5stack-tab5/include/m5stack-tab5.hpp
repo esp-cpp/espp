@@ -385,17 +385,17 @@ public:
   /// \param timeout_ms How long to wait for the switch
   /// \return true once the panel scans the frame out, or at once if the wait
   ///         is disabled or unavailable (see set_vsync_enabled()); false if
-  ///         \p frame_buffer is not inside one of frame_buffers(), a previous
-  ///         transfer is wedged, or the wait timed out (the switch is still
-  ///         queued; carry on rather than stall). Callers are serialized: one
-  ///         presenter at a time.
+  ///         the panel has only one frame buffer (CONFIG_M5STACK_TAB5_DPI_NUM_FBS
+  ///         must be >= 2: with one there is nothing to switch, and no frame
+  ///         that is safe to draw into afterwards), \p frame_buffer is not
+  ///         inside one of frame_buffers(), a previous transfer is wedged, or
+  ///         the wait timed out (the switch is still queued; carry on rather
+  ///         than stall). Callers are serialized: one presenter at a time.
   /// \note Waits at most one panel refresh period (about 17 ms; 21 ms on the
   ///       ILI9881 panel) when the panel is running - two on ESP-IDF before
   ///       v5.5.5 / v6.0.3, whose frame-done event is the DSI bridge's VSYNC
   ///       rather than the DMA's re-arm (see present_frame() in video.cpp).
-  ///       Do not call it from an ISR. The wait needs
-  ///       CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2 (with one frame buffer there
-  ///       is nothing to switch, and the call only writes the cache back).
+  ///       Do not call it from an ISR.
   bool present_frame(const void *frame_buffer, uint32_t timeout_ms = 100);
 
   /// Enable or disable the wait in present_frame()
@@ -403,8 +403,14 @@ public:
   ///        once (faster, but the next frame can tear). present_frame()
   ///        disables the wait itself after a few consecutive timeouts (a
   ///        frame-done event that never arrives); pass true to arm it again.
+  ///        Re-arming starts a new outage episode: the consecutive-timeout
+  ///        count and the once-per-episode timeout warning are reset, so a
+  ///        later stall is logged again.
   void set_vsync_enabled(bool enabled) {
     vsync_timeouts_in_a_row_ = 0;
+    if (enabled) {
+      vsync_timeout_logged_.store(false, std::memory_order_relaxed);
+    }
     vsync_enabled_.store(enabled, std::memory_order_relaxed);
   }
 
