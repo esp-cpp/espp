@@ -14,7 +14,8 @@
 #include <driver/i2s_std.h>
 #include <driver/i2s_tdm.h>
 #include <driver/ppa.h>
-#if __has_include(<esp_async_color_convert.h>)
+#include <sdkconfig.h>
+#if CONFIG_M5STACK_TAB5_BACK_BUFFER_FLUSH && __has_include(<esp_async_color_convert.h>)
 // ESP-IDF 6.1+: DMA2D window copies (esp_driver_dma), used by the back-buffer flush
 #include <esp_async_color_convert.h>
 #define M5STACK_TAB5_HAS_ASYNC_FBCPY 1
@@ -254,7 +255,9 @@ public:
     /// the draw buffers can be strips (pixel_buffer_size) instead of whole
     /// frames: a full-screen redraw is assembled off screen and shown at
     /// once. Needs initialize_lcd() first, CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2
-    /// and a working PPA; ignored with render_to_frame_buffers_enabled.
+    /// and a working PPA; ignored with render_to_frame_buffers_enabled. The
+    /// mode is compiled in with CONFIG_M5STACK_TAB5_BACK_BUFFER_FLUSH (off by
+    /// default: without it nothing of it is built and this flag is refused).
     /// \note Costs: the flush of a frame's last area waits for the panel's
     ///       frame-done event (one refresh, like DIRECT mode), and the PPA
     ///       does an extra copy of the changed region per frame. Pixels
@@ -1257,6 +1260,17 @@ protected:
   // initialize_display() set LVGL up in DIRECT mode on the frame buffers
   // (DisplayConfig::render_to_frame_buffers_enabled)
   bool direct_render_enabled_{false};
+  // Queue a non-blocking PPA copy of a block of a source picture into a frame
+  // buffer, rotated by `angle`, completed through notify_ppa_trans_done().
+  // Caller holds panel_op_mutex_ with no transfer in flight (and has set
+  // lvgl_flush_pending_ as it wants); sets transfer_in_flight_, cleared again
+  // if the operation is not queued (then returns false).
+  bool queue_ppa_block(const void *src, uint32_t src_pic_w, uint32_t src_pic_h, uint32_t src_x,
+                       uint32_t src_y, uint32_t block_w, uint32_t block_h, void *dst_frame_buffer,
+                       uint32_t dst_x, uint32_t dst_y, ppa_srm_rotation_angle_t angle);
+  // Index of a pointer inside one of frame_buffers(), or -1
+  int frame_buffer_index(const void *p) const;
+#if CONFIG_M5STACK_TAB5_BACK_BUFFER_FLUSH
   // initialize_display() set flush() up to land in the back frame buffer
   // and switch at the frame boundary (DisplayConfig::flush_to_back_buffer_enabled)
   bool back_buffer_flush_enabled_{false};
@@ -1271,16 +1285,6 @@ protected:
   // flush() for the back-buffer mode (see flush_to_back_buffer_enabled)
   void flush_to_back_buffer(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map,
                             lv_display_rotation_t rotation);
-  // Queue a non-blocking PPA copy of a block of a source picture into a frame
-  // buffer, rotated by `angle`, completed through notify_ppa_trans_done().
-  // Caller holds panel_op_mutex_ with no transfer in flight (and has set
-  // lvgl_flush_pending_ as it wants); sets transfer_in_flight_, cleared again
-  // if the operation is not queued (then returns false).
-  bool queue_ppa_block(const void *src, uint32_t src_pic_w, uint32_t src_pic_h, uint32_t src_x,
-                       uint32_t src_y, uint32_t block_w, uint32_t block_h, void *dst_frame_buffer,
-                       uint32_t dst_x, uint32_t dst_y, ppa_srm_rotation_angle_t angle);
-  // Index of a pointer inside one of frame_buffers(), or -1
-  int frame_buffer_index(const void *p) const;
   // Queue a non-blocking unrotated window copy of a source picture into a
   // frame buffer: on the DMA2D engine (ESP-IDF 6.1+, about five times the
   // PPA's throughput) when available, else the PPA at angle 0. Same contract
@@ -1294,6 +1298,7 @@ protected:
   static bool notify_block_copy_done(async_color_convert_handle_t handle,
                                      async_color_convert_event_data_t *edata, void *cb_args);
 #endif
+#endif // CONFIG_M5STACK_TAB5_BACK_BUFFER_FLUSH
   // present_frame() with the number of frame-buffer rows whose cache is
   // written back before the switch (the driver syncs the rows of the draw):
   // the public call syncs the whole buffer for CPU-rendered frames; the

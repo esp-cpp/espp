@@ -18,11 +18,12 @@ menu "M5Stack Tab5 Example Configuration"
 
     config M5STACK_TAB5_EXAMPLE_FLUSH_TO_BACK_BUFFER
         bool "Flush LVGL into the back frame buffer (tear-free, rotation works)"
-        depends on M5STACK_TAB5_DPI_NUM_FBS > 1 && !M5STACK_TAB5_EXAMPLE_RENDER_TO_FRAME_BUFFERS
+        depends on M5STACK_TAB5_BACK_BUFFER_FLUSH && !M5STACK_TAB5_EXAMPLE_RENDER_TO_FRAME_BUFFERS
         default n
         help
             Initialize the display with
-            DisplayConfig::flush_to_back_buffer_enabled: every LVGL flush is
+            DisplayConfig::flush_to_back_buffer_enabled (compiled in with
+            CONFIG_M5STACK_TAB5_BACK_BUFFER_FLUSH, M5Stack Tab5 Configuration): every LVGL flush is
             copied (and rotated) by the PPA into the frame buffer the panel is
             not scanning out, and the panel switches to it at the frame
             boundary once the frame is complete. Partial frames are never on

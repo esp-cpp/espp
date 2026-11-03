@@ -155,8 +155,11 @@ DIRECT mode cannot rotate. The back-buffer flush keeps LVGL's normal partial
 rendering into draw buffers (so the PPA rotation of each area, and the panel's
 own 180-degree flip, keep working) and gets rid of tearing differently:
 
-- `initialize_display({.flush_to_back_buffer_enabled = true})` (needs
-  `CONFIG_M5STACK_TAB5_DPI_NUM_FBS` >= 2 and the PPA). Every flushed area is
+- Compiled in with `CONFIG_M5STACK_TAB5_BACK_BUFFER_FLUSH` (off by default:
+  an application that does not enable it carries none of the code, and its
+  flush path is unchanged). Then `initialize_display({.flush_to_back_buffer_enabled
+  = true})` (needs `CONFIG_M5STACK_TAB5_DPI_NUM_FBS` >= 2 and the PPA) turns it
+  on per display; nothing is allocated or installed until it is set. Every flushed area is
   copied, rotated when needed, by the PPA into the frame buffer the panel is
   *not* scanning out; nothing is drawn into the buffer on screen.
 - When LVGL's last area of a frame has landed, the flush switches the panel to
@@ -174,7 +177,8 @@ own 180-degree flip, keep working) and gets rid of tearing differently:
   assembled off screen and shown at once.
 
 ```cpp
-// menuconfig: M5Stack Tab5 Configuration -> Number of DPI frame buffers = 2
+// menuconfig: M5Stack Tab5 Configuration -> Number of DPI frame buffers = 2,
+//             Compile in the back-buffer LVGL flush = y
 auto &tab5 = espp::M5StackTab5::get();
 tab5.initialize_lcd();
 tab5.initialize_display({.pixel_buffer_size = 720 * 128, // 128-row strips (184 KB each)

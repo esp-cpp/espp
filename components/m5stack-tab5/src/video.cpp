@@ -724,12 +724,21 @@ bool M5StackTab5::initialize_display(const DisplayConfig &config) {
                   direct_render_enabled_ ? "on" : "without");
     return false;
   }
+#if CONFIG_M5STACK_TAB5_BACK_BUFFER_FLUSH
   if (display_ && !direct_render_enabled_ &&
       back_buffer_flush_enabled_ != config.flush_to_back_buffer_enabled) {
     logger_.error("The LVGL display is already initialized {} the back-buffer flush",
                   back_buffer_flush_enabled_ ? "with" : "without");
     return false;
   }
+#else
+  if (config.flush_to_back_buffer_enabled) {
+    logger_.error(
+        "flush_to_back_buffer_enabled is not compiled in: enable "
+        "CONFIG_M5STACK_TAB5_BACK_BUFFER_FLUSH (needs CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2)");
+    return false;
+  }
+#endif
   const Display<Pixel>::LvglConfig lvgl_config{
       .width = display_width_,
       .height = display_height_,
@@ -842,6 +851,7 @@ bool M5StackTab5::initialize_display(const DisplayConfig &config) {
     }
   }
   const size_t pixel_buffer_size = config.pixel_buffer_size;
+#if CONFIG_M5STACK_TAB5_BACK_BUFFER_FLUSH
   if (config.flush_to_back_buffer_enabled && !display_) {
     // The back-buffer flush writes every area with the PPA into the frame
     // buffer the panel is not scanning out, which the DPI driver's own
@@ -893,6 +903,7 @@ bool M5StackTab5::initialize_display(const DisplayConfig &config) {
                  "frame boundary, unrotated copies on the {})",
                  num_frame_buffers_, copy_engine);
   }
+#endif
   logger_.info("Initializing LVGL display with pixel buffer size: {} pixels", pixel_buffer_size);
   if (!display_) {
     display_ = std::make_shared<Display<Pixel>>(
@@ -1391,10 +1402,12 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
     return;
   }
 
+#if CONFIG_M5STACK_TAB5_BACK_BUFFER_FLUSH
   if (back_buffer_flush_enabled_) {
     flush_to_back_buffer(disp, area, px_map, rotation);
     return;
   }
+#endif
 
   // When the panel itself applies the rotation (ST7121, 180 degrees via the
   // display driver's MADCTL scan flip - see on_display_rotation()), the
@@ -1618,6 +1631,7 @@ bool M5StackTab5::queue_ppa_block(const void *src, uint32_t src_pic_w, uint32_t 
   return true;
 }
 
+#if CONFIG_M5STACK_TAB5_BACK_BUFFER_FLUSH
 bool M5StackTab5::queue_block_copy(const void *src, uint32_t src_stride_px, uint32_t src_height,
                                    uint32_t src_x, uint32_t src_y, uint32_t w, uint32_t h,
                                    void *dst_frame_buffer, uint32_t dst_x, uint32_t dst_y) {
@@ -1830,6 +1844,7 @@ void M5StackTab5::flush_to_back_buffer(lv_display_t *disp, const lv_area_t *area
   present_frame(back_fb, 100, 1);
   lv_display_flush_ready(disp);
 }
+#endif // CONFIG_M5STACK_TAB5_BACK_BUFFER_FLUSH
 
 bool IRAM_ATTR M5StackTab5::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel,
                                                     esp_lcd_dpi_panel_event_data_t *edata,

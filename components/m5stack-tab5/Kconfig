@@ -74,4 +74,22 @@ menu "M5Stack Tab5 Configuration"
     application that drives the frame buffers itself. Extra buffers without
     DIRECT mode buy nothing: LVGL keeps copying into the scanned-out buffer.
 
+  config M5STACK_TAB5_BACK_BUFFER_FLUSH
+  bool "Compile in the back-buffer LVGL flush (tear-free with rotation)"
+  depends on M5STACK_TAB5_DPI_NUM_FBS > 1
+  default n
+  help
+    Compile in DisplayConfig::flush_to_back_buffer_enabled: LVGL keeps its
+    draw buffers, every flushed area is copied (DMA2D; PPA when rotated)
+    into the frame buffer the panel is not scanning out, and the panel
+    switches to it at the frame boundary once the frame is complete, so
+    frames never tear and the display rotation keeps working (unlike
+    LVGL's DIRECT mode). Off, nothing of it is built: the flush path is
+    unchanged and initialize_display() refuses the option. On, it is still
+    opt-in per display (the DisplayConfig flag defaults to off; nothing is
+    allocated or installed until it is set). Needs 2 frame buffers (1.8 MB
+    of PSRAM for the second) and the PPA; a full-screen redraw then takes
+    two panel periods (the frame-done wait) and the draw buffers can be
+    small strips: see the README's measurements.
+
 endmenu
