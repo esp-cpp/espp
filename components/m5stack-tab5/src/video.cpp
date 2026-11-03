@@ -57,18 +57,27 @@ static_assert(LV_COLOR_DEPTH == 16 && sizeof(M5StackTab5::Pixel) == sizeof(uint1
               "The Tab5 video path (DPI panel config, PPA rotation color modes, buffer "
               "sizing) is RGB565-only; configure LVGL with LV_COLOR_DEPTH 16");
 
-// Number of framebuffers the DPI panel is created with (esp_lcd_dpi_panel_config_t::num_fbs,
-// used for every controller variant below). The direct-to-framebuffer PPA
-// rotation in flush() caches THE single framebuffer pointer at init and writes
-// into it unconditionally; with more than one framebuffer the driver flips
-// which buffer is scanned out, and rotating into a fixed one would
-// intermittently update a non-visible buffer. That optimization is therefore
-// only implemented for exactly one framebuffer: raising this value requires
-// first teaching the direct-to-framebuffer path to track the active
-// framebuffer (or removing it in favor of the always-correct scratch-buffer
-// path), and a static_assert in initialize_lcd() enforces that at compile
-// time rather than letting the stale-pointer bug ship.
-static constexpr uint8_t kNumDpiFramebuffers = 1;
+// Number of frame buffers the DPI panel is created with (num_fbs, the same for
+// every controller variant below). More than one lets an application render
+// straight into them and switch whole frames (see frame_buffers()).
+static constexpr uint8_t kNumDpiFramebuffers = CONFIG_M5STACK_TAB5_DPI_NUM_FBS;
+static_assert(kNumDpiFramebuffers >= 1 && kNumDpiFramebuffers <= M5StackTab5::max_frame_buffers,
+              "CONFIG_M5STACK_TAB5_DPI_NUM_FBS must be 1..3 (the DPI panel driver's limit)");
+
+// Whether this ESP-IDF's DPI panel raises its frame-done event from the DMA
+// transfer-done interrupt after re-arming on the queued frame buffer
+// (on_frame_buf_complete: v5.5.5+, v6.0.3+). Earlier versions raise
+// on_refresh_done from the DSI bridge's VSYNC interrupt on chips that have
+// one (the P4), which is not synchronized with the re-arm; present_frame()
+// then waits for two events. The DMA2D / frame-buffer draw_bitmap ordering
+// bug of v6.0.0 is handled separately in initialize_lcd().
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 3) ||                                             \
+    (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 5) &&                                            \
+     ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0))
+static constexpr bool kFrameDoneIsBufferComplete = true;
+#else
+static constexpr bool kFrameDoneIsBufferComplete = false;
+#endif
 
 // Alignment the PPA requires for its output buffer in external (PSRAM) memory:
 // both the buffer pointer and the buffer size must be multiples of the data
@@ -199,7 +208,7 @@ bool M5StackTab5::initialize_lcd() {
   // (display_driver_ / display_controller_ need no reset here: display_driver_
   // is .reset() unconditionally below and both are rewritten together before
   // the gate can open.)
-  dpi_framebuffer_ = nullptr;
+  dpi_framebuffer_.store(nullptr, std::memory_order_release);
   dpi_framebuffer_bytes_ = 0;
 
   if (!ioexp_0x43_) {
@@ -393,6 +402,39 @@ bool M5StackTab5::initialize_lcd() {
     }
   }
 
+  // Keep the panel's frame buffers for frame_buffers() and for
+  // DisplayConfig::render_to_frame_buffers_enabled. (The driver reads only the first
+  // kNumDpiFramebuffers of the pointers passed.)
+  num_frame_buffers_ = 0;
+  frame_buffers_ = {};
+  ret = esp_lcd_dpi_panel_get_frame_buffer(lcd_handles_.panel, kNumDpiFramebuffers,
+                                           &frame_buffers_[0], &frame_buffers_[1],
+                                           &frame_buffers_[2]);
+  if (ret != ESP_OK) {
+    logger_.error("Failed to get the DPI panel frame buffers: {}", esp_err_to_name(ret));
+    frame_buffers_ = {};
+    return false;
+  }
+  // DIRECT mode hands LVGL buffers 1 and 0 and present_frame() switches
+  // between them, so every one of the first kNumDpiFramebuffers pointers
+  // must be a real, distinct buffer; a null or duplicate would make two
+  // "buffers" the same memory.
+  for (size_t i = 0; i < kNumDpiFramebuffers; ++i) {
+    if (frame_buffers_[i] == nullptr) {
+      logger_.error("DPI panel frame buffer {} of {} is null", i, kNumDpiFramebuffers);
+      frame_buffers_ = {};
+      return false;
+    }
+    for (size_t j = 0; j < i; ++j) {
+      if (frame_buffers_[j] == frame_buffers_[i]) {
+        logger_.error("DPI panel frame buffers {} and {} are the same buffer", j, i);
+        frame_buffers_ = {};
+        return false;
+      }
+    }
+  }
+  num_frame_buffers_ = kNumDpiFramebuffers;
+
   espp::display_drivers::Config display_config{
       .panel_io = nullptr,
       .write_command = std::bind_front(&M5StackTab5::dsi_write_command, this),
@@ -471,6 +513,29 @@ bool M5StackTab5::initialize_lcd() {
       return false;
     }
   }
+  if constexpr (kNumDpiFramebuffers > 1) {
+    // Frame-done event for present_frame(): the DMA has finished a frame and
+    // restarted on the frame buffer queued last (cur_fb_index), i.e. a queued
+    // switch has happened. ESP-IDF v5.5.5 / v6.0.3 / v6.1 renamed this
+    // callback from on_refresh_done (now deprecated) to on_frame_buf_complete
+    // and added a separate on_vsync; pick whichever this ESP-IDF has.
+    auto set_frame_done_callback = [](auto &callbacks, auto callback) {
+      if constexpr (requires { callbacks.on_frame_buf_complete; }) {
+        callbacks.on_frame_buf_complete = callback;
+      } else {
+        callbacks.on_refresh_done = callback;
+      }
+    };
+    // Created before the callback is registered, so the ISR never sees null.
+    if (frame_done_sem_ == nullptr) {
+      frame_done_sem_ = xSemaphoreCreateBinary();
+    }
+    if (frame_done_sem_ != nullptr) {
+      set_frame_done_callback(cbs, &M5StackTab5::notify_frame_done);
+    } else {
+      logger_.warn("Could not create the frame-done semaphore; present_frame() will not wait");
+    }
+  }
   ret = esp_lcd_dpi_panel_register_event_callbacks(lcd_handles_.panel, &cbs, this);
   if (ret != ESP_OK) {
     logger_.error("Failed to register panel event callback: {}", esp_err_to_name(ret));
@@ -505,7 +570,21 @@ bool M5StackTab5::initialize_lcd() {
   // on which the underrun streaking this call addresses was reproduced, and
   // M5Stack's own Tab5 demo firmware ships with DMA2D enabled on production
   // units that are predominantly ST71xx.
-  if (display_controller_ != DisplayController::ILI9881) {
+  //
+  // ESP-IDF v6.0.0 only: its DPI draw_bitmap() checks the DMA2D hook before the
+  // "pointer is inside a frame buffer" test (fixed in v6.0.1), so with DMA2D on
+  // and 2+ frame buffers a frame-buffer switch would become a full-frame copy
+  // into the buffer on screen. Keep the CPU path there.
+#if ESP_IDF_VERSION == ESP_IDF_VERSION_VAL(6, 0, 0)
+  constexpr bool dma2d_breaks_fb_switch = kNumDpiFramebuffers > 1;
+#else
+  constexpr bool dma2d_breaks_fb_switch = false;
+#endif
+  if constexpr (dma2d_breaks_fb_switch) {
+    logger_.info("ESP-IDF v6.0.0 with {} frame buffers: keeping CPU draw_bitmap copies (DMA2D "
+                 "would turn a frame-buffer switch into a copy)",
+                 kNumDpiFramebuffers);
+  } else if (display_controller_ != DisplayController::ILI9881) {
     ret = esp_lcd_dpi_panel_enable_dma2d(lcd_handles_.panel);
     if (ret != ESP_OK) {
       // Not fatal: draw_bitmap falls back to the (slower) CPU copy.
@@ -522,22 +601,15 @@ bool M5StackTab5::initialize_lcd() {
   // with the PPA (see flush()). The panel scans this buffer out continuously;
   // the espp draw/flush path itself never writes it with the CPU.
   //
-  // This optimization is only valid with a single DPI framebuffer: caching one
-  // fixed pointer assumes the panel scans that same buffer forever. With
-  // num_fbs > 1 the driver flips between buffers and the PPA could rotate into
-  // one that is not being scanned out. Multi-framebuffer operation is
-  // intentionally unsupported until this path learns to track the active
-  // framebuffer, and the static_assert below turns raising
-  // kNumDpiFramebuffers without doing that work into a compile-time error
-  // instead of an intermittent visual glitch.
-  static_assert(kNumDpiFramebuffers == 1,
-                "The direct-to-framebuffer PPA rotation caches a single framebuffer pointer; "
-                "with multiple DPI framebuffers it must track the active one instead");
+  // With several DPI framebuffers the driver scans whichever one was last
+  // handed to draw_bitmap(): nothing switches buffers except present_frame(),
+  // which keeps dpi_framebuffer_ pointing at the buffer it switched to, so the
+  // PPA rotation always targets the scanned-out buffer whatever the count.
+  // (An application that presents its own frames does not use the LVGL
+  // partial-mode flush at the same time, and DIRECT mode never rotates.)
   {
-    void *fb = nullptr;
-    if (esp_lcd_dpi_panel_get_frame_buffer(lcd_handles_.panel, kNumDpiFramebuffers, &fb) ==
-            ESP_OK &&
-        fb != nullptr) {
+    void *fb = frame_buffers_[0];
+    if (fb != nullptr) {
       const size_t fb_bytes = static_cast<size_t>(display_width_) * display_height_ * sizeof(Pixel);
       // The PPA requires its output buffer pointer and size to be aligned to
       // the data cache line (see kPpaOutBufferAlignment). The esp_lcd driver
@@ -550,7 +622,7 @@ bool M5StackTab5::initialize_lcd() {
       // explores a configuration where the macro folds to 1, trivializing the
       // checks. On real configurations both checks are meaningful.
       if ((reinterpret_cast<uintptr_t>(fb) % cache_align) == 0 && (fb_bytes % cache_align) == 0) {
-        dpi_framebuffer_ = fb;
+        dpi_framebuffer_.store(fb, std::memory_order_release);
         dpi_framebuffer_bytes_ = fb_bytes;
       } else {
         logger_.warn("DPI framebuffer not cache-line aligned; PPA will rotate via scratch buffer");
@@ -639,22 +711,94 @@ static size_t third_buffer_bytes = 0;
 static ppa_client_handle_t g_ppa_client = nullptr;
 
 bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
+  return initialize_display(DisplayConfig{.pixel_buffer_size = pixel_buffer_size});
+}
+
+bool M5StackTab5::initialize_display(const DisplayConfig &config) {
+  if (display_ && direct_render_enabled_ != config.render_to_frame_buffers_enabled) {
+    logger_.error("The LVGL display is already initialized {} the frame buffers",
+                  direct_render_enabled_ ? "on" : "without");
+    return false;
+  }
+  const Display<Pixel>::LvglConfig lvgl_config{
+      .width = display_width_,
+      .height = display_height_,
+      .flush_callback = std::bind_front(&M5StackTab5::flush, this),
+      // Forward LVGL rotation changes to the display driver so panels that can
+      // rotate in hardware (ST7121) do so via MADCTL instead of the PPA /
+      // software rotation in flush().
+      .rotation_callback = std::bind_front(&M5StackTab5::on_display_rotation, this),
+      .rotation = rotation};
+  const Display<Pixel>::OledConfig oled_config{
+      .set_brightness_callback =
+          [this](float brightness) { this->brightness(brightness * 100.0f); },
+      .get_brightness_callback = [this]() { return this->brightness() / 100.0f; }};
+
+  if (config.render_to_frame_buffers_enabled) {
+    if (num_frame_buffers_ < 2) {
+      logger_.error("render_to_frame_buffers_enabled needs initialize_lcd() first and "
+                    "CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2 ({} frame buffers)",
+                    num_frame_buffers_);
+      return false;
+    }
+    // DIRECT mode renders straight into the panel's frame buffers, whose rows
+    // are exactly display_width_ pixels apart. LVGL lays its draw buffers out
+    // with its own stride rule (LV_DRAW_BUF_STRIDE_ALIGN): 720 RGB565 pixels
+    // are 1440 bytes, a multiple of neither 64 nor 128, so a raised stride
+    // alignment would silently skew every row. Refuse rather than draw skewed.
+    // The stride comes from LVGL's draw-buffer handlers, which lv_init()
+    // installs; espp::Display calls lv_init() itself, but only below, and
+    // before that the query returns 0. lv_init() is idempotent.
+    lv_init();
+    const uint32_t lvgl_stride =
+        lv_draw_buf_width_to_stride(display_width_, LV_COLOR_FORMAT_RGB565);
+    if (lvgl_stride != display_width_ * sizeof(Pixel)) {
+      logger_.error(
+          "render_to_frame_buffers_enabled needs LVGL's row stride ({} bytes) to equal the "
+          "panel's ({} bytes); set LV_DRAW_BUF_STRIDE_ALIGN so it does",
+          lvgl_stride, display_width_ * sizeof(Pixel));
+      return false;
+    }
+    // LVGL cannot rotate in DIRECT mode (it renders in place, and the PPA /
+    // software rotation of flush() has no separate draw buffer to rotate
+    // from), so the display must come up unrotated and stay so.
+    if (rotation != DisplayRotation::LANDSCAPE ||
+        requested_rotation_.load(std::memory_order_seq_cst) != DisplayRotation::LANDSCAPE) {
+      logger_.error(
+          "render_to_frame_buffers_enabled needs the display rotation to be 0 (LANDSCAPE); "
+          "LVGL cannot rotate in DIRECT mode");
+      return false;
+    }
+    logger_.info("Initializing LVGL display in DIRECT mode on the DPI frame buffers");
+    if (!display_) {
+      // LVGL renders its first frame into vram0. The panel scans frame buffer 0
+      // out from the start, so hand LVGL buffer 1 first: the first frame is
+      // drawn off screen like every later one. (With 3 frame buffers LVGL uses
+      // buffers 1 and 0.)
+      display_ = std::make_shared<Display<Pixel>>(
+          lvgl_config, oled_config,
+          Display<Pixel>::StaticMemoryConfig{
+              .pixel_buffer_size = display_width_ * display_height_,
+              .vram0 = static_cast<Pixel *>(frame_buffers_[1]),
+              .vram1 = static_cast<Pixel *>(frame_buffers_[0]),
+          },
+          Logger::Verbosity::WARN);
+      // espp::Display sets the buffers up for PARTIAL rendering; render whole
+      // frames in place instead (nothing has been rendered yet).
+      lv_display_set_render_mode(display_->get_lvgl_display(), LV_DISPLAY_RENDER_MODE_DIRECT);
+      direct_render_enabled_ = true;
+    }
+    // No PPA client and no rotation scratch buffer: flush() does not rotate in
+    // DIRECT mode, and LVGL's buffers are the frame buffers themselves.
+    logger_.info("LVGL display initialized");
+    return true;
+  }
+
+  const size_t pixel_buffer_size = config.pixel_buffer_size;
   logger_.info("Initializing LVGL display with pixel buffer size: {} pixels", pixel_buffer_size);
   if (!display_) {
     display_ = std::make_shared<Display<Pixel>>(
-        Display<Pixel>::LvglConfig{.width = display_width_,
-                                   .height = display_height_,
-                                   .flush_callback = std::bind_front(&M5StackTab5::flush, this),
-                                   // Forward LVGL rotation changes to the display driver so
-                                   // panels that can rotate in hardware (ST7121) do so via
-                                   // MADCTL instead of the PPA / software rotation in flush().
-                                   .rotation_callback =
-                                       std::bind_front(&M5StackTab5::on_display_rotation, this),
-                                   .rotation = rotation},
-        Display<Pixel>::OledConfig{
-            .set_brightness_callback =
-                [this](float brightness) { this->brightness(brightness * 100.0f); },
-            .get_brightness_callback = [this]() { return this->brightness() / 100.0f; }},
+        lvgl_config, oled_config,
         Display<Pixel>::DynamicMemoryConfig{
             .pixel_buffer_size = pixel_buffer_size,
             .double_buffered = true,
@@ -981,6 +1125,116 @@ void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t 
   draw_and_wait(xs, ys, xe + 1, ye + 1, data);
 }
 
+bool M5StackTab5::present_frame(const void *frame_buffer, uint32_t timeout_ms) {
+  // frame_buffers() is empty until the lcd_initialized_ gate is open
+  // (acquire), so this also refuses a panel that is not fully initialized.
+  // Any pointer inside a frame buffer selects that buffer, as the driver's
+  // draw_bitmap does.
+  const auto fbs = frame_buffers();
+  const auto *p = static_cast<const uint8_t *>(frame_buffer);
+  const auto owner = std::find_if(fbs.begin(), fbs.end(), [p](void *fb) {
+    const auto *base = static_cast<const uint8_t *>(fb);
+    return base != nullptr && p >= base && p < base + frame_buffer_size();
+  });
+  if (frame_buffer == nullptr || owner == fbs.end()) {
+    logger_.error("present_frame() needs a pointer inside one of the panel's frame buffers");
+    return false;
+  }
+  // With a single frame buffer there is nothing to switch to and no frame
+  // that is safe to draw into afterwards: say so instead of returning a
+  // "switched" that would hide the tearing. (Rate-limited: an application may
+  // call this once per frame.) The DIRECT-mode flush never gets here with one
+  // buffer, initialize_display() refuses that configuration up front.
+  if (fbs.size() < 2) {
+    logger_.error_rate_limited("present_frame() needs CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2 (one "
+                               "frame buffer: nothing to switch)");
+    return false;
+  }
+  // One presenter at a time: the frame-done semaphore has a single token and
+  // a single waiter per switch, so a second caller must not steal this one's
+  // event. (The LVGL flush is the only presenter in DIRECT mode; this guards
+  // an application that drives the frame buffers itself from another task.)
+  std::lock_guard<std::mutex> present_lock(present_mutex_);
+  {
+    // Queue the switch: for a frame buffer the driver writes the cache back,
+    // makes it the next one to scan out (cur_fb_index) and calls
+    // on_color_trans_done synchronously, so draw_and_wait() returns at once.
+    // The DMA takes the new buffer up when it restarts at the end of the
+    // frame it is sending. Serialized with write_lcd_lines() like every other
+    // panel draw; the frame-done wait below is outside the mutex, so a direct
+    // write is not held up for a refresh.
+    std::lock_guard<std::mutex> lock(panel_op_mutex_);
+    // Like every panel operation: wait for the transfer in flight (an
+    // asynchronous LVGL flush copy or PPA rotation) before issuing one, so
+    // the token accounting in wait_for_transfer_idle() / draw_and_wait()
+    // stays exact. The driver completes a frame-buffer draw synchronously
+    // through on_color_trans_done, which gives the token from task context.
+    if (!wait_for_transfer_idle()) {
+      logger_.error("present_frame(): a previous transfer is wedged; not switching");
+      return false;
+    }
+    if (!draw_and_wait(0, 0, display_width_, display_height_, frame_buffer)) {
+      logger_.error("present_frame(): draw_bitmap failed");
+      return false;
+    }
+    // The panel now scans (or is about to scan) this buffer: point the PPA
+    // rotation path at it (see initialize_lcd()). Only if that path was
+    // enabled at init, i.e. the buffers passed its alignment check.
+    if (dpi_framebuffer_.load(std::memory_order_relaxed) != nullptr) {
+      dpi_framebuffer_.store(*owner, std::memory_order_release);
+    }
+  }
+  if (!vsync_enabled_.load(std::memory_order_relaxed) || frame_done_sem_ == nullptr) {
+    return true;
+  }
+  // Drop a frame-done event that came before this point: it may have
+  // restarted the DMA on the previous buffer. Any later one restarts it on
+  // the new buffer. (If the switch itself landed between draw_bitmap() and
+  // here, this waits one refresh longer, which is safe.)
+  xSemaphoreTake(frame_done_sem_, 0);
+  // How many events prove the switch happened. With on_frame_buf_complete
+  // (ESP-IDF v5.5.5 / v6.0.3 and later) the driver raises the event from the
+  // DMA transfer-done interrupt right after it re-armed on cur_fb_index, so
+  // one event after the draw is the switch. Before that the P4 raises
+  // on_refresh_done from the DSI bridge's VSYNC interrupt, and the DMA fetch
+  // of a frame completes a porch BEFORE that frame's VSYNC: the first VSYNC
+  // after the draw may belong to a frame whose re-arm preceded the draw
+  // (still the old buffer). The DMA re-arms exactly once between two
+  // consecutive VSYNCs, so the second VSYNC after the draw is past a re-arm
+  // that saw the new index; one refresh of extra latency on those versions.
+  constexpr int kFrameDoneEventsForSwitch = kFrameDoneIsBufferComplete ? 1 : 2;
+  bool switched = true;
+  for (int i = 0; i < kFrameDoneEventsForSwitch; ++i) {
+    if (xSemaphoreTake(frame_done_sem_, pdMS_TO_TICKS(timeout_ms)) != pdTRUE) {
+      switched = false;
+      break;
+    }
+  }
+  if (switched) {
+    vsync_timeouts_in_a_row_ = 0;
+    return true;
+  }
+  // A panel that stopped refreshing must not freeze the caller: the switch
+  // stays queued and happens whenever the DMA restarts. Each timeout costs
+  // the caller timeout_ms, so a frame-done event that never comes (a panel
+  // or ESP-IDF combination whose callback does not fire) would otherwise hold
+  // the UI at 1000 / timeout_ms frames per second for good. After a few
+  // consecutive timeouts the wait is switched off: present_frame() then
+  // queues the switch and returns at once (frames may tear, as with
+  // set_vsync_enabled(false)); set_vsync_enabled(true) arms it again.
+  if (!vsync_timeout_logged_.exchange(true, std::memory_order_relaxed)) {
+    logger_.warn("present_frame(): no frame-done event within {} ms (logged once)", timeout_ms);
+  }
+  if (++vsync_timeouts_in_a_row_ >= kVsyncTimeoutsBeforeDisable) {
+    vsync_timeouts_in_a_row_ = 0;
+    vsync_enabled_.store(false, std::memory_order_relaxed);
+    logger_.warn("present_frame(): {} consecutive timeouts; the frame-done wait is now disabled "
+                 "(frames may tear); set_vsync_enabled(true) to re-arm it",
+                 kVsyncTimeoutsBeforeDisable);
+  }
+  return false;
+}
+
 void M5StackTab5::brightness(float brightness) {
   brightness = std::clamp(brightness, 0.0f, 100.0f);
   if (backlight_) {
@@ -1036,6 +1290,39 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
   // own thread. flush() runs on the LVGL (GUI) thread, so reading it here is
   // safe; the camera task reads the cached atomic instead.
   camera_display_rotation_.store(static_cast<uint8_t>(rotation), std::memory_order_relaxed);
+
+  if (direct_render_enabled_) {
+    // DIRECT mode (DisplayConfig::render_to_frame_buffers_enabled): LVGL has rendered
+    // the dirty areas in place, into the frame buffer px_map points to, and
+    // calls this once per area. When the last area is done, present_frame()
+    // switches the panel to that buffer (no copy). LVGL then renders the next
+    // frame into the other buffer.
+    static bool rotation_warned = false; // flush() only runs on the LVGL task
+    if (rotation != LV_DISPLAY_ROTATION_0 && !rotation_warned) {
+      logger_.warn("Display rotation is not supported when rendering into the frame buffers");
+      rotation_warned = true;
+    }
+    if (lv_display_flush_is_last(disp)) {
+      // The return value is deliberately not acted on: on a timeout the switch
+      // is still queued and LVGL carries on (that frame may tear); after a few
+      // consecutive timeouts present_frame() disables its wait itself.
+      // Waits until the panel scans px_map out, so LVGL never renders the
+      // next frame into the buffer the panel is still reading (see
+      // present_frame()). Two costs are inherent to DIRECT mode with two
+      // buffers and deliberately not optimized here: LVGL copies the previous
+      // frame's dirty areas between the buffers on the CPU before each render
+      // (refr_sync_areas), and the switch writes the whole frame's cache back
+      // - the sync copy dirties lines outside this frame's areas, so a
+      // per-area write-back would have to union the previous frame's areas.
+      // This flush never leaves a transfer in flight (lvgl_flush_pending_ is
+      // not set): the switch completes synchronously and LVGL is released
+      // right here.
+      present_frame(px_map);
+    }
+    lv_display_flush_ready(disp);
+    return;
+  }
+
   // When the panel itself applies the rotation (ST7121, 180 degrees via the
   // display driver's MADCTL scan flip - see on_display_rotation()), the
   // logical frame is written to the framebuffer unrotated and at unrotated
@@ -1056,7 +1343,10 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
     offsetx2 = rotated_area.x2;
     offsety1 = rotated_area.y1;
     offsety2 = rotated_area.y2;
-    if (g_ppa_client != nullptr && dpi_framebuffer_ != nullptr) {
+    // The scanned-out framebuffer (present_frame() moves it when it switches
+    // buffers; see initialize_lcd()).
+    void *const target_framebuffer = dpi_framebuffer_.load(std::memory_order_acquire);
+    if (g_ppa_client != nullptr && target_framebuffer != nullptr) {
       // Hardware rotation via the PPA, writing the rotated block DIRECTLY into
       // the DPI panel's framebuffer at the rotated offset (the PPA output
       // supports placing a block inside a larger picture). This halves the
@@ -1084,7 +1374,7 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
       srm.in.block_w = ww;
       srm.in.block_h = hh;
       srm.in.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
-      srm.out.buffer = dpi_framebuffer_;
+      srm.out.buffer = target_framebuffer;
       srm.out.buffer_size = dpi_framebuffer_bytes_;
       srm.out.pic_w = display_width_;
       srm.out.pic_h = display_height_;
@@ -1293,6 +1583,21 @@ void IRAM_ATTR M5StackTab5::complete_transfer(BaseType_t *higher_priority_task_w
       xSemaphoreGive(draw_done_sem_);
     }
   }
+}
+
+bool IRAM_ATTR M5StackTab5::notify_frame_done(esp_lcd_panel_handle_t panel,
+                                              esp_lcd_dpi_panel_event_data_t *edata,
+                                              void *user_ctx) {
+  auto *tab5 = static_cast<espp::M5StackTab5 *>(user_ctx);
+  if (tab5 == nullptr || tab5->frame_done_sem_ == nullptr) {
+    return false;
+  }
+  // ISR context (the DMA transfer-done interrupt, or on chips with a DSI
+  // bridge VSYNC interrupt and ESP-IDF < v6.0.3, that one): only give the
+  // semaphore. Returning true asks the driver to yield to the woken task.
+  BaseType_t higher_priority_task_woken = pdFALSE;
+  xSemaphoreGiveFromISR(tab5->frame_done_sem_, &higher_priority_task_woken);
+  return higher_priority_task_woken == pdTRUE;
 }
 
 void M5StackTab5::dsi_write_command(uint8_t cmd, std::span<const uint8_t> params,

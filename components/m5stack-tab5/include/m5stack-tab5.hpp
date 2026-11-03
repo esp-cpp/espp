@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <functional>
@@ -213,10 +214,40 @@ public:
   /// \return true if the LCD was successfully initialized, false otherwise
   bool initialize_lcd();
 
+  /// How initialize_display() sets LVGL up
+  struct DisplayConfig {
+    /// Size of each of LVGL's two draw buffers, in pixels. They are allocated
+    /// in PSRAM, as is the rotation scratch buffer of the same size. Ignored
+    /// with render_to_frame_buffers_enabled.
+    size_t pixel_buffer_size{1280 * 720 / 10};
+    /// Let LVGL render in DIRECT mode straight into the DPI panel's frame
+    /// buffers (see frame_buffers()) instead of into separate draw buffers.
+    /// No draw buffers and no rotation scratch buffer are allocated, and a
+    /// finished frame is shown by switching the panel to its frame buffer
+    /// instead of copying it. Needs initialize_lcd() first and
+    /// CONFIG_M5STACK_TAB5_DPI_NUM_FBS >= 2.
+    /// The BSP's flush shows each frame with present_frame(), so LVGL never
+    /// draws into the buffer the panel is still scanning out (no tearing).
+    /// \note The display rotation must stay at 0: LVGL cannot rotate in DIRECT
+    ///       mode. Pixels written with write_lcd_lines() are lost at the next
+    ///       frame switch.
+    /// \note If you install your own LVGL flush callback, call
+    ///       lv_display_flush_ready() once for every call of it (LVGL waits
+    ///       for it before flushing the next area), or register a wait
+    ///       callback with lv_display_set_flush_wait_cb(); the transfer-done
+    ///       interrupt no longer does it.
+    bool render_to_frame_buffers_enabled{false};
+  };
+
   /// Initialize the LVGL display
   /// \param pixel_buffer_size The size of the pixel buffer
   /// \return true if the display was successfully initialized, false otherwise
   bool initialize_display(size_t pixel_buffer_size = 1280 * 720 / 10);
+
+  /// Initialize the LVGL display
+  /// \param config How to set LVGL up (draw buffers, or the panel's frame buffers)
+  /// \return true if the display was successfully initialized, false otherwise
+  bool initialize_display(const DisplayConfig &config);
 
   /// Initialize the GT911 multi-touch controller
   /// \param callback The touchpad callback
@@ -302,6 +333,90 @@ public:
   /// Get a shared pointer to the low-level display driver
   /// \return A shared pointer to the display driver
   const std::shared_ptr<DisplayDriver> &display_driver() const { return display_driver_; }
+
+  /// Most frame buffers the DPI panel driver supports (ESP-IDF's limit)
+  static constexpr size_t max_frame_buffers = 3;
+
+  /// Get the DPI panel's frame buffers
+  /// \return The CONFIG_M5STACK_TAB5_DPI_NUM_FBS frame buffers initialize_lcd()
+  ///         got from the panel driver, each frame_buffer_size() bytes
+  ///         (display_width() x display_height() RGB565 pixels) in PSRAM and
+  ///         cache-line aligned; empty until initialize_lcd() succeeded
+  /// \note The panel scans one of them out all the time. Passing a pointer
+  ///       inside one of them to esp_lcd_panel_draw_bitmap() makes the panel
+  ///       switch to that buffer (after a cache write-back) instead of copying
+  ///       it. This lets an application render (e.g. LVGL in DIRECT mode)
+  ///       straight into the frame buffers; see also
+  ///       DisplayConfig::render_to_frame_buffers_enabled.
+  /// \note If you install your own LVGL flush callback, call
+  ///       lv_display_flush_ready() once for every call of it (LVGL waits
+  ///       for it before flushing the next area), or register a wait
+  ///       callback with lv_display_set_flush_wait_cb(); the transfer-done
+  ///       interrupt no longer does it.
+  std::span<void *const> frame_buffers() const {
+    // frame_buffers_ is written before initialize_lcd() opens the gate
+    if (!lcd_initialized_.load(std::memory_order_acquire)) {
+      return {};
+    }
+    return {frame_buffers_.data(), num_frame_buffers_};
+  }
+
+  /// Get the size of one DPI frame buffer
+  /// \return The size of one frame buffer in bytes
+  static constexpr size_t frame_buffer_size() {
+    return display_width_ * display_height_ * sizeof(Pixel);
+  }
+
+  /// Show a whole frame that is already in one of the panel's frame buffers,
+  /// and wait until the panel scans it out
+  ///
+  /// The tear-free way to switch frame buffers, e.g. at the end of an LVGL
+  /// DIRECT-mode frame. esp_lcd_panel_draw_bitmap() on a frame buffer only
+  /// writes the cache back and records the buffer as the next one to scan
+  /// out; the panel's DMA switches to it when it starts its next frame.
+  /// Until then it is still reading the previous buffer, so drawing into that
+  /// one at once would tear. This waits for the DMA's frame-done event (the
+  /// moment it restarts on the new buffer), after which the previous buffer
+  /// is free. (on_color_trans_done cannot be used for this: for a frame
+  /// buffer the driver calls it synchronously, before the switch.)
+  ///
+  /// \param frame_buffer A pointer inside one of frame_buffers() (its start, or any
+  ///        address in it: the buffer that contains it is shown)
+  /// \param timeout_ms How long to wait for the switch
+  /// \return true once the panel scans the frame out, or at once if the wait
+  ///         is disabled or unavailable (see set_vsync_enabled()); false if
+  ///         the panel has only one frame buffer (CONFIG_M5STACK_TAB5_DPI_NUM_FBS
+  ///         must be >= 2: with one there is nothing to switch, and no frame
+  ///         that is safe to draw into afterwards), \p frame_buffer is not
+  ///         inside one of frame_buffers(), a previous transfer is wedged, or
+  ///         the wait timed out (the switch is still queued; carry on rather
+  ///         than stall). Callers are serialized: one presenter at a time.
+  /// \note Waits at most one panel refresh period (about 17 ms; 21 ms on the
+  ///       ILI9881 panel) when the panel is running - two on ESP-IDF before
+  ///       v5.5.5 / v6.0.3, whose frame-done event is the DSI bridge's VSYNC
+  ///       rather than the DMA's re-arm (see present_frame() in video.cpp).
+  ///       Do not call it from an ISR.
+  bool present_frame(const void *frame_buffer, uint32_t timeout_ms = 100);
+
+  /// Enable or disable the wait in present_frame()
+  /// \param enabled false: present_frame() queues the switch and returns at
+  ///        once (faster, but the next frame can tear). present_frame()
+  ///        disables the wait itself after a few consecutive timeouts (a
+  ///        frame-done event that never arrives); pass true to arm it again.
+  ///        Re-arming starts a new outage episode: the consecutive-timeout
+  ///        count and the once-per-episode timeout warning are reset, so a
+  ///        later stall is logged again.
+  void set_vsync_enabled(bool enabled) {
+    vsync_timeouts_in_a_row_ = 0;
+    if (enabled) {
+      vsync_timeout_logged_.store(false, std::memory_order_relaxed);
+    }
+    vsync_enabled_.store(enabled, std::memory_order_relaxed);
+  }
+
+  /// Whether present_frame() waits for the frame-buffer switch
+  /// \return true if the wait is enabled (the default)
+  bool vsync_enabled() const { return vsync_enabled_.load(std::memory_order_relaxed); }
 
   /// Write lines to the LCD
   /// \param xs The x start coordinate
@@ -1106,8 +1221,18 @@ protected:
   // buffer + draw_bitmap copy (which doubles the PSRAM traffic and can starve
   // the DSI scan-out DMA into FIFO underruns / on-screen streaking). Null when
   // unavailable, in which case flush() falls back to the scratch-buffer path.
-  void *dpi_framebuffer_{nullptr};
+  // Null when the PPA direct-to-framebuffer path is unavailable. Moves with
+  // present_frame() to the buffer the panel scans out (written under
+  // panel_op_mutex_, read on the LVGL task by flush()).
+  std::atomic<void *> dpi_framebuffer_{nullptr};
   size_t dpi_framebuffer_bytes_{0};
+
+  // The DPI panel's frame buffers (frame_buffers()), filled by initialize_lcd()
+  std::array<void *, max_frame_buffers> frame_buffers_{};
+  size_t num_frame_buffers_{0};
+  // initialize_display() set LVGL up in DIRECT mode on the frame buffers
+  // (DisplayConfig::render_to_frame_buffers_enabled)
+  bool direct_render_enabled_{false};
 
   // Display controller detection
   DisplayController display_controller_{DisplayController::UNKNOWN};
@@ -1143,6 +1268,26 @@ protected:
   // Usually ISR context; the DPI driver's CPU copy path calls it synchronously
   // on the issuing task, so it picks the semaphore API by xPortInIsrContext().
   void complete_transfer(BaseType_t *higher_priority_task_woken);
+  // Frame-done ISR (on_frame_buf_complete, on_refresh_done before ESP-IDF
+  // v5.5.5 / v6.0.3): the DMA has restarted on the frame buffer queued last.
+  // Gives frame_done_sem_ for present_frame().
+  static bool notify_frame_done(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *edata,
+                                void *user_ctx);
+  // Given once per panel refresh by notify_frame_done() (only with more than
+  // one frame buffer); present_frame() waits on it
+  SemaphoreHandle_t frame_done_sem_{nullptr};
+  // Serializes present_frame() end to end (queue the switch + wait for the
+  // frame-done event): the event has one token and one waiter per switch.
+  std::mutex present_mutex_;
+  std::atomic<bool> vsync_enabled_{true};
+  // A stalled panel logs one present_frame() timeout, not one per frame
+  std::atomic<bool> vsync_timeout_logged_{false};
+  // Consecutive present_frame() timeouts (only present_frame() touches it,
+  // under present_mutex_); at kVsyncTimeoutsBeforeDisable the wait is
+  // switched off so a frame-done event that never comes cannot hold the UI
+  // at one frame per timeout for good.
+  static constexpr int kVsyncTimeoutsBeforeDisable = 3;
+  int vsync_timeouts_in_a_row_{0};
 
   // DSI write helpers
   void dsi_write_command(uint8_t cmd, std::span<const uint8_t> params, uint32_t flags);
