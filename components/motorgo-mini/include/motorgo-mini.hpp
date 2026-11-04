@@ -194,8 +194,11 @@ public:
       .kv_rating = 320,
       .current_limit = 1.0f,
       .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
-      .driver = motor1_driver_, // NOTE: user cannot override this
-      .sensor = encoder1_,      // NOTE: user cannot override this
+      // set by init_motor_channel_1() (the user cannot override them); not
+      // copied from motor1_driver_ / encoder1_ here, which are declared (so
+      // constructed) after this member
+      .driver = nullptr,
+      .sensor = nullptr,
       .velocity_pid_config =
           {
               .kp = 0.010f,
@@ -227,8 +230,11 @@ public:
       .kv_rating = 320,
       .current_limit = 1.0f,
       .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
-      .driver = motor2_driver_, // NOTE: user cannot override this
-      .sensor = encoder2_,      // NOTE: user cannot override this
+      // set by init_motor_channel_2() (the user cannot override them); not
+      // copied from motor2_driver_ / encoder2_ here, which are declared (so
+      // constructed) after this member
+      .driver = nullptr,
+      .sensor = nullptr,
       .velocity_pid_config =
           {
               .kp = 0.010f,
