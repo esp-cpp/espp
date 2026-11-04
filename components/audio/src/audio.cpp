@@ -94,6 +94,12 @@ bool Audio::initialize(std::error_code &ec) {
     return false;
   }
   const uint32_t rate = config_.sample_rate;
+  if (rate < UPDATE_FREQUENCY) {
+    // a block (1 / UPDATE_FREQUENCY seconds) would hold no frames
+    logger_.error("Sample rate {} Hz is below the minimum of {} Hz", rate, UPDATE_FREQUENCY);
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
   logger_.info("Initializing I2S{} audio ({}{}{}) at {} Hz", config_.port,
                playback ? "playback" : "", playback && recording ? " + " : "",
                recording ? "recording" : "", rate);
@@ -148,7 +154,7 @@ bool Audio::initialize(std::error_code &ec) {
 
   if (playback) {
     block_bytes_ = block_size(rate, config_.playback_channels);
-    tx_buffer_.resize(block_bytes_);
+    tx_buffer_.resize(block_bytes_ / BYTES_PER_SAMPLE);
     // set before the stream exists: play() uses it once tx_stream_ is set
     // (both under mutex_, which initialize() holds anyway)
     tx_feed_.frame_bytes = config_.playback_channels * BYTES_PER_SAMPLE;
@@ -289,7 +295,9 @@ void Audio::teardown(std::unique_lock<std::mutex> &lock) {
   recording_task_handle_ = nullptr;
   recording_callback_ = nullptr;
 
-  if (input_started_ && !same_codec()) {
+  // a codec passed as both output_codec and input_codec is stopped once,
+  // whichever directions it was started for
+  if (input_started_ && !(same_codec() && output_started_)) {
     config_.input_codec->stop();
   }
   if (output_started_) {
@@ -317,7 +325,7 @@ void Audio::teardown(std::unique_lock<std::mutex> &lock) {
     vStreamBufferDelete(tx_stream_);
     tx_stream_ = nullptr;
   }
-  std::vector<uint8_t>().swap(tx_buffer_);
+  std::vector<int16_t>().swap(tx_buffer_);
   std::vector<uint8_t>().swap(rx_buffer_);
   block_bytes_ = 0;
 }
@@ -382,6 +390,10 @@ void Audio::microphone_volume(float volume) {
 }
 
 bool Audio::sample_rate(uint32_t sample_rate) {
+  if (sample_rate < UPDATE_FREQUENCY) {
+    logger_.error("Sample rate {} Hz is below the minimum of {} Hz", sample_rate, UPDATE_FREQUENCY);
+    return false;
+  }
   std::lock_guard<std::mutex> lock(mutex_);
   if (!initialized_) {
     logger_.warn("Not initialized: set Config::sample_rate instead");
@@ -425,7 +437,8 @@ bool Audio::sample_rate(uint32_t sample_rate) {
   if (output_started_) {
     ok &= config_.output_codec->set_sample_rate(sample_rate);
   }
-  if (input_started_ && !same_codec()) {
+  // once for a codec passed as both output_codec and input_codec
+  if (input_started_ && !(same_codec() && output_started_)) {
     ok &= config_.input_codec->set_sample_rate(sample_rate);
   }
   return ok;
@@ -434,6 +447,11 @@ bool Audio::sample_rate(uint32_t sample_rate) {
 bool Audio::start_recording(const recording_callback_t &callback) {
   if (!callback) {
     logger_.error("start_recording() needs a callback");
+    return false;
+  }
+  // from the recording callback, the wait below would never end
+  if (xTaskGetCurrentTaskHandle() == recording_task_handle_) {
+    logger_.error("start_recording() cannot be called from the recording callback");
     return false;
   }
   // a call of the previous callback may still be finishing (after a
@@ -470,13 +488,11 @@ void Audio::stop_recording() {
   }
 }
 
-void Audio::apply_software_volume(uint8_t *data, size_t length) const {
+void Audio::apply_software_volume(int16_t *samples, size_t count) const {
   const float gain = muted_ ? 0.0f : volume_ / 100.0f;
   if (gain >= 1.0f) {
     return;
   }
-  auto *samples = reinterpret_cast<int16_t *>(data);
-  const size_t count = length / BYTES_PER_SAMPLE;
   for (size_t i = 0; i < count; i++) {
     samples[i] = static_cast<int16_t>(samples[i] * gain);
   }
@@ -489,7 +505,9 @@ bool Audio::playback_task_callback(std::mutex &m, std::condition_variable &cv,
   // than a block is given a bounded, notification-driven chance to complete
   // it. The policy and its rationale live in codec/i2s_tx_feed.hpp.
   tx_feed_.attach_current_task();
-  uint8_t *buffer = tx_buffer_.data();
+  // int16_t storage, so the software volume works on real int16_t objects
+  // (the feeder and the I2S driver take it as bytes)
+  auto *buffer = reinterpret_cast<uint8_t *>(tx_buffer_.data());
   bool misaligned = false;
   const size_t audio_bytes = tx_feed_.fill_block(buffer, block_bytes_, misaligned);
   if (misaligned) {
@@ -502,7 +520,7 @@ bool Audio::playback_task_callback(std::mutex &m, std::condition_variable &cv,
         tx_feed_.frame_bytes);
   }
   if (audio_bytes > 0 && software_volume()) {
-    apply_software_volume(buffer, audio_bytes);
+    apply_software_volume(tx_buffer_.data(), audio_bytes / BYTES_PER_SAMPLE);
   }
   if (config_.on_playback_block) {
     config_.on_playback_block(audio_bytes > 0);

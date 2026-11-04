@@ -54,8 +54,8 @@ class Audio : public BaseComponent {
 public:
   /// Function called with recorded audio: 16-bit signed PCM, interleaved
   /// when Config::recording_channels is 2. Runs on the recording task; it may
-  /// call any method except start_recording(), initialize() and
-  /// deinitialize().
+  /// call any method except start_recording() (which fails from it: it waits
+  /// for the callback to return), initialize() and deinitialize().
   using recording_callback_t = std::function<void(const uint8_t *data, size_t length)>;
 
   /// Function called by the playback task once per block with whether the
@@ -80,7 +80,7 @@ public:
   struct Config {
     int port{I2S_NUM_0};         ///< I2S port (I2S_NUM_0, I2S_NUM_1, ...).
     Pins pins{};                 ///< I2S pins.
-    uint32_t sample_rate{48000}; ///< Sample rate, in Hz.
+    uint32_t sample_rate{48000}; ///< Sample rate, in Hz (at least UPDATE_FREQUENCY).
     /// Set up playback (the TX channel, the output codec and the playback
     /// task).
     bool playback_enabled{true};
@@ -191,8 +191,9 @@ public:
   /// @brief Change the sample rate: the I2S clocks, the codecs and, since
   ///        the queued audio was for the old rate, the playback stream (it is
   ///        cleared).
-  /// @param sample_rate The new sample rate, in Hz.
-  /// @return true on success (false when not initialized).
+  /// @param sample_rate The new sample rate, in Hz (at least UPDATE_FREQUENCY).
+  /// @return true on success (false when not initialized or the rate is
+  ///         below UPDATE_FREQUENCY).
   /// @note The block size (buffer_size()) stays the one for the rate passed
   ///       to initialize().
   bool sample_rate(uint32_t sample_rate);
@@ -241,7 +242,7 @@ protected:
   bool playback_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   bool recording_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   void teardown(std::unique_lock<std::mutex> &lock);
-  void apply_software_volume(uint8_t *data, size_t length) const;
+  void apply_software_volume(int16_t *samples, size_t count) const;
   bool software_volume() const;
   bool same_codec() const;
 
@@ -275,7 +276,7 @@ protected:
   bool input_started_{false};
 
   size_t block_bytes_{0};
-  std::vector<uint8_t> tx_buffer_;
+  std::vector<int16_t> tx_buffer_;
   std::vector<uint8_t> rx_buffer_;
   StreamBufferHandle_t tx_stream_{nullptr};
   espp::i2s_tx_feed::Feeder tx_feed_;
