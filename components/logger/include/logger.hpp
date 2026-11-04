@@ -70,8 +70,6 @@ class Logger {
 #define ESPP_LOGGER_WARN_ENABLED (CONFIG_ESPP_LOGGER_LOG_LEVEL >= ESPP_LOGGER_LOG_LEVEL_WARN)
 #define ESPP_LOGGER_ERROR_ENABLED (CONFIG_ESPP_LOGGER_LOG_LEVEL >= ESPP_LOGGER_LOG_LEVEL_ERROR)
 
-// If the cursor commands haven't been configured as a define, check the config
-#if !defined(ESPP_LOGGER_CURSOR_COMMANDS_ENABLED)
 // Whether a Logger's tag can change after construction (set_tag()). Changing
 // it needs a mutex, which on ESP-IDF allocates a FreeRTOS semaphore (about
 // 116 B of internal RAM) for every Logger, so there it is the
@@ -86,6 +84,8 @@ class Logger {
 #endif
 #endif
 
+// If the cursor commands haven't been configured as a define, check the config
+#if !defined(ESPP_LOGGER_CURSOR_COMMANDS_ENABLED)
 #if !defined(CONFIG_ESPP_LOGGER_ENABLE_CURSOR_COMMANDS)
 #define ESPP_LOGGER_CURSOR_COMMANDS_ENABLED 0
 #else // CONFIG_ESPP_LOGGER_ENABLE_CURSOR_COMMANDS
