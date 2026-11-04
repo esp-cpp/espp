@@ -77,7 +77,8 @@ class Logger {
 // (host / python builds) it defaults on; define ESPP_LOGGER_MUTABLE_TAG to 0 or
 // 1 to choose.
 #ifndef ESPP_LOGGER_MUTABLE_TAG
-#if defined(CONFIG_ESPP_LOGGER_MUTABLE_TAG) || !defined(ESP_PLATFORM)
+#if (defined(CONFIG_ESPP_LOGGER_MUTABLE_TAG) && CONFIG_ESPP_LOGGER_MUTABLE_TAG) ||                 \
+    !defined(ESP_PLATFORM)
 #define ESPP_LOGGER_MUTABLE_TAG 1
 #else
 #define ESPP_LOGGER_MUTABLE_TAG 0
