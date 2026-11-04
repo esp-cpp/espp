@@ -62,6 +62,12 @@ collected under :doc:`web_apps`.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Audio
+
+   audio/index
+
+.. toctree::
+   :maxdepth: 1
    :caption: Displays, LEDs & Haptics
 
    display/index

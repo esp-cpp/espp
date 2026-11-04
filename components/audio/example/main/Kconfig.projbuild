@@ -1,0 +1,30 @@
+menu "Example Configuration"
+
+# The defaults are the LilyGo T-Deck's MAX98357A amplifier.
+
+config EXAMPLE_I2S_BCLK_GPIO
+  int "I2S BCLK GPIO"
+  default 7
+  help
+    GPIO for the I2S bit clock.
+
+config EXAMPLE_I2S_WS_GPIO
+  int "I2S WS (LRCK) GPIO"
+  default 5
+  help
+    GPIO for the I2S word select.
+
+config EXAMPLE_I2S_DOUT_GPIO
+  int "I2S data out GPIO"
+  default 6
+  help
+    GPIO for the I2S data to the amplifier.
+
+config EXAMPLE_POWER_ENABLE_GPIO
+  int "Power enable GPIO (-1 for none)"
+  default 10
+  help
+    GPIO driven high before the audio starts, for boards whose amplifier is
+    on a switched rail (the T-Deck's peripheral power, GPIO10). -1 for none.
+
+endmenu

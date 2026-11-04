@@ -16,6 +16,7 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 # add the component directories that we want to use
 set(EXTRA_COMPONENT_DIRS
   "../"
+  "../../../components/audio"
   "../../../components/base_component"
   "../../../components/base_peripheral"
   # "../../../components/ble_gatt_server"

@@ -12,6 +12,7 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 set(EXTRA_COMPONENT_DIRS
   "../"
+  "../../../components/audio"
   "../../../components/base_component"
   "../../../components/base_peripheral"
   "../../../components/bmi270"

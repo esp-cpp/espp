@@ -19,6 +19,8 @@ The `espp::M5StackTab5` component provides a singleton hardware abstraction for 
 - Dual-microphone array for voice recognition
 - 1W speaker + 3.5mm headphone jack
 - Hi-Fi recording and playback capabilities
+- Built on the espp [`audio`](../audio) component: `initialize_audio()` /
+  `deinitialize_audio()`, and `audio()` returns the `espp::Audio` instance
 
 ### Camera
 - MIPI-CSI camera (SC202CS) brought up via Espressif's `esp_video` (V4L2)
