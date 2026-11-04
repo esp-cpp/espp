@@ -47,6 +47,7 @@ static audio_hal_codec_i2s_iface_t make_iface(uint32_t sample_rate) {
 
 Es7210Codec::Es7210Codec(const Config &config)
     : write_(config.write)
+    , address_(config.address)
     , microphones_(config.microphones)
     , high_pass_filter_(config.high_pass_filter) {
   set_es7210_write(config.write);
@@ -77,14 +78,13 @@ bool Es7210Codec::start(Direction direction, uint32_t sample_rate) {
     // The driver leaves the HPF registers at their reset value (off); these
     // are its documented "quick setup" values. A write's result does not
     // mask an earlier failure.
-    static constexpr uint8_t ES7210_ADDR = 0x40; // the driver's (AD1/AD0 = 00)
     bool hpf_ok = true;
     for (auto [reg, value] : {std::pair<uint8_t, uint8_t>{0x22, 0x0a}, // ADC1/2 HPF1
                               {0x23, 0x2a},                            // ADC1/2 HPF2
                               {0x20, 0x0a},                            // ADC3/4 HPF2
                               {0x21, 0x2a}}) {                         // ADC3/4 HPF1
       uint8_t data[] = {reg, value};
-      hpf_ok &= write_(ES7210_ADDR, data, sizeof(data));
+      hpf_ok &= write_(address_, data, sizeof(data));
     }
     if (!hpf_ok) {
       ESP_LOGW(TAG, "Could not enable the ES7210 high-pass filter");

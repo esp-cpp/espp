@@ -149,6 +149,9 @@ bool Audio::initialize(std::error_code &ec) {
   if (playback) {
     block_bytes_ = block_size(rate, config_.playback_channels);
     tx_buffer_.resize(block_bytes_);
+    // set before the stream exists: play() uses it once tx_stream_ is set
+    // (both under mutex_, which initialize() holds anyway)
+    tx_feed_.frame_bytes = config_.playback_channels * BYTES_PER_SAMPLE;
     // The playback task never blocks on the stream (see
     // playback_task_callback), so the trigger level is irrelevant; the
     // minimum keeps a producer's send from ever holding a receiver.
@@ -158,7 +161,6 @@ bool Audio::initialize(std::error_code &ec) {
       return fail(std::errc::not_enough_memory);
     }
     tx_feed_.stream = tx_stream_;
-    tx_feed_.frame_bytes = config_.playback_channels * BYTES_PER_SAMPLE;
   }
   if (recording) {
     rx_buffer_.resize(block_size(rate, config_.recording_channels));

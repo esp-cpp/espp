@@ -29,6 +29,13 @@ public:
     write_fn write;
     /// Register read, e.g. espp::make_i2c_addressed_read_register(device).
     read_register_fn read;
+    /// The ES7210's 7-bit I2C address (0x40 - 0x43, set by its AD1 / AD0
+    /// pins), passed to `write` for the adapter's own register writes.
+    /// \note The codec component's driver passes 0x40 for its writes, so a
+    ///       write function that addresses by its argument (rather than a
+    ///       device, like espp::make_i2c_addressed_write()) only reaches an
+    ///       ES7210 at 0x40.
+    uint8_t address{0x40};
     /// The microphones to enable (es7210_mic_select()); unset keeps the
     /// driver's selection.
     std::optional<es7210_input_mics_t> microphones{};
@@ -54,6 +61,7 @@ protected:
   // what start() needs after construction (the driver holds its own copy of
   // the register access functions)
   write_fn write_;
+  uint8_t address_;
   std::optional<es7210_input_mics_t> microphones_;
   bool high_pass_filter_;
 };
