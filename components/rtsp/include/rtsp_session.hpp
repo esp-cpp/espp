@@ -145,6 +145,11 @@ public:
   bool send_rtcp_packet(const espp::RtcpPacket &packet);
 
 protected:
+  /// Construct with a given session id (it is part of the logger tag, which
+  /// is set before the members are)
+  RtspSession(std::shared_ptr<espp::TcpSocket> control_socket,
+              const espp::RtspSession::Config &config, uint32_t session_id);
+
   /// Send a response to a RTSP request
   /// @param code The response code
   /// @param message The response message
@@ -216,7 +221,7 @@ protected:
   /// Session IDs are generated randomly when a client sends a SETUP request and are
   /// used to identify the client in subsequent requests when managing the RTP session.
   /// @return The new session id
-  uint32_t generate_session_id();
+  static uint32_t generate_session_id();
 
   /// Parse the RTSP command sequence number from a request
   /// @param request The request to parse
