@@ -86,16 +86,20 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
   // operate on a half-initialized system.
   bool tx_enabled = false;
   bool rx_enabled = false;
-  bool es8388_started = false;
-  bool es7210_started = false;
+  // a codec needs stopping once its init has begun: the init makes every
+  // register write (powering the codec up) even after one fails
+  bool es8388_needs_stop = false;
+  bool es7210_needs_stop = false;
   auto fail = [&]() {
     // the tasks first: they use the channels and the stream
     if (audio_task_) {
-      // the playback task may already have registered its handle for
-      // play_audio()'s notifications: forget it before the task goes away
-      audio_tx_feed_.detach_task();
       audio_task_->stop();
       audio_task_.reset();
+      // the playback task registers its handle for play_audio()'s
+      // notifications on every iteration: forget it only once the task can no
+      // longer run, or it could register it again and a retry would keep the
+      // stale handle
+      audio_tx_feed_.detach_task();
       // the task may have paused charging on its first blocks
       resume_charging_after_audio();
     }
@@ -103,10 +107,10 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
       microphone_task_->stop();
       microphone_task_.reset();
     }
-    if (es7210_started) {
+    if (es7210_needs_stop) {
       es7210_adc_ctrl_state(AUDIO_HAL_CODEC_MODE_ENCODE, AUDIO_HAL_CTRL_STOP);
     }
-    if (es8388_started) {
+    if (es8388_needs_stop) {
       es8388_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_STOP);
       es8388_deinit();
     }
@@ -297,11 +301,11 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
     es8388_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
     es8388_cfg.i2s_iface.samples = AUDIO_HAL_48K_SAMPLES;
     logger_.info("Initializing ES8388 codec for playback (DAC) at {} Hz", sample_rate);
+    es8388_needs_stop = true;
     if (es8388_init(&es8388_cfg) != ESP_OK) {
       logger_.error("ES8388 init failed");
       return fail();
     }
-    es8388_started = true;
     if (es8388_config_fmt(ES_MODULE_DAC, ES_I2S_NORMAL) != ESP_OK) {
       logger_.error("ES8388 format config failed");
     }
@@ -331,11 +335,11 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
     // (rather than assuming 48 kHz) so its coefficient table matches
     es7210_cfg.i2s_iface.samples = audio_hal_samples_from_rate(sample_rate);
     logger_.info("Initializing ES7210 codec for recording (ADC) at {} Hz", sample_rate);
+    es7210_needs_stop = true;
     if (es7210_adc_init(&es7210_cfg) != ESP_OK) {
       logger_.error("ES7210 init failed");
       return fail();
     }
-    es7210_started = true;
     if (es7210_adc_config_i2s(AUDIO_HAL_CODEC_MODE_ENCODE, &es7210_cfg.i2s_iface) != ESP_OK) {
       logger_.error("ES7210 I2S cfg failed");
     }
