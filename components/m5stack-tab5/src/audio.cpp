@@ -72,6 +72,11 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
     logger_.error("initialize_audio(): neither playback nor recording is enabled");
     return false;
   }
+  // volume() and mute() go by these flags, so a failure restores their
+  // previous values (the defaults: this is only reached before a successful
+  // initialization)
+  const bool previous_playback_enabled = audio_playback_enabled_;
+  const bool previous_recording_enabled = audio_recording_enabled_;
   audio_playback_enabled_ = playback;
   audio_recording_enabled_ = recording;
 
@@ -130,8 +135,8 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
     }
     std::vector<uint8_t>().swap(audio_tx_buffer);
     std::vector<uint8_t>().swap(audio_rx_buffer);
-    audio_playback_enabled_ = true;
-    audio_recording_enabled_ = true;
+    audio_playback_enabled_ = previous_playback_enabled;
+    audio_recording_enabled_ = previous_recording_enabled;
     return false;
   };
 
