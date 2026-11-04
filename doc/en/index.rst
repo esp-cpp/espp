@@ -16,6 +16,7 @@ collected under :doc:`web_apps`.
 
    getting_started
    web_apps
+   qemu
 
 .. toctree::
    :maxdepth: 1

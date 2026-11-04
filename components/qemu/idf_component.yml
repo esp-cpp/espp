@@ -1,0 +1,29 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Board Support Package (BSP) for Espressif's QEMU emulator: the virtual RGB panel, OpenCores Ethernet and SD card, so espp applications run with no hardware"
+url: "https://github.com/esp-cpp/espp/tree/main/components/qemu"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/dev_boards/other/qemu.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - BSP
+  - QEMU
+  - Emulator
+  - Ethernet
+  - Display
+dependencies:
+  idf: ">=5.3"
+  espressif/esp_lcd_qemu_rgb: ">=1.0.2"
+  espp/base_component: ">=1.0"
+  espp/display: ">=1.0"
+  espp/ethernet: ">=1.0"
+  espp/sdcard: ">=1.0"
+targets:
+  - esp32
+  - esp32c3
+  - esp32s3
