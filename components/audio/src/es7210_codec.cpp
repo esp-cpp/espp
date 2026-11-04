@@ -4,7 +4,11 @@
 #include <cmath>
 #include <utility>
 
+#include <esp_log.h>
+
 using namespace espp;
+
+static const char *TAG = "Es7210Codec";
 
 // Map a PCM sample rate onto the driver's sample-rate enum, which selects the
 // ES7210 coefficient table: it must match the rate the I2S clocks generate.
@@ -42,33 +46,34 @@ static audio_hal_codec_i2s_iface_t make_iface(uint32_t sample_rate) {
 }
 
 Es7210Codec::Es7210Codec(const Config &config)
-    : BaseComponent("Es7210Codec", config.log_level)
-    , config_(config) {
+    : write_(config.write)
+    , microphones_(config.microphones)
+    , high_pass_filter_(config.high_pass_filter) {
   set_es7210_write(config.write);
   set_es7210_read(config.read);
 }
 
 bool Es7210Codec::start(Direction direction, uint32_t sample_rate) {
   if (direction != Direction::RECORDING) {
-    logger_.error("Only recording is supported");
+    ESP_LOGE(TAG, "Only recording is supported");
     return false;
   }
-  if (config_.microphones && es7210_mic_select(*config_.microphones) != ESP_OK) {
-    logger_.error("ES7210 microphone select failed");
+  if (microphones_ && es7210_mic_select(*microphones_) != ESP_OK) {
+    ESP_LOGE(TAG, "ES7210 microphone select failed");
     return false;
   }
   audio_hal_codec_config_t cfg{};
   cfg.codec_mode = AUDIO_HAL_CODEC_MODE_ENCODE;
   cfg.i2s_iface = make_iface(sample_rate);
-  logger_.info("Initializing the ES7210 ADC at {} Hz", sample_rate);
+  ESP_LOGI(TAG, "Initializing the ES7210 ADC at %u Hz", static_cast<unsigned>(sample_rate));
   if (es7210_adc_init(&cfg) != ESP_OK) {
-    logger_.error("ES7210 init failed");
+    ESP_LOGE(TAG, "ES7210 init failed");
     return false;
   }
   if (es7210_adc_config_i2s(AUDIO_HAL_CODEC_MODE_ENCODE, &cfg.i2s_iface) != ESP_OK) {
-    logger_.error("ES7210 I2S config failed");
+    ESP_LOGE(TAG, "ES7210 I2S config failed");
   }
-  if (config_.high_pass_filter) {
+  if (high_pass_filter_) {
     // The driver leaves the HPF registers at their reset value (off); these
     // are its documented "quick setup" values. A write's result does not
     // mask an earlier failure.
@@ -79,14 +84,14 @@ bool Es7210Codec::start(Direction direction, uint32_t sample_rate) {
                               {0x20, 0x0a},                            // ADC3/4 HPF2
                               {0x21, 0x2a}}) {                         // ADC3/4 HPF1
       uint8_t data[] = {reg, value};
-      hpf_ok &= config_.write(ES7210_ADDR, data, sizeof(data));
+      hpf_ok &= write_(ES7210_ADDR, data, sizeof(data));
     }
     if (!hpf_ok) {
-      logger_.warn("Could not enable the ES7210 high-pass filter");
+      ESP_LOGW(TAG, "Could not enable the ES7210 high-pass filter");
     }
   }
   if (es7210_adc_ctrl_state(AUDIO_HAL_CODEC_MODE_ENCODE, AUDIO_HAL_CTRL_START) != ESP_OK) {
-    logger_.error("ES7210 start failed");
+    ESP_LOGE(TAG, "ES7210 start failed");
     return false;
   }
   return true;

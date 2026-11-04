@@ -14,6 +14,7 @@
 #include <driver/i2s_std.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/stream_buffer.h>
+#include <freertos/task.h>
 
 #include "audio_codec.hpp"
 #include "base_component.hpp"
@@ -53,13 +54,13 @@ class Audio : public BaseComponent {
 public:
   /// Function called with recorded audio: 16-bit signed PCM, interleaved
   /// when Config::recording_channels is 2. Runs on the recording task; it may
-  /// call play(), the setters and start/stop_recording(), but not
-  /// initialize(), deinitialize() or sample_rate(uint32_t).
+  /// call any method except start_recording(), initialize() and
+  /// deinitialize().
   using recording_callback_t = std::function<void(const uint8_t *data, size_t length)>;
 
   /// Function called by the playback task once per block with whether the
   /// block carried audio (false: silence). Keep it short and non-blocking;
-  /// it must not call initialize(), deinitialize() or sample_rate(uint32_t).
+  /// it must not call initialize() or deinitialize().
   using playback_block_callback_t = std::function<void(bool active)>;
 
   /// How many blocks per second the playback task writes: a block is
@@ -209,6 +210,8 @@ public:
   ///        samples (one block's worth).
   /// @return false when recording is not initialized, the callback is empty
   ///         or a recording is already in progress (stop it first).
+  /// @note Not from the recording callback (it would replace the function
+  ///       that is running).
   bool start_recording(const recording_callback_t &callback);
 
   /// @brief Stop delivering recorded audio. The recording task keeps draining
@@ -237,7 +240,7 @@ public:
 protected:
   bool playback_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   bool recording_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
-  void teardown();
+  void teardown(std::unique_lock<std::mutex> &lock);
   void apply_software_volume(uint8_t *data, size_t length) const;
   bool software_volume() const;
   bool same_codec() const;
@@ -249,22 +252,25 @@ protected:
   std::atomic<bool> muted_;
   std::atomic<float> microphone_volume_;
 
-  // initialize() / deinitialize() / sample_rate(uint32_t). The tasks never
-  // take it, so teardown can join them while holding it; the callbacks must
-  // not call those three functions.
-  std::recursive_mutex mutex_;
-  // the codec calls (start / stop, the setters), so a setter called from a
-  // callback cannot deadlock against teardown joining that callback's task
-  std::mutex codec_mutex_;
-  // play() / clear() against the stream's creation and deletion
-  std::mutex stream_mutex_;
+  // One mutex for everything that changes the setup: initialize(),
+  // deinitialize(), sample_rate(), the codec setters and play() / clear()
+  // (against the stream's creation and deletion). On this platform each
+  // std::mutex allocates its FreeRTOS semaphore (about 116 B of internal
+  // RAM), so there is only one. The tasks never take it, and teardown
+  // releases it while it joins them, so a callback that calls a method
+  // cannot deadlock against teardown.
+  std::mutex mutex_;
+  // set while teardown has released mutex_ to join the tasks: initialize()
+  // and the other teardown entry points back off meanwhile
+  bool tearing_down_{false};
 
   i2s_chan_handle_t tx_handle_{nullptr};
   i2s_chan_handle_t rx_handle_{nullptr};
   bool tx_enabled_{false};
   bool rx_enabled_{false};
-  i2s_std_config_t tx_std_cfg_{};
-  i2s_std_config_t rx_std_cfg_{};
+  // the clock configuration of the channel that drives the clocks (TX, or RX
+  // when recording only), for sample_rate(uint32_t)
+  i2s_std_clk_config_t clk_cfg_{};
   bool output_started_{false};
   bool input_started_{false};
 
@@ -276,10 +282,12 @@ protected:
   std::unique_ptr<espp::Task> playback_task_;
   std::unique_ptr<espp::Task> recording_task_;
 
+  // the recording callback, published by start_recording() before it sets
+  // recording_; in_callback_ (set by the recording task around the call)
+  // lets stop_recording() wait for a call in flight without a mutex
   std::atomic<bool> recording_{false};
-  // held while the callback runs (recursive: the callback may call
-  // stop_recording() / start_recording())
-  std::recursive_mutex recording_callback_mutex_;
+  std::atomic<bool> in_callback_{false};
+  std::atomic<TaskHandle_t> recording_task_handle_{nullptr};
   recording_callback_t recording_callback_;
 };
 } // namespace espp

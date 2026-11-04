@@ -70,10 +70,14 @@ bool Audio::initialize() {
 }
 
 bool Audio::initialize(std::error_code &ec) {
-  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  std::unique_lock<std::mutex> lock(mutex_);
   ec.clear();
   if (initialized_) {
     return true;
+  }
+  if (tearing_down_) {
+    ec = std::make_error_code(std::errc::device_or_resource_busy);
+    return false;
   }
   const bool playback = config_.playback_enabled;
   const bool recording = config_.recording_enabled;
@@ -90,19 +94,15 @@ bool Audio::initialize(std::error_code &ec) {
     return false;
   }
   const uint32_t rate = config_.sample_rate;
-  logger_.info("Initializing I2S{} audio ({}{}{}) at {} Hz", static_cast<int>(config_.port),
+  logger_.info("Initializing I2S{} audio ({}{}{}) at {} Hz", config_.port,
                playback ? "playback" : "", playback && recording ? " + " : "",
                recording ? "recording" : "", rate);
   sample_rate_ = rate;
 
   // every failure below unwinds what was set up before it
-  std::unique_lock<std::mutex> codec_lock(codec_mutex_, std::defer_lock);
   auto fail = [&](std::errc err) {
     ec = std::make_error_code(err);
-    if (codec_lock.owns_lock()) {
-      codec_lock.unlock();
-    }
-    teardown();
+    teardown(lock);
     return false;
   };
 
@@ -124,8 +124,9 @@ bool Audio::initialize(std::error_code &ec) {
   }
 
   if (playback) {
-    tx_std_cfg_ = make_std_config(config_, config_.playback_channels);
-    err = i2s_channel_init_std_mode(tx_handle_, &tx_std_cfg_);
+    const i2s_std_config_t tx_cfg = make_std_config(config_, config_.playback_channels);
+    clk_cfg_ = tx_cfg.clk_cfg;
+    err = i2s_channel_init_std_mode(tx_handle_, &tx_cfg);
     if (err != ESP_OK) {
       logger_.error("Could not configure the I2S TX channel: {}", esp_err_to_name(err));
       return fail(std::errc::io_error);
@@ -134,8 +135,11 @@ bool Audio::initialize(std::error_code &ec) {
   if (recording) {
     // in full duplex the RX channel runs on the TX clocks, so it shares the
     // standard-mode clock / slot geometry (only the slot mode may differ)
-    rx_std_cfg_ = make_std_config(config_, config_.recording_channels);
-    err = i2s_channel_init_std_mode(rx_handle_, &rx_std_cfg_);
+    const i2s_std_config_t rx_cfg = make_std_config(config_, config_.recording_channels);
+    if (!playback) {
+      clk_cfg_ = rx_cfg.clk_cfg;
+    }
+    err = i2s_channel_init_std_mode(rx_handle_, &rx_cfg);
     if (err != ESP_OK) {
       logger_.error("Could not configure the I2S RX channel: {}", esp_err_to_name(err));
       return fail(std::errc::io_error);
@@ -148,10 +152,7 @@ bool Audio::initialize(std::error_code &ec) {
     // The playback task never blocks on the stream (see
     // playback_task_callback), so the trigger level is irrelevant; the
     // minimum keeps a producer's send from ever holding a receiver.
-    {
-      std::lock_guard<std::mutex> stream_lock(stream_mutex_);
-      tx_stream_ = xStreamBufferCreate(block_bytes_ * 4, 1);
-    }
+    tx_stream_ = xStreamBufferCreate(block_bytes_ * 4, 1);
     if (!tx_stream_) {
       logger_.error("Could not create the playback stream buffer");
       return fail(std::errc::not_enough_memory);
@@ -191,7 +192,6 @@ bool Audio::initialize(std::error_code &ec) {
     }
     return true;
   };
-  codec_lock.lock();
   if (same_codec() && playback && recording) {
     output_started_ = input_started_ = true;
     if (!start_codec(*config_.output_codec, AudioCodec::Direction::BOTH)) {
@@ -218,7 +218,6 @@ bool Audio::initialize(std::error_code &ec) {
   if (input_started_ && config_.input_codec->has_gain()) {
     config_.input_codec->set_gain(microphone_volume_);
   }
-  codec_lock.unlock();
 
   // Two independent tasks: one keeps the TX ring full from the stream, the
   // other blocks on the RX channel. Keeping the record read off the playback
@@ -250,46 +249,51 @@ bool Audio::initialize(std::error_code &ec) {
 }
 
 void Audio::deinitialize() {
-  std::lock_guard<std::recursive_mutex> lock(mutex_);
-  if (!initialized_) {
+  std::unique_lock<std::mutex> lock(mutex_);
+  if (!initialized_ || tearing_down_) {
     return;
   }
   logger_.info("Deinitializing audio");
-  teardown();
+  teardown(lock);
 }
 
-void Audio::teardown() {
-  // callers hold mutex_
+void Audio::teardown(std::unique_lock<std::mutex> &lock) {
+  // called with mutex_ held
   initialized_ = false;
   recording_ = false;
-  // the tasks first: they use the channels, the stream and the buffers
-  if (playback_task_) {
-    playback_task_->stop();
-    playback_task_.reset();
-    // the playback task registers its handle for play()'s notifications on
-    // every iteration: forget it only once the task can no longer run, or it
-    // could register it again and a later initialize() would keep the stale
-    // handle
-    tx_feed_.detach_task();
+  // The tasks first: they use the channels, the stream and the buffers. Join
+  // them with mutex_ released, so a callback that calls a method (which takes
+  // mutex_) cannot deadlock against the join; tearing_down_ keeps
+  // initialize() / deinitialize() out meanwhile.
+  auto playback_task = std::move(playback_task_);
+  auto recording_task = std::move(recording_task_);
+  tearing_down_ = true;
+  lock.unlock();
+  if (playback_task) {
+    playback_task->stop();
+    playback_task.reset();
   }
-  if (recording_task_) {
-    recording_task_->stop();
-    recording_task_.reset();
+  if (recording_task) {
+    recording_task->stop();
+    recording_task.reset();
   }
-  {
-    std::lock_guard<std::recursive_mutex> callback_lock(recording_callback_mutex_);
-    recording_callback_ = nullptr;
+  lock.lock();
+  tearing_down_ = false;
+  // the playback task registers its handle for play()'s notifications on
+  // every iteration: forget it only once the task can no longer run, or it
+  // could register it again and a later initialize() would keep the stale
+  // handle
+  tx_feed_.detach_task();
+  recording_task_handle_ = nullptr;
+  recording_callback_ = nullptr;
+
+  if (input_started_ && !same_codec()) {
+    config_.input_codec->stop();
   }
-  {
-    std::lock_guard<std::mutex> codec_lock(codec_mutex_);
-    if (input_started_ && !same_codec()) {
-      config_.input_codec->stop();
-    }
-    if (output_started_) {
-      config_.output_codec->stop();
-    }
-    input_started_ = output_started_ = false;
+  if (output_started_) {
+    config_.output_codec->stop();
   }
+  input_started_ = output_started_ = false;
   if (tx_enabled_) {
     i2s_channel_disable(tx_handle_);
     tx_enabled_ = false;
@@ -306,13 +310,10 @@ void Audio::teardown() {
     i2s_del_channel(rx_handle_);
     rx_handle_ = nullptr;
   }
-  {
-    std::lock_guard<std::mutex> stream_lock(stream_mutex_);
-    tx_feed_.stream = nullptr;
-    if (tx_stream_) {
-      vStreamBufferDelete(tx_stream_);
-      tx_stream_ = nullptr;
-    }
+  tx_feed_.stream = nullptr;
+  if (tx_stream_) {
+    vStreamBufferDelete(tx_stream_);
+    tx_stream_ = nullptr;
   }
   std::vector<uint8_t>().swap(tx_buffer_);
   std::vector<uint8_t>().swap(rx_buffer_);
@@ -325,7 +326,7 @@ size_t Audio::play(const uint8_t *data, size_t num_bytes) {
   if (!data || num_bytes == 0) {
     return 0;
   }
-  std::lock_guard<std::mutex> stream_lock(stream_mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   if (!tx_stream_) {
     return 0;
   }
@@ -348,14 +349,14 @@ size_t Audio::play(const uint8_t *data, size_t num_bytes) {
 }
 
 void Audio::clear() {
-  std::lock_guard<std::mutex> stream_lock(stream_mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   if (tx_stream_) {
     xStreamBufferReset(tx_stream_);
   }
 }
 
 void Audio::volume(float volume) {
-  std::lock_guard<std::mutex> lock(codec_mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   volume_ = std::clamp(volume, 0.0f, 100.0f);
   if (output_started_ && config_.output_codec->has_volume()) {
     config_.output_codec->set_volume(volume_);
@@ -363,7 +364,7 @@ void Audio::volume(float volume) {
 }
 
 void Audio::mute(bool mute) {
-  std::lock_guard<std::mutex> lock(codec_mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   muted_ = mute;
   if (output_started_ && config_.output_codec->has_volume()) {
     config_.output_codec->set_mute(mute);
@@ -371,7 +372,7 @@ void Audio::mute(bool mute) {
 }
 
 void Audio::microphone_volume(float volume) {
-  std::lock_guard<std::mutex> lock(codec_mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   microphone_volume_ = std::clamp(volume, 0.0f, 100.0f);
   if (input_started_ && config_.input_codec->has_gain()) {
     config_.input_codec->set_gain(microphone_volume_);
@@ -379,7 +380,7 @@ void Audio::microphone_volume(float volume) {
 }
 
 bool Audio::sample_rate(uint32_t sample_rate) {
-  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   if (!initialized_) {
     logger_.warn("Not initialized: set Config::sample_rate instead");
     return false;
@@ -390,25 +391,25 @@ bool Audio::sample_rate(uint32_t sample_rate) {
   // clock changes, rather than RX sampling through the switch (the recording
   // task's read just times out meanwhile).
   i2s_chan_handle_t clock_handle = tx_handle_ ? tx_handle_ : rx_handle_;
-  i2s_std_config_t &clock_cfg = tx_handle_ ? tx_std_cfg_ : rx_std_cfg_;
   if (tx_enabled_) {
     i2s_channel_disable(tx_handle_);
   }
   if (rx_enabled_) {
     i2s_channel_disable(rx_handle_);
   }
-  i2s_std_clk_config_t clk_cfg = clock_cfg.clk_cfg;
+  i2s_std_clk_config_t clk_cfg = clk_cfg_;
   clk_cfg.sample_rate_hz = sample_rate;
   const esp_err_t err = i2s_channel_reconfig_std_clock(clock_handle, &clk_cfg);
   if (err == ESP_OK) {
-    tx_std_cfg_.clk_cfg.sample_rate_hz = sample_rate;
-    rx_std_cfg_.clk_cfg.sample_rate_hz = sample_rate;
+    clk_cfg_ = clk_cfg;
     sample_rate_ = sample_rate;
   } else {
     logger_.error("Could not set the I2S clock to {} Hz: {}", sample_rate, esp_err_to_name(err));
   }
   // the queued audio was for the old rate
-  clear();
+  if (tx_stream_) {
+    xStreamBufferReset(tx_stream_);
+  }
   if (tx_enabled_) {
     i2s_channel_enable(tx_handle_);
   }
@@ -419,7 +420,6 @@ bool Audio::sample_rate(uint32_t sample_rate) {
     return false;
   }
   bool ok = true;
-  std::lock_guard<std::mutex> codec_lock(codec_mutex_);
   if (output_started_) {
     ok &= config_.output_codec->set_sample_rate(sample_rate);
   }
@@ -430,15 +430,21 @@ bool Audio::sample_rate(uint32_t sample_rate) {
 }
 
 bool Audio::start_recording(const recording_callback_t &callback) {
-  if (!initialized_ || !config_.recording_enabled) {
-    logger_.error("Recording is not initialized");
-    return false;
-  }
   if (!callback) {
     logger_.error("start_recording() needs a callback");
     return false;
   }
-  std::lock_guard<std::recursive_mutex> callback_lock(recording_callback_mutex_);
+  // a call of the previous callback may still be finishing (after a
+  // stop_recording() from that callback): replace it only once it returned.
+  // Wait without mutex_, which that callback may be waiting for.
+  while (in_callback_) {
+    vTaskDelay(1);
+  }
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!initialized_ || !config_.recording_enabled) {
+    logger_.error("Recording is not initialized");
+    return false;
+  }
   if (recording_) {
     logger_.warn("A recording is already in progress; stop it first");
     return false;
@@ -451,9 +457,14 @@ bool Audio::start_recording(const recording_callback_t &callback) {
 void Audio::stop_recording() {
   recording_ = false;
   // wait for a callback in flight to return, so that none runs after this
-  // returns - unless this is that callback
-  if (recording_task_ && espp::Task::get_current_id() != recording_task_->get_id()) {
-    std::lock_guard<std::recursive_mutex> callback_lock(recording_callback_mutex_);
+  // returns - unless this is that callback. (recording_ and in_callback_ are
+  // sequentially consistent: either the recording task sees recording_ false
+  // and skips the call, or this sees in_callback_ set and waits.)
+  if (xTaskGetCurrentTaskHandle() == recording_task_handle_) {
+    return;
+  }
+  while (in_callback_) {
+    vTaskDelay(1);
   }
 }
 
@@ -501,6 +512,7 @@ bool Audio::playback_task_callback(std::mutex &m, std::condition_variable &cv,
 
 bool Audio::recording_task_callback(std::mutex &m, std::condition_variable &cv,
                                     bool &task_notified) {
+  recording_task_handle_ = xTaskGetCurrentTaskHandle();
   // Always read, so the RX DMA ring is drained at the rate samples arrive (a
   // ring that backs up perturbs the TX in full duplex); the samples only go to
   // the callback while a recording is in progress. The finite timeout lets the
@@ -509,10 +521,12 @@ bool Audio::recording_task_callback(std::mutex &m, std::condition_variable &cv,
   const esp_err_t err = i2s_channel_read(rx_handle_, rx_buffer_.data(), rx_buffer_.size(),
                                          &bytes_read, pdMS_TO_TICKS(100));
   if (err == ESP_OK && bytes_read > 0 && recording_) {
-    std::lock_guard<std::recursive_mutex> callback_lock(recording_callback_mutex_);
-    if (recording_ && recording_callback_) {
+    // in_callback_ before re-checking recording_ (see stop_recording())
+    in_callback_ = true;
+    if (recording_) {
       recording_callback_(rx_buffer_.data(), bytes_read);
     }
+    in_callback_ = false;
   }
   std::unique_lock<std::mutex> lock(m);
   if (task_notified) {

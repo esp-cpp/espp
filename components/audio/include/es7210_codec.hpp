@@ -3,7 +3,6 @@
 #include <optional>
 
 #include "audio_codec.hpp"
-#include "base_component.hpp"
 #include "es7210.hpp"
 
 namespace espp {
@@ -19,7 +18,10 @@ namespace espp {
 /// @note The codec component's ES7210 driver keeps its register access
 ///       functions in globals, so there can be only one ES7210 per firmware.
 ///       This class sets them when it is constructed.
-class Es7210Codec : public AudioCodec, public BaseComponent {
+/// @note It logs through ESP_LOGx (tag "Es7210Codec") rather than an
+///       espp::Logger, whose mutex would cost internal RAM for the few
+///       messages an init failure prints.
+class Es7210Codec : public AudioCodec {
 public:
   /// Configuration
   struct Config {
@@ -34,7 +36,6 @@ public:
     /// otherwise amplified by the analog gain and rails the ADC: recordings
     /// come out as a near-constant level.
     bool high_pass_filter{true};
-    espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Log verbosity.
   };
 
   /// @brief Construct and wire up the driver's register access (no I2C
@@ -50,6 +51,10 @@ public:
   bool set_gain(float percent) override;
 
 protected:
-  Config config_;
+  // what start() needs after construction (the driver holds its own copy of
+  // the register access functions)
+  write_fn write_;
+  std::optional<es7210_input_mics_t> microphones_;
+  bool high_pass_filter_;
 };
 } // namespace espp

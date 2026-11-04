@@ -1,7 +1,6 @@
 #pragma once
 
 #include "audio_codec.hpp"
-#include "base_component.hpp"
 #include "es8388.hpp"
 
 namespace espp {
@@ -17,7 +16,10 @@ namespace espp {
 /// @note The codec component's ES8388 driver keeps its register access
 ///       functions in globals, so there can be only one ES8388 per firmware.
 ///       This class sets them when it is constructed.
-class Es8388Codec : public AudioCodec, public BaseComponent {
+/// @note It logs through ESP_LOGx (tag "Es8388Codec") rather than an
+///       espp::Logger, whose mutex would cost internal RAM for the few
+///       messages an init failure prints.
+class Es8388Codec : public AudioCodec {
 public:
   /// Configuration
   struct Config {
@@ -25,7 +27,6 @@ public:
     write_fn write;
     /// Register read, e.g. espp::make_i2c_addressed_read_register(device).
     read_register_fn read;
-    espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Log verbosity.
   };
 
   /// @brief Construct and wire up the driver's register access (no I2C

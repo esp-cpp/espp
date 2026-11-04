@@ -3,17 +3,20 @@
 #include <algorithm>
 #include <cmath>
 
+#include <esp_log.h>
+
 using namespace espp;
 
-Es8388Codec::Es8388Codec(const Config &config)
-    : BaseComponent("Es8388Codec", config.log_level) {
+static const char *TAG = "Es8388Codec";
+
+Es8388Codec::Es8388Codec(const Config &config) {
   set_es8388_write(config.write);
   set_es8388_read(config.read);
 }
 
 bool Es8388Codec::start(Direction direction, uint32_t sample_rate) {
   if (direction != Direction::PLAYBACK) {
-    logger_.error("Only playback is supported (record through an ES7210)");
+    ESP_LOGE(TAG, "Only playback is supported (record through an ES7210)");
     return false;
   }
   audio_hal_codec_config_t cfg{};
@@ -25,22 +28,22 @@ bool Es8388Codec::start(Direction direction, uint32_t sample_rate) {
   // does not use the rate
   cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
   cfg.i2s_iface.samples = AUDIO_HAL_48K_SAMPLES;
-  logger_.info("Initializing the ES8388 DAC at {} Hz", sample_rate);
+  ESP_LOGI(TAG, "Initializing the ES8388 DAC at %u Hz", static_cast<unsigned>(sample_rate));
   if (es8388_init(&cfg) != ESP_OK) {
-    logger_.error("ES8388 init failed");
+    ESP_LOGE(TAG, "ES8388 init failed");
     return false;
   }
   if (es8388_config_fmt(ES_MODULE_DAC, ES_I2S_NORMAL) != ESP_OK) {
-    logger_.error("ES8388 format config failed");
+    ESP_LOGE(TAG, "ES8388 format config failed");
   }
   if (es8388_set_bits_per_sample(ES_MODULE_DAC, BIT_LENGTH_16BITS) != ESP_OK) {
-    logger_.error("ES8388 bits per sample config failed");
+    ESP_LOGE(TAG, "ES8388 bits per sample config failed");
   }
   if (es8388_config_dac_output(DAC_OUTPUT_ALL) != ESP_OK) {
-    logger_.error("ES8388 DAC output config failed");
+    ESP_LOGE(TAG, "ES8388 DAC output config failed");
   }
   if (es8388_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START) != ESP_OK) {
-    logger_.error("ES8388 start failed");
+    ESP_LOGE(TAG, "ES8388 start failed");
     return false;
   }
   return true;
