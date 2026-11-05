@@ -70,7 +70,7 @@ The display needs a display backend
 The virtual panel's driver hands each drawn area to QEMU and waits for QEMU to
 take it. With ``-nographic`` or ``-display none`` nothing ever does, and the
 first LVGL flush spins forever: the application appears to hang right after
-the display is initialised (verified on the ESP32 and ESP32-C3 machines). Keep
+the display is initialized (verified on the ESP32 and ESP32-C3 machines). Keep
 ``-display sdl`` (what ``--graphics`` passes) and, for a run without a window,
 point SDL at its off-screen driver:
 

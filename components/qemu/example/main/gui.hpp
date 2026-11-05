@@ -12,7 +12,7 @@
 
 /// The Gui class encapsulates all of the LVGL UI for this example, following
 /// the pattern of the other espp BSP examples: every LVGL object is created in
-/// init_ui(), the class owns the task that pumps lv_task_handler() and a
+/// init_ui(), the class owns the task that pumps lv_timer_handler() and a
 /// recursive mutex that guards every LVGL call, and the public methods lock
 /// that mutex so other tasks (the Ethernet event callbacks, the main loop) can
 /// update the screen safely.
@@ -61,7 +61,7 @@ protected:
   void init_status_lines();
   void init_arc();
 
-  // the LVGL update task: advances the arc and calls lv_task_handler()
+  // the LVGL update task: advances the arc and calls lv_timer_handler()
   // under the mutex
   bool update(std::mutex &m, std::condition_variable &cv);
 

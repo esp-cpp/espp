@@ -67,7 +67,7 @@ bool Gui::update(std::mutex &m, std::condition_variable &cv) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     arc_value_ = (arc_value_ + 1) % 101;
     lv_arc_set_value(arc_, arc_value_);
-    lv_task_handler();
+    lv_timer_handler();
   }
   std::unique_lock<std::mutex> lock(m);
   cv.wait_for(lock, std::chrono::milliseconds(16));

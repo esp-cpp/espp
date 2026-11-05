@@ -1,7 +1,7 @@
 QEMU (emulator)
 ***************
 
-Qemu
+QEMU
 ----
 
 The `espp::Qemu` component is a board-support package for `Espressif's QEMU
