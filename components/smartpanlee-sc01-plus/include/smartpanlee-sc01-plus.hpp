@@ -8,20 +8,20 @@
 #include <vector>
 
 #include <driver/gpio.h>
-#include <driver/i2s_std.h>
 #include <driver/spi_master.h>
+#include <esp_heap_caps.h>
 #include <esp_lcd_io_i80.h>
 #include <esp_lcd_panel_io.h>
 #include <freertos/FreeRTOS.h>
-#include <freertos/stream_buffer.h>
 #include <hal/spi_types.h>
+#include <sdkconfig.h>
 #include <sdmmc_cmd.h>
 
+#include "audio.hpp"
 #include "base_component.hpp"
 #include "display.hpp"
 #include "ft5x06.hpp"
 #include "i2c.hpp"
-#include "i2s_tx_feed.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
 #include "sdcard.hpp"
@@ -37,7 +37,7 @@ namespace espp {
 /// - ST7796 3.5-inch 320x480 display over an 8-bit Intel 8080 style bus
 /// - FT5x06 capacitive touch controller
 /// - PWM backlight control
-/// - I2S audio playback for the onboard speaker path
+/// - I2S audio playback for the onboard speaker path (espp::Audio)
 /// - SPI microSD card mounting helpers
 /// - Published I2S, RS-485, and expansion pin maps
 ///
@@ -214,54 +214,125 @@ public:
   ///       before the write has completed.
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
-  /// Initialize the speaker audio path using the board's published I2S pins.
-  /// \return True if audio playback support was initialized, false otherwise.
+  /// How initialize_audio() sets the audio system up. The board has a
+  /// speaker path only (no microphone), so this sets up playback.
+  struct AudioConfig {
+    /// The audio sample rate, in Hz
+    uint32_t sample_rate{44100};
+    /// Size of the playback stream play_audio() queues into, in bytes (0:
+    /// about 67 ms of audio). Larger lets one play_audio() call queue a whole
+    /// UI sound.
+    size_t playback_buffer_size{0};
+    /// Heap capabilities for the playback stream (e.g. MALLOC_CAP_SPIRAM for
+    /// a large one)
+    uint32_t playback_buffer_caps{MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT};
+    /// The playback task's configuration; it is named with " out" appended
+    /// ("sc01+ audio out")
+    espp::Task::BaseConfig task_config{.name = "sc01+ audio",
+                                       .stack_size_bytes =
+                                           CONFIG_SMARTPANLEE_SC01_PLUS_AUDIO_TASK_STACK_SIZE,
+                                       .priority = 20,
+                                       .core_id = 1};
+  };
+
+  /// Initialize the audio system with the default AudioConfig: playback at
+  /// 44.1 kHz
+  /// \return true if the audio system was successfully initialized, false otherwise
   bool initialize_audio();
-  /// Initialize the speaker audio path using the specified sample rate.
+
+  /// Initialize the audio system (stereo playback to the speaker path on the
+  /// board's published I2S pins; volume and mute are applied in software)
+  /// \param config The sample rate, the playback buffer and the task
+  ///        configuration
+  /// \return true if the audio system was successfully initialized, false
+  ///         otherwise
+  /// \note A failure part way through undoes what was set up before it (the
+  ///       I2S channel and its DMA ring, the stream buffer, the task), so the
+  ///       call can be retried.
+  bool initialize_audio(const AudioConfig &config);
+
+  /// Initialize the audio system at the specified sample rate
   /// \param sample_rate Audio sample rate in Hz.
   /// \return True if audio playback support was initialized, false otherwise.
-  bool initialize_audio(uint32_t sample_rate);
-  /// Initialize the speaker audio path using a custom task configuration.
+  [[deprecated("use initialize_audio(const AudioConfig &) instead")]] bool
+  initialize_audio(uint32_t sample_rate);
+
+  /// Initialize the audio system using a custom task configuration
   /// \param sample_rate Audio sample rate in Hz.
-  /// \param task_config Task configuration for the background audio pump.
+  /// \param task_config Task configuration for the playback task.
   /// \return True if audio playback support was initialized, false otherwise.
-  bool initialize_audio(uint32_t sample_rate, const espp::Task::BaseConfig &task_config);
-  /// Set the audio sample rate.
+  [[deprecated("use initialize_audio(const AudioConfig &) instead")]] bool
+  initialize_audio(uint32_t sample_rate, const espp::Task::BaseConfig &task_config);
+
+  /// Stop the audio system and free what initialize_audio() set up.
+  /// Idempotent.
+  /// \note The audio methods below may be called from any task meanwhile,
+  ///       but initialize_audio() and deinitialize_audio() must not run
+  ///       concurrently with each other.
+  void deinitialize_audio();
+
+  /// Whether the audio system is initialized
+  /// \return True if initialize_audio() succeeded (until deinitialize_audio())
+  bool is_audio_initialized() const {
+    auto audio = audio_.load();
+    return audio && audio->is_initialized();
+  }
+
+  /// The audio component, for anything the BSP methods below do not expose
+  /// \return The audio component, or nullptr before initialize_audio()
+  /// \note deinitialize_audio() releases the hardware even while the returned
+  ///       pointer is held: the object is then uninitialized (its methods
+  ///       fail / return 0), and a later initialize_audio() makes a new one.
+  std::shared_ptr<espp::Audio> audio() const { return audio_.load(); }
+
+  /// Set the audio sample rate. The audio queued for playback is dropped,
+  /// since it was for the old rate.
   /// \param sample_rate Audio sample rate in Hz.
-  void audio_sample_rate(uint32_t sample_rate);
+  /// \return True on success (false before initialize_audio(): the rate is
+  ///         then AudioConfig::sample_rate)
+  bool audio_sample_rate(uint32_t sample_rate);
   /// Get the active audio sample rate.
   /// \return Audio sample rate in Hz, or 0 if audio is not initialized.
   uint32_t audio_sample_rate() const;
-  /// Get the internal playback buffer size.
-  /// \return Audio buffer size in bytes.
+  /// Get the audio buffer size
+  /// \return The size of one playback block, in bytes (1/60 s of audio)
   size_t audio_buffer_size() const;
   /// Mute or unmute speaker playback.
   /// \param mute True to mute playback, false to unmute it.
+  /// \note Before initialize_audio() the value is stored and applied when
+  ///       playback starts.
   void mute(bool mute);
   /// Query whether speaker playback is muted.
   /// \return True if playback is muted.
   bool is_muted() const;
   /// Set the software playback volume.
   /// \param volume Volume percentage in the range [0, 100].
+  /// \note Before initialize_audio() the value is stored and applied when
+  ///       playback starts.
   void volume(float volume);
   /// Get the software playback volume.
   /// \return Volume percentage in the range [0, 100].
   float volume() const;
-  /// Queue raw PCM audio bytes for playback.
+  /// Queue raw PCM audio bytes for playback (16-bit signed stereo samples).
   /// \param data Audio payload to play.
   /// \return The number of bytes actually queued (may be less than the data
   ///         size if the internal stream buffer is full); stream longer data
-  ///         by calling repeatedly, advancing by the returned count
+  ///         by calling repeatedly, advancing by the returned count (or make
+  ///         the buffer larger: AudioConfig::playback_buffer_size)
   /// \note Must be called from task context, not from an ISR.
   size_t play_audio(std::span<const uint8_t> data);
-  /// Queue raw PCM audio bytes for playback.
+  /// Queue raw PCM audio bytes for playback (16-bit signed stereo samples).
   /// \param data Pointer to PCM audio bytes.
   /// \param num_bytes Number of bytes to play.
   /// \return The number of bytes actually queued (may be less than \p
   ///         num_bytes if the internal stream buffer is full); stream longer
-  ///         data by calling repeatedly, advancing by the returned count
+  ///         data by calling repeatedly, advancing by the returned count (or
+  ///         make the buffer larger: AudioConfig::playback_buffer_size)
   /// \note Must be called from task context, not from an ISR.
-  size_t play_audio(const uint8_t *data, uint32_t num_bytes);
+  size_t play_audio(const uint8_t *data, size_t num_bytes);
+  /// Drop any queued (not yet played) audio so a subsequent play_audio() starts
+  /// immediately instead of waiting behind previously queued sound.
+  void clear_audio();
 
   /// Initialize and mount the optional microSD card with default settings.
   /// \return True if the card was mounted successfully, false otherwise.
@@ -298,9 +369,6 @@ protected:
 
   static bool panel_io_color_trans_done(esp_lcd_panel_io_handle_t panel_io,
                                         esp_lcd_panel_io_event_data_t *edata, void *user_ctx);
-  static espp::Task::BaseConfig default_audio_task_config();
-  bool initialize_i2s(uint32_t default_audio_rate);
-  bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   bool update_touch();
   void write_command(uint8_t command, std::span<const uint8_t> parameters, uint32_t user_data);
 
@@ -340,12 +408,6 @@ protected:
   static constexpr gpio_num_t touch_interrupt = GPIO_NUM_7;
 
   static constexpr auto i2s_port = I2S_NUM_0;
-  static constexpr int audio_num_channels = 2;
-  static constexpr int audio_num_bytes_per_channel = 2;
-  static constexpr int audio_update_frequency = 60;
-  static constexpr int calc_audio_buffer_size(int sample_rate) {
-    return sample_rate * audio_num_channels * audio_num_bytes_per_channel / audio_update_frequency;
-  }
 
   I2c internal_i2c_{I2c::Config{.port = internal_i2c_port,
                                 .sda_io_num = internal_i2c_sda,
@@ -390,17 +452,14 @@ protected:
   esp_lcd_i80_bus_handle_t lcd_bus_{nullptr};
   esp_lcd_panel_io_handle_t panel_io_{nullptr};
 
-  std::atomic<bool> audio_initialized_{false};
+  // Audio (espp::Audio, created by initialize_audio()). atomic: the
+  // forwarders may run on any task while initialize_audio() /
+  // deinitialize_audio() publish / unpublish it
+  std::atomic<std::shared_ptr<espp::Audio>> audio_;
+  // the settings, kept across initialize_audio() / deinitialize_audio() and
+  // passed to espp::Audio as its initial values
   std::atomic<float> volume_{50.0f};
   std::atomic<bool> mute_{false};
-  std::unique_ptr<espp::Task> audio_task_{nullptr};
-  i2s_chan_handle_t audio_tx_handle_{nullptr};
-  StreamBufferHandle_t audio_tx_stream_{nullptr};
-  // Stream-side playback policy shared by every audio BSP (bounded wait for a
-  // flowing producer, misalignment recovery, task wake-up): codec/i2s_tx_feed.hpp
-  espp::i2s_tx_feed::Feeder audio_tx_feed_;
-  i2s_std_config_t audio_std_cfg_{};
-  std::vector<uint8_t> audio_tx_buffer_;
 
   std::unique_ptr<espp::SdCard> sdcard_;
 };
