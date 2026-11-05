@@ -6,6 +6,7 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 # add the component directories that we want to use
 set(EXTRA_COMPONENT_DIRS
+  "../../../components/base_component"
   "../../../components/cli"
   "../../../components/format"
   "../../../components/iperf_menu"

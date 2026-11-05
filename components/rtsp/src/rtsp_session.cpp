@@ -38,15 +38,18 @@ bool parse_decimal_int(std::string_view text, int &value) {
 } // namespace
 
 RtspSession::RtspSession(std::shared_ptr<TcpSocket> control_socket, const Config &config)
-    : BaseComponent("RtspSession", config.log_level)
+    : RtspSession(std::move(control_socket), config, generate_session_id()) {}
+
+RtspSession::RtspSession(std::shared_ptr<TcpSocket> control_socket, const Config &config,
+                         uint32_t session_id)
+    // the logger tag includes the session id
+    : BaseComponent("RtspSession " + std::to_string(session_id), config.log_level)
     , control_socket_(std::move(control_socket))
-    , session_id_(generate_session_id())
+    , session_id_(session_id)
     , server_address_(config.server_address)
     , rtsp_path_(config.rtsp_path)
     , client_address_(control_socket_->get_remote_info().address)
     , sdp_generator_(config.sdp_generator) {
-  // set the logger tag to include the session id
-  logger_.set_tag("RtspSession " + std::to_string(session_id_));
   // ensure there is a timeout on the control socket receive
   control_socket_->set_receive_timeout(config.receive_timeout);
   // start the session task to handle RTSP commands

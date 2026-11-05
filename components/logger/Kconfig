@@ -22,4 +22,16 @@ menu "ESPP Logger"
           Enable cursor commands for the ESPP Logger. This will allow the user to
           move the cursor around the terminal and clear the screen.
 
+    config ESPP_LOGGER_MUTABLE_TAG
+        bool "Mutable tag (Logger::set_tag(), BaseComponent::set_log_tag())"
+        default n
+        help
+          Allow a Logger's tag to change after construction, with
+          Logger::set_tag() / BaseComponent::set_log_tag(). The tag then needs
+          a mutex, and on ESP-IDF each mutex allocates a FreeRTOS semaphore:
+          about 116 bytes of internal RAM for every Logger (every espp
+          component has one). Off, the tag is set once, in the Logger's
+          Config (or BaseComponent's constructor), and set_tag() /
+          set_log_tag() do not compile.
+
 endmenu
