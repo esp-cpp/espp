@@ -83,8 +83,35 @@ enum class LocatorKind_t : int32_t {
   LOCATOR_KIND_INVALID = -1,
   LOCATOR_KIND_RESERVED = 0,
   LOCATOR_KIND_UDPv4 = 1,
-  LOCATOR_KIND_UDPv6 = 2
+  LOCATOR_KIND_UDPv6 = 2,
+  // Not in RTPS 2.5 (which defines the two above); the values FastDDS uses for
+  // its other transports. A FastDDS peer lists its shared-memory locator in
+  // every announcement, so they are recognised, if only to be skipped quietly.
+  LOCATOR_KIND_TCPv4 = 4,
+  LOCATOR_KIND_TCPv6 = 8,
+  LOCATOR_KIND_SHM = 16
 };
+
+/// Name of a locator kind, for logs ("unknown" for a value not listed above).
+constexpr const char *locatorKindName(LocatorKind_t kind) {
+  switch (kind) {
+  case LocatorKind_t::LOCATOR_KIND_INVALID:
+    return "invalid";
+  case LocatorKind_t::LOCATOR_KIND_RESERVED:
+    return "reserved";
+  case LocatorKind_t::LOCATOR_KIND_UDPv4:
+    return "UDPv4";
+  case LocatorKind_t::LOCATOR_KIND_UDPv6:
+    return "UDPv6";
+  case LocatorKind_t::LOCATOR_KIND_TCPv4:
+    return "TCPv4";
+  case LocatorKind_t::LOCATOR_KIND_TCPv6:
+    return "TCPv6";
+  case LocatorKind_t::LOCATOR_KIND_SHM:
+    return "SHM";
+  }
+  return "unknown";
+}
 
 const uint32_t LOCATOR_PORT_INVALID = 0;
 const std::array<uint8_t, 16> LOCATOR_ADDRESS_INVALID = {0, 0, 0, 0, 0, 0, 0, 0,
