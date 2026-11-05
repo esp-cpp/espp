@@ -90,11 +90,10 @@ public:
    * @param config The configuration.
    */
   explicit PersistentData(const Config &config)
-      : BaseComponent("PersistentData", config.log_level)
+      : BaseComponent("PersistentData:" + config.file_path.filename().string(), config.log_level)
       , file_path_(config.file_path)
       , save_after_migration_(config.save_after_migration)
       , max_file_size_(config.max_file_size) {
-    set_log_tag("PersistentData:" + file_path_.filename().string());
     if (config.auto_load) {
       std::error_code ec;
       load(ec);

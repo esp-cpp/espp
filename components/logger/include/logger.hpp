@@ -5,6 +5,7 @@
 #include <mutex>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #if defined(ESP_PLATFORM)
 // include sdkconfig before the rest
@@ -68,6 +69,21 @@ class Logger {
 #define ESPP_LOGGER_INFO_ENABLED (CONFIG_ESPP_LOGGER_LOG_LEVEL >= ESPP_LOGGER_LOG_LEVEL_INFO)
 #define ESPP_LOGGER_WARN_ENABLED (CONFIG_ESPP_LOGGER_LOG_LEVEL >= ESPP_LOGGER_LOG_LEVEL_WARN)
 #define ESPP_LOGGER_ERROR_ENABLED (CONFIG_ESPP_LOGGER_LOG_LEVEL >= ESPP_LOGGER_LOG_LEVEL_ERROR)
+
+// Whether a Logger's tag can change after construction (set_tag()). Changing
+// it needs a mutex, which on ESP-IDF allocates a FreeRTOS semaphore (about
+// 116 B of internal RAM) for every Logger, so there it is the
+// CONFIG_ESPP_LOGGER_MUTABLE_TAG Kconfig option, off by default. Elsewhere
+// (host / python builds) it defaults on; define ESPP_LOGGER_MUTABLE_TAG to 0 or
+// 1 to choose.
+#ifndef ESPP_LOGGER_MUTABLE_TAG
+#if (defined(CONFIG_ESPP_LOGGER_MUTABLE_TAG) && CONFIG_ESPP_LOGGER_MUTABLE_TAG) ||                 \
+    !defined(ESP_PLATFORM)
+#define ESPP_LOGGER_MUTABLE_TAG 1
+#else
+#define ESPP_LOGGER_MUTABLE_TAG 0
+#endif
+#endif
 
 // If the cursor commands haven't been configured as a define, check the config
 #if !defined(ESPP_LOGGER_CURSOR_COMMANDS_ENABLED)
@@ -134,7 +150,7 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    */
   Logger(Logger &&other) noexcept // cppcheck-suppress missingMemberCopy
       : tag_([&other] {
-        std::scoped_lock lock(other.tag_mutex_);
+        [[maybe_unused]] auto lock = other.lock_tag();
         return std::move(other.tag_);
       }())
       , rate_limit_(other.rate_limit_)
@@ -151,7 +167,9 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    */
   Logger &operator=(const Logger &other) { // cppcheck-suppress operatorEqVarError
     if (this != &other) {
+#if ESPP_LOGGER_MUTABLE_TAG
       std::scoped_lock lock(tag_mutex_, other.tag_mutex_);
+#endif
       tag_ = other.tag_;
       rate_limit_ = other.rate_limit_;
       include_time_ = other.include_time_.load();
@@ -167,7 +185,9 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    */
   Logger &operator=(Logger &&other) noexcept {
     if (this != &other) {
+#if ESPP_LOGGER_MUTABLE_TAG
       std::scoped_lock lock(tag_mutex_, other.tag_mutex_);
+#endif
       tag_ = std::move(other.tag_);
       rate_limit_ = other.rate_limit_;
       last_print_.store(other.last_print_.load());
@@ -191,14 +211,30 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    */
   void set_verbosity(const espp::Logger::Verbosity level) { level_ = level; }
 
+#if ESPP_LOGGER_MUTABLE_TAG
   /**
    * @brief Change the tag for the logger.
    * @param tag The new tag.
+   * @note Only with ESPP_LOGGER_MUTABLE_TAG (on ESP-IDF the
+   *       CONFIG_ESPP_LOGGER_MUTABLE_TAG Kconfig option); otherwise set the
+   *       tag in the Config.
    */
   void set_tag(const std::string_view tag) {
     std::scoped_lock lock(tag_mutex_);
     tag_ = tag;
   }
+#else
+  /**
+   * @brief Not available: the tag is fixed at construction (set it in the
+   *        Config). Enable CONFIG_ESPP_LOGGER_MUTABLE_TAG (menuconfig: ESPP
+   *        Logger -> Mutable tag) to change it afterwards.
+   */
+  template <typename T = void> void set_tag(const std::string_view) {
+    static_assert(!std::is_same_v<T, T>,
+                  "Logger::set_tag() needs CONFIG_ESPP_LOGGER_MUTABLE_TAG (menuconfig: ESPP "
+                  "Logger -> Mutable tag); or set the tag in the Logger's Config");
+  }
+#endif
 
   /**
    * @brief Get the current tag for the logger.
@@ -255,10 +291,10 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
-      std::scoped_lock lock(tag_mutex_);
+      [[maybe_unused]] auto lock = lock_tag();
       fmt::print(fg(fmt::color::gray), "[{}/D][{}]: {}\n", tag_, get_time(), msg);
     } else {
-      std::scoped_lock lock(tag_mutex_);
+      [[maybe_unused]] auto lock = lock_tag();
       fmt::print(fg(fmt::color::gray), "[{}/D]:{}\n", tag_, msg);
     }
 #endif
@@ -275,10 +311,10 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
-      std::scoped_lock lock(tag_mutex_);
+      [[maybe_unused]] auto lock = lock_tag();
       fmt::print(fg(fmt::terminal_color::green), "[{}/I][{}]: {}\n", tag_, get_time(), msg);
     } else {
-      std::scoped_lock lock(tag_mutex_);
+      [[maybe_unused]] auto lock = lock_tag();
       fmt::print(fg(fmt::terminal_color::green), "[{}/I]:{}\n", tag_, msg);
     }
 #endif
@@ -295,10 +331,10 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
-      std::scoped_lock lock(tag_mutex_);
+      [[maybe_unused]] auto lock = lock_tag();
       fmt::print(fg(fmt::terminal_color::yellow), "[{}/W][{}]: {}\n", tag_, get_time(), msg);
     } else {
-      std::scoped_lock lock(tag_mutex_);
+      [[maybe_unused]] auto lock = lock_tag();
       fmt::print(fg(fmt::terminal_color::yellow), "[{}/W]:{}\n", tag_, msg);
     }
 #endif
@@ -315,10 +351,10 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
-      std::scoped_lock lock(tag_mutex_);
+      [[maybe_unused]] auto lock = lock_tag();
       fmt::print(fg(fmt::terminal_color::red), "[{}/E][{}]: {}\n", tag_, get_time(), msg);
     } else {
-      std::scoped_lock lock(tag_mutex_);
+      [[maybe_unused]] auto lock = lock_tag();
       fmt::print(fg(fmt::terminal_color::red), "[{}/E]:{}\n", tag_, msg);
     }
 #endif
@@ -492,8 +528,18 @@ protected:
    */
   static std::chrono::steady_clock::time_point start_time_;
 
+#if ESPP_LOGGER_MUTABLE_TAG
   mutable std::mutex tag_mutex_; ///< Mutex for the tag.
-  std::string tag_;              ///< Name of the logger to be prepended to all logs.
+  /// Lock the tag against set_tag() while it is read.
+  [[nodiscard]] std::unique_lock<std::mutex> lock_tag() const {
+    return std::unique_lock<std::mutex>(tag_mutex_);
+  }
+#else
+  /// The tag is fixed at construction: nothing to lock.
+  struct NoTagLock {};
+  [[nodiscard]] NoTagLock lock_tag() const { return {}; }
+#endif
+  std::string tag_; ///< Name of the logger to be prepended to all logs.
   clock_t::duration rate_limit_{
       clock_t::duration::zero()}; ///< Rate limit for the logger. If zero, no rate limiting is done.
   std::atomic<clock_t::rep> last_print_{
