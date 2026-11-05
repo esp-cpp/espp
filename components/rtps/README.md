@@ -81,6 +81,14 @@ flowchart TD
 | ESP32 | lwIP (via ESP-IDF) | FreeRTOS |
 | Linux / macOS / PC | POSIX sockets | `std::thread` |
 
+On ESP32, two lwIP defaults get in the way of a ROS 2 peer and are worth
+copying from `example/sdkconfig.defaults`: IP reassembly is **off**
+(`CONFIG_LWIP_IP4_REASSEMBLY`), and FastDDS / CycloneDDS send any sample under
+64 KB as one IP-fragmented datagram, so without it a sample bigger than one MTU
+never reaches the engine; and the socket mailboxes (`CONFIG_LWIP_UDP_RECVMBOX_SIZE`,
+6 by default) drop the tail of a burst of fragments. Both came out of the QEMU
+interop matrix (`interop/qemu`).
+
 Services and actions are **pure library code** over pub/sub — the only wire
 addition is a `related_sample_identity` inline QoS on service request/reply (for
 ROS 2 correlation). Actions add no wire primitive at all: they compose services
