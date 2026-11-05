@@ -64,7 +64,8 @@ public:
   using playback_block_callback_t = std::function<void(bool active)>;
 
   /// How many blocks per second the playback task writes: a block is
-  /// 1 / UPDATE_FREQUENCY seconds of audio.
+  /// sample_rate / UPDATE_FREQUENCY frames, rounded down to whole frames (so
+  /// at most 1 / UPDATE_FREQUENCY seconds of audio).
   static constexpr uint32_t UPDATE_FREQUENCY = 60;
 
   /// I2S pins. Unused pins are GPIO_NUM_NC.
@@ -207,8 +208,8 @@ public:
   uint32_t sample_rate() const { return sample_rate_.load(); }
 
   /// @return The size of one playback block, in bytes (0 before
-  ///         initialize()): 1 / UPDATE_FREQUENCY seconds of audio, whole
-  ///         frames.
+  ///         initialize()): sample_rate / UPDATE_FREQUENCY frames,
+  ///         rounded down (at most 1 / UPDATE_FREQUENCY seconds).
   size_t buffer_size() const { return block_bytes_; }
 
   /// @brief Start delivering recorded audio to @p callback.

@@ -20,9 +20,10 @@ static_assert(espp::i2s_tx_feed::ring_outlasts_wait(espp::i2s_tx_feed::DMA_DESC_
 // 16-bit PCM
 static constexpr size_t BYTES_PER_SAMPLE = 2;
 
-// One block: 1 / UPDATE_FREQUENCY seconds of audio, whole frames only (the
-// stream's framing depends on it: a block that split a frame would misalign
-// everything after it).
+// One block: sample_rate / UPDATE_FREQUENCY frames, rounded down - whole
+// frames only (the stream's framing depends on it: a block that split a frame
+// would misalign everything after it), and never longer than
+// 1 / UPDATE_FREQUENCY seconds, which the ring check assumes.
 static size_t block_size(uint32_t sample_rate, uint8_t channels) {
   const size_t frame_bytes = channels * BYTES_PER_SAMPLE;
   return (sample_rate / Audio::UPDATE_FREQUENCY) * frame_bytes;
@@ -611,8 +612,10 @@ bool Audio::recording_task_callback(std::mutex &m, std::condition_variable &cv,
   // the callback while a recording is in progress. The finite timeout lets the
   // task observe a stop request.
   size_t bytes_read = 0;
-  const esp_err_t err =
-      i2s_channel_read(rx_handle_, rx_buffer_.data(), rx_buffer_.size(), &bytes_read, 100 /* ms */);
+  // (the timeout is in milliseconds: i2s_channel_read()'s timeout_ms)
+  static constexpr uint32_t READ_TIMEOUT_MS = 100;
+  const esp_err_t err = i2s_channel_read(rx_handle_, rx_buffer_.data(), rx_buffer_.size(),
+                                         &bytes_read, READ_TIMEOUT_MS);
   // a read that timed out can still carry samples (e.g. a buffer sized for a
   // higher rate than sample_rate() now runs at)
   if ((err == ESP_OK || err == ESP_ERR_TIMEOUT) && bytes_read > 0 && recording_) {

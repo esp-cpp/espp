@@ -8,4 +8,3 @@ the espp development boards.
     :maxdepth: 1
 
     audio
-    audio_example
