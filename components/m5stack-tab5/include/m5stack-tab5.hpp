@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <functional>
@@ -29,15 +30,15 @@
 #include <freertos/stream_buffer.h>
 #include <freertos/task.h>
 
+#include "audio.hpp"
 #include "base_component.hpp"
 // #include "ble_gatt_server.hpp"
 #include "bmi270.hpp"
 #include "display.hpp"
-#include "es7210.hpp"
-#include "es8388.hpp"
+#include "es7210_codec.hpp"
+#include "es8388_codec.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
-#include "i2s_tx_feed.hpp"
 #include "ili9881.hpp"
 #include "ina226.hpp"
 #include "interrupt.hpp"
@@ -482,8 +483,8 @@ public:
     ///       so an application that only plays (or only records) saves that
     ///       memory by turning the other direction off.
     bool recording_enabled{true};
-    /// The playback task's configuration; the microphone task uses it too,
-    /// with " microphone" appended to the name
+    /// The audio tasks' configuration: the playback task is named with " out"
+    /// appended ("tab5_audio out"), the microphone task with " in"
     espp::Task::BaseConfig task_config{.name = "tab5_audio",
                                        .stack_size_bytes =
                                            CONFIG_M5STACK_TAB5_AUDIO_TASK_STACK_SIZE,
@@ -491,17 +492,10 @@ public:
                                        .core_id = 1};
   };
 
-  /// Initialize the audio system (ES8388 codec + ES7210 AEC) for playback and
-  /// recording
-  /// \param sample_rate The audio sample rate (default 48kHz)
-  /// \param task_config The task configuration for the audio task
+  /// Initialize the audio system with the default AudioConfig: ES8388
+  /// playback and ES7210 recording at 48 kHz
   /// \return true if the audio system was successfully initialized, false otherwise
-  bool initialize_audio(uint32_t sample_rate = 48000,
-                        const espp::Task::BaseConfig &task_config = {
-                            .name = "tab5_audio",
-                            .stack_size_bytes = CONFIG_M5STACK_TAB5_AUDIO_TASK_STACK_SIZE,
-                            .priority = 20,
-                            .core_id = 1});
+  bool initialize_audio();
 
   /// Initialize the audio system (ES8388 codec + ES7210 AEC)
   /// \param config The sample rate, which directions to set up, and the task
@@ -513,14 +507,49 @@ public:
   ///       codecs), so the call can be retried.
   bool initialize_audio(const AudioConfig &config);
 
-  /// Enable or disable the audio system
+  /// Initialize the audio system (ES8388 codec + ES7210 AEC) for playback and
+  /// recording
+  /// \param sample_rate The audio sample rate
+  /// \param task_config The task configuration for the audio task
+  /// \return true if the audio system was successfully initialized, false otherwise
+  [[deprecated("use initialize_audio(const AudioConfig &) instead")]] bool
+  initialize_audio(uint32_t sample_rate,
+                   const espp::Task::BaseConfig &task_config = {
+                       .name = "tab5_audio",
+                       .stack_size_bytes = CONFIG_M5STACK_TAB5_AUDIO_TASK_STACK_SIZE,
+                       .priority = 20,
+                       .core_id = 1});
+
+  /// Stop the audio system and free what initialize_audio() set up (the
+  /// speaker is switched off). Idempotent.
+  /// \note The audio methods below may be called from any task meanwhile,
+  ///       but initialize_audio() and deinitialize_audio() must not run
+  ///       concurrently with each other, nor from an audio callback.
+  void deinitialize_audio();
+
+  /// Whether the audio system is initialized
+  /// \return True if initialize_audio() succeeded (until deinitialize_audio())
+  bool is_audio_initialized() const {
+    auto audio = audio_.load();
+    return audio && audio->is_initialized();
+  }
+
+  /// The audio component, for anything the BSP methods below do not expose
+  /// \return The audio component, or nullptr before initialize_audio()
+  /// \note deinitialize_audio() releases the hardware even while the returned
+  ///       pointer is held: the object is then uninitialized (its methods
+  ///       fail / return 0), and a later initialize_audio() makes a new one.
+  std::shared_ptr<espp::Audio> audio() const { return audio_.load(); }
+
+  /// Enable or disable the speaker amplifier
   /// \param enable True to enable, false to disable
+  /// \note initialize_audio() enables it when playback is set up.
   void enable_audio(bool enable);
 
   /// Set the audio volume
   /// \param volume The volume as a percentage (0-100)
-  /// \note Without playback (AudioConfig::playback_enabled) the value is only
-  ///       stored.
+  /// \note Before initialize_audio() (or without playback) the value is
+  ///       stored and applied when playback starts.
   void volume(float volume);
 
   /// Get the audio volume
@@ -529,8 +558,8 @@ public:
 
   /// Mute or unmute the audio
   /// \param mute True to mute, false to unmute
-  /// \note Without playback (AudioConfig::playback_enabled) the value is only
-  ///       stored.
+  /// \note Before initialize_audio() (or without playback) the value is
+  ///       stored and applied when playback starts.
   void mute(bool mute);
 
   /// Check if audio is muted
@@ -541,12 +570,14 @@ public:
   /// \return The audio sample rate, in Hz
   uint32_t audio_sample_rate() const;
 
-  /// Set the audio sample rate
+  /// Set the audio sample rate (the I2S clocks and the codecs). The audio
+  /// queued for playback is dropped, since it was for the old rate.
   /// \param sample_rate The audio sample rate, in Hz
-  void audio_sample_rate(uint32_t sample_rate);
+  /// \return True on success (false before initialize_audio())
+  bool audio_sample_rate(uint32_t sample_rate);
 
   /// Get the audio buffer size
-  /// \return The audio buffer size, in bytes
+  /// \return The size of one playback block, in bytes (1/60 s of audio)
   size_t audio_buffer_size() const;
 
   /// Play audio data
@@ -558,7 +589,7 @@ public:
   ///       task to play; to stream data larger than the internal buffer,
   ///       call it repeatedly, advancing by the returned number of bytes
   /// \note Must be called from task context, not from an ISR.
-  size_t play_audio(const uint8_t *data, uint32_t num_bytes);
+  size_t play_audio(const uint8_t *data, size_t num_bytes);
 
   /// Play audio data
   /// \param data The audio data to play (16-bit signed interleaved stereo)
@@ -569,6 +600,9 @@ public:
   ///       call it repeatedly, advancing by the returned number of bytes
   /// \note Must be called from task context, not from an ISR.
   size_t play_audio(std::span<const uint8_t> data);
+
+  /// Drop the audio queued for playback
+  void clear_audio();
 
   /// Start recording audio
   /// \param callback Function to call with recorded audio data: 16-bit
@@ -581,14 +615,15 @@ public:
   ///       blocking and size that task's stack accordingly
   bool start_audio_recording(std::function<void(const uint8_t *data, size_t length)> callback);
 
-  /// Stop recording audio
+  /// Stop recording audio. Once it returns the callback is not called again
+  /// (unless it is called from the callback itself).
   void stop_audio_recording();
 
   /// Set the microphone volume
   /// \param volume The volume as a percentage (0 - 100), mapped onto the
   ///        ES7210 analog microphone gain range (0 dB - +37.5 dB)
-  /// \note Without recording (AudioConfig::recording_enabled) the value is
-  ///       only stored.
+  /// \note Before initialize_audio() (or without recording) the value is
+  ///       stored and applied when recording starts.
   void microphone_volume(float volume);
 
   /// Get the microphone volume
@@ -877,8 +912,6 @@ protected:
 
   bool update_touch();
   bool update_battery_status();
-  bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
-  bool microphone_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   // Hardware pin definitions based on Tab5 specifications
 
@@ -1028,15 +1061,6 @@ protected:
   static constexpr gpio_num_t gpio_45_io = GPIO_NUM_45;
   static constexpr gpio_num_t gpio_52_io = GPIO_NUM_52;
 
-  // Audio configuration
-  static constexpr int NUM_CHANNELS = 2;
-  static constexpr int NUM_BYTES_PER_CHANNEL = 2;
-  static constexpr int UPDATE_FREQUENCY = 60;
-
-  static constexpr int calc_audio_buffer_size(int sample_rate) {
-    return sample_rate * NUM_CHANNELS * NUM_BYTES_PER_CHANNEL / UPDATE_FREQUENCY;
-  }
-
   // Member variables
   I2c internal_i2c_{{.port = internal_i2c_port,
                      .sda_io_num = internal_i2c_sda,
@@ -1105,33 +1129,20 @@ protected:
   // Button callbacks
   button_callback_t button_callback_{nullptr};
 
-  // Audio system
-  std::atomic<bool> audio_initialized_{false};
-  // the directions initialize_audio() set up (written before
-  // audio_initialized_ is set; true until then, so that volume() and mute()
-  // keep reaching the ES8388 before initialization as they always have)
-  bool audio_playback_enabled_{true};
-  bool audio_recording_enabled_{true};
+  // Audio system (espp::Audio, created by initialize_audio())
+  // atomic: the forwarders may run on any task while initialize_audio() /
+  // deinitialize_audio() publish / unpublish it
+  std::atomic<std::shared_ptr<espp::Audio>> audio_;
+  std::shared_ptr<espp::Es8388Codec> es8388_;
+  std::shared_ptr<espp::Es7210Codec> es7210_;
+  std::shared_ptr<I2c::Device<uint8_t>> es8388_i2c_device_;
+  std::shared_ptr<I2c::Device<uint8_t>> es7210_i2c_device_;
+  // the settings, kept across initialize_audio() / deinitialize_audio() and
+  // passed to espp::Audio as its initial values
   std::atomic<float> volume_{50.0f};
   // microphone volume (percent), mapped onto the ES7210 analog gain range
   std::atomic<float> mic_volume_{70.0f};
   std::atomic<bool> mute_{false};
-  std::shared_ptr<I2c::Device<uint8_t>> es8388_i2c_device_;
-  std::shared_ptr<I2c::Device<uint8_t>> es7210_i2c_device_;
-  std::unique_ptr<espp::Task> audio_task_{nullptr};
-  std::unique_ptr<espp::Task> microphone_task_{nullptr};
-  i2s_chan_handle_t audio_tx_handle{nullptr};
-  i2s_chan_handle_t audio_rx_handle{nullptr};
-  i2s_std_config_t audio_std_cfg{};
-  std::vector<uint8_t> audio_tx_buffer;
-  std::vector<uint8_t> audio_rx_buffer;
-  StreamBufferHandle_t audio_tx_stream{nullptr};
-  // Feeding policy shared by every audio BSP (whole blocks, bounded wait,
-  // ring depth): see codec/i2s_tx_feed.hpp.
-  espp::i2s_tx_feed::Feeder audio_tx_feed_;
-  StreamBufferHandle_t audio_rx_stream;
-  std::atomic<bool> recording_{false};
-  std::function<void(const uint8_t *data, size_t length)> audio_rx_callback_{nullptr};
 
   // Camera (MIPI-CSI via esp_video / V4L2)
   bool camera_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);

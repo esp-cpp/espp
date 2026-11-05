@@ -57,6 +57,7 @@ jobs:
             components/adxl345
             components/as5600
             components/at581x
+            components/audio
             components/aw9523
             components/base_component
             components/base_peripheral

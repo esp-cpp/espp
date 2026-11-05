@@ -1,0 +1,23 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "I2S audio playback and recording component in C++, with codec adapters (ES8388, ES7210), shared by the espp BSPs"
+url: "https://github.com/esp-cpp/espp/tree/main/components/audio"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/audio/audio.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Audio
+  - I2S
+  - Codec
+dependencies:
+  idf:
+    # the separately requireable esp_driver_i2s / esp_driver_gpio components
+    version: ">=5.3"
+  espp/base_component: ">=1.0"
+  espp/codec: ">=1.0"
+  espp/task: ">=1.0"
