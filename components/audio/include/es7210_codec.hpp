@@ -50,6 +50,12 @@ public:
   /// @param config The configuration.
   explicit Es7210Codec(const Config &config);
 
+  /// @brief Clear the driver's register access functions, which hold the
+  ///        I2C device (e.g. a shared_ptr captured by
+  ///        espp::make_i2c_addressed_write()), unless a newer instance has
+  ///        set them since.
+  ~Es7210Codec() override;
+
   const char *name() const override { return "ES7210"; }
   bool start(Direction direction, uint32_t sample_rate) override;
   void stop() override;
@@ -64,5 +70,7 @@ protected:
   uint8_t address_;
   std::optional<es7210_input_mics_t> microphones_;
   bool high_pass_filter_;
+  // the instance whose functions the driver holds
+  static Es7210Codec *owner_;
 };
 } // namespace espp

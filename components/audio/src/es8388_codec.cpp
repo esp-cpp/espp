@@ -9,9 +9,22 @@ using namespace espp;
 
 static const char *TAG = "Es8388Codec";
 
+Es8388Codec *Es8388Codec::owner_ = nullptr;
+
 Es8388Codec::Es8388Codec(const Config &config) {
   set_es8388_write(config.write);
   set_es8388_read(config.read);
+  owner_ = this;
+}
+
+Es8388Codec::~Es8388Codec() {
+  // only if no newer instance has set them since (one still held through an
+  // espp::Audio the application kept would otherwise break its successor)
+  if (owner_ == this) {
+    set_es8388_write(nullptr);
+    set_es8388_read(nullptr);
+    owner_ = nullptr;
+  }
 }
 
 bool Es8388Codec::start(Direction direction, uint32_t sample_rate) {
@@ -35,12 +48,15 @@ bool Es8388Codec::start(Direction direction, uint32_t sample_rate) {
   }
   if (es8388_config_fmt(ES_MODULE_DAC, ES_I2S_NORMAL) != ESP_OK) {
     ESP_LOGE(TAG, "ES8388 format config failed");
+    return false;
   }
   if (es8388_set_bits_per_sample(ES_MODULE_DAC, BIT_LENGTH_16BITS) != ESP_OK) {
     ESP_LOGE(TAG, "ES8388 bits per sample config failed");
+    return false;
   }
   if (es8388_config_dac_output(DAC_OUTPUT_ALL) != ESP_OK) {
     ESP_LOGE(TAG, "ES8388 DAC output config failed");
+    return false;
   }
   if (es8388_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START) != ESP_OK) {
     ESP_LOGE(TAG, "ES8388 start failed");

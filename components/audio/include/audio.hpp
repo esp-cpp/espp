@@ -107,13 +107,14 @@ public:
     float microphone_volume{70.0f}; ///< Initial microphone gain, 0 - 100.
     /// Called by the playback task once per block (optional).
     playback_block_callback_t on_playback_block{};
-    /// The playback task's configuration.
+    /// The playback task's configuration (unpinned by default; a BSP can set
+    /// core_id for its board).
     espp::Task::BaseConfig playback_task_config{
-        .name = "audio out", .stack_size_bytes = 4096, .priority = 20, .core_id = 1};
+        .name = "audio out", .stack_size_bytes = 4096, .priority = 20};
     /// The recording task's configuration (its stack also runs the
-    /// recording callback).
+    /// recording callback; unpinned by default).
     espp::Task::BaseConfig recording_task_config{
-        .name = "audio in", .stack_size_bytes = 4096, .priority = 20, .core_id = 1};
+        .name = "audio in", .stack_size_bytes = 4096, .priority = 20};
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Log verbosity.
   };
 
@@ -192,8 +193,10 @@ public:
   ///        the queued audio was for the old rate, the playback stream (it is
   ///        cleared).
   /// @param sample_rate The new sample rate, in Hz (at least UPDATE_FREQUENCY).
-  /// @return true on success (false when not initialized or the rate is
-  ///         below UPDATE_FREQUENCY).
+  /// @return true on success (false when not initialized, the rate is below
+  ///         UPDATE_FREQUENCY, or the playback DMA ring, sized for the rate
+  ///         passed to initialize(), is too short for it: initialize() at the
+  ///         highest rate you will use).
   /// @note The block size (buffer_size()) stays the one for the rate passed
   ///       to initialize().
   bool sample_rate(uint32_t sample_rate);
@@ -245,6 +248,7 @@ protected:
   void apply_software_volume(int16_t *samples, size_t count) const;
   bool software_volume() const;
   bool same_codec() const;
+  bool tx_ring_outlasts_wait(uint32_t sample_rate) const;
 
   Config config_;
   std::atomic<bool> initialized_{false};
@@ -276,6 +280,7 @@ protected:
   bool input_started_{false};
 
   size_t block_bytes_{0};
+  uint32_t dma_frame_num_{0};
   std::vector<int16_t> tx_buffer_;
   std::vector<uint8_t> rx_buffer_;
   StreamBufferHandle_t tx_stream_{nullptr};

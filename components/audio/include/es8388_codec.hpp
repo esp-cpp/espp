@@ -34,11 +34,21 @@ public:
   /// @param config The configuration.
   explicit Es8388Codec(const Config &config);
 
+  /// @brief Clear the driver's register access functions, which hold the
+  ///        I2C device (e.g. a shared_ptr captured by
+  ///        espp::make_i2c_addressed_write()), unless a newer instance has
+  ///        set them since.
+  ~Es8388Codec() override;
+
   const char *name() const override { return "ES8388"; }
   bool start(Direction direction, uint32_t sample_rate) override;
   void stop() override;
   bool has_volume() const override { return true; }
   bool set_volume(float percent) override;
   bool set_mute(bool mute) override;
+
+protected:
+  // the instance whose functions the driver holds
+  static Es8388Codec *owner_;
 };
 } // namespace espp

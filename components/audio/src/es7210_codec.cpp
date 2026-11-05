@@ -10,6 +10,8 @@ using namespace espp;
 
 static const char *TAG = "Es7210Codec";
 
+Es7210Codec *Es7210Codec::owner_ = nullptr;
+
 // Map a PCM sample rate onto the driver's sample-rate enum, which selects the
 // ES7210 coefficient table: it must match the rate the I2S clocks generate.
 // An unsupported rate falls back to 48 kHz.
@@ -52,6 +54,17 @@ Es7210Codec::Es7210Codec(const Config &config)
     , high_pass_filter_(config.high_pass_filter) {
   set_es7210_write(config.write);
   set_es7210_read(config.read);
+  owner_ = this;
+}
+
+Es7210Codec::~Es7210Codec() {
+  // only if no newer instance has set them since (one still held through an
+  // espp::Audio the application kept would otherwise break its successor)
+  if (owner_ == this) {
+    set_es7210_write(nullptr);
+    set_es7210_read(nullptr);
+    owner_ = nullptr;
+  }
 }
 
 bool Es7210Codec::start(Direction direction, uint32_t sample_rate) {
@@ -72,7 +85,10 @@ bool Es7210Codec::start(Direction direction, uint32_t sample_rate) {
     return false;
   }
   if (es7210_adc_config_i2s(AUDIO_HAL_CODEC_MODE_ENCODE, &cfg.i2s_iface) != ESP_OK) {
+    // e.g. a rate / MCLK pair the driver's coefficient table lacks: the ADC
+    // would sample at the wrong rate
     ESP_LOGE(TAG, "ES7210 I2S config failed");
+    return false;
   }
   if (high_pass_filter_) {
     // The driver leaves the HPF registers at their reset value (off); these

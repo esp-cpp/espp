@@ -151,7 +151,12 @@ struct Feeder {
     }
     available = std::min(available, block);
     if (available > 0) {
-      xStreamBufferReceive(stream, buf, available, 0);
+      // what was actually received: a producer-side reset (clear_audio(), a
+      // rate change) between the measurement and here leaves less, and the
+      // rest of buf still holds the previous block. (The stream holds whole
+      // frames only, and this asks for whole frames, so the count is whole
+      // frames too.)
+      available = xStreamBufferReceive(stream, buf, available, 0);
     }
     if (available < block) {
       std::memset(buf + available, 0, block - available);

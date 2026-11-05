@@ -7,9 +7,11 @@
 
 using namespace espp;
 
-// The ring must outlast the playback task's whole-block wait plus one block at
-// the highest rate the I2S standard-mode boards use (the policy and its
-// rationale: codec/i2s_tx_feed.hpp).
+// The ring must outlast the playback task's whole-block wait plus one block
+// (the policy and its rationale: codec/i2s_tx_feed.hpp). It is DMA_DESC_NUM x
+// DMA_FRAME_NUM frames up to 48 kHz, and dma_frame_num() scales it with the
+// rate above that, so this check at 48 kHz holds at every rate initialize()
+// accepts; sample_rate() checks a change against the ring it has.
 static_assert(espp::i2s_tx_feed::ring_outlasts_wait(espp::i2s_tx_feed::DMA_DESC_NUM,
                                                     espp::i2s_tx_feed::DMA_FRAME_NUM, 48000,
                                                     Audio::UPDATE_FREQUENCY),
@@ -24,6 +26,13 @@ static constexpr size_t BYTES_PER_SAMPLE = 2;
 static size_t block_size(uint32_t sample_rate, uint8_t channels) {
   const size_t frame_bytes = channels * BYTES_PER_SAMPLE;
   return (sample_rate / Audio::UPDATE_FREQUENCY) * frame_bytes;
+}
+
+// Frames per DMA descriptor at `sample_rate`: DMA_FRAME_NUM, times however many
+// 48 kHz the rate spans, so the ring lasts as long as it does at 48 kHz or
+// longer.
+static uint32_t dma_frame_num(uint32_t sample_rate) {
+  return espp::i2s_tx_feed::DMA_FRAME_NUM * ((sample_rate + 47999) / 48000);
 }
 
 static i2s_std_config_t make_std_config(const Audio::Config &config, uint8_t channels) {
@@ -58,6 +67,15 @@ bool Audio::same_codec() const {
 
 bool Audio::software_volume() const {
   return !config_.output_codec || !config_.output_codec->has_volume();
+}
+
+bool Audio::tx_ring_outlasts_wait(uint32_t sample_rate) const {
+  // the ring (sized at initialize()) minus one block (whose size is kept
+  // across rate changes) must outlast the playback task's whole-block wait
+  const size_t ring_frames = espp::i2s_tx_feed::DMA_DESC_NUM * dma_frame_num_;
+  const size_t block_frames = block_bytes_ / tx_feed_.frame_bytes;
+  return ring_frames > block_frames &&
+         (ring_frames - block_frames) * 1000 / sample_rate > espp::i2s_tx_feed::WHOLE_BLOCK_WAIT_MS;
 }
 
 bool Audio::initialize() {
@@ -116,10 +134,13 @@ bool Audio::initialize(std::error_code &ec) {
   // BCLK/WS), each with a DMA ring of this size; a direction that is not
   // enabled is not created, which saves its ring's internal DMA memory. Alone,
   // either channel drives the clocks itself (simplex master).
-  i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(config_.port, I2S_ROLE_MASTER);
+  // the id's type is i2s_port_t before ESP-IDF 6 and an int since
+  i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(
+      static_cast<decltype(i2s_chan_config_t{}.id)>(config_.port), I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true; // clear the legacy data in the DMA buffer
   chan_cfg.dma_desc_num = espp::i2s_tx_feed::DMA_DESC_NUM;
-  chan_cfg.dma_frame_num = espp::i2s_tx_feed::DMA_FRAME_NUM;
+  dma_frame_num_ = dma_frame_num(rate);
+  chan_cfg.dma_frame_num = dma_frame_num_;
   esp_err_t err = i2s_new_channel(&chan_cfg, playback ? &tx_handle_ : nullptr,
                                   recording ? &rx_handle_ : nullptr);
   if (err != ESP_OK) {
@@ -337,7 +358,10 @@ size_t Audio::play(const uint8_t *data, size_t num_bytes) {
     return 0;
   }
   std::lock_guard<std::mutex> lock(mutex_);
-  if (!tx_stream_) {
+  // not once teardown began (initialized_ is cleared first): it joins the
+  // playback task with mutex_ released, and a send could notify that task
+  // after it is gone
+  if (!initialized_ || !tx_stream_) {
     return 0;
   }
   // Queue only whole frames that actually fit: xStreamBufferSend can accept
@@ -399,6 +423,12 @@ bool Audio::sample_rate(uint32_t sample_rate) {
     logger_.warn("Not initialized: set Config::sample_rate instead");
     return false;
   }
+  if (tx_handle_ && !tx_ring_outlasts_wait(sample_rate)) {
+    logger_.error("Sample rate {} Hz is too high for the playback ring sized at initialize(); "
+                  "initialize() at the highest rate you will use",
+                  sample_rate);
+    return false;
+  }
   logger_.info("Setting the sample rate to {} Hz", sample_rate);
   // The channel that drives the clocks: TX (whose BCLK/WS RX shares in full
   // duplex), or RX when only recording is set up. Both channels stop while the
@@ -454,20 +484,30 @@ bool Audio::start_recording(const recording_callback_t &callback) {
     logger_.error("start_recording() cannot be called from the recording callback");
     return false;
   }
-  // a call of the previous callback may still be finishing (after a
-  // stop_recording() from that callback): replace it only once it returned.
-  // Wait without mutex_, which that callback may be waiting for.
-  while (in_callback_) {
-    vTaskDelay(1);
-  }
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (!initialized_ || !config_.recording_enabled) {
-    logger_.error("Recording is not initialized");
-    return false;
-  }
-  if (recording_) {
-    logger_.warn("A recording is already in progress; stop it first");
-    return false;
+  std::unique_lock<std::mutex> lock(mutex_);
+  while (true) {
+    if (!initialized_ || !config_.recording_enabled) {
+      logger_.error("Recording is not initialized");
+      return false;
+    }
+    if (recording_) {
+      logger_.warn("A recording is already in progress; stop it first");
+      return false;
+    }
+    // A call of the previous callback may still be finishing (after a
+    // stop_recording() from that callback): replace it only once it returned.
+    // recording_ is read before in_callback_: the recording task sets
+    // in_callback_ before it reads recording_, so once both read false, no
+    // call can start until recording_ is set below. Wait without mutex_,
+    // which that callback may be waiting for, then check again.
+    if (!in_callback_) {
+      break;
+    }
+    lock.unlock();
+    while (in_callback_) {
+      vTaskDelay(1);
+    }
+    lock.lock();
   }
   recording_callback_ = callback;
   recording_ = true;
@@ -538,8 +578,8 @@ bool Audio::recording_task_callback(std::mutex &m, std::condition_variable &cv,
   // the callback while a recording is in progress. The finite timeout lets the
   // task observe a stop request.
   size_t bytes_read = 0;
-  const esp_err_t err = i2s_channel_read(rx_handle_, rx_buffer_.data(), rx_buffer_.size(),
-                                         &bytes_read, pdMS_TO_TICKS(100));
+  const esp_err_t err =
+      i2s_channel_read(rx_handle_, rx_buffer_.data(), rx_buffer_.size(), &bytes_read, 100 /* ms */);
   if (err == ESP_OK && bytes_read > 0 && recording_) {
     // in_callback_ before re-checking recording_ (see stop_recording())
     in_callback_ = true;
