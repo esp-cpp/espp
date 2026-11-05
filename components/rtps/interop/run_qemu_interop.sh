@@ -12,7 +12,9 @@
 # here is its only interface and every DDS implementation uses it without
 # per-vendor interface configuration. Host side 192.168.100.1, device
 # 192.168.100.2 (sdkconfig.ci.defaults).
-set -uo pipefail
+#
+# NOTE: no `set -u` - ROS 2's setup.bash references unset variables.
+set -o pipefail
 
 FLASH="${1:?usage: run_qemu_interop.sh <qemu_flash.bin>}"
 QEMU="${QEMU:-/opt/qemu/bin/qemu-system-xtensa}"
