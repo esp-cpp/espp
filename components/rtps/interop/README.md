@@ -61,7 +61,7 @@ cd .. && ./run_qemu.sh
 | ros2_client->device_service | the typed service server (FastDDS rmw) |
 | espp_host_pub->device_sub, device_pub->espp_host_sub | the host engine against the embedded one |
 | netem_loss_reliable | 15 % loss + 10 ms jitter on the link (`tc netem`): the reliable reader still delivers |
-| device_heap_stable, device_no_crash | free heap at the end within 64 KB of the start; no panic / abort / assert |
+| device_heap_stable, device_no_crash | free heap at the end within 96 KB of the start (two buffers grow once to the largest sample, 30 KB each); no panic / abort / assert |
 
 What only this can show: the embedded pools and knobs as built, lwIP's socket
 and reassembly behaviour, FreeRTOS priorities for the engine's threads,
