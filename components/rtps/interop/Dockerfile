@@ -19,7 +19,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # image needs no ESP-IDF. The firmware is built outside (idf.py) and handed in
 # as a merged flash image. The libraries above are what the binary links.
 ARG QEMU_XTENSA_URL=https://github.com/espressif/qemu/releases/download/esp-develop-9.2.2-20260417/qemu-xtensa-softmmu-esp_develop_9.2.2_20260417-x86_64-linux-gnu.tar.xz
-RUN curl -sSL "$QEMU_XTENSA_URL" | tar -xJ -C /opt \
+# the checksum ESP-IDF pins for the same tarball (tools/tools.json, qemu-xtensa linux-amd64)
+ARG QEMU_XTENSA_SHA256=0eecb2a34a5586c0e59110f77b9343b7b336e82fdb0e1a30e1dc1bab8a547e35
+RUN curl -sSL -o /tmp/qemu-xtensa.tar.xz "$QEMU_XTENSA_URL" \
+    && echo "$QEMU_XTENSA_SHA256  /tmp/qemu-xtensa.tar.xz" | sha256sum -c - \
+    && tar -xJ -C /opt -f /tmp/qemu-xtensa.tar.xz \
+    && rm /tmp/qemu-xtensa.tar.xz \
     && /opt/qemu/bin/qemu-system-xtensa --version
 
 # A venv with the espp wheel build backend, so run_interop.sh can build the

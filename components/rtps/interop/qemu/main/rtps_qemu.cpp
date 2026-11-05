@@ -72,6 +72,11 @@ extern "C" void app_main(void) {
   // Network: a static address (CI, on the harness's tap device) or a DHCP
   // client (a developer's idf.py qemu on the user-mode NAT), per Kconfig.
   espp::Qemu::EthernetConfig eth_config{};
+  // CLIENT is the right mode for both: espp::Ethernet's contract (DhcpMode
+  // in ethernet.hpp) is that CLIENT with a non-zero ip_info uses that address
+  // statically and never starts the DHCP client; SERVER would run a DHCP
+  // server for peers. The CI run proves it: the tap has no DHCP server and
+  // the device comes up at the configured address.
   eth_config.mode = espp::Qemu::DhcpMode::CLIENT;
 #if CONFIG_RTPS_QEMU_STATIC_IP
   eth_config.ip_info.ip.addr = esp_ip4addr_aton(CONFIG_RTPS_QEMU_IP);
