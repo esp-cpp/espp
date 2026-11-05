@@ -44,7 +44,9 @@ bool Qemu::initialize_display(const DisplayConfig &config) {
 
   const size_t pixel_buffer_size =
       config.pixel_buffer_size != 0 ? config.pixel_buffer_size : config.width * config.height / 10;
-  logger_.info("Initializing LVGL display with {} pixel draw buffers", pixel_buffer_size);
+  logger_.info("Initializing LVGL display with {} draw buffer{} of {} pixels",
+               config.double_buffered ? 2 : 1, config.double_buffered ? "s" : "",
+               pixel_buffer_size);
   display_ = std::make_shared<Display<Pixel>>(
       Display<Pixel>::LvglConfig{
           .width = config.width,

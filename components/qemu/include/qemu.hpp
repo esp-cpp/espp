@@ -49,11 +49,12 @@ public:
   struct DisplayConfig {
     size_t width{320};  ///< Panel (QEMU window) width in pixels
     size_t height{240}; ///< Panel (QEMU window) height in pixels
-    /// Size of each of LVGL's two draw buffers, in pixels; 0 = a tenth of the
-    /// panel. The panel has its own frame buffer, in QEMU-side memory, that
-    /// draw_bitmap() copies into; LVGL renders into internal-RAM draw buffers.
+    /// Size of each LVGL draw buffer, in pixels (two of them with
+    /// double_buffered, else one); 0 = a tenth of the panel. The panel has its
+    /// own frame buffer, in QEMU-side memory, that draw_bitmap() copies into;
+    /// LVGL renders into these internal-RAM draw buffers.
     size_t pixel_buffer_size{0};
-    bool double_buffered{true}; ///< Two draw buffers (render while the other is flushed)
+    bool double_buffered{true}; ///< Two draw buffers (render one while the other is flushed)
   };
 
   /// Whether the Ethernet interface runs a DHCP client or a DHCP server

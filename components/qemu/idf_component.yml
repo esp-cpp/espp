@@ -2,7 +2,7 @@
 license: "MIT"
 description: "Board Support Package (BSP) for Espressif's QEMU emulator: the virtual RGB panel, OpenCores Ethernet and SD card, so espp applications run with no hardware"
 url: "https://github.com/esp-cpp/espp/tree/main/components/qemu"
-repository: "git://github.com/esp-cpp/espp.git"
+repository: "https://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/dev_boards/other/qemu.html"
