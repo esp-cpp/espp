@@ -529,7 +529,10 @@ public:
 
   /// The audio component, for anything the BSP methods below do not expose
   /// \return The audio component, or nullptr before initialize_audio()
-  espp::Audio *audio() const { return audio_.get(); }
+  /// \note deinitialize_audio() releases the hardware even while the returned
+  ///       pointer is held: the object is then uninitialized (its methods
+  ///       fail / return 0), and a later initialize_audio() makes a new one.
+  std::shared_ptr<espp::Audio> audio() const { return audio_; }
 
   /// Enable or disable the speaker amplifier
   /// \param enable True to enable, false to disable
@@ -1120,7 +1123,7 @@ protected:
   button_callback_t button_callback_{nullptr};
 
   // Audio system (espp::Audio, created by initialize_audio())
-  std::unique_ptr<espp::Audio> audio_;
+  std::shared_ptr<espp::Audio> audio_;
   std::shared_ptr<espp::Es8388Codec> es8388_;
   std::shared_ptr<espp::Es7210Codec> es7210_;
   std::shared_ptr<I2c::Device<uint8_t>> es8388_i2c_device_;

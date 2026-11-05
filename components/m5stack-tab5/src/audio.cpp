@@ -89,7 +89,7 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
   // (ASDOUT) share MCLK / SCLK / LRCK. The playback data is interleaved
   // 16-bit stereo, so the slots MUST be stereo - a mono slot plays
   // interleaved stereo at the wrong rate and garbles L/R.
-  audio_ = std::make_unique<espp::Audio>(espp::Audio::Config{
+  audio_ = std::make_shared<espp::Audio>(espp::Audio::Config{
       .port = I2S_NUM_0,
       .pins = {.mclk = audio_mclk_io,
                .bclk = audio_sclk_io,
@@ -126,6 +126,11 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
 void M5StackTab5::deinitialize_audio() {
   if (is_audio_initialized() && audio_->is_playback_enabled()) {
     enable_audio(false);
+  }
+  // release the I2S channels, tasks and codecs now, even if the application
+  // still holds the object from audio()
+  if (audio_) {
+    audio_->deinitialize();
   }
   audio_.reset();
   es8388_.reset();
