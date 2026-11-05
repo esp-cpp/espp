@@ -28,6 +28,9 @@ Chip-specific setup goes through the small `espp::AudioCodec` interface
 its setters, never per sample. This component provides adapters on the
 drivers in the `codec` component:
 
+- `espp::Es8311Codec`: the ES8311 mono codec, for playback and recording
+  (the ESP32-P4 ES8311 boards: ESP32-P4-ETH, ESP32-P4 Function EV Board,
+  ESP32-P4 Module Dev Kit, ESP32-P4-NANO, ESP32-P4-WIFI6-DEV-KIT).
 - `espp::Es8388Codec`: the ES8388 DAC, for playback (M5Stack Tab5).
 - `espp::Es7210Codec`: the ES7210 microphone ADC, for recording (M5Stack Tab5).
 

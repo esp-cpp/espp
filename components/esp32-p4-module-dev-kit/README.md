@@ -20,8 +20,8 @@ and a GPIO pin header.
 <tr><td>Display</td><td>MIPI-DSI panel, selected via Kconfig: JD9365 10.1" 800x1280 (default; the panel bundled with the -C kit), ILI9881C 10.1" 800x1280 (experimental), or EK79007 7" 1024x600</td><td><code>initialize_lcd()</code>, <code>initialize_display()</code></td></tr>
 <tr><td>Touch</td><td>GT911 capacitive multi-touch (polled; INT/RST not routed)</td><td><code>initialize_touch()</code></td></tr>
 <tr><td>Camera</td><td>MIPI-CSI (OV5647 by default) via esp_video / V4L2, RGB565 frames</td><td><code>initialize_camera()</code>, <code>stop_camera()</code></td></tr>
-<tr><td>Audio out</td><td>ES8311 codec + NS4150B amplifier over I2S</td><td><code>initialize_audio()</code>, <code>play_audio()</code>, <code>volume()</code></td></tr>
-<tr><td>Microphone</td><td>Onboard analog mic through the ES8311 ADC (full-duplex)</td><td><code>initialize_microphone()</code></td></tr>
+<tr><td>Audio out</td><td>ES8311 codec + NS4150B amplifier over I2S</td><td><code>initialize_audio()</code>, <code>play_audio()</code>, <code>volume()</code> (through the <code>audio</code> component)</td></tr>
+<tr><td>Microphone</td><td>Onboard analog mic through the ES8311 ADC (full-duplex)</td><td><code>start_audio_recording()</code></td></tr>
 <tr><td>uSD / TF card</td><td>4-bit SDMMC, powered by the on-chip LDO</td><td><code>initialize_sdcard()</code></td></tr>
 <tr><td>Ethernet</td><td>10/100 internal EMAC + IP101GRI RMII PHY (DHCP client/server)</td><td><code>initialize_ethernet()</code></td></tr>
 </table>

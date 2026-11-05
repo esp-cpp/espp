@@ -19,10 +19,11 @@ copy into each board:
   destructor.
 
 Chip-specific setup goes through the :cpp:class:`espp::AudioCodec` interface.
-This component provides adapters for the ES8388 (:cpp:class:`espp::Es8388Codec`,
-playback) and the ES7210 (:cpp:class:`espp::Es7210Codec`, recording), on the
-drivers in the ``codec`` component. A chip that handles both directions is
-passed as both the output and the input codec.
+This component provides adapters for the ES8311 (:cpp:class:`espp::Es8311Codec`,
+playback and recording), the ES8388 (:cpp:class:`espp::Es8388Codec`, playback)
+and the ES7210 (:cpp:class:`espp::Es7210Codec`, recording), on the drivers in
+the ``codec`` component. A chip that handles both directions, like the ES8311,
+is passed as both the output and the input codec.
 
 Board-specific parts - amplifier enable pins, IO expanders, buttons - stay in
 the BSP. ``Config::on_playback_block`` lets a BSP follow playback activity (the
@@ -56,5 +57,6 @@ API Reference
 
 .. include-build-file:: inc/audio.inc
 .. include-build-file:: inc/audio_codec.inc
+.. include-build-file:: inc/es8311_codec.inc
 .. include-build-file:: inc/es8388_codec.inc
 .. include-build-file:: inc/es7210_codec.inc

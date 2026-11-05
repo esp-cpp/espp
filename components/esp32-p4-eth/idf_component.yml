@@ -23,7 +23,7 @@ dependencies:
     version: ">=5.3"
   espp/base_component: ">=1.0"
   espp/ethernet: ">=1.0"
-  espp/codec: ">=1.0"
+  espp/audio: ">=1.0"
   espp/i2c: ">=1.0"
   espp/task: ">=1.0"
   espp/display: ">=1.0"

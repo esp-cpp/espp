@@ -12,6 +12,7 @@
 
 #include <driver/gpio.h>
 #include <driver/i2s_std.h>
+#include <esp_heap_caps.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/stream_buffer.h>
 #include <freertos/task.h>
@@ -93,7 +94,12 @@ public:
     bool recording_enabled{false};
     /// Playback channels: 2 (interleaved stereo) or 1 (mono).
     uint8_t playback_channels{2};
-    /// Recording channels: 2 (interleaved stereo) or 1 (mono).
+    /// Recording channels: 2 (interleaved stereo) or 1 (mono: the left
+    /// slot).
+    /// \note Mono is received as stereo, and the callback gets the left slot
+    ///       only: a mono RX slot sharing a full-duplex bus with TX delivers
+    ///       each sample twice (the ESP32-P4 ES8311 boards found this). It
+    ///       costs a stereo RX DMA ring.
     uint8_t recording_channels{2};
     /// MCLK as a multiple of the sample rate.
     i2s_mclk_multiple_t mclk_multiple{I2S_MCLK_MULTIPLE_256};
@@ -103,6 +109,13 @@ public:
     /// The codec for recording (nullptr: none, e.g. an I2S microphone). May
     /// be the same object as output_codec.
     std::shared_ptr<AudioCodec> input_codec{};
+    /// Size of the playback stream that play() queues into, in bytes (0: four
+    /// blocks, about 67 ms). Larger lets one play() queue a whole UI sound;
+    /// at least two blocks.
+    size_t playback_buffer_size{0};
+    /// Heap capabilities for the playback stream (e.g. MALLOC_CAP_SPIRAM for
+    /// a large one).
+    uint32_t playback_buffer_caps{MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT};
     float volume{50.0f};            ///< Initial output volume, 0 - 100.
     bool muted{false};              ///< Initial mute state.
     float microphone_volume{70.0f}; ///< Initial microphone gain, 0 - 100.
@@ -286,7 +299,7 @@ protected:
   size_t block_bytes_{0};
   uint32_t dma_frame_num_{0};
   std::vector<int16_t> tx_buffer_;
-  std::vector<uint8_t> rx_buffer_;
+  std::vector<int16_t> rx_buffer_;
   StreamBufferHandle_t tx_stream_{nullptr};
   espp::i2s_tx_feed::Feeder tx_feed_;
   std::unique_ptr<espp::Task> playback_task_;

@@ -9,7 +9,7 @@ idf_component_register(
     "esp_driver_sdmmc"
     "sdcard"
     "sdmmc"
-    "codec"
+    "audio"
     "i2c"
     "task"
     "esp_driver_i2s"

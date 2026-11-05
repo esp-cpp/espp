@@ -199,7 +199,11 @@ extern "C" void app_main(void) {
   // Audio (ES8311) — initialized directly at the embedded clip's sample rate
   // (the clip was loaded above, before the touch task started).
   uint32_t audio_rate = have_audio ? static_cast<uint32_t>(wav_sample_rate) : 48000;
-  if (board.initialize_audio(audio_rate)) {
+  // a playback stream (in PSRAM) that holds the whole click, so the one
+  // play_audio() call in the touch handler queues all of it
+  if (board.initialize_audio({.sample_rate = audio_rate,
+                              .playback_buffer_size = 32 * 1024,
+                              .playback_buffer_caps = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT})) {
     board.mute(false);
     board.volume(60.0f);
     if (have_audio) {
@@ -224,7 +228,7 @@ extern "C" void app_main(void) {
         recording = false;
       }
     };
-    if (board.initialize_microphone(mic_callback)) {
+    if (board.start_audio_recording(mic_callback)) {
       // allocate the recording buffer (16-bit mono at the current sample rate):
       // prefer PSRAM, fall back to a couple of seconds in internal RAM
       size_t bytes_per_second = board.audio_sample_rate() * sizeof(int16_t);

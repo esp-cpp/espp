@@ -3,7 +3,7 @@ idf_component_register(
   SRC_DIRS "src"
   REQUIRES
     "base_component"
-    "codec"
+    "audio"
     "display"
     "display_drivers"
     "gt911"
