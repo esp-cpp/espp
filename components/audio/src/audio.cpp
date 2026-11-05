@@ -4,7 +4,6 @@
 #include <cmath>
 
 #include <esp_err.h>
-#include <freertos/idf_additions.h>
 
 using namespace espp;
 
@@ -199,7 +198,15 @@ bool Audio::initialize(std::error_code &ec) {
     const size_t stream_size = config_.playback_buffer_size == 0
                                    ? block_bytes_ * 4
                                    : std::max(config_.playback_buffer_size, block_bytes_ * 2);
-    tx_stream_ = xStreamBufferCreateWithCaps(stream_size, 1, config_.playback_buffer_caps);
+    // storage with the requested caps, the stream on it (not
+    // xStreamBufferCreateWithCaps(): ESP-IDF's vStreamBufferDeleteWithCaps()
+    // deletes the stream as a queue and then frees its memory again)
+    tx_stream_storage_ =
+        static_cast<uint8_t *>(heap_caps_malloc(stream_size, config_.playback_buffer_caps));
+    if (tx_stream_storage_) {
+      tx_stream_ =
+          xStreamBufferCreateStatic(stream_size, 1, tx_stream_storage_, &tx_stream_struct_);
+    }
     if (!tx_stream_) {
       logger_.error("Could not create the playback stream buffer");
       return fail(std::errc::not_enough_memory);
@@ -366,9 +373,11 @@ void Audio::teardown(std::unique_lock<std::mutex> &lock) {
   }
   tx_feed_.stream = nullptr;
   if (tx_stream_) {
-    vStreamBufferDeleteWithCaps(tx_stream_);
+    vStreamBufferDelete(tx_stream_);
     tx_stream_ = nullptr;
   }
+  heap_caps_free(tx_stream_storage_);
+  tx_stream_storage_ = nullptr;
   std::vector<int16_t>().swap(tx_buffer_);
   std::vector<int16_t>().swap(rx_buffer_);
   block_bytes_ = 0;

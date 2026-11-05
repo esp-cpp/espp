@@ -96,10 +96,11 @@ public:
     uint8_t playback_channels{2};
     /// Recording channels: 2 (interleaved stereo) or 1 (mono: the left
     /// slot).
-    /// \note Mono is received as stereo, and the callback gets the left slot
-    ///       only: a mono RX slot sharing a full-duplex bus with TX delivers
-    ///       each sample twice (the ESP32-P4 ES8311 boards found this). It
-    ///       costs a stereo RX DMA ring.
+    /// \note Mono is received as stereo slots and the callback gets the left
+    ///       slot only: an RX channel in mono slot mode still delivers both
+    ///       slots (measured on the ESP32-P4, recording only and full duplex:
+    ///       twice the samples, in a DMA ring sized for one). So mono costs a
+    ///       stereo RX DMA ring.
     uint8_t recording_channels{2};
     /// MCLK as a multiple of the sample rate.
     i2s_mclk_multiple_t mclk_multiple{I2S_MCLK_MULTIPLE_256};
@@ -301,6 +302,9 @@ protected:
   std::vector<int16_t> tx_buffer_;
   std::vector<int16_t> rx_buffer_;
   StreamBufferHandle_t tx_stream_{nullptr};
+  // the playback stream's memory (Config::playback_buffer_caps) and structure
+  uint8_t *tx_stream_storage_{nullptr};
+  StaticStreamBuffer_t tx_stream_struct_{};
   espp::i2s_tx_feed::Feeder tx_feed_;
   std::unique_ptr<espp::Task> playback_task_;
   std::unique_ptr<espp::Task> recording_task_;
