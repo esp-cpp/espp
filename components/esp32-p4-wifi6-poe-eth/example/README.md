@@ -1,8 +1,9 @@
 # ESP32-P4-WIFI6-POE-ETH Example
 
-This example shows how to use the `espp::Esp32P4Wifi6PoeEth` BSP to bring up
-the wired Ethernet interface (DHCP client or DHCP server, selectable via
-`menuconfig`) and print the assigned IP address.
+This example shows how to use the `espp::Esp32P4Wifi6PoeEth` BSP to play a beep
+through the speaker, record two seconds from the on-board microphone and play
+them back, then bring up the wired Ethernet interface (DHCP client or DHCP
+server, selectable via `menuconfig`) and print the assigned IP address.
 
 If the board is powered through Waveshare's plug-in PoE module, nothing changes
 in software — PoE only supplies the 5 V rail.

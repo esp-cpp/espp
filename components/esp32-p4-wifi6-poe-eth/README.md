@@ -21,6 +21,11 @@ The `espp::Esp32P4Wifi6PoeEth` class is a singleton hardware abstraction for:
 - **10/100 Ethernet** — internal ESP32-P4 EMAC + IP101GRI RMII PHY, selectable
   DHCP client **or** DHCP server mode (delegates to the reusable
   `espp::Ethernet` component).
+- **Audio** — the ES8311 codec + NS4150B speaker amplifier + analog
+  microphone, through the `espp::Audio` component: 16-bit mono playback
+  (`initialize_audio()`, `play_audio()`, `volume()`, `mute()`) and recording
+  (`start_audio_recording()`, `microphone_volume()`), full duplex on one I2S
+  bus (MCLK=13, BCLK=12, WS/LRCK=10, DSDIN=9, ASDOUT=11; PA enable=GPIO53).
 - **Internal I2C bus** — SDA=GPIO7 / SCL=GPIO8, shared by the on-board ES8311
   audio codec (address 0x18) and the DSI / CSI connectors and 40-pin header.
 
@@ -86,9 +91,6 @@ PHY address: 1 (PHY_AD0 strapped high via 5.1 kΩ pull-up).
 
 Pin data from the schematic, for future expansion / user code:
 
-- **Audio**: ES8311 codec (I2C 0x18) + NS4150B amplifier + analog microphone.
-  I2S: MCLK=13, BCLK=12, WS/LRCK=10, DSDIN=9 (P4→codec), ASDOUT=11 (codec→P4);
-  PA enable=GPIO53. Speaker on an MX1.25 2-pin connector.
 - **microSD / TF**: 4-bit SDMMC on the fixed IO-MUX pins CLK=43, CMD=44,
   D0..D3=39/40/41/42; line pull-ups powered from the P4's on-chip LDO_VO4.
 - **MIPI-DSI / MIPI-CSI**: 15-pin Raspberry-Pi-style FPC connectors (display /
@@ -101,8 +103,10 @@ Pin data from the schematic, for future expansion / user code:
 
 ## Example
 
-The [example](./example) initializes Ethernet (DHCP client or server via
-`menuconfig`) and prints the acquired IP address periodically.
+The [example](./example) plays a beep, records two seconds from the microphone
+and plays them back, then initializes Ethernet (DHCP client or server via
+`menuconfig`) and prints the acquired IP address periodically. The speaker
+connects to the MX1.25 2-pin connector.
 
 ## sdkconfig requirements
 
