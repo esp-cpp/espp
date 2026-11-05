@@ -3,306 +3,390 @@
 #include <algorithm>
 #include <cstring>
 
+#include "cardputer_adv_codec.hpp"
+
 using namespace espp;
 
 ////////////////////////
 // Audio Functions    //
 ////////////////////////
 
-bool M5StackCardputer::initialize_i2s(uint32_t default_audio_rate) {
-  // original Cardputer only: transmit-only standard I2S into the NS4168
-  // amplifier (the ADV uses the full-duplex path in ensure_adv_i2s())
-  logger_.info("initializing i2s driver");
+// The I2S channels, the playback and microphone tasks and the stream buffer
+// live in the espp::Audio component; this file keeps only what is specific to
+// the board: which instance(s) each variant uses, their pins, the ADV's
+// BCLK-clocked ES8311 (CardputerAdvCodec) and the original's software
+// microphone gain.
 
-  i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(i2s_port, I2S_ROLE_MASTER);
-  chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
-  // Keep the TX DMA ring full and long enough to cover the playback task's
-  // bounded whole-block wait (the policy and its rationale: codec/i2s_tx_feed.hpp).
-  static_assert(espp::i2s_tx_feed::ring_outlasts_wait(espp::i2s_tx_feed::DMA_DESC_NUM,
-                                                      espp::i2s_tx_feed::DMA_FRAME_NUM, 48000,
-                                                      UPDATE_FREQUENCY),
-                "the I2S TX DMA ring must outlast the whole-block wait plus one block");
-  chan_cfg.dma_desc_num = espp::i2s_tx_feed::DMA_DESC_NUM;
-  chan_cfg.dma_frame_num = espp::i2s_tx_feed::DMA_FRAME_NUM;
-  ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &audio_tx_handle, nullptr));
+bool M5StackCardputer::initialize_audio() { return initialize_audio(AudioConfig{}); }
 
-  audio_std_cfg = {
-      .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(default_audio_rate),
-      .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
-      .gpio_cfg = {.mclk = GPIO_NUM_NC,
-                   .bclk = i2s_bck_io,
-                   .ws = i2s_ws_io,
-                   .dout = i2s_do_io,
-                   .din = GPIO_NUM_NC,
-                   .invert_flags = {.mclk_inv = false, .bclk_inv = false, .ws_inv = false}},
-  };
-
-  ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_tx_handle, &audio_std_cfg));
-
-  ESP_ERROR_CHECK(i2s_channel_enable(audio_tx_handle));
-
-  return true;
-}
-
-bool M5StackCardputer::ensure_adv_i2s(uint32_t sample_rate) {
-  // ADV only: the ES8311 codec is a full-duplex device on a single I2S bus
-  // (shared bit/word clocks; DAC data on dout, ADC data on din), so both the
-  // transmit and receive channels are allocated together on one port. The
-  // channels are enabled separately by initialize_sound() /
-  // initialize_microphone().
-  if (audio_tx_handle != nullptr) {
-    // already created by whichever of sound / microphone was initialized
-    // first; the clock is shared, so a different requested rate cannot be
-    // honored
-    if (sample_rate != audio_std_cfg.clk_cfg.sample_rate_hz) {
-      logger_.warn("I2S already configured at {} Hz; ignoring requested {} Hz (the ADV speaker "
-                   "and microphone share the I2S clock)",
-                   audio_std_cfg.clk_cfg.sample_rate_hz, sample_rate);
-    }
+bool M5StackCardputer::initialize_audio(const AudioConfig &config) {
+  const bool playback = config.playback_enabled;
+  const bool recording = config.recording_enabled;
+  const bool is_adv = variant() == Variant::ADV;
+  logger_.info("Initializing audio ({}{}{}{}) at {} Hz", is_adv ? "ES8311 " : "",
+               playback ? "playback" : "", playback && recording ? " + " : "",
+               recording ? "recording" : "", config.sample_rate);
+  if (is_audio_initialized()) {
+    logger_.warn("Audio already initialized");
     return true;
   }
-
-  logger_.info("initializing full-duplex i2s driver at {} Hz", sample_rate);
-
-  i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(i2s_port, I2S_ROLE_MASTER);
-  chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
-  // Keep the TX DMA ring full and long enough to cover the playback task's
-  // bounded whole-block wait (the policy and its rationale: codec/i2s_tx_feed.hpp).
-  static_assert(espp::i2s_tx_feed::ring_outlasts_wait(espp::i2s_tx_feed::DMA_DESC_NUM,
-                                                      espp::i2s_tx_feed::DMA_FRAME_NUM, 48000,
-                                                      UPDATE_FREQUENCY),
-                "the I2S TX DMA ring must outlast the whole-block wait plus one block");
-  chan_cfg.dma_desc_num = espp::i2s_tx_feed::DMA_DESC_NUM;
-  chan_cfg.dma_frame_num = espp::i2s_tx_feed::DMA_FRAME_NUM;
-  ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &audio_tx_handle, &audio_rx_handle));
-
-  audio_std_cfg = {
-      .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(sample_rate),
-      .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
-      .gpio_cfg = {.mclk = GPIO_NUM_NC,
-                   .bclk = i2s_bck_io,
-                   .ws = i2s_ws_io,
-                   .dout = i2s_do_io,
-                   .din = mic_data_io,
-                   .invert_flags = {.mclk_inv = false, .bclk_inv = false, .ws_inv = false}},
-  };
-
-  ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_tx_handle, &audio_std_cfg));
-
-  // Receive in stereo (both 16-bit slots of every frame) even though the
-  // codec's ADC is mono: a mono RX slot configuration in this full-duplex
-  // setup does not deliver one sample per frame (recordings came out with
-  // every sample doubled, i.e. at half speed and an octave low). Capturing
-  // both slots gives a deterministic L,R word layout; the microphone task
-  // keeps only the left slot, where the ES8311 drives its ADC data. The
-  // transmit side is unaffected.
-  i2s_std_config_t rx_cfg = audio_std_cfg;
-  rx_cfg.slot_cfg =
-      I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO);
-  ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_rx_handle, &rx_cfg));
-
-  return true;
-}
-
-bool M5StackCardputer::initialize_sound(uint32_t default_audio_rate,
-                                        const espp::Task::BaseConfig &task_config) {
-  if (sound_initialized_) {
-    logger_.warn("Sound already initialized");
-    return true;
+  if (!playback && !recording) {
+    logger_.error("initialize_audio(): neither playback nor recording is enabled");
+    return false;
+  }
+  if (!is_adv && playback && recording) {
+    logger_.error("initialize_audio(): the original Cardputer cannot play and record at the same "
+                  "time: GPIO {} is both the speaker's word select and the PDM microphone's clock",
+                  static_cast<int>(i2s_ws_io));
+    return false;
   }
 
-  bool is_adv = variant() == Variant::ADV;
+  auto base_config = [&]() {
+    espp::Audio::Config c{};
+    c.sample_rate = config.sample_rate;
+    c.playback_channels = 1;
+    c.recording_channels = 1;
+    c.playback_buffer_size = config.playback_buffer_size;
+    c.playback_buffer_caps = config.playback_buffer_caps;
+    c.volume = volume_;
+    c.muted = mute_;
+    c.microphone_volume = mic_volume_;
+    c.playback_task_config = config.playback_task_config;
+    c.recording_task_config = config.recording_task_config;
+    return c;
+  };
 
+  std::shared_ptr<espp::Audio> playback_audio;
+  std::shared_ptr<espp::Audio> recording_audio;
   if (is_adv) {
-    // full duplex with the microphone; create (or reuse) the shared channels
-    if (!ensure_adv_i2s(default_audio_rate)) {
-      logger_.error("Could not initialize I2S driver");
+    // One I2S bus, full duplex: the ES8311's DAC (DSDIN) and ADC (ASDOUT)
+    // share BCLK / LRCK (there is no MCLK: the codec is clocked from BCLK).
+    // The speaker is mono; the ADC drives the left slot, which espp::Audio
+    // receives as stereo and hands over as mono.
+    adv_codec_ = std::make_shared<espp::CardputerAdvCodec>(
+        [this](uint8_t reg, uint8_t value) { return es8311_write(reg, value); });
+    auto c = base_config();
+    c.port = i2s_port;
+    c.pins = {.bclk = i2s_bck_io,
+              .ws = i2s_ws_io,
+              .dout = playback ? i2s_do_io : GPIO_NUM_NC,
+              .din = recording ? mic_data_io : GPIO_NUM_NC};
+    c.playback_enabled = playback;
+    c.recording_enabled = recording;
+    c.output_codec = adv_codec_;
+    c.input_codec = adv_codec_;
+    auto audio = std::make_shared<espp::Audio>(c);
+    if (!audio->initialize()) {
+      audio.reset();
+      deinitialize_audio();
+      return false;
+    }
+    if (playback) {
+      playback_audio = audio;
+    }
+    if (recording) {
+      recording_audio = audio;
+    }
+  } else if (playback) {
+    // the NS4168 amplifier: no codec, so espp::Audio applies the volume in
+    // software
+    auto c = base_config();
+    c.port = i2s_port;
+    c.pins = {.bclk = i2s_bck_io, .ws = i2s_ws_io, .dout = i2s_do_io};
+    c.playback_enabled = true;
+    c.recording_enabled = false;
+    playback_audio = std::make_shared<espp::Audio>(c);
+    if (!playback_audio->initialize()) {
+      playback_audio.reset();
+      deinitialize_audio();
       return false;
     }
   } else {
-    // the original cannot run the speaker and PDM microphone at the same
-    // time: GPIO 43 doubles as the speaker WS and the microphone clock
-    if (microphone_initialized_) {
-      logger_.error("Cannot initialize sound: the microphone is active and shares GPIO {} with "
-                    "the speaker (WS / PDM clock)",
-                    static_cast<int>(i2s_ws_io));
+    // the SPM1423 PDM microphone, on its own I2S port: its clock on GPIO 43
+    // (the speaker's word select), its data on GPIO 46
+    auto c = base_config();
+    c.port = mic_i2s_port;
+    c.pins = {.ws = mic_clk_io, .din = mic_data_io};
+    c.playback_enabled = false;
+    c.recording_enabled = true;
+    c.recording_format = espp::Audio::RecordingFormat::PDM;
+    recording_audio = std::make_shared<espp::Audio>(c);
+    if (!recording_audio->initialize()) {
+      recording_audio.reset();
+      deinitialize_audio();
       return false;
     }
-    if (!initialize_i2s(default_audio_rate)) {
-      logger_.error("Could not initialize I2S driver");
-      return false;
-    }
+    // the software gain's buffer, sized for a block (1/60 s) so the
+    // microphone task does not allocate
+    mic_scaled_.resize(config.sample_rate / espp::Audio::UPDATE_FREQUENCY);
   }
-
-  // size the transmit buffering from the actual (possibly shared) rate
-  size_t buffer_size = calc_audio_buffer_size(audio_sample_rate());
-  // the block (and so the stream's trigger level) must be a whole number of
-  // frames: the sample-rate formula can land between frames, and a block that
-  // split one would desynchronize the framing of everything received after it
-  buffer_size -= buffer_size % (NUM_CHANNELS * NUM_BYTES_PER_CHANNEL);
-  audio_tx_buffer.resize(buffer_size);
-  // The audio task never blocks on the stream (see audio_task_callback), so
-  // the trigger level is irrelevant; the minimum keeps a producer's send from
-  // ever holding a receiver.
-  audio_tx_stream = xStreamBufferCreate(buffer_size * 4, 1);
-  audio_tx_feed_.stream = audio_tx_stream;
-  audio_tx_feed_.frame_bytes = NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
-  if (audio_tx_stream == nullptr) {
-    logger_.error("Could not allocate the audio stream buffer");
-    audio_tx_buffer.clear();
-    if (is_adv) {
-      if (!microphone_initialized_) {
-        // the channels are shared with the microphone; only tear them down
-        // if it is not using them
-        i2s_del_channel(audio_tx_handle);
-        i2s_del_channel(audio_rx_handle);
-        audio_tx_handle = nullptr;
-        audio_rx_handle = nullptr;
-      }
-    } else {
-      i2s_channel_disable(audio_tx_handle);
-      i2s_del_channel(audio_tx_handle);
-      audio_tx_handle = nullptr;
-    }
-    return false;
+  audio_config_ = config;
+  // published once they are initialized; the forwarders below each take one
+  // snapshot
+  audio_.store(playback_audio);
+  microphone_audio_.store(recording_audio);
+  // A setter that ran meanwhile only updated its cached value: forward the
+  // latest ones, again while they change, so one racing this is not undone by
+  // a stale value.
+  if (playback_audio) {
+    float volume;
+    do {
+      volume = volume_;
+      playback_audio->volume(volume);
+    } while (volume != volume_);
+    bool muted;
+    do {
+      muted = mute_;
+      playback_audio->mute(muted);
+    } while (muted != mute_);
   }
-  xStreamBufferReset(audio_tx_stream);
-
-  if (is_adv) {
-    ESP_ERROR_CHECK(i2s_channel_enable(audio_tx_handle));
-    // On the ADV the I2S signals go through the ES8311 codec (then an
-    // NS4150B amplifier), so the codec's DAC path must be configured. Do
-    // this after the I2S channel is enabled since the codec derives its
-    // clock from BCLK.
-    if (!initialize_es8311_speaker()) {
-      logger_.error("Could not initialize the ES8311 codec");
-      i2s_channel_disable(audio_tx_handle);
-      if (!microphone_initialized_) {
-        // the channels are shared with the microphone; only tear them down
-        // if it is not using them
-        i2s_del_channel(audio_tx_handle);
-        i2s_del_channel(audio_rx_handle);
-        audio_tx_handle = nullptr;
-        audio_rx_handle = nullptr;
-      }
-      vStreamBufferDelete(audio_tx_stream);
-      audio_tx_stream = nullptr;
-      audio_tx_buffer.clear();
-      return false;
-    }
+  if (recording_audio) {
+    float mic_volume;
+    do {
+      mic_volume = mic_volume_;
+      recording_audio->microphone_volume(mic_volume);
+    } while (mic_volume != mic_volume_);
   }
-
-  using namespace std::placeholders;
-  audio_task_ = espp::Task::make_unique({
-      .callback = std::bind(&M5StackCardputer::audio_task_callback, this, _1, _2, _3),
-      .task_config = task_config,
-  });
-
-  sound_initialized_ = true;
-
-  return audio_task_->start();
+  return true;
 }
 
-bool M5StackCardputer::audio_task_callback(std::mutex &m, std::condition_variable &cv,
-                                           bool &task_notified) {
-  // Playback: write the next block to the I2S channel, ALWAYS a whole block
-  // (audio when there is some, silence when idle) so the DMA ring stays full;
-  // the write blocks on the ring and paces this loop. The stream side (the
-  // bounded wait for a flowing producer, misalignment recovery) is shared
-  // policy: see codec/i2s_tx_feed.hpp for the mechanism and why it matters.
-  audio_tx_feed_.attach_current_task();
-  const size_t block = audio_tx_buffer.size();
-  uint8_t *tx_buf = audio_tx_buffer.data();
-  bool misaligned = false;
-  const size_t got = audio_tx_feed_.fill_block(tx_buf, block, misaligned);
-  if (misaligned) {
-    // producers queue whole frames only (play_audio), so this is a bug somewhere
-    logger_.warn_rate_limited("audio stream held a partial frame; reset it");
+void M5StackCardputer::deinitialize_audio() {
+  // unpublished first: a forwarder called meanwhile (e.g. from a recording
+  // callback still finishing) then sees no audio rather than one being torn
+  // down
+  auto playback_audio = audio_.exchange(nullptr);
+  auto recording_audio = microphone_audio_.exchange(nullptr);
+  // release the I2S channels, tasks and codec now, even if the application
+  // still holds an object from audio() / microphone_audio()
+  if (playback_audio) {
+    playback_audio->deinitialize();
   }
-  // The amplifier has no volume control, so scale the samples in software
-  // according to the current volume / mute state (silence stays silence).
-  if (got > 0) {
-    float scale = mute_ ? 0.0f : (volume_ / 100.0f);
-    auto *samples = reinterpret_cast<int16_t *>(tx_buf);
-    size_t num_samples = block / sizeof(int16_t);
-    for (size_t i = 0; i < num_samples; i++) {
-      samples[i] = static_cast<int16_t>(samples[i] * scale);
-    }
+  if (recording_audio) {
+    recording_audio->deinitialize();
   }
-  i2s_channel_write(audio_tx_handle, tx_buf, block, NULL, portMAX_DELAY);
-  return false; // don't stop the task
+  playback_audio.reset();
+  recording_audio.reset();
+  adv_codec_.reset();
+  std::vector<int16_t>().swap(mic_scaled_);
 }
 
-void M5StackCardputer::mute(bool mute) { mute_ = mute; }
-
-bool M5StackCardputer::is_muted() const { return mute_; }
-
-void M5StackCardputer::volume(float volume) { volume_ = std::clamp(volume, 0.0f, 100.0f); }
+void M5StackCardputer::volume(float volume) {
+  volume_ = std::clamp(volume, 0.0f, 100.0f);
+  if (auto audio = audio_.load()) {
+    audio->volume(volume_);
+  }
+  logger_.debug("Volume set to {:.1f} %", volume_.load());
+}
 
 float M5StackCardputer::volume() const { return volume_; }
 
-uint32_t M5StackCardputer::audio_sample_rate() const {
-  return audio_std_cfg.clk_cfg.sample_rate_hz;
+void M5StackCardputer::mute(bool mute) {
+  mute_ = mute;
+  if (auto audio = audio_.load()) {
+    audio->mute(mute);
+  }
+  logger_.debug("Audio {}", mute ? "muted" : "unmuted");
 }
 
-size_t M5StackCardputer::audio_buffer_size() const { return audio_tx_buffer.size(); }
+bool M5StackCardputer::is_muted() const { return mute_; }
 
-void M5StackCardputer::audio_sample_rate(uint32_t sample_rate) {
-  if (!sound_initialized_) {
-    logger_.error("Sound not initialized, cannot set sample rate");
-    return;
+uint32_t M5StackCardputer::audio_sample_rate() const {
+  if (auto audio = audio_.load()) {
+    return audio->sample_rate();
   }
+  auto microphone = microphone_audio_.load();
+  return microphone ? microphone->sample_rate() : 0;
+}
+
+bool M5StackCardputer::audio_sample_rate(uint32_t sample_rate) {
   logger_.info("Setting audio sample rate to {} Hz", sample_rate);
-  bool reconfigure_rx = variant() == Variant::ADV && microphone_initialized_;
-  // stop the channel(s); on the ADV the microphone shares the clock, so its
-  // channel must be reconfigured as well
-  i2s_channel_disable(audio_tx_handle);
-  if (reconfigure_rx) {
-    i2s_channel_disable(audio_rx_handle);
+  auto playback_audio = audio_.load();
+  auto recording_audio = microphone_audio_.load();
+  if (!playback_audio && !recording_audio) {
+    logger_.warn("Audio not initialized: pass the sample rate to initialize_audio()");
+    return false;
   }
-  // update the sample rate
-  audio_std_cfg.clk_cfg.sample_rate_hz = sample_rate;
-  i2s_channel_reconfig_std_clock(audio_tx_handle, &audio_std_cfg.clk_cfg);
-  if (reconfigure_rx) {
-    i2s_channel_reconfig_std_clock(audio_rx_handle, &audio_std_cfg.clk_cfg);
-    mic_sample_rate_ = sample_rate;
+  bool ok = true;
+  if (playback_audio) {
+    ok = playback_audio->sample_rate(sample_rate);
   }
-  // clear the buffer
-  xStreamBufferReset(audio_tx_stream);
-  // restart the channel(s)
-  i2s_channel_enable(audio_tx_handle);
-  if (reconfigure_rx) {
-    i2s_channel_enable(audio_rx_handle);
+  if (recording_audio && recording_audio != playback_audio) {
+    ok = recording_audio->sample_rate(sample_rate) && ok;
   }
+  return ok;
+}
+
+size_t M5StackCardputer::audio_buffer_size() const {
+  auto audio = audio_.load();
+  return audio ? audio->buffer_size() : 0;
+}
+
+size_t M5StackCardputer::play_audio(std::span<const uint8_t> data) {
+  return play_audio(data.data(), data.size());
+}
+
+size_t M5StackCardputer::play_audio(const uint8_t *data, size_t num_bytes) {
+  auto audio = audio_.load();
+  return audio ? audio->play(data, num_bytes) : 0;
 }
 
 size_t M5StackCardputer::play_audio(const std::vector<uint8_t> &data) {
   return play_audio(data.data(), data.size());
 }
 
-size_t M5StackCardputer::play_audio(const uint8_t *data, uint32_t num_bytes) {
-  // guard against being called before initialize_sound() (audio_tx_stream is
-  // not valid until then) and against empty input
-  if (!sound_initialized_ || !data || num_bytes == 0) {
-    return 0;
+void M5StackCardputer::clear_audio() {
+  if (auto audio = audio_.load()) {
+    audio->clear();
   }
-  // Enqueue only whole 16-bit samples (2 bytes; the TX slot is mono) that
-  // actually fit: xStreamBufferSend can accept fewer bytes than requested when
-  // the buffer is nearly full, and a partial (odd) send would strand a byte and
-  // shift framing on subsequent appends. Cap the request to the free space
-  // rounded down to a whole sample. This runs in task context, so the non-ISR
-  // send with a 0 timeout never blocks; the number of bytes actually queued is
-  // returned so callers can stream data larger than the buffer.
-  size_t sendable = std::min<size_t>(num_bytes, xStreamBufferSpacesAvailable(audio_tx_stream));
-  sendable -= sendable % 2;
-  if (sendable == 0) {
-    return 0;
+}
+
+bool M5StackCardputer::start_audio_recording(
+    std::function<void(const uint8_t *data, size_t length)> callback) {
+  auto microphone = microphone_audio_.load();
+  if (!microphone || !microphone->is_initialized()) {
+    logger_.error("Audio recording was not enabled in initialize_audio()");
+    return false;
   }
-  const size_t sent = xStreamBufferSend(audio_tx_stream, data, sendable, 0);
-  if (sent > 0) {
-    // wake the playback task if the stream now holds a whole block (send ->
-    // notify -> return; see i2s_tx_feed.hpp)
-    audio_tx_feed_.notify_if_block_ready(audio_tx_buffer.size());
+  if (!callback) {
+    logger_.error("A callback is required to receive the recorded audio data");
+    return false;
   }
-  return sent;
+  recording_callback_ = callback;
+  espp::Audio::recording_callback_t recording_callback = callback;
+  if (variant() == Variant::ORIGINAL) {
+    // the PDM microphone has no hardware gain, so apply the microphone volume
+    // in software (75 % = unity; the ADV scales in the codec instead)
+    recording_callback = [this, callback](const uint8_t *data, size_t length) {
+      const float scale = mic_volume_ / 75.0f;
+      const size_t count = length / sizeof(int16_t);
+      if (scale == 1.0f) {
+        callback(data, length);
+        return;
+      }
+      if (mic_scaled_.size() < count) {
+        mic_scaled_.resize(count);
+      }
+      std::memcpy(mic_scaled_.data(), data, count * sizeof(int16_t));
+      for (size_t i = 0; i < count; i++) {
+        auto v = static_cast<int32_t>(mic_scaled_[i] * scale);
+        mic_scaled_[i] = static_cast<int16_t>(std::clamp<int32_t>(v, INT16_MIN, INT16_MAX));
+      }
+      callback(reinterpret_cast<const uint8_t *>(mic_scaled_.data()), count * sizeof(int16_t));
+    };
+  }
+  if (!microphone->start_recording(recording_callback)) {
+    return false;
+  }
+  logger_.info("Audio recording started");
+  return true;
+}
+
+void M5StackCardputer::stop_audio_recording() {
+  if (auto microphone = microphone_audio_.load()) {
+    microphone->stop_recording();
+  }
+  logger_.info("Audio recording stopped");
+}
+
+void M5StackCardputer::microphone_volume(float volume) {
+  mic_volume_ = std::clamp(volume, 0.0f, 100.0f);
+  // the ADV's codec gain; the original's software gain reads mic_volume_
+  if (auto microphone = microphone_audio_.load()) {
+    microphone->microphone_volume(mic_volume_);
+  }
+}
+
+float M5StackCardputer::microphone_volume() const { return mic_volume_; }
+
+uint32_t M5StackCardputer::microphone_sample_rate() const {
+  auto microphone = microphone_audio_.load();
+  return microphone ? microphone->sample_rate() : 0;
+}
+
+bool M5StackCardputer::initialize_sound(uint32_t default_audio_rate,
+                                        const espp::Task::BaseConfig &task_config) {
+  if (audio_.load()) {
+    logger_.warn("Sound already initialized");
+    return true;
+  }
+  auto microphone = microphone_audio_.load();
+  if (!microphone) {
+    AudioConfig config{};
+    config.sample_rate = default_audio_rate;
+    config.playback_enabled = true;
+    config.recording_enabled = false;
+    config.playback_task_config = task_config;
+    return initialize_audio(config);
+  }
+  if (variant() != Variant::ADV) {
+    logger_.error("Cannot initialize sound: the microphone is active and shares GPIO {} with "
+                  "the speaker (WS / PDM clock)",
+                  static_cast<int>(i2s_ws_io));
+    return false;
+  }
+  // the ADV's full-duplex bus: set it up again with playback added, at the
+  // microphone's rate, resuming a recording in progress
+  AudioConfig config = audio_config_;
+  config.playback_enabled = true;
+  config.playback_task_config = task_config;
+  config.sample_rate = microphone->sample_rate();
+  if (default_audio_rate != config.sample_rate) {
+    logger_.warn("I2S already configured at {} Hz; ignoring requested {} Hz (the ADV speaker and "
+                 "microphone share the I2S clock)",
+                 config.sample_rate, default_audio_rate);
+  }
+  const bool was_recording = microphone->is_recording();
+  microphone.reset();
+  deinitialize_audio();
+  if (!initialize_audio(config)) {
+    return false;
+  }
+  return !was_recording || start_audio_recording(recording_callback_);
+}
+
+bool M5StackCardputer::initialize_microphone(const microphone_callback_t &callback,
+                                             uint32_t sample_rate,
+                                             const espp::Task::BaseConfig &task_config) {
+  logger_.info("Initializing microphone");
+  if (!callback) {
+    logger_.error("A callback is required to receive the recorded audio data");
+    return false;
+  }
+  if (!microphone_audio_.load()) {
+    // one snapshot: a concurrent deinitialize_audio() may unpublish it
+    auto playback_audio = audio_.load();
+    if (!playback_audio) {
+      AudioConfig config{};
+      config.sample_rate = sample_rate;
+      config.playback_enabled = false;
+      config.recording_enabled = true;
+      config.recording_task_config = task_config;
+      if (!initialize_audio(config)) {
+        return false;
+      }
+    } else if (variant() != Variant::ADV) {
+      logger_.error("Cannot initialize microphone: the sound subsystem is active and shares GPIO "
+                    "{} with the microphone (WS / PDM clock)",
+                    static_cast<int>(mic_clk_io));
+      return false;
+    } else {
+      // the ADV's full-duplex bus: set it up again with recording added, at
+      // the speaker's rate
+      AudioConfig config = audio_config_;
+      config.recording_enabled = true;
+      config.recording_task_config = task_config;
+      config.sample_rate = playback_audio->sample_rate();
+      if (sample_rate != config.sample_rate) {
+        logger_.warn("I2S already configured at {} Hz; ignoring requested {} Hz (the ADV speaker "
+                     "and microphone share the I2S clock)",
+                     config.sample_rate, sample_rate);
+      }
+      playback_audio.reset();
+      deinitialize_audio();
+      if (!initialize_audio(config)) {
+        return false;
+      }
+    }
+  }
+  return start_audio_recording(callback);
 }

@@ -19,14 +19,20 @@ singleton hardware abstraction for initializing and using the subsystems:
   way, a callback is invoked once per key state change with the key's matrix
   position, resolved character (shift-aware), fn-layer special key (F1-F12,
   arrows, esc, delete), and modifier state (fn / shift / ctrl / opt / alt).
-- **Audio output**: mono speaker with `play_audio()`, runtime sample-rate
-  control, and software volume / mute. On the original the I2S stream drives
-  an NS4168 amplifier directly; on the ADV it goes through an ES8311 codec
-  (initialized automatically) into an NS4150B amplifier.
-- **Microphone**: a recording task delivers 16-bit mono samples to a
-  callback, with adjustable volume via `microphone_volume()`. Original:
-  SPM1423 PDM microphone (volume applied in software); ADV: analog MEMS
-  microphone via the ES8311 codec's ADC (volume applied in the codec).
+- **Audio output**: `initialize_audio()` (an `AudioConfig` picks the sample
+  rate and which directions to set up), a mono speaker with `play_audio()` /
+  `clear_audio()`, runtime sample-rate control, and software volume / mute,
+  through the espp `audio` component (`audio()` returns it). On the original
+  the I2S stream drives an NS4168 amplifier directly; on the ADV it goes
+  through an ES8311 codec (clocked from BCLK, set up by the BSP) into an
+  NS4150B amplifier.
+- **Microphone**: with `AudioConfig::recording_enabled`,
+  `start_audio_recording()` delivers 16-bit mono samples to a callback, with
+  adjustable volume via `microphone_volume()`. Original: SPM1423 PDM
+  microphone on its own I2S port (`microphone_audio()`; volume applied in
+  software); ADV: analog MEMS microphone via the ES8311 codec's ADC (volume
+  applied in the codec). The older `initialize_sound()` /
+  `initialize_microphone()` are kept as deprecated forwarders.
 - **uSD card**: SPI-mode micro-SD mounted at `/sdcard`.
 - **RGB LED**: the StampS3's WS2812 via `espp::Neopixel`.
 - **Battery**: battery voltage measurement (2:1 divider into ADC1) and an
@@ -44,11 +50,10 @@ singleton hardware abstraction for initializing and using the subsystems:
 > On the original Cardputer the speaker and microphone cannot be used at the
 > same time: GPIO 43 doubles as the speaker's I2S word-select and the PDM
 > microphone's (MHz-range) clock - two different signals on one physical pin
-> - so initializing one while the other is active will fail. On the
-> Cardputer ADV both go through the ES8311 codec in full duplex on a single
-> I2S bus (shared bit/word clocks, separate data pins), so the speaker and
-> microphone can be used simultaneously; they share the I2S sample rate,
-> which is set by whichever subsystem is initialized first.
+> - so `initialize_audio()` with both playback and recording enabled fails
+> there. On the Cardputer ADV both go through the ES8311 codec in full duplex
+> on a single I2S bus (shared bit/word clocks, separate data pins), so the
+> speaker and microphone can be used simultaneously, at one sample rate.
 
 ## Example
 
