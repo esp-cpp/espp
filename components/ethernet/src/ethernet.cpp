@@ -279,15 +279,16 @@ bool Ethernet::create_mac_phy(esp_eth_mac_t **mac, esp_eth_phy_t **phy, bool &ne
     ec = std::make_error_code(std::errc::invalid_argument);
     return false;
   }
-  spi_device_interface_config_t devcfg = {};
+  // devcfg, mac_config and phy_config are only read inside the per-chip #if
+  // blocks below: unused in a build with no SPI chip enabled (the QEMU
+  // firmware, say)
+  [[maybe_unused]] spi_device_interface_config_t devcfg = {};
   devcfg.mode = 0;
   devcfg.clock_speed_hz = spi->clock_speed_hz;
   devcfg.queue_size = 20;
   devcfg.spics_io_num = spi->cs_gpio;
-  // only read inside the per-chip #if blocks below: unused in a build with no
-  // SPI chip enabled (the QEMU firmware, say)
   [[maybe_unused]] eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
-  eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
+  [[maybe_unused]] eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
   phy_config.phy_addr = spi->phy_addr;
   phy_config.reset_gpio_num = spi->reset_gpio;
   needs_isr = (spi->int_gpio >= 0);
