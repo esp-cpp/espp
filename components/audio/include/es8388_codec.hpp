@@ -41,6 +41,8 @@ public:
   ~Es8388Codec() override;
 
   const char *name() const override { return "ES8388"; }
+  /// @return 256: the driver sets its DAC to MCLK = 256 x the rate.
+  uint32_t mclk_multiple() const override { return 256; }
   bool start(Direction direction, uint32_t sample_rate) override;
   void stop() override;
   bool has_volume() const override { return true; }

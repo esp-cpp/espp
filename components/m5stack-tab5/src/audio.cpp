@@ -89,7 +89,7 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
   // (ASDOUT) share MCLK / SCLK / LRCK. The playback data is interleaved
   // 16-bit stereo, so the slots MUST be stereo - a mono slot plays
   // interleaved stereo at the wrong rate and garbles L/R.
-  audio_ = std::make_shared<espp::Audio>(espp::Audio::Config{
+  auto audio = std::make_shared<espp::Audio>(espp::Audio::Config{
       .port = I2S_NUM_0,
       .pins = {.mclk = audio_mclk_io,
                .bclk = audio_sclk_io,
@@ -112,10 +112,14 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
       .playback_task_config = playback_task_config,
       .recording_task_config = recording_task_config,
   });
-  if (!audio_->initialize()) {
+  if (!audio->initialize()) {
+    audio.reset();
     deinitialize_audio();
     return false;
   }
+  // published once it is initialized; the forwarders below each take one
+  // snapshot of it
+  audio_.store(audio);
 
   if (playback) {
     enable_audio(true);
@@ -124,15 +128,19 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
 }
 
 void M5StackTab5::deinitialize_audio() {
-  if (is_audio_initialized() && audio_->is_playback_enabled()) {
+  // unpublished first: a forwarder called meanwhile (e.g. from a recording
+  // callback still finishing) then sees no audio rather than one being torn
+  // down
+  auto audio = audio_.exchange(nullptr);
+  if (audio && audio->is_initialized() && audio->is_playback_enabled()) {
     enable_audio(false);
   }
   // release the I2S channels, tasks and codecs now, even if the application
   // still holds the object from audio()
-  if (audio_) {
-    audio_->deinitialize();
+  if (audio) {
+    audio->deinitialize();
   }
-  audio_.reset();
+  audio.reset();
   es8388_.reset();
   es7210_.reset();
   es8388_i2c_device_.reset();
@@ -148,8 +156,8 @@ void M5StackTab5::enable_audio(bool enable) {
 
 void M5StackTab5::volume(float volume) {
   volume_ = std::clamp(volume, 0.0f, 100.0f);
-  if (audio_) {
-    audio_->volume(volume_);
+  if (auto audio = audio_.load()) {
+    audio->volume(volume_);
   }
   logger_.debug("Volume set to {:.1f} %", volume_.load());
 }
@@ -158,8 +166,8 @@ float M5StackTab5::volume() const { return volume_; }
 
 void M5StackTab5::mute(bool mute) {
   mute_ = mute;
-  if (audio_) {
-    audio_->mute(mute);
+  if (auto audio = audio_.load()) {
+    audio->mute(mute);
   }
   logger_.debug("Audio {}", mute ? "muted" : "unmuted");
 }
@@ -167,7 +175,8 @@ void M5StackTab5::mute(bool mute) {
 bool M5StackTab5::is_muted() const { return mute_; }
 
 size_t M5StackTab5::play_audio(const uint8_t *data, size_t num_bytes) {
-  return audio_ ? audio_->play(data, num_bytes) : 0;
+  auto audio = audio_.load();
+  return audio ? audio->play(data, num_bytes) : 0;
 }
 
 size_t M5StackTab5::play_audio(std::span<const uint8_t> data) {
@@ -175,15 +184,15 @@ size_t M5StackTab5::play_audio(std::span<const uint8_t> data) {
 }
 
 void M5StackTab5::clear_audio() {
-  if (audio_) {
-    audio_->clear();
+  if (auto audio = audio_.load()) {
+    audio->clear();
   }
 }
 
 void M5StackTab5::microphone_volume(float volume) {
   mic_volume_ = std::clamp(volume, 0.0f, 100.0f);
-  if (audio_) {
-    audio_->microphone_volume(mic_volume_);
+  if (auto audio = audio_.load()) {
+    audio->microphone_volume(mic_volume_);
   }
 }
 
@@ -191,15 +200,16 @@ float M5StackTab5::microphone_volume() const { return mic_volume_; }
 
 bool M5StackTab5::start_audio_recording(
     std::function<void(const uint8_t *data, size_t length)> callback) {
-  if (!is_audio_initialized()) {
+  auto audio = audio_.load();
+  if (!audio || !audio->is_initialized()) {
     logger_.error("Audio system not initialized");
     return false;
   }
-  if (!audio_->is_recording_enabled()) {
+  if (!audio->is_recording_enabled()) {
     logger_.error("Audio recording was not enabled in initialize_audio()");
     return false;
   }
-  if (!audio_->start_recording(callback)) {
+  if (!audio->start_recording(callback)) {
     return false;
   }
   logger_.info("Audio recording started");
@@ -207,23 +217,30 @@ bool M5StackTab5::start_audio_recording(
 }
 
 void M5StackTab5::stop_audio_recording() {
-  if (audio_) {
-    audio_->stop_recording();
+  if (auto audio = audio_.load()) {
+    audio->stop_recording();
   }
   logger_.info("Audio recording stopped");
 }
 
-uint32_t M5StackTab5::audio_sample_rate() const { return audio_ ? audio_->sample_rate() : 0; }
+uint32_t M5StackTab5::audio_sample_rate() const {
+  auto audio = audio_.load();
+  return audio ? audio->sample_rate() : 0;
+}
 
-size_t M5StackTab5::audio_buffer_size() const { return audio_ ? audio_->buffer_size() : 0; }
+size_t M5StackTab5::audio_buffer_size() const {
+  auto audio = audio_.load();
+  return audio ? audio->buffer_size() : 0;
+}
 
 bool M5StackTab5::audio_sample_rate(uint32_t sample_rate) {
   logger_.info("Setting audio sample rate to {} Hz", sample_rate);
-  if (!is_audio_initialized()) {
+  auto audio = audio_.load();
+  if (!audio || !audio->is_initialized()) {
     logger_.warn("Audio not initialized: pass the sample rate to initialize_audio()");
     return false;
   }
-  return audio_->sample_rate(sample_rate);
+  return audio->sample_rate(sample_rate);
 }
 
 } // namespace espp

@@ -57,6 +57,8 @@ public:
   ~Es7210Codec() override;
 
   const char *name() const override { return "ES7210"; }
+  /// @return 256: its coefficient table is selected for MCLK = 256 x the rate.
+  uint32_t mclk_multiple() const override { return 256; }
   bool start(Direction direction, uint32_t sample_rate) override;
   void stop() override;
   bool set_sample_rate(uint32_t sample_rate) override;

@@ -39,6 +39,11 @@ public:
   ///         since a chip may be partly configured.
   virtual bool start(Direction direction, uint32_t sample_rate) = 0;
 
+  /// @return The MCLK / sample rate ratio the chip's configuration assumes
+  ///         (espp::Audio::Config::mclk_multiple must match), or 0 if it
+  ///         follows any.
+  virtual uint32_t mclk_multiple() const { return 0; }
+
   /// @brief Stop the chip (and power down what start() powered up).
   virtual void stop() = 0;
 

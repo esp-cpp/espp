@@ -73,6 +73,9 @@ extern "C" void app_main(void) {
   logger.info("Playing the tone muted");
   audio.mute(true);
   play_all(bytes);
+  // play_all() returns once the tone is queued (the stream and the DMA ring
+  // still hold about 130 ms): let that play out muted before unmuting
+  std::this_thread::sleep_for(250ms);
   audio.mute(false);
 
   // the audio is torn down when `audio` goes out of scope; deinitialize() does

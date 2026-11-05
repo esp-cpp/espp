@@ -95,6 +95,10 @@ struct Feeder {
   /// the producer left behind (`misaligned_bytes % frame_bytes` is the partial
   /// frame).
   size_t misaligned_bytes{0};
+  /// Set by reset() while it waits for a receive in progress (see reset()).
+  std::atomic<bool> reset_pending{false};
+  /// Set by fill_block() around its receive (see reset()).
+  std::atomic<bool> receiving{false};
 
   /// Called by the playback task (its first iteration suffices): records the
   /// calling task as the one to notify.
@@ -107,6 +111,25 @@ struct Feeder {
   /// Called before the playback task is stopped or destroyed, so a later
   /// play_audio() cannot notify a task that no longer exists.
   void detach_task() { task.store(nullptr, std::memory_order_release); }
+
+  /// Drop everything queued, for a producer (e.g. clear_audio(), a rate
+  /// change). Call it serialized with the producers' sends (under the same
+  /// lock): a FreeRTOS stream buffer copies data outside its critical
+  /// section, so xStreamBufferReset() must not run during a send or a
+  /// receive. This waits out a receive in progress: either fill_block() sees
+  /// reset_pending and skips its receive, or this sees receiving and waits
+  /// (both are sequentially consistent). Costs no semaphore.
+  void reset() {
+    if (stream == nullptr) {
+      return;
+    }
+    reset_pending = true;
+    while (receiving) {
+      vTaskDelay(1);
+    }
+    xStreamBufferReset(stream);
+    reset_pending = false;
+  }
 
   /// Called by a producer after a successful send (send -> notify -> return):
   /// wakes the playback task if the stream now holds a whole block. A
@@ -134,7 +157,10 @@ struct Feeder {
     if (available % frame_bytes != 0) {
       misaligned = true;
       misaligned_bytes = available;
-      xStreamBufferReset(stream);
+      // drop what was queued by receiving it (FIFO: the bytes measured come
+      // first), rather than xStreamBufferReset(), which must not run during
+      // a producer's send
+      discard(buf, block, available);
       available = 0;
     }
     if (available < block && (available > 0 || was_flowing)) {
@@ -151,18 +177,33 @@ struct Feeder {
     }
     available = std::min(available, block);
     if (available > 0) {
-      // what was actually received: a producer-side reset (clear_audio(), a
-      // rate change) between the measurement and here leaves less, and the
-      // rest of buf still holds the previous block. (The stream holds whole
-      // frames only, and this asks for whole frames, so the count is whole
-      // frames too.)
-      available = xStreamBufferReceive(stream, buf, available, 0);
+      // receiving before reading reset_pending (see reset()); a reset that
+      // ran since the measurement leaves less than measured, so use what was
+      // actually received (whole frames: the stream holds whole frames only
+      // and this asks for whole frames)
+      receiving = true;
+      available = reset_pending ? 0 : xStreamBufferReceive(stream, buf, available, 0);
+      receiving = false;
     }
     if (available < block) {
       std::memset(buf + available, 0, block - available);
     }
     was_flowing = available > 0;
     return available;
+  }
+
+private:
+  // receive and drop `count` bytes, through `buf` (`size` bytes) as scratch
+  void discard(uint8_t *buf, size_t size, size_t count) {
+    receiving = true;
+    while (count > 0 && !reset_pending) {
+      const size_t got = xStreamBufferReceive(stream, buf, std::min(count, size), 0);
+      if (got == 0) {
+        break;
+      }
+      count -= got;
+    }
+    receiving = false;
   }
 };
 

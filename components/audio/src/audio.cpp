@@ -111,6 +111,17 @@ bool Audio::initialize(std::error_code &ec) {
     ec = std::make_error_code(std::errc::invalid_argument);
     return false;
   }
+  for (const auto &codec : {config_.output_codec, config_.input_codec}) {
+    const bool used = codec && ((codec == config_.output_codec && playback) ||
+                                (codec == config_.input_codec && recording));
+    const uint32_t multiple = used ? codec->mclk_multiple() : 0;
+    if (multiple != 0 && multiple != static_cast<uint32_t>(config_.mclk_multiple)) {
+      logger_.error("The {} codec needs MCLK = {} x the sample rate, not {} x", codec->name(),
+                    multiple, static_cast<uint32_t>(config_.mclk_multiple));
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+  }
   const uint32_t rate = config_.sample_rate;
   if (rate < UPDATE_FREQUENCY) {
     // a block (1 / UPDATE_FREQUENCY seconds) would hold no frames
@@ -240,12 +251,17 @@ bool Audio::initialize(std::error_code &ec) {
       }
     }
   }
-  if (output_started_ && config_.output_codec->has_volume()) {
-    config_.output_codec->set_volume(volume_);
-    config_.output_codec->set_mute(muted_);
+  // the initial settings: a codec left unmuted (its start() may unmute it)
+  // while muted_ says otherwise would play audio the caller muted
+  if (output_started_ && config_.output_codec->has_volume() &&
+      !(config_.output_codec->set_volume(volume_) && config_.output_codec->set_mute(muted_))) {
+    logger_.error("Could not set the {} codec's volume / mute", config_.output_codec->name());
+    return fail(std::errc::io_error);
   }
-  if (input_started_ && config_.input_codec->has_gain()) {
-    config_.input_codec->set_gain(microphone_volume_);
+  if (input_started_ && config_.input_codec->has_gain() &&
+      !config_.input_codec->set_gain(microphone_volume_)) {
+    logger_.error("Could not set the {} codec's gain", config_.input_codec->name());
+    return fail(std::errc::io_error);
   }
 
   // Two independent tasks: one keeps the TX ring full from the stream, the
@@ -384,9 +400,8 @@ size_t Audio::play(const uint8_t *data, size_t num_bytes) {
 
 void Audio::clear() {
   std::lock_guard<std::mutex> lock(mutex_);
-  if (tx_stream_) {
-    xStreamBufferReset(tx_stream_);
-  }
+  // under mutex_, serialized with play()'s sends (see Feeder::reset())
+  tx_feed_.reset();
 }
 
 void Audio::volume(float volume) {
@@ -430,6 +445,24 @@ bool Audio::sample_rate(uint32_t sample_rate) {
     return false;
   }
   logger_.info("Setting the sample rate to {} Hz", sample_rate);
+  const uint32_t old_rate = sample_rate_;
+  const i2s_std_clk_config_t old_clk_cfg = clk_cfg_;
+  if (!apply_sample_rate(sample_rate)) {
+    // back to a consistent configuration: the clocks and the codecs at the
+    // previous rate (the queued audio is kept, it is still for that rate)
+    if (!apply_sample_rate(old_rate)) {
+      logger_.error("Could not restore the sample rate to {} Hz", old_rate);
+    }
+    return false;
+  }
+  // the queued audio was for the old rate (under mutex_, serialized with
+  // play()'s sends: see Feeder::reset())
+  tx_feed_.reset();
+  return true;
+}
+
+bool Audio::apply_sample_rate(uint32_t sample_rate) {
+  // called with mutex_ held
   // The channel that drives the clocks: TX (whose BCLK/WS RX shares in full
   // duplex), or RX when only recording is set up. Both channels stop while the
   // clock changes, rather than RX sampling through the switch (the recording
@@ -450,10 +483,6 @@ bool Audio::sample_rate(uint32_t sample_rate) {
   } else {
     logger_.error("Could not set the I2S clock to {} Hz: {}", sample_rate, esp_err_to_name(err));
   }
-  // the queued audio was for the old rate
-  if (tx_stream_) {
-    xStreamBufferReset(tx_stream_);
-  }
   if (tx_enabled_) {
     i2s_channel_enable(tx_handle_);
   }
@@ -463,13 +492,17 @@ bool Audio::sample_rate(uint32_t sample_rate) {
   if (err != ESP_OK) {
     return false;
   }
+  // the codecs follow the running clocks
   bool ok = true;
-  if (output_started_) {
-    ok &= config_.output_codec->set_sample_rate(sample_rate);
+  if (output_started_ && !config_.output_codec->set_sample_rate(sample_rate)) {
+    logger_.error("The {} codec does not support {} Hz", config_.output_codec->name(), sample_rate);
+    ok = false;
   }
   // once for a codec passed as both output_codec and input_codec
-  if (input_started_ && !(same_codec() && output_started_)) {
-    ok &= config_.input_codec->set_sample_rate(sample_rate);
+  if (input_started_ && !(same_codec() && output_started_) &&
+      !config_.input_codec->set_sample_rate(sample_rate)) {
+    logger_.error("The {} codec does not support {} Hz", config_.input_codec->name(), sample_rate);
+    ok = false;
   }
   return ok;
 }
@@ -580,7 +613,9 @@ bool Audio::recording_task_callback(std::mutex &m, std::condition_variable &cv,
   size_t bytes_read = 0;
   const esp_err_t err =
       i2s_channel_read(rx_handle_, rx_buffer_.data(), rx_buffer_.size(), &bytes_read, 100 /* ms */);
-  if (err == ESP_OK && bytes_read > 0 && recording_) {
+  // a read that timed out can still carry samples (e.g. a buffer sized for a
+  // higher rate than sample_rate() now runs at)
+  if ((err == ESP_OK || err == ESP_ERR_TIMEOUT) && bytes_read > 0 && recording_) {
     // in_callback_ before re-checking recording_ (see stop_recording())
     in_callback_ = true;
     if (recording_) {

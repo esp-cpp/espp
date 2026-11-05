@@ -193,7 +193,9 @@ public:
   ///        the queued audio was for the old rate, the playback stream (it is
   ///        cleared).
   /// @param sample_rate The new sample rate, in Hz (at least UPDATE_FREQUENCY).
-  /// @return true on success (false when not initialized, the rate is below
+  /// @return true on success (false when not initialized, a codec does not
+  ///         support the rate - the previous rate is then restored - the rate
+  ///         is below
   ///         UPDATE_FREQUENCY, or the playback DMA ring, sized for the rate
   ///         passed to initialize(), is too short for it: initialize() at the
   ///         highest rate you will use).
@@ -249,6 +251,7 @@ protected:
   bool software_volume() const;
   bool same_codec() const;
   bool tx_ring_outlasts_wait(uint32_t sample_rate) const;
+  bool apply_sample_rate(uint32_t sample_rate);
 
   Config config_;
   std::atomic<bool> initialized_{false};

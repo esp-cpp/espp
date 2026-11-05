@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <functional>
@@ -521,18 +522,24 @@ public:
 
   /// Stop the audio system and free what initialize_audio() set up (the
   /// speaker is switched off). Idempotent.
+  /// \note The audio methods below may be called from any task meanwhile,
+  ///       but initialize_audio() and deinitialize_audio() must not run
+  ///       concurrently with each other, nor from an audio callback.
   void deinitialize_audio();
 
   /// Whether the audio system is initialized
   /// \return True if initialize_audio() succeeded (until deinitialize_audio())
-  bool is_audio_initialized() const { return audio_ && audio_->is_initialized(); }
+  bool is_audio_initialized() const {
+    auto audio = audio_.load();
+    return audio && audio->is_initialized();
+  }
 
   /// The audio component, for anything the BSP methods below do not expose
   /// \return The audio component, or nullptr before initialize_audio()
   /// \note deinitialize_audio() releases the hardware even while the returned
   ///       pointer is held: the object is then uninitialized (its methods
   ///       fail / return 0), and a later initialize_audio() makes a new one.
-  std::shared_ptr<espp::Audio> audio() const { return audio_; }
+  std::shared_ptr<espp::Audio> audio() const { return audio_.load(); }
 
   /// Enable or disable the speaker amplifier
   /// \param enable True to enable, false to disable
@@ -1123,7 +1130,9 @@ protected:
   button_callback_t button_callback_{nullptr};
 
   // Audio system (espp::Audio, created by initialize_audio())
-  std::shared_ptr<espp::Audio> audio_;
+  // atomic: the forwarders may run on any task while initialize_audio() /
+  // deinitialize_audio() publish / unpublish it
+  std::atomic<std::shared_ptr<espp::Audio>> audio_;
   std::shared_ptr<espp::Es8388Codec> es8388_;
   std::shared_ptr<espp::Es7210Codec> es7210_;
   std::shared_ptr<I2c::Device<uint8_t>> es8388_i2c_device_;
