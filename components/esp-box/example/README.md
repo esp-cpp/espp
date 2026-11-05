@@ -4,7 +4,8 @@ This example shows how to use the `espp::EspBox` hardware abstraction component
 to automatically detect and initialize components on both the ESP32-S3-BOX and
 the ESP32-S3-BOX-3.
 
-It initializes the touch, display, and audio subsystems. It reads the touchpad
+It initializes the touch, display, and audio subsystems (the audio system at
+the bundled click sound's sample rate, playback and recording). It reads the touchpad
 state and each time you touch the scren it 1) uses LVGL to draw a circle where
 you touch, and 2) play a click sound (wav file bundled with the firmware). If
 you press the home button on the display, it will clear the circles.
