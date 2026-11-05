@@ -17,6 +17,19 @@
 #include <esp_netif.h>
 #include <lwip/ip4_addr.h>
 
+// ESP-IDF 6.0 renamed the DHCP server's lease event and its payload
+// (IP_EVENT_AP_STAIPASSIGNED / ip_event_ap_staipassigned_t became
+// IP_EVENT_ASSIGNED_IP_TO_CLIENT / ip_event_assigned_ip_to_client_t); the old
+// names are deprecated there (a warning per use) and will go. Plain-macro
+// version test (cppcheck cannot evaluate ESP_IDF_VERSION_VAL()).
+#if ESP_IDF_VERSION_MAJOR >= 6
+#define ESPP_IP_EVENT_ASSIGNED_IP_TO_CLIENT IP_EVENT_ASSIGNED_IP_TO_CLIENT
+using espp_ip_event_assigned_ip_to_client_t = ip_event_assigned_ip_to_client_t;
+#else
+#define ESPP_IP_EVENT_ASSIGNED_IP_TO_CLIENT IP_EVENT_AP_STAIPASSIGNED
+using espp_ip_event_assigned_ip_to_client_t = ip_event_ap_staipassigned_t;
+#endif
+
 #include <driver/gpio.h>
 
 // The internal EMAC driver only exists when it is enabled in the build
@@ -162,7 +175,7 @@ void Ethernet::lost_ip_handler(void *arg, esp_event_base_t /*base*/, int32_t /*i
 
 void Ethernet::client_ip_handler(void *arg, esp_event_base_t /*base*/, int32_t /*id*/, void *data) {
   auto *self = static_cast<Ethernet *>(arg);
-  auto *event = static_cast<ip_event_ap_staipassigned_t *>(data);
+  auto *event = static_cast<espp_ip_event_assigned_ip_to_client_t *>(data);
   if (!self || !event) {
     return;
   }
@@ -383,7 +396,8 @@ bool Ethernet::initialize(std::error_code &ec) {
   auto fail = [&](const char *msg, esp_err_t err, std::errc code) {
     logger_.error("{}: {}", msg, esp_err_to_name(err));
     if (client_ip_handler_registered_) {
-      esp_event_handler_unregister(IP_EVENT, IP_EVENT_AP_STAIPASSIGNED, &client_ip_handler);
+      esp_event_handler_unregister(IP_EVENT, ESPP_IP_EVENT_ASSIGNED_IP_TO_CLIENT,
+                                   &client_ip_handler);
       client_ip_handler_registered_ = false;
     }
     if (handlers_registered_) {
@@ -525,7 +539,8 @@ bool Ethernet::initialize(std::error_code &ec) {
     return fail("register IP_EVENT_ETH_LOST_IP failed", err, std::errc::io_error);
   }
   if (server_mode) {
-    err = esp_event_handler_register(IP_EVENT, IP_EVENT_AP_STAIPASSIGNED, &client_ip_handler, this);
+    err = esp_event_handler_register(IP_EVENT, ESPP_IP_EVENT_ASSIGNED_IP_TO_CLIENT,
+                                     &client_ip_handler, this);
     if (err != ESP_OK) {
       return fail("register client-IP handler failed", err, std::errc::io_error);
     }
@@ -579,7 +594,7 @@ bool Ethernet::deinitialize(std::error_code &ec) {
   }
   logger_.info("Deinitializing Ethernet");
   if (client_ip_handler_registered_) {
-    esp_event_handler_unregister(IP_EVENT, IP_EVENT_AP_STAIPASSIGNED, &client_ip_handler);
+    esp_event_handler_unregister(IP_EVENT, ESPP_IP_EVENT_ASSIGNED_IP_TO_CLIENT, &client_ip_handler);
     client_ip_handler_registered_ = false;
   }
   if (handlers_registered_) {
