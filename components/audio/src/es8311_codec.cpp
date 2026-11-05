@@ -86,7 +86,10 @@ bool Es8311Codec::start(Direction direction, uint32_t sample_rate) {
   cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
   cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
   ESP_LOGI(TAG, "Initializing the ES8311 at %u Hz", static_cast<unsigned>(sample_rate));
-  if (es8311_codec_init(&cfg) != ESP_OK) {
+  // es8311_codec_init() sets the clocks and the master / slave mode, but not
+  // the serial data format: 16-bit Philips, in both directions
+  if (es8311_codec_init(&cfg) != ESP_OK ||
+      es8311_codec_config_i2s(mode_, &cfg.i2s_iface) != ESP_OK) {
     ESP_LOGE(TAG, "ES8311 init failed");
     return false;
   }
@@ -112,11 +115,18 @@ bool Es8311Codec::set_sample_rate(uint32_t sample_rate) {
 }
 
 bool Es8311Codec::set_volume(float percent) {
-  return es8311_codec_set_voice_volume(static_cast<int>(std::clamp(percent, 0.0f, 100.0f))) ==
-         ESP_OK;
+  volume_ = std::clamp(percent, 0.0f, 100.0f);
+  // while muted the DAC's mute bits keep it silent
+  return es8311_codec_set_voice_volume(static_cast<int>(volume_)) == ESP_OK;
 }
 
-bool Es8311Codec::set_mute(bool mute) { return es8311_set_voice_mute(mute) == ESP_OK; }
+bool Es8311Codec::set_mute(bool mute) {
+  if (es8311_set_voice_mute(mute) != ESP_OK) {
+    return false;
+  }
+  // muting also zeroes the DAC volume, which unmuting does not restore
+  return mute || es8311_codec_set_voice_volume(static_cast<int>(volume_)) == ESP_OK;
+}
 
 bool Es8311Codec::set_gain(float percent) {
   // 0 - 100 % onto the analog gain steps ES8311_MIC_GAIN_0DB .. _42DB (6 dB

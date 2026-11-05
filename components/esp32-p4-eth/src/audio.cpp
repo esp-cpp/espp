@@ -225,6 +225,8 @@ bool Esp32P4Eth::initialize_microphone(const microphone_callback_t &callback,
     // with it
     AudioConfig config = audio_config_;
     config.recording_enabled = true;
+    // at the current rate, which audio_sample_rate() may have changed since
+    config.sample_rate = audio_sample_rate();
     deinitialize_audio();
     if (!initialize_audio(config)) {
       return false;

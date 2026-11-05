@@ -200,12 +200,14 @@ bool Audio::initialize(std::error_code &ec) {
                                    : std::max(config_.playback_buffer_size, block_bytes_ * 2);
     // storage with the requested caps, the stream on it (not
     // xStreamBufferCreateWithCaps(): ESP-IDF's vStreamBufferDeleteWithCaps()
-    // deletes the stream as a queue and then frees its memory again)
+    // deletes the stream as a queue and then frees its memory again). A
+    // static stream buffer holds one byte less than its storage, so one more
+    // keeps stream_size usable.
     tx_stream_storage_ =
-        static_cast<uint8_t *>(heap_caps_malloc(stream_size, config_.playback_buffer_caps));
+        static_cast<uint8_t *>(heap_caps_malloc(stream_size + 1, config_.playback_buffer_caps));
     if (tx_stream_storage_) {
       tx_stream_ =
-          xStreamBufferCreateStatic(stream_size, 1, tx_stream_storage_, &tx_stream_struct_);
+          xStreamBufferCreateStatic(stream_size + 1, 1, tx_stream_storage_, &tx_stream_struct_);
     }
     if (!tx_stream_) {
       logger_.error("Could not create the playback stream buffer");

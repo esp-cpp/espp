@@ -58,6 +58,8 @@ public:
 protected:
   // the driver mode start() started, for stop()
   audio_hal_codec_mode_t mode_{AUDIO_HAL_CODEC_MODE_DECODE};
+  // the last set_volume(), which set_mute(false) restores
+  float volume_{0.0f};
   // the instance whose functions the driver holds
   static Es8311Codec *owner_;
 };
