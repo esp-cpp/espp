@@ -1,10 +1,12 @@
 Audio
 *****
 
-The :cpp:class:`espp::Audio` component drives one I2S port in standard
-(Philips) mode with 16-bit PCM: a TX channel for playback, an RX channel for
-recording, or both, full duplex. It owns the machinery the espp BSPs used to
-copy into each board:
+The :cpp:class:`espp::Audio` component drives one I2S port with 16-bit PCM: a
+TX channel for playback, an RX channel for recording, or both, full duplex, in
+standard (Philips) mode. An instance that only records can instead receive TDM
+(e.g. an ES7210 with four microphones) or a PDM microphone, and
+``Config::recording_slots`` picks the slots its callback receives. It owns the
+machinery the espp BSPs used to copy into each board:
 
 - the I2S channels and their DMA rings, sized so the TX ring outlasts the
   playback task's bounded wait,
@@ -29,7 +31,8 @@ Board-specific parts - amplifier enable pins, IO expanders, buttons - stay in
 the BSP. ``Config::on_playback_block`` lets a BSP follow playback activity (the
 M5Stack Tab5 pauses its battery charger with it, since the charger pops the
 speaker). A board whose microphones are on a separate I2S port uses two
-instances: one for playback and one for recording.
+instances: one for playback and one for recording, which such a BSP's
+``microphone_audio()`` returns.
 
 BSP audio API
 -------------

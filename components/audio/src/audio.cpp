@@ -572,7 +572,6 @@ bool Audio::sample_rate(uint32_t sample_rate) {
   }
   logger_.info("Setting the sample rate to {} Hz", sample_rate);
   const uint32_t old_rate = sample_rate_;
-  const i2s_std_clk_config_t old_clk_cfg = clk_cfg_;
   if (!apply_sample_rate(sample_rate)) {
     // back to a consistent configuration: the clocks and the codecs at the
     // previous rate (the queued audio is kept, it is still for that rate)
