@@ -16,3 +16,14 @@ CONFIG_RTPS_LIMIT_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS=24
 # ones pile up in the pool across cases. Cap what the device honours (the
 # knob exists for exactly this) so a gone peer is forgotten in 8 s.
 CONFIG_RTPS_SPDP_MAX_REMOTE_LEASE_DURATION_S=8
+
+# A ROS 2 participant carries about ten built-in endpoints (parameters,
+# rosout, type description ...), so twelve of them present well over a
+# hundred remote endpoints: more than the embedded profile's 50-entry
+# unmatched-endpoint pools ("[MemoryPool] RESSOURCE LIMIT EXCEEDED" on the
+# device; the topic the device needs still matched), and some of their type
+# names are longer than the profile's 64-character cap ("Type name length 69
+# exceeds maximum", those endpoints are skipped). Both are knobs; raised here.
+CONFIG_RTPS_LIMIT_MAX_NUM_UNMATCHED_REMOTE_WRITERS=160
+CONFIG_RTPS_LIMIT_MAX_NUM_UNMATCHED_REMOTE_READERS=160
+CONFIG_RTPS_LIMIT_MAX_TYPENAME_LENGTH=96

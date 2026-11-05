@@ -89,7 +89,7 @@ else
 fi
 ping -c 2 -W 2 $DEVICE_IP > /tmp/ping.log 2>&1; result "device_ping" $?
 wait_for_marker "RTPSTEST status" 10
-FIRST_HEAP=$(grep -o "heap=[0-9]*" "$LOG" | tail -1 | cut -d= -f2)
+FIRST_HEAP=$(grep -o " heap=[0-9]*" "$LOG" | tail -1 | cut -d= -f2)
 
 source /opt/ros/jazzy/setup.bash
 export ROS_DOMAIN_ID=0 # matches the engine's Config::DOMAIN_ID
@@ -211,11 +211,16 @@ unset CYCLONEDDS_URI
 
 # --- the device after all of that -----------------------------------------------------------------
 note "Device health over the run"
-LAST_HEAP=$(grep -o "heap=[0-9]*" "$LOG" | tail -1 | cut -d= -f2)
+LAST_HEAP=$(grep -o " heap=[0-9]*" "$LOG" | tail -1 | cut -d= -f2)
 echo "free heap first=$FIRST_HEAP last=$LAST_HEAP"
 [ -n "$FIRST_HEAP" ] && [ -n "$LAST_HEAP" ] && [ "$LAST_HEAP" -ge $((FIRST_HEAP - 65536)) ]; result "device_heap_stable" $?
 ! grep -qE "Guru Meditation|abort\(\)|assert failed|RTPSTEST fatal" "$LOG"; result "device_no_crash" $?
 grep -o "RTPSTEST status.*" "$LOG" | tail -1
+# informational: pressure the run put on the device (pool exhaustion, frames
+# the emulated MAC dropped, endpoints skipped for their type-name length)
+echo "device pool-exhaustion messages: $(grep -c 'RESSOURCE LIMIT EXCEEDED' "$LOG")"
+echo "device RX frames dropped by the emulated MAC: $(grep -c 'RX frame dropped' "$LOG")"
+echo "device type names over the cap: $(grep -c 'exceeds maximum allowed length' "$LOG")"
 
 echo ""
 echo "==================== SUMMARY ===================="

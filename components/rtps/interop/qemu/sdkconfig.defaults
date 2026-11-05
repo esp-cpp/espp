@@ -20,12 +20,15 @@ CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=12288
 
 # the OpenCores MAC QEMU emulates, instead of the chip's own EMAC. Its receive
-# ring is tiny by default (4 frames) and the emulated MAC drops frames under
-# a burst of discovery traffic ("RX frame dropped" in the log): give it room.
+# ring is tiny by default (4 frames) and in the emulator a burst arrives with
+# no wire time between frames: a 30 KB datagram is 21 IP fragments back to
+# back, and the whole burst must fit the ring or reassembly never completes
+# ("RX frame dropped" in the log, in step with every big sample). 40 of the
+# maximum 64.
 CONFIG_ETH_ENABLED=y
 CONFIG_ETH_USE_ESP32_EMAC=n
 CONFIG_ETH_USE_OPENETH=y
-CONFIG_ETH_OPENETH_DMA_RX_BUFFER_NUM=16
+CONFIG_ETH_OPENETH_DMA_RX_BUFFER_NUM=40
 CONFIG_ETH_OPENETH_DMA_TX_BUFFER_NUM=8
 
 # IP reassembly is OFF in ESP-IDF's default lwIP configuration. FastDDS and
@@ -35,6 +38,11 @@ CONFIG_ETH_OPENETH_DMA_TX_BUFFER_NUM=8
 # it, with enough buffers for a 64 KB datagram.
 CONFIG_LWIP_IP4_REASSEMBLY=y
 CONFIG_LWIP_IP_REASS_MAX_PBUFS=48
+# and the same burst as RTPS DATA_FRAG (22 datagrams back to back) has to sit
+# in the socket's receive mailbox until the engine's reactor reads it: the
+# default of 6 drops the rest
+CONFIG_LWIP_UDP_RECVMBOX_SIZE=64
+CONFIG_LWIP_TCPIP_RECVMBOX_SIZE=64
 
 # the engine: embedded profile, fragmentation + RPC compiled in
 CONFIG_RTPS_LIMITS_PROFILE_EMBEDDED=y
