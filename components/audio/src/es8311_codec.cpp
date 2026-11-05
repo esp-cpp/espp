@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <mutex>
 
 #include <esp_log.h>
 
@@ -10,6 +11,12 @@ using namespace espp;
 static const char *TAG = "Es8311Codec";
 
 Es8311Codec *Es8311Codec::owner_ = nullptr;
+
+// Serializes owner_ and the driver's function replacement: an instance
+// destroyed on one task (e.g. one the application kept through
+// espp::Audio) can otherwise clear its successor's functions while that is
+// being constructed on another.
+static std::mutex owner_mutex;
 
 // Map a PCM sample rate onto the driver's sample-rate enum, which selects the
 // ES8311 clock coefficients: it must match the rate the I2S clocks generate.
@@ -45,6 +52,7 @@ static bool samples_from_rate(uint32_t rate, audio_hal_iface_samples_t &samples)
 }
 
 Es8311Codec::Es8311Codec(const Config &config) {
+  std::lock_guard<std::mutex> lock(owner_mutex);
   set_es8311_write(config.write);
   set_es8311_read(config.read);
   owner_ = this;
@@ -53,6 +61,7 @@ Es8311Codec::Es8311Codec(const Config &config) {
 Es8311Codec::~Es8311Codec() {
   // only if no newer instance has set them since (one still held through an
   // espp::Audio the application kept would otherwise break its successor)
+  std::lock_guard<std::mutex> lock(owner_mutex);
   if (owner_ == this) {
     set_es8311_write(nullptr);
     set_es8311_read(nullptr);

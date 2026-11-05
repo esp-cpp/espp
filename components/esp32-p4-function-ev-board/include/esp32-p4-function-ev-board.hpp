@@ -412,7 +412,9 @@ public:
   /// \return true if the microphone was successfully initialized, false
   ///         otherwise
   /// \note The audio subsystem must be initialized first. If it was set up
-  ///       without recording, it is set up again with recording enabled.
+  ///       without recording, it is set up again with recording enabled, so
+  ///       like initialize_audio() and deinitialize_audio() it must not run
+  ///       concurrently with them, nor from an audio callback.
   [[deprecated("enable AudioConfig::recording_enabled and use start_audio_recording() "
                "instead")]] bool
   initialize_microphone(const microphone_callback_t &callback,

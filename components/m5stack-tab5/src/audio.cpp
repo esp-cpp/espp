@@ -120,6 +120,24 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
   // published once it is initialized; the forwarders below each take one
   // snapshot of it
   audio_.store(audio);
+  // A setter that ran meanwhile only updated its cached value: forward the
+  // latest ones, again while they change, so one racing this is not undone by
+  // a stale value.
+  float volume;
+  do {
+    volume = volume_;
+    audio->volume(volume);
+  } while (volume != volume_);
+  bool muted;
+  do {
+    muted = mute_;
+    audio->mute(muted);
+  } while (muted != mute_);
+  float mic_volume;
+  do {
+    mic_volume = mic_volume_;
+    audio->microphone_volume(mic_volume);
+  } while (mic_volume != mic_volume_);
 
   if (playback) {
     enable_audio(true);

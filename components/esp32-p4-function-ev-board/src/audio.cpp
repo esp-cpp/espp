@@ -108,6 +108,24 @@ bool Esp32P4FunctionEvBoard::initialize_audio(const AudioConfig &config) {
   // published once it is initialized; the forwarders below each take one
   // snapshot of it
   audio_.store(audio);
+  // A setter that ran meanwhile only updated its cached value: forward the
+  // latest ones, again while they change, so one racing this is not undone by
+  // a stale value.
+  float volume;
+  do {
+    volume = volume_;
+    audio->volume(volume);
+  } while (volume != volume_);
+  bool muted;
+  do {
+    muted = mute_;
+    audio->mute(muted);
+  } while (muted != mute_);
+  float mic_volume;
+  do {
+    mic_volume = mic_volume_;
+    audio->microphone_volume(mic_volume);
+  } while (mic_volume != mic_volume_);
 
   if (playback) {
     enable_audio(true);
@@ -221,13 +239,20 @@ bool Esp32P4FunctionEvBoard::initialize_microphone(const microphone_callback_t &
     logger_.error("A callback is required to receive the recorded audio data");
     return false;
   }
-  if (!audio_.load()->is_recording_enabled()) {
+  // one snapshot: a concurrent deinitialize_audio() may unpublish it
+  auto audio = audio_.load();
+  if (!audio) {
+    logger_.error("Audio system not initialized");
+    return false;
+  }
+  if (!audio->is_recording_enabled()) {
     // the old API set recording up separately: set the audio system up again
     // with it
     AudioConfig config = audio_config_;
     config.recording_enabled = true;
     // at the current rate, which audio_sample_rate() may have changed since
-    config.sample_rate = audio_sample_rate();
+    config.sample_rate = audio->sample_rate();
+    audio.reset();
     deinitialize_audio();
     if (!initialize_audio(config)) {
       return false;
