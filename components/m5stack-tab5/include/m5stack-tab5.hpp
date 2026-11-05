@@ -482,8 +482,8 @@ public:
     ///       so an application that only plays (or only records) saves that
     ///       memory by turning the other direction off.
     bool recording_enabled{true};
-    /// The playback task's configuration; the microphone task uses it too,
-    /// with " microphone" appended to the name
+    /// The audio tasks' configuration: the playback task is named with " out"
+    /// appended ("tab5_audio out"), the microphone task with " in"
     espp::Task::BaseConfig task_config{.name = "tab5_audio",
                                        .stack_size_bytes =
                                            CONFIG_M5STACK_TAB5_AUDIO_TASK_STACK_SIZE,

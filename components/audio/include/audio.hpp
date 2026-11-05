@@ -109,11 +109,11 @@ public:
     playback_block_callback_t on_playback_block{};
     /// The playback task's configuration.
     espp::Task::BaseConfig playback_task_config{
-        .name = "audio", .stack_size_bytes = 4096, .priority = 20, .core_id = 1};
+        .name = "audio out", .stack_size_bytes = 4096, .priority = 20, .core_id = 1};
     /// The recording task's configuration (its stack also runs the
     /// recording callback).
     espp::Task::BaseConfig recording_task_config{
-        .name = "audio microphone", .stack_size_bytes = 4096, .priority = 20, .core_id = 1};
+        .name = "audio in", .stack_size_bytes = 4096, .priority = 20, .core_id = 1};
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Log verbosity.
   };
 

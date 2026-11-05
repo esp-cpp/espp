@@ -76,13 +76,15 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
     });
   }
 
-  // give the microphone task a distinct name from the playback task (they
-  // share the rest of the caller's task config) so the two are easy to tell
-  // apart in logs and while debugging
+  // the playback and microphone tasks share the caller's task config, named
+  // "<name> out" / "<name> in" so the two are easy to tell apart in logs and
+  // while debugging (short enough for FreeRTOS's 15-character task names)
+  const std::string base_name =
+      config.task_config.name.empty() ? std::string("audio") : config.task_config.name;
+  auto playback_task_config = config.task_config;
+  playback_task_config.name = base_name + " out";
   auto recording_task_config = config.task_config;
-  recording_task_config.name = config.task_config.name.empty()
-                                   ? std::string("microphone")
-                                   : config.task_config.name + " microphone";
+  recording_task_config.name = base_name + " in";
   // Both directions on I2S0, full duplex: the ES8388 (DSDIN) and the ES7210
   // (ASDOUT) share MCLK / SCLK / LRCK. The playback data is interleaved
   // 16-bit stereo, so the slots MUST be stereo - a mono slot plays
@@ -107,7 +109,7 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
       // the charger pops the speaker while it is enabled: hold it off during
       // playback (see set_charging_pause_on_playback_enabled)
       .on_playback_block = [this](bool active) { update_charging_for_audio(active); },
-      .playback_task_config = config.task_config,
+      .playback_task_config = playback_task_config,
       .recording_task_config = recording_task_config,
   });
   if (!audio_->initialize()) {
