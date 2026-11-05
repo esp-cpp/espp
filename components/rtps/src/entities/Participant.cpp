@@ -494,37 +494,47 @@ bool Participant::checkAndResetHeartbeats() {
   // SEDP-agent mutex before m_mutex (the documented global order) - removing
   // while m_mutex is held would be an ABBA inversion against the SEDP receive
   // handlers, which hold the SEDP mutex and call findRemoteParticipant().
-  GuidPrefix_t expiredPrefix{};
-  bool haveExpired = false;
-  {
-    std::lock_guard<std::recursive_mutex> lock1(m_spdpAgent.m_mutex);
-    std::lock_guard<std::recursive_mutex> lock2(m_mutex);
-    PARTICIPANT_LOG("Have {} remote participants",
-                    (unsigned int)m_remoteParticipants.getNumElements());
-    PARTICIPANT_LOG("Unmatched remote writers/readers, {} / {}",
-                    static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedWriters()),
-                    static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedReaders()));
-    for (auto &remote : m_remoteParticipants) {
-      PARTICIPANT_LOG("Remote GUID = {} {} {} {} | Age = {} [ms]", remote.m_guid.prefix.id[4],
-                      remote.m_guid.prefix.id[5], remote.m_guid.prefix.id[6],
-                      remote.m_guid.prefix.id[7],
-                      (unsigned int)remote.getAliveSignalAgeInMilliseconds());
-      if (remote.isAlive()) {
-        continue;
+  // Every expired participant goes in this one call, each with the locks
+  // released for its removal: with one removal per call, a crowd of peers
+  // that left together (every ros2 CLI process is one) was forgotten one per
+  // liveliness round, i.e. (SPDP_CYCLECOUNT_HEARTBEAT + 1) * SPDP_RESEND_PERIOD
+  // each, and the pool stayed full for a dozen rounds after a dozen left,
+  // rejecting the next peer to arrive (seen in the QEMU interop matrix).
+  for (;;) {
+    GuidPrefix_t expiredPrefix{};
+    bool haveExpired = false;
+    {
+      std::lock_guard<std::recursive_mutex> lock1(m_spdpAgent.m_mutex);
+      std::lock_guard<std::recursive_mutex> lock2(m_mutex);
+      PARTICIPANT_LOG("Have {} remote participants",
+                      (unsigned int)m_remoteParticipants.getNumElements());
+      PARTICIPANT_LOG("Unmatched remote writers/readers, {} / {}",
+                      static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedWriters()),
+                      static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedReaders()));
+      for (auto &remote : m_remoteParticipants) {
+        PARTICIPANT_LOG("Remote GUID = {} {} {} {} | Age = {} [ms]", remote.m_guid.prefix.id[4],
+                        remote.m_guid.prefix.id[5], remote.m_guid.prefix.id[6],
+                        remote.m_guid.prefix.id[7],
+                        (unsigned int)remote.getAliveSignalAgeInMilliseconds());
+        if (remote.isAlive()) {
+          continue;
+        }
+        PARTICIPANT_LOG("removing remote participant");
+        expiredPrefix = remote.m_guid.prefix;
+        haveExpired = true;
+        break;
       }
-      PARTICIPANT_LOG("removing remote participant");
-      expiredPrefix = remote.m_guid.prefix;
-      haveExpired = true;
-      break;
+    }
+    if (!haveExpired) {
+      return true;
+    }
+    // Phase 2 - remove with no locks held (a liveness refresh racing this
+    // window loses by design: the lease already expired, and SPDP rediscovery
+    // re-adds the participant).
+    if (!removeRemoteParticipant(expiredPrefix)) {
+      return false;
     }
   }
-  if (!haveExpired) {
-    return true;
-  }
-  // Phase 2 - remove with no locks held (a liveness refresh racing this
-  // window loses by design: the lease already expired, and SPDP rediscovery
-  // re-adds the participant).
-  return removeRemoteParticipant(expiredPrefix);
 }
 
 void Participant::printInfo() {

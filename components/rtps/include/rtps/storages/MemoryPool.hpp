@@ -116,7 +116,10 @@ public:
       // Host: grow past the profile cap instead of hard-failing.
       grow();
 #else
-      printf("[MemoryPool] RESSOURCE LIMIT EXCEEDED \n");
+      // Which pool: the capacity and element size identify it (they are the
+      // profile constants: participants, unmatched endpoints, proxies ...).
+      printf("[MemoryPool] RESSOURCE LIMIT EXCEEDED (capacity %u, element %u bytes)\n",
+             static_cast<unsigned>(SIZE), static_cast<unsigned>(sizeof(TYPE)));
       return false;
 #endif
     }
