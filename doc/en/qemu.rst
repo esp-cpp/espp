@@ -139,8 +139,10 @@ Examples built only on the core components and storage (``nvs``,
 ``persistent_data``, ``file_system``, ``cli`` over the serial console) run
 once their project builds for an emulated target; networking examples that
 bring up their own board's Ethernet or Wi-Fi need their interface replaced by
-``espp::Qemu::initialize_ethernet()`` first (the RTPS example is one; running
-it in CI this way is the next step of this work). Treat a hang right after
+``espp::Qemu::initialize_ethernet()`` first. The RTPS interop firmware
+(``components/rtps/interop/qemu``) is the worked example: the embedded engine
+on the emulated MAC, run by CI in QEMU on a tap device against ROS 2 and the
+host engine, with fault injection. Treat a hang right after
 display initialization as the missing display backend described above, and a
 ``not supported`` from ``esp_lcd_new_rgb_qemu`` as the application running on
 real hardware.

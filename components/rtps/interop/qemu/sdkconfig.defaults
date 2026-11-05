@@ -1,0 +1,52 @@
+CONFIG_IDF_TARGET="esp32"
+CONFIG_FREERTOS_HZ=1000
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240
+
+# QEMU's ESP32 machine: 4 MB flash, PSRAM emulated with -m 4M (idf.py qemu's
+# default) - the engine's pools, lwIP and a fragmented sample want more than
+# the 320 KB of internal RAM
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_OFFSET=0x8000
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_USE_MALLOC=y
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=4096
+
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=12288
+
+# the OpenCores MAC QEMU emulates, instead of the chip's own EMAC. Its receive
+# ring is tiny by default (4 frames) and in the emulator a burst arrives with
+# no wire time between frames: a 30 KB datagram is 21 IP fragments back to
+# back, and the whole burst must fit the ring or reassembly never completes
+# ("RX frame dropped (0x14)" in the log: INT_BUSY, a frame discarded for lack
+# of a free descriptor, in step with every big sample). 40 was enough for the
+# host engine's DATA_FRAG burst and CycloneDDS's single datagram; FastDDS's
+# 30 KB sample still lost one frame per sample. The maximum, 64.
+CONFIG_ETH_ENABLED=y
+CONFIG_ETH_USE_ESP32_EMAC=n
+CONFIG_ETH_USE_OPENETH=y
+CONFIG_ETH_OPENETH_DMA_RX_BUFFER_NUM=64
+CONFIG_ETH_OPENETH_DMA_TX_BUFFER_NUM=8
+
+# IP reassembly is OFF in ESP-IDF's default lwIP configuration. FastDDS and
+# CycloneDDS send a sample below 64 KB as ONE UDP datagram, IP-fragmented on
+# the wire, so without this a 30 KB sample is dropped by the stack before the
+# engine ever sees it (found by the frag_30k case of the QEMU matrix). Enable
+# it, with enough buffers for a 64 KB datagram.
+CONFIG_LWIP_IP4_REASSEMBLY=y
+CONFIG_LWIP_IP_REASS_MAX_PBUFS=48
+# and the same burst as RTPS DATA_FRAG (22 datagrams back to back) has to sit
+# in the socket's receive mailbox until the engine's reactor reads it: the
+# default of 6 drops the rest
+CONFIG_LWIP_UDP_RECVMBOX_SIZE=64
+CONFIG_LWIP_TCPIP_RECVMBOX_SIZE=64
+
+# the engine: embedded profile, fragmentation + RPC compiled in
+CONFIG_RTPS_LIMITS_PROFILE_EMBEDDED=y
+CONFIG_RTPS_ENABLE_FRAGMENTATION=y
+CONFIG_RTPS_ENABLE_RPC=y

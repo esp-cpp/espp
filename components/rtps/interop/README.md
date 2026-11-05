@@ -32,6 +32,44 @@ touched.
 | many_participants_late_joiner | twelve unrelated ROS 2 participants are on the domain before espp starts, then the publisher espp needs joins last and must still be matched. Guards the remote-participant pool (`SPDP_MAX_NUMBER_FOUND_PARTICIPANTS`, 32 on the host profile built here, 10 on the embedded profile - raise it via menuconfig for a domain this busy): a participant beyond the pool is ignored silently |
 | cyclone: ... | the ROS 2 pub/sub pairs (reliable and best-effort, both directions) and the two cases above again on `rmw_cyclonedds_cpp`. Services are not covered: rmw_cyclonedds_cpp puts a `{guid, seq}` request header in the payload instead of `related_sample_identity` |
 
+## In QEMU: the esp32 build of the engine
+
+Everything above runs the desktop build of the engine. `run_qemu.sh` runs the
+**esp32 build** - the embedded configuration profile, lwIP, FreeRTOS - in
+Espressif's QEMU inside the same container, on a tap device that is the
+container's only interface (`docker run --network none --cap-add NET_ADMIN
+--device /dev/net/tun`), against the same peers, and asserts on the device's
+serial log. The firmware is `qemu/` (see its README for the build and the
+`RTPSTEST` markers); `.github/workflows/rtps_qemu.yml` builds it with the IDF
+action and runs the matrix on every rtps / qemu / ethernet / socket change.
+
+```bash
+cd components/rtps/interop/qemu
+idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.ci.defaults" build
+(cd build && python -m esptool --chip esp32 merge-bin --fill-flash-size 4MB -o qemu_flash.bin @flash_args)
+cd .. && ./run_qemu.sh
+```
+
+| case | what the target proves |
+|---|---|
+| device_boot, device_ping | the engine comes up on lwIP over the emulated OpenCores MAC |
+| device_pub->ros2_echo, ros2_pub->device_sub (+ best-effort pair) | delivery both ways, FastDDS and CycloneDDS |
+| ros2_pub->device_sub_liveliness | samples still arriving 24-34 s in, past the remote lease |
+| many_participants_late_joiner | twelve unrelated participants first, the needed one last, against the pool raised to 24 by `CONFIG_RTPS_LIMIT_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS` |
+| ros2_pub->device_sub_frag_30k | 30 KB samples reassembled from DATA_FRAG over lwIP |
+| participant_pool_overflow_recovers | 28 participants against a pool of 24 (and proxy pools of 20), then all leave: discovery keeps going, every one is forgotten after the capped lease, the next publisher is received |
+| ros2_client->device_service | the typed service server (FastDDS rmw) |
+| espp_host_pub->device_sub, device_pub->espp_host_sub, espp_host_frag_30k->device_sub | the host engine against the embedded one, including its DATA_FRAG path |
+| ros2_pub->device_sub_frag_30k (wire summary) | tcpdump on the tap during the case: frames per 30 KB sample, fragments, multicast, the biggest burst (FastDDS 42 frames within 20 ms, CycloneDDS 23: why the RX ring is 64) |
+| netem_loss_reliable | 15 % loss + 10 ms jitter on the link (`tc netem`): the reliable reader still delivers |
+| device_heap_stable, device_no_crash | free heap at the end within 96 KB of the start (two buffers grow once to the largest sample, 30 KB each); no panic / abort / assert |
+
+What only this can show: the embedded pools and knobs as built, lwIP's socket
+and reassembly behaviour, FreeRTOS priorities for the engine's threads,
+delivery under injected loss, heap over a run on the target allocator, and a
+panic with a backtrace when something goes wrong. Not performance: QEMU is not
+cycle-accurate, so the cases assert on delivery and health, never on rates.
+
 ## Not covered (yet): a multi-homed peer
 
 A FastDDS or CycloneDDS peer on several networks announces one unicast locator
