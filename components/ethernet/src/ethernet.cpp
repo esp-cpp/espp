@@ -19,9 +19,16 @@
 
 #include <driver/gpio.h>
 
-#if SOC_EMAC_SUPPORTED
+// The internal EMAC driver only exists when it is enabled in the build
+// (CONFIG_ETH_USE_ESP32_EMAC, on by default on chips that have one); a build
+// that turns it off - e.g. to use QEMU's OpenCores MAC through DriverConfig -
+// must still compile.
+#if SOC_EMAC_SUPPORTED && CONFIG_ETH_USE_ESP32_EMAC
+#define ESPP_ETHERNET_HAS_EMAC 1
 #include <esp_eth_mac_esp.h>
 #include <esp_eth_phy.h>
+#else
+#define ESPP_ETHERNET_HAS_EMAC 0
 #endif
 
 #if CONFIG_ESPP_ETHERNET_W5500
@@ -198,7 +205,7 @@ bool Ethernet::create_mac_phy(esp_eth_mac_t **mac, esp_eth_phy_t **phy, bool &ne
 
   // ---- RMII (internal EMAC) ----
   if ([[maybe_unused]] auto *rmii = std::get_if<RmiiConfig>(&config_.interface)) {
-#if SOC_EMAC_SUPPORTED
+#if ESPP_ETHERNET_HAS_EMAC
     eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
     // Zero-init then assign so we avoid both -Wmissing-field-initializers and the
     // out-of-order designated-init hard error under C++20.
@@ -254,6 +261,11 @@ bool Ethernet::create_mac_phy(esp_eth_mac_t **mac, esp_eth_phy_t **phy, bool &ne
     }
     needs_mac_assign = config_.mac_address.has_value(); // EMAC has a factory MAC otherwise
     return true;
+#elif SOC_EMAC_SUPPORTED
+    logger_.error("RMII requested but the internal EMAC driver is disabled "
+                  "(CONFIG_ETH_USE_ESP32_EMAC=n)");
+    ec = std::make_error_code(std::errc::function_not_supported);
+    return false;
 #else
     logger_.error("RMII requested but this SoC has no internal EMAC (SOC_EMAC_SUPPORTED=0)");
     ec = std::make_error_code(std::errc::function_not_supported);

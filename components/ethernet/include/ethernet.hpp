@@ -99,8 +99,10 @@ public:
   };
 
   /// Pre-built-driver escape hatch: the caller creates the MAC+PHY for any chip
-  /// and hands them over. The component takes ownership (they are freed by
-  /// esp_eth_driver_uninstall on teardown).
+  /// and hands them over. The component takes ownership from initialize() on:
+  /// they are freed by esp_eth_driver_uninstall on teardown, and deleted by
+  /// initialize() itself if it fails at any point after taking them, so the
+  /// caller never frees them.
   struct DriverConfig {
     esp_eth_mac_t *mac{nullptr}; ///< Caller-created MAC (ownership transfers on initialize()).
     esp_eth_phy_t *phy{nullptr}; ///< Caller-created PHY (ownership transfers on initialize()).

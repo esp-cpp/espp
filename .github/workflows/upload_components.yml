@@ -156,6 +156,7 @@ jobs:
             components/pid
             components/ping
             components/provisioning
+            components/qemu
             components/qmi8658
             components/qtpy
             components/qwiicnes
