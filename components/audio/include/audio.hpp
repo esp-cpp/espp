@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
@@ -69,6 +70,17 @@ public:
   /// at most 1 / UPDATE_FREQUENCY seconds of audio).
   static constexpr uint32_t UPDATE_FREQUENCY = 60;
 
+  /// How the recording (RX) channel receives.
+  enum class RecordingFormat {
+    STANDARD, ///< Standard (Philips) I2S: two slots per frame. In full duplex
+              ///< it runs on the playback clocks.
+    TDM,      ///< TDM: Config::recording_tdm_slots slots per frame (e.g. an
+              ///< ES7210 with four microphones). Recording only; needs
+              ///< SOC_I2S_SUPPORTS_TDM.
+    PDM,      ///< A PDM microphone: Pins::ws is its clock and Pins::din its
+              ///< data; mono. Recording only; needs SOC_I2S_SUPPORTS_PDM_RX.
+  };
+
   /// I2S pins. Unused pins are GPIO_NUM_NC.
   struct Pins {
     gpio_num_t mclk{GPIO_NUM_NC}; ///< Master clock (NC for codecs that derive it from BCLK).
@@ -89,8 +101,10 @@ public:
     /// Set up recording (the RX channel, the input codec and the recording
     /// task).
     /// \note Each I2S channel has a DMA ring in internal DMA-capable RAM
-    ///       (about 11.5 KB) and each task a stack in internal RAM, so a
-    ///       direction that is not needed is better left off.
+    ///       (about 11.5 KB of stereo frames up to 48 kHz; half that for an
+    ///       instance that only records, times the slots / 2 for TDM) and
+    ///       each task a stack in internal RAM, so a direction that is not
+    ///       needed is better left off.
     bool recording_enabled{false};
     /// Playback channels: 2 (interleaved stereo) or 1 (mono).
     uint8_t playback_channels{2};
@@ -102,6 +116,18 @@ public:
     ///       twice the samples, in a DMA ring sized for one). So mono costs a
     ///       stereo RX DMA ring.
     uint8_t recording_channels{2};
+    /// How the RX channel receives (STANDARD, TDM or PDM). TDM and PDM are
+    /// for an instance that only records (playback_enabled = false), e.g. a
+    /// board whose microphones have their own I2S port.
+    RecordingFormat recording_format{RecordingFormat::STANDARD};
+    /// TDM: slots per frame, 2 - 16.
+    uint8_t recording_tdm_slots{4};
+    /// The slots the callback receives, in order: the first
+    /// recording_channels of them (STANDARD: of 2, TDM: of
+    /// recording_tdm_slots; PDM has one). E.g. {0, 2} keeps a four-slot
+    /// ES7210's MIC1 and MIC3 as stereo, and {1} with one channel the right
+    /// slot as mono.
+    std::array<uint8_t, 2> recording_slots{0, 1};
     /// MCLK as a multiple of the sample rate.
     i2s_mclk_multiple_t mclk_multiple{I2S_MCLK_MULTIPLE_256};
     /// The codec for playback (nullptr: none, e.g. an I2S amplifier; volume
@@ -294,6 +320,9 @@ protected:
   // the clock configuration of the channel that drives the clocks (TX, or RX
   // when recording only), for sample_rate(uint32_t)
   i2s_std_clk_config_t clk_cfg_{};
+  // slots per received frame (2 for STANDARD, recording_tdm_slots for TDM, 1
+  // for PDM)
+  uint8_t rx_slots_{2};
   bool output_started_{false};
   bool input_started_{false};
 

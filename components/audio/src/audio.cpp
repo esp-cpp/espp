@@ -4,6 +4,13 @@
 #include <cmath>
 
 #include <esp_err.h>
+#include <soc/soc_caps.h>
+#if SOC_I2S_SUPPORTS_TDM
+#include <driver/i2s_tdm.h>
+#endif
+#if SOC_I2S_SUPPORTS_PDM_RX
+#include <driver/i2s_pdm.h>
+#endif
 
 using namespace espp;
 
@@ -51,6 +58,25 @@ static i2s_std_config_t make_std_config(const Audio::Config &config, uint8_t cha
   cfg.clk_cfg.mclk_multiple = config.mclk_multiple;
   return cfg;
 }
+
+#if SOC_I2S_SUPPORTS_TDM
+static i2s_tdm_clk_config_t make_tdm_clk_config(const i2s_std_clk_config_t &clk) {
+  return {.sample_rate_hz = clk.sample_rate_hz,
+          .clk_src = clk.clk_src,
+          .ext_clk_freq_hz = clk.ext_clk_freq_hz,
+          .mclk_multiple = clk.mclk_multiple,
+          // let the driver derive BCLK from the slot count and width: a fixed
+          // divider makes it raise MCLK to fit, off the multiple a codec's
+          // coefficients are computed for (an ES7210 then slips frames)
+          .bclk_div = 0};
+}
+#endif
+
+#if SOC_I2S_SUPPORTS_PDM_RX
+static i2s_pdm_rx_clk_config_t make_pdm_rx_clk_config(uint32_t sample_rate) {
+  return I2S_PDM_RX_CLK_DEFAULT_CONFIG(sample_rate);
+}
+#endif
 
 Audio::Audio(const Config &config)
     : BaseComponent("Audio", config.log_level)
@@ -112,6 +138,48 @@ bool Audio::initialize(std::error_code &ec) {
     ec = std::make_error_code(std::errc::invalid_argument);
     return false;
   }
+  if (recording) {
+    using enum RecordingFormat;
+    const auto format = config_.recording_format;
+    if (format != STANDARD && playback) {
+      logger_.error("TDM and PDM recording need an instance that only records");
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+#if !SOC_I2S_SUPPORTS_TDM
+    if (format == TDM) {
+      logger_.error("This chip's I2S does not support TDM");
+      ec = std::make_error_code(std::errc::not_supported);
+      return false;
+    }
+#endif
+#if !SOC_I2S_SUPPORTS_PDM_RX
+    if (format == PDM) {
+      logger_.error("This chip's I2S does not support PDM recording");
+      ec = std::make_error_code(std::errc::not_supported);
+      return false;
+    }
+#endif
+    if (format == TDM && (config_.recording_tdm_slots < 2 || config_.recording_tdm_slots > 16)) {
+      logger_.error("TDM needs 2 - 16 slots, not {}", config_.recording_tdm_slots);
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+    if (format == PDM && config_.recording_channels != 1) {
+      logger_.error("A PDM microphone records mono (recording_channels = 1)");
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+    rx_slots_ = format == TDM ? config_.recording_tdm_slots : format == PDM ? 1 : 2;
+    for (size_t i = 0; i < config_.recording_channels; i++) {
+      if (config_.recording_slots[i] >= rx_slots_) {
+        logger_.error("Recording slot {} is out of range: a frame has {} slot(s)",
+                      config_.recording_slots[i], rx_slots_);
+        ec = std::make_error_code(std::errc::invalid_argument);
+        return false;
+      }
+    }
+  }
   for (const auto &codec : {config_.output_codec, config_.input_codec}) {
     const bool used = codec && ((codec == config_.output_codec && playback) ||
                                 (codec == config_.input_codec && recording));
@@ -150,7 +218,12 @@ bool Audio::initialize(std::error_code &ec) {
   i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(
       static_cast<decltype(i2s_chan_config_t{}.id)>(config_.port), I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true; // clear the legacy data in the DMA buffer
-  chan_cfg.dma_desc_num = espp::i2s_tx_feed::DMA_DESC_NUM;
+  // the TX ring must outlast the playback task's wait (see the static_assert
+  // above); RX alone keeps the driver's default ring (the recording task reads
+  // a block at a time), half the internal DMA memory
+  if (playback) {
+    chan_cfg.dma_desc_num = espp::i2s_tx_feed::DMA_DESC_NUM;
+  }
   dma_frame_num_ = dma_frame_num(rate);
   chan_cfg.dma_frame_num = dma_frame_num_;
   esp_err_t err = i2s_new_channel(&chan_cfg, playback ? &tx_handle_ : nullptr,
@@ -179,7 +252,42 @@ bool Audio::initialize(std::error_code &ec) {
     if (!playback) {
       clk_cfg_ = rx_cfg.clk_cfg;
     }
-    err = i2s_channel_init_std_mode(rx_handle_, &rx_cfg);
+    switch (config_.recording_format) {
+    case RecordingFormat::STANDARD:
+      err = i2s_channel_init_std_mode(rx_handle_, &rx_cfg);
+      break;
+    case RecordingFormat::TDM: {
+#if SOC_I2S_SUPPORTS_TDM
+      const i2s_tdm_config_t tdm_cfg = {
+          .clk_cfg = make_tdm_clk_config(clk_cfg_),
+          .slot_cfg = I2S_TDM_PHILIPS_SLOT_DEFAULT_CONFIG(
+              I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO,
+              static_cast<i2s_tdm_slot_mask_t>((1u << config_.recording_tdm_slots) - 1)),
+          .gpio_cfg = {.mclk = config_.pins.mclk,
+                       .bclk = config_.pins.bclk,
+                       .ws = config_.pins.ws,
+                       .dout = GPIO_NUM_NC,
+                       .din = config_.pins.din,
+                       .invert_flags = {.mclk_inv = false, .bclk_inv = false, .ws_inv = false}},
+      };
+      err = i2s_channel_init_tdm_mode(rx_handle_, &tdm_cfg);
+#endif
+      break;
+    }
+    case RecordingFormat::PDM: {
+#if SOC_I2S_SUPPORTS_PDM_RX
+      const i2s_pdm_rx_config_t pdm_cfg = {
+          .clk_cfg = make_pdm_rx_clk_config(rate),
+          .slot_cfg = I2S_PDM_RX_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
+          .gpio_cfg = {.clk = config_.pins.ws,
+                       .din = config_.pins.din,
+                       .invert_flags = {.clk_inv = false}},
+      };
+      err = i2s_channel_init_pdm_rx_mode(rx_handle_, &pdm_cfg);
+#endif
+      break;
+    }
+    }
     if (err != ESP_OK) {
       logger_.error("Could not configure the I2S RX channel: {}", esp_err_to_name(err));
       return fail(std::errc::io_error);
@@ -216,8 +324,8 @@ bool Audio::initialize(std::error_code &ec) {
     tx_feed_.stream = tx_stream_;
   }
   if (recording) {
-    // stereo frames (see Config::recording_channels)
-    rx_buffer_.resize(block_size(rate, 2) / BYTES_PER_SAMPLE);
+    // whole received frames (see Config::recording_channels)
+    rx_buffer_.resize(block_size(rate, rx_slots_) / BYTES_PER_SAMPLE);
   }
 
   // the codecs need the clocks (MCLK) running before they are configured
@@ -494,7 +602,20 @@ bool Audio::apply_sample_rate(uint32_t sample_rate) {
   }
   i2s_std_clk_config_t clk_cfg = clk_cfg_;
   clk_cfg.sample_rate_hz = sample_rate;
-  const esp_err_t err = i2s_channel_reconfig_std_clock(clock_handle, &clk_cfg);
+  esp_err_t err = ESP_ERR_NOT_SUPPORTED;
+  if (tx_handle_ || config_.recording_format == RecordingFormat::STANDARD) {
+    err = i2s_channel_reconfig_std_clock(clock_handle, &clk_cfg);
+#if SOC_I2S_SUPPORTS_TDM
+  } else if (config_.recording_format == RecordingFormat::TDM) {
+    const i2s_tdm_clk_config_t tdm_clk_cfg = make_tdm_clk_config(clk_cfg);
+    err = i2s_channel_reconfig_tdm_clock(clock_handle, &tdm_clk_cfg);
+#endif
+#if SOC_I2S_SUPPORTS_PDM_RX
+  } else if (config_.recording_format == RecordingFormat::PDM) {
+    const i2s_pdm_rx_clk_config_t pdm_clk_cfg = make_pdm_rx_clk_config(sample_rate);
+    err = i2s_channel_reconfig_pdm_rx_clock(clock_handle, &pdm_clk_cfg);
+#endif
+  }
   if (err == ESP_OK) {
     clk_cfg_ = clk_cfg;
     sample_rate_ = sample_rate;
@@ -642,13 +763,23 @@ bool Audio::recording_task_callback(std::mutex &m, std::condition_variable &cv,
     if (recording_) {
       int16_t *samples = rx_buffer_.data();
       size_t length = bytes_read;
-      if (config_.recording_channels == 1) {
-        // keep the left slot of each stereo frame, in place
-        const size_t frames = bytes_read / (2 * BYTES_PER_SAMPLE);
+      const size_t channels = config_.recording_channels;
+      const auto &slots = config_.recording_slots;
+      if (channels != rx_slots_ || slots[0] != 0 || (channels == 2 && slots[1] != 1)) {
+        // keep the selected slots of each frame, in place: frame i's output
+        // ends at or before its input does, so only its own slots can be
+        // overwritten, and they are read first
+        const size_t frames = bytes_read / (rx_slots_ * BYTES_PER_SAMPLE);
         for (size_t i = 0; i < frames; i++) {
-          samples[i] = samples[2 * i];
+          const int16_t *in = samples + i * rx_slots_;
+          const int16_t first = in[slots[0]];
+          const int16_t second = channels == 2 ? in[slots[1]] : 0;
+          samples[i * channels] = first;
+          if (channels == 2) {
+            samples[i * channels + 1] = second;
+          }
         }
-        length = frames * BYTES_PER_SAMPLE;
+        length = frames * channels * BYTES_PER_SAMPLE;
       }
       recording_callback_(reinterpret_cast<const uint8_t *>(samples), length);
     }
