@@ -174,7 +174,8 @@ bool Audio::initialize(std::error_code &ec) {
   if (recording) {
     // in full duplex the RX channel runs on the TX clocks, so it shares the
     // standard-mode clock / slot geometry (only the slot mode may differ)
-    const i2s_std_config_t rx_cfg = make_std_config(config_, config_.recording_channels);
+    // always stereo slots (see Config::recording_channels)
+    const i2s_std_config_t rx_cfg = make_std_config(config_, 2);
     if (!playback) {
       clk_cfg_ = rx_cfg.clk_cfg;
     }
@@ -194,7 +195,20 @@ bool Audio::initialize(std::error_code &ec) {
     // The playback task never blocks on the stream (see
     // playback_task_callback), so the trigger level is irrelevant; the
     // minimum keeps a producer's send from ever holding a receiver.
-    tx_stream_ = xStreamBufferCreate(block_bytes_ * 4, 1);
+    const size_t stream_size = config_.playback_buffer_size == 0
+                                   ? block_bytes_ * 4
+                                   : std::max(config_.playback_buffer_size, block_bytes_ * 2);
+    // storage with the requested caps, the stream on it (not
+    // xStreamBufferCreateWithCaps(): ESP-IDF's vStreamBufferDeleteWithCaps()
+    // deletes the stream as a queue and then frees its memory again). A
+    // static stream buffer holds one byte less than its storage, so one more
+    // keeps stream_size usable.
+    tx_stream_storage_ =
+        static_cast<uint8_t *>(heap_caps_malloc(stream_size + 1, config_.playback_buffer_caps));
+    if (tx_stream_storage_) {
+      tx_stream_ =
+          xStreamBufferCreateStatic(stream_size + 1, 1, tx_stream_storage_, &tx_stream_struct_);
+    }
     if (!tx_stream_) {
       logger_.error("Could not create the playback stream buffer");
       return fail(std::errc::not_enough_memory);
@@ -202,7 +216,8 @@ bool Audio::initialize(std::error_code &ec) {
     tx_feed_.stream = tx_stream_;
   }
   if (recording) {
-    rx_buffer_.resize(block_size(rate, config_.recording_channels));
+    // stereo frames (see Config::recording_channels)
+    rx_buffer_.resize(block_size(rate, 2) / BYTES_PER_SAMPLE);
   }
 
   // the codecs need the clocks (MCLK) running before they are configured
@@ -363,8 +378,10 @@ void Audio::teardown(std::unique_lock<std::mutex> &lock) {
     vStreamBufferDelete(tx_stream_);
     tx_stream_ = nullptr;
   }
+  heap_caps_free(tx_stream_storage_);
+  tx_stream_storage_ = nullptr;
   std::vector<int16_t>().swap(tx_buffer_);
-  std::vector<uint8_t>().swap(rx_buffer_);
+  std::vector<int16_t>().swap(rx_buffer_);
   block_bytes_ = 0;
 }
 
@@ -614,15 +631,26 @@ bool Audio::recording_task_callback(std::mutex &m, std::condition_variable &cv,
   size_t bytes_read = 0;
   // (the timeout is in milliseconds: i2s_channel_read()'s timeout_ms)
   static constexpr uint32_t READ_TIMEOUT_MS = 100;
-  const esp_err_t err = i2s_channel_read(rx_handle_, rx_buffer_.data(), rx_buffer_.size(),
-                                         &bytes_read, READ_TIMEOUT_MS);
+  const esp_err_t err =
+      i2s_channel_read(rx_handle_, rx_buffer_.data(), rx_buffer_.size() * BYTES_PER_SAMPLE,
+                       &bytes_read, READ_TIMEOUT_MS);
   // a read that timed out can still carry samples (e.g. a buffer sized for a
   // higher rate than sample_rate() now runs at)
   if ((err == ESP_OK || err == ESP_ERR_TIMEOUT) && bytes_read > 0 && recording_) {
     // in_callback_ before re-checking recording_ (see stop_recording())
     in_callback_ = true;
     if (recording_) {
-      recording_callback_(rx_buffer_.data(), bytes_read);
+      int16_t *samples = rx_buffer_.data();
+      size_t length = bytes_read;
+      if (config_.recording_channels == 1) {
+        // keep the left slot of each stereo frame, in place
+        const size_t frames = bytes_read / (2 * BYTES_PER_SAMPLE);
+        for (size_t i = 0; i < frames; i++) {
+          samples[i] = samples[2 * i];
+        }
+        length = frames * BYTES_PER_SAMPLE;
+      }
+      recording_callback_(reinterpret_cast<const uint8_t *>(samples), length);
     }
     in_callback_ = false;
   }

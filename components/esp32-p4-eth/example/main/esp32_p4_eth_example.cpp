@@ -184,7 +184,11 @@ extern "C" void app_main(void) {
   size_t wav_size = 0, wav_sample_rate = 0;
   bool have_audio = load_audio(wav_size, wav_sample_rate);
   uint32_t audio_rate = have_audio ? static_cast<uint32_t>(wav_sample_rate) : 48000;
-  if (board.initialize_audio(audio_rate)) {
+  // a playback stream (in PSRAM) that holds the whole click, so the one
+  // play_audio() call in the touch handler queues all of it
+  if (board.initialize_audio({.sample_rate = audio_rate,
+                              .playback_buffer_size = 32 * 1024,
+                              .playback_buffer_caps = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT})) {
     board.mute(false);
     board.volume(60.0f);
     if (have_audio) {
@@ -209,7 +213,7 @@ extern "C" void app_main(void) {
         recording = false;
       }
     };
-    if (board.initialize_microphone(mic_callback)) {
+    if (board.start_audio_recording(mic_callback)) {
       // allocate the recording buffer (16-bit mono at the current sample rate):
       // prefer PSRAM, fall back to a couple of seconds in internal RAM
       size_t bytes_per_second = board.audio_sample_rate() * sizeof(int16_t);
@@ -347,6 +351,8 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
   }
   uint32_t sample_rate = 0;
   std::memcpy(&sample_rate, &audio_bytes[24], sizeof(sample_rate));
+  uint16_t num_channels = 0;
+  std::memcpy(&num_channels, &audio_bytes[22], sizeof(num_channels));
   // Walk the RIFF chunks to find the 'data' chunk and keep exactly its payload.
   // A fixed 44-byte strip is wrong for files with trailing metadata chunks
   // (cue/LIST/bext): those bytes would be played as audio, producing a pop at
@@ -368,6 +374,19 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
   }
   audio_bytes.erase(audio_bytes.begin() + data_off + data_len, audio_bytes.end());
   audio_bytes.erase(audio_bytes.begin(), audio_bytes.begin() + data_off);
+  if (num_channels == 2) {
+    // The embedded click.wav is stereo, but play_audio() takes mono samples:
+    // downmix in place by averaging each interleaved L/R pair. (Playing the
+    // interleaved stereo words as mono would emit each frame twice - half
+    // speed and an octave low.)
+    auto *samples = reinterpret_cast<int16_t *>(audio_bytes.data());
+    const size_t num_frames = audio_bytes.size() / (2 * sizeof(int16_t));
+    for (size_t i = 0; i < num_frames; i++) {
+      samples[i] = static_cast<int16_t>(
+          (static_cast<int32_t>(samples[2 * i]) + static_cast<int32_t>(samples[2 * i + 1])) / 2);
+    }
+    audio_bytes.resize(num_frames * sizeof(int16_t));
+  }
   out_size = audio_bytes.size();
   out_sample_rate = sample_rate;
   return true;

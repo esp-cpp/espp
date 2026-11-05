@@ -1,13 +1,18 @@
 #pragma once
 
 #include <array>
+#include <atomic>
+#include <cstdint>
 #include <functional>
 #include <memory>
+#include <span>
 
 #include <driver/gpio.h>
 #include <esp_netif.h>
 
+#include "audio.hpp"
 #include "base_component.hpp"
+#include "es8311_codec.hpp"
 #include "ethernet.hpp"
 #include "i2c.hpp"
 
@@ -63,10 +68,13 @@ namespace espp {
 /// <tr><td>PHY_RST</td><td>51</td></tr>
 /// </table>
 ///
+/// - Audio: the ES8311 codec (I2S: MCLK=13, BCLK=12, WS/LRCK=10, DSDIN=9,
+///   ASDOUT=11), the NS4150B speaker amplifier (enable=GPIO53) and the
+///   analog microphone, through the espp::Audio component: mono playback and
+///   recording, full duplex on one I2S bus.
+///
 /// Other on-board hardware not (yet) wrapped by this BSP (pin data from the
 /// Waveshare schematic, see the component README):
-/// - ES8311 audio codec + NS4150B amplifier + analog microphone
-///   (I2S: MCLK=13, BCLK=12, WS/LRCK=10, DSDIN=9, ASDOUT=11; PA enable=53).
 /// - microSD / TF slot on the fixed 4-bit SDMMC pins
 ///   (CLK=43, CMD=44, D0..D3=39/40/41/42; pull-ups powered from LDO_VO4).
 /// - MIPI-DSI and MIPI-CSI 15-pin (Raspberry-Pi-style) connectors; panels and
@@ -97,6 +105,8 @@ namespace espp {
 /// \snippet esp32_p4_wifi6_poe_eth_example.cpp esp32 p4 wifi6 poe eth dhcp server
 /// \subsection esp32_p4_wifi6_poe_eth_dhcp_client DHCP Client
 /// \snippet esp32_p4_wifi6_poe_eth_example.cpp esp32 p4 wifi6 poe eth dhcp client
+/// \subsection esp32_p4_wifi6_poe_eth_audio Audio
+/// \snippet esp32_p4_wifi6_poe_eth_example.cpp esp32 p4 wifi6 poe eth audio
 class Esp32P4Wifi6PoeEth : public BaseComponent {
 public:
   /// Callback invoked (SERVER mode only) each time the DHCP server assigns an
@@ -192,6 +202,171 @@ public:
   esp_ip4_addr_t ethernet_ip() const { return ethernet_ ? ethernet_->ip() : esp_ip4_addr_t{}; }
 
   /////////////////////////////////////////////////////////////////////////////
+  // Audio (ES8311 codec + NS4150B amplifier + analog microphone)
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// How initialize_audio() sets the audio system up
+  struct AudioConfig {
+    /// The audio sample rate, in Hz: 8000, 11025, 16000, 22050, 24000, 32000,
+    /// 44100 or 48000 (the ES8311's clock coefficients)
+    uint32_t sample_rate{48000};
+    /// Set up playback: the I2S TX channel, the ES8311 DAC, the speaker and
+    /// the playback task. Without it play_audio() queues nothing.
+    bool playback_enabled{true};
+    /// Set up recording: the I2S RX channel, the ES8311 ADC (the onboard
+    /// microphone) and the microphone task. Without it
+    /// start_audio_recording() fails.
+    /// \note Each I2S channel has a DMA ring of about 11.5 KB of internal
+    ///       DMA-capable RAM, and each task's stack is in internal RAM too,
+    ///       so an application that only plays (or only records) saves that
+    ///       memory by turning the other direction off.
+    bool recording_enabled{true};
+    /// Size of the playback stream play_audio() queues into, in bytes (0:
+    /// about 67 ms of audio). Larger lets one play_audio() call queue a whole
+    /// UI sound.
+    size_t playback_buffer_size{0};
+    /// Heap capabilities for the playback stream (e.g. MALLOC_CAP_SPIRAM for
+    /// a large one)
+    uint32_t playback_buffer_caps{MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT};
+    /// The audio tasks' configuration: the playback task is named with " out"
+    /// appended ("nano audio out"), the microphone task with " in"
+    espp::Task::BaseConfig task_config{
+        .name = "poe audio", .stack_size_bytes = 8192, .priority = 20, .core_id = 0};
+  };
+
+  /// Initialize the audio system with the default AudioConfig: ES8311
+  /// playback and recording at 48 kHz
+  /// \return true if the audio system was successfully initialized, false otherwise
+  bool initialize_audio();
+
+  /// Initialize the audio system (ES8311 codec + NS4150B amplifier)
+  /// \param config The sample rate, which directions to set up, the playback
+  ///        buffer and the task configuration
+  /// \return true if the audio system was successfully initialized, false
+  ///         otherwise (also when neither playback nor recording is enabled,
+  ///         or the sample rate is not one the ES8311 supports)
+  /// \note A failure part way through undoes what was set up before it (the
+  ///       I2S channels and their DMA rings, the stream buffer, the tasks, the
+  ///       codec), so the call can be retried.
+  bool initialize_audio(const AudioConfig &config);
+
+  /// Stop the audio system and free what initialize_audio() set up (the
+  /// speaker is switched off). Idempotent.
+  /// \note The audio methods below may be called from any task meanwhile,
+  ///       but initialize_audio() and deinitialize_audio() must not run
+  ///       concurrently with each other, nor from an audio callback.
+  void deinitialize_audio();
+
+  /// Whether the audio system is initialized
+  /// \return True if initialize_audio() succeeded (until deinitialize_audio())
+  bool is_audio_initialized() const {
+    auto audio = audio_.load();
+    return audio && audio->is_initialized();
+  }
+
+  /// The audio component, for anything the BSP methods below do not expose
+  /// \return The audio component, or nullptr before initialize_audio()
+  /// \note deinitialize_audio() releases the hardware even while the returned
+  ///       pointer is held: the object is then uninitialized (its methods
+  ///       fail / return 0), and a later initialize_audio() makes a new one.
+  std::shared_ptr<espp::Audio> audio() const { return audio_.load(); }
+
+  /// Enable or disable the speaker amplifier (NS4150B)
+  /// \param enable True to enable, false to disable
+  /// \note initialize_audio() enables it when playback is set up.
+  void enable_audio(bool enable);
+
+  /// Set the audio volume
+  /// \param volume The volume as a percentage (0-100)
+  /// \note Before initialize_audio() (or without playback) the value is
+  ///       stored and applied when playback starts.
+  void volume(float volume);
+
+  /// Get the audio volume
+  /// \return The volume as a percentage (0-100)
+  float volume() const;
+
+  /// Mute or unmute the audio
+  /// \param mute True to mute, false to unmute
+  /// \note Before initialize_audio() (or without playback) the value is
+  ///       stored and applied when playback starts.
+  void mute(bool mute);
+
+  /// Check if audio is muted
+  /// \return True if muted, false otherwise
+  bool is_muted() const;
+
+  /// Get the audio sample rate
+  /// \return The audio sample rate, in Hz
+  uint32_t audio_sample_rate() const;
+
+  /// Set the audio sample rate (the I2S clocks and the codec). The audio
+  /// queued for playback is dropped, since it was for the old rate.
+  /// \param sample_rate The audio sample rate, in Hz
+  /// \return True on success (false before initialize_audio(), or if the
+  ///         ES8311 does not support the rate: the previous rate is kept)
+  bool audio_sample_rate(uint32_t sample_rate);
+
+  /// Get the audio buffer size
+  /// \return The size of one playback block, in bytes (1/60 s of audio)
+  size_t audio_buffer_size() const;
+
+  /// Play audio data
+  /// \param data The audio data to play (16-bit signed mono samples)
+  /// \param num_bytes The number of bytes to play
+  /// \return The number of bytes actually queued (may be less than \p
+  ///         num_bytes if the internal stream buffer is full)
+  /// \note This function is non-blocking and queues the data for the audio
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  ///       (or make the buffer larger: AudioConfig::playback_buffer_size)
+  /// \note Must be called from task context, not from an ISR.
+  size_t play_audio(const uint8_t *data, size_t num_bytes);
+
+  /// Play audio data
+  /// \param data The audio data to play (16-bit signed mono samples)
+  /// \return The number of bytes actually queued (may be less than the data
+  ///         size if the internal stream buffer is full)
+  /// \note This function is non-blocking and queues the data for the audio
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  ///       (or make the buffer larger: AudioConfig::playback_buffer_size)
+  /// \note Must be called from task context, not from an ISR.
+  size_t play_audio(std::span<const uint8_t> data);
+
+  /// Drop any queued (not yet played) audio so a subsequent play_audio() starts
+  /// immediately instead of waiting behind previously queued sound. Useful for
+  /// UI sounds where a new event should restart the sound for maximum
+  /// responsiveness.
+  void clear_audio();
+
+  /// Start recording audio
+  /// \param callback Function to call with recorded audio data: 16-bit
+  ///        signed mono samples (the onboard microphone, through the
+  ///        ES8311's ADC) at audio_sample_rate()
+  /// \return True if recording started successfully (false, among other
+  ///         reasons, when initialize_audio() did not enable recording)
+  /// \note The callback runs in the dedicated microphone task's context (a
+  ///       separate task from audio playback), so keep it quick and non-
+  ///       blocking and size that task's stack accordingly
+  bool start_audio_recording(std::function<void(const uint8_t *data, size_t length)> callback);
+
+  /// Stop recording audio. Once it returns the callback is not called again
+  /// (unless it is called from the callback itself).
+  void stop_audio_recording();
+
+  /// Set the microphone volume
+  /// \param volume The volume as a percentage (0 - 100), mapped onto the
+  ///        ES8311 analog microphone gain range (0 dB - +42 dB)
+  /// \note Before initialize_audio() (or without recording) the value is
+  ///       stored and applied when recording starts.
+  void microphone_volume(float volume);
+
+  /// Get the microphone volume
+  /// \return The microphone volume as a percentage (0 - 100)
+  float microphone_volume() const;
+
+  /////////////////////////////////////////////////////////////////////////////
   // ESP32-C6 (Wi-Fi 6 / BLE co-processor, ESP-Hosted over SDIO)
   /////////////////////////////////////////////////////////////////////////////
   // These constants document the ESP32-P4 <-> ESP32-C6 wiring for configuring
@@ -235,6 +410,18 @@ protected:
   static constexpr gpio_num_t internal_i2c_scl = GPIO_NUM_8;
 
   /////////////////////////////////////////////////////////////////////////////
+  // Audio (ES8311 + NS4150B), I2S peripheral
+  /////////////////////////////////////////////////////////////////////////////
+  static constexpr uint8_t es8311_i2c_address = 0x18;
+  static constexpr auto audio_i2s_port = I2S_NUM_0;
+  static constexpr gpio_num_t audio_mclk_io = GPIO_NUM_13;      // MCLK
+  static constexpr gpio_num_t audio_sclk_io = GPIO_NUM_12;      // BCLK
+  static constexpr gpio_num_t audio_lrck_io = GPIO_NUM_10;      // WS/LRCK
+  static constexpr gpio_num_t audio_dout_io = GPIO_NUM_9;       // P4 -> codec DSDIN
+  static constexpr gpio_num_t audio_din_io = GPIO_NUM_11;       // codec ASDOUT -> P4
+  static constexpr gpio_num_t audio_pa_enable_io = GPIO_NUM_53; // NS4150B enable
+
+  /////////////////////////////////////////////////////////////////////////////
   // Member variables
   /////////////////////////////////////////////////////////////////////////////
 
@@ -249,5 +436,18 @@ protected:
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE,
                      .clk_speed = internal_i2c_clock_speed}};
+
+  // Audio (espp::Audio, created by initialize_audio()). atomic: the
+  // forwarders may run on any task while initialize_audio() /
+  // deinitialize_audio() publish / unpublish it
+  std::atomic<std::shared_ptr<espp::Audio>> audio_;
+  std::shared_ptr<espp::Es8311Codec> es8311_;
+  std::shared_ptr<I2c::Device<uint8_t>> es8311_i2c_device_;
+  // the settings, kept across initialize_audio() / deinitialize_audio() and
+  // passed to espp::Audio as its initial values
+  std::atomic<float> volume_{50.0f};
+  std::atomic<bool> mute_{false};
+  // microphone volume (percent), mapped onto the ES8311 analog gain range
+  std::atomic<float> mic_volume_{70.0f};
 }; // class Esp32P4Wifi6PoeEth
 } // namespace espp

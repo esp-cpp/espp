@@ -1,5 +1,12 @@
+#include <algorithm>
 #include <chrono>
+#include <cmath>
+#include <cstdlib>
+#include <numbers>
+#include <numeric>
+#include <span>
 #include <thread>
+#include <vector>
 
 #include <sdkconfig.h>
 
@@ -23,12 +30,63 @@ extern "C" void app_main(void) {
   auto &board = espp::Esp32P4Wifi6PoeEth::get();
   //! [esp32 p4 wifi6 poe eth get instance]
 
+  // Example 2: audio -- a beep through the speaker, then two seconds from the
+  // microphone, played back. 16 kHz keeps the recording small (64 KB).
+  //! [esp32 p4 wifi6 poe eth audio]
+  static constexpr uint32_t audio_rate = 16000;
+  if (board.initialize_audio({.sample_rate = audio_rate})) {
+    board.volume(60.0f);
+    // play() queues what fits and returns how much that was: stream from the
+    // returned offset
+    auto play_all = [&](std::span<const uint8_t> data) {
+      while (!data.empty()) {
+        const size_t queued = board.play_audio(data);
+        data = data.subspan(queued);
+        if (queued == 0) {
+          std::this_thread::sleep_for(5ms);
+        }
+      }
+    };
+    // a 300 ms, 880 Hz beep (16-bit mono)
+    std::vector<int16_t> beep(audio_rate * 3 / 10);
+    for (size_t i = 0; i < beep.size(); i++) {
+      beep[i] = static_cast<int16_t>(
+          8000.0f * std::sin(2.0f * std::numbers::pi_v<float> * 880.0f * i / audio_rate));
+    }
+    logger.info("Playing a beep");
+    play_all({reinterpret_cast<const uint8_t *>(beep.data()), beep.size() * sizeof(int16_t)});
+    std::this_thread::sleep_for(500ms);
+
+    // record two seconds of 16-bit mono (the callback runs on the microphone
+    // task)
+    static std::vector<int16_t> recording;
+    recording.reserve(audio_rate * 2);
+    logger.info("Recording for 2 s...");
+    board.start_audio_recording([](const uint8_t *data, size_t length) {
+      const auto *samples = reinterpret_cast<const int16_t *>(data);
+      const size_t count =
+          std::min(length / sizeof(int16_t), recording.capacity() - recording.size());
+      recording.insert(recording.end(), samples, samples + count);
+    });
+    std::this_thread::sleep_for(2s);
+    board.stop_audio_recording();
+    const int peak = std::accumulate(recording.begin(), recording.end(), 0, [](int m, int16_t s) {
+      return std::max(m, std::abs(static_cast<int>(s)));
+    });
+    logger.info("Recorded {} samples (peak {}); playing them back", recording.size(), peak);
+    play_all(
+        {reinterpret_cast<const uint8_t *>(recording.data()), recording.size() * sizeof(int16_t)});
+  } else {
+    logger.error("Audio initialization failed");
+  }
+  //! [esp32 p4 wifi6 poe eth audio]
+
   // NOTE: the board's BOOT key shares GPIO35 with the RMII TXD1 line, so it
   // can only be used to enter the bootloader at reset -- the BSP does not
   // expose it as a runtime button.
 
 #if CONFIG_EXAMPLE_ETH_DHCP_SERVER
-  // Example 2: init as DHCP server -- the board assigns IPs to connected hosts.
+  // Example 3: init as DHCP server -- the board assigns IPs to connected hosts.
   // ServerConfig::ip_info zero -> default 192.168.4.1/24. Supply Kconfig
   // values (EXAMPLE_ETH_SERVER_IP / _NETMASK / _GW) for a custom static IP.
   //! [esp32 p4 wifi6 poe eth dhcp server]
@@ -61,7 +119,7 @@ extern "C" void app_main(void) {
   });
   //! [esp32 p4 wifi6 poe eth dhcp server]
 #else
-  // Example 3: init as DHCP client -- the board acquires an IP from the network.
+  // Example 4: init as DHCP client -- the board acquires an IP from the network.
   //! [esp32 p4 wifi6 poe eth dhcp client]
   bool eth_ok = board.initialize_ethernet({
       .mode = DhcpMode::CLIENT,

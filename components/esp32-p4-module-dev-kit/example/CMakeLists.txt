@@ -20,6 +20,7 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 # those false incompatibilities.
 set(EXTRA_COMPONENT_DIRS
   "../"
+  "../../../components/audio"
   "../../../components/base_component"
   "../../../components/base_peripheral"
   "../../../components/cli"

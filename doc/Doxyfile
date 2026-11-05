@@ -250,6 +250,7 @@ INPUT = \
   $(PROJECT_PATH)/components/audio/include/audio.hpp \
   $(PROJECT_PATH)/components/audio/include/audio_codec.hpp \
   $(PROJECT_PATH)/components/audio/include/es7210_codec.hpp \
+  $(PROJECT_PATH)/components/audio/include/es8311_codec.hpp \
   $(PROJECT_PATH)/components/audio/include/es8388_codec.hpp \
   $(PROJECT_PATH)/components/aw9523/include/aw9523.hpp \
   $(PROJECT_PATH)/components/base_component/include/base_component.hpp \
