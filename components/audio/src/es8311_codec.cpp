@@ -91,6 +91,9 @@ bool Es8311Codec::start(Direction direction, uint32_t sample_rate) {
     return false;
   }
   if (es8311_codec_ctrl_state(mode_, AUDIO_HAL_CTRL_START) != ESP_OK) {
+    // no cleanup here: per the AudioCodec contract espp::Audio calls stop()
+    // after a failed start() (it counts the codec as started first), and
+    // stop() undoes this mode_'s init
     ESP_LOGE(TAG, "ES8311 start failed");
     return false;
   }

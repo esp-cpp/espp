@@ -523,7 +523,8 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
     audio_bytes.clear();
     return false;
   }
-  uint32_t sample_rate = *(reinterpret_cast<const uint32_t *>(&audio_bytes[24]));
+  uint32_t sample_rate = 0;
+  std::memcpy(&sample_rate, &audio_bytes[24], sizeof(sample_rate));
   uint16_t num_channels = 0;
   std::memcpy(&num_channels, &audio_bytes[22], sizeof(num_channels));
   audio_bytes.erase(audio_bytes.begin(), audio_bytes.begin() + 44);
