@@ -51,9 +51,11 @@ and point SDL at its off-screen driver:
 SDL_VIDEODRIVER=dummy idf.py qemu --graphics monitor
 ```
 
-Screenshots work the same way: `screendump shot.ppm` in the QEMU monitor
-(`Ctrl-A C` toggles it in `idf.py qemu monitor`, or pass
-`-monitor unix:mon.sock,server,nowait` and write the command to the socket).
+Screenshots: `screendump shot.ppm` in the QEMU monitor. Without the trailing
+`monitor` action, `idf.py qemu` multiplexes the serial port and the QEMU
+monitor on the terminal (`Ctrl-A C` switches); with it, or headless, pass
+`-monitor unix:mon.sock,server,nowait` (path under 104 bytes) and write the
+command to the socket from a second terminal while QEMU runs.
 
 ## Networking
 

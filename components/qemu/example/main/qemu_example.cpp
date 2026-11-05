@@ -56,9 +56,11 @@ extern "C" void app_main(void) {
     gui.set_ethernet_text("Ethernet: failed (CONFIG_ETH_USE_OPENETH?)");
   }
 
-#if SOC_SDMMC_HOST_SUPPORTED
-  // The SD card image attached with -drive file=sd.img,if=sd,format=raw
-  // (ESP32 machine only): mount it, write a file, read it back.
+#if CONFIG_IDF_TARGET_ESP32
+  // The SD card image attached with -drive file=sd.img,if=sd,format=raw.
+  // QEMU emulates the SD/MMC host on the ESP32 machine only (the ESP32-S3 has
+  // the peripheral in silicon, but not in the emulator), so the other targets
+  // skip this.
   logger.info("Initializing SD card...");
   if (qemu.initialize_sdcard({.mount_point = "/sdcard"})) {
     const char *path = "/sdcard/hello.txt";
@@ -84,7 +86,7 @@ extern "C" void app_main(void) {
   }
 #else
   gui.set_sdcard_text("SD card: not emulated on this target");
-#endif
+#endif // CONFIG_IDF_TARGET_ESP32
 
   // Keep the uptime line and a heap figure moving, so a log capture or a
   // screenshot taken at any time shows a live system.

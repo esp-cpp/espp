@@ -160,6 +160,10 @@ public:
   /////////////////////////////////////////////////////////////////////////////
 
   /// Bring up the SD/MMC host and mount the card image as a FAT volume
+  /// \note QEMU emulates the SD/MMC host on the ESP32 machine only. The method
+  ///       exists on every target whose silicon has the host (so an
+  ///       application compiles everywhere), but on the ESP32-S3 machine it
+  ///       fails: gate the call on CONFIG_IDF_TARGET_ESP32, as the example does.
   /// \param config Mount point, bus width, formatting
   /// \return true once mounted
   bool initialize_sdcard(const SdCardConfig &config);

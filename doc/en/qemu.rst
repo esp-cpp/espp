@@ -55,10 +55,12 @@ runs the right emulator for the configured target:
    dd if=/dev/zero bs=1M count=64 of=sd.img     # a blank SD card (ESP32 only)
    idf.py qemu --graphics --qemu-extra-args "-drive file=sd.img,if=sd,format=raw" monitor
 
-``--graphics`` opens the panel window; ``monitor`` attaches the serial console
-(``Ctrl-]`` quits, ``Ctrl-A C`` switches to the QEMU monitor). For
-``esp32c3`` and ``esp32s3`` just ``set-target`` accordingly and drop the SD
-drive. The same ``idf.py`` flags work for any espp example whose peripherals
+``--graphics`` opens the panel window; ``monitor`` attaches ESP-IDF's serial
+monitor (``Ctrl-]`` quits). Without the trailing ``monitor``, ``idf.py qemu``
+runs the emulator in the foreground with the serial port and the QEMU monitor
+multiplexed on the terminal (``Ctrl-A C`` switches between them, ``Ctrl-A X``
+quits). For ``esp32c3`` and ``esp32s3`` just ``set-target`` accordingly and
+drop the SD drive (QEMU emulates the SD/MMC host on the ESP32 machine only). The same ``idf.py`` flags work for any espp example whose peripherals
 are emulated; set ``CONFIG_ETH_USE_OPENETH=y`` (and
 ``CONFIG_ETH_USE_ESP32_EMAC=n``) in its ``sdkconfig`` to use the emulated NIC.
 
@@ -77,13 +79,17 @@ point SDL at its off-screen driver:
    SDL_VIDEODRIVER=dummy idf.py qemu --graphics monitor
 
 That is also the form for CI. A screenshot of the panel is one monitor command
-away, window or not:
+away, window or not. Give QEMU a monitor socket (the path must be shorter than
+104 bytes) and, while it runs, write the command to that socket from a second
+terminal (or background the emulator first and wait for the socket to appear):
 
 .. code-block:: bash
 
-   # with a monitor socket (path shorter than 104 bytes)
+   # terminal 1
    SDL_VIDEODRIVER=dummy idf.py qemu --graphics \
        --qemu-extra-args "-monitor unix:/tmp/mon.sock,server,nowait"
+
+   # terminal 2, once the application is up
    echo "screendump /tmp/shot.ppm" | nc -U /tmp/mon.sock
    magick /tmp/shot.ppm shot.png
 
@@ -108,7 +114,7 @@ multicast (RTPS, mDNS) need a tap device. On Linux:
    sudo ip tuntap add dev tap0 mode tap user $USER
    sudo ip addr add 192.168.100.1/24 dev tap0
    sudo ip link set tap0 up
-   idf.py qemu --qemu-extra-args "-nic tap,ifname=tap0,script=no,downscript=no,model=open_eth" monitor
+   idf.py qemu --graphics --qemu-extra-args "-nic tap,ifname=tap0,script=no,downscript=no,model=open_eth" monitor
 
 with the firmware either serving DHCP (``espp::Qemu::DhcpMode::SERVER``) or
 using a static address on that subnet. The emulated MAC has no multicast
