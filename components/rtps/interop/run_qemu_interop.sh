@@ -89,13 +89,13 @@ source /opt/ros/jazzy/setup.bash
 export ROS_DOMAIN_ID=0 # matches the engine's Config::DOMAIN_ID
 
 # --- the ROS 2 cases, run once per rmw -----------------------------------------------
-ros2_cases() { # prefix
-  local p="$1" m
+ros2_cases() { # prefix log-tag
+  local p="$1" t="$2" m
 
   note "${p}device publisher -> ROS 2 subscriber (reliable, /qemu_tx)"
-  timeout 30 ros2 topic echo --once /qemu_tx std_msgs/msg/String > /tmp/${p}echo.log 2>&1
-  local rc=$?; grep -q "qemu " /tmp/${p}echo.log || rc=1
-  head -3 /tmp/${p}echo.log; result "${p}device_pub->ros2_echo" $rc
+  timeout 30 ros2 topic echo --once /qemu_tx std_msgs/msg/String > "/tmp/${t}_echo.log" 2>&1
+  local rc=$?; grep -q "qemu " "/tmp/${t}_echo.log" || rc=1
+  head -3 "/tmp/${t}_echo.log"; result "${p}device_pub->ros2_echo" $rc
 
   note "${p}ROS 2 publisher -> device subscriber (reliable, /qemu_rx)"
   m=$(mark)
@@ -105,9 +105,9 @@ ros2_cases() { # prefix
   [ "$n" -ge 5 ]; result "${p}ros2_pub->device_sub" $?
 
   note "${p}device best-effort publisher -> ROS 2 subscriber (/qemu_be_tx)"
-  timeout 30 ros2 topic echo --once --qos-reliability best_effort /qemu_be_tx std_msgs/msg/String > /tmp/${p}beecho.log 2>&1
-  rc=$?; grep -q "qemu_be " /tmp/${p}beecho.log || rc=1
-  head -3 /tmp/${p}beecho.log; result "${p}device_be_pub->ros2_echo" $rc
+  timeout 30 ros2 topic echo --once --qos-reliability best_effort /qemu_be_tx std_msgs/msg/String > "/tmp/${t}_beecho.log" 2>&1
+  rc=$?; grep -q "qemu_be " "/tmp/${t}_beecho.log" || rc=1
+  head -3 "/tmp/${t}_beecho.log"; result "${p}device_be_pub->ros2_echo" $rc
 
   note "${p}ROS 2 best-effort publisher -> device subscriber (/qemu_be_rx)"
   m=$(mark)
@@ -144,7 +144,7 @@ ros2_cases() { # prefix
 }
 
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-ros2_cases "fastdds: "
+ros2_cases "fastdds: " fastdds
 
 note "fastdds: ROS 2 service client -> device service server (/qemu_add_two_ints)"
 m=$(mark)
@@ -178,7 +178,7 @@ tc qdisc del dev $TAP root
 # --- CycloneDDS pass ---------------------------------------------------------------------------
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export CYCLONEDDS_URI='<CycloneDDS><Domain><Discovery><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>'
-ros2_cases "cyclone: "
+ros2_cases "cyclone: " cyclone
 unset CYCLONEDDS_URI
 
 # --- the device after all of that -----------------------------------------------------------------
