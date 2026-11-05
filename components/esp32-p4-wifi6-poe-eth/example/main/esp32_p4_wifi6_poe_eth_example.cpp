@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <numbers>
+#include <numeric>
 #include <span>
 #include <thread>
 #include <vector>
@@ -69,10 +70,9 @@ extern "C" void app_main(void) {
     });
     std::this_thread::sleep_for(2s);
     board.stop_audio_recording();
-    int peak = 0;
-    for (int16_t sample : recording) {
-      peak = std::max(peak, std::abs(static_cast<int>(sample)));
-    }
+    const int peak = std::accumulate(recording.begin(), recording.end(), 0, [](int m, int16_t s) {
+      return std::max(m, std::abs(static_cast<int>(s)));
+    });
     logger.info("Recorded {} samples (peak {}); playing them back", recording.size(), peak);
     play_all(
         {reinterpret_cast<const uint8_t *>(recording.data()), recording.size() * sizeof(int16_t)});
