@@ -14,7 +14,7 @@ bool TDeck::initialize_lora(const Sx126x::RadioConfig &radio_config) {
     return false;
   }
 
-  if (microphone_initialized_) {
+  if (microphone_audio_.load()) {
     // GPIO 17 is the LoRa radio reset line and is also routed to the T-Deck's
     // (unused-by-espp) PDM digital-microphone clock / ES7210 interrupt line.
     // The espp microphone path uses the ES7210 array on a separate set of

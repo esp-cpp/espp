@@ -1,21 +1,6 @@
-#include <algorithm>
-#include <cmath>
-#include <cstdlib>
-#include <cstring>
-#include <mutex>
-
-#include <driver/i2s_tdm.h>
-
-#include "esp_idf_version.h"
-// cppcheck (static analysis CI) runs without the IDF headers' macro bodies
-#ifndef ESP_IDF_VERSION_VAL
-#define ESP_IDF_VERSION_VAL(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
-#endif
-#ifndef ESP_IDF_VERSION
-#define ESP_IDF_VERSION ESP_IDF_VERSION_VAL(0, 0, 0)
-#endif
-
 #include "t-deck.hpp"
+
+#include <algorithm>
 
 using namespace espp;
 
@@ -23,314 +8,98 @@ using namespace espp;
 // Audio Functions   //
 ////////////////////////
 
-// Map a 0-100% microphone volume onto the ES7210's analog gain steps
-// (GAIN_0DB .. GAIN_37_5DB)
-static es7210_gain_value_t microphone_gain_from_volume(float volume) {
-  int step = static_cast<int>(std::lround(volume / 100.0f * static_cast<float>(GAIN_37_5DB)));
-  step = std::clamp(step, static_cast<int>(GAIN_0DB), static_cast<int>(GAIN_37_5DB));
-  return static_cast<es7210_gain_value_t>(step);
-}
+// The I2S channels, the playback and microphone tasks, the stream buffer and
+// the codec setup live in the espp::Audio component (with its ES7210
+// adapter); this file keeps only what is specific to the board. The speaker
+// amplifier (MAX98357A, no codec: volume and mute in software) and the ES7210
+// microphone ADC each have their own I2S bus, so each has its own
+// espp::Audio.
 
-// Map a PCM sample rate onto the codec's audio_hal sample-rate enum. The ES7210
-// coefficient table is selected by this enum, so it must match the rate the I2S
-// clocks actually generate; an unsupported rate falls back to 16 kHz (the rate
-// this board records at).
-static audio_hal_iface_samples_t audio_hal_samples_from_rate(uint32_t rate) {
-  switch (rate) {
-  case 8000:
-    return AUDIO_HAL_08K_SAMPLES;
-  case 11025:
-    return AUDIO_HAL_11K_SAMPLES;
-  case 16000:
-    return AUDIO_HAL_16K_SAMPLES;
-  case 22050:
-    return AUDIO_HAL_22K_SAMPLES;
-  case 24000:
-    return AUDIO_HAL_24K_SAMPLES;
-  case 32000:
-    return AUDIO_HAL_32K_SAMPLES;
-  case 44100:
-    return AUDIO_HAL_44K_SAMPLES;
-  case 48000:
-    return AUDIO_HAL_48K_SAMPLES;
-  default:
-    return AUDIO_HAL_16K_SAMPLES;
-  }
-}
-
-bool TDeck::initialize_i2s(uint32_t default_audio_rate) {
-  logger_.info("initializing i2s driver");
-  logger_.debug("Using newer I2S standard");
-  i2s_chan_config_t chan_cfg = {
-    .id = i2s_port,
-    .role = I2S_ROLE_MASTER,
-    .dma_desc_num = espp::i2s_tx_feed::DMA_DESC_NUM,
-    .dma_frame_num = espp::i2s_tx_feed::DMA_FRAME_NUM,
-    .auto_clear = true,
-    .auto_clear_before_cb = false,
-    .allow_pd = false,
-    .intr_priority = 0,
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 1, 0)
-    // ESP-IDF 6.1 added the data-path selectors (DMA memory vs Bluetooth);
-    // the designated initializer must name them under -Werror
-    .tx_destination = I2S_DESTINATION_DMA,
-    .rx_destination = I2S_DESTINATION_DMA,
-#endif
-  };
-
-  // Keep the TX DMA ring full and long enough to cover the playback task's
-  // bounded whole-block wait (the policy and its rationale: codec/i2s_tx_feed.hpp).
-  static_assert(espp::i2s_tx_feed::ring_outlasts_wait(espp::i2s_tx_feed::DMA_DESC_NUM,
-                                                      espp::i2s_tx_feed::DMA_FRAME_NUM, 48000,
-                                                      UPDATE_FREQUENCY),
-                "the I2S TX DMA ring must outlast the whole-block wait plus one block");
-  ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &audio_tx_handle, nullptr));
-
-  audio_std_cfg = {
-      .clk_cfg =
-          {
-              .sample_rate_hz = default_audio_rate,
-              .clk_src = I2S_CLK_SRC_DEFAULT,
-              .ext_clk_freq_hz = 0,
-              .mclk_multiple = I2S_MCLK_MULTIPLE_256,
-              .bclk_div = 8,
-          },
-      .slot_cfg =
-          I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
-      .gpio_cfg =
-          {
-              .mclk = GPIO_NUM_NC, // i2s_mck_io,
-              .bclk = i2s_bck_io,
-              .ws = i2s_ws_io,
-              .dout = i2s_do_io,
-              .din = GPIO_NUM_NC, // i2s_di_io,
-              .invert_flags =
-                  {
-                      .mclk_inv = false,
-                      .bclk_inv = false,
-                      .ws_inv = false,
-                  },
-          },
-  };
-  audio_std_cfg.clk_cfg.mclk_multiple = I2S_MCLK_MULTIPLE_256;
-
-  ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_tx_handle, &audio_std_cfg));
-
-  auto buffer_size = calc_audio_buffer_size(default_audio_rate);
-  // the block (and so the stream's trigger level) must be a whole number of
-  // frames: the sample-rate formula can land between frames, and a block that
-  // split one would desynchronize the framing of everything received after it
-  buffer_size -= buffer_size % (NUM_CHANNELS * NUM_BYTES_PER_CHANNEL);
-  audio_tx_buffer.resize(buffer_size);
-
-  // The audio task never blocks on the stream (see audio_task_callback), so
-  // the trigger level is irrelevant; the minimum keeps a producer's send from
-  // ever holding a receiver.
-  audio_tx_stream = xStreamBufferCreate(buffer_size * 4, 1);
-  audio_tx_feed_.stream = audio_tx_stream;
-  audio_tx_feed_.frame_bytes = NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
-
-  xStreamBufferReset(audio_tx_stream);
-
-  ESP_ERROR_CHECK(i2s_channel_enable(audio_tx_handle));
-
-  return true;
-}
+bool TDeck::initialize_audio() { return initialize_audio(AudioConfig{}); }
 
 bool TDeck::initialize_sound(uint32_t default_audio_rate,
                              const espp::Task::BaseConfig &task_config) {
-  if (sound_initialized_) {
-    logger_.warn("Sound already initialized");
+  // the old API set up playback only (initialize_microphone() added recording)
+  return initialize_audio(AudioConfig{
+      .sample_rate = default_audio_rate, .recording_enabled = false, .task_config = task_config});
+}
+
+bool TDeck::initialize_audio(const AudioConfig &config) {
+  const bool playback = config.playback_enabled;
+  const bool recording = config.recording_enabled;
+  logger_.info("Initializing audio ({}{}{})", playback ? "playback" : "",
+               playback && recording ? " + " : "", recording ? "recording" : "");
+  if (is_audio_initialized()) {
+    logger_.warn("Audio already initialized");
     return true;
   }
-
-  logger_.info("Initializing sound");
-
-  if (!initialize_i2s(default_audio_rate)) {
-    logger_.error("Could not initialize I2S driver");
+  if (!playback && !recording) {
+    logger_.error("initialize_audio(): neither playback nor recording is enabled");
     return false;
   }
+  if (playback && !initialize_playback(config)) {
+    deinitialize_audio();
+    return false;
+  }
+  if (recording && !initialize_recording(config)) {
+    deinitialize_audio();
+    return false;
+  }
+  return true;
+}
 
-  using namespace std::placeholders;
-  audio_task_ = espp::Task::make_unique({
-      .callback = std::bind(&TDeck::audio_task_callback, this, _1, _2, _3),
-      .task_config = task_config,
+// the playback and microphone tasks share the caller's task config, named
+// "<name> out" / "<name> in" so the two are easy to tell apart in logs and
+// while debugging (short enough for FreeRTOS's 15-character task names)
+static espp::Task::BaseConfig task_config_named(const espp::Task::BaseConfig &config,
+                                                const char *suffix) {
+  auto named = config;
+  named.name = (config.name.empty() ? std::string("audio") : config.name) + suffix;
+  return named;
+}
+
+bool TDeck::initialize_playback(const AudioConfig &config) {
+  auto audio = std::make_shared<espp::Audio>(espp::Audio::Config{
+      .port = i2s_port,
+      .pins = {.bclk = i2s_bck_io, .ws = i2s_ws_io, .dout = i2s_do_io},
+      .sample_rate = config.sample_rate,
+      .playback_enabled = true,
+      .recording_enabled = false,
+      .playback_channels = 2,
+      .playback_buffer_size = config.playback_buffer_size,
+      .playback_buffer_caps = config.playback_buffer_caps,
+      .volume = volume_,
+      .muted = mute_,
+      .playback_task_config = task_config_named(config.task_config, " out"),
   });
-
-  sound_initialized_ = true;
-
-  return audio_task_->start();
-}
-
-bool TDeck::audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
-  // Playback: write the next block to the I2S channel, ALWAYS a whole block
-  // (audio when there is some, silence when idle) so the DMA ring stays full;
-  // the write blocks on the ring and paces this loop. The stream side (the
-  // bounded wait for a flowing producer, misalignment recovery) is shared
-  // policy: see codec/i2s_tx_feed.hpp for the mechanism and why it matters.
-  audio_tx_feed_.attach_current_task();
-  const size_t block = audio_tx_buffer.size();
-  uint8_t *tx_buf = audio_tx_buffer.data();
-  bool misaligned = false;
-  const size_t got = audio_tx_feed_.fill_block(tx_buf, block, misaligned);
-  if (misaligned) {
-    // producers queue whole frames only (play_audio), so this is a bug somewhere
-    logger_.warn_rate_limited("audio stream held a partial frame; reset it");
-  }
-  // apply volume and mute (silence stays silence)
-  if (got > 0) {
-    if (mute_) {
-      memset(tx_buf, 0, block);
-    } else {
-      // NOTE: we are actually using int16_t samples, so we need to adjust the
-      // pointers to the buffer to the correct positions.
-      int16_t *ptr = reinterpret_cast<int16_t *>(tx_buf);
-      for (size_t i = 0; i < (block / 2); ++i) {
-        int32_t sample = (ptr[i] * volume_) / 100.0f;
-        ptr[i] = static_cast<int16_t>(std::clamp<int32_t>(sample, INT16_MIN, INT16_MAX));
-      }
-    }
-  }
-  i2s_channel_write(audio_tx_handle, tx_buf, block, NULL, portMAX_DELAY);
-  return false; // don't stop the task
-}
-
-void TDeck::mute(bool mute) { mute_ = mute; }
-
-bool TDeck::is_muted() const { return mute_; }
-
-void TDeck::volume(float volume) { volume_ = std::clamp(volume, 0.0f, 100.0f); }
-
-float TDeck::volume() const { return volume_; }
-
-uint32_t TDeck::audio_sample_rate() const { return audio_std_cfg.clk_cfg.sample_rate_hz; }
-
-size_t TDeck::audio_buffer_size() const { return audio_tx_buffer.size(); }
-
-void TDeck::audio_sample_rate(uint32_t sample_rate) {
-  logger_.info("Setting audio sample rate to {} Hz", sample_rate);
-  // stop the channel
-  i2s_channel_disable(audio_tx_handle);
-  // update the sample rate
-  audio_std_cfg.clk_cfg.sample_rate_hz = sample_rate;
-  i2s_channel_reconfig_std_clock(audio_tx_handle, &audio_std_cfg.clk_cfg);
-  // clear the buffer
-  xStreamBufferReset(audio_tx_stream);
-  // restart the channel
-  i2s_channel_enable(audio_tx_handle);
-}
-
-size_t TDeck::play_audio(const std::vector<uint8_t> &data) {
-  return play_audio(data.data(), data.size());
-}
-
-size_t TDeck::play_audio(const uint8_t *data, uint32_t num_bytes) {
-  // guard against being called before initialize_sound() (audio_tx_stream is
-  // not valid until then) and against empty input
-  if (!sound_initialized_ || !data || num_bytes == 0) {
-    return 0;
-  }
-  // Enqueue only whole 16-bit stereo frames (4 bytes) that actually fit:
-  // xStreamBufferSend can accept fewer bytes than requested when the buffer is
-  // nearly full, and a partial (non-frame-aligned) send would strand 1-3 bytes
-  // and corrupt the L/R framing of subsequent appends. Cap the request to the
-  // free space rounded down to a whole frame so the send is always
-  // frame-aligned. This runs in task context, so the non-ISR send with a 0
-  // timeout never blocks. The number of bytes actually queued is returned so
-  // callers can stream data larger than the buffer.
-  size_t sendable = std::min<size_t>(num_bytes, xStreamBufferSpacesAvailable(audio_tx_stream));
-  sendable -= sendable % 4;
-  if (sendable == 0) {
-    return 0;
-  }
-  const size_t sent = xStreamBufferSend(audio_tx_stream, data, sendable, 0);
-  if (sent > 0) {
-    // wake the playback task if the stream now holds a whole block (send ->
-    // notify -> return; see i2s_tx_feed.hpp)
-    audio_tx_feed_.notify_if_block_ready(audio_tx_buffer.size());
-  }
-  return sent;
-}
-
-//////////////////////////
-// Microphone Functions //
-//////////////////////////
-
-bool TDeck::initialize_microphone(const microphone_callback_t &callback, uint32_t sample_rate,
-                                  const espp::Task::BaseConfig &task_config) {
-  logger_.info("Initializing microphone");
-  if (microphone_initialized_) {
-    logger_.warn("Microphone already initialized, not initializing again!");
+  if (!audio->initialize()) {
     return false;
   }
-  if (!callback) {
-    logger_.error("A callback is required to receive the recorded audio data");
-    return false;
-  }
-  microphone_callback_ = callback;
+  // published once it is initialized; the forwarders below each take one
+  // snapshot of it
+  audio_.store(audio);
+  // A setter that ran meanwhile only updated its cached value: forward the
+  // latest ones, again while they change, so one racing this is not undone by
+  // a stale value.
+  float volume;
+  do {
+    volume = volume_;
+    audio->volume(volume);
+  } while (volume != volume_);
+  bool muted;
+  do {
+    muted = mute_;
+    audio->mute(muted);
+  } while (muted != mute_);
+  return true;
+}
 
-  // The ES7210 has its own I2S bus (separate from the speaker amplifier), so
-  // make a receive-only master channel with its own clocks; the codec is a
-  // slave clocked from the MCLK / SCLK / LRCK we generate.
-  //
-  // The ES7210 outputs its four ADC channels as a 4-slot TDM frame (MIC1 ->
-  // slot 0, MIC2 -> slot 1, MIC3 -> slot 2, MIC4 -> slot 3), so read all four
-  // slots. The microphone task extracts the populated microphones (the T-Deck
-  // wires MIC1 and MIC3, i.e. slots 0 and 2 - one from each ADC pair) and
-  // presents them as 16-bit stereo. A 2-slot standard-I2S read would only see
-  // the first ADC pair (MIC1 + the unpopulated MIC2).
-  i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(mic_i2s_port, I2S_ROLE_MASTER);
-  ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, nullptr, &audio_rx_handle));
-  i2s_tdm_config_t mic_tdm_cfg = {
-      .clk_cfg = {.sample_rate_hz = sample_rate,
-                  .clk_src = I2S_CLK_SRC_DEFAULT,
-                  .ext_clk_freq_hz = 0,
-                  .mclk_multiple = I2S_MCLK_MULTIPLE_256,
-                  // Let the driver derive BCLK from the slot count/width. The
-                  // ES7210 coefficient table is programmed for MCLK = 256 x
-                  // sample_rate (see MCLK_DIV_FRE in es7210.cpp), which
-                  // mclk_multiple pins here. Forcing bclk_div (e.g. 8) makes
-                  // the driver raise MCLK to satisfy the divider, so the codec
-                  // receives an MCLK its coefficients were not computed for;
-                  // its ADC decimation then drifts against LRCK and slips a
-                  // frame every so often, which reads as sparse full-scale
-                  // (0x8000) spikes on top of otherwise-clean audio.
-                  .bclk_div = 0},
-      .slot_cfg = {.data_bit_width = I2S_DATA_BIT_WIDTH_16BIT,
-                   .slot_bit_width = I2S_SLOT_BIT_WIDTH_16BIT,
-                   .slot_mode = I2S_SLOT_MODE_STEREO,
-                   .slot_mask = static_cast<i2s_tdm_slot_mask_t>(I2S_TDM_SLOT0 | I2S_TDM_SLOT1 |
-                                                                 I2S_TDM_SLOT2 | I2S_TDM_SLOT3),
-                   .ws_width = I2S_TDM_AUTO_WS_WIDTH,
-                   .ws_pol = false,
-                   .bit_shift = true,
-                   .left_align = false,
-                   .big_endian = false,
-                   .bit_order_lsb = false,
-                   .skip_mask = false,
-                   .total_slot = I2S_TDM_AUTO_SLOT_NUM},
-      .gpio_cfg = {.mclk = es7210_mclk_io,
-                   .bclk = es7210_sclk_io,
-                   .ws = es7210_lrck_io,
-                   .dout = GPIO_NUM_NC,
-                   .din = es7210_sdout_io,
-                   .invert_flags = {.mclk_inv = false, .bclk_inv = false, .ws_inv = false}},
-  };
-  ESP_ERROR_CHECK(i2s_channel_init_tdm_mode(audio_rx_handle, &mic_tdm_cfg));
-  mic_sample_rate_ = sample_rate;
-  // the read buffer holds the raw 4-slot TDM frames (twice the size of the
-  // 2-channel stereo the callback receives)
-  audio_rx_buffer.resize(2 * calc_audio_buffer_size(sample_rate));
-  ESP_ERROR_CHECK(i2s_channel_enable(audio_rx_handle));
-
-  // Configure the ES7210 ADC now that its clocks are running. The ES7210 always
-  // emits a fixed 4-slot TDM frame; this board only populates MIC1 (slot 0) and
-  // MIC3 (slot 2), which the callback compacts to the left / right channels of
-  // the delivered 16-bit stereo.
+bool TDeck::initialize_recording(const AudioConfig &config) {
+  // the ES7210 is on the internal I2C bus
   std::error_code ec;
   es7210_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
-          .device_address = 0x40,
+          .device_address = es7210_i2c_address,
           .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
           .scl_speed_hz = internal_i2c_.config().clk_speed,
           .log_level = espp::Logger::Verbosity::WARN,
@@ -338,135 +107,194 @@ bool TDeck::initialize_microphone(const microphone_callback_t &callback, uint32_
       ec);
   if (!es7210_i2c_device_) {
     logger_.error("Could not initialize ES7210 I2C device: {}", ec.message());
-    i2s_channel_disable(audio_rx_handle);
-    i2s_del_channel(audio_rx_handle);
-    audio_rx_handle = nullptr;
     return false;
   }
-  set_es7210_write(espp::make_i2c_addressed_write(es7210_i2c_device_));
-  set_es7210_read(espp::make_i2c_addressed_read_register(es7210_i2c_device_));
-
   // Enable all four ADC channels so the ES7210 always emits a fixed 4-slot
   // TDM frame ([MIC1, MIC2, MIC3, MIC4]). Enabling only a subset can make the
-  // codec pack fewer slots, which shifts the frame boundary against the fixed
-  // 4-slot read below and periodically lands the extraction on a floating,
-  // railing slot (heard as a robotic / static buzz on top of the audio). The
-  // T-Deck only populates MIC1 and MIC3, so the task keeps slots 0 and 2 and
-  // discards the unpopulated MIC2 / MIC4 slots.
-  es7210_mic_select(static_cast<es7210_input_mics_t>(ES7210_INPUT_MIC1 | ES7210_INPUT_MIC2 |
-                                                     ES7210_INPUT_MIC3 | ES7210_INPUT_MIC4));
-
-  audio_hal_codec_config_t es7210_cfg{};
-  es7210_cfg.codec_mode = AUDIO_HAL_CODEC_MODE_ENCODE;
-  es7210_cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
-  es7210_cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
-  es7210_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
-  // configure the ES7210 for the requested capture rate (rather than assuming
-  // 16 kHz) so its coefficient table matches the I2S clocks
-  es7210_cfg.i2s_iface.samples = audio_hal_samples_from_rate(sample_rate);
-  if (es7210_adc_init(&es7210_cfg) != ESP_OK) {
-    logger_.error("Could not initialize the ES7210 codec");
-    i2s_channel_disable(audio_rx_handle);
-    i2s_del_channel(audio_rx_handle);
-    audio_rx_handle = nullptr;
-    return false;
-  }
-  if (es7210_adc_config_i2s(AUDIO_HAL_CODEC_MODE_ENCODE, &es7210_cfg.i2s_iface) != ESP_OK) {
-    logger_.error("ES7210 I2S config failed");
-  }
-  // NOTE: do not write register 0x08 (master/slave & channels) here. The
-  // es7210 driver leaves it at its reset default in slave mode, which is
-  // correct for this board. Forcing 0x08 = 0x20 (as some MicroPython T-Deck
-  // ports do for their async PWM MCLK) reconfigures the channel/decimation
-  // path on our hardware-MCLK setup into a half-rate, every-other-frame-zero
-  // capture (MIC1 samples drop out and the glitch/de-spike rate rises), so it
-  // is deliberately left alone.
-  // Enable the ES7210 digital high-pass filter on the ADC channels to strip
-  // the microphone DC offset. The espp es7210 driver leaves these registers at
-  // their reset value (HPF off), so the (large, positive) DC offset from the
-  // T-Deck's electret mics is amplified by the analog gain and rails the ADC:
-  // captures come out all-positive with a big constant bias (e.g. MIC1 min=0
-  // max=24672) that reads as a quiet-but-distorted / robotic recording, and at
-  // higher gain saturates to full scale. Removing the DC here lets the signal
-  // swing symmetrically around zero so the analog gain can be raised safely.
-  // These are the driver's documented "quick setup" HPF values, and are what
-  // the (working) esp-box microphone path uses. The T-Deck populates MIC1 and
-  // MIC3, one from each ADC pair, so both pairs' HPFs are enabled.
-  // write_register clears the error code on success, so a later successful
-  // write would mask an earlier failure; remember the first failure explicitly.
-  std::error_code hpf_ec, first_hpf_ec;
-  auto write_hpf = [&](uint8_t reg, uint8_t val) {
-    es7210_i2c_device_->write_register(reg, std::vector<uint8_t>{val}, hpf_ec);
-    if (hpf_ec && !first_hpf_ec) {
-      first_hpf_ec = hpf_ec;
-    }
-  };
-  write_hpf(0x22, 0x0a); // ADC1/2 HPF1
-  write_hpf(0x23, 0x2a); // ADC1/2 HPF2
-  write_hpf(0x20, 0x0a); // ADC3/4 HPF2
-  write_hpf(0x21, 0x2a); // ADC3/4 HPF1
-  if (first_hpf_ec) {
-    logger_.warn("Could not enable the ES7210 high-pass filter: {}", first_hpf_ec.message());
-  }
-  // apply the stored microphone volume (the driver's init leaves the analog
-  // gain at its 0 dB minimum, which records very quietly)
-  es7210_adc_set_gain_all(microphone_gain_from_volume(mic_volume_));
-  es7210_adc_ctrl_state(AUDIO_HAL_CODEC_MODE_ENCODE, AUDIO_HAL_CTRL_START);
-
-  using namespace std::placeholders;
-  microphone_task_ = espp::Task::make_unique({
-      .callback = std::bind(&TDeck::microphone_task_callback, this, _1, _2, _3),
-      .task_config = task_config,
+  // codec pack fewer slots, which shifts the frame boundary against the
+  // 4-slot read and periodically lands the extraction on a floating, railing
+  // slot (heard as a robotic / static buzz on top of the audio). The T-Deck
+  // populates only MIC1 and MIC3 (one from each ADC pair), so the recording
+  // keeps slots 0 and 2. The high-pass filter strips the electret mics' DC
+  // offset, which the analog gain would otherwise amplify into the rails.
+  es7210_ = std::make_shared<espp::Es7210Codec>(espp::Es7210Codec::Config{
+      .write = espp::make_i2c_addressed_write(es7210_i2c_device_),
+      .read = espp::make_i2c_addressed_read_register(es7210_i2c_device_),
+      .address = es7210_i2c_address,
+      .microphones = static_cast<es7210_input_mics_t>(ES7210_INPUT_MIC1 | ES7210_INPUT_MIC2 |
+                                                      ES7210_INPUT_MIC3 | ES7210_INPUT_MIC4),
+      .high_pass_filter = true,
   });
-
-  if (!microphone_task_->start()) {
-    i2s_channel_disable(audio_rx_handle);
-    i2s_del_channel(audio_rx_handle);
-    audio_rx_handle = nullptr;
-    microphone_task_.reset();
+  // NOTE: register 0x08 (master/slave & channels) is left at its reset
+  // default, which is correct in slave mode. Forcing 0x08 = 0x20 (as some
+  // MicroPython T-Deck ports do for their async PWM MCLK) turns the capture on
+  // this hardware-MCLK setup into a half-rate, every-other-frame-zero one.
+  auto microphone = std::make_shared<espp::Audio>(espp::Audio::Config{
+      .port = mic_i2s_port,
+      .pins = {.mclk = es7210_mclk_io,
+               .bclk = es7210_sclk_io,
+               .ws = es7210_lrck_io,
+               .din = es7210_sdout_io},
+      .sample_rate = config.recording_sample_rate,
+      .playback_enabled = false,
+      .recording_enabled = true,
+      .recording_channels = 2,
+      .recording_format = espp::Audio::RecordingFormat::TDM,
+      .recording_tdm_slots = 4,
+      .recording_slots = {0, 2}, // MIC1 -> left, MIC3 -> right
+      .input_codec = es7210_,
+      .microphone_volume = mic_volume_,
+      .recording_task_config = task_config_named(config.task_config, " in"),
+  });
+  if (!microphone->initialize()) {
+    microphone.reset();
+    deinitialize_recording();
     return false;
   }
-
-  microphone_initialized_ = true;
+  microphone_audio_.store(microphone);
+  // as for the playback settings (see initialize_playback())
+  float mic_volume;
+  do {
+    mic_volume = mic_volume_;
+    microphone->microphone_volume(mic_volume);
+  } while (mic_volume != mic_volume_);
   return true;
 }
 
-uint32_t TDeck::microphone_sample_rate() const { return mic_sample_rate_; }
+void TDeck::deinitialize_recording() {
+  // unpublished first: a forwarder called meanwhile (e.g. from a recording
+  // callback still finishing) then sees no audio rather than one being torn
+  // down
+  auto microphone = microphone_audio_.exchange(nullptr);
+  // release the I2S channel, task and codec now, even if the application
+  // still holds the object from microphone_audio()
+  if (microphone) {
+    microphone->deinitialize();
+  }
+  microphone.reset();
+  es7210_.reset();
+  es7210_i2c_device_.reset();
+}
 
-bool TDeck::microphone_task_callback(std::mutex &m, std::condition_variable &cv,
-                                     bool &task_notified) {
-  size_t bytes_read = 0;
-  // Use a finite read timeout (not portMAX_DELAY) so this task returns
-  // periodically and can observe a stop request; an infinite read would block
-  // Task::stop() from joining during teardown.
-  auto err = i2s_channel_read(audio_rx_handle, audio_rx_buffer.data(), audio_rx_buffer.size(),
-                              &bytes_read, pdMS_TO_TICKS(100));
-  if (err == ESP_OK && bytes_read > 0 && microphone_callback_) {
-    // audio_rx_buffer holds 4-slot TDM frames: [MIC1, MIC2, MIC3, MIC4].
-    // Compact the populated microphones (MIC1 -> slot 0, MIC3 -> slot 2) down
-    // to 16-bit stereo in place (the output region is the front half, so this
-    // is safe).
-    auto *samples = reinterpret_cast<int16_t *>(audio_rx_buffer.data());
-    size_t num_frames = bytes_read / (4 * sizeof(int16_t));
-    for (size_t i = 0; i < num_frames; i++) {
-      samples[2 * i] = samples[4 * i];         // MIC1 -> left
-      samples[2 * i + 1] = samples[4 * i + 2]; // MIC3 -> right
+void TDeck::deinitialize_audio() {
+  // as for the microphone (see deinitialize_recording())
+  auto audio = audio_.exchange(nullptr);
+  if (audio) {
+    audio->deinitialize();
+  }
+  audio.reset();
+  deinitialize_recording();
+}
+
+void TDeck::mute(bool mute) {
+  mute_ = mute;
+  if (auto audio = audio_.load()) {
+    audio->mute(mute);
+  }
+}
+
+bool TDeck::is_muted() const { return mute_; }
+
+void TDeck::volume(float volume) {
+  volume_ = std::clamp(volume, 0.0f, 100.0f);
+  if (auto audio = audio_.load()) {
+    audio->volume(volume_);
+  }
+}
+
+float TDeck::volume() const { return volume_; }
+
+uint32_t TDeck::audio_sample_rate() const {
+  auto audio = audio_.load();
+  return audio ? audio->sample_rate() : 0;
+}
+
+size_t TDeck::audio_buffer_size() const {
+  auto audio = audio_.load();
+  return audio ? audio->buffer_size() : 0;
+}
+
+bool TDeck::audio_sample_rate(uint32_t sample_rate) {
+  logger_.info("Setting audio sample rate to {} Hz", sample_rate);
+  auto audio = audio_.load();
+  if (!audio || !audio->is_initialized()) {
+    logger_.warn("Playback not initialized: pass the sample rate to initialize_audio()");
+    return false;
+  }
+  return audio->sample_rate(sample_rate);
+}
+
+size_t TDeck::play_audio(const uint8_t *data, size_t num_bytes) {
+  auto audio = audio_.load();
+  return audio ? audio->play(data, num_bytes) : 0;
+}
+
+size_t TDeck::play_audio(std::span<const uint8_t> data) {
+  return play_audio(data.data(), data.size());
+}
+
+size_t TDeck::play_audio(const std::vector<uint8_t> &data) {
+  return play_audio(data.data(), data.size());
+}
+
+void TDeck::clear_audio() {
+  if (auto audio = audio_.load()) {
+    audio->clear();
+  }
+}
+
+//////////////////////////
+// Microphone Functions //
+//////////////////////////
+
+bool TDeck::start_audio_recording(const microphone_callback_t &callback) {
+  auto microphone = microphone_audio_.load();
+  if (!microphone || !microphone->is_initialized()) {
+    logger_.error("Audio recording was not enabled in initialize_audio()");
+    return false;
+  }
+  if (!microphone->start_recording(callback)) {
+    return false;
+  }
+  logger_.info("Audio recording started");
+  return true;
+}
+
+void TDeck::stop_audio_recording() {
+  if (auto microphone = microphone_audio_.load()) {
+    microphone->stop_recording();
+  }
+  logger_.info("Audio recording stopped");
+}
+
+bool TDeck::initialize_microphone(const microphone_callback_t &callback, uint32_t sample_rate,
+                                  const espp::Task::BaseConfig &task_config) {
+  logger_.info("Initializing microphone");
+  if (!callback) {
+    logger_.error("A callback is required to receive the recorded audio data");
+    return false;
+  }
+  // the microphones have their own I2S bus: set (only) them up again if they
+  // are not running at this rate
+  if (microphone_sample_rate() != sample_rate) {
+    deinitialize_recording();
+    if (!initialize_recording(
+            AudioConfig{.recording_sample_rate = sample_rate, .task_config = task_config})) {
+      return false;
     }
-    microphone_callback_(audio_rx_buffer.data(), num_frames * 2 * sizeof(int16_t));
   }
-  // honor a stop request per the Task contract: check/clear notified under m
-  std::unique_lock<std::mutex> lock(m);
-  if (task_notified) {
-    task_notified = false;
-    return true; // stop the task
-  }
-  return false; // keep running
+  return start_audio_recording(callback);
+}
+
+uint32_t TDeck::microphone_sample_rate() const {
+  auto microphone = microphone_audio_.load();
+  return microphone ? microphone->sample_rate() : 0;
 }
 
 void TDeck::microphone_volume(float volume) {
   mic_volume_ = std::clamp(volume, 0.0f, 100.0f);
-  if (microphone_initialized_) {
-    es7210_adc_set_gain_all(microphone_gain_from_volume(mic_volume_));
+  if (auto microphone = microphone_audio_.load()) {
+    microphone->microphone_volume(mic_volume_);
   }
 }
 
