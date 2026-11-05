@@ -141,6 +141,6 @@ once their project builds for an emulated target; networking examples that
 bring up their own board's Ethernet or Wi-Fi need their interface replaced by
 ``espp::Qemu::initialize_ethernet()`` first (the RTPS example is one; running
 it in CI this way is the next step of this work). Treat a hang right after
-display initialisation as the missing display backend described above, and a
+display initialization as the missing display backend described above, and a
 ``not supported`` from ``esp_lcd_new_rgb_qemu`` as the application running on
 real hardware.
