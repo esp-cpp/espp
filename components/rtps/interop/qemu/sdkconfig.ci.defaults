@@ -1,0 +1,12 @@
+# The harness (run_qemu_interop.sh): QEMU on a tap device with no DHCP server,
+# the host side at 192.168.100.1.
+CONFIG_RTPS_QEMU_STATIC_IP=y
+CONFIG_RTPS_QEMU_IP="192.168.100.2"
+CONFIG_RTPS_QEMU_NETMASK="255.255.255.0"
+CONFIG_RTPS_QEMU_GATEWAY="192.168.100.1"
+
+# The many-participants case puts twelve unrelated ROS 2 participants on the
+# domain before the one the device needs; the embedded profile's pool holds
+# ten. Raise it through the menuconfig knob, which is what an application on a
+# busy domain has to do - and what the case then proves works.
+CONFIG_RTPS_LIMIT_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS=16

@@ -10,7 +10,17 @@ FROM ros:jazzy-ros-base
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential cmake git rsync python3-dev python3-pip python3-venv pybind11-dev \
     ros-jazzy-example-interfaces ros-jazzy-rmw-cyclonedds-cpp \
+    curl xz-utils iproute2 iputils-ping \
+    libpixman-1-0 libgcrypt20 libsdl2-2.0-0 libslirp0 zlib1g \
     && rm -rf /var/lib/apt/lists/*
+
+# Espressif's QEMU (the esp32 machine) for run_qemu_interop.sh: the same build
+# ESP-IDF's idf_tools.py installs, straight from its release tarball, so the
+# image needs no ESP-IDF. The firmware is built outside (idf.py) and handed in
+# as a merged flash image. The libraries above are what the binary links.
+ARG QEMU_XTENSA_URL=https://github.com/espressif/qemu/releases/download/esp-develop-9.2.2-20260417/qemu-xtensa-softmmu-esp_develop_9.2.2_20260417-x86_64-linux-gnu.tar.xz
+RUN curl -sSL "$QEMU_XTENSA_URL" | tar -xJ -C /opt \
+    && /opt/qemu/bin/qemu-system-xtensa --version
 
 # A venv with the espp wheel build backend, so run_interop.sh can build the
 # bindings in-container and functionally test them (python/rtps_rpc_demo.py). A

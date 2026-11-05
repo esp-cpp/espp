@@ -296,6 +296,9 @@ jobs:
           target: esp32s3
         - path: 'components/rtps/example'
           target: esp32
+        - path: 'components/rtps/interop/qemu'
+          target: esp32
+          command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.ci.defaults" build
         - path: 'components/rtsp/example'
           target: esp32
         - path: 'components/runqueue/example'

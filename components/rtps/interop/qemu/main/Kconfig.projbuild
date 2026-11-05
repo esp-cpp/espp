@@ -1,0 +1,27 @@
+menu "RTPS QEMU interop firmware"
+
+    config RTPS_QEMU_STATIC_IP
+        bool "Use a static IPv4 address instead of DHCP"
+        default n
+        help
+            The harness runs QEMU on a tap device with no DHCP server, so CI
+            builds set this (sdkconfig.ci.defaults). A developer running
+            `idf.py qemu` on the user-mode NAT leaves it off and gets an
+            address from QEMU.
+
+    config RTPS_QEMU_IP
+        string "IPv4 address"
+        depends on RTPS_QEMU_STATIC_IP
+        default "192.168.100.2"
+
+    config RTPS_QEMU_NETMASK
+        string "IPv4 netmask"
+        depends on RTPS_QEMU_STATIC_IP
+        default "255.255.255.0"
+
+    config RTPS_QEMU_GATEWAY
+        string "IPv4 gateway"
+        depends on RTPS_QEMU_STATIC_IP
+        default "192.168.100.1"
+
+endmenu
