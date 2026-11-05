@@ -158,6 +158,24 @@ ros2_cases() { # prefix log-tag
   n=$(count_since "$m" "RTPSTEST big_rx len=30000"); echo "device reassembled $n"
   [ "$n" -ge 1 ]; result "${p}ros2_pub->device_sub_frag_30k" $?
   settle
+
+  note "${p}more participants than the remote-participant pool holds (28 against 24), then all leave: discovery keeps going and the pool recovers"
+  crowd=()
+  for i in $(seq 1 28); do
+    timeout 50 ros2 topic pub -r 1 "/flood$i" std_msgs/msg/String "data: 'flood'" > /dev/null 2>&1 &
+    crowd+=("$!")
+  done
+  sleep 25
+  echo "  device: $(grep -o 'RTPSTEST status.*' "$LOG" | tail -1)"
+  kill "${crowd[@]}" 2>/dev/null; wait "${crowd[@]}" 2>/dev/null || true
+  settle
+  sleep 6 # the capped lease (8 s) plus one liveliness sweep: every one of them forgotten
+  m=$(mark)
+  timeout 32 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'after the flood'" > /dev/null 2>&1 &
+  pub=$!; sleep 30; kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
+  n=$(count_since "$m" "RTPSTEST rx after the flood"); echo "device received $n"
+  [ "$n" -ge 5 ]; result "${p}participant_pool_overflow_recovers" $?
+  settle
 }
 
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
@@ -217,7 +235,10 @@ unset CYCLONEDDS_URI
 note "Device health over the run"
 LAST_HEAP=$(grep -o " heap=[0-9]*" "$LOG" | tail -1 | cut -d= -f2)
 echo "free heap first=$FIRST_HEAP last=$LAST_HEAP"
-[ -n "$FIRST_HEAP" ] && [ -n "$LAST_HEAP" ] && [ "$LAST_HEAP" -ge $((FIRST_HEAP - 65536)) ]; result "device_heap_stable" $?
+# Known, bounded growth: two buffers grow once to the largest sample (30 KB
+# each, measured 60 KB over a run) when the first 30 KB samples arrive; the
+# slack leaves 36 KB on top of that for anything that leaks per case.
+[ -n "$FIRST_HEAP" ] && [ -n "$LAST_HEAP" ] && [ "$LAST_HEAP" -ge $((FIRST_HEAP - 98304)) ]; result "device_heap_stable" $?
 ! grep -qE "Guru Meditation|abort\(\)|assert failed|RTPSTEST fatal" "$LOG"; result "device_no_crash" $?
 grep -o "RTPSTEST status.*" "$LOG" | tail -1
 # informational: pressure the run put on the device (pool exhaustion, frames

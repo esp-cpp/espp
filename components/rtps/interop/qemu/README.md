@@ -43,8 +43,12 @@ engine coming up on the target: PSRAM (4 MB, emulated), the address, the
 participant, the publisher ticking, the status lines. For the full matrix use
 `../run_qemu.sh` (Linux + Docker) or the CI workflow.
 
-The CI defaults also raise the remote-participant pool to 16 through the
+The CI defaults also raise the remote-participant pool to 24 through the
 menuconfig knob (`CONFIG_RTPS_LIMIT_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS`): the
 many-participants case puts twelve unrelated ROS 2 participants on the domain,
 more than the embedded profile's ten, which is both what an application on a
-busy domain has to do and what the case proves works.
+busy domain has to do and what the case proves works. The per-endpoint proxy
+knobs go up with it (each builtin discovery endpoint holds one proxy per
+remote participant), and the lease cap, the unmatched-endpoint pools and the
+name-length caps are raised for the same reason; `sdkconfig.ci.defaults` says
+why for each.

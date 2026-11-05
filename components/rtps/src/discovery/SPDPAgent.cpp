@@ -135,22 +135,35 @@ void SPDPAgent::processProxyData() {
     return; // Already in our list
   }
 
-  if (mp_participant->addNewRemoteParticipant(m_proxyDataBuffer)) {
-    addProxiesForBuiltInEndpoints();
-    const DataSize_t size = static_cast<DataSize_t>(m_outputSize);
-    m_buildInEndpoints.spdpWriter->newChange(ChangeKind_t::ALIVE, m_outputBuffer.data(), size);
+  if (!mp_participant->addNewRemoteParticipant(m_proxyDataBuffer)) {
+    // The remote-participant pool is full. The peer announces again
+    // (SPDP is periodic), and the liveliness sweep frees a slot once a known
+    // peer's lease runs out, so it gets in later; nothing to do now. (This
+    // used to spin forever in non-verbose builds, with the agent mutex held:
+    // one participant too many on the domain froze discovery.)
+    SPDP_LOG("Remote-participant pool full, not adding this participant");
+    return;
+  }
+
+  if (!addProxiesForBuiltInEndpoints()) {
+    // Its SEDP proxies do not fit the builtin endpoints' per-endpoint proxy
+    // pools (or it has no usable locator). Forget it again: a participant
+    // left in the list without its builtin proxies would never be matched,
+    // because every later announcement only refreshes its lease. Forgotten,
+    // it is retried on its next announcement, by which time the sweep may
+    // have freed a slot. Lock order here is the SPDP agent mutex (held by
+    // handleSPDPPackage) -> SEDP agent mutex -> Participant mutex; nothing
+    // takes the SPDP mutex while holding either of the others.
+    SPDP_LOG("Builtin proxies for the new participant did not fit, forgetting it");
+    mp_participant->removeRemoteParticipant(m_proxyDataBuffer.m_guid.prefix);
+    return;
+  }
+
+  const DataSize_t size = static_cast<DataSize_t>(m_outputSize);
+  m_buildInEndpoints.spdpWriter->newChange(ChangeKind_t::ALIVE, m_outputBuffer.data(), size);
 #if SPDP_VERBOSE && RTPS_GLOBAL_VERBOSE
-    SPDP_LOG("Added new participant with guid: ");
-    printGuidPrefix(m_proxyDataBuffer.m_guid.prefix);
-  } else {
-    SPDP_LOG("Failed to add new participant");
-  }
-#else
-  } else {
-    while (1) {
-      SPDP_LOG("failed to add remote participant");
-    }
-  }
+  SPDP_LOG("Added new participant with guid: ");
+  printGuidPrefix(m_proxyDataBuffer.m_guid.prefix);
 #endif
 }
 
@@ -184,41 +197,52 @@ bool SPDPAgent::addProxiesForBuiltInEndpoints() {
     return false;
   }
 
+  // All four proxies or none: each builtin endpoint's proxy pool holds
+  // NUM_*_PROXIES_PER_* entries, one per remote participant, and a peer that
+  // only partly fits could never complete SEDP with us. On any failure the
+  // ones that did fit are removed again and the caller forgets the peer.
+  const GuidPrefix_t &prefix = m_proxyDataBuffer.m_guid.prefix;
+  bool ok = true;
+
   if (m_proxyDataBuffer.hasPublicationReader()) {
-    const ReaderProxy proxy{
-        {m_proxyDataBuffer.m_guid.prefix, ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER},
-        *locator,
-        true};
-    m_buildInEndpoints.sedpPubWriter->addNewMatchedReader(proxy);
+    const ReaderProxy proxy{{prefix, ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER}, *locator, true};
+    ok = m_buildInEndpoints.sedpPubWriter->addNewMatchedReader(proxy) && ok;
   }
 
   if (m_proxyDataBuffer.hasSubscriptionReader()) {
-    const ReaderProxy proxy{
-        {m_proxyDataBuffer.m_guid.prefix, ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_READER},
-        *locator,
-        true};
-    m_buildInEndpoints.sedpSubWriter->addNewMatchedReader(proxy);
+    const ReaderProxy proxy{{prefix, ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_READER}, *locator, true};
+    ok = m_buildInEndpoints.sedpSubWriter->addNewMatchedReader(proxy) && ok;
   }
 
   if (m_proxyDataBuffer.hasPublicationWriter()) {
-    const WriterProxy proxy{
-        {m_proxyDataBuffer.m_guid.prefix, ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER},
-        *locator,
-        true};
-    m_buildInEndpoints.sedpPubReader->addNewMatchedWriter(proxy);
-    m_buildInEndpoints.sedpPubReader->sendPreemptiveAckNack(proxy);
+    const WriterProxy proxy{{prefix, ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER}, *locator, true};
+    if (m_buildInEndpoints.sedpPubReader->addNewMatchedWriter(proxy)) {
+      m_buildInEndpoints.sedpPubReader->sendPreemptiveAckNack(proxy);
+    } else {
+      ok = false;
+    }
   }
 
   if (m_proxyDataBuffer.hasSubscriptionWriter()) {
-    const WriterProxy proxy{
-        {m_proxyDataBuffer.m_guid.prefix, ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER},
-        *locator,
-        true};
-    m_buildInEndpoints.sedpSubReader->addNewMatchedWriter(proxy);
-    m_buildInEndpoints.sedpSubReader->sendPreemptiveAckNack(proxy);
+    const WriterProxy proxy{{prefix, ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER}, *locator, true};
+    if (m_buildInEndpoints.sedpSubReader->addNewMatchedWriter(proxy)) {
+      m_buildInEndpoints.sedpSubReader->sendPreemptiveAckNack(proxy);
+    } else {
+      ok = false;
+    }
   }
 
-  return true;
+  if (!ok) {
+    m_buildInEndpoints.sedpPubWriter->removeProxy(
+        {prefix, ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER});
+    m_buildInEndpoints.sedpSubWriter->removeProxy(
+        {prefix, ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_READER});
+    m_buildInEndpoints.sedpPubReader->removeProxy(
+        {prefix, ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER});
+    m_buildInEndpoints.sedpSubReader->removeProxy(
+        {prefix, ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER});
+  }
+  return ok;
 }
 
 void SPDPAgent::addInlineQos(CdrWriter &writer) {

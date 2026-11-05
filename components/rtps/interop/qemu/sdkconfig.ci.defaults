@@ -10,6 +10,14 @@ CONFIG_RTPS_QEMU_GATEWAY="192.168.100.1"
 # ten. Raise it through the menuconfig knob, which is what an application on a
 # busy domain has to do - and what the case then proves works.
 CONFIG_RTPS_LIMIT_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS=24
+# ... and the pool is only as useful as the builtin discovery endpoints'
+# proxy pools: each of the four SEDP endpoints holds one proxy per remote
+# participant, from the per-endpoint proxy knobs (6 in the embedded profile).
+# A peer whose proxies do not fit is forgotten and retried on its next
+# announcement. Raised to 20, deliberately below the participant pool, so the
+# overflow case exercises that retry as well as the full-pool one.
+CONFIG_RTPS_LIMIT_NUM_WRITER_PROXIES_PER_READER=20
+CONFIG_RTPS_LIMIT_NUM_READER_PROXIES_PER_WRITER=20
 
 # Every ros2 CLI invocation the harness makes is a participant that announces
 # a 20 s lease (FastDDS) and then exits; left to the announced lease, the dead
@@ -30,3 +38,7 @@ CONFIG_RTPS_SPDP_MAX_REMOTE_LEASE_DURATION_S=8
 CONFIG_RTPS_LIMIT_MAX_NUM_UNMATCHED_REMOTE_WRITERS=255
 CONFIG_RTPS_LIMIT_MAX_NUM_UNMATCHED_REMOTE_READERS=255
 CONFIG_RTPS_LIMIT_MAX_TYPENAME_LENGTH=96
+# and a `ros2 topic pub` node's parameter-service topics (rq/<node>/get_parametersRequest
+# and friends) run 70-85 characters: over the profile's 64-character topic-name
+# cap ("Topic name length 77 exceeds maximum allowed length 64", skipped).
+CONFIG_RTPS_LIMIT_MAX_TOPICNAME_LENGTH=96

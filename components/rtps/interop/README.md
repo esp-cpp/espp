@@ -55,8 +55,9 @@ cd .. && ./run_qemu.sh
 | device_boot, device_ping | the engine comes up on lwIP over the emulated OpenCores MAC |
 | device_pub->ros2_echo, ros2_pub->device_sub (+ best-effort pair) | delivery both ways, FastDDS and CycloneDDS |
 | ros2_pub->device_sub_liveliness | samples still arriving 24-34 s in, past the remote lease |
-| many_participants_late_joiner | twelve unrelated participants first, the needed one last, against the pool raised to 16 by `CONFIG_RTPS_LIMIT_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS` |
+| many_participants_late_joiner | twelve unrelated participants first, the needed one last, against the pool raised to 24 by `CONFIG_RTPS_LIMIT_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS` |
 | ros2_pub->device_sub_frag_30k | 30 KB samples reassembled from DATA_FRAG over lwIP |
+| participant_pool_overflow_recovers | 28 participants against a pool of 24 (and proxy pools of 20), then all leave: discovery keeps going, every one is forgotten after the capped lease, the next publisher is received |
 | ros2_client->device_service | the typed service server (FastDDS rmw) |
 | espp_host_pub->device_sub, device_pub->espp_host_sub | the host engine against the embedded one |
 | netem_loss_reliable | 15 % loss + 10 ms jitter on the link (`tc netem`): the reliable reader still delivers |
