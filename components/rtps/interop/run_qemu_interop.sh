@@ -44,7 +44,11 @@ wait_for_marker() { # marker timeout_s
 # the device forgets a peer only when its (capped, 8 s) lease expires; give
 # it that, so no case starts against pools still holding dead peers. Also
 # print the device's latest status line, the first thing to read on a failure.
-settle() { sleep 10; grep -o "RTPSTEST status.*" "$LOG" | tail -1 | sed 's/^/  device: /'; }
+settle() {
+  sleep 10
+  grep -o "RTPSTEST status.*" "$LOG" | tail -1 | sed 's/^/  device: /'
+  echo "  device: pool-exhaustion messages so far $(grep -c 'RESSOURCE LIMIT EXCEEDED' "$LOG"), RX frames dropped $(grep -c 'RX frame dropped' "$LOG")"
+}
 
 # --- tap device ----------------------------------------------------------------
 note "Tap device $TAP ($HOST_IP/24), the container's only interface"

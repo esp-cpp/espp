@@ -51,8 +51,15 @@ jobs:
         run: |
           cd components/rtps/interop
           ./run_qemu.sh "$PWD/qemu/build/qemu_flash.bin"
-      - name: Device log
+      - name: Device log (tail)
         if: always()
         run: |
           f=components/rtps/interop/qemu/build/qemu-serial.log
           if [ -f "$f" ]; then sed 's/\x1b\[[0-9;]*m//g' "$f" | tail -300; else echo "no device log"; fi
+      - name: Device log (full, as an artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-device-log
+          path: components/rtps/interop/qemu/build/qemu-serial.log
+          if-no-files-found: ignore
