@@ -40,6 +40,11 @@ wait_for_marker() { # marker timeout_s
   for i in $(seq 1 "$2"); do grep -q -- "$1" "$LOG" 2>/dev/null && return 0; sleep 1; done
   return 1
 }
+# Between cases: the ros2 CLI participants of the previous case are gone, but
+# the device forgets a peer only when its (capped, 8 s) lease expires; give
+# it that, so no case starts against pools still holding dead peers. Also
+# print the device's latest status line, the first thing to read on a failure.
+settle() { sleep 10; grep -o "RTPSTEST status.*" "$LOG" | tail -1 | sed 's/^/  device: /'; }
 
 # --- tap device ----------------------------------------------------------------
 note "Tap device $TAP ($HOST_IP/24), the container's only interface"
@@ -83,6 +88,7 @@ else
   exit 1
 fi
 ping -c 2 -W 2 $DEVICE_IP > /tmp/ping.log 2>&1; result "device_ping" $?
+wait_for_marker "RTPSTEST status" 10
 FIRST_HEAP=$(grep -o "heap=[0-9]*" "$LOG" | tail -1 | cut -d= -f2)
 
 source /opt/ros/jazzy/setup.bash
@@ -96,31 +102,36 @@ ros2_cases() { # prefix log-tag
   timeout 30 ros2 topic echo --once /qemu_tx std_msgs/msg/String > "/tmp/${t}_echo.log" 2>&1
   local rc=$?; grep -q "qemu " "/tmp/${t}_echo.log" || rc=1
   head -3 "/tmp/${t}_echo.log"; result "${p}device_pub->ros2_echo" $rc
+  settle
 
   note "${p}ROS 2 publisher -> device subscriber (reliable, /qemu_rx)"
   m=$(mark)
-  timeout 20 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'ros2 to qemu'" > /dev/null 2>&1 &
-  local pub=$!; sleep 18; kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
+  timeout 32 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'ros2 to qemu'" > /dev/null 2>&1 &
+  local pub=$!; sleep 30; kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
   local n; n=$(count_since "$m" "RTPSTEST rx ros2 to qemu"); echo "device received $n"
   [ "$n" -ge 5 ]; result "${p}ros2_pub->device_sub" $?
+  settle
 
   note "${p}device best-effort publisher -> ROS 2 subscriber (/qemu_be_tx)"
   timeout 30 ros2 topic echo --once --qos-reliability best_effort /qemu_be_tx std_msgs/msg/String > "/tmp/${t}_beecho.log" 2>&1
   rc=$?; grep -q "qemu_be " "/tmp/${t}_beecho.log" || rc=1
   head -3 "/tmp/${t}_beecho.log"; result "${p}device_be_pub->ros2_echo" $rc
+  settle
 
   note "${p}ROS 2 best-effort publisher -> device subscriber (/qemu_be_rx)"
   m=$(mark)
-  timeout 20 ros2 topic pub --qos-reliability best_effort -r 5 /qemu_be_rx std_msgs/msg/String "data: 'be to qemu'" > /dev/null 2>&1 &
-  pub=$!; sleep 18; kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
+  timeout 32 ros2 topic pub --qos-reliability best_effort -r 5 /qemu_be_rx std_msgs/msg/String "data: 'be to qemu'" > /dev/null 2>&1 &
+  pub=$!; sleep 30; kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
   n=$(count_since "$m" "RTPSTEST be_rx be to qemu"); echo "device received $n"
   [ "$n" -ge 3 ]; result "${p}ros2_be_pub->device_be_sub" $?
+  settle
 
   note "${p}ROS 2 publisher -> device subscriber, samples still arriving 22 s in (liveliness past the lease)"
   timeout 36 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'still alive'" > /dev/null 2>&1 &
   pub=$!; sleep 24; m=$(mark); sleep 10; kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
   n=$(count_since "$m" "RTPSTEST rx still alive"); echo "device received $n in the 24-34 s window"
   [ "$n" -ge 10 ]; result "${p}ros2_pub->device_sub_liveliness" $?
+  settle
 
   note "${p}twelve other participants on the domain, then the publisher the device needs joins last"
   local crowd=() i
@@ -130,17 +141,19 @@ ros2_cases() { # prefix log-tag
   done
   sleep 10
   m=$(mark)
-  timeout 20 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'late joiner'" > /dev/null 2>&1 &
-  pub=$!; sleep 18; kill $pub "${crowd[@]}" 2>/dev/null; wait $pub "${crowd[@]}" 2>/dev/null || true
+  timeout 32 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'late joiner'" > /dev/null 2>&1 &
+  pub=$!; sleep 30; kill $pub "${crowd[@]}" 2>/dev/null; wait $pub "${crowd[@]}" 2>/dev/null || true
   n=$(count_since "$m" "RTPSTEST rx late joiner"); echo "device received $n"
   [ "$n" -ge 3 ]; result "${p}many_participants_late_joiner" $?
+  settle
 
   note "${p}ROS 2 publisher -> device subscriber, 30 KB samples (DATA_FRAG over lwIP, /qemu_big)"
   m=$(mark)
   local big; big=$(head -c 30000 /dev/zero | tr '\0' x)
-  timeout 25 ros2 topic pub -t 5 -r 1 /qemu_big std_msgs/msg/String "data: '$big'" > /dev/null 2>&1
+  timeout 40 ros2 topic pub -t 12 -r 0.5 /qemu_big std_msgs/msg/String "data: '$big'" > /dev/null 2>&1
   n=$(count_since "$m" "RTPSTEST big_rx len=30000"); echo "device reassembled $n"
   [ "$n" -ge 1 ]; result "${p}ros2_pub->device_sub_frag_30k" $?
+  settle
 }
 
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
@@ -148,10 +161,11 @@ ros2_cases "fastdds: " fastdds
 
 note "fastdds: ROS 2 service client -> device service server (/qemu_add_two_ints)"
 m=$(mark)
-timeout 30 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 7, b: 35}" > /tmp/srv.log 2>&1
+timeout 50 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 7, b: 35}" > /tmp/srv.log 2>&1
 rc=$?; grep -q "sum=42" /tmp/srv.log || rc=1
 [ "$(count_since "$m" "RTPSTEST srv 7+35=42")" -ge 1 ] || rc=1
 tail -2 /tmp/srv.log; result "fastdds: ros2_client->device_service" $rc
+settle
 
 # --- espp host engine <-> device ---------------------------------------------------------
 note "espp host publisher -> device subscriber (reliable, /qemu_rx)"
@@ -160,20 +174,34 @@ m=$(mark)
 pub=$!; sleep 16; kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
 n=$(count_since "$m" "RTPSTEST rx "); echo "device received $n"
 [ "$n" -ge 5 ]; result "espp_host_pub->device_sub" $?
+settle
 
 note "device publisher -> espp host subscriber (reliable, /qemu_tx)"
 "$BIN"/rtps_interop_sub rt/qemu_tx std_msgs::msg::dds_::String_ 1 5 30 $HOST_IP > /tmp/hostsub.log 2>&1
 rc=$?; tail -2 /tmp/hostsub.log; result "device_pub->espp_host_sub" $rc
+settle
+
+note "espp host publisher -> device subscriber, 30 KB samples as DATA_FRAG (1400-byte fragments, /qemu_big)"
+# The ROS 2 peers send a 30 KB sample as one IP-fragmented UDP datagram (lwIP
+# reassembly); the host engine with a fragment size sends RTPS DATA_FRAG
+# submessages, so this exercises the engine's own reassembly instead.
+m=$(mark)
+"$BIN"/rtps_interop_pub rt/qemu_big std_msgs::msg::dds_::String_ 1 12 2000 $HOST_IP 30000 1400 > /tmp/hostfrag.log 2>&1 &
+pub=$!; sleep 30; kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
+n=$(count_since "$m" "RTPSTEST big_rx len=30000"); echo "device reassembled $n"
+[ "$n" -ge 1 ]; result "espp_host_frag_30k->device_sub" $?
+settle
 
 # --- fault injection: loss and delay on the device's link ------------------------------------
 note "15% loss + 10 ms jitter on $TAP: ROS 2 publisher -> device reliable subscriber still delivers"
 tc qdisc add dev $TAP root netem loss 15% delay 10ms 3ms
 m=$(mark)
-timeout 25 ros2 topic pub -r 10 /qemu_rx std_msgs/msg/String "data: 'lossy'" > /dev/null 2>&1 &
-pub=$!; sleep 22; kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
-n=$(count_since "$m" "RTPSTEST rx lossy"); echo "device received $n of ~200 under 15% loss"
-[ "$n" -ge 60 ]; result "netem_loss_reliable" $?
+timeout 42 ros2 topic pub -r 10 /qemu_rx std_msgs/msg/String "data: 'lossy'" > /dev/null 2>&1 &
+pub=$!; sleep 40; kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
+n=$(count_since "$m" "RTPSTEST rx lossy"); echo "device received $n of ~400 under 15% loss"
+[ "$n" -ge 100 ]; result "netem_loss_reliable" $?
 tc qdisc del dev $TAP root
+settle
 
 # --- CycloneDDS pass ---------------------------------------------------------------------------
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp

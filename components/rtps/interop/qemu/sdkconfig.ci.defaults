@@ -9,4 +9,10 @@ CONFIG_RTPS_QEMU_GATEWAY="192.168.100.1"
 # domain before the one the device needs; the embedded profile's pool holds
 # ten. Raise it through the menuconfig knob, which is what an application on a
 # busy domain has to do - and what the case then proves works.
-CONFIG_RTPS_LIMIT_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS=16
+CONFIG_RTPS_LIMIT_SPDP_MAX_NUMBER_FOUND_PARTICIPANTS=24
+
+# Every ros2 CLI invocation the harness makes is a participant that announces
+# a 20 s lease (FastDDS) and then exits; left to the announced lease, the dead
+# ones pile up in the pool across cases. Cap what the device honours (the
+# knob exists for exactly this) so a gone peer is forgotten in 8 s.
+CONFIG_RTPS_SPDP_MAX_REMOTE_LEASE_DURATION_S=8
