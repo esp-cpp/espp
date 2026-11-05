@@ -20,6 +20,7 @@ FLASH="${1:?usage: run_qemu_interop.sh <qemu_flash.bin>}"
 QEMU="${QEMU:-/opt/qemu/bin/qemu-system-xtensa}"
 TAP=tap0
 HOST_IP=192.168.100.1
+DEV_IP=192.168.100.2 # sdkconfig.ci.defaults
 DEVICE_IP=192.168.100.2
 # the device log goes next to the image (on the bind mount) so CI can show it
 LOG="$(dirname "$FLASH")/qemu-serial.log"
@@ -48,6 +49,22 @@ settle() {
   sleep 10
   grep -o "RTPSTEST status.*" "$LOG" | tail -1 | sed 's/^/  device: /'
   echo "  device: pool-exhaustion messages so far $(grep -c 'RESSOURCE LIMIT EXCEEDED' "$LOG"), RX frames dropped $(grep -c 'RX frame dropped' "$LOG")"
+}
+# A capture of the frames towards the device, in two lines: how many, how
+# many of them IP fragments (more-fragments set or a non-zero offset) against
+# whole datagrams, how many to multicast, the biggest burst (frames within any
+# 20 ms), and the busiest destinations. The emulated MAC's ring is the
+# device's only buffer against a burst, and the emulator puts no wire time
+# between frames.
+wire_summary() { # pcap
+  [ -s "$1" ] || { echo "  wire: no capture"; return; }
+  local total frag mcast burst
+  total=$(tcpdump -nn -r "$1" 2>/dev/null | wc -l)
+  frag=$(tcpdump -nn -r "$1" 'ip[6:2] & 0x3fff != 0' 2>/dev/null | wc -l)
+  mcast=$(tcpdump -nn -r "$1" 'ip dst net 224.0.0.0/4' 2>/dev/null | wc -l)
+  burst=$(tcpdump -nn -tt -r "$1" 2>/dev/null | awk '{t[NR]=$1} END {b=0; j=1; for (i=1; i<=NR; i++) { while (t[i]-t[j] > 0.02) j++; if (i-j+1 > b) b=i-j+1 } print b}')
+  echo "  wire: $total frames towards the device: $frag IP fragments, $((total - frag)) whole datagrams, $mcast to multicast; biggest burst $burst frames within 20 ms"
+  echo "  wire: busiest destinations: $(tcpdump -nn -r "$1" 'ip[6:2] & 0x3fff = 0' 2>/dev/null | awk '{print $5}' | sed 's/:$//' | sort | uniq -c | sort -rn | head -4 | awk '{printf "%s x%s  ", $2, $1}')"
 }
 
 # --- tap device ----------------------------------------------------------------
@@ -154,8 +171,16 @@ ros2_cases() { # prefix log-tag
   note "${p}ROS 2 publisher -> device subscriber, 30 KB samples (DATA_FRAG over lwIP, /qemu_big)"
   m=$(mark)
   local big; big=$(head -c 30000 /dev/zero | tr '\0' x)
+  # the wire during this case, summarised below: what one 30 KB sample is
+  # as frames, and how tight the burst is (the emulated MAC's ring is the
+  # device's only buffer against a burst with no wire time between frames)
+  local cap="/tmp/${t}_frag.pcap"
+  tcpdump -i "$TAP" -nn -w "$cap" "udp and (dst host $DEV_IP or dst net 224.0.0.0/4)" > /dev/null 2>&1 &
+  local tcpd=$!; sleep 1
   timeout 40 ros2 topic pub -t 12 -r 0.5 /qemu_big std_msgs/msg/String "data: '$big'" > /dev/null 2>&1
+  sleep 1; kill $tcpd 2>/dev/null; wait $tcpd 2>/dev/null || true
   n=$(count_since "$m" "RTPSTEST big_rx len=30000"); echo "device reassembled $n"
+  wire_summary "$cap"
   [ "$n" -ge 1 ]; result "${p}ros2_pub->device_sub_frag_30k" $?
   settle
 

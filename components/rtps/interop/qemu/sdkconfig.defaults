@@ -23,12 +23,14 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=12288
 # ring is tiny by default (4 frames) and in the emulator a burst arrives with
 # no wire time between frames: a 30 KB datagram is 21 IP fragments back to
 # back, and the whole burst must fit the ring or reassembly never completes
-# ("RX frame dropped" in the log, in step with every big sample). 40 of the
-# maximum 64.
+# ("RX frame dropped (0x14)" in the log: INT_BUSY, a frame discarded for lack
+# of a free descriptor, in step with every big sample). 40 was enough for the
+# host engine's DATA_FRAG burst and CycloneDDS's single datagram; FastDDS's
+# 30 KB sample still lost one frame per sample. The maximum, 64.
 CONFIG_ETH_ENABLED=y
 CONFIG_ETH_USE_ESP32_EMAC=n
 CONFIG_ETH_USE_OPENETH=y
-CONFIG_ETH_OPENETH_DMA_RX_BUFFER_NUM=40
+CONFIG_ETH_OPENETH_DMA_RX_BUFFER_NUM=64
 CONFIG_ETH_OPENETH_DMA_TX_BUFFER_NUM=8
 
 # IP reassembly is OFF in ESP-IDF's default lwIP configuration. FastDDS and

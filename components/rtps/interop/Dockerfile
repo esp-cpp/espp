@@ -10,7 +10,7 @@ FROM ros:jazzy-ros-base
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential cmake git rsync python3-dev python3-pip python3-venv pybind11-dev \
     ros-jazzy-example-interfaces ros-jazzy-rmw-cyclonedds-cpp \
-    curl xz-utils iproute2 iputils-ping \
+    curl xz-utils iproute2 iputils-ping tcpdump \
     libpixman-1-0 libgcrypt20 libsdl2-2.0-0 libslirp0 zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
