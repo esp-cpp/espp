@@ -1,0 +1,16 @@
+## IDF Component Manager Manifest File - example project overrides.
+##
+## This file only affects THIS example build, not the published lilygo-t5-47
+## component (whose own manifest declares plain registry dependencies).
+dependencies:
+  # bq27220 and pca9535 are published with the next espp release (they are in
+  # .github/workflows/upload_components.yml now); until then the example, which
+  # runs the component manager for epdiy, would fail to resolve them from the
+  # registry. Point at the in-repo sources, and delete this file once they are
+  # on the registry.
+  espp/bq27220:
+    version: "*"
+    override_path: "../../../bq27220"
+  espp/pca9535:
+    version: "*"
+    override_path: "../../../pca9535"

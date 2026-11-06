@@ -26,23 +26,15 @@ dependencies:
   espp/spi: ">=1.0"
   espp/gt911: ">=1.0"
   espp/bm8563: ">=1.0"
-  # bq27220 and pca9535 are new espp components that are not published to the
-  # registry yet; point at the local sources until they are released.
-  espp/bq27220:
-    version: "*"
-    override_path: "../bq27220"
-  espp/pca9535:
-    version: "*"
-    override_path: "../pca9535"
-  espp/sx126x:
-    version: "*"
-    override_path: "../sx126x"
+  espp/bq27220: ">=1.0"
+  espp/pca9535: ">=1.0"
+  espp/sx126x: ">=1.0"
   espp/input_drivers: ">=1.0"
   lvgl/lvgl: ">=9.2.2"
   # epdiy drives the ED047TC1 parallel e-paper panel (waveforms, grayscale,
-  # partial updates) for this exact board. Fetched from git (the IDF component
-  # is registered at the repo root).
-  epdiy:
-    git: https://github.com/vroland/epdiy.git
+  # partial updates) for this exact board. From the registry: the registry does
+  # not accept components with git dependencies, so a git source here would
+  # keep this BSP unpublishable.
+  vroland/epdiy: "^2.1.3"
 targets:
   - esp32s3

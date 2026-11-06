@@ -46,6 +46,11 @@ jobs:
           #       m5stack-cardputer, m5stack-tab5, ...), so it is uploaded to the
           #       registry before they try to resolve it.
           #
+          # Note: lilygo-t5-47 is intentionally listed (out of alphabetical order)
+          #       right after sx126x, the last of its dependencies (bq27220,
+          #       pca9535, sx126x) to be uploaded, so it resolves them on its
+          #       first upload.
+          #
           # Note: comments are not allowed in the "components" list, so please
           #       do not add any comments here.
           components: |
@@ -75,6 +80,7 @@ jobs:
             components/bm8563
             components/bmi270
             components/bno055
+            components/bq27220
             components/button
             components/byte90
             components/canopen
@@ -150,6 +156,7 @@ jobs:
             components/odrive_ascii
             components/odrive_native
             components/ota
+            components/pca9535
             components/pcf85063
             components/persistent_data
             components/pi4ioe5v
@@ -178,6 +185,7 @@ jobs:
             components/switch2_pro
             components/switch_pro
             components/sx126x
+            components/lilygo-t5-47
             components/system
             components/t_keyboard
             components/t-deck
