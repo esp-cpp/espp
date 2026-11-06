@@ -48,6 +48,9 @@ struct WriterProxy {
       , is_reliable(reliable)
       , remoteLocator(loc) {}
 
+  /// Sequence numbers one ACKNACK requests at most (see getMissing()).
+  static constexpr uint32_t kMaxNackSns = 32;
+
   // For now, we don't store any packets, so we just request all starting from
   // the next expected
   SequenceNumberSet getMissing(const SequenceNumber_t &firstAvail,
@@ -62,11 +65,18 @@ struct WriterProxy {
       uint32_t bit;
       // One bit per missing SN, in the bucket the bit falls in (the set is
       // SNS_MAX_NUM_BITS wide, 32 per bucket). This used to write bucket 0
-      // only, shifting by (31 - bit) for every bit: past bit 31 the shift was
-      // negative, so a gap wider than 32 samples was never fully requested
-      // and a reliable reader behind by more than that crawled back 32 per
-      // heartbeat (seen by the QEMU interop matrix under injected faults).
-      for (bit = 0, i = expectedSN; i <= lastAvail && bit < SNS_MAX_NUM_BITS; i++, bit++) {
+      // only, shifting by (31 - bit) for every bit: undefined past bit 31.
+      //
+      // At most kMaxNackSns per ACKNACK, deliberately: every SN requested is
+      // resent at once, and a reader behind by hundreds (joining a flood,
+      // say) that asked for the whole set on every heartbeat - there is one
+      // after every sample - raised a resend storm the receiving socket could
+      // not drain: the kernel dropped each new burst at its tail, where the
+      // one sample the reader was waiting for sat, and it never advanced
+      // (rtps_banded_churn starved once the bitmap was whole). 32 back to
+      // back fits the ESP32's socket mailbox and the emulated MAC's ring (64
+      // each); the next heartbeat requests the next 32.
+      for (bit = 0, i = expectedSN; i <= lastAvail && bit < kMaxNackSns; i++, bit++) {
         set.bitMap[bit / 32] |= uint32_t{1} << (31 - (bit % 32));
         set.numBits++;
       }
