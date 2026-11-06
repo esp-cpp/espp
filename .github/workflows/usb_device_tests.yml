@@ -1,0 +1,43 @@
+name: USB device host tests
+
+# Builds and runs the dependency-free unit tests of components/usb_device on the
+# host with g++ -std=c++23: the X-Input report / descriptor helpers
+# (test/xinput_host_test.cpp) and the Microsoft OS 2.0 descriptor set builder
+# (test/ms_os_20_host_test.cpp). Runs whenever the component changes.
+
+# Minimal token scope: build + run tests, never writes.
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - "components/usb_device/**"
+      - ".github/workflows/usb_device_tests.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "components/usb_device/**"
+      - ".github/workflows/usb_device_tests.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host-test:
+    name: C++ host tests (X-Input helpers, MS OS 2.0 descriptor set)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build and run the usb_device host tests
+        run: |
+          g++ --version | head -1
+          for t in xinput_host_test ms_os_20_host_test; do
+            g++ -std=c++23 -Wall -Wextra -Werror -I components/usb_device/include \
+              components/usb_device/test/$t.cpp -o $t
+            ./$t
+          done

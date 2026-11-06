@@ -12,6 +12,8 @@
 #include <cmath>
 #include <thread>
 
+#include "sdkconfig.h"
+
 #include "logger.hpp"
 #include "usb_device.hpp"
 
@@ -35,7 +37,26 @@ extern "C" void app_main(void) {
     else if (!data.empty() && data[0] == 0x01) // 0x01 = LED report
       logger.info("led pattern: {}", data.size() >= 3 ? data[2] : 0);
   };
+#if CONFIG_XINPUT_EXAMPLE_COMPOSITE
+  // Composite: the WebUSB vendor interface beside X-Input. The device then has
+  // the normal composite identity, so give it Microsoft's vendor ID (Linux's
+  // xpad binds on it) and a product ID Windows' Xbox driver INF does not list
+  // (else that driver takes the whole device); Windows binds X-Input through
+  // the "XUSB10" compatible ID usb_device puts in the MS OS 2.0 descriptor.
+  cfg.vid = espp::xinput::kDefaultVid;
+  cfg.pid = CONFIG_XINPUT_EXAMPLE_COMPOSITE_PID;
+  espp::UsbDevice::VendorFunction vendor;
+  vendor.interface_name = "espp XInput Console";
+  vendor.webusb = true;
+  vendor.landing_page_url = "esp-cpp.github.io/espp/apps/";
+  vendor.on_receive = [&](std::span<const uint8_t> data) {
+    logger.info("vendor rx: {} bytes", data.size());
+  };
+  cfg.vendor = vendor;
+  cfg.xinput = xinput; // X-Input + vendor: a composite controller with a console
+#else
   cfg.xinput = xinput; // XInput is the ONLY function -> Xbox identity + XUSB bind
+#endif
 
   espp::UsbDevice usb(cfg);
   std::error_code ec;
@@ -44,7 +65,12 @@ extern "C" void app_main(void) {
     return;
   }
 
+#if CONFIG_XINPUT_EXAMPLE_COMPOSITE
+  logger.info("Ready (composite). Connect to a PC; it should enumerate as an Xbox 360 "
+              "controller plus a WebUSB interface.");
+#else
   logger.info("Ready. Connect to a PC; it should enumerate as an Xbox 360 controller.");
+#endif
 
   // Demo input generator: sweep the sticks/triggers in a circle and step the
   // face buttons A/B/X/Y one at a time each second.

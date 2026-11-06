@@ -1,0 +1,7 @@
+# Composite variant: X-Input + a WebUSB vendor interface (see
+# main/Kconfig.projbuild, XINPUT_EXAMPLE_COMPOSITE). The vendor interface needs
+# TinyUSB's built-in vendor class driver, which the X-Input-only defaults leave
+# out. Build with:
+#   idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.composite" build
+CONFIG_XINPUT_EXAMPLE_COMPOSITE=y
+CONFIG_TINYUSB_VENDOR_COUNT=1
