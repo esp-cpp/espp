@@ -26,3 +26,16 @@ CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
 CONFIG_PARTITION_TABLE_OFFSET=0x8000
 CONFIG_PARTITION_TABLE_MD5=y
+
+#
+# lwIP: a FastDDS or CycloneDDS peer sends a sample under 64 KB as ONE UDP
+# datagram, IP-fragmented on the wire, and ESP-IDF's lwIP has IP reassembly
+# OFF by default: without this a sample bigger than one MTU never reaches the
+# engine (found by the QEMU interop matrix, components/rtps/interop/qemu).
+# Buffers for a 64 KB datagram, and socket mailboxes deep enough for the
+# burst of fragments (or DATA_FRAG datagrams) that arrive back to back.
+#
+CONFIG_LWIP_IP4_REASSEMBLY=y
+CONFIG_LWIP_IP_REASS_MAX_PBUFS=48
+CONFIG_LWIP_UDP_RECVMBOX_SIZE=64
+CONFIG_LWIP_TCPIP_RECVMBOX_SIZE=64

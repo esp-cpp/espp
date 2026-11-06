@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <cstring>
 #include <span>
+#include <utility>
 #include <vector>
 
 #include "rtps/discovery/ParticipantProxyData.hpp"
@@ -57,9 +58,11 @@ void push_u16(std::vector<uint8_t> &p, uint16_t v) {
 }
 
 // One locator parameter: pid(2) len(2) kind(4) port(4) address(16), little-endian.
-void push_locator(std::vector<uint8_t> &p, ParameterId pid, const rtps::Ip4AddressBytes &ip) {
-  const rtps::FullLengthLocator loc =
+void push_locator(std::vector<uint8_t> &p, ParameterId pid, const rtps::Ip4AddressBytes &ip,
+                  rtps::LocatorKind_t kind = rtps::LocatorKind_t::LOCATOR_KIND_UDPv4) {
+  rtps::FullLengthLocator loc =
       rtps::FullLengthLocator::createUDPv4Locator(ip[0], ip[1], ip[2], ip[3], 7411);
+  loc.kind = kind;
   push_u16(p, pid);
   push_u16(p, sizeof(loc));
   const auto *bytes = reinterpret_cast<const uint8_t *>(&loc);
@@ -88,6 +91,31 @@ rtps::Ip4AddressBytes sedp_unicast(const std::vector<rtps::Ip4AddressBytes> &ann
   return td.unicastLocator.getIp4AddressBytes();
 }
 
+using AnnouncedLocator = std::pair<rtps::Ip4AddressBytes, rtps::LocatorKind_t>;
+
+rtps::TopicData sedp_parse_kinds(const std::vector<AnnouncedLocator> &announced,
+                                 const rtps::Ip4AddressBytes &localIp) {
+  std::vector<uint8_t> p;
+  for (const auto &[ip, kind] : announced) {
+    push_locator(p, ParameterId::PID_UNICAST_LOCATOR, ip, kind);
+  }
+  const std::vector<uint8_t> bytes = with_sentinel(p);
+  rtps::TopicData td;
+  (void)td.readFromBuffer(std::span<const uint8_t>(bytes.data(), bytes.size()), localIp,
+                          rtps::DEFAULT_SUBNET_PREFIX_LENGTH);
+  return td;
+}
+
+rtps::Ip4AddressBytes sedp_unicast_kinds(const std::vector<AnnouncedLocator> &announced,
+                                         const rtps::Ip4AddressBytes &localIp) {
+  return sedp_parse_kinds(announced, localIp).unicastLocator.getIp4AddressBytes();
+}
+
+bool sedp_unicast_kinds_valid(const std::vector<AnnouncedLocator> &announced,
+                              const rtps::Ip4AddressBytes &localIp) {
+  return sedp_parse_kinds(announced, localIp).unicastLocator.isValid();
+}
+
 bool check_sedp() {
   // 1. The order FastDDS used on a host with Ethernet, Wi-Fi and Tailscale.
   CHECK(sedp_unicast({kOnSubnet, kWifi, kVpn}, kLocalIp) == kOnSubnet, "on-subnet first is kept");
@@ -96,6 +124,19 @@ bool check_sedp() {
   // 2. Nothing on our subnet, or our address isn't known yet: the first locator.
   CHECK(sedp_unicast({kWifi, kVpn}, kLocalIp) == kWifi, "no on-subnet locator keeps the first");
   CHECK(sedp_unicast({kWifi, kOnSubnet}, {}) == kWifi, "no local address keeps the first");
+  // A FastDDS peer lists locators for transports this engine does not speak
+  // (its shared-memory one, kind 16, in every announcement): skipped, so they
+  // neither get kept nor displace a UDPv4 locator, wherever they sit.
+  CHECK(sedp_unicast_kinds({{kVpn, rtps::LocatorKind_t::LOCATOR_KIND_SHM},
+                            {kOnSubnet, rtps::LocatorKind_t::LOCATOR_KIND_UDPv4}},
+                           kLocalIp) == kOnSubnet,
+        "a shared-memory locator first does not displace the UDPv4 one");
+  CHECK(sedp_unicast_kinds({{kOnSubnet, rtps::LocatorKind_t::LOCATOR_KIND_UDPv4},
+                            {kVpn, rtps::LocatorKind_t::LOCATOR_KIND_TCPv4}},
+                           kLocalIp) == kOnSubnet,
+        "a TCPv4 locator after it is skipped");
+  CHECK(!sedp_unicast_kinds_valid({{kVpn, rtps::LocatorKind_t::LOCATOR_KIND_SHM}}, kLocalIp),
+        "only a shared-memory locator leaves no unicast locator");
   // 4. On a /17 the Wi-Fi address is on our network although its third octet
   // differs; with the /24 default it is not, and the first locator is kept.
   CHECK(sedp_unicast({kOnSubnet, kWifi}, kLocal17, 17) == kWifi, "/17: on-network locator is kept");

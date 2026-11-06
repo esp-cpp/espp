@@ -155,10 +155,16 @@ bool TopicData::readFromBuffer(std::span<const uint8_t> data, const Ip4AddressBy
         const auto a2 = static_cast<unsigned int>(uLoc.address[14]);
         const auto a3 = static_cast<unsigned int>(uLoc.address[15]);
         const auto port = static_cast<unsigned long>(uLoc.port);
-        s_topic_data_logger.warn("Received unicast locator: {}.{}.{}.{}:{}", a0, a1, a2, a3, port);
+        s_topic_data_logger.debug("Unicast locator {}.{}.{}.{}:{}", a0, a1, a2, a3, port);
+      } else if (uLoc.kind == LocatorKind_t::LOCATOR_KIND_UDPv6 ||
+                 uLoc.kind == LocatorKind_t::LOCATOR_KIND_TCPv4 ||
+                 uLoc.kind == LocatorKind_t::LOCATOR_KIND_TCPv6 ||
+                 uLoc.kind == LocatorKind_t::LOCATOR_KIND_SHM) {
+        // A transport this engine does not speak; a FastDDS peer lists its
+        // shared-memory locator in every announcement, so this is routine.
+        s_topic_data_logger.debug("Skipping a {} unicast locator", locatorKindName(uLoc.kind));
       } else {
-        // print warning and the invalid locator for debugging
-        s_topic_data_logger.warn("Warning: Received invalid unicast locator with kind {}",
+        s_topic_data_logger.warn("Skipping a unicast locator of unknown kind {}",
                                  static_cast<int>(uLoc.kind));
       }
       break;

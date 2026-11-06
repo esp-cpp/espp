@@ -105,14 +105,20 @@ menu "RTPS"
             default 0
             range 0 255
             help
-                Remote writers a single reader can match. 0 keeps the selected profile's value.
+                Remote writers a single reader can match. The builtin discovery
+                readers hold one per remote participant, so raise this with
+                SPDP_MAX_NUMBER_FOUND_PARTICIPANTS; a participant whose discovery
+                proxies do not fit is forgotten and retried on its next announcement.
+                0 keeps the selected profile's value.
 
         config RTPS_LIMIT_NUM_READER_PROXIES_PER_WRITER
             int "NUM_READER_PROXIES_PER_WRITER (0 = profile default)"
             default 0
             range 0 255
             help
-                Remote readers a single writer can match. 0 keeps the selected profile's value.
+                Remote readers a single writer can match. The builtin discovery
+                writers hold one per remote participant, so raise this with
+                SPDP_MAX_NUMBER_FOUND_PARTICIPANTS. 0 keeps the selected profile's value.
 
         config RTPS_LIMIT_MAX_NUM_UNMATCHED_REMOTE_WRITERS
             int "MAX_NUM_UNMATCHED_REMOTE_WRITERS (0 = profile default)"
