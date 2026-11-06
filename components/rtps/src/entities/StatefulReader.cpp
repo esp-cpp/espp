@@ -262,10 +262,18 @@ bool StatefulReader::onNewHeartbeat(const SubmessageHeartbeat &msg,
   // the subscription stalled for the writer's lifetime. Seen by the QEMU
   // interop matrix's corruption case.
   {
+    // Both numbers are untrusted: test firstSN > 0 first, then compare lastSN
+    // against firstSN - 1 (a decrement that cannot underflow once firstSN is
+    // positive) rather than firstSN against lastSN + 1, which would overflow
+    // the signed high word for a lastSN at the top of the range.
     const SequenceNumber_t zero{0, 0};
-    SequenceNumber_t lastPlusOne = msg.lastSN;
-    ++lastPlusOne;
-    if (!(zero < msg.firstSN) || lastPlusOne < msg.firstSN) {
+    bool valid = zero < msg.firstSN;
+    if (valid) {
+      SequenceNumber_t firstMinusOne = msg.firstSN;
+      --firstMinusOne;
+      valid = !(msg.lastSN < firstMinusOne);
+    }
+    if (!valid) {
       SFR_LOG("Ignoring an invalid heartbeat: firstSN {}.{} lastSN {}.{}", (int)msg.firstSN.high,
               (int)msg.firstSN.low, (int)msg.lastSN.high, (int)msg.lastSN.low);
       return false;

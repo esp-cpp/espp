@@ -12,6 +12,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <limits>
 #include <vector>
 
 #include "rtps/entities/StatelessReader.hpp"
@@ -129,6 +130,21 @@ int main() {
   feed(reader, unknown, 7);
   feed(reader, unknown, 6);
   ok = same(delivered.sns, {7, 7, 6}, "unknown writer") && ok;
+
+  // the top of the sequence-number range came off the wire: delivered, no
+  // overflow of the next-expected; what is below it afterwards is dropped
+  delivered.sns.clear();
+  {
+    const uint8_t payload[1] = {0};
+    rtps::Guid_t guid = matched;
+    rtps::ReaderCacheChange top{rtps::ChangeKind_t::ALIVE, guid,
+                                rtps::SequenceNumber_t{std::numeric_limits<int32_t>::max(),
+                                                       std::numeric_limits<uint32_t>::max()},
+                                payload, sizeof(payload)};
+    reader.newChangeIfCurrent(reader.generation(), top);
+  }
+  feed(reader, matched, 60);
+  ok = same(delivered.sns, {std::numeric_limits<uint32_t>::max()}, "top of the range") && ok;
 
   if (!ok) {
     return 1;
