@@ -60,8 +60,14 @@ struct WriterProxy {
       set.base = expectedSN;
       SequenceNumber_t i;
       uint32_t bit;
+      // One bit per missing SN, in the bucket the bit falls in (the set is
+      // SNS_MAX_NUM_BITS wide, 32 per bucket). This used to write bucket 0
+      // only, shifting by (31 - bit) for every bit: past bit 31 the shift was
+      // negative, so a gap wider than 32 samples was never fully requested
+      // and a reliable reader behind by more than that crawled back 32 per
+      // heartbeat (seen by the QEMU interop matrix under injected faults).
       for (bit = 0, i = expectedSN; i <= lastAvail && bit < SNS_MAX_NUM_BITS; i++, bit++) {
-        set.bitMap[0] |= uint32_t{1} << (31 - bit);
+        set.bitMap[bit / 32] |= uint32_t{1} << (31 - (bit % 32));
         set.numBits++;
       }
     }
