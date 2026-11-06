@@ -32,9 +32,9 @@ dependencies:
   espp/input_drivers: ">=1.0"
   lvgl/lvgl: ">=9.2.2"
   # epdiy drives the ED047TC1 parallel e-paper panel (waveforms, grayscale,
-  # partial updates) for this exact board. Fetched from git (the IDF component
-  # is registered at the repo root).
-  epdiy:
-    git: https://github.com/vroland/epdiy.git
+  # partial updates) for this exact board. From the registry: the registry does
+  # not accept components with git dependencies, so a git source here would
+  # keep this BSP unpublishable.
+  vroland/epdiy: "^2.1.3"
 targets:
   - esp32s3
