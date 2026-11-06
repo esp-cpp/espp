@@ -13,3 +13,22 @@ For more information please see [ESP Docs](https://github.com/espressif/esp-docs
 1. To ensure you can build the documentation, create a docker image for building the documentation  `docker build -t esp-docs .` (from within this directory) or `docker build -t esp-docs doc` from within the top-level project / espp directory.
 
 2. To build the documentation, simply run `./build_docs.sh` from within the top-level project / espp directory.
+
+## Building locally without Docker
+
+The same toolchain CI uses runs natively: Doxygen, Graphviz and (for the PDF)
+a TeX distribution plus pandoc, and the Python requirements in a virtual
+environment.
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r doc/requirements.txt
+cd doc
+build-docs -bs html -t esp32 -l en --project-path ../ --source-dir ./ --doxyfile_dir ./
+python3 -m http.server --directory _build/en/esp32/html 8000   # http://localhost:8000/
+```
+
+`build-docs` exits non-zero when the Sphinx warnings differ from
+`sphinx-known-warnings.txt`; the HTML is still complete in `_build/en/esp32/html`.
+The theme is `pydata-sphinx-theme` (see `conf_common.py`); esp-docs still runs
+Doxygen and provides the API directives.
