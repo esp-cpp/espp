@@ -17,6 +17,8 @@ path, microSD card, and exposed peripheral pin mappings.
 - FT5x06 capacitive touch over I2C
 - PWM backlight brightness control
 - I2S speaker playback with software volume, mute, and sample-rate control
+  (`initialize_audio()`, `play_audio()`, `volume()`, through the `audio`
+  component)
 - SPI microSD card mounting helpers
 - Exposed I2S, RS-485, and external GPIO pin maps for application use
 - Object-style `espp::St7796` display-controller integration for the LCD path
@@ -25,9 +27,13 @@ path, microSD card, and exposed peripheral pin mappings.
 
 - This first BSP release focuses on the board features that are directly wired
   and well documented in the published board references.
-- The board's speaker path is driven directly over I2S using the published
-  `BCLK`, `LRCK`, and `DOUT` pins, without an external codec dependency in the
-  BSP.
+- The board's speaker path is driven over I2S by `espp::Audio` (the `audio`
+  component) on the published `BCLK`, `LRCK`, and `DOUT` pins, without a
+  codec: volume and mute are applied in software. `initialize_audio()` takes
+  an `AudioConfig` (`espp::Audio::AppConfig`, started from
+  `default_audio_config()`: sample rate, playback buffer size / heap caps,
+  playback task); `audio()` returns the `espp::Audio` object. The older
+  `initialize_audio(sample_rate[, task_config])` overloads are deprecated.
 - Touch handling follows the existing ESPP BSP pattern and uses the FT5x06
   controller plus the ESPP interrupt and LVGL touch-input helpers.
 

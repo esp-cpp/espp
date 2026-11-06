@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 #include <thread>
 #include <vector>
 
@@ -36,19 +37,22 @@ extern "C" void app_main(void) {
     return;
   }
 
-  if (!board.initialize_audio()) {
-    logger.warn("Audio initialization did not complete cleanly");
+  // the click sound sets the playback rate; the stream is sized so one
+  // play_audio() call queues the whole click (about 35 KB of 44.1 kHz stereo)
+  size_t wav_size = 0;
+  size_t wav_sample_rate = 44100;
+  if (load_audio(wav_size, wav_sample_rate)) {
+    logger.info("Loaded {} bytes of audio at {} Hz", wav_size, wav_sample_rate);
   } else {
-    size_t wav_size = 0;
-    size_t wav_sample_rate = 0;
-    if (load_audio(wav_size, wav_sample_rate)) {
-      logger.info("Loaded {} bytes of audio at {} Hz", wav_size, wav_sample_rate);
-      board.audio_sample_rate(wav_sample_rate);
-      board.volume(30.0f);
-      board.mute(false);
-    } else {
-      logger.warn("Could not load the embedded click sound");
-    }
+    logger.warn("Could not load the embedded click sound");
+  }
+  board.volume(30.0f);
+  board.mute(false);
+  auto audio_config = board.default_audio_config();
+  audio_config.sample_rate = static_cast<uint32_t>(wav_sample_rate);
+  audio_config.playback_buffer_size = 36 * 1024;
+  if (!board.initialize_audio(audio_config)) {
+    logger.warn("Audio initialization did not complete cleanly");
   }
 
   board.brightness(80.0f);
@@ -124,7 +128,10 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
     return false;
   }
 
-  auto sample_rate = *(reinterpret_cast<const uint32_t *>(&audio_bytes[24]));
+  // the WAV header's sample rate (little-endian, at an offset that need not
+  // be aligned for a uint32_t)
+  uint32_t sample_rate = 0;
+  std::memcpy(&sample_rate, &audio_bytes[24], sizeof(sample_rate));
   if (audio_bytes.size() > 44) {
     audio_bytes.erase(audio_bytes.begin(), audio_bytes.begin() + 44);
   }
@@ -147,11 +154,12 @@ static void play_click(espp::SmartPanleeSc01Plus &board) {
   // only whole frames), not the requested size, so no samples are skipped. Stop
   // as soon as the stream buffer is full rather than waiting for it to drain -
   // this runs in the touch callback, so blocking would freeze the touch task
-  // for the whole click. The click comfortably fits in the stream buffer.
+  // for the whole click. The stream is sized for the whole click (see
+  // initialize_audio() above).
   size_t offset = 0;
   while (offset < audio_bytes.size()) {
     auto chunk = std::min(audio_buffer_size, audio_bytes.size() - offset);
-    size_t queued = board.play_audio(audio_bytes.data() + offset, static_cast<uint32_t>(chunk));
+    size_t queued = board.play_audio(audio_bytes.data() + offset, chunk);
     offset += queued;
     if (queued < chunk) {
       break; // stream buffer full for now; do not block the caller

@@ -1,288 +1,287 @@
-#include <algorithm>
-#include <cmath>
-#include <cstring>
-
 #include "esp-box.hpp"
 
-using namespace espp;
+#include <algorithm>
+
+#include <driver/gpio.h>
 
 ////////////////////////
 // Audio Functions   //
 ////////////////////////
 
-// Map a 0-100% microphone volume onto the ES7210's analog gain steps
-// (GAIN_0DB .. GAIN_37_5DB)
-static es7210_gain_value_t microphone_gain_from_volume(float volume) {
-  int step = static_cast<int>(std::lround(volume / 100.0f * static_cast<float>(GAIN_37_5DB)));
-  step = std::clamp(step, static_cast<int>(GAIN_0DB), static_cast<int>(GAIN_37_5DB));
-  return static_cast<es7210_gain_value_t>(step);
+// The I2S channels, the playback and microphone tasks, the stream buffer and
+// the codec setup live in the espp::Audio component (with its ES8311 and
+// ES7210 adapters); this file keeps only what is specific to the board: the
+// pins, the codecs' I2C devices and the speaker power pin.
+
+namespace espp {
+
+EspBox::AudioConfig EspBox::default_audio_config() {
+  return {.sample_rate = 48000,
+          .playback_enabled = true,
+          .recording_enabled = true,
+          .playback_task_config = {.name = "box audio out",
+                                   .stack_size_bytes = 4096,
+                                   .priority = 19,
+                                   .core_id = 1},
+          .recording_task_config = {
+              .name = "box audio in", .stack_size_bytes = 4096, .priority = 19, .core_id = 1}};
 }
 
-// Map a PCM sample rate onto the codec's audio_hal sample-rate enum. The ES7210
-// coefficient table is selected by this enum, so it must match the rate the I2S
-// clocks actually generate; an unsupported rate falls back to 48 kHz.
-static audio_hal_iface_samples_t audio_hal_samples_from_rate(uint32_t rate) {
-  switch (rate) {
-  case 8000:
-    return AUDIO_HAL_08K_SAMPLES;
-  case 11025:
-    return AUDIO_HAL_11K_SAMPLES;
-  case 16000:
-    return AUDIO_HAL_16K_SAMPLES;
-  case 22050:
-    return AUDIO_HAL_22K_SAMPLES;
-  case 24000:
-    return AUDIO_HAL_24K_SAMPLES;
-  case 32000:
-    return AUDIO_HAL_32K_SAMPLES;
-  case 44100:
-    return AUDIO_HAL_44K_SAMPLES;
-  case 48000:
-    return AUDIO_HAL_48K_SAMPLES;
-  default:
-    return AUDIO_HAL_48K_SAMPLES;
-  }
-}
-
-bool EspBox::initialize_codec() {
-  logger_.info("initializing codec");
-
-  std::error_code ec;
-  codec_i2c_device_ = internal_i2c_.add_device<uint8_t>(
-      {
-          .device_address = 0x18,
-          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
-          .scl_speed_hz = internal_i2c_.config().clk_speed,
-          .log_level = espp::Logger::Verbosity::WARN,
-      },
-      ec);
-  if (!codec_i2c_device_) {
-    logger_.error("Could not initialize codec I2C device: {}", ec.message());
-    return false;
-  }
-
-  set_es8311_write(espp::make_i2c_addressed_write(codec_i2c_device_));
-  set_es8311_read(espp::make_i2c_addressed_read_register(codec_i2c_device_));
-
-  esp_err_t ret_val = ESP_OK;
-  audio_hal_codec_config_t cfg;
-  memset(&cfg, 0, sizeof(cfg));
-  cfg.codec_mode = AUDIO_HAL_CODEC_MODE_DECODE;
-  cfg.dac_output = AUDIO_HAL_DAC_OUTPUT_ALL; // Enable both L and R outputs
-  cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
-  cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
-  cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
-  cfg.i2s_iface.samples = AUDIO_HAL_48K_SAMPLES;
-
-  ret_val |= es8311_codec_init(&cfg);
-  ret_val |= es8311_config_fmt(ES_I2S_NORMAL);
-  ret_val |= es8311_set_bits_per_sample(AUDIO_HAL_BIT_LENGTH_16BITS);
-  ret_val |= es8311_codec_set_voice_volume(volume_);
-  ret_val |= es8311_codec_ctrl_state(cfg.codec_mode, AUDIO_HAL_CTRL_START);
-
-  if (ESP_OK != ret_val) {
-    logger_.error("Codec initialization failed");
-    return false;
-  } else {
-    logger_.info("Codec initialized");
-    return true;
-  }
-}
-
-bool EspBox::initialize_i2s(uint32_t default_audio_rate) {
-  logger_.info("initializing i2s driver");
-  logger_.debug("Using newer I2S standard");
-
-  i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(i2s_port, I2S_ROLE_MASTER);
-  chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
-  // Keep the TX DMA ring full and long enough to cover the playback task's
-  // bounded whole-block wait (the policy and its rationale: codec/i2s_tx_feed.hpp).
-  static_assert(espp::i2s_tx_feed::ring_outlasts_wait(espp::i2s_tx_feed::DMA_DESC_NUM,
-                                                      espp::i2s_tx_feed::DMA_FRAME_NUM, 48000,
-                                                      UPDATE_FREQUENCY),
-                "the I2S TX DMA ring must outlast the whole-block wait plus one block");
-  chan_cfg.dma_desc_num = espp::i2s_tx_feed::DMA_DESC_NUM;
-  chan_cfg.dma_frame_num = espp::i2s_tx_feed::DMA_FRAME_NUM;
-  ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &audio_tx_handle, &audio_rx_handle));
-
-  audio_std_cfg = {
-      .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(default_audio_rate),
-      .slot_cfg =
-          I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
-      .gpio_cfg = {.mclk = i2s_mck_io,
-                   .bclk = i2s_bck_io,
-                   .ws = i2s_ws_io,
-                   .dout = i2s_do_io,
-                   .din = i2s_di_io,
-                   .invert_flags = {.mclk_inv = false, .bclk_inv = false, .ws_inv = false}},
-  };
-  // audio_std_cfg.clk_cfg.mclk_multiple = I2S_MCLK_MULTIPLE_256;
-
-  ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_tx_handle, &audio_std_cfg));
-
-  auto buffer_size = calc_audio_buffer_size(default_audio_rate);
-  // the block (and so the stream's trigger level) must be a whole number of
-  // frames: the sample-rate formula can land between frames, and a block that
-  // split one would desynchronize the framing of everything received after it
-  buffer_size -= buffer_size % (NUM_CHANNELS * NUM_BYTES_PER_CHANNEL);
-  audio_tx_buffer.resize(buffer_size);
-
-  // The audio task never blocks on the stream (see audio_task_callback), so
-  // the trigger level is irrelevant; the minimum keeps a producer's send from
-  // ever holding a receiver.
-  audio_tx_stream = xStreamBufferCreate(buffer_size * 4, 1);
-  audio_tx_feed_.stream = audio_tx_stream;
-  audio_tx_feed_.frame_bytes = NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
-
-  xStreamBufferReset(audio_tx_stream);
-
-  ESP_ERROR_CHECK(i2s_channel_enable(audio_tx_handle));
-
-  return true;
-}
+bool EspBox::initialize_audio() { return initialize_audio(default_audio_config()); }
 
 bool EspBox::initialize_sound(uint32_t default_audio_rate,
                               const espp::Task::BaseConfig &task_config) {
-  if (sound_initialized_) {
-    logger_.warn("Sound already initialized");
+  // the old API set up playback only (initialize_microphone() added recording)
+  auto config = default_audio_config();
+  config.sample_rate = default_audio_rate;
+  config.recording_enabled = false;
+  config.playback_task_config = task_config;
+  return initialize_audio(config);
+}
+
+bool EspBox::initialize_audio(const AudioConfig &config) {
+  const bool playback = config.playback_enabled;
+  const bool recording = config.recording_enabled;
+  logger_.info("Initializing audio ({}{}{}) at {} Hz", playback ? "ES8311 playback" : "",
+               playback && recording ? " + " : "", recording ? "ES7210 recording" : "",
+               config.sample_rate);
+  if (is_audio_initialized()) {
+    logger_.warn("Audio already initialized");
     return true;
   }
-  if (!initialize_i2s(default_audio_rate)) {
-    logger_.error("Could not initialize I2S driver");
-    return false;
-  }
-  if (!initialize_codec()) {
-    logger_.error("Could not initialize codec");
+  if (!playback && !recording) {
+    logger_.error("initialize_audio(): neither playback nor recording is enabled");
     return false;
   }
 
-  // Config power control IO
-  gpio_set_direction(sound_power_pin, GPIO_MODE_OUTPUT);
-  enable_sound(true);
+  // the speaker power pin, off until playback is up
+  gpio_config_t power_cfg{};
+  power_cfg.pin_bit_mask = 1ULL << static_cast<int>(sound_power_pin);
+  power_cfg.mode = GPIO_MODE_OUTPUT;
+  gpio_config(&power_cfg);
+  enable_audio(false);
 
-  using namespace std::placeholders;
-  audio_task_ = espp::Task::make_unique({
-      .callback = std::bind(&EspBox::audio_task_callback, this, _1, _2, _3),
-      .task_config = task_config,
+  // both codecs are on the internal I2C bus
+  std::error_code ec;
+  if (playback) {
+    es8311_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+        {
+            .device_address = es8311_i2c_address,
+            .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+            .scl_speed_hz = internal_i2c_.config().clk_speed,
+            .log_level = espp::Logger::Verbosity::WARN,
+        },
+        ec);
+    if (!es8311_i2c_device_) {
+      logger_.error("Could not initialize ES8311 I2C device: {}", ec.message());
+      deinitialize_audio();
+      return false;
+    }
+    es8311_ = std::make_shared<espp::Es8311Codec>(espp::Es8311Codec::Config{
+        .write = espp::make_i2c_addressed_write(es8311_i2c_device_),
+        .read = espp::make_i2c_addressed_read_register(es8311_i2c_device_),
+    });
+  }
+  if (recording) {
+    // the ES7210's address depends on how its AD pins are strapped: accept
+    // either 0x40 or 0x41 and report clearly if neither responds
+    uint8_t es7210_address = 0;
+    for (uint8_t address : {0x40, 0x41}) {
+      if (internal_i2c_.probe_device(address)) {
+        es7210_address = address;
+        break;
+      }
+    }
+    if (es7210_address == 0) {
+      logger_.error("No ES7210 found on the internal I2C bus (probed 0x40 and 0x41); "
+                    "cannot record from the microphones");
+      deinitialize_audio();
+      return false;
+    }
+    logger_.info("Found ES7210 at {:#04x}", es7210_address);
+    es7210_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+        {
+            .device_address = es7210_address,
+            .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+            .scl_speed_hz = internal_i2c_.config().clk_speed,
+            .log_level = espp::Logger::Verbosity::WARN,
+        },
+        ec);
+    if (!es7210_i2c_device_) {
+      logger_.error("Could not initialize ES7210 I2C device: {}", ec.message());
+      deinitialize_audio();
+      return false;
+    }
+    es7210_ = std::make_shared<espp::Es7210Codec>(espp::Es7210Codec::Config{
+        .write = espp::make_i2c_addressed_write(es7210_i2c_device_),
+        .read = espp::make_i2c_addressed_read_register(es7210_i2c_device_),
+        .address = es7210_address,
+        // only the two microphones are wired on the box (the other ES7210
+        // inputs are unused), and they map onto the two I2S slots
+        .microphones = static_cast<es7210_input_mics_t>(ES7210_INPUT_MIC1 | ES7210_INPUT_MIC2),
+        .high_pass_filter = true,
+    });
+  }
+
+  // One I2S bus, full duplex: the ES8311's DAC (DSDIN) and the ES7210's ADC
+  // (SDOUT) share MCLK / SCLK / LRCK. Both are stereo: the speaker plays the
+  // interleaved frames, and the ES7210 puts microphone 1 on the left slot and
+  // microphone 2 on the right.
+  auto audio = std::make_shared<espp::Audio>(espp::Audio::Config{
+      .app = config,
+      .hardware = {.port = i2s_port,
+                   .pins = {.mclk = i2s_mck_io,
+                            .bclk = i2s_bck_io,
+                            .ws = i2s_ws_io,
+                            .dout = i2s_do_io,
+                            .din = i2s_di_io},
+                   .playback_channels = 2,
+                   .recording_channels = 2,
+                   .output_codec = es8311_,
+                   .input_codec = es7210_},
+      .volume = volume_,
+      .muted = mute_,
+      .microphone_volume = mic_volume_,
   });
-
-  sound_initialized_ = true;
-
-  return audio_task_->start();
-}
-
-void EspBox::enable_sound(bool enable) { gpio_set_level(sound_power_pin, enable); }
-
-bool EspBox::audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
-  // Playback: write the next block to the I2S channel, ALWAYS a whole block
-  // (audio when there is some, silence when idle) so the DMA ring stays full;
-  // the write blocks on the ring and paces this loop. The stream side (the
-  // bounded wait for a flowing producer, misalignment recovery) is shared
-  // policy: see codec/i2s_tx_feed.hpp for the mechanism and why it matters.
-  audio_tx_feed_.attach_current_task();
-  const size_t block = audio_tx_buffer.size();
-  uint8_t *tx_buf = audio_tx_buffer.data();
-  bool misaligned = false;
-  audio_tx_feed_.fill_block(tx_buf, block, misaligned);
-  if (misaligned) {
-    // producers queue whole frames only (play_audio), so this is a bug somewhere
-    logger_.warn_rate_limited("audio stream held a partial frame; reset it");
+  if (!audio->initialize()) {
+    audio.reset();
+    deinitialize_audio();
+    return false;
   }
-  i2s_channel_write(audio_tx_handle, tx_buf, block, NULL, portMAX_DELAY);
-  return false; // don't stop the task
-}
+  audio_config_ = config;
+  // published once it is initialized; the forwarders below each take one
+  // snapshot of it
+  audio_.store(audio);
+  // A setter that ran meanwhile only updated its cached value: forward the
+  // latest ones, again while they change, so one racing this is not undone by
+  // a stale value.
+  float volume;
+  do {
+    volume = volume_;
+    audio->volume(volume);
+  } while (volume != volume_);
+  bool muted;
+  do {
+    muted = mute_;
+    audio->mute(muted);
+  } while (muted != mute_);
+  float mic_volume;
+  do {
+    mic_volume = mic_volume_;
+    audio->microphone_volume(mic_volume);
+  } while (mic_volume != mic_volume_);
 
-void EspBox::update_volume_output() {
-  if (!sound_initialized_) {
-    return;
+  if (playback) {
+    enable_audio(true);
   }
-  if (mute_) {
-    es8311_codec_set_voice_volume(0);
-  } else {
-    es8311_codec_set_voice_volume(volume_);
+  return true;
+}
+
+void EspBox::deinitialize_audio() {
+  // unpublished first: a forwarder called meanwhile (e.g. from a recording
+  // callback still finishing) then sees no audio rather than one being torn
+  // down
+  auto audio = audio_.exchange(nullptr);
+  if (audio && audio->is_initialized() && audio->is_playback_enabled()) {
+    enable_audio(false);
   }
+  // release the I2S channels, tasks and codecs now, even if the application
+  // still holds the object from audio()
+  if (audio) {
+    audio->deinitialize();
+  }
+  audio.reset();
+  es8311_.reset();
+  es8311_i2c_device_.reset();
+  es7210_.reset();
+  es7210_i2c_device_.reset();
 }
 
-void EspBox::mute(bool mute) {
-  mute_ = mute;
-  update_volume_output();
+void EspBox::enable_audio(bool enable) {
+  gpio_set_level(sound_power_pin, enable ? 1 : 0);
+  logger_.debug("Audio {}", enable ? "enabled" : "disabled");
 }
 
-bool EspBox::is_muted() const { return mute_; }
+void EspBox::enable_sound(bool enable) { enable_audio(enable); }
 
 void EspBox::volume(float volume) {
   volume_ = std::clamp(volume, 0.0f, 100.0f);
-  update_volume_output();
+  if (auto audio = audio_.load()) {
+    audio->volume(volume_);
+  }
+  logger_.debug("Volume set to {:.1f} %", volume_.load());
 }
 
 float EspBox::volume() const { return volume_; }
 
-uint32_t EspBox::audio_sample_rate() const { return audio_std_cfg.clk_cfg.sample_rate_hz; }
-
-size_t EspBox::audio_buffer_size() const { return audio_tx_buffer.size(); }
-
-void EspBox::audio_sample_rate(uint32_t sample_rate) {
-  logger_.info("Setting audio sample rate to {} Hz", sample_rate);
-  // stop the channel
-  i2s_channel_disable(audio_tx_handle);
-  // update the sample rate
-  auto err = es8311_codec_set_sample_rate(sample_rate);
-  if (err != ESP_OK) {
-    logger_.error("Could not set codec sample rate: {}", err);
+void EspBox::mute(bool mute) {
+  mute_ = mute;
+  if (auto audio = audio_.load()) {
+    audio->mute(mute);
   }
-  audio_std_cfg.clk_cfg.sample_rate_hz = sample_rate;
-  i2s_channel_reconfig_std_clock(audio_tx_handle, &audio_std_cfg.clk_cfg);
-  // clear the buffer
-  xStreamBufferReset(audio_tx_stream);
-  // restart the channel
-  i2s_channel_enable(audio_tx_handle);
+  logger_.debug("Audio {}", mute ? "muted" : "unmuted");
+}
+
+bool EspBox::is_muted() const { return mute_; }
+
+size_t EspBox::play_audio(const uint8_t *data, size_t num_bytes) {
+  auto audio = audio_.load();
+  return audio ? audio->play(data, num_bytes) : 0;
+}
+
+size_t EspBox::play_audio(std::span<const uint8_t> data) {
+  return play_audio(data.data(), data.size());
 }
 
 size_t EspBox::play_audio(const std::vector<uint8_t> &data) {
   return play_audio(data.data(), data.size());
 }
 
-size_t EspBox::play_audio(const uint8_t *data, uint32_t num_bytes) {
-  // guard against being called before initialize_sound() (audio_tx_stream is
-  // not valid until then) and against empty input
-  if (!sound_initialized_ || !data || num_bytes == 0) {
-    return 0;
+void EspBox::clear_audio() {
+  if (auto audio = audio_.load()) {
+    audio->clear();
   }
-  // Enqueue only whole 16-bit stereo frames (4 bytes) that actually fit:
-  // xStreamBufferSend can accept fewer bytes than requested when the buffer is
-  // nearly full, and a partial (non-frame-aligned) send would strand 1-3 bytes
-  // and corrupt the L/R framing of subsequent appends. Cap the request to the
-  // free space rounded down to a whole frame so the send is always
-  // frame-aligned. This runs in task context, so the non-ISR send with a 0
-  // timeout never blocks. The number of bytes actually queued is returned so
-  // callers can stream data larger than the buffer.
-  size_t sendable = std::min<size_t>(num_bytes, xStreamBufferSpacesAvailable(audio_tx_stream));
-  sendable -= sendable % 4;
-  if (sendable == 0) {
-    return 0;
-  }
-  const size_t sent = xStreamBufferSend(audio_tx_stream, data, sendable, 0);
-  if (sent > 0) {
-    // wake the playback task if the stream now holds a whole block (send ->
-    // notify -> return; see i2s_tx_feed.hpp)
-    audio_tx_feed_.notify_if_block_ready(audio_tx_buffer.size());
-  }
-  return sent;
 }
 
-//////////////////////////
-// Microphone Functions //
-//////////////////////////
+void EspBox::microphone_volume(float volume) {
+  mic_volume_ = std::clamp(volume, 0.0f, 100.0f);
+  if (auto audio = audio_.load()) {
+    audio->microphone_volume(mic_volume_);
+  }
+}
 
-bool EspBox::initialize_microphone(const microphone_callback_t &callback,
-                                   const espp::Task::BaseConfig &task_config) {
-  logger_.info("Initializing microphone");
-  if (microphone_initialized_) {
-    logger_.warn("Microphone already initialized, not initializing again!");
+float EspBox::microphone_volume() const { return mic_volume_; }
+
+bool EspBox::start_audio_recording(
+    std::function<void(const uint8_t *data, size_t length)> callback) {
+  auto audio = audio_.load();
+  if (!audio || !audio->is_initialized()) {
+    logger_.error("Audio system not initialized");
     return false;
   }
-  if (!sound_initialized_) {
-    logger_.error("The sound subsystem must be initialized first: the ES7210 shares the I2S bus "
+  if (!audio->is_recording_enabled()) {
+    logger_.error("Audio recording was not enabled in initialize_audio()");
+    return false;
+  }
+  if (!audio->start_recording(callback)) {
+    return false;
+  }
+  logger_.info("Audio recording started");
+  return true;
+}
+
+void EspBox::stop_audio_recording() {
+  if (auto audio = audio_.load()) {
+    audio->stop_recording();
+  }
+  logger_.info("Audio recording stopped");
+}
+
+bool EspBox::initialize_microphone(const microphone_callback_t &callback,
+                                   const espp::Task::BaseConfig &) {
+  logger_.info("Initializing microphone");
+  if (!is_audio_initialized()) {
+    logger_.error("The audio subsystem must be initialized first: the ES7210 shares the I2S bus "
                   "with the ES8311 in full duplex");
     return false;
   }
@@ -290,138 +289,46 @@ bool EspBox::initialize_microphone(const microphone_callback_t &callback,
     logger_.error("A callback is required to receive the recorded audio data");
     return false;
   }
-  microphone_callback_ = callback;
-
-  // The RX channel was allocated alongside the TX channel in
-  // initialize_i2s(); in full-duplex mode it shares the TX BCLK/WS, so
-  // initialize it with the same standard-mode (16-bit stereo) config
-  ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_rx_handle, &audio_std_cfg));
-  audio_rx_buffer.resize(calc_audio_buffer_size(audio_sample_rate()));
-  ESP_ERROR_CHECK(i2s_channel_enable(audio_rx_handle));
-
-  // Configure the ES7210 ADC (microphone 1 -> left slot, microphone 2 ->
-  // right slot) now that the I2S clocks are running. Probe for the chip
-  // first: the address depends on how its AD pins are strapped, so accept
-  // either 0x40 or 0x41 and report clearly if neither responds.
-  uint8_t es7210_address = 0;
-  for (uint8_t address : {0x40, 0x41}) {
-    if (internal_i2c_.probe_device(address)) {
-      es7210_address = address;
-      break;
+  // one snapshot: a concurrent deinitialize_audio() may unpublish it
+  auto audio = audio_.load();
+  if (!audio) {
+    logger_.error("Audio system not initialized");
+    return false;
+  }
+  if (!audio->is_recording_enabled()) {
+    // the old API set recording up separately: set the audio system up again
+    // with it
+    AudioConfig config = audio_config_;
+    config.recording_enabled = true;
+    // at the current rate, which audio_sample_rate() may have changed since
+    config.sample_rate = audio->sample_rate();
+    audio.reset();
+    deinitialize_audio();
+    if (!initialize_audio(config)) {
+      return false;
     }
   }
-  if (es7210_address == 0) {
-    logger_.error("No ES7210 found on the internal I2C bus (probed 0x40 and 0x41); "
-                  "cannot record from the microphones");
-    i2s_channel_disable(audio_rx_handle);
-    return false;
-  }
-  logger_.info("Found ES7210 at {:#04x}", es7210_address);
-  std::error_code ec;
-  es7210_i2c_device_ = internal_i2c_.add_device<uint8_t>(
-      {
-          .device_address = es7210_address,
-          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
-          .scl_speed_hz = internal_i2c_.config().clk_speed,
-          .log_level = espp::Logger::Verbosity::WARN,
-      },
-      ec);
-  if (!es7210_i2c_device_) {
-    logger_.error("Could not initialize ES7210 I2C device: {}", ec.message());
-    i2s_channel_disable(audio_rx_handle);
-    return false;
-  }
-  set_es7210_write(espp::make_i2c_addressed_write(es7210_i2c_device_));
-  set_es7210_read(espp::make_i2c_addressed_read_register(es7210_i2c_device_));
-
-  // only the two microphones are wired on the box (the other ES7210 inputs
-  // are unused), and they map onto the two I2S slots
-  es7210_mic_select(static_cast<es7210_input_mics_t>(ES7210_INPUT_MIC1 | ES7210_INPUT_MIC2));
-
-  audio_hal_codec_config_t es7210_cfg{};
-  es7210_cfg.codec_mode = AUDIO_HAL_CODEC_MODE_ENCODE;
-  es7210_cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
-  es7210_cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
-  es7210_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
-  // configure the ES7210 for the rate the I2S clocks are actually running at
-  // (rather than assuming 48 kHz) so its coefficient table matches
-  es7210_cfg.i2s_iface.samples = audio_hal_samples_from_rate(audio_sample_rate());
-  if (es7210_adc_init(&es7210_cfg) != ESP_OK) {
-    logger_.error("Could not initialize the ES7210 codec");
-    i2s_channel_disable(audio_rx_handle);
-    return false;
-  }
-  if (es7210_adc_config_i2s(AUDIO_HAL_CODEC_MODE_ENCODE, &es7210_cfg.i2s_iface) != ESP_OK) {
-    logger_.error("ES7210 I2S config failed");
-  }
-  // Enable the ES7210 digital high-pass filter on the ADC channels to strip
-  // the microphone DC offset. The espp es7210 driver leaves these registers
-  // at their reset value (HPF off), so the DC offset is amplified by the
-  // analog gain and rails the ADC to full scale - recordings come out as a
-  // near-constant DC level that the AC-coupled speaker plays as a click then
-  // silence. These are the driver's documented "quick setup" HPF values.
-  // write_register clears the error code on success, so a later successful
-  // write would mask an earlier failure; remember the first failure explicitly.
-  std::error_code hpf_ec, first_hpf_ec;
-  auto write_hpf = [&](uint8_t reg, uint8_t val) {
-    es7210_i2c_device_->write_register(reg, std::vector<uint8_t>{val}, hpf_ec);
-    if (hpf_ec && !first_hpf_ec) {
-      first_hpf_ec = hpf_ec;
-    }
-  };
-  write_hpf(0x22, 0x0a); // ADC1/2 HPF1
-  write_hpf(0x23, 0x2a); // ADC1/2 HPF2
-  write_hpf(0x20, 0x0a); // ADC3/4 HPF2
-  write_hpf(0x21, 0x2a); // ADC3/4 HPF1
-  if (first_hpf_ec) {
-    logger_.warn("Could not enable the ES7210 high-pass filter: {}", first_hpf_ec.message());
-  }
-  // apply the stored microphone volume (the driver's init leaves the analog
-  // gain at its 0 dB minimum, which records very quietly)
-  es7210_adc_set_gain_all(microphone_gain_from_volume(mic_volume_));
-  es7210_adc_ctrl_state(AUDIO_HAL_CODEC_MODE_ENCODE, AUDIO_HAL_CTRL_START);
-
-  using namespace std::placeholders;
-  microphone_task_ = espp::Task::make_unique({
-      .callback = std::bind(&EspBox::microphone_task_callback, this, _1, _2, _3),
-      .task_config = task_config,
-  });
-
-  if (!microphone_task_->start()) {
-    i2s_channel_disable(audio_rx_handle);
-    microphone_task_.reset();
-    return false;
-  }
-
-  microphone_initialized_ = true;
-  return true;
+  return start_audio_recording(callback);
 }
 
-bool EspBox::microphone_task_callback(std::mutex &m, std::condition_variable &cv,
-                                      bool &task_notified) {
-  size_t bytes_read = 0;
-  // Use a finite read timeout (not portMAX_DELAY) so this task returns
-  // periodically and can observe a stop request; an infinite read would block
-  // Task::stop() from joining during teardown.
-  auto err = i2s_channel_read(audio_rx_handle, audio_rx_buffer.data(), audio_rx_buffer.size(),
-                              &bytes_read, pdMS_TO_TICKS(100));
-  if (err == ESP_OK && bytes_read > 0 && microphone_callback_) {
-    microphone_callback_(audio_rx_buffer.data(), bytes_read);
-  }
-  // honor a stop request per the Task contract: check/clear notified under m
-  std::unique_lock<std::mutex> lock(m);
-  if (task_notified) {
-    task_notified = false;
-    return true; // stop the task
-  }
-  return false; // keep running
+uint32_t EspBox::audio_sample_rate() const {
+  auto audio = audio_.load();
+  return audio ? audio->sample_rate() : 0;
 }
 
-void EspBox::microphone_volume(float volume) {
-  mic_volume_ = std::clamp(volume, 0.0f, 100.0f);
-  if (microphone_initialized_) {
-    es7210_adc_set_gain_all(microphone_gain_from_volume(mic_volume_));
-  }
+size_t EspBox::audio_buffer_size() const {
+  auto audio = audio_.load();
+  return audio ? audio->buffer_size() : 0;
 }
 
-float EspBox::microphone_volume() const { return mic_volume_; }
+bool EspBox::audio_sample_rate(uint32_t sample_rate) {
+  logger_.info("Setting audio sample rate to {} Hz", sample_rate);
+  auto audio = audio_.load();
+  if (!audio || !audio->is_initialized()) {
+    logger_.warn("Audio not initialized: pass the sample rate to initialize_audio()");
+    return false;
+  }
+  return audio->sample_rate(sample_rate);
+}
+
+} // namespace espp

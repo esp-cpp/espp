@@ -3,8 +3,11 @@
 [![Badge](https://components.espressif.com/components/espp/audio/badge.svg)](https://components.espressif.com/components/espp/audio)
 
 The `audio` component provides `espp::Audio`, I2S audio playback and recording
-for one I2S port in standard (Philips) mode with 16-bit PCM: a TX channel for
-playback, an RX channel for recording, or both, full duplex on the same clocks.
+for one I2S port with 16-bit PCM: a TX channel for playback, an RX channel for
+recording, or both, full duplex on the same clocks, in standard (Philips) mode.
+An instance that only records can instead receive TDM (e.g. an ES7210 with four
+microphones, `HardwareConfig::recording_tdm_slots`) or a PDM microphone;
+`HardwareConfig::recording_slots` picks the slots the recording callback receives.
 
 It owns the machinery the espp BSPs used to copy into each board:
 
@@ -30,14 +33,32 @@ drivers in the `codec` component:
 
 - `espp::Es8311Codec`: the ES8311 mono codec, for playback and recording
   (the ESP32-P4 ES8311 boards: ESP32-P4-ETH, ESP32-P4 Function EV Board,
-  ESP32-P4 Module Dev Kit, ESP32-P4-NANO, ESP32-P4-WIFI6-DEV-KIT).
+  ESP32-P4 Module Dev Kit, ESP32-P4-NANO, ESP32-P4-WIFI6-DEV-KIT,
+  ESP32-P4-WIFI6-POE-ETH; ESP32-S3-BOX).
 - `espp::Es8388Codec`: the ES8388 DAC, for playback (M5Stack Tab5).
-- `espp::Es7210Codec`: the ES7210 microphone ADC, for recording (M5Stack Tab5).
+- `espp::Es7210Codec`: the ES7210 microphone ADC, for recording (M5Stack Tab5,
+  ESP32-S3-BOX, LilyGo T-Deck).
 
 Each adapter takes the register read / write functions, e.g.
 `espp::make_i2c_addressed_write(device)` for an `espp::I2c` device. A chip that
-handles both directions is passed as both `Config::output_codec` and
-`Config::input_codec`.
+handles both directions is passed as both `HardwareConfig::output_codec` and
+`HardwareConfig::input_codec`.
+
+## Configuration
+
+`espp::Audio::Config` has two parts:
+
+- `AppConfig` (`config.app`): what an application chooses - the sample rate
+  (and, for an instance that only records, `recording_sample_rate`), which
+  directions run, the playback buffer and the playback / recording tasks.
+- `HardwareConfig` (`config.hardware`): how the board is wired - the I2S port
+  and pins, channel counts, the recording format and slots, the MCLK multiple
+  and the codecs.
+
+plus the initial volume / mute / microphone gain, `on_playback_block` and the
+log level. The BSPs take only the `AppConfig`, as their `AudioConfig`
+(`using AudioConfig = espp::Audio::AppConfig;`), and fill in the
+`HardwareConfig` for their board.
 
 ## Board-specific parts
 
@@ -45,7 +66,9 @@ Amplifier enable pins, IO expanders and buttons stay in the BSP.
 `Config::on_playback_block` is called once per playback block with whether it
 carried audio, so a BSP can follow playback activity (the M5Stack Tab5 pauses
 its battery charger with it). A board whose microphones are on a separate I2S
-port uses two instances, one for playback and one for recording.
+port uses two instances, one for playback and one for recording (the LilyGo
+T-Deck, and the original M5Stack Cardputer's PDM microphone); such a BSP's
+`microphone_audio()` returns the recording one.
 
 ## BSP audio API
 
@@ -54,7 +77,8 @@ to it:
 
 | Method | |
 |---|---|
-| `initialize_audio()` / `initialize_audio(const AudioConfig &)` | set up playback and / or recording |
+| `initialize_audio()` / `initialize_audio(const AudioConfig &)` | set up playback and / or recording (`AudioConfig` is `espp::Audio::AppConfig`) |
+| `default_audio_config()` | the board's defaults (rate, directions, task stacks / cores), to start an `AudioConfig` from |
 | `deinitialize_audio()`, `is_audio_initialized()` | tear down / query |
 | `audio()` | the `espp::Audio` instance |
 | `enable_audio(bool)` | the speaker amplifier |

@@ -64,8 +64,7 @@ static void play_beep(espp::M5StackCardputer &cardputer, float frequency_hz) {
   static constexpr float duration_s = 0.05f;
   const uint32_t sample_rate = cardputer.audio_sample_rate();
   const size_t num_samples = static_cast<size_t>(duration_s * sample_rate);
-  std::vector<uint8_t> data(num_samples * sizeof(int16_t));
-  auto *samples = reinterpret_cast<int16_t *>(data.data());
+  std::vector<int16_t> samples(num_samples);
   for (size_t i = 0; i < num_samples; i++) {
     float t = static_cast<float>(i) / sample_rate;
     // fade the beep out over its duration to avoid a click at the end
@@ -74,7 +73,8 @@ static void play_beep(espp::M5StackCardputer &cardputer, float frequency_hz) {
         static_cast<int16_t>(INT16_MAX * 0.5f * envelope *
                              std::sin(2.0f * std::numbers::pi_v<float> * frequency_hz * t));
   }
-  cardputer.play_audio(data);
+  cardputer.play_audio(
+      {reinterpret_cast<const uint8_t *>(samples.data()), samples.size() * sizeof(int16_t)});
 }
 
 extern "C" void app_main(void) {
@@ -96,13 +96,21 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // initialize the RGB LED and the sound subsystem
+  // initialize the RGB LED and the audio: the speaker, plus the microphone
+  // on the ADV, whose ES8311 codec runs full duplex (the original cannot: its
+  // PDM microphone clock and the speaker word select share GPIO 43, and this
+  // example uses the speaker)
   if (!cardputer.initialize_led()) {
     logger.error("Failed to initialize RGB LED!");
     return;
   }
-  if (!cardputer.initialize_sound(AUDIO_SAMPLE_RATE_HZ)) {
-    logger.error("Failed to initialize sound!");
+  const bool is_adv = cardputer.variant() == espp::M5StackCardputer::Variant::ADV;
+  auto audio_config = cardputer.default_audio_config();
+  audio_config.sample_rate = AUDIO_SAMPLE_RATE_HZ;
+  audio_config.playback_enabled = true;
+  audio_config.recording_enabled = is_adv;
+  if (!cardputer.initialize_audio(audio_config)) {
+    logger.error("Failed to initialize audio!");
     return;
   }
   cardputer.volume(60.0f);
@@ -287,11 +295,9 @@ extern "C" void app_main(void) {
     gui.set_imu_text("No IMU on this board\n(Cardputer ADV only)");
   }
 
-  // On the ADV the ES8311 codec runs full duplex, so the microphone can be
-  // used at the same time as the speaker (it shares the speaker's sample
-  // rate). The original cannot: its PDM microphone clock and the speaker
-  // word-select share GPIO 43, and this example uses the speaker.
-  if (cardputer.variant() == espp::M5StackCardputer::Variant::ADV) {
+  // On the ADV the microphone records at the same time as the speaker plays
+  // (initialize_audio() set recording up above)
+  if (is_adv) {
     auto mic_callback = [](const uint8_t *data, size_t num_bytes) {
       if (!recording) {
         return;
@@ -309,7 +315,7 @@ extern "C" void app_main(void) {
         recording = false;
       }
     };
-    have_mic = cardputer.initialize_microphone(mic_callback);
+    have_mic = cardputer.start_audio_recording(mic_callback);
     if (have_mic) {
       // allocate the recording buffer: prefer PSRAM (neither Cardputer
       // variant ships with it, but boards / mods that have it get a much
@@ -331,7 +337,7 @@ extern "C" void app_main(void) {
                     recording_capacity / bytes_per_second, cardputer.microphone_sample_rate());
       }
     } else {
-      logger.warn("Could not initialize the microphone!");
+      logger.warn("Could not start the microphone!");
     }
   }
 

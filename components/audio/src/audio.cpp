@@ -4,6 +4,13 @@
 #include <cmath>
 
 #include <esp_err.h>
+#include <soc/soc_caps.h>
+#if SOC_I2S_SUPPORTS_TDM
+#include <driver/i2s_tdm.h>
+#endif
+#if SOC_I2S_SUPPORTS_PDM_RX
+#include <driver/i2s_pdm.h>
+#endif
 
 using namespace espp;
 
@@ -36,9 +43,10 @@ static uint32_t dma_frame_num(uint32_t sample_rate) {
   return espp::i2s_tx_feed::DMA_FRAME_NUM * ((sample_rate + 47999) / 48000);
 }
 
-static i2s_std_config_t make_std_config(const Audio::Config &config, uint8_t channels) {
+static i2s_std_config_t make_std_config(const Audio::HardwareConfig &config, uint32_t sample_rate,
+                                        uint8_t channels) {
   i2s_std_config_t cfg = {
-      .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(config.sample_rate),
+      .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(sample_rate),
       .slot_cfg = I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(
           I2S_DATA_BIT_WIDTH_16BIT, channels == 1 ? I2S_SLOT_MODE_MONO : I2S_SLOT_MODE_STEREO),
       .gpio_cfg = {.mclk = config.pins.mclk,
@@ -52,10 +60,38 @@ static i2s_std_config_t make_std_config(const Audio::Config &config, uint8_t cha
   return cfg;
 }
 
+#if SOC_I2S_SUPPORTS_TDM
+static i2s_tdm_clk_config_t make_tdm_clk_config(const i2s_std_clk_config_t &clk) {
+  return {.sample_rate_hz = clk.sample_rate_hz,
+          .clk_src = clk.clk_src,
+          .ext_clk_freq_hz = clk.ext_clk_freq_hz,
+          .mclk_multiple = clk.mclk_multiple,
+          // let the driver derive BCLK from the slot count and width: a fixed
+          // divider makes it raise MCLK to fit, off the multiple a codec's
+          // coefficients are computed for (an ES7210 then slips frames)
+          .bclk_div = 0};
+}
+#endif
+
+#if SOC_I2S_SUPPORTS_PDM_RX
+static i2s_pdm_rx_clk_config_t make_pdm_rx_clk_config(uint32_t sample_rate) {
+  return I2S_PDM_RX_CLK_DEFAULT_CONFIG(sample_rate);
+}
+#endif
+
+// The rate initialize() starts at: a recording-only instance's own
+// recording_sample_rate, if set.
+static uint32_t initial_sample_rate(const Audio::AppConfig &app) {
+  if (!app.playback_enabled && app.recording_enabled && app.recording_sample_rate != 0) {
+    return app.recording_sample_rate;
+  }
+  return app.sample_rate;
+}
+
 Audio::Audio(const Config &config)
     : BaseComponent("Audio", config.log_level)
     , config_(config)
-    , sample_rate_(config.sample_rate)
+    , sample_rate_(initial_sample_rate(config.app))
     , volume_(std::clamp(config.volume, 0.0f, 100.0f))
     , muted_(config.muted)
     , microphone_volume_(std::clamp(config.microphone_volume, 0.0f, 100.0f)) {}
@@ -63,11 +99,12 @@ Audio::Audio(const Config &config)
 Audio::~Audio() { deinitialize(); }
 
 bool Audio::same_codec() const {
-  return config_.output_codec && config_.output_codec == config_.input_codec;
+  return config_.hardware.output_codec &&
+         config_.hardware.output_codec == config_.hardware.input_codec;
 }
 
 bool Audio::software_volume() const {
-  return !config_.output_codec || !config_.output_codec->has_volume();
+  return !config_.hardware.output_codec || !config_.hardware.output_codec->has_volume();
 }
 
 bool Audio::tx_ring_outlasts_wait(uint32_t sample_rate) const {
@@ -98,39 +135,92 @@ bool Audio::initialize(std::error_code &ec) {
     ec = std::make_error_code(std::errc::device_or_resource_busy);
     return false;
   }
-  const bool playback = config_.playback_enabled;
-  const bool recording = config_.recording_enabled;
+  const bool playback = config_.app.playback_enabled;
+  const bool recording = config_.app.recording_enabled;
   if (!playback && !recording) {
     logger_.error("Neither playback nor recording is enabled");
     ec = std::make_error_code(std::errc::invalid_argument);
     return false;
   }
   auto valid_channels = [](uint8_t channels) { return channels == 1 || channels == 2; };
-  if ((playback && !valid_channels(config_.playback_channels)) ||
-      (recording && !valid_channels(config_.recording_channels))) {
+  if ((playback && !valid_channels(config_.hardware.playback_channels)) ||
+      (recording && !valid_channels(config_.hardware.recording_channels))) {
     logger_.error("Channels must be 1 (mono) or 2 (stereo)");
     ec = std::make_error_code(std::errc::invalid_argument);
     return false;
   }
-  for (const auto &codec : {config_.output_codec, config_.input_codec}) {
-    const bool used = codec && ((codec == config_.output_codec && playback) ||
-                                (codec == config_.input_codec && recording));
+  if (recording) {
+    using enum RecordingFormat;
+    const auto format = config_.hardware.recording_format;
+    if (format != STANDARD && playback) {
+      logger_.error("TDM and PDM recording need an instance that only records");
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+#if !SOC_I2S_SUPPORTS_TDM
+    if (format == TDM) {
+      logger_.error("This chip's I2S does not support TDM");
+      ec = std::make_error_code(std::errc::not_supported);
+      return false;
+    }
+#endif
+#if !SOC_I2S_SUPPORTS_PDM_RX
+    if (format == PDM) {
+      logger_.error("This chip's I2S does not support PDM recording");
+      ec = std::make_error_code(std::errc::not_supported);
+      return false;
+    }
+#endif
+    if (format == TDM &&
+        (config_.hardware.recording_tdm_slots < 2 || config_.hardware.recording_tdm_slots > 16)) {
+      logger_.error("TDM needs 2 - 16 slots, not {}", config_.hardware.recording_tdm_slots);
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+    if (format == PDM && config_.hardware.recording_channels != 1) {
+      logger_.error("A PDM microphone records mono (recording_channels = 1)");
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+    rx_slots_ = format == TDM ? config_.hardware.recording_tdm_slots : format == PDM ? 1 : 2;
+    // recording_channels is 1 or 2 (checked above), so it indexes recording_slots in range
+    static_assert(std::tuple_size_v<decltype(config_.hardware.recording_slots)> == 2);
+    for (size_t i = 0; i < config_.hardware.recording_channels; i++) {
+      if (config_.hardware.recording_slots[i] >= rx_slots_) {
+        logger_.error("Recording slot {} is out of range: a frame has {} slot(s)",
+                      config_.hardware.recording_slots[i], rx_slots_);
+        ec = std::make_error_code(std::errc::invalid_argument);
+        return false;
+      }
+    }
+  }
+  for (const auto &codec : {config_.hardware.output_codec, config_.hardware.input_codec}) {
+    const bool used = codec && ((codec == config_.hardware.output_codec && playback) ||
+                                (codec == config_.hardware.input_codec && recording));
     const uint32_t multiple = used ? codec->mclk_multiple() : 0;
-    if (multiple != 0 && multiple != static_cast<uint32_t>(config_.mclk_multiple)) {
+    if (multiple != 0 && multiple != static_cast<uint32_t>(config_.hardware.mclk_multiple)) {
       logger_.error("The {} codec needs MCLK = {} x the sample rate, not {} x", codec->name(),
-                    multiple, static_cast<uint32_t>(config_.mclk_multiple));
+                    multiple, static_cast<uint32_t>(config_.hardware.mclk_multiple));
       ec = std::make_error_code(std::errc::invalid_argument);
       return false;
     }
   }
-  const uint32_t rate = config_.sample_rate;
+  if (playback && recording && config_.app.recording_sample_rate != 0 &&
+      config_.app.recording_sample_rate != config_.app.sample_rate) {
+    logger_.error("Playback and recording share one clock: recording_sample_rate ({} Hz) must be "
+                  "0 or sample_rate ({} Hz)",
+                  config_.app.recording_sample_rate, config_.app.sample_rate);
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
+  const uint32_t rate = initial_sample_rate(config_.app);
   if (rate < UPDATE_FREQUENCY) {
     // a block (1 / UPDATE_FREQUENCY seconds) would hold no frames
     logger_.error("Sample rate {} Hz is below the minimum of {} Hz", rate, UPDATE_FREQUENCY);
     ec = std::make_error_code(std::errc::invalid_argument);
     return false;
   }
-  logger_.info("Initializing I2S{} audio ({}{}{}) at {} Hz", config_.port,
+  logger_.info("Initializing I2S{} audio ({}{}{}) at {} Hz", config_.hardware.port,
                playback ? "playback" : "", playback && recording ? " + " : "",
                recording ? "recording" : "", rate);
   sample_rate_ = rate;
@@ -148,9 +238,14 @@ bool Audio::initialize(std::error_code &ec) {
   // either channel drives the clocks itself (simplex master).
   // the id's type is i2s_port_t before ESP-IDF 6 and an int since
   i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(
-      static_cast<decltype(i2s_chan_config_t{}.id)>(config_.port), I2S_ROLE_MASTER);
+      static_cast<decltype(i2s_chan_config_t{}.id)>(config_.hardware.port), I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true; // clear the legacy data in the DMA buffer
-  chan_cfg.dma_desc_num = espp::i2s_tx_feed::DMA_DESC_NUM;
+  // the TX ring must outlast the playback task's wait (see the static_assert
+  // above); RX alone keeps the driver's default ring (the recording task reads
+  // a block at a time), half the internal DMA memory
+  if (playback) {
+    chan_cfg.dma_desc_num = espp::i2s_tx_feed::DMA_DESC_NUM;
+  }
   dma_frame_num_ = dma_frame_num(rate);
   chan_cfg.dma_frame_num = dma_frame_num_;
   esp_err_t err = i2s_new_channel(&chan_cfg, playback ? &tx_handle_ : nullptr,
@@ -163,7 +258,8 @@ bool Audio::initialize(std::error_code &ec) {
   }
 
   if (playback) {
-    const i2s_std_config_t tx_cfg = make_std_config(config_, config_.playback_channels);
+    const i2s_std_config_t tx_cfg =
+        make_std_config(config_.hardware, rate, config_.hardware.playback_channels);
     clk_cfg_ = tx_cfg.clk_cfg;
     err = i2s_channel_init_std_mode(tx_handle_, &tx_cfg);
     if (err != ESP_OK) {
@@ -174,12 +270,47 @@ bool Audio::initialize(std::error_code &ec) {
   if (recording) {
     // in full duplex the RX channel runs on the TX clocks, so it shares the
     // standard-mode clock / slot geometry (only the slot mode may differ)
-    // always stereo slots (see Config::recording_channels)
-    const i2s_std_config_t rx_cfg = make_std_config(config_, 2);
+    // always stereo slots (see HardwareConfig::recording_channels)
+    const i2s_std_config_t rx_cfg = make_std_config(config_.hardware, rate, 2);
     if (!playback) {
       clk_cfg_ = rx_cfg.clk_cfg;
     }
-    err = i2s_channel_init_std_mode(rx_handle_, &rx_cfg);
+    switch (config_.hardware.recording_format) {
+    case RecordingFormat::STANDARD:
+      err = i2s_channel_init_std_mode(rx_handle_, &rx_cfg);
+      break;
+    case RecordingFormat::TDM: {
+#if SOC_I2S_SUPPORTS_TDM
+      const i2s_tdm_config_t tdm_cfg = {
+          .clk_cfg = make_tdm_clk_config(clk_cfg_),
+          .slot_cfg = I2S_TDM_PHILIPS_SLOT_DEFAULT_CONFIG(
+              I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO,
+              static_cast<i2s_tdm_slot_mask_t>((1u << config_.hardware.recording_tdm_slots) - 1)),
+          .gpio_cfg = {.mclk = config_.hardware.pins.mclk,
+                       .bclk = config_.hardware.pins.bclk,
+                       .ws = config_.hardware.pins.ws,
+                       .dout = GPIO_NUM_NC,
+                       .din = config_.hardware.pins.din,
+                       .invert_flags = {.mclk_inv = false, .bclk_inv = false, .ws_inv = false}},
+      };
+      err = i2s_channel_init_tdm_mode(rx_handle_, &tdm_cfg);
+#endif
+      break;
+    }
+    case RecordingFormat::PDM: {
+#if SOC_I2S_SUPPORTS_PDM_RX
+      const i2s_pdm_rx_config_t pdm_cfg = {
+          .clk_cfg = make_pdm_rx_clk_config(rate),
+          .slot_cfg = I2S_PDM_RX_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
+          .gpio_cfg = {.clk = config_.hardware.pins.ws,
+                       .din = config_.hardware.pins.din,
+                       .invert_flags = {.clk_inv = false}},
+      };
+      err = i2s_channel_init_pdm_rx_mode(rx_handle_, &pdm_cfg);
+#endif
+      break;
+    }
+    }
     if (err != ESP_OK) {
       logger_.error("Could not configure the I2S RX channel: {}", esp_err_to_name(err));
       return fail(std::errc::io_error);
@@ -187,24 +318,24 @@ bool Audio::initialize(std::error_code &ec) {
   }
 
   if (playback) {
-    block_bytes_ = block_size(rate, config_.playback_channels);
+    block_bytes_ = block_size(rate, config_.hardware.playback_channels);
     tx_buffer_.resize(block_bytes_ / BYTES_PER_SAMPLE);
     // set before the stream exists: play() uses it once tx_stream_ is set
     // (both under mutex_, which initialize() holds anyway)
-    tx_feed_.frame_bytes = config_.playback_channels * BYTES_PER_SAMPLE;
+    tx_feed_.frame_bytes = config_.hardware.playback_channels * BYTES_PER_SAMPLE;
     // The playback task never blocks on the stream (see
     // playback_task_callback), so the trigger level is irrelevant; the
     // minimum keeps a producer's send from ever holding a receiver.
-    const size_t stream_size = config_.playback_buffer_size == 0
+    const size_t stream_size = config_.app.playback_buffer_size == 0
                                    ? block_bytes_ * 4
-                                   : std::max(config_.playback_buffer_size, block_bytes_ * 2);
+                                   : std::max(config_.app.playback_buffer_size, block_bytes_ * 2);
     // storage with the requested caps, the stream on it (not
     // xStreamBufferCreateWithCaps(): ESP-IDF's vStreamBufferDeleteWithCaps()
     // deletes the stream as a queue and then frees its memory again). A
     // static stream buffer holds one byte less than its storage, so one more
     // keeps stream_size usable.
     tx_stream_storage_ =
-        static_cast<uint8_t *>(heap_caps_malloc(stream_size + 1, config_.playback_buffer_caps));
+        static_cast<uint8_t *>(heap_caps_malloc(stream_size + 1, config_.app.playback_buffer_caps));
     if (tx_stream_storage_) {
       tx_stream_ =
           xStreamBufferCreateStatic(stream_size + 1, 1, tx_stream_storage_, &tx_stream_struct_);
@@ -216,8 +347,8 @@ bool Audio::initialize(std::error_code &ec) {
     tx_feed_.stream = tx_stream_;
   }
   if (recording) {
-    // stereo frames (see Config::recording_channels)
-    rx_buffer_.resize(block_size(rate, 2) / BYTES_PER_SAMPLE);
+    // whole received frames (see HardwareConfig::recording_channels)
+    rx_buffer_.resize(block_size(rate, rx_slots_) / BYTES_PER_SAMPLE);
   }
 
   // the codecs need the clocks (MCLK) running before they are configured
@@ -250,33 +381,35 @@ bool Audio::initialize(std::error_code &ec) {
   };
   if (same_codec() && playback && recording) {
     output_started_ = input_started_ = true;
-    if (!start_codec(*config_.output_codec, AudioCodec::Direction::BOTH)) {
+    if (!start_codec(*config_.hardware.output_codec, AudioCodec::Direction::BOTH)) {
       return fail(std::errc::io_error);
     }
   } else {
-    if (playback && config_.output_codec) {
+    if (playback && config_.hardware.output_codec) {
       output_started_ = true;
-      if (!start_codec(*config_.output_codec, AudioCodec::Direction::PLAYBACK)) {
+      if (!start_codec(*config_.hardware.output_codec, AudioCodec::Direction::PLAYBACK)) {
         return fail(std::errc::io_error);
       }
     }
-    if (recording && config_.input_codec) {
+    if (recording && config_.hardware.input_codec) {
       input_started_ = true;
-      if (!start_codec(*config_.input_codec, AudioCodec::Direction::RECORDING)) {
+      if (!start_codec(*config_.hardware.input_codec, AudioCodec::Direction::RECORDING)) {
         return fail(std::errc::io_error);
       }
     }
   }
   // the initial settings: a codec left unmuted (its start() may unmute it)
   // while muted_ says otherwise would play audio the caller muted
-  if (output_started_ && config_.output_codec->has_volume() &&
-      !(config_.output_codec->set_volume(volume_) && config_.output_codec->set_mute(muted_))) {
-    logger_.error("Could not set the {} codec's volume / mute", config_.output_codec->name());
+  if (output_started_ && config_.hardware.output_codec->has_volume() &&
+      !(config_.hardware.output_codec->set_volume(volume_) &&
+        config_.hardware.output_codec->set_mute(muted_))) {
+    logger_.error("Could not set the {} codec's volume / mute",
+                  config_.hardware.output_codec->name());
     return fail(std::errc::io_error);
   }
-  if (input_started_ && config_.input_codec->has_gain() &&
-      !config_.input_codec->set_gain(microphone_volume_)) {
-    logger_.error("Could not set the {} codec's gain", config_.input_codec->name());
+  if (input_started_ && config_.hardware.input_codec->has_gain() &&
+      !config_.hardware.input_codec->set_gain(microphone_volume_)) {
+    logger_.error("Could not set the {} codec's gain", config_.hardware.input_codec->name());
     return fail(std::errc::io_error);
   }
 
@@ -289,7 +422,7 @@ bool Audio::initialize(std::error_code &ec) {
   if (playback) {
     playback_task_ = espp::Task::make_unique(
         {.callback = std::bind(&Audio::playback_task_callback, this, _1, _2, _3),
-         .task_config = config_.playback_task_config});
+         .task_config = config_.app.playback_task_config});
     if (!playback_task_->start()) {
       logger_.error("Could not start the playback task");
       return fail(std::errc::resource_unavailable_try_again);
@@ -298,7 +431,7 @@ bool Audio::initialize(std::error_code &ec) {
   if (recording) {
     recording_task_ = espp::Task::make_unique(
         {.callback = std::bind(&Audio::recording_task_callback, this, _1, _2, _3),
-         .task_config = config_.recording_task_config});
+         .task_config = config_.app.recording_task_config});
     if (!recording_task_->start()) {
       logger_.error("Could not start the recording task");
       return fail(std::errc::resource_unavailable_try_again);
@@ -351,10 +484,10 @@ void Audio::teardown(std::unique_lock<std::mutex> &lock) {
   // a codec passed as both output_codec and input_codec is stopped once,
   // whichever directions it was started for
   if (input_started_ && !(same_codec() && output_started_)) {
-    config_.input_codec->stop();
+    config_.hardware.input_codec->stop();
   }
   if (output_started_) {
-    config_.output_codec->stop();
+    config_.hardware.output_codec->stop();
   }
   input_started_ = output_started_ = false;
   if (tx_enabled_) {
@@ -425,24 +558,24 @@ void Audio::clear() {
 void Audio::volume(float volume) {
   std::lock_guard<std::mutex> lock(mutex_);
   volume_ = std::clamp(volume, 0.0f, 100.0f);
-  if (output_started_ && config_.output_codec->has_volume()) {
-    config_.output_codec->set_volume(volume_);
+  if (output_started_ && config_.hardware.output_codec->has_volume()) {
+    config_.hardware.output_codec->set_volume(volume_);
   }
 }
 
 void Audio::mute(bool mute) {
   std::lock_guard<std::mutex> lock(mutex_);
   muted_ = mute;
-  if (output_started_ && config_.output_codec->has_volume()) {
-    config_.output_codec->set_mute(mute);
+  if (output_started_ && config_.hardware.output_codec->has_volume()) {
+    config_.hardware.output_codec->set_mute(mute);
   }
 }
 
 void Audio::microphone_volume(float volume) {
   std::lock_guard<std::mutex> lock(mutex_);
   microphone_volume_ = std::clamp(volume, 0.0f, 100.0f);
-  if (input_started_ && config_.input_codec->has_gain()) {
-    config_.input_codec->set_gain(microphone_volume_);
+  if (input_started_ && config_.hardware.input_codec->has_gain()) {
+    config_.hardware.input_codec->set_gain(microphone_volume_);
   }
 }
 
@@ -453,7 +586,7 @@ bool Audio::sample_rate(uint32_t sample_rate) {
   }
   std::lock_guard<std::mutex> lock(mutex_);
   if (!initialized_) {
-    logger_.warn("Not initialized: set Config::sample_rate instead");
+    logger_.warn("Not initialized: set AppConfig::sample_rate instead");
     return false;
   }
   if (tx_handle_ && !tx_ring_outlasts_wait(sample_rate)) {
@@ -464,7 +597,6 @@ bool Audio::sample_rate(uint32_t sample_rate) {
   }
   logger_.info("Setting the sample rate to {} Hz", sample_rate);
   const uint32_t old_rate = sample_rate_;
-  const i2s_std_clk_config_t old_clk_cfg = clk_cfg_;
   if (!apply_sample_rate(sample_rate)) {
     // back to a consistent configuration: the clocks and the codecs at the
     // previous rate (the queued audio is kept, it is still for that rate)
@@ -494,7 +626,20 @@ bool Audio::apply_sample_rate(uint32_t sample_rate) {
   }
   i2s_std_clk_config_t clk_cfg = clk_cfg_;
   clk_cfg.sample_rate_hz = sample_rate;
-  const esp_err_t err = i2s_channel_reconfig_std_clock(clock_handle, &clk_cfg);
+  esp_err_t err = ESP_ERR_NOT_SUPPORTED;
+  if (tx_handle_ || config_.hardware.recording_format == RecordingFormat::STANDARD) {
+    err = i2s_channel_reconfig_std_clock(clock_handle, &clk_cfg);
+#if SOC_I2S_SUPPORTS_TDM
+  } else if (config_.hardware.recording_format == RecordingFormat::TDM) {
+    const i2s_tdm_clk_config_t tdm_clk_cfg = make_tdm_clk_config(clk_cfg);
+    err = i2s_channel_reconfig_tdm_clock(clock_handle, &tdm_clk_cfg);
+#endif
+#if SOC_I2S_SUPPORTS_PDM_RX
+  } else if (config_.hardware.recording_format == RecordingFormat::PDM) {
+    const i2s_pdm_rx_clk_config_t pdm_clk_cfg = make_pdm_rx_clk_config(sample_rate);
+    err = i2s_channel_reconfig_pdm_rx_clock(clock_handle, &pdm_clk_cfg);
+#endif
+  }
   if (err == ESP_OK) {
     clk_cfg_ = clk_cfg;
     sample_rate_ = sample_rate;
@@ -512,14 +657,16 @@ bool Audio::apply_sample_rate(uint32_t sample_rate) {
   }
   // the codecs follow the running clocks
   bool ok = true;
-  if (output_started_ && !config_.output_codec->set_sample_rate(sample_rate)) {
-    logger_.error("The {} codec does not support {} Hz", config_.output_codec->name(), sample_rate);
+  if (output_started_ && !config_.hardware.output_codec->set_sample_rate(sample_rate)) {
+    logger_.error("The {} codec does not support {} Hz", config_.hardware.output_codec->name(),
+                  sample_rate);
     ok = false;
   }
   // once for a codec passed as both output_codec and input_codec
   if (input_started_ && !(same_codec() && output_started_) &&
-      !config_.input_codec->set_sample_rate(sample_rate)) {
-    logger_.error("The {} codec does not support {} Hz", config_.input_codec->name(), sample_rate);
+      !config_.hardware.input_codec->set_sample_rate(sample_rate)) {
+    logger_.error("The {} codec does not support {} Hz", config_.hardware.input_codec->name(),
+                  sample_rate);
     ok = false;
   }
   return ok;
@@ -537,7 +684,7 @@ bool Audio::start_recording(const recording_callback_t &callback) {
   }
   std::unique_lock<std::mutex> lock(mutex_);
   while (true) {
-    if (!initialized_ || !config_.recording_enabled) {
+    if (!initialized_ || !config_.app.recording_enabled) {
       logger_.error("Recording is not initialized");
       return false;
     }
@@ -642,13 +789,24 @@ bool Audio::recording_task_callback(std::mutex &m, std::condition_variable &cv,
     if (recording_) {
       int16_t *samples = rx_buffer_.data();
       size_t length = bytes_read;
-      if (config_.recording_channels == 1) {
-        // keep the left slot of each stereo frame, in place
-        const size_t frames = bytes_read / (2 * BYTES_PER_SAMPLE);
+      // initialize() keeps channels to 1 or 2 and the slots within a frame
+      const size_t channels = config_.hardware.recording_channels;
+      const auto &slots = config_.hardware.recording_slots;
+      if (channels != rx_slots_ || slots[0] != 0 || (channels == 2 && slots[1] != 1)) {
+        // keep the selected slots of each frame, in place: frame i's output
+        // ends at or before its input does, so only its own slots can be
+        // overwritten, and they are read first
+        const size_t frames = bytes_read / (rx_slots_ * BYTES_PER_SAMPLE);
         for (size_t i = 0; i < frames; i++) {
-          samples[i] = samples[2 * i];
+          const int16_t *in = samples + i * rx_slots_;
+          const int16_t first = in[slots[0]];
+          const int16_t second = channels == 2 ? in[slots[1]] : 0;
+          samples[i * channels] = first;
+          if (channels == 2) {
+            samples[i * channels + 1] = second;
+          }
         }
-        length = frames * BYTES_PER_SAMPLE;
+        length = frames * channels * BYTES_PER_SAMPLE;
       }
       recording_callback_(reinterpret_cast<const uint8_t *>(samples), length);
     }

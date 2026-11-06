@@ -1,10 +1,12 @@
 Audio
 *****
 
-The :cpp:class:`espp::Audio` component drives one I2S port in standard
-(Philips) mode with 16-bit PCM: a TX channel for playback, an RX channel for
-recording, or both, full duplex. It owns the machinery the espp BSPs used to
-copy into each board:
+The :cpp:class:`espp::Audio` component drives one I2S port with 16-bit PCM: a
+TX channel for playback, an RX channel for recording, or both, full duplex, in
+standard (Philips) mode. An instance that only records can instead receive TDM
+(e.g. an ES7210 with four microphones) or a PDM microphone, and
+``HardwareConfig::recording_slots`` picks the slots its callback receives. It owns the
+machinery the espp BSPs used to copy into each board:
 
 - the I2S channels and their DMA rings, sized so the TX ring outlasts the
   playback task's bounded wait,
@@ -25,17 +27,28 @@ and the ES7210 (:cpp:class:`espp::Es7210Codec`, recording), on the drivers in
 the ``codec`` component. A chip that handles both directions, like the ES8311,
 is passed as both the output and the input codec.
 
+:cpp:struct:`espp::Audio::Config` has two parts: an
+:cpp:struct:`espp::Audio::AppConfig` (what an application chooses: the sample
+rate, which directions run, the playback buffer and the tasks) and an
+:cpp:struct:`espp::Audio::HardwareConfig` (how the board is wired: the I2S port
+and pins, channels, the recording format and slots, the MCLK multiple and the
+codecs). The BSPs take only the ``AppConfig``, as their ``AudioConfig``, and
+fill in the ``HardwareConfig`` for their board.
+
 Board-specific parts - amplifier enable pins, IO expanders, buttons - stay in
 the BSP. ``Config::on_playback_block`` lets a BSP follow playback activity (the
 M5Stack Tab5 pauses its battery charger with it, since the charger pops the
 speaker). A board whose microphones are on a separate I2S port uses two
-instances: one for playback and one for recording.
+instances: one for playback and one for recording, which such a BSP's
+``microphone_audio()`` returns.
 
 BSP audio API
 -------------
 
 The BSPs that use this component expose the same audio methods, which forward
-to it: ``initialize_audio()`` / ``initialize_audio(const AudioConfig &)``,
+to it: ``initialize_audio()`` / ``initialize_audio(const AudioConfig &)``
+(``AudioConfig`` is ``espp::Audio::AppConfig``; ``default_audio_config()``
+returns the board's defaults to start one from),
 ``deinitialize_audio()``, ``is_audio_initialized()``, ``audio()``,
 ``enable_audio(bool)`` (the amplifier), ``play_audio(std::span<const uint8_t>)``
 / ``play_audio(const uint8_t *, size_t)``, ``clear_audio()``, ``volume()``,

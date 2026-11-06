@@ -86,8 +86,12 @@ extern "C" void app_main(void) {
   // so the speaker runs at that rate from the start - no runtime rate
   // reconfiguration, which is where a speaker-vs-recording pitch mismatch
   // could creep in
-  if (!tdeck.initialize_sound(AUDIO_SAMPLE_RATE_HZ)) {
-    logger.error("Failed to initialize sound!");
+  // (the microphones' rate too: see MIC_SAMPLE_RATE_HZ)
+  auto audio_config = tdeck.default_audio_config();
+  audio_config.sample_rate = AUDIO_SAMPLE_RATE_HZ;
+  audio_config.recording_sample_rate = MIC_SAMPLE_RATE_HZ;
+  if (!tdeck.initialize_audio(audio_config)) {
+    logger.error("Failed to initialize audio!");
     return;
   }
   // initialize the LCD
@@ -242,8 +246,8 @@ extern "C" void app_main(void) {
   // set the display brightness to be 75%
   tdeck.brightness(75.0f);
 
-  // Initialize the microphones (the ES7210 is on its own I2S bus, so pick
-  // the speaker's sample rate to make the recording directly playable) and
+  // Start the microphones (the ES7210 is on its own I2S bus, so it runs at the
+  // speaker's sample rate to make the recording directly playable) and
   // buffer the recorded stereo frames; the recording auto-stops when the
   // buffer is full and the main loop notices and updates the GUI
   auto mic_callback = [](const uint8_t *data, size_t num_bytes) {
@@ -278,9 +282,10 @@ extern "C" void app_main(void) {
       recording = false;
     }
   };
-  // record at the ES7210's comfortable 16 kHz (see MIC_SAMPLE_RATE_HZ), which
-  // is independent of the speaker's rate (the ES7210 is on its own I2S bus)
-  bool have_mic = tdeck.initialize_microphone(mic_callback, MIC_SAMPLE_RATE_HZ);
+  // the microphones record at the ES7210's comfortable 16 kHz (see
+  // MIC_SAMPLE_RATE_HZ, passed to initialize_audio() above), which is
+  // independent of the speaker's rate (the ES7210 is on its own I2S bus)
+  bool have_mic = tdeck.start_audio_recording(mic_callback);
   if (have_mic) {
     // The T-Deck's electret mics are genuinely low-sensitivity (LilyGO's own
     // firmware reads only ~200 counts for loud speech next to the mic), so the
@@ -588,7 +593,9 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
     return false;
   }
   // get the sample rate from the wav header (bytes 24-27)
-  uint32_t sample_rate = *(reinterpret_cast<const uint32_t *>(&audio_bytes[24]));
+  // (memcpy: the bytes need not be aligned for a uint32_t)
+  uint32_t sample_rate = 0;
+  memcpy(&sample_rate, &audio_bytes[24], sizeof(sample_rate));
   // set the audio sample rate accordingly
   // decode the wav file header (first 44 bytes) and remove it
   if (audio_bytes.size() > 44) {

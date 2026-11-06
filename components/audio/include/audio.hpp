@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
@@ -54,7 +55,7 @@ namespace espp {
 class Audio : public BaseComponent {
 public:
   /// Function called with recorded audio: 16-bit signed PCM, interleaved
-  /// when Config::recording_channels is 2. Runs on the recording task; it may
+  /// when HardwareConfig::recording_channels is 2. Runs on the recording task; it may
   /// call any method except start_recording() (which fails from it: it waits
   /// for the callback to return), initialize() and deinitialize().
   using recording_callback_t = std::function<void(const uint8_t *data, size_t length)>;
@@ -69,6 +70,17 @@ public:
   /// at most 1 / UPDATE_FREQUENCY seconds of audio).
   static constexpr uint32_t UPDATE_FREQUENCY = 60;
 
+  /// How the recording (RX) channel receives.
+  enum class RecordingFormat {
+    STANDARD, ///< Standard (Philips) I2S: two slots per frame. In full duplex
+              ///< it runs on the playback clocks.
+    TDM,      ///< TDM: HardwareConfig::recording_tdm_slots slots per frame (e.g. an
+              ///< ES7210 with four microphones). Recording only; needs
+              ///< SOC_I2S_SUPPORTS_TDM.
+    PDM,      ///< A PDM microphone: Pins::ws is its clock and Pins::din its
+              ///< data; mono. Recording only; needs SOC_I2S_SUPPORTS_PDM_RX.
+  };
+
   /// I2S pins. Unused pins are GPIO_NUM_NC.
   struct Pins {
     gpio_num_t mclk{GPIO_NUM_NC}; ///< Master clock (NC for codecs that derive it from BCLK).
@@ -78,38 +90,29 @@ public:
     gpio_num_t din{GPIO_NUM_NC};  ///< Data in (from the ADC / microphones), used for recording.
   };
 
-  /// Configuration
-  struct Config {
-    int port{I2S_NUM_0};         ///< I2S port (I2S_NUM_0, I2S_NUM_1, ...).
-    Pins pins{};                 ///< I2S pins.
-    uint32_t sample_rate{48000}; ///< Sample rate, in Hz (at least UPDATE_FREQUENCY).
+  /// What an application chooses: the rate, which directions run, buffering
+  /// and the tasks. The BSPs take this (as their AudioConfig) and fill in the
+  /// HardwareConfig for their board.
+  struct AppConfig {
+    /// Sample rate, in Hz (at least UPDATE_FREQUENCY).
+    uint32_t sample_rate{48000};
+    /// The recording rate, in Hz, for an instance that only records (0:
+    /// sample_rate). An instance that plays and records runs both on one
+    /// clock, so it must be 0 or sample_rate there; a playback-only instance
+    /// ignores it. Lets a board whose microphones have their own I2S port
+    /// (e.g. the T-Deck) record at a rate other than it plays.
+    uint32_t recording_sample_rate{0};
     /// Set up playback (the TX channel, the output codec and the playback
     /// task).
     bool playback_enabled{true};
     /// Set up recording (the RX channel, the input codec and the recording
     /// task).
     /// \note Each I2S channel has a DMA ring in internal DMA-capable RAM
-    ///       (about 11.5 KB) and each task a stack in internal RAM, so a
-    ///       direction that is not needed is better left off.
+    ///       (about 11.5 KB of stereo frames up to 48 kHz; half that for an
+    ///       instance that only records, times the slots / 2 for TDM) and
+    ///       each task a stack in internal RAM, so a direction that is not
+    ///       needed is better left off.
     bool recording_enabled{false};
-    /// Playback channels: 2 (interleaved stereo) or 1 (mono).
-    uint8_t playback_channels{2};
-    /// Recording channels: 2 (interleaved stereo) or 1 (mono: the left
-    /// slot).
-    /// \note Mono is received as stereo slots and the callback gets the left
-    ///       slot only: an RX channel in mono slot mode still delivers both
-    ///       slots (measured on the ESP32-P4, recording only and full duplex:
-    ///       twice the samples, in a DMA ring sized for one). So mono costs a
-    ///       stereo RX DMA ring.
-    uint8_t recording_channels{2};
-    /// MCLK as a multiple of the sample rate.
-    i2s_mclk_multiple_t mclk_multiple{I2S_MCLK_MULTIPLE_256};
-    /// The codec for playback (nullptr: none, e.g. an I2S amplifier; volume
-    /// and mute are then applied in software).
-    std::shared_ptr<AudioCodec> output_codec{};
-    /// The codec for recording (nullptr: none, e.g. an I2S microphone). May
-    /// be the same object as output_codec.
-    std::shared_ptr<AudioCodec> input_codec{};
     /// Size of the playback stream that play() queues into, in bytes (0: four
     /// blocks, about 67 ms). Larger lets one play() queue a whole UI sound;
     /// at least two blocks.
@@ -117,11 +120,6 @@ public:
     /// Heap capabilities for the playback stream (e.g. MALLOC_CAP_SPIRAM for
     /// a large one).
     uint32_t playback_buffer_caps{MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT};
-    float volume{50.0f};            ///< Initial output volume, 0 - 100.
-    bool muted{false};              ///< Initial mute state.
-    float microphone_volume{70.0f}; ///< Initial microphone gain, 0 - 100.
-    /// Called by the playback task once per block (optional).
-    playback_block_callback_t on_playback_block{};
     /// The playback task's configuration (unpinned by default; a BSP can set
     /// core_id for its board).
     espp::Task::BaseConfig playback_task_config{
@@ -130,6 +128,55 @@ public:
     /// recording callback; unpinned by default).
     espp::Task::BaseConfig recording_task_config{
         .name = "audio in", .stack_size_bytes = 4096, .priority = 20};
+  };
+
+  /// How the board is wired: the I2S port and pins, the slot layout and the
+  /// codecs. A BSP fills this in for its board.
+  struct HardwareConfig {
+    int port{I2S_NUM_0}; ///< I2S port (I2S_NUM_0, I2S_NUM_1, ...).
+    Pins pins{};         ///< I2S pins.
+    /// Playback channels: 2 (interleaved stereo) or 1 (mono).
+    uint8_t playback_channels{2};
+    /// Recording channels: 2 (interleaved stereo) or 1 (mono); other values
+    /// are rejected. They are taken from recording_slots (by default mono is
+    /// the left slot).
+    /// \note Mono is received as stereo slots and the callback gets the left
+    ///       slot only: an RX channel in mono slot mode still delivers both
+    ///       slots (measured on the ESP32-P4, recording only and full duplex:
+    ///       twice the samples, in a DMA ring sized for one). So mono costs a
+    ///       stereo RX DMA ring.
+    uint8_t recording_channels{2};
+    /// How the RX channel receives (STANDARD, TDM or PDM). TDM and PDM are
+    /// for an instance that only records (playback_enabled = false), e.g. a
+    /// board whose microphones have their own I2S port.
+    RecordingFormat recording_format{RecordingFormat::STANDARD};
+    /// TDM: slots per frame, 2 - 16.
+    uint8_t recording_tdm_slots{4};
+    /// The slots the callback receives, in order: the first
+    /// recording_channels (1 or 2) of them (STANDARD: of 2, TDM: of
+    /// recording_tdm_slots; PDM has one). E.g. {0, 2} keeps a four-slot
+    /// ES7210's MIC1 and MIC3 as stereo, and {1} with one channel the right
+    /// slot as mono.
+    std::array<uint8_t, 2> recording_slots{0, 1};
+    /// MCLK as a multiple of the sample rate.
+    i2s_mclk_multiple_t mclk_multiple{I2S_MCLK_MULTIPLE_256};
+    /// The codec for playback (nullptr: none, e.g. an I2S amplifier; volume
+    /// and mute are then applied in software).
+    std::shared_ptr<AudioCodec> output_codec{};
+    /// The codec for recording (nullptr: none, e.g. an I2S microphone). May
+    /// be the same object as output_codec.
+    std::shared_ptr<AudioCodec> input_codec{};
+  };
+
+  /// Configuration
+  struct Config {
+    AppConfig app{};                ///< What the application chooses.
+    HardwareConfig hardware{};      ///< How the board is wired.
+    float volume{50.0f};            ///< Initial output volume, 0 - 100.
+    bool muted{false};              ///< Initial mute state.
+    float microphone_volume{70.0f}; ///< Initial microphone gain, 0 - 100.
+    /// Called by the playback task once per block (optional).
+    playback_block_callback_t on_playback_block{};
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Log verbosity.
   };
 
@@ -160,15 +207,15 @@ public:
   /// @return true once initialize() has succeeded (until deinitialize()).
   bool is_initialized() const { return initialized_.load(); }
 
-  /// @return Whether playback is set up (Config::playback_enabled).
-  bool is_playback_enabled() const { return config_.playback_enabled; }
+  /// @return Whether playback is set up (AppConfig::playback_enabled).
+  bool is_playback_enabled() const { return config_.app.playback_enabled; }
 
-  /// @return Whether recording is set up (Config::recording_enabled).
-  bool is_recording_enabled() const { return config_.recording_enabled; }
+  /// @return Whether recording is set up (AppConfig::recording_enabled).
+  bool is_recording_enabled() const { return config_.app.recording_enabled; }
 
   /// @brief Queue audio for playback.
   /// @param data 16-bit signed PCM, interleaved when
-  ///        Config::playback_channels is 2.
+  ///        HardwareConfig::playback_channels is 2.
   /// @return The number of bytes queued: whole frames only, and less than the
   ///         data when the stream buffer is full. To stream more than the
   ///         buffer holds, call it again from the returned offset.
@@ -178,7 +225,7 @@ public:
 
   /// @brief Queue audio for playback.
   /// @param data 16-bit signed PCM, interleaved when
-  ///        Config::playback_channels is 2.
+  ///        HardwareConfig::playback_channels is 2.
   /// @param num_bytes The number of bytes.
   /// @return The number of bytes queued (see play(std::span)).
   size_t play(const uint8_t *data, size_t num_bytes);
@@ -294,6 +341,9 @@ protected:
   // the clock configuration of the channel that drives the clocks (TX, or RX
   // when recording only), for sample_rate(uint32_t)
   i2s_std_clk_config_t clk_cfg_{};
+  // slots per received frame (2 for STANDARD, recording_tdm_slots for TDM, 1
+  // for PDM)
+  uint8_t rx_slots_{2};
   bool output_started_{false};
   bool input_started_{false};
 
@@ -302,7 +352,7 @@ protected:
   std::vector<int16_t> tx_buffer_;
   std::vector<int16_t> rx_buffer_;
   StreamBufferHandle_t tx_stream_{nullptr};
-  // the playback stream's memory (Config::playback_buffer_caps) and structure
+  // the playback stream's memory (AppConfig::playback_buffer_caps) and structure
   uint8_t *tx_stream_storage_{nullptr};
   StaticStreamBuffer_t tx_stream_struct_{};
   espp::i2s_tx_feed::Feeder tx_feed_;

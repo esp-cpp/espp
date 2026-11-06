@@ -1,6 +1,6 @@
 idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src"
-  REQUIRES driver esp_driver_i2s esp_lcd fatfs sdmmc base_component codec display display_drivers ft5x06 i2c input_drivers interrupt led sdcard task
+  REQUIRES driver esp_driver_i2s esp_lcd fatfs sdmmc audio base_component display display_drivers ft5x06 i2c input_drivers interrupt led sdcard task
   REQUIRED_IDF_TARGETS "esp32s3"
   )

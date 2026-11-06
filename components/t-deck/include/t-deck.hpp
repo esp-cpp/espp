@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <memory>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -18,15 +19,14 @@
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
-#include <freertos/stream_buffer.h>
 #include <freertos/task.h>
 
+#include "audio.hpp"
 #include "base_component.hpp"
-#include "es7210.hpp"
+#include "es7210_codec.hpp"
 #include "gps.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
-#include "i2s_tx_feed.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
 #include "pointer_input.hpp"
@@ -505,53 +505,130 @@ public:
   /// \return The GPIO pin for the mute button
   static constexpr auto get_mute_pin() { return mute_pin; }
 
-  /// Initialize the sound subsystem
+  /// How initialize_audio() sets the audio system up: the application's side
+  /// of espp::Audio (the board's wiring is filled in by initialize_audio()).
+  /// Start from default_audio_config() to keep this board's defaults.
+  /// - sample_rate: the speaker's sample rate, in Hz
+  /// - recording_sample_rate: the microphones' sample rate, in Hz (0:
+  ///   sample_rate): 8000, 11025, 16000, 22050, 24000, 32000, 44100 or 48000
+  ///   (the ES7210's clock coefficients). The ES7210 has its own I2S bus, so
+  ///   this is independent of sample_rate.
+  /// - playback_enabled: set up playback: the speaker amplifier's I2S channel
+  ///   and the playback task. Without it play_audio() queues nothing.
+  /// - recording_enabled: set up recording: the ES7210's I2S channel (TDM) and
+  ///   the microphone task. Without it start_audio_recording() fails.
+  /// - playback_buffer_size / playback_buffer_caps: the stream play_audio()
+  ///   queues into (0: about 67 ms of audio; larger lets one play_audio() call
+  ///   queue a whole UI sound, e.g. in MALLOC_CAP_SPIRAM)
+  /// - playback_task_config / recording_task_config: the audio tasks (the
+  ///   recording callback runs on the recording task)
+  /// \note Each I2S channel has a DMA ring in internal DMA-capable RAM (about
+  ///       11.5 KB each), and each task's stack is in internal RAM too, so an
+  ///       application that only plays (or only records) saves that memory by
+  ///       turning the other direction off.
+  using AudioConfig = espp::Audio::AppConfig;
+
+  /// The board's default AudioConfig: playback at 48 kHz, recording at 16
+  /// kHz, and the tasks "tdeck audio out" / "tdeck audio in" on core 1.
+  /// \return The default AudioConfig
+  static AudioConfig default_audio_config();
+
+  /// Initialize the audio system with the default AudioConfig: playback at
+  /// 48 kHz and recording at 16 kHz
+  /// \return true if the audio system was successfully initialized, false
+  ///         otherwise
+  bool initialize_audio();
+
+  /// Initialize the audio system: the speaker amplifier (MAX98357A) on one
+  /// I2S bus and the ES7210 microphone ADC on another
+  /// \param config The sample rates, which directions to set up, the playback
+  ///        buffer and the task configuration
+  /// \return true if the audio system was successfully initialized, false
+  ///         otherwise (also when neither playback nor recording is enabled)
+  /// \note A failure part way through undoes what was set up before it (the
+  ///       I2S channels and their DMA rings, the stream buffer, the tasks, the
+  ///       codec), so the call can be retried.
+  bool initialize_audio(const AudioConfig &config);
+
+  /// Initialize the sound subsystem (playback only)
   /// \param default_audio_rate The default audio rate
   /// \param task_config The task configuration for the audio task
   /// \return true if the sound subsystem was successfully initialized, false
   ///         otherwise
-  bool
+  [[deprecated("use initialize_audio(const AudioConfig &) instead")]] bool
   initialize_sound(uint32_t default_audio_rate = 48000,
                    const espp::Task::BaseConfig &task_config = {
                        .name = "audio", .stack_size_bytes = 4096, .priority = 19, .core_id = 1});
 
+  /// Stop the audio system and free what initialize_audio() set up.
+  /// Idempotent.
+  /// \note The audio methods below may be called from any task meanwhile,
+  ///       but initialize_audio(), initialize_microphone() and
+  ///       deinitialize_audio() must not run concurrently with each other,
+  ///       nor from an audio callback.
+  void deinitialize_audio();
+
+  /// Whether the audio system is initialized
+  /// \return True if initialize_audio() set up playback or recording (until
+  ///         deinitialize_audio())
+  bool is_audio_initialized() const {
+    auto audio = audio_.load();
+    auto microphone = microphone_audio_.load();
+    return (audio && audio->is_initialized()) || (microphone && microphone->is_initialized());
+  }
+
+  /// The playback audio component (the speaker), for anything the BSP methods
+  /// below do not expose
+  /// \return The playback audio component, or nullptr before
+  ///         initialize_audio() (or without playback)
+  /// \note deinitialize_audio() releases the hardware even while the returned
+  ///       pointer is held: the object is then uninitialized (its methods
+  ///       fail / return 0), and a later initialize_audio() makes a new one.
+  std::shared_ptr<espp::Audio> audio() const { return audio_.load(); }
+
+  /// The recording audio component (the ES7210 microphones, on their own I2S
+  /// bus), for anything the BSP methods below do not expose
+  /// \return The recording audio component, or nullptr before
+  ///         initialize_audio() (or without recording)
+  /// \note As for audio(), deinitialize_audio() releases the hardware even
+  ///       while the returned pointer is held.
+  std::shared_ptr<espp::Audio> microphone_audio() const { return microphone_audio_.load(); }
+
   /// Get the audio sample rate
-  /// \return The audio sample rate, in Hz
+  /// \return The speaker's sample rate, in Hz (0 without playback)
   uint32_t audio_sample_rate() const;
 
-  /// Set the audio sample rate
+  /// Set the speaker's sample rate (the I2S clocks). The audio queued for
+  /// playback is dropped, since it was for the old rate.
   /// \param sample_rate The audio sample rate, in Hz
-  void audio_sample_rate(uint32_t sample_rate);
+  /// \return True on success (false before initialize_audio() or without
+  ///         playback)
+  bool audio_sample_rate(uint32_t sample_rate);
 
   /// Get the audio buffer size
-  /// \return The audio buffer size, in bytes
+  /// \return The size of one playback block, in bytes (1/60 s of audio)
   size_t audio_buffer_size() const;
 
   /// Mute or unmute the audio
   /// \param mute true to mute the audio, false to unmute the audio
+  /// \note Before initialize_audio() (or without playback) the value is
+  ///       stored and applied when playback starts.
   void mute(bool mute);
 
   /// Check if the audio is muted
   /// \return true if the audio is muted, false otherwise
   bool is_muted() const;
 
-  /// Set the volume
+  /// Set the volume (applied in software: the amplifier has no volume
+  /// control)
   /// \param volume The volume in percent (0 - 100)
+  /// \note Before initialize_audio() (or without playback) the value is
+  ///       stored and applied when playback starts.
   void volume(float volume);
 
   /// Get the volume
   /// \return The volume in percent (0 - 100)
   float volume() const;
-
-  /// Play audio
-  /// \param data The audio data to play (16-bit signed interleaved stereo)
-  /// \return The number of bytes actually queued (may be less than the data
-  ///         size if the internal stream buffer is full)
-  /// \note This function is non-blocking and queues the data for the audio
-  ///       task to play; to stream data larger than the internal buffer,
-  ///       call it repeatedly, advancing by the returned number of bytes
-  /// \note Must be called from task context, not from an ISR.
-  size_t play_audio(const std::vector<uint8_t> &data);
 
   /// Play audio
   /// \param data The audio data to play (16-bit signed interleaved stereo)
@@ -561,8 +638,30 @@ public:
   /// \note This function is non-blocking and queues the data for the audio
   ///       task to play; to stream data larger than the internal buffer,
   ///       call it repeatedly, advancing by the returned number of bytes
+  ///       (or make the buffer larger: AudioConfig::playback_buffer_size)
   /// \note Must be called from task context, not from an ISR.
-  size_t play_audio(const uint8_t *data, uint32_t num_bytes);
+  size_t play_audio(const uint8_t *data, size_t num_bytes);
+
+  /// Play audio
+  /// \param data The audio data to play (16-bit signed interleaved stereo)
+  /// \return The number of bytes actually queued (may be less than the data
+  ///         size if the internal stream buffer is full)
+  /// \note This function is non-blocking and queues the data for the audio
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  ///       (or make the buffer larger: AudioConfig::playback_buffer_size)
+  /// \note Must be called from task context, not from an ISR.
+  size_t play_audio(std::span<const uint8_t> data);
+
+  /// Play audio
+  /// \param data The audio data to play (16-bit signed interleaved stereo)
+  /// \return The number of bytes actually queued
+  [[deprecated("use play_audio(std::span<const uint8_t>) instead")]] size_t
+  play_audio(const std::vector<uint8_t> &data);
+
+  /// Drop any queued (not yet played) audio so a subsequent play_audio()
+  /// starts immediately instead of waiting behind previously queued sound
+  void clear_audio();
 
   /////////////////////////////////////////////////////////////////////////////
   // Microphone
@@ -571,35 +670,51 @@ public:
   /// Alias for the microphone callback, called with recorded audio data
   using microphone_callback_t = std::function<void(const uint8_t *data, size_t num_bytes)>;
 
+  /// Start recording audio
+  /// \param callback Function to call with recorded audio data: 16-bit
+  ///        signed interleaved stereo at microphone_sample_rate(). The two
+  ///        populated ES7210 microphones are delivered as MIC1 (TDM slot 0)
+  ///        on the left channel and MIC3 (TDM slot 2) on the right.
+  /// \return True if recording started successfully (false, among other
+  ///         reasons, when initialize_audio() did not enable recording)
+  /// \note The callback runs in the microphone task's context, so keep it
+  ///       quick and non-blocking and size that task's stack accordingly
+  bool start_audio_recording(const microphone_callback_t &callback);
+
+  /// Stop recording audio. Once it returns the callback is not called again
+  /// (unless it is called from the callback itself).
+  void stop_audio_recording();
+
   /// Initialize the microphones (the dual microphone array through the
   /// ES7210 ADC, on its own I2S bus) and start delivering audio data to the
   /// provided callback
-  /// \param callback The callback to call with recorded audio data: 16-bit
-  ///        signed interleaved stereo. The two populated ES7210 microphones are
-  ///        delivered as MIC1 (TDM slot 0) on the left channel and MIC3 (TDM
-  ///        slot 2) on the right, at \p sample_rate
-  /// \param sample_rate The sample rate for the microphones, in Hz. The
-  ///        ES7210 is on a separate I2S bus from the speaker amplifier, so
-  ///        this is independent of the speaker's sample rate.
+  /// \param callback The callback to call with recorded audio data (see
+  ///        start_audio_recording())
+  /// \param sample_rate The sample rate for the microphones, in Hz
   /// \param task_config The configuration for the microphone task
   /// \return true if the microphone was successfully initialized, false
   ///         otherwise
-  /// \note The callback runs in the microphone task's context, so the task's
-  ///       stack must be large enough for whatever the callback does with
-  ///       the audio data
-  bool initialize_microphone(const microphone_callback_t &callback, uint32_t sample_rate = 16000,
-                             const espp::Task::BaseConfig &task_config = {.name = "microphone",
-                                                                          .stack_size_bytes = 4096,
-                                                                          .priority = 10,
-                                                                          .core_id = 1});
+  /// \note Sets the recording side up again if it was set up at another
+  ///       rate (or not at all), so like initialize_audio() and
+  ///       deinitialize_audio() it must not run concurrently with them, nor
+  ///       from an audio callback.
+  [[deprecated("enable AudioConfig::recording_enabled and use start_audio_recording() "
+               "instead")]] bool
+  initialize_microphone(const microphone_callback_t &callback, uint32_t sample_rate = 16000,
+                        const espp::Task::BaseConfig &task_config = {.name = "microphone",
+                                                                     .stack_size_bytes = 4096,
+                                                                     .priority = 10,
+                                                                     .core_id = 1});
 
   /// Get the microphone sample rate
-  /// \return The microphone sample rate, in Hz
+  /// \return The microphone sample rate, in Hz (0 without recording)
   uint32_t microphone_sample_rate() const;
 
   /// Set the microphone volume
   /// \param volume The volume as a percentage (0 - 100), mapped onto the
   ///        ES7210 analog microphone gain range (0 dB - +37.5 dB)
+  /// \note Before initialize_audio() (or without recording) the value is
+  ///       stored and applied when recording starts.
   void microphone_volume(float volume);
 
   /// Get the microphone volume
@@ -612,9 +727,9 @@ protected:
   bool update_gt911();
   void lcd_wait_lines();
   void on_trackball_interrupt(const espp::Interrupt::Event &event);
-  bool initialize_i2s(uint32_t default_audio_rate);
-  bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
-  bool microphone_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
+  bool initialize_playback(const AudioConfig &config);
+  bool initialize_recording(const AudioConfig &config);
+  void deinitialize_recording();
 
   // common:
   // internal i2c (touchscreen, keyboard)
@@ -639,6 +754,7 @@ protected:
   // static constexpr gpio_num_t es7210_int_io = GPIO_NUM_17;
   static constexpr gpio_num_t dmic_clk_io = GPIO_NUM_17;
   static constexpr auto mic_i2s_port = I2S_NUM_1;
+  static constexpr uint8_t es7210_i2c_address = 0x40;
 
   // Audio Out (MAX98357A)
   static constexpr auto i2s_port = I2S_NUM_0;
@@ -648,14 +764,6 @@ protected:
   // static constexpr gpio_num_t i2s_di_io = GPIO_NUM_6;
   static constexpr gpio_num_t i2s_ws_io = GPIO_NUM_5;
   static constexpr gpio_num_t mute_pin = GPIO_NUM_1;
-
-  static constexpr int NUM_CHANNELS = 2;
-  static constexpr int NUM_BYTES_PER_CHANNEL = 2;
-  static constexpr int UPDATE_FREQUENCY = 60;
-
-  static constexpr int calc_audio_buffer_size(int sample_rate) {
-    return sample_rate * NUM_CHANNELS * NUM_BYTES_PER_CHANNEL / UPDATE_FREQUENCY;
-  }
 
   // SPI (shared between LCD and uSD card)
   static constexpr gpio_num_t spi_mosi_io = GPIO_NUM_41;
@@ -816,19 +924,15 @@ protected:
   uint8_t *frame_buffer0_{nullptr};
   uint8_t *frame_buffer1_{nullptr};
 
-  // sound
-  std::atomic<bool> sound_initialized_{false};
+  // audio: the speaker and the microphones each have their own I2S bus, so
+  // their own espp::Audio. atomic: the forwarders may run on any task while
+  // initialize_audio() / deinitialize_audio() publish / unpublish them.
+  std::atomic<std::shared_ptr<espp::Audio>> audio_;
+  std::atomic<std::shared_ptr<espp::Audio>> microphone_audio_;
+  std::shared_ptr<espp::Es7210Codec> es7210_;
+  // settings kept across initialize_audio() / deinitialize_audio()
   std::atomic<float> volume_{50.0f};
   std::atomic<bool> mute_{false};
-  std::unique_ptr<espp::Task> audio_task_{nullptr};
-  // i2s / low-level audio
-  i2s_chan_handle_t audio_tx_handle{nullptr};
-  std::vector<uint8_t> audio_tx_buffer;
-  StreamBufferHandle_t audio_tx_stream;
-  // Stream-side playback policy shared by every audio BSP (bounded wait for a
-  // flowing producer, misalignment recovery, task wake-up): codec/i2s_tx_feed.hpp
-  espp::i2s_tx_feed::Feeder audio_tx_feed_;
-  i2s_std_config_t audio_std_cfg;
 
   // LoRa radio
   std::shared_ptr<Spi::Device> lora_spi_device_;
@@ -850,12 +954,6 @@ protected:
 
   // microphone (ES7210 on its own I2S bus)
   std::shared_ptr<I2c::Device<uint8_t>> es7210_i2c_device_;
-  std::atomic<bool> microphone_initialized_{false};
-  microphone_callback_t microphone_callback_{nullptr};
-  std::unique_ptr<espp::Task> microphone_task_{nullptr};
-  i2s_chan_handle_t audio_rx_handle{nullptr};
-  std::vector<uint8_t> audio_rx_buffer;
-  std::atomic<uint32_t> mic_sample_rate_{0};
   // microphone volume (percent), mapped onto the ES7210 analog gain range
   std::atomic<float> mic_volume_{70.0f};
 }; // class TDeck

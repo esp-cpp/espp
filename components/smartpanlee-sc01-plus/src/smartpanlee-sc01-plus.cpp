@@ -13,7 +13,6 @@
 #include <cstring>
 #include <limits>
 
-#include <driver/i2s_std.h>
 #include <esp_check.h>
 #include <esp_heap_caps.h>
 #include <esp_lcd_panel_ops.h>
@@ -120,76 +119,6 @@ bool SmartPanleeSc01Plus::panel_io_color_trans_done(esp_lcd_panel_io_handle_t pa
     lv_display_flush_ready(display);
   }
   return false;
-}
-
-espp::Task::BaseConfig SmartPanleeSc01Plus::default_audio_task_config() {
-  return {
-      .name = "sc01+ audio",
-      .stack_size_bytes = CONFIG_SMARTPANLEE_SC01_PLUS_AUDIO_TASK_STACK_SIZE,
-      .priority = 20,
-      .core_id = 1,
-  };
-}
-
-bool SmartPanleeSc01Plus::initialize_i2s(uint32_t default_audio_rate) {
-  logger_.info("Initializing I2S audio output at {} Hz", default_audio_rate);
-
-  i2s_chan_config_t chan_config = I2S_CHANNEL_DEFAULT_CONFIG(i2s_port, I2S_ROLE_MASTER);
-  chan_config.auto_clear = true;
-  // Keep the TX DMA ring full and long enough to cover the playback task's
-  // bounded whole-block wait (the policy and its rationale: codec/i2s_tx_feed.hpp).
-  static_assert(espp::i2s_tx_feed::ring_outlasts_wait(espp::i2s_tx_feed::DMA_DESC_NUM,
-                                                      espp::i2s_tx_feed::DMA_FRAME_NUM, 48000,
-                                                      audio_update_frequency),
-                "the I2S TX DMA ring must outlast the whole-block wait plus one block");
-  chan_config.dma_desc_num = espp::i2s_tx_feed::DMA_DESC_NUM;
-  chan_config.dma_frame_num = espp::i2s_tx_feed::DMA_FRAME_NUM;
-  ESP_ERROR_CHECK(i2s_new_channel(&chan_config, &audio_tx_handle_, nullptr));
-
-  auto pins = i2s_pins();
-  audio_std_cfg_ = {
-      .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(default_audio_rate),
-      .slot_cfg =
-          I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
-      .gpio_cfg =
-          {
-              .mclk = pins.mclk,
-              .bclk = pins.bclk,
-              .ws = pins.ws,
-              .dout = pins.dout,
-              .din = pins.din,
-              .invert_flags =
-                  {
-                      .mclk_inv = false,
-                      .bclk_inv = false,
-                      .ws_inv = false,
-                  },
-          },
-  };
-  audio_std_cfg_.clk_cfg.mclk_multiple = I2S_MCLK_MULTIPLE_256;
-
-  ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_tx_handle_, &audio_std_cfg_));
-
-  auto buffer_size = calc_audio_buffer_size(default_audio_rate);
-  // the block (and so the stream's trigger level) must be a whole number of
-  // frames: the sample-rate formula can land between frames, and a block that
-  // split one would desynchronize the framing of everything received after it
-  buffer_size -= buffer_size % (audio_num_channels * audio_num_bytes_per_channel);
-  audio_tx_buffer_.resize(buffer_size);
-  // The audio task never blocks on the stream (see audio_task_callback), so
-  // the trigger level is irrelevant; the minimum keeps a producer's send from
-  // ever holding a receiver.
-  audio_tx_stream_ = xStreamBufferCreate(buffer_size * 4, 1);
-  audio_tx_feed_.stream = audio_tx_stream_;
-  audio_tx_feed_.frame_bytes = audio_num_channels * audio_num_bytes_per_channel;
-  if (!audio_tx_stream_) {
-    logger_.error("Failed to create audio stream buffer");
-    return false;
-  }
-  xStreamBufferReset(audio_tx_stream_);
-
-  ESP_ERROR_CHECK(i2s_channel_enable(audio_tx_handle_));
-  return true;
 }
 
 bool SmartPanleeSc01Plus::initialize_lcd() {
@@ -320,35 +249,6 @@ bool SmartPanleeSc01Plus::initialize_display(size_t pixel_buffer_size) {
   return true;
 }
 
-bool SmartPanleeSc01Plus::initialize_audio() {
-  return initialize_audio(44100, default_audio_task_config());
-}
-
-bool SmartPanleeSc01Plus::initialize_audio(uint32_t sample_rate) {
-  return initialize_audio(sample_rate, default_audio_task_config());
-}
-
-bool SmartPanleeSc01Plus::initialize_audio(uint32_t sample_rate,
-                                           const espp::Task::BaseConfig &task_config) {
-  if (audio_initialized_) {
-    logger_.warn("Audio already initialized");
-    return true;
-  }
-  if (!initialize_i2s(sample_rate)) {
-    logger_.error("Could not initialize I2S audio output");
-    return false;
-  }
-
-  using namespace std::placeholders;
-  audio_task_ = espp::Task::make_unique({
-      .callback = std::bind(&SmartPanleeSc01Plus::audio_task_callback, this, _1, _2, _3),
-      .task_config = task_config,
-  });
-
-  audio_initialized_ = audio_task_ && audio_task_->start();
-  return audio_initialized_;
-}
-
 void SmartPanleeSc01Plus::brightness(float brightness) {
   if (!backlight_) {
     return;
@@ -363,65 +263,6 @@ float SmartPanleeSc01Plus::brightness() const {
   }
   auto duty = backlight_->get_duty(backlight_channel_configs_.front().channel);
   return duty.value_or(0.0f);
-}
-
-void SmartPanleeSc01Plus::audio_sample_rate(uint32_t sample_rate) {
-  if (!audio_initialized_ || !audio_tx_handle_) {
-    return;
-  }
-
-  logger_.info("Setting audio sample rate to {} Hz", sample_rate);
-  i2s_channel_disable(audio_tx_handle_);
-  audio_std_cfg_.clk_cfg.sample_rate_hz = sample_rate;
-  i2s_channel_reconfig_std_clock(audio_tx_handle_, &audio_std_cfg_.clk_cfg);
-  xStreamBufferReset(audio_tx_stream_);
-  i2s_channel_enable(audio_tx_handle_);
-}
-
-uint32_t SmartPanleeSc01Plus::audio_sample_rate() const {
-  if (!audio_initialized_) {
-    return 0;
-  }
-  return audio_std_cfg_.clk_cfg.sample_rate_hz;
-}
-
-size_t SmartPanleeSc01Plus::audio_buffer_size() const { return audio_tx_buffer_.size(); }
-
-void SmartPanleeSc01Plus::mute(bool mute) { mute_ = mute; }
-
-bool SmartPanleeSc01Plus::is_muted() const { return mute_; }
-
-void SmartPanleeSc01Plus::volume(float volume) { volume_ = std::clamp(volume, 0.0f, 100.0f); }
-
-float SmartPanleeSc01Plus::volume() const { return volume_; }
-
-size_t SmartPanleeSc01Plus::play_audio(std::span<const uint8_t> data) {
-  return play_audio(data.data(), static_cast<uint32_t>(data.size()));
-}
-
-size_t SmartPanleeSc01Plus::play_audio(const uint8_t *data, uint32_t num_bytes) {
-  if (!audio_initialized_ || !audio_tx_stream_ || !data || num_bytes == 0) {
-    return 0;
-  }
-  // Enqueue only whole 16-bit stereo frames (4 bytes) that actually fit:
-  // xStreamBufferSend can accept fewer bytes than requested when the buffer is
-  // nearly full, and a partial (non-frame-aligned) send would strand 1-3 bytes
-  // and corrupt the L/R framing of subsequent appends. Cap the request to the
-  // free space rounded down to a whole frame so the send is always
-  // frame-aligned; the number of bytes actually queued is returned so callers
-  // can stream data larger than the buffer.
-  size_t sendable = std::min<size_t>(num_bytes, xStreamBufferSpacesAvailable(audio_tx_stream_));
-  sendable -= sendable % 4;
-  if (sendable == 0) {
-    return 0;
-  }
-  const size_t sent = xStreamBufferSend(audio_tx_stream_, data, sendable, 0);
-  if (sent > 0) {
-    // wake the playback task if the stream now holds a whole block (send ->
-    // notify -> return; see i2s_tx_feed.hpp)
-    audio_tx_feed_.notify_if_block_ready(audio_tx_buffer_.size());
-  }
-  return sent;
 }
 
 size_t SmartPanleeSc01Plus::rotated_display_width() const {
@@ -539,47 +380,6 @@ bool SmartPanleeSc01Plus::update_touch() {
   bool changed = temp_data != touchpad_data_;
   touchpad_data_ = temp_data;
   return changed;
-}
-
-bool SmartPanleeSc01Plus::audio_task_callback(std::mutex &m, std::condition_variable &cv,
-                                              bool &task_notified) {
-  (void)m;
-  (void)cv;
-  (void)task_notified;
-
-  // Playback: write the next block to the I2S channel, ALWAYS a whole block
-  // (audio when there is some, silence when idle) so the DMA ring stays full;
-  // the write blocks on the ring and paces this loop. The stream side (the
-  // bounded wait for a flowing producer, misalignment recovery) is shared
-  // policy: see codec/i2s_tx_feed.hpp for the mechanism and why it matters.
-  audio_tx_feed_.attach_current_task();
-  const size_t block = audio_tx_buffer_.size();
-  uint8_t *tx_buf = audio_tx_buffer_.data();
-  bool misaligned = false;
-  const size_t got = audio_tx_feed_.fill_block(tx_buf, block, misaligned);
-  if (misaligned) {
-    // producers queue whole frames only (play_audio), so this is a bug somewhere
-    logger_.warn_rate_limited("audio stream held a partial frame; reset it");
-  }
-  // apply volume and mute in software (silence stays silence)
-  if (got > 0) {
-    if (mute_) {
-      std::memset(tx_buf, 0, block);
-    } else {
-      auto volume = volume_.load();
-      if (volume < 100.0f) {
-        auto *samples = reinterpret_cast<int16_t *>(tx_buf);
-        auto num_samples = block / sizeof(int16_t);
-        for (size_t i = 0; i < num_samples; ++i) {
-          auto scaled = static_cast<int32_t>((samples[i] * volume) / 100.0f);
-          samples[i] = static_cast<int16_t>(std::clamp<int32_t>(
-              scaled, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max()));
-        }
-      }
-    }
-  }
-  i2s_channel_write(audio_tx_handle_, tx_buf, block, nullptr, portMAX_DELAY);
-  return false;
 }
 
 void SmartPanleeSc01Plus::write_command(uint8_t command, std::span<const uint8_t> parameters,

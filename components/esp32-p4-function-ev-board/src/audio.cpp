@@ -15,13 +15,31 @@
 
 namespace espp {
 
-bool Esp32P4FunctionEvBoard::initialize_audio() { return initialize_audio(AudioConfig{}); }
+Esp32P4FunctionEvBoard::AudioConfig Esp32P4FunctionEvBoard::default_audio_config() {
+  return {
+      .sample_rate = 48000,
+      .playback_enabled = true,
+      .recording_enabled = true,
+      .playback_task_config = {.name = "ev audio out",
+                               .stack_size_bytes = CONFIG_ESP_P4_EV_BOARD_AUDIO_TASK_STACK_SIZE,
+                               .priority = 20,
+                               .core_id = 0},
+      .recording_task_config = {.name = "ev audio in",
+                                .stack_size_bytes = CONFIG_ESP_P4_EV_BOARD_AUDIO_TASK_STACK_SIZE,
+                                .priority = 20,
+                                .core_id = 0}};
+}
+
+bool Esp32P4FunctionEvBoard::initialize_audio() { return initialize_audio(default_audio_config()); }
 
 bool Esp32P4FunctionEvBoard::initialize_audio(uint32_t sample_rate,
                                               const espp::Task::BaseConfig &task_config) {
   // the old API set up playback only (initialize_microphone() added recording)
-  return initialize_audio(AudioConfig{
-      .sample_rate = sample_rate, .recording_enabled = false, .task_config = task_config});
+  auto config = default_audio_config();
+  config.sample_rate = sample_rate;
+  config.recording_enabled = false;
+  config.playback_task_config = task_config;
+  return initialize_audio(config);
 }
 
 bool Esp32P4FunctionEvBoard::initialize_audio(const AudioConfig &config) {
@@ -65,39 +83,24 @@ bool Esp32P4FunctionEvBoard::initialize_audio(const AudioConfig &config) {
       .read = espp::make_i2c_addressed_read_register(es8311_i2c_device_),
   });
 
-  // the playback and microphone tasks share the caller's task config, named
-  // "<name> out" / "<name> in" so the two are easy to tell apart in logs and
-  // while debugging (short enough for FreeRTOS's 15-character task names)
-  const std::string base_name =
-      config.task_config.name.empty() ? std::string("audio") : config.task_config.name;
-  auto playback_task_config = config.task_config;
-  playback_task_config.name = base_name + " out";
-  auto recording_task_config = config.task_config;
-  recording_task_config.name = base_name + " in";
   // One I2S bus, full duplex: the ES8311's DAC (DSDIN) and ADC (ASDOUT) share
   // MCLK / SCLK / LRCK. The speaker is mono; the ADC drives the left slot,
   // which espp::Audio receives as stereo and hands over as mono.
   auto audio = std::make_shared<espp::Audio>(espp::Audio::Config{
-      .port = audio_i2s_port,
-      .pins = {.mclk = audio_mclk_io,
-               .bclk = audio_sclk_io,
-               .ws = audio_lrck_io,
-               .dout = audio_dout_io,
-               .din = audio_din_io},
-      .sample_rate = config.sample_rate,
-      .playback_enabled = playback,
-      .recording_enabled = recording,
-      .playback_channels = 1,
-      .recording_channels = 1,
-      .output_codec = es8311_,
-      .input_codec = es8311_,
-      .playback_buffer_size = config.playback_buffer_size,
-      .playback_buffer_caps = config.playback_buffer_caps,
+      .app = config,
+      .hardware = {.port = audio_i2s_port,
+                   .pins = {.mclk = audio_mclk_io,
+                            .bclk = audio_sclk_io,
+                            .ws = audio_lrck_io,
+                            .dout = audio_dout_io,
+                            .din = audio_din_io},
+                   .playback_channels = 1,
+                   .recording_channels = 1,
+                   .output_codec = es8311_,
+                   .input_codec = es8311_},
       .volume = volume_,
       .muted = mute_,
       .microphone_volume = mic_volume_,
-      .playback_task_config = playback_task_config,
-      .recording_task_config = recording_task_config,
   });
   if (!audio->initialize()) {
     audio.reset();

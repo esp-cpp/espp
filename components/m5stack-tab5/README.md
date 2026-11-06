@@ -157,8 +157,9 @@ Applications that are short of internal DMA-capable RAM can skip the parts
 they don't use. The SD card driver, for example, needs some of that RAM for
 unaligned transfers.
 
-- `initialize_audio({.playback_enabled = ..., .recording_enabled = ...})`
-  sets up only the directions it is asked for. Each I2S channel has a DMA
+- `initialize_audio(config)` with `config.playback_enabled` /
+  `config.recording_enabled` (an `AudioConfig`, i.e. `espp::Audio::AppConfig`,
+  started from `default_audio_config()`) sets up only the directions it is asked for. Each I2S channel has a DMA
   ring of about 11.5 KB and its own task, whose stack is in internal RAM.
   Without recording there is no ES7210 setup and `start_audio_recording()`
   fails. Without playback there is no ES8388 setup and `play_audio()` queues
@@ -172,7 +173,9 @@ unaligned transfers.
 ```cpp
 auto &tab5 = espp::M5StackTab5::get();
 tab5.initialize_lcd({.dma2d_enabled = false});          // always rotated
-tab5.initialize_audio({.recording_enabled = false});    // playback only
+auto audio_config = tab5.default_audio_config();
+audio_config.recording_enabled = false;                 // playback only
+tab5.initialize_audio(audio_config);
 ```
 
 ## Example

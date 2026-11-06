@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -14,21 +15,18 @@
 #include <sdmmc_cmd.h>
 
 #include <driver/gpio.h>
-#include <driver/i2s_pdm.h>
-#include <driver/i2s_std.h>
 #include <driver/spi_master.h>
 #include <hal/spi_ll.h>
 #include <hal/spi_types.h>
 
 #include <freertos/FreeRTOS.h>
-#include <freertos/stream_buffer.h>
 
+#include "audio.hpp"
 #include "base_component.hpp"
 #include "bmi270.hpp"
 #include "fast_math.hpp"
 #include "gps.hpp"
 #include "i2c.hpp"
-#include "i2s_tx_feed.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
 #include "neopixel.hpp"
@@ -73,8 +71,11 @@ namespace espp {
 ///       will fail. On the Cardputer ADV both go through the ES8311 codec in
 ///       full duplex on a single I2S bus (shared bit/word clocks, separate
 ///       data pins), so the speaker and microphone can be used
-///       simultaneously; they share the I2S sample rate, which is set by
-///       whichever subsystem is initialized first.
+///       simultaneously, at one sample rate.
+/// \note The audio runs on espp::Audio: on the original a playback instance
+///       (NS4168, no codec) or a recording instance (PDM microphone, on its
+///       own I2S port); on the ADV one full-duplex instance with the ES8311
+///       (clocked from BCLK; see CardputerAdvCodec in src/).
 ///
 /// \section m5stack_cardputer_example Example
 /// \snippet m5stack_cardputer_example.cpp m5stack-cardputer example
@@ -146,7 +147,7 @@ public:
   using keypress_callback_t = std::function<void(const KeyEvent &)>;
 
   /// Alias for the microphone data callback. Called with 16-bit signed mono
-  /// samples read from the PDM microphone.
+  /// samples from the microphone.
   using microphone_callback_t = std::function<void(const uint8_t *data, size_t num_bytes)>;
 
   /// Maximum number of bytes that can be transferred in a single SPI
@@ -360,69 +361,140 @@ public:
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
   /////////////////////////////////////////////////////////////////////////////
-  // Audio (speaker)
+  // Audio (speaker + microphone)
   /////////////////////////////////////////////////////////////////////////////
 
-  /// Initialize the sound subsystem (mono speaker; NS4168 I2S amplifier on
-  /// the original, ES8311 codec + NS4150B amplifier on the ADV)
-  /// \param default_audio_rate The default sample rate for the audio, in Hz
-  /// \param task_config The configuration for the audio task. The defaults
-  ///        come from the M5STACK_CARDPUTER_AUDIO_TASK_* Kconfig options.
-  /// \return true if the sound subsystem was successfully initialized, false
+  /// How initialize_audio() sets the audio system up: the application's side
+  /// of espp::Audio (the board's wiring is filled in by initialize_audio()).
+  /// Start from default_audio_config() to keep this board's defaults.
+  /// - sample_rate: the audio sample rate, in Hz (playback and recording
+  ///   share it; recording_sample_rate must be 0 or the same on the ADV)
+  /// - playback_enabled: set up playback: the speaker (original: NS4168
+  ///   amplifier; ADV: ES8311 DAC + NS4150B amplifier) and the playback task.
+  ///   Without it play_audio() queues nothing.
+  /// - recording_enabled: set up recording: the microphone (original: SPM1423
+  ///   PDM microphone; ADV: the ES8311's ADC) and the microphone task. Without
+  ///   it start_audio_recording() fails.
+  /// - playback_buffer_size / playback_buffer_caps: the stream play_audio()
+  ///   queues into (0: about 67 ms of audio; larger lets one play_audio() call
+  ///   queue a whole UI sound)
+  /// - playback_task_config / recording_task_config: the audio tasks (the
+  ///   recording callback runs on the recording task, so size its stack for
+  ///   what the callback does)
+  /// \note On the original Cardputer playback and recording cannot both be
+  ///       enabled: GPIO 43 is both the speaker's word select and the PDM
+  ///       microphone's clock (see the class notes). On the ADV they run
+  ///       full duplex.
+  /// \note Each I2S channel has a DMA ring in internal DMA-capable RAM, and
+  ///       each task's stack is in internal RAM too, so a direction that is
+  ///       not needed is better left off.
+  using AudioConfig = espp::Audio::AppConfig;
+
+  /// The board's default AudioConfig: playback only at 44.1 kHz, and the
+  /// tasks "audio out" / "audio in" with the stacks, priorities and cores
+  /// from Kconfig (M5STACK_CARDPUTER_AUDIO_TASK_* /
+  /// M5STACK_CARDPUTER_MICROPHONE_TASK_*).
+  /// \return The default AudioConfig
+  static AudioConfig default_audio_config();
+
+  /// Initialize the audio system with the default AudioConfig: playback at
+  /// 44.1 kHz
+  /// \return true if the audio system was successfully initialized, false
   ///         otherwise
-  /// \note On the original Cardputer this will fail if the microphone has
-  ///       been initialized (see the class notes). On the ADV the speaker
-  ///       and microphone run full duplex and share the I2S sample rate; if
-  ///       the microphone was initialized first, its sample rate is kept and
-  ///       \p default_audio_rate is ignored (with a warning).
-  bool initialize_sound(uint32_t default_audio_rate = 44100,
-                        const espp::Task::BaseConfig &task_config = {
-                            .name = "audio",
-                            .stack_size_bytes = CONFIG_M5STACK_CARDPUTER_AUDIO_TASK_STACK_SIZE,
-                            .priority = CONFIG_M5STACK_CARDPUTER_AUDIO_TASK_PRIORITY,
-                            .core_id = CONFIG_M5STACK_CARDPUTER_AUDIO_TASK_CORE_ID});
+  bool initialize_audio();
 
-  /// Get the audio sample rate
-  /// \return The audio sample rate, in Hz
-  uint32_t audio_sample_rate() const;
+  /// Initialize the audio system
+  /// \param config The sample rate, which directions to set up, the playback
+  ///        buffer and the task configurations
+  /// \return true if the audio system was successfully initialized, false
+  ///         otherwise (also when neither playback nor recording is enabled,
+  ///         or, on the original Cardputer, both are)
+  /// \note A failure part way through undoes what was set up before it, so
+  ///       the call can be retried.
+  bool initialize_audio(const AudioConfig &config);
 
-  /// Set the audio sample rate
-  /// \param sample_rate The audio sample rate, in Hz
-  void audio_sample_rate(uint32_t sample_rate);
+  /// Stop the audio system and free what initialize_audio() set up.
+  /// Idempotent.
+  /// \note The audio methods below may be called from any task meanwhile,
+  ///       but initialize_audio() and deinitialize_audio() must not run
+  ///       concurrently with each other, nor from an audio callback.
+  void deinitialize_audio();
 
-  /// Get the audio buffer size
-  /// \return The audio buffer size, in bytes
-  size_t audio_buffer_size() const;
+  /// Whether the audio system is initialized
+  /// \return True if initialize_audio() succeeded (until deinitialize_audio())
+  bool is_audio_initialized() const {
+    auto audio = audio_.load();
+    auto microphone = microphone_audio_.load();
+    return (audio && audio->is_initialized()) || (microphone && microphone->is_initialized());
+  }
+
+  /// The playback audio component, for anything the BSP methods below do not
+  /// expose
+  /// \return The audio component, or nullptr before initialize_audio() (or
+  ///         without playback)
+  /// \note On the ADV it is the same object as microphone_audio().
+  /// \note deinitialize_audio() releases the hardware even while the returned
+  ///       pointer is held: the object is then uninitialized (its methods
+  ///       fail / return 0), and a later initialize_audio() makes a new one.
+  std::shared_ptr<espp::Audio> audio() const { return audio_.load(); }
+
+  /// The recording audio component, for anything the BSP methods below do
+  /// not expose
+  /// \return The audio component, or nullptr before initialize_audio() (or
+  ///         without recording)
+  /// \note On the original Cardputer it is a separate, recording-only
+  ///       instance on the microphone's I2S port (PDM); on the ADV the same
+  ///       object as audio().
+  std::shared_ptr<espp::Audio> microphone_audio() const { return microphone_audio_.load(); }
+
+  /// Set the audio volume
+  /// \param volume The volume as a percentage (0 - 100)
+  /// \note Neither amplifier has a volume control, so the volume is applied
+  ///       in software when the samples are written to the I2S peripheral.
+  /// \note Before initialize_audio() (or without playback) the value is
+  ///       stored and applied when playback starts.
+  void volume(float volume);
+
+  /// Get the audio volume
+  /// \return The volume as a percentage (0 - 100)
+  float volume() const;
 
   /// Mute or unmute the audio
   /// \param mute true to mute the audio, false to unmute it
+  /// \note Before initialize_audio() (or without playback) the value is
+  ///       stored and applied when playback starts.
   void mute(bool mute);
 
   /// Check if the audio is muted
   /// \return true if the audio is muted, false otherwise
   bool is_muted() const;
 
-  /// Set the volume of the audio
-  /// \param volume The volume as a percentage (0 - 100)
-  /// \note The NS4168 has no volume control, so the volume is applied in
-  ///       software when the samples are written to the I2S peripheral
-  void volume(float volume);
+  /// Get the audio sample rate
+  /// \return The audio sample rate, in Hz (0 before initialize_audio())
+  uint32_t audio_sample_rate() const;
 
-  /// Get the volume of the audio
-  /// \return The volume as a percentage (0 - 100)
-  float volume() const;
+  /// Set the audio sample rate (the I2S clocks). The audio queued for
+  /// playback is dropped, since it was for the old rate.
+  /// \param sample_rate The audio sample rate, in Hz
+  /// \return True on success (false before initialize_audio())
+  bool audio_sample_rate(uint32_t sample_rate);
 
-  /// Play the audio data
+  /// Get the audio buffer size
+  /// \return The size of one playback block, in bytes (1/60 s of audio)
+  size_t audio_buffer_size() const;
+
+  /// Play audio data
   /// \param data The audio data to play (16-bit signed mono samples)
   /// \return The number of bytes actually queued (may be less than the data
   ///         size if the internal stream buffer is full)
   /// \note This function is non-blocking and queues the data for the audio
   ///       task to play; to stream data larger than the internal buffer,
   ///       call it repeatedly, advancing by the returned number of bytes
+  ///       (or make the buffer larger: AudioConfig::playback_buffer_size)
   /// \note Must be called from task context, not from an ISR.
-  size_t play_audio(const std::vector<uint8_t> &data);
+  size_t play_audio(std::span<const uint8_t> data);
 
-  /// Play the audio data
+  /// Play audio data
   /// \param data The audio data to play (16-bit signed mono samples)
   /// \param num_bytes The number of bytes to play
   /// \return The number of bytes actually queued (may be less than \p
@@ -430,34 +502,86 @@ public:
   /// \note This function is non-blocking and queues the data for the audio
   ///       task to play; to stream data larger than the internal buffer,
   ///       call it repeatedly, advancing by the returned number of bytes
+  ///       (or make the buffer larger: AudioConfig::playback_buffer_size)
   /// \note Must be called from task context, not from an ISR.
-  size_t play_audio(const uint8_t *data, uint32_t num_bytes);
+  size_t play_audio(const uint8_t *data, size_t num_bytes);
 
-  /////////////////////////////////////////////////////////////////////////////
-  // Microphone
-  /////////////////////////////////////////////////////////////////////////////
+  /// Play the audio data
+  /// \param data The audio data to play (16-bit signed mono samples)
+  /// \return The number of bytes actually queued
+  [[deprecated("use play_audio(std::span<const uint8_t>) instead")]] size_t
+  play_audio(const std::vector<uint8_t> &data);
 
-  /// Initialize the microphone (SPM1423 PDM on the original, analog MEMS via
-  /// the ES8311 codec on the ADV) and start delivering audio data to the
+  /// Drop any queued (not yet played) audio so a subsequent play_audio() starts
+  /// immediately instead of waiting behind previously queued sound. Useful for
+  /// UI sounds where a new event should restart the sound for maximum
+  /// responsiveness.
+  void clear_audio();
+
+  /// Start recording audio
+  /// \param callback Function to call with recorded audio data: 16-bit
+  ///        signed mono samples at audio_sample_rate()
+  /// \return True if recording started successfully (false, among other
+  ///         reasons, when initialize_audio() did not enable recording)
+  /// \note The callback runs in the microphone task's context, so keep it
+  ///       quick and non-blocking and size that task's stack accordingly
+  ///       (AudioConfig::recording_task_config).
+  bool start_audio_recording(std::function<void(const uint8_t *data, size_t length)> callback);
+
+  /// Stop recording audio. Once it returns the callback is not called again
+  /// (unless it is called from the callback itself).
+  void stop_audio_recording();
+
+  /// Set the microphone volume
+  /// \param volume The volume as a percentage (0 - 100); 75 is unity (0 dB,
+  ///        the default)
+  /// \note On the ADV this adjusts the ES8311 codec's digital ADC volume
+  ///       (values above 75 amplify, up to +32 dB at 100); on the original
+  ///       the samples are scaled in software in the microphone task (values
+  ///       above 75 amplify with saturation).
+  /// \note Before initialize_audio() (or without recording) the value is
+  ///       stored and applied when recording starts.
+  void microphone_volume(float volume);
+
+  /// Get the microphone volume
+  /// \return The microphone volume as a percentage (0 - 100); 75 is unity
+  ///         (0 dB)
+  float microphone_volume() const;
+
+  /// Initialize the sound subsystem (playback)
+  /// \param default_audio_rate The sample rate for the audio, in Hz
+  /// \param task_config The configuration for the playback task
+  /// \return true if the sound subsystem was successfully initialized, false
+  ///         otherwise
+  /// \note On the original Cardputer this fails while the microphone is set
+  ///       up. On the ADV, if recording is already set up, the audio system
+  ///       is set up again with playback added, at the current sample rate
+  ///       (\p default_audio_rate is then ignored, with a warning).
+  [[deprecated("use initialize_audio(const AudioConfig &) instead")]] bool
+  initialize_sound(uint32_t default_audio_rate = 44100,
+                   const espp::Task::BaseConfig &task_config = {
+                       .name = "audio",
+                       .stack_size_bytes = CONFIG_M5STACK_CARDPUTER_AUDIO_TASK_STACK_SIZE,
+                       .priority = CONFIG_M5STACK_CARDPUTER_AUDIO_TASK_PRIORITY,
+                       .core_id = CONFIG_M5STACK_CARDPUTER_AUDIO_TASK_CORE_ID});
+
+  /// Initialize the microphone and start delivering audio data to the
   /// provided callback
   /// \param callback The callback to call with recorded audio data (16-bit
   ///        signed mono samples)
   /// \param sample_rate The sample rate for the microphone, in Hz
-  /// \param task_config The configuration for the microphone task. The
-  ///        defaults come from the M5STACK_CARDPUTER_MICROPHONE_TASK_*
-  ///        Kconfig options.
+  /// \param task_config The configuration for the microphone task
   /// \return true if the microphone was successfully initialized, false
   ///         otherwise
-  /// \note The callback runs in the microphone task's context, so the task's
-  ///       stack must be large enough for whatever the callback does with
-  ///       the audio data.
-  /// \note On the original Cardputer this will fail if the sound subsystem
-  ///       has been initialized (see the class notes). On the ADV the
-  ///       speaker and microphone run full duplex and share the I2S sample
-  ///       rate; if the sound subsystem was initialized first, its sample
-  ///       rate is kept and \p sample_rate is ignored (with a warning) -
-  ///       check microphone_sample_rate() for the actual rate.
-  bool
+  /// \note On the original Cardputer this fails while the sound subsystem is
+  ///       set up. On the ADV, if playback is already set up, the audio
+  ///       system is set up again with recording added, at the current sample
+  ///       rate (\p sample_rate is then ignored, with a warning) - check
+  ///       microphone_sample_rate() for the actual rate. Like
+  ///       initialize_audio() and deinitialize_audio() it must not run
+  ///       concurrently with them, nor from an audio callback.
+  [[deprecated("enable AudioConfig::recording_enabled and use start_audio_recording() "
+               "instead")]] bool
   initialize_microphone(const microphone_callback_t &callback, uint32_t sample_rate = 16000,
                         const espp::Task::BaseConfig &task_config = {
                             .name = "microphone",
@@ -466,22 +590,8 @@ public:
                             .core_id = CONFIG_M5STACK_CARDPUTER_MICROPHONE_TASK_CORE_ID});
 
   /// Get the microphone sample rate
-  /// \return The microphone sample rate, in Hz
+  /// \return The microphone sample rate, in Hz (0 without recording)
   uint32_t microphone_sample_rate() const;
-
-  /// Set the microphone volume
-  /// \param volume The volume as a percentage (0 - 100); 75 is unity (0 dB,
-  ///        the default)
-  /// \note On the ADV this adjusts the ES8311 codec's digital ADC volume
-  ///       (values above 75 amplify, up to +32 dB at 100); on the original
-  ///       the samples are scaled in software in the microphone task (values
-  ///       above 75 amplify with saturation)
-  void microphone_volume(float volume);
-
-  /// Get the microphone volume
-  /// \return The microphone volume as a percentage (0 - 100); 75 is unity
-  ///         (0 dB)
-  float microphone_volume() const;
 
   /////////////////////////////////////////////////////////////////////////////
   // uSD Card
@@ -657,11 +767,6 @@ public:
 protected:
   M5StackCardputer();
   void lcd_wait_lines();
-  bool initialize_i2s(uint32_t default_audio_rate);
-  bool ensure_adv_i2s(uint32_t sample_rate);
-  bool es8311_ensure_common();
-  bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
-  bool microphone_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   bool keyboard_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   void detect_variant();
   bool initialize_keyboard_matrix();
@@ -672,8 +777,6 @@ protected:
   void process_tca8418_events();
   void emit_key_event(uint8_t row, uint8_t col, bool pressed, const Modifiers &modifiers);
   bool es8311_write(uint8_t reg, uint8_t value);
-  bool initialize_es8311_speaker();
-  bool initialize_es8311_microphone();
 
   // Entry in the keyboard key map: the normal / shifted characters (0 if the
   // position is a modifier or has no character) and the fn-layer special key.
@@ -830,19 +933,6 @@ protected:
   static constexpr gpio_num_t i2s_ws_io = GPIO_NUM_43;
   static constexpr gpio_num_t i2s_do_io = GPIO_NUM_42;
 
-  static constexpr int NUM_CHANNELS = 1;
-  static constexpr int NUM_BYTES_PER_CHANNEL = 2;
-  static constexpr int UPDATE_FREQUENCY = 60;
-
-  static constexpr int calc_audio_buffer_size(int sample_rate) {
-    // NOTE: divide the rate by the update frequency FIRST so the result is
-    // always a whole number of samples. Otherwise rates that are not a
-    // multiple of the update frequency (e.g. 16 kHz) yield an odd byte
-    // count, and reading/writing partial samples shifts the I2S sample
-    // framing on every transfer - heard as loud static.
-    return (sample_rate / UPDATE_FREQUENCY) * NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
-  }
-
   // Microphone. Original: SPM1423 PDM (clk = GPIO 43, shared with the
   // speaker WS). ADV: standard I2S from the ES8311 ADC (ASDOUT = GPIO 46,
   // sharing the speaker's BCK/WS).
@@ -975,8 +1065,6 @@ protected:
   // one bit per column (bit set = pressed), one entry per row
   std::array<uint16_t, KEYBOARD_ROWS> keyboard_state_{};
 
-  // microphone sample rate (Hz), set by initialize_microphone()
-  std::atomic<uint32_t> mic_sample_rate_{0};
   // microphone volume (percent, 75 = unity / 0 dB)
   std::atomic<float> mic_volume_{75.0f};
 
@@ -989,32 +1077,24 @@ protected:
   std::unique_ptr<Spi> lcd_spi_;
   std::unique_ptr<SpiPanelIo> lcd_;
 
-  // sound
-  std::atomic<bool> sound_initialized_{false};
-  // whether the ES8311's common (reset / clocking / analog power) registers
-  // have been written (ADV only; shared by the speaker and microphone paths)
-  bool es8311_common_initialized_{false};
+  // audio. Atomic: the forwarders may run on any task while
+  // initialize_audio() / deinitialize_audio() publish or unpublish them. On
+  // the ADV both hold the same full-duplex instance; on the original at most
+  // one is set (playback or the PDM microphone).
+  std::atomic<std::shared_ptr<espp::Audio>> audio_{};
+  std::atomic<std::shared_ptr<espp::Audio>> microphone_audio_{};
+  std::shared_ptr<espp::AudioCodec> adv_codec_{};
+  // the last initialize_audio() configuration (for the deprecated
+  // initialize_sound() / initialize_microphone())
+  AudioConfig audio_config_{};
   std::atomic<bool> mute_{false};
   std::atomic<float> volume_{50.0f};
-  std::unique_ptr<espp::Task> audio_task_{nullptr};
-  // i2s / low-level audio
-  i2s_chan_handle_t audio_tx_handle{nullptr};
-  std::vector<uint8_t> audio_tx_buffer;
-  StreamBufferHandle_t audio_tx_stream{nullptr};
-  // Stream-side playback policy shared by every audio BSP (bounded wait for a
-  // flowing producer, misalignment recovery, task wake-up): codec/i2s_tx_feed.hpp
-  espp::i2s_tx_feed::Feeder audio_tx_feed_;
-  i2s_std_config_t audio_std_cfg;
-
-  // microphone
-  std::atomic<bool> microphone_initialized_{false};
-  microphone_callback_t microphone_callback_{nullptr};
-  std::unique_ptr<espp::Task> microphone_task_{nullptr};
-  i2s_chan_handle_t audio_rx_handle{nullptr};
-  std::vector<uint8_t> audio_rx_buffer;
-  // true when the RX channel captures both 16-bit slots per frame (ADV full
-  // duplex); the microphone task then keeps only the left slot
-  bool mic_stereo_capture_{false};
-  i2s_pdm_rx_config_t mic_pdm_cfg;
+  // the original's PDM microphone has no gain: start_audio_recording() scales
+  // into this buffer (on the microphone task) before calling the callback
+  std::vector<int16_t> mic_scaled_;
+  // the last start_audio_recording() callback, so the deprecated
+  // initialize_sound() can resume a recording after it sets the ADV's audio
+  // system up again with playback added
+  microphone_callback_t recording_callback_{};
 }; // class M5StackCardputer
 } // namespace espp

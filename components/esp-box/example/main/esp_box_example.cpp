@@ -48,9 +48,23 @@ extern "C" void app_main(void) {
   box.set_log_level(espp::Logger::Verbosity::INFO);
   logger.info("Running on {}", box.box_type());
 
-  // initialize the sound
-  if (!box.initialize_sound()) {
-    logger.error("Failed to initialize sound!");
+  // load the audio file (wav file bundled in memory), to set the audio system
+  // up at its sample rate
+  size_t wav_size = 0;
+  size_t wav_sample_rate = 0;
+  if (!load_audio(wav_size, wav_sample_rate)) {
+    logger.error("Failed to load audio file!");
+    return;
+  }
+  logger.info("Loaded {} bytes of audio at {} Hz", wav_size, wav_sample_rate);
+
+  // initialize the audio system: playback through the ES8311 and the speaker,
+  // and recording from the dual microphone array through the ES7210, full
+  // duplex on one I2S bus (so the microphones record at the speaker's rate)
+  auto audio_config = box.default_audio_config();
+  audio_config.sample_rate = static_cast<uint32_t>(wav_sample_rate);
+  if (!box.initialize_audio(audio_config)) {
+    logger.error("Failed to initialize audio!");
     return;
   }
   // initialize the LCD
@@ -159,18 +173,6 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // load the audio file (wav file bundled in memory)
-  size_t wav_size = 0;
-  size_t wav_sample_rate = 0;
-  if (!load_audio(wav_size, wav_sample_rate)) {
-    logger.error("Failed to load audio file!");
-    return;
-  }
-  logger.info("Loaded {} bytes of audio", wav_size);
-
-  logger.info("Setting audio sample rate to {} Hz", wav_sample_rate);
-  box.audio_sample_rate(wav_sample_rate);
-
   // unmute the audio and set the volume to 60%
   box.mute(false);
   box.volume(60.0f);
@@ -178,7 +180,7 @@ extern "C" void app_main(void) {
   // set the display brightness to be 75%
   box.brightness(75.0f);
 
-  // Initialize the microphones (the ES7210 shares the I2S bus with the
+  // Record from the microphones (the ES7210 shares the I2S bus with the
   // speaker in full duplex, so recording runs at the speaker's sample rate)
   // and buffer the recorded stereo frames; the recording auto-stops when the
   // buffer is full and the main loop notices and updates the GUI
@@ -197,7 +199,7 @@ extern "C" void app_main(void) {
       recording = false;
     }
   };
-  bool have_mic = box.initialize_microphone(mic_callback);
+  bool have_mic = box.start_audio_recording(mic_callback);
   if (!have_mic) {
     gui.set_audio_status("Mic unavailable (see log)");
   }
@@ -419,8 +421,10 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
     audio_bytes.clear();
     return false;
   }
-  // get the sample rate from the wav header (bytes 24-27)
-  uint32_t sample_rate = *(reinterpret_cast<const uint32_t *>(&audio_bytes[24]));
+  // get the sample rate from the wav header (bytes 24-27, little-endian; the
+  // vector's data need not be 4-byte aligned at that offset, so copy it out)
+  uint32_t sample_rate = 0;
+  memcpy(&sample_rate, &audio_bytes[24], sizeof(sample_rate));
   // set the audio sample rate accordingly
   // decode the wav file header (first 44 bytes) and remove it
   if (audio_bytes.size() > 44) {

@@ -34,7 +34,9 @@ extern "C" void app_main(void) {
   // microphone, played back. 16 kHz keeps the recording small (64 KB).
   //! [esp32 p4 wifi6 poe eth audio]
   static constexpr uint32_t audio_rate = 16000;
-  if (board.initialize_audio({.sample_rate = audio_rate})) {
+  auto audio_config = board.default_audio_config();
+  audio_config.sample_rate = audio_rate;
+  if (board.initialize_audio(audio_config)) {
     board.volume(60.0f);
     // play() queues what fits and returns how much that was: stream from the
     // returned offset

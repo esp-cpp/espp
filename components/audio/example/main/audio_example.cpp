@@ -25,12 +25,10 @@ extern "C" void app_main(void) {
   // Playback only, to an I2S amplifier with no codec (e.g. a MAX98357A):
   // volume and mute are applied in software.
   espp::Audio audio({
-      .pins = {.bclk = static_cast<gpio_num_t>(CONFIG_EXAMPLE_I2S_BCLK_GPIO),
-               .ws = static_cast<gpio_num_t>(CONFIG_EXAMPLE_I2S_WS_GPIO),
-               .dout = static_cast<gpio_num_t>(CONFIG_EXAMPLE_I2S_DOUT_GPIO)},
-      .sample_rate = 44100,
-      .playback_enabled = true,
-      .recording_enabled = false,
+      .app = {.sample_rate = 44100, .playback_enabled = true, .recording_enabled = false},
+      .hardware = {.pins = {.bclk = static_cast<gpio_num_t>(CONFIG_EXAMPLE_I2S_BCLK_GPIO),
+                            .ws = static_cast<gpio_num_t>(CONFIG_EXAMPLE_I2S_WS_GPIO),
+                            .dout = static_cast<gpio_num_t>(CONFIG_EXAMPLE_I2S_DOUT_GPIO)}},
       .volume = 30.0f,
       .log_level = espp::Logger::Verbosity::INFO,
   });
