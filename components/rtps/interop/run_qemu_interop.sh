@@ -287,10 +287,12 @@ netem_case() { # name netem-args topic reliable(0|1) marker min-count max-count
   settle
 }
 
-note "30% reordering (20 ms delay): host reliable publisher -> device, every sample once and in order"
-netem_case netem_reorder_reliable "delay 20ms 5ms reorder 30% 50%" rt/qemu_rx 1 rx 150 200
+# The delay has to exceed the 100 ms sample spacing for samples (not just
+# packets) to cross: a reordered packet goes out at once, the rest 150 ms later.
+note "30% reordering across a 150 ms delay: host reliable publisher -> device, every sample once and in order"
+netem_case netem_reorder_reliable "delay 150ms 20ms reorder 30% 50%" rt/qemu_rx 1 rx 150 200
 note "30% reordering: host best-effort publisher -> device, late samples rejected, never out of order"
-netem_case netem_reorder_best_effort "delay 20ms 5ms reorder 30% 50%" rt/qemu_be_rx 0 be_rx 60 200
+netem_case netem_reorder_best_effort "delay 150ms 20ms reorder 30% 50%" rt/qemu_be_rx 0 be_rx 60 200
 note "30% duplication: host reliable publisher -> device, every sample exactly once"
 netem_case netem_duplicate_reliable "duplicate 30%" rt/qemu_rx 1 rx 190 200
 note "30% duplication: host best-effort publisher -> device, no sample twice"
