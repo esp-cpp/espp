@@ -10,7 +10,7 @@ the network over the standard RTPS wire protocol.
 
 It provides three messaging patterns, all validated against live ROS 2 (Jazzy):
 
-- **Pub/sub** — topic-based, best-effort or reliable (HEARTBEAT/ACKNACK).
+- **Pub/sub** — topic-based, best-effort or reliable (HEARTBEAT/ACKNACK). A best-effort reader never asks for a resend, but still rejects a duplicated or reordered sample (anything not above the highest sequence number already received from that writer, RTPS 2.5 8.4.12.1).
 - **Services (RMI)** — request/reply with correlated responses.
 - **Actions (AMI)** — long-running goals with feedback, result, and cancellation.
 
