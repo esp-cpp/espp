@@ -62,7 +62,22 @@ cd .. && ./run_qemu.sh
 | espp_host_pub->device_sub, device_pub->espp_host_sub, espp_host_frag_30k->device_sub | the host engine against the embedded one, including its DATA_FRAG path |
 | ros2_pub->device_sub_frag_30k (wire summary) | tcpdump on the tap during the case: frames per 30 KB sample, fragments, multicast, the biggest burst (FastDDS 42 frames within 20 ms, CycloneDDS 23: why the RX ring is 64) |
 | netem_loss_reliable | 15 % loss + 10 ms jitter on the link (`tc netem`): the reliable reader still delivers |
+| netem_reorder_reliable, netem_duplicate_reliable, netem_corrupt_reliable | 30 % reordering, 30 % duplication, 2 % corruption on the link: the host engine's numbered samples reach the device's reliable reader every one exactly once and in order |
+| netem_reorder_best_effort, netem_duplicate_best_effort | the same against the best-effort reader: samples may be lost, but none arrives twice or out of order (RTPS 2.5 8.4.12.1, `rtps_best_effort_order` on the host) |
+| netem_delay_discovery | 300 ms (+-50) delay from before discovery: a ROS 2 publisher is still discovered, matched and delivered over a 600 ms round trip |
+| netem_loss_device_pub | 15 % loss towards the device: the device's reliable writer repairs for the host subscriber against lost ACKNACKs |
 | device_heap_stable, device_no_crash | free heap at the end within 96 KB of the start (two buffers grow once to the largest sample, 30 KB each); no panic / abort / assert |
+
+The **soak** suite (`./run_qemu.sh <image> soak`, the second CI job on the same
+firmware build) runs 20 cycles of churn instead: each cycle six ROS 2
+participants and two host-engine ones come, match the device's endpoints every
+way they can (reliable and best-effort in, the device's publishers out, a 30 KB
+sample, a service call) and go, FastDDS and CycloneDDS alternating, with the
+previous cycle's leases running out part way into the next. After a warm-up
+cycle (whatever grows once to the largest sample grows there) the free heap at
+the end must be within 8 KB of the baseline, the low-water mark within 16 KB,
+and the last cycle must still have delivered (`soak_heap_no_leak`,
+`soak_min_heap_stable`, `soak_still_delivering`). The per-cycle heap is printed.
 
 What only this can show: the embedded pools and knobs as built, lwIP's socket
 and reassembly behaviour, FreeRTOS priorities for the engine's threads,

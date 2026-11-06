@@ -4,7 +4,8 @@
 # in QEMU inside the container, against FastDDS, CycloneDDS / ROS 2 and the espp
 # host engine on a tap device.
 #
-# Usage: ./run_qemu.sh [path/to/qemu_flash.bin]   (from components/rtps/interop)
+# Usage: ./run_qemu.sh [path/to/qemu_flash.bin] [matrix|soak]   (from components/rtps/interop)
+#   matrix (default): the interop cases + fault injection; soak: minutes of churn, heap asserted
 #
 # The firmware image defaults to qemu/build/qemu_flash.bin, i.e.
 #   cd qemu && idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.ci.defaults" build \
@@ -24,4 +25,4 @@ case "$FLASH" in "$REPO_ROOT"/*) FLASH_IN="/work${FLASH#"$REPO_ROOT"}" ;; *) ech
 docker build -t espp-rtps-interop .
 exec docker run --rm --network none --cap-add NET_ADMIN --device /dev/net/tun \
   -v "$REPO_ROOT":/work espp-rtps-interop \
-  bash /work/components/rtps/interop/run_qemu_interop.sh "$FLASH_IN"
+  bash /work/components/rtps/interop/run_qemu_interop.sh "$FLASH_IN" "${2:-matrix}"

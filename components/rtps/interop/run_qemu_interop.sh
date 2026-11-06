@@ -6,7 +6,15 @@
 # host side and asserts on the device's serial log (the "RTPSTEST ..." markers
 # the firmware prints; see qemu/main/rtps_qemu.cpp).
 #
-# Usage: run_qemu_interop.sh /work/components/rtps/interop/qemu/build/qemu_flash.bin
+# Usage: run_qemu_interop.sh /work/components/rtps/interop/qemu/build/qemu_flash.bin [matrix|soak]
+#
+# Suites (CI runs both, in parallel, on one firmware build):
+#   matrix  the interop cases against FastDDS, CycloneDDS and the host engine,
+#           then fault injection on the link (tc netem: loss, reordering,
+#           duplication, delay, corruption) and the device's health
+#   soak    minutes of churn - participants coming and going, matches, service
+#           calls, 30 KB samples, both rmws alternating - and the heap must not
+#           trend down afterwards
 #
 # Network: the container runs with --network none, so the tap device created
 # here is its only interface and every DDS implementation uses it without
@@ -16,7 +24,8 @@
 # NOTE: no `set -u` - ROS 2's setup.bash references unset variables.
 set -o pipefail
 
-FLASH="${1:?usage: run_qemu_interop.sh <qemu_flash.bin>}"
+FLASH="${1:?usage: run_qemu_interop.sh <qemu_flash.bin> [matrix|soak]}"
+SUITE="${2:-matrix}"
 QEMU="${QEMU:-/opt/qemu/bin/qemu-system-xtensa}"
 TAP=tap0
 HOST_IP=192.168.100.1
@@ -115,6 +124,7 @@ FIRST_HEAP=$(grep -o " heap=[0-9]*" "$LOG" | tail -1 | cut -d= -f2)
 source /opt/ros/jazzy/setup.bash
 export ROS_DOMAIN_ID=0 # matches the engine's Config::DOMAIN_ID
 
+run_matrix() {
 # --- the ROS 2 cases, run once per rmw -----------------------------------------------
 ros2_cases() { # prefix log-tag
   local p="$1" t="$2" m
@@ -250,13 +260,70 @@ n=$(count_since "$m" "RTPSTEST rx lossy"); echo "device received $n of ~400 unde
 tc qdisc del dev $TAP root
 settle
 
+# --- fault injection beyond loss: reordering, duplication, corruption, delay ---------------------
+# tc netem on $TAP shapes what the host sends towards the device. The host
+# engine's samples are numbered ("espp interop N", printed by the device as
+# "RTPSTEST rx espp interop N" / "be_rx ..."), so order is checkable: a reliable
+# reader must deliver every sample exactly once and in order whatever the link
+# does; a best-effort reader may lose samples but must never deliver one twice
+# or out of order (RTPS 2.5 8.4.12.1).
+numbers_since() { since "$1" | grep -o "RTPSTEST $2 espp interop [0-9]*" | awk '{print $NF}'; }
+strictly_increasing() { awk 'NR > 1 && $1 <= prev { bad = 1 } { prev = $1 } END { exit bad }'; }
+netem_case() { # name netem-args topic reliable(0|1) marker min-count max-count
+  local name="$1" args="$2" topic="$3" reliable="$4" marker="$5" min="$6" max="$7" m n rc=0
+  tc qdisc add dev $TAP root netem $args
+  m=$(mark)
+  "$BIN"/rtps_interop_pub "$topic" std_msgs::msg::dds_::String_ "$reliable" 200 100 $HOST_IP > "/tmp/${name}.log" 2>&1 &
+  local pub=$!; sleep 27; kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
+  tc qdisc del dev $TAP root
+  n=$(numbers_since "$m" "$marker" | wc -l | tr -d ' ')
+  if numbers_since "$m" "$marker" | strictly_increasing; then
+    echo "device received $n of 200, in order, none twice"
+  else
+    echo "device received $n of 200, OUT OF ORDER or a duplicate:"; numbers_since "$m" "$marker" | tr '\n' ' ' | cut -c1-400; echo; rc=1
+  fi
+  [ "$n" -ge "$min" ] && [ "$n" -le "$max" ] || rc=1
+  result "$name" $rc
+  settle
+}
+
+note "30% reordering (20 ms delay): host reliable publisher -> device, every sample once and in order"
+netem_case netem_reorder_reliable "delay 20ms 5ms reorder 30% 50%" rt/qemu_rx 1 rx 150 200
+note "30% reordering: host best-effort publisher -> device, late samples rejected, never out of order"
+netem_case netem_reorder_best_effort "delay 20ms 5ms reorder 30% 50%" rt/qemu_be_rx 0 be_rx 60 200
+note "30% duplication: host reliable publisher -> device, every sample exactly once"
+netem_case netem_duplicate_reliable "duplicate 30%" rt/qemu_rx 1 rx 190 200
+note "30% duplication: host best-effort publisher -> device, no sample twice"
+netem_case netem_duplicate_best_effort "duplicate 30%" rt/qemu_be_rx 0 be_rx 150 200
+note "2% corruption: host reliable publisher -> device keeps delivering (the engine survives the rest of the run)"
+netem_case netem_corrupt_reliable "corrupt 2%" rt/qemu_rx 1 rx 150 200
+
+note "300 ms (+-50) delay on the link from before discovery: a ROS 2 publisher is still discovered, matched and delivered"
+tc qdisc add dev $TAP root netem delay 300ms 50ms
+m=$(mark)
+timeout 32 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'slow link'" > /dev/null 2>&1 &
+pub=$!; sleep 30; kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
+tc qdisc del dev $TAP root
+n=$(count_since "$m" "RTPSTEST rx slow link"); echo "device received $n over a 600 ms round trip"
+[ "$n" -ge 20 ]; result "netem_delay_discovery" $?
+settle
+
+note "15% loss + 10 ms jitter: device reliable publisher -> host subscriber (the device writer's repairs, against lost ACKNACKs)"
+tc qdisc add dev $TAP root netem loss 15% delay 10ms 3ms
+"$BIN"/rtps_interop_sub rt/qemu_tx std_msgs::msg::dds_::String_ 1 100 45 $HOST_IP > /tmp/hostsub_loss.log 2>&1
+rc=$?; tail -1 /tmp/hostsub_loss.log; result "netem_loss_device_pub" $rc
+tc qdisc del dev $TAP root
+settle
+
 # --- CycloneDDS pass ---------------------------------------------------------------------------
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export CYCLONEDDS_URI='<CycloneDDS><Domain><Discovery><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>'
 ros2_cases "cyclone: " cyclone
 unset CYCLONEDDS_URI
 
-# --- the device after all of that -----------------------------------------------------------------
+}
+
+device_health() {
 note "Device health over the run"
 LAST_HEAP=$(grep -o " heap=[0-9]*" "$LOG" | tail -1 | cut -d= -f2)
 echo "free heap first=$FIRST_HEAP last=$LAST_HEAP"
@@ -271,6 +338,79 @@ grep -o "RTPSTEST status.*" "$LOG" | tail -1
 echo "device pool-exhaustion messages: $(grep -c 'RESSOURCE LIMIT EXCEEDED' "$LOG")"
 echo "device RX frames dropped by the emulated MAC: $(grep -c 'RX frame dropped' "$LOG")"
 echo "device type names over the cap: $(grep -c 'exceeds maximum allowed length' "$LOG")"
+}
+
+# --- the soak ------------------------------------------------------------------------------------
+latest_heap() { grep -o " heap=[0-9]*" "$LOG" | tail -1 | cut -d= -f2; }
+latest_min_heap() { grep -o "min_heap=[0-9]*" "$LOG" | tail -1 | cut -d= -f2; }
+run_soak() {
+  local cycles="${SOAK_CYCLES:-20}"
+  note "Soak: $cycles cycles of churn, FastDDS and CycloneDDS alternating; the heap must not trend down"
+  local big; big=$(head -c 30000 /dev/zero | tr '\0' x)
+  # One cycle: six ROS 2 participants and two host-engine ones come, match the
+  # device's endpoints every way they can (reliable and best-effort in, the
+  # device's publisher out, a 30 KB sample, a service call), and go. 12 s of
+  # traffic, 2 s of quiet, so the previous cycle's leases (capped at 8 s) run
+  # out part way into the next: pools and proxies churn as peers do.
+  soak_cycle() { # rmw cycle
+    export RMW_IMPLEMENTATION="$1"
+    if [ "$1" = rmw_cyclonedds_cpp ]; then
+      export CYCLONEDDS_URI='<CycloneDDS><Domain><Discovery><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>'
+    else
+      unset CYCLONEDDS_URI
+    fi
+    local pids=()
+    timeout 14 ros2 topic pub -r 20 /qemu_rx std_msgs/msg/String "data: 'soak $2'" > /dev/null 2>&1 & pids+=($!)
+    timeout 14 ros2 topic pub --qos-reliability best_effort -r 10 /qemu_be_rx std_msgs/msg/String "data: 'soak be $2'" > /dev/null 2>&1 & pids+=($!)
+    timeout 14 ros2 topic pub -t 3 -r 0.5 /qemu_big std_msgs/msg/String "data: '$big'" > /dev/null 2>&1 & pids+=($!)
+    timeout 14 ros2 topic echo --once /qemu_tx std_msgs/msg/String > /dev/null 2>&1 & pids+=($!)
+    timeout 14 ros2 topic echo --once --qos-reliability best_effort /qemu_be_tx std_msgs/msg/String > /dev/null 2>&1 & pids+=($!)
+    if [ "$1" = rmw_fastrtps_cpp ]; then
+      timeout 14 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 1, b: $2}" > /dev/null 2>&1 & pids+=($!)
+    fi
+    "$BIN"/rtps_interop_pub rt/qemu_rx std_msgs::msg::dds_::String_ 1 40 200 $HOST_IP > /dev/null 2>&1 & pids+=($!)
+    "$BIN"/rtps_interop_sub rt/qemu_tx std_msgs::msg::dds_::String_ 1 5 12 $HOST_IP > /dev/null 2>&1 & pids+=($!)
+    sleep 12
+    kill "${pids[@]}" 2>/dev/null; wait "${pids[@]}" 2>/dev/null || true
+    sleep 2
+  }
+
+  # warm-up: whatever grows once to the largest sample grows here, outside the measurement
+  soak_cycle rmw_fastrtps_cpp 0
+  sleep 14 # lease + one sweep: the warm-up's peers forgotten before the baseline
+  local base_heap base_min; base_heap=$(latest_heap); base_min=$(latest_min_heap)
+  echo "baseline after the warm-up: heap=$base_heap min_heap=$base_min"
+  echo "  device: $(grep -o 'RTPSTEST status.*' "$LOG" | tail -1)"
+
+  local i rmw m_last h
+  local -a heaps=()
+  for i in $(seq 1 "$cycles"); do
+    rmw=rmw_fastrtps_cpp; [ $((i % 2)) -eq 0 ] && rmw=rmw_cyclonedds_cpp
+    m_last=$(mark)
+    soak_cycle "$rmw" "$i"
+    h=$(latest_heap); heaps+=("$h")
+    echo "cycle $i ${rmw#rmw_}: $(grep -o 'RTPSTEST status.*' "$LOG" | tail -1 | sed 's/RTPSTEST status //')"
+  done
+  local last_rx last_be last_big; last_rx=$(count_since "$m_last" "RTPSTEST rx "); last_be=$(count_since "$m_last" "RTPSTEST be_rx "); last_big=$(count_since "$m_last" "RTPSTEST big_rx ")
+  sleep 14 # every soak peer forgotten
+  local end_heap end_min; end_heap=$(latest_heap); end_min=$(latest_min_heap)
+  echo "heap after the warm-up $base_heap, after cycle $((cycles / 2)) ${heaps[$((cycles / 2 - 1))]}, at the end $end_heap (free, bytes); low-water mark $base_min -> $end_min"
+  echo "last cycle: reliable $last_rx, best-effort $last_be, 30 KB $last_big samples delivered"
+  echo "pool-exhaustion messages over the soak: $(grep -c 'RESSOURCE LIMIT EXCEEDED' "$LOG"), RX frames dropped: $(grep -c 'RX frame dropped' "$LOG")"
+  # Free heap at the end within 8 KB of the baseline: a leak of 500 bytes per
+  # cycle would show. The low-water mark within 16 KB: a transient that grows
+  # with every cycle would show.
+  [ -n "$base_heap" ] && [ -n "$end_heap" ] && [ "$end_heap" -ge $((base_heap - 8192)) ]; result "soak_heap_no_leak" $?
+  [ -n "$base_min" ] && [ -n "$end_min" ] && [ "$end_min" -ge $((base_min - 16384)) ]; result "soak_min_heap_stable" $?
+  [ "$last_rx" -ge 50 ] && [ "$last_be" -ge 20 ] && [ "$last_big" -ge 1 ]; result "soak_still_delivering" $?
+}
+
+case "$SUITE" in
+  matrix) run_matrix ;;
+  soak) run_soak ;;
+  *) echo "unknown suite: $SUITE (matrix|soak)"; exit 2 ;;
+esac
+device_health
 
 echo ""
 echo "==================== SUMMARY ===================="
