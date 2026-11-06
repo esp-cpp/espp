@@ -19,8 +19,9 @@ singleton hardware abstraction for initializing and using the subsystems:
   way, a callback is invoked once per key state change with the key's matrix
   position, resolved character (shift-aware), fn-layer special key (F1-F12,
   arrows, esc, delete), and modifier state (fn / shift / ctrl / opt / alt).
-- **Audio output**: `initialize_audio()` (an `AudioConfig` picks the sample
-  rate and which directions to set up), a mono speaker with `play_audio()` /
+- **Audio output**: `initialize_audio()` (an `AudioConfig` -
+  `espp::Audio::AppConfig`, started from `default_audio_config()` - picks the
+  sample rate, which directions to set up, the playback buffer and the tasks), a mono speaker with `play_audio()` /
   `clear_audio()`, runtime sample-rate control, and software volume / mute,
   through the espp `audio` component (`audio()` returns it). On the original
   the I2S stream drives an NS4168 amplifier directly; on the ADV it goes

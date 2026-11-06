@@ -61,7 +61,9 @@ extern "C" void app_main(void) {
   // initialize the audio system: playback through the ES8311 and the speaker,
   // and recording from the dual microphone array through the ES7210, full
   // duplex on one I2S bus (so the microphones record at the speaker's rate)
-  if (!box.initialize_audio({.sample_rate = static_cast<uint32_t>(wav_sample_rate)})) {
+  auto audio_config = box.default_audio_config();
+  audio_config.sample_rate = static_cast<uint32_t>(wav_sample_rate);
+  if (!box.initialize_audio(audio_config)) {
     logger.error("Failed to initialize audio!");
     return;
   }

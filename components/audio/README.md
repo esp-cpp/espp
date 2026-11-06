@@ -6,8 +6,8 @@ The `audio` component provides `espp::Audio`, I2S audio playback and recording
 for one I2S port with 16-bit PCM: a TX channel for playback, an RX channel for
 recording, or both, full duplex on the same clocks, in standard (Philips) mode.
 An instance that only records can instead receive TDM (e.g. an ES7210 with four
-microphones, `Config::recording_tdm_slots`) or a PDM microphone;
-`Config::recording_slots` picks the slots the recording callback receives.
+microphones, `HardwareConfig::recording_tdm_slots`) or a PDM microphone;
+`HardwareConfig::recording_slots` picks the slots the recording callback receives.
 
 It owns the machinery the espp BSPs used to copy into each board:
 
@@ -41,8 +41,24 @@ drivers in the `codec` component:
 
 Each adapter takes the register read / write functions, e.g.
 `espp::make_i2c_addressed_write(device)` for an `espp::I2c` device. A chip that
-handles both directions is passed as both `Config::output_codec` and
-`Config::input_codec`.
+handles both directions is passed as both `HardwareConfig::output_codec` and
+`HardwareConfig::input_codec`.
+
+## Configuration
+
+`espp::Audio::Config` has two parts:
+
+- `AppConfig` (`config.app`): what an application chooses - the sample rate
+  (and, for an instance that only records, `recording_sample_rate`), which
+  directions run, the playback buffer and the playback / recording tasks.
+- `HardwareConfig` (`config.hardware`): how the board is wired - the I2S port
+  and pins, channel counts, the recording format and slots, the MCLK multiple
+  and the codecs.
+
+plus the initial volume / mute / microphone gain, `on_playback_block` and the
+log level. The BSPs take only the `AppConfig`, as their `AudioConfig`
+(`using AudioConfig = espp::Audio::AppConfig;`), and fill in the
+`HardwareConfig` for their board.
 
 ## Board-specific parts
 
@@ -61,7 +77,8 @@ to it:
 
 | Method | |
 |---|---|
-| `initialize_audio()` / `initialize_audio(const AudioConfig &)` | set up playback and / or recording |
+| `initialize_audio()` / `initialize_audio(const AudioConfig &)` | set up playback and / or recording (`AudioConfig` is `espp::Audio::AppConfig`) |
+| `default_audio_config()` | the board's defaults (rate, directions, task stacks / cores), to start an `AudioConfig` from |
 | `deinitialize_audio()`, `is_audio_initialized()` | tear down / query |
 | `audio()` | the `espp::Audio` instance |
 | `enable_audio(bool)` | the speaker amplifier |

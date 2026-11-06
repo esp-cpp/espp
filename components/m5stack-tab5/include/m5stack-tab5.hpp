@@ -469,28 +469,32 @@ public:
   // Audio System
   /////////////////////////////////////////////////////////////////////////////
 
-  /// How initialize_audio() sets the audio system up
-  struct AudioConfig {
-    /// The audio sample rate, in Hz
-    uint32_t sample_rate{48000};
-    /// Set up playback: the I2S TX channel, the ES8388 DAC, the speaker and
-    /// the playback task. Without it play_audio() queues nothing.
-    bool playback_enabled{true};
-    /// Set up recording: the I2S RX channel, the ES7210 microphones and the
-    /// microphone task. Without it start_audio_recording() fails.
-    /// \note Each I2S channel has a DMA ring of about 11.5 KB of internal
-    ///       DMA-capable RAM, and each task's stack is in internal RAM too,
-    ///       so an application that only plays (or only records) saves that
-    ///       memory by turning the other direction off.
-    bool recording_enabled{true};
-    /// The audio tasks' configuration: the playback task is named with " out"
-    /// appended ("tab5_audio out"), the microphone task with " in"
-    espp::Task::BaseConfig task_config{.name = "tab5_audio",
-                                       .stack_size_bytes =
-                                           CONFIG_M5STACK_TAB5_AUDIO_TASK_STACK_SIZE,
-                                       .priority = 20,
-                                       .core_id = 1};
-  };
+  /// How initialize_audio() sets the audio system up: the application's side of
+  /// espp::Audio (the board's wiring is filled in by initialize_audio()). Start
+  /// from default_audio_config() to keep this board's defaults.
+  /// - sample_rate: The audio sample rate, in Hz
+  /// - playback_enabled: Set up playback: the I2S TX channel, the ES8388 DAC,
+  ///   the speaker and the playback task. Without it play_audio() queues
+  ///   nothing.
+  /// - recording_enabled: Set up recording: the I2S RX channel, the ES7210
+  ///   microphones and the microphone task. Without it start_audio_recording()
+  ///   fails.
+  /// - playback_buffer_size / playback_buffer_caps: the stream play_audio()
+  ///   queues into (0: about 67 ms of audio; larger lets one play_audio() call
+  ///   queue a whole UI sound, e.g. in MALLOC_CAP_SPIRAM)
+  /// - playback_task_config / recording_task_config: the audio tasks (the
+  ///   recording callback runs on the recording task)
+  /// \note Each I2S channel has a DMA ring of about 11.5 KB of internal DMA-
+  ///       capable RAM, and each task's stack is in internal RAM too, so an
+  ///       application that only plays (or only records) saves that memory by
+  ///       turning the other direction off.
+  using AudioConfig = espp::Audio::AppConfig;
+
+  /// The board's default AudioConfig: 48 kHz, playback and recording, and the
+  /// tasks "tab5_audio out" / "tab5_audio in" with this board's stack, priority
+  /// and core.
+  /// \return The default AudioConfig
+  static AudioConfig default_audio_config();
 
   /// Initialize the audio system with the default AudioConfig: ES8388
   /// playback and ES7210 recording at 48 kHz

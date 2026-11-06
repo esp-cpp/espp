@@ -87,8 +87,10 @@ extern "C" void app_main(void) {
   // reconfiguration, which is where a speaker-vs-recording pitch mismatch
   // could creep in
   // (the microphones' rate too: see MIC_SAMPLE_RATE_HZ)
-  if (!tdeck.initialize_audio(
-          {.sample_rate = AUDIO_SAMPLE_RATE_HZ, .recording_sample_rate = MIC_SAMPLE_RATE_HZ})) {
+  auto audio_config = tdeck.default_audio_config();
+  audio_config.sample_rate = AUDIO_SAMPLE_RATE_HZ;
+  audio_config.recording_sample_rate = MIC_SAMPLE_RATE_HZ;
+  if (!tdeck.initialize_audio(audio_config)) {
     logger.error("Failed to initialize audio!");
     return;
   }

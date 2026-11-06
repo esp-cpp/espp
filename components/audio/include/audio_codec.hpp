@@ -40,7 +40,7 @@ public:
   virtual bool start(Direction direction, uint32_t sample_rate) = 0;
 
   /// @return The MCLK / sample rate ratio the chip's configuration assumes
-  ///         (espp::Audio::Config::mclk_multiple must match), or 0 if it
+  ///         (espp::Audio::HardwareConfig::mclk_multiple must match), or 0 if it
   ///         follows any.
   virtual uint32_t mclk_multiple() const { return 0; }
 

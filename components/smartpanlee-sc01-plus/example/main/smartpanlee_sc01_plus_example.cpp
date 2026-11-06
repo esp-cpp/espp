@@ -48,8 +48,10 @@ extern "C" void app_main(void) {
   }
   board.volume(30.0f);
   board.mute(false);
-  if (!board.initialize_audio({.sample_rate = static_cast<uint32_t>(wav_sample_rate),
-                               .playback_buffer_size = 36 * 1024})) {
+  auto audio_config = board.default_audio_config();
+  audio_config.sample_rate = static_cast<uint32_t>(wav_sample_rate);
+  audio_config.playback_buffer_size = 36 * 1024;
+  if (!board.initialize_audio(audio_config)) {
     logger.warn("Audio initialization did not complete cleanly");
   }
 

@@ -10,8 +10,9 @@ The `espp::EspBox` component provides a singleton hardware abstraction for
 initializing the touch, display, and audio subsystems, as well as automatically
 determining which version of the Box it's running on. The audio subsystem is
 built on the [`espp::Audio`](../audio) component and runs full duplex on one
-I2S bus: `initialize_audio()` sets up playback, recording or both (see
-`EspBox::AudioConfig`), `play_audio()` streams 16-bit stereo out through the
+I2S bus: `initialize_audio()` sets up playback, recording or both (an
+`AudioConfig`, i.e. `espp::Audio::AppConfig`, started from
+`EspBox::default_audio_config()`), `play_audio()` streams 16-bit stereo out through the
 ES8311 codec and speaker, and `start_audio_recording()` delivers 16-bit stereo
 recordings from the dual microphone array (through the ES7210 ADC, with
 adjustable gain via `microphone_volume()`) at the speaker's sample rate.

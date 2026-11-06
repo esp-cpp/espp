@@ -364,46 +364,38 @@ public:
   // Audio (speaker + microphone)
   /////////////////////////////////////////////////////////////////////////////
 
-  /// How initialize_audio() sets the audio system up
-  struct AudioConfig {
-    /// The audio sample rate, in Hz (playback and recording share it)
-    uint32_t sample_rate{44100};
-    /// Set up playback: the speaker (original: NS4168 amplifier; ADV: ES8311
-    /// DAC + NS4150B amplifier) and the playback task. Without it
-    /// play_audio() queues nothing.
-    bool playback_enabled{true};
-    /// Set up recording: the microphone (original: SPM1423 PDM microphone;
-    /// ADV: the ES8311's ADC) and the microphone task. Without it
-    /// start_audio_recording() fails.
-    /// \note On the original Cardputer playback and recording cannot both be
-    ///       enabled: GPIO 43 is both the speaker's word select and the PDM
-    ///       microphone's clock (see the class notes). On the ADV they run
-    ///       full duplex.
-    /// \note Each I2S channel has a DMA ring in internal DMA-capable RAM, and
-    ///       each task's stack is in internal RAM too, so a direction that is
-    ///       not needed is better left off.
-    bool recording_enabled{false};
-    /// Size of the playback stream play_audio() queues into, in bytes (0:
-    /// about 67 ms of audio). Larger lets one play_audio() call queue a whole
-    /// UI sound.
-    size_t playback_buffer_size{0};
-    /// Heap capabilities for the playback stream (e.g. MALLOC_CAP_SPIRAM for
-    /// a large one)
-    uint32_t playback_buffer_caps{MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT};
-    /// The playback task's configuration
-    espp::Task::BaseConfig playback_task_config{
-        .name = "audio out",
-        .stack_size_bytes = CONFIG_M5STACK_CARDPUTER_AUDIO_TASK_STACK_SIZE,
-        .priority = CONFIG_M5STACK_CARDPUTER_AUDIO_TASK_PRIORITY,
-        .core_id = CONFIG_M5STACK_CARDPUTER_AUDIO_TASK_CORE_ID};
-    /// The microphone task's configuration (the recording callback runs on
-    /// it, so size its stack for what the callback does)
-    espp::Task::BaseConfig recording_task_config{
-        .name = "audio in",
-        .stack_size_bytes = CONFIG_M5STACK_CARDPUTER_MICROPHONE_TASK_STACK_SIZE,
-        .priority = CONFIG_M5STACK_CARDPUTER_MICROPHONE_TASK_PRIORITY,
-        .core_id = CONFIG_M5STACK_CARDPUTER_MICROPHONE_TASK_CORE_ID};
-  };
+  /// How initialize_audio() sets the audio system up: the application's side
+  /// of espp::Audio (the board's wiring is filled in by initialize_audio()).
+  /// Start from default_audio_config() to keep this board's defaults.
+  /// - sample_rate: the audio sample rate, in Hz (playback and recording
+  ///   share it; recording_sample_rate must be 0 or the same on the ADV)
+  /// - playback_enabled: set up playback: the speaker (original: NS4168
+  ///   amplifier; ADV: ES8311 DAC + NS4150B amplifier) and the playback task.
+  ///   Without it play_audio() queues nothing.
+  /// - recording_enabled: set up recording: the microphone (original: SPM1423
+  ///   PDM microphone; ADV: the ES8311's ADC) and the microphone task. Without
+  ///   it start_audio_recording() fails.
+  /// - playback_buffer_size / playback_buffer_caps: the stream play_audio()
+  ///   queues into (0: about 67 ms of audio; larger lets one play_audio() call
+  ///   queue a whole UI sound)
+  /// - playback_task_config / recording_task_config: the audio tasks (the
+  ///   recording callback runs on the recording task, so size its stack for
+  ///   what the callback does)
+  /// \note On the original Cardputer playback and recording cannot both be
+  ///       enabled: GPIO 43 is both the speaker's word select and the PDM
+  ///       microphone's clock (see the class notes). On the ADV they run
+  ///       full duplex.
+  /// \note Each I2S channel has a DMA ring in internal DMA-capable RAM, and
+  ///       each task's stack is in internal RAM too, so a direction that is
+  ///       not needed is better left off.
+  using AudioConfig = espp::Audio::AppConfig;
+
+  /// The board's default AudioConfig: playback only at 44.1 kHz, and the
+  /// tasks "audio out" / "audio in" with the stacks, priorities and cores
+  /// from Kconfig (M5STACK_CARDPUTER_AUDIO_TASK_* /
+  /// M5STACK_CARDPUTER_MICROPHONE_TASK_*).
+  /// \return The default AudioConfig
+  static AudioConfig default_audio_config();
 
   /// Initialize the audio system with the default AudioConfig: playback at
   /// 44.1 kHz

@@ -15,13 +15,29 @@ using namespace espp;
 // microphone ADC each have their own I2S bus, so each has its own
 // espp::Audio.
 
-bool TDeck::initialize_audio() { return initialize_audio(AudioConfig{}); }
+TDeck::AudioConfig TDeck::default_audio_config() {
+  return {.sample_rate = 48000,
+          .recording_sample_rate = 16000,
+          .playback_enabled = true,
+          .recording_enabled = true,
+          .playback_task_config = {.name = "tdeck audio out",
+                                   .stack_size_bytes = 4096,
+                                   .priority = 19,
+                                   .core_id = 1},
+          .recording_task_config = {
+              .name = "tdeck audio in", .stack_size_bytes = 4096, .priority = 19, .core_id = 1}};
+}
+
+bool TDeck::initialize_audio() { return initialize_audio(default_audio_config()); }
 
 bool TDeck::initialize_sound(uint32_t default_audio_rate,
                              const espp::Task::BaseConfig &task_config) {
   // the old API set up playback only (initialize_microphone() added recording)
-  return initialize_audio(AudioConfig{
-      .sample_rate = default_audio_rate, .recording_enabled = false, .task_config = task_config});
+  auto config = default_audio_config();
+  config.sample_rate = default_audio_rate;
+  config.recording_enabled = false;
+  config.playback_task_config = task_config;
+  return initialize_audio(config);
 }
 
 bool TDeck::initialize_audio(const AudioConfig &config) {
@@ -48,29 +64,18 @@ bool TDeck::initialize_audio(const AudioConfig &config) {
   return true;
 }
 
-// the playback and microphone tasks share the caller's task config, named
-// "<name> out" / "<name> in" so the two are easy to tell apart in logs and
-// while debugging (short enough for FreeRTOS's 15-character task names)
-static espp::Task::BaseConfig task_config_named(const espp::Task::BaseConfig &config,
-                                                const char *suffix) {
-  auto named = config;
-  named.name = (config.name.empty() ? std::string("audio") : config.name) + suffix;
-  return named;
-}
-
 bool TDeck::initialize_playback(const AudioConfig &config) {
+  // the speaker's own I2S bus: this instance only plays
+  auto app = config;
+  app.playback_enabled = true;
+  app.recording_enabled = false;
   auto audio = std::make_shared<espp::Audio>(espp::Audio::Config{
-      .port = i2s_port,
-      .pins = {.bclk = i2s_bck_io, .ws = i2s_ws_io, .dout = i2s_do_io},
-      .sample_rate = config.sample_rate,
-      .playback_enabled = true,
-      .recording_enabled = false,
-      .playback_channels = 2,
-      .playback_buffer_size = config.playback_buffer_size,
-      .playback_buffer_caps = config.playback_buffer_caps,
+      .app = app,
+      .hardware = {.port = i2s_port,
+                   .pins = {.bclk = i2s_bck_io, .ws = i2s_ws_io, .dout = i2s_do_io},
+                   .playback_channels = 2},
       .volume = volume_,
       .muted = mute_,
-      .playback_task_config = task_config_named(config.task_config, " out"),
   });
   if (!audio->initialize()) {
     return false;
@@ -129,22 +134,24 @@ bool TDeck::initialize_recording(const AudioConfig &config) {
   // default, which is correct in slave mode. Forcing 0x08 = 0x20 (as some
   // MicroPython T-Deck ports do for their async PWM MCLK) turns the capture on
   // this hardware-MCLK setup into a half-rate, every-other-frame-zero one.
+  // the microphones' own I2S bus: this instance only records, at
+  // recording_sample_rate (sample_rate if 0)
+  auto app = config;
+  app.playback_enabled = false;
+  app.recording_enabled = true;
   auto microphone = std::make_shared<espp::Audio>(espp::Audio::Config{
-      .port = mic_i2s_port,
-      .pins = {.mclk = es7210_mclk_io,
-               .bclk = es7210_sclk_io,
-               .ws = es7210_lrck_io,
-               .din = es7210_sdout_io},
-      .sample_rate = config.recording_sample_rate,
-      .playback_enabled = false,
-      .recording_enabled = true,
-      .recording_channels = 2,
-      .recording_format = espp::Audio::RecordingFormat::TDM,
-      .recording_tdm_slots = 4,
-      .recording_slots = {0, 2}, // MIC1 -> left, MIC3 -> right
-      .input_codec = es7210_,
+      .app = app,
+      .hardware = {.port = mic_i2s_port,
+                   .pins = {.mclk = es7210_mclk_io,
+                            .bclk = es7210_sclk_io,
+                            .ws = es7210_lrck_io,
+                            .din = es7210_sdout_io},
+                   .recording_channels = 2,
+                   .recording_format = espp::Audio::RecordingFormat::TDM,
+                   .recording_tdm_slots = 4,
+                   .recording_slots = {0, 2}, // MIC1 -> left, MIC3 -> right
+                   .input_codec = es7210_},
       .microphone_volume = mic_volume_,
-      .recording_task_config = task_config_named(config.task_config, " in"),
   });
   if (!microphone->initialize()) {
     microphone.reset();
@@ -278,8 +285,10 @@ bool TDeck::initialize_microphone(const microphone_callback_t &callback, uint32_
   // are not running at this rate
   if (microphone_sample_rate() != sample_rate) {
     deinitialize_recording();
-    if (!initialize_recording(
-            AudioConfig{.recording_sample_rate = sample_rate, .task_config = task_config})) {
+    auto config = default_audio_config();
+    config.recording_sample_rate = sample_rate;
+    config.recording_task_config = task_config;
+    if (!initialize_recording(config)) {
       return false;
     }
   }

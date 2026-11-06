@@ -30,8 +30,9 @@ path, microSD card, and exposed peripheral pin mappings.
 - The board's speaker path is driven over I2S by `espp::Audio` (the `audio`
   component) on the published `BCLK`, `LRCK`, and `DOUT` pins, without a
   codec: volume and mute are applied in software. `initialize_audio()` takes
-  an `AudioConfig` (sample rate, playback buffer size / heap caps, task
-  configuration); `audio()` returns the `espp::Audio` object. The older
+  an `AudioConfig` (`espp::Audio::AppConfig`, started from
+  `default_audio_config()`: sample rate, playback buffer size / heap caps,
+  playback task); `audio()` returns the `espp::Audio` object. The older
   `initialize_audio(sample_rate[, task_config])` overloads are deprecated.
 - Touch handling follows the existing ESPP BSP pattern and uses the FT5x06
   controller plus the ESPP interrupt and LVGL touch-input helpers.

@@ -55,7 +55,7 @@ namespace espp {
 class Audio : public BaseComponent {
 public:
   /// Function called with recorded audio: 16-bit signed PCM, interleaved
-  /// when Config::recording_channels is 2. Runs on the recording task; it may
+  /// when HardwareConfig::recording_channels is 2. Runs on the recording task; it may
   /// call any method except start_recording() (which fails from it: it waits
   /// for the callback to return), initialize() and deinitialize().
   using recording_callback_t = std::function<void(const uint8_t *data, size_t length)>;
@@ -74,7 +74,7 @@ public:
   enum class RecordingFormat {
     STANDARD, ///< Standard (Philips) I2S: two slots per frame. In full duplex
               ///< it runs on the playback clocks.
-    TDM,      ///< TDM: Config::recording_tdm_slots slots per frame (e.g. an
+    TDM,      ///< TDM: HardwareConfig::recording_tdm_slots slots per frame (e.g. an
               ///< ES7210 with four microphones). Recording only; needs
               ///< SOC_I2S_SUPPORTS_TDM.
     PDM,      ///< A PDM microphone: Pins::ws is its clock and Pins::din its
@@ -90,11 +90,18 @@ public:
     gpio_num_t din{GPIO_NUM_NC};  ///< Data in (from the ADC / microphones), used for recording.
   };
 
-  /// Configuration
-  struct Config {
-    int port{I2S_NUM_0};         ///< I2S port (I2S_NUM_0, I2S_NUM_1, ...).
-    Pins pins{};                 ///< I2S pins.
-    uint32_t sample_rate{48000}; ///< Sample rate, in Hz (at least UPDATE_FREQUENCY).
+  /// What an application chooses: the rate, which directions run, buffering
+  /// and the tasks. The BSPs take this (as their AudioConfig) and fill in the
+  /// HardwareConfig for their board.
+  struct AppConfig {
+    /// Sample rate, in Hz (at least UPDATE_FREQUENCY).
+    uint32_t sample_rate{48000};
+    /// The recording rate, in Hz, for an instance that only records (0:
+    /// sample_rate). An instance that plays and records runs both on one
+    /// clock, so it must be 0 or sample_rate there; a playback-only instance
+    /// ignores it. Lets a board whose microphones have their own I2S port
+    /// (e.g. the T-Deck) record at a rate other than it plays.
+    uint32_t recording_sample_rate{0};
     /// Set up playback (the TX channel, the output codec and the playback
     /// task).
     bool playback_enabled{true};
@@ -106,6 +113,28 @@ public:
     ///       each task a stack in internal RAM, so a direction that is not
     ///       needed is better left off.
     bool recording_enabled{false};
+    /// Size of the playback stream that play() queues into, in bytes (0: four
+    /// blocks, about 67 ms). Larger lets one play() queue a whole UI sound;
+    /// at least two blocks.
+    size_t playback_buffer_size{0};
+    /// Heap capabilities for the playback stream (e.g. MALLOC_CAP_SPIRAM for
+    /// a large one).
+    uint32_t playback_buffer_caps{MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT};
+    /// The playback task's configuration (unpinned by default; a BSP can set
+    /// core_id for its board).
+    espp::Task::BaseConfig playback_task_config{
+        .name = "audio out", .stack_size_bytes = 4096, .priority = 20};
+    /// The recording task's configuration (its stack also runs the
+    /// recording callback; unpinned by default).
+    espp::Task::BaseConfig recording_task_config{
+        .name = "audio in", .stack_size_bytes = 4096, .priority = 20};
+  };
+
+  /// How the board is wired: the I2S port and pins, the slot layout and the
+  /// codecs. A BSP fills this in for its board.
+  struct HardwareConfig {
+    int port{I2S_NUM_0}; ///< I2S port (I2S_NUM_0, I2S_NUM_1, ...).
+    Pins pins{};         ///< I2S pins.
     /// Playback channels: 2 (interleaved stereo) or 1 (mono).
     uint8_t playback_channels{2};
     /// Recording channels: 2 (interleaved stereo) or 1 (mono); other values
@@ -137,26 +166,17 @@ public:
     /// The codec for recording (nullptr: none, e.g. an I2S microphone). May
     /// be the same object as output_codec.
     std::shared_ptr<AudioCodec> input_codec{};
-    /// Size of the playback stream that play() queues into, in bytes (0: four
-    /// blocks, about 67 ms). Larger lets one play() queue a whole UI sound;
-    /// at least two blocks.
-    size_t playback_buffer_size{0};
-    /// Heap capabilities for the playback stream (e.g. MALLOC_CAP_SPIRAM for
-    /// a large one).
-    uint32_t playback_buffer_caps{MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT};
+  };
+
+  /// Configuration
+  struct Config {
+    AppConfig app{};                ///< What the application chooses.
+    HardwareConfig hardware{};      ///< How the board is wired.
     float volume{50.0f};            ///< Initial output volume, 0 - 100.
     bool muted{false};              ///< Initial mute state.
     float microphone_volume{70.0f}; ///< Initial microphone gain, 0 - 100.
     /// Called by the playback task once per block (optional).
     playback_block_callback_t on_playback_block{};
-    /// The playback task's configuration (unpinned by default; a BSP can set
-    /// core_id for its board).
-    espp::Task::BaseConfig playback_task_config{
-        .name = "audio out", .stack_size_bytes = 4096, .priority = 20};
-    /// The recording task's configuration (its stack also runs the
-    /// recording callback; unpinned by default).
-    espp::Task::BaseConfig recording_task_config{
-        .name = "audio in", .stack_size_bytes = 4096, .priority = 20};
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Log verbosity.
   };
 
@@ -187,15 +207,15 @@ public:
   /// @return true once initialize() has succeeded (until deinitialize()).
   bool is_initialized() const { return initialized_.load(); }
 
-  /// @return Whether playback is set up (Config::playback_enabled).
-  bool is_playback_enabled() const { return config_.playback_enabled; }
+  /// @return Whether playback is set up (AppConfig::playback_enabled).
+  bool is_playback_enabled() const { return config_.app.playback_enabled; }
 
-  /// @return Whether recording is set up (Config::recording_enabled).
-  bool is_recording_enabled() const { return config_.recording_enabled; }
+  /// @return Whether recording is set up (AppConfig::recording_enabled).
+  bool is_recording_enabled() const { return config_.app.recording_enabled; }
 
   /// @brief Queue audio for playback.
   /// @param data 16-bit signed PCM, interleaved when
-  ///        Config::playback_channels is 2.
+  ///        HardwareConfig::playback_channels is 2.
   /// @return The number of bytes queued: whole frames only, and less than the
   ///         data when the stream buffer is full. To stream more than the
   ///         buffer holds, call it again from the returned offset.
@@ -205,7 +225,7 @@ public:
 
   /// @brief Queue audio for playback.
   /// @param data 16-bit signed PCM, interleaved when
-  ///        Config::playback_channels is 2.
+  ///        HardwareConfig::playback_channels is 2.
   /// @param num_bytes The number of bytes.
   /// @return The number of bytes queued (see play(std::span)).
   size_t play(const uint8_t *data, size_t num_bytes);
@@ -332,7 +352,7 @@ protected:
   std::vector<int16_t> tx_buffer_;
   std::vector<int16_t> rx_buffer_;
   StreamBufferHandle_t tx_stream_{nullptr};
-  // the playback stream's memory (Config::playback_buffer_caps) and structure
+  // the playback stream's memory (AppConfig::playback_buffer_caps) and structure
   uint8_t *tx_stream_storage_{nullptr};
   StaticStreamBuffer_t tx_stream_struct_{};
   espp::i2s_tx_feed::Feeder tx_feed_;

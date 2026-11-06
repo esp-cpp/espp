@@ -214,26 +214,24 @@ public:
   ///       before the write has completed.
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
-  /// How initialize_audio() sets the audio system up. The board has a
-  /// speaker path only (no microphone), so this sets up playback.
-  struct AudioConfig {
-    /// The audio sample rate, in Hz
-    uint32_t sample_rate{44100};
-    /// Size of the playback stream play_audio() queues into, in bytes (0:
-    /// about 67 ms of audio). Larger lets one play_audio() call queue a whole
-    /// UI sound.
-    size_t playback_buffer_size{0};
-    /// Heap capabilities for the playback stream (e.g. MALLOC_CAP_SPIRAM for
-    /// a large one)
-    uint32_t playback_buffer_caps{MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT};
-    /// The playback task's configuration; it is named with " out" appended
-    /// ("sc01+ audio out")
-    espp::Task::BaseConfig task_config{.name = "sc01+ audio",
-                                       .stack_size_bytes =
-                                           CONFIG_SMARTPANLEE_SC01_PLUS_AUDIO_TASK_STACK_SIZE,
-                                       .priority = 20,
-                                       .core_id = 1};
-  };
+  /// How initialize_audio() sets the audio system up: the application's side
+  /// of espp::Audio (the board's wiring is filled in by initialize_audio()).
+  /// Start from default_audio_config() to keep this board's defaults. The
+  /// board has a speaker path only (no microphone): initialize_audio() needs
+  /// playback_enabled and fails with recording_enabled.
+  /// - sample_rate: the audio sample rate, in Hz
+  /// - playback_buffer_size / playback_buffer_caps: the stream play_audio()
+  ///   queues into (0: about 67 ms of audio; larger lets one play_audio() call
+  ///   queue a whole UI sound)
+  /// - playback_task_config: the playback task (recording_task_config is
+  ///   unused)
+  using AudioConfig = espp::Audio::AppConfig;
+
+  /// The board's default AudioConfig: playback at 44.1 kHz, and the task
+  /// "sc01+ audio out" on core 1 with the stack from Kconfig
+  /// (SMARTPANLEE_SC01_PLUS_AUDIO_TASK_STACK_SIZE).
+  /// \return The default AudioConfig
+  static AudioConfig default_audio_config();
 
   /// Initialize the audio system with the default AudioConfig: playback at
   /// 44.1 kHz

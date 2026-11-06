@@ -13,15 +13,31 @@
 
 namespace espp {
 
-bool SmartPanleeSc01Plus::initialize_audio() { return initialize_audio(AudioConfig{}); }
+SmartPanleeSc01Plus::AudioConfig SmartPanleeSc01Plus::default_audio_config() {
+  return {.sample_rate = 44100,
+          .playback_enabled = true,
+          .recording_enabled = false,
+          .playback_task_config = {.name = "sc01+ audio out",
+                                   .stack_size_bytes =
+                                       CONFIG_SMARTPANLEE_SC01_PLUS_AUDIO_TASK_STACK_SIZE,
+                                   .priority = 20,
+                                   .core_id = 1}};
+}
+
+bool SmartPanleeSc01Plus::initialize_audio() { return initialize_audio(default_audio_config()); }
 
 bool SmartPanleeSc01Plus::initialize_audio(uint32_t sample_rate) {
-  return initialize_audio(AudioConfig{.sample_rate = sample_rate});
+  auto config = default_audio_config();
+  config.sample_rate = sample_rate;
+  return initialize_audio(config);
 }
 
 bool SmartPanleeSc01Plus::initialize_audio(uint32_t sample_rate,
                                            const espp::Task::BaseConfig &task_config) {
-  return initialize_audio(AudioConfig{.sample_rate = sample_rate, .task_config = task_config});
+  auto config = default_audio_config();
+  config.sample_rate = sample_rate;
+  config.playback_task_config = task_config;
+  return initialize_audio(config);
 }
 
 bool SmartPanleeSc01Plus::initialize_audio(const AudioConfig &config) {
@@ -30,25 +46,20 @@ bool SmartPanleeSc01Plus::initialize_audio(const AudioConfig &config) {
     logger_.warn("Audio already initialized");
     return true;
   }
+  if (!config.playback_enabled || config.recording_enabled) {
+    logger_.error("initialize_audio(): the board has a speaker only: enable playback, not "
+                  "recording");
+    return false;
+  }
 
-  // the playback task is named "<name> out", like the other BSPs' (short
-  // enough for FreeRTOS's 15-character task names)
-  auto playback_task_config = config.task_config;
-  playback_task_config.name =
-      (config.task_config.name.empty() ? std::string("audio") : config.task_config.name) + " out";
   const auto pins = i2s_pins();
   auto audio = std::make_shared<espp::Audio>(espp::Audio::Config{
-      .port = i2s_port,
-      .pins = {.mclk = pins.mclk, .bclk = pins.bclk, .ws = pins.ws, .dout = pins.dout},
-      .sample_rate = config.sample_rate,
-      .playback_enabled = true,
-      .recording_enabled = false,
-      .playback_channels = 2,
-      .playback_buffer_size = config.playback_buffer_size,
-      .playback_buffer_caps = config.playback_buffer_caps,
+      .app = config,
+      .hardware = {.port = i2s_port,
+                   .pins = {.mclk = pins.mclk, .bclk = pins.bclk, .ws = pins.ws, .dout = pins.dout},
+                   .playback_channels = 2},
       .volume = volume_,
       .muted = mute_,
-      .playback_task_config = playback_task_config,
   });
   if (!audio->initialize()) {
     return false;

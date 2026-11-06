@@ -15,13 +15,28 @@
 
 namespace espp {
 
-bool EspBox::initialize_audio() { return initialize_audio(AudioConfig{}); }
+EspBox::AudioConfig EspBox::default_audio_config() {
+  return {.sample_rate = 48000,
+          .playback_enabled = true,
+          .recording_enabled = true,
+          .playback_task_config = {.name = "box audio out",
+                                   .stack_size_bytes = 4096,
+                                   .priority = 19,
+                                   .core_id = 1},
+          .recording_task_config = {
+              .name = "box audio in", .stack_size_bytes = 4096, .priority = 19, .core_id = 1}};
+}
+
+bool EspBox::initialize_audio() { return initialize_audio(default_audio_config()); }
 
 bool EspBox::initialize_sound(uint32_t default_audio_rate,
                               const espp::Task::BaseConfig &task_config) {
   // the old API set up playback only (initialize_microphone() added recording)
-  return initialize_audio(AudioConfig{
-      .sample_rate = default_audio_rate, .recording_enabled = false, .task_config = task_config});
+  auto config = default_audio_config();
+  config.sample_rate = default_audio_rate;
+  config.recording_enabled = false;
+  config.playback_task_config = task_config;
+  return initialize_audio(config);
 }
 
 bool EspBox::initialize_audio(const AudioConfig &config) {
@@ -108,40 +123,25 @@ bool EspBox::initialize_audio(const AudioConfig &config) {
     });
   }
 
-  // the playback and microphone tasks share the caller's task config, named
-  // "<name> out" / "<name> in" so the two are easy to tell apart in logs and
-  // while debugging (short enough for FreeRTOS's 15-character task names)
-  const std::string base_name =
-      config.task_config.name.empty() ? std::string("audio") : config.task_config.name;
-  auto playback_task_config = config.task_config;
-  playback_task_config.name = base_name + " out";
-  auto recording_task_config = config.task_config;
-  recording_task_config.name = base_name + " in";
   // One I2S bus, full duplex: the ES8311's DAC (DSDIN) and the ES7210's ADC
   // (SDOUT) share MCLK / SCLK / LRCK. Both are stereo: the speaker plays the
   // interleaved frames, and the ES7210 puts microphone 1 on the left slot and
   // microphone 2 on the right.
   auto audio = std::make_shared<espp::Audio>(espp::Audio::Config{
-      .port = i2s_port,
-      .pins = {.mclk = i2s_mck_io,
-               .bclk = i2s_bck_io,
-               .ws = i2s_ws_io,
-               .dout = i2s_do_io,
-               .din = i2s_di_io},
-      .sample_rate = config.sample_rate,
-      .playback_enabled = playback,
-      .recording_enabled = recording,
-      .playback_channels = 2,
-      .recording_channels = 2,
-      .output_codec = es8311_,
-      .input_codec = es7210_,
-      .playback_buffer_size = config.playback_buffer_size,
-      .playback_buffer_caps = config.playback_buffer_caps,
+      .app = config,
+      .hardware = {.port = i2s_port,
+                   .pins = {.mclk = i2s_mck_io,
+                            .bclk = i2s_bck_io,
+                            .ws = i2s_ws_io,
+                            .dout = i2s_do_io,
+                            .din = i2s_di_io},
+                   .playback_channels = 2,
+                   .recording_channels = 2,
+                   .output_codec = es8311_,
+                   .input_codec = es7210_},
       .volume = volume_,
       .muted = mute_,
       .microphone_volume = mic_volume_,
-      .playback_task_config = playback_task_config,
-      .recording_task_config = recording_task_config,
   });
   if (!audio->initialize()) {
     audio.reset();

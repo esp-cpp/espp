@@ -505,36 +505,33 @@ public:
   /// \return The GPIO pin for the mute button
   static constexpr auto get_mute_pin() { return mute_pin; }
 
-  /// Audio configuration for initialize_audio()
-  struct AudioConfig {
-    /// The speaker's sample rate, in Hz
-    uint32_t sample_rate{48000};
-    /// The microphones' sample rate, in Hz: 8000, 11025, 16000, 22050,
-    /// 24000, 32000, 44100 or 48000 (the ES7210's clock coefficients). The
-    /// ES7210 has its own I2S bus, so this is independent of sample_rate.
-    uint32_t recording_sample_rate{16000};
-    /// Set up playback: the speaker amplifier's I2S channel and the playback
-    /// task. Without it play_audio() queues nothing.
-    bool playback_enabled{true};
-    /// Set up recording: the ES7210's I2S channel (TDM) and the microphone
-    /// task. Without it start_audio_recording() fails.
-    /// \note Each I2S channel has a DMA ring in internal DMA-capable RAM
-    ///       (about 11.5 KB each), and each task's stack is in internal RAM
-    ///       too, so an application that only plays (or only records) saves
-    ///       that memory by turning the other direction off.
-    bool recording_enabled{true};
-    /// Size of the playback stream play_audio() queues into, in bytes (0:
-    /// about 67 ms of audio). Larger lets one play_audio() call queue a whole
-    /// UI sound.
-    size_t playback_buffer_size{0};
-    /// Heap capabilities for the playback stream (e.g. MALLOC_CAP_SPIRAM for
-    /// a large one)
-    uint32_t playback_buffer_caps{MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT};
-    /// The audio tasks' configuration: the playback task is named with " out"
-    /// appended ("t-deck audio out"), the microphone task with " in"
-    espp::Task::BaseConfig task_config{
-        .name = "t-deck audio", .stack_size_bytes = 4096, .priority = 19, .core_id = 1};
-  };
+  /// How initialize_audio() sets the audio system up: the application's side
+  /// of espp::Audio (the board's wiring is filled in by initialize_audio()).
+  /// Start from default_audio_config() to keep this board's defaults.
+  /// - sample_rate: the speaker's sample rate, in Hz
+  /// - recording_sample_rate: the microphones' sample rate, in Hz (0:
+  ///   sample_rate): 8000, 11025, 16000, 22050, 24000, 32000, 44100 or 48000
+  ///   (the ES7210's clock coefficients). The ES7210 has its own I2S bus, so
+  ///   this is independent of sample_rate.
+  /// - playback_enabled: set up playback: the speaker amplifier's I2S channel
+  ///   and the playback task. Without it play_audio() queues nothing.
+  /// - recording_enabled: set up recording: the ES7210's I2S channel (TDM) and
+  ///   the microphone task. Without it start_audio_recording() fails.
+  /// - playback_buffer_size / playback_buffer_caps: the stream play_audio()
+  ///   queues into (0: about 67 ms of audio; larger lets one play_audio() call
+  ///   queue a whole UI sound, e.g. in MALLOC_CAP_SPIRAM)
+  /// - playback_task_config / recording_task_config: the audio tasks (the
+  ///   recording callback runs on the recording task)
+  /// \note Each I2S channel has a DMA ring in internal DMA-capable RAM (about
+  ///       11.5 KB each), and each task's stack is in internal RAM too, so an
+  ///       application that only plays (or only records) saves that memory by
+  ///       turning the other direction off.
+  using AudioConfig = espp::Audio::AppConfig;
+
+  /// The board's default AudioConfig: playback at 48 kHz, recording at 16
+  /// kHz, and the tasks "tdeck audio out" / "tdeck audio in" on core 1.
+  /// \return The default AudioConfig
+  static AudioConfig default_audio_config();
 
   /// Initialize the audio system with the default AudioConfig: playback at
   /// 48 kHz and recording at 16 kHz

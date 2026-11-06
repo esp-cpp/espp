@@ -15,7 +15,8 @@ subsystems.
 - GT911 capacitive touch input with LVGL integration helpers
 - T-Keyboard input and trackball pointer input
 - Audio through the [`espp::Audio`](../audio) component, set up with
-  `initialize_audio(AudioConfig)` (each direction can be turned off to save
+  `initialize_audio(AudioConfig)` (`espp::Audio::AppConfig`, started from
+  `default_audio_config()`; each direction can be turned off to save
   its I2S DMA ring and task):
   - I2S speaker output (MAX98357A) with software volume / mute control
     (`play_audio()`, `volume()`, `mute()`, `audio_sample_rate()`)

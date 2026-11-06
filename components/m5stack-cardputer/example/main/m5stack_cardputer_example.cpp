@@ -105,9 +105,11 @@ extern "C" void app_main(void) {
     return;
   }
   const bool is_adv = cardputer.variant() == espp::M5StackCardputer::Variant::ADV;
-  if (!cardputer.initialize_audio({.sample_rate = AUDIO_SAMPLE_RATE_HZ,
-                                   .playback_enabled = true,
-                                   .recording_enabled = is_adv})) {
+  auto audio_config = cardputer.default_audio_config();
+  audio_config.sample_rate = AUDIO_SAMPLE_RATE_HZ;
+  audio_config.playback_enabled = true;
+  audio_config.recording_enabled = is_adv;
+  if (!cardputer.initialize_audio(audio_config)) {
     logger.error("Failed to initialize audio!");
     return;
   }

@@ -17,7 +17,23 @@ using namespace espp;
 // BCLK-clocked ES8311 (CardputerAdvCodec) and the original's software
 // microphone gain.
 
-bool M5StackCardputer::initialize_audio() { return initialize_audio(AudioConfig{}); }
+M5StackCardputer::AudioConfig M5StackCardputer::default_audio_config() {
+  return {
+      .sample_rate = 44100,
+      .playback_enabled = true,
+      .recording_enabled = false,
+      .playback_task_config = {.name = "audio out",
+                               .stack_size_bytes = CONFIG_M5STACK_CARDPUTER_AUDIO_TASK_STACK_SIZE,
+                               .priority = CONFIG_M5STACK_CARDPUTER_AUDIO_TASK_PRIORITY,
+                               .core_id = CONFIG_M5STACK_CARDPUTER_AUDIO_TASK_CORE_ID},
+      .recording_task_config = {.name = "audio in",
+                                .stack_size_bytes =
+                                    CONFIG_M5STACK_CARDPUTER_MICROPHONE_TASK_STACK_SIZE,
+                                .priority = CONFIG_M5STACK_CARDPUTER_MICROPHONE_TASK_PRIORITY,
+                                .core_id = CONFIG_M5STACK_CARDPUTER_MICROPHONE_TASK_CORE_ID}};
+}
+
+bool M5StackCardputer::initialize_audio() { return initialize_audio(default_audio_config()); }
 
 bool M5StackCardputer::initialize_audio(const AudioConfig &config) {
   const bool playback = config.playback_enabled;
@@ -43,16 +59,12 @@ bool M5StackCardputer::initialize_audio(const AudioConfig &config) {
 
   auto base_config = [&]() {
     espp::Audio::Config c{};
-    c.sample_rate = config.sample_rate;
-    c.playback_channels = 1;
-    c.recording_channels = 1;
-    c.playback_buffer_size = config.playback_buffer_size;
-    c.playback_buffer_caps = config.playback_buffer_caps;
+    c.app = config;
+    c.hardware.playback_channels = 1;
+    c.hardware.recording_channels = 1;
     c.volume = volume_;
     c.muted = mute_;
     c.microphone_volume = mic_volume_;
-    c.playback_task_config = config.playback_task_config;
-    c.recording_task_config = config.recording_task_config;
     return c;
   };
 
@@ -66,15 +78,15 @@ bool M5StackCardputer::initialize_audio(const AudioConfig &config) {
     adv_codec_ = std::make_shared<espp::CardputerAdvCodec>(
         [this](uint8_t reg, uint8_t value) { return es8311_write(reg, value); });
     auto c = base_config();
-    c.port = i2s_port;
-    c.pins = {.bclk = i2s_bck_io,
-              .ws = i2s_ws_io,
-              .dout = playback ? i2s_do_io : GPIO_NUM_NC,
-              .din = recording ? mic_data_io : GPIO_NUM_NC};
-    c.playback_enabled = playback;
-    c.recording_enabled = recording;
-    c.output_codec = adv_codec_;
-    c.input_codec = adv_codec_;
+    c.hardware.port = i2s_port;
+    c.hardware.pins = {.bclk = i2s_bck_io,
+                       .ws = i2s_ws_io,
+                       .dout = playback ? i2s_do_io : GPIO_NUM_NC,
+                       .din = recording ? mic_data_io : GPIO_NUM_NC};
+    c.app.playback_enabled = playback;
+    c.app.recording_enabled = recording;
+    c.hardware.output_codec = adv_codec_;
+    c.hardware.input_codec = adv_codec_;
     auto audio = std::make_shared<espp::Audio>(c);
     if (!audio->initialize()) {
       audio.reset();
@@ -91,10 +103,10 @@ bool M5StackCardputer::initialize_audio(const AudioConfig &config) {
     // the NS4168 amplifier: no codec, so espp::Audio applies the volume in
     // software
     auto c = base_config();
-    c.port = i2s_port;
-    c.pins = {.bclk = i2s_bck_io, .ws = i2s_ws_io, .dout = i2s_do_io};
-    c.playback_enabled = true;
-    c.recording_enabled = false;
+    c.hardware.port = i2s_port;
+    c.hardware.pins = {.bclk = i2s_bck_io, .ws = i2s_ws_io, .dout = i2s_do_io};
+    c.app.playback_enabled = true;
+    c.app.recording_enabled = false;
     playback_audio = std::make_shared<espp::Audio>(c);
     if (!playback_audio->initialize()) {
       playback_audio.reset();
@@ -105,11 +117,11 @@ bool M5StackCardputer::initialize_audio(const AudioConfig &config) {
     // the SPM1423 PDM microphone, on its own I2S port: its clock on GPIO 43
     // (the speaker's word select), its data on GPIO 46
     auto c = base_config();
-    c.port = mic_i2s_port;
-    c.pins = {.ws = mic_clk_io, .din = mic_data_io};
-    c.playback_enabled = false;
-    c.recording_enabled = true;
-    c.recording_format = espp::Audio::RecordingFormat::PDM;
+    c.hardware.port = mic_i2s_port;
+    c.hardware.pins = {.ws = mic_clk_io, .din = mic_data_io};
+    c.app.playback_enabled = false;
+    c.app.recording_enabled = true;
+    c.hardware.recording_format = espp::Audio::RecordingFormat::PDM;
     recording_audio = std::make_shared<espp::Audio>(c);
     if (!recording_audio->initialize()) {
       recording_audio.reset();
@@ -311,7 +323,7 @@ bool M5StackCardputer::initialize_sound(uint32_t default_audio_rate,
   }
   auto microphone = microphone_audio_.load();
   if (!microphone) {
-    AudioConfig config{};
+    auto config = default_audio_config();
     config.sample_rate = default_audio_rate;
     config.playback_enabled = true;
     config.recording_enabled = false;
@@ -356,7 +368,7 @@ bool M5StackCardputer::initialize_microphone(const microphone_callback_t &callba
     // one snapshot: a concurrent deinitialize_audio() may unpublish it
     auto playback_audio = audio_.load();
     if (!playback_audio) {
-      AudioConfig config{};
+      auto config = default_audio_config();
       config.sample_rate = sample_rate;
       config.playback_enabled = false;
       config.recording_enabled = true;

@@ -12,7 +12,7 @@ namespace espp {
 ///          set_sample_rate() too), drives its hardware volume and mute and
 ///          maps a 0 - 100 % microphone gain onto its analog gain steps
 ///          (0 dB - 42 dB). It handles both directions, so pass the same
-///          instance as espp::Audio::Config::output_codec and input_codec;
+///          instance as espp::Audio::HardwareConfig::output_codec and input_codec;
 ///          its ADC drives the left slot (use recording_channels = 1).
 ///
 /// @note The codec component's ES8311 driver keeps its register access

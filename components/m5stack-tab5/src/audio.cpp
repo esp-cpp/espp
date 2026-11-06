@@ -14,11 +14,33 @@
 
 namespace espp {
 
-bool M5StackTab5::initialize_audio() { return initialize_audio(AudioConfig{}); }
+M5StackTab5::AudioConfig M5StackTab5::default_audio_config() {
+  return {.sample_rate = 48000,
+          .playback_enabled = true,
+          .recording_enabled = true,
+          .playback_task_config = {.name = "tab5_audio out",
+                                   .stack_size_bytes = CONFIG_M5STACK_TAB5_AUDIO_TASK_STACK_SIZE,
+                                   .priority = 20,
+                                   .core_id = 1},
+          .recording_task_config = {.name = "tab5_audio in",
+                                    .stack_size_bytes = CONFIG_M5STACK_TAB5_AUDIO_TASK_STACK_SIZE,
+                                    .priority = 20,
+                                    .core_id = 1}};
+}
+
+bool M5StackTab5::initialize_audio() { return initialize_audio(default_audio_config()); }
 
 bool M5StackTab5::initialize_audio(uint32_t sample_rate,
                                    const espp::Task::BaseConfig &task_config) {
-  return initialize_audio(AudioConfig{.sample_rate = sample_rate, .task_config = task_config});
+  auto config = default_audio_config();
+  config.sample_rate = sample_rate;
+  // the old task config was shared by both tasks, named "<name> out" / "<name> in"
+  const std::string name = task_config.name.empty() ? std::string("audio") : task_config.name;
+  config.playback_task_config = task_config;
+  config.playback_task_config.name = name + " out";
+  config.recording_task_config = task_config;
+  config.recording_task_config.name = name + " in";
+  return initialize_audio(config);
 }
 
 bool M5StackTab5::initialize_audio(const AudioConfig &config) {
@@ -76,41 +98,28 @@ bool M5StackTab5::initialize_audio(const AudioConfig &config) {
     });
   }
 
-  // the playback and microphone tasks share the caller's task config, named
-  // "<name> out" / "<name> in" so the two are easy to tell apart in logs and
-  // while debugging (short enough for FreeRTOS's 15-character task names)
-  const std::string base_name =
-      config.task_config.name.empty() ? std::string("audio") : config.task_config.name;
-  auto playback_task_config = config.task_config;
-  playback_task_config.name = base_name + " out";
-  auto recording_task_config = config.task_config;
-  recording_task_config.name = base_name + " in";
   // Both directions on I2S0, full duplex: the ES8388 (DSDIN) and the ES7210
   // (ASDOUT) share MCLK / SCLK / LRCK. The playback data is interleaved
   // 16-bit stereo, so the slots MUST be stereo - a mono slot plays
   // interleaved stereo at the wrong rate and garbles L/R.
   auto audio = std::make_shared<espp::Audio>(espp::Audio::Config{
-      .port = I2S_NUM_0,
-      .pins = {.mclk = audio_mclk_io,
-               .bclk = audio_sclk_io,
-               .ws = audio_lrck_io,
-               .dout = audio_dsdin_io,
-               .din = audio_asdout_io},
-      .sample_rate = config.sample_rate,
-      .playback_enabled = playback,
-      .recording_enabled = recording,
-      .playback_channels = 2,
-      .recording_channels = 2,
-      .output_codec = es8388_,
-      .input_codec = es7210_,
+      .app = config,
+      .hardware = {.port = I2S_NUM_0,
+                   .pins = {.mclk = audio_mclk_io,
+                            .bclk = audio_sclk_io,
+                            .ws = audio_lrck_io,
+                            .dout = audio_dsdin_io,
+                            .din = audio_asdout_io},
+                   .playback_channels = 2,
+                   .recording_channels = 2,
+                   .output_codec = es8388_,
+                   .input_codec = es7210_},
       .volume = volume_,
       .muted = mute_,
       .microphone_volume = mic_volume_,
       // the charger pops the speaker while it is enabled: hold it off during
       // playback (see set_charging_pause_on_playback_enabled)
       .on_playback_block = [this](bool active) { update_charging_for_audio(active); },
-      .playback_task_config = playback_task_config,
-      .recording_task_config = recording_task_config,
   });
   if (!audio->initialize()) {
     audio.reset();
