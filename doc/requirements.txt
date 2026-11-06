@@ -5,3 +5,7 @@ cairosvg
 esp-docs
 myst-parser
 sphinxcontrib-mermaid
+pydata-sphinx-theme
+# esp-docs' target-substitution extension imports docutils.utils.error_reporting,
+# which docutils 0.21 removed; the theme would otherwise pull a newer docutils
+docutils<0.21
