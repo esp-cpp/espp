@@ -254,6 +254,24 @@ bool StatefulReader::onNewHeartbeat(const SubmessageHeartbeat &msg,
     return false;
   }
 
+  // RTPS 2.5 8.3.7.5.3: a HEARTBEAT is valid only if firstSN > 0 and
+  // lastSN >= firstSN - 1. Checked here because the next line trusts firstSN:
+  // one accepted with garbage in it (a datagram corrupted in flight, with
+  // lwIP's UDP checksum verification off, as it is by default in ESP-IDF)
+  // moved expectedSN far ahead and every real sample after that was "old":
+  // the subscription stalled for the writer's lifetime. Seen by the QEMU
+  // interop matrix's corruption case.
+  {
+    const SequenceNumber_t zero{0, 0};
+    SequenceNumber_t lastPlusOne = msg.lastSN;
+    ++lastPlusOne;
+    if (!(zero < msg.firstSN) || lastPlusOne < msg.firstSN) {
+      SFR_LOG("Ignoring an invalid heartbeat: firstSN {}.{} lastSN {}.{}", (int)msg.firstSN.high,
+              (int)msg.firstSN.low, (int)msg.lastSN.high, (int)msg.lastSN.low);
+      return false;
+    }
+  }
+
   if (writer->expectedSN < msg.firstSN) {
     SFR_LOG("expectedSN < firstSN, advancing expectedSN");
     writer->expectedSN = msg.firstSN;
