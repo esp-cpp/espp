@@ -171,6 +171,8 @@ bool Audio::initialize(std::error_code &ec) {
       return false;
     }
     rx_slots_ = format == TDM ? config_.recording_tdm_slots : format == PDM ? 1 : 2;
+    // recording_channels is 1 or 2 (checked above), so it indexes recording_slots in range
+    static_assert(std::tuple_size_v<decltype(config_.recording_slots)> == 2);
     for (size_t i = 0; i < config_.recording_channels; i++) {
       if (config_.recording_slots[i] >= rx_slots_) {
         logger_.error("Recording slot {} is out of range: a frame has {} slot(s)",
@@ -762,6 +764,7 @@ bool Audio::recording_task_callback(std::mutex &m, std::condition_variable &cv,
     if (recording_) {
       int16_t *samples = rx_buffer_.data();
       size_t length = bytes_read;
+      // initialize() keeps channels to 1 or 2 and the slots within a frame
       const size_t channels = config_.recording_channels;
       const auto &slots = config_.recording_slots;
       if (channels != rx_slots_ || slots[0] != 0 || (channels == 2 && slots[1] != 1)) {

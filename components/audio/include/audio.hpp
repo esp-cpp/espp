@@ -108,8 +108,9 @@ public:
     bool recording_enabled{false};
     /// Playback channels: 2 (interleaved stereo) or 1 (mono).
     uint8_t playback_channels{2};
-    /// Recording channels: 2 (interleaved stereo) or 1 (mono: the left
-    /// slot).
+    /// Recording channels: 2 (interleaved stereo) or 1 (mono); other values
+    /// are rejected. They are taken from recording_slots (by default mono is
+    /// the left slot).
     /// \note Mono is received as stereo slots and the callback gets the left
     ///       slot only: an RX channel in mono slot mode still delivers both
     ///       slots (measured on the ESP32-P4, recording only and full duplex:
@@ -123,7 +124,7 @@ public:
     /// TDM: slots per frame, 2 - 16.
     uint8_t recording_tdm_slots{4};
     /// The slots the callback receives, in order: the first
-    /// recording_channels of them (STANDARD: of 2, TDM: of
+    /// recording_channels (1 or 2) of them (STANDARD: of 2, TDM: of
     /// recording_tdm_slots; PDM has one). E.g. {0, 2} keeps a four-slot
     /// ES7210's MIC1 and MIC3 as stereo, and {1} with one channel the right
     /// slot as mono.
