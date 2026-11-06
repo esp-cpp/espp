@@ -33,13 +33,15 @@ rtps::Guid_t writer_guid(uint8_t id) {
   return guid;
 }
 
-bool feed(rtps::StatelessReader &reader, const rtps::Guid_t &writer, uint32_t sn) {
-  const uint8_t payload[4] = {1, 2, 3, 4};
+// The change does not own its bytes and the reader delivers synchronously, so
+// a local payload would do; static storage keeps the test independent of that.
+constexpr uint8_t kPayload[4] = {1, 2, 3, 4};
+
+void feed(rtps::StatelessReader &reader, const rtps::Guid_t &writer, uint32_t sn) {
   rtps::Guid_t guid = writer; // the change keeps a non-const reference
   rtps::ReaderCacheChange change{rtps::ChangeKind_t::ALIVE, guid, rtps::SequenceNumber_t{0, sn},
-                                 payload, sizeof(payload)};
+                                 kPayload, sizeof(kPayload)};
   reader.newChangeIfCurrent(reader.generation(), change);
-  return true;
 }
 
 bool same(const std::vector<uint32_t> &got, const std::vector<uint32_t> &want, const char *what) {
