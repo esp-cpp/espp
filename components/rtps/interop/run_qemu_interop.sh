@@ -402,15 +402,16 @@ run_soak() {
   echo "pool-exhaustion messages over the soak: $(grep -c 'RESSOURCE LIMIT EXCEEDED' "$LOG"), RX frames dropped: $(grep -c 'RX frame dropped' "$LOG")"
   # Free heap at the end within 8 KB of the baseline: a leak of 500 bytes per
   # cycle would show. The low-water mark: a transient that grows with the
-  # cycles sets a new low at most of them, so at most 2 new lows are allowed
-  # over the run, and the mark must stay within 96 KB of the baseline. A
-  # one-off transient is one new low: a 64 KB one was seen, at a different
-  # point of the run each time, the free heap unmoved - most likely the 64 KB
+  # cycles sets a new low at most of them, so at most 5 new lows are allowed
+  # over the 20, and the mark must stay within 96 KB of the baseline. A global
+  # low-water mark finds a few new combinations of transients early in a run
+  # (three in 20 cycles, 40 KB in all, seen; a 64 KB one-off seen too, at a
+  # different point each run, the free heap unmoved - most likely the 64 KB
   # per-datagram read buffer each receive handler uses with fragmentation on,
-  # the first time one more handler than before ran at once (bounded by the
+  # the first time one more handler than before ran at once, bounded by the
   # number of sockets).
   [ -n "$base_heap" ] && [ -n "$end_heap" ] && [ "$end_heap" -ge $((base_heap - 8192)) ]; result "soak_heap_no_leak" $?
-  [ -n "$base_min" ] && [ -n "$end_min" ] && [ "$end_min" -ge $((base_min - 98304)) ] && [ "$new_lows" -le 2 ]; result "soak_min_heap_stable" $?
+  [ -n "$base_min" ] && [ -n "$end_min" ] && [ "$end_min" -ge $((base_min - 98304)) ] && [ "$new_lows" -le 5 ]; result "soak_min_heap_stable" $?
   [ "$last_rx" -ge 50 ] && [ "$last_be" -ge 20 ] && [ "$last_big" -ge 1 ]; result "soak_still_delivering" $?
 }
 

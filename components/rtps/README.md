@@ -86,8 +86,10 @@ copying from `example/sdkconfig.defaults`: IP reassembly is **off**
 (`CONFIG_LWIP_IP4_REASSEMBLY`), and FastDDS / CycloneDDS send any sample under
 64 KB as one IP-fragmented datagram, so without it a sample bigger than one MTU
 never reaches the engine; and the socket mailboxes (`CONFIG_LWIP_UDP_RECVMBOX_SIZE`,
-6 by default) drop the tail of a burst of fragments. Both came out of the QEMU
-interop matrix (`interop/qemu`).
+6 by default) drop the tail of a burst of fragments. A third: lwIP does not
+verify UDP checksums on receive by default (`CONFIG_LWIP_CHECKSUM_CHECK_UDP`),
+so a corrupted datagram reaches the engine as valid data. All three came out
+of the QEMU interop matrix (`interop/qemu`).
 
 Services and actions are **pure library code** over pub/sub — the only wire
 addition is a `related_sample_identity` inline QoS on service request/reply (for
