@@ -39,3 +39,10 @@ CONFIG_LWIP_IP4_REASSEMBLY=y
 CONFIG_LWIP_IP_REASS_MAX_PBUFS=48
 CONFIG_LWIP_UDP_RECVMBOX_SIZE=64
 CONFIG_LWIP_TCPIP_RECVMBOX_SIZE=64
+
+# lwIP does not verify UDP (or IP header) checksums on receive by default
+# (found by the corruption case of the QEMU interop matrix: the device parsed
+# flipped bits as samples). Ethernet's frame check catches wire corruption,
+# this guards against the rest, for a software checksum per received datagram.
+CONFIG_LWIP_CHECKSUM_CHECK_IP=y
+CONFIG_LWIP_CHECKSUM_CHECK_UDP=y

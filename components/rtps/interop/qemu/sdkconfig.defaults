@@ -50,3 +50,11 @@ CONFIG_LWIP_TCPIP_RECVMBOX_SIZE=64
 CONFIG_RTPS_LIMITS_PROFILE_EMBEDDED=y
 CONFIG_RTPS_ENABLE_FRAGMENTATION=y
 CONFIG_RTPS_ENABLE_RPC=y
+
+# ESP-IDF's lwIP does not verify UDP (or IP header) checksums on receive by
+# default: a corrupted datagram reaches the engine as valid data (found by the
+# corruption case of the QEMU matrix, where the device parsed flipped bits as
+# samples). Ethernet's frame check catches wire corruption, so this guards
+# against the rest; it costs a software checksum per received datagram.
+CONFIG_LWIP_CHECKSUM_CHECK_IP=y
+CONFIG_LWIP_CHECKSUM_CHECK_UDP=y

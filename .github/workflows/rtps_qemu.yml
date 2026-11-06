@@ -6,8 +6,9 @@ name: RTPS interop in QEMU (esp32 target)
 # log asserted on. The host-build matrix (rtps_interop.yml) covers the same
 # peers against the desktop build; this one covers what only the target can
 # show: the embedded pools and knobs, lwIP, FreeRTOS scheduling, fragmentation
-# over the real stack, delivery under injected loss, heap over time.
-# See components/rtps/interop/README.md.
+# over the real stack, delivery under injected loss / reordering / duplication
+# / delay / corruption, and the heap over minutes of churn (the soak).
+# One firmware build, two suites in parallel. See components/rtps/interop/README.md.
 
 permissions:
   contents: read
@@ -30,9 +31,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  qemu-interop:
+  firmware:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
         with:
@@ -47,10 +48,32 @@ jobs:
             idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.ci.defaults" build
             && cd build
             && python -m esptool --chip esp32 merge-bin --fill-flash-size 4MB -o qemu_flash.bin @flash_args
-      - name: Run the QEMU interop matrix
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qemu-flash
+          path: components/rtps/interop/qemu/build/qemu_flash.bin
+          if-no-files-found: error
+
+  qemu:
+    needs: firmware
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [matrix, soak]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: "recursive"
+      - uses: actions/download-artifact@v4
+        with:
+          name: qemu-flash
+          path: components/rtps/interop/qemu/build
+      - name: Run the QEMU ${{ matrix.suite }} suite
         run: |
           cd components/rtps/interop
-          ./run_qemu.sh "$PWD/qemu/build/qemu_flash.bin"
+          ./run_qemu.sh "$PWD/qemu/build/qemu_flash.bin" ${{ matrix.suite }}
       - name: Device log (tail)
         if: always()
         run: |
@@ -60,6 +83,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: qemu-device-log
+          name: qemu-device-log-${{ matrix.suite }}
           path: components/rtps/interop/qemu/build/qemu-serial.log
           if-no-files-found: ignore

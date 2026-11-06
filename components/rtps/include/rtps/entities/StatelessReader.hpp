@@ -28,6 +28,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #include "rtps/entities/Reader.hpp"
 
+#include <mutex>
+
 namespace rtps {
 class StatelessReader final : public Reader {
 public:
@@ -36,6 +38,13 @@ public:
   bool onNewHeartbeat(const SubmessageHeartbeat &msg, const GuidPrefix_t &remotePrefix) override;
   bool addNewMatchedWriter(const WriterProxy &newProxy) override;
   bool onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_t &remotePrefix) override;
+
+private:
+  /// Serializes newChange()'s claim of a sequence number and the callbacks it
+  /// delivers, so samples reach the application in claim order even when
+  /// receive workers for different sockets hand them in concurrently (see
+  /// StatefulReader::m_delivery_mutex).
+  std::mutex m_delivery_mutex;
 };
 
 } // namespace rtps

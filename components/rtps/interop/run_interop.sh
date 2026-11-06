@@ -104,7 +104,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_sedp_dedicated_locator rtps_banded_pubsub rtps_banded_deferred rtps_banded_ration \
        rtps_banded_churn rtps_service_rollback rtps_deferred_recovery rtps_guaranteed_submit \
        rtps_remove_reader_deadlock rtps_guaranteed_fairness rtps_writer_churn \
-       rtps_stateless_saturation rtps_callback_reentrancy \
+       rtps_stateless_saturation rtps_callback_reentrancy rtps_best_effort_order rtps_acknack_bitmap \
        rtps_interop_pub rtps_interop_sub > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
@@ -172,6 +172,8 @@ timeout 90 "$BIN"/rtps_stateless_saturation; result "stateless_saturation" $?
 # callback (and freeing its arg) must prevent the stale snapshot entry from
 # being invoked.
 timeout 30 "$BIN"/rtps_callback_reentrancy; result "callback_reentrancy" $?
+timeout 30 "$BIN"/rtps_best_effort_order; result "best_effort_order" $?
+timeout 30 "$BIN"/rtps_acknack_bitmap; result "acknack_bitmap" $?
 
 # The same saturation test against a STATIC-storage build of the engine with a
 # 2-slot best-effort history: this exercises the KEEP_LAST overwrite path (the

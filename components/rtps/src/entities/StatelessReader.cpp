@@ -24,7 +24,10 @@ Author: i11 - Embedded Software, RWTH Aachen University
 */
 
 #include "rtps/entities/StatelessReader.hpp"
+
 #include "rtps/utils/Log.hpp"
+#include <algorithm>
+#include <limits>
 
 using rtps::StatelessReader;
 
@@ -54,6 +57,46 @@ bool StatelessReader::init(const TopicData &attributes) {
 void StatelessReader::newChange(const ReaderCacheChange &cacheChange) {
   if (!m_is_initialized_) {
     return;
+  }
+  // Best effort still rejects what arrives out of order: RTPS 2.5 8.4.12.1
+  // has the best-effort reader ignore a change whose sequence number is not
+  // above the highest already received from that writer, so a duplicated or
+  // reordered datagram never reaches the application twice, or late. Here
+  // expectedSN is "the next sequence number from this writer"; it jumps
+  // forward over a gap (nothing is ever requested again) and a change below
+  // it is dropped. A change from a writer without a proxy is delivered as
+  // before. Found by the QEMU interop matrix's duplication and reordering
+  // cases (components/rtps/interop/qemu).
+  //
+  // The claim and the callbacks are one operation under m_delivery_mutex (as
+  // in StatefulReader::newChange()): receive workers for different sockets
+  // can hand this reader consecutive samples at once, and with the callbacks
+  // unlocked one could claim SN 1, pause, and deliver after the other had
+  // delivered SN 2. The delivery mutex is a leaf taken first; the proxies
+  // mutex is still released before any user code runs.
+  std::lock_guard<std::mutex> delivery(m_delivery_mutex);
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
+    auto matches_writer = [&](const WriterProxy &proxy) {
+      return proxy.remoteWriterGuid == cacheChange.writerGuid;
+    };
+    auto it = std::find_if(m_proxies.begin(), m_proxies.end(), matches_writer);
+    if (it != m_proxies.end()) {
+      if (cacheChange.sn < it->expectedSN) {
+        return; // a duplicate, or older than something already delivered
+      }
+      it->expectedSN = cacheChange.sn;
+      // sn + 1, unless sn is the last representable value: the number came
+      // off the wire, and incrementing past the top would overflow the
+      // signed high word. At the top the next expected stays at sn, so a
+      // repeat of that one last number would be delivered again; nothing
+      // real gets there (2^63 samples).
+      const bool at_top = cacheChange.sn.high == std::numeric_limits<int32_t>::max() &&
+                          cacheChange.sn.low == std::numeric_limits<uint32_t>::max();
+      if (!at_top) {
+        ++it->expectedSN;
+      }
+    }
   }
   executeCallbacks(cacheChange);
 }
