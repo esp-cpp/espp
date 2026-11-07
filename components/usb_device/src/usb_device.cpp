@@ -6,6 +6,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstring>
+#include <span>
 
 #include "sdkconfig.h" // CONFIG_ESP_CONSOLE_UART_NUM for the console-tee path
 
@@ -50,6 +51,7 @@
 #include "wear_levelling.h"
 #endif
 
+#include "ms_os_20.hpp"
 #include "xinput.hpp"
 
 namespace espp {
@@ -209,10 +211,6 @@ constexpr uint8_t kMaxOutEndpoints = 5;
 // esp_tinyusb's MSC storage backend supports two LUNs, and at most one medium of
 // each type (its SD card and wear-levelling media are singletons).
 constexpr size_t kMaxMscLuns = 2;
-
-// The MS OS 2.0 descriptor set length used below (fixed by the registry-property
-// payload; identical to TinyUSB's webusb_serial example).
-constexpr uint16_t kMsOs20DescLen = 0xB2;
 
 // Handle of the task that runs tud_task() (created inside esp_tinyusb's
 // tinyusb_driver_install(); esp_tinyusb does not expose it). Every TinyUSB
@@ -1315,177 +1313,35 @@ bool UsbDevice::initialize(std::error_code &ec) {
     impl_->webusb_url_desc.insert(impl_->webusb_url_desc.end(), v.landing_page_url.begin(),
                                   v.landing_page_url.end());
 
-    // MS OS 2.0 descriptor set (identical layout to TinyUSB's webusb example, with
-    // the function-subset "first interface" byte set to our vendor interface).
-    const uint8_t ms_os_20[] = {
-        // Set header: length, type, windows version, total length
-        U16_TO_U8S_LE(0x000A),
-        U16_TO_U8S_LE(MS_OS_20_SET_HEADER_DESCRIPTOR),
-        U32_TO_U8S_LE(0x06030000),
-        U16_TO_U8S_LE(kMsOs20DescLen),
-        // Configuration subset header: length, type, config index, reserved, total length
-        U16_TO_U8S_LE(0x0008),
-        U16_TO_U8S_LE(MS_OS_20_SUBSET_HEADER_CONFIGURATION),
-        0,
-        0,
-        U16_TO_U8S_LE(kMsOs20DescLen - 0x0A),
-        // Function subset header: length, type, first interface, reserved, subset length
-        U16_TO_U8S_LE(0x0008),
-        U16_TO_U8S_LE(MS_OS_20_SUBSET_HEADER_FUNCTION),
-        vendor_itf,
-        0,
-        U16_TO_U8S_LE(kMsOs20DescLen - 0x0A - 0x08),
-        // MS OS 2.0 compatible ID: length, type, compatible ID, sub compatible ID
-        U16_TO_U8S_LE(0x0014),
-        U16_TO_U8S_LE(MS_OS_20_FEATURE_COMPATBLE_ID),
-        'W',
-        'I',
-        'N',
-        'U',
-        'S',
-        'B',
-        0x00,
-        0x00,
-        0x00,
-        0x00,
-        0x00,
-        0x00,
-        0x00,
-        0x00,
-        0x00,
-        0x00,
-        // MS OS 2.0 registry property: length, type
-        U16_TO_U8S_LE(kMsOs20DescLen - 0x0A - 0x08 - 0x08 - 0x14),
-        U16_TO_U8S_LE(MS_OS_20_FEATURE_REG_PROPERTY),
-        U16_TO_U8S_LE(0x0007),
-        U16_TO_U8S_LE(0x002A),
-        'D',
-        0x00,
-        'e',
-        0x00,
-        'v',
-        0x00,
-        'i',
-        0x00,
-        'c',
-        0x00,
-        'e',
-        0x00,
-        'I',
-        0x00,
-        'n',
-        0x00,
-        't',
-        0x00,
-        'e',
-        0x00,
-        'r',
-        0x00,
-        'f',
-        0x00,
-        'a',
-        0x00,
-        'c',
-        0x00,
-        'e',
-        0x00,
-        'G',
-        0x00,
-        'U',
-        0x00,
-        'I',
-        0x00,
-        'D',
-        0x00,
-        's',
-        0x00,
-        0x00,
-        0x00,
-        U16_TO_U8S_LE(0x0050),
-        // bPropertyData: "{975F44D9-0D08-43FD-8B3E-127CA8AFFF9D}"
-        '{',
-        0x00,
-        '9',
-        0x00,
-        '7',
-        0x00,
-        '5',
-        0x00,
-        'F',
-        0x00,
-        '4',
-        0x00,
-        '4',
-        0x00,
-        'D',
-        0x00,
-        '9',
-        0x00,
-        '-',
-        0x00,
-        '0',
-        0x00,
-        'D',
-        0x00,
-        '0',
-        0x00,
-        '8',
-        0x00,
-        '-',
-        0x00,
-        '4',
-        0x00,
-        '3',
-        0x00,
-        'F',
-        0x00,
-        'D',
-        0x00,
-        '-',
-        0x00,
-        '8',
-        0x00,
-        'B',
-        0x00,
-        '3',
-        0x00,
-        'E',
-        0x00,
-        '-',
-        0x00,
-        '1',
-        0x00,
-        '2',
-        0x00,
-        '7',
-        0x00,
-        'C',
-        0x00,
-        'A',
-        0x00,
-        '8',
-        0x00,
-        'A',
-        0x00,
-        'F',
-        0x00,
-        'F',
-        0x00,
-        'F',
-        0x00,
-        '9',
-        0x00,
-        'D',
-        0x00,
-        '}',
-        0x00,
-        0x00,
-        0x00,
-        0x00,
-        0x00,
-    };
-    static_assert(sizeof(ms_os_20) == kMsOs20DescLen, "MS OS 2.0 descriptor size mismatch");
-    impl_->ms_os_20_desc.assign(ms_os_20, ms_os_20 + sizeof(ms_os_20));
+    // MS OS 2.0 descriptor set: one function subset per interface Windows must
+    // bind a driver to without an INF. The vendor interface gets WinUSB (plus
+    // the DeviceInterfaceGUIDs property), which is what WebUSB needs; an X-Input
+    // interface gets "XUSB10", the compatible ID Windows' own Xbox 360 driver
+    // matches, so a composite device (X-Input beside this vendor interface) is
+    // recognized as a controller too - the retail controller's VID/PID match
+    // would claim the whole device and hide the vendor interface.
+    std::vector<espp::ms_os_20::Function> ms_functions;
+    ms_functions.push_back({.first_interface = vendor_itf,
+                            .compatible_id = espp::ms_os_20::kCompatibleIdWinUsb,
+                            .device_interface_guid = true});
+    if (config_.xinput) {
+      ms_functions.push_back(
+          {.first_interface = xinput_itf, .compatible_id = espp::ms_os_20::kCompatibleIdXusb10});
+    }
+    impl_->ms_os_20_desc = espp::ms_os_20::descriptor_set(
+        std::span<const espp::ms_os_20::Function>(ms_functions.data(), ms_functions.size()));
+    // The builder returns nothing if the set would not fit the format's 16-bit
+    // length fields (the BOS capability carries the same length); a few hundred
+    // bytes here, so this is a guard, not an expected path.
+    if (impl_->ms_os_20_desc.empty()) {
+      logger_.error("MS OS 2.0 descriptor set too long ({} bytes); max {}",
+                    espp::ms_os_20::descriptor_set_length(std::span<const espp::ms_os_20::Function>(
+                        ms_functions.data(), ms_functions.size())),
+                    espp::ms_os_20::kMaxSetLength);
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+    const auto ms_os_20_len = static_cast<uint16_t>(impl_->ms_os_20_desc.size());
 
     // BOS descriptor: WebUSB + MS OS 2.0 platform capabilities.
     const uint16_t bos_total =
@@ -1493,7 +1349,7 @@ bool UsbDevice::initialize(std::error_code &ec) {
     const uint8_t bos[] = {
         TUD_BOS_DESCRIPTOR(bos_total, 2),
         TUD_BOS_WEBUSB_DESCRIPTOR(v.webusb_vendor_code, 1),
-        TUD_BOS_MS_OS_20_DESCRIPTOR(kMsOs20DescLen, v.ms_os_vendor_code),
+        TUD_BOS_MS_OS_20_DESCRIPTOR(ms_os_20_len, v.ms_os_vendor_code),
     };
     impl_->bos_desc.assign(bos, bos + sizeof(bos));
   }
@@ -2223,7 +2079,10 @@ bool UsbDevice::is_xinput_ready() const {
   if (!initialized_ || !config_.xinput)
     return false;
   // Fixed at initialize(), immutable after; tud_mounted() implies the class
-  // driver has opened this interface's endpoints (it is the only function).
+  // driver has opened this interface's endpoints (alone or in a composite
+  // device). A busy IN endpoint means the host has not taken the last report:
+  // no X-Input driver is polling it (macOS has none), so the state is "not
+  // ready" until one does.
   const uint8_t ep_in = impl_->xinput_ep_in;
   return tud_mounted() && ep_in != 0 && !usbd_edpt_busy(0, ep_in);
 }

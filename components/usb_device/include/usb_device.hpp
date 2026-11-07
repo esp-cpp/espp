@@ -194,13 +194,26 @@ public:
    * small custom TinyUSB application class driver built into this component (no
    * `CFG_TUD_*` count is required).
    *
-   * A PC's XUSB driver only binds a device whose VID/PID is a recognized Xbox 360
-   * controller, so `vid` / `pid` default to Microsoft's identifiers
-   * (`0x045E:0x028E`) -- for emulation / testing of your own device only. When
-   * the XInput function is the ONLY enabled function these identifiers (and a
-   * 0xFF/0xFF/0xFF device class) override the top-level Config vid/pid so the
-   * host recognizes it; combine XInput with other functions only if you do not
-   * need XUSB to bind (the built-in vendor/WebUSB class also claims class 0xFF).
+   * How a PC recognizes it depends on what else the device carries:
+   *
+   * - X-Input as the ONLY function: the device takes the Xbox 360 controller's
+   *   own identity (`vid` / `pid` below, Microsoft's `0x045E:0x028E` by default,
+   *   and a 0xFF/0xFF/0xFF device class), which Windows' Xbox driver and Linux's
+   *   xpad match directly. The top-level Config vid/pid are overridden.
+   * - X-Input BESIDE a WebUSB vendor function (a composite device with a
+   *   console, say): the device keeps the composite identity (top-level Config
+   *   vid/pid, 0x00 device class) and the MS OS 2.0 descriptor that gives the
+   *   vendor interface WinUSB also carries the "XUSB10" compatible ID for the
+   *   X-Input interface, which Windows' Xbox 360 driver matches
+   *   (`USB\MS_COMP_XUSB10`). Set Config::vid to Microsoft's 0x045E so Linux's
+   *   xpad binds the interface, and Config::pid to a product ID Windows' Xbox
+   *   driver INF does NOT list by hardware ID (the retail controllers' 0x028E,
+   *   0x0719 ... are), else that driver takes the whole device and hides the
+   *   vendor interface. `vid` / `pid` below are not used in this case.
+   * - X-Input beside other functions without the WebUSB vendor one: no MS OS
+   *   2.0 descriptor is served, so Windows does not bind it (Linux still does).
+   *
+   * These identifiers are Microsoft's: emulation / testing of your own device only.
    *
    * Consumes 1 interrupt IN + 1 interrupt OUT endpoint.
    */

@@ -28,10 +28,11 @@ Today it can enable, in any combination (subject to the endpoint budget):
   controller** (served by a small custom TinyUSB application class driver built
   into this component — no `CFG_TUD_*` count required). Gamepad state is sent with
   `update_xinput_state()` (`include/xinput.hpp`), and rumble/LED reports arrive via an
-  `on_rumble` callback. Because a PC's XUSB driver only binds a recognized Xbox
-  360 VID/PID, and because the built-in vendor class also claims interface class
-  0xFF, **use X-Input as the only enabled function** (it then advertises the Xbox
-  identity + 0xFF/0xFF/0xFF device class so the host recognizes it). See the
+  `on_rumble` callback. On its own it advertises the Xbox 360 controller's
+  identity (0xFF/0xFF/0xFF device class) so a PC recognizes it; beside a WebUSB
+  vendor function it stays a composite device and is recognized through the
+  `XUSB10` compatible ID in the MS OS 2.0 descriptor (see
+  [Enabling X-Input](#enabling-x-input-xbox-360)). See the
   [`xinput_example`](xinput_example/). *These are Microsoft's IDs, for emulation /
   testing of your own device only.*
 - An **MSC** (mass storage) function exposing an SD card and/or a FAT partition
@@ -226,24 +227,47 @@ the HID function is requested but `CFG_TUD_HID == 0`, `initialize()` fails with
 
 X-Input needs **no** `CFG_TUD_*` count — it is served by a custom TinyUSB
 application class driver built into this component (registered via the weak
-`usbd_app_driver_get_cb`, forced into the link with `-u`). So an X-Input-only
-project needs no CDC/vendor/HID class enabled at all; the
-[`xinput_example`](xinput_example/) sdkconfig disables them:
+`usbd_app_driver_get_cb`, forced into the link with `-u`). It only claims the
+X-Input interface (class 0xFF / subclass 0x5D / protocol 0x01), so it coexists
+with the built-in CDC, HID and vendor drivers when those are enabled.
 
-```
-CONFIG_TINYUSB_CDC_ENABLED=n
-CONFIG_TINYUSB_CDC_COUNT=0
-# vendor/HID counts default to 0 — importantly, keep CFG_TUD_VENDOR at 0 so the
-# built-in bulk vendor driver does not claim the X-Input 0xFF interface.
-```
+Set `Config::xinput`, send gamepad state with `update_xinput_state(GamepadState)`,
+and receive rumble/LED reports via `XInputFunction::on_rumble`. The interface uses
+one interrupt-IN endpoint (0x81, 20-byte input reports) and one interrupt-OUT
+endpoint (rumble/LED); the two use **separate endpoint numbers**, and the DMA
+report buffers are word-aligned, as the ESP32-S3 DWC2 requires. See
+`include/xinput.hpp` for the report/`GamepadState` API and the button/axis layout.
 
-Set `Config::xinput` (only — see the "only enabled function" note above), send
-gamepad state with `update_xinput_state(GamepadState)`, and receive rumble/LED reports
-via `XInputFunction::on_rumble`. The interface uses one interrupt-IN endpoint
-(0x81, 20-byte input reports) and one interrupt-OUT endpoint (rumble/LED); the two
-use **separate endpoint numbers**, and the DMA report buffers are word-aligned, as
-the ESP32-S3 DWC2 requires. See `include/xinput.hpp` for the report/`GamepadState`
-API and the button/axis layout.
+How a PC recognizes the controller depends on what else the device carries:
+
+- **X-Input only** (the [`xinput_example`](xinput_example/) default): the device
+  takes the Xbox 360 controller's own identity (`XInputFunction::vid` / `pid`,
+  Microsoft's `0x045E:0x028E` by default, and a 0xFF/0xFF/0xFF device class).
+  Windows' Xbox driver and Linux's xpad match it directly. No other class driver
+  is needed, and the example's sdkconfig leaves CDC off:
+
+  ```
+  CONFIG_TINYUSB_CDC_ENABLED=n
+  CONFIG_TINYUSB_CDC_COUNT=0
+  ```
+
+- **X-Input beside a WebUSB vendor function** (a controller with a configuration
+  console, say; the example's `sdkconfig.composite` variant): the device keeps the
+  normal composite identity (`Config::vid` / `pid`, 0x00 device class), and the
+  Microsoft OS 2.0 descriptor that gives the vendor interface WinUSB also carries
+  the `XUSB10` compatible ID for the X-Input interface, which Windows' Xbox 360
+  driver matches (`USB\MS_COMP_XUSB10`, the same route the virtual-controller
+  drivers use). Set `Config::vid` to Microsoft's `0x045E` so Linux's xpad binds the
+  interface, and `Config::pid` to a product ID Windows' Xbox driver INF does **not**
+  list by hardware ID (the retail controllers' `0x028E`, `0x0719`, ... are): a
+  hardware-ID match takes the whole device and hides the vendor interface. The
+  descriptor set is built by `include/ms_os_20.hpp` (host-tested in
+  `test/ms_os_20_host_test.cpp`).
+
+- X-Input beside other functions **without** the WebUSB vendor one: no MS OS 2.0
+  descriptor is served, so Windows does not bind it (Linux still does).
+
+These identifiers are Microsoft's: emulation / testing of your own device only.
 
 ## Enabling mass storage (MSC)
 

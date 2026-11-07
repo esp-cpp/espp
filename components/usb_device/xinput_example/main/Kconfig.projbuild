@@ -1,0 +1,31 @@
+menu "X-Input Example Configuration"
+
+    config XINPUT_EXAMPLE_COMPOSITE
+        bool "Composite: add a WebUSB vendor interface beside the X-Input one"
+        default n
+        help
+            Off: X-Input is the only function, the device carries the Xbox 360
+            controller's own identity (0x045E:0x028E, a 0xFF device class) and a
+            PC binds it as that controller.
+
+            On: a WebUSB vendor interface is added (as a configuration console
+            would be), so the device is a composite one (0x00 device class). It
+            then advertises the "XUSB10" compatible ID for the X-Input interface
+            through the Microsoft OS 2.0 descriptor, which Windows' Xbox 360
+            driver matches, and Linux's xpad matches the interface class under
+            the Microsoft vendor ID. Needs the built-in vendor class driver:
+            build with `-DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.composite"`.
+
+    config XINPUT_EXAMPLE_COMPOSITE_PID
+        hex "Composite product ID (under vendor ID 0x045E)"
+        depends on XINPUT_EXAMPLE_COMPOSITE
+        default 0x0E60
+        help
+            Windows binds its Xbox 360 driver to the WHOLE device when the
+            device's VID:PID is one its driver INF lists by hardware ID (the
+            retail controllers: 0x028E, 0x0719, ...), which would hide the vendor
+            interface. A composite device therefore needs a product ID that INF
+            does not list; the vendor ID stays Microsoft's so Linux's xpad
+            recognizes the interface. Emulation / testing of your own device only.
+
+endmenu
