@@ -1,0 +1,2068 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Ping &#8212; espp</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+    <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+    <link rel="stylesheet" type="text/css" href="../_static/espp.css?v=a39a0385" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'network/ping';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="icon" href="../_static/favicon.png"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Ping Example" href="ping_example.html" />
+    <link rel="prev" title="Ethernet Example" href="ethernet_example.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="master" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/espp-logo.png" class="logo__image only-light" alt=""/>
+    <img src="../_static/espp-logo.png" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">espp</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../dev_boards/index.html">
+    Dev Boards (BSPs)
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../web_apps.html">
+    Web Apps
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../qemu.html">
+    Running espp in QEMU
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/esp-cpp/espp" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://discord.gg/dvcQw37xAY" title="Discord" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-discord fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Discord</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../dev_boards/index.html">
+    Dev Boards (BSPs)
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../web_apps.html">
+    Web Apps
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../qemu.html">
+    Running espp in QEMU
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/esp-cpp/espp" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://discord.gg/dvcQw37xAY" title="Discord" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-discord fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Discord</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../core/base_component.html">Base Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../core/base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../core/task.html">Task APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../core/task_example.html">Task Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../core/thread_pool.html">Thread Pool APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../core/thread_pool_example.html">Thread Pool Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../core/runqueue.html">RunQueue APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../core/runqueue_example.html">RunQueue Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../core/timer.html">Timer APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../core/timer_example.html">Timer Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/timer_example.html">Timer Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../core/interrupt.html">Interrupt APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../core/interrupt_example.html">Interrupt Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../core/event_manager.html">Event Manager APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../core/event_manager_example.html">Event Manager Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../core/state_machine.html">State Machine APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../core/state_machine_example.html">Hierarchichal Finite State Machine (HFSM) Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../core/logger.html">Logging APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../core/logger_example.html">Logger Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/binary_log_example.html">Binary Log Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../core/monitor.html">Monitoring APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../core/monitor_example.html">Monitor Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/monitor_example.html">Monitor Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../core/cli.html">Command Line Interface (CLI) APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../core/cli_example.html">Cli Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../coredump/coredump.html">Core Dump (Crash Reporting)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../coredump/coredump_example.html">CoreDump Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../system/index.html">System APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../system/system.html">System Info, Control &amp; Service</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../system/system_example.html">System Info + Control over USB Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../desktop/index.html">Desktop APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../desktop/desktop.html">Desktop, Desktop Service &amp; Console Capture</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../desktop/desktop_example.html">Desktop over USB Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../storage/file_system.html">File System APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../storage/file_system_example.html">File System Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../storage/nvs.html">NVS APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../storage/nvs_example.html">NVS Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../storage/persistent_data.html">Persistent Data APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../storage/persistent_data_example.html">Persistent Data Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../storage/sdcard.html">SD Card</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../storage/sdcard_example.html">SD Card Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../buses/i2c.html">I2C</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../buses/i2c_example.html">I2C Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../buses/i2c_example.html">I2C Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../buses/spi.html">SPI</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../buses/spi_example.html">SPI Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../buses/rmt.html">Remote Control Transceiver (RMT)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../buses/rmt_example.html">RMT Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../buses/twai.html">TWAI (CAN 2.0) APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../buses/twai_example.html">TWAI (CAN 2.0) Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../buses/canopen.html">CANopen (CiA 301) Client APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../buses/canopen_example.html">CANopen Client Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../buses/usb_cdc.html">USB Device Component</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../buses/usb_cdc_example.html">USB Device Example (CDC + Vendor/WebUSB + MSC, with the standard espp USB services)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../buses/xinput_example.html">X-Input (Xbox 360) controller example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../buses/msc_example.html">USB Mass Storage (MSC) Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../buses/usb_host.html">USB Host Component</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../buses/usb_host_example.html">USB Host Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../buses/usb_host_tab5_example.html">USB HID Host on the M5Stack Tab5 (HID device viewer)</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../io_expander/aw9523.html">AW9523 I/O Expander</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../io_expander/aw9523_example.html">AW9523 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../io_expander/pi4ioe5v.html">PI4IOE5V I/O Expander</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../io_expander/pi4ioe5v_example.html">PI4IOE5V Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../io_expander/kts1622.html">KTS1622 I/O Expander</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../io_expander/kts1622_example.html">KTS1622 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../io_expander/mcp23x17.html">MCP23x17 I/O Expander</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../io_expander/mcp23x17_example.html">MCP23x17 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../io_expander/pca9535.html">PCA9535 / PCA9555 I/O Expander</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../io_expander/pca9535_example.html">PCA9535 Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../adc/index.html">ADC APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../adc/ads1x15.html">ADS1x15 I2C ADC</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../adc/ads1x15_example.html">Ads1x15 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../adc/ads7138.html">ADS7138 I2C ADC</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../adc/ads7138_example.html">Ads7138 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../adc/oneshot_adc.html">Oneshot ADC</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../adc/adc_example.html">ADC Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../adc/continuous_adc.html">Continuous ADC</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../adc/adc_example.html">ADC Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../adc/tla2528.html">TLA2528 I2C ADC</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../adc/tla2528_example.html">Tla2528 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../adc/adc_types.html">ADC Types</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../imu/index.html">IMU APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../imu/adxl345.html">ADXL345 3-Axis Accelerometer</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../imu/adxl345_example.html">ADXL345 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../imu/bmi270.html">BMI270 6-Axis IMU</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../imu/bmi270_example.html">BMI270 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../imu/bno055.html">BNO055 9-Axis Absolute Orientation IMU</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../imu/bno055_example.html">BNO055 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../imu/icm20948.html">ICM20948 9-Axis IMU</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../imu/icm20948_example.html">ICM20948 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../imu/icm42607.html">ICM42607 6-Axis IMU</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../imu/icm42607_example.html">ICM42607 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../imu/lsm6dso.html">LSM6DSO 6-Axis IMU</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../imu/lsm6dso_example.html">LSM6DSO Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../imu/qmi8658.html">QMI8658 6-Axis IMU</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../imu/qmi8658_example.html">QMI8658 Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../encoder/abi_encoder.html">ABI Encoder</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../encoder/encoder_example.html">Encoder Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../encoder/encoder_types.html">Encoder Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../encoder/magnetic_encoder.html">Magnetic Encoder Base</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../encoder/as5600.html">AS5600 Magnetic Encoder</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../encoder/as5600_example.html">As5600 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../encoder/mt6701.html">MT6701 Magnetic Encoder</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../encoder/mt6701_example.html">Mt6701 Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../distance_sensors/vl53l.html">VL53LXX ToF Distance Sensor</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../distance_sensors/vl53l_example.html">VL53LXX Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../distance_sensors/vl53l5cx.html">VL53L5CX Multizone ToF Sensor</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../distance_sensors/vl53l5cx_example.html">VL53L5CX Multizone ToF Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../distance_sensors/vl53l5cx_webapp_example.html">VL53L5CX Web Console Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../presence/at581x.html">AT581X Radar Presence Sensor</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../presence/at581x_example.html">AT581X Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../battery/index.html">Battery APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../battery/bq27220.html">BQ27220</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../battery/bq27220_example.html">BQ27220 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../battery/max1704x.html">MAX1704X</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../battery/max1704x_example.html">MAX1704X Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../power/ina226.html">INA226 I2C Current/Power Monitor</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../power/ina226_example.html">INA226 Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../rtc/index.html">RTC APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../rtc/bm8563.html">BM8563</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../rtc/bm8563_example.html">BM8563 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../rtc/pcf85063.html">PCF85063</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../rtc/pcf85063_example.html">PCF85063 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../rtc/rx8130ce.html">RX8130CE</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../rtc/rx8130ce_example.html">RX8130CE Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../thermistor_example.html">Thermistor Example</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motor_control/pid.html">PID APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/pid_example.html">PID Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motor_control/adrc.html">ADRC APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/adrc_example.html">ADRC Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../motor_control/motor_controller.html">Motor Controller Interface</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motor_control/basicmicro.html">Basicmicro (MCP / RoboClaw) Motor Controller Component</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/basicmicro_example.html">Basicmicro (MCP / RoboClaw) Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motor_control/mcp266.html">MCP266 CANopen Motor Controller Component</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/mcp266_example.html">MCP266 CANopen Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motor_control/odrive_ascii.html">ODrive ASCII Protocol Component</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/odrive_ascii_example.html">ODrive ASCII Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motor_control/odrive_native.html">ODrive Native (Fibre endpoint) Protocol Component</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/odrive_native_example.html">ODrive Native (Fibre endpoint) Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/odrive_usb_example.html">ODrive-compatible USB Device Example (CDC + Vendor/WebUSB + HID)</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motor_control/trajectory_planner.html">Trajectory Planner APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/trajectory_planner_example.html">Trajectory Planner Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../bldc/bdc_driver.html">BDC Driver</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../bldc/bdc_driver_example.html">BDC Driver Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../bldc/bldc_types.html">BLDC Types &amp; Concepts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bldc/bldc_driver.html">BLDC Driver</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../bldc/bldc_motor.html">BLDC Motor</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../bldc/bldc_motor_example.html">BldcMotor Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../bldc/bldc_current_sense.html">BLDC Current Sense</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../bldc/bldc_current_sense_example.html">BLDC Current Sense Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Audio</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../audio/index.html">Audio APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../audio/audio.html">Audio</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../audio/audio_example.html">Audio Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../display/index.html">Display APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../display/display.html">Display</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../display/display_drivers.html">Display Drivers</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../display/display_drivers_example.html">Display Drivers Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../display/expressive_eyes.html">Expressive Eyes APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../display/expressive_eyes_example.html">Expressive Eyes Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../leds/led.html">LED APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../leds/led_example.html">LED Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../leds/led_strip.html">LED Strip APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../leds/led_strip_example.html">LED Strip Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../leds/neopixel.html">Neopixel APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../leds/neopixel_example.html">Neopixel Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../led_driver/lp5817.html">LP5817 RGB LED Driver</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../led_driver/lp5817_example.html">LP5817 Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../haptics/bldc_haptics.html">BLDC Haptics</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../haptics/bldc_haptics_example.html">BLDC Haptics Example (USB / WebUSB controlled)</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../haptics/drv2605.html">DRV2605 Haptic Motor Driver</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../haptics/drv2605_example.html">Drv2605 Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../input/index.html">Input APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/button.html">Button APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/button_example.html">Button Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/joystick.html">Joystick APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/joystick_example.html">Joystick Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/controller.html">Controller APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/controller_example.html">Controller Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/qwiicnes.html">QwiicNES</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/qwiicnes_example.html">QwiicNES Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/chsc6x.html">CHSC6X Touch Controller</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/chsc6x_example.html">CHSC6X Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/cst816.html">CST816 Touch Controller</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/cst816_example.html">CST816 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/ft5x06.html">FT5x06 Touch Controller</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/ft5x06_example.html">FT5x06 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/gt911.html">GT911 Touch Controller</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/gt911_example.html">GT911 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/st7123touch.html">ST7123 Touch Controller</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/st7123touch_example.html">ST7123Touch Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/t_keyboard.html">LilyGo T-Keyboard</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/t_keyboard_example.html">LilyGo T-Keyboard Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/touch.html">Touch Interface</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/touch_example.html">Touch Interface Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/tt21100.html">TT21100 Touch Controller</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/tt21100_example.html">TT21100 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../input/encoder_input.html">Encoder Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../input/keypad_input.html">Keypad Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../input/pointer_input.html">Pointer Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../input/touchpad_input.html">Touchpad Input</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../hid/index.html">HID APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../hid/hid-rp.html">HID-RP</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../hid/hid-rp_example.html">HID-RP Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../hid/switch_pro.html">Switch Pro Controller (NS1)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../hid/switch_pro_example.html">Switch Pro (NS1) USB Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Network APIs</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="dns_server.html">DNS Server</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="dns_server_example.html">DNS Server Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ethernet.html">Ethernet</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="ethernet_example.html">Ethernet Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="ethernet_example.html">Ethernet Example</a></li>
+<li class="toctree-l2 current active has-children"><a class="current reference internal" href="#">Ping</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="ping_example.html">Ping Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="provisioning.html">Provisioning</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="provisioning_example.html">Provisioning Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="socket_example.html">Socket Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="socket.html">Socket Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tcp_socket.html">TCP Sockets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="udp_socket.html">UDP Sockets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="socket_reactor.html">Socket Reactor</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../wifi/wifi.html">WiFi</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wifi/wifi_example.html">WiFi Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../wifi/wifi_ap.html">WiFi Access Point (AP)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wifi/wifi_example.html">WiFi Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../wifi/wifi_sta.html">WiFi Station (STA)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wifi/wifi_example.html">WiFi Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../wifi/wifi_example.html">WiFi Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../ble/index.html">BLE APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../ble/battery_service.html">Battery Service</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../ble/ble_gatt_server.html">BLE GATT Server</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ble/ble_gatt_server_example.html">BLE GATT Server Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../ble/ble_gatt_server_example.html">BLE GATT Server Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ble/device_info_service.html">Device Info Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ble/generic_access_service.html">Generic Access Service</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../ble/gfps_service.html">Google Fast Pair Service (GFPS) Service</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ble/gfps_service_example.html">Google Fast Pair Service (GFPS) Service Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../ble/gfps_service_example.html">Google Fast Pair Service (GFPS) Service Example</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../ble/hid_service.html">HID Service</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ble/hid_service_example.html">BLE HID Service Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../ble/hid_service_example.html">BLE HID Service Example</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../ble/switch2_pro.html">Switch 2 Pro Controller</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ble/switch2_pro_example.html">Switch 2 Pro Controller Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../ble/switch2_pro_example.html">Switch 2 Pro Controller Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../ftp/index.html">FTP APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../ftp/ftp_server.html">FTP Server</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ftp/ftp_server_example.html">FTP Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../nfc/index.html">NFC APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../nfc/ndef.html">NDEF</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../nfc/st25dv.html">ST25DV</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../nfc/st25dv_example.html">St25dv Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../ota/ota.html">OTA (Over-the-Air Firmware Update)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ota/ota_example.html">OTA Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../stream_frame/stream_frame.html">Stream Frame</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../dispatcher/dispatcher.html">Dispatcher</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dispatcher/custom_modules.html">Building Custom Modules &amp; Protocols</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../telemetry/index.html">Telemetry APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../telemetry/telemetry.html">Telemetry</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../telemetry/telemetry_example.html">Telemetry — USB example (→ Serial Plotter web app)</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../wdi/index.html">WDI (Wheelchair Digital Interface) APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../wdi/wdi.html">Wheelchair Digital Interface (WDI)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="simple">
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../wireless/sx126x.html">SX126x LoRa Radio</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wireless/sx126x_example.html">SX126x Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../wireless/gps.html">GPS / GNSS</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wireless/gps_example.html">GPS Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../wireless/meshtastic.html">Meshtastic</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wireless/meshtastic_example.html">Meshtastic Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../protocols/rtps.html">RTPS APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../protocols/rtps_example.html">RTPS Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../protocols/rtps_rmi_ami.html">RTPS Services &amp; Actions (RMI / AMI)</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../protocols/rtsp.html">RTSP APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../protocols/rtsp_example.html">RTSP Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../protocols/remote_debug.html">Remote Debug APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../protocols/remote_debug_example.html">Remote Debug Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../protocols/iperf_menu.html">Iperf Menu</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../protocols/iperf_menu_example.html">Iperf Menu Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../math/index.html">Math APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../math/math_example.html">Math Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../math/bezier.html">Bezier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../math/fast_math.html">Fast Math</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../math/gaussian.html">Gaussian</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../math/range_mapper.html">Range Mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../math/vector2d.html">Vector2d</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../math/color.html">Color APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../math/color_example.html">Color Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../filters/index.html">Filter APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../filters/filters_example.html">Filters Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/biquad.html">Biquad Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/butterworth.html">Butterworth Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/complementary.html">Complementary Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/kalman.html">Kalman Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/lowpass.html">Lowpass Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/madgwick.html">Madgwick Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/simple_lowpass.html">Simple Lowpass Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/sos.html">Second Order Sections (SoS) Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/transfer_function.html">Transfer Function API</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../data/serialization.html">Serialization APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data/serialization_example.html">Serialization Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../data/cdr.html">CDR (Common Data Representation)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data/cdr_example.html">CDR Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../data/cobs.html">COBS (Consistent Overhead Byte Stuffing)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data/cobs_example.html">COBS Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../data/csv.html">CSV APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data/csv_example.html">CSV Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../data/reflect_cpp.html">Reflect-C++ (compile-time reflection)</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../data/tabulate.html">Tabulate APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data/tabulate_example.html">Tabulate Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../api_reference.html" class="nav-link">API Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Network APIs</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Ping</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="ping">
+<h1>Ping<a class="headerlink" href="#ping" title="Permalink to this heading">#</a></h1>
+<p>The <cite>Ping</cite> component provides a C++ wrapper around <cite>esp_ping</cite>, including a simple
+CLI menu for running ping tests.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ping_example.html">Ping Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ping_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ping_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ping_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ping_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading">#</a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/351825c1/components/ping/include/ping.hpp">components/ping/include/ping.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading">#</a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4PingE">
+<span id="_CPPv3N4espp4PingE"></span><span id="_CPPv2N4espp4PingE"></span><span id="espp::Ping"></span><span class="target" id="classespp_1_1Ping"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ping</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp4PingE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>ICMP Echo (<a class="reference internal" href="#classespp_1_1Ping"><span class="std std-ref">Ping</span></a>) helper wrapping ESP-IDF ping API. </p>
+<p>This class owns the ping session lifecycle (create/start/delete) and exposes a simple C++ functional interface for receiving ping results. The call to <a class="reference internal" href="#classespp_1_1Ping_1aab8eeaf07a8b982fdcf59c5ffb7409b3"><span class="std std-ref">run()</span></a> is synchronous and returns when the session finishes or an error occurs.</p>
+<p>Example usage: </p>
+<section id="classespp_1_1Ping_1ping_ex_1">
+<h4>Simple Example<a class="headerlink" href="#classespp_1_1Ping_1ping_ex_1" title="Permalink to this heading">#</a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Ping_1ping_ex_1"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">got_ip</span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+<span class="w">    </span><span class="c1">// Simple WiFi STA bring-up assumed configured via menu</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">WifiSta</span><span class="w"> </span><span class="n">wifi_sta</span><span class="p">({.</span><span class="n">ssid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">""</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">""</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">num_connect_retries</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">on_connected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">on_disconnected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">on_got_ip</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                                </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">ip_event_got_ip_t</span><span class="w"> </span><span class="o">*</span><span class="n">eventdata</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"got IP: {}.{}.{}.{}"</span><span class="p">,</span>
+<span class="w">                                              </span><span class="n">IP2STR</span><span class="p">(</span><span class="o">&amp;</span><span class="n">eventdata</span><span class="o">-&gt;</span><span class="n">ip_info</span><span class="p">.</span><span class="n">ip</span><span class="p">));</span>
+<span class="w">                                  </span><span class="n">got_ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">                                </span><span class="p">},</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+<span class="w">    </span><span class="c1">// create the ping instance</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Ping</span><span class="w"> </span><span class="n">ping</span><span class="p">({.</span><span class="n">session</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                         </span><span class="p">{</span>
+<span class="w">                             </span><span class="p">.</span><span class="n">target_host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"google.com"</span><span class="p">,</span>
+<span class="w">                         </span><span class="p">},</span>
+<span class="w">                     </span><span class="p">.</span><span class="n">callbacks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                         </span><span class="p">.</span><span class="n">on_session_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Ping session started"</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                         </span><span class="p">.</span><span class="n">on_reply</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                             </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">seq</span><span class="p">,</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">ttl</span><span class="p">,</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">time_ms</span><span class="p">,</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">bytes</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                               </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Reply: seq={} ttl={} time={}ms bytes={}"</span><span class="p">,</span><span class="w"> </span><span class="n">seq</span><span class="p">,</span><span class="w"> </span><span class="n">ttl</span><span class="p">,</span>
+<span class="w">                                           </span><span class="n">time_ms</span><span class="p">,</span><span class="w"> </span><span class="n">bytes</span><span class="p">);</span>
+<span class="w">                             </span><span class="p">},</span>
+<span class="w">                         </span><span class="p">.</span><span class="n">on_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">"Request timed out"</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                         </span><span class="p">.</span><span class="n">on_end</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                             </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ping</span><span class="o">::</span><span class="n">Stats</span><span class="w"> </span><span class="o">&amp;</span><span class="n">stats</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                               </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Ping session ended: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">stats</span><span class="p">);</span>
+<span class="w">                             </span><span class="p">},</span>
+<span class="w">                     </span><span class="p">},</span>
+<span class="w">                     </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span>
+<span class="w">    </span><span class="c1">// wait for wifi connection</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">got_ip</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">milliseconds</span><span class="p">(</span><span class="mi">100</span><span class="p">));</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// run the ping session (synchronously)</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ping</span><span class="p">.</span><span class="n">run</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Ping failed to start: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1Ping_1ping_ex_2">
+<h4>CLI Example<a class="headerlink" href="#classespp_1_1Ping_1ping_ex_2" title="Permalink to this heading">#</a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Ping_1ping_ex_2"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// Simple WiFi STA bring-up assumed configured via menu</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">WifiSta</span><span class="w"> </span><span class="n">wifi_sta</span><span class="p">({.</span><span class="n">ssid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">""</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">""</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">num_connect_retries</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">on_connected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">on_disconnected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">on_got_ip</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                                </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">ip_event_got_ip_t</span><span class="w"> </span><span class="o">*</span><span class="n">eventdata</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"got IP: {}.{}.{}.{}"</span><span class="p">,</span>
+<span class="w">                                              </span><span class="n">IP2STR</span><span class="p">(</span><span class="o">&amp;</span><span class="n">eventdata</span><span class="o">-&gt;</span><span class="n">ip_info</span><span class="p">.</span><span class="n">ip</span><span class="p">));</span>
+<span class="w">                                </span><span class="p">},</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+<span class="w">    </span><span class="c1">// create the wifi menu to allow connecting to APs</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">WifiStaMenu</span><span class="w"> </span><span class="nf">wifi_menu</span><span class="p">(</span><span class="n">wifi_sta</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// create the ping instance and menu</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Ping</span><span class="w"> </span><span class="n">ping</span><span class="p">({.</span><span class="n">session</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                         </span><span class="p">{</span>
+<span class="w">                             </span><span class="p">.</span><span class="n">target_host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"1.1.1.1"</span><span class="p">,</span>
+<span class="w">                             </span><span class="p">.</span><span class="n">task_stack_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8192</span><span class="p">,</span>
+<span class="w">                         </span><span class="p">},</span>
+<span class="w">                     </span><span class="p">.</span><span class="n">callbacks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                         </span><span class="p">.</span><span class="n">on_session_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Ping session started"</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                         </span><span class="p">.</span><span class="n">on_reply</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                             </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">seq</span><span class="p">,</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">ttl</span><span class="p">,</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">time_ms</span><span class="p">,</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">bytes</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                               </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Reply: seq={} ttl={} time={}ms bytes={}"</span><span class="p">,</span><span class="w"> </span><span class="n">seq</span><span class="p">,</span><span class="w"> </span><span class="n">ttl</span><span class="p">,</span>
+<span class="w">                                           </span><span class="n">time_ms</span><span class="p">,</span><span class="w"> </span><span class="n">bytes</span><span class="p">);</span>
+<span class="w">                             </span><span class="p">},</span>
+<span class="w">                         </span><span class="p">.</span><span class="n">on_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">"Request timed out"</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                         </span><span class="p">.</span><span class="n">on_end</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                             </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ping</span><span class="o">::</span><span class="n">Stats</span><span class="w"> </span><span class="o">&amp;</span><span class="n">stats</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                               </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Ping session ended: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">stats</span><span class="p">);</span>
+<span class="w">                             </span><span class="p">},</span>
+<span class="w">                     </span><span class="p">},</span>
+<span class="w">                     </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Ping</span><span class="o">::</span><span class="n">Menu</span><span class="w"> </span><span class="nf">ping_menu</span><span class="p">(</span><span class="n">ping</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">root</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">cli</span><span class="o">::</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">(</span><span class="s">"root"</span><span class="p">,</span><span class="w"> </span><span class="s">"root menu"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">root</span><span class="o">-&gt;</span><span class="n">Insert</span><span class="p">(</span><span class="n">wifi_menu</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+<span class="w">    </span><span class="n">root</span><span class="o">-&gt;</span><span class="n">Insert</span><span class="p">(</span><span class="n">ping_menu</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+
+<span class="w">    </span><span class="n">cli</span><span class="o">::</span><span class="n">Cli</span><span class="w"> </span><span class="nf">cli</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">root</span><span class="p">));</span>
+<span class="w">    </span><span class="n">cli</span><span class="o">::</span><span class="n">SetColor</span><span class="p">();</span>
+<span class="w">    </span><span class="n">cli</span><span class="p">.</span><span class="n">ExitAction</span><span class="p">([](</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Goodbye and thanks for all the fish.</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Cli</span><span class="w"> </span><span class="nf">input</span><span class="p">(</span><span class="n">cli</span><span class="p">);</span>
+<span class="w">    </span><span class="n">input</span><span class="p">.</span><span class="n">SetInputHistorySize</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+<span class="w">    </span><span class="n">input</span><span class="p">.</span><span class="n">Start</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping18session_start_cb_tE">
+<span id="_CPPv3N4espp4Ping18session_start_cb_tE"></span><span id="_CPPv2N4espp4Ping18session_start_cb_tE"></span><span id="espp::Ping::session_start_cb_t"></span><span class="target" id="classespp_1_1Ping_1a01fea24e40496e6a788747bed11e1f5f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">session_start_cb_t</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ping18session_start_cb_tE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Alias for the ping session start callback. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping10reply_cb_tE">
+<span id="_CPPv3N4espp4Ping10reply_cb_tE"></span><span id="_CPPv2N4espp4Ping10reply_cb_tE"></span><span id="espp::Ping::reply_cb_t"></span><span class="target" id="classespp_1_1Ping_1a4717e5d71f871b0c9a933bb023f08226"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n"><span class="pre">seq</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n"><span class="pre">ttl</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n"><span class="pre">time_ms</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reply_cb_t</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ping10reply_cb_tE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Alias for the ping reply callback. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping12timeout_cb_tE">
+<span id="_CPPv3N4espp4Ping12timeout_cb_tE"></span><span id="_CPPv2N4espp4Ping12timeout_cb_tE"></span><span id="espp::Ping::timeout_cb_t"></span><span class="target" id="classespp_1_1Ping_1ae74972318dd2ae49296cdf1573a1ee2d"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">timeout_cb_t</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ping12timeout_cb_tE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Alias for the ping timeout callback. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping8end_cb_tE">
+<span id="_CPPv3N4espp4Ping8end_cb_tE"></span><span id="_CPPv2N4espp4Ping8end_cb_tE"></span><span id="espp::Ping::end_cb_t"></span><span class="target" id="classespp_1_1Ping_1a75be86f44c3ab172559e27e690d223be"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Ping5StatsE" title="espp::Ping::Stats"><span class="n"><span class="pre">Stats</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">stats</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">end_cb_t</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ping8end_cb_tE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Alias for the ping session end callback. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping4PingERK6Config">
+<span id="_CPPv3N4espp4Ping4PingERK6Config"></span><span id="_CPPv2N4espp4Ping4PingERK6Config"></span><span id="espp::Ping::Ping__ConfigCR"></span><span class="target" id="classespp_1_1Ping_1a10eded52442fd7545d0132195f16d7e8"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ping</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Ping6ConfigE" title="espp::Ping::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping4PingERK6Config" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Construct a <a class="reference internal" href="#classespp_1_1Ping"><span class="std std-ref">Ping</span></a> helper. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – <a class="reference internal" href="#classespp_1_1Ping"><span class="std std-ref">Ping</span></a> configuration and callbacks. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4PingD0Ev">
+<span id="_CPPv3N4espp4PingD0Ev"></span><span id="_CPPv2N4espp4PingD0Ev"></span><span id="espp::Ping::~Ping"></span><span class="target" id="classespp_1_1Ping_1aad4293dbefde4f0d131624c1abdc3403"></span><span class="sig-name descname"><span class="n"><span class="pre">~Ping</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4PingD0Ev" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Destructor cleans up any active session. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping3runERNSt10error_codeE">
+<span id="_CPPv3N4espp4Ping3runERNSt10error_codeE"></span><span id="_CPPv2N4espp4Ping3runERNSt10error_codeE"></span><span id="espp::Ping::run__std::error_codeR"></span><span class="target" id="classespp_1_1Ping_1aab8eeaf07a8b982fdcf59c5ffb7409b3"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">run</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping3runERNSt10error_codeE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Run the ping session synchronously, blocking until complete or stopped. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if session completed successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping3runERK13SessionConfigRNSt10error_codeE">
+<span id="_CPPv3N4espp4Ping3runERK13SessionConfigRNSt10error_codeE"></span><span id="_CPPv2N4espp4Ping3runERK13SessionConfigRNSt10error_codeE"></span><span id="espp::Ping::run__SessionConfigCR.std::error_codeR"></span><span class="target" id="classespp_1_1Ping_1a622733e261ea18fe132a9a5b377a3ac0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">run</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Ping13SessionConfigE" title="espp::Ping::SessionConfig"><span class="n"><span class="pre">SessionConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">session_config</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping3runERK13SessionConfigRNSt10error_codeE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set new session configuration and run the ping session synchronously. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>session_config</strong> – New session configuration. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if session completed successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping9run_asyncERNSt10error_codeE">
+<span id="_CPPv3N4espp4Ping9run_asyncERNSt10error_codeE"></span><span id="_CPPv2N4espp4Ping9run_asyncERNSt10error_codeE"></span><span id="espp::Ping::run_async__std::error_codeR"></span><span class="target" id="classespp_1_1Ping_1a1893a7fcecee00c68802d3f9d2d9b49e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">run_async</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping9run_asyncERNSt10error_codeE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Start the ping session asynchronously, returning immediately. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the session started, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping8run_syncERNSt10error_codeE">
+<span id="_CPPv3N4espp4Ping8run_syncERNSt10error_codeE"></span><span id="_CPPv2N4espp4Ping8run_syncERNSt10error_codeE"></span><span id="espp::Ping::run_sync__std::error_codeR"></span><span class="target" id="classespp_1_1Ping_1a522704cc004b79ddcd31608e8e2e0528"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">run_sync</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping8run_syncERNSt10error_codeE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Run the ping session synchronously, blocking until complete or stopped. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the session completed, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping4stopEv">
+<span id="_CPPv3N4espp4Ping4stopEv"></span><span id="_CPPv2N4espp4Ping4stopEv"></span><span id="espp::Ping::stop"></span><span class="target" id="classespp_1_1Ping_1aad288a92a8511acfa1cfc6a8ed20476c"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping4stopEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Stop an active ping session. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ping10is_runningEv">
+<span id="_CPPv3NK4espp4Ping10is_runningEv"></span><span id="_CPPv2NK4espp4Ping10is_runningEv"></span><span id="espp::Ping::is_runningC"></span><span class="target" id="classespp_1_1Ping_1a2c1c4f4f0119b4c30a73bd599fb68131"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_running</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ping10is_runningEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Check if a ping session is currently running. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if a session is active, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping15set_target_hostENSt11string_viewE">
+<span id="_CPPv3N4espp4Ping15set_target_hostENSt11string_viewE"></span><span id="_CPPv2N4espp4Ping15set_target_hostENSt11string_viewE"></span><span id="espp::Ping::set_target_host__std::string_view"></span><span class="target" id="classespp_1_1Ping_1a2cca175e584e35b9c4917f8ccc8085f6"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_target_host</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">host</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping15set_target_hostENSt11string_viewE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the target host (thread-safe). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>host</strong> – Hostname or dotted-quad IPv4 address. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ping15get_target_hostEv">
+<span id="_CPPv3NK4espp4Ping15get_target_hostEv"></span><span id="_CPPv2NK4espp4Ping15get_target_hostEv"></span><span id="espp::Ping::get_target_hostC"></span><span class="target" id="classespp_1_1Ping_1ab6c93b7a2ccb62d968d926fd1b27bf82"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_target_host</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ping15get_target_hostEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the current target host. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Target host (empty string if not set). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping9set_countE8uint32_t">
+<span id="_CPPv3N4espp4Ping9set_countE8uint32_t"></span><span id="_CPPv2N4espp4Ping9set_countE8uint32_t"></span><span id="espp::Ping::set_count__uint32_t"></span><span class="target" id="classespp_1_1Ping_1a1ef5bcd5b211efa52fdd76e22fc00e7b"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_count</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping9set_countE8uint32_t" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set number of echo requests to send. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>count</strong> – Number of requests (0 = infinite). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ping9get_countEv">
+<span id="_CPPv3NK4espp4Ping9get_countEv"></span><span id="_CPPv2NK4espp4Ping9get_countEv"></span><span id="espp::Ping::get_countC"></span><span class="target" id="classespp_1_1Ping_1ae414b3501896a4c34a65af0e1b6ecacc"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_count</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ping9get_countEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get number of echo requests to send. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Number of requests (0 = infinite). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping15set_interval_msE8uint32_t">
+<span id="_CPPv3N4espp4Ping15set_interval_msE8uint32_t"></span><span id="_CPPv2N4espp4Ping15set_interval_msE8uint32_t"></span><span id="espp::Ping::set_interval_ms__uint32_t"></span><span class="target" id="classespp_1_1Ping_1ab5dbbd735b802359c2ae6ea32b5e995a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_interval_ms</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">interval_ms</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping15set_interval_msE8uint32_t" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set interval between requests in milliseconds. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>interval_ms</strong> – Interval in milliseconds. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ping15get_interval_msEv">
+<span id="_CPPv3NK4espp4Ping15get_interval_msEv"></span><span id="_CPPv2NK4espp4Ping15get_interval_msEv"></span><span id="espp::Ping::get_interval_msC"></span><span class="target" id="classespp_1_1Ping_1ae38595f28e24dfcc0f8ccc59ac7827bb"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_interval_ms</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ping15get_interval_msEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get interval between requests in milliseconds. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Interval in milliseconds. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping14set_timeout_msE8uint32_t">
+<span id="_CPPv3N4espp4Ping14set_timeout_msE8uint32_t"></span><span id="_CPPv2N4espp4Ping14set_timeout_msE8uint32_t"></span><span id="espp::Ping::set_timeout_ms__uint32_t"></span><span class="target" id="classespp_1_1Ping_1a5800b98089dcb4d3b98fb7952d11867f"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_timeout_ms</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">timeout_ms</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping14set_timeout_msE8uint32_t" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set per-request timeout in milliseconds. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout_ms</strong> – Timeout in milliseconds. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ping14get_timeout_msEv">
+<span id="_CPPv3NK4espp4Ping14get_timeout_msEv"></span><span id="_CPPv2NK4espp4Ping14get_timeout_msEv"></span><span id="espp::Ping::get_timeout_msC"></span><span class="target" id="classespp_1_1Ping_1aa1fb14d311b458821dd977dd4f77ff33"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_timeout_ms</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ping14get_timeout_msEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get per-request timeout in milliseconds. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Timeout in milliseconds. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping13set_data_sizeE8uint32_t">
+<span id="_CPPv3N4espp4Ping13set_data_sizeE8uint32_t"></span><span id="_CPPv2N4espp4Ping13set_data_sizeE8uint32_t"></span><span id="espp::Ping::set_data_size__uint32_t"></span><span class="target" id="classespp_1_1Ping_1a1e7e7c8e55fef36a70d0a01e50f3db5d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_data_size</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data_size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping13set_data_sizeE8uint32_t" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set payload size in bytes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data_size</strong> – Payload size in bytes. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ping13get_data_sizeEv">
+<span id="_CPPv3NK4espp4Ping13get_data_sizeEv"></span><span id="_CPPv2NK4espp4Ping13get_data_sizeEv"></span><span id="espp::Ping::get_data_sizeC"></span><span class="target" id="classespp_1_1Ping_1aaf34ab37e5b09a88bca8d3c45db6009f"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_data_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ping13get_data_sizeEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get payload size in bytes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Payload size in bytes. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping7set_ttlE7uint8_t">
+<span id="_CPPv3N4espp4Ping7set_ttlE7uint8_t"></span><span id="_CPPv2N4espp4Ping7set_ttlE7uint8_t"></span><span id="espp::Ping::set_ttl__uint8_t"></span><span class="target" id="classespp_1_1Ping_1adee62f4602507a39d02440221f57d4c6"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_ttl</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ttl</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping7set_ttlE7uint8_t" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set time-to-live value. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ttl</strong> – Time-to-live value. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ping7get_ttlEv">
+<span id="_CPPv3NK4espp4Ping7get_ttlEv"></span><span id="_CPPv2NK4espp4Ping7get_ttlEv"></span><span id="espp::Ping::get_ttlC"></span><span class="target" id="classespp_1_1Ping_1ad8d8442405797adc28a857fd6a0b065d"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_ttl</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ping7get_ttlEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get time-to-live value. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Time-to-live value. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping7set_tosE7uint8_t">
+<span id="_CPPv3N4espp4Ping7set_tosE7uint8_t"></span><span id="_CPPv2N4espp4Ping7set_tosE7uint8_t"></span><span id="espp::Ping::set_tos__uint8_t"></span><span class="target" id="classespp_1_1Ping_1a3c9639a414f9863b25eab3d6fec2f6ea"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_tos</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tos</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping7set_tosE7uint8_t" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set IP type-of-service value. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tos</strong> – Type-of-service value. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ping7get_tosEv">
+<span id="_CPPv3NK4espp4Ping7get_tosEv"></span><span id="_CPPv2NK4espp4Ping7get_tosEv"></span><span id="espp::Ping::get_tosC"></span><span class="target" id="classespp_1_1Ping_1a769b0612be24329b9f04a7275c776495"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_tos</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ping7get_tosEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get IP type-of-service value. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Type-of-service value. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping19set_task_stack_sizeE6size_t">
+<span id="_CPPv3N4espp4Ping19set_task_stack_sizeE6size_t"></span><span id="_CPPv2N4espp4Ping19set_task_stack_sizeE6size_t"></span><span id="espp::Ping::set_task_stack_size__s"></span><span class="target" id="classespp_1_1Ping_1ab827479056a2dff1aee766fcc05e14ef"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_task_stack_size</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping19set_task_stack_sizeE6size_t" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set ping task stack size. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>bytes</strong> – Stack size in bytes. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ping19get_task_stack_sizeEv">
+<span id="_CPPv3NK4espp4Ping19get_task_stack_sizeEv"></span><span id="_CPPv2NK4espp4Ping19get_task_stack_sizeEv"></span><span id="espp::Ping::get_task_stack_sizeC"></span><span class="target" id="classespp_1_1Ping_1a9be11e1a13dc81a7c87b9b810b9a6706"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_task_stack_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ping19get_task_stack_sizeEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get ping task stack size. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Stack size in bytes. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ping18get_session_configEv">
+<span id="_CPPv3NK4espp4Ping18get_session_configEv"></span><span id="_CPPv2NK4espp4Ping18get_session_configEv"></span><span id="espp::Ping::get_session_configC"></span><span class="target" id="classespp_1_1Ping_1a29ec7372437a453002e586917f0ef84e"></span><a class="reference internal" href="#_CPPv4N4espp4Ping13SessionConfigE" title="espp::Ping::SessionConfig"><span class="n"><span class="pre">SessionConfig</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_session_config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ping18get_session_configEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get a copy of the current session configuration (thread-safe). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Current session configuration. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ping9get_statsEv">
+<span id="_CPPv3NK4espp4Ping9get_statsEv"></span><span id="_CPPv2NK4espp4Ping9get_statsEv"></span><span id="espp::Ping::get_statsC"></span><span class="target" id="classespp_1_1Ping_1af4a541b2b09f88ecbe9b1f3b4f7543b7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Ping5StatsE" title="espp::Ping::Stats"><span class="n"><span class="pre">Stats</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_stats</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ping9get_statsEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get statistics from the last completed ping session. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Statistics structure (all zeros if no session completed). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ping8get_nameEv">
+<span id="_CPPv3NK4espp4Ping8get_nameEv"></span><span id="_CPPv2NK4espp4Ping8get_nameEv"></span><span id="espp::Ping::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ping8get_nameEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4espp4Ping11set_log_tagEvRKNSt11string_viewE">
+<span id="_CPPv3I0EN4espp4Ping11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2I0EN4espp4Ping11set_log_tagERKNSt11string_viewE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1BaseComponent_1a53b5136f13021e3b7e288926506626f7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN4espp4Ping11set_log_tagEvRKNSt11string_viewE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Not available: the tag is fixed at construction (pass it to the constructor). Enable CONFIG_ESPP_LOGGER_MUTABLE_TAG (menuconfig: ESPP <a class="reference internal" href="../core/logger.html#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> -&gt; Mutable tag) to change it afterwards. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ping13get_log_levelEv">
+<span id="_CPPv3NK4espp4Ping13get_log_levelEv"></span><span id="_CPPv2NK4espp4Ping13get_log_levelEv"></span><span id="espp::Ping::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ping13get_log_levelEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp4Ping13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp4Ping13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Ping::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp4Ping17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp4Ping17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Ping::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ping17get_log_verbosityEv">
+<span id="_CPPv3NK4espp4Ping17get_log_verbosityEv"></span><span id="_CPPv2NK4espp4Ping17get_log_verbosityEv"></span><span id="espp::Ping::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ping17get_log_verbosityEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp4Ping18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp4Ping18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Ping::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping9CallbacksE">
+<span id="_CPPv3N4espp4Ping9CallbacksE"></span><span id="_CPPv2N4espp4Ping9CallbacksE"></span><span id="espp::Ping::Callbacks"></span><span class="target" id="structespp_1_1Ping_1_1Callbacks"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Callbacks</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ping9CallbacksE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>User-provided callbacks for ping events. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping9Callbacks16on_session_startE">
+<span id="_CPPv3N4espp4Ping9Callbacks16on_session_startE"></span><span id="_CPPv2N4espp4Ping9Callbacks16on_session_startE"></span><span id="espp::Ping::Callbacks::on_session_start__session_start_cb_t"></span><span class="target" id="structespp_1_1Ping_1_1Callbacks_1a1eaf2bf8b8112f750c17d9bcf989f9e4"></span><a class="reference internal" href="#_CPPv4N4espp4Ping18session_start_cb_tE" title="espp::Ping::session_start_cb_t"><span class="n"><span class="pre">session_start_cb_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_session_start</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ping9Callbacks16on_session_startE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Called right before the first probe is sent (optional). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping9Callbacks8on_replyE">
+<span id="_CPPv3N4espp4Ping9Callbacks8on_replyE"></span><span id="_CPPv2N4espp4Ping9Callbacks8on_replyE"></span><span id="espp::Ping::Callbacks::on_reply__reply_cb_t"></span><span class="target" id="structespp_1_1Ping_1_1Callbacks_1a37e9166708527f98c46fed0c1d88bf0a"></span><a class="reference internal" href="#_CPPv4N4espp4Ping10reply_cb_tE" title="espp::Ping::reply_cb_t"><span class="n"><span class="pre">reply_cb_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_reply</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ping9Callbacks8on_replyE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Called for each successful reply. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping9Callbacks10on_timeoutE">
+<span id="_CPPv3N4espp4Ping9Callbacks10on_timeoutE"></span><span id="_CPPv2N4espp4Ping9Callbacks10on_timeoutE"></span><span id="espp::Ping::Callbacks::on_timeout__timeout_cb_t"></span><span class="target" id="structespp_1_1Ping_1_1Callbacks_1a53c261dbb87ee947c4020637d1d1d057"></span><a class="reference internal" href="#_CPPv4N4espp4Ping12timeout_cb_tE" title="espp::Ping::timeout_cb_t"><span class="n"><span class="pre">timeout_cb_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_timeout</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ping9Callbacks10on_timeoutE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Called when a probe times out. One call per timed out probe. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping9Callbacks6on_endE">
+<span id="_CPPv3N4espp4Ping9Callbacks6on_endE"></span><span id="_CPPv2N4espp4Ping9Callbacks6on_endE"></span><span id="espp::Ping::Callbacks::on_end__end_cb_t"></span><span class="target" id="structespp_1_1Ping_1_1Callbacks_1a74b3876d3d3311c6680ac8b94c9c062a"></span><a class="reference internal" href="#_CPPv4N4espp4Ping8end_cb_tE" title="espp::Ping::end_cb_t"><span class="n"><span class="pre">end_cb_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_end</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ping9Callbacks6on_endE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Called at session end with summary statistics. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping6ConfigE">
+<span id="_CPPv3N4espp4Ping6ConfigE"></span><span id="_CPPv2N4espp4Ping6ConfigE"></span><span id="espp::Ping::Config"></span><span class="target" id="structespp_1_1Ping_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ping6ConfigE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Configuration for a ping session. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping6Config7sessionE">
+<span id="_CPPv3N4espp4Ping6Config7sessionE"></span><span id="_CPPv2N4espp4Ping6Config7sessionE"></span><span id="espp::Ping::Config::session__SessionConfig"></span><span class="target" id="structespp_1_1Ping_1_1Config_1aa73e266d736464d1993f748d604a5251"></span><a class="reference internal" href="#_CPPv4N4espp4Ping13SessionConfigE" title="espp::Ping::SessionConfig"><span class="n"><span class="pre">SessionConfig</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">session</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping6Config7sessionE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p><a class="reference internal" href="#classespp_1_1Ping"><span class="std std-ref">Ping</span></a> session parameters. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping6Config9callbacksE">
+<span id="_CPPv3N4espp4Ping6Config9callbacksE"></span><span id="_CPPv2N4espp4Ping6Config9callbacksE"></span><span id="espp::Ping::Config::callbacks__Callbacks"></span><span class="target" id="structespp_1_1Ping_1_1Config_1af04b473a32b7558a2e80e809a583ebf8"></span><a class="reference internal" href="#_CPPv4N4espp4Ping9CallbacksE" title="espp::Ping::Callbacks"><span class="n"><span class="pre">Callbacks</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">callbacks</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping6Config9callbacksE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Optional user callbacks. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping6Config9log_levelE">
+<span id="_CPPv3N4espp4Ping6Config9log_levelE"></span><span id="_CPPv2N4espp4Ping6Config9log_levelE"></span><span id="espp::Ping::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1Ping_1_1Config_1a95271b58d1f9f2131a169d451cf67314"></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping6Config9log_levelE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Component log level. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping4MenuE">
+<span id="_CPPv3N4espp4Ping4MenuE"></span><span id="_CPPv2N4espp4Ping4MenuE"></span><span id="espp::Ping::Menu"></span><span class="target" id="classespp_1_1Ping_1_1Menu"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Menu</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ping4MenuE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Small CLI wrapper for invoking ping from a menu. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping4Menu4MenuENSt17reference_wrapperI4PingEE">
+<span id="_CPPv3N4espp4Ping4Menu4MenuENSt17reference_wrapperI4PingEE"></span><span id="_CPPv2N4espp4Ping4Menu4MenuENSt17reference_wrapperI4PingEE"></span><span id="espp::Ping::Menu::Menu__std::reference_wrapper:Ping:"></span><span class="target" id="classespp_1_1Ping_1_1Menu_1a73fdc16e84b230f9806d753649bc89fb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Menu</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">reference_wrapper</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp4PingE" title="espp::Ping"><span class="n"><span class="pre">Ping</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ping</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping4Menu4MenuENSt17reference_wrapperI4PingEE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Construct a CLI wrapper bound to a <a class="reference internal" href="#classespp_1_1Ping"><span class="std std-ref">Ping</span></a> instance. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ping</strong> – Reference to a <a class="reference internal" href="#classespp_1_1Ping"><span class="std std-ref">Ping</span></a> instance. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping4Menu3getENSt11string_viewENSt11string_viewE">
+<span id="_CPPv3N4espp4Ping4Menu3getENSt11string_viewENSt11string_viewE"></span><span id="_CPPv2N4espp4Ping4Menu3getENSt11string_viewENSt11string_viewE"></span><span id="espp::Ping::Menu::get__std::string_view.std::string_view"></span><span class="target" id="classespp_1_1Ping_1_1Menu_1a50400f33bc7a9e8b3d75840cfd68e037"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">cli</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Menu</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;ping&quot;</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">description</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;Ping</span> <span class="pre">menu&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ping4Menu3getENSt11string_viewENSt11string_viewE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Create a CLI submenu with a <code class="docutils literal notranslate"><span class="pre">run</span> <span class="pre">&lt;host&gt;</span></code> command. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Menu name (default: “ping”) </p></li>
+<li><p><strong>description</strong> – Menu description (default: “Ping menu”) </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Unique pointer to the menu instance. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping13SessionConfigE">
+<span id="_CPPv3N4espp4Ping13SessionConfigE"></span><span id="_CPPv2N4espp4Ping13SessionConfigE"></span><span id="espp::Ping::SessionConfig"></span><span class="target" id="structespp_1_1Ping_1_1SessionConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SessionConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ping13SessionConfigE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Configuration for an individual ping session. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping13SessionConfig11target_hostE">
+<span id="_CPPv3N4espp4Ping13SessionConfig11target_hostE"></span><span id="_CPPv2N4espp4Ping13SessionConfig11target_hostE"></span><span id="espp::Ping::SessionConfig::target_host__ss"></span><span class="target" id="structespp_1_1Ping_1_1SessionConfig_1afa0ee4ad59d45dc5057ddc2b3cab5ea2"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">target_host</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ping13SessionConfig11target_hostE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Hostname or dotted-quad IPv4 address. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping13SessionConfig15task_stack_sizeE">
+<span id="_CPPv3N4espp4Ping13SessionConfig15task_stack_sizeE"></span><span id="_CPPv2N4espp4Ping13SessionConfig15task_stack_sizeE"></span><span id="espp::Ping::SessionConfig::task_stack_size__s"></span><span class="target" id="structespp_1_1Ping_1_1SessionConfig_1aaa978fc3ab251e66c1ccaa48ef4c2f22"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">task_stack_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">4096</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping13SessionConfig15task_stack_sizeE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Stack size for the ping task. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping13SessionConfig5countE">
+<span id="_CPPv3N4espp4Ping13SessionConfig5countE"></span><span id="_CPPv2N4espp4Ping13SessionConfig5countE"></span><span id="espp::Ping::SessionConfig::count__uint32_t"></span><span class="target" id="structespp_1_1Ping_1_1SessionConfig_1a77888443847a8cb5f93dad48bb9c89ee"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">count</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">5</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping13SessionConfig5countE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Number of echo requests to send. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping13SessionConfig11interval_msE">
+<span id="_CPPv3N4espp4Ping13SessionConfig11interval_msE"></span><span id="_CPPv2N4espp4Ping13SessionConfig11interval_msE"></span><span id="espp::Ping::SessionConfig::interval_ms__uint32_t"></span><span class="target" id="structespp_1_1Ping_1_1SessionConfig_1a20f032d918cbde00724bd73f0317b77c"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">interval_ms</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">1000</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping13SessionConfig11interval_msE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Interval between requests in milliseconds. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping13SessionConfig10timeout_msE">
+<span id="_CPPv3N4espp4Ping13SessionConfig10timeout_msE"></span><span id="_CPPv2N4espp4Ping13SessionConfig10timeout_msE"></span><span id="espp::Ping::SessionConfig::timeout_ms__uint32_t"></span><span class="target" id="structespp_1_1Ping_1_1SessionConfig_1af6479e1d9e4e9030d683f9257c558273"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">timeout_ms</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">1000</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping13SessionConfig10timeout_msE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Per-request timeout in milliseconds. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping13SessionConfig9data_sizeE">
+<span id="_CPPv3N4espp4Ping13SessionConfig9data_sizeE"></span><span id="_CPPv2N4espp4Ping13SessionConfig9data_sizeE"></span><span id="espp::Ping::SessionConfig::data_size__uint32_t"></span><span class="target" id="structespp_1_1Ping_1_1SessionConfig_1ab6598c1db407e9b2dd86144595b9b365"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">data_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping13SessionConfig9data_sizeE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Payload size in bytes. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping13SessionConfig3ttlE">
+<span id="_CPPv3N4espp4Ping13SessionConfig3ttlE"></span><span id="_CPPv2N4espp4Ping13SessionConfig3ttlE"></span><span id="espp::Ping::SessionConfig::ttl__uint8_t"></span><span class="target" id="structespp_1_1Ping_1_1SessionConfig_1a9491f3104dd31cf5dfddc54e96978c36"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ttl</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">64</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping13SessionConfig3ttlE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Time-to-live in the range [1, 255]. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping13SessionConfig3tosE">
+<span id="_CPPv3N4espp4Ping13SessionConfig3tosE"></span><span id="_CPPv2N4espp4Ping13SessionConfig3tosE"></span><span id="espp::Ping::SessionConfig::tos__uint8_t"></span><span class="target" id="structespp_1_1Ping_1_1SessionConfig_1a5ef1e833abd409a59b2b7feb837b69ec"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tos</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping13SessionConfig3tosE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Type of service in the range [0, 255]. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping5StatsE">
+<span id="_CPPv3N4espp4Ping5StatsE"></span><span id="_CPPv2N4espp4Ping5StatsE"></span><span id="espp::Ping::Stats"></span><span class="target" id="structespp_1_1Ping_1_1Stats"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Stats</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ping5StatsE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Statistics from a completed ping session. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping5Stats11transmittedE">
+<span id="_CPPv3N4espp4Ping5Stats11transmittedE"></span><span id="_CPPv2N4espp4Ping5Stats11transmittedE"></span><span id="espp::Ping::Stats::transmitted__uint32_t"></span><span class="target" id="structespp_1_1Ping_1_1Stats_1a7a9f0b4a5a0423a1f5c890a914723854"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">transmitted</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping5Stats11transmittedE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Number of packets transmitted. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping5Stats8receivedE">
+<span id="_CPPv3N4espp4Ping5Stats8receivedE"></span><span id="_CPPv2N4espp4Ping5Stats8receivedE"></span><span id="espp::Ping::Stats::received__uint32_t"></span><span class="target" id="structespp_1_1Ping_1_1Stats_1a01b92aaff0bbe18adf54c3c04e12b247"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">received</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping5Stats8receivedE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Number of packets received. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping5Stats8loss_pctE">
+<span id="_CPPv3N4espp4Ping5Stats8loss_pctE"></span><span id="_CPPv2N4espp4Ping5Stats8loss_pctE"></span><span id="espp::Ping::Stats::loss_pct__float"></span><span class="target" id="structespp_1_1Ping_1_1Stats_1a8d7a19b53137edec2693e8b6c4d2e281"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">loss_pct</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping5Stats8loss_pctE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Packet loss percentage. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping5Stats6avg_msE">
+<span id="_CPPv3N4espp4Ping5Stats6avg_msE"></span><span id="_CPPv2N4espp4Ping5Stats6avg_msE"></span><span id="espp::Ping::Stats::avg_ms__uint32_t"></span><span class="target" id="structespp_1_1Ping_1_1Stats_1abf24a386564df3163e4a9347f15645e0"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">avg_ms</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping5Stats6avg_msE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Average round-trip time in milliseconds. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping5Stats6min_msE">
+<span id="_CPPv3N4espp4Ping5Stats6min_msE"></span><span id="_CPPv2N4espp4Ping5Stats6min_msE"></span><span id="espp::Ping::Stats::min_ms__uint32_t"></span><span class="target" id="structespp_1_1Ping_1_1Stats_1ae8ba2856ce65ec81221eb516526cb56d"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">min_ms</span></span></span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping5Stats6min_msE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Minimum round-trip time in milliseconds. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ping5Stats6max_msE">
+<span id="_CPPv3N4espp4Ping5Stats6max_msE"></span><span id="_CPPv2N4espp4Ping5Stats6max_msE"></span><span id="espp::Ping::Stats::max_ms__uint32_t"></span><span class="target" id="structespp_1_1Ping_1_1Stats_1ae1d0d29514cb4c321d1377c3bfe8858d"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_ms</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Ping5Stats6max_msE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Maximum round-trip time in milliseconds. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1Ping_1_1Menu"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Menu</span></span></span><br /></dt>
+<dd><p>Small CLI wrapper for invoking ping from a menu. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1Ping_1_1Menu_1a73fdc16e84b230f9806d753649bc89fb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Menu</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">reference_wrapper</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp4PingE" title="espp::Ping"><span class="n"><span class="pre">Ping</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ping</span></span><span class="sig-paren">)</span><br /></dt>
+<dd><p>Construct a CLI wrapper bound to a <a class="reference internal" href="#classespp_1_1Ping"><span class="std std-ref">Ping</span></a> instance. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ping</strong> – Reference to a <a class="reference internal" href="#classespp_1_1Ping"><span class="std std-ref">Ping</span></a> instance. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1Ping_1_1Menu_1a50400f33bc7a9e8b3d75840cfd68e037"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">cli</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Menu</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;ping&quot;</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">description</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;Ping</span> <span class="pre">menu&quot;</span></span><span class="sig-paren">)</span><br /></dt>
+<dd><p>Create a CLI submenu with a <code class="docutils literal notranslate"><span class="pre">run</span> <span class="pre">&lt;host&gt;</span></code> command. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Menu name (default: “ping”) </p></li>
+<li><p><strong>description</strong> – Menu description (default: “Ping menu”) </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Unique pointer to the menu instance. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="ethernet_example.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Ethernet Example</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="ping_example.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Ping Example</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#api-reference">API Reference</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#header-file">Header File</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/esp-cpp/espp/edit/main/doc/en/network/ping.rst">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2022 - 2026, William Emfinger.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.2.
+    <br/>
+  </p>
+</div>
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

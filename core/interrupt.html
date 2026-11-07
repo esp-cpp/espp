@@ -1,0 +1,2043 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Interrupt APIs &#8212; espp</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+    <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+    <link rel="stylesheet" type="text/css" href="../_static/espp.css?v=a39a0385" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'core/interrupt';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="icon" href="../_static/favicon.png"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Interrupt Example" href="interrupt_example.html" />
+    <link rel="prev" title="Timer Example" href="timer_example.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="master" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/espp-logo.png" class="logo__image only-light" alt=""/>
+    <img src="../_static/espp-logo.png" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">espp</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../dev_boards/index.html">
+    Dev Boards (BSPs)
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../web_apps.html">
+    Web Apps
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../qemu.html">
+    Running espp in QEMU
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/esp-cpp/espp" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://discord.gg/dvcQw37xAY" title="Discord" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-discord fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Discord</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../dev_boards/index.html">
+    Dev Boards (BSPs)
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../web_apps.html">
+    Web Apps
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../qemu.html">
+    Running espp in QEMU
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/esp-cpp/espp" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://discord.gg/dvcQw37xAY" title="Discord" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-discord fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Discord</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Core &amp; RTOS APIs</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="task.html">Task APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="task_example.html">Task Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="thread_pool.html">Thread Pool APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="thread_pool_example.html">Thread Pool Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="runqueue.html">RunQueue APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="runqueue_example.html">RunQueue Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="timer.html">Timer APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="timer_example.html">Timer Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="timer_example.html">Timer Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="current reference internal" href="#">Interrupt APIs</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="interrupt_example.html">Interrupt Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="event_manager.html">Event Manager APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="event_manager_example.html">Event Manager Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="state_machine.html">State Machine APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="state_machine_example.html">Hierarchichal Finite State Machine (HFSM) Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="logger.html">Logging APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="logger_example.html">Logger Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="binary_log_example.html">Binary Log Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="monitor.html">Monitoring APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="monitor_example.html">Monitor Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="monitor_example.html">Monitor Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="cli_example.html">Cli Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../coredump/index.html">Crash Reporting (Core Dump) APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../coredump/coredump.html">Core Dump (Crash Reporting)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../coredump/coredump_example.html">CoreDump Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../system/index.html">System APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../system/system.html">System Info, Control &amp; Service</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../system/system_example.html">System Info + Control over USB Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../desktop/index.html">Desktop APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../desktop/desktop.html">Desktop, Desktop Service &amp; Console Capture</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../desktop/desktop_example.html">Desktop over USB Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../storage/file_system.html">File System APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../storage/file_system_example.html">File System Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../storage/nvs.html">NVS APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../storage/nvs_example.html">NVS Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../storage/persistent_data.html">Persistent Data APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../storage/persistent_data_example.html">Persistent Data Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../storage/sdcard.html">SD Card</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../storage/sdcard_example.html">SD Card Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../buses/i2c.html">I2C</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../buses/i2c_example.html">I2C Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../buses/i2c_example.html">I2C Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../buses/spi.html">SPI</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../buses/spi_example.html">SPI Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../buses/rmt.html">Remote Control Transceiver (RMT)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../buses/rmt_example.html">RMT Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../buses/twai.html">TWAI (CAN 2.0) APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../buses/twai_example.html">TWAI (CAN 2.0) Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../buses/canopen.html">CANopen (CiA 301) Client APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../buses/canopen_example.html">CANopen Client Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../buses/usb_cdc.html">USB Device Component</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../buses/usb_cdc_example.html">USB Device Example (CDC + Vendor/WebUSB + MSC, with the standard espp USB services)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../buses/xinput_example.html">X-Input (Xbox 360) controller example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../buses/msc_example.html">USB Mass Storage (MSC) Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../buses/usb_host.html">USB Host Component</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../buses/usb_host_example.html">USB Host Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../buses/usb_host_tab5_example.html">USB HID Host on the M5Stack Tab5 (HID device viewer)</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../io_expander/aw9523.html">AW9523 I/O Expander</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../io_expander/aw9523_example.html">AW9523 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../io_expander/pi4ioe5v.html">PI4IOE5V I/O Expander</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../io_expander/pi4ioe5v_example.html">PI4IOE5V Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../io_expander/kts1622.html">KTS1622 I/O Expander</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../io_expander/kts1622_example.html">KTS1622 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../io_expander/mcp23x17.html">MCP23x17 I/O Expander</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../io_expander/mcp23x17_example.html">MCP23x17 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../io_expander/pca9535.html">PCA9535 / PCA9555 I/O Expander</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../io_expander/pca9535_example.html">PCA9535 Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../adc/index.html">ADC APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../adc/ads1x15.html">ADS1x15 I2C ADC</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../adc/ads1x15_example.html">Ads1x15 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../adc/ads7138.html">ADS7138 I2C ADC</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../adc/ads7138_example.html">Ads7138 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../adc/oneshot_adc.html">Oneshot ADC</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../adc/adc_example.html">ADC Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../adc/continuous_adc.html">Continuous ADC</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../adc/adc_example.html">ADC Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../adc/tla2528.html">TLA2528 I2C ADC</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../adc/tla2528_example.html">Tla2528 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../adc/adc_types.html">ADC Types</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../imu/index.html">IMU APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../imu/adxl345.html">ADXL345 3-Axis Accelerometer</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../imu/adxl345_example.html">ADXL345 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../imu/bmi270.html">BMI270 6-Axis IMU</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../imu/bmi270_example.html">BMI270 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../imu/bno055.html">BNO055 9-Axis Absolute Orientation IMU</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../imu/bno055_example.html">BNO055 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../imu/icm20948.html">ICM20948 9-Axis IMU</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../imu/icm20948_example.html">ICM20948 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../imu/icm42607.html">ICM42607 6-Axis IMU</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../imu/icm42607_example.html">ICM42607 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../imu/lsm6dso.html">LSM6DSO 6-Axis IMU</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../imu/lsm6dso_example.html">LSM6DSO Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../imu/qmi8658.html">QMI8658 6-Axis IMU</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../imu/qmi8658_example.html">QMI8658 Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../encoder/abi_encoder.html">ABI Encoder</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../encoder/encoder_example.html">Encoder Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../encoder/encoder_types.html">Encoder Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../encoder/magnetic_encoder.html">Magnetic Encoder Base</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../encoder/as5600.html">AS5600 Magnetic Encoder</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../encoder/as5600_example.html">As5600 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../encoder/mt6701.html">MT6701 Magnetic Encoder</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../encoder/mt6701_example.html">Mt6701 Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../distance_sensors/vl53l.html">VL53LXX ToF Distance Sensor</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../distance_sensors/vl53l_example.html">VL53LXX Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../distance_sensors/vl53l5cx.html">VL53L5CX Multizone ToF Sensor</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../distance_sensors/vl53l5cx_example.html">VL53L5CX Multizone ToF Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../distance_sensors/vl53l5cx_webapp_example.html">VL53L5CX Web Console Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../presence/at581x.html">AT581X Radar Presence Sensor</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../presence/at581x_example.html">AT581X Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../battery/index.html">Battery APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../battery/bq27220.html">BQ27220</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../battery/bq27220_example.html">BQ27220 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../battery/max1704x.html">MAX1704X</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../battery/max1704x_example.html">MAX1704X Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../power/ina226.html">INA226 I2C Current/Power Monitor</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../power/ina226_example.html">INA226 Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../rtc/index.html">RTC APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../rtc/bm8563.html">BM8563</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../rtc/bm8563_example.html">BM8563 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../rtc/pcf85063.html">PCF85063</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../rtc/pcf85063_example.html">PCF85063 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../rtc/rx8130ce.html">RX8130CE</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../rtc/rx8130ce_example.html">RX8130CE Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../thermistor_example.html">Thermistor Example</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motor_control/pid.html">PID APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/pid_example.html">PID Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motor_control/adrc.html">ADRC APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/adrc_example.html">ADRC Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../motor_control/motor_controller.html">Motor Controller Interface</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motor_control/basicmicro.html">Basicmicro (MCP / RoboClaw) Motor Controller Component</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/basicmicro_example.html">Basicmicro (MCP / RoboClaw) Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motor_control/mcp266.html">MCP266 CANopen Motor Controller Component</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/mcp266_example.html">MCP266 CANopen Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motor_control/odrive_ascii.html">ODrive ASCII Protocol Component</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/odrive_ascii_example.html">ODrive ASCII Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motor_control/odrive_native.html">ODrive Native (Fibre endpoint) Protocol Component</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/odrive_native_example.html">ODrive Native (Fibre endpoint) Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/odrive_usb_example.html">ODrive-compatible USB Device Example (CDC + Vendor/WebUSB + HID)</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../motor_control/trajectory_planner.html">Trajectory Planner APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../motor_control/trajectory_planner_example.html">Trajectory Planner Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../bldc/bdc_driver.html">BDC Driver</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../bldc/bdc_driver_example.html">BDC Driver Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../bldc/bldc_types.html">BLDC Types &amp; Concepts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bldc/bldc_driver.html">BLDC Driver</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../bldc/bldc_motor.html">BLDC Motor</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../bldc/bldc_motor_example.html">BldcMotor Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../bldc/bldc_current_sense.html">BLDC Current Sense</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../bldc/bldc_current_sense_example.html">BLDC Current Sense Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Audio</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../audio/index.html">Audio APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../audio/audio.html">Audio</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../audio/audio_example.html">Audio Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../display/index.html">Display APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../display/display.html">Display</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../display/display_drivers.html">Display Drivers</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../display/display_drivers_example.html">Display Drivers Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../display/expressive_eyes.html">Expressive Eyes APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../display/expressive_eyes_example.html">Expressive Eyes Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../leds/led.html">LED APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../leds/led_example.html">LED Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../leds/led_strip.html">LED Strip APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../leds/led_strip_example.html">LED Strip Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../leds/neopixel.html">Neopixel APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../leds/neopixel_example.html">Neopixel Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../led_driver/lp5817.html">LP5817 RGB LED Driver</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../led_driver/lp5817_example.html">LP5817 Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../haptics/bldc_haptics.html">BLDC Haptics</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../haptics/bldc_haptics_example.html">BLDC Haptics Example (USB / WebUSB controlled)</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../haptics/drv2605.html">DRV2605 Haptic Motor Driver</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../haptics/drv2605_example.html">Drv2605 Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../input/index.html">Input APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/button.html">Button APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/button_example.html">Button Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/joystick.html">Joystick APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/joystick_example.html">Joystick Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/controller.html">Controller APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/controller_example.html">Controller Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/qwiicnes.html">QwiicNES</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/qwiicnes_example.html">QwiicNES Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/chsc6x.html">CHSC6X Touch Controller</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/chsc6x_example.html">CHSC6X Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/cst816.html">CST816 Touch Controller</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/cst816_example.html">CST816 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/ft5x06.html">FT5x06 Touch Controller</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/ft5x06_example.html">FT5x06 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/gt911.html">GT911 Touch Controller</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/gt911_example.html">GT911 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/st7123touch.html">ST7123 Touch Controller</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/st7123touch_example.html">ST7123Touch Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/t_keyboard.html">LilyGo T-Keyboard</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/t_keyboard_example.html">LilyGo T-Keyboard Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/touch.html">Touch Interface</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/touch_example.html">Touch Interface Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../input/tt21100.html">TT21100 Touch Controller</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input/tt21100_example.html">TT21100 Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../input/encoder_input.html">Encoder Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../input/keypad_input.html">Keypad Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../input/pointer_input.html">Pointer Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../input/touchpad_input.html">Touchpad Input</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../hid/index.html">HID APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../hid/hid-rp.html">HID-RP</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../hid/hid-rp_example.html">HID-RP Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../hid/switch_pro.html">Switch Pro Controller (NS1)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../hid/switch_pro_example.html">Switch Pro (NS1) USB Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../network/index.html">Network APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../network/dns_server.html">DNS Server</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../network/dns_server_example.html">DNS Server Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../network/ethernet.html">Ethernet</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../network/ethernet_example.html">Ethernet Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../network/ethernet_example.html">Ethernet Example</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../network/ping.html">Ping</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../network/ping_example.html">Ping Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../network/provisioning.html">Provisioning</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../network/provisioning_example.html">Provisioning Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../network/socket_example.html">Socket Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../network/socket.html">Socket Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../network/tcp_socket.html">TCP Sockets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../network/udp_socket.html">UDP Sockets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../network/socket_reactor.html">Socket Reactor</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../wifi/wifi.html">WiFi</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wifi/wifi_example.html">WiFi Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../wifi/wifi_ap.html">WiFi Access Point (AP)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wifi/wifi_example.html">WiFi Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../wifi/wifi_sta.html">WiFi Station (STA)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wifi/wifi_example.html">WiFi Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../wifi/wifi_example.html">WiFi Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../ble/index.html">BLE APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../ble/battery_service.html">Battery Service</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../ble/ble_gatt_server.html">BLE GATT Server</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ble/ble_gatt_server_example.html">BLE GATT Server Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../ble/ble_gatt_server_example.html">BLE GATT Server Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ble/device_info_service.html">Device Info Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ble/generic_access_service.html">Generic Access Service</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../ble/gfps_service.html">Google Fast Pair Service (GFPS) Service</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ble/gfps_service_example.html">Google Fast Pair Service (GFPS) Service Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../ble/gfps_service_example.html">Google Fast Pair Service (GFPS) Service Example</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../ble/hid_service.html">HID Service</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ble/hid_service_example.html">BLE HID Service Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../ble/hid_service_example.html">BLE HID Service Example</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../ble/switch2_pro.html">Switch 2 Pro Controller</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ble/switch2_pro_example.html">Switch 2 Pro Controller Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../ble/switch2_pro_example.html">Switch 2 Pro Controller Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../ftp/index.html">FTP APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../ftp/ftp_server.html">FTP Server</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ftp/ftp_server_example.html">FTP Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../nfc/index.html">NFC APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../nfc/ndef.html">NDEF</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../nfc/st25dv.html">ST25DV</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../nfc/st25dv_example.html">St25dv Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../ota/ota.html">OTA (Over-the-Air Firmware Update)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ota/ota_example.html">OTA Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../stream_frame/index.html">Stream Frame APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../stream_frame/stream_frame.html">Stream Frame</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../dispatcher/index.html">Dispatcher APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../dispatcher/dispatcher.html">Dispatcher</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dispatcher/custom_modules.html">Building Custom Modules &amp; Protocols</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../telemetry/index.html">Telemetry APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../telemetry/telemetry.html">Telemetry</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../telemetry/telemetry_example.html">Telemetry — USB example (→ Serial Plotter web app)</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../wdi/index.html">WDI (Wheelchair Digital Interface) APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../wdi/wdi.html">Wheelchair Digital Interface (WDI)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="simple">
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../wireless/sx126x.html">SX126x LoRa Radio</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wireless/sx126x_example.html">SX126x Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../wireless/gps.html">GPS / GNSS</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wireless/gps_example.html">GPS Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../wireless/meshtastic.html">Meshtastic</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wireless/meshtastic_example.html">Meshtastic Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../protocols/rtps.html">RTPS APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../protocols/rtps_example.html">RTPS Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../protocols/rtps_rmi_ami.html">RTPS Services &amp; Actions (RMI / AMI)</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../protocols/rtsp.html">RTSP APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../protocols/rtsp_example.html">RTSP Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../protocols/remote_debug.html">Remote Debug APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../protocols/remote_debug_example.html">Remote Debug Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../protocols/iperf_menu.html">Iperf Menu</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../protocols/iperf_menu_example.html">Iperf Menu Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../math/index.html">Math APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../math/math_example.html">Math Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../math/bezier.html">Bezier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../math/fast_math.html">Fast Math</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../math/gaussian.html">Gaussian</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../math/range_mapper.html">Range Mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../math/vector2d.html">Vector2d</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../math/color.html">Color APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../math/color_example.html">Color Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../filters/index.html">Filter APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../filters/filters_example.html">Filters Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/biquad.html">Biquad Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/butterworth.html">Butterworth Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/complementary.html">Complementary Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/kalman.html">Kalman Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/lowpass.html">Lowpass Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/madgwick.html">Madgwick Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/simple_lowpass.html">Simple Lowpass Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/sos.html">Second Order Sections (SoS) Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filters/transfer_function.html">Transfer Function API</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../data/serialization.html">Serialization APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data/serialization_example.html">Serialization Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../data/cdr.html">CDR (Common Data Representation)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data/cdr_example.html">CDR Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../data/cobs.html">COBS (Consistent Overhead Byte Stuffing)</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data/cobs_example.html">COBS Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../data/csv.html">CSV APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data/csv_example.html">CSV Example</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../data/reflect_cpp.html">Reflect-C++ (compile-time reflection)</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../data/tabulate.html">Tabulate APIs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data/tabulate_example.html">Tabulate Example</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../api_reference.html" class="nav-link">API Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Core &amp; RTOS APIs</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Interrupt APIs</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="interrupt-apis">
+<h1>Interrupt APIs<a class="headerlink" href="#interrupt-apis" title="Permalink to this heading">#</a></h1>
+<p>The <cite>Interrupt</cite> class provides APIs to register interrupt handlers for GPIO and
+configure the interrupts. Interrupts can be configured to trigger on rising
+edge, falling edge, high level, low level, or any change in the input signal. A
+single interrupt object can manage multiple GPIO pins with separate callbacks
+for each GPIO, or separte <cite>Interrupt</cite> objects can be created (though that uses
+more memory and CPU as each <cite>Interrupt</cite> will has its own queue, ISR handler, and
+task.</p>
+<p>Finally, the <cite>Interrupt</cite> class is also designed to be subclassed if desired to
+provide additional functionality, or it can of course be included as a member
+within another class. The Button class provides a very simple implementation of
+a subclass of <cite>Interrupt</cite>.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="interrupt_example.html">Interrupt Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="interrupt_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="interrupt_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interrupt_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="interrupt_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading">#</a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/351825c1/components/interrupt/include/interrupt.hpp">components/interrupt/include/interrupt.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading">#</a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9InterruptE">
+<span id="_CPPv3N4espp9InterruptE"></span><span id="_CPPv2N4espp9InterruptE"></span><span id="espp::Interrupt"></span><span class="target" id="classespp_1_1Interrupt"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Interrupt</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp9InterruptE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>A class to handle a GPIO interrupt. </p>
+<p>This class uses the ESP-IDF GPIO interrupt handler to detect GPIO interrupts. It then calls the callback function with the event. It can handle multiple GPIO interrupts and call the appropriate callback for each GPIO interrupt.</p>
+<p>The class uses a FreeRTOS queue to handle the events. The queue is created in the constructor and deleted in the destructor. The queue is used to wake up the task when an interrupt event occurs. The task then calls the appropriate callback for the interrupt. Since all the GPIO interrupts are handled by the same task, all the callbacks are called from the same task. This means that the callbacks should be fast and not block for long periods of time, otherwise the other interrupts will be delayed.</p>
+<p>Regardless of the callback speed, some interrupts could still be missed if they happen too quickly. For this reason, the queue size can be set in the configuration (default is 10). If the queue is full, then the interrupt event will be missed. If you are expecting a lot of interrupts to happen quickly, then you should increase the queue size.</p>
+<p>Another way to handle the situation where you have many interrupts and would like to separate out the processing by priority is to have different <a class="reference internal" href="#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> objects for the different priority levels, and assign the interrupt pins/callbacks to the objects according to the priority levels that you want. This will ensure that interrupts at different priority levels / in different objects do not starve the each other, while ensuring that the interupts are still processed in an orderly fashion.</p>
+<p>If CONFIG_GPIO_CTRL_FUNC_IN_IRAM is enabled, then the ISR handler will be placed in IRAM. In this condition, the interrupt class’ ISR handler will automatically disable the interrupt associated with that GPIO within the ISR handler.</p>
+<p>If CONFIG_GPIO_CTRL_FUNC_IN_IRAM is enabled and the <a class="reference internal" href="#structespp_1_1Interrupt_1_1PinConfig"><span class="std std-ref">PinConfig</span></a> has auto_reenable set to false, then the interrupt will not be reenabled automatically. This is because the ISR handler will disable the interrupt, and it will not be reenabled until the user reenables it. This use-case is recommended for ACTIVE_LOW or ACTIVE_HIGH interrupts which may need some other action to clear the interrupt condition and prevent the ISR from being triggered continuously. In this case, simply re-enable the interrupt when you have cleared the interrupt condition if you want to be able to respond to it again.</p>
+<section id="classespp_1_1Interrupt_1interrupt_ex0">
+<h4>Interrupt Example<a class="headerlink" href="#classespp_1_1Interrupt_1interrupt_ex0" title="Permalink to this heading">#</a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Interrupt_1interrupt_ex0"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">Event</span><span class="w"> </span><span class="o">&amp;</span><span class="n">event</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"[Callback][{:.3f}] Interrupt: pin {} changed to active state: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">,</span>
+<span class="w">                </span><span class="n">event</span><span class="p">.</span><span class="n">gpio_num</span><span class="p">,</span><span class="w"> </span><span class="n">event</span><span class="p">.</span><span class="n">active</span><span class="p">);</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">PinConfig</span><span class="w"> </span><span class="n">io0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_0</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">callback</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">active_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">ActiveLevel</span><span class="o">::</span><span class="n">LOW</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">interrupt_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">ANY_EDGE</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">pulldown_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">      </span><span class="c1">// flexible filter requiring configuration (default is provided as 5us</span>
+<span class="w">      </span><span class="c1">// threshold in 10us window), but other configurations can be manually</span>
+<span class="w">      </span><span class="c1">// set as below</span>
+<span class="w">      </span><span class="p">.</span><span class="n">filter_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">FilterType</span><span class="o">::</span><span class="n">FLEX_GLITCH_FILTER</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">filter_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">window_width_ns</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">window_threshold_ns</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5000</span><span class="p">},</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">PinConfig</span><span class="w"> </span><span class="n">io12</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_12</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">callback</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">active_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">ActiveLevel</span><span class="o">::</span><span class="n">LOW</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">interrupt_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">ANY_EDGE</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">pulldown_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">      </span><span class="c1">// pre-configured 2 clock pulse width filter</span>
+<span class="w">      </span><span class="p">.</span><span class="n">filter_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">FilterType</span><span class="o">::</span><span class="n">PIN_GLITCH_FILTER</span><span class="p">,</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// make an interrupt for a single gpio</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="w"> </span><span class="n">interrupt</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">isr_core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">interrupts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">io0</span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">                </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Interrupt task"</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6192</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">5</span><span class="n">s</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// make multiple interrupts for multiple gpios</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="w"> </span><span class="n">interrupt0</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">interrupts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">io0</span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">                </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Interrupt task"</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6192</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="w"> </span><span class="n">interrupt12</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">interrupts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">io12</span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">                </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Interrupt 0 task"</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6192</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">2</span><span class="n">s</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// now lets read the instantaneous state of the interrupt pins</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">is_0_active</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interrupt0</span><span class="p">.</span><span class="n">is_active</span><span class="p">(</span><span class="n">io0</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">is_12_active</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interrupt12</span><span class="p">.</span><span class="n">is_active</span><span class="p">(</span><span class="n">io12</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Instantaneous state of pin 0: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">is_0_active</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Instantaneous state of pin 12: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">is_12_active</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">2</span><span class="n">s</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// make a single interrupt for multiple GPIOs</span>
+<span class="w">  </span><span class="c1">// make an interrupt for a single gpio</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Register for interrupts on a few pins (GPIO_NUM_0, GPIO_NUM_12)</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="w"> </span><span class="n">interrupt</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">interrupts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">io0</span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">                </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Interrupt task"</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6192</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// use the add_interrupt method to add another interrupt</span>
+<span class="w">    </span><span class="n">interrupt</span><span class="p">.</span><span class="n">add_interrupt</span><span class="p">(</span><span class="n">io12</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">2</span><span class="n">s</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// now lets read the instantaneous state of the interrupt pins</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">active_states</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interrupt</span><span class="p">.</span><span class="n">get_active_states</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Instantaneous state of pins: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">active_states</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">2</span><span class="n">s</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// print out the minimum number of spaces in the interrupt queue over the</span>
+<span class="w">    </span><span class="c1">// last 2 seconds</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">min_queue_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interrupt</span><span class="p">.</span><span class="n">get_min_queue_size</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Minimum queue size over last 4 seconds: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">min_queue_size</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1Interrupt_1interrupt_ex1">
+<h4>Interrupt Task Reconfiguration Example<a class="headerlink" href="#classespp_1_1Interrupt_1interrupt_ex1" title="Permalink to this heading">#</a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Interrupt_1interrupt_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// The interrupt handler task is started automatically in the constructor, but</span>
+<span class="w">  </span><span class="c1">// its priority and core affinity (configured here, or via Kconfig in the BSP</span>
+<span class="w">  </span><span class="c1">// components) can be changed at runtime.</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="w"> </span><span class="n">interrupt</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">interrupts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">io0</span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">                </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Interrupt task"</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6192</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// raise the handler task priority - this is applied to the running task</span>
+<span class="w">    </span><span class="c1">// immediately (returns true), and is also used if the task is restarted</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">applied</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interrupt</span><span class="p">.</span><span class="n">set_task_priority</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Raised interrupt task priority to 10, applied live: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">applied</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// changing the core affinity only takes effect when the task is (re)started,</span>
+<span class="w">    </span><span class="c1">// because the default ESP-IDF FreeRTOS port fixes a task's core at creation</span>
+<span class="w">    </span><span class="n">interrupt</span><span class="p">.</span><span class="n">set_task_core_id</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// so stop and start the task to re-create it pinned to the new core</span>
+<span class="w">    </span><span class="n">interrupt</span><span class="p">.</span><span class="n">stop_task</span><span class="p">();</span>
+<span class="w">    </span><span class="n">interrupt</span><span class="p">.</span><span class="n">start_task</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Restarted interrupt task on core 1"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">2</span><span class="n">s</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<p>Subclassed by <a class="reference internal" href="../input/button.html#classespp_1_1Button"><span class="std std-ref">espp::Button</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt11ActiveLevelE">
+<span id="_CPPv3N4espp9Interrupt11ActiveLevelE"></span><span id="_CPPv2N4espp9Interrupt11ActiveLevelE"></span><span class="target" id="classespp_1_1Interrupt_1aab4616eb11120d204f7a945b4533d9aa"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ActiveLevel</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt11ActiveLevelE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The active level of the GPIO. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt11ActiveLevel3LOWE">
+<span id="_CPPv3N4espp9Interrupt11ActiveLevel3LOWE"></span><span id="_CPPv2N4espp9Interrupt11ActiveLevel3LOWE"></span><span class="target" id="classespp_1_1Interrupt_1aab4616eb11120d204f7a945b4533d9aaa41bc94cbd8eebea13ce0491b2ac11b88"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LOW</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt11ActiveLevel3LOWE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Active low. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt11ActiveLevel4HIGHE">
+<span id="_CPPv3N4espp9Interrupt11ActiveLevel4HIGHE"></span><span id="_CPPv2N4espp9Interrupt11ActiveLevel4HIGHE"></span><span class="target" id="classespp_1_1Interrupt_1aab4616eb11120d204f7a945b4533d9aaab89de3b4b81c4facfac906edf29aec8c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HIGH</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt11ActiveLevel4HIGHE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Active high. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt4TypeE">
+<span id="_CPPv3N4espp9Interrupt4TypeE"></span><span id="_CPPv2N4espp9Interrupt4TypeE"></span><span class="target" id="classespp_1_1Interrupt_1a7f6008dfae28763f53c7356f0c4424aa"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Type</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt4TypeE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The type of interrupt to use for the GPIO. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt4Type8ANY_EDGEE">
+<span id="_CPPv3N4espp9Interrupt4Type8ANY_EDGEE"></span><span id="_CPPv2N4espp9Interrupt4Type8ANY_EDGEE"></span><span class="target" id="classespp_1_1Interrupt_1a7f6008dfae28763f53c7356f0c4424aaa79865522fb6fb871c11105472e8bfa82"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ANY_EDGE</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt4Type8ANY_EDGEE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p><a class="reference internal" href="#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> on any edge. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt4Type11RISING_EDGEE">
+<span id="_CPPv3N4espp9Interrupt4Type11RISING_EDGEE"></span><span id="_CPPv2N4espp9Interrupt4Type11RISING_EDGEE"></span><span class="target" id="classespp_1_1Interrupt_1a7f6008dfae28763f53c7356f0c4424aaad85243a747ac5537ef0b7adde99c3e98"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RISING_EDGE</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt4Type11RISING_EDGEE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p><a class="reference internal" href="#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> on rising edge. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt4Type12FALLING_EDGEE">
+<span id="_CPPv3N4espp9Interrupt4Type12FALLING_EDGEE"></span><span id="_CPPv2N4espp9Interrupt4Type12FALLING_EDGEE"></span><span class="target" id="classespp_1_1Interrupt_1a7f6008dfae28763f53c7356f0c4424aaa297f5ea19073f4b51715b029f48d5d52"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FALLING_EDGE</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt4Type12FALLING_EDGEE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p><a class="reference internal" href="#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> on falling edge. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt4Type9LOW_LEVELE">
+<span id="_CPPv3N4espp9Interrupt4Type9LOW_LEVELE"></span><span id="_CPPv2N4espp9Interrupt4Type9LOW_LEVELE"></span><span class="target" id="classespp_1_1Interrupt_1a7f6008dfae28763f53c7356f0c4424aaad5ef89cca31152290b30f50cd1d8c536"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LOW_LEVEL</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt4Type9LOW_LEVELE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p><a class="reference internal" href="#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> on low level. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt4Type10HIGH_LEVELE">
+<span id="_CPPv3N4espp9Interrupt4Type10HIGH_LEVELE"></span><span id="_CPPv2N4espp9Interrupt4Type10HIGH_LEVELE"></span><span class="target" id="classespp_1_1Interrupt_1a7f6008dfae28763f53c7356f0c4424aaadfa16b340d97a534b55a7a2e2ba2b646"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HIGH_LEVEL</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt4Type10HIGH_LEVELE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p><a class="reference internal" href="#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> on high level. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt17event_callback_fnE">
+<span id="_CPPv3N4espp9Interrupt17event_callback_fnE"></span><span id="_CPPv2N4espp9Interrupt17event_callback_fnE"></span><span id="espp::Interrupt::event_callback_fn"></span><span class="target" id="classespp_1_1Interrupt_1a2cf77779b2de2fb315f9d43d314f88dd"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9Interrupt5EventE" title="espp::Interrupt::Event"><span class="n"><span class="pre">Event</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">event_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt17event_callback_fnE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The callback for the event. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt9InterruptERK6Config">
+<span id="_CPPv3N4espp9Interrupt9InterruptERK6Config"></span><span id="_CPPv2N4espp9Interrupt9InterruptERK6Config"></span><span id="espp::Interrupt::Interrupt__ConfigCR"></span><span class="target" id="classespp_1_1Interrupt_1a6777916ec6968dd195cf941531078156"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Interrupt</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9Interrupt6ConfigE" title="espp::Interrupt::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt9InterruptERK6Config" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Constructor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the interrupt </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9InterruptD0Ev">
+<span id="_CPPv3N4espp9InterruptD0Ev"></span><span id="_CPPv2N4espp9InterruptD0Ev"></span><span id="espp::Interrupt::~Interrupt"></span><span class="target" id="classespp_1_1Interrupt_1a96f719abbea05162e625dee7e5de3b86"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~Interrupt</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9InterruptD0Ev" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Destructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9Interrupt18get_min_queue_sizeEv">
+<span id="_CPPv3NK4espp9Interrupt18get_min_queue_sizeEv"></span><span id="_CPPv2NK4espp9Interrupt18get_min_queue_sizeEv"></span><span id="espp::Interrupt::get_min_queue_sizeC"></span><span class="target" id="classespp_1_1Interrupt_1a8423344e95738fe558d3ae5372c33987"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_min_queue_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9Interrupt18get_min_queue_sizeEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the minimum number of free spaces in the queue. </p>
+<p>
+This will return the minimum number of free spaces in the queue Over the lifetime of the object. This can be used to determine if the queue size is too small for the number of interrupts that are being received. It may also help indicate if the interrupt task priority is too low, preventing the queue from being serviced. Finally, it may also help to indicate if additional filtering may be needed on the interrupt line (either using the FilterType or with hardware filtering). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The minimum number of free spaces in the queue</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt10start_taskEv">
+<span id="_CPPv3N4espp9Interrupt10start_taskEv"></span><span id="_CPPv2N4espp9Interrupt10start_taskEv"></span><span id="espp::Interrupt::start_task"></span><span class="target" id="classespp_1_1Interrupt_1a0d3c47c69f2de0a46658fc6402072e49"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start_task</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt10start_taskEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Start the interrupt handler task. </p>
+<p>
+The handler task is started automatically in the constructor, so this is only needed after a matching <a class="reference internal" href="../input/button.html#classespp_1_1Interrupt_1ac7921f8a337b87ea0b5737ca0cb93746"><span class="std std-ref">stop_task()</span></a> - for example to re-create the task so that a new core id set via <a class="reference internal" href="../input/button.html#classespp_1_1Interrupt_1ad3f9aa3835170ef8b4768a1ac08802fb"><span class="std std-ref">set_task_core_id()</span></a> takes effect (the default ESP-IDF FreeRTOS port fixes a task’s core affinity when the task is created). <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="task.html#classespp_1_1Task_1a8fd50f31d32181c26dc96d4040cb6fec"><span class="std std-ref">Task::start()</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the task was started, false if it was already running or there is no task</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt9stop_taskEv">
+<span id="_CPPv3N4espp9Interrupt9stop_taskEv"></span><span id="_CPPv2N4espp9Interrupt9stop_taskEv"></span><span id="espp::Interrupt::stop_task"></span><span class="target" id="classespp_1_1Interrupt_1ac7921f8a337b87ea0b5737ca0cb93746"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop_task</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt9stop_taskEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Stop the interrupt handler task. </p>
+<p>
+While the task is stopped, interrupt events are not serviced, but the GPIO ISRs still run and keep enqueueing events. Those events are not dropped: they remain in the queue and are serviced when <a class="reference internal" href="../input/button.html#classespp_1_1Interrupt_1a0d3c47c69f2de0a46658fc6402072e49"><span class="std std-ref">start_task()</span></a> is called - up until the queue fills (event_queue_size entries), after which further events are lost until the task drains it. Pair with <a class="reference internal" href="../input/button.html#classespp_1_1Interrupt_1a0d3c47c69f2de0a46658fc6402072e49"><span class="std std-ref">start_task()</span></a> to resume. This is primarily useful to apply a new core id from <a class="reference internal" href="../input/button.html#classespp_1_1Interrupt_1ad3f9aa3835170ef8b4768a1ac08802fb"><span class="std std-ref">set_task_core_id()</span></a> by stopping and restarting the task. <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="task.html#classespp_1_1Task_1af73bba20616458f6ed571955721bca44"><span class="std std-ref">Task::stop()</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the task was stopped, false if it was not running or there is no task</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt17set_task_priorityE6size_t">
+<span id="_CPPv3N4espp9Interrupt17set_task_priorityE6size_t"></span><span id="_CPPv2N4espp9Interrupt17set_task_priorityE6size_t"></span><span id="espp::Interrupt::set_task_priority__s"></span><span class="target" id="classespp_1_1Interrupt_1a3097541fe375cf2fd6a84bac24245d44"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_task_priority</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">priority</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt17set_task_priorityE6size_t" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the priority of the interrupt handler task. </p>
+<p>
+Forwards to <a class="reference internal" href="task.html#classespp_1_1Task_1ac1bb95324856f42047cfad4888ea9d1b"><span class="std std-ref">Task::set_priority()</span></a>. The new priority is always stored and used the next time the task is started; if the task is already running it is also applied immediately. This lets callers override the priority configured at construction (e.g. via Kconfig in the BSP components) at runtime. <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="task.html#classespp_1_1Task_1ac1bb95324856f42047cfad4888ea9d1b"><span class="std std-ref">Task::set_priority()</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>priority</strong> – New FreeRTOS priority (0 is lowest priority) </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the change was applied to the running task, false otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt16set_task_core_idEi">
+<span id="_CPPv3N4espp9Interrupt16set_task_core_idEi"></span><span id="_CPPv2N4espp9Interrupt16set_task_core_idEi"></span><span id="espp::Interrupt::set_task_core_id__i"></span><span class="target" id="classespp_1_1Interrupt_1ad3f9aa3835170ef8b4768a1ac08802fb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_task_core_id</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">core_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt16set_task_core_idEi" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the core affinity (core ID) of the interrupt handler task. </p>
+<p>
+Forwards to <a class="reference internal" href="task.html#classespp_1_1Task_1aa0a5afb37559da3c824465bf570553ef"><span class="std std-ref">Task::set_core_id()</span></a>. The new core ID is always stored and used the next time the task is started. On the default ESP-IDF FreeRTOS port a running task’s core affinity cannot be changed, so for an already-started handler this only takes effect after the task is restarted - call <a class="reference internal" href="../input/button.html#classespp_1_1Interrupt_1ac7921f8a337b87ea0b5737ca0cb93746"><span class="std std-ref">stop_task()</span></a> then <a class="reference internal" href="../input/button.html#classespp_1_1Interrupt_1a0d3c47c69f2de0a46658fc6402072e49"><span class="std std-ref">start_task()</span></a> to apply it. This lets callers override the core configured at construction (e.g. via Kconfig in the BSP components). <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="task.html#classespp_1_1Task_1aa0a5afb37559da3c824465bf570553ef"><span class="std std-ref">Task::set_core_id()</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>core_id</strong> – Core to pin the task to (0 or 1), or -1 to leave it unpinned </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the change was applied to the running task, false otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt13add_interruptERK9PinConfig">
+<span id="_CPPv3N4espp9Interrupt13add_interruptERK9PinConfig"></span><span id="_CPPv2N4espp9Interrupt13add_interruptERK9PinConfig"></span><span id="espp::Interrupt::add_interrupt__PinConfigCR"></span><span class="target" id="classespp_1_1Interrupt_1ab3dc36f402a314397cd142e4c1456041"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_interrupt</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9Interrupt9PinConfigE" title="espp::Interrupt::PinConfig"><span class="n"><span class="pre">PinConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">interrupt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt13add_interruptERK9PinConfig" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Add an interrupt to the interrupt handler. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>interrupt</strong> – The interrupt to add </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt10remove_allEv">
+<span id="_CPPv3N4espp9Interrupt10remove_allEv"></span><span id="_CPPv2N4espp9Interrupt10remove_allEv"></span><span id="espp::Interrupt::remove_all"></span><span class="target" id="classespp_1_1Interrupt_1a560f5ab5523102aba282f19f0f0bd955"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove_all</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt10remove_allEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Remove all the interrupts from the interrupt handler. </p>
+<p>This will remove all the interrupts that are currently registered with the interrupt handler. This will also disable all the interrupts that are currently enabled. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt16remove_interruptERK9PinConfig">
+<span id="_CPPv3N4espp9Interrupt16remove_interruptERK9PinConfig"></span><span id="_CPPv2N4espp9Interrupt16remove_interruptERK9PinConfig"></span><span id="espp::Interrupt::remove_interrupt__PinConfigCR"></span><span class="target" id="classespp_1_1Interrupt_1ae6521112221ed32dffd0271fff0e194c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove_interrupt</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9Interrupt9PinConfigE" title="espp::Interrupt::PinConfig"><span class="n"><span class="pre">PinConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">interrupt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt16remove_interruptERK9PinConfig" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Remove an interrupt from the interrupt handler. </p>
+<p>
+This will find a registered interrupt with the given GPIO number and remove it from the list of interrupts. It will also disable the interrupt for that GPIO number. If no interrupt is found with the given GPIO number, then nothing is done. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>interrupt</strong> – The interrupt to remove</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt16remove_interruptEi">
+<span id="_CPPv3N4espp9Interrupt16remove_interruptEi"></span><span id="_CPPv2N4espp9Interrupt16remove_interruptEi"></span><span id="espp::Interrupt::remove_interrupt__i"></span><span class="target" id="classespp_1_1Interrupt_1a7c974d374dbe16abe1a8e3c1c3ab58da"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove_interrupt</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">gpio_num</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt16remove_interruptEi" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Remove an interrupt from the interrupt handler. </p>
+<p>
+This will find a registered interrupt with the given GPIO number and remove it from the list of interrupts. It will also disable the interrupt for that GPIO number. If no interrupt is found with the given GPIO number, then nothing is done. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>gpio_num</strong> – The GPIO number of the interrupt to remove</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt11disable_allEv">
+<span id="_CPPv3N4espp9Interrupt11disable_allEv"></span><span id="_CPPv2N4espp9Interrupt11disable_allEv"></span><span id="espp::Interrupt::disable_all"></span><span class="target" id="classespp_1_1Interrupt_1a61cb27645fe0e91e120a481d14280b46"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">disable_all</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt11disable_allEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Disable all the interrupts. </p>
+<p>This will disable all the interrupts that are currently registered with the interrupt handler. This will not remove the interrupts from the list of interrupts, so they can be reenabled later. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt17disable_interruptERK9PinConfig">
+<span id="_CPPv3N4espp9Interrupt17disable_interruptERK9PinConfig"></span><span id="_CPPv2N4espp9Interrupt17disable_interruptERK9PinConfig"></span><span id="espp::Interrupt::disable_interrupt__PinConfigCR"></span><span class="target" id="classespp_1_1Interrupt_1a0d8dbd831803512b00fdca4c6bb5c078"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">disable_interrupt</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9Interrupt9PinConfigE" title="espp::Interrupt::PinConfig"><span class="n"><span class="pre">PinConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">interrupt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt17disable_interruptERK9PinConfig" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Disable the interrupt for the interrupt <a class="reference internal" href="#structespp_1_1Interrupt_1_1PinConfig"><span class="std std-ref">PinConfig</span></a>. </p>
+<p>
+This will disable the interrupt for the GPIO that is specified, regardless of whether the interrupt is in the list of interrupts or not. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>interrupt</strong> – The interrupt to disable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt17disable_interruptEi">
+<span id="_CPPv3N4espp9Interrupt17disable_interruptEi"></span><span id="_CPPv2N4espp9Interrupt17disable_interruptEi"></span><span id="espp::Interrupt::disable_interrupt__i"></span><span class="target" id="classespp_1_1Interrupt_1a4257d17d5101b6c6a0a555c89d6969ba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">disable_interrupt</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">gpio_num</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt17disable_interruptEi" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Disable the interrupt for the GPIO. </p>
+<p>
+This will disable the interrupt for the GPIO that is specified, regardless of whether the interrupt is in the list of interrupts or not. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>gpio_num</strong> – The GPIO number of the interrupt to disable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt16enable_interruptERK9PinConfig">
+<span id="_CPPv3N4espp9Interrupt16enable_interruptERK9PinConfig"></span><span id="_CPPv2N4espp9Interrupt16enable_interruptERK9PinConfig"></span><span id="espp::Interrupt::enable_interrupt__PinConfigCR"></span><span class="target" id="classespp_1_1Interrupt_1ad289a4735da2a12bd3c2c600810e60fc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable_interrupt</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9Interrupt9PinConfigE" title="espp::Interrupt::PinConfig"><span class="n"><span class="pre">PinConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">interrupt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt16enable_interruptERK9PinConfig" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Enable the interrupt for the GPIO. </p>
+<p>
+This will enable the interrupt for the GPIO that is specified, regardless of whether the interrupt is in the list of interrupts or not. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>interrupt</strong> – The interrupt to enable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt16enable_interruptEi">
+<span id="_CPPv3N4espp9Interrupt16enable_interruptEi"></span><span id="_CPPv2N4espp9Interrupt16enable_interruptEi"></span><span id="espp::Interrupt::enable_interrupt__i"></span><span class="target" id="classespp_1_1Interrupt_1ae9e7a4dc3952d1f1cdf8b76a36a9ce5d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable_interrupt</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">gpio_num</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt16enable_interruptEi" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Enable the interrupt for the GPIO. </p>
+<p>
+This will enable the interrupt for the GPIO that is specified, regardless of whether the interrupt is in the list of interrupts or not. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>gpio_num</strong> – The GPIO number of the interrupt to enable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9Interrupt9is_activeERK9PinConfig">
+<span id="_CPPv3NK4espp9Interrupt9is_activeERK9PinConfig"></span><span id="_CPPv2NK4espp9Interrupt9is_activeERK9PinConfig"></span><span id="espp::Interrupt::is_active__PinConfigCRC"></span><span class="target" id="classespp_1_1Interrupt_1a59caf6a7cbe7970a56c6983621a69cd2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_active</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9Interrupt9PinConfigE" title="espp::Interrupt::PinConfig"><span class="n"><span class="pre">PinConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">interrupt</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9Interrupt9is_activeERK9PinConfig" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the state of the interrupt. </p>
+<p>
+This will check the raw logic level of the GPIO and return whether the interrupt is active or not according to the active level that was set in the configuration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>interrupt</strong> – The interrupt to check </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Whether the interrupt is active</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt17get_active_statesEv">
+<span id="_CPPv3N4espp9Interrupt17get_active_statesEv"></span><span id="_CPPv2N4espp9Interrupt17get_active_statesEv"></span><span id="espp::Interrupt::get_active_states"></span><span class="target" id="classespp_1_1Interrupt_1a20886169833f7e974562563521a10b77"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_active_states</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt17get_active_statesEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the state of all the interrupts. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A vector of the states of the interrupts as pairs of the GPIO number and whether the interrupt is active </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9Interrupt8get_nameEv">
+<span id="_CPPv3NK4espp9Interrupt8get_nameEv"></span><span id="_CPPv2NK4espp9Interrupt8get_nameEv"></span><span id="espp::Interrupt::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9Interrupt8get_nameEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4espp9Interrupt11set_log_tagEvRKNSt11string_viewE">
+<span id="_CPPv3I0EN4espp9Interrupt11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2I0EN4espp9Interrupt11set_log_tagERKNSt11string_viewE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1BaseComponent_1a53b5136f13021e3b7e288926506626f7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN4espp9Interrupt11set_log_tagEvRKNSt11string_viewE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Not available: the tag is fixed at construction (pass it to the constructor). Enable CONFIG_ESPP_LOGGER_MUTABLE_TAG (menuconfig: ESPP <a class="reference internal" href="logger.html#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> -&gt; Mutable tag) to change it afterwards. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9Interrupt13get_log_levelEv">
+<span id="_CPPv3NK4espp9Interrupt13get_log_levelEv"></span><span id="_CPPv2NK4espp9Interrupt13get_log_levelEv"></span><span id="espp::Interrupt::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9Interrupt13get_log_levelEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp9Interrupt13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp9Interrupt13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Interrupt::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp9Interrupt17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp9Interrupt17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Interrupt::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9Interrupt17get_log_verbosityEv">
+<span id="_CPPv3NK4espp9Interrupt17get_log_verbosityEv"></span><span id="_CPPv2NK4espp9Interrupt17get_log_verbosityEv"></span><span id="espp::Interrupt::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9Interrupt17get_log_verbosityEv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp9Interrupt18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp9Interrupt18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Interrupt::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9Interrupt18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt6ConfigE">
+<span id="_CPPv3N4espp9Interrupt6ConfigE"></span><span id="_CPPv2N4espp9Interrupt6ConfigE"></span><span id="espp::Interrupt::Config"></span><span class="target" id="structespp_1_1Interrupt_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt6ConfigE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The configuration for the interrupt. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt6Config11isr_core_idE">
+<span id="_CPPv3N4espp9Interrupt6Config11isr_core_idE"></span><span id="_CPPv2N4espp9Interrupt6Config11isr_core_idE"></span><span id="espp::Interrupt::Config::isr_core_id__i"></span><span class="target" id="structespp_1_1Interrupt_1_1Config_1a692cac4ea9f37480637c1ce111b120a0"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isr_core_id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt6Config11isr_core_idE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The core to install the ISR service on. If -1, then the ISR service is installed on the core that this constructor is called on. If 0 or 1, then the ISR service is installed on the specified core. If the ISR service is already installed, then this function does nothing. If the core_id is invalid, then an error is logged and the ISR service is not installed. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt6Config10interruptsE">
+<span id="_CPPv3N4espp9Interrupt6Config10interruptsE"></span><span id="_CPPv2N4espp9Interrupt6Config10interruptsE"></span><span id="espp::Interrupt::Config::interrupts__std::vector:PinConfig:"></span><span class="target" id="structespp_1_1Interrupt_1_1Config_1a3b7b1c9ec22f87f706ed48cc76eb6ee7"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp9Interrupt9PinConfigE" title="espp::Interrupt::PinConfig"><span class="n"><span class="pre">PinConfig</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">interrupts</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt6Config10interruptsE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The configuration for the interrupts. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt6Config16event_queue_sizeE">
+<span id="_CPPv3N4espp9Interrupt6Config16event_queue_sizeE"></span><span id="_CPPv2N4espp9Interrupt6Config16event_queue_sizeE"></span><span id="espp::Interrupt::Config::event_queue_size__s"></span><span class="target" id="structespp_1_1Interrupt_1_1Config_1a24dfe32bd9213e592d2f50f7d3744420"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">event_queue_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">10</span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt6Config16event_queue_sizeE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The size of the event queue. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt6Config11task_configE">
+<span id="_CPPv3N4espp9Interrupt6Config11task_configE"></span><span id="_CPPv2N4espp9Interrupt6Config11task_configE"></span><span id="espp::Interrupt::Config::task_config__Task::BaseConfig"></span><span class="target" id="structespp_1_1Interrupt_1_1Config_1a8eb5bd0bbfc4ddf1234cd935f26f69f9"></span><a class="reference internal" href="task.html#_CPPv4N4espp4TaskE" title="espp::Task"><span class="n"><span class="pre">Task</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="task.html#_CPPv4N4espp4Task10BaseConfigE" title="espp::Task::BaseConfig"><span class="n"><span class="pre">BaseConfig</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">task_config</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt6Config11task_configE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The configuration for the task. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt6Config9log_levelE">
+<span id="_CPPv3N4espp9Interrupt6Config9log_levelE"></span><span id="_CPPv2N4espp9Interrupt6Config9log_levelE"></span><span id="espp::Interrupt::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1Interrupt_1_1Config_1ace8b7084f58db41a2b738afede70682e"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><a class="headerlink" href="#_CPPv4N4espp9Interrupt6Config9log_levelE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The log level for the interrupt. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt5EventE">
+<span id="_CPPv3N4espp9Interrupt5EventE"></span><span id="_CPPv2N4espp9Interrupt5EventE"></span><span id="espp::Interrupt::Event"></span><span class="target" id="structespp_1_1Interrupt_1_1Event"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Event</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt5EventE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The event for the interrupt. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt5Event8gpio_numE">
+<span id="_CPPv3N4espp9Interrupt5Event8gpio_numE"></span><span id="_CPPv2N4espp9Interrupt5Event8gpio_numE"></span><span id="espp::Interrupt::Event::gpio_num__uint8_t"></span><span class="target" id="structespp_1_1Interrupt_1_1Event_1a4ad508e6ec60ba1b002a863aed3d7ad9"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio_num</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt5Event8gpio_numE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The GPIO number of the interrupt. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt5Event6activeE">
+<span id="_CPPv3N4espp9Interrupt5Event6activeE"></span><span id="_CPPv2N4espp9Interrupt5Event6activeE"></span><span id="espp::Interrupt::Event::active__b"></span><span class="target" id="structespp_1_1Interrupt_1_1Event_1af2a73ca266d326376674820a11f2eb8c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">active</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt5Event6activeE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Whether the interrupt is active or not (based on the active level) </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt12FilterConfigE">
+<span id="_CPPv3N4espp9Interrupt12FilterConfigE"></span><span id="_CPPv2N4espp9Interrupt12FilterConfigE"></span><span id="espp::Interrupt::FilterConfig"></span><span class="target" id="structespp_1_1Interrupt_1_1FilterConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FilterConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt12FilterConfigE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The configuration for the filter. </p>
+<p>
+This is used to configure the GPIO flex glitch filter The filter is used to filter out glitches on the GPIO whose pulses are shorter than window_threshold_ns within the window_width_ns sampling window. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only supported on some chips (-C and -S series chips) and is only enabled if CONFIG_SOC_GPIO_FLEX_GLITCH_FILTER_NUM &gt; 0. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This filter config is only supported by the flex_glitch_filter. The pin_glitch_filter is not-configurable.</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt12FilterConfig15window_width_nsE">
+<span id="_CPPv3N4espp9Interrupt12FilterConfig15window_width_nsE"></span><span id="_CPPv2N4espp9Interrupt12FilterConfig15window_width_nsE"></span><span id="espp::Interrupt::FilterConfig::window_width_ns__uint32_t"></span><span class="target" id="structespp_1_1Interrupt_1_1FilterConfig_1a58827dec45aefa3d37f972e99c2866d8"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">window_width_ns</span></span></span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">10000</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt12FilterConfig15window_width_nsE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The width of the sampling window in nanoseconds. Default is 10us. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt12FilterConfig19window_threshold_nsE">
+<span id="_CPPv3N4espp9Interrupt12FilterConfig19window_threshold_nsE"></span><span id="_CPPv2N4espp9Interrupt12FilterConfig19window_threshold_nsE"></span><span id="espp::Interrupt::FilterConfig::window_threshold_ns__uint32_t"></span><span class="target" id="structespp_1_1Interrupt_1_1FilterConfig_1aacb923d91c1619b3d2ead8701ac4afcb"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">window_threshold_ns</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">5000</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt12FilterConfig19window_threshold_nsE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The threshold for the sampling window in nanoseconds. If the width of the pulse is less than this, it is filtered out. Default is 5us </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt9PinConfigE">
+<span id="_CPPv3N4espp9Interrupt9PinConfigE"></span><span id="_CPPv2N4espp9Interrupt9PinConfigE"></span><span id="espp::Interrupt::PinConfig"></span><span class="target" id="structespp_1_1Interrupt_1_1PinConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PinConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt9PinConfigE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The configuration for an interrupt on a GPIO. </p>
+<p>This is used to configure the GPIO interrupt </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt9PinConfig8gpio_numE">
+<span id="_CPPv3N4espp9Interrupt9PinConfig8gpio_numE"></span><span id="_CPPv2N4espp9Interrupt9PinConfig8gpio_numE"></span><span id="espp::Interrupt::PinConfig::gpio_num__i"></span><span class="target" id="structespp_1_1Interrupt_1_1PinConfig_1a3fe58f478dc4778c1731f86643988a7a"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio_num</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt9PinConfig8gpio_numE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>GPIO number to for this interrupt. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt9PinConfig8callbackE">
+<span id="_CPPv3N4espp9Interrupt9PinConfig8callbackE"></span><span id="_CPPv2N4espp9Interrupt9PinConfig8callbackE"></span><span id="espp::Interrupt::PinConfig::callback__event_callback_fn"></span><span class="target" id="structespp_1_1Interrupt_1_1PinConfig_1a5f0e5aa8f396842a0140de237cbbb22c"></span><a class="reference internal" href="#_CPPv4N4espp9Interrupt17event_callback_fnE" title="espp::Interrupt::event_callback_fn"><span class="n"><span class="pre">event_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">callback</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt9PinConfig8callbackE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Callback for the interrupt event. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt9PinConfig13auto_reenableE">
+<span id="_CPPv3N4espp9Interrupt9PinConfig13auto_reenableE"></span><span id="_CPPv2N4espp9Interrupt9PinConfig13auto_reenableE"></span><span id="espp::Interrupt::PinConfig::auto_reenable__b"></span><span class="target" id="structespp_1_1Interrupt_1_1PinConfig_1a16aa6f113ef2f93da620f518afd242d8"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_reenable</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt9PinConfig13auto_reenableE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Whether to auto reenable the interrupt after it is triggered. If false, the interrupt will need to be reenabled in the callback or some other codepath. If true, the interrupt will be reenabled automatically before the callback is called. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt9PinConfig12active_levelE">
+<span id="_CPPv3N4espp9Interrupt9PinConfig12active_levelE"></span><span id="_CPPv2N4espp9Interrupt9PinConfig12active_levelE"></span><span id="espp::Interrupt::PinConfig::active_level__ActiveLevel"></span><span class="target" id="structespp_1_1Interrupt_1_1PinConfig_1a60c480a4711f4116e55ed31608569e90"></span><a class="reference internal" href="#_CPPv4N4espp9Interrupt11ActiveLevelE" title="espp::Interrupt::ActiveLevel"><span class="n"><span class="pre">ActiveLevel</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">active_level</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt9PinConfig12active_levelE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Active level of the GPIO. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt9PinConfig14interrupt_typeE">
+<span id="_CPPv3N4espp9Interrupt9PinConfig14interrupt_typeE"></span><span id="_CPPv2N4espp9Interrupt9PinConfig14interrupt_typeE"></span><span id="espp::Interrupt::PinConfig::interrupt_type__Type"></span><span class="target" id="structespp_1_1Interrupt_1_1PinConfig_1ae828260a69c0851fb2f36c8849e99d35"></span><a class="reference internal" href="#_CPPv4N4espp9Interrupt4TypeE" title="espp::Interrupt::Type"><span class="n"><span class="pre">Type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">interrupt_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9Interrupt4TypeE" title="espp::Interrupt::Type"><span class="n"><span class="pre">Type</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp9Interrupt4Type8ANY_EDGEE" title="espp::Interrupt::Type::ANY_EDGE"><span class="n"><span class="pre">ANY_EDGE</span></span></a><a class="headerlink" href="#_CPPv4N4espp9Interrupt9PinConfig14interrupt_typeE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p><a class="reference internal" href="#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> type to use for the GPIO. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt9PinConfig14pullup_enabledE">
+<span id="_CPPv3N4espp9Interrupt9PinConfig14pullup_enabledE"></span><span id="_CPPv2N4espp9Interrupt9PinConfig14pullup_enabledE"></span><span id="espp::Interrupt::PinConfig::pullup_enabled__b"></span><span class="target" id="structespp_1_1Interrupt_1_1PinConfig_1a747f94eab7425eef33746f308d1225f5"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pullup_enabled</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt9PinConfig14pullup_enabledE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Whether to enable the pullup resistor. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt9PinConfig16pulldown_enabledE">
+<span id="_CPPv3N4espp9Interrupt9PinConfig16pulldown_enabledE"></span><span id="_CPPv2N4espp9Interrupt9PinConfig16pulldown_enabledE"></span><span id="espp::Interrupt::PinConfig::pulldown_enabled__b"></span><span class="target" id="structespp_1_1Interrupt_1_1PinConfig_1ab27d66ce8b289275c3d95ae212588064"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pulldown_enabled</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt9PinConfig16pulldown_enabledE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Whether to enable the pulldown resistor. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt9PinConfig11filter_typeE">
+<span id="_CPPv3N4espp9Interrupt9PinConfig11filter_typeE"></span><span id="_CPPv2N4espp9Interrupt9PinConfig11filter_typeE"></span><span id="espp::Interrupt::PinConfig::filter_type__FilterType"></span><span class="target" id="structespp_1_1Interrupt_1_1PinConfig_1a838c4b55d233fa76ea4b2a7aeea127b6"></span><span class="n"><span class="pre">FilterType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">filter_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">FilterType</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">NONE</span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt9PinConfig11filter_typeE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The type of filter to use. If set to FLEX_GLITCH_FILTER, the filter_config should be set.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If not FilterType::NONE, then light sleep will be disabled. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt9PinConfig13filter_configE">
+<span id="_CPPv3N4espp9Interrupt9PinConfig13filter_configE"></span><span id="_CPPv2N4espp9Interrupt9PinConfig13filter_configE"></span><span id="espp::Interrupt::PinConfig::filter_config__FilterConfig"></span><span class="target" id="structespp_1_1Interrupt_1_1PinConfig_1a396d72fa1cc7fee8d38768b25325336f"></span><a class="reference internal" href="#_CPPv4N4espp9Interrupt12FilterConfigE" title="espp::Interrupt::FilterConfig"><span class="n"><span class="pre">FilterConfig</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">filter_config</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt9PinConfig13filter_configE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>The configuration for the filter. This is only used if filter_type is set to FLEX_GLITCH_FILTER </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="timer_example.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Timer Example</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="interrupt_example.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Interrupt Example</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#api-reference">API Reference</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#header-file">Header File</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/esp-cpp/espp/edit/main/doc/en/core/interrupt.rst">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2022 - 2026, William Emfinger.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.2.
+    <br/>
+  </p>
+</div>
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

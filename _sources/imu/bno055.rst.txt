@@ -1,0 +1,20 @@
+BNO055 9-Axis Absolute Orientation IMU
+**************************************
+
+The `Bno055` component provides a driver for the Bosch BNO055 9-axis absolute
+orientation sensor. The BNO055 runs sensor fusion on its own microcontroller
+and reports orientation, linear acceleration, and gravity alongside the raw
+accelerometer, gyroscope, and magnetometer data.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   bno055_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/bno055.inc

@@ -1,0 +1,823 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Web Apps &#8212; espp</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+    <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+    <link rel="stylesheet" type="text/css" href="_static/espp.css?v=a39a0385" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'web_apps';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="icon" href="_static/favicon.png"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Running espp in QEMU" href="qemu.html" />
+    <link rel="prev" title="Smart Panlee SC01 Plus BSP Example" href="dev_boards/other/smartpanlee_sc01_plus_example.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="master" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="_static/espp-logo.png" class="logo__image only-light" alt=""/>
+    <img src="_static/espp-logo.png" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">espp</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="dev_boards/index.html">
+    Dev Boards (BSPs)
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Web Apps
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="qemu.html">
+    Running espp in QEMU
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/esp-cpp/espp" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://discord.gg/dvcQw37xAY" title="Discord" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-discord fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Discord</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="getting_started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="dev_boards/index.html">
+    Dev Boards (BSPs)
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Web Apps
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="qemu.html">
+    Running espp in QEMU
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/esp-cpp/espp" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://discord.gg/dvcQw37xAY" title="Discord" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-discord fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Discord</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Web Apps</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="web-apps">
+<h1>Web Apps<a class="headerlink" href="#web-apps" title="Permalink to this heading">#</a></h1>
+<p>espp ships a growing set of <strong>self-contained browser tools</strong> that talk directly
+to your hardware using the Web Serial / WebUSB / WebHID APIs (Chromium-based
+browsers) — nothing to install, no CDN, no network access. They are hosted
+alongside this documentation:</p>
+<blockquote>
+<div><p><strong>→</strong> <a class="reference external" href="https://esp-cpp.github.io/espp/apps/index.html">esp-cpp.github.io/espp/apps</a></p>
+</div></blockquote>
+<p>Each app is a single HTML file; it also runs offline straight from its
+<code class="docutils literal notranslate"><span class="pre">components/&lt;name&gt;/web/</span></code> directory via a <code class="docutils literal notranslate"><span class="pre">file://</span></code> URL.</p>
+<p>The landing page groups the apps by category (<em>device management</em>, <em>motor
+control</em>, <em>bus tools</em>, <em>input devices</em>, <em>sensors</em>, <em>utilities</em>), can be filtered by name,
+description, protocol id, transport or category, and sorted by name or
+category. Each card shows the espp dispatcher protocols the app speaks (a
+trailing <code class="docutils literal notranslate"><span class="pre">?</span></code> marks an optional one, e.g. the System Console’s
+<code class="docutils literal notranslate"><span class="pre">espp.monitor:1?</span></code>) and the browser transports it uses (WebUSB, Web Serial,
+WebHID). The same table is published next to the apps as <code class="docutils literal notranslate"><span class="pre">registry.json</span></code> and
+<code class="docutils literal notranslate"><span class="pre">registry.js</span></code> (<code class="docutils literal notranslate"><span class="pre">window.ESPP_APPS</span></code>) — the <a class="reference internal" href="#app-registry">app registry</a> the Device Hub
+uses to link every app that can drive a device.</p>
+<section id="device-hub-dispatcher-module-consoles">
+<h2>Device hub &amp; dispatcher-module consoles<a class="headerlink" href="#device-hub-dispatcher-module-consoles" title="Permalink to this heading">#</a></h2>
+<p>Devices built on the <a class="reference internal" href="dispatcher/dispatcher.html"><span class="doc">dispatcher</span></a> / <code class="docutils literal notranslate"><span class="pre">stream_frame</span></code>
+protocol expose one or more <em>modules</em> over a single USB vendor (WebUSB)
+interface. Start from the hub, which discovers what a device runs and links to
+the matching console (passing the module id along as <code class="docutils literal notranslate"><span class="pre">?module=N</span></code>); each
+console also runs discovery itself when it connects and talks to whichever
+module advertises its protocol id (<code class="docutils literal notranslate"><span class="pre">espp.ota</span></code>, <code class="docutils literal notranslate"><span class="pre">espp.coredump</span></code>, …), so a
+device may serve a protocol on any dispatcher module id.</p>
+<ul class="simple">
+<li><p><strong>Device Hub</strong> (<code class="docutils literal notranslate"><span class="pre">dispatcher_hub.html</span></code>) — connect over WebUSB / Web Serial,
+query the device’s advertised modules, and open each module’s console. With
+the hosted <a class="reference internal" href="#app-registry">app registry</a> beside it, it also lists every app whose
+protocols the device advertises (“Apps for this device”) and, per module,
+the other apps that speak its protocol (“Also works with”) — e.g. a CAN
+bridge advertises the CAN Bridge Console, and the DS402 Drive Panel is
+offered too. Opening an app hands the device off: the hub releases it and
+the app connects to it on load (see <a class="reference internal" href="#auto-connect-auto-reconnect-and-hand-off">Auto-connect, auto-reconnect and
+hand-off</a>).</p></li>
+<li><p><strong>OTA Console</strong> (<code class="docutils literal notranslate"><span class="pre">ota_console.html</span></code>) — stream a firmware <code class="docutils literal notranslate"><span class="pre">.bin</span></code> to the
+<a class="reference internal" href="ota/ota.html"><span class="doc">ota</span></a> component with live progress and a rollback-aware finish.</p></li>
+<li><p><strong>Core Dump Console</strong> (<code class="docutils literal notranslate"><span class="pre">coredump_console.html</span></code>) — crash summary, <code class="docutils literal notranslate"><span class="pre">core.elf</span></code>
+download, client-side nearest-symbol backtrace resolution, and erase for the
+<a class="reference internal" href="coredump/coredump.html"><span class="doc">coredump</span></a> service (over WebUSB or Web Serial, where
+it doubles as a serial monitor).</p></li>
+<li><p><strong>BLDC Haptics Console</strong> (<code class="docutils literal notranslate"><span class="pre">haptics_console.html</span></code>) — live dial, detent
+presets, and control commands for the <a class="reference internal" href="haptics/bldc_haptics.html"><span class="doc">bldc_haptics</span></a> example.</p></li>
+<li><p><strong>CAN Bridge Console</strong> (<code class="docutils literal notranslate"><span class="pre">can_bridge_console.html</span></code>) — configure the bus, send
+CAN frames, and watch a live monitor of received traffic for a USB↔CAN bridge.</p></li>
+<li><p><strong>DS402 Drive Panel</strong> (<code class="docutils literal notranslate"><span class="pre">ds402_panel.html</span></code>) — in-browser CANopen SDO client
+plus a DS402 state machine / control panel for a
+<a class="reference internal" href="buses/canopen.html"><span class="doc">canopen</span></a> drive, with an object-dictionary browser (the
+device’s stored EDS, an EDS file, or the built-in CiA 301/402 table, scanned
+over SDO).</p></li>
+<li><p><strong>MCP266 Console</strong> (<code class="docutils literal notranslate"><span class="pre">mcp266_console.html</span></code>) — status, motor, and configuration
+controls for the <a class="reference internal" href="motor_control/mcp266.html"><span class="doc">mcp266</span></a> motor controller.</p></li>
+<li><p><strong>VL53L5CX Console</strong> (<code class="docutils literal notranslate"><span class="pre">vl53l5cx_console.html</span></code>) — live 3D view (surface or
+bar height field, coloured by distance / signal / sigma / reflectance /
+status) of a <a class="reference internal" href="distance_sensors/vl53l5cx.html"><span class="doc">VL53L5CX / VL53L7CX</span></a>
+multizone ToF sensor’s 4x4 or 8x8 zones, with a numeric grid, per-zone
+details, the motion indicator, every sensor setting and start / stop /
+initialize controls.</p></li>
+<li><p><strong>System Console</strong> (<code class="docutils literal notranslate"><span class="pre">system_console.html</span></code>) — device info (chip, firmware,
+partitions, reset reason, uptime, memory), reboot and reboot-into-bootloader
+for the <a class="reference internal" href="system/system.html"><span class="doc">system</span></a> component, plus live heap gauges and a
+task table when the device serves the <a class="reference internal" href="core/monitor.html"><span class="doc">monitor</span></a>
+component’s <code class="docutils literal notranslate"><span class="pre">MonitorService</span></code>.</p></li>
+<li><p><strong>Desktop</strong> (<code class="docutils literal notranslate"><span class="pre">desktop.html</span></code>) — a windowed desktop for a device running the
+<a class="reference internal" href="desktop/desktop.html"><span class="doc">desktop</span></a> component: the firmware describes apps,
+windows and widgets, the browser renders them (icons, start menu, taskbar,
+drag / resize / minimise / maximise, dialogs, notifications) and streams
+clicks, edits, selections and key presses back; window placement is
+remembered per app and title.</p></li>
+</ul>
+<a class="reference external image-reference" href="https://esp-cpp.github.io/espp/apps/vl53l5cx_console.html"><img alt="espp VL53L5CX Console showing a live 8x8 frame as a 3D surface and as bars" src="https://github.com/user-attachments/assets/c5e4ac21-f534-4238-b0ff-1775eae6d014" style="width: 100%;" /></a>
+</section>
+<section id="motor-control">
+<h2>Motor control<a class="headerlink" href="#motor-control" title="Permalink to this heading">#</a></h2>
+<ul class="simple">
+<li><p><strong>ODrive ASCII console</strong> — interactive terminals with quick motor controls and
+live position / velocity plotting for the <a class="reference internal" href="motor_control/odrive_ascii.html"><span class="doc">odrive_ascii</span></a> protocol, over Web Serial
+(<code class="docutils literal notranslate"><span class="pre">odrive_console.html</span></code>) or WebUSB (<code class="docutils literal notranslate"><span class="pre">odrive_webusb_console.html</span></code>).</p></li>
+<li><p><strong>ODrive Native Control Panel</strong> (<code class="docutils literal notranslate"><span class="pre">odrive_control_panel.html</span></code>) — endpoint-tree
+browser, live multi-signal plots, and typed read/write for the ODrive native
+(Fibre-endpoint) binary protocol.</p></li>
+<li><p><strong>WebHID Input Visualizer</strong> (<code class="docutils literal notranslate"><span class="pre">hid_visualizer.html</span></code>) — decoded buttons /
+sticks / raw reports for any HID device, driven entirely by its report
+descriptor.</p></li>
+</ul>
+</section>
+<section id="can-serial-adapters">
+<h2>CAN &amp; serial adapters<a class="headerlink" href="#can-serial-adapters" title="Permalink to this heading">#</a></h2>
+<ul class="simple">
+<li><p><strong>Basicmicro MCP Console</strong> (<code class="docutils literal notranslate"><span class="pre">mcp_console.html</span></code>) — Web Serial console for the
+<a class="reference internal" href="motor_control/basicmicro.html"><span class="doc">Basicmicro</span></a> MCP packet-serial motor
+controllers.</p></li>
+<li><p><strong>CAN Bus Console</strong> (<code class="docutils literal notranslate"><span class="pre">can_console.html</span></code>) — LAWICEL slcan serial monitor for a
+USB-CAN adapter (see <a class="reference internal" href="buses/twai.html"><span class="doc">twai</span></a>).</p></li>
+</ul>
+</section>
+<section id="data-plotting">
+<h2>Data plotting<a class="headerlink" href="#data-plotting" title="Permalink to this heading">#</a></h2>
+<ul class="simple">
+<li><p><strong>Serial Plotter</strong> (<code class="docutils literal notranslate"><span class="pre">telemetry.html</span></code>) — auto-parses columnar serial
+output (a header line followed by matching numeric rows), discards everything
+that does not fit the detected schema, and re-evaluates when a new header
+arrives. It plots a high number of points efficiently (<code class="docutils literal notranslate"><span class="pre">uPlot</span></code>) with drag
+zoom, a per-series legend, and cursor readout, and saves or loads the
+capture as CSV. Optional <strong>2D X–Y</strong> and <strong>3D X–Y–Z</strong> modes plot the same parsed
+columns against each other. It can also plot <strong>binary telemetry over WebUSB</strong>
+from an espp device running <a class="reference internal" href="telemetry/telemetry.html"><span class="doc">espp::Telemetry</span></a>
+(typed float channels, device timestamps).</p></li>
+</ul>
+<a class="reference external image-reference" href="https://esp-cpp.github.io/espp/apps/telemetry.html"><img alt="espp Serial Plotter plotting a Lorenz-attractor capture as a time series" src="https://github.com/user-attachments/assets/64668e83-8ff8-4ba8-9f97-1be5e1c3ad6d" style="width: 100%;" /></a>
+</section>
+<section id="general">
+<h2>General<a class="headerlink" href="#general" title="Permalink to this heading">#</a></h2>
+<ul class="simple">
+<li><p><strong>Board Console &amp; ESP Flasher</strong> (<code class="docutils literal notranslate"><span class="pre">board_console.html</span></code>) — general-purpose Web
+Serial monitor with reset / bootloader controls and an <code class="docutils literal notranslate"><span class="pre">esptool-js</span></code>-based
+firmware flasher.</p></li>
+</ul>
+</section>
+<section id="adding-a-new-app">
+<h2>Adding a new app<a class="headerlink" href="#adding-a-new-app" title="Permalink to this heading">#</a></h2>
+<p>Any single-file app placed in a component’s <code class="docutils literal notranslate"><span class="pre">web/</span></code> directory
+(<code class="docutils literal notranslate"><span class="pre">components/&lt;name&gt;/web/*.html</span></code>, plus optional same-origin <code class="docutils literal notranslate"><span class="pre">.js</span></code> assets) is
+hosted automatically by the docs workflow and listed on the <a class="reference external" href="https://esp-cpp.github.io/espp/apps/index.html">apps landing page</a> — there is no
+hand-maintained list; the page describes itself with tags in its <code class="docutils literal notranslate"><span class="pre">&lt;head&gt;</span></code>:</p>
+<div class="highlight-html notranslate"><div class="highlight"><pre><span></span><span class="p">&lt;</span><span class="nt">title</span><span class="p">&gt;</span>espp System Console (WebUSB / Web Serial)<span class="p">&lt;/</span><span class="nt">title</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">meta</span> <span class="na">name</span><span class="o">=</span><span class="s">"description"</span> <span class="na">content</span><span class="o">=</span><span class="s">"Device info, reboot, ... for the espp system component."</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">meta</span> <span class="na">name</span><span class="o">=</span><span class="s">"espp-category"</span> <span class="na">content</span><span class="o">=</span><span class="s">"device management"</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">meta</span> <span class="na">name</span><span class="o">=</span><span class="s">"espp-protocols"</span> <span class="na">content</span><span class="o">=</span><span class="s">"espp.system:1 espp.monitor:1?"</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">meta</span> <span class="na">name</span><span class="o">=</span><span class="s">"espp-transports"</span> <span class="na">content</span><span class="o">=</span><span class="s">"webusb webserial"</span><span class="p">&gt;</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;title&gt;</span></code> / <code class="docutils literal notranslate"><span class="pre">description</span></code> — the card’s title and blurb.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp-category</span></code> (<strong>required</strong>) — one of <code class="docutils literal notranslate"><span class="pre">device</span> <span class="pre">management</span></code>,
+<code class="docutils literal notranslate"><span class="pre">motor</span> <span class="pre">control</span></code>, <code class="docutils literal notranslate"><span class="pre">bus</span> <span class="pre">tools</span></code>, <code class="docutils literal notranslate"><span class="pre">input</span> <span class="pre">devices</span></code>, <code class="docutils literal notranslate"><span class="pre">sensors</span></code>,
+<code class="docutils literal notranslate"><span class="pre">utilities</span></code>; the section the card is listed under.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp-protocols</span></code> — space-separated <code class="docutils literal notranslate"><span class="pre">id:version</span></code> entries naming the
+espp dispatcher protocols the app speaks (the same ids a device advertises
+in discovery, see <a class="reference internal" href="dispatcher/custom_modules.html"><span class="doc">Building Custom Modules &amp; Protocols</span></a>); a trailing <code class="docutils literal notranslate"><span class="pre">?</span></code> marks
+a protocol the app can do without. Omit the tag for an app that speaks no
+espp protocol (a plain serial console, a WebHID tool).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp-transports</span></code> — space-separated subset of <code class="docutils literal notranslate"><span class="pre">webusb</span></code>, <code class="docutils literal notranslate"><span class="pre">webserial</span></code>,
+<code class="docutils literal notranslate"><span class="pre">webhid</span></code>.</p></li>
+</ul>
+<p>The docs build (<code class="docutils literal notranslate"><span class="pre">doc/generate_apps_index.py</span></code>) fails with a clear message on
+a page without a category, an unknown category or transport, or a malformed
+protocol entry. Apps must be fully self-contained (no CDN resources) so they
+work offline and under GitHub Pages’ strict hosting.</p>
+<section id="the-app-registry">
+<span id="app-registry"></span><h3>The app registry<a class="headerlink" href="#the-app-registry" title="Permalink to this heading">#</a></h3>
+<p>Besides <code class="docutils literal notranslate"><span class="pre">index.html</span></code> the generator writes <code class="docutils literal notranslate"><span class="pre">registry.json</span></code> and
+<code class="docutils literal notranslate"><span class="pre">registry.js</span></code> next to the apps: one record per app —
+<code class="docutils literal notranslate"><span class="pre">{file,</span> <span class="pre">title,</span> <span class="pre">description,</span> <span class="pre">category,</span> <span class="pre">protocols:</span> <span class="pre">[{id,</span> <span class="pre">version,</span> <span class="pre">optional}],</span>
+<span class="pre">transports}</span></code> — built from the tags above. <code class="docutils literal notranslate"><span class="pre">registry.js</span></code> assigns the object
+to <code class="docutils literal notranslate"><span class="pre">window.ESPP_APPS</span></code>; the Device Hub loads it as an optional sibling script
+(<code class="docutils literal notranslate"><span class="pre">&lt;script</span> <span class="pre">src=&quot;registry.js&quot;&gt;</span></code>). When it is present the hub links, for a
+discovered device, every app whose <em>required</em> protocols the device advertises
+(each link carries the id of the module that speaks the app’s protocol, as
+<code class="docutils literal notranslate"><span class="pre">?module=N</span></code>), and per module the other apps that speak its protocol; it
+notes a protocol version the app does not implement (<code class="docutils literal notranslate"><span class="pre">app</span> <span class="pre">speaks</span> <span class="pre">v1,</span> <span class="pre">device</span>
+<span class="pre">advertises</span> <span class="pre">v2</span></code>) and listed protocols the device lacks (<code class="docutils literal notranslate"><span class="pre">optional</span>
+<span class="pre">espp.monitor</span> <span class="pre">not</span> <span class="pre">advertised</span></code>). Without the registry (<code class="docutils literal notranslate"><span class="pre">file://</span></code>, or a copy of
+the hub on its own) the hub behaves as before and links only the app each
+module advertises. Devices that send a version-1 discovery payload (no
+protocol ids) are also linked that way, since nothing can be matched.</p>
+<p><code class="docutils literal notranslate"><span class="pre">node</span> <span class="pre">components/dispatcher/web/test/apps_registry_test.js</span></code> checks every
+page’s metadata, the generator’s outputs and failure modes, and the hub’s
+matching rules (it is not run in CI — run it after touching an app’s
+<code class="docutils literal notranslate"><span class="pre">&lt;head&gt;</span></code>, the generator, or the hub).</p>
+</section>
+<section id="auto-connect-auto-reconnect-and-hand-off">
+<h3>Auto-connect, auto-reconnect and hand-off<a class="headerlink" href="#auto-connect-auto-reconnect-and-hand-off" title="Permalink to this heading">#</a></h3>
+<p>WebUSB and Web Serial remember, per origin and device, which devices a page
+was granted; a page may list them (<code class="docutils literal notranslate"><span class="pre">navigator.usb.getDevices()</span></code> /
+<code class="docutils literal notranslate"><span class="pre">navigator.serial.getPorts()</span></code>) and open one again without the chooser. The
+dispatcher-module consoles build on that:</p>
+<ul class="simple">
+<li><p><strong>Auto-connect.</strong> A console opened with
+<code class="docutils literal notranslate"><span class="pre">?autoconnect=1&amp;transport=usb|serial&amp;vid=0x1209&amp;pid=0x0d32[&amp;serial=...]</span></code>
+(besides <code class="docutils literal notranslate"><span class="pre">?module=N</span></code>) connects on load to the permitted device those ids
+name — no chooser, no click. Ids are matched on vid + pid and, for WebUSB,
+the serial number when both sides report one; with no match the console
+says so and waits for Connect (a page cannot open the chooser without a
+click).</p></li>
+<li><p><strong>Hand-off from the hub.</strong> Every app link the hub renders carries those
+parameters for the connected device. Only one page can hold a device
+(WebUSB claims the vendor interface, Web Serial opens the port), so clicking
+a link makes the hub <em>close its connection first</em>, then open the app, which
+auto-connects. The hub then shows a “Device handed off” banner with a
+<strong>Reconnect</strong> button; it never reconnects by itself, because it cannot tell
+“the app released the device” from “the device rebooted”. When the app
+disconnects (its Disconnect button, or the tab closes) it posts a
+<code class="docutils literal notranslate"><span class="pre">released</span></code> notice on the same-origin <code class="docutils literal notranslate"><span class="pre">BroadcastChannel(&quot;espp-device&quot;)</span></code>
+and the hub’s banner says the device is free again.</p></li>
+<li><p><strong>Auto-reconnect.</strong> Each console has an <strong>auto-reconnect</strong> checkbox (default
+on, remembered per origin in <code class="docutils literal notranslate"><span class="pre">localStorage</span></code>). After an <em>unexpected</em> link
+loss — the device rebooted, was re-plugged, or crashed — the console retries
+on a bounded back-off (about 40 s, longer after a reboot it requested
+itself) and the moment the platform reports the device back, opening the
+same device by its ids. A manual Disconnect never triggers it. The System
+Console arms it on <strong>Reboot</strong> and disables it for a <strong>Reboot into
+bootloader</strong> (the ROM enumerates as a different USB device with no espp
+protocol); the OTA Console arms it after a finished update or a rollback so
+the post-reboot verify prompt appears by itself; the Core Dump Console arms
+it on the test-crash buttons.</p></li>
+</ul>
+<p>All of it only works for pages served from a <em>secure context</em> — HTTPS (the
+hosted apps), or plain HTTP on <code class="docutils literal notranslate"><span class="pre">localhost</span></code> (a local <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span>
+<span class="pre">http.server</span></code> in <code class="docutils literal notranslate"><span class="pre">docs/apps</span></code>) — because WebUSB and Web Serial exist nowhere
+else; a <code class="docutils literal notranslate"><span class="pre">file://</span></code> page is an opaque origin whose grants do not persist, so
+it falls back to the chooser.
+The shared helpers (<code class="docutils literal notranslate"><span class="pre">parseConnectParams</span></code>, the permitted device matchers
+and the reconnect supervisor) are byte-identical in every console and the
+hub; the hub’s link builder (<code class="docutils literal notranslate"><span class="pre">connectQuery</span></code>) sits in its own block next to
+them. Both are exercised by
+<code class="docutils literal notranslate"><span class="pre">node</span> <span class="pre">components/dispatcher/web/test/resolve_module_id_test.js</span></code>.</p>
+</section>
+<section id="getting-around-and-handing-a-device-back">
+<h3>Getting around, and handing a device back<a class="headerlink" href="#getting-around-and-handing-a-device-back" title="Permalink to this heading">#</a></h3>
+<p>Every app carries two links next to its title: <strong>Device Hub</strong> (the primary
+one, to <code class="docutils literal notranslate"><span class="pre">dispatcher_hub.html</span></code>) and <strong>All apps</strong> (to <code class="docutils literal notranslate"><span class="pre">index.html</span></code>); the hub
+has only <em>All apps</em>, and the apps page a <em>Device Hub</em> button beside its title.
+In the hosted apps directory (<code class="docutils literal notranslate"><span class="pre">…/apps/</span></code>) the three are siblings; anywhere
+else — a page opened from <code class="docutils literal notranslate"><span class="pre">file://</span></code> inside the repository tree, or a source
+tree served from <code class="docutils literal notranslate"><span class="pre">http://localhost</span></code> — the links go to the hosted copies. In a
+dispatcher-module console that is connected, a plain click on <em>Device Hub</em>
+hands the device back: the console closes it the way its Disconnect button
+does (stops the reconnect supervisor, closes, then posts the <code class="docutils literal notranslate"><span class="pre">released</span></code>
+notice) and navigates the same tab to the hub with the device’s auto-connect
+query, which the hub honours on load by opening that permitted device without
+a chooser. That chooser-less pick-up needs console and hub to share an
+origin, because a device grant is per origin: from the hosted apps directory
+(or any one local server) it just works, whereas a console opened from
+<code class="docutils literal notranslate"><span class="pre">file://</span></code> (an opaque origin) hands back to the <em>hosted</em> hub, which has no
+grant for the device — it then names the device it was sent, asks for one
+Connect to pick it, and remembers the grant from then on. The link’s
+<code class="docutils literal notranslate"><span class="pre">href</span></code> stays the plain hub URL, so a middle-click, a modified click or
+<em>open in new tab</em> just opens the hub and closes nothing; an unconnected
+console (or an app that speaks no espp protocol) navigates plainly. The hub
+still never reconnects on its own after handing a device off to an app. The
+static links in every page point at the hosted copies, so they are valid
+even where a page’s script cannot run (a <code class="docutils literal notranslate"><span class="pre">file://</span></code> page whose ES-module
+import the browser blocks). The navigation helpers are one more
+byte-identical block in every app, and the hand-back helpers one in every
+console, both covered by the same test.</p>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="dev_boards/other/smartpanlee_sc01_plus_example.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Smart Panlee SC01 Plus BSP Example</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="qemu.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Running espp in QEMU</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#device-hub-dispatcher-module-consoles">Device hub &amp; dispatcher-module consoles</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#motor-control">Motor control</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#can-serial-adapters">CAN &amp; serial adapters</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#data-plotting">Data plotting</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#general">General</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#adding-a-new-app">Adding a new app</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#the-app-registry">The app registry</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#auto-connect-auto-reconnect-and-hand-off">Auto-connect, auto-reconnect and hand-off</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#getting-around-and-handing-a-device-back">Getting around, and handing a device back</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/esp-cpp/espp/edit/main/doc/en/web_apps.rst">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2022 - 2026, William Emfinger.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.2.
+    <br/>
+  </p>
+</div>
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
