@@ -6,6 +6,8 @@
 #include <cctype>
 #include <cstdio>
 #include <cstring>
+#include <limits>
+#include <span>
 
 #include "sdkconfig.h" // CONFIG_ESP_CONSOLE_UART_NUM for the console-tee path
 
@@ -1327,7 +1329,16 @@ bool UsbDevice::initialize(std::error_code &ec) {
       ms_functions.push_back(
           {.first_interface = xinput_itf, .compatible_id = espp::ms_os_20::kCompatibleIdXusb10});
     }
-    impl_->ms_os_20_desc = espp::ms_os_20::descriptor_set(ms_functions);
+    impl_->ms_os_20_desc =
+        espp::ms_os_20::descriptor_set(std::span<const espp::ms_os_20::Function>{ms_functions});
+    // the BOS platform capability carries the set's length in a uint16_t (a
+    // few hundred bytes here; guard the narrowing anyway)
+    if (impl_->ms_os_20_desc.size() > std::numeric_limits<uint16_t>::max()) {
+      logger_.error("MS OS 2.0 descriptor set too long ({} bytes); max {}",
+                    impl_->ms_os_20_desc.size(), std::numeric_limits<uint16_t>::max());
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
     const auto ms_os_20_len = static_cast<uint16_t>(impl_->ms_os_20_desc.size());
 
     // BOS descriptor: WebUSB + MS OS 2.0 platform capabilities.

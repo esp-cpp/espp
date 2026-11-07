@@ -7,7 +7,9 @@
 
 #include <cstdio>
 #include <cstring>
+#include <span>
 #include <string>
+#include <vector>
 
 #include "ms_os_20.hpp"
 
