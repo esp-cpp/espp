@@ -136,6 +136,21 @@ int main() {
     CHECK(ascii(d, fn2 + kFunctionSubsetHeaderLen + 4, 8) == "XUSB10");
   }
 
+  // --- too long for the 16-bit length fields: refused, not truncated ---
+  {
+    std::vector<Function> many(
+        kMaxSetLength / (kFunctionSubsetHeaderLen + kCompatibleIdFeatureLen) + 1,
+        Function{.first_interface = 0, .compatible_id = kCompatibleIdXusb10});
+    CHECK(descriptor_set_length(many) > kMaxSetLength);
+    CHECK(descriptor_set(many).empty());
+    many.pop_back();
+    many.pop_back();
+    CHECK(descriptor_set_length(many) <= kMaxSetLength);
+    const auto d = descriptor_set(many);
+    CHECK(d.size() == descriptor_set_length(many));
+    CHECK(rd16(d, 8) == d.size());
+  }
+
   // --- the other order, and an X-Input function alone ---
   {
     const Function fns[] = {

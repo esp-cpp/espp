@@ -6,7 +6,6 @@
 #include <cctype>
 #include <cstdio>
 #include <cstring>
-#include <limits>
 #include <span>
 
 #include "sdkconfig.h" // CONFIG_ESP_CONSOLE_UART_NUM for the console-tee path
@@ -1329,13 +1328,16 @@ bool UsbDevice::initialize(std::error_code &ec) {
       ms_functions.push_back(
           {.first_interface = xinput_itf, .compatible_id = espp::ms_os_20::kCompatibleIdXusb10});
     }
-    impl_->ms_os_20_desc =
-        espp::ms_os_20::descriptor_set(std::span<const espp::ms_os_20::Function>{ms_functions});
-    // the BOS platform capability carries the set's length in a uint16_t (a
-    // few hundred bytes here; guard the narrowing anyway)
-    if (impl_->ms_os_20_desc.size() > std::numeric_limits<uint16_t>::max()) {
+    impl_->ms_os_20_desc = espp::ms_os_20::descriptor_set(
+        std::span<const espp::ms_os_20::Function>(ms_functions.data(), ms_functions.size()));
+    // The builder returns nothing if the set would not fit the format's 16-bit
+    // length fields (the BOS capability carries the same length); a few hundred
+    // bytes here, so this is a guard, not an expected path.
+    if (impl_->ms_os_20_desc.empty()) {
       logger_.error("MS OS 2.0 descriptor set too long ({} bytes); max {}",
-                    impl_->ms_os_20_desc.size(), std::numeric_limits<uint16_t>::max());
+                    espp::ms_os_20::descriptor_set_length(std::span<const espp::ms_os_20::Function>(
+                        ms_functions.data(), ms_functions.size())),
+                    espp::ms_os_20::kMaxSetLength);
       ec = std::make_error_code(std::errc::invalid_argument);
       return false;
     }

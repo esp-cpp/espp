@@ -24,6 +24,7 @@
 // usb_device.cpp); `descriptor_set()` is the pure byte builder.
 
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -71,7 +72,12 @@ struct Function {
   bool device_interface_guid{false}; ///< add the DeviceInterfaceGUIDs registry property
 };
 
-/// Byte length descriptor_set() produces for these functions.
+/// Longest set the format can describe: every length field (the set's, the
+/// configuration subset's, each function subset's) is 16 bits.
+inline constexpr size_t kMaxSetLength = 0xFFFF;
+
+/// Byte length descriptor_set() produces for these functions (not capped: compare
+/// with kMaxSetLength to know whether descriptor_set() can build it).
 inline constexpr size_t descriptor_set_length(std::span<const Function> functions) {
   size_t n = kSetHeaderLen + kConfigurationSubsetHeaderLen;
   for (const auto &f : functions) {
@@ -84,10 +90,14 @@ inline constexpr size_t descriptor_set_length(std::span<const Function> function
 
 /// Build the MS OS 2.0 descriptor set for the given functions (in interface
 /// order). An empty list yields a set with no function subsets, which Windows
-/// accepts but which binds nothing.
+/// accepts but which binds nothing. Returns an empty vector if the set would
+/// not fit the format's 16-bit length fields (kMaxSetLength; thousands of
+/// functions, so a caller error rather than a real device).
 inline std::vector<uint8_t> descriptor_set(std::span<const Function> functions) {
   std::vector<uint8_t> out;
   const size_t total = descriptor_set_length(functions);
+  if (total > kMaxSetLength)
+    return out;
   out.reserve(total);
   auto u16 = [&](uint16_t v) {
     out.push_back(static_cast<uint8_t>(v & 0xFF));
@@ -148,6 +158,7 @@ inline std::vector<uint8_t> descriptor_set(std::span<const Function> functions) 
       u16(0x0000); // multi-string terminator
     }
   }
+  assert(out.size() == total); // the length computation and the bytes agree
   return out;
 }
 
