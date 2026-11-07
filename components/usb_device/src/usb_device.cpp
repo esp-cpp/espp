@@ -2077,7 +2077,10 @@ bool UsbDevice::is_xinput_ready() const {
   if (!initialized_ || !config_.xinput)
     return false;
   // Fixed at initialize(), immutable after; tud_mounted() implies the class
-  // driver has opened this interface's endpoints (it is the only function).
+  // driver has opened this interface's endpoints (alone or in a composite
+  // device). A busy IN endpoint means the host has not taken the last report:
+  // no X-Input driver is polling it (macOS has none), so the state is "not
+  // ready" until one does.
   const uint8_t ep_in = impl_->xinput_ep_in;
   return tud_mounted() && ep_in != 0 && !usbd_edpt_busy(0, ep_in);
 }
