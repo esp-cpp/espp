@@ -5,8 +5,8 @@ Scope: add ROS-style **services** (RMI, request/reply) and **actions** (AMI, goa
 server) to the `rtps_embedded` engine, in two tracks:
 
 - **Track A — ROS 2 interoperable.** Byte-compatible with FastDDS / `rmw_fastrtps`
-  (the stack already validated by the pub/sub interop gate). Other DDS RMWs
-  (cyclonedds, connext) are explicitly **later**.
+  (the stack already validated by the pub/sub interop gate), and since the
+  CycloneDDS service work (§3.2b) with `rmw_cyclonedds`. Connext is **later**.
 - **Track B — native minimal protocol.** A separate, deliberately lightweight
   request/reply + action protocol for espp↔espp, tuned for embedded entity/memory
   budgets. Does **not** interoperate with ROS and is not meant to.
@@ -154,6 +154,53 @@ inline-QoS TLV loop) and surface it on `ReaderCacheChange`.
 > Still to verify before M1 lands (non-blocking for the wire format): whether
 > SEDP needs a type hash / `TypeInformation` for `ros2 service list` and matching,
 > or plain topic+type-name match suffices. Test against a live node.
+
+### 3.2b Correlation with `rmw_cyclonedds_cpp` — an in-payload header
+
+`rmw_cyclonedds_cpp` (humble through jazzy) does not use `related_sample_identity`
+at all. It prepends a 16-byte header to the CDR **body** of every request and
+every reply (`rmw_cyclonedds_cpp/src/serdata.hpp`, `cdds_request_header_t`):
+
+```
+encapsulation (4) | guid (uint64) | seq (int64) | <Service>_Request / _Response
+```
+
+- The header is written in the payload's CDR endianness (second encapsulation
+  byte, `0x01` = LE). Being exactly 16 bytes it leaves the body 8-byte aligned,
+  so the body's bytes are identical to a standalone sample: strip/prepend is a
+  byte splice, no re-encoding.
+- `guid` is the client's request-writer *instance handle* (an opaque 64-bit
+  value, not a GUID), `seq` a client-wide counter (`rmw_send_request`). The
+  server echoes both (`rmw_send_response`); the client takes a reply iff
+  `reply.guid == its own guid` (`rmw_take_response`) and `seq` finds the pending
+  request. The reply is a plain DATA on the shared `rr/` topic - no inline QoS.
+- `rmw_service_server_is_available` on the Cyclone client needs a matched
+  request reader and reply writer; it only requires `serviceid=` user data on
+  them when some matched reader advertises one, so espp's endpoints (no user
+  data) pass. Likewise a Cyclone server answers an espp client whose request
+  writer carries no `clientid=` user data.
+
+**What espp does (implemented in `rtps_participant.cpp`, codec in
+`rpc/cyclonedds_request_header.hpp`):**
+
+- The engine stamps every `ReaderCacheChange` with the vendor id from the RTPS
+  message header (`sourceVendor`; the reassembled DATA_FRAG sample too).
+- **SERVER**: a request with no `related_sample_identity` from vendor `01.10`
+  (Eclipse Cyclone DDS) is a Cyclone request: parse and strip the header, hand
+  the handler the bare `<Service>_Request`, and send the reply as
+  `encapsulation | guid | seq | <Service>_Response` with **no** inline QoS. Any
+  other request is answered as in §3.2. The decision is per request, so a mixed
+  domain (Fast DDS and Cyclone clients of one espp service) works.
+- **CLIENT**: before each request, the vendor of every matched request reader is
+  looked up (`Participant::findRemoteParticipant` on the proxy's GUID prefix).
+  All Cyclone → header form with `guid` = FNV-1a of our request-writer GUID and
+  `seq` = a per-client counter, pending key `1<<63 | seq` (a packed RTPS sequence
+  number never sets bit 63, so the two key spaces of one map cannot collide).
+  Otherwise → the inline-QoS form of §3.2. Replies are accepted in either form,
+  the Cyclone one only when `guid` is ours.
+- Actions need nothing extra: their three services go through the same code.
+- Size: the header counts against `MAX_UNFRAGMENTED_RPC_PAYLOAD`, so both client
+  kinds get the same request/reply size limit.
 
 ### 3.3 Service API (L2a)
 
@@ -420,6 +467,9 @@ Python demo 5/5) on branch `feat/rtps-services`.
       QoS PIDs **0x0083 + 0x800f** (24-byte SampleIdentity, CDR_LE), on BOTH
       request and reply. Corrected the earlier 0x8002 / no-request-QoS guesses.
 - [x] Target ROS distro → **Jazzy** (Fast-RTPS vendorId 01.15).
+- [x] `rmw_cyclonedds_cpp` services/actions → **done** (§3.2b): in-payload
+      `{guid, seq}` header, chosen per peer by vendor id 01.10; the interop
+      matrix runs the four service/action cases under both RMWs.
 - [x] Does SEDP need service-specific discovery attributes (type hash,
       `TypeInformation`) for `ros2 service list` / matching? **Answered: NO** (M1.5).
       Plain rq/rr topic + `_Request_`/`_Response_` type-name matching suffices;

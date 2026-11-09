@@ -5,7 +5,7 @@
 ESPP component that integrates the [embeddedRTPS](https://github.com/embedded-software-laboratory/embeddedRTPS)
 RTPS/DDS stack into the ESPP ecosystem, behind an idiomatic `espp::RtpsParticipant`
 facade. Any platform that can build ESPP — ESP32, Linux, macOS, Windows — can use
-it to interoperate with **ROS 2** nodes (rmw_fastrtps) or any DDS participant on
+it to interoperate with **ROS 2** nodes (rmw_fastrtps or rmw_cyclonedds) or any DDS participant on
 the network over the standard RTPS wire protocol.
 
 It provides three messaging patterns, all validated against live ROS 2 (Jazzy):

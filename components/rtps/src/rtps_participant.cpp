@@ -18,6 +18,7 @@
 #include "rtps/entities/Domain.hpp"
 #include "rtps/rpc/action_naming.hpp"
 #include "rtps/rpc/action_types.hpp"
+#include "rtps/rpc/cyclonedds_request_header.hpp"
 #include "rtps/rpc/native_protocol.hpp"
 #include "rtps/rpc/sample_identity.hpp"
 #include "rtps/rpc/service_naming.hpp"
@@ -802,7 +803,14 @@ void RtpsParticipant::subscriber_matched_trampoline(void *arg) {
 
 #ifdef RTPS_WITH_RPC
 // ===========================================================================
-// Services (RMI) - request/reply with related_sample_identity correlation.
+// Services (RMI) - request/reply correlation. Two wire forms, chosen per peer
+// by its vendor id:
+//   - related_sample_identity inline QoS on request and reply: rmw_fastrtps_cpp,
+//     espp itself, DDS-RPC (see rpc/sample_identity.hpp);
+//   - a 16-byte {guid, seq} header inside the payload of request and reply:
+//     rmw_cyclonedds_cpp (see rpc/cyclonedds_request_header.hpp).
+// A server answers each request in the form it arrived in; a client picks the
+// form from the vendor of its matched request readers.
 // ===========================================================================
 
 namespace {
@@ -833,7 +841,11 @@ struct RtpsParticipant::ServiceServerContext
 // can be sent once, later, from any thread.
 struct RtpsParticipant::ServiceResponder::State {
   rtps::Writer *reply_writer{nullptr};
-  rtps::rpc::SampleIdentity related{};
+  rtps::rpc::SampleIdentity related{}; // inline-QoS form (unused when cyclonedds)
+  // Set when the request came from an rmw_cyclonedds_cpp client: the reply
+  // echoes its in-payload {guid, seq} header as a plain DATA, with no inline QoS.
+  bool cyclonedds{false};
+  rtps::rpc::CycloneDdsRequestHeader cyclonedds_header{};
   std::atomic<bool> replied{false};
   // Held so a deferred reply that races participant shutdown no-ops instead of
   // writing through a freed engine writer (see RtpsParticipant::Liveness).
@@ -849,11 +861,18 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
   if (!state_ || state_->reply_writer == nullptr || !state_->live) {
     return;
   }
-  // A reply carries its related_sample_identity as inline QoS, so it must fit a
-  // single DATA submessage (a fragmented reply loses the correlation - see
-  // MAX_UNFRAGMENTED_RPC_PAYLOAD). Reject rather than send an uncorrelated reply.
-  if (response.size() > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
+  // A reply must fit a single DATA submessage: with inline QoS a fragmented
+  // reply loses the correlation (see MAX_UNFRAGMENTED_RPC_PAYLOAD), and the
+  // Cyclone header counts against the same budget so both client kinds get the
+  // same limit. Reject rather than send an uncorrelated reply.
+  const std::size_t wire_size =
+      response.size() +
+      (state_->cyclonedds ? rtps::rpc::CYCLONEDDS_REQUEST_HEADER_SIZE : std::size_t{0});
+  if (wire_size > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
     return;
+  }
+  if (state_->cyclonedds && response.size() < rtps::rpc::CDR_ENCAPSULATION_SIZE) {
+    return; // no encapsulation header to splice the Cyclone header behind
   }
   bool expected = false;
   if (!state_->replied.compare_exchange_strong(expected, true)) {
@@ -876,14 +895,23 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
       return;
     }
   }
+  if (state_->cyclonedds) {
+    const auto payload =
+        rtps::rpc::prependCycloneDdsRequestHeader(state_->cyclonedds_header, response);
+    state_->reply_writer->newChange(rtps::ChangeKind_t::ALIVE, payload.data(),
+                                    static_cast<rtps::DataSize_t>(payload.size()));
+    return;
+  }
   state_->reply_writer->newChangeWithRelatedSampleIdentity(
       rtps::ChangeKind_t::ALIVE, response.data(), static_cast<rtps::DataSize_t>(response.size()),
       state_->related);
 }
 
-// Client state: request writer + pending-request table keyed by the request's
-// RTPS writerSeqNumber (which the server echoes in the reply's
-// related_sample_identity), matched on our own reply-reader GUID.
+// Client state: request writer + pending-request table. Against an inline-QoS
+// server the key is the request's RTPS writerSeqNumber (echoed in the reply's
+// related_sample_identity), matched on our own reply-reader GUID. Against an
+// rmw_cyclonedds_cpp server the key is CYCLONEDDS_KEY_BIT | our header seq
+// (echoed in the reply's in-payload header), matched on our client id.
 struct RtpsParticipant::ServiceClient::Impl
     : std::enable_shared_from_this<RtpsParticipant::ServiceClient::Impl> {
   struct SyncSlot {
@@ -901,23 +929,89 @@ struct RtpsParticipant::ServiceClient::Impl
   rtps::Writer *request_writer{nullptr};
   rtps::Reader *reply_reader{nullptr}; ///< retained for composite (action) rollback
   rtps::Guid_t reply_reader_guid{};
+  // Cyclone form: a packed RTPS sequence number never has bit 63 set (its high
+  // word is a non-negative int32), so tagging the header seq with it keeps the
+  // two key spaces of `pending` apart.
+  static constexpr uint64_t CYCLONEDDS_KEY_BIT = uint64_t{1} << 63;
+  uint64_t cyclonedds_client_id{0}; ///< the header's guid field, ours to choose
+  uint64_t cyclonedds_next_seq{0};  ///< the header's seq field, per request
   std::mutex mutex;
   std::unordered_map<uint64_t, Pending> pending;
   DeferredDispatch deferred; // banded reply reader without a dedicated port
 
-  // Send a request carrying our reply-reader GUID as related_sample_identity
-  // (with an UNKNOWN sequence number, per rmw), register the pending entry keyed
-  // by the assigned writerSeqNumber, and return that key. nullopt on failure.
+  // True when the matched request readers all belong to Eclipse Cyclone DDS
+  // participants (vendor 01.10): such a server ignores inline QoS and expects
+  // the in-payload header. Unmatched or mixed vendors keep the inline-QoS form,
+  // which rmw_fastrtps_cpp, espp and DDS-RPC servers speak. Decided per request
+  // so a server that appears later is served in its form without re-creating
+  // the client. Takes the writer's and the participant's locks in turn, never
+  // nested.
+  bool peer_is_cyclonedds() const {
+    struct Prefixes {
+      std::array<rtps::GuidPrefix_t, rtps::Config::NUM_READER_PROXIES_PER_WRITER> items{};
+      std::size_t count{0};
+    } prefixes;
+    request_writer->dumpAllProxies(
+        [](const rtps::Writer *, const rtps::ReaderProxy &proxy, void *arg) {
+          auto *out = static_cast<Prefixes *>(arg);
+          for (std::size_t i = 0; i < out->count; ++i) {
+            if (out->items[i] == proxy.remoteReaderGuid.prefix) {
+              return;
+            }
+          }
+          if (out->count < out->items.size()) {
+            out->items[out->count++] = proxy.remoteReaderGuid.prefix;
+          }
+        },
+        &prefixes);
+    if (prefixes.count == 0 || self == nullptr || self->participant_ == nullptr) {
+      return false;
+    }
+    std::size_t cyclonedds = 0;
+    for (std::size_t i = 0; i < prefixes.count; ++i) {
+      const auto *remote = self->participant_->findRemoteParticipant(prefixes.items[i]);
+      if (remote != nullptr && rtps::rpc::isCycloneDds(remote->m_vendorId)) {
+        ++cyclonedds;
+      }
+    }
+    return cyclonedds == prefixes.count;
+  }
+
+  // Send a request in the matched server's form, register the pending entry
+  // under the key its reply will carry, and return that key. nullopt on failure.
+  // Inline-QoS form: our reply-reader GUID as related_sample_identity (with an
+  // UNKNOWN sequence number, per rmw), keyed by the assigned writerSeqNumber.
+  // Cyclone form: {client id, next seq} spliced into the payload, keyed by
+  // CYCLONEDDS_KEY_BIT | seq.
   std::optional<uint64_t> send(std::span<const uint8_t> request, reply_callback_t on_reply,
                                std::shared_ptr<SyncSlot> sync) {
-    // A request carries its related_sample_identity as inline QoS, so it must
-    // fit a single DATA submessage (see MAX_UNFRAGMENTED_RPC_PAYLOAD).
+    // A request must fit a single DATA submessage: inline QoS does not survive
+    // fragmentation, and the Cyclone header counts against the same budget (see
+    // MAX_UNFRAGMENTED_RPC_PAYLOAD).
     if (request.size() > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
       return std::nullopt;
     }
     std::lock_guard<std::mutex> lock(mutex);
     // Hold the lock across newChange + insert so a reply can never look up the
     // key before it is registered (the send itself is async).
+    if (peer_is_cyclonedds()) {
+      if (request.size() < rtps::rpc::CDR_ENCAPSULATION_SIZE ||
+          request.size() + rtps::rpc::CYCLONEDDS_REQUEST_HEADER_SIZE >
+              rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
+        return std::nullopt;
+      }
+      const rtps::rpc::CycloneDdsRequestHeader header{cyclonedds_client_id,
+                                                      static_cast<int64_t>(++cyclonedds_next_seq)};
+      const auto payload = rtps::rpc::prependCycloneDdsRequestHeader(header, request);
+      const auto *change = request_writer->newChange(rtps::ChangeKind_t::ALIVE, payload.data(),
+                                                     static_cast<rtps::DataSize_t>(payload.size()));
+      if (change == nullptr) {
+        return std::nullopt;
+      }
+      const uint64_t key = CYCLONEDDS_KEY_BIT | static_cast<uint64_t>(header.seq);
+      pending[key] = Pending{std::move(on_reply), std::move(sync)};
+      return key;
+    }
     const rtps::rpc::SampleIdentity related{reply_reader_guid, rtps::SequenceNumber_t{-1, 0}};
     const auto *change = request_writer->newChangeWithRelatedSampleIdentity(
         rtps::ChangeKind_t::ALIVE, request.data(), static_cast<rtps::DataSize_t>(request.size()),
@@ -944,17 +1038,31 @@ void RtpsParticipant::service_request_trampoline(void *arg, const rtps::ReaderCa
     return;
   }
 
-  // Build a responder correlated to this request: echo {client reply-reader GUID
-  // (from the request's related sample identity), request writerSeqNumber}. A
+  // Build a responder correlated to this request, in the client's own form. A
   // sync handler replies immediately; a deferred one may hold the responder.
   auto state = std::make_shared<ServiceResponder::State>();
   state->reply_writer = ctx->reply_writer;
   state->live = ctx->self->live_;
   state->endpoint_live = ctx->writer_live;
-  state->related.writer_guid = change.hasRelatedSampleIdentity
-                                   ? change.relatedSampleIdentity.writer_guid
-                                   : change.writerGuid;
-  state->related.sequence_number = change.sn;
+  if (!change.hasRelatedSampleIdentity && rtps::rpc::isCycloneDds(change.sourceVendor)) {
+    // rmw_cyclonedds_cpp client: the correlation is the {guid, seq} header
+    // inside the payload. Keep it for the reply; the handler sees the bare
+    // request, exactly as it would from any other client.
+    rtps::rpc::CycloneDdsRequestHeader header{};
+    if (!rtps::rpc::parseCycloneDdsRequestHeader(*request, header)) {
+      return; // too short to carry the header: not a request we can answer
+    }
+    state->cyclonedds = true;
+    state->cyclonedds_header = header;
+    *request = rtps::rpc::stripCycloneDdsRequestHeader(*request);
+  } else {
+    // Inline-QoS client: echo {client reply-reader GUID (from the request's
+    // related sample identity), request writerSeqNumber}.
+    state->related.writer_guid = change.hasRelatedSampleIdentity
+                                     ? change.relatedSampleIdentity.writer_guid
+                                     : change.writerGuid;
+    state->related.sequence_number = change.sn;
+  }
   // Inline for the default path; banded shared-port servers run the handler
   // from the pool at their band instead (see DeferredDispatch). Shared
   // capture: queued work owns the context, so removal/rollback cannot free it
@@ -969,19 +1077,37 @@ void RtpsParticipant::service_request_trampoline(void *arg, const rtps::ReaderCa
 
 void RtpsParticipant::service_reply_trampoline(void *arg, const rtps::ReaderCacheChange &change) {
   auto *impl = static_cast<ServiceClient::Impl *>(arg);
-  if (impl == nullptr || !change.hasRelatedSampleIdentity) {
+  if (impl == nullptr) {
     return;
   }
-  // Only replies addressed to this client (our reply-reader GUID).
-  if (!(change.relatedSampleIdentity.writer_guid == impl->reply_reader_guid)) {
-    return;
+  // Only replies addressed to this client, in either form. The inline-QoS
+  // check needs no payload; the Cyclone header is read after the copy below.
+  uint64_t key = 0;
+  bool cyclonedds = false;
+  if (change.hasRelatedSampleIdentity) {
+    if (!(change.relatedSampleIdentity.writer_guid == impl->reply_reader_guid)) {
+      return;
+    }
+    key = seq_key(change.relatedSampleIdentity.sequence_number);
+  } else if (rtps::rpc::isCycloneDds(change.sourceVendor)) {
+    cyclonedds = true;
+  } else {
+    return; // no correlation we understand
   }
-  const uint64_t key = seq_key(change.relatedSampleIdentity.sequence_number);
 
   // shared_ptr payload: see service_request_trampoline.
   auto reply = std::make_shared<std::vector<uint8_t>>(change.getDataSize());
   if (!reply->empty() && !change.copyInto(reply->data(), change.getDataSize())) {
     return;
+  }
+  if (cyclonedds) {
+    rtps::rpc::CycloneDdsRequestHeader header{};
+    if (!rtps::rpc::parseCycloneDdsRequestHeader(*reply, header) ||
+        header.guid != impl->cyclonedds_client_id) {
+      return; // malformed, or another client's reply
+    }
+    key = ServiceClient::Impl::CYCLONEDDS_KEY_BIT | static_cast<uint64_t>(header.seq);
+    *reply = rtps::rpc::stripCycloneDdsRequestHeader(*reply);
   }
 
   ServiceClient::Impl::Pending pending;
@@ -1870,6 +1996,8 @@ RtpsParticipant::add_service_client(const ServiceConfig &config) {
   impl->request_writer = request_writer;
   impl->reply_reader = reply_reader;
   impl->reply_reader_guid = reply_reader->m_attributes.endpointGuid;
+  impl->cyclonedds_client_id =
+      rtps::rpc::cycloneDdsClientId(request_writer->m_attributes.endpointGuid);
   if (config.band != espp::QosBand::Normal && !reply_reader->m_attributes.hasDedicatedPort) {
     // Banded reply reader on the shared port: deliver replies deferred at the
     // service's band instead of inline on the receive worker.

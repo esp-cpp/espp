@@ -97,6 +97,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_pubsub rtps_golden rtps_locator_subnet rtps_facade_pubsub rtps_typed_pubsub \
        rtps_facade_frag rtps_facade_backlog rtps_facade_frag_sizes rtps_service_loopback \
        rtps_service_naming rtps_action_naming rtps_action_types rtps_native_protocol \
+       rtps_cyclonedds_rpc_header \
        rtps_action_loopback \
        rtps_native_service_loopback rtps_native_action_loopback rtps_typed_rpc_loopback \
        rtps_service_interop_server rtps_service_interop_client \
@@ -127,6 +128,9 @@ note "ROS 2 service + action name/type mangling (host)"
 
 note "ROS 2 action envelope codec vs captured Fibonacci bytes (host)"
 "$BIN"/rtps_action_types; result "action_types" $?
+
+note "rmw_cyclonedds_cpp in-payload request/reply header codec (host)"
+"$BIN"/rtps_cyclonedds_rpc_header; result "cyclonedds_rpc_header" $?
 
 note "native (espp<->espp) protocol codec: header + action framing (host)"
 "$BIN"/rtps_native_protocol; result "native_protocol" $?
@@ -351,80 +355,83 @@ echo "--- subbig tail ---"; tail -20 /tmp/subbig.log
 echo "--- rospubbig tail ---"; tail -5 /tmp/rospubbig.log
 result "ros2_pub->espp_sub_200k" $big2_rc
 
-# --- Services (RMI): live ROS 2 <-> espp request/reply -----------------------
-# The espp service uses the same rq/rr topics + _Request_/_Response_ types +
-# related_sample_identity inline QoS that rmw_fastrtps uses, so a real ROS 2
-# client/server interoperates with no type-hash exchange (verified: the service
-# even appears in `ros2 service list`).
+# --- Services (RMI) + actions (AMI): live ROS 2 <-> espp -------------------
+# The espp service uses the same rq/rr topics + _Request_/_Response_ types as
+# ROS 2, so a real ROS 2 client/server interoperates with no type-hash exchange
+# (verified: the service even appears in `ros2 service list`). Correlation
+# follows the peer's RMW: related_sample_identity inline QoS for
+# rmw_fastrtps_cpp, the in-payload {guid, seq} header for rmw_cyclonedds_cpp
+# (see rpc/cyclonedds_request_header.hpp) - so the four cases run under both.
+rpc_cases() { # prefix log-tag
+  local prefix="$1" tag="$2"
+  note "${prefix}espp service server <- ROS 2 client (ros2 service call add_two_ints)"
+  "$BIN"/rtps_service_interop_server /add_two_ints example_interfaces::srv::dds_::AddTwoInts 40 \
+    > "/tmp/${tag}svcsrv.log" 2>&1 &
+  local svcsrv=$!
+  sleep 4
+  timeout 25 ros2 service call /add_two_ints example_interfaces/srv/AddTwoInts "{a: 7, b: 35}" \
+    > "/tmp/${tag}svccall.log" 2>&1
+  # Pass iff ROS 2 got the correct response (sum=42).
+  grep -q "sum=42" "/tmp/${tag}svccall.log"; local svccall_rc=$?
+  sleep 1
+  kill $svcsrv 2>/dev/null; wait $svcsrv 2>/dev/null
+  echo "--- ros2 service call ---"; tail -3 "/tmp/${tag}svccall.log"
+  echo "--- espp server ---"; grep "server:" "/tmp/${tag}svcsrv.log" | tail -3
+  result "${prefix}espp_service_server<-ros2_client" $svccall_rc
 
-note "espp service server <- ROS 2 client (ros2 service call add_two_ints)"
-"$BIN"/rtps_service_interop_server /add_two_ints example_interfaces::srv::dds_::AddTwoInts 40 \
-  > /tmp/svcsrv.log 2>&1 &
-SVCSRV=$!
-sleep 4
-timeout 25 ros2 service call /add_two_ints example_interfaces/srv/AddTwoInts "{a: 7, b: 35}" \
-  > /tmp/svccall.log 2>&1
-# Pass iff ROS 2 got the correct response (sum=42).
-grep -q "sum=42" /tmp/svccall.log; svccall_rc=$?
-sleep 1
-kill $SVCSRV 2>/dev/null; wait $SVCSRV 2>/dev/null
-echo "--- ros2 service call ---"; tail -3 /tmp/svccall.log
-echo "--- espp server ---"; grep "server:" /tmp/svcsrv.log | tail -3
-result "espp_service_server<-ros2_client" $svccall_rc
+  note "${prefix}espp service client -> ROS 2 server (rclpy add_two_ints)"
+  python3 /work/components/rtps/interop/ros2_add_two_ints_server.py > "/tmp/${tag}rossvcsrv.log" 2>&1 &
+  local rossvc=$!
+  sleep 4
+  timeout 35 "$BIN"/rtps_service_interop_client /add_two_ints example_interfaces::srv::dds_::AddTwoInts \
+    20 22 30 > "/tmp/${tag}svcclient.log" 2>&1
+  local svcclient_rc=$?
+  kill $rossvc 2>/dev/null; wait $rossvc 2>/dev/null
+  echo "--- espp client ---"; tail -2 "/tmp/${tag}svcclient.log"
+  echo "--- rclpy server ---"; grep -iE "= [0-9]" "/tmp/${tag}rossvcsrv.log" | tail -2
+  result "${prefix}espp_service_client->ros2_server" $svcclient_rc
 
-note "espp service client -> ROS 2 server (rclpy add_two_ints)"
-python3 /work/components/rtps/interop/ros2_add_two_ints_server.py > /tmp/rossvcsrv.log 2>&1 &
-ROSSVC=$!
-sleep 4
-timeout 35 "$BIN"/rtps_service_interop_client /add_two_ints example_interfaces::srv::dds_::AddTwoInts \
-  20 22 30 > /tmp/svcclient.log 2>&1
-svcclient_rc=$?
-kill $ROSSVC 2>/dev/null; wait $ROSSVC 2>/dev/null
-echo "--- espp client ---"; tail -2 /tmp/svcclient.log
-echo "--- rclpy server ---"; grep -iE "= [0-9]" /tmp/rossvcsrv.log | tail -2
-result "espp_service_client->ros2_server" $svcclient_rc
+  note "${prefix}espp action server <- ROS 2 client (ros2 action send_goal -f fibonacci)"
+  "$BIN"/rtps_action_interop_server /fibonacci example_interfaces::action::dds_::Fibonacci 45 \
+    > "/tmp/${tag}actsrv.log" 2>&1 &
+  local actsrv=$!
+  sleep 5
+  timeout 30 ros2 action send_goal -f /fibonacci example_interfaces/action/Fibonacci "{order: 5}" \
+    > "/tmp/${tag}actsend.log" 2>&1
+  # Pass iff the ROS 2 client's goal completed on the espp server (full round-trip:
+  # send_goal accepted -> feedback -> deferred get_result -> SUCCEEDED). The result
+  # sequence itself is byte-validated separately by the action_types codec test.
+  grep -q "status: SUCCEEDED" "/tmp/${tag}actsend.log"
+  local actsend_rc=$?
+  sleep 1
+  kill $actsrv 2>/dev/null; wait $actsrv 2>/dev/null
+  echo "--- ros2 action send_goal ---"; grep -iE "Result:|sequence=|status|Goal finished" "/tmp/${tag}actsend.log" | tail -4
+  echo "--- espp action server ---"; grep "server:" "/tmp/${tag}actsrv.log" | tail -3
+  result "${prefix}espp_action_server<-ros2_client" $actsend_rc
 
-# --- Actions (AMI): live ROS 2 <-> espp Fibonacci ---------------------------
-
-note "espp action server <- ROS 2 client (ros2 action send_goal -f fibonacci)"
-"$BIN"/rtps_action_interop_server /fibonacci example_interfaces::action::dds_::Fibonacci 45 \
-  > /tmp/actsrv.log 2>&1 &
-ACTSRV=$!
-sleep 5
-timeout 30 ros2 action send_goal -f /fibonacci example_interfaces/action/Fibonacci "{order: 5}" \
-  > /tmp/actsend.log 2>&1
-# Pass iff the ROS 2 client's goal completed on the espp server (full round-trip:
-# send_goal accepted -> feedback -> deferred get_result -> SUCCEEDED). The result
-# sequence itself is byte-validated separately by the action_types codec test.
-grep -q "status: SUCCEEDED" /tmp/actsend.log
-actsend_rc=$?
-sleep 1
-kill $ACTSRV 2>/dev/null; wait $ACTSRV 2>/dev/null
-echo "--- ros2 action send_goal ---"; grep -iE "Result:|sequence=|status|Goal finished" /tmp/actsend.log | tail -4
-echo "--- espp action server ---"; grep "server:" /tmp/actsrv.log | tail -3
-result "espp_action_server<-ros2_client" $actsend_rc
-
-note "espp action client -> ROS 2 server (rclpy Fibonacci)"
-python3 /work/components/rtps/interop/ros2_fibonacci_server.py > /tmp/rosactsrv.log 2>&1 &
-ROSACT=$!
-sleep 5
-timeout 40 "$BIN"/rtps_action_interop_client /fibonacci example_interfaces::action::dds_::Fibonacci \
-  5 30 > /tmp/actclient.log 2>&1
-actclient_rc=$?
-kill $ROSACT 2>/dev/null; wait $ROSACT 2>/dev/null
-echo "--- espp action client ---"; tail -2 /tmp/actclient.log
-echo "--- rclpy server ---"; grep -iE "order=" /tmp/rosactsrv.log | tail -2
-result "espp_action_client->ros2_server" $actclient_rc
+  note "${prefix}espp action client -> ROS 2 server (rclpy Fibonacci)"
+  python3 /work/components/rtps/interop/ros2_fibonacci_server.py > "/tmp/${tag}rosactsrv.log" 2>&1 &
+  local rosact=$!
+  sleep 5
+  timeout 40 "$BIN"/rtps_action_interop_client /fibonacci example_interfaces::action::dds_::Fibonacci \
+    5 30 > "/tmp/${tag}actclient.log" 2>&1
+  local actclient_rc=$?
+  kill $rosact 2>/dev/null; wait $rosact 2>/dev/null
+  echo "--- espp action client ---"; tail -2 "/tmp/${tag}actclient.log"
+  echo "--- rclpy server ---"; grep -iE "order=" "/tmp/${tag}rosactsrv.log" | tail -2
+  result "${prefix}espp_action_client->ros2_server" $actclient_rc
+}
+rpc_cases "" ""
 
 # --- CycloneDDS: the ROS 2 pairs again on rmw_cyclonedds_cpp -----------------
 # CycloneDDS is stricter than FastDDS on the wire: it addresses HEARTBEAT/GAP to
 # ENTITYID_UNKNOWN, resolves ACKNACKs through INFO_DST, rejects a pre-emptive
 # ACKNACK with base 0 from vendors other than eProsima/RTI, and leaves the
 # per-endpoint unicast locator out of SEDP. Each of these alone stops all samples.
-# Services are not run here: rmw_cyclonedds_cpp correlates requests with a
-# {guid, seq} header in the payload, not the related_sample_identity inline QoS
-# that espp's services (and rmw_fastrtps_cpp) use.
-note "CycloneDDS (rmw_cyclonedds_cpp): ROS 2 pub/sub pairs"
+# Services and actions run here too: rmw_cyclonedds_cpp correlates requests with
+# a {guid, seq} header in the payload, not the related_sample_identity inline
+# QoS of rmw_fastrtps_cpp, and espp's endpoints answer each peer in its own form.
+note "CycloneDDS (rmw_cyclonedds_cpp): ROS 2 pub/sub pairs, services, actions"
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 # CycloneDDS caps the participants one host may create on a domain through its
 # participant-index range (MaxAutoParticipantIndex, default 9 = ten
@@ -473,6 +480,7 @@ result "cyclone: ros2_be_pub->espp_be_sub" $csub2_rc
 
 lease_liveliness_cases "cyclone: " "c"
 many_participants_case "cyclone: " "c"
+rpc_cases "cyclone: " "c"
 
 if grep -l "malformed packet received from vendor" /tmp/c*.log > /dev/null 2>&1; then
   echo "CycloneDDS reported malformed packets from espp:"; grep -h "malformed packet" /tmp/c*.log | head -3

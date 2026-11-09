@@ -7,7 +7,8 @@ Asynchronous Method Invocation) messaging on top of its RTPS pub/sub, in two
 flavours:
 
 - **ROS 2-interoperable** services and actions — byte-compatible with
-  ``rmw_fastrtps`` (validated against live ROS 2 Jazzy nodes, both directions).
+  ``rmw_fastrtps`` and ``rmw_cyclonedds`` (validated against live ROS 2 Jazzy
+  nodes, both directions).
 - **Native** (espp ↔ espp) services and actions — a deliberately lean protocol
   that trades ROS interop for a smaller footprint and simpler wire.
 
@@ -112,6 +113,17 @@ PID ``0x800f`` (eProsima legacy). The client stamps its request with
 matches replies against its pending table. This is confirmed byte-for-byte
 against a live capture — and no SEDP type-hash exchange is needed: an espp
 service even shows up in ``ros2 service list``.
+
+``rmw_cyclonedds`` correlates differently: no inline QoS, but a 16-byte
+``{guid, seq}`` header spliced between the CDR encapsulation and the body of
+every request and reply, which the server echoes and the client matches on.
+espp tells the two apart by the peer's vendor id (Eclipse Cyclone DDS is
+``01.10``, carried in every RTPS message header and recorded per participant
+by SPDP): a server answers each request in the form it arrived in, so one
+service serves Fast DDS and Cyclone clients at once, and a client writes its
+requests in the form of the server it matched. User code never sees the
+header — requests and replies are handed over as the bare ``_Request`` /
+``_Response`` either way. See ``rtps/rpc/cyclonedds_request_header.hpp``.
 
 Actions (AMI)
 =============
@@ -235,8 +247,10 @@ Every mechanism is covered end-to-end:
   ``rtps_action_types``) checked byte-for-byte against live ROS 2 captures.
 - **On-device**: the ``components/rtps/example`` (esp32) hosts a typed
   ``/add_two_ints`` service and a ``/fibonacci`` action a ROS 2 client can drive.
-- **Live ROS 2 interop** (dockerised ``rmw_fastrtps``, both directions):
-  ``ros2 service call`` ↔ espp server, espp client ↔ rclpy server, and the same
-  for actions (``ros2 action send_goal`` ↔ espp, espp ↔ rclpy). See
-  ``components/rtps/interop/``.
+- **Live ROS 2 interop** (dockerised, both directions, once on
+  ``rmw_fastrtps`` and once on ``rmw_cyclonedds``): ``ros2 service call`` ↔ espp
+  server, espp client ↔ rclpy server, and the same for actions
+  (``ros2 action send_goal`` ↔ espp, espp ↔ rclpy). See
+  ``components/rtps/interop/``; ``rtps_cyclonedds_rpc_header`` pins the Cyclone
+  header codec on the host.
 - **Python**: ``python/rtps_rpc_demo.py`` exercises all four mechanisms.
