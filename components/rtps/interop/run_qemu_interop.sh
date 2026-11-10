@@ -251,22 +251,42 @@ note "pool full of participants the device has no use for (28 against 24) and th
 # match (Config::SPDP_EVICT_UNUSED_PARTICIPANTS: oldest first, one per
 # announcement period, logged by the device). With this build's knobs the
 # builtin proxy pools (20) fill before the participant pool (24), so this is
-# the proxy-pool trigger of the eviction that is exercised here. The rejected members of the
-# crowd re-announce every few seconds and each takes the slot of another
-# unused one; the publisher gets its slot the same way, and once its writer
-# matches the device's reader it is in use and stays.
+# the proxy-pool trigger of the eviction that is exercised here. The rejected
+# members of the crowd re-announce every few seconds and each takes the slot
+# of another unused one; the publisher gets its slot the same way, and once
+# its writer matches the device's reader it is in use and stays.
+#
+# Timing: 28 Python ROS 2 nodes started at once take 30 to 60 s to come up on
+# a CI runner (they were all admitted within the same few seconds in the first
+# run of this case, 40 s after launch), and the publisher started afterwards
+# needs as long itself. So wait for the crowd to be up - the device's first
+# eviction says the pools are full and the crowd keeps knocking - before the
+# publisher starts, and give the publisher's samples time to show up.
 crowd=()
 for i in $(seq 1 28); do
-  timeout 80 ros2 topic pub -r 1 "/stay$i" std_msgs/msg/String "data: 'stay'" > /dev/null 2>&1 &
+  timeout 240 ros2 topic pub -r 1 "/stay$i" std_msgs/msg/String "data: 'stay'" > /dev/null 2>&1 &
   crowd+=("$!")
 done
-sleep 25
+m0=$(mark)
+for i in $(seq 1 120); do
+  [ "$(count_since "$m0" "forgetting an unused participant")" -ge 1 ] && break
+  sleep 1
+done
+echo "  crowd up after ${i} s (first eviction seen: $([ "$i" -lt 120 ] && echo yes || echo no))"
+sleep 10
 echo "  device: $(grep -o 'RTPSTEST status.*' "$LOG" | tail -1)"
 m=$(mark)
-timeout 42 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'made room for me'" > /dev/null 2>&1 &
-pub=$!; sleep 40; stop_pids $pub "${crowd[@]}"
-n=$(count_since "$m" "RTPSTEST rx made room for me"); e=$(count_since "$m" "forgetting an unused participant")
-echo "device received $n; evictions logged meanwhile: $e"
+timeout 100 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'made room for me'" > /dev/null 2>&1 &
+pub=$!
+n=0
+for i in $(seq 1 45); do
+  n=$(count_since "$m" "RTPSTEST rx made room for me")
+  [ "$n" -ge 5 ] && break
+  sleep 2
+done
+stop_pids $pub "${crowd[@]}"
+e=$(count_since "$m" "forgetting an unused participant")
+echo "device received $n (after $((i * 2)) s); evictions logged since the publisher started: $e"
 [ "$n" -ge 5 ]; result "pool_full_evicts_unused_for_late_joiner" $?
 settle
 sleep 10 # the crowd's capped leases (8 s) run out before the next case
