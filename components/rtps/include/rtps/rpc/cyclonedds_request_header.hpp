@@ -55,6 +55,7 @@ This file is part of the espp embeddedRTPS port.
 
 #include "rtps/common/types.hpp"
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <span>
@@ -83,8 +84,17 @@ struct CycloneDdsRequestHeader {
 inline bool isCycloneDds(const VendorId_t &vendor) { return vendor == VENDOR_ECLIPSE_CYCLONEDDS; }
 
 namespace detail {
-// The encapsulation's endianness flag: bit 0 of the second byte (CDR_LE 0x0001,
+// A CDR encapsulation header is {0x00, kind, options(2)}; the kinds rmw writes
+// are CDR_BE 0x00, CDR_LE 0x01, PL_CDR_BE 0x02, PL_CDR_LE 0x03 (XCDR1, what
+// rmw_cyclonedds_cpp and rmw_fastrtps_cpp use for services). Anything else is
+// not an rmw payload, so the codec refuses it rather than read a header out of
+// it. The options bytes are not checked: the spec leaves them to the encoder.
+inline bool isCdrEncapsulation(std::span<const uint8_t> payload) {
+  return payload.size() >= CDR_ENCAPSULATION_SIZE && payload[0] == 0x00 && payload[1] <= 0x03;
+}
+// The encapsulation's endianness flag: bit 0 of the kind byte (CDR_LE 0x0001,
 // PL_CDR_LE 0x0003 are little-endian; CDR_BE 0x0000, PL_CDR_BE 0x0002 big).
+// The caller has checked isCdrEncapsulation().
 inline bool encapsulationIsLittleEndian(std::span<const uint8_t> payload) {
   return (payload[1] & 0x01) != 0;
 }
@@ -102,20 +112,30 @@ inline void storeU64(uint8_t *p, uint64_t v, bool littleEndian) {
     p[i] = static_cast<uint8_t>((v >> shift) & 0xFF);
   }
 }
+// seq is an int64 on the wire as its two's-complement bit pattern; bit_cast
+// keeps the bits as they are (a static_cast of a value above INT64_MAX would
+// rely on the implementation's conversion).
+inline int64_t loadI64(const uint8_t *p, bool littleEndian) {
+  return std::bit_cast<int64_t>(loadU64(p, littleEndian));
+}
+inline void storeI64(uint8_t *p, int64_t v, bool littleEndian) {
+  storeU64(p, std::bit_cast<uint64_t>(v), littleEndian);
+}
 } // namespace detail
 
 /// Parse the header of an rmw_cyclonedds_cpp request/reply payload
-/// (encapsulation + 16-byte header + body). Returns false when the payload is
-/// too short to hold one.
+/// (encapsulation + 16-byte header + body). Returns false when the payload does
+/// not start with a CDR encapsulation or is too short to hold the header.
 inline bool parseCycloneDdsRequestHeader(std::span<const uint8_t> payload,
                                          CycloneDdsRequestHeader &out) {
-  if (payload.size() < CDR_ENCAPSULATION_SIZE + CYCLONEDDS_REQUEST_HEADER_SIZE) {
+  if (payload.size() < CDR_ENCAPSULATION_SIZE + CYCLONEDDS_REQUEST_HEADER_SIZE ||
+      !detail::isCdrEncapsulation(payload)) {
     return false;
   }
   const bool le = detail::encapsulationIsLittleEndian(payload);
   const uint8_t *p = payload.data() + CDR_ENCAPSULATION_SIZE;
   out.guid = detail::loadU64(p, le);
-  out.seq = static_cast<int64_t>(detail::loadU64(p + 8, le));
+  out.seq = detail::loadI64(p + 8, le);
   return true;
 }
 
@@ -132,18 +152,18 @@ inline std::vector<uint8_t> stripCycloneDdsRequestHeader(std::span<const uint8_t
 }
 
 /// The payload with a Cyclone header spliced in after its encapsulation, in the
-/// encapsulation's endianness. `payload` must carry an encapsulation header
-/// (at least 4 bytes); an empty result signals a payload too short for one.
+/// encapsulation's endianness. `payload` must start with a CDR encapsulation
+/// header; an empty result signals one that is missing or not recognized.
 inline std::vector<uint8_t> prependCycloneDdsRequestHeader(const CycloneDdsRequestHeader &header,
                                                            std::span<const uint8_t> payload) {
-  if (payload.size() < CDR_ENCAPSULATION_SIZE) {
+  if (!detail::isCdrEncapsulation(payload)) {
     return {};
   }
   const bool le = detail::encapsulationIsLittleEndian(payload);
   std::vector<uint8_t> out(payload.size() + CYCLONEDDS_REQUEST_HEADER_SIZE);
   std::memcpy(out.data(), payload.data(), CDR_ENCAPSULATION_SIZE);
   detail::storeU64(out.data() + CDR_ENCAPSULATION_SIZE, header.guid, le);
-  detail::storeU64(out.data() + CDR_ENCAPSULATION_SIZE + 8, static_cast<uint64_t>(header.seq), le);
+  detail::storeI64(out.data() + CDR_ENCAPSULATION_SIZE + 8, header.seq, le);
   std::memcpy(out.data() + CDR_ENCAPSULATION_SIZE + CYCLONEDDS_REQUEST_HEADER_SIZE,
               payload.data() + CDR_ENCAPSULATION_SIZE, payload.size() - CDR_ENCAPSULATION_SIZE);
   return out;

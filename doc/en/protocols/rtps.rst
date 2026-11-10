@@ -5,7 +5,7 @@ The ``rtps`` component is a cross-platform **RTPS / DDS** stack: it integrates t
 `embeddedRTPS <https://github.com/embedded-software-laboratory/embeddedRTPS>`_
 engine behind an idiomatic ``espp::RtpsParticipant`` facade so that any platform
 that can build ESPP — ESP32, Linux, macOS, Windows — can interoperate with **ROS 2**
-nodes (``rmw_fastrtps`` or ``rmw_cyclonedds``) or any DDS participant on the
+nodes (``rmw_fastrtps_cpp`` or ``rmw_cyclonedds_cpp``) or any DDS participant on the
 network over the standard RTPS wire protocol.
 
 It provides three messaging patterns, each validated against live ROS 2 (Jazzy),
@@ -129,8 +129,8 @@ A service is two topics — a request and a reply — plus **correlation**. The
 client tags its request with a ``related_sample_identity`` inline QoS carrying
 its own reply-reader GUID; the server echoes ``{that GUID, the request's sequence
 number}`` on the reply, and the client matches the reply back to the pending
-call. This is exactly what ``rmw_fastrtps`` does, so an espp service appears in
-``ros2 service list`` and answers ``ros2 service call``. ``rmw_cyclonedds``
+call. This is exactly what ``rmw_fastrtps_cpp`` does, so an espp service appears in
+``ros2 service list`` and answers ``ros2 service call``. ``rmw_cyclonedds_cpp``
 instead puts a ``{guid, seq}`` header inside each request and reply payload;
 espp recognises a Cyclone peer by its vendor id and uses that form with it, so
 the same service answers both RMWs.

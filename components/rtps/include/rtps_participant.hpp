@@ -342,9 +342,24 @@ public:
     ServiceClient(const ServiceClient &) = delete;
     ServiceClient &operator=(const ServiceClient &) = delete;
 
+    /// Number of service servers (remote request readers) matched to this
+    /// client right now. 0 until discovery has run, or while the server is away.
+    std::size_t server_count() const;
+
+    /// Block until at least one server is matched, like rclcpp's
+    /// wait_for_service(). \return True once a server is matched, false on
+    /// timeout. Do not call from within an engine callback.
+    bool wait_for_server(std::chrono::milliseconds timeout) const;
+
     /// Send a request and invoke on_reply when the correlated reply arrives.
-    /// \return False if the participant is not started or the request could not
-    ///         be queued. The callback runs on an engine worker thread.
+    /// The request is written in the wire form of the servers matched at this
+    /// moment (inline QoS for rmw_fastrtps_cpp / espp, the in-payload header for
+    /// rmw_cyclonedds_cpp), so with no server matched the call is refused rather
+    /// than queued: a reliable writer would replay it to a server matched later,
+    /// possibly in the wrong form. Use wait_for_server() first.
+    /// \return False if the participant is not started, no server is matched, or
+    ///         the request could not be queued. The callback runs on an engine
+    ///         worker thread.
     bool call_async(std::span<const uint8_t> request, reply_callback_t on_reply);
 
     /// Send a request and block until the correlated reply arrives or timeout.
@@ -467,8 +482,20 @@ public:
     ActionClient(const ActionClient &) = delete;
     ActionClient &operator=(const ActionClient &) = delete;
 
+    /// Number of action servers matched to this client right now: the servers
+    /// matched to the send_goal, get_result and cancel_goal services, whichever
+    /// is fewest. 0 until discovery has run.
+    std::size_t server_count() const;
+
+    /// Block until an action server is matched on all three services, like
+    /// rclcpp_action's wait_for_action_server(). \return True once matched,
+    /// false on timeout. Do not call from within an engine callback.
+    bool wait_for_server(std::chrono::milliseconds timeout) const;
+
     /// Send a goal. on_feedback is invoked for each feedback message; on_result
     /// once when the goal terminates (or is rejected, with an empty result).
+    /// Refused while no server is matched (see ServiceClient::call_async): use
+    /// wait_for_server() first.
     /// \return The generated goal id, or std::nullopt on failure.
     std::optional<GoalId> send_goal(std::span<const uint8_t> goal, feedback_callback_t on_feedback,
                                     result_callback_t on_result);

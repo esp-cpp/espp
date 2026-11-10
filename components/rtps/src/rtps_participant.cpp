@@ -824,6 +824,7 @@ uint64_t seq_key(const rtps::SequenceNumber_t &sn) {
 struct RtpsParticipant::ServiceServerContext
     : std::enable_shared_from_this<RtpsParticipant::ServiceServerContext> {
   RtpsParticipant *self{nullptr};
+  std::string service;                         // for the responder's diagnostics
   service_deferred_handler_t handler{nullptr}; // sync handlers are wrapped as deferred
   rtps::Writer *reply_writer{nullptr};
   rtps::Reader *request_reader{nullptr};
@@ -841,6 +842,8 @@ struct RtpsParticipant::ServiceServerContext
 // can be sent once, later, from any thread.
 struct RtpsParticipant::ServiceResponder::State {
   rtps::Writer *reply_writer{nullptr};
+  RtpsParticipant *self{nullptr}; // only dereferenced while `live` says alive
+  std::string service;
   rtps::rpc::SampleIdentity related{}; // inline-QoS form (unused when cyclonedds)
   // Set when the request came from an rmw_cyclonedds_cpp client: the reply
   // echoes its in-payload {guid, seq} header as a plain DATA, with no inline QoS.
@@ -864,15 +867,25 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
   // A reply must fit a single DATA submessage: with inline QoS a fragmented
   // reply loses the correlation (see MAX_UNFRAGMENTED_RPC_PAYLOAD), and the
   // Cyclone header counts against the same budget so both client kinds get the
-  // same limit. Reject rather than send an uncorrelated reply.
+  // same limit. Reject rather than send an uncorrelated reply, and say so: a
+  // deferred handler has no other way to learn that its reply was dropped.
   const std::size_t wire_size =
       response.size() +
       (state_->cyclonedds ? rtps::rpc::CYCLONEDDS_REQUEST_HEADER_SIZE : std::size_t{0});
+  const char *dropped = nullptr;
   if (wire_size > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
-    return;
+    dropped = "it exceeds the single-DATA budget";
+  } else if (state_->cyclonedds && response.size() < rtps::rpc::CDR_ENCAPSULATION_SIZE) {
+    dropped = "it has no CDR encapsulation header to splice the Cyclone header behind";
   }
-  if (state_->cyclonedds && response.size() < rtps::rpc::CDR_ENCAPSULATION_SIZE) {
-    return; // no encapsulation header to splice the Cyclone header behind
+  if (dropped != nullptr) {
+    std::lock_guard<std::mutex> live_lock(state_->live->m);
+    if (state_->live->alive && state_->self != nullptr) {
+      state_->self->logger_.warn(
+          "Service '{}': reply of {} bytes ({} on the wire) dropped, {} (limit {} bytes)",
+          state_->service, response.size(), wire_size, dropped, rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD);
+    }
+    return;
   }
   bool expected = false;
   if (!state_->replied.compare_exchange_strong(expected, true)) {
@@ -939,21 +952,29 @@ struct RtpsParticipant::ServiceClient::Impl
   std::unordered_map<uint64_t, Pending> pending;
   DeferredDispatch deferred; // banded reply reader without a dedicated port
 
-  // True when the matched request readers all belong to Eclipse Cyclone DDS
-  // participants (vendor 01.10): such a server ignores inline QoS and expects
-  // the in-payload header. Unmatched or mixed vendors keep the inline-QoS form,
-  // which rmw_fastrtps_cpp, espp and DDS-RPC servers speak. Decided per request
-  // so a server that appears later is served in its form without re-creating
-  // the client. Takes the writer's and the participant's locks in turn, never
-  // nested.
-  bool peer_is_cyclonedds() const {
+  // What is on the other end of the request writer right now.
+  struct PeerForm {
+    std::size_t matched{0}; ///< request readers (servers) matched to this client
+    bool cyclonedds{false}; ///< every one of them is an Eclipse Cyclone DDS participant
+  };
+
+  // `cyclonedds` means the servers ignore inline QoS and expect the in-payload
+  // header (vendor 01.10). Mixed vendors keep the inline-QoS form, which
+  // rmw_fastrtps_cpp, espp and DDS-RPC servers speak. Decided per request so a
+  // server that appears later is served in its form without re-creating the
+  // client. Walks the writer's proxies (writer lock), then looks each distinct
+  // participant up (participant lock): never nested, and never under `mutex`,
+  // so a reply landing meanwhile does not wait for the walk.
+  PeerForm peer_form() const {
     struct Prefixes {
       std::array<rtps::GuidPrefix_t, rtps::Config::NUM_READER_PROXIES_PER_WRITER> items{};
       std::size_t count{0};
+      std::size_t proxies{0};
     } prefixes;
     request_writer->dumpAllProxies(
         [](const rtps::Writer *, const rtps::ReaderProxy &proxy, void *arg) {
           auto *out = static_cast<Prefixes *>(arg);
+          ++out->proxies;
           for (std::size_t i = 0; i < out->count; ++i) {
             if (out->items[i] == proxy.remoteReaderGuid.prefix) {
               return;
@@ -964,8 +985,9 @@ struct RtpsParticipant::ServiceClient::Impl
           }
         },
         &prefixes);
+    PeerForm form{.matched = prefixes.proxies, .cyclonedds = false};
     if (prefixes.count == 0 || self == nullptr || self->participant_ == nullptr) {
-      return false;
+      return form;
     }
     std::size_t cyclonedds = 0;
     for (std::size_t i = 0; i < prefixes.count; ++i) {
@@ -974,7 +996,8 @@ struct RtpsParticipant::ServiceClient::Impl
         ++cyclonedds;
       }
     }
-    return cyclonedds == prefixes.count;
+    form.cyclonedds = (cyclonedds == prefixes.count);
+    return form;
   }
 
   // Send a request in the matched server's form, register the pending entry
@@ -991,18 +1014,30 @@ struct RtpsParticipant::ServiceClient::Impl
     if (request.size() > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
       return std::nullopt;
     }
+    // The form is chosen from the servers matched now, outside `mutex`. With
+    // none matched the request is refused: the reliable writer would replay it
+    // to a server matched later, and a Cyclone server would read the first 16
+    // body bytes of an inline-QoS request as its header (see
+    // ServiceClient::call_async / wait_for_server).
+    const PeerForm peer = peer_form();
+    if (peer.matched == 0) {
+      return std::nullopt;
+    }
+    if (peer.cyclonedds && (request.size() < rtps::rpc::CDR_ENCAPSULATION_SIZE ||
+                            request.size() + rtps::rpc::CYCLONEDDS_REQUEST_HEADER_SIZE >
+                                rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD)) {
+      return std::nullopt;
+    }
     std::lock_guard<std::mutex> lock(mutex);
-    // Hold the lock across newChange + insert so a reply can never look up the
+    // The lock covers only newChange + insert, so a reply can never look up the
     // key before it is registered (the send itself is async).
-    if (peer_is_cyclonedds()) {
-      if (request.size() < rtps::rpc::CDR_ENCAPSULATION_SIZE ||
-          request.size() + rtps::rpc::CYCLONEDDS_REQUEST_HEADER_SIZE >
-              rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
-        return std::nullopt;
-      }
+    if (peer.cyclonedds) {
       const rtps::rpc::CycloneDdsRequestHeader header{cyclonedds_client_id,
                                                       static_cast<int64_t>(++cyclonedds_next_seq)};
       const auto payload = rtps::rpc::prependCycloneDdsRequestHeader(header, request);
+      if (payload.empty()) {
+        return std::nullopt; // not a CDR-encapsulated request
+      }
       const auto *change = request_writer->newChange(rtps::ChangeKind_t::ALIVE, payload.data(),
                                                      static_cast<rtps::DataSize_t>(payload.size()));
       if (change == nullptr) {
@@ -1042,6 +1077,8 @@ void RtpsParticipant::service_request_trampoline(void *arg, const rtps::ReaderCa
   // sync handler replies immediately; a deferred one may hold the responder.
   auto state = std::make_shared<ServiceResponder::State>();
   state->reply_writer = ctx->reply_writer;
+  state->self = ctx->self;
+  state->service = ctx->service;
   state->live = ctx->self->live_;
   state->endpoint_live = ctx->writer_live;
   if (!change.hasRelatedSampleIdentity && rtps::rpc::isCycloneDds(change.sourceVendor)) {
@@ -1142,6 +1179,21 @@ void RtpsParticipant::service_reply_trampoline(void *arg, const rtps::ReaderCach
 RtpsParticipant::ServiceClient::ServiceClient(std::shared_ptr<Impl> impl)
     : impl_(std::move(impl)) {}
 RtpsParticipant::ServiceClient::~ServiceClient() = default;
+
+std::size_t RtpsParticipant::ServiceClient::server_count() const {
+  return impl_->peer_form().matched;
+}
+
+bool RtpsParticipant::ServiceClient::wait_for_server(std::chrono::milliseconds timeout) const {
+  const auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (impl_->peer_form().matched == 0) {
+    if (std::chrono::steady_clock::now() >= deadline) {
+      return false;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  return true;
+}
 
 bool RtpsParticipant::ServiceClient::call_async(std::span<const uint8_t> request,
                                                 reply_callback_t on_reply) {
@@ -1275,6 +1327,7 @@ RtpsParticipant::add_service_server_deferred_internal(const ServiceConfig &confi
   }
   auto ctx = std::make_shared<ServiceServerContext>();
   ctx->self = this;
+  ctx->service = config.service;
   ctx->handler = std::move(handler);
   ctx->reply_writer = reply_writer;
   ctx->request_reader = request_reader;
@@ -1816,6 +1869,22 @@ struct RtpsParticipant::ActionClient::Impl {
 RtpsParticipant::ActionClient::ActionClient(std::unique_ptr<Impl> impl)
     : impl_(std::move(impl)) {}
 RtpsParticipant::ActionClient::~ActionClient() = default;
+
+std::size_t RtpsParticipant::ActionClient::server_count() const {
+  return std::min({impl_->send_goal_client->server_count(),
+                   impl_->get_result_client->server_count(), impl_->cancel_client->server_count()});
+}
+
+bool RtpsParticipant::ActionClient::wait_for_server(std::chrono::milliseconds timeout) const {
+  const auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (server_count() == 0) {
+    if (std::chrono::steady_clock::now() >= deadline) {
+      return false;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  return true;
+}
 
 std::optional<RtpsParticipant::GoalId> RtpsParticipant::ActionClient::send_goal(
     std::span<const uint8_t> goal, feedback_callback_t on_feedback, result_callback_t on_result) {

@@ -4,9 +4,9 @@ Status: **DRAFT for review** (design-first, no code yet).
 Scope: add ROS-style **services** (RMI, request/reply) and **actions** (AMI, goal
 server) to the `rtps_embedded` engine, in two tracks:
 
-- **Track A — ROS 2 interoperable.** Byte-compatible with FastDDS / `rmw_fastrtps`
+- **Track A — ROS 2 interoperable.** Byte-compatible with FastDDS / `rmw_fastrtps_cpp`
   (the stack already validated by the pub/sub interop gate), and since the
-  CycloneDDS service work (§3.2b) with `rmw_cyclonedds`. Connext is **later**.
+  CycloneDDS service work (§3.2b) with `rmw_cyclonedds_cpp`. Connext is **later**.
 - **Track B — native minimal protocol.** A separate, deliberately lightweight
   request/reply + action protocol for espp↔espp, tuned for embedded entity/memory
   budgets. Does **not** interoperate with ROS and is not meant to.
@@ -67,7 +67,7 @@ Gaps to fill:
 L0  RTPS pub/sub (DATA/FRAG, BEST_EFFORT + RELIABLE)          [exists]
         │
 L1  Request/Reply primitive + correlation                    [NEW — only wire work]
-     ├─ A: sample_identity inline QoS (rmw_fastrtps)
+     ├─ A: sample_identity inline QoS (rmw_fastrtps_cpp)
      └─ B: compact in-band correlation header (native)
         │
 L2a Service client/server API                                [NEW — no wire work]
@@ -80,7 +80,7 @@ distinct L1 wire encodings selected at construction / build time.
 
 ---
 
-## 3. Track A — ROS 2 interoperable (FastDDS / rmw_fastrtps)
+## 3. Track A — ROS 2 interoperable (FastDDS / rmw_fastrtps_cpp)
 
 ### 3.1 Naming & type mangling
 
@@ -98,7 +98,7 @@ keep internal slashes (`/ns/svc` → `rq/ns/svcRequest`). Plain pub/sub topics u
 
 ### 3.2 Correlation (the crux) — CONFIRMED against a live capture
 
-Verified against a real `rmw_fastrtps` (ROS 2 **Jazzy**, Fast-RTPS vendorId 01.15)
+Verified against a real `rmw_fastrtps_cpp` (ROS 2 **Jazzy**, Fast-RTPS vendorId 01.15)
 `AddTwoInts` exchange, UDP-only, dissected with tshark. The captured bytes below
 supersede the earlier `0x8002` guess.
 
@@ -198,6 +198,13 @@ encapsulation (4) | guid (uint64) | seq (int64) | <Service>_Request / _Response
   number never sets bit 63, so the two key spaces of one map cannot collide).
   Otherwise → the inline-QoS form of §3.2. Replies are accepted in either form,
   the Cyclone one only when `guid` is ours.
+- A request with **no server matched** is refused (`call_async` returns false;
+  `ServiceClient::server_count()` / `wait_for_server()` expose the match, like
+  rclcpp's `wait_for_service`): the form is chosen from the matched servers, and
+  a reliable writer would otherwise replay a request written for nobody to a
+  server matched later, possibly in the wrong form.
+- A reply the responder cannot send (over the single-DATA budget, or no CDR
+  encapsulation to splice the header behind) is dropped with a warning.
 - Actions need nothing extra: their three services go through the same code.
 - Size: the header counts against `MAX_UNFRAGMENTED_RPC_PAYLOAD`, so both client
   kinds get the same request/reply size limit.
@@ -463,7 +470,7 @@ Python demo 5/5) on branch `feat/rtps-services`.
 
 ## 9. Open verification items
 
-- [x] Live `rmw_fastrtps` service capture → **done** (§3.2). Correlation is inline
+- [x] Live `rmw_fastrtps_cpp` service capture → **done** (§3.2). Correlation is inline
       QoS PIDs **0x0083 + 0x800f** (24-byte SampleIdentity, CDR_LE), on BOTH
       request and reply. Corrected the earlier 0x8002 / no-request-QoS guesses.
 - [x] Target ROS distro → **Jazzy** (Fast-RTPS vendorId 01.15).

@@ -10,7 +10,7 @@ cd components/rtps/interop
 ./run.sh
 ```
 
-Requires docker. One container (`ros:jazzy-ros-base` = FastDDS + rmw_fastrtps +
+Requires docker. One container (`ros:jazzy-ros-base` = FastDDS + rmw_fastrtps_cpp +
 `ros2` CLI, plus rmw_cyclonedds_cpp) runs everything in a single network namespace, so RTPS multicast works
 unconditionally. The repo is bind-mounted and copied to a container-local tree
 before building (espp is installed into a container-local staging prefix and the

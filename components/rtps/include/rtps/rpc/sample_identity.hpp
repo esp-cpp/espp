@@ -25,10 +25,10 @@ This file is part of the espp embeddedRTPS port.
 
 // ---------------------------------------------------------------------------
 // SampleIdentity + related_sample_identity inline-QoS wire constants for ROS 2
-// (rmw_fastrtps) request/reply correlation. rmw_cyclonedds correlates with an
+// (rmw_fastrtps_cpp) request/reply correlation. rmw_cyclonedds_cpp correlates with an
 // in-payload header instead: see cyclonedds_request_header.hpp.
 //
-// A SampleIdentity is a {GUID, SequenceNumber}. rmw_fastrtps correlates a reply
+// A SampleIdentity is a {GUID, SequenceNumber}. rmw_fastrtps_cpp correlates a reply
 // to its request by carrying the request's identity on BOTH the request and the
 // reply as inline QoS, under two parameter IDs (see RMI_AMI_DESIGN.md 3.2,
 // confirmed against a live ROS 2 Jazzy AddTwoInts capture):

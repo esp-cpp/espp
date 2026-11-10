@@ -129,6 +129,29 @@ int main() {
     const auto reply = prependCycloneDdsRequestHeader(h, bare_request(0, 0, true));
     CycloneDdsRequestHeader back{};
     check(parseCycloneDdsRequestHeader(reply, back) && back.seq == -5, "negative seq round trip");
+    // Two's complement on the wire, exactly as Cyclone writes its int64.
+    check(reply[4 + 8] == 0xFB && reply[4 + 15] == 0xFF, "negative seq is two's complement bits");
+  }
+  // Only a CDR encapsulation ({0x00, kind 0..3, options}) is a payload the
+  // codec will read a header from; anything else is refused, never misparsed.
+  {
+    const uint64_t guid = 0x1122334455667788ULL;
+    const int64_t seq = 42;
+    auto bad_kind = cyclone_request(guid, seq, 7, 35, true);
+    bad_kind[1] = 0x05;
+    auto bad_first = cyclone_request(guid, seq, 7, 35, true);
+    bad_first[0] = 0xFF;
+    CycloneDdsRequestHeader h{};
+    check(!parseCycloneDdsRequestHeader(bad_kind, h), "unknown encapsulation kind rejected");
+    check(!parseCycloneDdsRequestHeader(bad_first, h),
+          "non-zero first encapsulation byte rejected");
+    check(prependCycloneDdsRequestHeader(h, bad_kind).empty(),
+          "prepend refuses an unknown encapsulation");
+    auto options = cyclone_request(guid, seq, 7, 35, true);
+    options[2] = 0x00;
+    options[3] = 0x02; // options bytes are the encoder's business
+    check(parseCycloneDdsRequestHeader(options, h) && h.seq == seq,
+          "options bytes do not affect parsing");
   }
 
   // Too short to hold a header: rejected, never read past the end.

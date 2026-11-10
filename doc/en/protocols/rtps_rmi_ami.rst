@@ -7,7 +7,7 @@ Asynchronous Method Invocation) messaging on top of its RTPS pub/sub, in two
 flavours:
 
 - **ROS 2-interoperable** services and actions — byte-compatible with
-  ``rmw_fastrtps`` and ``rmw_cyclonedds`` (validated against live ROS 2 Jazzy
+  ``rmw_fastrtps_cpp`` and ``rmw_cyclonedds_cpp`` (validated against live ROS 2 Jazzy
   nodes, both directions).
 - **Native** (espp ↔ espp) services and actions — a deliberately lean protocol
   that trades ROS interop for a smaller footprint and simpler wire.
@@ -61,6 +61,8 @@ Like pub/sub (raw ``publish()``/``on_sample`` vs the typed ``Publisher<T>`` /
    espp::ServiceClient<AddReq, AddResp> client(participant, {
        .service = "/add_two_ints",
        .type_name = "example_interfaces::srv::dds_::AddTwoInts"});
+   client.wait_for_server(5s);   // like rclcpp's wait_for_service: a call before
+                                 // a server is matched is refused, not queued
    if (auto resp = client.call(AddReq{7, 35}, 1s)) use(resp->sum);   // -> 42
 
    // Same classes, native protocol - just set .protocol:
@@ -90,6 +92,7 @@ CDR-encapsulated bytes, exactly like ``publish()`` / ``on_sample``.
    // Client: three call styles.
    auto client = participant.add_service_client(
        {"/add_two_ints", "example_interfaces::srv::dds_::AddTwoInts"});
+   client->wait_for_server(5s);                           // refused until matched
    auto reply  = client->call(req_cdr, 1s);              // (1) blocking (RMI)
    client->call_async(req_cdr, [](auto reply){ ... });   // (2) callback (AMI)
    std::future<...> f = client->call_future(req_cdr);    // (3) promise (AMI)
@@ -105,7 +108,7 @@ response never blocks an engine worker (which would deadlock other traffic).
 Correlation (ROS interop)
 -------------------------
 
-``rmw_fastrtps`` correlates a reply to its request with a **related sample
+``rmw_fastrtps_cpp`` correlates a reply to its request with a **related sample
 identity** carried as inline QoS, under **both** PID ``0x0083`` (OMG standard) and
 PID ``0x800f`` (eProsima legacy). The client stamps its request with
 ``{its reply-reader GUID, sequence = UNKNOWN}``; the server echoes
@@ -114,7 +117,7 @@ matches replies against its pending table. This is confirmed byte-for-byte
 against a live capture — and no SEDP type-hash exchange is needed: an espp
 service even shows up in ``ros2 service list``.
 
-``rmw_cyclonedds`` correlates differently: no inline QoS, but a 16-byte
+``rmw_cyclonedds_cpp`` correlates differently: no inline QoS, but a 16-byte
 ``{guid, seq}`` header spliced between the CDR encapsulation and the body of
 every request and reply, which the server echoes and the client matches on.
 espp tells the two apart by the peer's vendor id (Eclipse Cyclone DDS is
@@ -147,6 +150,7 @@ services above.
    // Client
    auto action = participant.add_action_client(
        {"/fibonacci", "example_interfaces::action::dds_::Fibonacci"});
+   action->wait_for_server(5s);                           // refused until matched
    action->send_goal(goal_cdr,
        [](std::span<const uint8_t> fb) { ... },              // per-feedback
        [](int8_t status, std::span<const uint8_t> res) { ... }); // terminal result
@@ -228,6 +232,7 @@ four mechanisms; the essence:
    p.add_service_server("/add_two_ints", "example_interfaces::srv::dds_::AddTwoInts",
                         lambda req: make_reply(req))
    svc = p.add_service_client("/add_two_ints", "example_interfaces::srv::dds_::AddTwoInts")
+   svc.wait_for_server(5.0)                       # a call before the match is refused
    reply = svc.call(request_bytes, timeout=1.0)  # bytes or None
 
 Payloads are CDR-encapsulated ``bytes`` (a 4-byte encapsulation header + CDR
@@ -248,7 +253,7 @@ Every mechanism is covered end-to-end:
 - **On-device**: the ``components/rtps/example`` (esp32) hosts a typed
   ``/add_two_ints`` service and a ``/fibonacci`` action a ROS 2 client can drive.
 - **Live ROS 2 interop** (dockerised, both directions, once on
-  ``rmw_fastrtps`` and once on ``rmw_cyclonedds``): ``ros2 service call`` ↔ espp
+  ``rmw_fastrtps_cpp`` and once on ``rmw_cyclonedds_cpp``): ``ros2 service call`` ↔ espp
   server, espp client ↔ rclpy server, and the same for actions
   (``ros2 action send_goal`` ↔ espp, espp ↔ rclpy). See
   ``components/rtps/interop/``; ``rtps_cyclonedds_rpc_header`` pins the Cyclone

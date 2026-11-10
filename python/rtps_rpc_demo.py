@@ -99,6 +99,10 @@ def main():
                              CountVal, native=True)
 
     time.sleep(2.0)  # SEDP discovery for every endpoint
+    # The ROS 2 clients refuse a call before a server is matched; make sure of it
+    # (the native ones queue, their wait_for_server() returns at once).
+    for name, c in (("svc", svc), ("act", act), ("nsvc", nsvc), ("nact", nact)):
+        assert c.wait_for_server(10.0), f"{name}: no server matched"
 
     # === 1. Service: blocking, async, and future (the three call styles) ===
     reply = svc.call(AddReq(a=7, b=35), timeout=5.0)

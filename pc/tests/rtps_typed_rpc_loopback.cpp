@@ -89,7 +89,25 @@ int main() {
   espp::ActionClient<FibGoal, FibSeq, FibSeq> nat_act_cli(
       client, {.action = "/countup", .type_name = "espp::native::CountUp", .protocol = P::NATIVE});
 
-  std::this_thread::sleep_for(2s); // discovery
+  // ROS 2 clients refuse a call before a server is matched; the native ones
+  // queue, so for them wait_for_server() is immediate.
+  if (!ros_cli.wait_for_server(10s)) {
+    std::printf("FAIL: ros_cli.wait_for_server timed out\n");
+    return 1;
+  }
+  if (!nat_cli.wait_for_server(10s)) {
+    std::printf("FAIL: nat_cli.wait_for_server timed out\n");
+    return 1;
+  }
+  if (!ros_act_cli.wait_for_server(10s)) {
+    std::printf("FAIL: ros_act_cli.wait_for_server timed out\n");
+    return 1;
+  }
+  if (!nat_act_cli.wait_for_server(10s)) {
+    std::printf("FAIL: nat_act_cli.wait_for_server timed out\n");
+    return 1;
+  }
+  std::this_thread::sleep_for(1s); // the remaining pub/sub legs (feedback, status)
 
   // Services: blocking typed calls.
   if (auto r = ros_cli.call(AddReq{7, 35}, 5s)) {

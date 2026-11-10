@@ -249,6 +249,20 @@ public:
   /// \return True if the action client registered successfully.
   [[nodiscard]] bool is_valid() const { return ros_ != nullptr || native_ != nullptr; }
 
+  /// ROS 2 protocol: action servers matched right now (see
+  /// RtpsParticipant::ActionClient::server_count()). Native protocol: always 1,
+  /// a native goal is queued and delivered once its server appears.
+  [[nodiscard]] std::size_t server_count() const {
+    return ros_ ? ros_->server_count() : (native_ ? 1 : 0);
+  }
+
+  /// ROS 2 protocol: block until an action server is matched, like
+  /// rclcpp_action's wait_for_action_server(); a goal sent before that is
+  /// refused. Native protocol: returns true at once. \return False on timeout.
+  bool wait_for_server(std::chrono::milliseconds timeout) const {
+    return ros_ ? ros_->wait_for_server(timeout) : is_valid();
+  }
+
   /// Send a typed goal to the server.
   /// \param goal The typed goal.
   /// \param on_feedback Invoked for each feedback message during execution.
