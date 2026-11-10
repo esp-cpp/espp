@@ -26,6 +26,7 @@ set -o pipefail
 
 FLASH="${1:?usage: run_qemu_interop.sh <qemu_flash.bin> [matrix|soak]}"
 SUITE="${2:-matrix}"
+[ -x /opt/qemu/bin/qemu-system-xtensa ] || { echo "no /opt/qemu/bin/qemu-system-xtensa in this image: Espressif's QEMU is x86_64-only (build the image on an amd64 host, or docker build --platform linux/amd64)"; exit 2; }
 QEMU="${QEMU:-/opt/qemu/bin/qemu-system-xtensa}"
 TAP=tap0
 HOST_IP=192.168.100.1
@@ -121,7 +122,7 @@ ping -c 2 -W 2 $DEVICE_IP > /tmp/ping.log 2>&1; result "device_ping" $?
 wait_for_marker "RTPSTEST status" 10
 FIRST_HEAP=$(grep -o " heap=[0-9]*" "$LOG" | tail -1 | cut -d= -f2)
 
-source /opt/ros/jazzy/setup.bash
+source "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash"
 export ROS_DOMAIN_ID=0 # matches the engine's Config::DOMAIN_ID
 
 run_matrix() {
@@ -162,6 +163,17 @@ ros2_cases() { # prefix log-tag
   pub=$!; sleep 24; m=$(mark); sleep 10; kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
   n=$(count_since "$m" "RTPSTEST rx still alive"); echo "device received $n in the 24-34 s window"
   [ "$n" -ge 10 ]; result "${p}ros2_pub->device_sub_liveliness" $?
+  settle
+
+  note "${p}ROS 2 service client -> device service server (/qemu_add_two_ints)"
+  # the one RPC the device serves: under rmw_cyclonedds_cpp the request carries
+  # the in-payload {guid, seq} header instead of related_sample_identity, and
+  # the device must answer in that form (rtps/rpc/cyclonedds_request_header.hpp)
+  m=$(mark)
+  timeout 50 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 7, b: 35}" > "/tmp/${t}_srv.log" 2>&1
+  rc=$?; grep -q "sum=42" "/tmp/${t}_srv.log" || rc=1
+  [ "$(count_since "$m" "RTPSTEST srv 7+35=42")" -ge 1 ] || rc=1
+  tail -2 "/tmp/${t}_srv.log"; result "${p}ros2_client->device_service" $rc
   settle
 
   note "${p}twelve other participants on the domain, then the publisher the device needs joins last"
@@ -215,14 +227,6 @@ ros2_cases() { # prefix log-tag
 
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 ros2_cases "fastdds: " fastdds
-
-note "fastdds: ROS 2 service client -> device service server (/qemu_add_two_ints)"
-m=$(mark)
-timeout 50 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 7, b: 35}" > /tmp/srv.log 2>&1
-rc=$?; grep -q "sum=42" /tmp/srv.log || rc=1
-[ "$(count_since "$m" "RTPSTEST srv 7+35=42")" -ge 1 ] || rc=1
-tail -2 /tmp/srv.log; result "fastdds: ros2_client->device_service" $rc
-settle
 
 # --- espp host engine <-> device ---------------------------------------------------------
 note "espp host publisher -> device subscriber (reliable, /qemu_rx)"
@@ -317,6 +321,24 @@ rc=$?; tail -1 /tmp/hostsub_loss.log; result "netem_loss_device_pub" $rc
 tc qdisc del dev $TAP root
 settle
 
+note "15% loss + 10 ms jitter: ROS 2 service call -> device service, each RMW (a lost request or reply is repaired, not retried by the client)"
+# ros2 service call sends ONE request and waits: the only way the reply comes
+# back under loss is the reliable writers on both ends repairing the lost
+# DATA (and the HEARTBEAT/ACKNACK that carry the repair) within the timeout.
+tc qdisc add dev $TAP root netem loss 15% delay 10ms 3ms
+for rmw in rmw_fastrtps_cpp rmw_cyclonedds_cpp; do
+  export RMW_IMPLEMENTATION=$rmw
+  tag=${rmw#rmw_}; tag=${tag%_cpp}; [ "$tag" = fastrtps ] && tag=fastdds; [ "$tag" = cyclonedds ] && tag=cyclone
+  m=$(mark)
+  timeout 50 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 3, b: 4}" > "/tmp/srv_loss_${tag}.log" 2>&1
+  rc=$?; grep -q "sum=7" "/tmp/srv_loss_${tag}.log" || rc=1
+  [ "$(count_since "$m" "RTPSTEST srv 3+4=7")" -ge 1 ] || rc=1
+  tail -1 "/tmp/srv_loss_${tag}.log"; result "netem_loss_service_${tag}" $rc
+  settle
+done
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+tc qdisc del dev $TAP root
+
 # --- CycloneDDS pass ---------------------------------------------------------------------------
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export CYCLONEDDS_URI='<CycloneDDS><Domain><Discovery><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>'
@@ -367,9 +389,7 @@ run_soak() {
     timeout 14 ros2 topic pub -t 3 -r 0.5 /qemu_big std_msgs/msg/String "data: '$big'" > /dev/null 2>&1 & pids+=($!)
     timeout 14 ros2 topic echo --once /qemu_tx std_msgs/msg/String > /dev/null 2>&1 & pids+=($!)
     timeout 14 ros2 topic echo --once --qos-reliability best_effort /qemu_be_tx std_msgs/msg/String > /dev/null 2>&1 & pids+=($!)
-    if [ "$1" = rmw_fastrtps_cpp ]; then
-      timeout 14 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 1, b: $2}" > /dev/null 2>&1 & pids+=($!)
-    fi
+    timeout 14 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 1, b: $2}" > /dev/null 2>&1 & pids+=($!)
     "$BIN"/rtps_interop_pub rt/qemu_rx std_msgs::msg::dds_::String_ 1 40 200 $HOST_IP > /dev/null 2>&1 & pids+=($!)
     "$BIN"/rtps_interop_sub rt/qemu_tx std_msgs::msg::dds_::String_ 1 5 12 $HOST_IP > /dev/null 2>&1 & pids+=($!)
     sleep 12
