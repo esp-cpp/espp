@@ -617,10 +617,15 @@ bool Participant::evictUnusedRemoteParticipant(GuidPrefix_t &evicted, const char
   if (!removeRemoteParticipant(victim)) {
     return false;
   }
+  unsigned int inPool = 0;
   {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     m_lastEvictionTimestamp = std::chrono::steady_clock::now();
+    inPool = static_cast<unsigned int>(m_remoteParticipants.getNumElements());
   }
+  // The logger formats at run time (fmt::vformat): keep the placeholder count
+  // and the argument count in step, a mismatch throws and, with exceptions
+  // off on the target, aborts (it did, once).
   logger_.warn("{}: forgot {} participant {:02x}{:02x}{:02x}{:02x} ({} s since {}) to make "
                "room for a new one. The pool holds {} of {}; for a domain this big raise "
                "SPDP_MAX_NUMBER_FOUND_PARTICIPANTS and the builtin proxy pools "
@@ -628,7 +633,8 @@ bool Participant::evictUnusedRemoteParticipant(GuidPrefix_t &evicted, const char
                reason != nullptr ? reason : "no room for a new remote participant",
                victimExpired ? "an expired" : "an unused", victim.id[4], victim.id[5], victim.id[6],
                victim.id[7], victimAge / 1000,
-               victimExpired ? "its last announcement" : "discovery");
+               victimExpired ? "its last announcement" : "discovery", inPool,
+               static_cast<unsigned int>(Config::SPDP_MAX_NUMBER_FOUND_PARTICIPANTS));
   evicted = victim;
   return true;
 }
