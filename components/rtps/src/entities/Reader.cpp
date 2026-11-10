@@ -363,6 +363,12 @@ void Reader::removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix) {
   m_proxies.remove(thunk, &isElementToRemove);
 }
 
+bool Reader::isBuiltinEndpoint() const {
+  const auto kind = m_attributes.endpointGuid.entityId.entityKind;
+  return !(kind == EntityKind_t::USER_DEFINED_READER_WITHOUT_KEY ||
+           kind == EntityKind_t::USER_DEFINED_READER_WITH_KEY);
+}
+
 bool Reader::hasProxyOfParticipant(const GuidPrefix_t &guidPrefix) {
   std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   auto isElementToFind = [&](const WriterProxy &proxy) {

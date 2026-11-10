@@ -548,20 +548,15 @@ bool Participant::hasUserEndpointProxyOf(const GuidPrefix_t &prefix) {
     }
   }
   for (auto *reader : m_readers) {
-    if (reader == nullptr || !reader->isInitialized()) {
-      continue;
-    }
-    const auto kind = reader->m_attributes.endpointGuid.entityId.entityKind;
-    const bool user = kind == EntityKind_t::USER_DEFINED_READER_WITHOUT_KEY ||
-                      kind == EntityKind_t::USER_DEFINED_READER_WITH_KEY;
-    if (user && reader->hasProxyOfParticipant(prefix)) {
+    if (reader != nullptr && reader->isInitialized() && !reader->isBuiltinEndpoint() &&
+        reader->hasProxyOfParticipant(prefix)) {
       return true;
     }
   }
   return false;
 }
 
-bool Participant::evictUnusedRemoteParticipant(GuidPrefix_t &evicted) {
+bool Participant::evictUnusedRemoteParticipant(GuidPrefix_t &evicted, const char *reason) {
   if (!Config::SPDP_EVICT_UNUSED_PARTICIPANTS) {
     return false;
   }
@@ -571,11 +566,11 @@ bool Participant::evictUnusedRemoteParticipant(GuidPrefix_t &evicted) {
   // below acquires the SEDP agent mutex first and therefore runs with m_mutex
   // released, exactly as checkAndResetHeartbeats() does.
   GuidPrefix_t victim{};
+  bool victimExpired = false;
+  uint32_t victimAge = 0;
   {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     bool have = false;
-    bool victimExpired = false;
-    uint32_t victimAge = 0;
     const auto now = std::chrono::steady_clock::now();
     if (m_lastEvictionTimestamp != std::chrono::steady_clock::time_point{} &&
         now - m_lastEvictionTimestamp < std::chrono::milliseconds(Config::SPDP_RESEND_PERIOD_MS)) {
@@ -615,20 +610,27 @@ bool Participant::evictUnusedRemoteParticipant(GuidPrefix_t &evicted) {
     if (!have) {
       return false;
     }
-    m_lastEvictionTimestamp = now;
-    logger_.warn("No room for a new remote participant ({} of {} in the pool, or its builtin "
-                 "proxies do not fit): forgetting {} participant "
-                 "{:02x}{:02x}{:02x}{:02x} ({} s since {}) for a new one; a domain this big "
-                 "wants a larger SPDP_MAX_NUMBER_FOUND_PARTICIPANTS",
-                 (unsigned int)m_remoteParticipants.getNumElements(),
-                 (unsigned int)Config::SPDP_MAX_NUMBER_FOUND_PARTICIPANTS,
-                 victimExpired ? "an expired" : "an unused", victim.id[4], victim.id[5],
-                 victim.id[6], victim.id[7], victimAge / 1000,
-                 victimExpired ? "its last announcement" : "discovery");
   }
-  // Phase 2 - remove with m_mutex released (see above).
+  // Phase 2 - remove with m_mutex released (see above). The cooldown starts
+  // only once the removal succeeded, so a failed one does not throttle the
+  // next attempt.
+  if (!removeRemoteParticipant(victim)) {
+    return false;
+  }
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    m_lastEvictionTimestamp = std::chrono::steady_clock::now();
+  }
+  logger_.warn("{}: forgot {} participant {:02x}{:02x}{:02x}{:02x} ({} s since {}) to make "
+               "room for a new one. The pool holds {} of {}; for a domain this big raise "
+               "SPDP_MAX_NUMBER_FOUND_PARTICIPANTS and the builtin proxy pools "
+               "(NUM_WRITER_PROXIES_PER_READER, NUM_READER_PROXIES_PER_WRITER)",
+               reason != nullptr ? reason : "no room for a new remote participant",
+               victimExpired ? "an expired" : "an unused", victim.id[4], victim.id[5], victim.id[6],
+               victim.id[7], victimAge / 1000,
+               victimExpired ? "its last announcement" : "discovery");
   evicted = victim;
-  return removeRemoteParticipant(victim);
+  return true;
 }
 
 void Participant::printInfo() {

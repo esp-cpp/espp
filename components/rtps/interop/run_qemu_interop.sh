@@ -67,12 +67,19 @@ settle() {
 stop_pids() { # pids...
   [ $# -gt 0 ] || return 0
   kill "$@" 2>/dev/null
-  local i
+  # per pid (kill -0 on the whole list fails as soon as ONE is gone), and an
+  # exited child that is not yet reaped still has a /proc entry: a zombie
+  # counts as gone
+  alive() { [ -d "/proc/$1" ] && ! grep -q '^State:.*Z' "/proc/$1/status" 2>/dev/null; }
+  local i p left=""
   for i in $(seq 1 50); do
-    kill -0 "$@" 2>/dev/null || break
+    left=""
+    for p in "$@"; do alive "$p" && left="$left $p"; done
+    [ -z "$left" ] && break
     sleep 0.2
   done
-  kill -9 "$@" 2>/dev/null
+  # shellcheck disable=SC2086
+  [ -n "$left" ] && kill -9 $left 2>/dev/null
   wait "$@" 2>/dev/null || true
 }
 # A capture of the frames towards the device, in two lines: how many, how
@@ -269,7 +276,7 @@ for i in $(seq 1 28); do
 done
 m0=$(mark)
 for i in $(seq 1 120); do
-  [ "$(count_since "$m0" "forgetting an unused participant")" -ge 1 ] && break
+  [ "$(count_since "$m0" "forgot an unused participant")" -ge 1 ] && break
   sleep 1
 done
 echo "  crowd up after ${i} s (first eviction seen: $([ "$i" -lt 120 ] && echo yes || echo no))"
@@ -285,7 +292,7 @@ for i in $(seq 1 45); do
   sleep 2
 done
 stop_pids $pub "${crowd[@]}"
-e=$(count_since "$m" "forgetting an unused participant")
+e=$(count_since "$m" "forgot an unused participant")
 echo "device received $n (after $((i * 2)) s); evictions logged since the publisher started: $e"
 [ "$n" -ge 5 ]; result "pool_full_evicts_unused_for_late_joiner" $?
 settle

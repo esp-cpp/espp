@@ -122,11 +122,12 @@ public:
   //! (Config::SPDP_EVICT_UNUSED_PARTICIPANTS):
   //! an expired one first, else the oldest-discovered one none of our user
   //! endpoints match, provided it is older than Config::SPDP_EVICT_MIN_AGE_MS;
-  //! at most one eviction per SPDP_RESEND_PERIOD_MS. Returns true and sets
-  //! `evicted` when a participant was removed. Callers hold the SPDP agent
+  //! at most one eviction per SPDP_RESEND_PERIOD_MS (counted from a successful
+  //! removal). Returns true and sets `evicted` when a participant was removed;
+  //! `reason` names the trigger in the warning. Callers hold the SPDP agent
   //! mutex (the documented order: SPDP agent -> SEDP agent -> Participant) and
   //! must not hold m_mutex.
-  bool evictUnusedRemoteParticipant(GuidPrefix_t &evicted);
+  bool evictUnusedRemoteParticipant(GuidPrefix_t &evicted, const char *reason);
 
   bool hasReaderWithMulticastLocator(const std::array<uint8_t, 4> &address);
 

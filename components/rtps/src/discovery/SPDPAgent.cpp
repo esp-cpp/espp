@@ -148,7 +148,7 @@ void SPDPAgent::processProxyData() {
     // to do now. (This used to spin forever in non-verbose builds, with the
     // agent mutex held: one participant too many on the domain froze discovery.)
     GuidPrefix_t evicted{};
-    if (!mp_participant->evictUnusedRemoteParticipant(evicted) ||
+    if (!mp_participant->evictUnusedRemoteParticipant(evicted, "Remote-participant pool full") ||
         !mp_participant->addNewRemoteParticipant(m_proxyDataBuffer)) {
       SPDP_LOG("Remote-participant pool full, not adding this participant");
       return;
@@ -171,8 +171,9 @@ void SPDPAgent::processProxyData() {
     // handleSPDPPackage) -> SEDP agent mutex -> Participant mutex; nothing
     // takes the SPDP mutex while holding either of the others.
     GuidPrefix_t evicted{};
-    const bool fits =
-        mp_participant->evictUnusedRemoteParticipant(evicted) && addProxiesForBuiltInEndpoints();
+    const bool fits = mp_participant->evictUnusedRemoteParticipant(
+                          evicted, "Builtin proxies of a new remote participant do not fit") &&
+                      addProxiesForBuiltInEndpoints();
     if (!fits) {
       SPDP_LOG("Builtin proxies for the new participant did not fit, forgetting it");
       mp_participant->removeRemoteParticipant(m_proxyDataBuffer.m_guid.prefix);
