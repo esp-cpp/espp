@@ -342,8 +342,13 @@ public:
     ServiceClient(const ServiceClient &) = delete;
     ServiceClient &operator=(const ServiceClient &) = delete;
 
-    /// Number of service servers (remote request readers) matched to this
-    /// client right now. 0 until discovery has run, or while the server is away.
+    /// Number of service servers matched to this client right now: a server
+    /// counts once its request reader has acknowledged our request writer
+    /// (every reliable reader sends an ACKNACK when it matches, so this is the
+    /// server's own confirmation that it has discovered us) and its reply
+    /// writer is matched to our reply reader, the two legs
+    /// rmw_service_server_is_available checks. 0 until discovery has run, or
+    /// while the server is away.
     std::size_t server_count() const;
 
     /// Block until at least one server is matched, like rclcpp's

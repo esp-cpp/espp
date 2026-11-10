@@ -135,8 +135,6 @@ int main() {
   // Only a CDR encapsulation ({0x00, kind 0..3, options}) is a payload the
   // codec will read a header from; anything else is refused, never misparsed.
   {
-    const uint64_t guid = 0x1122334455667788ULL;
-    const int64_t seq = 42;
     auto bad_kind = cyclone_request(guid, seq, 7, 35, true);
     bad_kind[1] = 0x05;
     auto bad_first = cyclone_request(guid, seq, 7, 35, true);

@@ -229,9 +229,17 @@ void SEDPAgent::handlePublisherReaderMessage(const TopicData &writerData,
     SEDP_LOG("Found a new best-effort publisher");
   }
 #endif
-  reader->addNewMatchedWriter(
-      WriterProxy{writerData.endpointGuid, endpointUnicastLocator(m_part, writerData),
-                  (writerData.reliabilityKind == ReliabilityKind_t::RELIABLE)});
+  const WriterProxy proxy{writerData.endpointGuid, endpointUnicastLocator(m_part, writerData),
+                          (writerData.reliabilityKind == ReliabilityKind_t::RELIABLE)};
+  if (reader->addNewMatchedWriter(proxy) &&
+      writerData.reliabilityKind == ReliabilityKind_t::RELIABLE) {
+    // Tell the writer we exist, as the SEDP readers do on participant discovery
+    // and as Fast DDS and Cyclone DDS readers do on every match: the writer's
+    // ReaderProxy::acknowledged is what a service client waits for before it
+    // sends (ServiceClient::wait_for_server), and a writer with an empty history
+    // sends no HEARTBEAT for us to answer otherwise.
+    reader->sendPreemptiveAckNack(proxy);
+  }
   if (mfp_onNewPublisherCallback != nullptr) {
     mfp_onNewPublisherCallback(m_onNewPublisherArgs);
   }
@@ -340,8 +348,10 @@ void SEDPAgent::tryMatchUnmatchedEndpoints() {
   for (auto &proxy : m_unmatchedRemoteWriters) {
     auto reader = m_part->getMatchingReader(proxy);
     if (reader != nullptr) {
-      reader->addNewMatchedWriter(
-          WriterProxy{proxy.endpointGuid, proxy.unicastLocator, proxy.is_reliable});
+      const WriterProxy writer_proxy{proxy.endpointGuid, proxy.unicastLocator, proxy.is_reliable};
+      if (reader->addNewMatchedWriter(writer_proxy) && proxy.is_reliable) {
+        reader->sendPreemptiveAckNack(writer_proxy); // see SEDPAgent::handlePublisherReaderMessage
+      }
       removeUnmatchedEntity(proxy.endpointGuid);
     }
   }

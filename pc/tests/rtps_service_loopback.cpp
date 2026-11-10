@@ -176,7 +176,11 @@ int main() {
           });
         });
     auto dcall = client.add_service_client({dsvc, "example_interfaces::srv::dds_::AddTwoInts"});
-    std::this_thread::sleep_for(2s); // discovery for the new endpoints
+    if (dcall && !dcall->wait_for_server(10s)) {
+      std::printf("FAIL: deferred server not matched within 10 s\n");
+      return 1;
+    }
+    std::this_thread::sleep_for(300ms); // the reply leg matches alongside
     if (dcall) {
       auto dreply = dcall->call(encode_request(11, 31), 10s);
       if (dreply.has_value() && dreply->size() >= 4 + 8) {

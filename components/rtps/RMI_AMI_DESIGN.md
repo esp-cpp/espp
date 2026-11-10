@@ -202,7 +202,14 @@ encapsulation (4) | guid (uint64) | seq (int64) | <Service>_Request / _Response
   `ServiceClient::server_count()` / `wait_for_server()` expose the match, like
   rclcpp's `wait_for_service`): the form is chosen from the matched servers, and
   a reliable writer would otherwise replay a request written for nobody to a
-  server matched later, possibly in the wrong form.
+  server matched later, possibly in the wrong form. A server counts once its
+  request reader has **acknowledged** our writer (`ReaderProxy::acknowledged`,
+  set by its pre-emptive ACKNACK) and its reply writer is matched: a Cyclone
+  server learns our endpoints from espp's SEDP replay up to a heartbeat period
+  after we learn its, and a request sent in that window reached a reader that
+  did not know our writer and was dropped for good (its request reader is
+  VOLATILE, so no replay). Seen as a deterministic failure of the interop
+  matrix's Cyclone action case with a 1 s settle after the match.
 - A reply the responder cannot send (over the single-DATA budget, or no CDR
   encapsulation to splice the header behind) is dropped with a warning.
 - Actions need nothing extra: their three services go through the same code.

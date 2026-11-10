@@ -40,19 +40,24 @@ struct ReaderProxy {
   bool suppressUnicast = false;
   bool unknown_eid = false;
   bool finalFlag = false;
+  /// An ACKNACK from this reader has arrived. Every reliable reader sends one
+  /// when it matches a writer (the pre-emptive ACKNACK), so this is the remote
+  /// end's confirmation that it has discovered us: a sample written before it
+  /// may still reach a reader that has not, and a VOLATILE one drops it.
+  bool acknowledged = false;
   SequenceNumber_t lastAckNackSequenceNumber = {0, 1};
 
   ReaderProxy()
       : remoteReaderGuid({GUIDPREFIX_UNKNOWN, ENTITYID_UNKNOWN})
       , ackNackCount{0}
       , remoteLocator(LocatorIPv4())
-      , finalFlag(false){};
+      , finalFlag(false) {};
   ReaderProxy(const Guid_t &guid, const LocatorIPv4 &loc, bool reliable)
       : remoteReaderGuid(guid)
       , ackNackCount{0}
       , remoteLocator(loc)
       , is_reliable(reliable)
-      , finalFlag(false){};
+      , finalFlag(false) {};
   ReaderProxy(const Guid_t &guid, const LocatorIPv4 &loc, const LocatorIPv4 &mcastloc,
               bool reliable)
       : remoteReaderGuid(guid)
@@ -60,7 +65,7 @@ struct ReaderProxy {
       , remoteLocator(loc)
       , is_reliable(reliable)
       , remoteMulticastLocator(mcastloc)
-      , finalFlag(false){};
+      , finalFlag(false) {};
 };
 
 } // namespace rtps

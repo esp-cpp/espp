@@ -974,6 +974,13 @@ struct RtpsParticipant::ServiceClient::Impl
     request_writer->dumpAllProxies(
         [](const rtps::Writer *, const rtps::ReaderProxy &proxy, void *arg) {
           auto *out = static_cast<Prefixes *>(arg);
+          // A reliable reader counts once it has acknowledged us (see
+          // ReaderProxy::acknowledged); until then the server may not have
+          // discovered our writer yet, and its VOLATILE request reader would
+          // drop a request sent now. A best-effort reader never acknowledges.
+          if (proxy.is_reliable && !proxy.acknowledged) {
+            return;
+          }
           ++out->proxies;
           for (std::size_t i = 0; i < out->count; ++i) {
             if (out->items[i] == proxy.remoteReaderGuid.prefix) {
@@ -985,8 +992,17 @@ struct RtpsParticipant::ServiceClient::Impl
           }
         },
         &prefixes);
-    PeerForm form{.matched = prefixes.proxies, .cyclonedds = false};
-    if (prefixes.count == 0 || self == nullptr || self->participant_ == nullptr) {
+    // A server counts only when both legs are matched: its request reader
+    // (a proxy on our request writer that has acknowledged us) and its reply
+    // writer (a proxy on our reply reader), the two legs
+    // rmw_service_server_is_available checks. The acknowledgement is what
+    // closes the window rclcpp's wait_for_service leaves open: a Cyclone
+    // server discovers our endpoints from espp's SEDP replay up to a heartbeat
+    // period after we discovered its, and a request sent in between reached
+    // a reader that did not know our writer yet and was dropped for good.
+    const std::size_t reply_writers = reply_reader != nullptr ? reply_reader->getProxiesCount() : 0;
+    PeerForm form{.matched = std::min(prefixes.proxies, reply_writers), .cyclonedds = false};
+    if (form.matched == 0 || self == nullptr || self->participant_ == nullptr) {
       return form;
     }
     std::size_t cyclonedds = 0;
