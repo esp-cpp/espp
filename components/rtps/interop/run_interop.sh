@@ -90,6 +90,7 @@ many_participants_case() { # prefix log-tag
 }
 
 note "Build espp lib + host binaries (linux)"
+echo "compiler: $(${CXX:-c++} --version | head -1); cmake $(cmake --version | head -1 | awk '{print $3}'); ROS_DISTRO=${ROS_DISTRO:-?}"
 cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_INSTALL_PREFIX=/tmp/espp/install > /tmp/cmake_lib.log 2>&1 \
   && cmake --build lib/build -j"$(nproc)" --target install > /tmp/build_lib.log 2>&1 \
   && cmake -S pc -B pc/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/tmp/espp/install > /tmp/cmake.log 2>&1 \

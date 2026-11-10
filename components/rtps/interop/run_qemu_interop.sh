@@ -411,13 +411,17 @@ run_soak() {
     m_last=$(mark)
     soak_cycle "$rmw" "$i"
     h=$(latest_heap); heaps+=("$h")
-    mn=$(latest_min_heap); [ "$mn" -lt "$prev_min" ] && new_lows=$((new_lows + 1)); prev_min="$mn"
+    # a new low-water mark counts when it is a real step down (1 KB or more):
+    # the Cyclone cycles' transient allocations (a service call's request and
+    # reply buffers among them) move the mark by tens of bytes from cycle to
+    # cycle, which is fragmentation jitter, not growth
+    mn=$(latest_min_heap); [ "$mn" -lt $((prev_min - 1024)) ] && new_lows=$((new_lows + 1)); prev_min="$mn"
     echo "cycle $i ${rmw#rmw_}: $(grep -o 'RTPSTEST status.*' "$LOG" | tail -1 | sed 's/RTPSTEST status //')"
   done
   local last_rx last_be last_big; last_rx=$(count_since "$m_last" "RTPSTEST rx "); last_be=$(count_since "$m_last" "RTPSTEST be_rx "); last_big=$(count_since "$m_last" "RTPSTEST big_rx ")
   sleep 14 # every soak peer forgotten
   local end_heap end_min; end_heap=$(latest_heap); end_min=$(latest_min_heap)
-  echo "heap after the warm-up $base_heap, after cycle $((cycles / 2)) ${heaps[$((cycles / 2 - 1))]}, at the end $end_heap (free, bytes); low-water mark $base_min -> $end_min, $new_lows new low(s) over the cycles"
+  echo "heap after the warm-up $base_heap, after cycle $((cycles / 2)) ${heaps[$((cycles / 2 - 1))]}, at the end $end_heap (free, bytes); low-water mark $base_min -> $end_min, $new_lows new low(s) of 1 KB or more over the cycles"
   echo "last cycle: reliable $last_rx, best-effort $last_be, 30 KB $last_big samples delivered"
   echo "pool-exhaustion messages over the soak: $(grep -c 'RESSOURCE LIMIT EXCEEDED' "$LOG"), RX frames dropped: $(grep -c 'RX frame dropped' "$LOG")"
   # Free heap at the end within 8 KB of the baseline: a leak of 500 bytes per

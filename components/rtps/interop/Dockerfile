@@ -28,6 +28,7 @@ RUN if [ "$ROS_DISTRO" = humble ]; then \
       && add-apt-repository -y ppa:ubuntu-toolchain-r/test \
       && apt-get install -y --no-install-recommends gcc-13 g++-13 \
       && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 --slave /usr/bin/g++ g++ /usr/bin/g++-13 \
+      && update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-13 100 --slave /usr/bin/c++ c++ /usr/bin/g++-13 \
       && pip3 install --no-cache-dir "cmake>=3.24,<4" \
       && rm -rf /var/lib/apt/lists/*; \
     fi
@@ -61,5 +62,9 @@ RUN if [ "$TARGETARCH" = amd64 ]; then \
 RUN python3 -m venv --system-site-packages /opt/espp-venv \
     && /opt/espp-venv/bin/pip install --no-cache-dir \
        scikit-build-core pybind11 setuptools-scm pycdr2
+
+# CMake picks cc / c++ by default; name the compilers so every build in the
+# container (the lib, the pc tests, the Python wheel) uses the same ones.
+ENV CC=gcc CXX=g++
 
 WORKDIR /work
