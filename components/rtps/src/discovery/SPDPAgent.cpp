@@ -136,13 +136,22 @@ void SPDPAgent::processProxyData() {
   }
 
   if (!mp_participant->addNewRemoteParticipant(m_proxyDataBuffer)) {
-    // The remote-participant pool is full. The peer announces again
-    // (SPDP is periodic), and the liveliness sweep frees a slot once a known
-    // peer's lease runs out, so it gets in later; nothing to do now. (This
-    // used to spin forever in non-verbose builds, with the agent mutex held:
-    // one participant too many on the domain froze discovery.)
-    SPDP_LOG("Remote-participant pool full, not adding this participant");
-    return;
+    // The remote-participant pool is full. Make room by forgetting the
+    // participant we have the least use for (Config::SPDP_EVICT_UNUSED_PARTICIPANTS,
+    // see Participant::evictUnusedRemoteParticipant; lock order here is the
+    // SPDP agent mutex, held by handleSPDPPackage, -> SEDP agent -> Participant)
+    // and retry. When nothing can be evicted (every known participant is one
+    // we talk to, or one was evicted this announcement period already) the
+    // peer announces again (SPDP is periodic), and the liveliness sweep frees
+    // a slot once a known peer's lease runs out, so it gets in later; nothing
+    // to do now. (This used to spin forever in non-verbose builds, with the
+    // agent mutex held: one participant too many on the domain froze discovery.)
+    GuidPrefix_t evicted{};
+    if (!mp_participant->evictUnusedRemoteParticipant(evicted) ||
+        !mp_participant->addNewRemoteParticipant(m_proxyDataBuffer)) {
+      SPDP_LOG("Remote-participant pool full, not adding this participant");
+      return;
+    }
   }
 
   if (!addProxiesForBuiltInEndpoints()) {

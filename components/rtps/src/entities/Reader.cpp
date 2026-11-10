@@ -363,6 +363,16 @@ void Reader::removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix) {
   m_proxies.remove(thunk, &isElementToRemove);
 }
 
+bool Reader::hasProxyOfParticipant(const GuidPrefix_t &guidPrefix) {
+  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
+  for (const auto &proxy : m_proxies) {
+    if (proxy.remoteWriterGuid.prefix == guidPrefix) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool Reader::removeProxy(const Guid_t &guid) {
   std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   auto isElementToRemove = [&](const WriterProxy &proxy) { return proxy.remoteWriterGuid == guid; };

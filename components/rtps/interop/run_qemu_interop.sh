@@ -228,6 +228,32 @@ ros2_cases() { # prefix log-tag
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 ros2_cases "fastdds: " fastdds
 
+# --- a full pool, and a late participant the device needs -------------------------------
+note "pool full of participants the device has no use for (28 against 24) and they STAY; the publisher it needs joins last: an unused one is forgotten for it"
+# Unlike participant_pool_overflow_recovers (everyone leaves and the leases free
+# the slots) the crowd keeps announcing here, so the only way in for the late
+# publisher is the eviction of a participant none of the device's endpoints
+# match (Config::SPDP_EVICT_UNUSED_PARTICIPANTS: oldest first, one per
+# announcement period, logged by the device). The rejected members of the
+# crowd re-announce every few seconds and each takes the slot of another
+# unused one; the publisher gets its slot the same way, and once its writer
+# matches the device's reader it is in use and stays.
+crowd=()
+for i in $(seq 1 28); do
+  timeout 80 ros2 topic pub -r 1 "/stay$i" std_msgs/msg/String "data: 'stay'" > /dev/null 2>&1 &
+  crowd+=("$!")
+done
+sleep 25
+echo "  device: $(grep -o 'RTPSTEST status.*' "$LOG" | tail -1)"
+m=$(mark)
+timeout 42 ros2 topic pub -r 5 /qemu_rx std_msgs/msg/String "data: 'made room for me'" > /dev/null 2>&1 &
+pub=$!; sleep 40; kill $pub "${crowd[@]}" 2>/dev/null; wait $pub "${crowd[@]}" 2>/dev/null || true
+n=$(count_since "$m" "RTPSTEST rx made room for me"); e=$(count_since "$m" "forgetting an unused participant")
+echo "device received $n; evictions logged meanwhile: $e"
+[ "$n" -ge 5 ]; result "pool_full_evicts_unused_for_late_joiner" $?
+settle
+sleep 10 # the crowd's capped leases (8 s) run out before the next case
+
 # --- espp host engine <-> device ---------------------------------------------------------
 note "espp host publisher -> device subscriber (reliable, /qemu_rx)"
 m=$(mark)

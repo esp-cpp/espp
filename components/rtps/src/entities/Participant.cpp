@@ -537,6 +537,99 @@ bool Participant::checkAndResetHeartbeats() {
   }
 }
 
+// The builtin discovery endpoints hold a proxy for every remote participant, so
+// only the user endpoints tell whether we have a use for one. The endpoint
+// locks nest under m_mutex here as they do in removeAllProxiesOfParticipant().
+bool Participant::hasUserEndpointProxyOf(const GuidPrefix_t &prefix) {
+  for (auto *writer : m_writers) {
+    if (writer != nullptr && writer->isInitialized() && !writer->isBuiltinEndpoint() &&
+        writer->hasProxyOfParticipant(prefix)) {
+      return true;
+    }
+  }
+  for (auto *reader : m_readers) {
+    if (reader == nullptr || !reader->isInitialized()) {
+      continue;
+    }
+    const auto kind = reader->m_attributes.endpointGuid.entityId.entityKind;
+    const bool user = kind == EntityKind_t::USER_DEFINED_READER_WITHOUT_KEY ||
+                      kind == EntityKind_t::USER_DEFINED_READER_WITH_KEY;
+    if (user && reader->hasProxyOfParticipant(prefix)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Participant::evictUnusedRemoteParticipant(GuidPrefix_t &evicted) {
+  if (!Config::SPDP_EVICT_UNUSED_PARTICIPANTS) {
+    return false;
+  }
+  // Phase 1 - SELECT under m_mutex. The caller (SPDPAgent::processProxyData)
+  // holds the SPDP agent mutex; the documented order is SPDP agent -> SEDP
+  // agent -> Participant, so m_mutex may be taken here, while the removal
+  // below acquires the SEDP agent mutex first and therefore runs with m_mutex
+  // released, exactly as checkAndResetHeartbeats() does.
+  GuidPrefix_t victim{};
+  bool have = false;
+  bool victimExpired = false;
+  uint32_t victimAge = 0;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    const auto now = std::chrono::steady_clock::now();
+    if (m_lastEvictionTimestamp != std::chrono::steady_clock::time_point{} &&
+        now - m_lastEvictionTimestamp < std::chrono::milliseconds(Config::SPDP_RESEND_PERIOD_MS)) {
+      // One eviction per announcement period: on a domain that stays bigger
+      // than the pool, the rejected peers re-announce every period, and this
+      // bounds how often an unused one is swapped for another unused one.
+      return false;
+    }
+    for (auto &remote : m_remoteParticipants) {
+      if (!remote.isAlive()) {
+        // past its lease already: the liveliness sweep would forget it soon
+        const uint32_t age = remote.getAliveSignalAgeInMilliseconds();
+        if (!victimExpired || age > victimAge) {
+          victim = remote.m_guid.prefix;
+          victimAge = age;
+          victimExpired = true;
+          have = true;
+        }
+        continue;
+      }
+      if (victimExpired) {
+        continue; // an expired participant beats any live one
+      }
+      const uint32_t age = remote.getDiscoveredAgeInMilliseconds();
+      if (age < Config::SPDP_EVICT_MIN_AGE_MS) {
+        continue; // its endpoint announcements may still be on the way
+      }
+      if (hasUserEndpointProxyOf(remote.m_guid.prefix)) {
+        continue; // we exchange data with it
+      }
+      if (!have || age > victimAge) {
+        victim = remote.m_guid.prefix;
+        victimAge = age;
+        have = true;
+      }
+    }
+    if (!have) {
+      return false;
+    }
+    m_lastEvictionTimestamp = now;
+    logger_.warn("Remote-participant pool full ({} of {}): forgetting {} participant "
+                 "{:02x}{:02x}{:02x}{:02x} ({} s since {}) for a new one; a domain this big "
+                 "wants a larger SPDP_MAX_NUMBER_FOUND_PARTICIPANTS",
+                 (unsigned int)m_remoteParticipants.getNumElements(),
+                 (unsigned int)Config::SPDP_MAX_NUMBER_FOUND_PARTICIPANTS,
+                 victimExpired ? "an expired" : "an unused", victim.id[4], victim.id[5],
+                 victim.id[6], victim.id[7], victimAge / 1000,
+                 victimExpired ? "its last announcement" : "discovery");
+  }
+  // Phase 2 - remove with m_mutex released (see above).
+  evicted = victim;
+  return removeRemoteParticipant(victim);
+}
+
 void Participant::printInfo() {
 
   uint32_t max_reader_proxies = 0;

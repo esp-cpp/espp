@@ -109,6 +109,7 @@ set(RTPS_TUNING_KNOBS
     SF_WRITER_HB_PERIOD_MS
     SPDP_DEFAULT_REMOTE_LEASE_DURATION_S
     SPDP_MAX_REMOTE_LEASE_DURATION_S
+    SPDP_EVICT_MIN_AGE_MS
 )
 foreach(knob ${RTPS_TUNING_KNOBS})
   if(DEFINED CONFIG_RTPS_${knob} AND NOT "${CONFIG_RTPS_${knob}}" STREQUAL "" AND NOT "${CONFIG_RTPS_${knob}}" STREQUAL "0")
@@ -122,6 +123,12 @@ foreach(knob ${RTPS_TUNING_KNOBS})
     target_compile_definitions(${COMPONENT_LIB} PUBLIC "RTPS_CFG_${knob}=${CONFIG_RTPS_${knob}}")
   endif()
 endforeach()
+
+# Eviction of an unused remote participant on a full pool (Kconfig bool,
+# default on): only the off state is passed through, the profiles default to on.
+if(DEFINED CONFIG_RTPS_SPDP_EVICT_UNUSED_PARTICIPANTS AND NOT CONFIG_RTPS_SPDP_EVICT_UNUSED_PARTICIPANTS)
+  target_compile_definitions(${COMPONENT_LIB} PUBLIC "RTPS_CFG_SPDP_EVICT_UNUSED_PARTICIPANTS=0")
+endif()
 
 # Domain id (Kconfig "Domain id"): 0 is a real value here (the DDS default),
 # not a sentinel, so it is always passed through when defined. It derives the

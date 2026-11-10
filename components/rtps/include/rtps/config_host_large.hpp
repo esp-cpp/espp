@@ -242,6 +242,22 @@ const Duration_t SPDP_DEFAULT_REMOTE_LEASE_DURATION = {
 #define RTPS_CFG_SPDP_MAX_REMOTE_LEASE_DURATION_S 180
 #endif
 const Duration_t SPDP_MAX_REMOTE_LEASE_DURATION = {RTPS_CFG_SPDP_MAX_REMOTE_LEASE_DURATION_S, 0};
+// When the remote-participant pool is full and yet another participant
+// announces itself, forget one this participant has no use for (none of its
+// endpoints matched by any user endpoint of ours) so the newcomer gets the
+// slot: oldest discovered first, never one discovered less than
+// SPDP_EVICT_MIN_AGE_MS ago (its endpoint discovery may still be in flight),
+// at most one per SPDP_RESEND_PERIOD_MS, and an expired participant before any
+// live one. Each eviction is logged: a domain that keeps evicting wants a bigger
+// SPDP_MAX_NUMBER_FOUND_PARTICIPANTS. menuconfig RTPS -> Discovery timing.
+#ifndef RTPS_CFG_SPDP_EVICT_UNUSED_PARTICIPANTS
+#define RTPS_CFG_SPDP_EVICT_UNUSED_PARTICIPANTS 1
+#endif
+const bool SPDP_EVICT_UNUSED_PARTICIPANTS = RTPS_CFG_SPDP_EVICT_UNUSED_PARTICIPANTS != 0;
+#ifndef RTPS_CFG_SPDP_EVICT_MIN_AGE_MS
+#define RTPS_CFG_SPDP_EVICT_MIN_AGE_MS (3 * RTPS_CFG_SPDP_RESEND_PERIOD_MS)
+#endif
+const uint32_t SPDP_EVICT_MIN_AGE_MS = RTPS_CFG_SPDP_EVICT_MIN_AGE_MS;
 
 // Transport channel pool: 2 shared multicast channels (SPDP metatraffic +
 // user multicast) + 2 unicast channels per participant (builtin + user), plus
