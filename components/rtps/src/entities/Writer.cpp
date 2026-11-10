@@ -112,12 +112,13 @@ bool rtps::Writer::hasProxyOfParticipant(const GuidPrefix_t &guidPrefix) {
     return false;
   }
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (const auto &proxy : m_proxies) {
-    if (proxy.remoteReaderGuid.prefix == guidPrefix) {
-      return true;
-    }
-  }
-  return false;
+  auto isElementToFind = [&](const ReaderProxy &proxy) {
+    return proxy.remoteReaderGuid.prefix == guidPrefix;
+  };
+  auto thunk = [](void *arg, const ReaderProxy &value) {
+    return (*static_cast<decltype(isElementToFind) *>(arg))(value);
+  };
+  return m_proxies.find(thunk, &isElementToFind) != nullptr;
 }
 
 bool rtps::Writer::isBuiltinEndpoint() {

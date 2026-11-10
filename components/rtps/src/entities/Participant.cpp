@@ -571,11 +571,11 @@ bool Participant::evictUnusedRemoteParticipant(GuidPrefix_t &evicted) {
   // below acquires the SEDP agent mutex first and therefore runs with m_mutex
   // released, exactly as checkAndResetHeartbeats() does.
   GuidPrefix_t victim{};
-  bool have = false;
-  bool victimExpired = false;
-  uint32_t victimAge = 0;
   {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    bool have = false;
+    bool victimExpired = false;
+    uint32_t victimAge = 0;
     const auto now = std::chrono::steady_clock::now();
     if (m_lastEvictionTimestamp != std::chrono::steady_clock::time_point{} &&
         now - m_lastEvictionTimestamp < std::chrono::milliseconds(Config::SPDP_RESEND_PERIOD_MS)) {

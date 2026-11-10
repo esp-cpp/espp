@@ -365,12 +365,13 @@ void Reader::removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix) {
 
 bool Reader::hasProxyOfParticipant(const GuidPrefix_t &guidPrefix) {
   std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
-  for (const auto &proxy : m_proxies) {
-    if (proxy.remoteWriterGuid.prefix == guidPrefix) {
-      return true;
-    }
-  }
-  return false;
+  auto isElementToFind = [&](const WriterProxy &proxy) {
+    return proxy.remoteWriterGuid.prefix == guidPrefix;
+  };
+  auto thunk = [](void *arg, const WriterProxy &value) {
+    return (*static_cast<decltype(isElementToFind) *>(arg))(value);
+  };
+  return m_proxies.find(thunk, &isElementToFind) != nullptr;
 }
 
 bool Reader::removeProxy(const Guid_t &guid) {
