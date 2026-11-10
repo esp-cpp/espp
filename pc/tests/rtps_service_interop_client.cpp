@@ -89,8 +89,8 @@ int main(int argc, char **argv) {
   // Pipelined: `pipeline` requests in flight at once, each with its own
   // operands, so a reply delivered to the wrong pending request shows up as a
   // wrong sum rather than passing by coincidence.
-  int correct = 0;
   if (ok && pipeline > 1) {
+    int correct = 0;
     std::vector<std::future<std::optional<std::vector<uint8_t>>>> futures;
     futures.reserve(pipeline);
     for (int i = 0; i < pipeline; ++i) {
