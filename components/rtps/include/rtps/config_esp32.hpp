@@ -222,8 +222,10 @@ const Duration_t SPDP_DEFAULT_REMOTE_LEASE_DURATION = {
 #define RTPS_CFG_SPDP_MAX_REMOTE_LEASE_DURATION_S 90
 #endif
 const Duration_t SPDP_MAX_REMOTE_LEASE_DURATION = {RTPS_CFG_SPDP_MAX_REMOTE_LEASE_DURATION_S, 0};
-// When the remote-participant pool is full and yet another participant
-// announces itself, forget one this participant has no use for (none of its
+// When the remote-participant pool is full - or the builtin discovery
+// endpoints' proxy pools, which a new participant needs a slot in too - and
+// yet another participant announces itself, forget one this participant has
+// no use for (none of its
 // endpoints matched by any user endpoint of ours) so the newcomer gets the
 // slot: oldest discovered first, never one discovered less than
 // SPDP_EVICT_MIN_AGE_MS ago (its endpoint discovery may still be in flight),

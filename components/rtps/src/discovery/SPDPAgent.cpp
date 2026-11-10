@@ -137,7 +137,8 @@ void SPDPAgent::processProxyData() {
 
   if (!mp_participant->addNewRemoteParticipant(m_proxyDataBuffer)) {
     // The remote-participant pool is full. Make room by forgetting the
-    // participant we have the least use for (Config::SPDP_EVICT_UNUSED_PARTICIPANTS,
+    // participant we have the least use for (Config::SPDP_EVICT_UNUSED_PARTICIPANTS;
+    // the builtin proxy pools below get the same treatment,
     // see Participant::evictUnusedRemoteParticipant; lock order here is the
     // SPDP agent mutex, held by handleSPDPPackage, -> SEDP agent -> Participant)
     // and retry. When nothing can be evicted (every known participant is one
@@ -156,16 +157,27 @@ void SPDPAgent::processProxyData() {
 
   if (!addProxiesForBuiltInEndpoints()) {
     // Its SEDP proxies do not fit the builtin endpoints' per-endpoint proxy
-    // pools (or it has no usable locator). Forget it again: a participant
-    // left in the list without its builtin proxies would never be matched,
-    // because every later announcement only refreshes its lease. Forgotten,
-    // it is retried on its next announcement, by which time the sweep may
-    // have freed a slot. Lock order here is the SPDP agent mutex (held by
+    // pools (or it has no usable locator). Those pools are usually the first
+    // to fill on a busy domain (they are sized by the per-endpoint proxy
+    // knobs, not by the participant pool), so make room the same way as for a
+    // full participant pool: forget the participant we have the least use for
+    // - which frees its builtin proxies too - and try once more. (The proxies
+    // that did fit the first time were removed again by the failure.) When
+    // nothing can be evicted, forget the newcomer: a participant left in the
+    // list without its builtin proxies would never be matched, because every
+    // later announcement only refreshes its lease. Forgotten, it is retried on
+    // its next announcement, by which time the sweep or an eviction may have
+    // freed a slot. Lock order here is the SPDP agent mutex (held by
     // handleSPDPPackage) -> SEDP agent mutex -> Participant mutex; nothing
     // takes the SPDP mutex while holding either of the others.
-    SPDP_LOG("Builtin proxies for the new participant did not fit, forgetting it");
-    mp_participant->removeRemoteParticipant(m_proxyDataBuffer.m_guid.prefix);
-    return;
+    GuidPrefix_t evicted{};
+    const bool fits =
+        mp_participant->evictUnusedRemoteParticipant(evicted) && addProxiesForBuiltInEndpoints();
+    if (!fits) {
+      SPDP_LOG("Builtin proxies for the new participant did not fit, forgetting it");
+      mp_participant->removeRemoteParticipant(m_proxyDataBuffer.m_guid.prefix);
+      return;
+    }
   }
 
   const DataSize_t size = static_cast<DataSize_t>(m_outputSize);

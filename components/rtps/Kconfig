@@ -293,7 +293,10 @@ menu "RTPS"
             default y
             help
                 With the remote-participant pool (SPDP_MAX_NUMBER_FOUND_PARTICIPANTS)
-                full, a newly announcing participant takes the slot of the
+                full, or the builtin discovery endpoints' proxy pools
+                (NUM_WRITER_PROXIES_PER_READER / NUM_READER_PROXIES_PER_WRITER,
+                one slot per remote participant each), a newly announcing
+                participant takes the slot of the
                 oldest one none of this participant's user endpoints match
                 (an expired one first), so a peer you need can still be
                 discovered on a domain crowded with peers you do not. At most

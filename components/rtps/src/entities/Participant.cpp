@@ -616,7 +616,8 @@ bool Participant::evictUnusedRemoteParticipant(GuidPrefix_t &evicted) {
       return false;
     }
     m_lastEvictionTimestamp = now;
-    logger_.warn("Remote-participant pool full ({} of {}): forgetting {} participant "
+    logger_.warn("No room for a new remote participant ({} of {} in the pool, or its builtin "
+                 "proxies do not fit): forgetting {} participant "
                  "{:02x}{:02x}{:02x}{:02x} ({} s since {}) for a new one; a domain this big "
                  "wants a larger SPDP_MAX_NUMBER_FOUND_PARTICIPANTS",
                  (unsigned int)m_remoteParticipants.getNumElements(),

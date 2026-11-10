@@ -116,8 +116,10 @@ public:
   uint32_t getRemoteParticipantCount();
   MessageReceiver *getMessageReceiver();
   bool checkAndResetHeartbeats();
-  //! With the remote-participant pool full, forget the participant we have the
-  //! least use for so another can be added (Config::SPDP_EVICT_UNUSED_PARTICIPANTS):
+  //! With the remote-participant pool full - or the builtin discovery
+  //! endpoints' proxy pools, which a newcomer needs a slot in as well - forget
+  //! the participant we have the least use for so another can be added
+  //! (Config::SPDP_EVICT_UNUSED_PARTICIPANTS):
   //! an expired one first, else the oldest-discovered one none of our user
   //! endpoints match, provided it is older than Config::SPDP_EVICT_MIN_AGE_MS;
   //! at most one eviction per SPDP_RESEND_PERIOD_MS. Returns true and sets

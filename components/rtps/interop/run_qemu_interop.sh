@@ -249,7 +249,9 @@ note "pool full of participants the device has no use for (28 against 24) and th
 # the slots) the crowd keeps announcing here, so the only way in for the late
 # publisher is the eviction of a participant none of the device's endpoints
 # match (Config::SPDP_EVICT_UNUSED_PARTICIPANTS: oldest first, one per
-# announcement period, logged by the device). The rejected members of the
+# announcement period, logged by the device). With this build's knobs the
+# builtin proxy pools (20) fill before the participant pool (24), so this is
+# the proxy-pool trigger of the eviction that is exercised here. The rejected members of the
 # crowd re-announce every few seconds and each takes the slot of another
 # unused one; the publisher gets its slot the same way, and once its writer
 # matches the device's reader it is in use and stays.
