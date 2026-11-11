@@ -875,7 +875,7 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
   const char *dropped = nullptr;
   if (wire_size > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
     dropped = "it exceeds the single-DATA budget";
-  } else if (state_->cyclonedds && !rtps::rpc::detail::isCdrEncapsulation(response)) {
+  } else if (state_->cyclonedds && !rtps::rpc::isCdrEncapsulation(response)) {
     dropped = "it does not start with a CDR encapsulation to splice the Cyclone header behind";
   }
   if (dropped != nullptr) {

@@ -284,7 +284,7 @@ const VendorId_t VENDOR_UNKNOWN = {};
 // Vendor ids (OMG DDS vendor registry) the RPC layer tells apart: a peer's
 // vendor decides how it correlates service requests with replies (see
 // rpc/cyclonedds_request_header.hpp).
-const VendorId_t VENDOR_EPROSIMA_FASTDDS = {{0x01, 0x0F}};
+const VendorId_t VENDOR_EPROSIMA_FASTDDS = {{0x01, 0x0F}}; // 01.15 in Wireshark's dotted decimal
 const VendorId_t VENDOR_ECLIPSE_CYCLONEDDS = {{0x01, 0x10}};
 } // namespace rtps
 

@@ -110,15 +110,19 @@ Rtps::service_handler_t wrap_service_handler(const py::function &fn) {
   };
 }
 
-// A Python timeout in seconds as milliseconds: negative clamps to 0, and the
-// conversion goes through a 64-bit duration so a long timeout cannot overflow.
+// A Python timeout in seconds as milliseconds: anything that is not positive
+// clamps to 0, and anything beyond what a 64-bit millisecond count can hold
+// (about 2.9e8 years) clamps to milliseconds::max() instead of overflowing.
 static std::chrono::milliseconds seconds_to_ms(double seconds) {
+  using ms = std::chrono::milliseconds;
   if (!(seconds > 0.0)) {
-    return std::chrono::milliseconds{0};
+    return ms{0};
   }
-  const auto ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(seconds));
-  return ms;
+  constexpr double max_seconds = static_cast<double>(ms::max().count()) / 1000.0;
+  if (seconds >= max_seconds) {
+    return ms::max();
+  }
+  return std::chrono::duration_cast<ms>(std::chrono::duration<double>(seconds));
 }
 
 // A reply callback for call_async: Python callable(bytes).

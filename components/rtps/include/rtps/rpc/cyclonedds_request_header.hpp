@@ -83,15 +83,17 @@ struct CycloneDdsRequestHeader {
 /// whose services use the in-payload header.
 inline bool isCycloneDds(const VendorId_t &vendor) { return vendor == VENDOR_ECLIPSE_CYCLONEDDS; }
 
-namespace detail {
-// A CDR encapsulation header is {0x00, kind, options(2)}; the kinds rmw writes
-// are CDR_BE 0x00, CDR_LE 0x01, PL_CDR_BE 0x02, PL_CDR_LE 0x03 (XCDR1, what
-// rmw_cyclonedds_cpp and rmw_fastrtps_cpp use for services). Anything else is
-// not an rmw payload, so the codec refuses it rather than read a header out of
-// it. The options bytes are not checked: the spec leaves them to the encoder.
+/// True when `payload` starts with a CDR encapsulation header, {0x00, kind,
+/// options(2)} with kind CDR_BE 0x00, CDR_LE 0x01, PL_CDR_BE 0x02 or PL_CDR_LE
+/// 0x03 (XCDR1, what rmw_cyclonedds_cpp and rmw_fastrtps_cpp use for services).
+/// Anything else is not an rmw payload: the codec refuses it rather than read a
+/// header out of it, and a responder checks it before replying. The options
+/// bytes are not checked: the spec leaves them to the encoder.
 inline bool isCdrEncapsulation(std::span<const uint8_t> payload) {
   return payload.size() >= CDR_ENCAPSULATION_SIZE && payload[0] == 0x00 && payload[1] <= 0x03;
 }
+
+namespace detail {
 // The encapsulation's endianness flag: bit 0 of the kind byte (CDR_LE 0x0001,
 // PL_CDR_LE 0x0003 are little-endian; CDR_BE 0x0000, PL_CDR_BE 0x0002 big).
 // The caller has checked isCdrEncapsulation().
@@ -129,7 +131,7 @@ inline void storeI64(uint8_t *p, int64_t v, bool littleEndian) {
 inline bool parseCycloneDdsRequestHeader(std::span<const uint8_t> payload,
                                          CycloneDdsRequestHeader &out) {
   if (payload.size() < CDR_ENCAPSULATION_SIZE + CYCLONEDDS_REQUEST_HEADER_SIZE ||
-      !detail::isCdrEncapsulation(payload)) {
+      !isCdrEncapsulation(payload)) {
     return false;
   }
   const bool le = detail::encapsulationIsLittleEndian(payload);
@@ -140,9 +142,14 @@ inline bool parseCycloneDdsRequestHeader(std::span<const uint8_t> payload,
 }
 
 /// The payload without its Cyclone header: encapsulation + body, i.e. the
-/// bytes rmw_fastrtps_cpp / espp would have sent for the same message. The
-/// caller has already checked parseCycloneDdsRequestHeader().
+/// bytes rmw_fastrtps_cpp / espp would have sent for the same message. Empty
+/// when the payload is not a CDR encapsulation or too short to hold the header
+/// (the same contract as prependCycloneDdsRequestHeader()).
 inline std::vector<uint8_t> stripCycloneDdsRequestHeader(std::span<const uint8_t> payload) {
+  if (payload.size() < CDR_ENCAPSULATION_SIZE + CYCLONEDDS_REQUEST_HEADER_SIZE ||
+      !isCdrEncapsulation(payload)) {
+    return {};
+  }
   std::vector<uint8_t> out;
   out.reserve(payload.size() - CYCLONEDDS_REQUEST_HEADER_SIZE);
   out.insert(out.end(), payload.begin(), payload.begin() + CDR_ENCAPSULATION_SIZE);
@@ -156,7 +163,7 @@ inline std::vector<uint8_t> stripCycloneDdsRequestHeader(std::span<const uint8_t
 /// header; an empty result signals one that is missing or not recognized.
 inline std::vector<uint8_t> prependCycloneDdsRequestHeader(const CycloneDdsRequestHeader &header,
                                                            std::span<const uint8_t> payload) {
-  if (!detail::isCdrEncapsulation(payload)) {
+  if (!isCdrEncapsulation(payload)) {
     return {};
   }
   const bool le = detail::encapsulationIsLittleEndian(payload);
@@ -170,9 +177,12 @@ inline std::vector<uint8_t> prependCycloneDdsRequestHeader(const CycloneDdsReque
 }
 
 /// A 64-bit client id for the header's guid field, derived from an endpoint
-/// GUID (FNV-1a over its 16 bytes). Unique among the clients of a service with
-/// overwhelming probability; a collision would only make two espp clients of the
-/// same service see each other's replies as unknown-seq noise.
+/// GUID (FNV-1a over its 16 bytes). Replies travel on the shared rr/ topic and
+/// a client takes every reply whose guid is its own, so two espp clients of one
+/// service that hashed to the same id would accept each other's replies
+/// whenever their seq counters coincide (both start at 1): a misdelivery, not
+/// noise. The chance is 2^-64 per pair of clients, which is why nothing more is
+/// done about it; 0 is not special to the filter, so it needs no remapping.
 inline uint64_t cycloneDdsClientId(const Guid_t &guid) {
   uint64_t h = 1469598103934665603ULL;
   auto mix = [&h](uint8_t b) {

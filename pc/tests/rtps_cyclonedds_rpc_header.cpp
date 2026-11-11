@@ -145,6 +145,13 @@ int main() {
           "non-zero first encapsulation byte rejected");
     check(prependCycloneDdsRequestHeader(h, bad_kind).empty(),
           "prepend refuses an unknown encapsulation");
+    check(stripCycloneDdsRequestHeader(bad_kind).empty(), "strip refuses an unknown encapsulation");
+    check(stripCycloneDdsRequestHeader(std::span<const uint8_t>{}).empty() &&
+              stripCycloneDdsRequestHeader(std::vector<uint8_t>{0x00, 0x01, 0x00, 0x00, 1, 2})
+                  .empty(),
+          "strip refuses a payload too short for the header");
+    check(isCdrEncapsulation(bare_request(7, 35, true)) && !isCdrEncapsulation(bad_first),
+          "isCdrEncapsulation is the public check");
     auto options = cyclone_request(guid, seq, 7, 35, true);
     options[2] = 0x00;
     options[3] = 0x02; // options bytes are the encoder's business
