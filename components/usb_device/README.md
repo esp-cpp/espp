@@ -316,8 +316,11 @@ Taking a medium from an attached host with `set_msc_owner()` is refused
 (`device_or_resource_busy`) because host writes already queued could land under
 the application's volume: eject the drive on the host first. Turn it off to decide yourself with
 `set_msc_owner(lun, MscOwner::Host / App)` — for example only expose an SD card
-while a "USB drive" screen is shown. `msc_owner()`, `msc_capacity()` and
-`MscFunction::on_event` (hand-over started / done / failed, format required)
+while a "USB drive" screen is shown. On a device whose USB stays connected for
+other functions (a console, a vendor link), the host is always attached, so take
+the medium back with `take_msc_from_ejected_host(lun, ec)` once the host has
+ejected the drive (esp_tinyusb only acts on an eject itself with auto_handover).
+`msc_owner()`, `msc_capacity()` and `MscFunction::on_event` (hand-over started / done / failed, format required)
 report the state; the event callback runs in the TinyUSB task for host-driven
 hand-overs, so act on it from your own task.
 

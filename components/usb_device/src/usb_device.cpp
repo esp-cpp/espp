@@ -2497,6 +2497,14 @@ bool UsbDevice::hand_over_msc(size_t index, MscOwner owner, std::error_code &ec)
 }
 
 bool UsbDevice::set_msc_owner(size_t lun, MscOwner owner, std::error_code &ec) {
+  return set_msc_owner(lun, owner, false, ec);
+}
+
+bool UsbDevice::take_msc_from_ejected_host(size_t lun, std::error_code &ec) {
+  return set_msc_owner(lun, MscOwner::App, true, ec);
+}
+
+bool UsbDevice::set_msc_owner(size_t lun, MscOwner owner, bool host_ejected, std::error_code &ec) {
   ec.clear();
 #if (CFG_TUD_MSC > 0)
   if (!initialized_ || !config_.msc) {
@@ -2511,8 +2519,10 @@ bool UsbDevice::set_msc_owner(size_t lun, MscOwner owner, std::error_code &ec) {
     // esp_tinyusb accepts WRITE(10) data and runs the write later on the TinyUSB
     // task, without re-checking ownership, so a write the host already queued
     // could land after the FAT volume is mounted for the application.
-    const auto host_attached = [this, lun]() {
-      if (!tud_mounted())
+    const auto host_attached = [this, lun, host_ejected]() {
+      // the caller vouches that the attached host has ejected the medium (it
+      // stays attached for the other functions): only its queued writes matter
+      if (!tud_mounted() || host_ejected)
         return false;
       logger_.warn("MSC medium {}: the attached host still has it; eject it on the host (or "
                    "detach) before handing it to the application",
