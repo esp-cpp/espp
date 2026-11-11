@@ -135,6 +135,22 @@ void SPDPAgent::processProxyData() {
     return; // Already in our list
   }
 
+  // A newcomer without a usable metatraffic unicast locator could never be
+  // matched (addProxiesForBuiltInEndpoints() refuses it below): check that
+  // first, so such an announcement cannot evict a participant and spend the
+  // eviction cooldown on its way to being forgotten anyway.
+  bool usableLocator = false;
+  for (unsigned int i = 0; i < m_proxyDataBuffer.m_metatrafficUnicastLocatorList.size(); i++) {
+    if (m_proxyDataBuffer.m_metatrafficUnicastLocatorList[i].isValid()) {
+      usableLocator = true;
+      break;
+    }
+  }
+  if (!usableLocator) {
+    SPDP_LOG("No usable metatraffic unicast locator in this announcement, not adding it");
+    return;
+  }
+
   if (!mp_participant->addNewRemoteParticipant(m_proxyDataBuffer)) {
     // The remote-participant pool is full. Make room by forgetting the
     // participant we have the least use for (Config::SPDP_EVICT_UNUSED_PARTICIPANTS;

@@ -563,11 +563,16 @@ bool Participant::evictUnusedRemoteParticipant(GuidPrefix_t &evicted, const char
   if (!Config::SPDP_EVICT_UNUSED_PARTICIPANTS) {
     return false;
   }
-  // Phase 1 - SELECT under m_mutex. The caller (SPDPAgent::processProxyData)
-  // holds the SPDP agent mutex; the documented order is SPDP agent -> SEDP
-  // agent -> Participant, so m_mutex may be taken here, while the removal
-  // below acquires the SEDP agent mutex first and therefore runs with m_mutex
-  // released, exactly as checkAndResetHeartbeats() does.
+  // The SEDP agent mutex is held from the selection through the removal: the
+  // SEDP receive handlers hold it while they match a remote endpoint to one of
+  // our user endpoints, so with it held nothing can turn the selected victim
+  // into a participant we talk to between the check below and the removal.
+  // The caller (SPDPAgent::processProxyData) holds the SPDP agent mutex; the
+  // documented order is SPDP agent -> SEDP agent -> Participant, which this
+  // follows (both mutexes are recursive: removeRemoteParticipant() re-takes
+  // them in the same order).
+  std::lock_guard<std::recursive_mutex> sedp_lock(m_sedpAgent.getMutex());
+  // Phase 1 - SELECT under m_mutex.
   GuidPrefix_t victim{};
   bool victimExpired = false;
   uint32_t victimAge = 0;
