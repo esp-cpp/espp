@@ -314,7 +314,9 @@ when done (the `msc_example` does). The hand-over covers **all media at once**:
 esp_tinyusb ignores which drive was ejected, so ejecting either returns both.
 Taking a medium from an attached host with `set_msc_owner()` is refused
 (`device_or_resource_busy`) because host writes already queued could land under
-the application's volume: eject the drive on the host first. Turn it off to decide yourself with
+the application's volume: eject the drive on the host first.
+
+Set `auto_handover = false` to decide yourself with
 `set_msc_owner(lun, MscOwner::Host / App)` — for example only expose an SD card
 while a "USB drive" screen is shown. On a device whose USB stays connected for
 other functions (a console, a vendor link), the host is always attached, so take

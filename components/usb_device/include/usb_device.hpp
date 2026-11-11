@@ -610,7 +610,9 @@ public:
    * before the volume is mounted here; a host that did NOT eject may lose writes
    * it had cached, as it would on an unplug.
    * @param lun Medium index (position in MscFunction::media).
-   * @param[out] ec As for set_msc_owner(), minus `device_or_resource_busy`.
+   * @param[out] ec As for set_msc_owner(), except that it skips the
+   *        attached-host check (the reason set_msc_owner() would report
+   *        `device_or_resource_busy` here).
    * @return true if the application now has the medium.
    */
   bool take_msc_from_ejected_host(size_t lun, std::error_code &ec);
@@ -750,10 +752,6 @@ protected:
   /// @param owner The owner the event refers to.
   void handle_msc_event(const void *storage, MscEvent event, MscOwner owner);
 
-  /// @brief Internal: set_msc_owner(), optionally trusting that the attached
-  ///        host has ejected the medium (take_msc_from_ejected_host()).
-  bool set_msc_owner(size_t lun, MscOwner owner, bool host_ejected, std::error_code &ec);
-
   /// @brief Internal: hand an MSC medium over and confirm the result against the
   ///        VFS (esp_tinyusb's setter records the requested owner even when the
   ///        mount / unmount failed, and not every failure raises an event).
@@ -798,6 +796,10 @@ protected:
   static UsbDevice *instance();
 
 private:
+  /// @brief set_msc_owner(), optionally trusting that the attached host has
+  ///        ejected the medium (take_msc_from_ejected_host()).
+  bool set_msc_owner_impl(size_t lun, MscOwner owner, bool host_ejected, std::error_code &ec);
+
   // Trampoline registered as tinyusb_config_t::event_cb; routes
   // TINYUSB_EVENT_ATTACHED/DETACHED to the private handlers below.
   friend void espp_usb_device_event_cb(tinyusb_event_t *event, void *arg);
