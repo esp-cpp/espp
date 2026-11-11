@@ -102,7 +102,8 @@ def main():
     # The ROS 2 clients refuse a call before a server is matched; make sure of it
     # (the native ones queue, their wait_for_server() returns at once).
     for name, c in (("svc", svc), ("act", act), ("nsvc", nsvc), ("nact", nact)):
-        assert c.wait_for_server(10.0), f"{name}: no server matched"
+        if not c.wait_for_server(10.0):
+            raise RuntimeError(f"{name}: no server matched within 10 s")
 
     # === 1. Service: blocking, async, and future (the three call styles) ===
     reply = svc.call(AddReq(a=7, b=35), timeout=5.0)

@@ -875,8 +875,8 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
   const char *dropped = nullptr;
   if (wire_size > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
     dropped = "it exceeds the single-DATA budget";
-  } else if (state_->cyclonedds && response.size() < rtps::rpc::CDR_ENCAPSULATION_SIZE) {
-    dropped = "it has no CDR encapsulation header to splice the Cyclone header behind";
+  } else if (state_->cyclonedds && !rtps::rpc::detail::isCdrEncapsulation(response)) {
+    dropped = "it does not start with a CDR encapsulation to splice the Cyclone header behind";
   }
   if (dropped != nullptr) {
     std::lock_guard<std::mutex> live_lock(state_->live->m);
@@ -911,6 +911,9 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
   if (state_->cyclonedds) {
     const auto payload =
         rtps::rpc::prependCycloneDdsRequestHeader(state_->cyclonedds_header, response);
+    if (payload.empty()) {
+      return; // cannot happen past the encapsulation check above; never send a bare DATA
+    }
     state_->reply_writer->newChange(rtps::ChangeKind_t::ALIVE, payload.data(),
                                     static_cast<rtps::DataSize_t>(payload.size()));
     return;
@@ -947,7 +950,10 @@ struct RtpsParticipant::ServiceClient::Impl
   // two key spaces of `pending` apart.
   static constexpr uint64_t CYCLONEDDS_KEY_BIT = uint64_t{1} << 63;
   uint64_t cyclonedds_client_id{0}; ///< the header's guid field, ours to choose
-  uint64_t cyclonedds_next_seq{0};  ///< the header's seq field, per request
+  /// The header's seq field, per request: an int64 like the field itself, kept
+  /// positive (wraps to 1 after INT64_MAX, beyond any device's lifetime) so the
+  /// pending-map key CYCLONEDDS_KEY_BIT | seq never sees a sign bit.
+  int64_t cyclonedds_next_seq{0};
   std::mutex mutex;
   std::unordered_map<uint64_t, Pending> pending;
   DeferredDispatch deferred; // banded reply reader without a dedicated port
@@ -958,6 +964,44 @@ struct RtpsParticipant::ServiceClient::Impl
     bool cyclonedds{false}; ///< every one of them is an Eclipse Cyclone DDS participant
   };
 
+  // The distinct participants behind the acknowledged, matched request readers.
+  struct Prefixes {
+    std::array<rtps::GuidPrefix_t, rtps::Config::NUM_READER_PROXIES_PER_WRITER> items{};
+    std::size_t count{0};   ///< distinct prefixes stored
+    std::size_t proxies{0}; ///< readers counted (acknowledged reliable, or best-effort)
+    bool overflow{false};   ///< a distinct prefix did not fit: the vendor check is partial
+  };
+  static void collect_prefix(const rtps::Writer *, const rtps::ReaderProxy &proxy, void *arg) {
+    auto *out = static_cast<Prefixes *>(arg);
+    // A reliable reader counts once it has acknowledged us (see
+    // ReaderProxy::acknowledged); until then the server may not have
+    // discovered our writer yet, and its VOLATILE request reader would
+    // drop a request sent now. A best-effort reader never acknowledges.
+    if (proxy.is_reliable && !proxy.acknowledged) {
+      return;
+    }
+    ++out->proxies;
+    for (std::size_t i = 0; i < out->count; ++i) {
+      if (out->items[i] == proxy.remoteReaderGuid.prefix) {
+        return;
+      }
+    }
+    if (out->count < out->items.size()) {
+      out->items[out->count++] = proxy.remoteReaderGuid.prefix;
+    } else {
+      out->overflow = true;
+    }
+  }
+
+  // Servers matched right now, both legs (see peer_form()), without the
+  // per-participant vendor lookups: what wait_for_server() polls.
+  std::size_t matched_servers() const {
+    Prefixes prefixes;
+    request_writer->dumpAllProxies(&collect_prefix, &prefixes);
+    const std::size_t reply_writers = reply_reader != nullptr ? reply_reader->getProxiesCount() : 0;
+    return std::min(prefixes.proxies, reply_writers);
+  }
+
   // `cyclonedds` means the servers ignore inline QoS and expect the in-payload
   // header (vendor 01.10). Mixed vendors keep the inline-QoS form, which
   // rmw_fastrtps_cpp, espp and DDS-RPC servers speak. Decided per request so a
@@ -966,32 +1010,8 @@ struct RtpsParticipant::ServiceClient::Impl
   // participant up (participant lock): never nested, and never under `mutex`,
   // so a reply landing meanwhile does not wait for the walk.
   PeerForm peer_form() const {
-    struct Prefixes {
-      std::array<rtps::GuidPrefix_t, rtps::Config::NUM_READER_PROXIES_PER_WRITER> items{};
-      std::size_t count{0};
-      std::size_t proxies{0};
-    } prefixes;
-    request_writer->dumpAllProxies(
-        [](const rtps::Writer *, const rtps::ReaderProxy &proxy, void *arg) {
-          auto *out = static_cast<Prefixes *>(arg);
-          // A reliable reader counts once it has acknowledged us (see
-          // ReaderProxy::acknowledged); until then the server may not have
-          // discovered our writer yet, and its VOLATILE request reader would
-          // drop a request sent now. A best-effort reader never acknowledges.
-          if (proxy.is_reliable && !proxy.acknowledged) {
-            return;
-          }
-          ++out->proxies;
-          for (std::size_t i = 0; i < out->count; ++i) {
-            if (out->items[i] == proxy.remoteReaderGuid.prefix) {
-              return;
-            }
-          }
-          if (out->count < out->items.size()) {
-            out->items[out->count++] = proxy.remoteReaderGuid.prefix;
-          }
-        },
-        &prefixes);
+    Prefixes prefixes;
+    request_writer->dumpAllProxies(&collect_prefix, &prefixes);
     // A server counts only when both legs are matched: its request reader
     // (a proxy on our request writer that has acknowledged us) and its reply
     // writer (a proxy on our reply reader), the two legs
@@ -1012,7 +1032,10 @@ struct RtpsParticipant::ServiceClient::Impl
         ++cyclonedds;
       }
     }
-    form.cyclonedds = (cyclonedds == prefixes.count);
+    // Only when every distinct participant was seen and is Cyclone; a set that
+    // overflowed the array was only partially checked, so it keeps the inline
+    // form, which every other server kind accepts.
+    form.cyclonedds = !prefixes.overflow && (cyclonedds == prefixes.count);
     return form;
   }
 
@@ -1048,8 +1071,10 @@ struct RtpsParticipant::ServiceClient::Impl
     // The lock covers only newChange + insert, so a reply can never look up the
     // key before it is registered (the send itself is async).
     if (peer.cyclonedds) {
-      const rtps::rpc::CycloneDdsRequestHeader header{cyclonedds_client_id,
-                                                      static_cast<int64_t>(++cyclonedds_next_seq)};
+      if (cyclonedds_next_seq == std::numeric_limits<int64_t>::max()) {
+        cyclonedds_next_seq = 0;
+      }
+      const rtps::rpc::CycloneDdsRequestHeader header{cyclonedds_client_id, ++cyclonedds_next_seq};
       const auto payload = rtps::rpc::prependCycloneDdsRequestHeader(header, request);
       if (payload.empty()) {
         return std::nullopt; // not a CDR-encapsulated request
@@ -1197,12 +1222,16 @@ RtpsParticipant::ServiceClient::ServiceClient(std::shared_ptr<Impl> impl)
 RtpsParticipant::ServiceClient::~ServiceClient() = default;
 
 std::size_t RtpsParticipant::ServiceClient::server_count() const {
-  return impl_->peer_form().matched;
+  return impl_->matched_servers();
 }
 
+// Polled, like rclpy's wait_for_service: a match is confirmed by an ACKNACK
+// that lands on an engine worker with no hook out to the facade, and the poll
+// is one walk of a handful of proxies under the writer's lock every 10 ms for
+// the few seconds discovery takes, with no vendor lookups.
 bool RtpsParticipant::ServiceClient::wait_for_server(std::chrono::milliseconds timeout) const {
   const auto deadline = std::chrono::steady_clock::now() + timeout;
-  while (impl_->peer_form().matched == 0) {
+  while (impl_->matched_servers() == 0) {
     if (std::chrono::steady_clock::now() >= deadline) {
       return false;
     }

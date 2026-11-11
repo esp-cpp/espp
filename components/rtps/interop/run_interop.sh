@@ -97,7 +97,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_pubsub rtps_golden rtps_locator_subnet rtps_facade_pubsub rtps_typed_pubsub \
        rtps_facade_frag rtps_facade_backlog rtps_facade_frag_sizes rtps_service_loopback \
        rtps_service_naming rtps_action_naming rtps_action_types rtps_native_protocol \
-       rtps_cyclonedds_rpc_header \
+       rtps_cyclonedds_rpc_header rtps_preemptive_acknack_count \
        rtps_action_loopback \
        rtps_native_service_loopback rtps_native_action_loopback rtps_typed_rpc_loopback \
        rtps_service_interop_server rtps_service_interop_client \
@@ -131,6 +131,7 @@ note "ROS 2 action envelope codec vs captured Fibonacci bytes (host)"
 
 note "rmw_cyclonedds_cpp in-payload request/reply header codec (host)"
 "$BIN"/rtps_cyclonedds_rpc_header; result "cyclonedds_rpc_header" $?
+"$BIN"/rtps_preemptive_acknack_count; result "preemptive_acknack_count" $?
 
 note "native (espp<->espp) protocol codec: header + action framing (host)"
 "$BIN"/rtps_native_protocol; result "native_protocol" $?

@@ -309,7 +309,14 @@ Reader::callbackIdentifier_t Reader::registerCallback(Reader::callbackFunction_t
   return 0;
 }
 
-uint32_t Reader::getProxiesCount() { return m_proxies.getNumElements(); }
+uint32_t Reader::getProxiesCount() {
+  // m_proxies is mutated by the SEDP workers (addNewMatchedWriter / removal);
+  // ServiceClient::wait_for_server() polls this from the caller's thread, so it
+  // takes the same lock as dumpAllProxies() (TSan: MemoryPool::add vs
+  // getNumElements).
+  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
+  return m_proxies.getNumElements();
+}
 
 bool Reader::removeCallback(Reader::callbackIdentifier_t identifier) {
   bool removed = false;

@@ -110,6 +110,17 @@ Rtps::service_handler_t wrap_service_handler(const py::function &fn) {
   };
 }
 
+// A Python timeout in seconds as milliseconds: negative clamps to 0, and the
+// conversion goes through a 64-bit duration so a long timeout cannot overflow.
+static std::chrono::milliseconds seconds_to_ms(double seconds) {
+  if (!(seconds > 0.0)) {
+    return std::chrono::milliseconds{0};
+  }
+  const auto ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(seconds));
+  return ms;
+}
+
 // A reply callback for call_async: Python callable(bytes).
 Rtps::ServiceClient::reply_callback_t wrap_reply_callback(const py::function &fn) {
   auto cb = make_gil_safe_holder(fn);
@@ -277,8 +288,7 @@ void py_init_rtps(py::module &m) {
           "wait_for_server",
           [](Rtps::ServiceClient &self, double timeout) {
             py::gil_scoped_release rel;
-            return self.wait_for_server(
-                std::chrono::milliseconds(static_cast<long>(timeout * 1000)));
+            return self.wait_for_server(seconds_to_ms(timeout));
           },
           py::arg("timeout") = 5.0,
           "Block until a server is matched (like rclpy's wait_for_service). A call made "
@@ -401,8 +411,7 @@ void py_init_rtps(py::module &m) {
           "wait_for_server",
           [](Rtps::ActionClient &self, double timeout) {
             py::gil_scoped_release rel;
-            return self.wait_for_server(
-                std::chrono::milliseconds(static_cast<long>(timeout * 1000)));
+            return self.wait_for_server(seconds_to_ms(timeout));
           },
           py::arg("timeout") = 5.0,
           "Block until an action server is matched (like rclpy_action's wait_for_server). A "
