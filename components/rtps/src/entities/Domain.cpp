@@ -339,20 +339,25 @@ rtps::Participant *Domain::createParticipant() {
     return nullptr;
   }
 
-  auto &entry = m_participants[m_numParticipants];
-  ++m_numParticipants;
+  // Fill the slot in completely before publishing it: the receive workers
+  // already run (the probed ports are bound) and walk m_participants below
+  // m_numParticipants without m_mutex, so a datagram for this id that lands
+  // meanwhile is dropped as unaddressed rather than read from a half-built
+  // participant. Discovery traffic repeats, nothing is lost.
+  const uint8_t slot = m_numParticipants.load(std::memory_order_acquire);
+  auto &entry = m_participants[slot];
   entry.reuse(generateGuidPrefix(candidate), candidate, m_localIpAddress,
               m_config.local_prefix_length);
   if (!createBuiltinWritersAndReaders(entry)) {
-    // Pool exhaustion (see createBuiltinWritersAndReaders): unwind the slot
-    // and the probed ports so the failure is clean and the caller gets a
-    // truthful nullptr instead of a participant missing its discovery
+    // Pool exhaustion (see createBuiltinWritersAndReaders): the slot was never
+    // published, so only the probed ports need unwinding for a clean failure
+    // and a truthful nullptr instead of a participant missing its discovery
     // endpoints (or a crash).
-    --m_numParticipants;
     m_transport->releaseReceivePort(getUserUnicastPort(candidate));
     m_transport->releaseReceivePort(getBuiltInUnicastPort(candidate));
     return nullptr;
   }
+  m_numParticipants.store(static_cast<uint8_t>(slot + 1), std::memory_order_release);
   m_nextParticipantId = static_cast<ParticipantId_t>(candidate + 1);
   return &entry;
 }
