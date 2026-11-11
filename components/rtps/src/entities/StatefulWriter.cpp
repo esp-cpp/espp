@@ -306,6 +306,7 @@ void StatefulWriter::onNewAckNack(const SubmessageAckNack &msg,
   }
 
   reader->ackNackCount = msg.count;
+  reader->acknowledged = true;
   reader->finalFlag = msg.header.finalFlag();
   reader->lastAckNackSequenceNumber = msg.readerSNState.base;
 

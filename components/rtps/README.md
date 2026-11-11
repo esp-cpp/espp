@@ -5,7 +5,7 @@
 ESPP component that integrates the [embeddedRTPS](https://github.com/embedded-software-laboratory/embeddedRTPS)
 RTPS/DDS stack into the ESPP ecosystem, behind an idiomatic `espp::RtpsParticipant`
 facade. Any platform that can build ESPP — ESP32, Linux, macOS, Windows — can use
-it to interoperate with **ROS 2** nodes (rmw_fastrtps) or any DDS participant on
+it to interoperate with **ROS 2** nodes (rmw_fastrtps_cpp or rmw_cyclonedds_cpp) or any DDS participant on
 the network over the standard RTPS wire protocol.
 
 It provides three messaging patterns, all validated against live ROS 2 (Jazzy):
@@ -141,6 +141,7 @@ espp::ServiceServer<AddReq, AddResp> server(participant, {
     .handler = [](const AddReq &r) { return AddResp{r.a + r.b}; }});
 espp::ServiceClient<AddReq, AddResp> client(participant, {
     .service = "/add_two_ints", .type_name = "example_interfaces::srv::dds_::AddTwoInts"});
+client.wait_for_server(std::chrono::seconds(5)); // a call before a server is matched is refused
 if (auto resp = client.call(AddReq{7, 35}, std::chrono::seconds(1))) { /* resp->sum == 42 */ }
 ```
 

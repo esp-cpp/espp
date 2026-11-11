@@ -68,7 +68,7 @@ bool Reader::initMutex() { return true; }
 void Reader::newFragment(const Guid_t &writerGuid, const SequenceNumber_t &sn,
                          uint32_t fragmentStartingNum, uint16_t fragmentsInSubmessage,
                          uint16_t fragmentSize, uint32_t sampleSize, const uint8_t *fragData,
-                         DataSize_t fragDataLen) {
+                         DataSize_t fragDataLen, const VendorId_t &sourceVendor) {
   if (fragmentSize == 0 || sampleSize == 0 || fragmentStartingNum == 0) {
     return;
   }
@@ -150,8 +150,14 @@ void Reader::newFragment(const Guid_t &writerGuid, const SequenceNumber_t &sn,
 
   if (haveCompleted) {
     Guid_t guid = writerGuid;
-    ReaderCacheChange completed{ChangeKind_t::ALIVE, guid, sn, completedBuffer.data(),
-                                static_cast<DataSize_t>(completedBuffer.size())};
+    ReaderCacheChange completed{ChangeKind_t::ALIVE,
+                                guid,
+                                sn,
+                                completedBuffer.data(),
+                                static_cast<DataSize_t>(completedBuffer.size()),
+                                /*hasRelatedSampleIdentity=*/false,
+                                rpc::SampleIdentity{},
+                                sourceVendor};
     newChange(completed);
   }
 }
@@ -255,13 +261,13 @@ void Reader::newFragmentIfCurrent(uint32_t generation, const Guid_t &writerGuid,
                                   const SequenceNumber_t &sn, uint32_t fragmentStartingNum,
                                   uint16_t fragmentsInSubmessage, uint16_t fragmentSize,
                                   uint32_t sampleSize, const uint8_t *fragData,
-                                  DataSize_t fragDataLen) {
+                                  DataSize_t fragDataLen, const VendorId_t &sourceVendor) {
   DispatchGuard guard(m_active_dispatches_, this);
   if (generation != m_generation_.load()) {
     return;
   }
   newFragment(writerGuid, sn, fragmentStartingNum, fragmentsInSubmessage, fragmentSize, sampleSize,
-              fragData, fragDataLen);
+              fragData, fragDataLen, sourceVendor);
 }
 #endif
 
@@ -303,7 +309,14 @@ Reader::callbackIdentifier_t Reader::registerCallback(Reader::callbackFunction_t
   return 0;
 }
 
-uint32_t Reader::getProxiesCount() { return m_proxies.getNumElements(); }
+uint32_t Reader::getProxiesCount() {
+  // m_proxies is mutated by the SEDP workers (addNewMatchedWriter / removal);
+  // ServiceClient::wait_for_server() polls this from the caller's thread, so it
+  // takes the same lock as dumpAllProxies() (TSan: MemoryPool::add vs
+  // getNumElements).
+  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
+  return m_proxies.getNumElements();
+}
 
 bool Reader::removeCallback(Reader::callbackIdentifier_t identifier) {
   bool removed = false;

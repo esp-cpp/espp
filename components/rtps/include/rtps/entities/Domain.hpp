@@ -128,7 +128,11 @@ private:
   ParticipantId_t m_nextParticipantId = PARTICIPANT_START_ID;
   /// Number of participants created in this domain (slot count into
   /// m_participants; independent of the probed participant ids).
-  uint8_t m_numParticipants = 0;
+  /// Published with release semantics once the slot is fully initialized:
+  /// the receive workers iterate slots below it without m_mutex, so a slot
+  /// must never be visible to them while createParticipant() is still
+  /// filling it in (TSan: Participant::reuse vs findParticipantById).
+  std::atomic<uint8_t> m_numParticipants{0};
   /// How many participant ids to probe for free unicast ports before giving up.
   static constexpr uint8_t PARTICIPANT_PORT_PROBE_LIMIT = 16;
   Participant *findParticipantById(ParticipantId_t id);

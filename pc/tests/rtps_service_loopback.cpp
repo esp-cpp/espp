@@ -85,7 +85,20 @@ int main() {
     return 1;
   }
 
-  std::this_thread::sleep_for(2s); // SEDP match on rq/ + rr/ topics
+  // Before the match a request has nobody to go to, and its wire form could not
+  // be chosen for a server not yet seen, so it is refused rather than queued;
+  // wait_for_server() reports the match like rclcpp's wait_for_service().
+  if (call->server_count() == 0 &&
+      call->call_async(encode_request(1, 1), [](std::span<const uint8_t>) {})) {
+    std::printf("FAIL: call_async accepted a request with no server matched\n");
+    return 1;
+  }
+  if (!call->wait_for_server(10s)) {
+    std::printf("FAIL: wait_for_server timed out\n");
+    return 1;
+  }
+  std::printf("wait_for_server: %zu server(s) matched\n", call->server_count());
+  std::this_thread::sleep_for(2s); // SEDP match on rq/ + rr/ topics (the reply leg too)
 
   // Synchronous call.
   const int64_t a = 7, b = 35;
@@ -163,7 +176,11 @@ int main() {
           });
         });
     auto dcall = client.add_service_client({dsvc, "example_interfaces::srv::dds_::AddTwoInts"});
-    std::this_thread::sleep_for(2s); // discovery for the new endpoints
+    if (dcall && !dcall->wait_for_server(10s)) {
+      std::printf("FAIL: deferred server not matched within 10 s\n");
+      return 1;
+    }
+    std::this_thread::sleep_for(300ms); // the reply leg matches alongside
     if (dcall) {
       auto dreply = dcall->call(encode_request(11, 31), 10s);
       if (dreply.has_value() && dreply->size() >= 4 + 8) {

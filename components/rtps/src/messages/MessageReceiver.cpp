@@ -257,9 +257,14 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
   }
   if (reader != nullptr) {
     Guid_t writerGuid{sourceState.sourceGuidPrefix, dataSubmsg.writerId};
-    ReaderCacheChange change{ChangeKind_t::ALIVE,  writerGuid, dataSubmsg.writerSN,
-                             serializedData,       size,       hasRelatedSampleIdentity,
-                             relatedSampleIdentity};
+    ReaderCacheChange change{ChangeKind_t::ALIVE,
+                             writerGuid,
+                             dataSubmsg.writerSN,
+                             serializedData,
+                             size,
+                             hasRelatedSampleIdentity,
+                             relatedSampleIdentity,
+                             sourceState.sourceVendor};
     reader->newChangeIfCurrent(readerGen, change);
   } else {
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -342,7 +347,7 @@ bool MessageReceiver::processDataFragSubmessage(MessageProcessingInfo &msgInfo,
     Guid_t writerGuid{sourceState.sourceGuidPrefix, frag.writerId};
     reader->newFragmentIfCurrent(readerGen, writerGuid, frag.writerSN, frag.fragmentStartingNum,
                                  frag.fragmentsInSubmessage, frag.fragmentSize, frag.sampleSize,
-                                 serializedData, fragDataLen);
+                                 serializedData, fragDataLen, sourceState.sourceVendor);
   }
   return true;
 }

@@ -136,6 +136,21 @@ public:
   /// \return True if the client registered successfully.
   [[nodiscard]] bool is_valid() const { return ros_ != nullptr || native_ != nullptr; }
 
+  /// ROS 2 protocol: the number of servers matched right now (see
+  /// RtpsParticipant::ServiceClient::server_count()). Native protocol: always 1,
+  /// a native request is queued and delivered once its server appears.
+  [[nodiscard]] std::size_t server_count() const {
+    return ros_ ? ros_->server_count() : (native_ ? 1 : 0);
+  }
+
+  /// ROS 2 protocol: block until a server is matched, like rclcpp's
+  /// wait_for_service(); a request made before that is refused, since its wire
+  /// form (rmw_fastrtps_cpp or rmw_cyclonedds_cpp) is chosen from the matched
+  /// servers. Native protocol: returns true at once. \return False on timeout.
+  bool wait_for_server(std::chrono::milliseconds timeout) const {
+    return ros_ ? ros_->wait_for_server(timeout) : is_valid();
+  }
+
   /// Blocking call (RMI): send the request and wait for the correlated reply.
   /// \param request The typed request.
   /// \param timeout How long to wait for the reply.

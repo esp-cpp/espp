@@ -98,7 +98,16 @@ int main() {
     return 1;
   }
 
-  std::this_thread::sleep_for(2s); // SEDP match across all 5 endpoints
+  // The goal is refused until the server's three services are matched (see
+  // RtpsParticipant::ActionClient::send_goal), so wait for the match instead
+  // of guessing a discovery delay; feedback/status are plain topics that match
+  // alongside, give them a moment too.
+  if (!action->wait_for_server(10s)) {
+    std::printf("FAIL: wait_for_server timed out\n");
+    return 1;
+  }
+  std::printf("wait_for_server: %zu action server(s) matched\n", action->server_count());
+  std::this_thread::sleep_for(500ms);
 
   std::mutex m;
   std::condition_variable cv;

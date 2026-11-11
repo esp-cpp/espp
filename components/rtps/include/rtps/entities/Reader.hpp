@@ -60,17 +60,24 @@ public:
   // stays false). See rpc/sample_identity.hpp.
   const bool hasRelatedSampleIdentity;
   const rpc::SampleIdentity relatedSampleIdentity;
+  // Vendor id from the RTPS header of the message that carried this DATA (or
+  // the fragments of it). A service endpoint uses it to tell how the peer
+  // correlates requests with replies: rmw_cyclonedds_cpp puts a header in the
+  // payload instead of the inline QoS above (see rpc/cyclonedds_request_header.hpp).
+  const VendorId_t sourceVendor;
 
   ReaderCacheChange(ChangeKind_t kind, Guid_t &writerGuid, SequenceNumber_t sn, const uint8_t *data,
                     DataSize_t size, bool hasRelatedSampleIdentity = false,
-                    const rpc::SampleIdentity &relatedSampleIdentity = {})
+                    const rpc::SampleIdentity &relatedSampleIdentity = {},
+                    const VendorId_t &sourceVendor = VENDOR_UNKNOWN)
       : data(data)
       , kind(kind)
       , size(size)
       , writerGuid(writerGuid)
       , sn(sn)
       , hasRelatedSampleIdentity(hasRelatedSampleIdentity)
-      , relatedSampleIdentity(relatedSampleIdentity){};
+      , relatedSampleIdentity(relatedSampleIdentity)
+      , sourceVendor(sourceVendor) {};
 
   ~ReaderCacheChange() = default; // No need to free data. It's not owned by this object
   // Not allowed because this class doesn't own the ptr and the user isn't
@@ -147,7 +154,8 @@ public:
   void newFragmentIfCurrent(uint32_t generation, const Guid_t &writerGuid,
                             const SequenceNumber_t &sn, uint32_t fragmentStartingNum,
                             uint16_t fragmentsInSubmessage, uint16_t fragmentSize,
-                            uint32_t sampleSize, const uint8_t *fragData, DataSize_t fragDataLen);
+                            uint32_t sampleSize, const uint8_t *fragData, DataSize_t fragDataLen,
+                            const VendorId_t &sourceVendor = VENDOR_UNKNOWN);
 #endif
 
 #ifdef RTPS_ENABLE_FRAGMENTATION
@@ -155,11 +163,12 @@ public:
   /// fragments of the sample identified by (writerGuid, sn) have arrived, the
   /// completed sample is delivered through the normal newChange() path (same as
   /// a single DATA). A newer sample evicts an older incomplete one; samples
-  /// larger than Config::MAX_SAMPLE_SIZE are refused. Thread-safe.
+  /// larger than Config::MAX_SAMPLE_SIZE are refused. Thread-safe. The
+  /// completed change reports `sourceVendor` as the sender's vendor id.
   void newFragment(const Guid_t &writerGuid, const SequenceNumber_t &sn,
                    uint32_t fragmentStartingNum, uint16_t fragmentsInSubmessage,
                    uint16_t fragmentSize, uint32_t sampleSize, const uint8_t *fragData,
-                   DataSize_t fragDataLen);
+                   DataSize_t fragDataLen, const VendorId_t &sourceVendor = VENDOR_UNKNOWN);
 #endif
 
 protected:

@@ -330,9 +330,20 @@ bool StatefulReader::sendPreemptiveAckNack(const WriterProxy &writer) {
   number_set.base.high = 0;
   number_set.base.low = 1;
   number_set.numBits = 0;
+  // The count comes from the stored proxy's counter, so the regular ACKNACKs
+  // that follow (getNextAckNackCount(), which starts at 1) are numbered after
+  // it: a Fast DDS writer discards an ACKNACK whose count is not above the
+  // last one it saw, and with a fixed 1 here the reader's first repair request
+  // was that discarded duplicate (the QEMU soak's 30 KB sample never arrived
+  // from a Fast DDS publisher that was gone before the next heartbeat round).
+  // The proxy is in m_proxies by the time the SEDP agent calls this; 1 is only
+  // the fallback for a caller that passes a proxy that is not stored.
+  Count_t count{1};
+  if (WriterProxy *stored = getProxy(writer.remoteWriterGuid); stored != nullptr) {
+    count = stored->getNextAckNackCount();
+  }
   rtps::MessageFactory::addAckNack(payload, writer.remoteWriterGuid.entityId,
-                                   m_attributes.endpointGuid.entityId, number_set, Count_t{1},
-                                   false);
+                                   m_attributes.endpointGuid.entityId, number_set, count, false);
 
   SFR_LOG("Sending preemptive acknack.");
   info.payload = std::move(payload.bytes);

@@ -132,6 +132,9 @@ struct Time_t {
 
 struct VendorId_t {
   std::array<uint8_t, 2> vendorId;
+
+  bool operator==(const VendorId_t &other) const { return vendorId == other.vendorId; }
+  bool operator!=(const VendorId_t &other) const { return !(*this == other); }
 };
 
 struct SequenceNumber_t {
@@ -278,6 +281,11 @@ const Time_t TIME_INVALID = {-1, 0xFFFFFFFF};
 const Time_t TIME_INFINITY = {0x7FFFFFFF, 0xFFFFFFFF};
 
 const VendorId_t VENDOR_UNKNOWN = {};
+// Vendor ids (OMG DDS vendor registry) the RPC layer tells apart: a peer's
+// vendor decides how it correlates service requests with replies (see
+// rpc/cyclonedds_request_header.hpp).
+const VendorId_t VENDOR_EPROSIMA_FASTDDS = {{0x01, 0x0F}}; // 01.15 in Wireshark's dotted decimal
+const VendorId_t VENDOR_ECLIPSE_CYCLONEDDS = {{0x01, 0x10}};
 } // namespace rtps
 
 #endif // RTPS_TYPES_H

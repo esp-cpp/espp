@@ -62,7 +62,14 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  std::this_thread::sleep_for(3s); // let the rclpy server + all 5 endpoints match
+  // A goal is refused until the server's three services are matched, so wait
+  // for that rather than guess at the rclpy server's start-up; the feedback and
+  // status topics match alongside, give them a moment.
+  if (!client->wait_for_server(20s)) {
+    std::printf("FAIL: no action server matched within 20 s\n");
+    return 1;
+  }
+  std::this_thread::sleep_for(1s);
 
   std::mutex m;
   std::condition_variable cv;

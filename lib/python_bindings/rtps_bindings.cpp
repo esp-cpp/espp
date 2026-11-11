@@ -110,6 +110,21 @@ Rtps::service_handler_t wrap_service_handler(const py::function &fn) {
   };
 }
 
+// A Python timeout in seconds as milliseconds: anything that is not positive
+// clamps to 0, and anything beyond what a 64-bit millisecond count can hold
+// (about 2.9e8 years) clamps to milliseconds::max() instead of overflowing.
+static std::chrono::milliseconds seconds_to_ms(double seconds) {
+  using ms = std::chrono::milliseconds;
+  if (!(seconds > 0.0)) {
+    return ms{0};
+  }
+  constexpr double max_seconds = static_cast<double>(ms::max().count()) / 1000.0;
+  if (seconds >= max_seconds) {
+    return ms::max();
+  }
+  return std::chrono::duration_cast<ms>(std::chrono::duration<double>(seconds));
+}
+
 // A reply callback for call_async: Python callable(bytes).
 Rtps::ServiceClient::reply_callback_t wrap_reply_callback(const py::function &fn) {
   auto cb = make_gil_safe_holder(fn);
@@ -271,6 +286,18 @@ void py_init_rtps(py::module &m) {
   // ---- Services (RMI, ROS 2-interoperable) --------------------------------
   py::class_<Rtps::ServiceClient, std::shared_ptr<Rtps::ServiceClient>>(
       rtps, "ServiceClient", "Handle for calling a ROS 2-interoperable service.")
+      .def("server_count", &Rtps::ServiceClient::server_count,
+           "Number of servers matched right now (0 until discovery has run).")
+      .def(
+          "wait_for_server",
+          [](Rtps::ServiceClient &self, double timeout) {
+            py::gil_scoped_release rel;
+            return self.wait_for_server(seconds_to_ms(timeout));
+          },
+          py::arg("timeout") = 5.0,
+          "Block until a server is matched (like rclpy's wait_for_service). A call made "
+          "before that is refused, since its wire form is chosen from the matched servers. "
+          "Returns False on timeout.")
       .def(
           "call",
           [](Rtps::ServiceClient &self, const py::bytes &request, double timeout) -> py::object {
@@ -382,6 +409,17 @@ void py_init_rtps(py::module &m) {
 
   py::class_<Rtps::ActionClient, std::shared_ptr<Rtps::ActionClient>>(
       rtps, "ActionClient", "Handle for driving a ROS 2-interoperable action.")
+      .def("server_count", &Rtps::ActionClient::server_count,
+           "Number of action servers matched on all three services (0 until discovery has run).")
+      .def(
+          "wait_for_server",
+          [](Rtps::ActionClient &self, double timeout) {
+            py::gil_scoped_release rel;
+            return self.wait_for_server(seconds_to_ms(timeout));
+          },
+          py::arg("timeout") = 5.0,
+          "Block until an action server is matched (like rclpy_action's wait_for_server). A "
+          "goal sent before that is refused. Returns False on timeout.")
       .def(
           "send_goal",
           [](Rtps::ActionClient &self, const py::bytes &goal, const py::function &on_feedback,

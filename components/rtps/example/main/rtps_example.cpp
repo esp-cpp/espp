@@ -224,13 +224,16 @@ extern "C" void app_main(void) {
             // Typed action goal (AMI) with typed feedback + result. Skip if the
             // previous goal has not finished (e.g. no peer is serving it).
             if (!fib_in_flight.exchange(true)) {
-              fib_client.send_goal(
+              const bool sent = fib_client.send_goal(
                   FibGoal{5}, [&](const FibSeq &) { /* per-feedback */ },
                   [&](espp::GoalStatus status, const FibSeq &res) {
                     logger.info("[client] /peer_fib result: status={} len={}",
                                 static_cast<int>(status), res.sequence.size());
                     fib_in_flight.store(false);
                   });
+              if (!sent) {
+                fib_in_flight.store(false); // refused: no peer serves it yet
+              }
             }
             return false; // keep the timer running
           },

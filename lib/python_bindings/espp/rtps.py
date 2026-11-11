@@ -192,8 +192,25 @@ class ServiceClient:
                  *, native: bool = False) -> None:
         add = participant.add_native_service_client if native else participant.add_service_client
         self._client = add(service, type_name)
+        self._native = native
         self._response_type = response_type
         self.valid = self._client is not None
+
+    def server_count(self) -> int:
+        """ROS 2 protocol: servers matched right now (0 until discovery has run).
+        Native protocol: always 1, a native request is queued until its server appears."""
+        if self._native:
+            return 1 if self.valid else 0
+        return self._client.server_count()
+
+    def wait_for_server(self, timeout: float = 5.0) -> bool:
+        """ROS 2 protocol: block until a server is matched, like rclpy's
+        ``wait_for_service``; a call made before that is refused, since its wire form
+        (rmw_fastrtps_cpp or rmw_cyclonedds_cpp) is chosen from the matched servers.
+        Native protocol: returns at once. ``False`` on timeout."""
+        if self._native:
+            return self.valid
+        return self._client.wait_for_server(timeout)
 
     def call(self, request, timeout: float = 5.0):
         """Blocking call. Returns the response object, or ``None`` on timeout."""
@@ -287,6 +304,21 @@ class ActionClient:
         self._feedback_type = feedback_type
         self._last_goal = None  # native: int handle; ROS 2: bytes goal id
         self.valid = self._client is not None
+
+    def server_count(self) -> int:
+        """ROS 2 protocol: action servers matched on all three services (0 until
+        discovery has run). Native protocol: always 1, a native goal is queued."""
+        if self._native:
+            return 1 if self.valid else 0
+        return self._client.server_count()
+
+    def wait_for_server(self, timeout: float = 5.0) -> bool:
+        """ROS 2 protocol: block until an action server is matched, like
+        rclpy_action's ``wait_for_server``; a goal sent before that is refused.
+        Native protocol: returns at once. ``False`` on timeout."""
+        if self._native:
+            return self.valid
+        return self._client.wait_for_server(timeout)
 
     def send_goal(self, goal, on_feedback, on_result) -> bool:
         """Send ``goal``; ``on_feedback(feedback_msg)`` per feedback,

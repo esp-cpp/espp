@@ -10,7 +10,7 @@ cd components/rtps/interop
 ./run.sh
 ```
 
-Requires docker. One container (`ros:jazzy-ros-base` = FastDDS + rmw_fastrtps +
+Requires docker. One container (`ros:jazzy-ros-base` = FastDDS + rmw_fastrtps_cpp +
 `ros2` CLI, plus rmw_cyclonedds_cpp) runs everything in a single network namespace, so RTPS multicast works
 unconditionally. The repo is bind-mounted and copied to a container-local tree
 before building (espp is installed into a container-local staging prefix and the
@@ -30,7 +30,9 @@ touched.
 | espp_be_pub->ros2_be_echo | best-effort pairing |
 | ros2_pub->espp_sub_liveliness, espp_pub->ros2_sub_liveliness | samples keep arriving 22 s in, i.e. past a remote participant lease (CycloneDDS: 10 s). Only samples after that point count (`rtps_interop_sub ... count_after_s`, `ros2_count_subscriber.py`), so a peer whose SPDP re-announcements were not delivered - and whose lease therefore expired, dropping every matched endpoint - fails. CycloneDDS addresses those re-announcements to readerId ENTITYID_UNKNOWN; the FastDDS pass is the control. Only the espp-publisher leg detects a dropped peer: a HEARTBEAT that reaches a matched espp reader also refreshes the sending participant's liveliness (`MessageReceiver::processHeartbeat`), so a CycloneDDS *writer* keeps its participant alive through its heartbeats even when its SPDP re-announcements are lost, while an espp writer only gets ACKNACKs back, which do not refresh it, and the peer expires |
 | many_participants_late_joiner | twelve unrelated ROS 2 participants are on the domain before espp starts, then the publisher espp needs joins last and must still be matched. Guards the remote-participant pool (`SPDP_MAX_NUMBER_FOUND_PARTICIPANTS`, 32 on the host profile built here, 10 on the embedded profile - raise it via menuconfig for a domain this busy): a participant beyond the pool is ignored silently |
-| cyclone: ... | the ROS 2 pub/sub pairs (reliable and best-effort, both directions) and the two cases above again on `rmw_cyclonedds_cpp`. Services are not covered: rmw_cyclonedds_cpp puts a `{guid, seq}` request header in the payload instead of `related_sample_identity` |
+| espp_service_server<-ros2_client, espp_service_client->ros2_server | AddTwoInts both ways against a live ROS 2 client (`ros2 service call`) and server (rclpy) |
+| espp_action_server<-ros2_client, espp_action_client->ros2_server | Fibonacci both ways: send_goal, feedback, deferred get_result |
+| cyclone: ... | every ROS 2 case above again on `rmw_cyclonedds_cpp`: the pub/sub pairs (reliable and best-effort, both directions), liveliness, the busy domain, and the four service/action cases. rmw_cyclonedds_cpp correlates a request with its reply through a `{guid, seq}` header inside the payload rather than the `related_sample_identity` inline QoS rmw_fastrtps_cpp uses; espp detects the peer's vendor and answers in its form (`pc/tests/rtps_cyclonedds_rpc_header.cpp` pins the codec) |
 
 ## In QEMU: the esp32 build of the engine
 
