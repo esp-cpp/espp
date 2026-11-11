@@ -595,6 +595,28 @@ public:
   /// @brief Convenience overload of set_msc_owner() that ignores errors.
   bool set_msc_owner(size_t lun, MscOwner owner);
 
+  /**
+   * @brief Take an MSC medium back (MscOwner::App) from a host that is still
+   *        attached but has ejected it -- for a device whose USB stays connected
+   *        for its other functions (a console, a vendor link) while the medium
+   *        goes back and forth, with auto_handover off.
+   *
+   * set_msc_owner() refuses that (`device_or_resource_busy`), since it cannot
+   * tell whether the host is done with the medium: esp_tinyusb implements the
+   * host's eject (SCSI START STOP UNIT) itself and only acts on it with
+   * auto_handover. Call this instead once the host has ejected the drive (Finder,
+   * `diskutil eject`, "Safely remove"), e.g. after the user confirmed it, or
+   * after your host tool ejected it. The host's queued writes are still drained
+   * before the volume is mounted here; a host that did NOT eject may lose writes
+   * it had cached, as it would on an unplug.
+   * @param lun Medium index (position in MscFunction::media).
+   * @param[out] ec As for set_msc_owner(), except that it skips the
+   *        attached-host check (the reason set_msc_owner() would report
+   *        `device_or_resource_busy` here).
+   * @return true if the application now has the medium.
+   */
+  bool take_msc_from_ejected_host(size_t lun, std::error_code &ec);
+
   /// @brief Who currently has an MSC medium (nullopt if MSC is not enabled /
   ///        initialized or the index is out of range). An unformatted medium
   ///        waiting for format_msc_medium() reports App, with nothing mounted.
@@ -774,6 +796,10 @@ protected:
   static UsbDevice *instance();
 
 private:
+  /// @brief set_msc_owner(), optionally trusting that the attached host has
+  ///        ejected the medium (take_msc_from_ejected_host()).
+  bool set_msc_owner_impl(size_t lun, MscOwner owner, bool host_ejected, std::error_code &ec);
+
   // Trampoline registered as tinyusb_config_t::event_cb; routes
   // TINYUSB_EVENT_ATTACHED/DETACHED to the private handlers below.
   friend void espp_usb_device_event_cb(tinyusb_event_t *event, void *arg);
