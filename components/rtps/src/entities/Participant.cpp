@@ -541,6 +541,9 @@ bool Participant::checkAndResetHeartbeats() {
 // only the user endpoints tell whether we have a use for one. The endpoint
 // locks nest under m_mutex here as they do in removeAllProxiesOfParticipant().
 bool Participant::hasUserEndpointProxyOf(const GuidPrefix_t &prefix) {
+  // m_writers / m_readers change under m_mutex (endpoint creation and
+  // removal); recursive, so the eviction path that already holds it is fine
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (auto *writer : m_writers) {
     if (writer != nullptr && writer->isInitialized() && !writer->isBuiltinEndpoint() &&
         writer->hasProxyOfParticipant(prefix)) {

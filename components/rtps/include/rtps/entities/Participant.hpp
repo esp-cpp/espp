@@ -149,7 +149,8 @@ private:
   MemoryPool<ParticipantProxyData, Config::SPDP_MAX_NUMBER_FOUND_PARTICIPANTS> m_remoteParticipants;
   std::chrono::steady_clock::time_point m_lastEvictionTimestamp{};
   //! Whether any user (non-builtin) endpoint of ours has a proxy of this
-  //! participant, i.e. we exchange data with it. m_mutex held by the caller.
+  //! participant, i.e. we exchange data with it. Takes m_mutex (recursive:
+  //! callable from the eviction path that already holds it).
   bool hasUserEndpointProxyOf(const GuidPrefix_t &prefix);
 
   SPDPAgent m_spdpAgent;

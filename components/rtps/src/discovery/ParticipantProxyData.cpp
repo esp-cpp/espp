@@ -40,6 +40,9 @@ using rtps::ParticipantProxyData;
 ParticipantProxyData::ParticipantProxyData(Guid_t guid)
     : espp::BaseComponent("RtpsParticipantProxy", espp::Logger::Verbosity::WARN)
     , m_guid(guid) {
+  // the same timestamp invariants as reset(): a proxy built this way must not
+  // look long-expired to the eviction policy before its first liveliness
+  onAliveSignal();
   onDiscovered();
 }
 

@@ -78,6 +78,10 @@ stop_pids() { # pids...
     [ -z "$left" ] && break
     sleep 0.2
   done
+  # The pids are mostly `timeout` wrappers: a TERM is forwarded to their
+  # command, a KILL is not, so take the children down first or a ros2 process
+  # outlives its wrapper and keeps talking to the device in the next case.
+  for p in $left; do pkill -KILL -P "$p" 2>/dev/null; done
   # shellcheck disable=SC2086
   [ -n "$left" ] && kill -9 $left 2>/dev/null
   wait "$@" 2>/dev/null || true
