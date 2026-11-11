@@ -45,14 +45,17 @@ ARG QEMU_XTENSA_SHA256=0eecb2a34a5586c0e59110f77b9343b7b336e82fdb0e1a30e1dc1bab8
 # a Jetson) the image still builds, for the host matrix (run.sh); run_qemu.sh
 # then stops with a clear message instead of a failed image build.
 ARG TARGETARCH
-RUN if [ "$TARGETARCH" = amd64 ]; then \
+# TARGETARCH is set by BuildKit; a legacy builder leaves it empty, so fall back
+# to the image's own architecture rather than skip QEMU on an amd64 host.
+RUN arch="${TARGETARCH:-$(dpkg --print-architecture)}"; \
+    if [ "$arch" = amd64 ]; then \
       curl -sSL -o /tmp/qemu-xtensa.tar.xz "$QEMU_XTENSA_URL" \
       && echo "$QEMU_XTENSA_SHA256  /tmp/qemu-xtensa.tar.xz" | sha256sum -c - \
       && tar -xJ -C /opt -f /tmp/qemu-xtensa.tar.xz \
       && rm /tmp/qemu-xtensa.tar.xz \
       && /opt/qemu/bin/qemu-system-xtensa --version; \
     else \
-      echo "TARGETARCH=$TARGETARCH: Espressif's QEMU is x86_64-only, the esp32 (run_qemu.sh) suite needs an amd64 host"; \
+      echo "arch=$arch: Espressif's QEMU is x86_64-only, the esp32 (run_qemu.sh) suite needs an amd64 host"; \
     fi
 
 # A venv with the espp wheel build backend, so run_interop.sh can build the

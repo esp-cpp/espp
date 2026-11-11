@@ -26,8 +26,8 @@ set -o pipefail
 
 FLASH="${1:?usage: run_qemu_interop.sh <qemu_flash.bin> [matrix|soak]}"
 SUITE="${2:-matrix}"
-[ -x /opt/qemu/bin/qemu-system-xtensa ] || { echo "no /opt/qemu/bin/qemu-system-xtensa in this image: Espressif's QEMU is x86_64-only (build the image on an amd64 host, or docker build --platform linux/amd64)"; exit 2; }
 QEMU="${QEMU:-/opt/qemu/bin/qemu-system-xtensa}"
+[ -x "$QEMU" ] || { echo "no $QEMU in this image: Espressif's QEMU is x86_64-only (build the image on an amd64 host, or docker build --platform linux/amd64; or point QEMU= at another build)"; exit 2; }
 TAP=tap0
 HOST_IP=192.168.100.1
 DEV_IP=192.168.100.2 # sdkconfig.ci.defaults

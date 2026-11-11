@@ -12,6 +12,7 @@
 // bool success (1 byte, padded to 4) + string message (uint32 length including
 // the NUL, the characters, NUL). Payloads include the 4-byte CDR encapsulation.
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdint>

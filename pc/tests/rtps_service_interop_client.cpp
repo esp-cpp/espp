@@ -96,8 +96,12 @@ int main(int argc, char **argv) {
     for (int i = 0; i < pipeline; ++i) {
       futures.push_back(client->call_future(encode_request(a + i, b + 2 * i)));
     }
+    // Its own budget: the retry loop above may have used most of the first one
+    // waiting for the server to come up.
+    const auto pipeline_deadline =
+        std::chrono::steady_clock::now() + std::chrono::seconds(timeout_s);
     for (int i = 0; i < pipeline; ++i) {
-      if (futures[i].wait_until(deadline) != std::future_status::ready) {
+      if (futures[i].wait_until(pipeline_deadline) != std::future_status::ready) {
         std::printf("client: pipelined request %d: no reply\n", i);
         continue;
       }
