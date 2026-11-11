@@ -67,7 +67,20 @@ class Client(Node):
                     status, GoalStatus.STATUS_CANCELED, len(seq))
             if not self.cancel_sent:
                 return "FAIL: canceled without a cancel request"
-            return "CANCELED seq_len=%d" % len(seq)
+            # The partial-sequence contract: the result is a proper Fibonacci
+            # prefix (the server starts at [0, 1] and appends one element per
+            # step, order + 1 elements when it runs to completion) and shorter
+            # than the complete sequence, so an empty, corrupt or finished
+            # result cannot pass as a cancellation.
+            full = order + 1
+            expected = [0, 1]
+            while len(expected) < len(seq):
+                expected.append(expected[-1] + expected[-2])
+            if len(seq) < 2 or seq != expected[:len(seq)]:
+                return "FAIL: CANCELED result is not a Fibonacci prefix: %s" % seq
+            if len(seq) >= full:
+                return "FAIL: CANCELED result is the complete sequence (%d elements): nothing was cut short" % len(seq)
+            return "CANCELED seq_len=%d (of %d)" % (len(seq), full)
         return "FAIL: unknown mode %s" % mode
 
 

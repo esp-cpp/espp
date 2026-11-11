@@ -321,11 +321,24 @@ rc=$?; tail -1 /tmp/hostsub_loss.log; result "netem_loss_device_pub" $rc
 tc qdisc del dev $TAP root
 settle
 
-note "15% loss + 10 ms jitter: ROS 2 service call -> device service, each RMW (a lost request or reply is repaired, not retried by the client)"
+note "15% loss + 10 ms jitter both ways: ROS 2 service call -> device service, each RMW (a lost request or reply is repaired, not retried by the client)"
 # ros2 service call sends ONE request and waits: the only way the reply comes
 # back under loss is the reliable writers on both ends repairing the lost
 # DATA (and the HEARTBEAT/ACKNACK that carry the repair) within the timeout.
+# The root netem only impairs the host -> device direction (the request); the
+# reply comes back on the TAP's ingress, so it gets its own ~14% drop there
+# (an ingress qdisc with a random gact, no IFB needed) or the device's reply
+# writer would never have to repair anything. Best effort: an iproute2 without
+# the gact action leaves the case host->device only, and says so.
 tc qdisc add dev $TAP root netem loss 15% delay 10ms 3ms
+reply_loss=""
+if tc qdisc add dev $TAP ingress 2>/dev/null \
+   && tc filter add dev $TAP parent ffff: protocol ip prio 1 u32 match u32 0 0 action pass random netrand drop 7 2>/dev/null; then
+  reply_loss="yes"
+else
+  echo "  (no ingress drop available in this image: the device -> host reply leg runs lossless)"
+  tc qdisc del dev $TAP ingress 2>/dev/null
+fi
 for rmw in rmw_fastrtps_cpp rmw_cyclonedds_cpp; do
   export RMW_IMPLEMENTATION=$rmw
   tag=${rmw#rmw_}; tag=${tag%_cpp}; [ "$tag" = fastrtps ] && tag=fastdds; [ "$tag" = cyclonedds ] && tag=cyclone
@@ -336,6 +349,7 @@ for rmw in rmw_fastrtps_cpp rmw_cyclonedds_cpp; do
   tail -1 "/tmp/srv_loss_${tag}.log"; result "netem_loss_service_${tag}" $rc
   settle
 done
+[ -n "$reply_loss" ] && tc qdisc del dev $TAP ingress 2>/dev/null
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 tc qdisc del dev $TAP root
 
@@ -415,7 +429,7 @@ run_soak() {
     # the Cyclone cycles' transient allocations (a service call's request and
     # reply buffers among them) move the mark by tens of bytes from cycle to
     # cycle, which is fragmentation jitter, not growth
-    mn=$(latest_min_heap); [ "$mn" -lt $((prev_min - 1024)) ] && new_lows=$((new_lows + 1)); prev_min="$mn"
+    mn=$(latest_min_heap); [ "$mn" -le $((prev_min - 1024)) ] && new_lows=$((new_lows + 1)); prev_min="$mn"
     echo "cycle $i ${rmw#rmw_}: $(grep -o 'RTPSTEST status.*' "$LOG" | tail -1 | sed 's/RTPSTEST status //')"
   done
   local last_rx last_be last_big; last_rx=$(count_since "$m_last" "RTPSTEST rx "); last_be=$(count_since "$m_last" "RTPSTEST be_rx "); last_big=$(count_since "$m_last" "RTPSTEST big_rx ")

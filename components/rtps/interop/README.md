@@ -69,7 +69,7 @@ cd .. && ./run_qemu.sh
 | ros2_pub->device_sub_frag_30k | 30 KB samples reassembled from DATA_FRAG over lwIP |
 | participant_pool_overflow_recovers | 28 participants against a pool of 24 (and proxy pools of 20), then all leave: discovery keeps going, every one is forgotten after the capped lease, the next publisher is received |
 | ros2_client->device_service | the typed service server, FastDDS and CycloneDDS: the embedded build answering the inline-QoS form and the in-payload `{guid, seq}` form |
-| netem_loss_service_fastdds, netem_loss_service_cyclone | 15 % loss + 10 ms jitter on the link: one `ros2 service call` per RMW, which sends a single request and waits - a lost request or reply is repaired by the reliable writers, not retried by the client |
+| netem_loss_service_fastdds, netem_loss_service_cyclone | 15 % loss + 10 ms jitter towards the device and ~14 % loss on the way back (an ingress drop on the TAP): one `ros2 service call` per RMW, which sends a single request and waits - a lost request or reply is repaired by the reliable writers on each side, not retried by the client |
 | espp_host_pub->device_sub, device_pub->espp_host_sub, espp_host_frag_30k->device_sub | the host engine against the embedded one, including its DATA_FRAG path |
 | ros2_pub->device_sub_frag_30k (wire summary) | tcpdump on the tap during the case: frames per 30 KB sample, fragments, multicast, the biggest burst (FastDDS 42 frames within 20 ms, CycloneDDS 23: why the RX ring is 64) |
 | netem_loss_reliable | 15 % loss + 10 ms jitter on the link (`tc netem`): the reliable reader still delivers |
