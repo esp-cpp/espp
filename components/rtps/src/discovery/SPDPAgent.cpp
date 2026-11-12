@@ -155,32 +155,31 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
 }
 
 rtps::GuidPrefix_t SPDPAgent::participantPrefixInPayload(const uint8_t *data, DataSize_t size) {
-  // A PL_CDR_LE parameter list behind the 4-byte encapsulation header; only
-  // PID_PARTICIPANT_GUID is of interest (the dispose carries little else).
-  if (size < 4 ||
-      !(data[0] == SMElement::SCHEME_PL_CDR_LE[0] && data[1] == SMElement::SCHEME_PL_CDR_LE[1])) {
-    return GUIDPREFIX_UNKNOWN;
+  // A PL_CDR parameter list behind the 4-byte encapsulation header, in the
+  // byte order the header selects (as the ALIVE path reads it); only
+  // PID_PARTICIPANT_GUID is of interest, the dispose carries little else.
+  if (size < 4 || data[0] != 0x00 || (data[1] != 0x02 && data[1] != 0x03)) {
+    return GUIDPREFIX_UNKNOWN; // not PL_CDR_BE (0x0002) / PL_CDR_LE (0x0003)
   }
-  DataSize_t pos = 4;
-  while (pos + 4 <= size) {
-    uint16_t pid = 0;
-    uint16_t length = 0;
-    memcpy(&pid, data + pos, sizeof(pid));
-    memcpy(&length, data + pos + 2, sizeof(length));
-    pos += 4;
-    if (pid == ParameterId::PID_SENTINEL) {
+  CdrReader buffer(asBytes(data, size), data[1] == SMElement::SCHEME_PL_CDR_LE[1]
+                                            ? std::endian::little
+                                            : std::endian::big);
+  skipBytes(buffer, 4);
+  while (buffer.remaining() >= 4) {
+    const auto pid = buffer.read<uint16_t>();
+    const auto length = buffer.read<uint16_t>();
+    if (!pid || !length || *pid == ParameterId::PID_SENTINEL || buffer.remaining() < *length) {
       break;
     }
-    if (pos + length > size) {
-      break;
-    }
-    if (pid == ParameterId::PID_PARTICIPANT_GUID && length == 16) {
+    if (*pid == ParameterId::PID_PARTICIPANT_GUID && *length == 16) {
       GuidPrefix_t prefix;
-      memcpy(prefix.id.data(), data + pos, prefix.id.size());
-      return prefix;
+      if (readBytes(buffer, prefix.id.data(), prefix.id.size())) {
+        return prefix;
+      }
+      break;
     }
-    pos += length;
-    pos += (4 - (pos % 4)) % 4; // parameters are 4-byte aligned
+    skipBytes(buffer, *length);
+    alignTo4(buffer); // parameters are 4-byte aligned
   }
   return GUIDPREFIX_UNKNOWN;
 }
