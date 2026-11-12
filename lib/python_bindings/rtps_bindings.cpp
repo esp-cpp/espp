@@ -272,6 +272,14 @@ void py_init_rtps(py::module &m) {
           "Add a subscribing endpoint; on_sample receives each sample as bytes. A non-Normal\n"
           "band (or a dscp) requests a dedicated receive port (banded readers fall back to\n"
           "deferred banded dispatch when no dedicated port is available).")
+      .def("matched_writers", &Rtps::matched_writers, py::arg("topic"),
+           py::call_guard<py::gil_scoped_release>(),
+           "Remote writers matched to the reader on topic right now (0 without such a reader). A\n"
+           "peer that deletes its publisher or leaves the domain drops out as soon as its dispose\n"
+           "arrives, a silent peer when its lease runs out.")
+      .def("matched_readers", &Rtps::matched_readers, py::arg("topic"),
+           py::call_guard<py::gil_scoped_release>(),
+           "Remote readers matched to the writer on topic right now (0 without such a writer).")
       .def(
           "publish",
           [](Rtps &self, const std::string &topic, const py::bytes &data) {

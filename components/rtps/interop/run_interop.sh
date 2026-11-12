@@ -89,6 +89,33 @@ many_participants_case() { # prefix log-tag
   result "${prefix}many_participants_late_joiner" $sub_rc
 }
 
+# --- Endpoint churn: a peer's publisher comes and goes ------------------------
+# A peer that deletes a publisher, or leaves the domain, says so with a dispose
+# (a DATA whose inline QoS carries PID_STATUS_INFO + PID_KEY_HASH, RTPS 2.5
+# 8.5.4.3); espp must unmatch the writer right then, not when the peer's lease
+# would have run out (20 s Fast DDS, 10 s Cyclone DDS). The ROS 2 node creates,
+# uses and destroys a publisher five times (3 s on, 2 s off) and exits, which
+# also disposes its participant; the espp subscriber must count five
+# matched->unmatched transitions, each after samples arrived, within 40 s -
+# lease expiry alone would yield at most two (rtps_interop_churn,
+# ros2_churn_publisher.py). Guards the receiver's inline-QoS handling
+# (pc/tests/rtps_sedp_inline_qos_dispose.cpp is the host-side test).
+endpoint_churn_case() { # prefix log-tag
+  local prefix="$1" tag="$2"
+  note "${prefix}ROS 2 publisher created and destroyed in rounds -> espp subscriber unmatches on each dispose"
+  "$BIN"/rtps_interop_churn rt/churn std_msgs::msg::dds_::String_ 5 40 > "/tmp/${tag}churnsub.log" 2>&1 &
+  local sub=$!
+  sleep 3
+  timeout 45 python3 /work/components/rtps/interop/ros2_churn_publisher.py /churn --rounds 5 --on 3 --off 2 > "/tmp/${tag}churnpub.log" 2>&1
+  local pub_rc=$?
+  wait $sub
+  local sub_rc=$?
+  echo "--- churn publisher ---"; tail -2 "/tmp/${tag}churnpub.log"
+  echo "--- espp subscriber ---"; tail -4 "/tmp/${tag}churnsub.log"
+  [ $pub_rc -eq 0 ] || sub_rc=1
+  result "${prefix}ros2_pub_churn->espp_sub_unmatch" $sub_rc
+}
+
 note "Build espp lib + host binaries (linux)"
 echo "compiler: $(${CXX:-c++} --version | head -1); cmake $(cmake --version | head -1 | awk '{print $3}'); ROS_DISTRO=${ROS_DISTRO:-?}"
 cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_INSTALL_PREFIX=/tmp/espp/install > /tmp/cmake_lib.log 2>&1 \
@@ -107,7 +134,8 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_banded_churn rtps_service_rollback rtps_deferred_recovery rtps_guaranteed_submit \
        rtps_remove_reader_deadlock rtps_guaranteed_fairness rtps_writer_churn \
        rtps_stateless_saturation rtps_callback_reentrancy rtps_best_effort_order rtps_acknack_bitmap \
-       rtps_interop_pub rtps_interop_sub > /tmp/build.log 2>&1
+       rtps_interop_pub rtps_interop_sub rtps_interop_churn rtps_sedp_inline_qos_dispose \
+       rtps_sedp_history_overflow > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
 if [ $build_rc -ne 0 ]; then tail -30 /tmp/cmake_lib.log /tmp/build_lib.log /tmp/build.log; exit 1; fi
@@ -122,6 +150,12 @@ note "Golden wire-format tests"
 
 note "Unicast locator selection for a peer on several networks (host)"
 "$BIN"/rtps_locator_subnet; result "locator_subnet" $?
+
+note "SEDP/SPDP disposes from the inline QoS unmatch the endpoint / forget the participant (host)"
+"$BIN"/rtps_sedp_inline_qos_dispose; result "sedp_inline_qos_dispose" $?
+
+note "SEDP writer history never drops a live announcement; a deleted endpoint's slot is reusable (host)"
+"$BIN"/rtps_sedp_history_overflow; result "sedp_history_overflow" $?
 
 note "ROS 2 service + action name/type mangling (host)"
 "$BIN"/rtps_service_naming; result "service_naming" $?
@@ -310,6 +344,7 @@ result "ros2_pub->espp_banded_sub" $subband_rc
 
 lease_liveliness_cases "" "f"
 many_participants_case "" "f"
+endpoint_churn_case "" "f"
 
 note "espp best-effort publisher -> ROS 2 best-effort subscriber"
 "$BIN"/rtps_interop_pub rt/chatter std_msgs::msg::dds_::String_ 0 60 200 > /tmp/pub2.log 2>&1 &
@@ -556,6 +591,7 @@ result "cyclone: ros2_be_pub->espp_be_sub" $csub2_rc
 
 lease_liveliness_cases "cyclone: " "c"
 many_participants_case "cyclone: " "c"
+endpoint_churn_case "cyclone: " "c"
 rpc_cases "cyclone: " "c"
 
 if grep -l "malformed packet received from vendor" /tmp/c*.log > /dev/null 2>&1; then

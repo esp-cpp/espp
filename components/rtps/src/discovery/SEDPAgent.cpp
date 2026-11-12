@@ -85,6 +85,14 @@ void SEDPAgent::handlePublisherReaderMessage(const ReaderCacheChange &change) {
   SEDP_LOG("New publisher");
 #endif
 
+  if (change.kind != ChangeKind_t::ALIVE) {
+    // A dispose/unregister (PID_STATUS_INFO in the inline QoS): the peer
+    // deleted the endpoint. Usually no payload at all, so it is handled before
+    // the parse below.
+    handleRemoteEndpointDeletion(change);
+    return;
+  }
+
   if (!change.copyInto(m_buffer, sizeof(m_buffer) / sizeof(m_buffer[0]))) {
 #if SEDP_VERBOSE
     SEDP_LOG("EDPAgent: Buffer too small.");
@@ -251,6 +259,11 @@ void SEDPAgent::handleSubscriptionReaderMessage(const ReaderCacheChange &change)
   SEDP_LOG("New subscriber");
 #endif
 
+  if (change.kind != ChangeKind_t::ALIVE) {
+    handleRemoteEndpointDeletion(change); // see handlePublisherReaderMessage
+    return;
+  }
+
   if (!change.copyInto(m_buffer, sizeof(m_buffer) / sizeof(m_buffer[0]))) {
 #if SEDP_VERBOSE
     SEDP_LOG("SEDPAgent: Buffer too small.");
@@ -265,19 +278,55 @@ void SEDPAgent::handleSubscriptionReaderMessage(const ReaderCacheChange &change)
   }
 }
 
-void SEDPAgent::handleRemoteEndpointDeletion(const TopicData &topic,
-                                             const ReaderCacheChange &change) {
+void SEDPAgent::handleRemoteEndpointDeletion(const ReaderCacheChange &change) {
   SEDP_LOG("Endpoint deletion message SN {}.{} GUID {} {} {} {}", (int)change.sn.high,
            (int)change.sn.low, change.writerGuid.prefix.id[0], change.writerGuid.prefix.id[1],
            change.writerGuid.prefix.id[2], change.writerGuid.prefix.id[3]);
-  if (!topic.entityIdFromKeyHashValid) {
+  // The instance is named by the inline-QoS key hash (Fast DDS, this engine,
+  // Cyclone DDS); a peer that leaves the hash out still carries the endpoint
+  // GUID in its (PL_CDR) payload, where a key hash may also sit.
+  Guid_t guid = GUID_UNKNOWN;
+  if (change.hasKeyHash) {
+    guid = change.keyHash;
+  } else if (change.getDataSize() > 0 &&
+             change.copyInto(m_buffer, sizeof(m_buffer) / sizeof(m_buffer[0]))) {
+    TopicData topic;
+    if (topic.readFromBuffer(std::span<const uint8_t>(m_buffer, change.getDataSize()),
+                             m_part->m_localIpAddress, m_part->m_localPrefixLength)) {
+      guid = disposedEndpointGuid(topic);
+    }
+  }
+  if (guid == GUID_UNKNOWN) {
+    logger_.warn("Endpoint deletion without a key hash or endpoint GUID, ignored");
     return;
   }
+  removeRemoteEndpoint(guid);
+}
 
-  Guid_t guid;
-  guid.prefix = topic.endpointGuid.prefix;
-  guid.entityId = topic.entityIdFromKeyHash;
+void SEDPAgent::handleRemoteEndpointDeletion(const TopicData &topic,
+                                             const ReaderCacheChange &change) {
+  // The payload itself said disposed (PID_STATUS_INFO inside the parameter
+  // list rather than the inline QoS): the historical path, kept for peers
+  // that write it there.
+  SEDP_LOG("Endpoint deletion (payload status) SN {}.{}", (int)change.sn.high, (int)change.sn.low);
+  const Guid_t guid = change.hasKeyHash ? change.keyHash : disposedEndpointGuid(topic);
+  if (guid == GUID_UNKNOWN) {
+    return;
+  }
+  removeRemoteEndpoint(guid);
+}
 
+rtps::Guid_t SEDPAgent::disposedEndpointGuid(const TopicData &topic) {
+  if (topic.entityIdFromKeyHashValid) {
+    Guid_t guid;
+    guid.prefix = topic.endpointGuid.prefix; // PID_KEY_HASH fills the prefix too
+    guid.entityId = topic.entityIdFromKeyHash;
+    return guid;
+  }
+  return topic.endpointGuid; // PID_ENDPOINT_GUID, or GUID_UNKNOWN when absent
+}
+
+void SEDPAgent::removeRemoteEndpoint(const Guid_t &guid) {
   // Remove entity ID from all proxies of local endpoints
   m_part->removeProxyFromAllEndpoints(guid);
 
@@ -381,11 +430,19 @@ bool SEDPAgent::addWriter(Writer &writer) {
   microbuffer.write<uint16_t>(zero_options);
   writer.m_attributes.serializeInto(microbuffer);
   auto change = m_endpoints.sedpPubWriter->newChange(ChangeKind_t::ALIVE, m_buffer, sink.size());
+  if (change == nullptr) {
+    // The SEDP writer refused the announcement (its history is full of live
+    // endpoints, see StatefulWriter::newChange): an unannounced writer is
+    // undiscoverable, so the caller fails the creation.
+    logger_.error("Could not announce writer '{}': the SEDP publications writer refused the change",
+                  writer.m_attributes.topicName);
+    return false;
+  }
   writer.setSEDPSequenceNumber(change->sequenceNumber);
 #if SEDP_VERBOSE
   SEDP_LOG("Added new change to sedpPubWriter.\n");
 #endif
-  return (change != nullptr);
+  return true;
 }
 
 template <typename A>
@@ -451,9 +508,13 @@ void SEDPAgent::jumppadTakeProxyOfDisposedWriter(const Writer *writer, const Rea
 
 bool SEDPAgent::deleteReader(Reader *reader) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  // Set cache change kind in SEDP endpoint to DISPOSED
+  // Drop the announcement from the SEDP history. Not finding it there (it was
+  // never stored, or an older engine overwrote it) is no reason to keep the
+  // reader: the peers that matched it still get the dispose below, and the
+  // local slot must be freed either way.
   if (!disposeEndpointInSEDPHistory(reader, m_endpoints.sedpSubWriter)) {
-    return false;
+    logger_.warn("SEDP announcement of reader '{}' not in history, announcing its deletion anyway",
+                 reader->m_attributes.topicName);
   }
 
   // Create Deletion Message [UD] and add to corret builtin endpoint
@@ -470,9 +531,9 @@ bool SEDPAgent::deleteReader(Reader *reader) {
 
 bool SEDPAgent::deleteWriter(Writer *writer) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  // Set cache change kind in SEDP endpoint to DISPOSED
   if (!disposeEndpointInSEDPHistory(writer, m_endpoints.sedpPubWriter)) {
-    return false;
+    logger_.warn("SEDP announcement of writer '{}' not in history, announcing its deletion anyway",
+                 writer->m_attributes.topicName); // see deleteReader()
   }
 
   // Create Deletion Mesasge [UD] and add to corret builtin endpoint
@@ -512,9 +573,15 @@ bool SEDPAgent::addReader(Reader &reader) {
   microbuffer.write<uint16_t>(zero_options);
   reader.m_attributes.serializeInto(microbuffer);
   auto change = m_endpoints.sedpSubWriter->newChange(ChangeKind_t::ALIVE, m_buffer, sink.size());
+  if (change == nullptr) {
+    logger_.error(
+        "Could not announce reader '{}': the SEDP subscriptions writer refused the change",
+        reader.m_attributes.topicName); // see addWriter()
+    return false;
+  }
   reader.setSEDPSequenceNumber(change->sequenceNumber);
 #if SEDP_VERBOSE
   SEDP_LOG("Added new change to sedpSubWriter.\n");
 #endif
-  return (change != nullptr);
+  return true;
 }

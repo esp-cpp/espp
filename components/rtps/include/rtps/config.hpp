@@ -48,4 +48,21 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define RTPS_STORAGE_DYNAMIC
 #endif
 
+// A participant's two SEDP writers keep one change per live user endpoint
+// (the 3 builtin writers and 3 builtin readers of a participant are not
+// announced). With static storage the ring cannot grow, so it must hold every
+// endpoint the participant can have: an overwritten announcement would
+// un-discover that endpoint for every peer joining later. The writers refuse
+// to overwrite (StatefulWriter::newChange) and this makes the two caps agree
+// at compile time; raise HISTORY_SIZE_STATEFUL along with the per-participant
+// endpoint caps.
+#if !defined(RTPS_STORAGE_DYNAMIC)
+static_assert(rtps::Config::HISTORY_SIZE_STATEFUL + 3 >= rtps::Config::NUM_WRITERS_PER_PARTICIPANT,
+              "HISTORY_SIZE_STATEFUL must cover the user writers of a participant "
+              "(NUM_WRITERS_PER_PARTICIPANT - 3 builtin) so SEDP never drops a live announcement");
+static_assert(rtps::Config::HISTORY_SIZE_STATEFUL + 3 >= rtps::Config::NUM_READERS_PER_PARTICIPANT,
+              "HISTORY_SIZE_STATEFUL must cover the user readers of a participant "
+              "(NUM_READERS_PER_PARTICIPANT - 3 builtin) so SEDP never drops a live announcement");
+#endif
+
 #endif // RTPS_CONFIG_H

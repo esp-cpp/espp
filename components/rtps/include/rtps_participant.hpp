@@ -234,6 +234,22 @@ public:
   ///         reader pool is exhausted).
   bool add_reader(const ReaderConfig &config);
 
+  /// Remote writers matched to the reader on `topic` right now: the peers'
+  /// publishers discovery paired with it, as counted by the engine. A peer that
+  /// deletes its publisher or leaves the domain drops out as soon as its
+  /// dispose arrives, a silent peer when its lease runs out.
+  /// \param topic The topic name used in add_reader().
+  /// \return The count, 0 when there is no such reader or the participant is
+  ///         not started.
+  std::size_t matched_writers(const std::string &topic) const;
+
+  /// Remote readers matched to the writer on `topic` right now (see
+  /// matched_writers()).
+  /// \param topic The topic name used in add_writer().
+  /// \return The count, 0 when there is no such writer or the participant is
+  ///         not started.
+  std::size_t matched_readers(const std::string &topic) const;
+
   /// Maximum size of a single published CDR payload, in bytes.
   ///
   /// When fragmentation is compiled in (RTPS_ENABLE_FRAGMENTATION - always on

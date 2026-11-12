@@ -96,7 +96,14 @@ private:
   void addUnmatchedRemoteWriter(const TopicDataCompressed &writerData);
   void addUnmatchedRemoteReader(const TopicDataCompressed &readerData);
 
+  /// A dispose/unregister of a remote endpoint, told by the DATA's inline QoS
+  /// (change.kind != ALIVE; the instance in change.keyHash or, failing that,
+  /// in the payload's endpoint GUID).
+  void handleRemoteEndpointDeletion(const ReaderCacheChange &change);
+  /// The same told by a status-info parameter inside the payload.
   void handleRemoteEndpointDeletion(const TopicData &topic, const ReaderCacheChange &change);
+  static Guid_t disposedEndpointGuid(const TopicData &topic);
+  void removeRemoteEndpoint(const Guid_t &guid);
 
   void (*mfp_onNewPublisherCallback)(void *arg) = nullptr;
   void *m_onNewPublisherArgs = nullptr;

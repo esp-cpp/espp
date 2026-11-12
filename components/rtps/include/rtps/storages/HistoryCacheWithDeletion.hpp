@@ -54,6 +54,34 @@ public:
     return it == m_tail;
   }
 
+  /// True when the next addChange() would overwrite the oldest change: the
+  /// static ring is full; the dynamic ring is full and can no longer grow (the
+  /// 16-bit index ceiling, see grow()).
+  bool wouldDropOldestOnAdd() const {
+#ifdef RTPS_STORAGE_DYNAMIC
+    return isFull() && m_buffer.size() * 2 > std::numeric_limits<uint16_t>::max();
+#else
+    return isFull();
+#endif
+  }
+
+  /// Drops the oldest change that is marked dispose-after-write and has been
+  /// sent at least once. Such a change is only retained for a possible
+  /// retransmission (StatefulWriter::dropDisposeAfterWriteChanges drops it
+  /// after a few seconds anyway), so it is the one to give up when the ring is
+  /// needed for a live change. Returns false when there is none.
+  bool dropOldestSentDisposeAfterWrite() {
+    uint16_t it = m_tail;
+    while (it != m_head) {
+      const CacheChange &change = m_buffer[it];
+      if (change.disposeAfterWrite && change.sentTime != CacheChange::TimePoint{}) {
+        return dropChange(change.sequenceNumber);
+      }
+      incrementIterator(it);
+    }
+    return false;
+  }
+
   const CacheChange *addChange(const uint8_t *data, DataSize_t size, bool inLineQoS,
                                bool disposeAfterWrite, bool hasRelatedSampleIdentity = false,
                                const rpc::SampleIdentity &relatedSampleIdentity = {}) {

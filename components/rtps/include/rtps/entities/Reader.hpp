@@ -65,11 +65,20 @@ public:
   // correlates requests with replies: rmw_cyclonedds_cpp puts a header in the
   // payload instead of the inline QoS above (see rpc/cyclonedds_request_header.hpp).
   const VendorId_t sourceVendor;
+  // The instance this change is about, when the DATA carried a PID_KEY_HASH
+  // inline QoS (RTPS 2.5 9.6.3.8). A peer disposing a discovery instance (an
+  // endpoint or participant going away) names it here, with `kind` set from
+  // PID_STATUS_INFO (9.6.3.9) and usually no payload at all. The discovery
+  // agents delete the matching proxy from it; for a keyless user topic it is
+  // never set.
+  const bool hasKeyHash;
+  const Guid_t keyHash;
 
   ReaderCacheChange(ChangeKind_t kind, Guid_t &writerGuid, SequenceNumber_t sn, const uint8_t *data,
                     DataSize_t size, bool hasRelatedSampleIdentity = false,
                     const rpc::SampleIdentity &relatedSampleIdentity = {},
-                    const VendorId_t &sourceVendor = VENDOR_UNKNOWN)
+                    const VendorId_t &sourceVendor = VENDOR_UNKNOWN, bool hasKeyHash = false,
+                    const Guid_t &keyHash = GUID_UNKNOWN)
       : data(data)
       , kind(kind)
       , size(size)
@@ -77,7 +86,9 @@ public:
       , sn(sn)
       , hasRelatedSampleIdentity(hasRelatedSampleIdentity)
       , relatedSampleIdentity(relatedSampleIdentity)
-      , sourceVendor(sourceVendor) {};
+      , sourceVendor(sourceVendor)
+      , hasKeyHash(hasKeyHash)
+      , keyHash(keyHash){};
 
   ~ReaderCacheChange() = default; // No need to free data. It's not owned by this object
   // Not allowed because this class doesn't own the ptr and the user isn't

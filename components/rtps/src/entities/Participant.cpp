@@ -115,8 +115,11 @@ rtps::Writer *Participant::addWriter(Writer *pWriter) {
   if (!inserted) {
     return nullptr;
   }
-  if (m_hasBuilInEndpoints) {
-    m_sedpAgent.addWriter(*pWriter);
+  if (m_hasBuilInEndpoints && !m_sedpAgent.addWriter(*pWriter)) {
+    // Not announced is not discoverable: give the slot back so the creation
+    // fails cleanly (the SEDP agent said why).
+    releaseSlot(m_writers, pWriter);
+    return nullptr;
   }
   return pWriter;
 }
@@ -150,10 +153,22 @@ rtps::Reader *Participant::addReader(Reader *pReader) {
   if (!inserted) {
     return nullptr;
   }
-  if (m_hasBuilInEndpoints) {
-    m_sedpAgent.addReader(*pReader);
+  if (m_hasBuilInEndpoints && !m_sedpAgent.addReader(*pReader)) {
+    releaseSlot(m_readers, pReader); // see addWriter()
+    return nullptr;
   }
   return pReader;
+}
+
+template <typename Slots, typename Endpoint>
+void Participant::releaseSlot(Slots &slots, Endpoint *endpoint) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  for (auto &slot : slots) {
+    if (slot == endpoint) {
+      slot = nullptr;
+      return;
+    }
+  }
 }
 
 bool Participant::deleteReader(Reader *reader) {

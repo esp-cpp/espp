@@ -33,6 +33,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/utils/udpUtils.hpp"
 
 #include <chrono>
+#include <cstring>
 #include <mutex>
 #include <thread>
 
@@ -115,8 +116,58 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
       SPDP_LOG("ParticipantProxyData deserialization failed");
     }
   } else {
-    // TODO RemoveParticipant
+    // The peer disposed its participant instance (it is leaving the domain):
+    // forget it now, with every proxy of its endpoints, instead of when its
+    // lease runs out. The instance is named by the inline-QoS key hash; a
+    // peer that leaves the hash out carries the GUID in the payload.
+    GuidPrefix_t prefix = GUIDPREFIX_UNKNOWN;
+    if (cacheChange.hasKeyHash) {
+      prefix = cacheChange.keyHash.prefix;
+    } else {
+      prefix = participantPrefixInPayload(m_inputBuffer.data(), cacheChange.size);
+    }
+    if (prefix == GUIDPREFIX_UNKNOWN || prefix == mp_participant->m_guidPrefix) {
+      return;
+    }
+    if (mp_participant->findRemoteParticipant(prefix) == nullptr) {
+      return; // never known, or already gone
+    }
+    SPDP_LOG("Remote participant disposed, removing");
+    // Lock order as on eviction (processProxyData): this agent's mutex, then
+    // the SEDP agent's and the participant's inside removeRemoteParticipant.
+    mp_participant->removeRemoteParticipant(prefix);
   }
+}
+
+rtps::GuidPrefix_t SPDPAgent::participantPrefixInPayload(const uint8_t *data, DataSize_t size) {
+  // A PL_CDR_LE parameter list behind the 4-byte encapsulation header; only
+  // PID_PARTICIPANT_GUID is of interest (the dispose carries little else).
+  if (size < 4 ||
+      !(data[0] == SMElement::SCHEME_PL_CDR_LE[0] && data[1] == SMElement::SCHEME_PL_CDR_LE[1])) {
+    return GUIDPREFIX_UNKNOWN;
+  }
+  DataSize_t pos = 4;
+  while (pos + 4 <= size) {
+    uint16_t pid = 0;
+    uint16_t length = 0;
+    memcpy(&pid, data + pos, sizeof(pid));
+    memcpy(&length, data + pos + 2, sizeof(length));
+    pos += 4;
+    if (pid == ParameterId::PID_SENTINEL) {
+      break;
+    }
+    if (pos + length > size) {
+      break;
+    }
+    if (pid == ParameterId::PID_PARTICIPANT_GUID && length == 16) {
+      GuidPrefix_t prefix;
+      memcpy(prefix.id.data(), data + pos, prefix.id.size());
+      return prefix;
+    }
+    pos += length;
+    pos += (4 - (pos % 4)) % 4; // parameters are 4-byte aligned
+  }
+  return GUIDPREFIX_UNKNOWN;
 }
 
 void SPDPAgent::processProxyData() {

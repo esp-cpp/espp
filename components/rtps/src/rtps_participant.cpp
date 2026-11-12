@@ -453,6 +453,31 @@ bool RtpsParticipant::remove_writer(const std::string &topic) {
   return true;
 }
 
+std::size_t RtpsParticipant::matched_writers(const std::string &topic) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!started_ || stopping_) {
+    return 0;
+  }
+  for (const auto &ctx : reader_contexts_) {
+    if (ctx->topic == topic && ctx->reader != nullptr) {
+      return ctx->reader->getProxiesCount();
+    }
+  }
+  return 0;
+}
+
+std::size_t RtpsParticipant::matched_readers(const std::string &topic) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!started_ || stopping_) {
+    return 0;
+  }
+  const auto it = writers_.find(topic);
+  if (it == writers_.end() || it->second == nullptr) {
+    return 0;
+  }
+  return it->second->getProxiesCount();
+}
+
 bool RtpsParticipant::remove_reader(const std::string &topic) {
   // Supported from within the reader's OWN on_sample for INLINE (Normal-band /
   // non-deferred) readers: the engine's teardown drain excludes the caller's
@@ -747,6 +772,12 @@ void RtpsParticipant::DeferredDispatch::drain(std::shared_ptr<void> owner) {
 void RtpsParticipant::reader_trampoline(void *arg, const rtps::ReaderCacheChange &change) {
   auto *ctx = static_cast<ReaderContext *>(arg);
   if (ctx == nullptr || !ctx->on_sample) {
+    return;
+  }
+  if (change.kind != rtps::ChangeKind_t::ALIVE) {
+    // A dispose/unregister (PID_STATUS_INFO in the inline QoS) carries no
+    // sample; user topics here are keyless, so there is no instance to retire
+    // either. Discovery readers handle theirs in the SEDP/SPDP agents.
     return;
   }
   if (ctx->deferred.enabled) {

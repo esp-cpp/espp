@@ -87,6 +87,9 @@ private:
   bool initialized = false;
   static void receiveCallback(void *callee, const ReaderCacheChange &cacheChange);
   void handleSPDPPackage(const ReaderCacheChange &cacheChange);
+  /// The PID_PARTICIPANT_GUID prefix in a PL_CDR_LE payload, or
+  /// GUIDPREFIX_UNKNOWN (a dispose that carries the key in its payload).
+  static GuidPrefix_t participantPrefixInPayload(const uint8_t *data, DataSize_t size);
   void processProxyData();
   bool addProxiesForBuiltInEndpoints();
 

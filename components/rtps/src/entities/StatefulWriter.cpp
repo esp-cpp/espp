@@ -119,6 +119,23 @@ StatefulWriter::newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t siz
     return nullptr;
   }
 
+  // A builtin (SEDP) writer's history IS the list of this participant's live
+  // endpoint announcements: a KEEP_LAST drop of the oldest one would
+  // un-discover that endpoint for every peer joining later, and the endpoint
+  // could then never be deleted (its change gone, see SEDPAgent::deleteWriter).
+  // When the ring is full, give up a sent dispose-after-write change first (it
+  // only waits for a retransmission) and otherwise refuse: the endpoint
+  // creation fails loudly instead. Static storage sizes this away (the
+  // static_assert in config.hpp); user writers keep the drop-oldest history.
+  // Regression test: pc/tests/rtps_sedp_history_overflow.cpp.
+  if (isBuiltinEndpoint() && m_history.wouldDropOldestOnAdd() &&
+      !m_history.dropOldestSentDisposeAfterWrite()) {
+    logger_.error("Builtin writer history full ({} changes), refusing the discovery change: "
+                  "HISTORY_SIZE_STATEFUL must cover the participant's endpoints",
+                  static_cast<int>(Config::HISTORY_SIZE_STATEFUL));
+    return nullptr;
+  }
+
   // A full history may drop its oldest change on the next addChange: the static
   // ring always does, and the dynamic (host) ring does too when it hits its
   // 16-bit index ceiling and grow() refuses to resize. When a drop happens the
