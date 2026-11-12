@@ -149,6 +149,12 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageHeart
       SubmessageHeartbeat::getRawSize() - SubmessageHeader::getRawSize()) {
     return false; // declared shorter than its fixed body
   }
+  // The reads below are bounded by the fixed-size check above; a declared
+  // length past the datagram is still a malformed submessage (as for ACKNACK
+  // and GAP), not one to act on.
+  if (info.getRemainingSize() < SubmessageHeader::getRawSize() + msg.header.octetsToNextHeader) {
+    return false;
+  }
 
   const uint8_t *currentPos = info.getPointerToCurrentPos() + SubmessageHeader::getRawSize();
 
