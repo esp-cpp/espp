@@ -188,6 +188,67 @@ inline bool unwrap_feedback(std::span<const uint8_t> msg, GoalUuid &id_out,
   return true;
 }
 
+// --- CancelGoal (action_msgs/srv/CancelGoal) ---
+// Request  = { goal_info{ goal_id: UUID(16), stamp{sec:i32, nsec:u32} } }; a zero
+//            goal id addresses every goal.
+// Response = { return_code: i8(1)+pad(3), goals_canceling: GoalInfo[] } with
+//            GoalInfo = { goal_id: UUID(16), stamp{sec, nsec} } (24 bytes each).
+constexpr int8_t CANCEL_ERROR_NONE = 0;
+constexpr int8_t CANCEL_ERROR_REJECTED = 1;
+constexpr int8_t CANCEL_ERROR_UNKNOWN_GOAL_ID = 2;
+constexpr int8_t CANCEL_ERROR_GOAL_TERMINATED = 3;
+
+inline std::vector<uint8_t> make_cancel_goal_request(const GoalUuid &id, int32_t sec = 0,
+                                                     uint32_t nsec = 0) {
+  std::vector<uint8_t> v(detail::kEncap, detail::kEncap + 4);
+  v.insert(v.end(), id.begin(), id.end());
+  detail::put_u32(v, static_cast<uint32_t>(sec));
+  detail::put_u32(v, nsec);
+  return v;
+}
+inline bool parse_cancel_goal_request(std::span<const uint8_t> msg, GoalUuid &id_out) {
+  if (msg.size() < 4 + 16 + 8) {
+    return false;
+  }
+  std::memcpy(id_out.data(), msg.data() + 4, 16);
+  return true;
+}
+inline std::vector<uint8_t> make_cancel_goal_response(int8_t return_code,
+                                                      std::span<const GoalUuid> goals_canceling) {
+  std::vector<uint8_t> v(detail::kEncap, detail::kEncap + 4);
+  v.push_back(static_cast<uint8_t>(return_code));
+  v.push_back(0);
+  v.push_back(0);
+  v.push_back(0);
+  detail::put_u32(v, static_cast<uint32_t>(goals_canceling.size()));
+  for (const auto &id : goals_canceling) {
+    v.insert(v.end(), id.begin(), id.end());
+    detail::put_u32(v, 0); // stamp.sec: the cancel time is not tracked
+    detail::put_u32(v, 0); // stamp.nanosec
+  }
+  return v;
+}
+inline bool parse_cancel_goal_response(std::span<const uint8_t> msg, int8_t &return_code_out,
+                                       std::vector<GoalUuid> &goals_canceling_out) {
+  if (msg.size() < 4 + 4 + 4) {
+    return false;
+  }
+  return_code_out = static_cast<int8_t>(msg[4]);
+  const uint32_t n = detail::get_u32(msg, 8);
+  size_t off = 12;
+  goals_canceling_out.clear();
+  for (uint32_t i = 0; i < n; ++i) {
+    if (off + 24 > msg.size()) {
+      return false;
+    }
+    GoalUuid id{};
+    std::memcpy(id.data(), msg.data() + off, 16);
+    goals_canceling_out.push_back(id);
+    off += 24;
+  }
+  return true;
+}
+
 // --- GoalStatusArray = status_list[]{ goal_id:UUID(16), stamp{sec,nsec}, status:i8+pad } ---
 struct GoalStatusEntry {
   GoalUuid goal_id{};

@@ -343,17 +343,24 @@ public:
     return false;
   }
 
+  /// The server's verdict on a cancel request (ROS 2 protocol; see
+  /// RtpsParticipant::ActionClient::cancel_callback_t).
+  using cancel_callback_t = RtpsParticipant::ActionClient::cancel_callback_t;
+
   /// Request cancellation of the most recently accepted goal (works on both the
   /// ROS 2 and native protocols). The server observes the cancel via its goal
   /// handle's is_canceling() and should wind the goal down cooperatively.
+  /// \param on_response ROS 2 protocol only: the server's return code and how
+  ///        many goals are now canceling (the native protocol has no verdict;
+  ///        the callback is not invoked there).
   /// \return True if the cancel request was queued.
-  bool cancel_goal() {
+  bool cancel_goal(cancel_callback_t on_response = nullptr) {
     std::lock_guard<std::mutex> lock(latest_->m);
     if (native_ && latest_->native_handle) {
       return native_->cancel_goal(*latest_->native_handle);
     }
     if (ros_ && latest_->ros_id) {
-      return ros_->cancel_goal(*latest_->ros_id);
+      return ros_->cancel_goal(*latest_->ros_id, std::move(on_response));
     }
     return false;
   }

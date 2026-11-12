@@ -564,13 +564,25 @@ rpc_cases() { # prefix log-tag
   local cancel_rc=$?; grep -q "^CANCELED" "/tmp/${tag}actcancel.log" || cancel_rc=1
   timeout 35 python3 /work/components/rtps/interop/ros2_fibonacci_client.py reject 0 > "/tmp/${tag}actreject.log" 2>&1
   local reject_rc=$?; grep -q "^REJECTED" "/tmp/${tag}actreject.log" || reject_rc=1
+  # The CancelGoal verdicts (action_msgs/srv/CancelGoal) a ROS 2 client reads:
+  # an unknown goal id is ERROR_UNKNOWN_GOAL_ID, a goal that already finished
+  # (fetched, still retained by the server) ERROR_GOAL_TERMINATED. The cancel
+  # case above also checks ERROR_NONE + the goal listed in goals_canceling.
+  timeout 35 python3 /work/components/rtps/interop/ros2_fibonacci_client.py cancel-unknown > "/tmp/${tag}actcancelunk.log" 2>&1
+  local cancelunk_rc=$?; grep -q "^CANCEL_UNKNOWN" "/tmp/${tag}actcancelunk.log" || cancelunk_rc=1
+  timeout 35 python3 /work/components/rtps/interop/ros2_fibonacci_client.py cancel-finished 5 > "/tmp/${tag}actcancelfin.log" 2>&1
+  local cancelfin_rc=$?; grep -q "^CANCEL_FINISHED" "/tmp/${tag}actcancelfin.log" || cancelfin_rc=1
   sleep 1
   kill $actsrv2 2>/dev/null; wait $actsrv2 2>/dev/null
   echo "--- cancel ---"; tail -1 "/tmp/${tag}actcancel.log"
   echo "--- reject ---"; tail -1 "/tmp/${tag}actreject.log"
+  echo "--- cancel-unknown ---"; tail -1 "/tmp/${tag}actcancelunk.log"
+  echo "--- cancel-finished ---"; tail -1 "/tmp/${tag}actcancelfin.log"
   echo "--- espp action server ---"; grep "server:" "/tmp/${tag}actsrv2.log" | tail -3
   result "${prefix}espp_action_server<-ros2_cancel" $cancel_rc
   result "${prefix}espp_action_server<-ros2_reject" $reject_rc
+  result "${prefix}espp_action_server<-ros2_cancel_unknown" $cancelunk_rc
+  result "${prefix}espp_action_server<-ros2_cancel_finished" $cancelfin_rc
 }
 rpc_cases "" ""
 

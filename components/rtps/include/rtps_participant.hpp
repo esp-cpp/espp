@@ -477,6 +477,12 @@ public:
     espp::QosBand band{espp::QosBand::Normal};
     /// Optional DSCP code point for the endpoints' dedicated sockets.
     std::optional<espp::Dscp> dscp{};
+    /// Server only: how long a finished goal stays known after it terminated
+    /// - for its get_result (also a late or repeated one) and for a cancel to
+    /// be answered ERROR_GOAL_TERMINATED - before it is retired; retirement
+    /// happens when the next goal request comes in. 0 = retire a goal as soon
+    /// as its result has been delivered (a result nobody fetches then stays).
+    std::chrono::milliseconds result_timeout{std::chrono::seconds { 60 }};
     /// Server only (ROS 2 protocol): the complete CDR-encapsulated
     /// GetResult_Response ({status: UNKNOWN, result: a default Result}) sent to
     /// a client asking for the result of a goal this server does not know -
@@ -579,8 +585,14 @@ public:
     std::optional<GoalId> send_goal_raw(std::span<const uint8_t> goal,
                                         feedback_callback_t on_feedback,
                                         result_response_callback_t on_response);
-    /// Request cancellation of a previously sent goal.
-    bool cancel_goal(const GoalId &goal_id);
+    /// The server's answer to a cancel request (action_msgs/srv/CancelGoal):
+    /// return_code 0 ERROR_NONE, 1 ERROR_REJECTED, 2 ERROR_UNKNOWN_GOAL_ID,
+    /// 3 ERROR_GOAL_TERMINATED, and how many goals are now canceling.
+    using cancel_callback_t = std::function<void(int8_t return_code, std::size_t goals_canceling)>;
+    /// Request cancellation of a previously sent goal; on_response (optional)
+    /// receives the server's verdict. A zero goal id asks for every goal.
+    /// \return True if the request was queued.
+    bool cancel_goal(const GoalId &goal_id, cancel_callback_t on_response = nullptr);
 
   private:
     friend class RtpsParticipant;

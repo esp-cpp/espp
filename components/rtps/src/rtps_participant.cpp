@@ -1934,10 +1934,11 @@ struct RtpsParticipant::ActionGoalHandle::State {
   std::string status_topic;   // server lock and survives server teardown.
   std::mutex mutex;
   ract::GoalStatus status{ract::GoalStatus::ACCEPTED};
-  bool done{false};                  // terminate() has run
-  bool result_delivered{false};      // get_result answered -> goal may be retired
-  std::vector<uint8_t> response;     // the GetResult_Response, set on terminate
-  ServiceResponder result_responder; // pending get_result (if any)
+  bool done{false};             // terminate() has run
+  bool result_delivered{false}; // get_result answered -> goal may be retired
+  std::chrono::steady_clock::time_point terminated_at{}; // for result_timeout
+  std::vector<uint8_t> response;                         // the GetResult_Response, set on terminate
+  ServiceResponder result_responder;                     // pending get_result (if any)
   std::atomic<bool> cancel_requested{false};
 };
 
@@ -1945,10 +1946,32 @@ struct RtpsParticipant::ActionServerContext {
   RtpsParticipant *self{nullptr};
   std::string feedback_topic;
   std::string status_topic;
-  std::vector<uint8_t> unknown_goal_response; // ActionConfig::unknown_goal_response
+  std::vector<uint8_t> unknown_goal_response;  // ActionConfig::unknown_goal_response
+  std::chrono::milliseconds result_timeout{0}; // ActionConfig::result_timeout
   action_execute_callback_t execute{nullptr};
   std::mutex goals_mutex;
   std::map<ract::GoalUuid, std::shared_ptr<ActionGoalHandle::State>> goals;
+
+  // Retire finished goals: past their retention (result_timeout, counted from
+  // termination, whether or not the result was fetched), or - with no
+  // retention - as soon as their result was delivered. Run whenever a goal
+  // request comes in, so the map stays bounded without a timer. Call with
+  // goals_mutex held; the per-goal mutex nests inside it (nowhere is the
+  // reverse order taken).
+  void prune_finished_locked() {
+    const auto now = std::chrono::steady_clock::now();
+    for (auto it = goals.begin(); it != goals.end();) {
+      bool drop = false;
+      {
+        std::lock_guard<std::mutex> lock(it->second->mutex);
+        if (it->second->done) {
+          drop = result_timeout.count() == 0 ? it->second->result_delivered
+                                             : now - it->second->terminated_at >= result_timeout;
+        }
+      }
+      it = drop ? goals.erase(it) : std::next(it);
+    }
+  }
   // Owned execute workers (not detached): joined in stop() before the domain is
   // torn down, reaped as they finish. See ActionExecThread / reap_and_store.
   std::mutex threads_mutex;
@@ -2001,6 +2024,7 @@ void RtpsParticipant::ActionGoalHandle::terminate_with_response(
     }
     state_->done = true;
     state_->status = status;
+    state_->terminated_at = std::chrono::steady_clock::now();
     state_->response.assign(get_result_response.begin(), get_result_response.end());
     if (state_->result_responder.valid()) {
       responder = state_->result_responder; // get_result already waiting
@@ -2016,9 +2040,15 @@ void RtpsParticipant::ActionGoalHandle::terminate_with_response(
     // Terminated with the client's get_result already waiting: it now has the
     // result, so drop the goal from the server map (a still-running worker keeps
     // the State alive via its own reference).
+    // Without a retention time the goal leaves the server map now (a running
+    // worker keeps the State alive via its own reference); with one it stays
+    // known - for a cancel (ERROR_GOAL_TERMINATED) or a repeated get_result -
+    // until prune_finished_locked() retires it.
     if (auto server = state_->server.lock()) {
       std::lock_guard<std::mutex> lock(server->goals_mutex);
-      server->goals.erase(state_->goal_id);
+      if (server->result_timeout.count() == 0) {
+        server->goals.erase(state_->goal_id);
+      }
     }
   }
 }
@@ -2146,6 +2176,7 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
   ctx->feedback_topic = rtps::rpc::action_feedback_topic(config.action);
   ctx->status_topic = rtps::rpc::action_status_topic(config.action);
   ctx->unknown_goal_response = config.unknown_goal_response;
+  ctx->result_timeout = config.result_timeout;
   ctx->execute = std::move(execute);
 
   // Feedback + status publishers (plain reliable topics). The action's
@@ -2260,6 +2291,7 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
          std::shared_ptr<ActionGoalHandle::State> gstate;
          {
            std::lock_guard<std::mutex> lock(server->goals_mutex);
+           server->prune_finished_locked();
            auto it = server->goals.find(id);
            if (it != server->goals.end()) {
              gstate = it->second;
@@ -2288,40 +2320,81 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
            }
          }
          if (retire) {
-           // Client has its result: drop the goal from the server map.
+           // Client has its result: without a retention time, drop the goal
+           // from the server map now (see ActionGoalHandle::terminate).
            std::lock_guard<std::mutex> glock(server->goals_mutex);
-           server->goals.erase(id);
+           if (server->result_timeout.count() == 0) {
+             server->goals.erase(id);
+           }
          }
        });
 
-  // cancel_goal service: mark the goal canceling; the execute callback observes
-  // is_canceling(). Minimal CancelGoal_Response (return_code=0, empty list).
+  // cancel_goal service (action_msgs/srv/CancelGoal): a goal that can be
+  // cancelled is marked canceling (the execute callback observes
+  // is_canceling()) and reported CANCELING on the status topic; the reply
+  // lists the goals now canceling and says why none is: ERROR_REJECTED (1,
+  // on_cancel refused), ERROR_UNKNOWN_GOAL_ID (2), ERROR_GOAL_TERMINATED (3,
+  // already done). A zero goal id means every active goal; the request's
+  // stamp filter ("goals accepted before") is not applied, as accept times
+  // are not kept. rclpy's client checks goals_canceling, rclcpp's the code.
   const ServiceConfig cancel_cfg{rtps::rpc::action_cancel_goal_service(config.action),
                                  rtps::rpc::action_cancel_goal_type(), config.band, config.dscp};
   ok = ok &&
-       add_sync_tracked(cancel_cfg,
-                        [weak, on_cancel](std::span<const uint8_t> req) -> std::vector<uint8_t> {
-                          auto server = weak.lock();
-                          // CancelGoal_Request: goal_info{ goal_id: UUID(16), stamp }.
-                          if (server != nullptr && req.size() >= 4 + 16) {
-                            ract::GoalUuid id{};
-                            std::memcpy(id.data(), req.data() + 4, 16);
-                            std::shared_ptr<ActionGoalHandle::State> gstate;
-                            {
-                              std::lock_guard<std::mutex> lock(server->goals_mutex);
-                              auto it = server->goals.find(id);
-                              if (it != server->goals.end()) {
-                                gstate = it->second;
-                              }
-                            }
-                            if (gstate && (!on_cancel || on_cancel(id))) {
-                              gstate->cancel_requested.store(true);
-                            }
-                          }
-                          // CancelGoal_Response: return_code:int8 + pad(3) + goals[]=0.
-                          std::vector<uint8_t> resp{0x00, 0x01, 0x00, 0x00, 0, 0, 0, 0, 0, 0, 0, 0};
-                          return resp;
-                        });
+       add_sync_tracked(
+           cancel_cfg, [weak, on_cancel](std::span<const uint8_t> req) -> std::vector<uint8_t> {
+             auto server = weak.lock();
+             ract::GoalUuid id{};
+             if (server == nullptr || !ract::parse_cancel_goal_request(req, id)) {
+               return ract::make_cancel_goal_response(ract::CANCEL_ERROR_REJECTED, {});
+             }
+             const bool all = std::all_of(id.begin(), id.end(), [](uint8_t b) { return b == 0; });
+             std::vector<std::pair<ract::GoalUuid, std::shared_ptr<ActionGoalHandle::State>>>
+                 candidates;
+             {
+               std::lock_guard<std::mutex> lock(server->goals_mutex);
+               server->prune_finished_locked();
+               if (all) {
+                 for (auto &kv : server->goals) {
+                   candidates.emplace_back(kv.first, kv.second);
+                 }
+               } else {
+                 auto it = server->goals.find(id);
+                 if (it != server->goals.end()) {
+                   candidates.emplace_back(it->first, it->second);
+                 }
+               }
+             }
+             if (!all && candidates.empty()) {
+               return ract::make_cancel_goal_response(ract::CANCEL_ERROR_UNKNOWN_GOAL_ID, {});
+             }
+             int8_t code = ract::CANCEL_ERROR_NONE;
+             std::vector<ract::GoalUuid> canceling;
+             for (auto &[goal_id, gstate] : candidates) {
+               bool done = false;
+               {
+                 std::lock_guard<std::mutex> lock(gstate->mutex);
+                 done = gstate->done;
+               }
+               if (done) {
+                 if (!all) {
+                   code = ract::CANCEL_ERROR_GOAL_TERMINATED;
+                 }
+                 continue;
+               }
+               if (on_cancel && !on_cancel(goal_id)) {
+                 if (!all) {
+                   code = ract::CANCEL_ERROR_REJECTED;
+                 }
+                 continue;
+               }
+               if (!gstate->cancel_requested.exchange(true)) {
+                 publish_goal_status(server->self, server->status_topic, goal_id,
+                                     ract::GoalStatus::CANCELING);
+               }
+               canceling.push_back(goal_id);
+             }
+             return ract::make_cancel_goal_response(code, canceling);
+           });
 
   if (!ok) {
     // Transactional: unwind EXACTLY the endpoints this invocation created -
@@ -2490,14 +2563,22 @@ std::optional<RtpsParticipant::GoalId> RtpsParticipant::ActionClient::send_goal_
   return id;
 }
 
-bool RtpsParticipant::ActionClient::cancel_goal(const GoalId &goal_id) {
-  // CancelGoal_Request: goal_info{ goal_id: UUID(16), stamp{sec,nsec} }.
-  std::vector<uint8_t> req{0x00, 0x01, 0x00, 0x00};
-  req.insert(req.end(), goal_id.begin(), goal_id.end());
-  for (int i = 0; i < 8; ++i) {
-    req.push_back(0); // stamp
-  }
-  return impl_->cancel_client->call_async(req, [](std::span<const uint8_t>) {});
+bool RtpsParticipant::ActionClient::cancel_goal(const GoalId &goal_id,
+                                                cancel_callback_t on_response) {
+  return impl_->cancel_client->call_async(
+      ract::make_cancel_goal_request(goal_id),
+      [on_response = std::move(on_response)](std::span<const uint8_t> reply) {
+        if (!on_response) {
+          return;
+        }
+        int8_t code = ract::CANCEL_ERROR_REJECTED;
+        std::vector<ract::GoalUuid> canceling;
+        if (!ract::parse_cancel_goal_response(reply, code, canceling)) {
+          code = ract::CANCEL_ERROR_REJECTED; // unreadable: treat as refused
+          canceling.clear();
+        }
+        on_response(code, canceling.size());
+      });
 }
 
 std::shared_ptr<RtpsParticipant::ActionClient>
