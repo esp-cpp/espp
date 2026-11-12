@@ -914,16 +914,17 @@ struct RtpsParticipant::ServiceServerContext
   }
 
   // The engine write of a reply, in the requester's form. The caller holds the
-  // liveness locks that keep `writer` valid.
-  static void write(rtps::Writer &writer, const HeldReply &reply) {
+  // liveness locks that keep `writer` valid. False when the writer's history
+  // is full (more replies in flight than its depth): the client never hears
+  // back, and the caller says so, as publish() does.
+  static bool write(rtps::Writer &writer, const HeldReply &reply) {
     if (reply.cyclonedds) {
-      writer.newChange(rtps::ChangeKind_t::ALIVE, reply.payload.data(),
-                       static_cast<rtps::DataSize_t>(reply.payload.size()));
-      return;
+      return writer.newChange(rtps::ChangeKind_t::ALIVE, reply.payload.data(),
+                              static_cast<rtps::DataSize_t>(reply.payload.size())) != nullptr;
     }
-    writer.newChangeWithRelatedSampleIdentity(rtps::ChangeKind_t::ALIVE, reply.payload.data(),
-                                              static_cast<rtps::DataSize_t>(reply.payload.size()),
-                                              reply.related);
+    return writer.newChangeWithRelatedSampleIdentity(
+               rtps::ChangeKind_t::ALIVE, reply.payload.data(),
+               static_cast<rtps::DataSize_t>(reply.payload.size()), reply.related) != nullptr;
   }
 };
 
@@ -968,7 +969,13 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
       response.size() +
       (state_->cyclonedds ? rtps::rpc::CYCLONEDDS_REQUEST_HEADER_SIZE : std::size_t{0});
   const char *dropped = nullptr;
-  if (wire_size > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
+  if (response.empty()) {
+    // Nothing to send: a 0-byte DATA is a deserialization error on the peer,
+    // not a timeout, and nothing would say why. A handler that cannot answer
+    // should let the client time out; a ROS 2 reply is never empty (an empty
+    // message is one placeholder byte).
+    dropped = "it is empty (a reply must be a CDR-encapsulated message)";
+  } else if (wire_size > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
     dropped = "it exceeds the single-DATA budget";
   } else if (state_->cyclonedds && !rtps::rpc::isCdrEncapsulation(response)) {
     dropped = "it does not start with a CDR encapsulation to splice the Cyclone header behind";
@@ -1031,7 +1038,10 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
   auto server = state_->server.lock();
   if (server == nullptr || timeout <= std::chrono::milliseconds{0} ||
       ServiceServerContext::reader_matched(*state_->reply_writer, wire)) {
-    ServiceServerContext::write(*state_->reply_writer, wire);
+    if (!ServiceServerContext::write(*state_->reply_writer, wire)) {
+      state_->self->logger_.warn("Service '{}': reply dropped, the reply writer's history is full",
+                                 state_->service);
+    }
     return;
   }
   wire.deadline = std::chrono::steady_clock::now() + timeout;
@@ -1066,7 +1076,10 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
     state_->self->logger_.warn(
         "Service '{}': reply written without waiting for its reply reader ({})", state_->service,
         token == 0 ? "the held-reply table is full" : "no deadline timer could be created");
-    ServiceServerContext::write(*state_->reply_writer, wire);
+    if (!ServiceServerContext::write(*state_->reply_writer, wire)) {
+      state_->self->logger_.warn("Service '{}': reply dropped, the reply writer's history is full",
+                                 state_->service);
+    }
   }
 }
 
@@ -1168,7 +1181,10 @@ bool RtpsParticipant::sweep_held_replies() {
         });
       }
       for (const auto &reply : due) {
-        ServiceServerContext::write(*server->reply_writer, reply);
+        if (!ServiceServerContext::write(*server->reply_writer, reply)) {
+          logger_.warn("Service '{}': reply dropped, the reply writer's history is full",
+                       server->service);
+        }
       }
     }
     // Forget a server with nothing left - under BOTH locks, so a reply held
