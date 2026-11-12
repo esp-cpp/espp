@@ -477,6 +477,10 @@ public:
     espp::QosBand band{espp::QosBand::Normal};
     /// Optional DSCP code point for the endpoints' dedicated sockets.
     std::optional<espp::Dscp> dscp{};
+    /// Server only: goals that may execute at once (each accepted goal runs on
+    /// its own thread); one more is rejected before on_goal, with a warning.
+    /// A goal id the server already holds is rejected too. 0 = unlimited.
+    std::size_t max_goals_in_flight{8};
     /// Server only: how long a finished goal stays known after it terminated
     /// - for its get_result (also a late or repeated one) and for a cancel to
     /// be answered ERROR_GOAL_TERMINATED - before it is retired; retirement

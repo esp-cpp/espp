@@ -1947,6 +1947,7 @@ struct RtpsParticipant::ActionServerContext {
   std::string feedback_topic;
   std::string status_topic;
   std::vector<uint8_t> unknown_goal_response;  // ActionConfig::unknown_goal_response
+  std::size_t max_goals_in_flight{0};          // ActionConfig::max_goals_in_flight
   std::chrono::milliseconds result_timeout{0}; // ActionConfig::result_timeout
   action_execute_callback_t execute{nullptr};
   std::mutex goals_mutex;
@@ -1971,6 +1972,15 @@ struct RtpsParticipant::ActionServerContext {
       }
       it = drop ? goals.erase(it) : std::next(it);
     }
+  }
+  // Goals being executed right now (accepted, not terminated). goals_mutex held.
+  std::size_t active_locked() {
+    std::size_t n = 0;
+    for (auto &kv : goals) {
+      std::lock_guard<std::mutex> lock(kv.second->mutex);
+      n += kv.second->done ? 0 : 1;
+    }
+    return n;
   }
   // Owned execute workers (not detached): joined in stop() before the domain is
   // torn down, reaped as they finish. See ActionExecThread / reap_and_store.
@@ -2176,6 +2186,7 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
   ctx->feedback_topic = rtps::rpc::action_feedback_topic(config.action);
   ctx->status_topic = rtps::rpc::action_status_topic(config.action);
   ctx->unknown_goal_response = config.unknown_goal_response;
+  ctx->max_goals_in_flight = config.max_goals_in_flight;
   ctx->result_timeout = config.result_timeout;
   ctx->execute = std::move(execute);
 
@@ -2243,6 +2254,25 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
         std::vector<uint8_t> goal;
         if (server == nullptr || !ract::unwrap_send_goal_request(req, id, goal)) {
           return ract::make_send_goal_response(false);
+        }
+        // Bounded: a goal beyond max_goals_in_flight (each runs on its own
+        // thread) or a goal id the server already has is rejected before the
+        // user's on_goal sees it. A duplicate would replace an in-flight goal
+        // and orphan its pending get_result; rcl rejects them too.
+        {
+          std::lock_guard<std::mutex> lock(server->goals_mutex);
+          server->prune_finished_locked();
+          if (server->goals.count(id) != 0) {
+            this->logger_.warn("Action server: goal rejected, its id is already in use");
+            return ract::make_send_goal_response(false);
+          }
+          if (server->max_goals_in_flight != 0 &&
+              server->active_locked() >= server->max_goals_in_flight) {
+            this->logger_.warn("Action server: goal rejected, {} goals already in flight "
+                               "(max_goals_in_flight)",
+                               static_cast<int>(server->max_goals_in_flight));
+            return ract::make_send_goal_response(false);
+          }
         }
         const bool accept = !on_goal || on_goal(id, {goal.data(), goal.size()});
         if (!accept) {
