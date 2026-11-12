@@ -28,6 +28,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/entities/Writer.hpp"
 #include "rtps/messages/MessageReceiver.hpp"
 #include "rtps/utils/Log.hpp"
+#include <algorithm>
 #include <mutex>
 
 #if PARTICIPANT_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -163,11 +164,9 @@ rtps::Reader *Participant::addReader(Reader *pReader) {
 template <typename Slots, typename Endpoint>
 void Participant::releaseSlot(Slots &slots, Endpoint *endpoint) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (auto &slot : slots) {
-    if (slot == endpoint) {
-      slot = nullptr;
-      return;
-    }
+  auto it = std::find(slots.begin(), slots.end(), endpoint);
+  if (it != slots.end()) {
+    *it = nullptr;
   }
 }
 

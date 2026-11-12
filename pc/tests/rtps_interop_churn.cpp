@@ -88,9 +88,9 @@ int main(int argc, char **argv) {
       std::printf("t=%.1fs matched writers %zu -> %zu (received so far %d)\n", elapsed_s(),
                   last_matched, matched, received.load());
       std::fflush(stdout);
-      if (last_matched == 0 && matched > 0) {
+      if (last_matched == 0) { // the count changed, so it is above zero now
         received_at_match = received.load();
-      } else if (last_matched > 0 && matched == 0) {
+      } else if (matched == 0) {
         if (received.load() > received_at_match) {
           ++unmatches;
         } else {

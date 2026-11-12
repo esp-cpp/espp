@@ -458,12 +458,11 @@ std::size_t RtpsParticipant::matched_writers(const std::string &topic) const {
   if (!started_ || stopping_) {
     return 0;
   }
-  for (const auto &ctx : reader_contexts_) {
-    if (ctx->topic == topic && ctx->reader != nullptr) {
-      return ctx->reader->getProxiesCount();
-    }
-  }
-  return 0;
+  const auto it =
+      std::find_if(reader_contexts_.begin(), reader_contexts_.end(), [&topic](const auto &ctx) {
+        return ctx->topic == topic && ctx->reader != nullptr;
+      });
+  return it != reader_contexts_.end() ? (*it)->reader->getProxiesCount() : 0;
 }
 
 std::size_t RtpsParticipant::matched_readers(const std::string &topic) const {
