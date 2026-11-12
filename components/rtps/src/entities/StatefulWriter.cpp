@@ -130,8 +130,8 @@ StatefulWriter::newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t siz
   // Regression test: pc/tests/rtps_sedp_history_overflow.cpp.
   if (isBuiltinEndpoint() && m_history.wouldDropOldestOnAdd() &&
       !m_history.dropOldestSentDisposeAfterWrite()) {
-    logger_.error("Builtin writer history full ({} changes), refusing the discovery change: "
-                  "HISTORY_SIZE_STATEFUL must cover the participant's endpoints",
+    logger_.error("Builtin writer history full, refusing the discovery change: "
+                  "HISTORY_SIZE_STATEFUL ({}) must cover the participant's endpoints",
                   static_cast<int>(Config::HISTORY_SIZE_STATEFUL));
     return nullptr;
   }

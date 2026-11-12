@@ -21,7 +21,14 @@
 //  2. A creation the participant refuses gives the pooled endpoint back: with
 //     the participant's slots full, the refused writers do not exhaust the
 //     global stateful pool, so once a slot frees up a writer can be created.
-//  3. The caps agree: with static storage the history covers the user
+//  3. A refused ANNOUNCEMENT gives the pooled endpoint back too. On the host
+//     the dynamic ring never refuses until it hits its 16-bit index ceiling,
+//     so the SEDP publications writer's history is filled to exactly that
+//     (tens of thousands of changes), after which every creation is refused by
+//     the announcement, not by the participant cap: more refusals than the
+//     stateful pool has slots, and a second participant must still be able
+//     to create a writer (the refused ones leaked a pool slot each before).
+//  4. The caps agree: with static storage the history covers the user
 //     endpoints of a participant (config.hpp's static_assert, restated here
 //     with the same arithmetic so a profile change shows up in this test).
 //
@@ -95,6 +102,42 @@ bool delete_without_sedp_change() {
   return true;
 }
 
+bool refused_announcement_resets_pool() {
+  rtps::Domain domain(kIp);
+  rtps::Participant *a = domain.createParticipant();
+  CHECK(a != nullptr, "createParticipant A");
+  auto *sedp = static_cast<rtps::StatefulWriter *>(
+      a->getWriter(rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER));
+  CHECK(sedp != nullptr, "SEDP publications writer");
+
+  // Fill the dynamic ring until it refuses: a builtin writer never
+  // overwrites, so the first nullptr is the ceiling (grow() stops doubling
+  // past what 16-bit ring indices can address).
+  const uint8_t payload[4] = {0, 0, 0, 0};
+  std::size_t added = 0;
+  while (added < 200000 &&
+         sedp->newChange(rtps::ChangeKind_t::ALIVE, payload, sizeof(payload)) != nullptr) {
+    ++added;
+  }
+  CHECK(added > 1000 && added < 200000, "the SEDP history reached its ceiling");
+  std::printf("SEDP history refused after %zu changes\n", added);
+
+  // Every creation is now refused by the announcement (the participant has
+  // room), more times than the stateful pool has slots...
+  for (int i = 0; i < static_cast<int>(rtps::Config::NUM_STATEFUL_WRITERS) + 2; ++i) {
+    CHECK(domain.createWriter(*a, "unannounceable", "OverflowType", true, false) == nullptr,
+          "a creation whose announcement is refused fails");
+  }
+  // ... and a second participant can still create a writer: the refused ones
+  // gave their pooled endpoints back.
+  rtps::Participant *b = domain.createParticipant();
+  CHECK(b != nullptr, "createParticipant B");
+  rtps::Writer *fits = domain.createWriter(*b, "fits", "OverflowType", true, false);
+  CHECK(fits != nullptr, "refused announcements did not exhaust the stateful writer pool");
+  CHECK(domain.deleteWriter(*b, fits), "and that writer deletes normally");
+  return true;
+}
+
 bool caps_agree() {
   // The same arithmetic as config.hpp's static_assert (3 builtin writers and
   // 3 builtin readers per participant are not announced).
@@ -108,7 +151,7 @@ bool caps_agree() {
 } // namespace
 
 int main() {
-  if (!delete_without_sedp_change() || !caps_agree()) {
+  if (!delete_without_sedp_change() || !refused_announcement_resets_pool() || !caps_agree()) {
     return 1;
   }
   std::printf("PASS\n");
