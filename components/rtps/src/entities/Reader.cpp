@@ -163,6 +163,35 @@ void Reader::newFragment(const Guid_t &writerGuid, const SequenceNumber_t &sn,
 }
 #endif
 
+#ifdef RTPS_ENABLE_FRAGMENTATION
+bool Reader::missingFragments(const Guid_t &writerGuid, SequenceNumber_t &sn,
+                              FragmentNumberSet &missing) {
+  std::lock_guard<std::mutex> lock(m_reassembly_mutex);
+  if (!m_reassembly.active || !(m_reassembly.writerGuid == writerGuid) ||
+      m_reassembly.receivedFragments >= m_reassembly.totalFragments) {
+    return false;
+  }
+  uint32_t first = 0;
+  while (first < m_reassembly.totalFragments && m_reassembly.received[first]) {
+    ++first;
+  }
+  if (first >= m_reassembly.totalFragments) {
+    return false;
+  }
+  sn = m_reassembly.sn;
+  missing = FragmentNumberSet{};
+  missing.base = first + 1; // fragment numbers are 1-based
+  const uint32_t span = std::min(m_reassembly.totalFragments - first, kMaxNackFrags);
+  missing.numBits = span;
+  for (uint32_t bit = 0; bit < span; ++bit) {
+    if (!m_reassembly.received[first + bit]) {
+      missing.set(bit);
+    }
+  }
+  return true;
+}
+#endif
+
 void Reader::reset() {
   // Retire this pooled slot's generation FIRST: any receive dispatch that
   // captured the old generation at lookup but has not yet passed its guarded

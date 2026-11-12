@@ -99,6 +99,13 @@ struct WriterProxy {
     ++ackNackCount.value;
     return tmp;
   }
+  /// NACK_FRAGs are counted on their own (RTPS 2.5 8.3.7.10: the count tells
+  /// a writer a duplicate from a retransmitted one).
+  Count_t nackFragCount{0};
+  Count_t getNextNackFragCount() {
+    ++nackFragCount.value;
+    return nackFragCount;
+  }
 };
 } // namespace rtps
 

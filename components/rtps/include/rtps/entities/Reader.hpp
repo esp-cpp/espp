@@ -184,6 +184,13 @@ public:
                    uint32_t fragmentStartingNum, uint16_t fragmentsInSubmessage,
                    uint16_t fragmentSize, uint32_t sampleSize, const uint8_t *fragData,
                    DataSize_t fragDataLen, const VendorId_t &sourceVendor = VENDOR_UNKNOWN);
+  /// Fragment numbers a NACK_FRAG asks for at most (each is resent at once, as
+  /// an ACKNACK's sequence numbers are; see WriterProxy::kMaxNackSns).
+  static constexpr uint32_t kMaxNackFrags = 64;
+  /// Whether a sample of `writerGuid` is under reassembly with fragments
+  /// missing: its sequence number and, from the first missing fragment on, up
+  /// to kMaxNackFrags of them as a NACK_FRAG's set. Thread-safe.
+  bool missingFragments(const Guid_t &writerGuid, SequenceNumber_t &sn, FragmentNumberSet &missing);
 #endif
 
 protected:

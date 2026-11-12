@@ -371,6 +371,27 @@ bool StatefulReader::onNewHeartbeat(const SubmessageHeartbeat &msg,
   }
   rtps::MessageFactory::addAckNack(payload, msg.writerId, m_attributes.endpointGuid.entityId,
                                    missing_sns, writer->getNextAckNackCount(), final_flag);
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  // Part of one of the announced samples is here already: ask for the rest by
+  // NACK_FRAG in the same datagram (RTPS 2.5 8.4.12.2.5 / 8.3.7.10). Cyclone
+  // DDS answers an ACKNACK that names a fragmented sample with its FIRST
+  // fragment only and leaves the rest to NACK_FRAG, so without one a sample
+  // whose fragments were partly missed (the QEMU soak's 30 KB samples from a
+  // Cyclone publisher that wrote before this reader had matched it) never
+  // completed, and held the reassembly slot against every sample after it.
+  // Regression test: pc/tests/rtps_nack_frag.cpp.
+  {
+    SequenceNumber_t partialSN{};
+    FragmentNumberSet missingFrags{};
+    if (missingFragments(writerProxyGuid, partialSN, missingFrags) && !(partialSN < msg.firstSN) &&
+        !(msg.lastSN < partialSN)) {
+      rtps::MessageFactory::addNackFrag(payload, msg.writerId, m_attributes.endpointGuid.entityId,
+                                        partialSN, missingFrags, writer->getNextNackFragCount());
+      SFR_LOG("Sending nackfrag for {}.{} from fragment {} ({} bits).", (int)partialSN.high,
+              (int)partialSN.low, (int)missingFrags.base, (int)missingFrags.numBits);
+    }
+  }
+#endif
 
   SFR_LOG("Sending acknack base {} bits {}.", (int)missing_sns.base.low, (int)missing_sns.numBits);
   info.payload = std::move(payload.bytes);
