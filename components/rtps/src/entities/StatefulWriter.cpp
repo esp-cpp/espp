@@ -336,6 +336,26 @@ void StatefulWriter::onNewAckNack(const SubmessageAckNack &msg,
     return;
   }
 
+  // A reader that requests nothing while it has not acknowledged our last
+  // change is asking where we stand (RTPS 2.5 8.4.15.5: an ACKNACK with an
+  // empty set is a request for a HEARTBEAT). Cyclone DDS's pre-emptive
+  // ACKNACK is base 1 with count 0, not base 0, and is repeated every second
+  // until a HEARTBEAT arrives; answering it only on the periodic heartbeat
+  // left a window of up to the heartbeat period in which a change written
+  // for the new reader - a service reply to the request it sent right after
+  // matching - was announced by the FIRST heartbeat it ever saw from us, and
+  // a VOLATILE reader takes everything in that heartbeat for pre-match
+  // history and skips it (the interop matrix's service call under loss, with
+  // rmw_cyclonedds_cpp). Answer now. No ping-pong: a reader that has
+  // everything acknowledges base = last + 1 and gets no heartbeat for it.
+  // Regression test: pc/tests/rtps_acknack_heartbeat_reply.cpp.
+  if (msg.readerSNState.numBits == 0 && !m_history.isEmpty() &&
+      !(m_history.getLastUsedSequenceNumber() < msg.readerSNState.base)) {
+    SFW_LOG("Reader behind and requesting nothing: answering with a heartbeat.");
+    sendHeartBeat();
+    return;
+  }
+
   if (m_history.isEmpty()) {
     // We have never sent anything. Do not immediately respond with another
     // heartbeat here, otherwise reader/writer can get stuck in HB<->ACKNACK
