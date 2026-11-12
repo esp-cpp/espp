@@ -30,8 +30,10 @@
 //  7. Only the owner may dispose: a dispose from A naming B's endpoint or B's
 //     participant, or one on the wrong SEDP leg, changes nothing.
 //  8. The participant's own dispose over SPDP removes it, with the proxies
-//     of its endpoints.
-//  9. A payload-form participant dispose in big-endian PL_CDR is honoured.
+//     of its endpoints; an announcement delayed from before the dispose does
+//     not bring it back, a later one does.
+//  9. A payload-form participant dispose in big-endian PL_CDR is honoured;
+//     one whose GUID names an endpoint rather than the participant is not.
 //
 // Exits 0 on success, 1 on the first failed check.
 
@@ -406,6 +408,37 @@ bool run_checks() {
   CHECK(reader->getProxiesCount() == 0, "its endpoints' proxies go with it");
   CHECK(part->findRemoteParticipant(peer) == nullptr, "the participant is no longer known");
 
+  // 8b. A delayed copy of A's announcement (SN 1, from before its dispose at
+  //     SN 3) must not bring it back: the SPDP reader filters sequence numbers
+  //     only for the writers it knows, and A's went with A. A later one does.
+  feed(part,
+       data_message(peer, rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+                    rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, 1, {}, spdp_payload(peer)));
+  CHECK(part->getRemoteParticipantCount() == 1,
+        "an announcement from before the dispose does not bring the participant back");
+  feed(part,
+       data_message(peer, rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+                    rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, 4, {}, spdp_payload(peer)));
+  CHECK(part->getRemoteParticipantCount() == 2, "a later announcement does");
+  feed(part, data_message(peer, rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+                          rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, 5,
+                          dispose_inline_qos(&participant_guid), {}));
+  CHECK(part->getRemoteParticipantCount() == 1, "... and its next dispose removes it again");
+
+  // 9a. A payload-form dispose from B whose GUID names one of B's endpoints,
+  //     not B itself, is malformed and changes nothing.
+  {
+    using rtps::SMElement::ParameterId;
+    std::vector<uint8_t> payload = encapsulation();
+    push_param(payload, ParameterId::PID_PARTICIPANT_GUID, guid_value(writer_b));
+    push_sentinel(payload);
+    feed(part, data_message(peer_b, rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+                            rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, 2,
+                            dispose_inline_qos(nullptr), payload));
+  }
+  CHECK(part->getRemoteParticipantCount() == 1,
+        "a payload-form dispose naming an endpoint rather than the participant is ignored");
+
   // 9. B leaves without a key hash, its participant GUID in a BIG-endian
   //    PL_CDR payload (the SPDP payload parser honours the encapsulation's
   //    byte order, as the announcement parser does).
@@ -422,7 +455,7 @@ bool run_checks() {
     push_u16_be(static_cast<uint16_t>(ParameterId::PID_SENTINEL));
     push_u16_be(0);
     feed(part, data_message(peer_b, rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
-                            rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, 2,
+                            rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, 3,
                             dispose_inline_qos(nullptr), payload));
   }
   CHECK(part->getRemoteParticipantCount() == 0, "a big-endian payload-form participant dispose");

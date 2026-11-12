@@ -98,6 +98,10 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
   SPDP_LOG("SPDPPackage size: {}", cacheChange.size);
 
   if (cacheChange.kind == ChangeKind_t::ALIVE) {
+    if (isFromBeforeDispose(cacheChange.writerGuid.prefix, cacheChange.sn)) {
+      SPDP_LOG("Announcement from before the participant's dispose, ignored");
+      return;
+    }
     // The payload's endianness is selected by the encapsulation identifier
     // (first two bytes); endianness doesn't matter for reading those since
     // they are single bytes.
@@ -144,6 +148,7 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
                    cacheChange.writerGuid.prefix.id[2], cacheChange.writerGuid.prefix.id[3]);
       return;
     }
+    rememberDispose(prefix, cacheChange.sn);
     if (mp_participant->findRemoteParticipant(prefix) == nullptr) {
       return; // never known, or already gone
     }
@@ -172,9 +177,19 @@ rtps::GuidPrefix_t SPDPAgent::participantPrefixInPayload(const uint8_t *data, Da
       break;
     }
     if (*pid == ParameterId::PID_PARTICIPANT_GUID && *length == 16) {
-      GuidPrefix_t prefix;
-      if (readBytes(buffer, prefix.id.data(), prefix.id.size())) {
-        return prefix;
+      // The whole GUID: only one naming a participant may dispose one (a
+      // malformed payload naming the sender's own endpoint would otherwise
+      // take the participant and all its matches down with it).
+      Guid_t guid;
+      if (readBytes(buffer, guid.prefix.id.data(), guid.prefix.id.size()) &&
+          readBytes(buffer, guid.entityId.entityKey.data(), guid.entityId.entityKey.size())) {
+        const auto kind = buffer.read<uint8_t>();
+        if (kind) {
+          guid.entityId.entityKind = static_cast<EntityKind_t>(*kind);
+          if (guid.entityId == ENTITYID_BUILD_IN_PARTICIPANT) {
+            return guid.prefix;
+          }
+        }
       }
       break;
     }
@@ -182,6 +197,30 @@ rtps::GuidPrefix_t SPDPAgent::participantPrefixInPayload(const uint8_t *data, Da
     alignTo4(buffer); // parameters are 4-byte aligned
   }
   return GUIDPREFIX_UNKNOWN;
+}
+
+void SPDPAgent::rememberDispose(const GuidPrefix_t &prefix, const SequenceNumber_t &sn) {
+  const auto now = std::chrono::steady_clock::now();
+  for (auto &entry : m_disposed) {
+    if (entry.prefix == prefix) {
+      entry.sn = sn;
+      entry.at = now;
+      return;
+    }
+  }
+  m_disposed[m_nextDisposed] = DisposedParticipant{prefix, sn, now};
+  m_nextDisposed = (m_nextDisposed + 1) % m_disposed.size();
+}
+
+bool SPDPAgent::isFromBeforeDispose(const GuidPrefix_t &prefix, const SequenceNumber_t &sn) const {
+  const auto now = std::chrono::steady_clock::now();
+  for (const auto &entry : m_disposed) {
+    if (entry.prefix == prefix && entry.at != std::chrono::steady_clock::time_point{} &&
+        now - entry.at < std::chrono::milliseconds(DISPOSE_MEMORY_MS)) {
+      return !(entry.sn < sn);
+    }
+  }
+  return false;
 }
 
 void SPDPAgent::processProxyData() {
