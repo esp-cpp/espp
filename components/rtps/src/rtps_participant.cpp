@@ -1208,6 +1208,62 @@ struct RtpsParticipant::ServiceClient::Impl
   rtps::Writer *request_writer{nullptr};
   rtps::Reader *reply_reader{nullptr}; ///< retained for composite (action) rollback
   rtps::Guid_t reply_reader_guid{};
+  // The participant run this client was created in (RtpsParticipant::live_ at
+  // that time). stop() flips it before the engine - and with it request_writer
+  // / reply_reader - goes away, and a later start() mints a new token, so a
+  // handle kept across a stop() can never dereference the stale endpoints.
+  std::shared_ptr<Liveness> live;
+
+  // Engine access from a client handle: the user may call server_count() /
+  // call_async() / wait_for_server() from any thread at any time, including
+  // while another thread stop()s the participant, or on a handle retained past
+  // a stop(). Every engine touch (proxy walks, newChange) is pinned as an
+  // engine operation so stop() waits at its phase 1.5, and then checked
+  // against the run's liveness token: with the op pinned stop() cannot have
+  // passed phase 2 (where the token flips), so a still-alive token means the
+  // endpoints are this run's and valid.
+  struct Pin {
+    RtpsParticipant *participant{nullptr};
+    Pin() = default;
+    explicit Pin(RtpsParticipant *p)
+        : participant(p) {}
+    Pin(const Pin &) = delete;
+    Pin &operator=(const Pin &) = delete;
+    Pin(Pin &&other) noexcept
+        : participant(other.participant) {
+      other.participant = nullptr;
+    }
+    ~Pin() {
+      if (participant != nullptr) {
+        participant->end_engine_op();
+      }
+    }
+    explicit operator bool() const { return participant != nullptr; }
+  };
+  Pin pin() const {
+    if (self == nullptr || !live || !self->begin_engine_op()) {
+      return {};
+    }
+    bool alive = false;
+    {
+      std::lock_guard<std::mutex> lock(live->m);
+      alive = live->alive;
+    }
+    if (!alive) {
+      self->end_engine_op();
+      return {};
+    }
+    return Pin{self};
+  }
+  /// True while the participant run this client belongs to is up.
+  bool running() const { return static_cast<bool>(pin()); }
+  /// Diagnostics for a refused request (see send()): logged through the
+  /// participant while it is around.
+  void refuse(const char *what, const char *why) const {
+    if (self != nullptr) {
+      self->logger_.warn("Service client: {} refused, {}", what, why);
+    }
+  }
   // Cyclone form: a packed RTPS sequence number never has bit 63 set (its high
   // word is a non-negative int32), so tagging the header seq with it keeps the
   // two key spaces of `pending` apart.
@@ -1259,6 +1315,10 @@ struct RtpsParticipant::ServiceClient::Impl
   // Servers matched right now, both legs (see peer_form()), without the
   // per-participant vendor lookups: what wait_for_server() polls.
   std::size_t matched_servers() const {
+    const Pin pinned = pin();
+    if (!pinned) {
+      return 0; // not started, stopping, or a handle from an earlier run
+    }
     Prefixes prefixes;
     request_writer->dumpAllProxies(&collect_prefix, &prefixes);
     const std::size_t reply_writers = reply_reader != nullptr ? reply_reader->getProxiesCount() : 0;
@@ -1273,6 +1333,7 @@ struct RtpsParticipant::ServiceClient::Impl
   // participant up (participant lock): never nested, and never under `mutex`,
   // so a reply landing meanwhile does not wait for the walk.
   PeerForm peer_form() const {
+    // Called under send()'s pin; the walk below needs the engine.
     Prefixes prefixes;
     request_writer->dumpAllProxies(&collect_prefix, &prefixes);
     // A server counts only when both legs are matched: its request reader
@@ -1310,10 +1371,18 @@ struct RtpsParticipant::ServiceClient::Impl
   // CYCLONEDDS_KEY_BIT | seq.
   std::optional<uint64_t> send(std::span<const uint8_t> request, reply_callback_t on_reply,
                                std::shared_ptr<SyncSlot> sync) {
+    // The engine stays up for the whole send (see Pin): the proxy walk, the
+    // vendor lookups and the newChange all dereference this run's endpoints.
+    const Pin pinned = pin();
+    if (!pinned) {
+      refuse("request", "the participant is not running (stopped, or stopping)");
+      return std::nullopt;
+    }
     // A request must fit a single DATA submessage: inline QoS does not survive
     // fragmentation, and the Cyclone header counts against the same budget (see
     // MAX_UNFRAGMENTED_RPC_PAYLOAD).
     if (request.size() > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
+      refuse("request", "it exceeds the single-DATA budget");
       return std::nullopt;
     }
     // The form is chosen from the servers matched now, outside `mutex`. With
@@ -1323,11 +1392,13 @@ struct RtpsParticipant::ServiceClient::Impl
     // ServiceClient::call_async / wait_for_server).
     const PeerForm peer = peer_form();
     if (peer.matched == 0) {
+      refuse("request", "no server is matched (use wait_for_server())");
       return std::nullopt;
     }
     if (peer.cyclonedds && (request.size() < rtps::rpc::CDR_ENCAPSULATION_SIZE ||
                             request.size() + rtps::rpc::CYCLONEDDS_REQUEST_HEADER_SIZE >
                                 rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD)) {
+      refuse("request", "it is not CDR-encapsulated or leaves no room for the Cyclone header");
       return std::nullopt;
     }
     std::lock_guard<std::mutex> lock(mutex);
@@ -1340,11 +1411,13 @@ struct RtpsParticipant::ServiceClient::Impl
       const rtps::rpc::CycloneDdsRequestHeader header{cyclonedds_client_id, ++cyclonedds_next_seq};
       const auto payload = rtps::rpc::prependCycloneDdsRequestHeader(header, request);
       if (payload.empty()) {
-        return std::nullopt; // not a CDR-encapsulated request
+        refuse("request", "it is not CDR-encapsulated");
+        return std::nullopt;
       }
       const auto *change = request_writer->newChange(rtps::ChangeKind_t::ALIVE, payload.data(),
                                                      static_cast<rtps::DataSize_t>(payload.size()));
       if (change == nullptr) {
+        refuse("request", "the request writer's history is full");
         return std::nullopt;
       }
       const uint64_t key = CYCLONEDDS_KEY_BIT | static_cast<uint64_t>(header.seq);
@@ -1356,6 +1429,7 @@ struct RtpsParticipant::ServiceClient::Impl
         rtps::ChangeKind_t::ALIVE, request.data(), static_cast<rtps::DataSize_t>(request.size()),
         related);
     if (change == nullptr) {
+      refuse("request", "the request writer's history is full");
       return std::nullopt;
     }
     const uint64_t key = seq_key(change->sequenceNumber);
@@ -1516,7 +1590,9 @@ std::size_t RtpsParticipant::ServiceClient::server_count() const {
 bool RtpsParticipant::ServiceClient::wait_for_server(std::chrono::milliseconds timeout) const {
   const auto deadline = std::chrono::steady_clock::now() + timeout;
   while (impl_->matched_servers() == 0) {
-    if (std::chrono::steady_clock::now() >= deadline) {
+    // A participant that is stopping (or stopped under us) matches nothing
+    // again this run: give up at once rather than wait out the timeout.
+    if (!impl_->running() || std::chrono::steady_clock::now() >= deadline) {
       return false;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -2212,7 +2288,9 @@ std::size_t RtpsParticipant::ActionClient::server_count() const {
 bool RtpsParticipant::ActionClient::wait_for_server(std::chrono::milliseconds timeout) const {
   const auto deadline = std::chrono::steady_clock::now() + timeout;
   while (server_count() == 0) {
-    if (std::chrono::steady_clock::now() >= deadline) {
+    // see ServiceClient::wait_for_server(): a stopping participant matches nothing
+    if (!impl_->send_goal_client->impl_->running() ||
+        std::chrono::steady_clock::now() >= deadline) {
       return false;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -2396,6 +2474,7 @@ RtpsParticipant::add_service_client(const ServiceConfig &config) {
   }
   auto impl = std::make_shared<ServiceClient::Impl>();
   impl->self = this;
+  impl->live = live_;
   impl->request_writer = request_writer;
   impl->reply_reader = reply_reader;
   impl->reply_reader_guid = reply_reader->m_attributes.endpointGuid;
