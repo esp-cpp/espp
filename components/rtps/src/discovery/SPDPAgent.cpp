@@ -24,6 +24,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 */
 
 #include "rtps/discovery/SPDPAgent.hpp"
+
 #include "rtps/discovery/ParticipantProxyData.hpp"
 #include "rtps/entities/Participant.hpp"
 #include "rtps/entities/Reader.hpp"
@@ -31,6 +32,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/messages/MessageTypes.hpp"
 #include "rtps/utils/Log.hpp"
 #include "rtps/utils/udpUtils.hpp"
+#include <algorithm>
 
 #include <chrono>
 #include <cstring>
@@ -201,12 +203,12 @@ rtps::GuidPrefix_t SPDPAgent::participantPrefixInPayload(const uint8_t *data, Da
 
 void SPDPAgent::rememberDispose(const GuidPrefix_t &prefix, const SequenceNumber_t &sn) {
   const auto now = std::chrono::steady_clock::now();
-  for (auto &entry : m_disposed) {
-    if (entry.prefix == prefix) {
-      entry.sn = sn;
-      entry.at = now;
-      return;
-    }
+  auto known = std::find_if(m_disposed.begin(), m_disposed.end(),
+                            [&](const DisposedParticipant &e) { return e.prefix == prefix; });
+  if (known != m_disposed.end()) {
+    known->sn = sn;
+    known->at = now;
+    return;
   }
   m_disposed[m_nextDisposed] = DisposedParticipant{prefix, sn, now};
   m_nextDisposed = (m_nextDisposed + 1) % m_disposed.size();
