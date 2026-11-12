@@ -327,6 +327,17 @@ public:
     /// Optional DSCP code point applied to both endpoints' dedicated sockets
     /// (marks the requests/replies this side SENDS).
     std::optional<espp::Dscp> dscp{};
+    /// Client only: how long a request may wait for its reply before it is
+    /// abandoned - its pending entry is dropped, a call_future() resolves to
+    /// std::nullopt, a call_async() callback never runs - so a server that
+    /// took the request and died, or a lost reply, cannot grow the pending
+    /// table without bound. Checked when the client sends its next request
+    /// or counts its pending ones, and at stop(). 0 = never.
+    std::chrono::milliseconds request_timeout{std::chrono::seconds { 30 }};
+    /// Client only: requests that may be pending at once; one more is refused
+    /// (call_async() false, call()/call_future() std::nullopt, logged).
+    /// 0 = unlimited.
+    std::size_t max_pending_requests{64};
   };
 
   /// Handle to reply to a service request later (deferred reply). Copyable and
@@ -377,6 +388,12 @@ public:
     /// rmw_service_server_is_available checks. 0 until discovery has run, or
     /// while the server is away.
     std::size_t server_count() const;
+
+    /// Requests sent and not yet answered. Entries older than
+    /// ServiceConfig::request_timeout are dropped first (see there), so this
+    /// is bounded by max_pending_requests and returns to 0 after a server
+    /// stops answering.
+    std::size_t pending_count() const;
 
     /// Block until at least one server is matched, like rclcpp's
     /// wait_for_service(). \return True once a server is matched, false on

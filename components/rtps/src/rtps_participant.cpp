@@ -1197,17 +1197,25 @@ struct RtpsParticipant::ServiceClient::Impl
     std::mutex m;
     std::condition_variable cv;
     bool done{false};
+    bool failed{false}; // abandoned (timed out, or the participant stopped)
     std::vector<uint8_t> reply;
   };
   struct Pending {
     reply_callback_t on_reply{nullptr};      // set for call_async
     std::shared_ptr<SyncSlot> sync{nullptr}; // set for call
+    // When the request is given up on (ServiceConfig::request_timeout; max()
+    // = never) and what to tell then (call_future's promise). A reply that
+    // lands after that is a late reply, ignored like any unknown key.
+    std::chrono::steady_clock::time_point deadline{std::chrono::steady_clock::time_point::max()};
+    std::function<void()> on_abandon{nullptr};
   };
 
   RtpsParticipant *self{nullptr};
   rtps::Writer *request_writer{nullptr};
   rtps::Reader *reply_reader{nullptr}; ///< retained for composite (action) rollback
   rtps::Guid_t reply_reader_guid{};
+  std::chrono::milliseconds request_timeout{0}; ///< ServiceConfig::request_timeout
+  std::size_t max_pending{0};                   ///< ServiceConfig::max_pending_requests
   // The participant run this client was created in (RtpsParticipant::live_ at
   // that time). stop() flips it before the engine - and with it request_writer
   // / reply_reader - goes away, and a later start() mints a new token, so a
@@ -1276,6 +1284,61 @@ struct RtpsParticipant::ServiceClient::Impl
   std::mutex mutex;
   std::unordered_map<uint64_t, Pending> pending;
   DeferredDispatch deferred; // banded reply reader without a dedicated port
+
+  // Giving up on requests. The table is bounded two ways: entries past their
+  // deadline are dropped whenever the table is touched (a send, a count), and
+  // stop() drops every entry before the engine goes down. An abandoned call()
+  // wakes with `failed`, an abandoned call_future() resolves to nullopt
+  // through on_abandon; a call_async() callback is simply never run. Always
+  // finish the gone entries OUTSIDE `mutex`: on_abandon may run user code.
+  static void finish_abandoned(std::vector<Pending> &gone) {
+    for (auto &p : gone) {
+      if (p.sync) {
+        std::lock_guard<std::mutex> lock(p.sync->m);
+        p.sync->failed = true;
+        p.sync->done = true;
+        p.sync->cv.notify_all();
+      }
+      if (p.on_abandon) {
+        p.on_abandon();
+      }
+    }
+    gone.clear();
+  }
+  void prune_expired_locked(std::vector<Pending> &gone) {
+    const auto now = std::chrono::steady_clock::now();
+    for (auto it = pending.begin(); it != pending.end();) {
+      if (it->second.deadline <= now) {
+        gone.push_back(std::move(it->second));
+        it = pending.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
+  void abandon_all() {
+    std::vector<Pending> gone;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      gone.reserve(pending.size());
+      for (auto &kv : pending) {
+        gone.push_back(std::move(kv.second));
+      }
+      pending.clear();
+    }
+    finish_abandoned(gone);
+  }
+  std::size_t pending_count() {
+    std::vector<Pending> gone;
+    std::size_t count = 0;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      prune_expired_locked(gone);
+      count = pending.size();
+    }
+    finish_abandoned(gone);
+    return count;
+  }
 
   // What is on the other end of the request writer right now.
   struct PeerForm {
@@ -1370,13 +1433,36 @@ struct RtpsParticipant::ServiceClient::Impl
   // Cyclone form: {client id, next seq} spliced into the payload, keyed by
   // CYCLONEDDS_KEY_BIT | seq.
   std::optional<uint64_t> send(std::span<const uint8_t> request, reply_callback_t on_reply,
-                               std::shared_ptr<SyncSlot> sync) {
+                               std::shared_ptr<SyncSlot> sync,
+                               std::function<void()> on_abandon = nullptr) {
     // The engine stays up for the whole send (see Pin): the proxy walk, the
     // vendor lookups and the newChange all dereference this run's endpoints.
     const Pin pinned = pin();
     if (!pinned) {
       refuse("request", "the participant is not running (stopped, or stopping)");
       return std::nullopt;
+    }
+    // Room in the pending table: drop what has expired first, then refuse at
+    // the cap (a server that stopped answering must not take the client down
+    // with it, see max_pending_requests).
+    {
+      std::vector<Pending> gone;
+      bool full = false;
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        prune_expired_locked(gone);
+        full = max_pending != 0 && pending.size() >= max_pending;
+      }
+      finish_abandoned(gone);
+      if (full) {
+        refuse("request", "the pending table is full (max_pending_requests); no server answers");
+        return std::nullopt;
+      }
+    }
+    Pending entry{std::move(on_reply), std::move(sync)};
+    entry.on_abandon = std::move(on_abandon);
+    if (request_timeout.count() > 0) {
+      entry.deadline = std::chrono::steady_clock::now() + request_timeout;
     }
     // A request must fit a single DATA submessage: inline QoS does not survive
     // fragmentation, and the Cyclone header counts against the same budget (see
@@ -1421,7 +1507,7 @@ struct RtpsParticipant::ServiceClient::Impl
         return std::nullopt;
       }
       const uint64_t key = CYCLONEDDS_KEY_BIT | static_cast<uint64_t>(header.seq);
-      pending[key] = Pending{std::move(on_reply), std::move(sync)};
+      pending[key] = std::move(entry);
       return key;
     }
     const rtps::rpc::SampleIdentity related{reply_reader_guid, rtps::SequenceNumber_t{-1, 0}};
@@ -1433,7 +1519,7 @@ struct RtpsParticipant::ServiceClient::Impl
       return std::nullopt;
     }
     const uint64_t key = seq_key(change->sequenceNumber);
-    pending[key] = Pending{std::move(on_reply), std::move(sync)};
+    pending[key] = std::move(entry);
     return key;
   }
 };
@@ -1583,6 +1669,8 @@ std::size_t RtpsParticipant::ServiceClient::server_count() const {
   return impl_->matched_servers();
 }
 
+std::size_t RtpsParticipant::ServiceClient::pending_count() const { return impl_->pending_count(); }
+
 // Polled, like rclpy's wait_for_service: a match is confirmed by an ACKNACK
 // that lands on an engine worker with no hook out to the facade, and the poll
 // is one walk of a handful of proxies under the writer's lock every 10 ms for
@@ -1620,19 +1708,27 @@ RtpsParticipant::ServiceClient::call(std::span<const uint8_t> request,
     impl_->pending.erase(*key);
     return std::nullopt;
   }
+  if (slot->failed) {
+    return std::nullopt; // abandoned: the participant stopped, or request_timeout
+  }
   return std::move(slot->reply);
 }
 
 std::future<std::optional<std::vector<uint8_t>>>
 RtpsParticipant::ServiceClient::call_future(std::span<const uint8_t> request) {
   // Promise fulfilled from the async reply callback (shared_ptr so it outlives
-  // this call and is owned by the pending entry until the reply arrives).
+  // this call and is owned by the pending entry until the reply arrives), or
+  // with nullopt when the request is abandoned (request_timeout, stop()) - a
+  // promise destroyed unfulfilled would throw broken_promise at the waiter.
   auto promise = std::make_shared<std::promise<std::optional<std::vector<uint8_t>>>>();
   auto future = promise->get_future();
-  const bool queued = call_async(request, [promise](std::span<const uint8_t> reply) {
-    promise->set_value(std::vector<uint8_t>(reply.begin(), reply.end()));
-  });
-  if (!queued) {
+  const auto key = impl_->send(
+      request,
+      [promise](std::span<const uint8_t> reply) {
+        promise->set_value(std::vector<uint8_t>(reply.begin(), reply.end()));
+      },
+      nullptr, [promise]() { promise->set_value(std::nullopt); });
+  if (!key.has_value()) {
     promise->set_value(std::nullopt);
   }
   return future;
@@ -2475,6 +2571,8 @@ RtpsParticipant::add_service_client(const ServiceConfig &config) {
   auto impl = std::make_shared<ServiceClient::Impl>();
   impl->self = this;
   impl->live = live_;
+  impl->request_timeout = config.request_timeout;
+  impl->max_pending = config.max_pending_requests;
   impl->request_writer = request_writer;
   impl->reply_reader = reply_reader;
   impl->reply_reader_guid = reply_reader->m_attributes.endpointGuid;
@@ -2522,11 +2620,14 @@ struct RtpsParticipant::NativeServiceClient::Impl {
     std::mutex m;
     std::condition_variable cv;
     bool done{false};
+    bool failed{false}; // abandoned (see ServiceClient::Impl)
     std::vector<uint8_t> reply;
   };
   struct Pending {
     reply_callback_t on_reply{nullptr};
     std::shared_ptr<SyncSlot> sync{nullptr};
+    std::chrono::steady_clock::time_point deadline{std::chrono::steady_clock::time_point::max()};
+    std::function<void()> on_abandon{nullptr};
   };
   RtpsParticipant *self{nullptr};
   std::string request_topic;
@@ -2538,9 +2639,81 @@ struct RtpsParticipant::NativeServiceClient::Impl {
   std::atomic<uint32_t> next_id{1};
   std::mutex mutex;
   std::unordered_map<uint32_t, Pending> pending;
+  std::chrono::milliseconds request_timeout{0}; ///< ServiceConfig::request_timeout
+  std::size_t max_pending{0};                   ///< ServiceConfig::max_pending_requests
+
+  // The same bounded table as ServiceClient::Impl: expired entries are dropped
+  // on every send / count, every entry at stop(); gone entries are finished
+  // outside `mutex`.
+  static void finish_abandoned(std::vector<Pending> &gone) {
+    for (auto &p : gone) {
+      if (p.sync) {
+        std::lock_guard<std::mutex> lock(p.sync->m);
+        p.sync->failed = true;
+        p.sync->done = true;
+        p.sync->cv.notify_all();
+      }
+      if (p.on_abandon) {
+        p.on_abandon();
+      }
+    }
+    gone.clear();
+  }
+  void prune_expired_locked(std::vector<Pending> &gone) {
+    const auto now = std::chrono::steady_clock::now();
+    for (auto it = pending.begin(); it != pending.end();) {
+      if (it->second.deadline <= now) {
+        gone.push_back(std::move(it->second));
+        it = pending.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
+  void abandon_all() {
+    std::vector<Pending> gone;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      for (auto &kv : pending) {
+        gone.push_back(std::move(kv.second));
+      }
+      pending.clear();
+    }
+    finish_abandoned(gone);
+  }
+  std::size_t pending_count() {
+    std::vector<Pending> gone;
+    std::size_t count = 0;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      prune_expired_locked(gone);
+      count = pending.size();
+    }
+    finish_abandoned(gone);
+    return count;
+  }
 
   std::optional<uint32_t> send(std::span<const uint8_t> request, reply_callback_t on_reply,
-                               std::shared_ptr<SyncSlot> sync) {
+                               std::shared_ptr<SyncSlot> sync,
+                               std::function<void()> on_abandon = nullptr) {
+    {
+      std::vector<Pending> gone;
+      bool full = false;
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        prune_expired_locked(gone);
+        full = max_pending != 0 && pending.size() >= max_pending;
+      }
+      finish_abandoned(gone);
+      if (full) {
+        if (self != nullptr) {
+          self->logger_.warn("Native service client '{}': request refused, the pending table is "
+                             "full (max_pending_requests); no server answers",
+                             request_topic);
+        }
+        return std::nullopt;
+      }
+    }
     rtps::rpc::NativeHeader h;
     h.client_prefix = my_prefix;
     h.op = rtps::rpc::NativeOp::REQUEST;
@@ -2549,7 +2722,12 @@ struct RtpsParticipant::NativeServiceClient::Impl {
     auto frame = rtps::rpc::native_encode(h, request);
     {
       std::lock_guard<std::mutex> lock(mutex);
-      pending[id] = Pending{std::move(on_reply), std::move(sync)};
+      Pending entry{std::move(on_reply), std::move(sync)};
+      entry.on_abandon = std::move(on_abandon);
+      if (request_timeout.count() > 0) {
+        entry.deadline = std::chrono::steady_clock::now() + request_timeout;
+      }
+      pending[id] = std::move(entry);
     }
     if (!self->publish(request_topic, {frame.data(), frame.size()})) {
       std::lock_guard<std::mutex> lock(mutex);
@@ -2583,17 +2761,24 @@ RtpsParticipant::NativeServiceClient::call(std::span<const uint8_t> request,
     impl_->pending.erase(*id);
     return std::nullopt;
   }
+  if (slot->failed) {
+    return std::nullopt; // abandoned: the participant stopped, or request_timeout
+  }
   return std::move(slot->reply);
 }
 
 std::future<std::optional<std::vector<uint8_t>>>
 RtpsParticipant::NativeServiceClient::call_future(std::span<const uint8_t> request) {
+  // See ServiceClient::call_future(): an abandoned request resolves nullopt.
   auto promise = std::make_shared<std::promise<std::optional<std::vector<uint8_t>>>>();
   auto future = promise->get_future();
-  const bool queued = call_async(request, [promise](std::span<const uint8_t> reply) {
-    promise->set_value(std::vector<uint8_t>(reply.begin(), reply.end()));
-  });
-  if (!queued) {
+  const auto id = impl_->send(
+      request,
+      [promise](std::span<const uint8_t> reply) {
+        promise->set_value(std::vector<uint8_t>(reply.begin(), reply.end()));
+      },
+      nullptr, [promise]() { promise->set_value(std::nullopt); });
+  if (!id.has_value()) {
     promise->set_value(std::nullopt);
   }
   return future;
@@ -2755,6 +2940,8 @@ RtpsParticipant::add_native_service_client(const ServiceConfig &config) {
   EngineOpGuard op_guard(*this);
   auto impl = std::make_unique<NativeServiceClient::Impl>();
   impl->self = this;
+  impl->request_timeout = config.request_timeout;
+  impl->max_pending = config.max_pending_requests;
   impl->request_topic = rtps::rpc::native_request_topic(config.service);
   impl->reply_topic = rtps::rpc::native_reply_topic(config.service);
   impl->my_prefix = participant_->m_guidPrefix.id;
@@ -3216,7 +3403,24 @@ void RtpsParticipant::stop() {
     }
     timer.reset();
   }
-#endif
+  // Phase 2.5: give up on every pending request. A blocked call() wakes with
+  // nullopt, a call_future() resolves to nullopt (not broken_promise), and no
+  // reply callback runs after this. The registries are stable (no add past
+  // phase 1); the lock only orders this against a concurrent remove.
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (const auto &cli : service_clients_) {
+      if (cli && cli->impl_) {
+        cli->impl_->abandon_all();
+      }
+    }
+    for (const auto &cli : native_service_clients_) {
+      if (cli && cli->impl_) {
+        cli->impl_->abandon_all();
+      }
+    }
+  }
+#endif // RTPS_WITH_RPC
   // Phase 3: retry any endpoint deletions that a creation-time rollback could
   // not complete (the SEDP dispose failed then, so the endpoint stayed
   // registered with its dedicated port). Do it while the domain is still live so
