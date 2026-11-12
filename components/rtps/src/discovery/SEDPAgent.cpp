@@ -302,7 +302,7 @@ bool SEDPAgent::matchRemoteReader(Writer &writer, const ReaderProxy &proxy) {
   return true;
 }
 
-template <typename Pool> bool SEDPAgent::isUnmatched(Pool &pool, const Guid_t &guid) {
+template <typename Pool> bool SEDPAgent::isUnmatched(Pool &pool, const rtps::Guid_t &guid) {
   for (const auto &entry : pool) {
     if (entry.endpointGuid == guid) {
       return true;
@@ -382,7 +382,8 @@ void SEDPAgent::handleRemoteEndpointDeletion(const TopicData &topic,
   removeRemoteEndpoint(guid);
 }
 
-bool SEDPAgent::isDisposableBy(const Guid_t &guid, const ReaderCacheChange &change, bool writers) {
+bool SEDPAgent::isDisposableBy(const rtps::Guid_t &guid, const ReaderCacheChange &change,
+                               bool writers) {
   // A participant may only dispose its own endpoints, and the publications
   // writer only writers, the subscriptions writer only readers: anything else
   // is a malformed (or hostile) datagram and must not touch our matches.
