@@ -57,6 +57,10 @@ public:
 
   uint32_t getNumRemoteUnmatchedReaders();
   uint32_t getNumRemoteUnmatchedWriters();
+  /// Match what waits in the unmatched registry against the local endpoints:
+  /// called after proxies were freed (a remote participant left), so an
+  /// endpoint that found no room in a proxy pool takes the slot.
+  void retryUnmatchedEndpoints();
 
   /// The agent's discovery mutex (recursive). Exposed so an endpoint deletion
   /// can be made ATOMIC with the participant's slot removal under the global
@@ -107,6 +111,7 @@ private:
   bool matchRemoteWriter(Reader &reader, const WriterProxy &proxy);
   /// The same for a remote reader on a local writer.
   bool matchRemoteReader(Writer &writer, const ReaderProxy &proxy);
+  template <typename Pool> static bool isUnmatched(Pool &pool, const Guid_t &guid);
   /// The same told by a status-info parameter inside the payload.
   void handleRemoteEndpointDeletion(const TopicData &topic, const ReaderCacheChange &change,
                                     bool writers);

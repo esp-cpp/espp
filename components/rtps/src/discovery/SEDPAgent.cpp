@@ -149,6 +149,9 @@ void SEDPAgent::addUnmatchedRemoteReader(const TopicData &readerData) {
 }
 
 void SEDPAgent::addUnmatchedRemoteWriter(const TopicDataCompressed &writerData) {
+  if (isUnmatched(m_unmatchedRemoteWriters, writerData.endpointGuid)) {
+    return; // a re-announcement, or a retry that still found no room
+  }
   if (m_unmatchedRemoteWriters.isFull()) {
 #if SEDP_VERBOSE
     SEDP_LOG("List of unmatched remote writers is full.");
@@ -160,6 +163,9 @@ void SEDPAgent::addUnmatchedRemoteWriter(const TopicDataCompressed &writerData) 
 }
 
 void SEDPAgent::addUnmatchedRemoteReader(const TopicDataCompressed &readerData) {
+  if (isUnmatched(m_unmatchedRemoteReaders, readerData.endpointGuid)) {
+    return;
+  }
   if (m_unmatchedRemoteReaders.isFull()) {
 #if SEDP_VERBOSE
     SEDP_LOG("List of unmatched remote readers is full.");
@@ -245,8 +251,15 @@ void SEDPAgent::handlePublisherReaderMessage(const TopicData &writerData,
 #endif
   const WriterProxy proxy{writerData.endpointGuid, endpointUnicastLocator(m_part, writerData),
                           (writerData.reliabilityKind == ReliabilityKind_t::RELIABLE)};
+  bool all_matched = true;
   for (std::size_t i = 0; i < count; ++i) {
-    matchRemoteWriter(*readers[i], proxy);
+    all_matched = matchRemoteWriter(*readers[i], proxy) && all_matched;
+  }
+  if (!all_matched) {
+    // A reader's proxy pool is full: the writer waits in the registry and is
+    // retried when a proxy goes away (removeRemoteEndpoint) or an endpoint is
+    // created, instead of being forgotten until its participant is.
+    addUnmatchedRemoteWriter(writerData);
   }
   if (mfp_onNewPublisherCallback != nullptr) {
     mfp_onNewPublisherCallback(m_onNewPublisherArgs);
@@ -258,6 +271,10 @@ bool SEDPAgent::matchRemoteWriter(Reader &reader, const WriterProxy &proxy) {
     return true; // a re-announcement, or a retry from the unmatched registry
   }
   if (!reader.addNewMatchedWriter(proxy)) {
+    logger_.warn("Reader '{}' has no room for another remote writer "
+                 "(NUM_WRITER_PROXIES_PER_READER={}): it waits unmatched until one goes away",
+                 reader.m_attributes.topicName,
+                 static_cast<int>(Config::NUM_WRITER_PROXIES_PER_READER));
     return false;
   }
   if (proxy.is_reliable) {
@@ -275,7 +292,28 @@ bool SEDPAgent::matchRemoteReader(Writer &writer, const ReaderProxy &proxy) {
   if (writer.isProxy(proxy.remoteReaderGuid)) {
     return true;
   }
-  return writer.addNewMatchedReader(proxy);
+  if (!writer.addNewMatchedReader(proxy)) {
+    logger_.warn("Writer '{}' has no room for another remote reader "
+                 "(NUM_READER_PROXIES_PER_WRITER={}): it waits unmatched until one goes away",
+                 writer.m_attributes.topicName,
+                 static_cast<int>(Config::NUM_READER_PROXIES_PER_WRITER));
+    return false;
+  }
+  return true;
+}
+
+template <typename Pool> bool SEDPAgent::isUnmatched(Pool &pool, const Guid_t &guid) {
+  for (const auto &entry : pool) {
+    if (entry.endpointGuid == guid) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void SEDPAgent::retryUnmatchedEndpoints() {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  tryMatchUnmatchedEndpoints();
 }
 
 void SEDPAgent::handleSubscriptionReaderMessage(const ReaderCacheChange &change) {
@@ -379,6 +417,9 @@ void SEDPAgent::removeRemoteEndpoint(const Guid_t &guid) {
 
   // Remove entity ID from unmatched endpoints
   removeUnmatchedEntity(guid);
+
+  // A proxy slot may have come free: an endpoint that waited for one takes it.
+  tryMatchUnmatchedEndpoints();
 }
 
 void SEDPAgent::handleSubscriptionReaderMessage(const TopicData &readerData,
@@ -421,8 +462,12 @@ void SEDPAgent::handleSubscriptionReaderMessage(const TopicData &readerData,
                         LocatorIPv4(readerData.multicastLocator), reliable}
           : ReaderProxy{readerData.endpointGuid, endpointUnicastLocator(m_part, readerData),
                         reliable};
-  for (std::size_t i = 0; i < count; ++i) {
-    matchRemoteReader(*writers[i], proxy); // every local writer on the topic
+  bool all_matched = true;
+  for (std::size_t i = 0; i < count; ++i) { // every local writer on the topic
+    all_matched = matchRemoteReader(*writers[i], proxy) && all_matched;
+  }
+  if (!all_matched) {
+    addUnmatchedRemoteReader(readerData); // see handlePublisherReaderMessage
   }
 
   if (mfp_onNewSubscriberCallback != nullptr) {
@@ -443,10 +488,11 @@ void SEDPAgent::tryMatchUnmatchedEndpoints() {
     }
     const ReaderProxy reader_proxy{proxy.endpointGuid, proxy.unicastLocator, proxy.multicastLocator,
                                    proxy.is_reliable};
+    bool all_matched = true;
     for (std::size_t i = 0; i < count; ++i) {
-      matchRemoteReader(*writers[i], reader_proxy);
+      all_matched = matchRemoteReader(*writers[i], reader_proxy) && all_matched;
     }
-    if (num_matched_readers < matched_readers.size()) {
+    if (all_matched && num_matched_readers < matched_readers.size()) {
       matched_readers[num_matched_readers++] = proxy.endpointGuid;
     }
   }
@@ -463,10 +509,11 @@ void SEDPAgent::tryMatchUnmatchedEndpoints() {
       continue;
     }
     const WriterProxy writer_proxy{proxy.endpointGuid, proxy.unicastLocator, proxy.is_reliable};
+    bool all_matched = true;
     for (std::size_t i = 0; i < count; ++i) {
-      matchRemoteWriter(*readers[i], writer_proxy);
+      all_matched = matchRemoteWriter(*readers[i], writer_proxy) && all_matched;
     }
-    if (num_matched_writers < matched_writers.size()) {
+    if (all_matched && num_matched_writers < matched_writers.size()) {
       matched_writers[num_matched_writers++] = proxy.endpointGuid;
     }
   }

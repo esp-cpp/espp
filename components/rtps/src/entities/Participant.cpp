@@ -494,7 +494,11 @@ bool Participant::removeRemoteParticipant(const GuidPrefix_t &prefix) {
   };
   removeAllProxiesOfParticipant(prefix);
   m_sedpAgent.removeUnmatchedEntitiesOfParticipant(prefix);
-  return m_remoteParticipants.remove(thunk, &isElementToRemove);
+  const bool removed = m_remoteParticipants.remove(thunk, &isElementToRemove);
+  // Its proxies are gone: endpoints that found no room in a pool take the
+  // freed slots (after the registry no longer lists this participant's own).
+  m_sedpAgent.retryUnmatchedEndpoints();
+  return removed;
 }
 
 void Participant::removeAllProxiesOfParticipant(const GuidPrefix_t &prefix) {
