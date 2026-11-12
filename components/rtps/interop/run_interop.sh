@@ -136,7 +136,8 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_stateless_saturation rtps_callback_reentrancy rtps_best_effort_order rtps_acknack_bitmap \
        rtps_interop_pub rtps_interop_sub rtps_interop_churn rtps_sedp_inline_qos_dispose \
        rtps_sedp_history_overflow rtps_sedp_history_ring rtps_facade_matched_counts \
-       rtps_gap_before_data rtps_acknack_heartbeat_reply > /tmp/build.log 2>&1
+       rtps_gap_before_data rtps_acknack_heartbeat_reply \
+       rtps_service_reply_waits_for_reader > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
 if [ $build_rc -ne 0 ]; then tail -30 /tmp/cmake_lib.log /tmp/build_lib.log /tmp/build.log; exit 1; fi
@@ -167,6 +168,9 @@ note "A GAP beyond the writer's announced range is not applied; a GAP within it 
 
 note "A reader requesting nothing while behind gets a HEARTBEAT at once (Cyclone's pre-emptive ACKNACK) (host)"
 "$BIN"/rtps_acknack_heartbeat_reply; result "acknack_heartbeat_reply" $?
+
+note "A service reply is held until the requester's reply reader is matched (host, ~3 s)"
+"$BIN"/rtps_service_reply_waits_for_reader; result "service_reply_waits_for_reader" $?
 
 note "ROS 2 service + action name/type mangling (host)"
 "$BIN"/rtps_service_naming; result "service_naming" $?

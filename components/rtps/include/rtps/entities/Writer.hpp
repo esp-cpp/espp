@@ -62,6 +62,8 @@ public:
   virtual void removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix);
   /// Whether a matched remote reader belongs to the participant with this prefix.
   bool hasProxyOfParticipant(const GuidPrefix_t &guidPrefix);
+  /// Whether this exact remote reader is matched.
+  bool hasProxy(const Guid_t &guid);
   virtual void reset() = 0;
   virtual const CacheChange *newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t size);
 

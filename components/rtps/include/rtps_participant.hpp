@@ -195,6 +195,15 @@ public:
     /// cap is a TRUE fd bound: a released endpoint's socket counts against it
     /// until its fd actually closes (normally immediate).
     uint8_t max_prioritized_endpoint_ports{4};
+    /// How long a service reply may wait for the requester's reply reader to
+    /// be matched before it is written regardless. A client sends its request
+    /// as soon as ITS side has matched both endpoints, while this side's reply
+    /// writer can learn of the client's reply reader a little later (one more
+    /// SEDP exchange). A reply written before that match is never sent to the
+    /// reader - a VOLATILE reader takes it for pre-match history - and the call
+    /// times out. Replies are therefore held until the match, up to this long
+    /// (then written anyway, with a warning). Zero disables the hold.
+    std::chrono::milliseconds service_reply_match_timeout{1000};
   };
 
   /// Construct the participant (does not open sockets; see start()).
@@ -835,6 +844,15 @@ protected:
   // follow the same rule.
   std::vector<std::shared_ptr<ServiceServerContext>> service_servers_;
   std::vector<std::shared_ptr<ServiceClient>> service_clients_;
+  /// Service replies held until their requester's reply reader is matched (see
+  /// Config::service_reply_match_timeout and ServiceResponder::reply()): the
+  /// servers holding one, and the timer that re-checks them every 20 ms. The
+  /// timer is created on the first held reply and destroyed by stop().
+  std::mutex held_replies_mutex_;
+  std::vector<std::weak_ptr<ServiceServerContext>> servers_with_held_replies_;
+  std::unique_ptr<espp::Timer> held_replies_timer_;
+  void note_held_reply(const std::shared_ptr<ServiceServerContext> &server);
+  void sweep_held_replies();
 
   struct ActionServerContext;
   std::vector<std::shared_ptr<ActionServerContext>> action_servers_;

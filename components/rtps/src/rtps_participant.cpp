@@ -878,6 +878,41 @@ struct RtpsParticipant::ServiceServerContext
   // remove_service_server() flips this false (under its lock, which waits for
   // an in-flight reply()) BEFORE the writer is deleted.
   std::shared_ptr<Liveness> writer_live{std::make_shared<Liveness>()};
+
+  // A reply in wire form, with whose match it waits for. Replies are held here
+  // until the requester's reply reader is matched to reply_writer (or the
+  // participant's service_reply_match_timeout passes); see
+  // ServiceResponder::reply() for why.
+  struct HeldReply {
+    std::vector<uint8_t> payload; // the Cyclone header, when one applies, already spliced in
+    bool cyclonedds{false};
+    rtps::rpc::SampleIdentity related{}; // inline-QoS form only
+    rtps::Guid_t reply_reader{};         // the exact reader to wait for, when known
+    bool reply_reader_known{false};
+    rtps::GuidPrefix_t requester{}; // else: any reader of the requester's participant
+    std::chrono::steady_clock::time_point deadline{};
+  };
+  static constexpr std::size_t MAX_HELD_REPLIES = 8;
+  std::mutex held_mutex;
+  std::vector<HeldReply> held;
+
+  static bool reader_matched(rtps::Writer &writer, const HeldReply &reply) {
+    return reply.reply_reader_known ? writer.hasProxy(reply.reply_reader)
+                                    : writer.hasProxyOfParticipant(reply.requester);
+  }
+
+  // The engine write of a reply, in the requester's form. The caller holds the
+  // liveness locks that keep `writer` valid.
+  static void write(rtps::Writer &writer, const HeldReply &reply) {
+    if (reply.cyclonedds) {
+      writer.newChange(rtps::ChangeKind_t::ALIVE, reply.payload.data(),
+                       static_cast<rtps::DataSize_t>(reply.payload.size()));
+      return;
+    }
+    writer.newChangeWithRelatedSampleIdentity(rtps::ChangeKind_t::ALIVE, reply.payload.data(),
+                                              static_cast<rtps::DataSize_t>(reply.payload.size()),
+                                              reply.related);
+  }
 };
 
 // Deferred-reply state: the reply writer + the identity to echo, so a response
@@ -900,6 +935,12 @@ struct RtpsParticipant::ServiceResponder::State {
   // (e.g. an action rollback) no-ops instead of writing through a
   // reset/reused writer slot while the participant is still alive.
   std::shared_ptr<Liveness> endpoint_live;
+  // Whose match the reply waits for (see reply()): the exact reply reader when
+  // the request named one, else any reader of the requester's participant.
+  rtps::Guid_t reply_reader{};
+  bool reply_reader_known{false};
+  rtps::GuidPrefix_t requester{};
+  std::weak_ptr<ServiceServerContext> server; // holds the reply while it waits
 };
 
 void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response) const {
@@ -950,19 +991,144 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
       return;
     }
   }
+  ServiceServerContext::HeldReply wire{};
+  wire.cyclonedds = state_->cyclonedds;
+  wire.related = state_->related;
+  wire.reply_reader = state_->reply_reader;
+  wire.reply_reader_known = state_->reply_reader_known;
+  wire.requester = state_->requester;
   if (state_->cyclonedds) {
-    const auto payload =
-        rtps::rpc::prependCycloneDdsRequestHeader(state_->cyclonedds_header, response);
-    if (payload.empty()) {
+    wire.payload = rtps::rpc::prependCycloneDdsRequestHeader(state_->cyclonedds_header, response);
+    if (wire.payload.empty()) {
       return; // cannot happen past the encapsulation check above; never send a bare DATA
     }
-    state_->reply_writer->newChange(rtps::ChangeKind_t::ALIVE, payload.data(),
-                                    static_cast<rtps::DataSize_t>(payload.size()));
+  } else {
+    wire.payload.assign(response.begin(), response.end());
+  }
+  // Written at once when the requester's reply reader is matched to the reply
+  // writer. Until then it is HELD: the client sent its request as soon as its
+  // own side had matched, and this writer may learn of the client's reply
+  // reader (its SEDP record) a little after the request was served. A change
+  // written before that match is never sent to the reader - the writer sends
+  // new changes to the readers it has - and the first HEARTBEAT the reader
+  // then sees announces it as history, which a VOLATILE reader skips: the call
+  // times out although it was served. rmw_fastrtps / rmw_cyclonedds servers
+  // wait for the same match before writing a response. The hold ends with the
+  // match or after Config::service_reply_match_timeout (see sweep_held_replies).
+  const auto timeout = state_->self->config_.service_reply_match_timeout;
+  auto server = state_->server.lock();
+  if (server == nullptr || timeout <= std::chrono::milliseconds{0} ||
+      ServiceServerContext::reader_matched(*state_->reply_writer, wire)) {
+    ServiceServerContext::write(*state_->reply_writer, wire);
     return;
   }
-  state_->reply_writer->newChangeWithRelatedSampleIdentity(
-      rtps::ChangeKind_t::ALIVE, response.data(), static_cast<rtps::DataSize_t>(response.size()),
-      state_->related);
+  wire.deadline = std::chrono::steady_clock::now() + timeout;
+  bool held = false;
+  {
+    std::lock_guard<std::mutex> held_lock(server->held_mutex);
+    if (server->held.size() < ServiceServerContext::MAX_HELD_REPLIES) {
+      server->held.push_back(std::move(wire));
+      held = true;
+    }
+  }
+  if (!held) {
+    // Never lose a reply to the cap: it goes out now, as before the hold existed.
+    state_->self->logger_.warn("Service '{}': {} replies already waiting for their reply "
+                               "reader; writing this one unmatched",
+                               state_->service, ServiceServerContext::MAX_HELD_REPLIES);
+    ServiceServerContext::write(*state_->reply_writer, wire);
+    return;
+  }
+  state_->self->note_held_reply(server);
+}
+
+void RtpsParticipant::note_held_reply(const std::shared_ptr<ServiceServerContext> &server) {
+  std::lock_guard<std::mutex> lock(held_replies_mutex_);
+  const bool listed =
+      std::any_of(servers_with_held_replies_.begin(), servers_with_held_replies_.end(),
+                  [&](const std::weak_ptr<ServiceServerContext> &w) {
+                    return !w.owner_before(server) && !server.owner_before(w);
+                  });
+  if (!listed) {
+    servers_with_held_replies_.push_back(server);
+  }
+  if (held_replies_timer_) {
+    return;
+  }
+  // One sweep timer per participant, started by the first held reply and kept
+  // until stop() (an espp::Timer that self-cancels cannot be restarted - see
+  // DeferredDispatch::ensure_retry_timer_locked). 20 ms bounds the extra reply
+  // latency after the match; the SEDP exchange it waits for takes longer.
+  held_replies_timer_ = std::make_unique<espp::Timer>(espp::Timer::Config{
+      .name = "rtps_reply_hold",
+      .period = std::chrono::milliseconds(20),
+      .delay = std::chrono::milliseconds(20),
+      .callback = [this]() -> bool {
+        sweep_held_replies();
+        return false;
+      },
+      .auto_start = true,
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
+}
+
+void RtpsParticipant::sweep_held_replies() {
+  std::vector<std::shared_ptr<ServiceServerContext>> servers;
+  {
+    std::lock_guard<std::mutex> lock(held_replies_mutex_);
+    std::erase_if(servers_with_held_replies_,
+                  [](const std::weak_ptr<ServiceServerContext> &w) { return w.expired(); });
+    for (const auto &w : servers_with_held_replies_) {
+      if (auto s = w.lock()) {
+        servers.push_back(std::move(s));
+      }
+    }
+  }
+  const auto now = std::chrono::steady_clock::now();
+  for (const auto &server : servers) {
+    std::vector<ServiceServerContext::HeldReply> due;
+    {
+      // Same locks and order as ServiceResponder::reply(): the writer is valid
+      // only while both liveness tokens say so.
+      std::lock_guard<std::mutex> live_lock(live_->m);
+      if (!live_->alive) {
+        return;
+      }
+      std::lock_guard<std::mutex> endpoint_lock(server->writer_live->m);
+      if (!server->writer_live->alive || server->reply_writer == nullptr) {
+        continue; // being removed: remove_service_server() drops what it held
+      }
+      {
+        std::lock_guard<std::mutex> held_lock(server->held_mutex);
+        std::erase_if(server->held, [&](ServiceServerContext::HeldReply &reply) {
+          const bool matched = ServiceServerContext::reader_matched(*server->reply_writer, reply);
+          if (!matched && now < reply.deadline) {
+            return false;
+          }
+          if (!matched) {
+            logger_.warn("Service '{}': reply reader not matched within {} ms; writing the "
+                         "reply anyway",
+                         server->service, config_.service_reply_match_timeout.count());
+          }
+          due.push_back(std::move(reply));
+          return true;
+        });
+      }
+      for (const auto &reply : due) {
+        ServiceServerContext::write(*server->reply_writer, reply);
+      }
+    }
+    // Forget a server with nothing left - under BOTH locks, so a reply held
+    // between the check and the erase is not stranded (reply() pushes under
+    // held_mutex and lists the server under held_replies_mutex_ afterwards).
+    std::lock_guard<std::mutex> lock(held_replies_mutex_);
+    std::lock_guard<std::mutex> held_lock(server->held_mutex);
+    if (server->held.empty()) {
+      std::erase_if(servers_with_held_replies_, [&](const std::weak_ptr<ServiceServerContext> &w) {
+        return !w.owner_before(server) && !server.owner_before(w);
+      });
+    }
+  }
 }
 
 // Client state: request writer + pending-request table. Against an inline-QoS
@@ -1186,6 +1352,21 @@ void RtpsParticipant::service_request_trampoline(void *arg, const rtps::ReaderCa
                                      : change.writerGuid;
     state->related.sequence_number = change.sn;
   }
+  // Whose match the reply waits for (see reply()): the exact reply reader when
+  // the request named one (rmw_fastrtps and this facade's client put the
+  // client's reply reader in the related sample identity), else any reader of
+  // the requester's participant (the DDS-RPC form names the request writer
+  // there; a Cyclone request carries no GUID at all).
+  state->requester = change.writerGuid.prefix;
+  if (change.hasRelatedSampleIdentity) {
+    const auto kind = change.relatedSampleIdentity.writer_guid.entityId.entityKind;
+    if (kind == rtps::EntityKind_t::USER_DEFINED_READER_WITHOUT_KEY ||
+        kind == rtps::EntityKind_t::USER_DEFINED_READER_WITH_KEY) {
+      state->reply_reader = change.relatedSampleIdentity.writer_guid;
+      state->reply_reader_known = true;
+    }
+  }
+  state->server = ctx->weak_from_this();
   // Inline for the default path; banded shared-port servers run the handler
   // from the pool at their band instead (see DeferredDispatch). Shared
   // capture: queued work owns the context, so removal/rollback cannot free it
@@ -1652,6 +1833,11 @@ bool RtpsParticipant::remove_service_server(const std::shared_ptr<ServiceServerC
   if (server->writer_live) {
     std::lock_guard<std::mutex> endpoint_lock(server->writer_live->m);
     server->writer_live->alive = false;
+  }
+  {
+    // Replies still waiting for their reader's match go with the writer.
+    std::lock_guard<std::mutex> held_lock(server->held_mutex);
+    server->held.clear();
   }
   if (server->reply_writer != nullptr) {
     if (!domain_->deleteWriter(*participant_, server->reply_writer)) {
@@ -2884,6 +3070,19 @@ void RtpsParticipant::stop() {
     std::lock_guard<std::mutex> lock(live_->m);
     live_->alive = false;
   }
+#ifdef RTPS_WITH_RPC
+  // Held service replies die with the participant: stop their sweep timer
+  // (outside held_replies_mutex_, which its callback takes) and forget them.
+  {
+    std::unique_ptr<espp::Timer> timer;
+    {
+      std::lock_guard<std::mutex> lock(held_replies_mutex_);
+      timer = std::move(held_replies_timer_);
+      servers_with_held_replies_.clear();
+    }
+    timer.reset();
+  }
+#endif
   // Phase 3: retry any endpoint deletions that a creation-time rollback could
   // not complete (the SEDP dispose failed then, so the endpoint stayed
   // registered with its dedicated port). Do it while the domain is still live so

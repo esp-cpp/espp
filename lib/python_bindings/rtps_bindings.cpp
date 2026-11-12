@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+#include <chrono>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -149,6 +150,7 @@ struct PyRtpsConfig {
   espp::QosBand user_traffic_band{espp::QosBand::Normal};
   bool enable_dedicated_endpoint_ports{true};
   uint8_t max_prioritized_endpoint_ports{4};
+  int service_reply_match_timeout_ms{1000};
 };
 
 Rtps::Config to_config(const PyRtpsConfig &pc) {
@@ -162,6 +164,7 @@ Rtps::Config to_config(const PyRtpsConfig &pc) {
       .user_traffic_band = pc.user_traffic_band,
       .enable_dedicated_endpoint_ports = pc.enable_dedicated_endpoint_ports,
       .max_prioritized_endpoint_ports = pc.max_prioritized_endpoint_ports,
+      .service_reply_match_timeout = std::chrono::milliseconds(pc.service_reply_match_timeout_ms),
   };
 }
 
@@ -190,7 +193,7 @@ void py_init_rtps(py::module &m) {
                        const py::object &on_subscriber_matched, espp::Logger::Verbosity log_level,
                        espp::QosBand metatraffic_band, espp::QosBand user_traffic_band,
                        bool enable_dedicated_endpoint_ports, uint8_t max_prioritized_endpoint_ports,
-                       std::string interface_netmask) {
+                       std::string interface_netmask, int service_reply_match_timeout_ms) {
              PyRtpsConfig c;
              c.interface_address = std::move(interface_address);
              c.interface_netmask = std::move(interface_netmask);
@@ -201,6 +204,7 @@ void py_init_rtps(py::module &m) {
              c.user_traffic_band = user_traffic_band;
              c.enable_dedicated_endpoint_ports = enable_dedicated_endpoint_ports;
              c.max_prioritized_endpoint_ports = max_prioritized_endpoint_ports;
+             c.service_reply_match_timeout_ms = service_reply_match_timeout_ms;
              return c;
            }),
            py::arg("interface_address") = std::string{},
@@ -212,10 +216,13 @@ void py_init_rtps(py::module &m) {
            py::arg("enable_dedicated_endpoint_ports") = true,
            py::arg("max_prioritized_endpoint_ports") = 4,
            py::arg("interface_netmask") = std::string{},
+           py::arg("service_reply_match_timeout_ms") = 1000,
            "interface_address: IPv4 address of the interface to use (empty: auto-detect).\n"
            "interface_netmask: its netmask (\"255.255.128.0\") or prefix length (\"17\"), "
            "which decides which of a multi-homed peer's locators is on our network; empty: "
-           "the netmask of the interface that owns interface_address.")
+           "the netmask of the interface that owns interface_address.\n"
+           "service_reply_match_timeout_ms: how long a service reply is held for the "
+           "requester's reply reader to be matched before it is written anyway (0: never held).")
       .def_readwrite("interface_address", &PyRtpsConfig::interface_address)
       .def_readwrite("interface_netmask", &PyRtpsConfig::interface_netmask)
       .def_readwrite("on_publisher_matched", &PyRtpsConfig::on_publisher_matched)
@@ -226,7 +233,9 @@ void py_init_rtps(py::module &m) {
       .def_readwrite("enable_dedicated_endpoint_ports",
                      &PyRtpsConfig::enable_dedicated_endpoint_ports)
       .def_readwrite("max_prioritized_endpoint_ports",
-                     &PyRtpsConfig::max_prioritized_endpoint_ports);
+                     &PyRtpsConfig::max_prioritized_endpoint_ports)
+      .def_readwrite("service_reply_match_timeout_ms",
+                     &PyRtpsConfig::service_reply_match_timeout_ms);
 
   rtps.def(py::init([](const PyRtpsConfig &config) { return new Rtps(to_config(config)); }),
            py::arg("config") = PyRtpsConfig{})
