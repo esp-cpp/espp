@@ -12,7 +12,12 @@
 //  - an unknown goal id: 2 (ERROR_UNKNOWN_GOAL_ID);
 //  - a goal already finished (still retained for get_result): 3
 //    (ERROR_GOAL_TERMINATED);
-//  - a zero goal id cancels every active goal and lists them all.
+//  - a zero goal id cancels every active goal and lists them all;
+//  - the stamp rules of rcl_action: a zero id with a stamp selects the active
+//    goals accepted at or before the stamp (none for a stamp in the past); an
+//    id with a stamp selects that goal and the active goals accepted at or
+//    before the stamp. Goals are stamped on the wall clock at acceptance,
+//    as the SendGoal_Response reports.
 //
 // Byte-level API, one participant hosting, one calling. Exits 0 on success,
 // 1 on failure.
@@ -28,6 +33,7 @@
 #include <thread>
 #include <vector>
 
+#include "rtps/rpc/action_naming.hpp"
 #include "rtps/rpc/action_types.hpp"
 #include "rtps_participant.hpp"
 
@@ -195,6 +201,67 @@ bool run() {
             out3->status == static_cast<int8_t>(rtps::rpc::GoalStatus::CANCELED),
         "both end CANCELED");
 
+  // The stamp rules, through a service client on the cancel service (the
+  // action client's cancel_goal() sends no stamp) from a third participant -
+  // the action client already holds that service's client in `client`.
+  Rtps stamper({.log_level = espp::Logger::Verbosity::WARN});
+  CHECK(stamper.start(), "start (stamper)");
+  auto cancel_svc =
+      stamper.add_service_client({.service = rtps::rpc::action_cancel_goal_service(cfg.action),
+                                  .type_name = rtps::rpc::action_cancel_goal_type()});
+  CHECK(cancel_svc && cancel_svc->wait_for_server(10s), "cancel service client");
+  const auto stamped_cancel = [&](const Rtps::GoalId &id,
+                                  std::chrono::system_clock::time_point stamp)
+      -> std::optional<std::pair<int8_t, std::size_t>> {
+    const auto since_epoch = stamp.time_since_epoch();
+    const auto sec = std::chrono::duration_cast<std::chrono::seconds>(since_epoch);
+    const auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(since_epoch - sec);
+    const auto reply =
+        cancel_svc->call(rtps::rpc::make_cancel_goal_request(id, static_cast<int32_t>(sec.count()),
+                                                             static_cast<uint32_t>(nsec.count())),
+                         5s);
+    int8_t code = -1;
+    std::vector<rtps::rpc::GoalUuid> canceling;
+    if (!reply || !rtps::rpc::parse_cancel_goal_response(*reply, code, canceling)) {
+      return std::nullopt;
+    }
+    return std::make_pair(code, canceling.size());
+  };
+  // Goals A, B, C accepted in order, with gaps the wall clock can tell apart.
+  auto [idA, outA] = send(4);
+  CHECK(idA.has_value() && wait_active(1), "goal A running");
+  std::this_thread::sleep_for(60ms);
+  const auto between_a_b = std::chrono::system_clock::now();
+  std::this_thread::sleep_for(60ms);
+  auto [idB, outB] = send(5);
+  CHECK(idB.has_value() && wait_active(2), "goal B running");
+  std::this_thread::sleep_for(60ms);
+  auto [idC, outC] = send(6);
+  CHECK(idC.has_value() && wait_active(3), "goal C running");
+  std::this_thread::sleep_for(60ms);
+  const auto after_c = std::chrono::system_clock::now();
+
+  // A stamp in the past selects nothing: ERROR_NONE, none canceling.
+  verdict = stamped_cancel(all, between_a_b - std::chrono::hours(1));
+  CHECK(verdict && verdict->first == rtps::rpc::CANCEL_ERROR_NONE && verdict->second == 0,
+        "zero id + a stamp before every goal: ERROR_NONE, nothing canceling");
+  // A zero id with a stamp between A and B: only A.
+  verdict = stamped_cancel(all, between_a_b);
+  CHECK(verdict && verdict->first == rtps::rpc::CANCEL_ERROR_NONE && verdict->second == 1,
+        "zero id + stamp between A and B: only A canceling");
+  CHECK(wait_done(outA) && outA->status == static_cast<int8_t>(rtps::rpc::GoalStatus::CANCELED),
+        "A ends CANCELED");
+  // C's id with a stamp after everything: C, and B (accepted before the
+  // stamp, still active; A is finished and not listed).
+  verdict = stamped_cancel(*idC, after_c);
+  CHECK(verdict && verdict->first == rtps::rpc::CANCEL_ERROR_NONE && verdict->second == 2,
+        "C's id + a stamp after all: C and B canceling");
+  CHECK(wait_done(outB) && wait_done(outC) &&
+            outB->status == static_cast<int8_t>(rtps::rpc::GoalStatus::CANCELED) &&
+            outC->status == static_cast<int8_t>(rtps::rpc::GoalStatus::CANCELED),
+        "B and C end CANCELED");
+
+  stamper.stop();
   client.stop();
   server.stop();
   return true;

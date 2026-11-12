@@ -206,12 +206,20 @@ inline std::vector<uint8_t> make_cancel_goal_request(const GoalUuid &id, int32_t
   detail::put_u32(v, nsec);
   return v;
 }
-inline bool parse_cancel_goal_request(std::span<const uint8_t> msg, GoalUuid &id_out) {
+inline bool parse_cancel_goal_request(std::span<const uint8_t> msg, GoalUuid &id_out,
+                                      int32_t &sec_out, uint32_t &nsec_out) {
   if (msg.size() < 4 + 16 + 8) {
     return false;
   }
   std::memcpy(id_out.data(), msg.data() + 4, 16);
+  sec_out = static_cast<int32_t>(detail::get_u32(msg, 20));
+  nsec_out = detail::get_u32(msg, 24);
   return true;
+}
+inline bool parse_cancel_goal_request(std::span<const uint8_t> msg, GoalUuid &id_out) {
+  int32_t sec = 0;
+  uint32_t nsec = 0;
+  return parse_cancel_goal_request(msg, id_out, sec, nsec);
 }
 inline std::vector<uint8_t> make_cancel_goal_response(int8_t return_code,
                                                       std::span<const GoalUuid> goals_canceling) {

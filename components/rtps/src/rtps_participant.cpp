@@ -1980,6 +1980,9 @@ struct RtpsParticipant::ActionGoalHandle::State {
   std::string status_topic;   // server lock and survives server teardown.
   std::mutex mutex;
   ract::GoalStatus status{ract::GoalStatus::ACCEPTED};
+  // When the goal was accepted, on the wall clock: the stamp of the
+  // SendGoal_Response, and what a CancelGoal request's stamp is compared with.
+  std::chrono::system_clock::time_point accepted_at{};
   bool done{false};             // terminate() has run
   bool result_delivered{false}; // get_result answered -> goal may be retired
   std::chrono::steady_clock::time_point terminated_at{}; // for result_timeout
@@ -2331,6 +2334,7 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
         gstate->server = server; // weak back-reference (see State)
         gstate->feedback_topic = server->feedback_topic;
         gstate->status_topic = server->status_topic;
+        gstate->accepted_at = std::chrono::system_clock::now();
         {
           std::lock_guard<std::mutex> lock(server->goals_mutex);
           server->goals[id] = gstate;
@@ -2350,7 +2354,13 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
           });
           reap_and_store(server->threads_mutex, server->exec_threads, std::move(worker), finished);
         }
-        return ract::make_send_goal_response(true);
+        // The acceptance stamp (builtin_interfaces/Time, wall clock), as rcl
+        // reports it; a client may hand it back in a CancelGoal request.
+        const auto since_epoch = gstate->accepted_at.time_since_epoch();
+        const auto sec = std::chrono::duration_cast<std::chrono::seconds>(since_epoch);
+        const auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(since_epoch - sec);
+        return ract::make_send_goal_response(true, static_cast<int32_t>(sec.count()),
+                                             static_cast<uint32_t>(nsec.count()));
       });
 
   // get_result service (DEFERRED): reply now if done, else hold the responder.
@@ -2405,14 +2415,20 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
          }
        });
 
-  // cancel_goal service (action_msgs/srv/CancelGoal): a goal that can be
-  // cancelled is marked canceling (the execute callback observes
+  // cancel_goal service (action_msgs/srv/CancelGoal), the selection rules of
+  // rcl_action_server_process_cancel_request: a zero goal id and a zero stamp
+  // address every active goal; a zero id with a stamp every active goal
+  // accepted at or before the stamp; an id with a zero stamp that goal; an id
+  // with a stamp that goal AND every active goal accepted at or before the
+  // stamp. The named goal must be known (else ERROR_UNKNOWN_GOAL_ID, 2) and
+  // still active (else ERROR_GOAL_TERMINATED, 3). The goals that can be
+  // cancelled are marked canceling (the execute callback observes
   // is_canceling()) and reported CANCELING on the status topic; the reply
-  // lists the goals now canceling and says why none is: ERROR_REJECTED (1,
-  // on_cancel refused), ERROR_UNKNOWN_GOAL_ID (2), ERROR_GOAL_TERMINATED (3,
-  // already done). A zero goal id means every active goal; the request's
-  // stamp filter ("goals accepted before") is not applied, as accept times
-  // are not kept. rclpy's client checks goals_canceling, rclcpp's the code.
+  // lists them, with ERROR_REJECTED (1) when on_cancel refused every
+  // candidate (rclcpp's rule) and ERROR_NONE (0) otherwise, also for a stamp
+  // that selects nothing. rclpy's client checks goals_canceling, rclcpp's
+  // the code. Stamps are wall-clock (builtin_interfaces/Time) and compared
+  // with the acceptance time the SendGoal_Response reported.
   const ServiceConfig cancel_cfg{rtps::rpc::action_cancel_goal_service(config.action),
                                  rtps::rpc::action_cancel_goal_type(), config.band, config.dscp};
   ok = ok &&
@@ -2420,30 +2436,50 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
            cancel_cfg, [weak, on_cancel](std::span<const uint8_t> req) -> std::vector<uint8_t> {
              auto server = weak.lock();
              ract::GoalUuid id{};
-             if (server == nullptr || !ract::parse_cancel_goal_request(req, id)) {
+             int32_t sec = 0;
+             uint32_t nsec = 0;
+             if (server == nullptr || !ract::parse_cancel_goal_request(req, id, sec, nsec)) {
                return ract::make_cancel_goal_response(ract::CANCEL_ERROR_REJECTED, {});
              }
-             const bool all = std::all_of(id.begin(), id.end(), [](uint8_t b) { return b == 0; });
+             const bool by_id =
+                 !std::all_of(id.begin(), id.end(), [](uint8_t b) { return b == 0; });
+             const bool by_stamp = sec != 0 || nsec != 0;
+             const std::chrono::system_clock::time_point stamp{
+                 std::chrono::duration_cast<std::chrono::system_clock::duration>(
+                     std::chrono::seconds{sec} + std::chrono::nanoseconds{nsec})};
              std::vector<std::pair<ract::GoalUuid, std::shared_ptr<ActionGoalHandle::State>>>
                  candidates;
              {
                std::lock_guard<std::mutex> lock(server->goals_mutex);
                server->prune_finished_locked();
-               if (all) {
-                 for (auto &kv : server->goals) {
-                   candidates.emplace_back(kv.first, kv.second);
-                 }
-               } else {
+               if (by_id) {
                  auto it = server->goals.find(id);
-                 if (it != server->goals.end()) {
-                   candidates.emplace_back(it->first, it->second);
+                 if (it == server->goals.end()) {
+                   return ract::make_cancel_goal_response(ract::CANCEL_ERROR_UNKNOWN_GOAL_ID, {});
+                 }
+                 bool done = false;
+                 {
+                   std::lock_guard<std::mutex> glock(it->second->mutex);
+                   done = it->second->done;
+                 }
+                 if (done) {
+                   return ract::make_cancel_goal_response(ract::CANCEL_ERROR_GOAL_TERMINATED, {});
+                 }
+                 candidates.emplace_back(it->first, it->second);
+               }
+               if (!by_id || by_stamp) {
+                 for (auto &kv : server->goals) {
+                   if (by_id && kv.first == id) {
+                     continue; // already the first candidate
+                   }
+                   if (by_stamp && kv.second->accepted_at > stamp) {
+                     continue; // accepted after the stamp
+                   }
+                   candidates.emplace_back(kv.first, kv.second);
                  }
                }
              }
-             if (!all && candidates.empty()) {
-               return ract::make_cancel_goal_response(ract::CANCEL_ERROR_UNKNOWN_GOAL_ID, {});
-             }
-             int8_t code = ract::CANCEL_ERROR_NONE;
+             std::size_t refused = 0;
              std::vector<ract::GoalUuid> canceling;
              for (auto &[goal_id, gstate] : candidates) {
                bool done = false;
@@ -2452,15 +2488,10 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
                  done = gstate->done;
                }
                if (done) {
-                 if (!all) {
-                   code = ract::CANCEL_ERROR_GOAL_TERMINATED;
-                 }
-                 continue;
+                 continue; // a finished goal selected by the stamp: nothing to cancel
                }
                if (on_cancel && !on_cancel(goal_id)) {
-                 if (!all) {
-                   code = ract::CANCEL_ERROR_REJECTED;
-                 }
+                 ++refused;
                  continue;
                }
                if (!gstate->cancel_requested.exchange(true)) {
@@ -2469,6 +2500,8 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
                }
                canceling.push_back(goal_id);
              }
+             const int8_t code = (canceling.empty() && refused > 0) ? ract::CANCEL_ERROR_REJECTED
+                                                                    : ract::CANCEL_ERROR_NONE;
              return ract::make_cancel_goal_response(code, canceling);
            });
 
