@@ -36,6 +36,11 @@ class Client(Node):
     def __init__(self, action_name):
         super().__init__("fibonacci_interop_client")
         self.client = ActionClient(self, Fibonacci, action_name)
+        # A CancelGoal client of our own on the action's cancel service: the
+        # cancel-unknown mode sends an id the action client never handed out,
+        # which rclpy's ActionClient has no public path for (and no stable
+        # private one: Jazzy has no `_cancel_client`).
+        self.cancel_client = self.create_client(CancelGoal, action_name + "/_action/cancel_goal")
         self.goal_handle = None
         self.cancel_sent = False
         self.cancel_future = None
@@ -69,11 +74,13 @@ class Client(Node):
         return None
 
     def cancel_by_id(self, uuid_bytes, timeout_s):
-        """A CancelGoal request for an arbitrary id, through the action
-        client's cancel service client; returns the response or None."""
+        """A CancelGoal request for an arbitrary id, through our own client
+        on the action's cancel service; returns the response or None."""
+        if not self.cancel_client.wait_for_service(timeout_sec=timeout_s):
+            return None
         request = CancelGoal.Request()
         request.goal_info.goal_id.uuid = list(uuid_bytes)
-        future = self.client._cancel_client.call_async(request)
+        future = self.cancel_client.call_async(request)
         if not self.spin_until(future, timeout_s):
             return None
         return future.result()
