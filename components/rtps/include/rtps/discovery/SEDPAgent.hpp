@@ -99,10 +99,15 @@ private:
   /// A dispose/unregister of a remote endpoint, told by the DATA's inline QoS
   /// (change.kind != ALIVE; the instance in change.keyHash or, failing that,
   /// in the payload's endpoint GUID).
-  void handleRemoteEndpointDeletion(const ReaderCacheChange &change);
+  /// `writers`: the change came over the publications leg (else subscriptions).
+  void handleRemoteEndpointDeletion(const ReaderCacheChange &change, bool writers);
   /// The same told by a status-info parameter inside the payload.
-  void handleRemoteEndpointDeletion(const TopicData &topic, const ReaderCacheChange &change);
+  void handleRemoteEndpointDeletion(const TopicData &topic, const ReaderCacheChange &change,
+                                    bool writers);
   static Guid_t disposedEndpointGuid(const TopicData &topic);
+  /// Whether the sender of `change` may dispose `guid`: its own user endpoint,
+  /// of the kind the leg announces.
+  bool isDisposableBy(const Guid_t &guid, const ReaderCacheChange &change, bool writers);
   void removeRemoteEndpoint(const Guid_t &guid);
 
   void (*mfp_onNewPublisherCallback)(void *arg) = nullptr;

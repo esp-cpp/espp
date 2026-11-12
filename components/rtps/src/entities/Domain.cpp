@@ -772,6 +772,10 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName, con
     }
 
     if (!part.addWriter(statefulWriter)) {
+      // Not registered (slots full, or the SEDP announcement was refused): the
+      // pooled endpoint must go back to uninitialized or the pool leaks a slot
+      // on every failed creation.
+      statefulWriter->reset();
       releaseDedicatedEndpointPort(dedicated_port);
       return nullptr;
     }
@@ -786,6 +790,7 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName, con
     }
 
     if (!part.addWriter(statelessWriter)) {
+      statelessWriter->reset(); // see above
       releaseDedicatedEndpointPort(dedicated_port);
       return nullptr;
     }
@@ -873,7 +878,7 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName, con
 
     if (!part.addReader(statefulReader)) {
       DOMAIN_LOG("Failed to add reader to participant.");
-
+      statefulReader->reset(); // give the pooled slot back (see createWriter)
       releaseDedicatedEndpointPort(dedicated_port);
       return nullptr;
     }
@@ -885,6 +890,7 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName, con
     statelessReader->init(attributes);
 
     if (!part.addReader(statelessReader)) {
+      statelessReader->reset(); // see createWriter
       releaseDedicatedEndpointPort(dedicated_port);
       return nullptr;
     }

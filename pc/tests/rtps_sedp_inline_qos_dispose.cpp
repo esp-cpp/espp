@@ -27,7 +27,9 @@
 //     registry, and a dispose for an unknown GUID changes nothing.
 //  6. A remote reader announced on the subscriptions writer matches the local
 //     writer and its dispose unmatches it (the other SEDP leg).
-//  7. The participant's own dispose over SPDP removes it, with the proxies
+//  7. Only the owner may dispose: a dispose from A naming B's endpoint or B's
+//     participant, or one on the wrong SEDP leg, changes nothing.
+//  8. The participant's own dispose over SPDP removes it, with the proxies
 //     of its endpoints.
 //
 // Exits 0 on success, 1 on the first failed check.
@@ -350,15 +352,56 @@ bool run_checks() {
                           dispose_inline_qos(&remote_reader), {}));
   CHECK(writer->getProxiesCount() == 0, "the remote reader's dispose unmatches it");
 
-  // 7. The participant leaves: its SPDP dispose removes it and every proxy of
+  // 7. Only the owner may dispose. A second peer B announces a writer; a
+  //    dispose from A naming B's writer, an SPDP dispose from A naming B's
+  //    participant, and a dispose on the wrong SEDP leg all change nothing;
+  //    B's own dispose does.
+  const rtps::GuidPrefix_t peer_b{
+      {kFastDdsVendor[0], kFastDdsVendor[1], 0xaa, 0xbb, 0xcc, 0xdd, 0, 0, 0, 0, 0, 2}};
+  feed(part,
+       data_message(peer_b, rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+                    rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, 1, {}, spdp_payload(peer_b)));
+  CHECK(part->getRemoteParticipantCount() == 2, "peer B discovered");
+  const rtps::Guid_t writer_b{
+      peer_b, {{0x00, 0x00, 0x01}, rtps::EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY}};
+  feed(part, data_message(peer_b, rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER,
+                          rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER, 1, {},
+                          sedp_payload(writer_b, kTopic, kType, false)));
+  CHECK(reader->getProxiesCount() == 1 && reader->isProxy(writer_b), "B's writer matched");
+  dispose_writer(dispose_inline_qos(&writer_b), {}); // from A
+  CHECK(reader->isProxy(writer_b), "a dispose from A naming B's writer is ignored");
+  const rtps::Guid_t participant_b{peer_b, rtps::ENTITYID_BUILD_IN_PARTICIPANT};
+  feed(part, data_message(peer, rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
+                          rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, 2,
+                          dispose_inline_qos(&participant_b), {}));
+  CHECK(part->getRemoteParticipantCount() == 2 && reader->isProxy(writer_b),
+        "an SPDP dispose from A naming B's participant is ignored");
+  const rtps::Guid_t reader_a2{
+      peer, {{0x00, 0x00, 0x05}, rtps::EntityKind_t::USER_DEFINED_READER_WITHOUT_KEY}};
+  feed(part, data_message(peer, rtps::ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER,
+                          rtps::ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_READER, 3, {},
+                          sedp_payload(reader_a2, kTopic, kType, false)));
+  CHECK(writer->getProxiesCount() == 1, "A's second reader matched to the local writer");
+  dispose_writer(dispose_inline_qos(&reader_a2), {}); // publications leg: wrong kind
+  CHECK(writer->getProxiesCount() == 1, "a reader disposed over the publications leg is ignored");
+  feed(part, data_message(peer, rtps::ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER,
+                          rtps::ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_READER, 4,
+                          dispose_inline_qos(&reader_a2), {}));
+  CHECK(writer->getProxiesCount() == 0, "... and over the subscriptions leg it is unmatched");
+  feed(part, data_message(peer_b, rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER,
+                          rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER, 2,
+                          dispose_inline_qos(&writer_b), {}));
+  CHECK(reader->getProxiesCount() == 0, "B's own dispose unmatches its writer");
+
+  // 8. The participant leaves: its SPDP dispose removes it and every proxy of
   //    its endpoints.
   announce_writer(remote_writer, kTopic, {});
   CHECK(reader->getProxiesCount() == 1, "matched before the participant leaves");
   const rtps::Guid_t participant_guid{peer, rtps::ENTITYID_BUILD_IN_PARTICIPANT};
   feed(part, data_message(peer, rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER,
-                          rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, 2,
+                          rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER, 3,
                           dispose_inline_qos(&participant_guid), {}));
-  CHECK(part->getRemoteParticipantCount() == 0, "the participant's dispose removes it");
+  CHECK(part->getRemoteParticipantCount() == 1, "the participant's dispose removes it (B stays)");
   CHECK(reader->getProxiesCount() == 0, "its endpoints' proxies go with it");
   CHECK(part->findRemoteParticipant(peer) == nullptr, "the participant is no longer known");
 

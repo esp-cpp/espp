@@ -120,13 +120,28 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
     // forget it now, with every proxy of its endpoints, instead of when its
     // lease runs out. The instance is named by the inline-QoS key hash; a
     // peer that leaves the hash out carries the GUID in the payload.
+    // Only the peer's own SPDP writer may dispose it, and only itself: a
+    // DATA from another writer, or naming another participant, is malformed
+    // (or hostile) and must not remove anyone.
+    if (!(cacheChange.writerGuid.entityId == ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER)) {
+      return;
+    }
     GuidPrefix_t prefix = GUIDPREFIX_UNKNOWN;
     if (cacheChange.hasKeyHash) {
-      prefix = cacheChange.keyHash.prefix;
+      if (cacheChange.keyHash.entityId == ENTITYID_BUILD_IN_PARTICIPANT) {
+        prefix = cacheChange.keyHash.prefix;
+      }
     } else {
       prefix = participantPrefixInPayload(m_inputBuffer.data(), cacheChange.size);
     }
     if (prefix == GUIDPREFIX_UNKNOWN || prefix == mp_participant->m_guidPrefix) {
+      return;
+    }
+    if (!(prefix == cacheChange.writerGuid.prefix)) {
+      logger_.warn("Participant dispose from {:02x}{:02x}{:02x}{:02x} names another participant, "
+                   "ignored",
+                   cacheChange.writerGuid.prefix.id[0], cacheChange.writerGuid.prefix.id[1],
+                   cacheChange.writerGuid.prefix.id[2], cacheChange.writerGuid.prefix.id[3]);
       return;
     }
     if (mp_participant->findRemoteParticipant(prefix) == nullptr) {

@@ -89,7 +89,7 @@ void SEDPAgent::handlePublisherReaderMessage(const ReaderCacheChange &change) {
     // A dispose/unregister (PID_STATUS_INFO in the inline QoS): the peer
     // deleted the endpoint. Usually no payload at all, so it is handled before
     // the parse below.
-    handleRemoteEndpointDeletion(change);
+    handleRemoteEndpointDeletion(change, /*writers=*/true);
     return;
   }
 
@@ -213,7 +213,7 @@ void SEDPAgent::handlePublisherReaderMessage(const TopicData &writerData,
   }
 
   if (writerData.isDisposedFlagSet() || writerData.isUnregisteredFlagSet()) {
-    handleRemoteEndpointDeletion(writerData, change);
+    handleRemoteEndpointDeletion(writerData, change, /*writers=*/true);
     return;
   }
 
@@ -260,7 +260,7 @@ void SEDPAgent::handleSubscriptionReaderMessage(const ReaderCacheChange &change)
 #endif
 
   if (change.kind != ChangeKind_t::ALIVE) {
-    handleRemoteEndpointDeletion(change); // see handlePublisherReaderMessage
+    handleRemoteEndpointDeletion(change, /*writers=*/false); // see handlePublisherReaderMessage
     return;
   }
 
@@ -278,7 +278,7 @@ void SEDPAgent::handleSubscriptionReaderMessage(const ReaderCacheChange &change)
   }
 }
 
-void SEDPAgent::handleRemoteEndpointDeletion(const ReaderCacheChange &change) {
+void SEDPAgent::handleRemoteEndpointDeletion(const ReaderCacheChange &change, bool writers) {
   SEDP_LOG("Endpoint deletion message SN {}.{} GUID {} {} {} {}", (int)change.sn.high,
            (int)change.sn.low, change.writerGuid.prefix.id[0], change.writerGuid.prefix.id[1],
            change.writerGuid.prefix.id[2], change.writerGuid.prefix.id[3]);
@@ -300,20 +300,42 @@ void SEDPAgent::handleRemoteEndpointDeletion(const ReaderCacheChange &change) {
     logger_.warn("Endpoint deletion without a key hash or endpoint GUID, ignored");
     return;
   }
+  if (!isDisposableBy(guid, change, writers)) {
+    return;
+  }
   removeRemoteEndpoint(guid);
 }
 
 void SEDPAgent::handleRemoteEndpointDeletion(const TopicData &topic,
-                                             const ReaderCacheChange &change) {
+                                             const ReaderCacheChange &change, bool writers) {
   // The payload itself said disposed (PID_STATUS_INFO inside the parameter
   // list rather than the inline QoS): the historical path, kept for peers
   // that write it there.
   SEDP_LOG("Endpoint deletion (payload status) SN {}.{}", (int)change.sn.high, (int)change.sn.low);
   const Guid_t guid = change.hasKeyHash ? change.keyHash : disposedEndpointGuid(topic);
-  if (guid == GUID_UNKNOWN) {
+  if (guid == GUID_UNKNOWN || !isDisposableBy(guid, change, writers)) {
     return;
   }
   removeRemoteEndpoint(guid);
+}
+
+bool SEDPAgent::isDisposableBy(const Guid_t &guid, const ReaderCacheChange &change, bool writers) {
+  // A participant may only dispose its own endpoints, and the publications
+  // writer only writers, the subscriptions writer only readers: anything else
+  // is a malformed (or hostile) datagram and must not touch our matches.
+  const EntityKind_t kind = guid.entityId.entityKind;
+  const bool user_writer = kind == EntityKind_t::USER_DEFINED_WRITER_WITH_KEY ||
+                           kind == EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY;
+  const bool user_reader = kind == EntityKind_t::USER_DEFINED_READER_WITH_KEY ||
+                           kind == EntityKind_t::USER_DEFINED_READER_WITHOUT_KEY;
+  if (!(guid.prefix == change.writerGuid.prefix) || (writers ? !user_writer : !user_reader)) {
+    logger_.warn("Endpoint deletion from participant {:02x}{:02x}{:02x}{:02x} names an endpoint it "
+                 "does not own (or of the wrong kind), ignored",
+                 change.writerGuid.prefix.id[0], change.writerGuid.prefix.id[1],
+                 change.writerGuid.prefix.id[2], change.writerGuid.prefix.id[3]);
+    return false;
+  }
+  return true;
 }
 
 rtps::Guid_t SEDPAgent::disposedEndpointGuid(const TopicData &topic) {
@@ -341,7 +363,7 @@ void SEDPAgent::handleSubscriptionReaderMessage(const TopicData &readerData,
   }
 
   if (readerData.isDisposedFlagSet() || readerData.isUnregisteredFlagSet()) {
-    handleRemoteEndpointDeletion(readerData, change);
+    handleRemoteEndpointDeletion(readerData, change, /*writers=*/false);
     return;
   }
 
@@ -418,9 +440,6 @@ bool SEDPAgent::addWriter(Writer &writer) {
 
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-  // Check unmatched writers for this new reader
-  tryMatchUnmatchedEndpoints();
-
   CdrSink sink{asWritableBytes(m_buffer, sizeof(m_buffer) / sizeof(m_buffer[0]))};
   CdrWriter microbuffer(sink);
   const uint16_t zero_options = 0;
@@ -442,6 +461,9 @@ bool SEDPAgent::addWriter(Writer &writer) {
 #if SEDP_VERBOSE
   SEDP_LOG("Added new change to sedpPubWriter.\n");
 #endif
+  // Only now take the waiting remote readers out of the unmatched registry: a
+  // refused announcement resets the writer, and they would be gone with it.
+  tryMatchUnmatchedEndpoints();
   return true;
 }
 
@@ -561,9 +583,6 @@ bool SEDPAgent::addReader(Reader &reader) {
 
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-  // Check unmatched writers for this new reader
-  tryMatchUnmatchedEndpoints();
-
   CdrSink sink{asWritableBytes(m_buffer, sizeof(m_buffer) / sizeof(m_buffer[0]))};
   CdrWriter microbuffer(sink);
   const uint16_t zero_options = 0;
@@ -583,5 +602,6 @@ bool SEDPAgent::addReader(Reader &reader) {
 #if SEDP_VERBOSE
   SEDP_LOG("Added new change to sedpSubWriter.\n");
 #endif
+  tryMatchUnmatchedEndpoints(); // see addWriter()
   return true;
 }

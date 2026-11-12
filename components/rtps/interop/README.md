@@ -27,7 +27,7 @@ touched.
 | golden | wire-format bytes unchanged (see `pc/tests/rtps_golden.cpp`) |
 | locator_subnet | of the unicast locators a peer on several networks announces (SEDP and SPDP), the one on our subnet is kept (see `pc/tests/rtps_locator_subnet.cpp`) |
 | sedp_inline_qos_dispose | a peer's dispose of an endpoint (SEDP) or of its participant (SPDP) - a DATA whose inline QoS carries `PID_STATUS_INFO` + `PID_KEY_HASH`, as Fast DDS, Cyclone DDS and espp write it, in each of the three forms - unmatches the endpoint / forgets the participant at once instead of at lease expiry (see `pc/tests/rtps_sedp_inline_qos_dispose.cpp`) |
-| sedp_history_overflow | the SEDP writers never overwrite a live endpoint announcement when their history is full (a sent dispose is given up first, else the announcement is refused and the endpoint creation fails loudly), and an endpoint whose announcement is gone can still be deleted with its slot reused (see `pc/tests/rtps_sedp_history_overflow.cpp`) |
+| sedp_history_ring, sedp_history_overflow | the SEDP writers never overwrite a live endpoint announcement when their history is full: a sent dispose is given up first, else the announcement is refused and the endpoint creation fails loudly (the ring policy on a static ring, `pc/tests/rtps_sedp_history_ring.cpp`, a unit that links no engine object); a refused creation gives its pooled endpoint back, and an endpoint whose announcement is gone can still be deleted with its slot reused (`pc/tests/rtps_sedp_history_overflow.cpp`) |
 | loopback | espp<->espp discovery + delivery in one process |
 | espp_pub->ros2_echo | espp reliable writer -> ROS 2 subscriber (`rt/chatter`, `std_msgs::msg::dds_::String_`) |
 | ros2_pub->espp_sub | ROS 2 publisher -> espp reliable reader |

@@ -9,26 +9,23 @@
 // exactly the per-participant endpoint cap (10, of which 3 builtin), so a few
 // deletions within the dispose retention window were enough to hit it.
 //
-// Three parts:
-//  1. The ring policy, on a static ring compiled into this test alone
-//     (RTPS_STORAGE_STATIC; the library is built with dynamic storage, and the
-//     ring is a header-only template this translation unit instantiates at a
-//     size the library never does): when full, a sent dispose-after-write
-//     change is given up first (it only waits for a retransmission), an unsent
-//     one is not, and with none to give up the ring says it would drop.
-//  2. An endpoint whose announcement is no longer in the SEDP history (as an
+// The ring's own policy (give up a sent dispose, else refuse) is pinned on a
+// static ring in pc/tests/rtps_sedp_history_ring.cpp, a translation unit that
+// links no engine object; this test covers the engine side with the host
+// library as built:
+//  1. An endpoint whose announcement is no longer in the SEDP history (as an
 //     older engine's overwrite left it) can still be deleted, and its slot is
 //     reusable: the participant's writer slots are filled, the first writer's
 //     SEDP change is removed behind the agent's back, the writer is deleted,
 //     and one more writer can be created.
+//  2. A creation the participant refuses gives the pooled endpoint back: with
+//     the participant's slots full, the refused writers do not exhaust the
+//     global stateful pool, so once a slot frees up a writer can be created.
 //  3. The caps agree: with static storage the history covers the user
 //     endpoints of a participant (config.hpp's static_assert, restated here
 //     with the same arithmetic so a profile change shows up in this test).
 //
 // Exits 0 on success, 1 on the first failed check.
-
-#define RTPS_STORAGE_STATIC
-#include "rtps/storages/HistoryCacheWithDeletion.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -52,42 +49,6 @@ namespace {
 
 constexpr rtps::Ip4AddressBytes kIp{127, 0, 0, 1};
 
-bool ring_policy() {
-  rtps::HistoryCacheWithDeletion<4> ring;
-  const uint8_t payload[4] = {1, 2, 3, 4};
-  const auto add = [&](bool dispose_after_write) {
-    return ring.addChange(payload, sizeof(payload), /*inLineQoS=*/dispose_after_write,
-                          dispose_after_write);
-  };
-  const auto has = [&](uint32_t sn) {
-    return ring.getChangeBySN(rtps::SequenceNumber_t{0, sn}) != nullptr;
-  };
-
-  CHECK(!ring.wouldDropOldestOnAdd(), "an empty ring would not drop");
-  CHECK(add(false) != nullptr, "SN 1 added");
-  CHECK(add(true) != nullptr, "SN 2 added (dispose-after-write, unsent)");
-  CHECK(add(true) != nullptr, "SN 3 added (dispose-after-write, to be sent)");
-  CHECK(add(false) != nullptr, "SN 4 added");
-  CHECK(ring.isFull(), "four changes fill a ring of four");
-  CHECK(ring.wouldDropOldestOnAdd(), "a full static ring would drop its oldest on add");
-
-  // Nothing sent yet: an unsent dispose still has to go out, so none is given up.
-  CHECK(!ring.dropOldestSentDisposeAfterWrite(), "no sent dispose-after-write to give up");
-  CHECK(has(1) && has(2) && has(3) && has(4), "nothing dropped");
-
-  // SN 3 was sent (the writer stamps sentTime on send); SN 2 was not. The
-  // sent one goes, the unsent one and the live changes stay.
-  ring.getChangeBySN(rtps::SequenceNumber_t{0, 3})->sentTime = std::chrono::steady_clock::now();
-  CHECK(ring.dropOldestSentDisposeAfterWrite(), "the sent dispose-after-write is given up");
-  CHECK(has(1) && has(2) && !has(3) && has(4), "only SN 3 dropped");
-  CHECK(!ring.wouldDropOldestOnAdd(), "room again");
-  CHECK(add(false) != nullptr, "SN 5 added into the freed slot");
-  CHECK(has(1) && has(2) && has(4) && has(5), "SN 1, 2, 4 and 5 present");
-  CHECK(ring.wouldDropOldestOnAdd(), "full again");
-  CHECK(!ring.dropOldestSentDisposeAfterWrite(), "nothing left to give up: the writer refuses");
-  return true;
-}
-
 bool delete_without_sedp_change() {
   rtps::Domain domain(kIp);
   rtps::Participant *part = domain.createParticipant();
@@ -105,6 +66,16 @@ bool delete_without_sedp_change() {
   }
   CHECK(domain.createWriter(*part, "one_too_many", "OverflowType", true, false) == nullptr,
         "the cap holds");
+  // 2. Refused creations must not consume the global pool: more refusals than
+  //    the pool has slots, then a slot frees up and a writer still fits.
+  for (int i = 0; i < static_cast<int>(rtps::Config::NUM_STATEFUL_WRITERS) + 2; ++i) {
+    CHECK(domain.createWriter(*part, "refused", "OverflowType", true, false) == nullptr,
+          "still refused while the participant is full");
+  }
+  CHECK(domain.deleteWriter(*part, writers.back()), "free one slot");
+  rtps::Writer *fits = domain.createWriter(*part, "fits_again", "OverflowType", true, false);
+  CHECK(fits != nullptr, "refused creations did not exhaust the stateful writer pool");
+  writers.back() = fits;
 
   // Its SEDP announcement disappears behind the agent's back (what an
   // overwrite by an older engine looked like).
@@ -137,7 +108,7 @@ bool caps_agree() {
 } // namespace
 
 int main() {
-  if (!ring_policy() || !delete_without_sedp_change() || !caps_agree()) {
+  if (!delete_without_sedp_change() || !caps_agree()) {
     return 1;
   }
   std::printf("PASS\n");
