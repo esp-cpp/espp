@@ -3686,18 +3686,27 @@ void RtpsParticipant::stop() {
   // Phase 2.5: give up on every pending request. A blocked call() wakes with
   // nullopt, a call_future() resolves to nullopt (not broken_promise), and no
   // reply callback runs after this. The registries are stable (no add past
-  // phase 1); the lock only orders this against a concurrent remove.
+  // phase 1); mutex_ only orders the snapshot against a concurrent remove, and
+  // is NOT held across abandon_all(): that takes the client's own mutex, which
+  // a sending thread holds while it logs a refusal through the liveness lock,
+  // under which pin() takes mutex_ - the three in a cycle were a potential
+  // deadlock (TSan: lock-order inversion). The snapshot's shared_ptrs keep the
+  // clients alive for the walk.
+  std::vector<std::shared_ptr<ServiceClient>> service_clients;
+  std::vector<std::shared_ptr<NativeServiceClient>> native_service_clients;
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    for (const auto &cli : service_clients_) {
-      if (cli && cli->impl_) {
-        cli->impl_->abandon_all();
-      }
+    service_clients = service_clients_;
+    native_service_clients = native_service_clients_;
+  }
+  for (const auto &cli : service_clients) {
+    if (cli && cli->impl_) {
+      cli->impl_->abandon_all();
     }
-    for (const auto &cli : native_service_clients_) {
-      if (cli && cli->impl_) {
-        cli->impl_->abandon_all();
-      }
+  }
+  for (const auto &cli : native_service_clients) {
+    if (cli && cli->impl_) {
+      cli->impl_->abandon_all();
     }
   }
 #endif // RTPS_WITH_RPC
