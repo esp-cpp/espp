@@ -202,7 +202,10 @@ struct SequenceNumberSet {
   // We only need 1 byte because atm we don't store packets.
   bool isSet(uint32_t bit) const {
     if (bit >= SNS_MAX_NUM_BITS) {
-      return true;
+      // Beyond the set: never "set". A writer walking an ACKNACK's bitmap up
+      // to its numBits used to see every number past the set as requested and
+      // resend its whole history (deserializeSNS now clamps numBits too).
+      return false;
     }
     const auto bucket = static_cast<uint8_t>(bit / 32);
     const auto pos = static_cast<uint8_t>(bit % 32);
