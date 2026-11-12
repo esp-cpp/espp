@@ -403,16 +403,25 @@ run_soak() {
     timeout 14 ros2 topic pub -t 3 -r 0.5 /qemu_big std_msgs/msg/String "data: '$big'" > /dev/null 2>&1 & pids+=($!)
     timeout 14 ros2 topic echo --once /qemu_tx std_msgs/msg/String > /dev/null 2>&1 & pids+=($!)
     timeout 14 ros2 topic echo --once --qos-reliability best_effort /qemu_be_tx std_msgs/msg/String > /dev/null 2>&1 & pids+=($!)
-    timeout 14 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 1, b: $2}" > /dev/null 2>&1 & pids+=($!)
+    # the service call keeps its log: it is asserted below (soak_service_calls),
+    # not just run for the churn
+    timeout 14 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 1, b: $2}" > "/tmp/soak_srv_$2.log" 2>&1 & pids+=($!)
     "$BIN"/rtps_interop_pub rt/qemu_rx std_msgs::msg::dds_::String_ 1 40 200 $HOST_IP > /dev/null 2>&1 & pids+=($!)
     "$BIN"/rtps_interop_sub rt/qemu_tx std_msgs::msg::dds_::String_ 1 5 12 $HOST_IP > /dev/null 2>&1 & pids+=($!)
     sleep 12
     kill "${pids[@]}" 2>/dev/null; wait "${pids[@]}" 2>/dev/null || true
+    if grep -q "sum=$((1 + $2))" "/tmp/soak_srv_$2.log"; then
+      srv_ok=$((srv_ok + 1))
+    else
+      echo "  service call of cycle $2 (${1#rmw_}) was not answered: $(tail -1 "/tmp/soak_srv_$2.log" | cut -c1-120)"
+    fi
     sleep 2
   }
 
   # warm-up: whatever grows once to the largest sample grows here, outside the measurement
+  local srv_ok=0
   soak_cycle rmw_fastrtps_cpp 0
+  srv_ok=0 # the warm-up's call is not part of the count
   sleep 14 # lease + one sweep: the warm-up's peers forgotten before the baseline
   local base_heap base_min; base_heap=$(latest_heap); base_min=$(latest_min_heap)
   echo "baseline after the warm-up: heap=$base_heap min_heap=$base_min"
@@ -429,7 +438,10 @@ run_soak() {
     # the Cyclone cycles' transient allocations (a service call's request and
     # reply buffers among them) move the mark by tens of bytes from cycle to
     # cycle, which is fragmentation jitter, not growth
-    mn=$(latest_min_heap); [ "$mn" -le $((prev_min - 1024)) ] && new_lows=$((new_lows + 1)); prev_min="$mn"
+    # prev_min is the last COUNTED low, so a decline that creeps down by less
+    # than 1 KB per cycle still adds up to a counted step
+    mn=$(latest_min_heap)
+    if [ "$mn" -le $((prev_min - 1024)) ]; then new_lows=$((new_lows + 1)); prev_min="$mn"; fi
     echo "cycle $i ${rmw#rmw_}: $(grep -o 'RTPSTEST status.*' "$LOG" | tail -1 | sed 's/RTPSTEST status //')"
   done
   local last_rx last_be last_big; last_rx=$(count_since "$m_last" "RTPSTEST rx "); last_be=$(count_since "$m_last" "RTPSTEST be_rx "); last_big=$(count_since "$m_last" "RTPSTEST big_rx ")
@@ -451,6 +463,14 @@ run_soak() {
   [ -n "$base_heap" ] && [ -n "$end_heap" ] && [ "$end_heap" -ge $((base_heap - 8192)) ]; result "soak_heap_no_leak" $?
   [ -n "$base_min" ] && [ -n "$end_min" ] && [ "$end_min" -ge $((base_min - 98304)) ] && [ "$new_lows" -le 5 ]; result "soak_min_heap_stable" $?
   [ "$last_rx" -ge 50 ] && [ "$last_be" -ge 20 ] && [ "$last_big" -ge 1 ]; result "soak_still_delivering" $?
+  # Every cycle's service call (Fast DDS and Cyclone alternating) must be
+  # answered: the service path under churn, not just the topics. One miss over
+  # the run is tolerated: a call is a single request with a 14 s budget during
+  # the busiest seconds of a cycle, and a lost DATA repaired just past that
+  # budget is not the failure this guards against (the heap and the matrix's
+  # loss cases cover repair); two or more misses are.
+  echo "service calls answered: $srv_ok of $cycles"
+  [ "$srv_ok" -ge $((cycles - 1)) ]; result "soak_service_calls" $?
 }
 
 case "$SUITE" in

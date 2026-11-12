@@ -88,7 +88,9 @@ previous cycle's leases running out part way into the next. After a warm-up
 cycle (whatever grows once to the largest sample grows there) the free heap at
 the end must be within 8 KB of the baseline, the low-water mark within 96 KB and stepping down (by 1 KB or more) in at most five cycles,
 and the last cycle must still have delivered (`soak_heap_no_leak`,
-`soak_min_heap_stable`, `soak_still_delivering`). The per-cycle heap is printed.
+`soak_min_heap_stable`, `soak_still_delivering`), and every cycle's service
+call, Fast DDS and Cyclone alternating, must have been answered, one miss
+tolerated over the run (`soak_service_calls`). The per-cycle heap is printed.
 
 What only this can show: the embedded pools and knobs as built, lwIP's socket
 and reassembly behaviour, FreeRTOS priorities for the engine's threads,

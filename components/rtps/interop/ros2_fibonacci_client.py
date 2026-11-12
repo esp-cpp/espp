@@ -56,6 +56,14 @@ class Client(Node):
             return "REJECTED" if not self.goal_handle.accepted else "FAIL: goal accepted, expected a rejection"
         if not self.goal_handle.accepted:
             return "FAIL: goal rejected"
+        if mode == "cancel" and self.feedback_count > 0 and not self.cancel_sent:
+            # Feedback comes over its own topic and can land before the goal
+            # response resolves, when on_feedback() had no handle to cancel
+            # with: send the pending cancellation now rather than wait for a
+            # later feedback that a short goal may never produce.
+            self.cancel_sent = True
+            self.get_logger().info("feedback arrived before the goal response: cancelling the goal")
+            self.goal_handle.cancel_goal_async()
         result = self.goal_handle.get_result_async()
         if not self.spin_until(result, timeout_s):
             return "FAIL: no result (cancel_sent=%s feedback=%d)" % (self.cancel_sent, self.feedback_count)
