@@ -870,6 +870,23 @@ namespace {
 uint64_t seq_key(const rtps::SequenceNumber_t &sn) {
   return (static_cast<uint64_t>(static_cast<uint32_t>(sn.high)) << 32) | sn.low;
 }
+
+// The promise behind call_future(), completed exactly once. Three parties may
+// try: the reply, the abandonment (request_timeout or stop(), through the
+// pending entry's on_abandon) and the send-failure fallback in call_future()
+// itself - and the last two can meet: the native client inserts its entry
+// before publishing, so a stop() in between abandons the entry (fulfilling
+// the promise) and then the failed publish makes send() return nullopt. A
+// second set_value would throw std::future_error; the flag makes it a no-op.
+struct FutureReply {
+  std::promise<std::optional<std::vector<uint8_t>>> promise;
+  std::atomic<bool> done{false};
+  void complete(std::optional<std::vector<uint8_t>> value) {
+    if (!done.exchange(true)) {
+      promise.set_value(std::move(value));
+    }
+  }
+};
 } // namespace
 
 // Per-server bridge: engine request-reader callback -> user handler -> reply.
@@ -1749,16 +1766,16 @@ RtpsParticipant::ServiceClient::call_future(std::span<const uint8_t> request) {
   // this call and is owned by the pending entry until the reply arrives), or
   // with nullopt when the request is abandoned (request_timeout, stop()) - a
   // promise destroyed unfulfilled would throw broken_promise at the waiter.
-  auto promise = std::make_shared<std::promise<std::optional<std::vector<uint8_t>>>>();
-  auto future = promise->get_future();
+  auto reply = std::make_shared<FutureReply>(); // completed once, see FutureReply
+  auto future = reply->promise.get_future();
   const auto key = impl_->send(
       request,
-      [promise](std::span<const uint8_t> reply) {
-        promise->set_value(std::vector<uint8_t>(reply.begin(), reply.end()));
+      [reply](std::span<const uint8_t> bytes) {
+        reply->complete(std::vector<uint8_t>(bytes.begin(), bytes.end()));
       },
-      nullptr, [promise]() { promise->set_value(std::nullopt); });
+      nullptr, [reply]() { reply->complete(std::nullopt); });
   if (!key.has_value()) {
-    promise->set_value(std::nullopt);
+    reply->complete(std::nullopt);
   }
   return future;
 }
@@ -2981,17 +2998,20 @@ RtpsParticipant::NativeServiceClient::call(std::span<const uint8_t> request,
 
 std::future<std::optional<std::vector<uint8_t>>>
 RtpsParticipant::NativeServiceClient::call_future(std::span<const uint8_t> request) {
-  // See ServiceClient::call_future(): an abandoned request resolves nullopt.
-  auto promise = std::make_shared<std::promise<std::optional<std::vector<uint8_t>>>>();
-  auto future = promise->get_future();
+  // See ServiceClient::call_future(): an abandoned request resolves nullopt,
+  // and the completion is single-shot (FutureReply) - this client inserts its
+  // pending entry before publishing, so a stop() in between abandons it and
+  // the failed publish then makes send() return nullopt as well.
+  auto reply = std::make_shared<FutureReply>();
+  auto future = reply->promise.get_future();
   const auto id = impl_->send(
       request,
-      [promise](std::span<const uint8_t> reply) {
-        promise->set_value(std::vector<uint8_t>(reply.begin(), reply.end()));
+      [reply](std::span<const uint8_t> bytes) {
+        reply->complete(std::vector<uint8_t>(bytes.begin(), bytes.end()));
       },
-      nullptr, [promise]() { promise->set_value(std::nullopt); });
+      nullptr, [reply]() { reply->complete(std::nullopt); });
   if (!id.has_value()) {
-    promise->set_value(std::nullopt);
+    reply->complete(std::nullopt);
   }
   return future;
 }

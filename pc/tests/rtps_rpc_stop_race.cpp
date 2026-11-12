@@ -20,6 +20,10 @@
 //     nullopt - the client's engine access is gated by the liveness token the
 //     handle holds, never by the participant pointer alone (run under ASan
 //     to see the old use-after-free).
+//  4. call_future() hammered on both client kinds across stop/start rounds:
+//     completion is single-shot (reply, abandonment at stop(), or a failed
+//     send never fulfil the same promise twice - a std::future_error here
+//     terminates the hammer thread).
 //
 // Exits 0 on success, 1 on failure.
 
@@ -77,6 +81,12 @@ int main() {
       (void)c->server_count();
       (void)c->wait_for_server(5ms);
       (void)c->call_async(request, [](std::span<const uint8_t>) {});
+      // 4. futures, on both client kinds: a double completion would throw
+      // std::future_error out of this thread (and terminate the test).
+      (void)c->call_future(request);
+      if (auto n = current_native()) {
+        (void)n->call_future(request);
+      }
       calls.fetch_add(1);
     }
   });
