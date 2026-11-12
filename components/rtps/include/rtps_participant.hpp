@@ -630,6 +630,8 @@ public:
 
     /// Send a request; invoke on_reply when the correlated reply arrives.
     bool call_async(std::span<const uint8_t> request, reply_callback_t on_reply);
+    /// Requests sent and not yet answered (see ServiceClient::pending_count()).
+    std::size_t pending_count() const;
     /// Send a request and block for the reply (std::nullopt on timeout/failure).
     std::optional<std::vector<uint8_t>> call(std::span<const uint8_t> request,
                                              std::chrono::milliseconds timeout);

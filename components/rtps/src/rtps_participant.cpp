@@ -1265,16 +1265,18 @@ struct RtpsParticipant::ServiceClient::Impl
     explicit operator bool() const { return participant != nullptr; }
   };
   Pin pin() const {
-    if (self == nullptr || !live || !self->begin_engine_op()) {
+    if (self == nullptr || !live) {
       return {};
     }
-    bool alive = false;
-    {
-      std::lock_guard<std::mutex> lock(live->m);
-      alive = live->alive;
-    }
-    if (!alive) {
-      self->end_engine_op();
+    // The token first, and held while the op is registered: a handle may
+    // outlive its participant (the user keeps the shared_ptr), and then `self`
+    // dangles. stop() - which the destructor runs - flips the token under its
+    // mutex (phase 2) before anything is torn down, so while the token is
+    // held alive here the participant exists and `self` may be touched; the
+    // registered op then keeps it from passing phase 1.5. Lock order
+    // Liveness::m -> mutex_ (begin_engine_op): nothing takes them reversed.
+    std::lock_guard<std::mutex> lock(live->m);
+    if (!live->alive || !self->begin_engine_op()) {
       return {};
     }
     return Pin{self};
@@ -1282,9 +1284,14 @@ struct RtpsParticipant::ServiceClient::Impl
   /// True while the participant run this client belongs to is up.
   bool running() const { return static_cast<bool>(pin()); }
   /// Diagnostics for a refused request (see send()): logged through the
-  /// participant while it is around.
+  /// participant while it is alive (the token, as in pin(): a handle that
+  /// outlived its participant refuses silently).
   void refuse(const char *what, const char *why) const {
-    if (self != nullptr) {
+    if (self == nullptr || !live) {
+      return;
+    }
+    std::lock_guard<std::mutex> lock(live->m);
+    if (live->alive) {
       self->logger_.warn("Service client: {} refused, {}", what, why);
     }
   }
@@ -2808,6 +2815,21 @@ struct RtpsParticipant::NativeServiceClient::Impl {
   std::unordered_map<uint32_t, Pending> pending;
   std::chrono::milliseconds request_timeout{0}; ///< ServiceConfig::request_timeout
   std::size_t max_pending{0};                   ///< ServiceConfig::max_pending_requests
+  // The run's liveness token and the engine pin, as for the ROS client (see
+  // ServiceClient::Impl::pin): a handle kept past stop() or destruction
+  // refuses instead of publishing through a dangling participant.
+  std::shared_ptr<Liveness> live;
+  using Pin = ServiceClient::Impl::Pin;
+  Pin pin() const {
+    if (self == nullptr || !live) {
+      return {};
+    }
+    std::lock_guard<std::mutex> lock(live->m);
+    if (!live->alive || !self->begin_engine_op()) {
+      return {};
+    }
+    return Pin{self};
+  }
 
   // The same bounded table as ServiceClient::Impl: expired entries are dropped
   // on every send / count, every entry at stop(); gone entries are finished
@@ -2863,6 +2885,10 @@ struct RtpsParticipant::NativeServiceClient::Impl {
   std::optional<uint32_t> send(std::span<const uint8_t> request, reply_callback_t on_reply,
                                std::shared_ptr<SyncSlot> sync,
                                std::function<void()> on_abandon = nullptr) {
+    const Pin pinned = pin();
+    if (!pinned) {
+      return std::nullopt; // not running, or a handle from an earlier run: silent
+    }
     {
       std::vector<Pending> gone;
       bool full = false;
@@ -2912,6 +2938,10 @@ RtpsParticipant::NativeServiceClient::~NativeServiceClient() = default;
 bool RtpsParticipant::NativeServiceClient::call_async(std::span<const uint8_t> request,
                                                       reply_callback_t on_reply) {
   return impl_->send(request, std::move(on_reply), nullptr).has_value();
+}
+
+std::size_t RtpsParticipant::NativeServiceClient::pending_count() const {
+  return impl_->pending_count();
 }
 
 std::optional<std::vector<uint8_t>>
@@ -3107,6 +3137,7 @@ RtpsParticipant::add_native_service_client(const ServiceConfig &config) {
   EngineOpGuard op_guard(*this);
   auto impl = std::make_unique<NativeServiceClient::Impl>();
   impl->self = this;
+  impl->live = live_;
   impl->request_timeout = config.request_timeout;
   impl->max_pending = config.max_pending_requests;
   impl->request_topic = rtps::rpc::native_request_topic(config.service);
