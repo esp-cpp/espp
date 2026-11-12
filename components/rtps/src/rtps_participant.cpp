@@ -2679,15 +2679,29 @@ RtpsParticipant::add_action_client(const ActionConfig &config) {
   // The action's band/dscp are inherited by every underlying endpoint. On a
   // later failure exactly the handles created HERE are removed (precise
   // rollback - never a concurrently added endpoint).
-  impl->send_goal_client = add_service_client({rtps::rpc::action_send_goal_service(config.action),
-                                               rtps::rpc::action_send_goal_type(config.type_name),
-                                               config.band, config.dscp});
-  impl->get_result_client = add_service_client({rtps::rpc::action_get_result_service(config.action),
-                                                rtps::rpc::action_get_result_type(config.type_name),
-                                                config.band, config.dscp});
+  // The get_result request waits for the whole goal: it must never be timed
+  // out by the service client (a goal running longer than the request timeout
+  // would be reported ABORTED while still executing); the server's result,
+  // its result_timeout retirement, or stop() release it. send_goal and
+  // cancel_goal are answered at once and keep the configured timeout.
+  impl->send_goal_client =
+      add_service_client({.service = rtps::rpc::action_send_goal_service(config.action),
+                          .type_name = rtps::rpc::action_send_goal_type(config.type_name),
+                          .band = config.band,
+                          .dscp = config.dscp,
+                          .request_timeout = config.request_timeout});
+  impl->get_result_client =
+      add_service_client({.service = rtps::rpc::action_get_result_service(config.action),
+                          .type_name = rtps::rpc::action_get_result_type(config.type_name),
+                          .band = config.band,
+                          .dscp = config.dscp,
+                          .request_timeout = std::chrono::milliseconds{0}});
   impl->cancel_client =
-      add_service_client({rtps::rpc::action_cancel_goal_service(config.action),
-                          rtps::rpc::action_cancel_goal_type(), config.band, config.dscp});
+      add_service_client({.service = rtps::rpc::action_cancel_goal_service(config.action),
+                          .type_name = rtps::rpc::action_cancel_goal_type(),
+                          .band = config.band,
+                          .dscp = config.dscp,
+                          .request_timeout = config.request_timeout});
   if (!impl->send_goal_client || !impl->get_result_client || !impl->cancel_client) {
     // Transactional: unwind exactly the service clients that DID build.
     remove_service_client(impl->send_goal_client);

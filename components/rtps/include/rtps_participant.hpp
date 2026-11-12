@@ -477,6 +477,12 @@ public:
     espp::QosBand band{espp::QosBand::Normal};
     /// Optional DSCP code point for the endpoints' dedicated sockets.
     std::optional<espp::Dscp> dscp{};
+    /// Client only (ROS 2 protocol): how long the send_goal and cancel_goal
+    /// requests may wait for their reply (see ServiceConfig::request_timeout;
+    /// 0 = never). The get_result request is never timed out this way: it
+    /// waits for the whole goal, however long that runs, and is released by
+    /// the server's result (or its result_timeout retirement) and by stop().
+    std::chrono::milliseconds request_timeout{std::chrono::seconds { 30 }};
     /// Server only: goals that may execute at once (each accepted goal runs on
     /// its own thread); one more is rejected before on_goal, with a warning.
     /// A goal id the server already holds is rejected too. 0 = unlimited.
