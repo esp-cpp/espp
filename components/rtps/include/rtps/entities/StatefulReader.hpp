@@ -51,6 +51,10 @@ public:
   bool onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_t &remotePrefix) override;
 
   bool sendPreemptiveAckNack(const WriterProxy &writer) override;
+  /// Whether an ACKNACK answering this writer's HEARTBEAT or GAP may go out
+  /// now (and stamps it): at most one per Config::SFR_ACKNACK_MIN_INTERVAL_MS
+  /// per writer, see onNewHeartbeat(). The pre-emptive ACKNACK is not counted.
+  bool ackNackAllowed(WriterProxy &writer);
 
 private:
   Ip4Port_t m_srcPort; // TODO intended for reuse but buffer not used as such

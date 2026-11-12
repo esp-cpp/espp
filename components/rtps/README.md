@@ -191,6 +191,7 @@ via `include/rtps/config.hpp`.
 | `RTPS_SPDP_RESEND_PERIOD_MS` | 0 = profile default (2000 on ESP32) | Participant announcement period. Keep it well below the announced lease. |
 | `RTPS_SPDP_CYCLECOUNT_HEARTBEAT` | 0 = profile default (2) | Remote liveliness is checked every `(n + 1)` announce rounds. |
 | `RTPS_SF_WRITER_HB_PERIOD_MS` | 0 = profile default (4000 on ESP32) | RELIABLE writer HEARTBEAT period (a quarter of it while a reader has unacknowledged changes). |
+| `RTPS_SFR_ACKNACK_MIN_INTERVAL_MS` | 0 = profile default (100) | Shortest gap between a RELIABLE reader's ACKNACKs to one writer: HEARTBEAT answers are coalesced to one per interval while samples are missing, and a HEARTBEAT with the FinalFlag gets none when nothing is. |
 | `RTPS_SPDP_DEFAULT_REMOTE_LEASE_DURATION_S` | 0 = profile default (5 on ESP32) | The lease we announce for ourselves, and the lease assumed for a peer that announces none. |
 | `RTPS_SPDP_MAX_REMOTE_LEASE_DURATION_S` | 0 = profile default (90 on ESP32) | Cap on a remote participant's lease: a silent peer is dropped after `min(its lease, this)`. |
 

@@ -137,7 +137,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_interop_pub rtps_interop_sub rtps_interop_churn rtps_sedp_inline_qos_dispose \
        rtps_sedp_history_overflow rtps_sedp_history_ring rtps_facade_matched_counts \
        rtps_gap_before_data rtps_acknack_heartbeat_reply \
-       rtps_service_reply_waits_for_reader > /tmp/build.log 2>&1
+       rtps_service_reply_waits_for_reader rtps_acknack_coalescing > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
 if [ $build_rc -ne 0 ]; then tail -30 /tmp/cmake_lib.log /tmp/build_lib.log /tmp/build.log; exit 1; fi
@@ -171,6 +171,9 @@ note "A reader requesting nothing while behind gets a HEARTBEAT at once (Cyclone
 
 note "A service reply is held until the requester's reply reader is matched (host, ~3 s)"
 "$BIN"/rtps_service_reply_waits_for_reader; result "service_reply_waits_for_reader" $?
+
+note "A reliable reader coalesces its HEARTBEAT answers and skips a final one it misses nothing for (host)"
+"$BIN"/rtps_acknack_coalescing; result "acknack_coalescing" $?
 
 note "ROS 2 service + action name/type mangling (host)"
 "$BIN"/rtps_service_naming; result "service_naming" $?

@@ -262,6 +262,20 @@ menu "RTPS"
                 this). Lower it for faster repair at the cost of metatraffic.
                 0 keeps the selected profile's value (4000 embedded, 2000 host).
 
+        config RTPS_SFR_ACKNACK_MIN_INTERVAL_MS
+            int "SFR_ACKNACK_MIN_INTERVAL_MS: shortest gap between a reader's ACKNACKs to one writer (0 = profile default)"
+            default 0
+            range 0 65535
+            help
+                A RELIABLE reader that is missing samples answers a writer's
+                HEARTBEATs with an ACKNACK at most once per this many ms (a
+                HEARTBEAT it misses nothing for gets no answer when its
+                FinalFlag is set). Each ACKNACK asks for up to 32 samples,
+                which the writer resends at once, so this bounds the repair
+                rate; it also keeps a reader that fell behind from answering
+                every stale HEARTBEAT it works through, each answer bringing a
+                GAP + HEARTBEAT back. 0 keeps the profile's value (100).
+
         config RTPS_SPDP_DEFAULT_REMOTE_LEASE_DURATION_S
             int "SPDP_DEFAULT_REMOTE_LEASE_DURATION_S: our announced lease / default remote lease, seconds (0 = profile default)"
             default 0

@@ -25,6 +25,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #include "rtps/entities/StatefulReader.hpp"
 
+#include <chrono>
+
 #include "rtps/communication/EsppTransport.hpp"
 #include "rtps/messages/MessageFactory.hpp"
 #include "rtps/storages/PayloadBuffer.hpp"
@@ -198,6 +200,9 @@ bool StatefulReader::onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_
 
   // Case 1: We are still waiting for messages before gapStart
   if (writer->expectedSN < msg.gapStart) {
+    if (!ackNackAllowed(*writer)) {
+      return true; // coalesced (see onNewHeartbeat); the HEARTBEAT after a GAP asks again
+    }
     PacketInfo info;
     info.srcPort = m_srcPort;
     info.destAddr = writer->remoteLocator.getIp4AddressBytes();
@@ -248,6 +253,9 @@ bool StatefulReader::onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_
       if (msg.gapList.isSet(bit)) {
         writer->expectedSN++;
       } else {
+        if (!ackNackAllowed(*writer)) {
+          return true; // coalesced (see onNewHeartbeat)
+        }
         PacketInfo info;
         info.srcPort = m_srcPort;
         info.destAddr = writer->remoteLocator.getIp4AddressBytes();
@@ -344,6 +352,23 @@ bool StatefulReader::onNewHeartbeat(const SubmessageHeartbeat &msg,
   rtps::MessageFactory::addSubMessageInfoDST(payload, dst);
   auto missing_sns = writer->getMissing(msg.firstSN, msg.lastSN);
   bool final_flag = (missing_sns.numBits == 0);
+  // RTPS 2.5 8.4.12.2 (FinalFlag): a HEARTBEAT the reader misses nothing for
+  // needs no answer when the writer set FinalFlag (Cyclone DDS sets it on the
+  // one it piggybacks on every DATA). And a reader that IS missing samples
+  // answers at most once per SFR_ACKNACK_MIN_INTERVAL_MS per writer, as Fast
+  // DDS and Cyclone DDS coalesce theirs. Answering every HEARTBEAT at once let
+  // a reader that fell behind a 20 Hz Cyclone writer spiral: each stale
+  // HEARTBEAT it worked through got an ACKNACK, each ACKNACK brought a GAP +
+  // HEARTBEAT back, and its backlog grew faster than it drained until nothing
+  // else got through (the QEMU soak's Cyclone cycles). The writer repeats its
+  // HEARTBEAT, so a suppressed answer is only deferred. Regression test:
+  // pc/tests/rtps_acknack_coalescing.cpp.
+  if (final_flag && msg.header.finalFlag()) {
+    return true;
+  }
+  if (!ackNackAllowed(*writer)) {
+    return true;
+  }
   rtps::MessageFactory::addAckNack(payload, msg.writerId, m_attributes.endpointGuid.entityId,
                                    missing_sns, writer->getNextAckNackCount(), final_flag);
 
@@ -353,6 +378,17 @@ bool StatefulReader::onNewHeartbeat(const SubmessageHeartbeat &msg,
     return false;
   }
   m_transport->sendPacket(info);
+  return true;
+}
+
+bool StatefulReader::ackNackAllowed(WriterProxy &writer) {
+  const auto now = std::chrono::steady_clock::now();
+  if (writer.lastAckNackSentAt != std::chrono::steady_clock::time_point{} &&
+      now - writer.lastAckNackSentAt <
+          std::chrono::milliseconds(Config::SFR_ACKNACK_MIN_INTERVAL_MS)) {
+    return false;
+  }
+  writer.lastAckNackSentAt = now;
   return true;
 }
 
