@@ -334,6 +334,83 @@ rtps::Reader *Participant::getReaderByWriterId(const Guid_t &guid, uint32_t &gen
   return reader;
 }
 
+std::size_t Participant::getReadersByWriterId(const Guid_t &guid, ReaderRefs &out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  std::size_t count = 0;
+  for (size_t i = 0; i < m_readers.size() && count < out.size(); ++i) {
+    if (m_readers[i] != nullptr && m_readers[i]->isProxy(guid)) {
+      out[count++] = ReaderRef{m_readers[i], m_readers[i]->generation()};
+    }
+  }
+  return count;
+}
+
+std::size_t Participant::getMatchingWriters(const TopicData &readerTopicData, Writers &out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  std::size_t count = 0;
+  for (size_t i = 0; i < m_writers.size() && count < out.size(); ++i) {
+    if (m_writers[i] == nullptr) {
+      continue;
+    }
+    if (m_writers[i]->m_attributes.matchesTopicOf(readerTopicData) &&
+        (readerTopicData.reliabilityKind == ReliabilityKind_t::BEST_EFFORT ||
+         m_writers[i]->m_attributes.reliabilityKind == ReliabilityKind_t::RELIABLE)) {
+      out[count++] = m_writers[i];
+    }
+  }
+  return count;
+}
+
+std::size_t Participant::getMatchingWriters(const TopicDataCompressed &readerTopicData,
+                                            Writers &out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  std::size_t count = 0;
+  for (size_t i = 0; i < m_writers.size() && count < out.size(); ++i) {
+    if (m_writers[i] == nullptr) {
+      continue;
+    }
+    if (readerTopicData.matchesTopicOf(m_writers[i]->m_attributes) &&
+        (readerTopicData.is_reliable == false ||
+         m_writers[i]->m_attributes.reliabilityKind == ReliabilityKind_t::RELIABLE)) {
+      out[count++] = m_writers[i];
+    }
+  }
+  return count;
+}
+
+std::size_t Participant::getMatchingReaders(const TopicData &writerTopicData, Readers &out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  std::size_t count = 0;
+  for (size_t i = 0; i < m_readers.size() && count < out.size(); ++i) {
+    if (m_readers[i] == nullptr) {
+      continue;
+    }
+    if (m_readers[i]->m_attributes.matchesTopicOf(writerTopicData) &&
+        (writerTopicData.reliabilityKind == ReliabilityKind_t::RELIABLE ||
+         m_readers[i]->m_attributes.reliabilityKind == ReliabilityKind_t::BEST_EFFORT)) {
+      out[count++] = m_readers[i];
+    }
+  }
+  return count;
+}
+
+std::size_t Participant::getMatchingReaders(const TopicDataCompressed &writerTopicData,
+                                            Readers &out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  std::size_t count = 0;
+  for (size_t i = 0; i < m_readers.size() && count < out.size(); ++i) {
+    if (m_readers[i] == nullptr) {
+      continue;
+    }
+    if (writerTopicData.matchesTopicOf(m_readers[i]->m_attributes) &&
+        (writerTopicData.is_reliable == true ||
+         m_readers[i]->m_attributes.reliabilityKind == ReliabilityKind_t::BEST_EFFORT)) {
+      out[count++] = m_readers[i];
+    }
+  }
+  return count;
+}
+
 rtps::Writer *Participant::getMatchingWriter(const TopicData &readerTopicData) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (size_t i = 0; i < m_writers.size(); ++i) {

@@ -31,8 +31,10 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/config.hpp"
 #include "rtps/discovery/SEDPAgent.hpp"
 #include "rtps/discovery/SPDPAgent.hpp"
+#include "rtps/entities/ReaderRef.hpp"
 #include "rtps/messages/MessageReceiver.hpp"
 
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <mutex>
@@ -95,6 +97,13 @@ public:
   Writer *getWriter(EntityId_t id, uint32_t &generation_out);
   Writer *getMatchingWriter(const TopicData &topicData);
   Writer *getMatchingWriter(const TopicDataCompressed &topicData);
+  //! Every local writer a remote reader with this topic data can be matched
+  //! to (topic, type and reliability compatible). Several local writers may
+  //! share a topic; the remote reader gets a proxy on each. Fills `out`,
+  //! returns the count. Takes m_mutex only for the walk.
+  using Writers = std::array<Writer *, Config::NUM_WRITERS_PER_PARTICIPANT>;
+  std::size_t getMatchingWriters(const TopicData &topicData, Writers &out);
+  std::size_t getMatchingWriters(const TopicDataCompressed &topicData, Writers &out);
 
   //! (Probably) Thread safe if readers cannot be removed
   Reader *getReader(EntityId_t id);
@@ -103,8 +112,21 @@ public:
   Reader *getReaderByWriterId(const Guid_t &guid);
   //! See getWriter(id, generation_out).
   Reader *getReaderByWriterId(const Guid_t &guid, uint32_t &generation_out);
+  //! Every local reader matched to the remote writer `guid`, each with its
+  //! slot generation captured under m_mutex (see getWriter(id,
+  //! generation_out)). A submessage that leaves the reader unnamed (readerId
+  //! ENTITYID_UNKNOWN: multicast, or a writer sending to several readers at
+  //! once) is for all of them; getReaderByWriterId() finds only the first.
+  using ReaderRef = rtps::ReaderRef;   // see rtps/entities/ReaderRef.hpp
+  using ReaderRefs = rtps::ReaderRefs; // (shared with the MessageReceiver)
+  std::size_t getReadersByWriterId(const Guid_t &guid, ReaderRefs &out);
   Reader *getMatchingReader(const TopicData &topicData);
   Reader *getMatchingReader(const TopicDataCompressed &topicData);
+  //! Every local reader a remote writer with this topic data can be matched
+  //! to; see getMatchingWriters().
+  using Readers = std::array<Reader *, Config::NUM_READERS_PER_PARTICIPANT>;
+  std::size_t getMatchingReaders(const TopicData &topicData, Readers &out);
+  std::size_t getMatchingReaders(const TopicDataCompressed &topicData, Readers &out);
 
   bool addNewRemoteParticipant(const ParticipantProxyData &remotePart);
   bool removeRemoteParticipant(const GuidPrefix_t &prefix);

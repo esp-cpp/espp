@@ -25,6 +25,16 @@ bool rtps::Writer::addNewMatchedReader(const ReaderProxy &newProxy) {
   return success;
 }
 
+bool rtps::Writer::isProxy(const Guid_t &guid) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  for (const auto &proxy : m_proxies) {
+    if (proxy.remoteReaderGuid == guid) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool rtps::Writer::removeProxy(const Guid_t &guid) {
   INIT_GUARD()
   std::lock_guard<std::recursive_mutex> lock(m_mutex);

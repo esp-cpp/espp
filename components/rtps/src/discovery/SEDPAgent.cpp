@@ -32,6 +32,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/utils/CdrBuffer.hpp"
 #include "rtps/utils/Log.hpp"
 #include <algorithm>
+#include <array>
 #include <mutex>
 #include <span>
 
@@ -220,8 +221,13 @@ void SEDPAgent::handlePublisherReaderMessage(const TopicData &writerData,
 #if SEDP_VERBOSE
   SEDP_LOG("PUB T/D {}/{}", writerData.topicName, writerData.typeName);
 #endif
-  Reader *reader = m_part->getMatchingReader(writerData);
-  if (reader == nullptr) {
+  // Every local reader on the topic gets the writer (several readers may
+  // share a topic; a DATA the writer addresses to ENTITYID_UNKNOWN is for all
+  // of them, see Participant::getReadersByWriterId). Only when none exists
+  // does the writer wait in the unmatched registry.
+  Participant::Readers readers;
+  const std::size_t count = m_part->getMatchingReaders(writerData, readers);
+  if (count == 0) {
 #if SEDP_VERBOSE
     SEDP_LOG("SEDPAgent: Couldn't find reader for new Publisher[{}, {}]", writerData.topicName,
              writerData.typeName);
@@ -239,18 +245,37 @@ void SEDPAgent::handlePublisherReaderMessage(const TopicData &writerData,
 #endif
   const WriterProxy proxy{writerData.endpointGuid, endpointUnicastLocator(m_part, writerData),
                           (writerData.reliabilityKind == ReliabilityKind_t::RELIABLE)};
-  if (reader->addNewMatchedWriter(proxy) &&
-      writerData.reliabilityKind == ReliabilityKind_t::RELIABLE) {
+  for (std::size_t i = 0; i < count; ++i) {
+    matchRemoteWriter(*readers[i], proxy);
+  }
+  if (mfp_onNewPublisherCallback != nullptr) {
+    mfp_onNewPublisherCallback(m_onNewPublisherArgs);
+  }
+}
+
+bool SEDPAgent::matchRemoteWriter(Reader &reader, const WriterProxy &proxy) {
+  if (reader.isProxy(proxy.remoteWriterGuid)) {
+    return true; // a re-announcement, or a retry from the unmatched registry
+  }
+  if (!reader.addNewMatchedWriter(proxy)) {
+    return false;
+  }
+  if (proxy.is_reliable) {
     // Tell the writer we exist, as the SEDP readers do on participant discovery
     // and as Fast DDS and Cyclone DDS readers do on every match: the writer's
     // ReaderProxy::acknowledged is what a service client waits for before it
     // sends (ServiceClient::wait_for_server), and a writer with an empty history
     // sends no HEARTBEAT for us to answer otherwise.
-    reader->sendPreemptiveAckNack(proxy);
+    reader.sendPreemptiveAckNack(proxy);
   }
-  if (mfp_onNewPublisherCallback != nullptr) {
-    mfp_onNewPublisherCallback(m_onNewPublisherArgs);
+  return true;
+}
+
+bool SEDPAgent::matchRemoteReader(Writer &writer, const ReaderProxy &proxy) {
+  if (writer.isProxy(proxy.remoteReaderGuid)) {
+    return true;
   }
+  return writer.addNewMatchedReader(proxy);
 }
 
 void SEDPAgent::handleSubscriptionReaderMessage(const ReaderCacheChange &change) {
@@ -367,11 +392,12 @@ void SEDPAgent::handleSubscriptionReaderMessage(const TopicData &readerData,
     return;
   }
 
-  Writer *writer = m_part->getMatchingWriter(readerData);
+  Participant::Writers writers;
+  const std::size_t count = m_part->getMatchingWriters(readerData, writers);
 #if SEDP_VERBOSE
   SEDP_LOG("SUB T/D {}/{}", readerData.topicName, readerData.typeName);
 #endif
-  if (writer == nullptr) {
+  if (count == 0) {
 #if SEDP_VERBOSE
     SEDP_LOG("SEDPAgent: Couldn't find writer for new subscriber[{}, {}]", readerData.topicName,
              readerData.typeName);
@@ -388,15 +414,15 @@ void SEDPAgent::handleSubscriptionReaderMessage(const TopicData &readerData,
     SEDP_LOG("Found a new best-effort subscriber");
   }
 #endif
-  if (readerData.multicastLocator.kind == rtps::LocatorKind_t::LOCATOR_KIND_UDPv4) {
-    writer->addNewMatchedReader(
-        ReaderProxy{readerData.endpointGuid, endpointUnicastLocator(m_part, readerData),
-                    LocatorIPv4(readerData.multicastLocator),
-                    (readerData.reliabilityKind == ReliabilityKind_t::RELIABLE)});
-  } else {
-    writer->addNewMatchedReader(
-        ReaderProxy{readerData.endpointGuid, endpointUnicastLocator(m_part, readerData),
-                    (readerData.reliabilityKind == ReliabilityKind_t::RELIABLE)});
+  const bool reliable = readerData.reliabilityKind == ReliabilityKind_t::RELIABLE;
+  const ReaderProxy proxy =
+      readerData.multicastLocator.kind == rtps::LocatorKind_t::LOCATOR_KIND_UDPv4
+          ? ReaderProxy{readerData.endpointGuid, endpointUnicastLocator(m_part, readerData),
+                        LocatorIPv4(readerData.multicastLocator), reliable}
+          : ReaderProxy{readerData.endpointGuid, endpointUnicastLocator(m_part, readerData),
+                        reliable};
+  for (std::size_t i = 0; i < count; ++i) {
+    matchRemoteReader(*writers[i], proxy); // every local writer on the topic
   }
 
   if (mfp_onNewSubscriberCallback != nullptr) {
@@ -405,26 +431,47 @@ void SEDPAgent::handleSubscriptionReaderMessage(const TopicData &readerData,
 }
 
 void SEDPAgent::tryMatchUnmatchedEndpoints() {
-  // Try to match remote readers with local writers
+  // The registry is a pool iterated here and mutated by removeUnmatchedEntity:
+  // collect what matched, remove afterwards.
+  std::array<Guid_t, Config::MAX_NUM_UNMATCHED_REMOTE_READERS> matched_readers;
+  std::size_t num_matched_readers = 0;
   for (auto &proxy : m_unmatchedRemoteReaders) {
-    auto writer = m_part->getMatchingWriter(proxy);
-    if (writer != nullptr) {
-      writer->addNewMatchedReader(ReaderProxy{proxy.endpointGuid, proxy.unicastLocator,
-                                              proxy.multicastLocator, proxy.is_reliable});
-      removeUnmatchedEntity(proxy.endpointGuid);
+    Participant::Writers writers;
+    const std::size_t count = m_part->getMatchingWriters(proxy, writers);
+    if (count == 0) {
+      continue;
+    }
+    const ReaderProxy reader_proxy{proxy.endpointGuid, proxy.unicastLocator, proxy.multicastLocator,
+                                   proxy.is_reliable};
+    for (std::size_t i = 0; i < count; ++i) {
+      matchRemoteReader(*writers[i], reader_proxy);
+    }
+    if (num_matched_readers < matched_readers.size()) {
+      matched_readers[num_matched_readers++] = proxy.endpointGuid;
     }
   }
+  for (std::size_t i = 0; i < num_matched_readers; ++i) {
+    removeUnmatchedEntity(matched_readers[i]);
+  }
 
-  // Try to match remote writers with local readers
+  std::array<Guid_t, Config::MAX_NUM_UNMATCHED_REMOTE_WRITERS> matched_writers;
+  std::size_t num_matched_writers = 0;
   for (auto &proxy : m_unmatchedRemoteWriters) {
-    auto reader = m_part->getMatchingReader(proxy);
-    if (reader != nullptr) {
-      const WriterProxy writer_proxy{proxy.endpointGuid, proxy.unicastLocator, proxy.is_reliable};
-      if (reader->addNewMatchedWriter(writer_proxy) && proxy.is_reliable) {
-        reader->sendPreemptiveAckNack(writer_proxy); // see SEDPAgent::handlePublisherReaderMessage
-      }
-      removeUnmatchedEntity(proxy.endpointGuid);
+    Participant::Readers readers;
+    const std::size_t count = m_part->getMatchingReaders(proxy, readers);
+    if (count == 0) {
+      continue;
     }
+    const WriterProxy writer_proxy{proxy.endpointGuid, proxy.unicastLocator, proxy.is_reliable};
+    for (std::size_t i = 0; i < count; ++i) {
+      matchRemoteWriter(*readers[i], writer_proxy);
+    }
+    if (num_matched_writers < matched_writers.size()) {
+      matched_writers[num_matched_writers++] = proxy.endpointGuid;
+    }
+  }
+  for (std::size_t i = 0; i < num_matched_writers; ++i) {
+    removeUnmatchedEntity(matched_writers[i]);
   }
 }
 

@@ -101,6 +101,12 @@ private:
   /// in the payload's endpoint GUID).
   /// `writers`: the change came over the publications leg (else subscriptions).
   void handleRemoteEndpointDeletion(const ReaderCacheChange &change, bool writers);
+  /// Give a local reader the proxy of a remote writer (skipping one it already
+  /// has) and, for a reliable writer, send the pre-emptive ACKNACK. False when
+  /// the reader's proxy pool is full.
+  bool matchRemoteWriter(Reader &reader, const WriterProxy &proxy);
+  /// The same for a remote reader on a local writer.
+  bool matchRemoteReader(Writer &writer, const ReaderProxy &proxy);
   /// The same told by a status-info parameter inside the payload.
   void handleRemoteEndpointDeletion(const TopicData &topic, const ReaderCacheChange &change,
                                     bool writers);
