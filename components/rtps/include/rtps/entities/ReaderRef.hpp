@@ -18,8 +18,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE
 */
 
-#ifndef RTPS_READERREF_H
-#define RTPS_READERREF_H
+#ifndef RTPS_ENTITIES_READER_REF_HPP
+#define RTPS_ENTITIES_READER_REF_HPP
 
 #include "rtps/config.hpp"
 #include <array>
@@ -43,4 +43,4 @@ struct ReaderRef {
 using ReaderRefs = std::array<ReaderRef, Config::NUM_READERS_PER_PARTICIPANT>;
 } // namespace rtps
 
-#endif // RTPS_READERREF_H
+#endif // RTPS_ENTITIES_READER_REF_HPP

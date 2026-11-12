@@ -253,7 +253,7 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
   // dispatch through the guarded wrapper: the endpoint can be deleted (and its
   // slot reused) between resolving the pointer and delivering, and a stale
   // delivery must not reach the slot's NEXT endpoint (wrong topic/callback).
-  Participant::ReaderRefs readers;
+  Participant::ReaderRefs readers{};
   const std::size_t numReaders = resolveReaders(dataSubmsg.readerId, dataSubmsg.writerId,
                                                 sourceState.sourceGuidPrefix, readers);
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -371,7 +371,7 @@ bool MessageReceiver::processDataFragSubmessage(MessageProcessingInfo &msgInfo,
   }
   const DataSize_t fragDataLen = static_cast<DataSize_t>(submessageEnd - serializedData);
 
-  Participant::ReaderRefs readers;
+  Participant::ReaderRefs readers{};
   const std::size_t numReaders =
       resolveReaders(frag.readerId, frag.writerId, sourceState.sourceGuidPrefix, readers);
   Guid_t writerGuid{sourceState.sourceGuidPrefix, frag.writerId};
@@ -396,7 +396,7 @@ bool MessageReceiver::processHeartbeatSubmessage(MessageProcessingInfo &msgInfo,
   // reader (readerId ENTITYID_UNKNOWN, RTPS 2.5 8.3.7.5): CycloneDDS sends its
   // SEDP and user-data heartbeats this way. Resolved through the writer, to
   // every reader matched to it, as the DATA path does.
-  Participant::ReaderRefs readers;
+  Participant::ReaderRefs readers{};
   const std::size_t numReaders =
       resolveReaders(submsgHB.readerId, submsgHB.writerId, sourceState.sourceGuidPrefix, readers);
   if (numReaders == 0) {
@@ -434,7 +434,7 @@ bool MessageReceiver::processGapSubmessage(MessageProcessingInfo &msgInfo,
     return false;
   }
 
-  Participant::ReaderRefs readers;
+  Participant::ReaderRefs readers{};
   const std::size_t numReaders =
       resolveReaders(submsgGap.readerId, submsgGap.writerId, sourceState.sourceGuidPrefix, readers);
   if (numReaders == 0) {
