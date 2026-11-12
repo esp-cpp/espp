@@ -846,13 +846,18 @@ protected:
   std::vector<std::shared_ptr<ServiceClient>> service_clients_;
   /// Service replies held until their requester's reply reader is matched (see
   /// Config::service_reply_match_timeout and ServiceResponder::reply()): the
-  /// servers holding one, and the timer that re-checks them every 20 ms. The
-  /// timer is created on the first held reply and destroyed by stop().
+  /// servers holding one. A match flushes them at once (the engine's
+  /// subscriber-matched callback); a timer, alive only while something is
+  /// held, enforces the deadline. stop() destroys it.
   std::mutex held_replies_mutex_;
   std::vector<std::weak_ptr<ServiceServerContext>> servers_with_held_replies_;
   std::unique_ptr<espp::Timer> held_replies_timer_;
+  bool held_replies_timer_done_{false}; ///< the timer cancelled itself (under held_replies_mutex_)
   void note_held_reply(const std::shared_ptr<ServiceServerContext> &server);
-  void sweep_held_replies();
+  /// Write every held reply whose reader is now matched (or whose deadline
+  /// passed); true while something is still held.
+  bool sweep_held_replies();
+  void flush_held_replies(); ///< sweep, when anything is held (the match path)
 
   struct ActionServerContext;
   std::vector<std::shared_ptr<ActionServerContext>> action_servers_;

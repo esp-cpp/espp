@@ -252,9 +252,9 @@ bool RtpsParticipant::start() {
   if (config_.on_publisher_matched) {
     participant_->registerOnNewPublisherMatchedCallback(&publisher_matched_trampoline, this);
   }
-  if (config_.on_subscriber_matched) {
-    participant_->registerOnNewSubscriberMatchedCallback(&subscriber_matched_trampoline, this);
-  }
+  // Always hooked: besides the user's callback, a writer gaining a reader is
+  // what a held service reply waits for (see subscriber_matched_trampoline).
+  participant_->registerOnNewSubscriberMatchedCallback(&subscriber_matched_trampoline, this);
 
   if (!domain_->completeInit()) {
     logger_.error("RTPS domain init failed");
@@ -838,9 +838,19 @@ void RtpsParticipant::publisher_matched_trampoline(void *arg) {
 
 void RtpsParticipant::subscriber_matched_trampoline(void *arg) {
   auto *self = static_cast<RtpsParticipant *>(arg);
-  if (self != nullptr && self->config_.on_subscriber_matched) {
+  if (self == nullptr) {
+    return;
+  }
+  if (self->config_.on_subscriber_matched) {
     self->config_.on_subscriber_matched();
   }
+#ifdef RTPS_WITH_RPC
+  // A local writer gained a remote reader: a held service reply may be waiting
+  // for exactly this match. Runs on the SEDP receive worker under the SEDP
+  // mutex; the sweep's locks (participant liveness -> endpoint liveness -> held
+  // table -> writer) are only ever taken after it, never before it.
+  self->flush_held_replies();
+#endif
 }
 
 #ifdef RTPS_WITH_RPC
@@ -1043,36 +1053,62 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
 }
 
 void RtpsParticipant::note_held_reply(const std::shared_ptr<ServiceServerContext> &server) {
-  std::lock_guard<std::mutex> lock(held_replies_mutex_);
-  const bool listed =
-      std::any_of(servers_with_held_replies_.begin(), servers_with_held_replies_.end(),
-                  [&](const std::weak_ptr<ServiceServerContext> &w) {
-                    return !w.owner_before(server) && !server.owner_before(w);
-                  });
-  if (!listed) {
-    servers_with_held_replies_.push_back(server);
+  std::unique_ptr<espp::Timer> finished; // a self-cancelled timer, destroyed outside the lock
+  {
+    std::lock_guard<std::mutex> lock(held_replies_mutex_);
+    const bool listed =
+        std::any_of(servers_with_held_replies_.begin(), servers_with_held_replies_.end(),
+                    [&](const std::weak_ptr<ServiceServerContext> &w) {
+                      return !w.owner_before(server) && !server.owner_before(w);
+                    });
+    if (!listed) {
+      servers_with_held_replies_.push_back(server);
+    }
+    if (held_replies_timer_ && !held_replies_timer_done_) {
+      return; // running: it sweeps until nothing is held
+    }
+    // The match itself flushes a held reply (subscriber_matched_trampoline);
+    // this timer only enforces the deadline and backs the match up, so it runs
+    // at a tenth of the default timeout and cancels itself once nothing is
+    // held. A cancelled espp::Timer cannot be restarted (see
+    // DeferredDispatch::ensure_retry_timer_locked), so the next hold replaces
+    // it - the old object is destroyed after the lock is released, as its task
+    // may still be returning from the callback that cancelled it.
+    finished = std::move(held_replies_timer_);
+    held_replies_timer_done_ = false;
+    held_replies_timer_ = std::make_unique<espp::Timer>(espp::Timer::Config{
+        .name = "rtps_reply_hold",
+        .period = std::chrono::milliseconds(100),
+        .delay = std::chrono::milliseconds(100),
+        .callback = [this]() -> bool {
+          if (sweep_held_replies()) {
+            return false; // something is still held
+          }
+          std::lock_guard<std::mutex> lock(held_replies_mutex_);
+          if (!servers_with_held_replies_.empty()) {
+            return false; // a reply was held while the sweep ran
+          }
+          held_replies_timer_done_ = true; // the next hold replaces this timer
+          return true;
+        },
+        .auto_start = true,
+        .log_level = espp::Logger::Verbosity::WARN,
+    });
   }
-  if (held_replies_timer_) {
-    return;
-  }
-  // One sweep timer per participant, started by the first held reply and kept
-  // until stop() (an espp::Timer that self-cancels cannot be restarted - see
-  // DeferredDispatch::ensure_retry_timer_locked). 20 ms bounds the extra reply
-  // latency after the match; the SEDP exchange it waits for takes longer.
-  held_replies_timer_ = std::make_unique<espp::Timer>(espp::Timer::Config{
-      .name = "rtps_reply_hold",
-      .period = std::chrono::milliseconds(20),
-      .delay = std::chrono::milliseconds(20),
-      .callback = [this]() -> bool {
-        sweep_held_replies();
-        return false;
-      },
-      .auto_start = true,
-      .log_level = espp::Logger::Verbosity::WARN,
-  });
+  finished.reset();
 }
 
-void RtpsParticipant::sweep_held_replies() {
+void RtpsParticipant::flush_held_replies() {
+  {
+    std::lock_guard<std::mutex> lock(held_replies_mutex_);
+    if (servers_with_held_replies_.empty()) {
+      return; // the common case: nothing is waiting
+    }
+  }
+  sweep_held_replies();
+}
+
+bool RtpsParticipant::sweep_held_replies() {
   std::vector<std::shared_ptr<ServiceServerContext>> servers;
   {
     std::lock_guard<std::mutex> lock(held_replies_mutex_);
@@ -1086,18 +1122,18 @@ void RtpsParticipant::sweep_held_replies() {
   }
   const auto now = std::chrono::steady_clock::now();
   for (const auto &server : servers) {
-    std::vector<ServiceServerContext::HeldReply> due;
     {
       // Same locks and order as ServiceResponder::reply(): the writer is valid
       // only while both liveness tokens say so.
       std::lock_guard<std::mutex> live_lock(live_->m);
       if (!live_->alive) {
-        return;
+        return false; // stopping: stop() forgets the held replies
       }
       std::lock_guard<std::mutex> endpoint_lock(server->writer_live->m);
       if (!server->writer_live->alive || server->reply_writer == nullptr) {
         continue; // being removed: remove_service_server() drops what it held
       }
+      std::vector<ServiceServerContext::HeldReply> due;
       {
         std::lock_guard<std::mutex> held_lock(server->held_mutex);
         std::erase_if(server->held, [&](ServiceServerContext::HeldReply &reply) {
@@ -1129,6 +1165,8 @@ void RtpsParticipant::sweep_held_replies() {
       });
     }
   }
+  std::lock_guard<std::mutex> lock(held_replies_mutex_);
+  return !servers_with_held_replies_.empty();
 }
 
 // Client state: request writer + pending-request table. Against an inline-QoS
