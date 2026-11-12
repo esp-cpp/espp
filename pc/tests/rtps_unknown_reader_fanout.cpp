@@ -32,6 +32,9 @@
 //     created later. Now a reader B on the topic gets the writer at creation,
 //     a late local writer gets the remote reader, and a remote writer
 //     disposed before the late creation is not matched.
+//  6. A writer announced without a unicast locator is remembered with its
+//     participant's default locator (the SPDP fallback), so a reader created
+//     later can reach it.
 //
 // Exits 0 on success, 1 on the first failed check.
 
@@ -158,7 +161,7 @@ std::vector<uint8_t> spdp_payload(const rtps::GuidPrefix_t &prefix) {
 }
 
 std::vector<uint8_t> sedp_payload(const rtps::Guid_t &endpoint, const char *topic, const char *type,
-                                  bool reliable) {
+                                  bool reliable, bool with_locator = true) {
   using rtps::SMElement::ParameterId;
   std::vector<uint8_t> p = encapsulation();
   push_param(p, ParameterId::PID_ENDPOINT_GUID, guid_value(endpoint));
@@ -172,7 +175,9 @@ std::vector<uint8_t> sedp_payload(const rtps::Guid_t &endpoint, const char *topi
     push_u32(rel, 0);
     push_param(p, ParameterId::PID_RELIABILITY, rel);
   }
-  push_param(p, ParameterId::PID_UNICAST_LOCATOR, locator_value(7411));
+  if (with_locator) {
+    push_param(p, ParameterId::PID_UNICAST_LOCATOR, locator_value(7411));
+  }
   push_sentinel(p);
   return p;
 }
@@ -377,6 +382,25 @@ bool run_checks() {
   CHECK(gone != nullptr, "a reader on the disposed writer's topic");
   CHECK(gone->getProxiesCount() == 0,
         "a remote writer disposed before the reader was created is not matched");
+
+  // 6. A remote writer that announces no PID_UNICAST_LOCATOR (Cyclone DDS
+  //    relies on its participant's default locator): the registry keeps the
+  //    locator as resolved for a match, so a reader created later sends to
+  //    the participant's default unicast locator (port 7411 in spdp_payload),
+  //    not to an invalid one.
+  const rtps::Guid_t nolocator_writer{
+      peer, {{0x00, 0x00, 0x05}, rtps::EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY}};
+  feed(part, data_message(peer, rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER,
+                          rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER, ++pub_sn,
+                          sedp_payload(nolocator_writer, "nolocator_topic", kType, true,
+                                       /*with_locator=*/false)));
+  rtps::Reader *late_nl = domain.createReader(*part, "nolocator_topic", kType, true, {0, 0, 0, 0});
+  CHECK(late_nl != nullptr, "a reader created after a locator-less announcement");
+  const rtps::WriterProxy *nl_proxy = late_nl->getProxy(nolocator_writer);
+  CHECK(nl_proxy != nullptr, "it is matched to the remembered writer");
+  CHECK(nl_proxy->remoteLocator.isValid() && nl_proxy->remoteLocator.port == 7411,
+        "the remembered record carries the participant's default unicast locator");
+
   return true;
 }
 

@@ -173,7 +173,9 @@ note "Two local readers on one topic: both matched, both get a DATA / HEARTBEAT 
 "$BIN"/rtps_unknown_reader_fanout; result "unknown_reader_fanout" $?
 
 note "remove_reader while the reader's callback creates a writer: no Domain-mutex deadlock (host)"
-"$BIN"/rtps_delete_reader_callback_domain_api; result "delete_reader_callback_domain_api" $?
+# Bounded like rtps_remove_reader_deadlock: a regression of the deadlock would
+# otherwise stall the harness in the participant teardown.
+timeout 60 "$BIN"/rtps_delete_reader_callback_domain_api; result "delete_reader_callback_domain_api" $?
 
 note "A remote endpoint that found no room in a proxy pool waits unmatched and takes a freed slot (host)"
 "$BIN"/rtps_proxy_pool_full_match; result "proxy_pool_full_match" $?

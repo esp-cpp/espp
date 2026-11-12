@@ -141,11 +141,19 @@ rtps::LocatorIPv4 endpointUnicastLocator(rtps::Participant *part, const rtps::To
 } // namespace
 
 void SEDPAgent::rememberRemoteWriter(const TopicData &writerData) {
-  rememberRemoteWriter(TopicDataCompressed(writerData));
+  // The record keeps the locator the endpoint's traffic goes to, resolved as
+  // for a match now (endpointUnicastLocator): a peer that announces no
+  // PID_UNICAST_LOCATOR (Cyclone DDS) uses its participant's default, and a
+  // local reader created later must get that one, not an invalid locator.
+  TopicDataCompressed record(writerData);
+  record.unicastLocator = endpointUnicastLocator(m_part, writerData);
+  rememberRemoteWriter(record);
 }
 
 void SEDPAgent::rememberRemoteReader(const TopicData &readerData) {
-  rememberRemoteReader(TopicDataCompressed(readerData));
+  TopicDataCompressed record(readerData);
+  record.unicastLocator = endpointUnicastLocator(m_part, readerData); // see above
+  rememberRemoteReader(record);
 }
 
 void SEDPAgent::rememberRemoteWriter(const TopicDataCompressed &writerData) {
