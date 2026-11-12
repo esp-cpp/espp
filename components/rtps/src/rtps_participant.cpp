@@ -1936,7 +1936,7 @@ struct RtpsParticipant::ActionGoalHandle::State {
   ract::GoalStatus status{ract::GoalStatus::ACCEPTED};
   bool done{false};                  // terminate() has run
   bool result_delivered{false};      // get_result answered -> goal may be retired
-  std::vector<uint8_t> result;       // set on terminate
+  std::vector<uint8_t> response;     // the GetResult_Response, set on terminate
   ServiceResponder result_responder; // pending get_result (if any)
   std::atomic<bool> cancel_requested{false};
 };
@@ -1945,6 +1945,7 @@ struct RtpsParticipant::ActionServerContext {
   RtpsParticipant *self{nullptr};
   std::string feedback_topic;
   std::string status_topic;
+  std::vector<uint8_t> unknown_goal_response; // ActionConfig::unknown_goal_response
   action_execute_callback_t execute{nullptr};
   std::mutex goals_mutex;
   std::map<ract::GoalUuid, std::shared_ptr<ActionGoalHandle::State>> goals;
@@ -1984,6 +1985,13 @@ static void publish_goal_status(RtpsParticipant *self, const std::string &status
 void RtpsParticipant::ActionGoalHandle::terminate(int status_value,
                                                   std::span<const uint8_t> result) const {
   const auto status = static_cast<ract::GoalStatus>(static_cast<int8_t>(status_value));
+  const auto response = ract::wrap_get_result_response(status, result);
+  terminate_with_response(static_cast<int8_t>(status_value), response);
+}
+
+void RtpsParticipant::ActionGoalHandle::terminate_with_response(
+    int8_t status_value, std::span<const uint8_t> get_result_response) const {
+  const auto status = static_cast<ract::GoalStatus>(status_value);
   ServiceResponder responder;
   bool retire = false;
   {
@@ -1993,7 +2001,7 @@ void RtpsParticipant::ActionGoalHandle::terminate(int status_value,
     }
     state_->done = true;
     state_->status = status;
-    state_->result.assign(result.begin(), result.end());
+    state_->response.assign(get_result_response.begin(), get_result_response.end());
     if (state_->result_responder.valid()) {
       responder = state_->result_responder; // get_result already waiting
       state_->result_delivered = true;
@@ -2002,8 +2010,7 @@ void RtpsParticipant::ActionGoalHandle::terminate(int status_value,
   }
   publish_goal_status(state_->self, state_->status_topic, state_->goal_id, status);
   if (responder.valid()) {
-    responder.reply(
-        ract::wrap_get_result_response(status, {state_->result.data(), state_->result.size()}));
+    responder.reply({state_->response.data(), state_->response.size()});
   }
   if (retire) {
     // Terminated with the client's get_result already waiting: it now has the
@@ -2138,6 +2145,7 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
   ctx->self = this;
   ctx->feedback_topic = rtps::rpc::action_feedback_topic(config.action);
   ctx->status_topic = rtps::rpc::action_status_topic(config.action);
+  ctx->unknown_goal_response = config.unknown_goal_response;
   ctx->execute = std::move(execute);
 
   // Feedback + status publishers (plain reliable topics). The action's
@@ -2242,43 +2250,49 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
   const ServiceConfig get_result_cfg{rtps::rpc::action_get_result_service(config.action),
                                      rtps::rpc::action_get_result_type(config.type_name),
                                      config.band, config.dscp};
-  ok = ok && add_deferred_tracked(
-                 get_result_cfg, [weak](std::span<const uint8_t> req, ServiceResponder responder) {
-                   auto server = weak.lock();
-                   ract::GoalUuid id{};
-                   if (server == nullptr || !ract::parse_get_result_request(req, id)) {
-                     return;
-                   }
-                   std::shared_ptr<ActionGoalHandle::State> gstate;
-                   {
-                     std::lock_guard<std::mutex> lock(server->goals_mutex);
-                     auto it = server->goals.find(id);
-                     if (it != server->goals.end()) {
-                       gstate = it->second;
-                     }
-                   }
-                   if (gstate == nullptr) {
-                     responder.reply(ract::wrap_get_result_response(ract::GoalStatus::UNKNOWN, {}));
-                     return;
-                   }
-                   bool retire = false;
-                   {
-                     std::lock_guard<std::mutex> lock(gstate->mutex);
-                     if (gstate->done) {
-                       responder.reply(ract::wrap_get_result_response(
-                           gstate->status, {gstate->result.data(), gstate->result.size()}));
-                       gstate->result_delivered = true;
-                       retire = true;
-                     } else {
-                       gstate->result_responder = responder; // fulfilled on terminate()
-                     }
-                   }
-                   if (retire) {
-                     // Client has its result: drop the goal from the server map.
-                     std::lock_guard<std::mutex> glock(server->goals_mutex);
-                     server->goals.erase(id);
-                   }
-                 });
+  ok = ok && add_deferred_tracked(get_result_cfg, [weak](std::span<const uint8_t> req,
+                                                         ServiceResponder responder) {
+         auto server = weak.lock();
+         ract::GoalUuid id{};
+         if (server == nullptr || !ract::parse_get_result_request(req, id)) {
+           return;
+         }
+         std::shared_ptr<ActionGoalHandle::State> gstate;
+         {
+           std::lock_guard<std::mutex> lock(server->goals_mutex);
+           auto it = server->goals.find(id);
+           if (it != server->goals.end()) {
+             gstate = it->second;
+           }
+         }
+         if (gstate == nullptr) {
+           // Unknown goal: the configured well-formed response, else
+           // the bare status (parses only for an empty Result).
+           if (!server->unknown_goal_response.empty()) {
+             responder.reply(
+                 {server->unknown_goal_response.data(), server->unknown_goal_response.size()});
+           } else {
+             responder.reply(ract::wrap_get_result_response(ract::GoalStatus::UNKNOWN, {}));
+           }
+           return;
+         }
+         bool retire = false;
+         {
+           std::lock_guard<std::mutex> lock(gstate->mutex);
+           if (gstate->done) {
+             responder.reply({gstate->response.data(), gstate->response.size()});
+             gstate->result_delivered = true;
+             retire = true;
+           } else {
+             gstate->result_responder = responder; // fulfilled on terminate()
+           }
+         }
+         if (retire) {
+           // Client has its result: drop the goal from the server map.
+           std::lock_guard<std::mutex> glock(server->goals_mutex);
+           server->goals.erase(id);
+         }
+       });
 
   // cancel_goal service: mark the goal canceling; the execute callback observes
   // is_canceling(). Minimal CancelGoal_Response (return_code=0, empty list).
@@ -2362,6 +2376,7 @@ struct RtpsParticipant::ActionClient::Impl {
   struct Goal {
     feedback_callback_t on_feedback{nullptr};
     result_callback_t on_result{nullptr};
+    result_response_callback_t on_response{nullptr}; // send_goal_raw: the raw response
   };
   RtpsParticipant *self{nullptr};
   std::shared_ptr<ServiceClient> send_goal_client;
@@ -2396,55 +2411,80 @@ bool RtpsParticipant::ActionClient::wait_for_server(std::chrono::milliseconds ti
 
 std::optional<RtpsParticipant::GoalId> RtpsParticipant::ActionClient::send_goal(
     std::span<const uint8_t> goal, feedback_callback_t on_feedback, result_callback_t on_result) {
+  return send_goal_impl(goal, std::move(on_feedback), std::move(on_result), nullptr);
+}
+
+std::optional<RtpsParticipant::GoalId>
+RtpsParticipant::ActionClient::send_goal_raw(std::span<const uint8_t> goal,
+                                             feedback_callback_t on_feedback,
+                                             result_response_callback_t on_response) {
+  return send_goal_impl(goal, std::move(on_feedback), nullptr, std::move(on_response));
+}
+
+std::optional<RtpsParticipant::GoalId> RtpsParticipant::ActionClient::send_goal_impl(
+    std::span<const uint8_t> goal, feedback_callback_t on_feedback, result_callback_t on_result,
+    result_response_callback_t on_response) {
   const ract::GoalUuid id = generate_goal_id();
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
-    impl_->goals[id] = Impl::Goal{std::move(on_feedback), std::move(on_result)};
+    impl_->goals[id] =
+        Impl::Goal{std::move(on_feedback), std::move(on_result), std::move(on_response)};
   }
   auto *impl = impl_.get();
-  const bool queued = impl->send_goal_client->call_async(
-      ract::wrap_send_goal_request(id, goal), [impl, id](std::span<const uint8_t> reply) {
+  // The goal ends in exactly one of: a rejection, the GetResult_Response, or an
+  // abandoned request (see ServiceConfig::request_timeout / stop()). The last
+  // two report ABORTED with no result rather than leaving the goal's callbacks
+  // in the map forever.
+  const auto finish = [impl, id](ract::GoalStatus status, std::span<const uint8_t> result,
+                                 std::span<const uint8_t> response) {
+    Impl::Goal g;
+    {
+      std::lock_guard<std::mutex> lock(impl->mutex);
+      auto it = impl->goals.find(id);
+      if (it == impl->goals.end()) {
+        return;
+      }
+      g = std::move(it->second);
+      impl->goals.erase(it);
+    }
+    if (g.on_response) {
+      g.on_response(response);
+    } else if (g.on_result) {
+      g.on_result(static_cast<int8_t>(status), result);
+    }
+  };
+  const auto abandoned = [finish]() { finish(ract::GoalStatus::ABORTED, {}, {}); };
+  const auto queued = impl->send_goal_client->impl_->send(
+      ract::wrap_send_goal_request(id, goal),
+      [impl, id, finish, abandoned](std::span<const uint8_t> reply) {
         bool accepted = false;
         if (!ract::parse_send_goal_response(reply, accepted) || !accepted) {
-          Impl::Goal g;
-          {
-            std::lock_guard<std::mutex> lock(impl->mutex);
-            auto it = impl->goals.find(id);
-            if (it == impl->goals.end()) {
-              return;
-            }
-            g = std::move(it->second);
-            impl->goals.erase(it);
-          }
-          if (g.on_result) {
-            g.on_result(static_cast<int8_t>(ract::GoalStatus::ABORTED), {});
-          }
+          finish(ract::GoalStatus::ABORTED, {}, {});
           return;
         }
         // Accepted: request the result (completes when the goal finishes).
-        impl->get_result_client->call_async(
-            ract::make_get_result_request(id), [impl, id](std::span<const uint8_t> res) {
+        const auto requested = impl->get_result_client->impl_->send(
+            ract::make_get_result_request(id),
+            [finish](std::span<const uint8_t> res) {
               ract::GoalStatus status{};
               std::vector<uint8_t> result;
-              ract::unwrap_get_result_response(res, status, result);
-              Impl::Goal g;
-              {
-                std::lock_guard<std::mutex> lock(impl->mutex);
-                auto it = impl->goals.find(id);
-                if (it == impl->goals.end()) {
-                  return;
-                }
-                g = std::move(it->second);
-                impl->goals.erase(it);
+              if (!ract::unwrap_get_result_response(res, status, result)) {
+                finish(ract::GoalStatus::ABORTED, {}, {}); // too short to be a response
+                return;
               }
-              if (g.on_result) {
-                g.on_result(static_cast<int8_t>(status), {result.data(), result.size()});
-              }
-            });
-      });
-  if (!queued) {
+              finish(status, {result.data(), result.size()}, res);
+            },
+            nullptr, abandoned);
+        if (!requested.has_value()) {
+          abandoned();
+        }
+      },
+      nullptr, abandoned);
+  if (!queued.has_value()) {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     impl_->goals.erase(id);
+    impl_->self->logger_.warn("Action client '{}': goal refused (see the service client's reason)",
+                              impl_->action);
     return std::nullopt;
   }
   return id;

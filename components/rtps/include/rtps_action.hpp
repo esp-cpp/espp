@@ -23,6 +23,18 @@ enum class GoalStatus : int8_t {
   ABORTED = 6,
 };
 
+/// @brief The ROS 2 GetResult_Response message for a Result type: `status`
+/// (a GoalStatus value, UNKNOWN 0 when the server does not know the goal) then
+/// the result. Serialized as ONE message so every field of the Result is
+/// aligned relative to the response (a result spliced in behind the status
+/// afterwards has its int64 / float64 fields off by 4 bytes, see
+/// rtps/rpc/action_types.hpp); the typed server and client exchange exactly
+/// these bytes with ROS 2 clients and servers.
+template <RtpsMessage Result> struct GetResultResponse {
+  int8_t status{0};
+  Result result{};
+};
+
 /// @brief Server-side handle to a running typed goal, passed to the execute
 /// callback (which runs on its own thread). Publish feedback and terminate the
 /// goal through it, all with typed messages (no manual CDR). Exactly one
@@ -53,36 +65,39 @@ public:
   }
   /// Terminate the goal as SUCCEEDED and deliver the result to the client.
   /// \param result The final result.
-  void succeed(const Result &result) const {
-    if (succeed_) {
-      succeed_(detail::rtps_serialize<Result>(result));
-    }
-  }
+  void succeed(const Result &result) const { terminate(GoalStatus::SUCCEEDED, result, succeed_); }
   /// Terminate the goal as ABORTED and deliver the result to the client.
   /// \param result The (partial/error) result.
-  void abort(const Result &result) const {
-    if (abort_) {
-      abort_(detail::rtps_serialize<Result>(result));
-    }
-  }
+  void abort(const Result &result) const { terminate(GoalStatus::ABORTED, result, abort_); }
   /// Terminate the goal as CANCELED (in response to is_canceling()) and deliver
   /// the (partial) result to the client.
   /// \param result The result gathered before cancellation.
-  void canceled(const Result &result) const {
-    if (canceled_) {
-      canceled_(detail::rtps_serialize<Result>(result));
-    }
-  }
+  void canceled(const Result &result) const { terminate(GoalStatus::CANCELED, result, canceled_); }
 
   /// @cond INTERNAL
   // Populated by ActionServer from a byte-level goal handle; not user-facing.
   Goal goal_{};
   std::function<void(std::span<const uint8_t>)> publish_feedback_;
+  // Native protocol: the result alone (its own framing).
   std::function<void(std::span<const uint8_t>)> succeed_;
   std::function<void(std::span<const uint8_t>)> abort_;
   std::function<void(std::span<const uint8_t>)> canceled_;
+  // ROS 2 protocol: the whole GetResult_Response (see GetResultResponse).
+  std::function<void(int8_t, std::span<const uint8_t>)> terminate_response_;
   std::function<bool()> is_canceling_;
   /// @endcond
+
+private:
+  void terminate(GoalStatus status, const Result &result,
+                 const std::function<void(std::span<const uint8_t>)> &native) const {
+    if (terminate_response_) {
+      terminate_response_(static_cast<int8_t>(status),
+                          detail::rtps_serialize<GetResultResponse<Result>>(
+                              GetResultResponse<Result>{static_cast<int8_t>(status), result}));
+    } else if (native) {
+      native(detail::rtps_serialize<Result>(result));
+    }
+  }
 };
 
 /// @brief Typed action server (AMI): runs long goals with typed Goal / Result /
@@ -162,8 +177,15 @@ public:
             }
           });
     } else {
+      // A ROS 2 client asking for a goal this server does not know gets a
+      // well-formed response: status UNKNOWN with a default Result.
       valid_ = participant.add_action_server(
-          {config.action, config.type_name, config.band, config.dscp},
+          {.action = config.action,
+           .type_name = config.type_name,
+           .band = config.band,
+           .dscp = config.dscp,
+           .unknown_goal_response = detail::rtps_serialize<GetResultResponse<Result>>(
+               GetResultResponse<Result>{0, Result{}})},
           [on_goal](const RtpsParticipant::GoalId &, std::span<const uint8_t> goal_bytes) -> bool {
             auto g = detail::rtps_deserialize<Goal>(goal_bytes);
             return g && (!on_goal || on_goal(*g));
@@ -176,9 +198,11 @@ public:
             Handle h;
             h.goal_ = std::move(*g);
             h.publish_feedback_ = [bh](std::span<const uint8_t> b) { bh.publish_feedback(b); };
-            h.succeed_ = [bh](std::span<const uint8_t> b) { bh.succeed(b); };
-            h.abort_ = [bh](std::span<const uint8_t> b) { bh.abort(b); };
-            h.canceled_ = [bh](std::span<const uint8_t> b) { bh.canceled(b); };
+            // The result travels inside the GetResult_Response, serialized as
+            // one message (GetResultResponse), never spliced in afterwards.
+            h.terminate_response_ = [bh](int8_t status, std::span<const uint8_t> response) {
+              bh.terminate_with_response(status, response);
+            };
             h.is_canceling_ = [bh]() { return bh.is_canceling(); };
             if (execute) {
               execute(h);
@@ -284,7 +308,20 @@ public:
       }
     };
     if (ros_) {
-      auto id = ros_->send_goal(goal_bytes, std::move(fb_cb), std::move(res_cb));
+      // The raw GetResult_Response, read as one message (GetResultResponse):
+      // a Result with int64 / float64 fields only decodes correctly this way.
+      // An empty / unreadable response is a rejected or abandoned goal.
+      auto response_cb = [on_result](std::span<const uint8_t> response) {
+        auto res = detail::rtps_deserialize<GetResultResponse<Result>>(response);
+        if (on_result) {
+          if (res) {
+            on_result(static_cast<GoalStatus>(res->status), res->result);
+          } else {
+            on_result(GoalStatus::ABORTED, Result{});
+          }
+        }
+      };
+      auto id = ros_->send_goal_raw(goal_bytes, std::move(fb_cb), std::move(response_cb));
       if (id) {
         std::lock_guard<std::mutex> lock(latest_->m);
         latest_->ros_id = *id;

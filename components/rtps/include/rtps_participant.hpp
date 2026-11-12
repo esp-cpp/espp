@@ -477,6 +477,14 @@ public:
     espp::QosBand band{espp::QosBand::Normal};
     /// Optional DSCP code point for the endpoints' dedicated sockets.
     std::optional<espp::Dscp> dscp{};
+    /// Server only (ROS 2 protocol): the complete CDR-encapsulated
+    /// GetResult_Response ({status: UNKNOWN, result: a default Result}) sent to
+    /// a client asking for the result of a goal this server does not know -
+    /// never accepted, or already retired. A ROS 2 client expects a
+    /// well-formed Result there; the typed espp::ActionServer fills this in.
+    /// Empty (the byte-level default) sends status UNKNOWN with no result
+    /// body, which only parses for an empty Result type.
+    std::vector<uint8_t> unknown_goal_response{};
   };
 
   /// Server-side handle to a running goal, passed to the execute callback (which
@@ -489,9 +497,20 @@ public:
     /// Publish a CDR-encapsulated feedback message for this goal.
     void publish_feedback(std::span<const uint8_t> feedback) const;
     /// Terminate the goal SUCCEEDED/ABORTED/CANCELED with a CDR result payload.
+    /// The result body is spliced behind the response's status field at CDR
+    /// offset 4, which is byte-exact only for a Result whose fields are at most
+    /// 4-byte aligned (see rtps/rpc/action_types.hpp); a Result with int64 /
+    /// float64 fields must go through terminate_with_response() (what the typed
+    /// espp::ActionServer does).
     void succeed(std::span<const uint8_t> result) const;
     void abort(std::span<const uint8_t> result) const;
     void canceled(std::span<const uint8_t> result) const;
+    /// Terminate the goal with a pre-built, CDR-encapsulated GetResult_Response
+    /// ({status, result} serialized as ONE message, so every field of the
+    /// result is aligned relative to the response). `status` (a GoalStatus
+    /// value: SUCCEEDED 4, CANCELED 5, ABORTED 6) drives the status topic; the
+    /// response is sent verbatim to get_result.
+    void terminate_with_response(int8_t status, std::span<const uint8_t> get_result_response) const;
     /// True if a cancel has been requested for this goal.
     bool is_canceling() const;
 
@@ -548,6 +567,18 @@ public:
     /// \return The generated goal id, or std::nullopt on failure.
     std::optional<GoalId> send_goal(std::span<const uint8_t> goal, feedback_callback_t on_feedback,
                                     result_callback_t on_result);
+    /// The complete CDR-encapsulated GetResult_Response ({status, result} as
+    /// one message), or an empty span when the goal was rejected / the
+    /// response could not be read.
+    using result_response_callback_t =
+        std::function<void(std::span<const uint8_t> get_result_response)>;
+    /// send_goal() delivering the raw GetResult_Response instead of a spliced
+    /// result: the way to read a Result with int64 / float64 fields correctly
+    /// (see ActionGoalHandle::terminate_with_response()); the typed
+    /// espp::ActionClient uses it.
+    std::optional<GoalId> send_goal_raw(std::span<const uint8_t> goal,
+                                        feedback_callback_t on_feedback,
+                                        result_response_callback_t on_response);
     /// Request cancellation of a previously sent goal.
     bool cancel_goal(const GoalId &goal_id);
 
@@ -555,6 +586,10 @@ public:
     friend class RtpsParticipant;
     struct Impl;
     explicit ActionClient(std::unique_ptr<Impl> impl);
+    std::optional<GoalId> send_goal_impl(std::span<const uint8_t> goal,
+                                         feedback_callback_t on_feedback,
+                                         result_callback_t on_result,
+                                         result_response_callback_t on_response);
     std::unique_ptr<Impl> impl_;
   };
 

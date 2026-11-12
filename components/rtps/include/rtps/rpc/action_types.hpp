@@ -37,11 +37,17 @@ This file is part of the espp embeddedRTPS port.
 // as long as the nested body starts at a CDR offset with matching alignment:
 //   - goal follows UUID(16)  -> offset 16 (8-aligned): correct for any field.
 //   - feedback follows UUID(16) -> offset 16 (8-aligned): correct for any field.
-//   - result follows status(1)+pad(3) -> offset 4 (4-aligned): correct when the
-//     result's first field is <= 4-byte aligned (int32/uint32/arrays/strings/
-//     nested of those). An 8-byte-aligned first field (int64/float64/uint64)
-//     would need one more pad; that case needs the typed (cdr-reflection) path
-//     and is out of scope for this byte-level v1.
+//   - result follows status(1)+pad(3) -> offset 4 (4-aligned): correct only
+//     when EVERY field of the result is at most 4-byte aligned (int32/uint32/
+//     float/bool/strings/arrays/nested of those). CDR aligns each field to the
+//     stream origin, so a standalone-serialized result (its fields aligned
+//     relative to its own offset 0) spliced in 4 bytes later has every int64 /
+//     float64 / uint64 field - first or not - off by 4. Such a Result must be
+//     serialized as part of the response ({status, result} as one message):
+//     RtpsParticipant::ActionGoalHandle::terminate_with_response() takes that
+//     pre-built response and ActionClient::send_goal_raw() hands it back; the
+//     typed espp::ActionServer / ActionClient (rtps_action.hpp,
+//     GetResultResponse<Result>) do exactly that.
 // ---------------------------------------------------------------------------
 
 #include <array>
