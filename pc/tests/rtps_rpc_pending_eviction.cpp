@@ -17,6 +17,10 @@
 //     nullopt (no exception).
 //  3. call() with a 10 s timeout returns nullopt within 500 ms of a stop()
 //     on another thread.
+//  4. The cap holds under concurrency, on both client kinds: with
+//     max_pending_requests 1 and nothing answering, 8 threads x 20 call_async
+//     get exactly ONE request through in total (the check used to run under
+//     an earlier hold of the lock than the insert).
 //
 // Exits 0 on success, 1 on failure.
 
@@ -98,6 +102,58 @@ int main() {
     return 1;
   }
   std::printf("server saw %d requests\n", requests_seen.load());
+
+  // 4. The cap under concurrency: one request in total gets through.
+  {
+    // A second never-answering service (a client per service name).
+    if (!server.add_service_server_deferred(
+            {.service = "/black_hole_capped", .type_name = kType},
+            [](std::span<const uint8_t>, Rtps::ServiceResponder) {})) {
+      std::printf("FAIL: add_service_server_deferred (capped)\n");
+      return 1;
+    }
+    auto one = client.add_service_client({.service = "/black_hole_capped",
+                                          .type_name = kType,
+                                          .request_timeout = 30s,
+                                          .max_pending_requests = 1});
+    auto one_native = client.add_native_service_client({.service = "/nobody_native",
+                                                        .type_name = "espp::native::Nobody",
+                                                        .request_timeout = 30s,
+                                                        .max_pending_requests = 1});
+    if (!one || !one_native || !one->wait_for_server(10s)) {
+      std::printf("FAIL: capped clients\n");
+      return 1;
+    }
+    std::atomic<int> through_ros{0};
+    std::atomic<int> through_native{0};
+    std::atomic<bool> go{false};
+    std::vector<std::thread> threads;
+    for (int t = 0; t < 8; ++t) {
+      threads.emplace_back([&]() {
+        while (!go.load()) {
+        }
+        for (int i = 0; i < 20; ++i) {
+          if (one->call_async(kRequest, [](std::span<const uint8_t>) {})) {
+            through_ros.fetch_add(1);
+          }
+          if (one_native->call_async(kRequest, [](std::span<const uint8_t>) {})) {
+            through_native.fetch_add(1);
+          }
+        }
+      });
+    }
+    go = true;
+    for (auto &t : threads) {
+      t.join();
+    }
+    std::printf("cap 1, 8 threads x 20: %d ROS and %d native requests got through\n",
+                through_ros.load(), through_native.load());
+    if (through_ros.load() != 1 || one->pending_count() != 1 || through_native.load() != 1 ||
+        one_native->pending_count() != 1) {
+      std::printf("FAIL: max_pending_requests exceeded under concurrency\n");
+      return 1;
+    }
+  }
 
   // 2. A future outlives its request: nullopt, not broken_promise.
   auto future = cli->call_future(kRequest);

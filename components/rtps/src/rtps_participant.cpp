@@ -1512,7 +1512,13 @@ struct RtpsParticipant::ServiceClient::Impl
     }
     std::lock_guard<std::mutex> lock(mutex);
     // The lock covers only newChange + insert, so a reply can never look up the
-    // key before it is registered (the send itself is async).
+    // key before it is registered (the send itself is async). The cap is
+    // checked again here: the check above ran under an earlier hold of this
+    // lock, and concurrent senders could all have seen room for one.
+    if (max_pending != 0 && pending.size() >= max_pending) {
+      refuse("request", "the pending table is full (max_pending_requests); no server answers");
+      return std::nullopt;
+    }
     if (peer.cyclonedds) {
       if (cyclonedds_next_seq == std::numeric_limits<int64_t>::max()) {
         cyclonedds_next_seq = 0;
@@ -2915,6 +2921,15 @@ struct RtpsParticipant::NativeServiceClient::Impl {
     auto frame = rtps::rpc::native_encode(h, request);
     {
       std::lock_guard<std::mutex> lock(mutex);
+      // Re-checked under the lock of the insert (see ServiceClient::Impl::send).
+      if (max_pending != 0 && pending.size() >= max_pending) {
+        if (self != nullptr) {
+          self->logger_.warn("Native service client '{}': request refused, the pending table is "
+                             "full (max_pending_requests); no server answers",
+                             request_topic);
+        }
+        return std::nullopt;
+      }
       Pending entry{std::move(on_reply), std::move(sync)};
       entry.on_abandon = std::move(on_abandon);
       if (request_timeout.count() > 0) {
