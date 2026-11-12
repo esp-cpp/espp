@@ -346,10 +346,15 @@ class ActionClient:
             self._last_goal = gid
         return gid is not None
 
-    def cancel_goal(self) -> bool:
+    def cancel_goal(self, on_response=None) -> bool:
         """Request cancellation of the most recently accepted goal (ROS 2 or
         native). The server observes it via GoalHandle.is_canceling(). Returns
-        True if the cancel request was queued."""
+        True if the cancel request was queued. ROS 2 protocol only:
+        on_response(return_code, goals_canceling) receives the server's verdict
+        (action_msgs/srv/CancelGoal: 0 NONE, 1 REJECTED, 2 UNKNOWN_GOAL_ID,
+        3 GOAL_TERMINATED); the native protocol has none."""
         if self._last_goal is None:
             return False
-        return self._client.cancel_goal(self._last_goal)
+        if self._native or on_response is None:
+            return self._client.cancel_goal(self._last_goal)
+        return self._client.cancel_goal(self._last_goal, on_response)

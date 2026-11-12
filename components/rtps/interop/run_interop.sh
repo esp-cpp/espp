@@ -139,7 +139,9 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_gap_before_data rtps_acknack_heartbeat_reply \
        rtps_service_reply_waits_for_reader rtps_acknack_coalescing rtps_nack_frag rtps_receiver_malformed \
        rtps_unknown_reader_fanout rtps_delete_reader_callback_domain_api \
-       rtps_proxy_pool_full_match rtps_frag_slot_isolation rtps_dispose_retention > /tmp/build.log 2>&1
+       rtps_proxy_pool_full_match rtps_frag_slot_isolation rtps_dispose_retention \
+       rtps_rpc_stop_race rtps_rpc_pending_eviction rtps_typed_action_alignment \
+       rtps_action_cancel_codes rtps_action_goal_flood rtps_rpc_empty_reply > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
 if [ $build_rc -ne 0 ]; then tail -30 /tmp/cmake_lib.log /tmp/build_lib.log /tmp/build.log; exit 1; fi
@@ -307,6 +309,14 @@ note "native (espp<->espp) action loopback (lean AMI: goal + feedback + result)"
 # reflectable structs - the RMI/AMI analogue of Publisher<T>/Subscriber<T>.
 note "typed RMI/AMI wrappers loopback (ServiceServer/Client + ActionServer/Client)"
 "$BIN"/rtps_typed_rpc_loopback; result "typed_rpc_loopback" $?
+
+note "RPC facade hardening (host): client handles vs stop(), bounded pending tables, typed action result alignment, cancel verdicts, goal limits, empty replies"
+"$BIN"/rtps_rpc_stop_race; result "rpc_stop_race" $?
+"$BIN"/rtps_rpc_pending_eviction; result "rpc_pending_eviction" $?
+"$BIN"/rtps_typed_action_alignment; result "typed_action_alignment" $?
+"$BIN"/rtps_action_cancel_codes; result "action_cancel_codes" $?
+"$BIN"/rtps_action_goal_flood; result "action_goal_flood" $?
+"$BIN"/rtps_rpc_empty_reply; result "rpc_empty_reply" $?
 
 # NOTE: the in-process fragmented loopbacks (rtps_facade_frag, rtps_facade_frag_sizes)
 # are BUILT above (compile guard) but run as standalone host gates (docker-free),

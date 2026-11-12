@@ -306,6 +306,9 @@ void py_init_rtps(py::module &m) {
       rtps, "ServiceClient", "Handle for calling a ROS 2-interoperable service.")
       .def("server_count", &Rtps::ServiceClient::server_count,
            "Number of servers matched right now (0 until discovery has run).")
+      .def("pending_count", &Rtps::ServiceClient::pending_count,
+           "Requests sent and not yet answered (expired ones, past request_timeout, are "
+           "dropped first).")
       .def(
           "wait_for_server",
           [](Rtps::ServiceClient &self, double timeout) {
@@ -380,12 +383,21 @@ void py_init_rtps(py::module &m) {
       .def(
           "add_service_client",
           [](Rtps &self, const std::string &service, const std::string &type_name,
-             espp::QosBand band, std::optional<espp::Dscp> dscp) {
+             espp::QosBand band, std::optional<espp::Dscp> dscp, double request_timeout,
+             std::size_t max_pending_requests) {
             py::gil_scoped_release rel;
-            return self.add_service_client({service, type_name, band, dscp});
+            return self.add_service_client({.service = service,
+                                            .type_name = type_name,
+                                            .band = band,
+                                            .dscp = dscp,
+                                            .request_timeout = seconds_to_ms(request_timeout),
+                                            .max_pending_requests = max_pending_requests});
           },
           py::arg("service"), py::arg("type_name"), py::arg("band") = espp::QosBand::Normal,
-          py::arg("dscp") = py::none(), "Add a ROS 2 service client.");
+          py::arg("dscp") = py::none(), py::arg("request_timeout") = 30.0,
+          py::arg("max_pending_requests") = 64,
+          "Add a ROS 2 service client. A request unanswered for request_timeout seconds is\n"
+          "abandoned (0 = never); at most max_pending_requests wait at once (0 = unlimited).");
 
   // ---- Actions (AMI, ROS 2-interoperable) ---------------------------------
   py::class_<Rtps::ActionGoalHandle>(
@@ -476,17 +488,32 @@ void py_init_rtps(py::module &m) {
           "Send a goal. on_feedback(bytes); on_result(status:int, bytes). Returns the goal id.")
       .def(
           "cancel_goal",
-          [](Rtps::ActionClient &self, const py::bytes &goal_id) {
+          [](Rtps::ActionClient &self, const py::bytes &goal_id, const py::object &on_response) {
             auto id_v = to_vec(goal_id);
             Rtps::GoalId id{};
             if (id_v.size() != id.size()) {
               return false;
             }
             std::copy(id_v.begin(), id_v.end(), id.begin());
+            Rtps::ActionClient::cancel_callback_t cb = nullptr;
+            if (!on_response.is_none()) {
+              auto holder = make_gil_safe_holder(as_function(on_response));
+              cb = [holder](int8_t return_code, std::size_t goals_canceling) {
+                py::gil_scoped_acquire gil;
+                try {
+                  (*holder)(static_cast<int>(return_code), goals_canceling);
+                } catch (py::error_already_set &e) {
+                  e.discard_as_unraisable("action cancel on_response");
+                }
+              };
+            }
             py::gil_scoped_release rel;
-            return self.cancel_goal(id);
+            return self.cancel_goal(id, std::move(cb));
           },
-          py::arg("goal_id"), "Request cancellation of a goal by its id (from send_goal).");
+          py::arg("goal_id"), py::arg("on_response") = py::none(),
+          "Request cancellation of a goal by its id (from send_goal). on_response(return_code,\n"
+          "goals_canceling) gets the server's verdict (action_msgs/srv/CancelGoal: 0 NONE,\n"
+          "1 REJECTED, 2 UNKNOWN_GOAL_ID, 3 GOAL_TERMINATED).");
 
   rtps.def(
       "add_action_server",
