@@ -77,6 +77,19 @@ void Reader::newFragment(const Guid_t &writerGuid, const SequenceNumber_t &sn,
                  static_cast<unsigned>(sampleSize), static_cast<unsigned>(Config::MAX_SAMPLE_SIZE));
     return;
   }
+  // A user reader takes fragments from matched writers only, as newChange()
+  // takes whole samples: the one reassembly slot below is evicted by any
+  // sample that differs from the one in progress, so a stray DATA_FRAG naming
+  // this reader (a writer it never matched) could evict a legitimate sample
+  // mid-way and allocate sampleSize for nothing. Checked before the
+  // reassembly lock (isProxy takes the proxies mutex; never nested). The
+  // builtin readers are exempt as in StatelessReader::newChange(). Two
+  // MATCHED fragmenting writers on one reader still share the slot and evict
+  // each other - a per-writer slot is out of scope here (see the interop
+  // README). Regression test: pc/tests/rtps_frag_slot_isolation.cpp.
+  if (!isBuiltinEndpoint() && !isProxy(writerGuid)) {
+    return;
+  }
 
   std::vector<uint8_t> completedBuffer; // moved out on completion; owns the bytes
   bool haveCompleted = false;
