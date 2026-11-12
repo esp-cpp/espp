@@ -34,6 +34,12 @@ touched.
 | service_reply_waits_for_reader | a service reply is held until the requester's reply reader is matched to the reply writer (`RtpsParticipant::Config::service_reply_match_timeout`, 1 s by default, then written anyway): a client sends its request as soon as its own side has matched, and a reply written before this side matches its reply reader is never sent to it - the first HEARTBEAT announces it as pre-match history, which a VOLATILE reader skips (the QEMU `netem_loss_service_cyclone` case, one run in six). rmw_fastrtps / rmw_cyclonedds servers wait for the same match. Hand-crafted SPDP/SEDP/request datagrams from a socket that is the peer's locator (`pc/tests/rtps_service_reply_waits_for_reader.cpp`) |
 | acknack_coalescing | a reliable reader answers a HEARTBEAT it misses nothing for only when the writer's FinalFlag is clear, and while it is missing samples answers (HEARTBEATs and GAPs) at most once per `SFR_ACKNACK_MIN_INTERVAL_MS` per writer, as Fast DDS and Cyclone DDS coalesce theirs: answering every HEARTBEAT at once let a reader that fell behind a 20 Hz Cyclone writer spiral, each stale HEARTBEAT it worked through bringing a GAP + HEARTBEAT back faster than it drained its backlog (the QEMU soak's Cyclone cycles lost their 30 KB samples and service calls) (`pc/tests/rtps_acknack_coalescing.cpp`) |
 | nack_frag | a reliable reader that holds part of a fragmented sample answers the writer's HEARTBEAT with a NACK_FRAG for the fragments it is missing, in the same datagram as its ACKNACK (RTPS 2.5 8.3.7.10): Cyclone DDS answers an ACKNACK naming a fragmented sample with its first fragment only and leaves the rest to NACK_FRAG, so a 30 KB sample a Cyclone publisher wrote just before the device's reader matched it never completed and held the reassembly slot against every sample after it (the QEMU soak's Cyclone cycles) (`pc/tests/rtps_nack_frag.cpp`) |
+| receiver_malformed | ACKNACK / GAP / HEARTBEAT / DATA / DATA_FRAG submessages declared shorter than their fixed body, longer than the datagram, truncated, or with a `numBits` past the set are rejected without reading past their bytes, and a valid ACKNACK / DATA afterwards still takes effect (see `pc/tests/rtps_receiver_malformed.cpp`) |
+| unknown_reader_fanout | two local readers on one topic are both matched to a remote writer, and a DATA / HEARTBEAT / GAP addressed to `ENTITYID_UNKNOWN` (multicast, or a writer sending to several readers; Cyclone DDS's heartbeats) reaches both; two local writers both get a remote reader (see `pc/tests/rtps_unknown_reader_fanout.cpp`) |
+| delete_reader_callback_domain_api | a reader is removed while its on_sample is running and that callback creates a writer: no deadlock between the Domain mutex and the callback drain (see `pc/tests/rtps_delete_reader_callback_domain_api.cpp`) |
+| proxy_pool_full_match | a remote endpoint that finds no room in a reader's / writer's proxy pool is kept in the unmatched registry (with a warning naming `NUM_WRITER_PROXIES_PER_READER` / `NUM_READER_PROXIES_PER_WRITER`) and matched when a proxy is freed by a dispose or a departing participant; on the host, whose pools grow, the same run pins that every endpoint is matched at once (see `pc/tests/rtps_proxy_pool_full_match.cpp`) |
+| frag_slot_isolation | a DATA_FRAG from a writer the reader never matched cannot evict the single reassembly slot: a stray fragment in the middle of a legitimate sample leaves it delivered byte-exact (see `pc/tests/rtps_frag_slot_isolation.cpp`) |
+| dispose_retention | a burst of `HISTORY_SIZE_STATEFUL` dispose-after-write changes all stay in the writer's history until their 4 s retention ends; the retention queue is sized like the history and gives up the oldest, never the newest, when it fills (see `pc/tests/rtps_dispose_retention.cpp`) |
 | loopback | espp<->espp discovery + delivery in one process |
 | espp_pub->ros2_echo | espp reliable writer -> ROS 2 subscriber (`rt/chatter`, `std_msgs::msg::dds_::String_`) |
 | ros2_pub->espp_sub | ROS 2 publisher -> espp reliable reader |
@@ -107,6 +113,16 @@ and reassembly behaviour, FreeRTOS priorities for the engine's threads,
 delivery under injected loss, heap over a run on the target allocator, and a
 panic with a backtrace when something goes wrong. Not performance: QEMU is not
 cycle-accurate, so the cases assert on delivery and health, never on rates.
+
+## Not covered (yet): two fragmenting writers on one reader
+
+A reader has one fragment-reassembly slot (`Reader::newFragment`), and any
+fragment of a sample other than the one in progress evicts it. Fragments from
+writers the reader never matched are ignored (`frag_slot_isolation`), but two
+MATCHED writers that both fragment samples to one reader - two cameras on one
+topic - still evict each other mid-sample, and under reliability each ACKNACK
+round resends whole samples. A per-writer slot costs a reassembly buffer per
+matched writer and is left for a follow-up.
 
 ## Not covered (yet): a multi-homed peer
 

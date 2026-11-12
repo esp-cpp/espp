@@ -137,7 +137,9 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_interop_pub rtps_interop_sub rtps_interop_churn rtps_sedp_inline_qos_dispose \
        rtps_sedp_history_overflow rtps_sedp_history_ring rtps_facade_matched_counts \
        rtps_gap_before_data rtps_acknack_heartbeat_reply \
-       rtps_service_reply_waits_for_reader rtps_acknack_coalescing rtps_nack_frag > /tmp/build.log 2>&1
+       rtps_service_reply_waits_for_reader rtps_acknack_coalescing rtps_nack_frag rtps_receiver_malformed \
+       rtps_unknown_reader_fanout rtps_delete_reader_callback_domain_api \
+       rtps_proxy_pool_full_match rtps_frag_slot_isolation rtps_dispose_retention > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
 if [ $build_rc -ne 0 ]; then tail -30 /tmp/cmake_lib.log /tmp/build_lib.log /tmp/build.log; exit 1; fi
@@ -162,6 +164,23 @@ note "SEDP writer history never drops a live announcement; a deleted endpoint's 
 
 note "matched_writers()/matched_readers() over a loopback; a removed writer's dispose unmatches it at once (host)"
 "$BIN"/rtps_facade_matched_counts; result "facade_matched_counts" $?
+note "Malformed ACKNACK / GAP / HEARTBEAT / DATA / DATA_FRAG submessages are rejected, valid ones still work (host)"
+"$BIN"/rtps_receiver_malformed; result "receiver_malformed" $?
+
+note "Two local readers on one topic: both matched, both get a DATA / HEARTBEAT / GAP addressed to ENTITYID_UNKNOWN (host)"
+"$BIN"/rtps_unknown_reader_fanout; result "unknown_reader_fanout" $?
+
+note "remove_reader while the reader's callback creates a writer: no Domain-mutex deadlock (host)"
+"$BIN"/rtps_delete_reader_callback_domain_api; result "delete_reader_callback_domain_api" $?
+
+note "A remote endpoint that found no room in a proxy pool waits unmatched and takes a freed slot (host)"
+"$BIN"/rtps_proxy_pool_full_match; result "proxy_pool_full_match" $?
+
+note "A stray DATA_FRAG from an unmatched writer cannot evict a reassembly in progress (host)"
+"$BIN"/rtps_frag_slot_isolation; result "frag_slot_isolation" $?
+
+note "Every dispose-after-write change stays in the writer's history for its retention (host, ~14 s)"
+"$BIN"/rtps_dispose_retention; result "dispose_retention" $?
 
 note "A GAP beyond the writer's announced range is not applied; a GAP within it is (host)"
 "$BIN"/rtps_gap_before_data; result "gap_before_data" $?
