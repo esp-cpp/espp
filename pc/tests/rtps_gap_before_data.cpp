@@ -120,7 +120,7 @@ bool run_checks() {
   writer.entityId.entityKind = rtps::EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY;
   CHECK(reader->addNewMatchedWriter(rtps::WriterProxy{writer, rtps::LocatorIPv4{}, true}),
         "addNewMatchedWriter");
-  rtps::WriterProxy *proxy = reader->getProxy(writer);
+  const rtps::WriterProxy *proxy = reader->getProxy(writer);
   CHECK(proxy != nullptr, "getProxy");
 
   // Bring the reader to "expecting 13": the first 12 delivered in order.
