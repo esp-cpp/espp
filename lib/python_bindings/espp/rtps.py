@@ -236,8 +236,18 @@ class ServiceClient:
         import concurrent.futures
 
         fut: concurrent.futures.Future = concurrent.futures.Future()
-        if not self.call_async(request, fut.set_result, lambda: fut.set_result(None)):
-            fut.set_result(None)
+
+        def resolve(value):
+            # Exactly one of reply / abandon / refusal completes the future; a
+            # request given up on just before its publication was refused would
+            # otherwise complete it twice (InvalidStateError).
+            try:
+                fut.set_result(value)
+            except concurrent.futures.InvalidStateError:
+                pass
+
+        if not self.call_async(request, resolve, lambda: resolve(None)):
+            resolve(None)
         return fut
 
 

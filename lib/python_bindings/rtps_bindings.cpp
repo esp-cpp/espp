@@ -397,7 +397,15 @@ void py_init_rtps(py::module &m) {
                   });
             }
             if (!queued) {
-              fut.attr("set_result")(py::none());
+              // The abandon callback may have completed it first (a request
+              // given up on before its publication was refused): a second
+              // set_result raises InvalidStateError, which is the one benign
+              // outcome here.
+              try {
+                fut.attr("set_result")(py::none());
+              } catch (py::error_already_set &e) {
+                e.discard_as_unraisable("call_future (refused after abandon)");
+              }
             }
             return fut;
           },
@@ -665,7 +673,15 @@ void py_init_rtps(py::module &m) {
                   });
             }
             if (!queued) {
-              fut.attr("set_result")(py::none());
+              // The abandon callback may have completed it first (a request
+              // given up on before its publication was refused): a second
+              // set_result raises InvalidStateError, which is the one benign
+              // outcome here.
+              try {
+                fut.attr("set_result")(py::none());
+              } catch (py::error_already_set &e) {
+                e.discard_as_unraisable("call_future (refused after abandon)");
+              }
             }
             return fut;
           },

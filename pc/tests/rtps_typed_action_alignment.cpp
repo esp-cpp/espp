@@ -166,6 +166,19 @@ bool end_to_end() {
     }
     std::unique_lock<std::mutex> lock(out->m);
     CHECK(out->cv.wait_for(lock, 15s, [&] { return out->done; }), "result arrived");
+    // The feedback is published the moment the goal starts, on a reliable
+    // topic the client's feedback reader may not have matched yet at the
+    // first goal (wait_for_server covers the three services only): the writer
+    // replays it once the match lands, which can be after the result. Give
+    // it a moment rather than racing discovery.
+    if (!out->feedback) {
+      const auto fb_deadline = std::chrono::steady_clock::now() + 5s;
+      while (!out->feedback && std::chrono::steady_clock::now() < fb_deadline) {
+        lock.unlock();
+        std::this_thread::sleep_for(20ms);
+        lock.lock();
+      }
+    }
     std::printf("%s: status %d, result {%g, %d, %g}, feedback {%d, %g}\n", what,
                 static_cast<int>(out->status), out->result.first, out->result.n, out->result.last,
                 out->feedback ? out->feedback->a : -1, out->feedback ? out->feedback->b : -1.0);
