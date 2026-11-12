@@ -22,6 +22,8 @@
 //     delivered.
 //  3. After the writer is matched, the same sample is delivered (so it was
 //     the proxy check, not the bytes).
+//  4. Unmatching a writer releases the sample it had half reassembled (it can
+//     never complete), and the slot then serves another matched writer.
 //
 // Exits 0 on success, 1 on the first failed check. Trivially passes when the
 // engine is built without fragmentation.
@@ -128,6 +130,36 @@ bool run_checks() {
   fragment(reader, unknown, 3, 3, stray);
   if (delivered.samples.size() != 1 || delivered.samples[0] != stray) {
     std::printf("FAIL: the late-matched writer's sample was not delivered (%zu delivered)\n",
+                delivered.samples.size());
+    return false;
+  }
+
+  // 4. A sample half reassembled when its writer is unmatched can never
+  //    complete: the slot is released at once (the buffer is MAX_SAMPLE_SIZE
+  //    bound, and the departing peer's last sample would otherwise hold it
+  //    until the next fragmented sample from anyone).
+  delivered.samples.clear();
+  fragment(reader, matched, 4, 1, good);
+  fragment(reader, matched, 4, 2, good);
+  if (!reader.hasSampleUnderReassembly()) {
+    std::printf("FAIL: a partial sample is not under reassembly\n");
+    return false;
+  }
+  if (!reader.removeProxy(matched) || reader.hasSampleUnderReassembly()) {
+    std::printf("FAIL: unmatching the writer did not release its partial sample\n");
+    return false;
+  }
+  fragment(reader, matched, 4, 3, good); // ignored: unmatched again
+  if (!delivered.samples.empty() || reader.hasSampleUnderReassembly()) {
+    std::printf("FAIL: a fragment from the unmatched writer was taken after the release\n");
+    return false;
+  }
+  // The slot works again for a matched writer.
+  fragment(reader, unknown, 4, 1, stray);
+  fragment(reader, unknown, 4, 2, stray);
+  fragment(reader, unknown, 4, 3, stray);
+  if (delivered.samples.size() != 1 || delivered.samples[0] != stray) {
+    std::printf("FAIL: the slot did not work after the release (%zu delivered)\n",
                 delivered.samples.size());
     return false;
   }

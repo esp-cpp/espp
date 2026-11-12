@@ -394,15 +394,20 @@ bool Reader::removeCallback(Reader::callbackIdentifier_t identifier) {
 uint8_t Reader::getNumCallbacks() { return m_callback_count; }
 
 void Reader::removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix) {
-  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
-  auto isElementToRemove = [&](const WriterProxy &proxy) {
-    return proxy.remoteWriterGuid.prefix == guidPrefix;
-  };
-  auto thunk = [](void *arg, const WriterProxy &value) {
-    return (*static_cast<decltype(isElementToRemove) *>(arg))(value);
-  };
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
+    auto isElementToRemove = [&](const WriterProxy &proxy) {
+      return proxy.remoteWriterGuid.prefix == guidPrefix;
+    };
+    auto thunk = [](void *arg, const WriterProxy &value) {
+      return (*static_cast<decltype(isElementToRemove) *>(arg))(value);
+    };
 
-  m_proxies.remove(thunk, &isElementToRemove);
+    m_proxies.remove(thunk, &isElementToRemove);
+  }
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  dropReassemblyIf([&](const Guid_t &writer) { return writer.prefix == guidPrefix; });
+#endif
 }
 
 bool Reader::isBuiltinEndpoint() const {
@@ -423,14 +428,46 @@ bool Reader::hasProxyOfParticipant(const GuidPrefix_t &guidPrefix) {
 }
 
 bool Reader::removeProxy(const Guid_t &guid) {
-  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
-  auto isElementToRemove = [&](const WriterProxy &proxy) { return proxy.remoteWriterGuid == guid; };
-  auto thunk = [](void *arg, const WriterProxy &value) {
-    return (*static_cast<decltype(isElementToRemove) *>(arg))(value);
-  };
-
-  return m_proxies.remove(thunk, &isElementToRemove);
+  bool removed = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
+    auto isElementToRemove = [&](const WriterProxy &proxy) {
+      return proxy.remoteWriterGuid == guid;
+    };
+    auto thunk = [](void *arg, const WriterProxy &value) {
+      return (*static_cast<decltype(isElementToRemove) *>(arg))(value);
+    };
+    removed = m_proxies.remove(thunk, &isElementToRemove);
+  }
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  if (removed) {
+    dropReassemblyIf([&](const Guid_t &writer) { return writer == guid; });
+  }
+#endif
+  return removed;
 }
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+// A sample under reassembly from a writer that is no longer matched can never
+// complete (a user reader takes fragments from matched writers only, and the
+// writer is gone): give its buffer back now rather than when the next
+// fragmented sample evicts it - which, for the last publisher of a departing
+// peer, is never. The proxies mutex is NOT held here (newFragment takes the
+// proxies mutex and the reassembly mutex one after the other, never nested).
+void Reader::dropReassemblyIf(const std::function<bool(const Guid_t &)> &writer_matches) {
+  std::lock_guard<std::mutex> lock(m_reassembly_mutex);
+  if (m_reassembly.active && writer_matches(m_reassembly.writerGuid)) {
+    m_reassembly.active = false;
+    std::vector<uint8_t>().swap(m_reassembly.buffer);
+    std::vector<bool>().swap(m_reassembly.received);
+  }
+}
+
+bool Reader::hasSampleUnderReassembly() {
+  std::lock_guard<std::mutex> lock(m_reassembly_mutex);
+  return m_reassembly.active;
+}
+#endif
 
 bool Reader::addNewMatchedWriter(const WriterProxy &newProxy) {
   std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
