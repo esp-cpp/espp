@@ -64,9 +64,18 @@ void StatelessReader::newChange(const ReaderCacheChange &cacheChange) {
   // reordered datagram never reaches the application twice, or late. Here
   // expectedSN is "the next sequence number from this writer"; it jumps
   // forward over a gap (nothing is ever requested again) and a change below
-  // it is dropped. A change from a writer without a proxy is delivered as
-  // before. Found by the QEMU interop matrix's duplication and reordering
-  // cases (components/rtps/interop/qemu).
+  // it is dropped. Found by the QEMU interop matrix's duplication and
+  // reordering cases (components/rtps/interop/qemu).
+  //
+  // A change from a writer the reader has NOT matched is dropped for a user
+  // reader: the rule above cannot be applied to it, and a reordered pair that
+  // landed before the SEDP match completed went through unordered (the
+  // matrix's netem_reorder_best_effort case, about one run in three). Fast DDS
+  // and Cyclone DDS discard such samples too, and the writer resends nothing
+  // (best effort), so the first samples of a stream that starts before the
+  // match are lost either way; the matched ones that follow arrive in order.
+  // The builtin SPDP reader is the exception: participant announcements come
+  // from writers that are, by definition, not matched yet.
   //
   // The claim and the callbacks are one operation under m_delivery_mutex (as
   // in StatefulReader::newChange()): receive workers for different sockets
@@ -96,6 +105,8 @@ void StatelessReader::newChange(const ReaderCacheChange &cacheChange) {
       if (!at_top) {
         ++it->expectedSN;
       }
+    } else if (!isBuiltinEndpoint()) {
+      return; // not matched (yet): see above
     }
   }
   executeCallbacks(cacheChange);
