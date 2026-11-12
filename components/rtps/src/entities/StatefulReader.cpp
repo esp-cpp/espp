@@ -31,6 +31,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/utils/Diagnostics.hpp"
 #include "rtps/utils/Log.hpp"
 #include <algorithm>
+#include <limits>
 #include <mutex>
 
 #if SFR_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -186,7 +187,13 @@ bool StatefulReader::onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_
     return true;
   }
   SequenceNumber_t announcedNext = writer->lastAnnouncedSN;
-  ++announcedNext;
+  // Not past the top of the range: a HEARTBEAT may legitimately announce the
+  // last representable number, and incrementing it would overflow the signed
+  // high word (as StatelessReader::newChange guards).
+  if (!(announcedNext.high == std::numeric_limits<int32_t>::max() &&
+        announcedNext.low == std::numeric_limits<uint32_t>::max())) {
+    ++announcedNext;
+  }
   const CapExpectedSN cap{writer, announcedNext};
 
   // Case 1: We are still waiting for messages before gapStart
