@@ -1739,6 +1739,15 @@ bool RtpsParticipant::ServiceClient::call_async(std::span<const uint8_t> request
   return impl_->send(request, std::move(on_reply), nullptr).has_value();
 }
 
+bool RtpsParticipant::ServiceClient::call_async(std::span<const uint8_t> request,
+                                                reply_callback_t on_reply,
+                                                abandon_callback_t on_abandon) {
+  // The pending entry owns on_abandon and runs it exactly once when the entry
+  // is pruned or abandoned; a reply erases the entry first (the callbacks are
+  // moved out under the client mutex), so the two never both run.
+  return impl_->send(request, std::move(on_reply), nullptr, std::move(on_abandon)).has_value();
+}
+
 std::optional<std::vector<uint8_t>>
 RtpsParticipant::ServiceClient::call(std::span<const uint8_t> request,
                                      std::chrono::milliseconds timeout) {
@@ -3017,6 +3026,12 @@ RtpsParticipant::NativeServiceClient::~NativeServiceClient() = default;
 bool RtpsParticipant::NativeServiceClient::call_async(std::span<const uint8_t> request,
                                                       reply_callback_t on_reply) {
   return impl_->send(request, std::move(on_reply), nullptr).has_value();
+}
+
+bool RtpsParticipant::NativeServiceClient::call_async(std::span<const uint8_t> request,
+                                                      reply_callback_t on_reply,
+                                                      abandon_callback_t on_abandon) {
+  return impl_->send(request, std::move(on_reply), nullptr, std::move(on_abandon)).has_value();
 }
 
 std::size_t RtpsParticipant::NativeServiceClient::pending_count() const {

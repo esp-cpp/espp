@@ -217,19 +217,26 @@ class ServiceClient:
         reply = self._client.call(request.serialize(), timeout)
         return None if reply is None else self._response_type.deserialize(reply)
 
-    def call_async(self, request, on_response) -> bool:
+    def call_async(self, request, on_response, on_abandon=None) -> bool:
         """Async call: ``on_response(response_msg)`` when the reply arrives."""
         rt = self._response_type
-        return self._client.call_async(request.serialize(), lambda b: on_response(rt.deserialize(b)))
+        if on_abandon is None:
+            return self._client.call_async(
+                request.serialize(), lambda b: on_response(rt.deserialize(b))
+            )
+        return self._client.call_async(
+            request.serialize(), lambda b: on_response(rt.deserialize(b)), on_abandon
+        )
 
     def call_future(self, request):
         """Async call returning a :class:`concurrent.futures.Future` of the
-        response object (result is ``None`` if the request could not be queued).
-        Use ``fut.result(timeout=...)``. Works for both protocols."""
+        response object. The result is ``None`` if the request could not be
+        queued, or was given up on without a reply (``request_timeout``,
+        ``stop()``). Use ``fut.result(timeout=...)``. Works for both protocols."""
         import concurrent.futures
 
         fut: concurrent.futures.Future = concurrent.futures.Future()
-        if not self.call_async(request, fut.set_result):
+        if not self.call_async(request, fut.set_result, lambda: fut.set_result(None)):
             fut.set_result(None)
         return fut
 

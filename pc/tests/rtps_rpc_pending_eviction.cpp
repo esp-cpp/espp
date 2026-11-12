@@ -17,6 +17,10 @@
 //     nullopt (no exception).
 //  3. call() with a 10 s timeout returns nullopt within 500 ms of a stop()
 //     on another thread.
+//  5. call_async(request, on_reply, on_abandon), both client kinds: on_abandon
+//     runs exactly once when the request expires (request_timeout) and exactly
+//     once when stop() abandons it, and never for a request that was answered
+//     (the echo service) - on_reply and on_abandon are mutually exclusive.
 //  4. The cap holds under concurrency, on both client kinds: with
 //     max_pending_requests 1 and nothing answering, 8 threads x 20 call_async
 //     get exactly ONE request through in total (the check used to run under
@@ -155,6 +159,97 @@ int main() {
     }
   }
 
+  // 5. on_abandon: once on expiry, once on stop(), never after a reply.
+  if (!server.add_service_server({.service = "/echo", .type_name = kType},
+                                 [](std::span<const uint8_t> req) {
+                                   return std::vector<uint8_t>(req.begin(), req.end());
+                                 }) ||
+      !server.add_native_service_server(
+          {.service = "/echo_native", .type_name = "espp::native::Echo"},
+          [](std::span<const uint8_t> req) {
+            return std::vector<uint8_t>(req.begin(), req.end());
+          })) {
+    std::printf("FAIL: echo servers\n");
+    return 1;
+  }
+  auto echo = client.add_service_client({.service = "/echo", .type_name = kType});
+  auto echo_native = client.add_native_service_client(
+      {.service = "/echo_native", .type_name = "espp::native::Echo"});
+  auto hole_native = client.add_native_service_client(
+      {.service = "/hole_native", .type_name = "espp::native::Hole", .request_timeout = 200ms});
+  if (!echo || !echo_native || !hole_native || !echo->wait_for_server(10s)) {
+    std::printf("FAIL: abandon-case clients\n");
+    return 1;
+  }
+  std::atomic<int> expired_ros{0}, expired_native{0};
+  std::atomic<int> replied_ros{0}, replied_native{0};
+  std::atomic<int> echoed_abandon{0};
+  // Answered requests: on_reply, never on_abandon.
+  if (!echo->call_async(
+          kRequest, [&replied_ros](std::span<const uint8_t>) { replied_ros.fetch_add(1); },
+          [&echoed_abandon]() { echoed_abandon.fetch_add(1); }) ||
+      !echo_native->call_async(
+          kRequest, [&replied_native](std::span<const uint8_t>) { replied_native.fetch_add(1); },
+          [&echoed_abandon]() { echoed_abandon.fetch_add(1); })) {
+    std::printf("FAIL: echo call_async\n");
+    return 1;
+  }
+  // Unanswered requests with a 200 ms timeout: on_abandon once, on expiry.
+  if (!cli->call_async(
+          kRequest, [](std::span<const uint8_t>) {},
+          [&expired_ros]() { expired_ros.fetch_add(1); }) ||
+      !hole_native->call_async(
+          kRequest, [](std::span<const uint8_t>) {},
+          [&expired_native]() { expired_native.fetch_add(1); })) {
+    std::printf("FAIL: black-hole call_async\n");
+    return 1;
+  }
+  {
+    const auto deadline = std::chrono::steady_clock::now() + 3s;
+    while ((replied_ros.load() < 1 || replied_native.load() < 1 || expired_ros.load() < 1 ||
+            expired_native.load() < 1) &&
+           std::chrono::steady_clock::now() < deadline) {
+      (void)cli->pending_count(); // a touch prunes the expired entries
+      (void)hole_native->pending_count();
+      std::this_thread::sleep_for(20ms);
+    }
+  }
+  std::this_thread::sleep_for(300ms); // room for a second (wrong) callback
+  (void)cli->pending_count();
+  (void)hole_native->pending_count();
+  std::printf("on_abandon: expired ros=%d native=%d, replied ros=%d native=%d, abandon after "
+              "reply=%d\n",
+              expired_ros.load(), expired_native.load(), replied_ros.load(), replied_native.load(),
+              echoed_abandon.load());
+  if (expired_ros.load() != 1 || expired_native.load() != 1 || replied_ros.load() != 1 ||
+      replied_native.load() != 1 || echoed_abandon.load() != 0) {
+    std::printf("FAIL: on_abandon did not fire exactly once on expiry, or fired after a reply\n");
+    return 1;
+  }
+  // ... and once on stop(), for a request still pending then (checked after).
+  std::atomic<int> stopped_ros{0}, stopped_native{0};
+  // Their own service names: a participant holds one client per service.
+  if (!server.add_service_server_deferred(
+          {.service = "/black_hole_stop", .type_name = kType},
+          [](std::span<const uint8_t>, Rtps::ServiceResponder) {})) {
+    std::printf("FAIL: add_service_server_deferred (stop case)\n");
+    return 1;
+  }
+  auto long_native = client.add_native_service_client(
+      {.service = "/hole_native_stop", .type_name = "espp::native::Hole", .request_timeout = 30s});
+  auto long_ros = client.add_service_client(
+      {.service = "/black_hole_stop", .type_name = kType, .request_timeout = 30s});
+  if (!long_native || !long_ros || !long_ros->wait_for_server(10s) ||
+      !long_ros->call_async(
+          kRequest, [](std::span<const uint8_t>) {},
+          [&stopped_ros]() { stopped_ros.fetch_add(1); }) ||
+      !long_native->call_async(
+          kRequest, [](std::span<const uint8_t>) {},
+          [&stopped_native]() { stopped_native.fetch_add(1); })) {
+    std::printf("FAIL: stop-case call_async\n");
+    return 1;
+  }
+
   // 2. A future outlives its request: nullopt, not broken_promise.
   auto future = cli->call_future(kRequest);
   // 3. A blocked call() is released by stop().
@@ -201,6 +296,14 @@ int main() {
     ok = false;
   }
   server.stop();
+  (void)long_ros->pending_count();
+  (void)long_native->pending_count();
+  std::printf("on_abandon at stop(): ros=%d native=%d\n", stopped_ros.load(),
+              stopped_native.load());
+  if (stopped_ros.load() != 1 || stopped_native.load() != 1) {
+    std::printf("FAIL: on_abandon did not fire exactly once at stop()\n");
+    ok = false;
+  }
   if (!ok) {
     return 1;
   }

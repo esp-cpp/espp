@@ -51,6 +51,21 @@ inline std::shared_ptr<py::function> make_gil_safe_holder(const py::function &fn
 
 // Same GIL-safe holder pattern for an arbitrary py::object (e.g. a
 // concurrent.futures.Future captured into a background reply callback).
+// A GIL-safe wrapper for the abandon callback of call_async(): runs the Python
+// callable with the GIL held, swallowing (reporting) a Python exception the
+// way the reply wrappers do.
+inline std::function<void()> wrap_abandon_callback(const py::function &fn, const char *where) {
+  auto cb = make_gil_safe_holder(fn);
+  return [cb, where]() {
+    py::gil_scoped_acquire gil;
+    try {
+      (*cb)();
+    } catch (py::error_already_set &e) {
+      e.discard_as_unraisable(where);
+    }
+  };
+}
+
 inline std::shared_ptr<py::object> make_gil_safe_object(const py::object &obj) {
   return std::shared_ptr<py::object>(new py::object(obj), [](py::object *p) {
     py::gil_scoped_acquire gil;
@@ -334,31 +349,52 @@ void py_init_rtps(py::module &m) {
           "Blocking call (RMI). Returns the reply bytes, or None on timeout.")
       .def(
           "call_async",
-          [](Rtps::ServiceClient &self, const py::bytes &request, const py::function &on_reply) {
+          [](Rtps::ServiceClient &self, const py::bytes &request, const py::function &on_reply,
+             const py::object &on_abandon) {
             auto cb = wrap_reply_callback(on_reply);
             auto req = to_vec(request);
+            if (on_abandon.is_none()) {
+              py::gil_scoped_release rel;
+              return self.call_async(req, std::move(cb));
+            }
+            auto ab = wrap_abandon_callback(as_function(on_abandon), "ServiceClient.call_async");
             py::gil_scoped_release rel;
-            return self.call_async(req, std::move(cb));
+            return self.call_async(req, std::move(cb), std::move(ab));
           },
-          py::arg("request"), py::arg("on_reply"),
-          "Async call (AMI): on_reply(bytes) is invoked when the reply arrives.")
+          py::arg("request"), py::arg("on_reply"), py::arg("on_abandon") = py::none(),
+          "Async call (AMI): on_reply(bytes) is invoked when the reply arrives; on_abandon()\n"
+          "(optional) exactly once when the request is given up on instead - pruned past\n"
+          "request_timeout, or abandoned by stop() - and never after on_reply.")
       .def(
           "call_future",
           [](Rtps::ServiceClient &self, const py::bytes &request) {
+            // Completed exactly once: by the reply, or by the abandonment (the
+            // C++ client calls back for one or the other, never both), or here
+            // when the request could not be queued.
             py::object fut = py::module_::import("concurrent.futures").attr("Future")();
             auto fut_holder = make_gil_safe_object(fut);
             auto req = to_vec(request);
             bool queued;
             {
               py::gil_scoped_release rel;
-              queued = self.call_async(req, [fut_holder](std::span<const uint8_t> reply) {
-                py::gil_scoped_acquire gil;
-                try {
-                  (*fut_holder).attr("set_result")(to_bytes(reply));
-                } catch (py::error_already_set &e) {
-                  e.discard_as_unraisable("ServiceClient.call_future");
-                }
-              });
+              queued = self.call_async(
+                  req,
+                  [fut_holder](std::span<const uint8_t> reply) {
+                    py::gil_scoped_acquire gil;
+                    try {
+                      (*fut_holder).attr("set_result")(to_bytes(reply));
+                    } catch (py::error_already_set &e) {
+                      e.discard_as_unraisable("ServiceClient.call_future");
+                    }
+                  },
+                  [fut_holder]() {
+                    py::gil_scoped_acquire gil;
+                    try {
+                      (*fut_holder).attr("set_result")(py::none());
+                    } catch (py::error_already_set &e) {
+                      e.discard_as_unraisable("ServiceClient.call_future (abandon)");
+                    }
+                  });
             }
             if (!queued) {
               fut.attr("set_result")(py::none());
@@ -366,8 +402,9 @@ void py_init_rtps(py::module &m) {
             return fut;
           },
           py::arg("request"),
-          "Async call (AMI): returns a concurrent.futures.Future for the reply bytes "
-          "(result is None if the request could not be queued). Use fut.result(timeout=...).");
+          "Async call (AMI): returns a concurrent.futures.Future for the reply bytes. The\n"
+          "result is None if the request could not be queued, or was given up on without a\n"
+          "reply (request_timeout, stop()). Use fut.result(timeout=...).");
 
   rtps.def(
           "add_service_server",
@@ -575,37 +612,57 @@ void py_init_rtps(py::module &m) {
       .def(
           "call_async",
           [](Rtps::NativeServiceClient &self, const py::bytes &request,
-             const py::function &on_reply) {
+             const py::function &on_reply, const py::object &on_abandon) {
             auto cb = make_gil_safe_holder(on_reply);
             auto req = to_vec(request);
-            py::gil_scoped_release rel;
-            return self.call_async(req, [cb](std::span<const uint8_t> reply) {
+            auto reply_cb = [cb](std::span<const uint8_t> reply) {
               py::gil_scoped_acquire gil;
               try {
                 (*cb)(to_bytes(reply));
               } catch (py::error_already_set &e) {
                 e.discard_as_unraisable("native reply");
               }
-            });
+            };
+            if (on_abandon.is_none()) {
+              py::gil_scoped_release rel;
+              return self.call_async(req, std::move(reply_cb));
+            }
+            auto ab =
+                wrap_abandon_callback(as_function(on_abandon), "NativeServiceClient.call_async");
+            py::gil_scoped_release rel;
+            return self.call_async(req, std::move(reply_cb), std::move(ab));
           },
-          py::arg("request"), py::arg("on_reply"))
+          py::arg("request"), py::arg("on_reply"), py::arg("on_abandon") = py::none(),
+          "Async call: on_reply(bytes) when the reply arrives; on_abandon() (optional) exactly\n"
+          "once when the request is given up on instead (request_timeout, stop()).")
       .def(
           "call_future",
           [](Rtps::NativeServiceClient &self, const py::bytes &request) {
+            // See ServiceClient.call_future: completed exactly once.
             py::object fut = py::module_::import("concurrent.futures").attr("Future")();
             auto fut_holder = make_gil_safe_object(fut);
             auto req = to_vec(request);
             bool queued;
             {
               py::gil_scoped_release rel;
-              queued = self.call_async(req, [fut_holder](std::span<const uint8_t> reply) {
-                py::gil_scoped_acquire gil;
-                try {
-                  (*fut_holder).attr("set_result")(to_bytes(reply));
-                } catch (py::error_already_set &e) {
-                  e.discard_as_unraisable("NativeServiceClient.call_future");
-                }
-              });
+              queued = self.call_async(
+                  req,
+                  [fut_holder](std::span<const uint8_t> reply) {
+                    py::gil_scoped_acquire gil;
+                    try {
+                      (*fut_holder).attr("set_result")(to_bytes(reply));
+                    } catch (py::error_already_set &e) {
+                      e.discard_as_unraisable("NativeServiceClient.call_future");
+                    }
+                  },
+                  [fut_holder]() {
+                    py::gil_scoped_acquire gil;
+                    try {
+                      (*fut_holder).attr("set_result")(py::none());
+                    } catch (py::error_already_set &e) {
+                      e.discard_as_unraisable("NativeServiceClient.call_future (abandon)");
+                    }
+                  });
             }
             if (!queued) {
               fut.attr("set_result")(py::none());

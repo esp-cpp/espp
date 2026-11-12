@@ -410,6 +410,18 @@ public:
     ///         the request could not be queued. The callback runs on an engine
     ///         worker thread.
     bool call_async(std::span<const uint8_t> request, reply_callback_t on_reply);
+    /// Invoked when a request is given up on without a reply: pruned past
+    /// ServiceConfig::request_timeout, or abandoned by stop(). Exactly once per
+    /// request, never after (or instead of) on_reply, and never when
+    /// call_async() returned false (the caller knows then). Runs on the thread
+    /// that gave the request up: an engine worker, a later caller of this
+    /// client, or stop().
+    using abandon_callback_t = std::function<void()>;
+    /// call_async() that also learns when the request is given up on, so a
+    /// waiter built on it (a future, an event) can be released instead of
+    /// pending forever. The two-argument form never calls back for that.
+    bool call_async(std::span<const uint8_t> request, reply_callback_t on_reply,
+                    abandon_callback_t on_abandon);
 
     /// Send a request and block until the correlated reply arrives or timeout.
     /// \return The CDR-encapsulated reply, or std::nullopt on timeout/failure.
@@ -636,6 +648,11 @@ public:
 
     /// Send a request; invoke on_reply when the correlated reply arrives.
     bool call_async(std::span<const uint8_t> request, reply_callback_t on_reply);
+    /// As above, also told when the request is given up on (see
+    /// ServiceClient::abandon_callback_t).
+    using abandon_callback_t = std::function<void()>;
+    bool call_async(std::span<const uint8_t> request, reply_callback_t on_reply,
+                    abandon_callback_t on_abandon);
     /// Requests sent and not yet answered (see ServiceClient::pending_count()).
     std::size_t pending_count() const;
     /// Send a request and block for the reply (std::nullopt on timeout/failure).
