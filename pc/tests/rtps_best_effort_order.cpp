@@ -136,7 +136,8 @@ int main() {
   feed(reader, unknown, 6);
   ok = same(delivered.sns, {}, "unknown writer on a user reader") && ok;
 
-  // ... and delivery resumes once it is matched, from the first sample in
+  // ... and delivery starts once it is matched, from the first sample that
+  // arrives after the match (what came before the match stays lost)
   delivered.sns.clear();
   if (!reader.addNewMatchedWriter(rtps::WriterProxy{unknown, rtps::LocatorIPv4{}, false})) {
     std::printf("FAIL: addNewMatchedWriter (late)\n");

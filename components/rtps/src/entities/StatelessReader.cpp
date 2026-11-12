@@ -74,8 +74,9 @@ void StatelessReader::newChange(const ReaderCacheChange &cacheChange) {
   // and Cyclone DDS discard such samples too, and the writer resends nothing
   // (best effort), so the first samples of a stream that starts before the
   // match are lost either way; the matched ones that follow arrive in order.
-  // The builtin SPDP reader is the exception: participant announcements come
-  // from writers that are, by definition, not matched yet.
+  // The builtin readers are exempt (the only stateless one is the SPDP
+  // reader): participant announcements come from writers that are, by
+  // definition, not matched yet.
   //
   // The claim and the callbacks are one operation under m_delivery_mutex (as
   // in StatefulReader::newChange()): receive workers for different sockets
