@@ -1,4 +1,4 @@
-name: RTPS interop (FastDDS / ROS 2)
+name: RTPS interop (FastDDS / CycloneDDS / ROS 2)
 
 # Minimal token scope: the harness only checks out and builds, never writes.
 permissions:
@@ -27,13 +27,23 @@ concurrency:
 
 jobs:
   interop:
+    # Once per ROS 2 release the matrix supports: Jazzy (the image the harness
+    # was built on) and Humble (the LTS most deployed robots still run, with
+    # the older rmw_cyclonedds_cpp 1.3.x). One failing does not cancel the other.
+    name: interop (${{ matrix.distro }})
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [jazzy, humble]
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: "recursive"
       - name: Run interop matrix
+        env:
+          ROS_DISTRO: ${{ matrix.distro }}
         run: |
           cd components/rtps/interop
           ./run.sh

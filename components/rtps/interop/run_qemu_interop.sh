@@ -27,6 +27,7 @@ set -o pipefail
 FLASH="${1:?usage: run_qemu_interop.sh <qemu_flash.bin> [matrix|soak]}"
 SUITE="${2:-matrix}"
 QEMU="${QEMU:-/opt/qemu/bin/qemu-system-xtensa}"
+[ -x "$QEMU" ] || { echo "no $QEMU in this image: Espressif's QEMU is x86_64-only (build the image on an amd64 host, or docker build --platform linux/amd64; or point QEMU= at another build)"; exit 2; }
 TAP=tap0
 HOST_IP=192.168.100.1
 DEV_IP=192.168.100.2 # sdkconfig.ci.defaults
@@ -121,7 +122,7 @@ ping -c 2 -W 2 $DEVICE_IP > /tmp/ping.log 2>&1; result "device_ping" $?
 wait_for_marker "RTPSTEST status" 10
 FIRST_HEAP=$(grep -o " heap=[0-9]*" "$LOG" | tail -1 | cut -d= -f2)
 
-source /opt/ros/jazzy/setup.bash
+source "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash"
 export ROS_DOMAIN_ID=0 # matches the engine's Config::DOMAIN_ID
 
 run_matrix() {
@@ -162,6 +163,17 @@ ros2_cases() { # prefix log-tag
   pub=$!; sleep 24; m=$(mark); sleep 10; kill $pub 2>/dev/null; wait $pub 2>/dev/null || true
   n=$(count_since "$m" "RTPSTEST rx still alive"); echo "device received $n in the 24-34 s window"
   [ "$n" -ge 10 ]; result "${p}ros2_pub->device_sub_liveliness" $?
+  settle
+
+  note "${p}ROS 2 service client -> device service server (/qemu_add_two_ints)"
+  # the one RPC the device serves: under rmw_cyclonedds_cpp the request carries
+  # the in-payload {guid, seq} header instead of related_sample_identity, and
+  # the device must answer in that form (rtps/rpc/cyclonedds_request_header.hpp)
+  m=$(mark)
+  timeout 50 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 7, b: 35}" > "/tmp/${t}_srv.log" 2>&1
+  rc=$?; grep -q "sum=42" "/tmp/${t}_srv.log" || rc=1
+  [ "$(count_since "$m" "RTPSTEST srv 7+35=42")" -ge 1 ] || rc=1
+  tail -2 "/tmp/${t}_srv.log"; result "${p}ros2_client->device_service" $rc
   settle
 
   note "${p}twelve other participants on the domain, then the publisher the device needs joins last"
@@ -215,14 +227,6 @@ ros2_cases() { # prefix log-tag
 
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 ros2_cases "fastdds: " fastdds
-
-note "fastdds: ROS 2 service client -> device service server (/qemu_add_two_ints)"
-m=$(mark)
-timeout 50 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 7, b: 35}" > /tmp/srv.log 2>&1
-rc=$?; grep -q "sum=42" /tmp/srv.log || rc=1
-[ "$(count_since "$m" "RTPSTEST srv 7+35=42")" -ge 1 ] || rc=1
-tail -2 /tmp/srv.log; result "fastdds: ros2_client->device_service" $rc
-settle
 
 # --- espp host engine <-> device ---------------------------------------------------------
 note "espp host publisher -> device subscriber (reliable, /qemu_rx)"
@@ -317,6 +321,38 @@ rc=$?; tail -1 /tmp/hostsub_loss.log; result "netem_loss_device_pub" $rc
 tc qdisc del dev $TAP root
 settle
 
+note "15% loss + 10 ms jitter both ways: ROS 2 service call -> device service, each RMW (a lost request or reply is repaired, not retried by the client)"
+# ros2 service call sends ONE request and waits: the only way the reply comes
+# back under loss is the reliable writers on both ends repairing the lost
+# DATA (and the HEARTBEAT/ACKNACK that carry the repair) within the timeout.
+# The root netem only impairs the host -> device direction (the request); the
+# reply comes back on the TAP's ingress, so it gets its own ~14% drop there
+# (an ingress qdisc with a random gact, no IFB needed) or the device's reply
+# writer would never have to repair anything. Best effort: an iproute2 without
+# the gact action leaves the case host->device only, and says so.
+tc qdisc add dev $TAP root netem loss 15% delay 10ms 3ms
+reply_loss=""
+if tc qdisc add dev $TAP ingress 2>/dev/null \
+   && tc filter add dev $TAP parent ffff: protocol ip prio 1 u32 match u32 0 0 action pass random netrand drop 7 2>/dev/null; then
+  reply_loss="yes"
+else
+  echo "  (no ingress drop available in this image: the device -> host reply leg runs lossless)"
+  tc qdisc del dev $TAP ingress 2>/dev/null
+fi
+for rmw in rmw_fastrtps_cpp rmw_cyclonedds_cpp; do
+  export RMW_IMPLEMENTATION=$rmw
+  tag=${rmw#rmw_}; tag=${tag%_cpp}; [ "$tag" = fastrtps ] && tag=fastdds; [ "$tag" = cyclonedds ] && tag=cyclone
+  m=$(mark)
+  timeout 50 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 3, b: 4}" > "/tmp/srv_loss_${tag}.log" 2>&1
+  rc=$?; grep -q "sum=7" "/tmp/srv_loss_${tag}.log" || rc=1
+  [ "$(count_since "$m" "RTPSTEST srv 3+4=7")" -ge 1 ] || rc=1
+  tail -1 "/tmp/srv_loss_${tag}.log"; result "netem_loss_service_${tag}" $rc
+  settle
+done
+[ -n "$reply_loss" ] && tc qdisc del dev $TAP ingress 2>/dev/null
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+tc qdisc del dev $TAP root
+
 # --- CycloneDDS pass ---------------------------------------------------------------------------
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export CYCLONEDDS_URI='<CycloneDDS><Domain><Discovery><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>'
@@ -367,18 +403,25 @@ run_soak() {
     timeout 14 ros2 topic pub -t 3 -r 0.5 /qemu_big std_msgs/msg/String "data: '$big'" > /dev/null 2>&1 & pids+=($!)
     timeout 14 ros2 topic echo --once /qemu_tx std_msgs/msg/String > /dev/null 2>&1 & pids+=($!)
     timeout 14 ros2 topic echo --once --qos-reliability best_effort /qemu_be_tx std_msgs/msg/String > /dev/null 2>&1 & pids+=($!)
-    if [ "$1" = rmw_fastrtps_cpp ]; then
-      timeout 14 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 1, b: $2}" > /dev/null 2>&1 & pids+=($!)
-    fi
+    # the service call keeps its log: it is asserted below (soak_service_calls),
+    # not just run for the churn
+    timeout 14 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 1, b: $2}" > "/tmp/soak_srv_$2.log" 2>&1 & pids+=($!)
     "$BIN"/rtps_interop_pub rt/qemu_rx std_msgs::msg::dds_::String_ 1 40 200 $HOST_IP > /dev/null 2>&1 & pids+=($!)
     "$BIN"/rtps_interop_sub rt/qemu_tx std_msgs::msg::dds_::String_ 1 5 12 $HOST_IP > /dev/null 2>&1 & pids+=($!)
     sleep 12
     kill "${pids[@]}" 2>/dev/null; wait "${pids[@]}" 2>/dev/null || true
+    if grep -q "sum=$((1 + $2))" "/tmp/soak_srv_$2.log"; then
+      srv_ok=$((srv_ok + 1))
+    else
+      echo "  service call of cycle $2 (${1#rmw_}) was not answered: $(tail -1 "/tmp/soak_srv_$2.log" | cut -c1-120)"
+    fi
     sleep 2
   }
 
   # warm-up: whatever grows once to the largest sample grows here, outside the measurement
+  local srv_ok=0
   soak_cycle rmw_fastrtps_cpp 0
+  srv_ok=0 # the warm-up's call is not part of the count
   sleep 14 # lease + one sweep: the warm-up's peers forgotten before the baseline
   local base_heap base_min; base_heap=$(latest_heap); base_min=$(latest_min_heap)
   echo "baseline after the warm-up: heap=$base_heap min_heap=$base_min"
@@ -391,13 +434,20 @@ run_soak() {
     m_last=$(mark)
     soak_cycle "$rmw" "$i"
     h=$(latest_heap); heaps+=("$h")
-    mn=$(latest_min_heap); [ "$mn" -lt "$prev_min" ] && new_lows=$((new_lows + 1)); prev_min="$mn"
+    # a new low-water mark counts when it is a real step down (1 KB or more):
+    # the Cyclone cycles' transient allocations (a service call's request and
+    # reply buffers among them) move the mark by tens of bytes from cycle to
+    # cycle, which is fragmentation jitter, not growth
+    # prev_min is the last COUNTED low, so a decline that creeps down by less
+    # than 1 KB per cycle still adds up to a counted step
+    mn=$(latest_min_heap)
+    if [ "$mn" -le $((prev_min - 1024)) ]; then new_lows=$((new_lows + 1)); prev_min="$mn"; fi
     echo "cycle $i ${rmw#rmw_}: $(grep -o 'RTPSTEST status.*' "$LOG" | tail -1 | sed 's/RTPSTEST status //')"
   done
   local last_rx last_be last_big; last_rx=$(count_since "$m_last" "RTPSTEST rx "); last_be=$(count_since "$m_last" "RTPSTEST be_rx "); last_big=$(count_since "$m_last" "RTPSTEST big_rx ")
   sleep 14 # every soak peer forgotten
   local end_heap end_min; end_heap=$(latest_heap); end_min=$(latest_min_heap)
-  echo "heap after the warm-up $base_heap, after cycle $((cycles / 2)) ${heaps[$((cycles / 2 - 1))]}, at the end $end_heap (free, bytes); low-water mark $base_min -> $end_min, $new_lows new low(s) over the cycles"
+  echo "heap after the warm-up $base_heap, after cycle $((cycles / 2)) ${heaps[$((cycles / 2 - 1))]}, at the end $end_heap (free, bytes); low-water mark $base_min -> $end_min, $new_lows new low(s) of 1 KB or more over the cycles"
   echo "last cycle: reliable $last_rx, best-effort $last_be, 30 KB $last_big samples delivered"
   echo "pool-exhaustion messages over the soak: $(grep -c 'RESSOURCE LIMIT EXCEEDED' "$LOG"), RX frames dropped: $(grep -c 'RX frame dropped' "$LOG")"
   # Free heap at the end within 8 KB of the baseline: a leak of 500 bytes per
@@ -413,6 +463,14 @@ run_soak() {
   [ -n "$base_heap" ] && [ -n "$end_heap" ] && [ "$end_heap" -ge $((base_heap - 8192)) ]; result "soak_heap_no_leak" $?
   [ -n "$base_min" ] && [ -n "$end_min" ] && [ "$end_min" -ge $((base_min - 98304)) ] && [ "$new_lows" -le 5 ]; result "soak_min_heap_stable" $?
   [ "$last_rx" -ge 50 ] && [ "$last_be" -ge 20 ] && [ "$last_big" -ge 1 ]; result "soak_still_delivering" $?
+  # Every cycle's service call (Fast DDS and Cyclone alternating) must be
+  # answered: the service path under churn, not just the topics. One miss over
+  # the run is tolerated: a call is a single request with a 14 s budget during
+  # the busiest seconds of a cycle, and a lost DATA repaired just past that
+  # budget is not the failure this guards against (the heap and the matrix's
+  # loss cases cover repair); two or more misses are.
+  echo "service calls answered: $srv_ok of $cycles"
+  [ "$srv_ok" -ge $((cycles - 1)) ]; result "soak_service_calls" $?
 }
 
 case "$SUITE" in

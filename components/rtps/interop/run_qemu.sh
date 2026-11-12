@@ -22,7 +22,8 @@ REPO_ROOT="$(cd ../../.. && pwd)"
 FLASH="${1:-$PWD/qemu/build/qemu_flash.bin}"
 [ -s "$FLASH" ] || { echo "firmware image not found: $FLASH (build components/rtps/interop/qemu first)"; exit 2; }
 case "$FLASH" in "$REPO_ROOT"/*) FLASH_IN="/work${FLASH#"$REPO_ROOT"}" ;; *) echo "the image must live inside the repo ($REPO_ROOT)"; exit 2 ;; esac
-docker build -t espp-rtps-interop .
+ROS_DISTRO="${ROS_DISTRO:-jazzy}" # jazzy (default) or humble, see the Dockerfile
+docker build --build-arg "ROS_DISTRO=$ROS_DISTRO" -t "espp-rtps-interop-$ROS_DISTRO" .
 exec docker run --rm --network none --cap-add NET_ADMIN --device /dev/net/tun \
-  -v "$REPO_ROOT":/work espp-rtps-interop \
+  -v "$REPO_ROOT":/work "espp-rtps-interop-$ROS_DISTRO" \
   bash /work/components/rtps/interop/run_qemu_interop.sh "$FLASH_IN" "${2:-matrix}"

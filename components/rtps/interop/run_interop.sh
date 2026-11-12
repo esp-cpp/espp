@@ -90,6 +90,7 @@ many_participants_case() { # prefix log-tag
 }
 
 note "Build espp lib + host binaries (linux)"
+echo "compiler: $(${CXX:-c++} --version | head -1); cmake $(cmake --version | head -1 | awk '{print $3}'); ROS_DISTRO=${ROS_DISTRO:-?}"
 cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_INSTALL_PREFIX=/tmp/espp/install > /tmp/cmake_lib.log 2>&1 \
   && cmake --build lib/build -j"$(nproc)" --target install > /tmp/build_lib.log 2>&1 \
   && cmake -S pc -B pc/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/tmp/espp/install > /tmp/cmake.log 2>&1 \
@@ -100,7 +101,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_cyclonedds_rpc_header rtps_preemptive_acknack_count \
        rtps_action_loopback \
        rtps_native_service_loopback rtps_native_action_loopback rtps_typed_rpc_loopback \
-       rtps_service_interop_server rtps_service_interop_client \
+       rtps_service_interop_server rtps_service_interop_client rtps_trigger_interop_server \
        rtps_action_interop_server rtps_action_interop_client \
        rtps_sedp_dedicated_locator rtps_banded_pubsub rtps_banded_deferred rtps_banded_ration \
        rtps_banded_churn rtps_service_rollback rtps_deferred_recovery rtps_guaranteed_submit \
@@ -112,7 +113,7 @@ result "build" $build_rc
 if [ $build_rc -ne 0 ]; then tail -30 /tmp/cmake_lib.log /tmp/build_lib.log /tmp/build.log; exit 1; fi
 BIN=pc/build
 
-source /opt/ros/jazzy/setup.bash
+source "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash"
 export ROS_DOMAIN_ID=0    # matches the engine's Config::DOMAIN_ID
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
@@ -421,6 +422,80 @@ rpc_cases() { # prefix log-tag
   echo "--- espp action client ---"; tail -2 "/tmp/${tag}actclient.log"
   echo "--- rclpy server ---"; grep -iE "order=" "/tmp/${tag}rosactsrv.log" | tail -2
   result "${prefix}espp_action_client->ros2_server" $actclient_rc
+
+  # --- beyond one happy-path call: concurrency, ordering, timing, sizes, goal paths ---
+  note "${prefix}espp service client -> ROS 2 server, 8 requests in flight at once (each reply must land on its own request)"
+  python3 /work/components/rtps/interop/ros2_add_two_ints_server.py > "/tmp/${tag}rossvcsrv8.log" 2>&1 &
+  local rossvc8=$!
+  sleep 4
+  timeout 40 "$BIN"/rtps_service_interop_client /add_two_ints example_interfaces::srv::dds_::AddTwoInts \
+    100 7 30 "" 8 > "/tmp/${tag}svcclient8.log" 2>&1
+  local svcclient8_rc=$?
+  kill $rossvc8 2>/dev/null; wait $rossvc8 2>/dev/null
+  echo "--- espp client ---"; tail -2 "/tmp/${tag}svcclient8.log"
+  result "${prefix}espp_service_client_x8->ros2_server" $svcclient8_rc
+
+  note "${prefix}two espp service clients -> one ROS 2 server at the same time (replies are filtered per client)"
+  python3 /work/components/rtps/interop/ros2_add_two_ints_server.py > "/tmp/${tag}rossvcsrv2.log" 2>&1 &
+  local rossvc2=$!
+  sleep 4
+  timeout 40 "$BIN"/rtps_service_interop_client /add_two_ints example_interfaces::srv::dds_::AddTwoInts \
+    1 2 30 "" 4 > "/tmp/${tag}svcclientA.log" 2>&1 &
+  local client_a=$!
+  timeout 40 "$BIN"/rtps_service_interop_client /add_two_ints example_interfaces::srv::dds_::AddTwoInts \
+    1000 2000 30 "" 4 > "/tmp/${tag}svcclientB.log" 2>&1 &
+  local client_b=$!
+  wait $client_a; local client_a_rc=$?
+  wait $client_b; local client_b_rc=$?
+  kill $rossvc2 2>/dev/null; wait $rossvc2 2>/dev/null
+  echo "--- espp client A ---"; tail -1 "/tmp/${tag}svcclientA.log"
+  echo "--- espp client B ---"; tail -1 "/tmp/${tag}svcclientB.log"
+  [ $client_a_rc -eq 0 ] && [ $client_b_rc -eq 0 ]; result "${prefix}two_espp_clients->ros2_server" $?
+
+  note "${prefix}espp service client up first, the ROS 2 server joins 8 s later (requests sent before any server was matched)"
+  timeout 50 "$BIN"/rtps_service_interop_client /add_two_ints example_interfaces::srv::dds_::AddTwoInts \
+    5 6 40 > "/tmp/${tag}svclate.log" 2>&1 &
+  local late_client=$!
+  sleep 8
+  python3 /work/components/rtps/interop/ros2_add_two_ints_server.py > "/tmp/${tag}rossvclate.log" 2>&1 &
+  local rossvclate=$!
+  wait $late_client; local late_rc=$?
+  kill $rossvclate 2>/dev/null; wait $rossvclate 2>/dev/null
+  echo "--- espp client ---"; tail -1 "/tmp/${tag}svclate.log"
+  echo "--- rclpy server ---"; grep -iE "= [0-9]" "/tmp/${tag}rossvclate.log" | tail -2
+  result "${prefix}espp_service_client->late_ros2_server" $late_rc
+
+  note "${prefix}espp Trigger server <- ROS 2 client: an empty request, a 48000-character reply in one DATA"
+  "$BIN"/rtps_trigger_interop_server /trigger std_srvs::srv::dds_::Trigger 40 48000 > "/tmp/${tag}trgsrv.log" 2>&1 &
+  local trgsrv=$!
+  sleep 4
+  timeout 25 ros2 service call /trigger std_srvs/srv/Trigger "{}" > "/tmp/${tag}trgcall.log" 2>&1
+  local trg_rc=0
+  grep -q "success=True" "/tmp/${tag}trgcall.log" || trg_rc=1
+  local xs; xs=$(grep -o "message='x*'" "/tmp/${tag}trgcall.log" | tr -cd 'x' | wc -c | tr -d ' ')
+  [ "$xs" -eq 48000 ] || trg_rc=1
+  sleep 1
+  kill $trgsrv 2>/dev/null; wait $trgsrv 2>/dev/null
+  echo "--- ros2 service call --- (message of $xs characters)"; grep -o "success=[A-Za-z]*" "/tmp/${tag}trgcall.log" | tail -1
+  echo "--- espp server ---"; grep "server:" "/tmp/${tag}trgsrv.log" | tail -2
+  result "${prefix}espp_trigger_server<-ros2_client" $trg_rc
+
+  note "${prefix}espp action server <- ROS 2 client: a goal cancelled at its first feedback, and a goal the server refuses"
+  "$BIN"/rtps_action_interop_server /fibonacci example_interfaces::action::dds_::Fibonacci 90 \
+    > "/tmp/${tag}actsrv2.log" 2>&1 &
+  local actsrv2=$!
+  sleep 5
+  timeout 35 python3 /work/components/rtps/interop/ros2_fibonacci_client.py cancel 12 > "/tmp/${tag}actcancel.log" 2>&1
+  local cancel_rc=$?; grep -q "^CANCELED" "/tmp/${tag}actcancel.log" || cancel_rc=1
+  timeout 35 python3 /work/components/rtps/interop/ros2_fibonacci_client.py reject 0 > "/tmp/${tag}actreject.log" 2>&1
+  local reject_rc=$?; grep -q "^REJECTED" "/tmp/${tag}actreject.log" || reject_rc=1
+  sleep 1
+  kill $actsrv2 2>/dev/null; wait $actsrv2 2>/dev/null
+  echo "--- cancel ---"; tail -1 "/tmp/${tag}actcancel.log"
+  echo "--- reject ---"; tail -1 "/tmp/${tag}actreject.log"
+  echo "--- espp action server ---"; grep "server:" "/tmp/${tag}actsrv2.log" | tail -3
+  result "${prefix}espp_action_server<-ros2_cancel" $cancel_rc
+  result "${prefix}espp_action_server<-ros2_reject" $reject_rc
 }
 rpc_cases "" ""
 
@@ -488,6 +563,32 @@ if grep -l "malformed packet received from vendor" /tmp/c*.log > /dev/null 2>&1;
 fi
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 unset CYCLONEDDS_URI
+
+# --- Mixed RMWs on one espp service ----------------------------------------
+# The server decides the reply form per request from the client's vendor id,
+# so one espp service must serve a Fast DDS client and a Cyclone client at the
+# same time, each in its own form, with no cross-talk between their replies.
+note "mixed: a Fast DDS client and a Cyclone client call one espp service at the same time, three rounds"
+"$BIN"/rtps_service_interop_server /add_two_ints example_interfaces::srv::dds_::AddTwoInts 60 > /tmp/mixsrv.log 2>&1 &
+MIXSRV=$!
+sleep 4
+mix_rc=0
+for round in 1 2 3; do
+  RMW_IMPLEMENTATION=rmw_fastrtps_cpp timeout 25 ros2 service call /add_two_ints example_interfaces/srv/AddTwoInts "{a: 1, b: $round}" > "/tmp/mixf$round.log" 2>&1 &
+  mixf=$!
+  RMW_IMPLEMENTATION=rmw_cyclonedds_cpp timeout 25 ros2 service call /add_two_ints example_interfaces/srv/AddTwoInts "{a: 100, b: $round}" > "/tmp/mixc$round.log" 2>&1 &
+  mixc=$!
+  wait $mixf || mix_rc=1
+  wait $mixc || mix_rc=1
+  grep -q "sum=$((1 + round))" "/tmp/mixf$round.log" || mix_rc=1
+  grep -q "sum=$((100 + round))" "/tmp/mixc$round.log" || mix_rc=1
+done
+sleep 1
+kill $MIXSRV 2>/dev/null; wait $MIXSRV 2>/dev/null
+echo "--- fastdds client, round 3 ---"; tail -1 /tmp/mixf3.log
+echo "--- cyclone client, round 3 ---"; tail -1 /tmp/mixc3.log
+echo "--- espp server ---"; grep "server:" /tmp/mixsrv.log | tail -3
+result "mixed_rmw_clients->espp_service_server" $mix_rc
 
 # --- Python bindings: functional round-trip of every RMI/AMI mechanism --------
 # Build the espp wheel in-container and run the demo (multicast discovery works

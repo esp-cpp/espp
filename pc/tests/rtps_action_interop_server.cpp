@@ -54,12 +54,29 @@ int main(int argc, char **argv) {
   if (!p.add_action_server(
           {action, type},
           [](const espp::RtpsParticipant::GoalId &, std::span<const uint8_t> goal) {
-            return goal.size() >= 8 && get_i32(goal, 4) > 0;
+            // a non-positive order is refused: the interop matrix drives this
+            // rejection path from a ROS 2 client (ros2_fibonacci_client.py reject)
+            const bool accept = goal.size() >= 8 && get_i32(goal, 4) > 0;
+            if (!accept) {
+              std::printf("server: goal rejected (order=%d)\n",
+                          goal.size() >= 8 ? (int)get_i32(goal, 4) : -1);
+              std::fflush(stdout);
+            }
+            return accept;
           },
           [&handled](espp::RtpsParticipant::ActionGoalHandle h) {
             const int32_t order = get_i32(h.goal(), 4);
             std::vector<int32_t> seq{0, 1};
             for (int32_t i = 1; i < order; ++i) {
+              if (h.is_canceling()) {
+                // the client asked for a cancel: wind down with the partial
+                // sequence as the result (ros2_fibonacci_client.py cancel)
+                auto partial = encode_seq(seq);
+                h.canceled({partial.data(), partial.size()});
+                std::printf("server: goal order=%d canceled at seq_len=%zu\n", order, seq.size());
+                std::fflush(stdout);
+                return;
+              }
               seq.push_back(seq[i] + seq[i - 1]);
               auto fb = encode_seq(seq);
               h.publish_feedback({fb.data(), fb.size()});

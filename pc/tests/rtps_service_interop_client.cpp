@@ -1,6 +1,12 @@
 // espp service CLIENT for the ROS 2 interop matrix: calls an add_two_ints
 // service hosted by a ROS 2 (rclpy) server and checks the returned sum. Exits 0
-// iff the correlated reply equals a + b.
+// iff the correlated reply equals a + b - and, with a pipeline depth above one,
+// iff every one of that many simultaneously outstanding requests gets its own
+// correct reply (replies may come back in any order; each must land on the
+// request it answers).
+//
+// usage: rtps_service_interop_client [service] [type] [a] [b] [timeout_s]
+//                                     [interface_ip] [pipeline]
 //
 // AddTwoInts wire form (classic CDR, little-endian): request = int64 a + int64 b;
 // response = int64 sum. Payloads include the 4-byte CDR encapsulation header.
@@ -9,6 +15,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <future>
 #include <span>
 #include <thread>
 #include <vector>
@@ -31,6 +38,12 @@ int64_t get_i64(std::span<const uint8_t> p, size_t off) {
   }
   return x;
 }
+std::vector<uint8_t> encode_request(int64_t a, int64_t b) {
+  std::vector<uint8_t> request(kEncap, kEncap + 4);
+  put_i64(request, a);
+  put_i64(request, b);
+  return request;
+}
 } // namespace
 
 int main(int argc, char **argv) {
@@ -40,6 +53,7 @@ int main(int argc, char **argv) {
   const int64_t b = (argc > 4) ? std::atoll(argv[4]) : 22;
   const int timeout_s = (argc > 5) ? std::atoi(argv[5]) : 30;
   const char *interface_ip = (argc > 6) ? argv[6] : "";
+  const int pipeline = (argc > 7) ? std::max(1, std::atoi(argv[7])) : 1;
 
   espp::RtpsParticipant p(
       {.interface_address = interface_ip, .log_level = espp::Logger::Verbosity::WARN});
@@ -53,9 +67,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  std::vector<uint8_t> request(kEncap, kEncap + 4);
-  put_i64(request, a);
-  put_i64(request, b);
+  const auto request = encode_request(a, b);
 
   // Retry: the rclpy server may still be coming up / matching over SEDP.
   const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(timeout_s);
@@ -71,9 +83,46 @@ int main(int argc, char **argv) {
       std::this_thread::sleep_for(500ms);
     }
   }
-
-  p.stop();
   std::printf("client: %lld + %lld = %lld (expected %lld) => %s\n", (long long)a, (long long)b,
               (long long)sum, (long long)(a + b), ok ? "PASS" : "FAIL");
+
+  // Pipelined: `pipeline` requests in flight at once, each with its own
+  // operands, so a reply delivered to the wrong pending request shows up as a
+  // wrong sum rather than passing by coincidence.
+  if (ok && pipeline > 1) {
+    int correct = 0;
+    std::vector<std::future<std::optional<std::vector<uint8_t>>>> futures;
+    futures.reserve(pipeline);
+    for (int i = 0; i < pipeline; ++i) {
+      futures.push_back(client->call_future(encode_request(a + i, b + 2 * i)));
+    }
+    // Its own budget: the retry loop above may have used most of the first one
+    // waiting for the server to come up.
+    const auto pipeline_deadline =
+        std::chrono::steady_clock::now() + std::chrono::seconds(timeout_s);
+    for (int i = 0; i < pipeline; ++i) {
+      if (futures[i].wait_until(pipeline_deadline) != std::future_status::ready) {
+        std::printf("client: pipelined request %d: no reply\n", i);
+        continue;
+      }
+      auto reply = futures[i].get();
+      if (!reply.has_value() || reply->size() < 4 + 8) {
+        std::printf("client: pipelined request %d: failed\n", i);
+        continue;
+      }
+      const int64_t got = get_i64(*reply, 4);
+      const int64_t expected = (a + i) + (b + 2 * i);
+      if (got == expected) {
+        ++correct;
+      } else {
+        std::printf("client: pipelined request %d: got %lld, expected %lld\n", i, (long long)got,
+                    (long long)expected);
+      }
+    }
+    ok = (correct == pipeline);
+    std::printf("client: pipelined %d/%d correct => %s\n", correct, pipeline, ok ? "PASS" : "FAIL");
+  }
+
+  p.stop();
   return ok ? 0 : 1;
 }
