@@ -234,10 +234,12 @@ public:
   ///         reader pool is exhausted).
   bool add_reader(const ReaderConfig &config);
 
-  /// Remote writers matched to the reader on `topic` right now: the peers'
-  /// publishers discovery paired with it, as counted by the engine. A peer that
-  /// deletes its publisher or leaves the domain drops out as soon as its
-  /// dispose arrives, a silent peer when its lease runs out.
+  /// Distinct remote writers matched to any local reader on `topic` right now
+  /// (add_reader() allows several readers on one topic, e.g. a reliable and a
+  /// best-effort one; a writer matched to more than one of them counts once):
+  /// the peers' publishers discovery paired with them, as counted by the
+  /// engine. A peer that deletes its publisher or leaves the domain drops out
+  /// as soon as its dispose arrives, a silent peer when its lease runs out.
   /// \param topic The topic name used in add_reader().
   /// \return The count, 0 when there is no such reader or the participant is
   ///         not started.

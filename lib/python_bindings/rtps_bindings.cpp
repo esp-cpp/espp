@@ -274,8 +274,9 @@ void py_init_rtps(py::module &m) {
           "deferred banded dispatch when no dedicated port is available).")
       .def("matched_writers", &Rtps::matched_writers, py::arg("topic"),
            py::call_guard<py::gil_scoped_release>(),
-           "Remote writers matched to the reader on topic right now (0 without such a reader). A\n"
-           "peer that deletes its publisher or leaves the domain drops out as soon as its dispose\n"
+           "Distinct remote writers matched to any local reader on topic right now (0 without\n"
+           "such a reader; a writer matched to several readers on the topic counts once). A peer\n"
+           "that deletes its publisher or leaves the domain drops out as soon as its dispose\n"
            "arrives, a silent peer when its lease runs out.")
       .def("matched_readers", &Rtps::matched_readers, py::arg("topic"),
            py::call_guard<py::gil_scoped_release>(),
