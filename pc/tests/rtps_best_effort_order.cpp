@@ -6,9 +6,10 @@
 // and reordering cases (components/rtps/interop/qemu); this is the host-side
 // regression test for the rule, feeding the reader directly.
 //
-// Also pinned: a change from a writer the reader has no proxy for is still
-// delivered (there is nothing to track it against), and writers are tracked
-// independently.
+// Also pinned: a change from a writer a USER reader has no proxy for is
+// dropped (there is nothing to apply the rule to, and Fast DDS / Cyclone DDS
+// drop it too), the builtin SPDP reader still takes announcements from the
+// unmatched writers that send them, and writers are tracked independently.
 
 #include <cstdio>
 #include <cstring>
@@ -67,6 +68,9 @@ int main() {
   rtps::TopicData attributes{};
   std::strncpy(attributes.topicName, "best_effort_order", sizeof(attributes.topicName) - 1);
   std::strncpy(attributes.typeName, "test", sizeof(attributes.typeName) - 1);
+  // a USER reader (the Participant gives real ones this kind): the unmatched
+  // rule below depends on it
+  attributes.endpointGuid.entityId.entityKind = rtps::EntityKind_t::USER_DEFINED_READER_WITHOUT_KEY;
   if (!reader.init(attributes)) {
     std::printf("FAIL: reader init\n");
     return 1;
@@ -124,12 +128,46 @@ int main() {
   feed(reader, other, 2);
   ok = same(delivered.sns, {1, 2}, "second writer") && ok;
 
-  // no proxy for the writer: delivered as before, every time
+  // no proxy for the writer: a user reader drops it (the ordering rule has
+  // nothing to work with, and the matched stream that follows stays ordered)
   delivered.sns.clear();
   feed(reader, unknown, 7);
   feed(reader, unknown, 7);
   feed(reader, unknown, 6);
-  ok = same(delivered.sns, {7, 7, 6}, "unknown writer") && ok;
+  ok = same(delivered.sns, {}, "unknown writer on a user reader") && ok;
+
+  // ... and delivery starts once it is matched, from the first sample that
+  // arrives after the match (what came before the match stays lost)
+  delivered.sns.clear();
+  if (!reader.addNewMatchedWriter(rtps::WriterProxy{unknown, rtps::LocatorIPv4{}, false})) {
+    std::printf("FAIL: addNewMatchedWriter (late)\n");
+    return 1;
+  }
+  feed(reader, unknown, 8);
+  feed(reader, unknown, 7);
+  feed(reader, unknown, 9);
+  ok = same(delivered.sns, {8, 9}, "late-matched writer") && ok;
+
+  // the builtin SPDP reader takes announcements from writers it has not
+  // matched (it never matches them: discovery starts there), unordered
+  {
+    rtps::StatelessReader spdp;
+    rtps::TopicData spdp_attributes{};
+    std::strncpy(spdp_attributes.topicName, "DCPSParticipant",
+                 sizeof(spdp_attributes.topicName) - 1);
+    std::strncpy(spdp_attributes.typeName, "ParticipantProxy",
+                 sizeof(spdp_attributes.typeName) - 1);
+    spdp_attributes.endpointGuid.entityId = rtps::ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER;
+    Delivered announcements;
+    if (!spdp.init(spdp_attributes) || spdp.registerCallback(&on_change, &announcements) == 0) {
+      std::printf("FAIL: spdp reader init\n");
+      return 1;
+    }
+    feed(spdp, unknown, 7);
+    feed(spdp, unknown, 7);
+    feed(spdp, unknown, 6);
+    ok = same(announcements.sns, {7, 7, 6}, "unknown writer on the SPDP reader") && ok;
+  }
 
   // the top of the sequence-number range came off the wire: delivered, no
   // overflow of the next-expected; what is below it afterwards is dropped
