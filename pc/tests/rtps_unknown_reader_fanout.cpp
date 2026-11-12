@@ -24,6 +24,14 @@
 //     over SN 1..2, then an unnamed DATA with SN 3: delivered to both (a
 //     reliable reader only takes the SN it expects, so the GAP reached both).
 //     A HEARTBEAT with readerId ENTITYID_UNKNOWN is taken without harm.
+//  5. Late creation: a peer announces an endpoint once (SEDP is reliable, no
+//     periodic resend), so a local endpoint created AFTER the announcement
+//     can only match it from the agent's registry of known remote endpoints.
+//     That registry used to keep just the endpoints that matched nothing: a
+//     remote writer that had matched reader A was invisible to a reader B
+//     created later. Now a reader B on the topic gets the writer at creation,
+//     a late local writer gets the remote reader, and a remote writer
+//     disposed before the late creation is not matched.
 //
 // Exits 0 on success, 1 on the first failed check.
 
@@ -324,6 +332,51 @@ bool run_checks() {
   feed(part, data_message(peer, rel_writer.entityId, rtps::ENTITYID_UNKNOWN, 3, payload));
   CHECK(e1.count == 1 && e2.count == 1,
         "after the unnamed GAP both reliable readers take the unnamed DATA at SN 3");
+
+  // 5. Late creation. be_writer already matched be1 and be2; a reader created
+  //    now must get it from the registry.
+  rtps::Reader *be3 = domain.createReader(*part, "be_topic", kType, false, {0, 0, 0, 0});
+  CHECK(be3 != nullptr, "a third best-effort reader, created after the announcement");
+  CHECK(be3->getProxiesCount() == 1 && be3->isProxy(be_writer),
+        "a reader created after the announcement is matched to the remembered writer");
+  Delivered d3;
+  CHECK(be3->registerCallback(&on_sample, &d3) != 0, "registerCallback (late reader)");
+  feed(part, data_message(peer, be_writer.entityId, rtps::ENTITYID_UNKNOWN, 3, payload));
+  CHECK(d1.count == 2 && d2.count == 3 && d3.count == 1,
+        "an unnamed DATA reaches the late reader too");
+  // remote_reader already matched w1 and w2; a writer created now gets it.
+  rtps::Writer *w3 = domain.createWriter(*part, "w_topic", kType, true, false);
+  CHECK(w3 != nullptr, "a third writer, created after the announcement");
+  CHECK(w3->getProxiesCount() == 1 && w3->isProxy(remote_reader),
+        "a writer created after the announcement is matched to the remembered reader");
+  // A remote writer disposed before the late creation is forgotten: a reader
+  // created afterwards does not get it.
+  const rtps::Guid_t gone_writer{
+      peer, {{0x00, 0x00, 0x04}, rtps::EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY}};
+  feed(part, data_message(peer, rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER,
+                          rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER, ++pub_sn,
+                          sedp_payload(gone_writer, "gone_topic", kType, false)));
+  {
+    using rtps::SMElement::ParameterId;
+    auto m = header(peer);
+    std::vector<uint8_t> b;
+    push_u16(b, 0);
+    push_u16(b, 16);
+    push_entity_id(b, rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER);
+    push_entity_id(b, rtps::ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER);
+    push_u32(b, 0);
+    push_u32(b, ++pub_sn);
+    push_param(b, ParameterId::PID_KEY_HASH, guid_value(gone_writer)); // Fast DDS dispose form
+    push_param(b, ParameterId::PID_STATUS_INFO, {0, 0, 0, 1});
+    push_sentinel(b);
+    push_submessage(m, static_cast<uint8_t>(rtps::SubmessageKind::DATA),
+                    rtps::FLAG_LITTLE_ENDIAN | rtps::FLAG_INLINE_QOS, b);
+    feed(part, m);
+  }
+  rtps::Reader *gone = domain.createReader(*part, "gone_topic", kType, false, {0, 0, 0, 0});
+  CHECK(gone != nullptr, "a reader on the disposed writer's topic");
+  CHECK(gone->getProxiesCount() == 0,
+        "a remote writer disposed before the reader was created is not matched");
   return true;
 }
 

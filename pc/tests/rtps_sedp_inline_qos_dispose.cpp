@@ -23,7 +23,7 @@
 //  4. This engine's own form (SEDPAgent::announceEndpointDeletion: KEY_HASH +
 //     STATUS_INFO inline, a bare sentinel as payload) unmatches it: espp
 //     peers see each other's deletions.
-//  5. A dispose for an endpoint nobody matched clears it from the unmatched
+//  5. A dispose for an endpoint nobody matched clears it from the known-endpoint
 //     registry, and a dispose for an unknown GUID changes nothing.
 //  6. A remote reader announced on the subscriptions writer matches the local
 //     writer and its dispose unmatches it (the other SEDP leg).
@@ -322,7 +322,7 @@ bool run_checks() {
   dispose_writer(dispose_inline_qos(&remote_writer), sentinel());
   CHECK(reader->getProxiesCount() == 0, "espp form dispose unmatches the remote writer");
 
-  // 5. An endpoint nobody matched waits in the unmatched registry, from where
+  // 5. An endpoint nobody matched waits in the registry of known remote endpoints, from where
   //    a reader created later still matches it - unless its dispose came
   //    first. A dispose for an unknown GUID changes nothing.
   const rtps::Guid_t kept_writer{
@@ -339,7 +339,7 @@ bool run_checks() {
   rtps::Reader *gone = domain.createReader(*part, "gone_topic", kType, false, {0, 0, 0, 0});
   CHECK(later != nullptr && gone != nullptr, "createReader for the registry checks");
   CHECK(later->getProxiesCount() == 1 && later->isProxy(kept_writer),
-        "a writer announced before its reader existed is matched from the unmatched registry");
+        "a writer announced before its reader existed is matched from the registry");
   CHECK(gone->getProxiesCount() == 0,
         "a writer disposed while unmatched is cleared from the registry");
 

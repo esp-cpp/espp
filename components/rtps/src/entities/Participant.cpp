@@ -98,7 +98,7 @@ bool Participant::registerOnNewSubscriberMatchedCallback(void (*callback)(void *
 rtps::Writer *Participant::addWriter(Writer *pWriter) {
   // Reserve the slot under m_mutex, but announce via the SEDP agent OUTSIDE
   // it: the agent locks SEDPAgent::m_mutex and then this mutex (its receive
-  // handlers and tryMatchUnmatchedEndpoints() call back into this
+  // handlers and matchKnownRemoteEndpoints() call back into this
   // participant), so nesting the agent call under m_mutex is a lock-order
   // inversion that deadlocks under concurrent discovery traffic. The global
   // order is SEDPAgent::m_mutex -> Participant::m_mutex, never the reverse.
@@ -201,7 +201,7 @@ bool Participant::deleteReader(Reader *reader) {
   // Participant::m_mutex, see addWriter()). Without this, a concurrent SEDP
   // receive handler could match a newly announced remote writer to this reader
   // in the window between its disposal and the slot-clear - consuming the
-  // remote from the unmatched registry just before the reader vanishes, losing
+  // remote from the known-endpoint registry just before the reader vanishes, losing
   // that match for any replacement reader. Both mutexes are recursive, so the
   // agent's own lock in deleteReader() nests harmlessly.
   std::lock_guard<std::recursive_mutex> sedp_lock(m_sedpAgent.getMutex());
@@ -479,7 +479,7 @@ bool Participant::addNewRemoteParticipant(const ParticipantProxyData &remotePart
 bool Participant::removeRemoteParticipant(const GuidPrefix_t &prefix) {
   // Documented global lock order: SEDPAgent::m_mutex BEFORE
   // Participant::m_mutex. The removal below calls into the SEDP agent
-  // (removeUnmatchedEntitiesOfParticipant takes its mutex), so acquire the
+  // (forgetRemoteEndpointsOfParticipant takes its mutex), so acquire the
   // agent mutex first - taking m_mutex alone here and letting the nested call
   // grab the agent mutex would be an ABBA inversion against the SEDP receive
   // handlers, which hold the agent mutex and call findRemoteParticipant()
@@ -493,11 +493,11 @@ bool Participant::removeRemoteParticipant(const GuidPrefix_t &prefix) {
     return (*static_cast<decltype(isElementToRemove) *>(arg))(value);
   };
   removeAllProxiesOfParticipant(prefix);
-  m_sedpAgent.removeUnmatchedEntitiesOfParticipant(prefix);
+  m_sedpAgent.forgetRemoteEndpointsOfParticipant(prefix);
   const bool removed = m_remoteParticipants.remove(thunk, &isElementToRemove);
   // Its proxies are gone: endpoints that found no room in a pool take the
   // freed slots (after the registry no longer lists this participant's own).
-  m_sedpAgent.retryUnmatchedEndpoints();
+  m_sedpAgent.retryKnownRemoteEndpoints();
   return removed;
 }
 
@@ -612,9 +612,9 @@ bool Participant::checkAndResetHeartbeats() {
       std::lock_guard<std::recursive_mutex> lock2(m_mutex);
       PARTICIPANT_LOG("Have {} remote participants",
                       (unsigned int)m_remoteParticipants.getNumElements());
-      PARTICIPANT_LOG("Unmatched remote writers/readers, {} / {}",
-                      static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedWriters()),
-                      static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedReaders()));
+      PARTICIPANT_LOG("Known remote writers/readers, {} / {}",
+                      static_cast<unsigned int>(m_sedpAgent.getNumKnownRemoteWriters()),
+                      static_cast<unsigned int>(m_sedpAgent.getNumKnownRemoteReaders()));
       for (auto &remote : m_remoteParticipants) {
         PARTICIPANT_LOG("Remote GUID = {} {} {} {} | Age = {} [ms]", remote.m_guid.prefix.id[4],
                         remote.m_guid.prefix.id[5], remote.m_guid.prefix.id[6],
@@ -826,10 +826,10 @@ void Participant::printInfo() {
 
   PARTICIPANT_LOG("Max Writer Proxies {}", max_writer_proxies);
   PARTICIPANT_LOG("Max Reader Proxies {}", max_reader_proxies);
-  PARTICIPANT_LOG("Unmatched Remote Readers = {}",
-                  static_cast<int>(m_sedpAgent.getNumRemoteUnmatchedReaders()));
-  PARTICIPANT_LOG("Unmatched Remote Writers = {}",
-                  static_cast<int>(m_sedpAgent.getNumRemoteUnmatchedWriters()));
+  PARTICIPANT_LOG("Known Remote Readers = {}",
+                  static_cast<int>(m_sedpAgent.getNumKnownRemoteReaders()));
+  PARTICIPANT_LOG("Known Remote Writers = {}",
+                  static_cast<int>(m_sedpAgent.getNumKnownRemoteWriters()));
   PARTICIPANT_LOG("Remote Participants = {}",
                   static_cast<int>(m_remoteParticipants.getNumElements()));
 }

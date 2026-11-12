@@ -52,15 +52,18 @@ public:
 
   void registerOnNewPublisherMatchedCallback(void (*callback)(void *arg), void *args);
   void registerOnNewSubscriberMatchedCallback(void (*callback)(void *arg), void *args);
-  void removeUnmatchedEntitiesOfParticipant(const GuidPrefix_t &guidPrefix);
-  void removeUnmatchedEntity(const Guid_t &guid);
+  /// Forget every remembered remote endpoint of a participant (it left).
+  void forgetRemoteEndpointsOfParticipant(const GuidPrefix_t &guidPrefix);
+  /// Forget one remembered remote endpoint (it was disposed).
+  void forgetRemoteEndpoint(const Guid_t &guid);
 
-  uint32_t getNumRemoteUnmatchedReaders();
-  uint32_t getNumRemoteUnmatchedWriters();
-  /// Match what waits in the unmatched registry against the local endpoints:
+  /// Remote user endpoints remembered right now (matched or not).
+  uint32_t getNumKnownRemoteReaders();
+  uint32_t getNumKnownRemoteWriters();
+  /// Match every remembered remote endpoint against the local endpoints:
   /// called after proxies were freed (a remote participant left), so an
   /// endpoint that found no room in a proxy pool takes the slot.
-  void retryUnmatchedEndpoints();
+  void retryKnownRemoteEndpoints();
 
   /// The agent's discovery mutex (recursive). Exposed so an endpoint deletion
   /// can be made ATOMIC with the participant's slot removal under the global
@@ -82,23 +85,26 @@ private:
                          // (FastDDS gives too many options)
   BuiltInEndpoints m_endpoints;
   /*
-   * If we add readers later on, remote participants will not send matching
-   * writer proxies again (and vice versa). This is done only once during
-   * discovery. Therefore, we need to keep track of remote endpoints. Topic and
-   * type are represented as hash values to save memory.
+   * Every remote user endpoint announced to us, matched or not: a peer
+   * announces an endpoint once (SEDP is reliable, with no periodic resend),
+   * so a local endpoint created LATER can only match it from here. The
+   * registry used to hold just the endpoints that matched nothing, so a
+   * remote writer that had matched one local reader was invisible to a
+   * second reader created afterwards. Records are compressed (topic and type
+   * as hashes) and leave only when the endpoint is disposed or its
+   * participant goes (lease or SPDP dispose). The MAX_NUM_UNMATCHED_REMOTE_*
+   * knobs bound these pools; their names predate the wider meaning.
    */
-  MemoryPool<TopicDataCompressed, Config::MAX_NUM_UNMATCHED_REMOTE_WRITERS>
-      m_unmatchedRemoteWriters;
-  size_t m_numUnmatchedRemoteWriters = 0;
-  MemoryPool<TopicDataCompressed, Config::MAX_NUM_UNMATCHED_REMOTE_READERS>
-      m_unmatchedRemoteReaders;
-  size_t m_numMatchedRemoteReaders = 0;
+  MemoryPool<TopicDataCompressed, Config::MAX_NUM_UNMATCHED_REMOTE_WRITERS> m_knownRemoteWriters;
+  MemoryPool<TopicDataCompressed, Config::MAX_NUM_UNMATCHED_REMOTE_READERS> m_knownRemoteReaders;
+  bool m_knownRemoteWritersFullWarned = false;
+  bool m_knownRemoteReadersFullWarned = false;
 
-  void tryMatchUnmatchedEndpoints();
-  void addUnmatchedRemoteWriter(const TopicData &writerData);
-  void addUnmatchedRemoteReader(const TopicData &readerData);
-  void addUnmatchedRemoteWriter(const TopicDataCompressed &writerData);
-  void addUnmatchedRemoteReader(const TopicDataCompressed &readerData);
+  void matchKnownRemoteEndpoints();
+  void rememberRemoteWriter(const TopicData &writerData);
+  void rememberRemoteReader(const TopicData &readerData);
+  void rememberRemoteWriter(const TopicDataCompressed &writerData);
+  void rememberRemoteReader(const TopicDataCompressed &readerData);
 
   /// A dispose/unregister of a remote endpoint, told by the DATA's inline QoS
   /// (change.kind != ALIVE; the instance in change.keyHash or, failing that,
@@ -111,7 +117,7 @@ private:
   bool matchRemoteWriter(Reader &reader, const WriterProxy &proxy);
   /// The same for a remote reader on a local writer.
   bool matchRemoteReader(Writer &writer, const ReaderProxy &proxy);
-  template <typename Pool> static bool isUnmatched(Pool &pool, const Guid_t &guid);
+  template <typename Pool> static bool isKnown(Pool &pool, const Guid_t &guid);
   /// The same told by a status-info parameter inside the payload.
   void handleRemoteEndpointDeletion(const TopicData &topic, const ReaderCacheChange &change,
                                     bool writers);

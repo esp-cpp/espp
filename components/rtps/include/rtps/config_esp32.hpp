@@ -116,6 +116,11 @@ const uint8_t NUM_WRITER_PROXIES_PER_READER = RTPS_CFG_NUM_WRITER_PROXIES_PER_RE
 #endif
 const uint8_t NUM_READER_PROXIES_PER_WRITER = RTPS_CFG_NUM_READER_PROXIES_PER_WRITER;
 
+// Remote user endpoints remembered from discovery, matched or not (the names
+// predate that: the registry used to hold the unmatched ones only). A peer
+// announces an endpoint once, so a local endpoint created later matches a
+// remote one from here; size for every remote user writer / reader on the
+// domain.
 #ifndef RTPS_CFG_MAX_NUM_UNMATCHED_REMOTE_WRITERS
 #define RTPS_CFG_MAX_NUM_UNMATCHED_REMOTE_WRITERS 50
 #endif

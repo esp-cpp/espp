@@ -3,11 +3,11 @@
 // A reader holds NUM_WRITER_PROXIES_PER_READER remote writers (static storage:
 // the embedded profile; host builds grow the pool instead). When the pool was
 // full, SEDP's addNewMatchedWriter() failed and the agent dropped the writer
-// on the floor: not logged through the logger, not kept in the unmatched
-// registry, so it was never delivered until its participant was forgotten
+// on the floor: not logged through the logger, not kept in the registry of
+// known remote endpoints, so it was never delivered until its participant was forgotten
 // and rediscovered (and the eviction policy could count that participant as
 // unused). Now the agent warns, naming the knob, keeps the writer in the
-// unmatched registry, and retries the registry whenever a proxy is removed (a
+// registry, and retries the registry whenever a proxy is removed (a
 // dispose, or a participant leaving), so the waiting writer takes the freed
 // slot. The same for remote readers on local writers.
 //

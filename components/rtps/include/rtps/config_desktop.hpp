@@ -137,6 +137,11 @@ const uint8_t NUM_READER_PROXIES_PER_WRITER = RTPS_CFG_NUM_READER_PROXIES_PER_WR
 // uint16_t (not uint8_t): these bound SEDP MemoryPool<> sizes and the host
 // value (256) already exceeds the 255 uint8_t range; host_large goes higher
 // still. MemoryPool<TYPE, uint32_t SIZE> widens the value, so uint16_t is safe.
+// Remote user endpoints remembered from discovery, matched or not (the names
+// predate that: the registry used to hold the unmatched ones only). A peer
+// announces an endpoint once, so a local endpoint created later matches a
+// remote one from here; size for every remote user writer / reader on the
+// domain.
 #ifndef RTPS_CFG_MAX_NUM_UNMATCHED_REMOTE_WRITERS
 #define RTPS_CFG_MAX_NUM_UNMATCHED_REMOTE_WRITERS 256
 #endif
