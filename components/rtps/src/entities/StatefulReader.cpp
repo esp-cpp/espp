@@ -92,6 +92,9 @@ void StatefulReader::newChange(const ReaderCacheChange &cacheChange) {
     auto it = std::find_if(m_proxies.begin(), m_proxies.end(), matches_writer);
     if (it != m_proxies.end()) {
       WriterProxy &proxy = *it;
+      if (proxy.lastAnnouncedSN < cacheChange.sn) {
+        proxy.lastAnnouncedSN = cacheChange.sn; // a DATA proves the number exists
+      }
       if (proxy.expectedSN == cacheChange.sn) {
         // Claim the SN under the proxies mutex; the callbacks run below,
         // still serialized by m_delivery_mutex so delivery order matches
@@ -129,6 +132,20 @@ bool StatefulReader::addNewMatchedWriter(const WriterProxy &newProxy) {
   return m_proxies.add(newProxy);
 }
 
+namespace {
+// Applies the GAP's advance of expectedSN only as far as the writer has
+// announced (see onNewGapMessage), on every return path.
+struct CapExpectedSN {
+  rtps::WriterProxy *writer;
+  rtps::SequenceNumber_t limit;
+  ~CapExpectedSN() {
+    if (limit < writer->expectedSN) {
+      writer->expectedSN = limit;
+    }
+  }
+};
+} // namespace
+
 bool StatefulReader::onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_t &remotePrefix) {
   std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   if (!m_is_initialized_) {
@@ -150,6 +167,27 @@ bool StatefulReader::onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_
 #endif
     return false;
   }
+
+  // A GAP names sequence numbers the writer will never send - but only ones
+  // it has shown to exist (RTPS 2.5 8.4.9.3.2 lists them as "sent"). Fast DDS
+  // sends a GAP for the NEXT number of its SEDP writer after an endpoint
+  // deletion (a hole where the deleted endpoint's announcement stood), then
+  // writes that very number for the next endpoint it announces: applied as
+  // sent, the GAP skipped the announcement and every one after it, so a peer
+  // that churned its publishers (the interop matrix's churn case against
+  // rmw_fastrtps_cpp) was never matched again. A GAP wholly above the highest
+  // number the writer has announced (HEARTBEAT lastSN, or a DATA) is ignored
+  // - the next HEARTBEAT decides - and one that reaches past it is applied
+  // only up to it. Regression test: pc/tests/rtps_gap_before_data.cpp.
+  if (writer->lastAnnouncedSN < msg.gapStart) {
+    SFR_LOG("Ignoring a GAP from {}.{} beyond the writer's last announced {}.{}",
+            (int)msg.gapStart.high, (int)msg.gapStart.low, (int)writer->lastAnnouncedSN.high,
+            (int)writer->lastAnnouncedSN.low);
+    return true;
+  }
+  SequenceNumber_t announcedNext = writer->lastAnnouncedSN;
+  ++announcedNext;
+  const CapExpectedSN cap{writer, announcedNext};
 
   // Case 1: We are still waiting for messages before gapStart
   if (writer->expectedSN < msg.gapStart) {
@@ -280,6 +318,9 @@ bool StatefulReader::onNewHeartbeat(const SubmessageHeartbeat &msg,
     }
   }
 
+  if (writer->lastAnnouncedSN < msg.lastSN) {
+    writer->lastAnnouncedSN = msg.lastSN;
+  }
   if (writer->expectedSN < msg.firstSN) {
     SFR_LOG("expectedSN < firstSN, advancing expectedSN");
     writer->expectedSN = msg.firstSN;

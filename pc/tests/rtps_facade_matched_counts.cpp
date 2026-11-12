@@ -88,24 +88,37 @@ int main() {
               pub.matched_readers(topic));
 
   // The publisher removes its writer: the SEDP dispose must unmatch it within
-  // a couple of seconds (the lease is far longer), on every reader it reached.
-  const auto left = std::chrono::steady_clock::now();
-  if (!pub.remove_writer(topic)) {
-    std::printf("FAIL: remove_writer\n");
-    return 1;
-  }
-  if (!wait_until([&] { return sub.matched_writers(topic) == 0; }, 3s)) {
-    std::printf("FAIL: matched_writers still %zu 3 s after the writer was removed\n",
-                sub.matched_writers(topic));
-    return 1;
-  }
-  const auto took = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::steady_clock::now() - left);
-  std::printf("unmatched %lld ms after the writer was removed\n",
-              static_cast<long long>(took.count()));
-  if (pub.matched_readers(topic) != 0) {
-    std::printf("FAIL: matched_readers for a removed writer must be 0\n");
-    return 1;
+  // a couple of seconds (the lease is far longer), on every reader it reached;
+  // then a NEW writer on the topic must be matched again, and so on - a peer
+  // that churns its publishers (ros2_churn_publisher.py) does exactly this.
+  for (int round = 1; round <= 3; ++round) {
+    const auto left = std::chrono::steady_clock::now();
+    if (!pub.remove_writer(topic)) {
+      std::printf("FAIL: remove_writer (round %d)\n", round);
+      return 1;
+    }
+    if (!wait_until([&] { return sub.matched_writers(topic) == 0; }, 3s)) {
+      std::printf("FAIL: matched_writers still %zu 3 s after the writer was removed (round %d)\n",
+                  sub.matched_writers(topic), round);
+      return 1;
+    }
+    const auto took = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - left);
+    std::printf("round %d: unmatched %lld ms after the writer was removed\n", round,
+                static_cast<long long>(took.count()));
+    if (pub.matched_readers(topic) != 0) {
+      std::printf("FAIL: matched_readers for a removed writer must be 0\n");
+      return 1;
+    }
+    if (!pub.add_writer(
+            {.topic = topic, .type_name = type, .reliability = Reliability::RELIABLE})) {
+      std::printf("FAIL: add_writer (round %d)\n", round);
+      return 1;
+    }
+    if (!wait_until([&] { return sub.matched_writers(topic) == 1; }, 10s)) {
+      std::printf("FAIL: a new writer on the topic was not matched again (round %d)\n", round);
+      return 1;
+    }
   }
   pub.stop();
   sub.stop();

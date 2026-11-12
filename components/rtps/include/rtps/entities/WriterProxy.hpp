@@ -33,6 +33,11 @@ namespace rtps {
 struct WriterProxy {
   Guid_t remoteWriterGuid;
   SequenceNumber_t expectedSN;
+  /// The highest sequence number the writer has shown to exist: the lastSN
+  /// of its HEARTBEATs, or a DATA it sent. A GAP that only names numbers
+  /// above it is premature and is not applied (see
+  /// StatefulReader::onNewGapMessage).
+  SequenceNumber_t lastAnnouncedSN{0, 0};
   Count_t ackNackCount;
   Count_t hbCount;
   bool is_reliable = false;
