@@ -48,6 +48,7 @@ public:
   ParticipantProxyData()
       : espp::BaseComponent("RtpsParticipantProxy", espp::Logger::Verbosity::WARN) {
     onAliveSignal();
+    onDiscovered();
   }
   explicit ParticipantProxyData(Guid_t guid);
 
@@ -63,6 +64,9 @@ public:
   Count_t m_manualLivelinessCount{1};
   Duration_t m_leaseDuration = Config::SPDP_DEFAULT_REMOTE_LEASE_DURATION;
   std::chrono::time_point<std::chrono::steady_clock> m_lastLivelinessReceivedTimestamp;
+  // When this proxy entered the remote-participant pool (eviction prefers the
+  // oldest unused one and spares one still completing endpoint discovery).
+  std::chrono::time_point<std::chrono::steady_clock> m_discoveredTimestamp;
   void reset();
 
   /// Parses the SPDP PL_CDR parameter list starting at `buffer`'s current
@@ -80,6 +84,8 @@ public:
   inline void onAliveSignal();
   inline bool isAlive() const;
   inline uint32_t getAliveSignalAgeInMilliseconds() const;
+  inline void onDiscovered();
+  inline uint32_t getDiscoveredAgeInMilliseconds() const;
 
 private:
   // Reads one locator parameter into `list`. For a unicast list, a locator on
@@ -137,6 +143,17 @@ uint32_t ParticipantProxyData::getAliveSignalAgeInMilliseconds() const {
   auto now = std::chrono::steady_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
       now - m_lastLivelinessReceivedTimestamp);
+  return static_cast<uint32_t>(duration.count());
+}
+
+void ParticipantProxyData::onDiscovered() {
+  m_discoveredTimestamp = std::chrono::steady_clock::now();
+}
+
+uint32_t ParticipantProxyData::getDiscoveredAgeInMilliseconds() const {
+  auto now = std::chrono::steady_clock::now();
+  auto duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(now - m_discoveredTimestamp);
   return static_cast<uint32_t>(duration.count());
 }
 

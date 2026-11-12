@@ -135,28 +135,66 @@ void SPDPAgent::processProxyData() {
     return; // Already in our list
   }
 
-  if (!mp_participant->addNewRemoteParticipant(m_proxyDataBuffer)) {
-    // The remote-participant pool is full. The peer announces again
-    // (SPDP is periodic), and the liveliness sweep frees a slot once a known
-    // peer's lease runs out, so it gets in later; nothing to do now. (This
-    // used to spin forever in non-verbose builds, with the agent mutex held:
-    // one participant too many on the domain froze discovery.)
-    SPDP_LOG("Remote-participant pool full, not adding this participant");
+  // A newcomer without a usable metatraffic unicast locator could never be
+  // matched (addProxiesForBuiltInEndpoints() refuses it below): check that
+  // first, so such an announcement cannot evict a participant and spend the
+  // eviction cooldown on its way to being forgotten anyway.
+  bool usableLocator = false;
+  for (unsigned int i = 0; i < m_proxyDataBuffer.m_metatrafficUnicastLocatorList.size(); i++) {
+    if (m_proxyDataBuffer.m_metatrafficUnicastLocatorList[i].isValid()) {
+      usableLocator = true;
+      break;
+    }
+  }
+  if (!usableLocator) {
+    SPDP_LOG("No usable metatraffic unicast locator in this announcement, not adding it");
     return;
+  }
+
+  if (!mp_participant->addNewRemoteParticipant(m_proxyDataBuffer)) {
+    // The remote-participant pool is full. Make room by forgetting the
+    // participant we have the least use for (Config::SPDP_EVICT_UNUSED_PARTICIPANTS;
+    // the builtin proxy pools below get the same treatment,
+    // see Participant::evictUnusedRemoteParticipant; lock order here is the
+    // SPDP agent mutex, held by handleSPDPPackage, -> SEDP agent -> Participant)
+    // and retry. When nothing can be evicted (every known participant is one
+    // we talk to, or one was evicted this announcement period already) the
+    // peer announces again (SPDP is periodic), and the liveliness sweep frees
+    // a slot once a known peer's lease runs out, so it gets in later; nothing
+    // to do now. (This used to spin forever in non-verbose builds, with the
+    // agent mutex held: one participant too many on the domain froze discovery.)
+    GuidPrefix_t evicted{};
+    if (!mp_participant->evictUnusedRemoteParticipant(evicted, "Remote-participant pool full") ||
+        !mp_participant->addNewRemoteParticipant(m_proxyDataBuffer)) {
+      SPDP_LOG("Remote-participant pool full, not adding this participant");
+      return;
+    }
   }
 
   if (!addProxiesForBuiltInEndpoints()) {
     // Its SEDP proxies do not fit the builtin endpoints' per-endpoint proxy
-    // pools (or it has no usable locator). Forget it again: a participant
-    // left in the list without its builtin proxies would never be matched,
-    // because every later announcement only refreshes its lease. Forgotten,
-    // it is retried on its next announcement, by which time the sweep may
-    // have freed a slot. Lock order here is the SPDP agent mutex (held by
+    // pools (or it has no usable locator). Those pools are usually the first
+    // to fill on a busy domain (they are sized by the per-endpoint proxy
+    // knobs, not by the participant pool), so make room the same way as for a
+    // full participant pool: forget the participant we have the least use for
+    // - which frees its builtin proxies too - and try once more. (The proxies
+    // that did fit the first time were removed again by the failure.) When
+    // nothing can be evicted, forget the newcomer: a participant left in the
+    // list without its builtin proxies would never be matched, because every
+    // later announcement only refreshes its lease. Forgotten, it is retried on
+    // its next announcement, by which time the sweep or an eviction may have
+    // freed a slot. Lock order here is the SPDP agent mutex (held by
     // handleSPDPPackage) -> SEDP agent mutex -> Participant mutex; nothing
     // takes the SPDP mutex while holding either of the others.
-    SPDP_LOG("Builtin proxies for the new participant did not fit, forgetting it");
-    mp_participant->removeRemoteParticipant(m_proxyDataBuffer.m_guid.prefix);
-    return;
+    GuidPrefix_t evicted{};
+    const bool fits = mp_participant->evictUnusedRemoteParticipant(
+                          evicted, "Builtin proxies of a new remote participant do not fit") &&
+                      addProxiesForBuiltInEndpoints();
+    if (!fits) {
+      SPDP_LOG("Builtin proxies for the new participant did not fit, forgetting it");
+      mp_participant->removeRemoteParticipant(m_proxyDataBuffer.m_guid.prefix);
+      return;
+    }
   }
 
   const DataSize_t size = static_cast<DataSize_t>(m_outputSize);

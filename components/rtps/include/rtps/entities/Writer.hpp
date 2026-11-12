@@ -60,6 +60,8 @@ public:
   virtual bool addNewMatchedReader(const ReaderProxy &newProxy);
   virtual bool removeProxy(const Guid_t &guid);
   virtual void removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix);
+  /// Whether a matched remote reader belongs to the participant with this prefix.
+  bool hasProxyOfParticipant(const GuidPrefix_t &guidPrefix);
   virtual void reset() = 0;
   virtual const CacheChange *newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t size);
 

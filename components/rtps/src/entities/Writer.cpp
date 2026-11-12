@@ -107,6 +107,20 @@ void rtps::Writer::removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix)
   resetSendOptions();
 }
 
+bool rtps::Writer::hasProxyOfParticipant(const GuidPrefix_t &guidPrefix) {
+  if (!isInitialized()) {
+    return false;
+  }
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  auto isElementToFind = [&](const ReaderProxy &proxy) {
+    return proxy.remoteReaderGuid.prefix == guidPrefix;
+  };
+  auto thunk = [](void *arg, const ReaderProxy &value) {
+    return (*static_cast<decltype(isElementToFind) *>(arg))(value);
+  };
+  return m_proxies.find(thunk, &isElementToFind) != nullptr;
+}
+
 bool rtps::Writer::isBuiltinEndpoint() {
   return !(m_attributes.endpointGuid.entityId.entityKind ==
                EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY ||

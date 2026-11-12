@@ -33,6 +33,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/discovery/SPDPAgent.hpp"
 #include "rtps/messages/MessageReceiver.hpp"
 
+#include <chrono>
 #include <cstdint>
 #include <mutex>
 
@@ -115,6 +116,18 @@ public:
   uint32_t getRemoteParticipantCount();
   MessageReceiver *getMessageReceiver();
   bool checkAndResetHeartbeats();
+  //! With the remote-participant pool full - or the builtin discovery
+  //! endpoints' proxy pools, which a newcomer needs a slot in as well - forget
+  //! the participant we have the least use for so another can be added
+  //! (Config::SPDP_EVICT_UNUSED_PARTICIPANTS):
+  //! an expired one first, else the oldest-discovered one none of our user
+  //! endpoints match, provided it is older than Config::SPDP_EVICT_MIN_AGE_MS;
+  //! at most one eviction per SPDP_RESEND_PERIOD_MS (counted from a successful
+  //! removal). Returns true and sets `evicted` when a participant was removed;
+  //! `reason` names the trigger in the warning. Callers hold the SPDP agent
+  //! mutex (the documented order: SPDP agent -> SEDP agent -> Participant) and
+  //! must not hold m_mutex.
+  bool evictUnusedRemoteParticipant(GuidPrefix_t &evicted, const char *reason);
 
   bool hasReaderWithMulticastLocator(const std::array<uint8_t, 4> &address);
 
@@ -134,6 +147,11 @@ private:
 
   std::recursive_mutex m_mutex;
   MemoryPool<ParticipantProxyData, Config::SPDP_MAX_NUMBER_FOUND_PARTICIPANTS> m_remoteParticipants;
+  std::chrono::steady_clock::time_point m_lastEvictionTimestamp{};
+  //! Whether any user (non-builtin) endpoint of ours has a proxy of this
+  //! participant, i.e. we exchange data with it. Takes m_mutex (recursive:
+  //! callable from the eviction path that already holds it).
+  bool hasUserEndpointProxyOf(const GuidPrefix_t &prefix);
 
   SPDPAgent m_spdpAgent;
   SEDPAgent m_sedpAgent;

@@ -39,13 +39,19 @@ using rtps::ParticipantProxyData;
 
 ParticipantProxyData::ParticipantProxyData(Guid_t guid)
     : espp::BaseComponent("RtpsParticipantProxy", espp::Logger::Verbosity::WARN)
-    , m_guid(guid) {}
+    , m_guid(guid) {
+  // the same timestamp invariants as reset(): a proxy built this way must not
+  // look long-expired to the eviction policy before its first liveliness
+  onAliveSignal();
+  onDiscovered();
+}
 
 void ParticipantProxyData::reset() {
   m_guid = Guid_t{GUIDPREFIX_UNKNOWN, ENTITYID_UNKNOWN};
   m_manualLivelinessCount = Count_t{1};
   m_expectsInlineQos = false;
   onAliveSignal();
+  onDiscovered();
   for (int i = 0; i < Config::SPDP_MAX_NUM_LOCATORS; ++i) {
     m_metatrafficUnicastLocatorList[i].setInvalid();
     m_metatrafficMulticastLocatorList[i].setInvalid();

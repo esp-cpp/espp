@@ -119,6 +119,10 @@ public:
   virtual bool addNewMatchedWriter(const WriterProxy &newProxy) = 0;
   virtual bool removeProxy(const Guid_t &guid);
   virtual void removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix);
+  /// Whether a matched remote writer belongs to the participant with this prefix.
+  bool hasProxyOfParticipant(const GuidPrefix_t &guidPrefix);
+  /// Whether this is one of the builtin discovery readers (not a user reader).
+  bool isBuiltinEndpoint() const;
   bool isInitialized() const { return m_is_initialized_; }
   virtual void reset();
   bool isProxy(const Guid_t &guid);

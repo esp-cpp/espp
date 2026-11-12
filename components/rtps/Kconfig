@@ -189,10 +189,13 @@ menu "RTPS"
             range 0 65535
             help
                 Remote participants a participant can track at once (the SPDP
-                proxy pool). A participant beyond this is ignored until a slot
-                frees: its endpoints are never matched and its data is dropped,
-                with no log. Size it for the whole domain, not just the peers you
-                talk to: a ROS 2 host with a dozen nodes is a dozen participants.
+                proxy pool). With the pool full, a newly announcing participant
+                evicts the oldest one none of your endpoints match (see
+                RTPS_SPDP_EVICT_UNUSED_PARTICIPANTS, with a warning each time);
+                with eviction off it is ignored until a slot frees: its
+                endpoints are never matched and its data is dropped, with no
+                log. Size it for the whole domain, not just the peers you talk
+                to: a ROS 2 host with a dozen nodes is a dozen participants.
                 Each slot holds one ParticipantProxyData (a few hundred bytes with
                 the embedded profile's single locator per list). The constant is
                 uint8_t under the embedded profile and uint16_t under host and
@@ -284,6 +287,36 @@ menu "RTPS"
                 below a peer's announcement period or it is dropped while
                 alive. 0 keeps the selected profile's value (90 embedded, 180
                 host).
+
+        config RTPS_SPDP_EVICT_UNUSED_PARTICIPANTS
+            bool "Evict an unused remote participant when the pool is full"
+            default y
+            help
+                With the remote-participant pool (SPDP_MAX_NUMBER_FOUND_PARTICIPANTS)
+                full, or the builtin discovery endpoints' proxy pools
+                (NUM_WRITER_PROXIES_PER_READER / NUM_READER_PROXIES_PER_WRITER,
+                one slot per remote participant each), a newly announcing
+                participant takes the slot of the
+                oldest one none of this participant's user endpoints match
+                (an expired one first), so a peer you need can still be
+                discovered on a domain crowded with peers you do not. At most
+                one eviction per SPDP_RESEND_PERIOD_MS, never of a participant
+                discovered less than SPDP_EVICT_MIN_AGE_MS ago, each logged as
+                a warning. Off: a participant beyond the pool is ignored until
+                a lease frees a slot (the previous behaviour).
+
+        config RTPS_SPDP_EVICT_MIN_AGE_MS
+            int "SPDP_EVICT_MIN_AGE_MS: youngest participant eviction may forget, ms (0 = profile default)"
+            depends on RTPS_SPDP_EVICT_UNUSED_PARTICIPANTS
+            default 0
+            range 0 600000
+            help
+                A participant discovered more recently than this is never
+                evicted: its endpoint announcements (SEDP) may still be on the
+                way, so it looks unused before it is. Keep it above the time a
+                peer needs to announce its endpoints after SPDP. 0 keeps the
+                selected profile's value (3 x SPDP_RESEND_PERIOD_MS: 6000
+                embedded, 3000 host).
 
     endmenu
 
