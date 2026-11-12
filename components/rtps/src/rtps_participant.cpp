@@ -458,11 +458,23 @@ std::size_t RtpsParticipant::matched_writers(const std::string &topic) const {
   if (!started_ || stopping_) {
     return 0;
   }
-  const auto it =
-      std::find_if(reader_contexts_.begin(), reader_contexts_.end(), [&topic](const auto &ctx) {
-        return ctx->topic == topic && ctx->reader != nullptr;
-      });
-  return it != reader_contexts_.end() ? (*it)->reader->getProxiesCount() : 0;
+  // Several readers may share a topic (add_reader() allows it, e.g. one
+  // reliable and one best-effort): count the DISTINCT remote writers matched
+  // to any of them, so a writer matched to two of our readers counts once and
+  // a writer matched to the second reader only is not missed.
+  std::vector<rtps::Guid_t> writers;
+  const auto collect = [](const rtps::Reader *, const rtps::WriterProxy &proxy, void *arg) {
+    auto *out = static_cast<std::vector<rtps::Guid_t> *>(arg);
+    if (std::find(out->begin(), out->end(), proxy.remoteWriterGuid) == out->end()) {
+      out->push_back(proxy.remoteWriterGuid);
+    }
+  };
+  for (const auto &ctx : reader_contexts_) {
+    if (ctx->topic == topic && ctx->reader != nullptr) {
+      ctx->reader->dumpAllProxies(collect, &writers);
+    }
+  }
+  return writers.size();
 }
 
 std::size_t RtpsParticipant::matched_readers(const std::string &topic) const {
@@ -1136,6 +1148,9 @@ void RtpsParticipant::service_request_trampoline(void *arg, const rtps::ReaderCa
   if (ctx == nullptr || !ctx->handler || ctx->reply_writer == nullptr) {
     return;
   }
+  if (change.kind != rtps::ChangeKind_t::ALIVE) {
+    return; // a dispose/unregister carries no sample (see reader_trampoline)
+  }
   // Copy the request payload (valid only during this callback). shared_ptr so
   // the deferred closure stays cheaply copyable inside std::function (and to
   // avoid a GCC 15 -Wfree-nonheap-object false positive on moved vectors).
@@ -1187,6 +1202,9 @@ void RtpsParticipant::service_reply_trampoline(void *arg, const rtps::ReaderCach
   auto *impl = static_cast<ServiceClient::Impl *>(arg);
   if (impl == nullptr) {
     return;
+  }
+  if (change.kind != rtps::ChangeKind_t::ALIVE) {
+    return; // a dispose/unregister carries no sample (see reader_trampoline)
   }
   // Only replies addressed to this client, in either form. The inline-QoS
   // check needs no payload; the Cyclone header is read after the copy below.

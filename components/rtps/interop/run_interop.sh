@@ -135,7 +135,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_remove_reader_deadlock rtps_guaranteed_fairness rtps_writer_churn \
        rtps_stateless_saturation rtps_callback_reentrancy rtps_best_effort_order rtps_acknack_bitmap \
        rtps_interop_pub rtps_interop_sub rtps_interop_churn rtps_sedp_inline_qos_dispose \
-       rtps_sedp_history_overflow rtps_sedp_history_ring > /tmp/build.log 2>&1
+       rtps_sedp_history_overflow rtps_sedp_history_ring rtps_facade_matched_counts > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
 if [ $build_rc -ne 0 ]; then tail -30 /tmp/cmake_lib.log /tmp/build_lib.log /tmp/build.log; exit 1; fi
@@ -157,6 +157,9 @@ note "SEDP/SPDP disposes from the inline QoS unmatch the endpoint / forget the p
 note "SEDP writer history never drops a live announcement; a deleted endpoint's slot is reusable (host)"
 "$BIN"/rtps_sedp_history_ring; result "sedp_history_ring" $?
 "$BIN"/rtps_sedp_history_overflow; result "sedp_history_overflow" $?
+
+note "matched_writers()/matched_readers() over a loopback; a removed writer's dispose unmatches it at once (host)"
+"$BIN"/rtps_facade_matched_counts; result "facade_matched_counts" $?
 
 note "ROS 2 service + action name/type mangling (host)"
 "$BIN"/rtps_service_naming; result "service_naming" $?
