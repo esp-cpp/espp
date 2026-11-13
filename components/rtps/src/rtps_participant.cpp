@@ -10,7 +10,6 @@
 #include <mutex>
 #include <optional>
 #include <random>
-#include <stdexcept>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -1088,29 +1087,26 @@ bool RtpsParticipant::note_held_reply(const std::shared_ptr<ServiceServerContext
   // kept until stop() (see the member's comment). The match itself flushes a
   // held reply (subscriber_matched_trampoline), so this only enforces the
   // deadline and backs the match up: a tenth of the default timeout is plenty,
-  // and a tick with nothing held is a lock and an empty check. A task may fail
-  // to start when its stack cannot be allocated; the caller then writes the
-  // reply at once instead of holding it.
-  try {
-    held_replies_timer_ = std::make_unique<espp::Timer>(espp::Timer::Config{
-        .name = "rtps_reply_hold",
-        .period = std::chrono::milliseconds(100),
-        .delay = std::chrono::milliseconds(100),
-        .callback = [this]() -> bool {
-          sweep_held_replies();
-          return false; // never self-cancel (a cancelled espp::Timer cannot restart)
-        },
-        .auto_start = true,
-        .log_level = espp::Logger::Verbosity::WARN,
-    });
-    if (!held_replies_timer_->is_running()) {
-      throw std::runtime_error("its task did not start"); // Task::start() said why
-    }
-  } catch (const std::exception &e) {
+  // and a tick with nothing held is a lock and an empty check. A task can fail
+  // to start (no memory for its stack, Task::start() says why); the caller then
+  // writes the reply at once instead of holding it. (On ESP targets a failed
+  // pthread_create terminates the program outright - exceptions are off - which
+  // is why this timer is created once and never per hold.)
+  held_replies_timer_ = std::make_unique<espp::Timer>(espp::Timer::Config{
+      .name = "rtps_reply_hold",
+      .period = std::chrono::milliseconds(100),
+      .delay = std::chrono::milliseconds(100),
+      .callback = [this]() -> bool {
+        sweep_held_replies();
+        return false; // never self-cancel (a cancelled espp::Timer cannot restart)
+      },
+      .auto_start = true,
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
+  if (!held_replies_timer_->is_running()) {
     held_replies_timer_.reset();
-    logger_.error("Held-reply deadline timer could not be started ({}); replies are written "
-                  "without waiting for their reply reader",
-                  e.what());
+    logger_.error("Held-reply deadline timer could not be started; replies are written without "
+                  "waiting for their reply reader");
     std::erase_if(servers_with_held_replies_, [&](const std::weak_ptr<ServiceServerContext> &w) {
       return !w.owner_before(server) && !server.owner_before(w);
     });
