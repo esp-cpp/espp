@@ -214,8 +214,8 @@ public:
     struct Tasks {
       /// Receive workers: every received datagram's dispatch (discovery,
       /// samples, the user's callbacks for inline readers) and every writer's
-      /// send run on one of them.
-      std::size_t receive_workers{2};
+      /// send run on one of them. 0 keeps the transport's default (2).
+      std::size_t receive_workers{0};
       std::optional<espp::Task::BaseConfig> receive_worker{};
       /// The socket reactor's loop task (select() over every socket).
       std::optional<espp::Task::BaseConfig> reactor{};

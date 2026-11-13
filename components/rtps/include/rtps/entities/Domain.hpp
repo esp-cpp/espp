@@ -71,10 +71,9 @@ struct DomainConfig {
   /// cadence). Defaults from the compile-time Config (menuconfig RTPS -> Tasks).
   espp::Task::BaseConfig protocol_task{
       .name = "rtps_protocol",
-      .stack_size_bytes = Config::SPDP_WRITER_STACKSIZE > 4096
-                              ? static_cast<size_t>(Config::SPDP_WRITER_STACKSIZE)
-                              : static_cast<size_t>(4096),
-      .priority = static_cast<size_t>(Config::SPDP_WRITER_PRIO),
+      .stack_size_bytes = static_cast<EsppTransport::TaskConfig::StackSize>(
+          Config::SPDP_WRITER_STACKSIZE > 4096 ? Config::SPDP_WRITER_STACKSIZE : 4096),
+      .priority = static_cast<EsppTransport::TaskConfig::Priority>(Config::SPDP_WRITER_PRIO),
   };
 };
 

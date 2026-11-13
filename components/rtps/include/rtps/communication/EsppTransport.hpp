@@ -69,16 +69,20 @@ public:
     /// Receive worker tasks: every received datagram and every writer's send
     /// is dispatched on one of them.
     std::size_t worker_count{2};
+    // The compile-time constants in the members' own types, so a change of
+    // either type cannot become a narrowing error in these initializers.
+    using StackSize = decltype(espp::Task::BaseConfig::stack_size_bytes);
+    using Priority = decltype(espp::Task::BaseConfig::priority);
     espp::Task::BaseConfig worker_task{
         .name = "rtps_worker",
-        .stack_size_bytes = static_cast<size_t>(rtps::Config::THREAD_POOL_READER_STACKSIZE),
-        .priority = static_cast<size_t>(rtps::Config::THREAD_POOL_READER_PRIO),
+        .stack_size_bytes = static_cast<StackSize>(rtps::Config::THREAD_POOL_READER_STACKSIZE),
+        .priority = static_cast<Priority>(rtps::Config::THREAD_POOL_READER_PRIO),
     };
     /// The socket reactor's loop task (select() over every channel).
     espp::Task::BaseConfig reactor_task{
         .name = "rtps_reactor",
-        .stack_size_bytes = static_cast<size_t>(rtps::Config::THREAD_POOL_READER_STACKSIZE),
-        .priority = static_cast<size_t>(rtps::Config::THREAD_POOL_READER_PRIO),
+        .stack_size_bytes = static_cast<StackSize>(rtps::Config::THREAD_POOL_READER_STACKSIZE),
+        .priority = static_cast<Priority>(rtps::Config::THREAD_POOL_READER_PRIO),
     };
     /// The guaranteed-submission retry task (see submitGuaranteed()): sleeps
     /// until a job is parked, then resubmits parked jobs as the pool frees up.
@@ -87,7 +91,7 @@ public:
     espp::Task::BaseConfig retry_task{
         .name = "rtps_job_retry",
         .stack_size_bytes = 4096,
-        .priority = static_cast<size_t>(rtps::Config::THREAD_POOL_READER_PRIO),
+        .priority = static_cast<Priority>(rtps::Config::THREAD_POOL_READER_PRIO),
     };
   };
 

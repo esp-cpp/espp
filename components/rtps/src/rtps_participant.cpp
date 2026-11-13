@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <condition_variable>
 #include <cstdio>
 #include <iterator>
@@ -220,7 +221,9 @@ namespace {
 // Config::tasks sets.
 rtps::EsppTransport::TaskConfig transport_config(const RtpsParticipant::Config &config) {
   rtps::EsppTransport::TaskConfig transport;
-  transport.worker_count = config.tasks.receive_workers > 0 ? config.tasks.receive_workers : 1;
+  if (config.tasks.receive_workers > 0) {
+    transport.worker_count = config.tasks.receive_workers; // 0 keeps the transport's default
+  }
   if (config.tasks.receive_worker) {
     transport.worker_task = *config.tasks.receive_worker;
   }
@@ -1911,7 +1914,17 @@ std::unique_ptr<espp::ThreadPool> make_exec_pool(const RtpsParticipant::ActionCo
   pool.max_queue_size = 0; // bounded by max_goals_in_flight, applied before on_goal
   pool.worker_task_config = config.execute_task;
   if (pool.worker_task_config.name.empty()) {
-    pool.worker_task_config.name = "exec" + config.action;
+    // "exec_<action>" with everything but letters and digits replaced by '_',
+    // capped at 15 characters: FreeRTOS keeps configMAX_TASK_NAME_LEN (16 by
+    // default) including the terminator, and '/' in a name reads badly in logs.
+    std::string name = "exec_";
+    for (const char c : config.action) {
+      name.push_back(std::isalnum(static_cast<unsigned char>(c)) ? c : '_');
+    }
+    if (name.back() == '_' && name.size() > 5) {
+      name.pop_back();
+    }
+    pool.worker_task_config.name = name.substr(0, 15);
   }
   pool.log_level = espp::Logger::Verbosity::WARN;
   return std::make_unique<espp::ThreadPool>(pool);
@@ -3454,7 +3467,7 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
             logger_.warn("Native action server: the execute workers are stopped; goal rejected");
             std::lock_guard<std::mutex> lock(server->goals_mutex);
             server->goals.erase(handle);
-            return rtps::rpc::native_make_goal_reply(false, handle);
+            return rtps::rpc::native_make_goal_reply(false, 0); // handle 0: rejected, like above
           }
         }
         return rtps::rpc::native_make_goal_reply(true, handle);
@@ -3808,11 +3821,9 @@ void RtpsParticipant::stop() {
       ctx->exec_pool->stop();
     }
   }
-  for (auto &ctx : native_action_servers_) {
-    if (ctx) {
-      if (ctx->exec_pool) {
-        ctx->exec_pool->stop();
-      }
+  for (const auto &ctx : native_action_servers_) {
+    if (ctx && ctx->exec_pool) {
+      ctx->exec_pool->stop();
     }
   }
 #endif // RTPS_WITH_RPC

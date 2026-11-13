@@ -79,12 +79,9 @@ struct StatusBoard {
   }
   ract::GoalStatus status_of(const ract::GoalUuid &id) {
     std::lock_guard<std::mutex> lock(m);
-    for (const auto &e : entries) {
-      if (e.goal_id == id) {
-        return e.status;
-      }
-    }
-    return ract::GoalStatus::UNKNOWN;
+    const auto it = std::find_if(entries.begin(), entries.end(),
+                                 [&id](const ract::GoalStatusEntry &e) { return e.goal_id == id; });
+    return it == entries.end() ? ract::GoalStatus::UNKNOWN : it->status;
   }
 };
 

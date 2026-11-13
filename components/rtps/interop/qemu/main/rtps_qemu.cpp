@@ -264,13 +264,19 @@ extern "C" void app_main(void) {
                        .execute =
                            [&](auto &h) {
                              FibResult r;
+                             // Reserved up front: the memory step measures the
+                             // action, not the vector's growth.
+                             r.sequence.reserve(static_cast<std::size_t>(h.goal().order));
                              int32_t a = 0, b = 1;
                              for (int32_t i = 0; i < h.goal().order && !h.is_canceling(); ++i) {
                                r.sequence.push_back(a);
                                const int32_t next = a + b;
                                a = b;
                                b = next;
-                               h.publish_feedback(FibFeedback{r.sequence});
+                               FibFeedback fb;
+                               fb.sequence.reserve(r.sequence.size());
+                               fb.sequence = r.sequence;
+                               h.publish_feedback(fb);
                              }
                              logger.info("RTPSTEST action order={} len={}", h.goal().order,
                                          r.sequence.size());
