@@ -108,7 +108,14 @@ EsppTransport::EsppTransport(RxCallback callback, void *args, const TaskConfig &
   retry_config.task_config = m_tasks.retry_task;
   retry_config.log_level = espp::Logger::Verbosity::WARN;
   m_retryTask = espp::Task::make_unique(retry_config);
-  (void)m_retryTask->start();
+  m_retryTaskRunning = m_retryTask->start();
+  if (!m_retryTaskRunning) {
+    // Nothing can be guaranteed without it: a rejected submission is dropped
+    // (with an error) instead of parked for a retry that would never come.
+    logger_.error("Could not start the job-retry task '{}': a submission the worker pool "
+                  "rejects will be dropped",
+                  m_tasks.retry_task.name);
+  }
 }
 
 bool EsppTransport::retryLoop(std::mutex &m, std::condition_variable &cv, bool &notified) {
@@ -326,6 +333,10 @@ bool EsppTransport::parkPendingJobLocked(const void *key, std::function<void()> 
   std::lock_guard<std::mutex> lock(m_pendingMutex);
   if (m_stopping) {
     return false; // teardown: nothing to guarantee anymore
+  }
+  if (!m_retryTaskRunning) {
+    logger_.error("Worker pool rejected a job and the job-retry task is not running: dropped");
+    return false;
   }
   // Coalesce by producer: a repeated poke for the same writer just bumps its
   // owed count (the job/band are identical), so the map is bounded by the

@@ -169,8 +169,15 @@ bool run() {
     CHECK(submit(ids.back()) == 1, "the goal is accepted");
   }
   CHECK(wait_until([&] { return executing.load() == 2; }, 2s), "two goals execute");
-  std::this_thread::sleep_for(300ms);
-  CHECK(executing.load() == 2 && peak.load() == 2, "no more than two goals execute at once");
+  // The invariant, watched for a while rather than sampled once: two goals
+  // run, never a third (the other two are waiting for a worker).
+  {
+    const auto until = std::chrono::steady_clock::now() + 300ms;
+    while (std::chrono::steady_clock::now() < until) {
+      CHECK(executing.load() == 2 && peak.load() == 2, "no more than two goals execute at once");
+      std::this_thread::sleep_for(5ms);
+    }
+  }
   CHECK(wait_until(
             [&] {
               return board.status_of(ids[2]) == ract::GoalStatus::ACCEPTED &&

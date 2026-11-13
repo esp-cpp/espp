@@ -82,6 +82,8 @@ public:
     };
     /// The guaranteed-submission retry task (see submitGuaranteed()): sleeps
     /// until a job is parked, then resubmits parked jobs as the pool frees up.
+    /// Its stack is a fixed 4 KB rather than a compile-time knob: it runs no
+    /// user or protocol code, only the resubmission loop.
     espp::Task::BaseConfig retry_task{
         .name = "rtps_job_retry",
         .stack_size_bytes = 4096,
@@ -253,6 +255,7 @@ private:
   std::atomic<bool> m_pendingWork{false};
   static constexpr std::chrono::milliseconds RETRY_PERIOD{20};
   std::unique_ptr<espp::Task> m_retryTask;
+  bool m_retryTaskRunning{false}; ///< start() succeeded; else rejected jobs are dropped
   /// The retry task publishes its synchronization objects under
   /// m_retryNudgeMutex before its first wait (nudgeRetry() wakes it from
   /// parkPendingJob(), on any thread); stop() nulls them before the task is

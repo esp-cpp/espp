@@ -2301,14 +2301,15 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
           std::lock_guard<std::mutex> lock(server->goals_mutex);
           server->goals[id] = gstate;
         }
-        // ACCEPTED now, EXECUTING once an execute worker picks the goal up (as
-        // rclcpp_action reports it: the goal may wait for a worker).
-        publish_goal_status(this, server->status_topic, id, ract::GoalStatus::ACCEPTED);
         if (server->execute) {
           // Runs on one of the server's execute workers (owned by the server,
           // stopped before the domain is torn down). The job captures a weak
           // server ref (locked only while running), so a goal waiting for a
-          // worker forms no goals<->server cycle.
+          // worker forms no goals<->server cycle. The pool's queue is
+          // unbounded (max_goals_in_flight bounds it above), so the only
+          // rejection is a stopped pool: then the goal is not accepted after
+          // all - forgotten again and rejected to the client - rather than
+          // held without ever running.
           std::weak_ptr<ActionServerContext> weak_server = server;
           const bool queued = server->exec_pool &&
                               server->exec_pool->try_submit(
@@ -2323,9 +2324,15 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
                                   },
                                   server->band);
           if (!queued) {
-            logger_.warn("Action server: the execute workers are stopped; the goal is not run");
+            logger_.warn("Action server: the execute workers are stopped; goal rejected");
+            std::lock_guard<std::mutex> lock(server->goals_mutex);
+            server->goals.erase(id);
+            return ract::make_send_goal_response(false);
           }
         }
+        // ACCEPTED now, EXECUTING once an execute worker picks the goal up (as
+        // rclcpp_action reports it: the goal may wait for a worker).
+        publish_goal_status(this, server->status_topic, id, ract::GoalStatus::ACCEPTED);
         // The acceptance stamp (builtin_interfaces/Time, wall clock), as rcl
         // reports it; a client may hand it back in a CancelGoal request.
         const auto since_epoch = gstate->accepted_at.time_since_epoch();
@@ -3398,8 +3405,12 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
                                        },
                                        server->band);
           if (!queued) {
-            logger_.warn(
-                "Native action server: the execute workers are stopped; the goal is not run");
+            // A stopped pool (the only rejection: the queue is unbounded):
+            // the goal is not accepted after all.
+            logger_.warn("Native action server: the execute workers are stopped; goal rejected");
+            std::lock_guard<std::mutex> lock(server->goals_mutex);
+            server->goals.erase(handle);
+            return rtps::rpc::native_make_goal_reply(false, handle);
           }
         }
         return rtps::rpc::native_make_goal_reply(true, handle);
