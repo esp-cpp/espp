@@ -573,7 +573,12 @@ run_soak() {
 # leak). Every value is bytes of free heap as the device reports it, so a cost
 # is a NEGATIVE delta. Internal RAM is the one that runs out on an ESP32 (task
 # stacks and lwIP buffers must live there); PSRAM is where the big buffers go.
-mem_field() { echo "$1" | grep -o "$2=[0-9]*" | head -1 | cut -d= -f2; }
+# a field's number, or JSON null when the token is missing or not a number, so
+# a marker whose fields changed still yields valid JSON (reported as n/a)
+mem_field() {
+  local v; v=$(echo "$1" | grep -o "$2=[0-9]*" | head -1 | cut -d= -f2)
+  case "$v" in '' | *[!0-9]*) echo null ;; *) echo "$v" ;; esac
+}
 mem_stage() { grep -o "RTPSTEST mem heap $1 .*" "$LOG" | tail -1 | sed "s/RTPSTEST mem heap $1 //"; }
 mem_status() { grep -o "RTPSTEST status.*" "$LOG" | tail -1; } # int= int_min= int_largest= psram=
 run_memory() {

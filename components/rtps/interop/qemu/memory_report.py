@@ -163,7 +163,8 @@ def main():
     merged = {}
     for item in args.inputs:
         if ":" in item:
-            name, mem_path, size_path = (item.split(":") + [None, None])[:3]
+            # two separators at most: a path may itself contain a colon
+            name, mem_path, size_path = (item.split(":", 2) + [None, None])[:3]
         else:
             name, mem_path, size_path = os.path.basename(os.path.dirname(os.path.abspath(item))) or "device", item, None
         mem = load_json(mem_path)
