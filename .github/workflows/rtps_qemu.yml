@@ -7,8 +7,12 @@ name: RTPS interop in QEMU (esp32 target)
 # peers against the desktop build; this one covers what only the target can
 # show: the embedded pools and knobs, lwIP, FreeRTOS scheduling, fragmentation
 # over the real stack, delivery under injected loss / reordering / duplication
-# / delay / corruption, and the heap over minutes of churn (the soak).
-# One firmware build, two suites in parallel. See components/rtps/interop/README.md.
+# / delay / corruption, and the heap over minutes of churn (the soak), and the
+# memory footprint by limits profile (the memory suite: sizeof of the engine's
+# objects, the internal-RAM / PSRAM split by stage, per remote participant, per
+# matched endpoint, per service call). One firmware build per limits profile;
+# the matrix and the soak run on the embedded one. See
+# components/rtps/interop/README.md.
 
 permissions:
   contents: read
@@ -34,24 +38,41 @@ jobs:
   firmware:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # The limits profile the firmware is built with (menuconfig RTPS ->
+        # capacity limits). embedded is the one the interop suites run on;
+        # the others exist for the memory suite's comparison.
+        profile: [embedded, host, host_large]
+        include:
+          - profile: embedded
+            defaults: "sdkconfig.defaults;sdkconfig.ci.defaults"
+          - profile: host
+            defaults: "sdkconfig.defaults;sdkconfig.ci.defaults;sdkconfig.profile.host.defaults"
+          - profile: host_large
+            defaults: "sdkconfig.defaults;sdkconfig.ci.defaults;sdkconfig.profile.host_large.defaults"
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: "recursive"
-      - name: Build the firmware (esp32, static address for the tap)
+      - name: Build the firmware (esp32, ${{ matrix.profile }} limits profile, static address for the tap)
         uses: espressif/esp-idf-ci-action@v1
         with:
           esp_idf_version: v6.1
           target: esp32
           path: components/rtps/interop/qemu
           command: >-
-            idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.ci.defaults" build
+            idf.py -DSDKCONFIG=build/sdkconfig -DSDKCONFIG_DEFAULTS="${{ matrix.defaults }}" build
+            && idf.py -DSDKCONFIG=build/sdkconfig size-components --format json2 --output-file build/size-components.json
             && cd build
             && python -m esptool --chip esp32 merge-bin --fill-flash-size 4MB -o qemu_flash.bin @flash_args
       - uses: actions/upload-artifact@v4
         with:
-          name: qemu-flash
-          path: components/rtps/interop/qemu/build/qemu_flash.bin
+          name: qemu-flash-${{ matrix.profile }}
+          path: |
+            components/rtps/interop/qemu/build/qemu_flash.bin
+            components/rtps/interop/qemu/build/size-components.json
           if-no-files-found: error
 
   qemu:
@@ -68,7 +89,7 @@ jobs:
           submodules: "recursive"
       - uses: actions/download-artifact@v4
         with:
-          name: qemu-flash
+          name: qemu-flash-embedded
           path: components/rtps/interop/qemu/build
       - name: Run the QEMU ${{ matrix.suite }} suite
         run: |
@@ -85,4 +106,82 @@ jobs:
         with:
           name: qemu-device-log-${{ matrix.suite }}
           path: components/rtps/interop/qemu/build/qemu-serial.log
+          if-no-files-found: ignore
+
+  memory:
+    needs: firmware
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      # the report as a comment on the pull request: an issue comment, but on a
+      # pull_request event GitHub checks the pull-requests permission for it
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: "recursive"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: qemu-flash-*
+          path: components/rtps/interop/qemu/images
+      - name: Run the memory suite on every limits profile
+        # The embedded firmware runs the host-driven steps as well; the other
+        # profiles boot for their sizeof and stage markers only.
+        # Every profile runs (a failure in one must not hide the others'
+        # numbers); the step fails afterwards if any did, and the report and
+        # the artifact below still publish (always()).
+        run: |
+          cd components/rtps/interop
+          failed=""
+          for profile in embedded host host_large; do
+            dir="$PWD/qemu/images/qemu-flash-$profile"
+            if [ "$profile" = embedded ]; then unset MEMORY_STAGES_ONLY; else export MEMORY_STAGES_ONLY=1; fi
+            # the suite writes memory.json and the device log next to the image
+            ./run_qemu.sh "$dir/qemu_flash.bin" memory || failed="$failed $profile"
+          done
+          if [ -n "$failed" ]; then echo "memory suite failed for:$failed"; exit 1; fi
+      - name: Report
+        if: always()
+        run: |
+          cd components/rtps/interop/qemu
+          rm -f rtps-memory-report.md
+          python3 memory_report.py --summary rtps-memory-report.md --json rtps-memory.json \
+            $(for p in embedded host host_large; do d="images/qemu-flash-$p"; echo "$p:$d/memory.json:$d/size-components.json"; done)
+          cat rtps-memory-report.md >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+      - name: Post the report on the pull request
+        # As esp-cpp/esp-idf-size-delta does: one comment per pull request,
+        # found by its identifier and updated in place on every run, so the
+        # thread does not fill up with tables. Only for pull requests from this
+        # repository: a fork's token cannot write comments.
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const fs = require('fs');
+            const identifier = '<!-- rtps-memory-report -->';
+            const report = fs.readFileSync('components/rtps/interop/qemu/rtps-memory-report.md', 'utf8');
+            const sha = context.payload.pull_request.head.sha.slice(0, 9);
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `${identifier}\n${report}\n_The QEMU memory suite on ${sha} ([run](${runUrl})); the full numbers are the run's \`rtps-memory\` artifact._\n`;
+            const {owner, repo, number} = context.issue;
+            const comments = await github.paginate(github.rest.issues.listComments, {owner, repo, issue_number: number});
+            const existing = comments.find(c => c.body && c.body.includes(identifier));
+            if (existing) {
+              await github.rest.issues.updateComment({owner, repo, comment_id: existing.id, body});
+              console.log(`Updated comment ${existing.id}`);
+            } else {
+              await github.rest.issues.createComment({owner, repo, issue_number: number, body});
+              console.log('Created the comment');
+            }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rtps-memory
+          path: |
+            components/rtps/interop/qemu/rtps-memory.json
+            components/rtps/interop/qemu/images/*/memory.json
+            components/rtps/interop/qemu/images/*/qemu-serial.log
           if-no-files-found: ignore

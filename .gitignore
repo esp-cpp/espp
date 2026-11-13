@@ -71,3 +71,6 @@ build_examples.sh
 lib/build-*/
 pc/build-*/
 install-*/
+
+# the QEMU memory job downloads every limits profile's image here
+components/rtps/interop/qemu/images/

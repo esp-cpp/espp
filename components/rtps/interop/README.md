@@ -112,6 +112,38 @@ and the last cycle must still have delivered (`soak_heap_no_leak`,
 call, Fast DDS and Cyclone alternating, must have been answered, one miss
 tolerated over the run (`soak_service_calls`). The per-cycle heap is printed.
 
+The **memory** suite (`./run_qemu.sh <image> memory`, the third CI job) puts
+numbers on the footprint instead of asserting on it. The firmware logs the
+`sizeof` of the engine's compile-time-sized objects (the Domain, a Participant,
+each writer and reader kind, the facade participant: the limits profile and the
+capacity knobs decide them, and the Domain that holds them is allocated from the
+heap at `start()`), and the heap split the way the ESP32 is - internal RAM,
+where every task stack and lwIP buffer must live, against PSRAM - at boot, after
+`start()` and after the endpoints exist. The suite then adds one thing at a time
+on the host and reads the device's heap after each: a remote participant with
+nothing the device subscribes to, a second one, one whose publisher matches the
+device's reliable subscriber, a service call, one 30 KB sample, and finally all
+peers gone. CI builds the firmware once per limits profile (embedded, host,
+host_large: `sdkconfig.profile.*.defaults`, each build with its own `sdkconfig`
+- IDF applies `SDKCONFIG_DEFAULTS` only when it creates one, so a build
+directory that already has a `sdkconfig` silently keeps its old profile) and
+runs the suite on each - the embedded one with the host-driven steps, the
+others for their `sizeof` and stage markers (`MEMORY_STAGES_ONLY=1`) - and
+`qemu/memory_report.py` merges the suite's `memory.json`
+with `idf.py size-components --format json2` (the rtps library's flash, IRAM
+and DRAM) into the job's step summary, the `rtps-memory` artifact and, on a
+pull request from this repository, one comment on the pull request that every
+run updates in place. Costs are
+negative deltas of free heap; fragmentation adds noise of a few hundred bytes,
+and the largest free internal block is reported alongside the free total
+because that is what a task stack or a 30 KB buffer actually needs. Read it
+knowing that the engine preallocates: a remote participant or a match costs
+tens of bytes of heap because its slot was paid for at `start()` (the Domain,
+75 KB on the embedded profile, goes to PSRAM; the 40 KB `start()` takes from
+internal RAM is tasks and sockets), so the per-object costs live in the
+`sizeof` and stage tables, while the low-water mark column shows the transients
+a service call or a 30 KB sample causes on top.
+
 What only this can show: the embedded pools and knobs as built, lwIP's socket
 and reassembly behaviour, FreeRTOS priorities for the engine's threads,
 delivery under injected loss, heap over a run on the target allocator, and a

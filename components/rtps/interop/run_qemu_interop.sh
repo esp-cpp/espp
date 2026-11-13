@@ -15,6 +15,11 @@
 #   soak    minutes of churn - participants coming and going, matches, service
 #           calls, 30 KB samples, both rmws alternating - and the heap must not
 #           trend down afterwards
+#   memory  the footprint: the engine's compile-time-sized objects (sizeof),
+#           the heap split into internal RAM and PSRAM at boot / start /
+#           endpoints, then per remote participant, per matched endpoint, per
+#           service call and for a 30 KB sample; written to memory.json next
+#           to the image and printed as a table (qemu/memory_report.py)
 #
 # Network: the container runs with --network none, so the tap device created
 # here is its only interface and every DDS implementation uses it without
@@ -136,16 +141,26 @@ note "Boot the firmware in QEMU ($FLASH)"
 QEMU_PID=$!
 cleanup() { stop_pids $QEMU_PID; }
 trap cleanup EXIT
+DEVICE_STARTED=1
 if wait_for_marker "RTPSTEST ready" 90; then
   grep -o "RTPSTEST ready.*" "$LOG" | head -1
+  result "device_boot" 0
+elif [ "$SUITE" = memory ] && grep -q "RTPSTEST fatal participant" "$LOG"; then
+  # The participant could not start - for the memory suite that is a result in
+  # itself (the limits profile does not fit this target), so carry on to
+  # report the sizeof and the boot marker it did log.
+  echo "the participant did not start (the profile does not fit?): $(grep -o 'RTPSTEST fatal.*' "$LOG" | head -1)"
+  DEVICE_STARTED=0
   result "device_boot" 0
 else
   echo "device did not come up; log tail:"; sed 's/\x1b\[[0-9;]*m//g' "$LOG" | tail -40; cat /tmp/qemu-stderr.log
   result "device_boot" 1
   exit 1
 fi
-ping -c 2 -W 2 $DEVICE_IP > /tmp/ping.log 2>&1; result "device_ping" $?
-wait_for_marker "RTPSTEST status" 10
+if [ "$DEVICE_STARTED" = 1 ]; then
+  ping -c 2 -W 2 $DEVICE_IP > /tmp/ping.log 2>&1; result "device_ping" $?
+  wait_for_marker "RTPSTEST status" 10
+fi
 FIRST_HEAP=$(grep -o " heap=[0-9]*" "$LOG" | tail -1 | cut -d= -f2)
 
 source "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash"
@@ -442,8 +457,14 @@ echo "free heap first=$FIRST_HEAP last=$LAST_HEAP"
 # Known, bounded growth: two buffers grow once to the largest sample (30 KB
 # each, measured 60 KB over a run) when the first 30 KB samples arrive; the
 # slack leaves 36 KB on top of that for anything that leaks per case.
-[ -n "$FIRST_HEAP" ] && [ -n "$LAST_HEAP" ] && [ "$LAST_HEAP" -ge $((FIRST_HEAP - 98304)) ]; result "device_heap_stable" $?
-! grep -qE "Guru Meditation|abort\(\)|assert failed|RTPSTEST fatal" "$LOG"; result "device_no_crash" $?
+if [ "$DEVICE_STARTED" = 1 ]; then
+  [ -n "$FIRST_HEAP" ] && [ -n "$LAST_HEAP" ] && [ "$LAST_HEAP" -ge $((FIRST_HEAP - 98304)) ]; result "device_heap_stable" $?
+  ! grep -qE "Guru Meditation|abort\(\)|assert failed|RTPSTEST fatal" "$LOG"; result "device_no_crash" $?
+else
+  # the memory suite on a profile that does not fit: the fatal IS the finding
+  echo "(the participant did not start: heap-stability and no-crash checks not applicable)"
+  ! grep -qE "Guru Meditation|abort\(\)|assert failed" "$LOG"; result "device_no_crash" $?
+fi
 grep -o "RTPSTEST status.*" "$LOG" | tail -1
 # informational: pressure the run put on the device (pool exhaustion, frames
 # the emulated MAC dropped, endpoints skipped for their type-name length)
@@ -547,9 +568,138 @@ run_soak() {
   [ "$srv_ok" -ge $((cycles - 1)) ]; result "soak_service_calls" $?
 }
 
+# --- the memory suite ------------------------------------------------------------------------------
+# Informational: numbers, not assertions (the soak asserts the heap does not
+# leak). Every value is bytes of free heap as the device reports it, so a cost
+# is a NEGATIVE delta. Internal RAM is the one that runs out on an ESP32 (task
+# stacks and lwIP buffers must live there); PSRAM is where the big buffers go.
+# a field's number, or JSON null when the token is missing or not a number, so
+# a marker whose fields changed still yields valid JSON (reported as n/a)
+mem_field() {
+  local v; v=$(echo "$1" | grep -o "$2=[0-9]*" | head -1 | cut -d= -f2)
+  case "$v" in '' | *[!0-9]*) echo null ;; *) echo "$v" ;; esac
+}
+mem_stage() { grep -o "RTPSTEST mem heap $1 .*" "$LOG" | tail -1 | sed "s/RTPSTEST mem heap $1 //"; }
+mem_status() { grep -o "RTPSTEST status.*" "$LOG" | tail -1; } # int= int_min= int_largest= psram=
+run_memory() {
+  local json; json="$(dirname "$FLASH")/memory.json"
+  note "Memory: the engine's compile-time footprint and the heap, by stage and per object"
+  local sizes; sizes=$(grep -o "RTPSTEST mem sizeof.*" "$LOG" | head -1 | sed 's/RTPSTEST mem sizeof //')
+  local boot started endpoints
+  boot=$(mem_stage boot); started=$(mem_stage started); endpoints=$(mem_stage endpoints)
+  if [ "$DEVICE_STARTED" = 1 ]; then
+    [ -n "$sizes" ] && [ -n "$boot" ] && [ -n "$started" ] && [ -n "$endpoints" ]
+  else
+    [ -n "$sizes" ] && [ -n "$boot" ] # start() failed: the two markers before it are all there is
+  fi
+  result "memory_markers" $?
+  echo "  sizeof: $sizes"
+  echo "  boot:      $boot"
+  echo "  started:   ${started:-(the participant did not start)}"
+  echo "  endpoints: ${endpoints:-(the participant did not start)}"
+  # JSON: the stages as objects of integers, the steps appended below.
+  stage_json() { # label line
+    local l=$2
+    printf '    {"stage": "%s", "internal": %s, "internal_min": %s, "internal_largest": %s, "psram": %s, "psram_largest": %s}' \
+      "$1" "$(mem_field "$l" internal)" "$(mem_field "$l" internal_min)" "$(mem_field "$l" internal_largest)" \
+      "$(mem_field "$l" psram)" "$(mem_field "$l" psram_largest)"
+  }
+  # Why start() failed, when it did: the first error the engine logged (the
+  # transport's, typically - more participant slots than lwIP has sockets for).
+  local start_error=""
+  if [ "$DEVICE_STARTED" != 1 ]; then
+    start_error=$(sed 's/\x1b\[[0-9;]*m//g' "$LOG" | grep -m1 -o "\[Rtps[A-Za-z]*/E\].*" | tr -cd '[:print:]' | sed 's/["\\]//g' | cut -c1-160)
+  fi
+  {
+    echo '{'
+    echo "  \"started\": $([ "$DEVICE_STARTED" = 1 ] && echo true || echo false),"
+    echo "  \"start_error\": \"$start_error\","
+    printf '  "sizeof": {'
+    local first=1 kv
+    for kv in $sizes; do
+      [ $first -eq 1 ] || printf ', '
+      first=0
+      printf '"%s": %s' "${kv%%=*}" "${kv#*=}"
+    done
+    echo '},'
+    echo '  "stages": ['
+    stage_json boot "$boot"
+    if [ -n "$started" ]; then echo ','; stage_json started "$started"; fi
+    if [ -n "$endpoints" ]; then echo ','; stage_json endpoints "$endpoints"; fi
+    echo
+    echo '  ],'
+    echo '  "steps": ['
+  } > "$json"
+  # Host-driven steps: each adds one thing to the domain, waits for discovery
+  # and a few status lines, and records the device's heap. Skipped with
+  # MEMORY_STAGES_ONLY=1 (the profiles that only boot for their sizeof).
+  local step_first=1
+  step_json() { # label line
+    local l=$2
+    [ $step_first -eq 1 ] || echo ',' >> "$json"
+    step_first=0
+    printf '    {"step": "%s", "internal": %s, "internal_min": %s, "internal_largest": %s, "psram": %s}' \
+      "$1" "$(mem_field "$l" " int")" "$(mem_field "$l" int_min)" "$(mem_field "$l" int_largest)" \
+      "$(mem_field "$l" psram)" >> "$json"
+    echo "  $1: $(echo "$l" | grep -o 'int=.*')"
+  }
+  if [ "${MEMORY_STAGES_ONLY:-0}" != 1 ] && [ "$DEVICE_STARTED" = 1 ]; then
+    source "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash"
+    export ROS_DOMAIN_ID=0
+    export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+    local pids=()
+    sleep 4; step_json baseline "$(mem_status)"
+    # one remote participant with nothing the device subscribes to (its ~10
+    # builtin endpoints still land in the known-endpoint registry)
+    timeout 120 ros2 topic pub -r 1 /mem_unrelated_1 std_msgs/msg/String "data: 'mem'" > /dev/null 2>&1 & pids+=($!)
+    sleep 10; step_json "+1 remote participant (no match)" "$(mem_status)"
+    timeout 110 ros2 topic pub -r 1 /mem_unrelated_2 std_msgs/msg/String "data: 'mem'" > /dev/null 2>&1 & pids+=($!)
+    sleep 10; step_json "+1 more remote participant (no match)" "$(mem_status)"
+    # a participant whose publisher matches the device's reliable subscriber
+    timeout 100 ros2 topic pub -r 1 /qemu_rx std_msgs/msg/String "data: 'mem'" > /dev/null 2>&1 & pids+=($!)
+    sleep 10; step_json "+1 remote participant with a matched publisher" "$(mem_status)"
+    # a service call (the reply writer's history, the held-reply machinery):
+    # the reading is attributed to a completed call only when the client got
+    # its reply and the device logged serving it
+    local m; m=$(mark)
+    timeout 30 ros2 service call /qemu_add_two_ints example_interfaces/srv/AddTwoInts "{a: 1, b: 2}" > /tmp/mem_srv.log 2>&1
+    local srv_rc=$?
+    grep -q "sum=3" /tmp/mem_srv.log || srv_rc=1
+    [ "$(count_since "$m" "RTPSTEST srv 1+2=3")" -ge 1 ] || srv_rc=1
+    result "memory_service_call" $srv_rc
+    sleep 4
+    step_json "after a service call$([ $srv_rc -eq 0 ] || echo ' (the call FAILED)')" "$(mem_status)"
+    # one 30 KB sample: the reassembly and receive buffers grow once to it.
+    # Published a few times at 0.5 Hz (the first may go out before the match)
+    # and waited for by its marker, up to 20 s
+    m=$(mark)
+    local big; big=$(head -c 30000 /dev/zero | tr '\0' x)
+    timeout 20 ros2 topic pub -t 3 -r 0.5 /qemu_big std_msgs/msg/String "data: '$big'" > /dev/null 2>&1 & pids+=($!)
+    local big_rc=1 i
+    for i in $(seq 1 20); do
+      if [ "$(count_since "$m" "RTPSTEST big_rx len=30000")" -ge 1 ]; then big_rc=0; break; fi
+      sleep 1
+    done
+    result "memory_big_sample" $big_rc
+    sleep 2
+    step_json "after one 30 KB sample$([ $big_rc -eq 0 ] || echo ' (NOT delivered)')" "$(mem_status)"
+    stop_pids "${pids[@]}"
+    sleep 16 # the capped lease (8 s) and a liveliness sweep: every peer forgotten
+    step_json "all peers gone" "$(mem_status)"
+  fi
+  {
+    echo
+    echo '  ]'
+    echo '}'
+  } >> "$json"
+  python3 /work/components/rtps/interop/qemu/memory_report.py "$json"
+  result "memory_report" $?
+}
+
 case "$SUITE" in
   matrix) run_matrix ;;
   soak) run_soak ;;
+  memory) run_memory ;;
   *) echo "unknown suite: $SUITE (matrix|soak)"; exit 2 ;;
 esac
 device_health
