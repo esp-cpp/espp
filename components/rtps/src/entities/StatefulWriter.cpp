@@ -313,13 +313,17 @@ void StatefulWriter::setAllChangesToUnsent() {
 }
 
 bool StatefulWriter::addNewMatchedReader(const ReaderProxy &newProxy) {
-  std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  if (!Writer::addNewMatchedReader(newProxy)) {
-    return false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (!Writer::addNewMatchedReader(newProxy)) {
+      return false;
+    }
+    // The heartbeat (an empty one, first 1 / last 0, when nothing was written
+    // yet) is what the reader answers with the ACKNACK that acknowledges us.
+    m_nextHeartbeat = std::chrono::steady_clock::now();
   }
-  // The heartbeat (an empty one, first 1 / last 0, when nothing was written
-  // yet) is what the reader answers with the ACKNACK that acknowledges us.
-  m_nextHeartbeat = std::chrono::steady_clock::now();
+  // The nudge is a callback into the Domain's scheduler: invoked outside
+  // m_mutex so it cannot take part in a lock-order cycle with it.
   if (m_protocolNudge) {
     m_protocolNudge();
   }
@@ -368,12 +372,14 @@ void StatefulWriter::onNewAckNack(const SubmessageAckNack &msg,
   // pre-emptive ACKNACK both trigger below. Fast DDS and this engine start
   // their counts at 1; their pre-emptive ACKNACK acknowledges at once, and
   // neither skips what its first heartbeat announces. An ACKNACK that
-  // requests samples has a heartbeat behind it whatever its count (a count
-  // that wrapped, a vendor counting from 0): it acknowledges, and it is
-  // processed below like any other.
-  const bool preemptive = (nextSN.low == 0 && nextSN.high == 0) ||
-                          (msg.count.value == 0 && msg.readerSNState.numBits == 0);
-  if (msg.count.value != 0 || msg.readerSNState.numBits != 0) {
+  // requests samples has a heartbeat behind it whatever its count or base (a
+  // count that wrapped, a vendor counting from 0): it acknowledges, and it is
+  // processed below like any other. Pre-emptive, then, is an EMPTY set at
+  // base 0 (Fast DDS, the older form of this engine) or numbered 0 (Cyclone).
+  const bool requests_nothing = msg.readerSNState.numBits == 0;
+  const bool preemptive =
+      requests_nothing && ((nextSN.low == 0 && nextSN.high == 0) || msg.count.value == 0);
+  if (!requests_nothing || msg.count.value != 0) {
     reader->acknowledged = true;
   }
 

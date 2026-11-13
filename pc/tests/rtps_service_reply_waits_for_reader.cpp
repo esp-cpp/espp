@@ -42,8 +42,8 @@
 //  6. with the reader acknowledged, a second request's reply is written at
 //     once;
 //  7. a request naming a reader that is never announced is still answered:
-//     nothing for 300 ms, then (timeout 2 s) the reply goes to the readers
-//     the writer has, as before the hold existed.
+//     nothing for 300 ms, then (kHoldTimeout, 2 s) the reply goes to the
+//     readers the writer has, as before the hold existed.
 //
 // Exits 0 on success, 1 on the first failed check.
 
@@ -75,6 +75,10 @@ constexpr std::array<uint8_t, 2> kFastDdsVendor{0x01, 0x0f};
 constexpr const char *kService = "/reply_waits_for_reader";
 constexpr const char *kType = "example_interfaces::srv::dds_::AddTwoInts";
 constexpr uint8_t kReply[8] = {0, 1, 0, 0, 7, 0, 0, 0};
+// The server's hold (Config::service_reply_match_timeout): long enough for
+// checks 2-4 to run their course before it (about 1.6 s at most), short
+// enough for check 7 to fit the test. Check 7's wait is derived from it.
+constexpr std::chrono::milliseconds kHoldTimeout{2000};
 
 #define CHECK(cond, msg)                                                                           \
   do {                                                                                             \
@@ -449,11 +453,9 @@ bool run_checks() {
   timeval tv{0, 50000};
   ::setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-  // The server: a 2 s hold, long enough for checks 2-4 to run their course
-  // before it and short enough for check 7 to fit the test.
   espp::RtpsParticipant server({.interface_address = ip_str,
                                 .log_level = espp::Logger::Verbosity::WARN,
-                                .service_reply_match_timeout = std::chrono::milliseconds(2000)});
+                                .service_reply_match_timeout = kHoldTimeout});
   CHECK(server.start(), "server start");
   std::atomic<int> served{0};
   CHECK(server.add_service_server({kService, kType},
@@ -551,7 +553,8 @@ bool run_checks() {
   // 7. A reader that never appears: held for the timeout, then written anyway.
   send_request(3, never_announced);
   CHECK(!reply_arrived(sock, 300, seen), "a reply for an unknown reader is held");
-  CHECK(reply_arrived(sock, 2500, seen), "... and written once the hold times out");
+  CHECK(reply_arrived(sock, static_cast<int>(kHoldTimeout.count()) + 500, seen),
+        "... and written once the hold times out");
   CHECK(seen.related_seq == 3, "it is the reply to request 3");
 
   server.stop();

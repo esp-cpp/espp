@@ -907,10 +907,10 @@ struct RtpsParticipant::ServiceServerContext
   // an in-flight reply()) BEFORE the writer is deleted.
   std::shared_ptr<Liveness> writer_live{std::make_shared<Liveness>()};
 
-  // A reply in wire form, with whose acknowledgement it waits for. Replies are
-  // held here until the requester's reply reader is matched to reply_writer
-  // AND has acknowledged it (or the participant's service_reply_match_timeout
-  // passes); see ServiceResponder::reply() for why.
+  // A reply in wire form, and the reader whose acknowledgement it waits for.
+  // Replies are held here until the requester's reply reader is matched to
+  // reply_writer AND has acknowledged it (or the participant's
+  // service_reply_match_timeout passes); see ServiceResponder::reply() for why.
   struct HeldReply {
     std::vector<uint8_t> payload; // the Cyclone header, when one applies, already spliced in
     bool cyclonedds{false};
